@@ -39,6 +39,8 @@ namespace Gonogo.KSP.Tests
         private static readonly string[] HandRegistered =
         {
             "CommandCentreDelayUplink",
+            // Plans contacts for the same centres the delay pass routes, so the addon hands it that registry.
+            "ContactPlanUplink",
             // Core messaging between command centres; the addon constructs it beside the pass whose routes it reads.
             "CommcastUplink",
             // Deliberately attribute-free: it earns its Availability from the

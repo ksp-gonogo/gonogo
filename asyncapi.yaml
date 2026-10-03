@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 28.1.0
+  version: 28.2.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 82 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -158,7 +158,7 @@ info:
     - name: commcast
       description: 2 telemetry channels, 5 commands
     - name: comms
-      description: 10 telemetry channels, 0 commands
+      description: 11 telemetry channels, 0 commands
     - name: crash
       description: 1 telemetry channel, 0 commands
     - name: deployed
@@ -940,6 +940,34 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.comms.connectivity"
+      event:
+        $ref: "#/components/messages/event"
+  comms.contacts:
+    address: comms.contacts
+    description: |-
+      Carries a `CommsContacts`.
+
+      The predicted contact plan: for each pair of nodes that could hold a link (a
+      ground station and a craft, or two craft), the windows over the coming hours
+      when nothing blocks it and it is within reach.
+
+      A prediction, from the orbits as they stood when the plan was made. The live
+      link the game reports always decides what actually gets through; this says
+      when that link is expected to exist. A pair absent from
+      `CommsContacts.pairs` was not predicted at all, which is different from a
+      pair listed with no windows: that one is predicted never to be in contact
+      before its `CommsContactPair.horizonUt`.
+
+      DELAYED, so each command centre receives the plan one of its own light-times
+      after it was made, and so plans from what it could know by then.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.comms.contacts"
       event:
         $ref: "#/components/messages/event"
   comms.control:
@@ -4653,6 +4681,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.connectivity/messages/streamData"
       - $ref: "#/channels/comms.connectivity/messages/event"
+  read:comms.contacts:
+    action: receive
+    channel:
+      $ref: "#/channels/comms.contacts"
+    title: Read comms.contacts
+    description: Delivered only after `subscribe` names `comms.contacts` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: comms
+    messages:
+      - $ref: "#/channels/comms.contacts/messages/streamData"
+      - $ref: "#/channels/comms.contacts/messages/event"
   read:comms.control:
     action: receive
     channel:
@@ -7288,6 +7327,19 @@ components:
                 const: comms.connectivity
               payload:
                 $ref: "#/components/schemas/CommsConnectivity"
+    streamData.comms.contacts:
+      name: stream-data
+      title: A frame on comms.contacts
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `comms.contacts`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: comms.contacts
+              payload:
+                $ref: "#/components/schemas/CommsContacts"
     streamData.comms.control:
       name: stream-data
       title: A frame on comms.control
@@ -10791,6 +10843,83 @@ components:
             flown with no link home. Full control sets it too, including full control an
             uncrewed probe has over its link. False alongside
             `CommsControlSource.Unknown`.
+    CommsContactPair:
+      type: object
+      description: Two nodes and the windows the plan predicts contact between them.
+      required:
+        - a
+        - b
+        - horizonUt
+        - windows
+      properties:
+        a:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            One end, in the `commandCentre.roster` vocabulary: `"ground:<name>"` or
+            `"vessel:<guid>"`.
+        b:
+          type: string
+          x-sitrep-unit: id
+          description: The other end, in the same vocabulary.
+        horizonUt:
+          type: number
+          x-sitrep-unit: ut
+          description: |-
+            The last instant predicted for this pair: the plan's horizon, or sooner
+            where either end's motion cannot be trusted that far ahead.
+        windows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsContactWindow"
+          description: |-
+            Every window of contact up to `CommsContactPair.horizonUt`, in time order.
+            Empty when none is predicted.
+    CommsContactWindow:
+      type: object
+      description: One predicted stretch of contact.
+      properties:
+        openUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: When contact begins, or `null` when it is already open at the plan's start.
+        closeUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: When contact ends, or `null` when it is still open at the pair's horizon.
+    CommsContacts:
+      type: object
+      description: |-
+        The predicted contact plan: for each pair of nodes that could hold a link (a
+        ground station and a craft, or two craft), the windows over the coming hours
+        when nothing blocks it and it is within reach.
+
+        A prediction, from the orbits as they stood when the plan was made. The live
+        link the game reports always decides what actually gets through; this says
+        when that link is expected to exist. A pair absent from
+        `CommsContacts.pairs` was not predicted at all, which is different from a
+        pair listed with no windows: that one is predicted never to be in contact
+        before its `CommsContactPair.horizonUt`.
+
+        DELAYED, so each command centre receives the plan one of its own light-times
+        after it was made, and so plans from what it could know by then.
+      required:
+        - horizonUt
+        - pairs
+      properties:
+        horizonUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The universal time the plan reaches to; nothing is predicted past it.
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsContactPair"
+          description: Every pair predicted, each with its windows.
     CommsControl:
       type: object
       description: |-

@@ -2227,8 +2227,12 @@ namespace Sitrep.Contract
         /// topic (one SCANsat scan type locked, the others open). Additive: a requirement that
         /// needed an argument on a channel was refused at startup before, so no Uplink built
         /// against 28.0 declares one.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 1 -&gt; 2:</b> <see cref="CommsContacts"/>, the
+        /// predicted contact windows between every ground station and craft. A new topic, so
+        /// an Uplink built against 28.1 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

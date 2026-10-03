@@ -1,11 +1,17 @@
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Console, EmptyState, PlusIcon } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { Addressees } from "./CommcastAddressee";
 import { CommcastBackButton } from "./CommcastBackButton";
 import { CommcastComposer } from "./CommcastComposer";
-import type { AddressBook, useLocalParticipant } from "./CommcastContext";
+import {
+  type AddressBook,
+  useContactPlan,
+  type useLocalParticipant,
+} from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
 import { CommcastMessageRow } from "./CommcastMessageRow";
+import { nextContactUt } from "./commcastSendStatus";
 import {
   COMMCAST_TONE,
   Commcast__Bar,
@@ -65,9 +71,12 @@ export function CommcastThreadView({
   const nameFor = book.nameFor;
   const threadName = namesOf(thread.with, nameFor);
   // Everyone the words go to, other than this vantage, who the roster no longer lists.
-  const unreachable = members
-    .filter((id) => id !== me.vantageId && book.unreachableOf(id) !== undefined)
-    .map(nameFor);
+  const gone = members.filter(
+    (id) => id !== me.vantageId && book.unreachableOf(id) !== undefined,
+  );
+  const unreachable = gone.map(nameFor);
+  const plan = useContactPlan();
+  const backInSeconds = backIn(plan, me.vantageId, gone, utNow);
   return (
     <>
       {/*
@@ -124,6 +133,7 @@ export function CommcastThreadView({
             members={members}
             noPath={noPath}
             unreachable={unreachable}
+            backInSeconds={backInSeconds}
             separationSeconds={separationSeconds}
           />
         }
@@ -150,4 +160,21 @@ export function CommcastThreadView({
       </Console>
     </>
   );
+}
+
+/** Seconds until the plan has every unreachable member back in direct contact, or undefined when any of them has no predicted return. */
+function backIn(
+  plan: ReturnType<typeof useContactPlan>,
+  from: string | undefined,
+  gone: readonly RecipientId[],
+  utNow: number | undefined,
+): Value<"s"> | undefined {
+  if (!plan || from === undefined || utNow === undefined) return undefined;
+  let latest: Value<"ut"> | undefined;
+  for (const id of gone) {
+    const ut = nextContactUt(plan, from, id, utNow);
+    if (ut === undefined) return undefined;
+    latest = latest === undefined ? ut : latest.max(ut);
+  }
+  return latest?.minus(value("ut", utNow));
 }

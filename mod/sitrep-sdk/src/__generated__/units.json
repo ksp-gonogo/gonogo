@@ -358,6 +358,18 @@
       "controlSource": "enum",
       "hasLocalControl": "flag"
     },
+    "CommsContactPair": {
+      "a": "id",
+      "b": "id",
+      "horizonUt": "ut"
+    },
+    "CommsContactWindow": {
+      "closeUt": "ut",
+      "openUt": "ut"
+    },
+    "CommsContacts": {
+      "horizonUt": "ut"
+    },
     "CommsControl": {
       "level": "enum",
       "reason": "text"
@@ -1561,6 +1573,9 @@
       "controlSource": "enum",
       "hasLocalControl": "flag"
     },
+    "comms.contacts": {
+      "horizonUt": "ut"
+    },
     "comms.control": {
       "level": "enum",
       "reason": "text"
@@ -2173,6 +2188,12 @@
     "CommcastTransmissionRow": {
       "author": "CommcastAuthor"
     },
+    "CommsContactPair": {
+      "windows": "CommsContactWindow[]"
+    },
+    "CommsContacts": {
+      "pairs": "CommsContactPair[]"
+    },
     "CommsDelay": {
       "meta": "PayloadMeta"
     },
@@ -2450,6 +2471,9 @@
     },
     "commcast.transmissions": {
       "author": "CommcastAuthor"
+    },
+    "comms.contacts": {
+      "pairs": "CommsContactPair[]"
     },
     "comms.delay": {
       "meta": "PayloadMeta"

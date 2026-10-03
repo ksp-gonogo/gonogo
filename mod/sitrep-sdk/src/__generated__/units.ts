@@ -398,6 +398,18 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     controlSource: "enum",
     hasLocalControl: "flag",
   },
+  "CommsContactPair": {
+    a: "id",
+    b: "id",
+    horizonUt: "ut",
+  },
+  "CommsContactWindow": {
+    closeUt: "ut",
+    openUt: "ut",
+  },
+  "CommsContacts": {
+    horizonUt: "ut",
+  },
   "CommsControl": {
     level: "enum",
     reason: "text",
@@ -1606,6 +1618,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     controlSource: "enum",
     hasLocalControl: "flag",
   },
+  "comms.contacts": {
+    horizonUt: "ut",
+  },
   "comms.control": {
     level: "enum",
     reason: "text",
@@ -2247,6 +2262,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommcastTransmissionRow": {
     author: "CommcastAuthor",
   },
+  "CommsContactPair": {
+    windows: "CommsContactWindow[]",
+  },
+  "CommsContacts": {
+    pairs: "CommsContactPair[]",
+  },
   "CommsDelay": {
     meta: "PayloadMeta",
   },
@@ -2526,6 +2547,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "commcast.transmissions": {
     author: "CommcastAuthor",
+  },
+  "comms.contacts": {
+    pairs: "CommsContactPair[]",
   },
   "comms.delay": {
     meta: "PayloadMeta",

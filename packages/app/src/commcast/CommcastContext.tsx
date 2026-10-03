@@ -16,6 +16,7 @@ import { useStationNameOptional } from "../stationIdentity";
 import { CommcastLog } from "./CommcastLog";
 import { useCommcastLogOptional } from "./CommcastLogContext";
 import { attachCommcastModLink } from "./CommcastModLink";
+import type { PlannedContact } from "./commcastSendStatus";
 import type { SeparationMatrix, Vantage } from "./reveal";
 import type { CommsRecipient, RecipientId } from "./types";
 
@@ -180,6 +181,20 @@ export function useRecipients(me: Vantage): readonly CommsRecipient[] {
         })),
     [entries, me.vantageId],
   );
+}
+
+/**
+ * The contact plan's pairs. A held plan still counts:
+ * it is a prediction from the orbits it was made from, and stays one until a
+ * newer plan replaces it. `undefined` until the first plan lands.
+ */
+export function useContactPlan(): readonly PlannedContact[] | undefined {
+  const reading = useTelemetry("comms.contacts");
+  const pairs =
+    reading.state === "observed" || reading.state === "held"
+      ? reading.value.pairs
+      : undefined;
+  return pairs;
 }
 
 /** The local reader's vantage, the shape every reveal decision is made against. */

@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { ComposerBar, VisuallyHidden } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { useLocalParticipant } from "./CommcastContext";
@@ -16,6 +17,7 @@ export function CommcastComposer({
   members,
   noPath,
   unreachable,
+  backInSeconds,
   separationSeconds,
 }: {
   log: CommcastLog;
@@ -30,10 +32,12 @@ export function CommcastComposer({
   noPath: boolean;
   /** Names of the members the roster no longer lists; the send control says so but still sends. */
   unreachable: readonly string[];
+  /** How long until the contact plan has every unreachable member back; undefined when unknown. */
+  backInSeconds: Value<"s"> | undefined;
   separationSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
-  const status = sendStatusFor(unreachable);
+  const status = sendStatusFor(unreachable, backInSeconds);
   const ready =
     draft.trim().length > 0 &&
     utNow !== undefined &&

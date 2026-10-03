@@ -1,10 +1,11 @@
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 /** Whether the addressee can be reached now, and when that changes. */
 export type ContactStatus =
   | { kind: "in-contact" }
-  | { kind: "loss-in"; seconds: number }
-  | { kind: "back-in"; seconds: number }
+  | { kind: "loss-in"; seconds: Value<"s"> }
+  | { kind: "back-in"; seconds: Value<"s"> }
   | { kind: "none" };
 
 /** What a send is expected to do, assuming nobody intervenes. */
@@ -18,15 +19,16 @@ export interface SendStatus {
   arrival: Arrival;
 }
 
-const duration = (seconds: number) =>
-  writeQuantity({ magnitude: seconds, unit: "s" });
+const duration = (seconds: Value<"s"> | number) =>
+  writeQuantity(typeof seconds === "number" ? value("s", seconds) : seconds);
 
 /** Every word the status can say, keyed by state, so a wording change is an edit here and nowhere else. */
 const WORDS = {
   contact: {
     "in-contact": () => "In contact",
-    "loss-in": (seconds: number) => `LOS in ${duration(seconds)}`,
-    "back-in": (seconds: number) => `No contact, back in ${duration(seconds)}`,
+    "loss-in": (seconds: Value<"s">) => `LOS in ${duration(seconds)}`,
+    "back-in": (seconds: Value<"s">) =>
+      `No contact, back in ${duration(seconds)}`,
     none: () => "No contact",
   },
   delay: {
@@ -53,15 +55,60 @@ export function describeSendStatus(status: SendStatus): string {
   return `${first} · ${delay}\n${WORDS.arrival[status.arrival]}`;
 }
 
+/** One pair of the contact plan; an absent edge is a window already open at the plan's start or still open at its horizon. */
+export interface PlannedContact {
+  a: string;
+  b: string;
+  horizonUt: Value<"ut">;
+  windows: readonly {
+    openUt?: Value<"ut"> | null;
+    closeUt?: Value<"ut"> | null;
+  }[];
+}
+
 /**
- * The status Commcast can determine today. An addressee the roster no longer
- * lists is out of contact with no return known; nothing predicts a loss of
- * signal or a return, so the other states are not produced here, and an
- * addressee in contact has no status to show.
+ * When the plan next opens direct contact between two addresses after `utNow`.
+ * Undefined when the plan does not cover the pair, predicts no window before the
+ * pair's horizon, or predicts contact at `utNow`: the roster has just said
+ * otherwise, and the live link outranks a prediction.
+ */
+export function nextContactUt(
+  plan: readonly PlannedContact[],
+  from: string,
+  to: string,
+  utNow: number,
+): Value<"ut"> | undefined {
+  const pair = plan.find(
+    (p) => (p.a === from && p.b === to) || (p.a === to && p.b === from),
+  );
+  if (!pair) return undefined;
+  const now = value("ut", utNow);
+  for (const window of pair.windows) {
+    const closes = window.closeUt ?? pair.horizonUt;
+    if (!closes.greaterThan(now)) continue;
+    return window.openUt?.greaterThan(now) ? window.openUt : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * The status for a send to a group, given who in it the roster no longer lists.
+ * `backInSeconds` is how long until the plan predicts every one of them back in
+ * direct contact with this vantage; a relay can bring one back sooner, so it is
+ * the latest the contact returns rather than the earliest. Without it the return
+ * is unknown. Either way the words go now and nothing holds them for the return,
+ * so they are likely lost; an addressee in contact has no status to show.
  */
 export function sendStatusFor(
   unreachable: readonly string[],
+  backInSeconds?: Value<"s">,
 ): SendStatus | undefined {
   if (unreachable.length === 0) return undefined;
-  return { contact: { kind: "none" }, arrival: "likely-lost" };
+  return {
+    contact:
+      backInSeconds === undefined
+        ? { kind: "none" }
+        : { kind: "back-in", seconds: backInSeconds },
+    arrival: "likely-lost",
+  };
 }

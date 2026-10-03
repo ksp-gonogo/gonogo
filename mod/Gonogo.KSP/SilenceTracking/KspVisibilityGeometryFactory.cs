@@ -156,7 +156,7 @@ namespace Gonogo.KSP.SilenceTracking
             double longitudeOffset;
             if (!StationLongitudeCalibration.TryGet(stationBodyIndex, out longitudeOffset))
             {
-                if (!TryCalibrate(sample, stationBody, comm, occlusion, stationBodyIndex, out longitudeOffset))
+                if (!TryCalibrate(stationBody, comm, occlusion, stationBodyIndex, out longitudeOffset))
                 {
                     SilenceTrace.NoGeometry("longitude not calibrated yet for " + stationBody.bodyName);
                     return null;
@@ -458,14 +458,41 @@ namespace Gonogo.KSP.SilenceTracking
         /// here that is easy to get wrong silently, which is what the
         /// separation self-check exists to catch.
         /// </summary>
-        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double longitudeOffsetDeg)
+        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double longitudeOffsetDeg) =>
+            SurfacePointAt(body, comm.precisePosition, longitudeOffsetDeg);
+
+        /// <summary>
+        /// The surface point under <paramref name="node"/> on <paramref name="body"/>,
+        /// with the body's longitude offset taken from its calibration, or
+        /// measured now if the body has none yet. The offset belongs to the
+        /// body, not to any one point on it, so any node on the surface can be
+        /// the one it is measured at: a landed craft calibrates a body with no
+        /// ground station. Null until a calibration is possible. MAIN THREAD.
+        /// </summary>
+        internal RotatingGroundStation? CalibratedSurfacePoint(CelestialBody body, CommNode node)
+        {
+            var bodies = FlightGlobals.Bodies;
+            var bodyIndex = bodies == null ? -1 : bodies.IndexOf(body);
+            if (bodyIndex < 0 || node == null)
+            {
+                return null;
+            }
+            double offset;
+            if (!StationLongitudeCalibration.TryGet(bodyIndex, out offset)
+                && !TryCalibrate(body, node, CommsElection.OcclusionModel(_kernel()), bodyIndex, out offset))
+            {
+                return null;
+            }
+            return SurfacePointAt(body, node.precisePosition, offset);
+        }
+
+        private static RotatingGroundStation? SurfacePointAt(CelestialBody body, Vector3d world, double longitudeOffsetDeg)
         {
             if (!(body.Radius > 0.0) || !(Math.Abs(body.rotationPeriod) > 0.0))
             {
                 return null;
             }
 
-            var world = comm.precisePosition;
             var latitude = body.GetLatitude(world);
             var altitude = body.GetAltitude(world);
             var inertialLongitude = body.GetLongitude(world) + body.rotationAngle + longitudeOffsetDeg;
@@ -554,7 +581,6 @@ namespace Gonogo.KSP.SilenceTracking
         /// and a prediction withheld for a few ticks costs nothing.</para>
         /// </summary>
         private bool TryCalibrate(
-            SilenceSample sample,
             CelestialBody stationBody,
             CommNode comm,
             ICommsOcclusionModel occlusion,
@@ -778,7 +804,7 @@ namespace Gonogo.KSP.SilenceTracking
             return CommsElection.ReachModel(_kernel(), vesselNode, station);
         }
 
-        private static double OccludingRadiusOf(ICommsOcclusionModel model, CelestialBody body)
+        internal static double OccludingRadiusOf(ICommsOcclusionModel model, CelestialBody body)
         {
             if (body == null)
             {
@@ -849,7 +875,7 @@ namespace Gonogo.KSP.SilenceTracking
             }
         }
 
-        private static OrbitElements ElementsOf(Orbit orbit) =>
+        internal static OrbitElements ElementsOf(Orbit orbit) =>
             OrbitElements.FromKspDegrees(
                 sma: orbit.semiMajorAxis,
                 ecc: orbit.eccentricity,

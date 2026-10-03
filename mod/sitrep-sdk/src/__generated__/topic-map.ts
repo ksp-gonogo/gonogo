@@ -40,6 +40,7 @@ import type {
   CommcastTransmissionRow,
   CommsCommandCentre,
   CommsConnectivity,
+  CommsContacts,
   CommsControl,
   CommsDegrade,
   CommsDelay,
@@ -126,6 +127,7 @@ export interface GeneratedTopicPayloadMap {
   "commcast.transmissions": CommcastTransmissionRow;
   "comms.commandCentre": CommsCommandCentre;
   "comms.connectivity": CommsConnectivity;
+  "comms.contacts": CommsContacts;
   "comms.control": CommsControl;
   "comms.degrade": CommsDegrade;
   "comms.delay": CommsDelay;
@@ -210,6 +212,7 @@ export const GENERATED_TOPIC_IDS = [
   "commcast.transmissions",
   "comms.commandCentre",
   "comms.connectivity",
+  "comms.contacts",
   "comms.control",
   "comms.degrade",
   "comms.delay",

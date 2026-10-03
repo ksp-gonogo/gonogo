@@ -2092,6 +2092,67 @@ export interface CommsCommandCentre
 	bodyIndex?: number | null;
 }
 /**
+* The predicted contact plan: for each pair of nodes that could hold a link (a
+* ground station and a craft, or two craft), the windows over the coming hours
+* when nothing blocks it and it is within reach.
+*
+* A prediction, from the orbits as they stood when the plan was made. The live
+* link the game reports always decides what actually gets through; this says
+* when that link is expected to exist. A pair absent from
+* `CommsContacts.pairs` was not predicted at all, which is different from a
+* pair listed with no windows: that one is predicted never to be in contact
+* before its `CommsContactPair.horizonUt`.
+*
+* DELAYED, so each command centre receives the plan one of its own light-times
+* after it was made, and so plans from what it could know by then.
+*
+* @category Comms
+*/
+export interface CommsContacts
+{
+	/** The universal time the plan reaches to; nothing is predicted past it. */
+	horizonUt: Value<"ut">;
+	/** Every pair predicted, each with its windows. */
+	pairs: CommsContactPair[];
+}
+/**
+* Two nodes and the windows the plan predicts contact between them.
+*
+* @category Comms
+*/
+export interface CommsContactPair
+{
+	/**
+	* One end, in the `commandCentre.roster` vocabulary: `"ground:<name>"` or
+	* `"vessel:<guid>"`.
+	*/
+	a: string;
+	/** The other end, in the same vocabulary. */
+	b: string;
+	/**
+	* The last instant predicted for this pair: the plan's horizon, or sooner
+	* where either end's motion cannot be trusted that far ahead.
+	*/
+	horizonUt: Value<"ut">;
+	/**
+	* Every window of contact up to `CommsContactPair.horizonUt`, in time order.
+	* Empty when none is predicted.
+	*/
+	windows: CommsContactWindow[];
+}
+/**
+* One predicted stretch of contact.
+*
+* @category Comms
+*/
+export interface CommsContactWindow
+{
+	/** When contact begins, or `null` when it is already open at the plan's start. */
+	openUt?: Value<"ut"> | null;
+	/** When contact ends, or `null` when it is still open at the pair's horizon. */
+	closeUt?: Value<"ut"> | null;
+}
+/**
 * The `comms.degrade` payload: how degraded the active vessel's link home is
 * right now, on one fixed scale, as the comms backend in force grades it.
 *

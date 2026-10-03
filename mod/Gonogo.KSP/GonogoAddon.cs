@@ -211,6 +211,7 @@ namespace Gonogo.KSP
                 }
                 var homeEngine = _engine;
                 _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
+                _engine.RegisterUplink(new ContactPlanUplink(ccRegistry));
                 // Messages and radio between centres, timed by the centre-to-centre
                 // rows the pass above writes.
                 _engine.RegisterUplink(new Sitrep.Host.Commcast.CommcastUplink());

@@ -247,6 +247,15 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CentreSeparationEntry separationEntry:
                     AppendCentreSeparationEntry(sb, separationEntry);
                     break;
+                case Sitrep.Contract.CommsContacts contacts:
+                    AppendCommsContacts(sb, contacts);
+                    break;
+                case Sitrep.Contract.CommsContactPair contactPair:
+                    AppendCommsContactPair(sb, contactPair);
+                    break;
+                case Sitrep.Contract.CommsContactWindow contactWindow:
+                    AppendCommsContactWindow(sb, contactWindow);
+                    break;
                 case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
                     AppendCommandCentreActiveVesselDelay(sb, activeVesselDelay);
                     break;
@@ -1435,6 +1444,78 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsContacts(
+            StringBuilder sb, Sitrep.Contract.CommsContacts c)
+        {
+            sb.Append('{');
+            AppendString(sb, "horizonUt");
+            sb.Append(':');
+            AppendNumber(sb, c.HorizonUt);
+            sb.Append(',');
+            AppendString(sb, "pairs");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            if (c.Pairs != null)
+            {
+                foreach (var pair in c.Pairs)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    AppendCommsContactPair(sb, pair);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsContactPair(
+            StringBuilder sb, Sitrep.Contract.CommsContactPair p)
+        {
+            sb.Append('{');
+            AppendString(sb, "a");
+            sb.Append(':');
+            AppendString(sb, p.A ?? "");
+            sb.Append(',');
+            AppendString(sb, "b");
+            sb.Append(':');
+            AppendString(sb, p.B ?? "");
+            sb.Append(',');
+            AppendString(sb, "horizonUt");
+            sb.Append(':');
+            AppendNumber(sb, p.HorizonUt);
+            sb.Append(',');
+            AppendString(sb, "windows");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            if (p.Windows != null)
+            {
+                foreach (var w in p.Windows)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    AppendCommsContactWindow(sb, w);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsContactWindow(
+            StringBuilder sb, Sitrep.Contract.CommsContactWindow w)
+        {
+            sb.Append('{');
+            AppendString(sb, "openUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, w.OpenUt);
+            sb.Append(',');
+            AppendString(sb, "closeUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, w.CloseUt);
             sb.Append('}');
         }
 

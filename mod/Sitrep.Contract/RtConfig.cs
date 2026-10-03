@@ -382,6 +382,10 @@ public static class RtConfig
                 // commands are timed by
                 typeof(CommandCentreActiveVesselDelay),
                 typeof(CentreDelayEntry),
+                // comms.contacts: the predicted contact plan, per pair
+                typeof(CommsContacts),
+                typeof(CommsContactPair),
+                typeof(CommsContactWindow),
                 // commcast.traffic, and the descriptor that opens every
                 // commcast.radio frame on the binary lane
                 typeof(CommcastTraffic),
