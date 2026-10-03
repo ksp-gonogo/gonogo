@@ -390,6 +390,17 @@ namespace Sitrep.Host
         // the Courier-thread mapper. See SampleCommandGates.
         private CommandGateReport _commandGateReport = new CommandGateReport();
 
+        // Per declared channel, each payload field a [SitrepRequires] gates, by
+        // its wire name. Built once at Start; read by the main-thread sampler.
+        private Dictionary<string, List<KeyValuePair<string, CommandRequirement[]>>> _fieldRequirements =
+            new Dictionary<string, List<KeyValuePair<string, CommandRequirement[]>>>();
+
+        // The fields the last gate sample found locked, per topic, with the
+        // unlocks each is missing. Written by the main-thread sampler, read by
+        // the Courier tick, replaced whole so a reader never sees it half-built.
+        private Dictionary<string, Dictionary<string, List<MissingUnlock>>> _lockedFields =
+            new Dictionary<string, Dictionary<string, List<MissingUnlock>>>();
+
         // Wall clock for the gate cadence, not UT: GonogoAddon drives the sample
         // from Update(), which keeps running while the game is paused, and a
         // paused game is exactly when an operator has time to read the console.
@@ -1663,6 +1674,7 @@ namespace Sitrep.Host
             // to tear down. See ValidateGateDeclarations for why it cannot live
             // in AddCommandHandler beside the missing-declaration check.
             ValidateGateDeclarations();
+            _fieldRequirements = DiscoverFieldRequirements();
             ValidateCommandSubjects();
             _courierThread.Start();
             _listener.Start();
@@ -3644,11 +3656,98 @@ namespace Sitrep.Host
                 return;
             }
 
+            var lockedFields = new Dictionary<string, Dictionary<string, List<MissingUnlock>>>(StringComparer.Ordinal);
+            try
+            {
+                foreach (var channel in _fieldRequirements)
+                {
+                    foreach (var field in channel.Value)
+                    {
+                        var verdict = EvaluateRequirementsHere(
+                            channel.Key + "." + field.Key, field.Value, GateArguments.None, memo);
+                        if (verdict.Outcome != GateOutcome.Fail || verdict.ErrorCode != CommandErrorCode.NotUnlocked)
+                        {
+                            continue;
+                        }
+                        if (!lockedFields.TryGetValue(channel.Key, out var fields))
+                        {
+                            fields = new Dictionary<string, List<MissingUnlock>>(StringComparer.Ordinal);
+                            lockedFields[channel.Key] = fields;
+                        }
+                        fields[field.Key] = verdict.Missing ?? new List<MissingUnlock>();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHost("field gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
+                return;
+            }
+            Volatile.Write(ref _lockedFields, lockedFields);
+
             // memo.Count is exactly the number of argument-free evaluator calls
             // this pass made, a repeated requirement being answered from the
             // memo without one; every item is a pass over the command of its own.
             _commandGateBudget?.Record(memo.Count + itemEvaluations, nowSec);
             Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = channels });
+        }
+
+        /// <summary>
+        /// Every payload field a <see cref="SitrepRequiresAttribute"/> gates on a
+        /// channel this engine declares, by wire name. A requirement whose kind
+        /// no evaluator answers is left out and logged rather than refused: the
+        /// marker sits on a shared contract type, and an engine without that
+        /// game's evaluators simply never locks the field.
+        /// </summary>
+        private Dictionary<string, List<KeyValuePair<string, CommandRequirement[]>>> DiscoverFieldRequirements()
+        {
+            var found = new Dictionary<string, List<KeyValuePair<string, CommandRequirement[]>>>(StringComparer.Ordinal);
+            foreach (var type in typeof(SitrepTopicAttribute).Assembly.GetTypes())
+            {
+                var topic = type.GetCustomAttribute<SitrepTopicAttribute>()?.TopicId;
+                if (topic == null || !_channelDeclarations.ContainsKey(topic)) continue;
+                foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    var requirements = property.GetCustomAttributes<SitrepRequiresAttribute>()
+                        .Select(a => a.ToRequirement())
+                        .ToArray();
+                    if (requirements.Length == 0) continue;
+                    var unanswered = requirements.FirstOrDefault(r => !_gateEvaluators.ContainsKey(r.Kind ?? ""));
+                    if (unanswered != null)
+                    {
+                        LogHost($"{topic}.{property.Name} requires gate kind \"{unanswered.Kind}\", which nothing evaluates here; the field is never locked");
+                        continue;
+                    }
+                    if (!found.TryGetValue(topic, out var fields))
+                    {
+                        fields = new List<KeyValuePair<string, CommandRequirement[]>>();
+                        found[topic] = fields;
+                    }
+                    fields.Add(new KeyValuePair<string, CommandRequirement[]>(WireName(property.Name), requirements));
+                }
+            }
+            return found;
+        }
+
+        /// <summary>A contract property's name as the wire spells it: the payload dictionaries are camelCase.</summary>
+        private static string WireName(string propertyName) =>
+            propertyName.Length == 0 ? propertyName : char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
+
+        /// <summary>
+        /// <paramref name="value"/> with each field the last gate sample found
+        /// locked replaced by the <see cref="LockedValue"/> naming what is
+        /// missing. Only a dictionary payload, which is what every gated
+        /// channel's mapper returns, has fields to replace.
+        /// </summary>
+        private object WithFieldLocks(string topic, object value)
+        {
+            if (!Volatile.Read(ref _lockedFields).TryGetValue(topic, out var locked)) return value;
+            if (!(value is Dictionary<string, object?> payload)) return value;
+            foreach (var field in locked)
+            {
+                payload[field.Key] = new LockedValue { Locked = field.Value };
+            }
+            return value;
         }
 
         /// <summary>
@@ -7102,6 +7201,7 @@ namespace Sitrep.Host
                 try
                 {
                     value = map(tick.Snapshot);
+                    if (value != null) value = WithFieldLocks(topic, value);
                 }
                 catch (Exception ex)
                 {

@@ -302,6 +302,7 @@ public static class RtConfig
                 typeof(CommandGateReport),
                 typeof(ChannelGate),
                 typeof(MissingUnlock),
+                typeof(LockedValue),
                 // system.channels, every declared channel's emission counters:
                 // the reading that tells a channel the engine never considered
                 // from one it considered and declined. Same engine-declared
@@ -897,16 +898,21 @@ public static class RtConfig
                 // the key kept, so the emitted type has to be able to hold the
                 // null; see NullUnionApplies.
                 var nullable = NullUnionApplies(prop);
+                // A field a requirement gates can arrive as the LockedValue
+                // naming what is missing, so its type carries that arm too.
+                var lockable = prop.GetCustomAttributes(typeof(SitrepRequiresAttribute), false).Length > 0;
+                var lockedArm = lockable ? " | LockedValue" : "";
 
                 var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
                 if (unit == null || NonQuantityUnits.Contains(unit.Unit))
                 {
                     // No quantity to wrap. Still retyped when the null union
                     // applies, over whatever bare type rtcli would have emitted.
-                    if (nullable)
+                    if (nullable || lockable)
                     {
-                        nulled++;
-                        targets.Add(new KeyValuePair<PropertyInfo, string>(prop, BareTsType(type, prop) + " | null"));
+                        if (nullable) nulled++;
+                        targets.Add(new KeyValuePair<PropertyInfo, string>(
+                            prop, BareTsType(type, prop) + lockedArm + (nullable ? " | null" : "")));
                     }
 
                     continue;
@@ -915,7 +921,9 @@ public static class RtConfig
                 // Vec3 is a class, so `Vec3?` is the same runtime type; one
                 // comparison covers the required and the optional field alike.
                 if (prop.PropertyType == typeof(Vec3)) vectors++;
-                var tsType = QuantityTsType(type, prop, unit);
+                // The locked arm goes before the null, so `| null` stays last
+                // where styleguide-generated-null-unions reads it.
+                var tsType = QuantityTsType(type, prop, unit) + lockedArm;
 
                 if (nullable)
                 {

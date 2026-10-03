@@ -2254,6 +2254,9 @@
     "Kernel": {
       "lastNotices": "ResolutionNotice[]"
     },
+    "LockedValue": {
+      "locked": "MissingUnlock[]"
+    },
     "ManeuverNode": {
       "patches": "OrbitPatch[]"
     },

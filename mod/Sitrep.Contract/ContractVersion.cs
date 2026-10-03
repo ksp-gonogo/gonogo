@@ -654,9 +654,19 @@ namespace Sitrep.Contract
         /// <c>settings.gonogo</c> and <c>vessel.inventory</c> carry no
         /// <c>meta</c> at all. <c>CommsSubject</c> loses <c>Loaded</c>,
         /// <c>CommsDegradeModels.ToPayload</c> its meta parameter.</para>
+        ///
+        /// <para><b>Bumped 27 -&gt; 28: a gated field can arrive as a
+        /// <see cref="LockedValue"/>.</b> <see cref="VesselOrbit.Encounter"/> and
+        /// <see cref="VesselManeuver.Nodes"/> carry
+        /// <see cref="SitrepRequiresAttribute"/>, so while the save has not
+        /// unlocked patched conics each arrives as <c>{ locked: [...] }</c>
+        /// naming the missing unlock, where it was a null or an empty list. A
+        /// reader typed for the old shape would treat the object as a value,
+        /// which is a wire retype even though the C# property types are
+        /// unchanged.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 27;
+        public const int Major = 28;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -2209,8 +2219,10 @@ namespace Sitrep.Contract
         /// and every <see cref="VesselOrbit"/> element marked reckonable by it, so a craft under
         /// thrust is carried forward by a declared model rather than held. Additive: the existing
         /// Kepler marks are unchanged, so an Uplink built against 27.15 is unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, reset to 0</b> with the Major.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 16;
+        public const int Minor = 0;
     }
 }

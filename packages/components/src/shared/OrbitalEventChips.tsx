@@ -3,7 +3,8 @@ import {
   useOrbitSolveReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
+import { isLocked, unlessLocked } from "@ksp-gonogo/sitrep-sdk";
+import { Box, Cluster, Countdown, LockMark } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { countdownOf } from "./countdownOf";
 import { encounterKindOf } from "./encounterKind";
@@ -21,7 +22,8 @@ export function OrbitalEventChips() {
   const orbit = reading.state === "observed" ? reading.value : undefined;
   const solve = useOrbitSolve();
   const solveReading = useOrbitSolveReading();
-  const encounter = orbit?.encounter ?? null;
+  const lockedEncounter = isLocked(orbit?.encounter) ? orbit.encounter : null;
+  const encounter = unlessLocked(orbit?.encounter ?? null);
 
   const encounterKind = encounterKindOf(encounter);
   const encBody = useBodyName(encounter?.bodyIndex);
@@ -45,10 +47,18 @@ export function OrbitalEventChips() {
     timeToApsis?.value?.isFinite() === true &&
     !timeToApsis.value.lessThan(0);
 
-  if (!hasEncounter && !hasApsis) return null;
+  if (!hasEncounter && !hasApsis && lockedEncounter === null) return null;
 
   return (
     <Cluster justify="start" wrap>
+      {lockedEncounter !== null && (
+        <Chip variant="neutral">
+          <ChipLabel>ENC</ChipLabel>
+          <ChipValue>
+            <LockMark lock={lockedEncounter} />
+          </ChipValue>
+        </Chip>
+      )}
       {hasEncounter && (
         <Chip variant={encounterKind === "escape" ? "warn" : "go"}>
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>

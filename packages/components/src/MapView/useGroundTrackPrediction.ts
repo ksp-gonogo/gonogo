@@ -5,9 +5,9 @@ import type {
   TrackSample,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  type ManeuverNode,
   type OrbitPatch,
   type Value,
-  type VesselManeuver,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { kspCalendar } from "@ksp-gonogo/ui-kit";
@@ -20,7 +20,7 @@ interface GroundTrackInputs {
   enabled: boolean;
   trajectory: OrbitTrajectory | null;
   orbitPatches: readonly OrbitPatch[] | undefined;
-  maneuverNodes: VesselManeuver["nodes"] | undefined;
+  maneuverNodes: readonly ManeuverNode[] | undefined;
   targetBodyId: string | undefined;
   body: ReturnType<typeof bodyNamed>;
   lat: { magnitude: number } | undefined;

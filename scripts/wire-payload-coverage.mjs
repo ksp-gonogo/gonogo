@@ -125,6 +125,9 @@ export function referencedTypes(type, into = []) {
   if (type.k === "array" || type.k === "map") {
     referencedTypes(type.of, into);
   }
+  if (type.k === "oneOf") {
+    for (const arm of type.of) referencedTypes(arm, into);
+  }
   return into;
 }
 

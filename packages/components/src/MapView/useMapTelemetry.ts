@@ -7,11 +7,13 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type {
+  ManeuverNode,
   OrbitPatch,
   Reading,
   Value,
   VesselManeuver,
 } from "@ksp-gonogo/sitrep-sdk";
+import { unlessLocked } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { type EncounterKind, encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
@@ -47,7 +49,8 @@ export interface MapTelemetry {
   trajectory: OrbitTrajectory | null;
   trajectoryWithheld: Extract<OrbitTrajectory, { shape: "withheld" }> | null;
   hasPatchChain: boolean;
-  maneuverNodes: VesselManeuver["nodes"] | undefined;
+  /** Planned nodes; empty while the save cannot hold one, which the planner's own lock says. */
+  maneuverNodes: readonly ManeuverNode[] | undefined;
   universalTime: number | undefined;
   targetBodyId: string | undefined;
   body: ReturnType<typeof bodyNamed>;
@@ -130,7 +133,9 @@ export function useMapTelemetry(
   const flightCurrent =
     flightReading.state === "observed" ? flightReading.value : undefined;
   // Only the marker draw cares which kind; the chips own the body and time.
-  const encounterKind = encounterKindOf(orbitCurrent?.encounter);
+  const encounterKind = encounterKindOf(
+    unlessLocked(orbitCurrent?.encounter ?? null),
+  );
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbitSample);
   const trajectoryWithheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
@@ -139,7 +144,7 @@ export function useMapTelemetry(
   const planReading = useStream<VesselManeuver>("vessel.maneuver");
   const maneuverNodes =
     planReading.state === "observed" || planReading.state === "held"
-      ? planReading.value.nodes
+      ? (unlessLocked(planReading.value.nodes) ?? [])
       : undefined;
   const universalTime = useViewUt()?.magnitude;
 

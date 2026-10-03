@@ -985,6 +985,19 @@ namespace Sitrep.Host.Tests
             return JsonSerializer.Deserialize<Ledger>(File.ReadAllText(LedgerPath), JsonOptions) ?? new Ledger();
         }
 
+        /// <summary>
+        /// A field a <c>SitrepRequiresAttribute</c> gates can arrive as a
+        /// <c>LockedValue</c> instead of its declared type, so its wire type is
+        /// that union and the shape says so. A field gaining a requirement is
+        /// then a retype, which is the break it is to a reader typed for the old
+        /// shape. Read through attribute metadata by full name, so nothing here
+        /// resolves an attribute's declaring assembly.
+        /// </summary>
+        private static string LockableSuffix(PropertyInfo property) =>
+            property.CustomAttributes.Any(a => a.AttributeType.FullName == "Sitrep.Contract.SitrepRequiresAttribute")
+                ? " | LockedValue"
+                : "";
+
         private static Shape ComputeShape()
         {
             var assembly = typeof(StreamData<object>).Assembly;
@@ -1015,7 +1028,7 @@ namespace Sitrep.Host.Tests
                 // doc comment).
                 var properties = type
                     .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                    .Select(p => p.Name + ":" + p.PropertyType)
+                    .Select(p => p.Name + ":" + p.PropertyType + LockableSuffix(p))
                     .OrderBy(x => x, StringComparer.Ordinal)
                     .ToArray();
                 sortedTypes[fullName] = properties;

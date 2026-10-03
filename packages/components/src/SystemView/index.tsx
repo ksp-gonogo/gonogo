@@ -179,7 +179,7 @@ function SystemViewComponent({
   const derived = useOrbitSolve();
   const derivedReading = useOrbitSolveReading();
 
-  const encounter = orbit?.encounter ?? null;
+  const encounter = unlessLocked(orbit?.encounter ?? null);
   const encounterDirection = encounterDirectionOf(encounter?.transitionType);
   const encounterBody =
     encounter?.bodyIndex != null
@@ -640,6 +640,9 @@ export {
   projectOrbitRing,
   SYSTEM_ENTITY_DEFAULT_LAYER,
 } from "./systemEntities";
+
+import { unlessLocked } from "@ksp-gonogo/sitrep-sdk";
+
 export type { CelestialBody } from "./useCelestialBodies";
 export { useCelestialBodies } from "./useCelestialBodies";
 export { usePhaseAngles } from "./usePhaseAngles";

@@ -163,6 +163,23 @@ namespace Sitrep.Contract
         public GateVerdict Verdict { get; set; } = new GateVerdict();
     }
 
+    /// <summary>
+    /// A field a <see cref="SitrepRequiresAttribute"/> gates, in place of its
+    /// value while the save has not unlocked what it needs: the unlocks it is
+    /// missing, so a reader can say why it has nothing to show rather than
+    /// drawing an empty value as if there were none.
+    /// </summary>
+    /// <category>System diagnostics</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public class LockedValue
+    {
+        /// <summary>Every unlock the field is waiting on. Never empty.</summary>
+        public List<MissingUnlock> Locked { get; set; } = new List<MissingUnlock>();
+    }
+
     /// <summary>Which kind of unlock a <see cref="MissingUnlock"/> names.</summary>
     /// <category>System diagnostics</category>
     [SitrepContract]

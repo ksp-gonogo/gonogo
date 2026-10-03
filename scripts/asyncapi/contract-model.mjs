@@ -122,6 +122,13 @@ export function parseTypeNode(node, owner) {
     if (arms.length === 1 && arms.length < node.types.length) {
       return parseTypeNode(arms[0], owner);
     }
+    // A field a requirement gates is its value OR the LockedValue naming what
+    // is missing (`T | LockedValue`, or `T | null | LockedValue` when it is
+    // also nullable). Each arm is a shape of its own, so the field is one of
+    // them; the null arm is still the optional flag's to say.
+    if (arms.length > 1) {
+      return { k: "oneOf", of: arms.map((arm) => parseTypeNode(arm, owner)) };
+    }
   }
 
   if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal)) {

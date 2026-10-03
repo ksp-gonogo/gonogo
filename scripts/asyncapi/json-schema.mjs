@@ -312,6 +312,9 @@ export class SchemaBuilder {
       if (optional && typeof schema.type === "string") {
         schema.type = [schema.type, "null"];
       }
+      if (optional && Array.isArray(schema.oneOf)) {
+        schema.oneOf = [...schema.oneOf, { type: "null" }];
+      }
       return schema;
     }
     if (!description && !optional) return base;
@@ -335,6 +338,8 @@ export class SchemaBuilder {
         return vec3Schema(type.unit);
       case "array":
         return { type: "array", items: this.typeSchema(type.of, owner) };
+      case "oneOf":
+        return { oneOf: type.of.map((arm) => this.typeSchema(arm, owner)) };
       case "map":
         return {
           type: "object",

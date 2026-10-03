@@ -129,7 +129,13 @@ public class VesselOrbit
     [SitrepUnit(Units.Seconds)]
     public double? TimeToPe { get; set; }
 
-    /// <summary>The next sphere-of-influence transition on the current trajectory. Null when there is none (the common case), never a sentinel.</summary>
+    /// <summary>
+    /// The next sphere-of-influence transition on the current trajectory. Null
+    /// when there is none (the common case), never a sentinel. A
+    /// <see cref="LockedValue"/> while the Tracking Station does not show
+    /// patched conics, since the game then computes no transition at all.
+    /// </summary>
+    [SitrepRequires("orbit-display", Facility = "TrackingStation", Quantity = "patchedConics")]
     public OrbitEncounter? Encounter { get; set; }
 
     /// <summary>

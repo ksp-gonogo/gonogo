@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.16.0
+  version: 28.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
@@ -14414,6 +14414,21 @@ components:
             dimensions, so `LimitBreach.limit` and `LimitBreach.actual` have no fixed
             unit of their own. Read it from here, and render the comparison in the
             operator's own units.
+    LockedValue:
+      type: object
+      description: |-
+        A field a SitrepRequiresAttribute gates, in place of its value while the
+        save has not unlocked what it needs: the unlocks it is missing, so a reader
+        can say why it has nothing to show rather than drawing an empty value as if
+        there were none.
+      required:
+        - locked
+      properties:
+        locked:
+          type: array
+          items:
+            $ref: "#/components/schemas/MissingUnlock"
+          description: Every unlock the field is waiting on. Never empty.
     ManeuverFrame:
       type: integer
       description: |-
@@ -14688,6 +14703,44 @@ components:
             A client draws it as a break rather than joining across it: a line
             interpolated through an outage looks like data. Omitted from the wire when
             there is no gap, as `Meta.quality` is when unstated.
+    MissingUnlock:
+      type: object
+      description: |-
+        One unlock a save is missing, named the way the game names it, so a client
+        can say "Missing tech: Flight Control" or "Mission Control, needs Building
+        level 2" without mapping an id to English.
+      required:
+        - kind
+        - id
+        - name
+      properties:
+        kind:
+          description: Whether this is a tech node or a building.
+          allOf:
+            - $ref: "#/components/schemas/UnlockKind"
+              x-sitrep-unit: enum
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: The tech node's `techID`, or the `SpaceCenterFacility` member name.
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: "The game's own title for it: \"Flight Control\", \"Mission Control\"."
+        tier:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            For a building, the level it needs, counted from 1 as the game shows it.
+            Absent for a tech node.
+        scienceCost:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: For a tech node, the science it costs to research. Absent for a building.
     MissionObjectiveEntry:
       type: object
       description: One objective of a Making History mission, in mission-flow order.
@@ -18524,6 +18577,17 @@ components:
         - const: 6
           title: Unknown
           description: A transition this contract does not recognise.
+    UnlockKind:
+      type: integer
+      description: Which kind of unlock a `MissingUnlock` names.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Tech
+          description: A tech node in the save's research tree.
+        - const: 1
+          title: Facility
+          description: A space centre building's level.
     UnlockTechArgs:
       type: object
       description: |-
@@ -19415,12 +19479,15 @@ components:
         - meta
       properties:
         nodes:
-          type: array
-          items:
-            $ref: "#/components/schemas/ManeuverNode"
+          oneOf:
+            - type: array
+              items:
+                $ref: "#/components/schemas/ManeuverNode"
+            - $ref: "#/components/schemas/LockedValue"
           description: |-
             Every queued burn, earliest `ManeuverNode.ut` first. Empty when none is
-            queued, never null.
+            queued, never null. A `LockedValue` while the Tracking Station does not show
+            patched conics, since a craft then carries no solver to hold a node.
         planner:
           type:
             - string
@@ -19560,12 +19627,15 @@ components:
             rails. On a hyperbolic orbit it is null once the periapsis has been passed,
             since there is no next one. Never a sentinel in place of null.
         encounter:
+          oneOf:
+            - $ref: "#/components/schemas/OrbitEncounter"
+            - $ref: "#/components/schemas/LockedValue"
+            - type: "null"
           description: |-
             The next sphere-of-influence transition on the current trajectory. Null when
-            there is none (the common case), never a sentinel.
-          anyOf:
-            - $ref: "#/components/schemas/OrbitEncounter"
-            - type: "null"
+            there is none (the common case), never a sentinel. A `LockedValue` while the
+            Tracking Station does not show patched conics, since the game then computes
+            no transition at all.
         patches:
           type: array
           items:

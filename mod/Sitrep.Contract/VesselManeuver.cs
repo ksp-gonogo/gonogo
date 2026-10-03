@@ -200,7 +200,10 @@ public class ManeuverNode
 public class VesselManeuver
 {
     /// <summary>Every queued burn, earliest <see cref="ManeuverNode.Ut"/>
-    /// first. Empty when none is queued, never null.</summary>
+    /// first. Empty when none is queued, never null. A <see cref="LockedValue"/>
+    /// while the Tracking Station does not show patched conics, since a craft
+    /// then carries no solver to hold a node.</summary>
+    [SitrepRequires("orbit-display", Facility = "TrackingStation", Quantity = "patchedConics")]
     public List<ManeuverNode> Nodes { get; set; } = new();
 
     /// <summary>

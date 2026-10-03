@@ -3,6 +3,7 @@ import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   deriveReading,
   type Reading,
+  unlessLocked,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 
@@ -16,14 +17,18 @@ export function useEncounterIn(): Reading<Value<"s">> {
   const receivedUt = useViewUt();
   return deriveReading(
     reading,
-    (orbit) =>
-      orbit.encounter?.transitionUt.isFinite() === true &&
-      receivedUt !== undefined
-        ? orbit.encounter.transitionUt.minus(receivedUt)
-        : undefined,
-    (orbit, atUt) =>
-      orbit.encounter?.transitionUt.isFinite() === true
-        ? orbit.encounter.transitionUt.minus(atUt)
-        : undefined,
+    (orbit) => {
+      const encounter = unlessLocked(orbit.encounter ?? null);
+      return encounter?.transitionUt.isFinite() === true &&
+        receivedUt !== undefined
+        ? encounter.transitionUt.minus(receivedUt)
+        : undefined;
+    },
+    (orbit, atUt) => {
+      const encounter = unlessLocked(orbit.encounter ?? null);
+      return encounter?.transitionUt.isFinite() === true
+        ? encounter.transitionUt.minus(atUt)
+        : undefined;
+    },
   );
 }

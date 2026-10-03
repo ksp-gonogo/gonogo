@@ -336,6 +336,9 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.MissingUnlock missingUnlock:
                     AppendMissingUnlock(sb, missingUnlock);
                     break;
+                case Sitrep.Contract.LockedValue lockedValue:
+                    AppendLockedValue(sb, lockedValue);
+                    break;
                 case Sitrep.Contract.ChannelEmissionReport channelEmissionReport:
                     AppendChannelEmissionReport(sb, channelEmissionReport);
                     break;
@@ -501,6 +504,25 @@ namespace Sitrep.Contract.Serialization
                 }
                 sb.Append(']');
             }
+            sb.Append('}');
+        }
+
+        /// <summary>A locked field as <c>{ locked: [...] }</c>, each missing unlock through <see cref="AppendMissingUnlock"/>.</summary>
+        private static void AppendLockedValue(StringBuilder sb, Sitrep.Contract.LockedValue locked)
+        {
+            sb.Append('{');
+            AppendString(sb, "locked");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; locked.Locked != null && i < locked.Locked.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendMissingUnlock(sb, locked.Locked[i]);
+            }
+            sb.Append(']');
             sb.Append('}');
         }
 

@@ -1272,6 +1272,19 @@ export interface ChannelGate
 	verdict: GateVerdict;
 }
 /**
+* A field a SitrepRequiresAttribute gates, in place of its value while the
+* save has not unlocked what it needs: the unlocks it is missing, so a reader
+* can say why it has nothing to show rather than drawing an empty value as if
+* there were none.
+*
+* @category System diagnostics
+*/
+export interface LockedValue
+{
+	/** Every unlock the field is waiting on. Never empty. */
+	locked: MissingUnlock[];
+}
+/**
 * Which kind of unlock a `MissingUnlock` names.
 *
 * @category System diagnostics
@@ -9031,9 +9044,10 @@ export interface VesselManeuver
 {
 	/**
 	* Every queued burn, earliest `ManeuverNode.ut` first. Empty when none is
-	* queued, never null.
+	* queued, never null. A `LockedValue` while the Tracking Station does not show
+	* patched conics, since a craft then carries no solver to hold a node.
 	*/
-	nodes: ManeuverNode[];
+	nodes: ManeuverNode[] | LockedValue;
 	/**
 	* The elected maneuver-plan provider's id, or null when THERE IS NO PLANNER AT
 	* ALL.
@@ -9139,9 +9153,11 @@ export interface VesselOrbit
 	timeToPe?: Value<"s"> | null;
 	/**
 	* The next sphere-of-influence transition on the current trajectory. Null when
-	* there is none (the common case), never a sentinel.
+	* there is none (the common case), never a sentinel. A `LockedValue` while the
+	* Tracking Station does not show patched conics, since the game then computes
+	* no transition at all.
 	*/
-	encounter?: OrbitEncounter | null;
+	encounter?: OrbitEncounter | LockedValue | null;
 	/**
 	* The vessel's future-orbit patch chain. Element 0 is the current patch (the
 	* same elements as the fields above, restated in `OrbitPatch`'s shape so a

@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ReactElement, ReactNode } from "react";
 import { InactiveNotice } from "./InactiveNotice";
-import { writeQuantity } from "./units";
+import { writeLockQuantity } from "./lockQuantity";
 
 /**
  * What a locked {@link LockScope} hands its `fallback`: the sentence every lock
@@ -35,16 +35,6 @@ export interface LockScopeProps {
    * draws nothing, for a scope that is an overlay or a badge.
    */
   fallback?: ReactNode | ((lock: LockSummary) => ReactNode);
-}
-
-/** A quantity in a lock sentence, written the way the kit writes every other one. */
-function writeLockQuantity(
-  quantity: { magnitude: number; unit: string } | number,
-  unit: string,
-): string {
-  return writeQuantity(
-    typeof quantity === "number" ? { magnitude: quantity, unit } : quantity,
-  );
 }
 
 /**

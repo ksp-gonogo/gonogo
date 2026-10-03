@@ -2328,6 +2328,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Kernel": {
     lastNotices: "ResolutionNotice[]",
   },
+  "LockedValue": {
+    locked: "MissingUnlock[]",
+  },
   "ManeuverNode": {
     patches: "OrbitPatch[]",
   },

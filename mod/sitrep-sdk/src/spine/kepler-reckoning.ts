@@ -1,4 +1,5 @@
-import { Quality } from "../__generated__/contract";
+import { type LockedValue, Quality } from "../__generated__/contract";
+import { unlessLocked } from "../locked";
 import { magnitudeOr, type Quantityish } from "../magnitude";
 import type { Reading, ReckoningDecline } from "../reading";
 import type { TimelinePoint } from "../timeline";
@@ -47,7 +48,8 @@ export interface ConicOrbitInput {
   meanAnomalyAtEpoch: Quantityish;
   epoch: Quantityish;
   mu: Quantityish;
-  encounter?: { transitionUt: Quantityish } | null;
+  /** A `LockedValue` while the save cannot compute one; read as no encounter. */
+  encounter?: { transitionUt: Quantityish } | LockedValue | null;
   horizon?: PropagationHorizonLike;
 }
 
@@ -445,7 +447,7 @@ export function keplerAdmissibility(
     if (loaded !== null) return { declined: loaded };
   }
   const orbit = orbitPoint.payload;
-  const transitionUt = orbit.encounter?.transitionUt;
+  const transitionUt = unlessLocked(orbit.encounter ?? null)?.transitionUt;
   if (transitionUt != null) {
     const at = mag(transitionUt);
     if (Number.isFinite(at) && viewUt >= at) {
