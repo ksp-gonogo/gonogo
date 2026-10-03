@@ -123,7 +123,7 @@ const Link = styled.a`
   text-decoration: underline;
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 `;
@@ -137,7 +137,7 @@ const Dismiss = styled.button`
   padding: 0 var(--gap-sub-readout);
 
   &:focus-visible {
-    outline: 2px solid #00ff88;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 `;
