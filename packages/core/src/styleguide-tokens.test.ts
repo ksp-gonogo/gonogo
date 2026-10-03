@@ -225,7 +225,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   zIndex: {
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
-    "packages/components/src/AtmosphereProfile/LiveAirChip.tsx": 1,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 1,
