@@ -140,6 +140,15 @@ function AtmosphereProfileComponent({
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
           notice={notice}
+          plotAside={
+            showLiveChip ? (
+              <LiveAirChip
+                density={flightReading.atmDensity}
+                airTemp={flightReading.atmosphericTemperature}
+                skinTemp={flightReading.externalTemperature}
+              />
+            ) : undefined
+          }
           emptyState={
             body
               ? `No atmosphere on ${body.name}`
@@ -147,13 +156,6 @@ function AtmosphereProfileComponent({
           }
         />
       </Fill>
-      {showLiveChip && (
-        <LiveAirChip
-          density={flightReading.atmDensity}
-          airTemp={flightReading.atmosphericTemperature}
-          skinTemp={flightReading.externalTemperature}
-        />
-      )}
     </Fill>
   );
 }

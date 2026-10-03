@@ -8,6 +8,7 @@ import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries, ThresholdRule } from "@ksp-gonogo/ui";
 import { LineChart, utXTickFormat } from "@ksp-gonogo/ui";
 import {
+  Box,
   FramedDisplay,
   GraphNotice,
   getSizeBucket,
@@ -77,6 +78,8 @@ export interface GraphViewProps {
   h?: number;
   /** What the chart cannot show ("plotting trace only"). The kit places it: over an empty plot with room, beside a wide short one, below the rest. */
   notice?: ReactNode;
+  /** Figures drawn in a column beside the plot, inside its frame, so they take width from the plot instead of covering it. */
+  plotAside?: ReactNode;
 }
 
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
@@ -95,6 +98,7 @@ export function GraphView({
   w,
   h,
   notice,
+  plotAside,
 }: GraphViewProps) {
   const series = useMemo(
     () => (config?.series ?? []).map(withDefaults),
@@ -361,6 +365,11 @@ export function GraphView({
           {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
           {notices.length > 0 && noticePlacement === "center" && noticeNode}
         </div>
+        {plotAside !== undefined && plotAside !== null && (
+          <Box pad="surface" style={PLOT_ASIDE}>
+            {plotAside}
+          </Box>
+        )}
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
         <GraphFetchers
           series={series.filter((cfg) => !computedKeys.has(cfg.key))}
@@ -395,6 +404,14 @@ const CHART_BODY: CSSProperties = {
 };
 
 const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0, minWidth: 0 };
+
+const PLOT_ASIDE: CSSProperties = {
+  flex: "0 0 auto",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  borderLeft: "1px solid var(--color-border-subtle)",
+};
 
 const CHART_AREA: CSSProperties = {
   flex: 1,

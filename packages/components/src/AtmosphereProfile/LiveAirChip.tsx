@@ -50,22 +50,12 @@ function hasFigure(input: UnitValue): boolean {
   return figure !== null && figure !== undefined;
 }
 
-/* A positioned HUD chip over the chart's tick band; no ui-kit primitive for it. */
 const LIVE_CHIP_STYLE = {
-  position: "absolute",
-  bottom: 32,
-  right: 8,
-  zIndex: 1,
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-line)",
-  padding: "var(--inset-surface)",
-  background: "rgba(0, 0, 0, 0.75)",
-  border: "1px solid var(--color-border-subtle)",
-  borderRadius: "var(--radius-regular)",
   fontSize: "var(--font-size-compact)",
   fontVariantNumeric: "tabular-nums",
-  pointerEvents: "none",
 } as const;
 
 const CHIP_ROW_STYLE = {
