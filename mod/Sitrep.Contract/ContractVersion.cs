@@ -2221,8 +2221,14 @@ namespace Sitrep.Contract
         /// Kepler marks are unchanged, so an Uplink built against 27.15 is unaffected.</para>
         ///
         /// <para><b>Major-28 line, reset to 0</b> with the Major.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 0 -&gt; 1:</b> <see cref="ChannelArguments.SubTopic"/>, so a
+        /// dynamic namespace's requirement can read its sub-topic and be judged per subscribed
+        /// topic (one SCANsat scan type locked, the others open). Additive: a requirement that
+        /// needed an argument on a channel was refused at startup before, so no Uplink built
+        /// against 28.0 declares one.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

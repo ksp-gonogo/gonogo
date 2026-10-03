@@ -3647,6 +3647,7 @@ namespace Sitrep.Host
                         Verdict = EvaluateRequirementsHere(pair.Key, pair.Value, GateArguments.None, memo),
                     });
                 }
+                SampleSubTopicGates(channels, memo);
             }
             catch (Exception ex)
             {
@@ -3755,6 +3756,44 @@ namespace Sitrep.Host
         /// matches it: a static channel by its topic, a dynamic namespace by
         /// its prefix, which covers every topic materialised under it.
         /// </summary>
+        /// <summary>
+        /// One entry per subscribed topic under a dynamic namespace whose
+        /// requirement reads <see cref="ChannelArguments.SubTopic"/>, each
+        /// evaluated with that topic's own sub-topic. Only subscribed topics:
+        /// a gate is wanted where something is drawing, and a namespace like
+        /// <c>scansat.coverage.</c> has a topic per body and scan type, most of
+        /// which nobody asks for.
+        ///
+        /// <para>Reads <c>_subscribedTopics</c>, the concurrent mirror, because
+        /// this runs on the main thread while the Courier subscribes.</para>
+        /// </summary>
+        private void SampleSubTopicGates(List<ChannelGate> channels, Dictionary<string, GateVerdict> memo)
+        {
+            foreach (var pair in _dynamicNamespaces)
+            {
+                var requires = pair.Value.Requires;
+                if (requires == null || !requires.Any(NeedsOnlySubTopic)) continue;
+                foreach (var topic in _subscribedTopics.Keys)
+                {
+                    if (!topic.StartsWith(pair.Key, StringComparison.Ordinal)) continue;
+                    channels.Add(new ChannelGate
+                    {
+                        Topic = topic,
+                        Verdict = EvaluateRequirementsHere(
+                            topic, requires, SubTopicBag(topic.Substring(pair.Key.Length)), memo),
+                    });
+                }
+            }
+        }
+
+        private static GateArguments SubTopicBag(string subTopic) =>
+            new GateArguments(new Dictionary<string, object> { [ChannelArguments.SubTopic] = subTopic });
+
+        private static bool NeedsOnlySubTopic(CommandRequirement requirement) =>
+            requirement.Needs != null
+                && requirement.Needs.Length == 1
+                && requirement.Needs[0] == ChannelArguments.SubTopic;
+
         private IEnumerable<KeyValuePair<string, CommandRequirement[]>> ChannelRequirementSets()
         {
             foreach (var pair in _channelDeclarations)
@@ -3891,8 +3930,11 @@ namespace Sitrep.Host
                         missing.Add($"channel \"{pair.Key}\" requires gate kind \"{kind}\"");
                     }
                     // A channel is sampled with no arguments, so a requirement that
-                    // needs one would abstain forever and never say anything.
-                    if (requirement.Needs != null && requirement.Needs.Length > 0)
+                    // needs one would abstain forever and never say anything. The
+                    // one exception is a dynamic namespace reading its sub-topic,
+                    // which is sampled per subscribed topic.
+                    if (requirement.Needs != null && requirement.Needs.Length > 0
+                        && !(_dynamicNamespaces.ContainsKey(pair.Key) && NeedsOnlySubTopic(requirement)))
                     {
                         missing.Add(
                             $"channel \"{pair.Key}\" declares a requirement that needs arguments ({string.Join(", ", requirement.Needs)}), which a channel never has");

@@ -54,6 +54,29 @@ namespace Sitrep.Host.IntegrationTests
             Assert.DoesNotContain(channels, c => (string?)c["topic"] == ChannelGateProbeUplink.UnstatedTopic);
         }
 
+        /// <summary>
+        /// A dynamic namespace whose requirement reads its sub-topic is judged
+        /// per subscribed topic, so one namespace can lock some of its topics
+        /// (one scan type) and leave the rest open. A topic nobody subscribed
+        /// has no entry.
+        /// </summary>
+        [Fact]
+        public async Task ADynamicNamespaceIsJudgedPerSubscribedTopicWhenItsRequirementReadsTheSubTopic()
+        {
+            var locked = ChannelGateProbeUplink.KeyedPrefix + "Kerbin.locked";
+            var open = ChannelGateProbeUplink.KeyedPrefix + "Kerbin.open";
+
+            var channels = await SampleChannels(new ChannelGateProbeUplink(), locked, open);
+
+            var lockedVerdict = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(channels, c => (string?)c["topic"] == locked)["verdict"]);
+            Assert.Equal("notUnlocked", lockedVerdict["errorCode"]);
+            var openVerdict = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(channels, c => (string?)c["topic"] == open)["verdict"]);
+            Assert.Equal((double)(int)GateOutcome.Pass, openVerdict["outcome"]);
+            Assert.DoesNotContain(channels, c => (string?)c["topic"] == ChannelGateProbeUplink.KeyedPrefix + "Mun.locked");
+        }
+
         [Fact]
         public void AChannelRequirementThatNeedsArgumentsIsRefusedAtStartup()
         {
@@ -64,7 +87,19 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Contains("which a channel never has", thrown.Message);
         }
 
-        private static async Task<List<Dictionary<string, object?>>> SampleChannels(ChannelGateProbeUplink uplink)
+        [Fact]
+        public void AStaticChannelMayNotReadASubTopic()
+        {
+            // Not disposed: Start refuses before it starts a thread, and Stop joins threads that never ran.
+            var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            engine.RegisterUplink(new ChannelGateProbeUplink { NeedsAnArgument = true, Argument = ChannelArguments.SubTopic });
+            var thrown = Assert.Throws<InvalidOperationException>(() => engine.Start());
+            Assert.Contains("which a channel never has", thrown.Message);
+        }
+
+        private static async Task<List<Dictionary<string, object?>>> SampleChannels(
+            ChannelGateProbeUplink uplink,
+            params string[] alsoSubscribe)
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
             engine.RegisterUplink(uplink);
@@ -72,6 +107,10 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                foreach (var topic in alsoSubscribe)
+                {
+                    await SubscribeAsync(client, topic, Timeout);
+                }
                 await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
 
                 engine.SampleCommandGates();
@@ -93,8 +132,12 @@ namespace Sitrep.Host.IntegrationTests
             public const string UngatedTopic = "probe.ungated";
             public const string UnstatedTopic = "probe.unstated";
             public const string TechKind = "probe-tech";
+            public const string KeyedPrefix = "probe.keyed.";
+            public const string SubTopicKind = "probe-subtopic";
 
             public bool NeedsAnArgument { get; set; }
+
+            public string Argument { get; set; } = "partId";
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
@@ -109,7 +152,7 @@ namespace Sitrep.Host.IntegrationTests
                         new CommandRequirement
                         {
                             Kind = TechKind,
-                            Needs = NeedsAnArgument ? new[] { "partId" } : new string[0],
+                            Needs = NeedsAnArgument ? new[] { Argument } : new string[0],
                         },
                     }),
                     Declare(UngatedTopic, Requirement.None),
@@ -132,6 +175,30 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddChannelSource(LockedTopic, _ => null);
                 host.AddChannelSource(UngatedTopic, _ => null);
                 host.AddChannelSource(UnstatedTopic, _ => null);
+                host.AddGateEvaluator(new SubTopicGate());
+                host.RegisterDynamicNamespace(KeyedPrefix, new ChannelDeclaration
+                {
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Requires = new[]
+                    {
+                        new CommandRequirement { Kind = SubTopicKind, Needs = new[] { ChannelArguments.SubTopic } },
+                    },
+                });
+            }
+
+            /// <summary>Locks exactly the sub-topics ending in <c>locked</c>.</summary>
+            private sealed class SubTopicGate : ICommandGateEvaluator
+            {
+                public string Kind => SubTopicKind;
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments) =>
+                    arguments.TryGet(ChannelArguments.SubTopic, out var subTopic)
+                        && subTopic is string text
+                        && text.EndsWith("locked", StringComparison.Ordinal)
+                        ? GateVerdict.NotUnlocked("locked", new MissingUnlock { Kind = UnlockKind.Tech, Id = "t", Name = "T" })
+                        : GateVerdict.Pass();
             }
 
             private sealed class TechGate : ICommandGateEvaluator

@@ -135,7 +135,11 @@ namespace Sitrep.Contract
         /// than forgotten.</para>
         ///
         /// <para>A channel's requirement is evaluated with no arguments, so it
-        /// may not declare <see cref="CommandRequirement.Needs"/>.</para>
+        /// may not declare <see cref="CommandRequirement.Needs"/>, with one
+        /// exception: a dynamic namespace's requirement may need
+        /// <see cref="ChannelArguments.SubTopic"/>. It is then evaluated for
+        /// each subscribed topic under the namespace and published under that
+        /// full topic, beside the namespace's own entry.</para>
         /// <internal>
         /// Null is read as None, so an Uplink built against an older Minor
         /// loads unchanged; core's own declarations are held to stating it by
@@ -416,6 +420,24 @@ namespace Sitrep.Contract
     {
         /// <summary>Nothing in the game has to be unlocked first.</summary>
         public static CommandRequirement[] None => new CommandRequirement[0];
+    }
+
+    /// <summary>
+    /// The one argument a channel requirement can read: see
+    /// <see cref="ChannelDeclaration.Requires"/>.
+    /// </summary>
+    /// <category>Commands</category>
+    public static class ChannelArguments
+    {
+        /// <summary>
+        /// The part of a dynamic namespace's topic after its prefix, such as
+        /// <c>Kerbin.1</c> under <c>scansat.coverage.</c>. A requirement on a
+        /// dynamic namespace that names this in
+        /// <see cref="CommandRequirement.Needs"/> is evaluated once per
+        /// subscribed topic, so one namespace can lock some of its topics and
+        /// not others.
+        /// </summary>
+        public const string SubTopic = "subTopic";
     }
 
     /// <summary>
