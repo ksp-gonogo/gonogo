@@ -1297,9 +1297,17 @@ async function refeedScene(): Promise<UnreadTopics> {
 async function feedPending(mounted: Mounted): Promise<string[]> {
   const { fixture, scene, pending } = mounted;
   if (!fixture) return pending.map((e) => e.topic);
-  // Six is a budget, not a tuned number: each round is one more layer of
-  // subscribe-on-what-just-arrived, and a widget nesting deeper than this is
-  // better served by a clear failure than by a longer wait.
+  /*
+   * Six is a budget, not a tuned number: each round is one more layer of
+   * subscribe-on-what-just-arrived, and a widget nesting deeper than this is
+   * better served by a clear failure than by a longer wait.
+   *
+   * A round in which nothing has subscribed yet still spends its frames rather
+   * than ending the feed. React commits on its own scheduler, so on a loaded
+   * machine the mount's first subscriber can arrive after the frames the caller
+   * waited, and stopping there would drop every emit with the widget left
+   * pending.
+   */
   for (let round = 0; round < 6 && pending.length > 0; round++) {
     const landed: SceneEmit[] = [];
     for (const emit of pending) {
@@ -1309,7 +1317,6 @@ async function feedPending(mounted: Mounted): Promise<string[]> {
         emitOnto(fixture, scene, emit, scene.pinnedUt);
       }
     }
-    if (landed.length === 0) break;
     for (const emit of landed) pending.splice(pending.indexOf(emit), 1);
     await frame();
     await frame();

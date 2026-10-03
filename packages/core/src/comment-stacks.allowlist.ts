@@ -335,7 +335,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/sitrep-client/vitest.config.ts": 1,
   "packages/ui-kit/tsup.config.ts": 2,
   "packages/ui/vitest.config.ts": 1,
-  "packages/uplink-tools/src/render-probe.tsx": 5,
+  "packages/uplink-tools/src/render-probe.tsx": 4,
   "packages/uplink-tools/src/render/docs.ts": 1,
   "packages/uplink-tools/src/render/driver.ts": 2,
   "packages/uplink-tools/src/render/minFit.ts": 2,
