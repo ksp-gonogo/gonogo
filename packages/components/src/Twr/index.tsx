@@ -138,6 +138,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
               zones={ZONES}
               width={gaugeW}
               height={gaugeH}
+              readout="large"
               ariaLabel={`TWR ${writeQuantity(twr)}`}
             />
           </div>

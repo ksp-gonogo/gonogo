@@ -55,6 +55,8 @@ export interface GaugeProps<Unit extends string = string> {
   format?: FormatsFor<Unit>;
   /** Centre numeric label. Defaults to the value, written with its unit. */
   valueLabel?: string;
+  /** How prominent the centre readout is. `large` sets a bigger figure further below the hub, for a gauge whose figure is the point. */
+  readout?: "regular" | "large";
   /** Needle colour. Defaults to `var(--color-text-primary)`. */
   needleColor?: string;
   /** Arc track colour (the unfilled portion). Defaults to faint border. */
@@ -65,6 +67,12 @@ export interface GaugeProps<Unit extends string = string> {
 
 const TRACK_THICKNESS = 8;
 const NEEDLE_HUB_RADIUS = 4;
+
+/** The readout's figure size and its baseline below the hub; the strip reserved under the arc is the baseline. */
+const READOUT = {
+  regular: { size: 16, drop: 18 },
+  large: { size: 24, drop: 32 },
+} as const;
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
@@ -143,6 +151,7 @@ export function Gauge<Unit extends string = string>({
   zones,
   format,
   valueLabel,
+  readout = "regular",
   needleColor = "var(--color-text-primary)",
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
@@ -180,9 +189,10 @@ export function Gauge<Unit extends string = string>({
       : null;
 
   // Pad the box so the arc is not clipped, and reserve a strip below for the centre readout.
+  const { size: readoutSize, drop: readoutDrop } = READOUT[readout];
   const radius = Math.min(
     (width - TRACK_THICKNESS) / 2,
-    height - TRACK_THICKNESS - 18,
+    height - TRACK_THICKNESS - readoutDrop,
   );
 
   const needle = useMemo(
@@ -300,15 +310,15 @@ export function Gauge<Unit extends string = string>({
         )}
       </g>
       {centreLabel === null ? (
-        <InstrumentNoFigure x={cx} y={cy + 18} size={16}>
+        <InstrumentNoFigure x={cx} y={cy + readoutDrop} size={readoutSize}>
           {NULL_DISPLAY}
         </InstrumentNoFigure>
       ) : (
         <text
           x={cx}
-          y={cy + 18}
+          y={cy + readoutDrop}
           textAnchor="middle"
-          fontSize={16}
+          fontSize={readoutSize}
           fill="var(--color-text-primary)"
         >
           {centreLabel}
