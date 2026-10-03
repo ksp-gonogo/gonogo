@@ -79,7 +79,7 @@ export function FilterList({
   return (
     <FilterRegion filter={filter}>
       {shown.length > 0 ? (
-        <Stack gap="rows">
+        <Stack gap="related">
           {shown.map((row) => (
             <div key={row.id}>{row.node}</div>
           ))}
