@@ -231,6 +231,71 @@ namespace Sitrep.Propagation.Tests.Contacts
             Assert.NotEqual(edgesA, edgesB);
         }
 
+        /// <summary>A dish on the first end, aimed at a node, seeing the second end only inside its beam.</summary>
+        private sealed class Dish : IContactLinkModel
+        {
+            private readonly string _aim;
+            private readonly double _beamwidth;
+
+            public Dish(string aim, double beamwidth)
+            {
+                _aim = aim;
+                _beamwidth = beamwidth;
+            }
+
+            public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions)
+            {
+                var toward = positions.NodeAt(_aim, ut)!.Value - from;
+                var peer = to - from;
+                var cos = Vector3d.Dot(toward, peer) / (toward.Magnitude() * peer.Magnitude());
+                return _beamwidth - Math.Acos(Math.Max(-1.0, Math.Min(1.0, cos)));
+            }
+        }
+
+        [Fact]
+        public void ADishAimedElsewhereIsNeverAContactAndOneAimedAtThePeerIs()
+        {
+            var nodes = new[]
+            {
+                Craft("vessel:a", KerbinOrbit(700_000.0, 0.0)),
+                Craft("vessel:b", KerbinOrbit(700_000.0, 0.5)),
+                Craft("vessel:c", KerbinOrbit(700_000.0, 3.0)),
+            };
+            var aimedAway = new[] { new PlanPair("vessel:a", "vessel:b", KerbinOnly(), null, new Dish("vessel:c", 0.05)) };
+            var aimedAt = new[] { new PlanPair("vessel:a", "vessel:b", KerbinOnly(), null, new Dish("vessel:b", 0.05)) };
+
+            var away = ContactPlanner.Plan(nodes, aimedAway, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+            var at = ContactPlanner.Plan(nodes, aimedAt, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+
+            Assert.Empty(away.Pairs[0].Windows);
+            var window = Assert.Single(at.Pairs[0].Windows);
+            Assert.Null(window.OpenUt);
+            Assert.Null(window.CloseUt);
+        }
+
+        private sealed class Broken : IContactLinkModel
+        {
+            public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions) =>
+                throw new InvalidOperationException("a backend's own state is broken");
+        }
+
+        [Fact]
+        public void ALinkModelThatThrowsLeavesItsPairOnGeometry()
+        {
+            var nodes = new[]
+            {
+                Craft("vessel:a", KerbinOrbit(700_000.0, 0.0)),
+                Craft("vessel:b", KerbinOrbit(700_000.0, 0.5)),
+            };
+            var pairs = new[] { new PlanPair("vessel:a", "vessel:b", KerbinOnly(), null, new Broken()) };
+
+            var plan = ContactPlanner.Plan(nodes, pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+
+            var window = Assert.Single(plan.Pairs[0].Windows);
+            Assert.Null(window.OpenUt);
+            Assert.Null(window.CloseUt);
+        }
+
         [Fact]
         public void ANodeIsSolvedOncePerGridPointWhateverNumberOfPairsItIsIn()
         {

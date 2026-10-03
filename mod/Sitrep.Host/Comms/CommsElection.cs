@@ -158,5 +158,32 @@ namespace Sitrep.Host.Comms
                 return CommsReachModels.Unknown;
             }
         }
+
+        /// <summary>
+        /// The elected backend's link model for a pair of nodes, for planning
+        /// contacts beyond line of sight and range, or null when it has none: the
+        /// backend is not an <see cref="ICommsContactModel"/>, it has nothing to add
+        /// for this pair, or asking it threw. Null leaves the pair to geometry and
+        /// <see cref="ReachModel"/>, which is what every backend got before.
+        ///
+        /// <para>Calls into the live backend, so it belongs on the capture-on-main
+        /// seam; the model it returns is pure and is evaluated on the planner's
+        /// thread.</para>
+        /// </summary>
+        public static IContactLinkModel? LinkModel(Kernel? kernel, object? from, object? to, double ut)
+        {
+            if (kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                return (Elected(kernel) as ICommsContactModel)?.LinkModel(from, to, ut);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
     }
 }

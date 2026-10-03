@@ -63,12 +63,13 @@ namespace Sitrep.Propagation.Contacts
     /// <summary>Two nodes the plan predicts contact between, with what can block or limit their link.</summary>
     public sealed class PlanPair
     {
-        public PlanPair(string a, string b, IReadOnlyList<OccludingBody> occluders, double? maxRangeMeters)
+        public PlanPair(string a, string b, IReadOnlyList<OccludingBody> occluders, double? maxRangeMeters, IContactLinkModel? link = null)
         {
             A = a;
             B = b;
             Occluders = occluders ?? new OccludingBody[0];
             MaxRangeMeters = maxRangeMeters;
+            Link = link;
         }
 
         /// <summary>One end, by <see cref="PlanNode.Id"/>.</summary>
@@ -82,6 +83,13 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>How far the elected comms model carries this link: null for no limit, 0 for none at all.</summary>
         public double? MaxRangeMeters { get; }
+
+        /// <summary>
+        /// What the backend says about the link beyond line of sight: where its
+        /// dishes point and how wide they see. When present it replaces
+        /// <see cref="MaxRangeMeters"/>, whose range it already includes.
+        /// </summary>
+        public IContactLinkModel? Link { get; }
     }
 
     /// <summary>One predicted stretch of contact between a pair.</summary>
@@ -305,7 +313,7 @@ namespace Sitrep.Propagation.Contacts
         /// Every node's position, and every occluding body's, at each grid
         /// instant, solved the first time a pair asks and kept for the rest.
         /// </summary>
-        private sealed class PositionCache
+        private sealed class PositionCache : IContactPositions
         {
             private readonly Dictionary<string, int> _index = new Dictionary<string, int>();
             private readonly PlanNode[] _nodes;
@@ -339,6 +347,8 @@ namespace Sitrep.Propagation.Contacts
             public long MarginEvaluations { get; set; }
 
             public bool Has(string id) => _index.ContainsKey(id);
+
+            Vector3d? IContactPositions.NodeAt(string nodeId, double ut) => Has(nodeId) ? NodeAt(nodeId, ut) : (Vector3d?)null;
 
             public double ValidUntil(string id) => _nodes[_index[id]].ValidUntilUt ?? double.PositiveInfinity;
 
@@ -418,6 +428,7 @@ namespace Sitrep.Propagation.Contacts
         {
             private readonly PositionCache _cache;
             private readonly PlanPair _pair;
+            private bool _linkFailed;
 
             public PairGeometry(PositionCache cache, PlanPair pair)
             {
@@ -439,15 +450,43 @@ namespace Sitrep.Propagation.Contacts
                         margin = m;
                     }
                 }
-                var reach = RangeReach.MarginAt(_pair.MaxRangeMeters, (a - b).Magnitude());
-                if (reach != null && reach.Value < margin)
+                var link = LinkMarginAt(ut, a, b) ?? RangeReach.MarginAt(_pair.MaxRangeMeters, (a - b).Magnitude());
+                if (link != null && link.Value < margin)
                 {
-                    margin = reach.Value;
+                    margin = link.Value;
                 }
                 return double.IsPositiveInfinity(margin) ? 1.0 : margin;
             }
 
             public double SeparationAt(double ut) => (_cache.NodeAt(_pair.A, ut) - _cache.NodeAt(_pair.B, ut)).Magnitude();
+
+            /// <summary>
+            /// The backend's link margin, or null to fall back to reach. A link model
+            /// that throws, or answers with something that is not a number, is
+            /// dropped for the rest of the plan: its pair is planned on geometry, as
+            /// it would be under a backend with no link model, rather than taking
+            /// every other pair down with it.
+            /// </summary>
+            private double? LinkMarginAt(double ut, Vector3d a, Vector3d b)
+            {
+                if (_pair.Link == null || _linkFailed)
+                {
+                    return null;
+                }
+                try
+                {
+                    var margin = _pair.Link.MarginAt(ut, a, b, _cache);
+                    if (!double.IsNaN(margin) && !double.IsInfinity(margin))
+                    {
+                        return margin;
+                    }
+                }
+                catch (Exception)
+                {
+                }
+                _linkFailed = true;
+                return null;
+            }
         }
     }
 }

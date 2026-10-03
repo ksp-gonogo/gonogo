@@ -231,7 +231,8 @@ namespace Gonogo.KSP
                         continue;
                     }
                     var reach = CommsElection.ReachModel(kernel, comms[a.Id], comms[b.Id]).MaxRangeMeters;
-                    pairs.Add(new PlanPair(a.Id, b.Id, occluders, reach));
+                    var link = CommsElection.LinkModel(kernel, comms[a.Id], comms[b.Id], ut);
+                    pairs.Add(new PlanPair(a.Id, b.Id, occluders, reach, link));
                 }
             }
 

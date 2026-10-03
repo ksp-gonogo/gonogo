@@ -2236,8 +2236,13 @@ namespace Sitrep.Contract
         /// companion a propagation provider may implement to carry a craft's drift into the
         /// contact plan, with <see cref="SecularOrbit"/> and <see cref="SecularBasis"/>. A new
         /// optional interface, so an Uplink built against 28.2 is unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 3 -&gt; 4:</b> <see cref="ICommsContactModel"/>, a
+        /// companion a comms backend may implement so the contact plan sees where its dishes
+        /// point, with <see cref="IContactLinkModel"/> and <see cref="IContactPositions"/>. A new
+        /// optional interface, so an Uplink built against 28.3 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }
