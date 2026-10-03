@@ -130,38 +130,6 @@ export type PeerMessage =
   // the host's frames, so this is the only way it learns which centre its
   // words are timed against. `null` until the host's session has been placed.
   | { type: "host-command-centre"; centreId: string | null }
-  // Host → station, fired once per connection right after schema. Carries
-  // every coverage mask the host has stored so a station's map starts populated
-  // with whatever the operator has already explored. Stations keep their
-  // own copy and continue computing fresh tiles from telemetry afterwards,
-  // there's no delta sync, so a station refresh is the way to pick up later
-  // host-side discoveries.
-  //
-  // The discriminant still reads "fog" while the concept is coverage: it is an
-  // on-the-wire identifier, and a host and a station on either side of a rename
-  // would stop recognising each other's snapshot. Renaming it is a protocol
-  // migration (accept both spellings for a release, then drop the old one), not
-  // a rename, so it is left alone here.
-  | {
-      type: "fog-snapshot";
-      masks: Array<{
-        bodyId: string;
-        // Opaque per-coverage-source id, e.g. "survey:AltimetryHiRes":
-        // matches an id a coverage source registers via
-        // registerCoverageSource. Each mask routes to its own slot on
-        // the station so the display can apply HiRes-over-LoRes
-        // precedence the same way the host does. Pre-rework this field
-        // was absent and the station treated every payload as the
-        // AltHiRes channel.
-        layerId: string;
-        width: number;
-        height: number;
-        // Raw alpha bytes (0 = unimaged, 255 = imaged), same shape as the
-        // station's local CoverageMaskStore record. PeerJS BinaryPack passes
-        // Uint8Array through without re-encoding.
-        data: Uint8Array;
-      }>;
-    }
   // Station → host on connect and whenever the user renames the station.
   // Host keys peer id → name for grid attribution and abort reporting.
   // `version` + `buildTime` are optional so a pre-versioned station still
@@ -460,8 +428,7 @@ export type PeerMessage =
   //
   // Wire shape: `bytes` travels as a raw `Uint8Array`, NOT base64, PeerJS's
   // default "binary" serialization (BinaryPack) already passes a
-  // `Uint8Array` through untouched (see the `fog-snapshot`'s `masks[].data`
-  // doc comment above: same precedent); base64 would only add ~33%
+  // `Uint8Array` through untouched; base64 would only add ~33%
   // overhead on a channel that already carries binary natively. A fetch or
   // hash-mismatch failure is a distinct `error` variant (no `bytes`) rather
   // than a thrown exception on the wire, same convention as

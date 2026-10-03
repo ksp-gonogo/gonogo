@@ -67,7 +67,6 @@ const CONSTRUCTORS = [
   "MockDataSource",
   "BufferedDataSource",
   "MemoryStore",
-  "CoverageMaskStore",
   "PerfBudget",
 ] as const;
 
@@ -104,7 +103,6 @@ const VALUES = [
   "spaceCenterStateChannel",
   "dvCurrentStageResourceChannel",
   "dvCurrentStageResourceMaxChannel",
-  "DEFAULT_PROFILE_ID",
 ] as const;
 
 /**

@@ -137,7 +137,7 @@ export class AlarmPeerBridge {
     // Latecomer's initial snapshot: fire the host's current alarms at
     // every new peer immediately so the station doesn't wait for the
     // next tick to learn what alarms exist. Matches the
-    // CoverageSyncHostService / GoNoGoHostService / Notes pattern.
+    // GoNoGoHostService / Notes pattern.
     host.onPeerConnect((peerId) => {
       host.sendToPeer(peerId, {
         type: "alarm-snapshot",

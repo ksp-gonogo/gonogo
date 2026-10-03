@@ -1,202 +1,73 @@
-import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CoverageMaskCache } from "./CoverageMaskCache";
-import { CoverageMaskStore } from "./CoverageMaskStore";
 
 const HI = "altimetry-hi";
 const LO = "altimetry-lo";
 
-function makeCache(opts?: { flushDebounceMs?: number }) {
-  const store = new CoverageMaskStore({
-    dbName: `gonogo-coverage-test-${Math.random()}`,
-  });
-  const cache = new CoverageMaskCache(store, "profile-1", {
-    width: 4,
-    height: 2,
-    flushDebounceMs: opts?.flushDebounceMs ?? 10,
-  });
-  return { store, cache };
+function makeCache() {
+  return new CoverageMaskCache({ width: 4, height: 2 });
 }
 
 describe("CoverageMaskCache", () => {
-  beforeEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("allocates a zeroed mask on first acquire", async () => {
-    const { cache } = makeCache();
-    const mask = await cache.acquire("Kerbin", HI);
+  it("allocates a zeroed mask on first acquire", () => {
+    const mask = makeCache().acquire("Kerbin", HI);
     expect(mask.layerId).toBe(HI);
-    expect(mask.data).toHaveLength(8);
     expect(Array.from(mask.data)).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
-  it("returns the same mask instance on repeat acquire for one (body, layerId)", async () => {
-    const { cache } = makeCache();
-    const m1 = await cache.acquire("Kerbin", HI);
-    const m2 = await cache.acquire("Kerbin", HI);
-    expect(m1).toBe(m2);
+  it("returns the same mask instance on repeat acquire for one (body, layerId)", () => {
+    const cache = makeCache();
+    expect(cache.acquire("Kerbin", HI)).toBe(cache.acquire("Kerbin", HI));
   });
 
-  it("returns independent masks for different scan types on the same body", async () => {
-    const { cache } = makeCache();
-    const hi = await cache.acquire("Kerbin", HI);
-    const lo = await cache.acquire("Kerbin", LO);
-    expect(hi).not.toBe(lo);
-    expect(hi.layerId).toBe(HI);
-    expect(lo.layerId).toBe(LO);
-    // Mutating one type's mask must not leak into the other.
-    hi.data[0] = 200;
-    expect(lo.data[0]).toBe(0);
+  it("keeps each layer and each body apart", () => {
+    const cache = makeCache();
+    cache.acquire("Kerbin", HI).data[0] = 255;
+    expect(cache.acquire("Kerbin", LO).data[0]).toBe(0);
+    expect(cache.acquire("Mun", HI).data[0]).toBe(0);
   });
 
-  it("dedupes concurrent acquires for the same (body, layerId)", async () => {
-    const { cache } = makeCache();
-    const [m1, m2] = await Promise.all([
-      cache.acquire("Kerbin", HI),
-      cache.acquire("Kerbin", HI),
-    ]);
-    expect(m1).toBe(m2);
+  it("answers get with undefined until the mask is acquired", () => {
+    const cache = makeCache();
+    expect(cache.get("Kerbin", HI)).toBeUndefined();
+    const mask = cache.acquire("Kerbin", HI);
+    expect(cache.get("Kerbin", HI)).toBe(mask);
   });
 
-  it("persists dirty masks on flush and reloads them on a new cache", async () => {
-    const { store, cache } = makeCache();
-    const mask = await cache.acquire("Kerbin", HI);
-    mask.data[0] = 200;
-    mask.data[7] = 255;
+  it("tells a subscriber when its mask is marked dirty, and stops after unsubscribe", () => {
+    const cache = makeCache();
+    const listener = vi.fn();
+    const unsubscribe = cache.onChange("Kerbin", HI, listener);
+    const mask = cache.acquire("Kerbin", HI);
+
+    mask.data[1] = 255;
     cache.markDirty("Kerbin", HI);
-    await cache.flush();
+    expect(listener).toHaveBeenCalledWith(mask);
 
-    const cache2 = new CoverageMaskCache(store, "profile-1", {
-      width: 4,
-      height: 2,
-      flushDebounceMs: 10,
-    });
-    const reloaded = await cache2.acquire("Kerbin", HI);
-    expect(Array.from(reloaded.data)).toEqual([200, 0, 0, 0, 0, 0, 0, 255]);
-  });
-
-  // Regression: in the real useBodyCoverageMask hook, onChange (which creates a
-  // stub shell entry to accept subscribers) runs *before* acquire. A naïve
-  // acquire would return that zeroed shell and skip the IDB read entirely.
-  it("reloads from IDB even when a subscriber has already registered", async () => {
-    const { store, cache } = makeCache();
-    const mask = await cache.acquire("Kerbin", HI);
-    mask.data[0] = 77;
+    unsubscribe();
     cache.markDirty("Kerbin", HI);
-    await cache.flush();
-
-    const cache2 = new CoverageMaskCache(store, "profile-1", {
-      width: 4,
-      height: 2,
-      flushDebounceMs: 10,
-    });
-    cache2.onChange("Kerbin", HI, () => {}); // creates the stub shell
-    const reloaded = await cache2.acquire("Kerbin", HI);
-    expect(reloaded.data[0]).toBe(77);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it("notifies subscribers on markDirty for the matching layerId only", async () => {
-    const { cache } = makeCache();
-    const hi = await cache.acquire("Kerbin", HI);
-    await cache.acquire("Kerbin", LO);
-    const hiSpy = vi.fn();
-    const loSpy = vi.fn();
-    cache.onChange("Kerbin", HI, hiSpy);
-    cache.onChange("Kerbin", LO, loSpy);
+  it("subscribes before the first acquire to the mask that acquire then returns", () => {
+    const cache = makeCache();
+    const listener = vi.fn();
+    cache.onChange("Kerbin", HI, listener);
+    const mask = cache.acquire("Kerbin", HI);
     cache.markDirty("Kerbin", HI);
-    expect(hiSpy).toHaveBeenCalledWith(hi);
-    expect(loSpy).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledWith(mask);
   });
 
-  it("clear wipes in-memory bytes and the IDB record for one (body, layerId)", async () => {
-    const { store, cache } = makeCache();
-    const hi = await cache.acquire("Kerbin", HI);
-    const lo = await cache.acquire("Kerbin", LO);
-    hi.data[0] = 99;
-    lo.data[0] = 77;
-    cache.markDirty("Kerbin", HI);
-    cache.markDirty("Kerbin", LO);
-    await cache.flush();
-    await cache.clear("Kerbin", HI);
-    expect(hi.data[0]).toBe(0);
-    expect(lo.data[0]).toBe(77); // LO untouched
-    expect(await store.load("profile-1", "Kerbin", HI)).toBeNull();
-    expect(await store.load("profile-1", "Kerbin", LO)).not.toBeNull();
-  });
+  it("zeroes the mask on clear and tells its subscribers", () => {
+    const cache = makeCache();
+    const mask = cache.acquire("Kerbin", HI);
+    mask.data.fill(255);
+    const listener = vi.fn();
+    cache.onChange("Kerbin", HI, listener);
 
-  it("treats a mismatched-dimension stored mask as absent", async () => {
-    const { store } = makeCache();
-    // Write a mask with different dimensions directly to the store.
-    await store.save(
-      "profile-1",
-      "Kerbin",
-      HI,
-      new Uint8Array([1, 2, 3, 4]),
-      2,
-      2,
-    );
-    // Now create a cache expecting 4×2.
-    const cache = new CoverageMaskCache(store, "profile-1", {
-      width: 4,
-      height: 2,
-      flushDebounceMs: 10,
-    });
-    const mask = await cache.acquire("Kerbin", HI);
+    cache.clear("Kerbin", HI);
+
     expect(Array.from(mask.data)).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
-  });
-
-  it("reloads in-memory bytes and notifies subscribers when the store changes externally (snapshot path)", async () => {
-    const { store, cache } = makeCache();
-    // Subscribe BEFORE the external write so we observe the notify.
-    const mask = await cache.acquire("Kerbin", HI);
-    const spy = vi.fn();
-    cache.onChange("Kerbin", HI, spy);
-    expect(mask.data[0]).toBe(0);
-
-    // External write: bypasses the cache entirely (this models a coverage snapshot landing on a station).
-    await store.save(
-      "profile-1",
-      "Kerbin",
-      HI,
-      new Uint8Array([7, 8, 9, 10, 11, 12, 13, 14]),
-      4,
-      2,
-    );
-
-    // Listener fires; the cache's mask buffer reflects the new bytes (preserving the original reference so canvas paint loops survive).
-    await vi.waitFor(() => {
-      expect(mask.data[0]).toBe(7);
-    });
-    expect(Array.from(mask.data)).toEqual([7, 8, 9, 10, 11, 12, 13, 14]);
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it("ignores own-writes via the origin tag (no race-reload over a fresh local mutation)", async () => {
-    const { cache } = makeCache();
-    const mask = await cache.acquire("Kerbin", HI);
-    mask.data[0] = 42;
-    cache.markDirty("Kerbin", HI);
-    await cache.flush();
-    // After flush, the cache's own save fired the change listener with
-    // the cache's origin tag: the listener must short-circuit, leaving
-    // any local mutation that happened *between* flush starting and
-    // resolving in place.
-    mask.data[1] = 99;
-    // Give a microtask cycle for any stray reload to run.
-    await Promise.resolve();
-    expect(mask.data[0]).toBe(42);
-    expect(mask.data[1]).toBe(99);
-  });
-
-  it("keeps two arbitrary-string layerIds independent for one body (generalisation)", async () => {
-    const { cache } = makeCache();
-    const a = await cache.acquire("Kerbin", "example-uplink:cameraFootprint");
-    const b = await cache.acquire("Kerbin", "some-future-uplink:coverage-v2");
-    expect(a).not.toBe(b);
-    expect(a.layerId).toBe("example-uplink:cameraFootprint");
-    expect(b.layerId).toBe("some-future-uplink:coverage-v2");
-    a.data[0] = 200;
-    expect(b.data[0]).toBe(0);
+    expect(listener).toHaveBeenCalledWith(mask);
   });
 });

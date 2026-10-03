@@ -26,12 +26,8 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "COMMAND_LOST",
   "DEFAULT_MASK_HEIGHT",
   "DEFAULT_MASK_WIDTH",
-  "DEFAULT_PROFILE_ID",
   "CoverageMaskCache",
   "CoverageMaskCacheProvider",
-  "CoverageMaskStore",
-  "CoverageMaskStoreProvider",
-  "MASK_SCHEMA_VERSION",
   "SettingsProvider",
   "SettingsService",
   "GAME_HOST_KEY",
@@ -140,7 +136,6 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useDataSources",
   "useBodyCoverageMask",
   "useCoverageMaskCache",
-  "useCoverageMaskStore",
   "useHostIceServers",
   "useLateTelemetrySubscribe",
   "useLatestValue",
@@ -160,25 +155,6 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useViewClock",
   "useViewClockOptional",
   "useViewUt",
-  /*
-   * The pre-rename fog names, kept as deprecated aliases of the coverage ones
-   * for an out-of-repo Uplink. They are listed here rather than exempted so
-   * removing them is as deliberate an edit as adding them was; see the
-   * `as Fog...` aliases in `./index.ts` for when they can go.
-   */
-  "FogMaskCache",
-  "FogMaskCacheProvider",
-  "FogMaskStore",
-  "FogMaskStoreProvider",
-  "clearFogRevealSources",
-  "getFogRevealSourceSettings",
-  "getFogRevealSources",
-  "onFogRevealSourcesChange",
-  "registerFogRevealSource",
-  "unregisterFogRevealSource",
-  "useBodyFogMask",
-  "useFogMaskCache",
-  "useFogMaskStore",
 ].sort();
 
 afterEach(() => {

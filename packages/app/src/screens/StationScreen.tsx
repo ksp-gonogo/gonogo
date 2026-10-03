@@ -1,12 +1,7 @@
 import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
-import {
-  CoverageMaskCacheProvider,
-  CoverageMaskStore,
-  DEFAULT_PROFILE_ID,
-  FlightsFab,
-} from "@ksp-gonogo/data";
-import { debugPeer, logger } from "@ksp-gonogo/logger";
+import { CoverageMaskCacheProvider, FlightsFab } from "@ksp-gonogo/data";
+import { debugPeer } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -160,7 +155,6 @@ export function StationScreen() {
     },
     [alarmClient],
   );
-  const [coverageMaskStore] = useState(() => new CoverageMaskStore());
   const unsubsRef = useRef<Array<() => void>>([]);
   const schemaHandledRef = useRef(false);
 
@@ -255,40 +249,6 @@ export function StationScreen() {
     // given code, so a refresh re-derives the same target, no persistence
     // of any ephemeral id is needed here.
 
-    // One-shot coverage snapshot from the host. Persist each mask to the
-    // station's local CoverageMaskStore: the map widget reads through the
-    // same store so a refresh shows the host's exploration state. Both
-    // sides bucket under DEFAULT_PROFILE_ID now that save-profile
-    // scoping has been removed.
-    unsubsRef.current.push(
-      client.onCoverageSnapshot((msg) => {
-        logger.info(
-          `[coverage-sync] snapshot received: masks=${msg.masks.length}`,
-        );
-        for (const m of msg.masks) {
-          // Per-type mask routing: each mask carries its layerId (an
-          // opaque per-coverage-source id, e.g. "survey:AltimetryHiRes").
-          // The station persists each into its own per-type slot so the
-          // local MapView composes the same per-channel precedence the
-          // host renders.
-          coverageMaskStore
-            .save(
-              DEFAULT_PROFILE_ID,
-              m.bodyId,
-              m.layerId,
-              m.data,
-              m.width,
-              m.height,
-            )
-            .catch((err) => {
-              logger.error(
-                `[coverage-sync] failed to persist mask: body=${m.bodyId} layerId=${m.layerId}`,
-                err instanceof Error ? err : undefined,
-              );
-            });
-        }
-      }),
-    );
     unsubsRef.current.push(
       client.onSchema((sources) => {
         if (schemaHandledRef.current) return;
@@ -377,7 +337,7 @@ export function StationScreen() {
                 <ConsoleSettingsFromHost service={settingsService} />
                 <ManeuverTriggerProvider service={maneuverTriggerClient}>
                   <PushClientProvider>
-                    <CoverageMaskCacheProvider store={coverageMaskStore}>
+                    <CoverageMaskCacheProvider>
                       <SerialDeviceProvider service={serialService}>
                         <OverlayProvider
                           addItem={dashboard.addItem}

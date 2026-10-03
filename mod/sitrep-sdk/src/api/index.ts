@@ -1047,59 +1047,19 @@ export {
   classifyCommandRejection,
   commandRefusalSubject,
 } from "./command-rejection";
-// The coverage mask store, its in-memory cache and the React context that
-// carries them. Owned here for the same reason the settings context is: a second
-// copy of a context is invisible to the other side's provider, and `useCoverageMaskCache`
-// was a shim precisely so an Uplink's hook would read the app's. With one context in
-// one published package there is no second copy, so that shim retires too.
-/**
- * Every `X as FogY` below is a deprecated alias of the name beside it. There is
- * no fog of war in this product: a coverage source contributes per-body masks
- * and a base-layer augment gates its own paint on them, so the fog names
- * described a model that no longer exists.
- *
- * They stay exported because a coverage-contributing Uplink lives in a separate
- * repository and calls `registerFogRevealSource` and `useFogMaskCache` against a
- * published sdk. Drop them once that Uplink has shipped a release built on the
- * coverage names, along with the two `Fog` type aliases at the foot of this file,
- * the matching entries in `api-shape.gate.test.ts`, and
- * `deprecated-fog-aliases.test.ts` entire.
- */
+// The coverage mask cache and the React context that carries it. Owned here
+// because a second copy of a context is invisible to the other side's provider:
+// with one context in one published package, an Uplink's hook reads the app's.
 export {
   CoverageMaskCache,
-  CoverageMaskCache as FogMaskCache,
   DEFAULT_MASK_HEIGHT,
   DEFAULT_MASK_WIDTH,
 } from "./coverage/CoverageMaskCache";
 export {
   CoverageMaskCacheProvider,
-  CoverageMaskCacheProvider as FogMaskCacheProvider,
-  CoverageMaskStoreProvider,
-  CoverageMaskStoreProvider as FogMaskStoreProvider,
-  DEFAULT_PROFILE_ID,
   useBodyCoverageMask,
-  useBodyCoverageMask as useBodyFogMask,
   useCoverageMaskCache,
-  useCoverageMaskCache as useFogMaskCache,
-  useCoverageMaskStore,
-  useCoverageMaskStore as useFogMaskStore,
 } from "./coverage/CoverageMaskContext";
-export {
-  type CoverageMaskChangeListener,
-  type CoverageMaskChangeListener as FogMaskChangeListener,
-  CoverageMaskStore,
-  CoverageMaskStore as FogMaskStore,
-  MASK_SCHEMA_VERSION,
-  type StoredMask,
-} from "./coverage/CoverageMaskStore";
-export {
-  clearCoverageSources as clearFogRevealSources,
-  getCoverageSourceSettings as getFogRevealSourceSettings,
-  getCoverageSources as getFogRevealSources,
-  onCoverageSourcesChange as onFogRevealSourcesChange,
-  registerCoverageSource as registerFogRevealSource,
-  unregisterCoverageSource as unregisterFogRevealSource,
-} from "./coverage-source";
 /**
  * The error vocabulary: every refusal and fault code, typed, and the sentence
  * and meaning behind any id a client meets, including an Uplink's refinements.
@@ -1142,8 +1102,3 @@ export {
   registerRootProvider,
 } from "./root-providers";
 export { safeRandomUuid } from "./safe-random-uuid";
-/** The type half of the deprecated fog aliases; see the value half above. */
-export type {
-  CoverageMaskCacheHandle as FogMaskCacheHandle,
-  CoverageSourceDefinition as FogRevealSourceDefinition,
-} from "./types";

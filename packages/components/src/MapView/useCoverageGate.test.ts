@@ -1,8 +1,7 @@
-import "fake-indexeddb/auto";
 import type { CoverageSourceDefinition } from "@ksp-gonogo/core";
 import { clearCoverageSources, registerCoverageSource } from "@ksp-gonogo/core";
 import type { BodyMask } from "@ksp-gonogo/data";
-import { CoverageMaskCacheProvider, CoverageMaskStore } from "@ksp-gonogo/data";
+import { CoverageMaskCacheProvider } from "@ksp-gonogo/data";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { createElement } from "react";
@@ -63,11 +62,8 @@ describe("compositeCoverage: pure per-pixel math", () => {
 
 describe("useCoverageGate: hook integration", () => {
   it("hasAnySource is false with nothing registered, true once a source registers", async () => {
-    const store = new CoverageMaskStore({
-      dbName: `gonogo-coverage-test-${Math.random()}`,
-    });
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(CoverageMaskCacheProvider, { store, children });
+      createElement(CoverageMaskCacheProvider, { children });
     const { result, rerender, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },
@@ -92,11 +88,8 @@ describe("useCoverageGate: hook integration", () => {
       weight: 255,
     });
 
-    const store = new CoverageMaskStore({
-      dbName: `gonogo-coverage-test-${Math.random()}`,
-    });
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(CoverageMaskCacheProvider, { store, children });
+      createElement(CoverageMaskCacheProvider, { children });
     const { result, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },

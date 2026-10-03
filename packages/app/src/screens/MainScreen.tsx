@@ -12,7 +12,6 @@ import {
 import {
   AutoRecordController,
   CoverageMaskCacheProvider,
-  CoverageMaskStore,
   FlightsFab,
   ReplaySessionBanner,
   ReplaySessionProvider,
@@ -65,7 +64,6 @@ import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationBuildMismatchNotice } from "../components/StationBuildMismatchNotice";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
-import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
 import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
@@ -240,7 +238,6 @@ export function MainScreen({
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService(screen));
-  const [coverageMaskStore] = useState(() => new CoverageMaskStore());
   // GoNoGoHostService lives for the app's lifetime. Intentionally no dispose
   // cleanup: StrictMode's simulated unmount would run it and leave the
   // second mount with a zombie service that no longer receives host events
@@ -255,18 +252,6 @@ export function MainScreen({
   const [maneuverTriggerHost] = useState(() =>
     createManeuverTriggerHost(peerHostService),
   );
-  const [coverageSyncHost] = useState(
-    () =>
-      new CoverageSyncHostService({
-        peerHost: peerHostService,
-        coverageStore: coverageMaskStore,
-      }),
-  );
-  useEffect(() => {
-    coverageSyncHost.start();
-    return () => coverageSyncHost.stop();
-  }, [coverageSyncHost]);
-
   // Prime the module-scoped sound flag from the persisted setting and keep
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
@@ -359,9 +344,7 @@ export function MainScreen({
                           <MissionProfilesProvider service={missionProfiles}>
                             <GoNoGoHostProvider service={goNoGoHost}>
                               <PushHostProvider service={pushHost}>
-                                <CoverageMaskCacheProvider
-                                  store={coverageMaskStore}
-                                >
+                                <CoverageMaskCacheProvider>
                                   <SerialDeviceProvider service={serialService}>
                                     <MainDashboard
                                       screen={screen}

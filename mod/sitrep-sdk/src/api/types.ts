@@ -1223,7 +1223,7 @@ export interface BodyMask {
  * @category Maps and coverage
  */
 export interface CoverageMaskCacheHandle {
-  acquire(bodyId: string, layerId: string): Promise<BodyMask>;
+  acquire(bodyId: string, layerId: string): BodyMask;
   get(bodyId: string, layerId: string): BodyMask | undefined;
   markDirty(bodyId: string, layerId: string): void;
   onChange(
@@ -1231,9 +1231,7 @@ export interface CoverageMaskCacheHandle {
     layerId: string,
     listener: (mask: BodyMask) => void,
   ): () => void;
-  flush(): Promise<void>;
-  clear(bodyId: string, layerId: string): Promise<void>;
-  dispose(): Promise<void>;
+  clear(bodyId: string, layerId: string): void;
 }
 
 //

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { renderHook } from "../../testing";
-import { useCoverageMaskCache, useCoverageMaskStore } from "./CoverageMaskContext";
+import { useCoverageMaskCache } from "./CoverageMaskContext";
 
 /**
  * `useCoverageMaskCache` was a host SHIM until 2026-08-19, so an Uplink's hook would
@@ -20,11 +20,6 @@ describe("coverage mask context, with no provider mounted", () => {
     // skips the coverage pipeline. A throw here would take out every dashboard that
     // does not use coverage at all.
     const { result } = renderHook(() => useCoverageMaskCache());
-    expect(result.current).toBeNull();
-  });
-
-  it("answers null for the store too, on the same contract", () => {
-    const { result } = renderHook(() => useCoverageMaskStore());
     expect(result.current).toBeNull();
   });
 });

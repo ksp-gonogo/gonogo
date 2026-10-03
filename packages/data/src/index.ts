@@ -1,7 +1,7 @@
-// The coverage mask store, cache and context moved to `@ksp-gonogo/sitrep-sdk`.
+// The coverage mask cache and context moved to `@ksp-gonogo/sitrep-sdk`.
 // The Uplink that contributes coverage is the only consumer, and its own tests
-// build a `CoverageMaskStore` inside a `CoverageMaskCacheProvider` to assert what a scan
-// revealed; reaching either meant importing this package, which is `private: true`.
+// mount a `CoverageMaskCacheProvider` to assert what a scan revealed; reaching it
+// meant importing this package, which is `private: true`.
 // `useCoverageMaskCache` was published as a host shim, so the read half was reachable and
 // the construction half was not.
 //
@@ -23,15 +23,11 @@ export {
   BufferedDataSource,
   CoverageMaskCache,
   CoverageMaskCacheProvider,
-  type CoverageMaskChangeListener,
-  CoverageMaskStore,
-  CoverageMaskStoreProvider,
   clearDerivedKeys,
   DataSourceWrapper,
   DEFAULT_KEEP_COUNT,
   DEFAULT_MASK_HEIGHT,
   DEFAULT_MASK_WIDTH,
-  DEFAULT_PROFILE_ID,
   type DerivedKeyDef,
   type DetectorDecision,
   type DetectorInput,
@@ -54,15 +50,12 @@ export {
   ListenerSet,
   LocalStorageStore,
   type LocalStorageStoreOptions,
-  MASK_SCHEMA_VERSION,
   MemoryStore,
   registerDerivedKey,
-  type StoredMask,
   setKeepCount,
   subscribeAutoDelete,
   useBodyCoverageMask,
   useCoverageMaskCache,
-  useCoverageMaskStore,
 } from "@ksp-gonogo/sitrep-sdk";
 export * from "./FlightsFab";
 export * from "./FlightsManager";

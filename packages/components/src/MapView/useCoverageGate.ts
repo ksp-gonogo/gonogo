@@ -103,15 +103,13 @@ export function useCoverageGate(
     }
 
     for (const source of sources) {
-      cache.acquire(bodyId, source.id).then((m: BodyMask) => {
-        if (cancelled) return;
-        width = m.width;
-        height = m.height;
-        masksByLayer.set(source.id, m);
-        unsubs.push(cache.onChange(bodyId, source.id, recompute));
-        recompute();
-      });
+      const m = cache.acquire(bodyId, source.id);
+      width = m.width;
+      height = m.height;
+      masksByLayer.set(source.id, m);
+      unsubs.push(cache.onChange(bodyId, source.id, recompute));
     }
+    recompute();
     return () => {
       cancelled = true;
       for (const u of unsubs) u();
