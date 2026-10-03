@@ -9,6 +9,7 @@ import {
   NULL_DISPLAY,
   Panel,
   Section,
+  Stack,
   Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -156,42 +157,47 @@ export function CommSignalComponent({
             </span>
           )}
         </Section>,
-        /* The short readouts share one section, so the taller route is what takes a second column. */
+        /* One section holding both blocks in a wrapping row: two grid sections would split the width into equal columns and leave the route a gulf away from the readouts. */
         <Section key="signal">
-          <Cluster justify="start" wrap>
-            <SignalBars
-              bars={bars}
-              tone={noSignal ? "neutral" : control.tone}
-              noSignal={noSignal}
-            />
-            <SignalHeadline headline={headline} lost={connected === false} />
-          </Cluster>
-          {showDetailGrid && (
-            <Grid
-              cols="auto 1fr"
-              gap="label-value"
-              rowGap="readout-row"
-              align="baseline"
-            >
-              <CommSignalDetailRows
-                control={control}
-                delay={delay}
-                noSignal={noSignal}
+          <Cluster justify="start" align="start" gap="section" wrap>
+            <Stack gap="related">
+              <Cluster justify="start" wrap>
+                <SignalBars
+                  bars={bars}
+                  tone={noSignal ? "neutral" : control.tone}
+                  noSignal={noSignal}
+                />
+                <SignalHeadline
+                  headline={headline}
+                  lost={connected === false}
+                />
+              </Cluster>
+              {showDetailGrid && (
+                <Grid
+                  cols="auto 1fr"
+                  gap="label-value"
+                  rowGap="related"
+                  align="baseline"
+                >
+                  <CommSignalDetailRows
+                    control={control}
+                    delay={delay}
+                    noSignal={noSignal}
+                  />
+                </Grid>
+              )}
+            </Stack>
+            {showFullPath && (
+              <CommsPathRoute
+                hops={hops}
+                vesselLabel={vesselLabel}
+                centreLabel={centreLabel}
+                pathDelay={delay}
+                rateByHopId={rateByHopId}
               />
-            </Grid>
-          )}
+            )}
+          </Cluster>
         </Section>,
-        showFullPath && (
-          <Section key="route">
-            <CommsPathRoute
-              hops={hops}
-              vesselLabel={vesselLabel}
-              centreLabel={centreLabel}
-              pathDelay={delay}
-              rateByHopId={rateByHopId}
-            />
-          </Section>
-        ),
       ]}
     />
   );
