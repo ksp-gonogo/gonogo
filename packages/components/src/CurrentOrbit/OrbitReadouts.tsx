@@ -6,6 +6,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Cluster,
   Countdown,
   Grid,
   NULL_DISPLAY,
@@ -49,14 +50,20 @@ function ApsisCell({
 function Pair({
   columns,
   gap,
+  basis,
   children,
 }: {
   columns: string;
   gap: string;
+  basis: string;
   children: ReactNode;
 }) {
   return (
-    <Grid cols={columns} align="baseline" style={{ gap }}>
+    <Grid
+      cols={columns}
+      align="baseline"
+      style={{ gap, flex: `1 1 ${basis}`, minWidth: 0 }}
+    >
       {children}
     </Grid>
   );
@@ -97,19 +104,21 @@ export function OrbitReadoutGrid({
 }: Readonly<OrbitReadoutGridProps>) {
   const cell = { apsides, noApsidesHere };
   const pairColumns = tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)";
+  // A pair shrinks below this on an aside narrower than it, rather than overflowing.
+  const pairBasis = tight ? "6.5rem" : "8rem";
   const pairGap = tight
     ? "var(--gap-label-value-tight)"
     : "var(--gap-label-value)";
   return (
-    // Each readout is a label and its value, and the pairs flow into as many columns as the room allows, so a wide aside reads in a few rows.
-    <Grid
-      minColWidth={tight ? "6.5rem" : "8rem"}
+    // Each readout is a label and its value, and the pairs wrap into as many columns as the room allows, so a wide aside reads in a few rows.
+    <Cluster
+      wrap
+      justify="start"
       align="baseline"
-      rowGap="readout-row"
-      gap="section-compact"
-      style={{ alignContent: "start", width: "100%" }}
+      gap="related-compact"
+      style={{ width: "100%" }}
     >
-      <Pair columns={pairColumns} gap={pairGap}>
+      <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
         <OrbitLabel>Ap</OrbitLabel>
         <OrbitValue accent="ap" tight={tight} narrow={narrow}>
           <ApsisCell apsis="Ap" {...cell}>
@@ -122,7 +131,7 @@ export function OrbitReadoutGrid({
         </OrbitValue>
       </Pair>
 
-      <Pair columns={pairColumns} gap={pairGap}>
+      <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
         <OrbitLabel>Pe</OrbitLabel>
         {/* A sub-surface periapsis means impact, so it takes the alert colour. */}
         <OrbitValue
@@ -146,7 +155,7 @@ export function OrbitReadoutGrid({
 
       {showApProgressRows && (
         <>
-          <Pair columns={pairColumns} gap={pairGap}>
+          <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
             <OrbitLabel>t-Ap</OrbitLabel>
             <OrbitValue accent="ap" tight={tight} narrow={narrow}>
               {/* A countdown to an apsis that does not exist would read as an imminent event. */}
@@ -160,7 +169,7 @@ export function OrbitReadoutGrid({
             </OrbitValue>
           </Pair>
 
-          <Pair columns={pairColumns} gap={pairGap}>
+          <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
             <OrbitLabel>t-Pe</OrbitLabel>
             <OrbitValue accent="pe" tight={tight} narrow={narrow}>
               <ApsisCell apsis="Pe" {...cell}>
@@ -176,7 +185,7 @@ export function OrbitReadoutGrid({
       )}
 
       {showInclinationRow && (
-        <Pair columns={pairColumns} gap={pairGap}>
+        <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
           <OrbitLabel>Inc</OrbitLabel>
           <OrbitValue tight={tight} narrow={narrow}>
             {inclination === undefined ? (
@@ -190,7 +199,7 @@ export function OrbitReadoutGrid({
 
       {showEccentricityRows && (
         <>
-          <Pair columns={pairColumns} gap={pairGap}>
+          <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
             <OrbitLabel>Ecc</OrbitLabel>
             <OrbitValue tight={tight} narrow={narrow}>
               {eccentricity === undefined ? (
@@ -201,7 +210,7 @@ export function OrbitReadoutGrid({
             </OrbitValue>
           </Pair>
 
-          <Pair columns={pairColumns} gap={pairGap}>
+          <Pair columns={pairColumns} gap={pairGap} basis={pairBasis}>
             <OrbitLabel>T</OrbitLabel>
             <OrbitValue tight={tight} narrow={narrow}>
               {period === undefined ? (
@@ -213,6 +222,6 @@ export function OrbitReadoutGrid({
           </Pair>
         </>
       )}
-    </Grid>
+    </Cluster>
   );
 }
