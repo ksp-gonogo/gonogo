@@ -3,6 +3,38 @@
     "scenario": "ksync-kerbin",
     "notes": "Kerbosynchronous orbit around Kerbin. SMA ~2868.75 km from body centre (well-known KSP value). Period matches Kerbin's rotation."
   },
+  "_series": {
+    "vessel.orbit.sma": [
+      {
+        "t": -300000,
+        "v": 2867550
+      },
+      {
+        "t": -250000,
+        "v": 2867850
+      },
+      {
+        "t": -200000,
+        "v": 2868150
+      },
+      {
+        "t": -150000,
+        "v": 2868414
+      },
+      {
+        "t": -100000,
+        "v": 2868606
+      },
+      {
+        "t": -50000,
+        "v": 2868714
+      },
+      {
+        "t": 0,
+        "v": 2868750
+      }
+    ]
+  },
   "vessel.orbit.sma": 2868750,
   "o.referenceBody": "Kerbin",
   "_stream": {

@@ -3,6 +3,38 @@
     "scenario": "jool-system",
     "notes": "Orbit around Jool (KSP's gas giant). Very large SMA ~26 Mm from body centre. Exercises formatDistance at megameter scale."
   },
+  "_series": {
+    "vessel.orbit.sma": [
+      {
+        "t": -300000,
+        "v": 25960000
+      },
+      {
+        "t": -250000,
+        "v": 25970000
+      },
+      {
+        "t": -200000,
+        "v": 25980000
+      },
+      {
+        "t": -150000,
+        "v": 25988800
+      },
+      {
+        "t": -100000,
+        "v": 25995200
+      },
+      {
+        "t": -50000,
+        "v": 25998800
+      },
+      {
+        "t": 0,
+        "v": 26000000
+      }
+    ]
+  },
   "vessel.orbit.sma": 26000000,
   "o.referenceBody": "Jool",
   "_stream": {

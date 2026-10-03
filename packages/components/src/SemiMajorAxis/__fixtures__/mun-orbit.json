@@ -3,6 +3,38 @@
     "scenario": "mun-orbit",
     "notes": "Low Mun orbit. Mun radius 200 km + ~15 km altitude = 215 km SMA. Tests the reference body label showing 'Mun'."
   },
+  "_series": {
+    "vessel.orbit.sma": [
+      {
+        "t": -300000,
+        "v": 214700
+      },
+      {
+        "t": -250000,
+        "v": 214775
+      },
+      {
+        "t": -200000,
+        "v": 214850
+      },
+      {
+        "t": -150000,
+        "v": 214916
+      },
+      {
+        "t": -100000,
+        "v": 214964
+      },
+      {
+        "t": -50000,
+        "v": 214991
+      },
+      {
+        "t": 0,
+        "v": 215000
+      }
+    ]
+  },
   "vessel.orbit.sma": 215000,
   "o.referenceBody": "Mun",
   "_stream": {
