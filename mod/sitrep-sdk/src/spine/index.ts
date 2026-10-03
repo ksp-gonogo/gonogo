@@ -60,6 +60,7 @@ export * from "./clock";
 export * from "./command-gate";
 export * from "./comms-delay-reckoning";
 export * from "./comms-path-geometry";
+export * from "./comms-route";
 export * from "./connection-error-warning";
 export * from "./connectivity-history";
 export * from "./context";

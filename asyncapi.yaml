@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 28.4.0
+  version: 28.5.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 82 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 83 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -158,7 +158,7 @@ info:
     - name: commcast
       description: 2 telemetry channels, 5 commands
     - name: comms
-      description: 11 telemetry channels, 0 commands
+      description: 12 telemetry channels, 0 commands
     - name: crash
       description: 1 telemetry channel, 0 commands
     - name: deployed
@@ -1167,6 +1167,34 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.comms.path"
+      event:
+        $ref: "#/components/messages/event"
+  comms.route:
+    address: comms.route
+    description: |-
+      Carries a `CommsRoutes`.
+
+      The route a message sent now would take between each command centre and the
+      active craft, in both directions, predicted from the contact plan: the
+      earliest arrival over every relay, waiting at a node for its next window
+      where that arrives sooner.
+
+      A prediction. The live link the game reports decides what actually gets
+      through, and today only a `CommsRoute.live` route delivers: a message whose
+      route would have to wait anywhere is not held for that window, so it is
+      lost.
+
+      Each session receives only the rows that start or end at its own vantage.
+      DELAYED, so a centre learns its routes one of its own light-times after they
+      were planned.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.comms.route"
       event:
         $ref: "#/components/messages/event"
   comms.signal:
@@ -4769,6 +4797,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.path/messages/streamData"
       - $ref: "#/channels/comms.path/messages/event"
+  read:comms.route:
+    action: receive
+    channel:
+      $ref: "#/channels/comms.route"
+    title: Read comms.route
+    description: Delivered only after `subscribe` names `comms.route` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: comms
+    messages:
+      - $ref: "#/channels/comms.route/messages/streamData"
+      - $ref: "#/channels/comms.route/messages/event"
   read:comms.signal:
     action: receive
     channel:
@@ -7431,6 +7470,19 @@ components:
                 const: comms.path
               payload:
                 $ref: "#/components/schemas/CommsPath"
+    streamData.comms.route:
+      name: stream-data
+      title: A frame on comms.route
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `comms.route`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: comms.route
+              payload:
+                $ref: "#/components/schemas/CommsRoutes"
     streamData.comms.signal:
       name: stream-data
       title: A frame on comms.signal
@@ -11463,6 +11515,101 @@ components:
           description: |-
             The hops in order, the first starting at the active vessel and the last
             ending at home. Empty when there is no path home, never null.
+    CommsRoute:
+      type: object
+      description: |-
+        The route from one node to another for a message sent at
+        `CommsRoute.sentUt`.
+      required:
+        - from
+        - to
+        - sentUt
+        - live
+        - holds
+      properties:
+        from:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Where the message leaves from, in the `commandCentre.roster` vocabulary:
+            `"ground:<name>"` or `"vessel:<guid>"`.
+        to:
+          type: string
+          x-sitrep-unit: id
+          description: Where it is going, in the same vocabulary.
+        sentUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The send instant the route was planned for.
+        arrivalUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            When the message would arrive, waits included, or `null` when no route is
+            predicted before the plan's horizon.
+        live:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether every hop leaves the moment the message reaches its node, so nothing
+            would wait anywhere. False when there is no route.
+        holds:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsRouteHold"
+          description: |-
+            Every node the message would wait at, in route order: where it is held, when
+            it gets there and when it is predicted to leave. Empty for a live route and
+            for no route. The sender itself is the first hold when the message has to
+            wait before its first hop.
+    CommsRouteHold:
+      type: object
+      description: |-
+        One stretch a routed message would spend held at a node, waiting for its
+        next window.
+      required:
+        - at
+        - arriveUt
+        - departUt
+      properties:
+        at:
+          type: string
+          x-sitrep-unit: id
+          description: The node holding it, in the `commandCentre.roster` vocabulary.
+        arriveUt:
+          type: number
+          x-sitrep-unit: ut
+          description: When the message reaches the node, or is sent from it.
+        departUt:
+          type: number
+          x-sitrep-unit: ut
+          description: When it is predicted to leave on its next hop.
+    CommsRoutes:
+      type: object
+      description: |-
+        The route a message sent now would take between each command centre and the
+        active craft, in both directions, predicted from the contact plan: the
+        earliest arrival over every relay, waiting at a node for its next window
+        where that arrives sooner.
+
+        A prediction. The live link the game reports decides what actually gets
+        through, and today only a `CommsRoute.live` route delivers: a message whose
+        route would have to wait anywhere is not held for that window, so it is
+        lost.
+
+        Each session receives only the rows that start or end at its own vantage.
+        DELAYED, so a centre learns its routes one of its own light-times after they
+        were planned.
+      required:
+        - routes
+      properties:
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsRoute"
+          description: One row per direction between a command centre and the active craft.
     CommsSignal:
       type: object
       description: |-

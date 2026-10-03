@@ -48,6 +48,7 @@ import type {
   CommsNetwork,
   CommsOcclusion,
   CommsPath,
+  CommsRoutes,
   CommsSignal,
   ControlFrame,
   CrashReport,
@@ -135,6 +136,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.network": CommsNetwork;
   "comms.occlusion": CommsOcclusion;
   "comms.path": CommsPath;
+  "comms.route": CommsRoutes;
   "comms.signal": CommsSignal;
   "crash.lastCrash": CrashReport;
   "deployed.bases": DeployedEntry[];
@@ -220,6 +222,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.network",
   "comms.occlusion",
   "comms.path",
+  "comms.route",
   "comms.signal",
   "crash.lastCrash",
   "deployed.bases",

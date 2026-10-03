@@ -455,6 +455,18 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     occludingRadiusMeters: "m",
     radiusMeters: "m",
   },
+  "CommsRoute": {
+    arrivalUt: "ut",
+    from: "id",
+    live: "flag",
+    sentUt: "ut",
+    to: "id",
+  },
+  "CommsRouteHold": {
+    arriveUt: "ut",
+    at: "id",
+    departUt: "ut",
+  },
   "CommsSignal": {
     strength: "ratio",
   },
@@ -2292,6 +2304,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsPath": {
     hops: "CommsHop[]",
   },
+  "CommsRoute": {
+    holds: "CommsRouteHold[]",
+  },
+  "CommsRoutes": {
+    routes: "CommsRoute[]",
+  },
   "ControlFrame": {
     settableFrames: "ControlFrameOption[]",
   },
@@ -2570,6 +2588,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "comms.path": {
     hops: "CommsHop[]",
+  },
+  "comms.route": {
+    routes: "CommsRoute[]",
   },
   "crash.lastCrash": {
     flightStats: "CrashFlightStats",

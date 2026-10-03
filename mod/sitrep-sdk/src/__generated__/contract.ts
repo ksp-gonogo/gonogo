@@ -2268,6 +2268,78 @@ export interface CommsOcclusion
 	bodies: CommsOcclusionBody[];
 }
 /**
+* The route a message sent now would take between each command centre and the
+* active craft, in both directions, predicted from the contact plan: the
+* earliest arrival over every relay, waiting at a node for its next window
+* where that arrives sooner.
+*
+* A prediction. The live link the game reports decides what actually gets
+* through, and today only a `CommsRoute.live` route delivers: a message whose
+* route would have to wait anywhere is not held for that window, so it is
+* lost.
+*
+* Each session receives only the rows that start or end at its own vantage.
+* DELAYED, so a centre learns its routes one of its own light-times after they
+* were planned.
+*
+* @category Comms
+*/
+export interface CommsRoutes
+{
+	/** One row per direction between a command centre and the active craft. */
+	routes: CommsRoute[];
+}
+/**
+* The route from one node to another for a message sent at
+* `CommsRoute.sentUt`.
+*
+* @category Comms
+*/
+export interface CommsRoute
+{
+	/**
+	* Where the message leaves from, in the `commandCentre.roster` vocabulary:
+	* `"ground:<name>"` or `"vessel:<guid>"`.
+	*/
+	from: string;
+	/** Where it is going, in the same vocabulary. */
+	to: string;
+	/** The send instant the route was planned for. */
+	sentUt: Value<"ut">;
+	/**
+	* When the message would arrive, waits included, or `null` when no route is
+	* predicted before the plan's horizon.
+	*/
+	arrivalUt?: Value<"ut"> | null;
+	/**
+	* Whether every hop leaves the moment the message reaches its node, so nothing
+	* would wait anywhere. False when there is no route.
+	*/
+	live: boolean;
+	/**
+	* Every node the message would wait at, in route order: where it is held, when
+	* it gets there and when it is predicted to leave. Empty for a live route and
+	* for no route. The sender itself is the first hold when the message has to
+	* wait before its first hop.
+	*/
+	holds: CommsRouteHold[];
+}
+/**
+* One stretch a routed message would spend held at a node, waiting for its
+* next window.
+*
+* @category Comms
+*/
+export interface CommsRouteHold
+{
+	/** The node holding it, in the `commandCentre.roster` vocabulary. */
+	at: string;
+	/** When the message reaches the node, or is sent from it. */
+	arriveUt: Value<"ut">;
+	/** When it is predicted to leave on its next hop. */
+	departUt: Value<"ut">;
+}
+/**
 * The frame the game's own navigation view is expressed in: what the player is
 * looking at, and what a burn expressed relative to the control frame is held
 * fixed against.

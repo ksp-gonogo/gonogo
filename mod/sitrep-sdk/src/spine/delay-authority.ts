@@ -1,5 +1,6 @@
 import type { CommsDelay } from "../__generated__/contract";
 import { isValue } from "../unit-system/value";
+import { ROUTE_TOPIC, readRouteDelays } from "./comms-route";
 
 /**
  * The `comms.delay` channel topic: the CORE `SignalDelay` capability's
@@ -20,6 +21,8 @@ export const COMMS_DELAY_TOPIC = "comms.delay";
  * `comms.delay` in the ledger.
  */
 export const CENTRE_DELAY_TOPIC = "commandCentre.activeVesselDelay";
+
+export const ROSTER_TOPIC = "commandCentre.roster";
 
 /**
  * The minimal client surface `DelayAuthority` needs: topic subscription, and
@@ -74,6 +77,18 @@ export function readCentreDelays(
     }
   }
   return delays;
+}
+
+/** The roster entry marked home, by id, or `null` for a payload that names none. */
+export function readHomeCentre(payload: unknown): string | null {
+  if (!Array.isArray(payload)) return null;
+  for (const entry of payload) {
+    if (typeof entry !== "object" || entry === null) continue;
+    if ("isHome" in entry && entry.isHome === true && "id" in entry) {
+      return typeof entry.id === "string" ? entry.id : null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -139,6 +154,12 @@ export class DelayAuthority {
   private centreDelays: ReadonlyMap<string, number> = new Map();
   /** Each centre's own delay as last listed, kept after its row goes. */
   private readonly lastCentreDelays = new Map<string, number>();
+  /** Each centre's predicted downlink delay, waits included, from the latest routes. */
+  private routeDelays: ReadonlyMap<string, number> = new Map();
+  /** Each centre's last predicted LIVE downlink delay, kept after the route stops being live. */
+  private readonly lastLiveRouteDelays = new Map<string, number>();
+  /** The centre the roster names home, once a roster has said. */
+  private homeCentre: string | undefined;
   private vantageSource: DelaySubscribable | undefined;
 
   /**
@@ -198,6 +219,30 @@ export class DelayAuthority {
   }
 
   /**
+   * Feed one `comms.route` payload: each centre's predicted downlink delay
+   * replaces the last set whole, and a live one is also kept as that centre's
+   * last live delay.
+   */
+  observeRoutes(payload: unknown): void {
+    const routes = readRouteDelays(payload);
+    if (routes === null) return;
+    const delays = new Map<string, number>();
+    for (const [centre, route] of routes) {
+      const seconds = readSeconds(route.seconds);
+      if (seconds === null) continue;
+      delays.set(centre, seconds);
+      if (route.live) this.lastLiveRouteDelays.set(centre, seconds);
+    }
+    this.routeDelays = delays;
+  }
+
+  /** Feed one `commandCentre.roster` payload, to learn which centre is home. */
+  observeRoster(payload: unknown): void {
+    const home = readHomeCentre(payload);
+    if (home !== null) this.homeCentre = home;
+  }
+
+  /**
    * Tell the authority whether this session's selected vantage is the craft
    * its own telemetry is about (`isOwnCraftVantage`). While it is, the delay
    * is 0 whatever `comms.delay` reports.
@@ -227,10 +272,14 @@ export class DelayAuthority {
    * has lost its own route, which is not home's, so it holds the delay it was
    * last listed at, as `comms.delay` holds home's through a blackout; playing
    * it at home's delay would show it pictures and readings on a path it does
-   * not have. `comms.delay` is for a centre never listed, which home always
-   * is. All of it is kept across a vantage change, so a move to another centre
-   * reports that centre's last measured light-time immediately instead of
-   * waiting a whole one to re-learn it.
+   * not have. A centre never listed takes its own routed delay from
+   * `comms.route` once the roster has said it is not home: its last live route
+   * if it has had one, held through a gap as the listed delay is, and otherwise
+   * the route that would reach it, waits included. `comms.delay` is home's, and
+   * every centre's until the roster and a route say otherwise. All of it is
+   * kept across a vantage change, so a move to another centre reports that
+   * centre's last measured light-time immediately instead of waiting a whole
+   * one to re-learn it.
    */
   delaySeconds = (): number => {
     if (this.ownCraftVantage) return 0;
@@ -241,13 +290,23 @@ export class DelayAuthority {
     return (
       this.centreDelays.get(vantage) ??
       this.lastCentreDelays.get(vantage) ??
+      this.routedDelay(vantage) ??
       this.oneWaySeconds
     );
   };
 
+  private routedDelay(vantage: string): number | undefined {
+    if (this.homeCentre === undefined || vantage === this.homeCentre) {
+      return undefined;
+    }
+    return (
+      this.lastLiveRouteDelays.get(vantage) ?? this.routeDelays.get(vantage)
+    );
+  }
+
   /**
-   * Subscribe to `comms.delay` and `commandCentre.activeVesselDelay` on
-   * `client`, keeping `delaySeconds()` current, and read the session's vantage
+   * Subscribe to `comms.delay`, `commandCentre.activeVesselDelay`,
+   * `comms.route` and `commandCentre.roster` on `client`, keeping `delaySeconds()` current, and read the session's vantage
    * off it from then on. `TelemetryClient.subscribe` replays its sticky last
    * value immediately, so a late-attaching authority still learns the current
    * delay on the next delivery: no full-cycle wait. Returns the unsubscribe
@@ -261,7 +320,15 @@ export class DelayAuthority {
     const detachCentres = client.subscribe(CENTRE_DELAY_TOPIC, (payload) =>
       this.observeCentreDelays(payload),
     );
+    const detachRoutes = client.subscribe(ROUTE_TOPIC, (payload) =>
+      this.observeRoutes(payload),
+    );
+    const detachRoster = client.subscribe(ROSTER_TOPIC, (payload) =>
+      this.observeRoster(payload),
+    );
     return () => {
+      detachRoster();
+      detachRoutes();
       detachCentres();
       detachHome();
       if (this.vantageSource === client) this.vantageSource = undefined;

@@ -34,6 +34,8 @@ namespace Gonogo.KSP
     {
         public const string ContactsTopic = "comms.contacts";
 
+        public const string RouteTopic = "comms.route";
+
         /// <summary>
         /// Soft cap on contact plans started per second of game time. A plan is
         /// made when an orbit moves, a node comes or goes, or half the horizon
@@ -51,11 +53,28 @@ namespace Gonogo.KSP
         /// </summary>
         private const float LookIntervalSeconds = 0.5f;
 
+        /// <summary>
+        /// The least wall time between two route publishes. A route is re-planned
+        /// for the current send instant every time, so it moves continuously; once
+        /// a second is as fine as anyone reads an arrival time.
+        /// </summary>
+        private const float RouteIntervalSeconds = 1.0f;
+
+        /// <summary>
+        /// Soft cap on route rows published per second: two per command centre,
+        /// once a second, so a save with twenty centres sits at forty.
+        /// </summary>
+        private static readonly PerfBudget RouteRowsBudget = new PerfBudget(
+            "ContactPlanUplink route rows", threshold: 400, windowSec: 1.0, unit: "rows");
+
         private readonly CommandCentreRegistry _centres;
         private readonly ContactPlanSchedule _schedule = new ContactPlanSchedule();
         private readonly ContactPlanRunner _runner = new ContactPlanRunner();
         private IUplinkHost? _host;
         private IChannelPublisher? _publisher;
+        private IChannelPublisher? _routePublisher;
+        private volatile ContactPlan? _plan;
+        private float _routedAt = float.NegativeInfinity;
         private KspVisibilityGeometryFactory? _surface;
         private float _lookedAt = float.NegativeInfinity;
         private volatile string? _lastFailure;
@@ -93,6 +112,19 @@ namespace Gonogo.KSP
                     Recordable = false,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
+                new ChannelDeclaration
+                {
+                    Requires = Requirement.None,
+                    Topic = RouteTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // Planned from comms.contacts, so it reaches each centre on the same delay.
+                    Delay = DelayRole.Delayed,
+                    Recordable = false,
+                    // Each centre's routes say where it can reach, which another
+                    // centre has no way to know.
+                    ViewerFilter = ContactRouting.ForViewer,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                },
             },
         };
 
@@ -100,8 +132,63 @@ namespace Gonogo.KSP
         {
             _host = host;
             _publisher = host.Publisher(ContactsTopic);
+            _routePublisher = host.Publisher(RouteTopic);
             _surface = new KspVisibilityGeometryFactory(() => host.Kernel);
-            host.AddSampledSource(CaptureOnMain, PublishOnCourier, ContactsTopic);
+            // The plan runs for either topic, since routes are read off it.
+            host.AddSampledSource(CaptureOnMain, PublishOnCourier, ContactsTopic, RouteTopic);
+            host.AddSampledSource(CaptureRouteInputsOnMain, PublishRoutesOnCourier, RouteTopic);
+        }
+
+        /// <summary>MAIN THREAD: who the routes are between and when, at most once a second.</summary>
+        internal object? CaptureRouteInputsOnMain(KspSnapshot? snapshot)
+        {
+            if (snapshot == null || Time.realtimeSinceStartup - _routedAt < RouteIntervalSeconds)
+            {
+                return null;
+            }
+            var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            if (string.IsNullOrEmpty(active))
+            {
+                return null;
+            }
+            _routedAt = Time.realtimeSinceStartup;
+            var centres = new List<string>();
+            foreach (var centre in _centres.EnumerateActive())
+            {
+                centres.Add(centre.Id);
+            }
+            return new RouteInputs("vessel:" + active, centres, snapshot.Ut);
+        }
+
+        /// <summary>COURIER THREAD: plans each centre's routes for now from the latest contact plan and publishes them.</summary>
+        internal void PublishRoutesOnCourier(object? captured)
+        {
+            var plan = _plan;
+            // A plan made after this instant belongs to a timeline the game has
+            // left, by a revert or a load; the next plan replaces it.
+            if (!(captured is RouteInputs inputs) || plan == null || inputs.Ut < plan.FromUt)
+            {
+                return;
+            }
+            var routes = ContactRouting.RoutesFor(plan, inputs.ActiveCraft, inputs.Centres, inputs.Ut);
+            RouteRowsBudget.Record(routes.Routes.Count, inputs.Ut);
+            _routePublisher?.Publish(routes, inputs.Ut);
+        }
+
+        private sealed class RouteInputs
+        {
+            public RouteInputs(string activeCraft, IReadOnlyList<string> centres, double ut)
+            {
+                ActiveCraft = activeCraft;
+                Centres = centres;
+                Ut = ut;
+            }
+
+            public string ActiveCraft { get; }
+
+            public IReadOnlyList<string> Centres { get; }
+
+            public double Ut { get; }
         }
 
         /// <summary>MAIN THREAD: starts a plan when the last one is out of date. Starting one costs a pool thread, not this one.</summary>
@@ -269,6 +356,7 @@ namespace Gonogo.KSP
             if (_runner.TryTake(out var plan) && plan != null)
             {
                 _lastFailure = null;
+                _plan = plan;
                 _publisher?.Publish(ContactPlanWire.ToPayload(plan), plan.FromUt);
             }
         }

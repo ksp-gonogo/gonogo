@@ -111,12 +111,58 @@ namespace Sitrep.Propagation.Contacts
     /// <summary>A pair's predicted windows over its horizon.</summary>
     public sealed class PairPlan
     {
-        public PairPlan(string a, string b, double horizonUt, IReadOnlyList<ContactWindow> windows)
+        /// <summary>The speed of light, in metres per second.</summary>
+        public const double SpeedOfLight = 299_792_458.0;
+
+        private readonly double _fromUt;
+        private readonly double _stepSeconds;
+        private readonly double[] _separation;
+
+        /// <param name="separationMeters">
+        /// The pair's separation at each grid point from <paramref name="fromUt"/>,
+        /// <paramref name="stepSeconds"/> apart, which is what a light time is read
+        /// from. Empty for a pair planned without it.
+        /// </param>
+        public PairPlan(
+            string a,
+            string b,
+            double horizonUt,
+            IReadOnlyList<ContactWindow> windows,
+            double fromUt = 0.0,
+            double stepSeconds = 0.0,
+            double[]? separationMeters = null)
         {
             A = a;
             B = b;
             HorizonUt = horizonUt;
             Windows = windows;
+            _fromUt = fromUt;
+            _stepSeconds = stepSeconds;
+            _separation = separationMeters ?? new double[0];
+        }
+
+        /// <summary>
+        /// The pair's separation at <paramref name="ut"/>, in metres, interpolated
+        /// between the grid points it was planned on, or null outside them.
+        /// </summary>
+        public double? SeparationAt(double ut)
+        {
+            if (_separation.Length == 0 || !(_stepSeconds > 0.0))
+            {
+                return null;
+            }
+            var position = (ut - _fromUt) / _stepSeconds;
+            if (double.IsNaN(position) || position < 0.0 || position > _separation.Length - 1)
+            {
+                return null;
+            }
+            var below = (int)Math.Floor(position);
+            if (below >= _separation.Length - 1)
+            {
+                return _separation[_separation.Length - 1];
+            }
+            var fraction = position - below;
+            return _separation[below] + ((_separation[below + 1] - _separation[below]) * fraction);
         }
 
         public string A { get; }
@@ -256,7 +302,15 @@ namespace Sitrep.Propagation.Contacts
                 var sweepEnd = lastIndex == 0 ? pairHorizonUt : fromUt + (lastIndex * stepSeconds);
                 var geometry = new PairGeometry(cache, pair);
                 var result = VisibilitySweep.Run(geometry, fromUt, sweepEnd, stepSeconds, refinementToleranceSeconds);
-                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, WindowsOf(result)));
+                // At least two samples, so a pair whose horizon falls inside the
+                // first step still has a light time across it.
+                var samples = Math.Max(lastIndex, 1);
+                var separation = new double[samples + 1];
+                for (var g = 0; g <= samples; g++)
+                {
+                    separation[g] = geometry.SeparationAt(fromUt + (g * stepSeconds));
+                }
+                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, WindowsOf(result), fromUt, stepSeconds, separation));
             }
 
             return new ContactPlan(fromUt, horizonUt, stepSeconds, plans, cache.Solves, cache.MarginEvaluations);

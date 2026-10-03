@@ -2241,8 +2241,12 @@ namespace Sitrep.Contract
         /// companion a comms backend may implement so the contact plan sees where its dishes
         /// point, with <see cref="IContactLinkModel"/> and <see cref="IContactPositions"/>. A new
         /// optional interface, so an Uplink built against 28.3 is unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 4 -&gt; 5:</b> <see cref="CommsRoutes"/>, each command
+        /// centre's predicted earliest-arrival route to and from the active craft. A new topic,
+        /// so an Uplink built against 28.4 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

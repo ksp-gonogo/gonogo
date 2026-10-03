@@ -256,6 +256,15 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsContactWindow contactWindow:
                     AppendCommsContactWindow(sb, contactWindow);
                     break;
+                case Sitrep.Contract.CommsRoutes routes:
+                    AppendCommsRoutes(sb, routes);
+                    break;
+                case Sitrep.Contract.CommsRoute route:
+                    AppendCommsRoute(sb, route);
+                    break;
+                case Sitrep.Contract.CommsRouteHold hold:
+                    AppendCommsRouteHold(sb, hold);
+                    break;
                 case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
                     AppendCommandCentreActiveVesselDelay(sb, activeVesselDelay);
                     break;
@@ -1502,6 +1511,86 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsRoutes(
+            StringBuilder sb, Sitrep.Contract.CommsRoutes r)
+        {
+            sb.Append('{');
+            AppendString(sb, "routes");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            if (r.Routes != null)
+            {
+                foreach (var route in r.Routes)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    AppendCommsRoute(sb, route);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsRoute(
+            StringBuilder sb, Sitrep.Contract.CommsRoute r)
+        {
+            sb.Append('{');
+            AppendString(sb, "from");
+            sb.Append(':');
+            AppendString(sb, r.From ?? "");
+            sb.Append(',');
+            AppendString(sb, "to");
+            sb.Append(':');
+            AppendString(sb, r.To ?? "");
+            sb.Append(',');
+            AppendString(sb, "sentUt");
+            sb.Append(':');
+            AppendNumber(sb, r.SentUt);
+            sb.Append(',');
+            AppendString(sb, "arrivalUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, r.ArrivalUt);
+            sb.Append(',');
+            AppendString(sb, "live");
+            sb.Append(':');
+            AppendBool(sb, r.Live);
+            sb.Append(',');
+            AppendString(sb, "holds");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            if (r.Holds != null)
+            {
+                foreach (var hold in r.Holds)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    AppendCommsRouteHold(sb, hold);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsRouteHold(
+            StringBuilder sb, Sitrep.Contract.CommsRouteHold h)
+        {
+            sb.Append('{');
+            AppendString(sb, "at");
+            sb.Append(':');
+            AppendString(sb, h.At ?? "");
+            sb.Append(',');
+            AppendString(sb, "arriveUt");
+            sb.Append(':');
+            AppendNumber(sb, h.ArriveUt);
+            sb.Append(',');
+            AppendString(sb, "departUt");
+            sb.Append(':');
+            AppendNumber(sb, h.DepartUt);
             sb.Append('}');
         }
 

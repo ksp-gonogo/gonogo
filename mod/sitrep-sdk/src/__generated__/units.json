@@ -415,6 +415,18 @@
       "occludingRadiusMeters": "m",
       "radiusMeters": "m"
     },
+    "CommsRoute": {
+      "arrivalUt": "ut",
+      "from": "id",
+      "live": "flag",
+      "sentUt": "ut",
+      "to": "id"
+    },
+    "CommsRouteHold": {
+      "arriveUt": "ut",
+      "at": "id",
+      "departUt": "ut"
+    },
     "CommsSignal": {
       "strength": "ratio"
     },
@@ -2218,6 +2230,12 @@
     "CommsPath": {
       "hops": "CommsHop[]"
     },
+    "CommsRoute": {
+      "holds": "CommsRouteHold[]"
+    },
+    "CommsRoutes": {
+      "routes": "CommsRoute[]"
+    },
     "ControlFrame": {
       "settableFrames": "ControlFrameOption[]"
     },
@@ -2494,6 +2512,9 @@
     },
     "comms.path": {
       "hops": "CommsHop[]"
+    },
+    "comms.route": {
+      "routes": "CommsRoute[]"
     },
     "crash.lastCrash": {
       "flightStats": "CrashFlightStats",

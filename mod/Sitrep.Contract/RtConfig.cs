@@ -386,6 +386,10 @@ public static class RtConfig
                 typeof(CommsContacts),
                 typeof(CommsContactPair),
                 typeof(CommsContactWindow),
+                // comms.route: the predicted route each way between every centre and the active craft
+                typeof(CommsRoutes),
+                typeof(CommsRoute),
+                typeof(CommsRouteHold),
                 // commcast.traffic, and the descriptor that opens every
                 // commcast.radio frame on the binary lane
                 typeof(CommcastTraffic),
