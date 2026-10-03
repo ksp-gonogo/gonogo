@@ -333,8 +333,13 @@ export interface ForeignScetAlarm {
   /** The vantage it was armed from, in the `"ground:<name>"` / `"vessel:<guid>"` vocabulary. */
   armedBy: string;
   state: "armed" | "fired" | "unreachable";
-  /** What it watches, or null when the row carried a condition this side cannot read. */
+  /** What it watches, or null when the row carried a condition this side cannot read or was withheld. */
   condition: ForeignScetCondition | null;
+  /**
+   * Whether the simulation kept this alarm's name and condition from this
+   * screen, because it was armed at another vantage. See `ScetAlarm.withheld`.
+   */
+  withheld: boolean;
 }
 
 /** A foreign alarm's fire, awaiting acknowledgement on this screen. */

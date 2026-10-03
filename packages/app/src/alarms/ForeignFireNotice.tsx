@@ -1,7 +1,6 @@
-import { useObservedVantage } from "@ksp-gonogo/sitrep-client";
 import { Cluster, Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import { conditionWithheld, useVantageName } from "./foreignAlarm";
+import { useVantageName } from "./foreignAlarm";
 import type { AlarmSnapshot } from "./types";
 
 /**
@@ -17,7 +16,6 @@ export function ForeignFireNotice({
   snap: AlarmSnapshot;
   onAcknowledge: (id: string) => void;
 }) {
-  const observedVantage = useObservedVantage();
   const nameOf = useVantageName();
   const fires = snap.scetForeignFired ?? [];
   if (fires.length === 0) return null;
@@ -27,7 +25,7 @@ export function ForeignFireNotice({
       <Stack gap="related-dense">
         {fires.map((fire) => {
           const row = snap.scetForeign?.find((a) => a.id === fire.id);
-          const withheld = row ? conditionWithheld(row, observedVantage) : true;
+          const withheld = row ? row.withheld : true;
           const title = withheld
             ? row
               ? `Alarm armed at ${nameOf(row.armedBy)}`

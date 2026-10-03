@@ -51,6 +51,28 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// The session a frame is about to reach, as a
+    /// <see cref="ChannelDeclaration.ViewerFilter"/> sees it.
+    /// </summary>
+    /// <category>Channels and emission</category>
+    public sealed class ViewerContext
+    {
+        /// <summary>
+        /// The command centre the session observes from, as a
+        /// <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
+        /// <c>"vessel:&lt;guid&gt;"</c>): the one it chose, or the engine's
+        /// default for a connection that has not chosen.
+        /// </summary>
+        public string Vantage { get; }
+
+        /// <summary>Creates a context for a session at <paramref name="vantage"/>.</summary>
+        public ViewerContext(string vantage)
+        {
+            Vantage = vantage;
+        }
+    }
+
+    /// <summary>
     /// One channel an Uplink declares in its <see cref="UplinkManifest"/>. The
     /// declaration, not the call that registers the channel's source, is what
     /// sets its <see cref="Delivery"/>, <see cref="Emission"/> and
@@ -196,6 +218,27 @@ namespace Sitrep.Contract
         /// </internal>
         /// </summary>
         public Func<object?, bool>? IsKeyframe { get; set; }
+
+        /// <summary>
+        /// Opt-in per-session filter: given a sample's payload and the session it
+        /// is about to reach, returns the payload that session may receive, or
+        /// <c>null</c> to withhold the frame from it.
+        ///
+        /// <para>For a channel whose value is not the same for every viewer: an
+        /// alarm armed at one command centre states what that centre is watching,
+        /// which another centre could not yet know. Applied on every path a frame
+        /// takes to a session, the catch-up on subscribe and every later delivery
+        /// alike, so no consumer has to remember to redact.</para>
+        ///
+        /// <para>Return a new object rather than editing the one passed in: the
+        /// same payload goes to every session. A null payload never reaches the
+        /// filter. Called off the main thread, so it must not read live game
+        /// state. Null (the default) sends every session the same payload.</para>
+        ///
+        /// <para>This makes the data flow honest, not secure: a session chooses
+        /// its own vantage.</para>
+        /// </summary>
+        public Func<object, ViewerContext, object?>? ViewerFilter { get; set; }
 
         /// <summary>
         /// Declares that topics under this dynamic namespace are keyed by

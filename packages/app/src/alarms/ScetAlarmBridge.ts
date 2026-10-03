@@ -768,6 +768,7 @@ function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {
             ? "unreachable"
             : "armed",
       condition: readRosterCondition(Reflect.get(row, "condition")),
+      withheld: Reflect.get(row, "withheld") === true,
     });
   }
   return rows;

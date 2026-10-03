@@ -7717,12 +7717,38 @@ namespace Sitrep.Host
             var vantage = ObservationVantageFor(topic, VantageOf(session));
             var delivery = _channelDeclarations[topic].Delivery;
             var opaque = _channelDeclarations[topic].OpaquePayload;
+            var viewerFilter = _channelDeclarations[topic].ViewerFilter;
 
             Action unsubscribe;
             try
             {
-                unsubscribe = _courier.SubscribeStream(NodeFor(topic), topic, vantage, streamData =>
+                unsubscribe = _courier.SubscribeStream(NodeFor(topic), topic, vantage, delivered =>
                 {
+                    var streamData = delivered;
+                    if (viewerFilter != null && delivered.Payload != null)
+                    {
+                        object? visible;
+                        try
+                        {
+                            visible = viewerFilter(delivered.Payload, new ViewerContext(VantageOf(session)));
+                        }
+                        catch (Exception ex)
+                        {
+                            FailSoftChannel(topic, ex, "viewer filter threw");
+                            return;
+                        }
+                        if (visible == null)
+                        {
+                            return;
+                        }
+                        streamData = new StreamData<object?>
+                        {
+                            Topic = delivered.Topic,
+                            Payload = visible,
+                            Meta = delivered.Meta,
+                        };
+                    }
+
                     // C2-2(b): streamData.Payload is uplink-authored --
                     // some CLR shapes JsonWriter can never serialize (an
                     // arbitrary POCO, not a recognized numeric/string/

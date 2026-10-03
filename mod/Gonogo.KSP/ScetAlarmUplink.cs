@@ -285,6 +285,7 @@ namespace Gonogo.KSP
                     // commandCentre.roster sits in.
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                    ViewerFilter = ScetRosterRedaction.ForViewer,
                 },
                 new ChannelDeclaration
                 {

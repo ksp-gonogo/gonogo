@@ -690,6 +690,7 @@ namespace Sitrep.Host.Alarms
                 && string.Equals(held.Vantage, incoming.Vantage, StringComparison.Ordinal)
                 && string.Equals(held.Subject, incoming.Subject, StringComparison.Ordinal)
                 && held.Condition != null
+                && incoming.Condition != null
                 && held.Condition.Kind == incoming.Condition.Kind
                 && held.Condition.Ut == incoming.Condition.Ut
                 && held.Condition.LeadSeconds == incoming.Condition.LeadSeconds

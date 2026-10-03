@@ -2187,8 +2187,15 @@ namespace Sitrep.Contract
         /// a channel declares what the save must have unlocked, and a refusal names the missing unlock.
         /// Additive: an unset Requires is read as None, so an Uplink built against 27.11 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 12 -&gt; 13:</b> the alarm roster is redacted per
+        /// session. <see cref="ScetAlarm.Withheld"/> marks a row a session at another vantage
+        /// receives without what the alarm watches, with <see cref="ScetAlarm.Condition"/> null;
+        /// the filtering rides the new <see cref="ChannelDeclaration.ViewerFilter"/> and
+        /// <see cref="ViewerContext"/>. Additive, so an Uplink built against 27.12 is
+        /// unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 12;
+        public const int Minor = 13;
     }
 }

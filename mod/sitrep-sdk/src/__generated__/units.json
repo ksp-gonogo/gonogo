@@ -997,7 +997,8 @@
       "name": "text",
       "state": "enum",
       "subject": "id",
-      "vantage": "id"
+      "vantage": "id",
+      "withheld": "flag"
     },
     "ScetAlarmAction": {
       "group": "id",
@@ -1494,7 +1495,8 @@
       "name": "text",
       "state": "enum",
       "subject": "id",
-      "vantage": "id"
+      "vantage": "id",
+      "withheld": "flag"
     },
     "alarm.scet.fired": {
       "actionsWithheld": "flag",

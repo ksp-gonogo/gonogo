@@ -355,6 +355,7 @@ function startSession(owlt: number): ModStandIn {
           : fired.has(id)
             ? 1
             : 0,
+      withheld: false,
       firedAtUt: null,
       onFire: arm.onFire,
       actsOn: arm.actsOn,
@@ -816,6 +817,7 @@ describe("SCET alarms", () => {
             op: ">=",
             value: expect.any(Number),
           },
+          withheld: false,
         },
       ]);
 

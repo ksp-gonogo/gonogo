@@ -27,7 +27,6 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AlarmsModal } from "./AlarmsModal";
-import { conditionWithheld } from "./foreignAlarm";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
   DEFAULT_LEAD_SECONDS,
@@ -1146,7 +1145,16 @@ describe("AlarmsModal alarms other screens armed", () => {
     armedBy: string,
     condition: NonNullable<AlarmSnapshot["scetForeign"]>[number]["condition"],
     state: "armed" | "fired" | "unreachable" = "armed",
-  ) => ({ id, name: `${id} name`, armedBy, state, condition });
+  ) => ({ id, name: `${id} name`, armedBy, state, condition, withheld: false });
+  /** A row as the simulation sends it to a screen at another vantage. */
+  const withheldFrom = (id: string, armedBy: string) => ({
+    id,
+    name: "",
+    armedBy,
+    state: "armed" as const,
+    condition: null,
+    withheld: true,
+  });
 
   function renderAtVantage(snapshot: AlarmSnapshot, onDelete = vi.fn()) {
     const fixture = setupStreamFixture({
@@ -1191,21 +1199,11 @@ describe("AlarmsModal alarms other screens armed", () => {
     ).toBeInTheDocument();
   });
 
-  it("withholds the name and condition of one armed at another vantage, and says who armed it", () => {
+  it("says who armed a withheld alarm and that its condition is withheld", () => {
     renderAtVantage({
       ...makeSnapshot(),
-      scetForeign: [
-        foreign("pe", PILOT, {
-          kind: "threshold",
-          topic: "vessel.flight",
-          fieldPath: "altitudeAsl",
-          op: "<",
-          value: 70000,
-        }),
-      ],
+      scetForeign: [withheldFrom("pe", PILOT)],
     });
-    expect(screen.queryByText("pe name")).not.toBeInTheDocument();
-    expect(screen.queryByText(/altitudeAsl/)).not.toBeInTheDocument();
     expect(screen.getByText(`Armed at ${PILOT}`)).toBeInTheDocument();
     expect(
       screen.getByText("Condition withheld at this vantage"),
@@ -1219,7 +1217,7 @@ describe("AlarmsModal alarms other screens armed", () => {
         <AlarmsModal
           useSnapshot={() => ({
             ...makeSnapshot(),
-            scetForeign: [foreign("pe", PILOT, null)],
+            scetForeign: [withheldFrom("pe", PILOT)],
           })}
           onAdd={vi.fn()}
           onUpdate={vi.fn()}
@@ -1240,7 +1238,7 @@ describe("AlarmsModal alarms other screens armed", () => {
     expect(screen.queryByText(new RegExp(PILOT))).not.toBeInTheDocument();
   });
 
-  it("never withholds a time alarm, whoever armed it", () => {
+  it("shows a row the simulation did not withhold, whoever armed it", () => {
     renderAtVantage({
       ...makeSnapshot(),
       scetForeign: [foreign("burn", PILOT, { kind: "time", ut: 5000 })],
@@ -1255,7 +1253,7 @@ describe("AlarmsModal alarms other screens armed", () => {
     const user = userEvent.setup();
     const { onDelete } = renderAtVantage({
       ...makeSnapshot(),
-      scetForeign: [foreign("pe", PILOT, null)],
+      scetForeign: [withheldFrom("pe", PILOT)],
     });
     await user.click(
       screen.getByRole("button", { name: `Disarm Armed at ${PILOT}` }),
@@ -1263,27 +1261,5 @@ describe("AlarmsModal alarms other screens armed", () => {
     expect(onDelete).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Disarm" }));
     expect(onDelete).toHaveBeenCalledWith("pe");
-  });
-});
-
-describe("conditionWithheld", () => {
-  const row = {
-    id: "x",
-    name: "x",
-    armedBy: "ground:Kerbal Space Center",
-    state: "armed" as const,
-    condition: { kind: "contract-parameter" as const, parameterTitle: "Orbit" },
-  };
-
-  it("withholds at another vantage, and at one not known yet", () => {
-    expect(conditionWithheld(row, "vessel:6f0a-probe")).toBe(true);
-    expect(conditionWithheld(row, undefined)).toBe(true);
-    expect(conditionWithheld(row, "ground:Kerbal Space Center")).toBe(false);
-  });
-
-  it("still withholds once the alarm has fired", () => {
-    expect(
-      conditionWithheld({ ...row, state: "fired" }, "vessel:6f0a-probe"),
-    ).toBe(true);
   });
 });

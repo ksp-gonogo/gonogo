@@ -5417,8 +5417,24 @@ export interface ScetAlarm
 	* not a special case for this one.
 	*/
 	subject: string;
-	/** What the alarm watches for, as it was set. */
-	condition: ScetAlarmCondition;
+	/**
+	* What the alarm watches for, as it was set, or `null` when
+	* `ScetAlarm.withheld` is true.
+	*/
+	condition?: ScetAlarmCondition | null;
+	/**
+	* Whether this row reached a session whose vantage is not the one that armed
+	* the alarm, and so carries only what that vantage may know.
+	*
+	* A withheld row keeps `ScetAlarm.id`, `ScetAlarm.armedBy`, `ScetAlarm.state`
+	* and `ScetAlarm.firedAtUt`, and carries `ScetAlarm.condition` as `null` and
+	* `ScetAlarm.name`, `ScetAlarm.vantage`, `ScetAlarm.subject`,
+	* `ScetAlarm.onFire` and `ScetAlarm.actsOn` empty: what another place is
+	* watching would otherwise reach here faster than light could carry it. A time
+	* alarm is never withheld, because a universal time names no craft and is the
+	* same instant everywhere.
+	*/
+	withheld: boolean;
 	/**
 	* Where the alarm has got to: still watching, fired, unreachable or cancelled.
 	* See `ScetAlarmState`.

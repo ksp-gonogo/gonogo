@@ -1565,6 +1565,10 @@ namespace Sitrep.Contract.Serialization
                 AppendScetAlarmCondition(sb, a.Condition);
             }
             sb.Append(',');
+            AppendString(sb, "withheld");
+            sb.Append(':');
+            AppendBool(sb, a.Withheld);
+            sb.Append(',');
             AppendString(sb, "state");
             sb.Append(':');
             AppendInteger(sb, (int)a.State);

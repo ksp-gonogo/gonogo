@@ -26,6 +26,15 @@ const row: ForeignScetAlarm = {
     op: "<",
     value: 70000,
   },
+  withheld: false,
+};
+
+/** The same row as the simulation sends it to a screen at another vantage. */
+const withheld: ForeignScetAlarm = {
+  ...row,
+  name: "",
+  condition: null,
+  withheld: true,
 };
 
 function snapshotWith(foreign: ForeignScetAlarm): AlarmSnapshot {
@@ -62,7 +71,7 @@ function renderAt(vantage: string, snap: AlarmSnapshot, onAck = vi.fn()) {
 
 describe("ForeignFireNotice", () => {
   it("announces that an alarm armed at another vantage fired, by that centre's name and without its condition", () => {
-    renderAt(KSC, snapshotWith(row));
+    renderAt(KSC, snapshotWith(withheld));
     expect(screen.getByText("Alarm armed at Sally-Hut 1")).toBeInTheDocument();
     expect(screen.queryByText("periapsis low")).not.toBeInTheDocument();
   });
@@ -73,7 +82,7 @@ describe("ForeignFireNotice", () => {
   });
 
   it("hands the id back on acknowledge", async () => {
-    const { onAck } = renderAt(KSC, snapshotWith(row));
+    const { onAck } = renderAt(KSC, snapshotWith(withheld));
     await userEvent
       .setup()
       .click(screen.getByRole("button", { name: "Acknowledge" }));
@@ -89,7 +98,7 @@ describe("ForeignFireNotice", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderAt(KSC, snapshotWith(row));
+    const { container } = renderAt(KSC, snapshotWith(withheld));
     await expectNoA11yViolations(container);
   });
 });

@@ -9,7 +9,6 @@ import {
   useTimeContexts,
 } from "@ksp-gonogo/core";
 import { useManeuverNodes, useNumericFields } from "@ksp-gonogo/data";
-import { useObservedVantage } from "@ksp-gonogo/sitrep-client";
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   KSP_ACTION_GROUP_NAMES,
@@ -36,7 +35,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { conditionWithheld, useVantageName } from "./foreignAlarm";
+import { useVantageName } from "./foreignAlarm";
 import type {
   Alarm,
   AlarmFireAction,
@@ -134,7 +133,6 @@ export function AlarmsModal({
   prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
-  const observedVantage = useObservedVantage();
   // Which clock the instants in this modal are on. Undefined qualifiers on a
   // LAN session, where there is only one clock to be on.
   const timeContexts = useTimeContexts();
@@ -810,7 +808,7 @@ export function AlarmsModal({
               <ForeignAlarmRow
                 key={f.id}
                 alarm={f}
-                withheld={conditionWithheld(f, observedVantage)}
+                withheld={f.withheld}
                 contexts={timeContexts}
                 onDisarm={() => onDelete(f.id)}
               />

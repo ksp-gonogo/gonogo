@@ -1038,6 +1038,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     state: "enum",
     subject: "id",
     vantage: "id",
+    withheld: "flag",
   },
   "ScetAlarmAction": {
     group: "id",
@@ -1540,6 +1541,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     state: "enum",
     subject: "id",
     vantage: "id",
+    withheld: "flag",
   },
   "alarm.scet.fired": {
     actionsWithheld: "flag",

@@ -458,8 +458,27 @@ public class ScetAlarm
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";
 
-    /// <summary>What the alarm watches for, as it was set.</summary>
-    public ScetAlarmCondition Condition { get; set; } = new ScetAlarmCondition();
+    /// <summary>
+    /// What the alarm watches for, as it was set, or <c>null</c> when
+    /// <see cref="Withheld"/> is true.
+    /// </summary>
+    public ScetAlarmCondition? Condition { get; set; } = new ScetAlarmCondition();
+
+    /// <summary>
+    /// Whether this row reached a session whose vantage is not the one that
+    /// armed the alarm, and so carries only what that vantage may know.
+    ///
+    /// <para>A withheld row keeps <see cref="Id"/>, <see cref="ArmedBy"/>,
+    /// <see cref="State"/> and <see cref="FiredAtUt"/>, and carries
+    /// <see cref="Condition"/> as <c>null</c> and <see cref="Name"/>,
+    /// <see cref="Vantage"/>, <see cref="Subject"/>, <see cref="OnFire"/> and
+    /// <see cref="ActsOn"/> empty: what another place is watching would
+    /// otherwise reach here faster than light could carry it. A time alarm is
+    /// never withheld, because a universal time names no craft and is the same
+    /// instant everywhere.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Withheld { get; set; }
 
     /// <summary>
     /// Where the alarm has got to: still watching, fired, unreachable or

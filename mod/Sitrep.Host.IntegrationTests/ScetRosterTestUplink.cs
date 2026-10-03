@@ -44,6 +44,7 @@ namespace Sitrep.Host.IntegrationTests
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                    ViewerFilter = ScetRosterRedaction.ForViewer,
                 },
             },
         };
@@ -56,11 +57,15 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>Arm an alarm, as the <c>alarm.scet.arm</c> command handler does: off-tick, and the tick that follows has to notice.</summary>
-        internal void Arm(string id)
+        internal void Arm(string id) =>
+            Arm(new ScetAlarm { Id = id, State = ScetAlarmState.Armed });
+
+        /// <summary>Arm a fully described alarm, for a test about what each session is shown of it.</summary>
+        internal void Arm(ScetAlarm alarm)
         {
             lock (_gate)
             {
-                _alarms.Add(new ScetAlarm { Id = id, State = ScetAlarmState.Armed });
+                _alarms.Add(alarm);
                 _changed = true;
             }
         }

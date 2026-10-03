@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.12.0
+  version: 27.13.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
@@ -16147,7 +16147,7 @@ components:
         - armedBy
         - vantage
         - subject
-        - condition
+        - withheld
         - state
         - onFire
         - actsOn
@@ -16221,9 +16221,26 @@ components:
             third token to tell apart. That is the rule for a contributed Topic as well,
             not a special case for this one.
         condition:
-          description: What the alarm watches for, as it was set.
-          allOf:
+          description: |-
+            What the alarm watches for, as it was set, or `null` when
+            `ScetAlarm.withheld` is true.
+          anyOf:
             - $ref: "#/components/schemas/ScetAlarmCondition"
+            - type: "null"
+        withheld:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether this row reached a session whose vantage is not the one that armed
+            the alarm, and so carries only what that vantage may know.
+
+            A withheld row keeps `ScetAlarm.id`, `ScetAlarm.armedBy`, `ScetAlarm.state`
+            and `ScetAlarm.firedAtUt`, and carries `ScetAlarm.condition` as `null` and
+            `ScetAlarm.name`, `ScetAlarm.vantage`, `ScetAlarm.subject`,
+            `ScetAlarm.onFire` and `ScetAlarm.actsOn` empty: what another place is
+            watching would otherwise reach here faster than light could carry it. A time
+            alarm is never withheld, because a universal time names no craft and is the
+            same instant everywhere.
         state:
           description: |-
             Where the alarm has got to: still watching, fired, unreachable or cancelled.
