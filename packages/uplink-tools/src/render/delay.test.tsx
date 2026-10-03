@@ -118,6 +118,9 @@ beforeAll(async () => {
   });
 });
 
+/** Both figures drawn as numbers: the reading is delivered and the reckoner has carried it. */
+const DELIVERED = /^observed -?\d+; modelled -?\d+; view \d+; present \d+$/;
+
 async function render(stream: Record<string, unknown>): Promise<string> {
   const scene = sceneFromFixture(
     "level.json",
@@ -127,8 +130,8 @@ async function render(stream: Record<string, unknown>): Promise<string> {
   );
   await api.renderScene(payloadFor(scene, scene.modes[0], false));
   const drawn = () => document.getElementById("root")?.textContent ?? "";
-  // The probe settles on two animation frames, and React commits the delivered reading on its own scheduler: under load the frames can pass first and leave the first paint, "pending". Wait for the commit rather than racing it.
-  await vi.waitFor(() => expect(drawn()).not.toMatch(/observed pending/));
+  // The probe settles on two animation frames, and React commits the delivered reading, then the reckoned figure and the clock, on its own scheduler: under load the frames can pass first and leave an earlier paint. Wait for the delivered reading in every figure rather than for the first paint that is no longer "pending".
+  await vi.waitFor(() => expect(drawn()).toMatch(DELIVERED));
   // jsdom lays nothing out, so the report's visible text is empty; the DOM's own text is what was drawn.
   const text = drawn();
   await api.unmountScene();
