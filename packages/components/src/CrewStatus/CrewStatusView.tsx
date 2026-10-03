@@ -86,7 +86,8 @@ export function CrewStatusComponent(
 
   return (
     <Panel
-      panelTitle="CREW"
+      panelTitle="CREW STATUS"
+      compactTitle={["CREW"]}
       sections={
         <Section>
           <AugmentSlot name="crew-status.summary" props={{}} />
