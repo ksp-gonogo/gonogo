@@ -101,7 +101,7 @@ namespace Sitrep.Host.IntegrationTests
         /// mirror written on the Courier, and a send returning says the bytes left,
         /// not that they were acted on. So the lag is measured rather than assumed,
         /// which also keeps this honest about the failure it is looking for: a gate
-        /// that never closes never settles, the loop runs out, and the case fails
+        /// that never closes never settles, the deadline passes, and the case fails
         /// naming the count that was still climbing. Waiting a fixed number of ticks
         /// instead would pass on any lag shorter than the wait and say nothing about
         /// a gate stuck open.</para>
@@ -109,13 +109,18 @@ namespace Sitrep.Host.IntegrationTests
         private static void AssertCaptureStops(ChannelEngine engine, SampledGateTestUplink uplink)
         {
             var ut = 10.0;
-            for (var attempt = 0; attempt < 20; attempt++)
+            // Bounded in wall time rather than in ticks: the session ends when the
+            // server notices the socket close, and a tick takes far less time than
+            // that can, so a count of ticks says nothing about how long was allowed.
+            var deadline = DateTime.UtcNow + Timeout;
+            while (DateTime.UtcNow < deadline)
             {
                 var before = uplink.CaptureCount;
                 engine.TickAndWait(ut, new KspSnapshot { Ut = ut }, Timeout);
                 ut += 1.0;
                 if (uplink.CaptureCount != before)
                 {
+                    System.Threading.Thread.Sleep(25);
                     continue;
                 }
 
