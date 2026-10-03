@@ -471,6 +471,8 @@ export const PanelToolbar = styled.div`
   /* A full basis, so the toolbar always takes its own line in the wrapping header row. */
   flex-basis: 100%;
   width: 100%;
+  /* Opaque: the sticky header's scroll glow only masks its top strip, so a tall toolbar would let scrolled rows draw through it. */
+  background: var(--color-surface-panel);
 `;
 
 /**
