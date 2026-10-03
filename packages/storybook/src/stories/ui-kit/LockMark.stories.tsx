@@ -8,7 +8,7 @@ const techLock: LockSummary = {
   hint: "45.0sci to research",
   locks: [
     {
-      capability: { kind: "topic", id: "kos.processors" },
+      capability: { kind: "topic", id: "executor.processors" },
       missing: [
         {
           kind: UnlockKind.Tech,
