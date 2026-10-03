@@ -1,5 +1,6 @@
 import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
-import { BAND_LABEL, BAND_TONE } from "./bands";
+import { useStatusContribution } from "@ksp-gonogo/ui-kit";
+import { BAND_BADGE_ID, BAND_TONE, bandBadge } from "./bands";
 import { useThermal } from "./useThermal";
 
 const PART_NAME_MAX = 12;
@@ -14,24 +15,19 @@ function partLabel(name: string | undefined): string {
 }
 
 /**
- * The worst band as a word over the hottest part's and engine's share of their
- * limits, the part row labelled with the hottest part's name. CRITICAL
- * interrupts, as the full form's pill does; every other band is said politely,
- * and an unknown one is the null token rather than a word.
+ * The hottest part's and engine's share of their limits, the part row labelled
+ * with the hottest part's name. The worst band is not a row: it is the panel's
+ * status, drawn as the header dot, so a critical band reads as a red dot.
  */
 export function useThermalEssentials(): readonly TinyEssential[] {
   const { worstBand, hottest, engine } = useThermal();
+  const badge = bandBadge(worstBand);
+  useStatusContribution(
+    badge === null || badge.tone === "neutral"
+      ? null
+      : { id: BAND_BADGE_ID, severity: badge.tone, label: badge.label },
+  );
   return [
-    {
-      label: "Heat",
-      word:
-        worstBand === "unknown"
-          ? undefined
-          : BAND_LABEL[worstBand].toUpperCase(),
-      value: null,
-      tone: BAND_TONE[worstBand],
-      urgent: worstBand === "critical",
-    },
     {
       label: partLabel(hottest.name),
       value: hottest.ratio,

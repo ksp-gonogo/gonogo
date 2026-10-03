@@ -1,8 +1,10 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionGroupFrom, useTelemetry } from "@ksp-gonogo/core";
 import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
+import { useStatusContribution } from "@ksp-gonogo/ui-kit";
 import type { ActionGroupConfig } from "./config";
 import { groupStateOf } from "./groupState";
+import { HELD_STATE } from "./toggleAvailability";
 import { useGroupToggle } from "./useGroupToggle";
 
 /**
@@ -34,6 +36,16 @@ export function useActionGroupEssentials(
       : state),
     label,
   });
+  // The tile has no room for the body's badge, so the reason rides the header's status dot.
+  useStatusContribution(
+    toggle.unavailableReason !== null && toggle.unavailableReason !== HELD_STATE
+      ? {
+          id: "unavailable",
+          severity: "warn",
+          label: toggle.unavailableReason,
+        }
+      : null,
+  );
   if (!group) return [{ label: "ACTION GROUP", word: "NONE" }];
   return [
     {

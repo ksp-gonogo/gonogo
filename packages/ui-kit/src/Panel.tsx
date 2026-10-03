@@ -32,7 +32,11 @@ import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
-import { severityFromStreamStatus } from "./status/severity";
+import {
+  type Severity,
+  severityFromStreamStatus,
+  severityRank,
+} from "./status/severity";
 import { formatStreamStatus } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
@@ -1577,6 +1581,75 @@ const PanelHoverTitlePill = styled(VisuallyHidden)`
   }
 `;
 
+/** The most severe stateful badge, for a tree with no status store to summarise them. */
+function worstBadge(
+  badges: readonly PanelBadge[],
+): { severity: Severity; label: string } | null {
+  let worst: { severity: Severity; label: string } | null = null;
+  for (const entry of badges) {
+    const { label, tone } = badgeFace(entry);
+    if (tone === undefined || tone === "neutral") continue;
+    if (worst === null || severityRank(tone) > severityRank(worst.severity)) {
+      worst = { severity: tone, label };
+    }
+  }
+  return worst;
+}
+
+/**
+ * Publishes a header badge's state to the status store without drawing it, for
+ * a header that shows state as a dot. A neutral badge carries no state.
+ */
+function PanelBadgeReports({ badges }: { badges: readonly PanelBadge[] }) {
+  return (
+    <>
+      {badges.map((b) => (
+        <PanelBadgeReport key={b.id} entry={b} />
+      ))}
+    </>
+  );
+}
+
+function PanelBadgeReport({ entry }: { entry: PanelBadge }) {
+  const { label, tone } = badgeFace(entry);
+  useStatusContribution(
+    tone === undefined || tone === "neutral"
+      ? null
+      : { id: entry.id, severity: tone, label },
+  );
+  return null;
+}
+
+/** The tiny tile's whole status: the worst severity as a dot that never expands, its words in the tooltip. */
+function PanelHoverStatus({
+  summary,
+  announcement,
+}: {
+  summary: { severity: Severity; label: string };
+  /** Interrupts to say a no-go state, empty otherwise: a dot says nothing the ear can catch. */
+  announcement: string | undefined;
+}) {
+  return (
+    <>
+      <Tooltip text={summary.label} focusable>
+        <PanelHoverStatus__Hit>
+          <PanelStatusDot severity={summary.severity} />
+        </PanelHoverStatus__Hit>
+      </Tooltip>
+      {/* Mounted with the dot, whatever the state, so the first no-go is a change to a region already watched. */}
+      <LiveRegion visuallyHidden assertive>
+        {announcement}
+      </LiveRegion>
+    </>
+  );
+}
+
+const PanelHoverStatus__Hit = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: var(--inset-chip);
+`;
+
 /** The tiny tile's aside, pinned top-right and always visible: unlike the pill it needs no reveal. */
 const PanelHoverAside = styled.div`
   margin-left: auto;
@@ -1727,6 +1800,48 @@ function PanelRootImpl({
     );
 
   /*
+   * The tiny tile's header carries state as ONE dot at the worst severity, with
+   * the words in its tooltip, never as pills: a pill is as wide as its word and
+   * would crowd the tile. The badges still publish to the status store, so the
+   * dot knows about them.
+   */
+  const tinySummary =
+    summary ??
+    worstBadge(badges) ??
+    (streamStatus === null || streamLabel === null
+      ? null
+      : {
+          severity: severityFromStreamStatus(streamStatus),
+          label: streamLabel,
+        });
+  const tinyAnnouncement =
+    tinySummary?.severity !== "nogo"
+      ? undefined
+      : typeof panelTitle === "string"
+        ? `${panelTitle}: ${tinySummary.label}`
+        : `Status: ${tinySummary.label}`;
+  const tinyAside =
+    panelAside === undefined && tinySummary === null && !hasActionAugments ? (
+      badges.length === 0 ? undefined : (
+        <PanelBadgeReports badges={badges} />
+      )
+    ) : (
+      <>
+        {panelAside}
+        {hasActionAugments && (
+          <AugmentSlot segment="actions" props={NO_SEGMENT_PROPS} />
+        )}
+        <PanelBadgeReports badges={badges} />
+        {tinySummary !== null && (
+          <PanelHoverStatus
+            summary={tinySummary}
+            announcement={tinyAnnouncement}
+          />
+        )}
+      </>
+    );
+
+  /*
    * With sections, the universal `sections` augment segment moves inside the
    * grid, so an Uplink's section flows into a column beside the host's own.
    * `AugmentSlot` renders a fragment, so each bound augment is its own grid item.
@@ -1872,11 +1987,17 @@ function PanelRootImpl({
             <PanelHoverTitlePill as="h3" id={hoverTitleId}>
               {panelTitle}
             </PanelHoverTitlePill>
-            {aside !== undefined && <PanelHoverAside>{aside}</PanelHoverAside>}
+            {tinyAside !== undefined && (
+              <PanelHoverAside>{tinyAside}</PanelHoverAside>
+            )}
           </PanelHoverTop>
         )}
         {/* Mounted empty, so the first status is a change to a region already watched; outside the aside, so collapsing does not unmount it. */}
-        <LiveRegion visuallyHidden>{statusAnnouncement}</LiveRegion>
+        <LiveRegion visuallyHidden>
+          {hoverTitle && tinyAnnouncement !== undefined
+            ? ""
+            : statusAnnouncement}
+        </LiveRegion>
       </PanelContainer>
     </PanelProviders>
   );

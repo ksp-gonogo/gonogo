@@ -1,6 +1,5 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
   EmptyState,
   Meter,
   type MeterProps,
@@ -9,11 +8,10 @@ import {
   Section,
   Stack,
 } from "@ksp-gonogo/ui-kit";
-import { BAND_COLOR, BAND_LABEL, BAND_TONE, type Band } from "./bands";
+import { BAND_COLOR, BAND_LABEL, type Band, bandBadge } from "./bands";
 import { Flux, Temp, TempOverMax } from "./readouts";
 import {
   bandTagStyle,
-  COMPACT_PILL_STYLE,
   CRITICAL_NOTE_STYLE,
   MAX_TAG_STYLE,
   PILL_ROW_STYLE,
@@ -54,32 +52,25 @@ export function ThermalStatusView({
   shield,
 }: ThermalStatusViewProps) {
   const anyCritical = worstBand === "critical";
+  const badge = bandBadge(worstBand);
   return (
     <Panel
       panelTitle="THERMAL"
+      panelBadges={badge === null || noData ? undefined : [badge]}
       sections={[
         noData && (
           <Section key="absence" full>
             <EmptyState>No thermal data</EmptyState>
           </Section>
         ),
-        !noData && (
+        !noData && alertNote !== null && (
           <Section key="state" full>
             <div
               style={PILL_ROW_STYLE}
               role={anyCritical ? "alert" : "status"}
               aria-live={anyCritical ? "assertive" : "polite"}
             >
-              <Badge
-                tone={BAND_TONE[worstBand]}
-                size="sm"
-                style={COMPACT_PILL_STYLE}
-              >
-                {BAND_LABEL[worstBand]}
-              </Badge>
-              {alertNote !== null && (
-                <span style={CRITICAL_NOTE_STYLE}>{alertNote}</span>
-              )}
+              <span style={CRITICAL_NOTE_STYLE}>{alertNote}</span>
             </div>
           </Section>
         ),

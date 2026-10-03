@@ -142,6 +142,65 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
     expect(overlay?.textContent).toContain("WARN");
   });
 
+  it("draws a stateful header badge as one dot with its words in the tooltip, never as a pill", () => {
+    const { container } = render(
+      <Panel
+        panelTitle="THERMAL"
+        fitToSize
+        hoverTitle
+        panelBadges={[{ id: "band", label: "critical", tone: "warn" }]}
+        sections={<Section full>98 %</Section>}
+      />,
+    );
+    const overlay = container.querySelector("[data-panel-hover-title]");
+    expect(overlay?.textContent).not.toContain("critical");
+    const dot = overlay?.querySelector("[data-panel-status-dot]");
+    expect(dot?.getAttribute("data-severity")).toBe("warn");
+    expect(
+      overlay?.querySelector("[data-tooltip]")?.getAttribute("data-tooltip"),
+    ).toBe("critical");
+  });
+
+  it("interrupts once for a no-go state and leaves a lesser one to the dot", () => {
+    const { container, rerender } = render(
+      <Panel
+        panelTitle="THERMAL"
+        fitToSize
+        hoverTitle
+        panelBadges={[{ id: "band", label: "hot", tone: "warn" }]}
+        sections={<Section full>93 %</Section>}
+      />,
+    );
+    expect(container.querySelector("[aria-live=assertive]")?.textContent).toBe(
+      "",
+    );
+    rerender(
+      <Panel
+        panelTitle="THERMAL"
+        fitToSize
+        hoverTitle
+        panelBadges={[{ id: "band", label: "critical", tone: "nogo" }]}
+        sections={<Section full>98 %</Section>}
+      />,
+    );
+    expect(container.querySelector("[aria-live=assertive]")?.textContent).toBe(
+      "THERMAL: critical",
+    );
+  });
+
+  it("draws no dot for a header badge that carries no state", () => {
+    const { container } = render(
+      <Panel
+        panelTitle="TWR"
+        fitToSize
+        hoverTitle
+        panelBadges={[{ id: "kind", label: "stage 2" }]}
+        sections={<Section full>1.8</Section>}
+      />,
+    );
+    expect(container.querySelector("[data-panel-status-dot]")).toBeNull();
+  });
+
   it("insets the body by the shared tiny-inset token, not a raw length", () => {
     const { container } = render(
       <Panel

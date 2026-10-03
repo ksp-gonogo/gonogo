@@ -1,6 +1,5 @@
 import "../probe/probe-install-host";
 import {
-  type ComponentProps,
   ContributionsProvider,
   DashboardItemContext,
   getComponent,
@@ -11,6 +10,7 @@ import {
   defaultDarkTheme,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
+  WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -80,9 +80,6 @@ async function renderCommSignalBadgeProbe(
   if (!def) {
     throw new Error('CommSignal-badge probe: "comm-signal" not registered');
   }
-  const WidgetComponent = def.component as React.ComponentType<
-    ComponentProps<Record<string, unknown>>
-  >;
 
   root.style.width = `${payload.pxW}px`;
   root.style.height = `${payload.pxH}px`;
@@ -129,7 +126,8 @@ async function renderCommSignalBadgeProbe(
                 createElement(
                   DashboardItemContext.Provider,
                   { value: { instanceId: "probe" } },
-                  createElement(WidgetComponent, {
+                  createElement(WidgetBody, {
+                    def,
                     config: def.defaultConfig ?? {},
                     id: "probe",
                     w: payload.w,

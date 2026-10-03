@@ -126,9 +126,9 @@ describe("ThermalStatus: what undefined means today", () => {
     await waitFor(() =>
       expect(screen.getByText("LV-T30 'Reliant'")).toBeInTheDocument(),
     );
-    // The summary pill and both band tags read "unknown", including the engine tag with no data at all.
+    // Both band tags read "unknown", including the engine tag with no data at all, and an unknown band draws no header badge.
     expect(screen.queryAllByText("nominal")).toHaveLength(0);
-    expect(screen.getAllByText("unknown")).toHaveLength(3);
+    expect(screen.getAllByText("unknown")).toHaveLength(2);
     // A missing ratio has no length to draw, so the meter draws its absent form: no fill and no aria-valuenow asserting one.
     expect(
       screen.queryByRole("meter", { name: "LV-T30 'Reliant'" }),

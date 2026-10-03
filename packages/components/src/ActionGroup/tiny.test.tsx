@@ -44,6 +44,27 @@ describe("ActionGroup tiny mode", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("carries the reason the toggle is unavailable as the header's status dot", async () => {
+    const { fixture } = setup({ w: 3, h: 3 });
+    await screen.findByRole("button", { name: "Toggle SAS" });
+    expect(document.querySelector("[data-panel-status-dot]")).toBeNull();
+
+    act(() => {
+      fixture.emit("comms.link", { connected: false });
+    });
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector("[data-panel-status-dot]")
+          ?.getAttribute("data-severity"),
+      ).toBe("warn"),
+    );
+    expect(
+      document.querySelector("[data-tooltip]")?.getAttribute("data-tooltip"),
+    ).toBe("No signal");
+    await act(async () => {});
+  });
+
   it("sends the same delay-aware command a body press does", async () => {
     const user = userEvent.setup();
     const { fixture } = setup({ w: 3, h: 3 });

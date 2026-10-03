@@ -15,6 +15,14 @@ function essentialTexts(): string[] {
   );
 }
 
+function statusDot(): string | null {
+  return (
+    document
+      .querySelector("[data-panel-status-dot]")
+      ?.getAttribute("data-severity") ?? null
+  );
+}
+
 function said(politeness: "polite" | "assertive"): string | null {
   const region = document.querySelector(`[aria-live=${politeness}]`);
   return region === null ? null : (region.textContent ?? "").trim();
@@ -42,12 +50,11 @@ function mountTiny() {
 }
 
 describe("ThermalStatus tiny mode", () => {
-  it("draws the worst band over the hottest part and engine below 4x5, and the body from 4x5", async () => {
+  it("draws the hottest part and engine below 4x5, and the body from 4x5", async () => {
     const { unmount, fixture, emitRatio } = mountTiny();
     emitRatio(0.5);
-    await waitFor(() => expect(essentialTexts()[0]).toContain("NOMINAL"));
-    const [heat, part, engine] = essentialTexts();
-    expect(heat).toContain("Heat");
+    await waitFor(() => expect(essentialTexts()).toHaveLength(2));
+    const [part, engine] = essentialTexts();
     expect(part).toContain("Nose Cone");
     expect(part).toMatch(/50\s%/);
     expect(engine).toContain("Engine");
@@ -60,7 +67,7 @@ describe("ThermalStatus tiny mode", () => {
     await act(async () => {});
   });
 
-  it("cuts a long part name to fit its row and keeps the band word", async () => {
+  it("cuts a long part name to fit its row", async () => {
     const { fixture } = mountTiny();
     act(() => {
       fixture.emit("vessel.thermal", {
@@ -76,68 +83,53 @@ describe("ThermalStatus tiny mode", () => {
         anyEnginesOverheating: false,
       });
     });
-    await waitFor(() => expect(essentialTexts()[1]).toContain("Rockomax..."));
-    expect(essentialTexts()[0]).toContain("NOMINAL");
+    await waitFor(() => expect(essentialTexts()[0]).toContain("Rockomax..."));
     await act(async () => {});
   });
 
-  it("says each band below critical politely and keeps the interrupting region silent", async () => {
+  it("carries the worst band as the header dot, never as a word in the tile", async () => {
     const { container, emitRatio } = mountTiny();
-    for (const [ratio, word] of [
-      [0.5, "NOMINAL"],
-      [0.8, "WARM"],
-      [0.93, "HOT"],
+    for (const [ratio, severity] of [
+      [0.5, "go"],
+      [0.8, "warn"],
+      [0.93, "warn"],
+      [0.98, "nogo"],
     ] as const) {
       emitRatio(ratio);
-      await waitFor(() => expect(said("polite")).toBe(`Heat ${word}`));
-      expect(said("assertive")).toBe("");
+      await waitFor(() => expect(statusDot()).toBe(severity));
+      for (const text of essentialTexts()) {
+        expect(text).not.toMatch(/NOMINAL|WARM|HOT|CRITICAL|HEAT/i);
+      }
     }
     await expectNoA11yViolations(container);
   });
 
-  it("interrupts to say CRITICAL, and says it nowhere politely", async () => {
-    const { container, emitRatio } = mountTiny();
-    emitRatio(0.93);
-    await waitFor(() => expect(said("polite")).toBe("Heat HOT"));
-    const assertive = document.querySelector("[aria-live=assertive]");
-
-    emitRatio(0.98);
-    await waitFor(() => expect(said("assertive")).toBe("Heat CRITICAL."));
-    expect(said("polite")).toBe("");
-    expect(document.querySelector("[aria-live=assertive]")).toBe(assertive);
-    expect(essentialTexts()[0]).toContain("CRITICAL");
-    await expectNoA11yViolations(container);
-  });
-
-  it("does not interrupt again while the record stays critical", async () => {
+  it("interrupts to say CRITICAL once, and says it nowhere politely", async () => {
     const { emitRatio } = mountTiny();
-    emitRatio(0.98);
-    await waitFor(() => expect(said("assertive")).toBe("Heat CRITICAL."));
-    const spoken = document.querySelector("[aria-live=assertive]")?.firstChild;
-    expect(spoken).toBeTruthy();
+    emitRatio(0.93);
+    await waitFor(() => expect(statusDot()).toBe("warn"));
+    expect(said("assertive")).toBe("");
 
-    emitRatio(0.99);
-    emitRatio(0.97, true);
-    await waitFor(() => expect(essentialTexts()[1]).toMatch(/97\s%/));
-    expect(document.querySelector("[aria-live=assertive]")?.firstChild).toBe(
-      spoken,
-    );
+    emitRatio(0.98);
+    await waitFor(() => expect(said("assertive")).toBe("THERMAL: critical"));
+    expect(said("polite")).toBe("");
     await act(async () => {});
   });
 
   it("interrupts for an overheating engine however cool the hottest part reads", async () => {
     const { emitRatio } = mountTiny();
+    emitRatio(0.4);
+    await waitFor(() => expect(statusDot()).toBe("go"));
     emitRatio(0.4, true);
-    await waitFor(() => expect(said("assertive")).toBe("Heat CRITICAL."));
+    await waitFor(() => expect(said("assertive")).toBe("THERMAL: critical"));
     await act(async () => {});
   });
 
-  it("draws the null token and says nothing while no record has arrived", async () => {
+  it("draws the null token and no status dot while no record has arrived", async () => {
     mountTiny();
-    await waitFor(() => expect(essentialTexts()).toHaveLength(3));
+    await waitFor(() => expect(essentialTexts()).toHaveLength(2));
     for (const text of essentialTexts()) expect(text).toContain(NULL_DISPLAY);
-    expect(said("polite")).toBe("");
-    expect(said("assertive")).toBe("");
+    expect(statusDot()).toBeNull();
     await act(async () => {});
   });
 });
