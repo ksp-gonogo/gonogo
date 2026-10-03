@@ -30,8 +30,56 @@ ERRORCODES_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/error-codes.ts"
 # RtConfig.EmitFrameMap.
 FRAMES_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/frames.ts"
 RT_VER="1.6.7"
+
+# rtcli reports some of its own failures and exits 0 anyway: a configuration
+# method it cannot find, an assembly it cannot load, a generation error it logs
+# rather than throws. `set -e` cannot see any of those, and the maps that are
+# emitted from the same run update regardless, so a stale contract.ts sits
+# beside fresh siblings and the script reports success. The verdict is therefore
+# read from rtcli's OUTPUT as well as its exit status.
+RTCLI_FAILURE_PATTERN='Unexpected error|error RT[0-9]+|RT0009|RT0014|finished with total 0 assemblies'
+
+# Runs the rtcli command it is given, echoing its output, and fails when either
+# the exit status or the output says it failed.
+rtcli_guarded() {
+  local log status=0
+  log="$(mktemp)"
+  "$@" 2>&1 | tee "$log" || status=$?
+  if [ "$status" -ne 0 ]; then
+    rm -f "$log"
+    echo "✖ codegen: rtcli exited $status" >&2
+    return "$status"
+  fi
+  if grep -Eq "$RTCLI_FAILURE_PATTERN" "$log"; then
+    echo "✖ codegen: rtcli exited 0 but reported a failure:" >&2
+    grep -E "$RTCLI_FAILURE_PATTERN" "$log" >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+}
+
 RT_PKG="${NUGET_PACKAGES:-$HOME/.nuget/packages}/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
+
+# `codegen.sh --self-test` plants a failure rtcli exits 0 on (a configuration
+# method that does not exist) and requires the guard to refuse it, so a guard
+# that stopped matching reports BLIND instead of passing every run.
+if [ "${1:-}" = "--self-test" ]; then
+  planted="$(mktemp -d)"
+  DOTNET_ROLL_FORWARD=LatestMajor dotnet build "$ROOT/mod/Sitrep.Contract.Codegen/Sitrep.Contract.Codegen.csproj" -v quiet >/dev/null
+  if rtcli_guarded env DOTNET_ROLL_FORWARD=LatestMajor dotnet "$RTCLI" \
+    SourceAssemblies="$ROOT/mod/Sitrep.Contract.Codegen/bin/Debug/netstandard2.0/Sitrep.Contract.dll" \
+    TargetFile="$planted/contract.ts" \
+    ConfigurationMethod="Sitrep.Contract.RtConfig.PlantedMissingMethod" >/dev/null 2>&1; then
+    rm -rf "$planted"
+    echo "✖ codegen self-test: BLIND. A planted rtcli failure was not refused." >&2
+    exit 1
+  fi
+  rm -rf "$planted"
+  echo "codegen self-test: a planted rtcli failure is refused."
+  exit 0
+fi
 
 # No Reinforced.Typings.dll is staged or cleaned up here any more, because none
 # is copied anywhere. Each twin declares RT as an ordinary dependency, so the
@@ -66,7 +114,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_RECKONABILITY_OUT="$RECKONABILITY_OUT" \
   SITREP_ERRORCODES_OUT="$ERRORCODES_OUT" \
   SITREP_FRAMEMAP_OUT="$FRAMES_OUT" \
-  dotnet "$RTCLI" \
+  rtcli_guarded dotnet "$RTCLI" \
   DocumentationFilePath="$BIN/Sitrep.Contract.xml" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \
   TargetFile="$OUT" \
@@ -142,7 +190,7 @@ for uplink_twin in "$ROOT"/mod/Gonogo*Uplink.Contract.Codegen; do
     outputs+=(error-codes.ts)
   fi
 
-  env DOTNET_ROLL_FORWARD=LatestMajor \
+  rtcli_guarded env DOTNET_ROLL_FORWARD=LatestMajor \
     ${topic_env[@]+"${topic_env[@]}"} \
     "${prefix}_UNITMAP_OUT=$out_dir/units.ts" \
     "${prefix}_UNITJSON_OUT=$out_dir/units.json" \

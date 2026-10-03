@@ -72,6 +72,11 @@ if [ -n "$MISSED" ]; then
   exit 1
 fi
 
+# rtcli exits 0 on some of its own failures, and mod/codegen.sh reads its output
+# to catch them. That guard is proven against a planted failure first, so a
+# check that can no longer see one fails here rather than passing every run.
+bash mod/codegen.sh --self-test
+
 BEFORE="$(snapshot)"
 # The SAME generator list `pnpm codegen` runs, so the two cannot disagree
 # about what a generated artifact is. They each held their own list until
