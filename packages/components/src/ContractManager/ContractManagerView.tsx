@@ -4,6 +4,7 @@ import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
   Block,
+  ButtonGroup,
   CommandButton,
   getWidgetShape,
   Panel,
@@ -156,7 +157,7 @@ export function ContractManagerComponent({
                 {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
                 <ContractRewards contract={c} />
                 <ContractTerms contract={c} />
-                <div style={OFFERED_ACTIONS_STYLE}>
+                <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
                   <CommandButton
                     handle={acceptCmd}
                     args={{ contractId: c.id }}
@@ -176,7 +177,7 @@ export function ContractManagerComponent({
                     confirmTone="nogo"
                     pendingLabel="Declining..."
                   />
-                </div>
+                </ButtonGroup>
               </ContractCard>
             ))}
           </div>

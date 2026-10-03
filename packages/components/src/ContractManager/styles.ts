@@ -43,8 +43,6 @@ export const SECTION_LABEL_STYLE = {
 } as const;
 
 export const OFFERED_ACTIONS_STYLE = {
-  display: "flex",
-  gap: "var(--gap-related)",
   marginTop: "var(--gap-actions)",
 } as const;
 

@@ -69,7 +69,10 @@ export const Commcast__BarLabel = styled.span`
   }
 `;
 
-export const Commcast__Back = styled(Button).attrs({ variant: "ghost" })`
+export const Commcast__Back = styled(Button).attrs({
+  variant: "ghost",
+  size: "sm",
+})`
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;

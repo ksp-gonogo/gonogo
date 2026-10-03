@@ -91,6 +91,10 @@ export {
   IconButton,
   TextButton,
 } from "./Button";
+export {
+  ButtonGroup,
+  type ButtonGroupProps,
+} from "./ButtonGroup";
 export { type BadgeFace, badgeFace } from "./badgeFace";
 // How doubt is spoken, in one place, for surfaces outside this package too.
 export { bandClaim } from "./bandClaim";

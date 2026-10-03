@@ -90,7 +90,7 @@ export function CommcastThreadView({
           <Addressees ids={thread.with} book={book} />
         </Commcast__BarTitle>
         {onAdd && (
-          <Button type="button" onClick={onAdd}>
+          <Button type="button" size="sm" onClick={onAdd}>
             <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
             <Commcast__BarLabel>Add</Commcast__BarLabel>
           </Button>

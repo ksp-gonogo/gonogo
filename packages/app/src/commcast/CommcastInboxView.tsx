@@ -1,5 +1,6 @@
 import {
   Button,
+  ButtonGroup,
   Console,
   EmptyState,
   PlusIcon,
@@ -66,21 +67,28 @@ export function CommcastInboxView({
         )}
         <Commcast__BarGap />
         {/* A disclosure rather than details: webkit ignores CSS on that element's open state. */}
-        <ToggleButton
-          type="button"
-          size="sm"
-          active={inputOpen}
-          aria-expanded={inputOpen}
-          aria-controls={inputPanelId}
-          onClick={() => setInputOpen((open) => !open)}
-        >
-          <SettingsIcon size="var(--icon-size-control)" aria-hidden="true" />
-          <Commcast__BarLabel>Microphone</Commcast__BarLabel>
-        </ToggleButton>
-        <Button type="button" onClick={onCompose} disabled={!canCompose}>
-          <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
-          <Commcast__BarLabel>New message</Commcast__BarLabel>
-        </Button>
+        <ButtonGroup equalWidth={false}>
+          <ToggleButton
+            type="button"
+            size="sm"
+            active={inputOpen}
+            aria-expanded={inputOpen}
+            aria-controls={inputPanelId}
+            onClick={() => setInputOpen((open) => !open)}
+          >
+            <SettingsIcon size="var(--icon-size-control)" aria-hidden="true" />
+            <Commcast__BarLabel>Microphone</Commcast__BarLabel>
+          </ToggleButton>
+          <Button
+            type="button"
+            size="sm"
+            onClick={onCompose}
+            disabled={!canCompose}
+          >
+            <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
+            <Commcast__BarLabel>New message</Commcast__BarLabel>
+          </Button>
+        </ButtonGroup>
         {indicator}
       </Commcast__Bar>
       {inputOpen && (
