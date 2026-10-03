@@ -272,7 +272,7 @@ describe("radio transmit, the waveform it keeps for its own rail", () => {
     mic.open();
     await keying;
     for (let i = 0; i < 600; i++) mic.speak(new Uint8Array([1]), 0.5);
-    expect(transmitter.snapshot().amplitudes).toHaveLength(201);
+    expect(transmitter.snapshot().amplitudes).toHaveLength(AMPLITUDE_HISTORY);
   });
 
   it("falls back to the floor when there is no separation to size against", async () => {
@@ -321,7 +321,7 @@ describe("radio transmit, the waveform it keeps for its own rail", () => {
     mic.open();
     await second;
     for (let i = 0; i < 600; i++) mic.speak(new Uint8Array([1]), 0.5);
-    expect(transmitter.snapshot().amplitudes).toHaveLength(201);
+    expect(transmitter.snapshot().amplitudes).toHaveLength(AMPLITUDE_HISTORY);
   });
 });
 
@@ -336,6 +336,8 @@ describe("amplitudeHistoryFor", () => {
   it("never drops below the floor for a very near far end", () => {
     expect(amplitudeHistoryFor(0.0007)).toBe(AMPLITUDE_HISTORY);
     expect(amplitudeHistoryFor(1)).toBe(AMPLITUDE_HISTORY);
+    // Five seconds of 20 ms chunks, plus the sample the reach measurement sits on.
+    expect(AMPLITUDE_HISTORY).toBe(251);
   });
 
   it("never exceeds the ceiling, however far the far end is", () => {

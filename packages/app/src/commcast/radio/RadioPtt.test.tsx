@@ -207,10 +207,10 @@ describe("the voice ribbon it publishes", () => {
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
     expect(crossing?.label).toContain("Odyssey");
-    /* One second of light-time is fifty 20 ms chunks: how many samples fit in
-       the gap, and the one number the render harness reads back through
+    /* One second of light-time is under the five second floor, which is 250
+       20 ms chunks: the one number the render harness reads back through
        `crossingSpanSamples` rather than restating. */
-    expect(crossing?.spanSamples).toBe(50);
+    expect(crossing?.spanSamples).toBe(250);
     /* The ribbon carries the SAME three axes the handle does, in full. It used
        to carry none, and the rail drew it as a ribbon because the widget put it
        in the `ribbons` array: which array a datum arrives in is now no part of
@@ -223,11 +223,27 @@ describe("the voice ribbon it publishes", () => {
     expect(crossing?.oneWaySeconds).toBe(1);
   });
 
+  it("passes the real light-time once it is past the five second floor", () => {
+    const store = createDelayRailStore();
+
+    render(
+      <DelayRailContext.Provider value={store}>
+        <RadioPtt
+          radio={control({ transmitting: true, amplitudes: [0.2, 0.6] })}
+          targetName="Odyssey"
+          separationSeconds={10}
+        />
+      </DelayRailContext.Provider>,
+    );
+
+    expect(ribbon(store)?.spanSamples).toBe(500);
+  });
+
   /**
-   * A vessel in low orbit is under a millisecond away, so the gap holds a
-   * FRACTION of one 20 ms chunk. That fraction is what goes to the rail.
+   * A vessel in low orbit is under a millisecond away, which would fit a
+   * fraction of one 20 ms chunk. The zone is floored at five seconds of audio.
    */
-  it("passes the real fraction of a chunk for a sub-millisecond separation", () => {
+  it("floors the span at five seconds of audio for a sub-millisecond separation", () => {
     const store = createDelayRailStore();
 
     render(
@@ -240,7 +256,7 @@ describe("the voice ribbon it publishes", () => {
       </DelayRailContext.Provider>,
     );
 
-    expect(ribbon(store)?.spanSamples).toBeCloseTo(0.035, 6);
+    expect(ribbon(store)?.spanSamples).toBe(250);
   });
 
   /**

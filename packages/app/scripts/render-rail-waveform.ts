@@ -91,13 +91,12 @@ interface Scene {
 }
 
 /**
- * Whether this separation clears the rail's own floor, i.e. whether anything is
- * drawn at all. The floor comes back from the PAGE (`railMinDelaySeconds`, read
- * off the component), never restated here: a blank shot is a finding where the
- * component says it is predicted, and a failure everywhere else.
+ * Whether a ribbon is drawn at this separation: any positive light-time. A
+ * blank shot at a positive separation is the failure this harness exists to
+ * catch, not a prediction.
  */
-function drawsARail(scene: Scene, r: RailWaveformProbeReading): boolean {
-  return scene.separationSeconds >= r.railMinDelaySeconds;
+function drawsARail(scene: Scene): boolean {
+  return scene.separationSeconds > 0;
 }
 
 const SCENES: readonly Scene[] = [
@@ -326,7 +325,7 @@ async function main(): Promise<void> {
        * turned up.
        */
       if (!railBtn) {
-        if (drawsARail(scene, reading)) {
+        if (drawsARail(scene)) {
           throw new Error(
             `${scene.name}: no rail rendered at ${scene.separationSeconds}s, ` +
               "which clears the rail's delay floor. A ribbon that registers but " +

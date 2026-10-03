@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import styled from "styled-components";
+import { MIN_RIBBON_SPAN_SECONDS } from "./RadioTransmitter";
 import type { RadioControl } from "./useRadio";
 
 /**
@@ -53,14 +54,16 @@ const CHUNK_SECONDS = 0.02;
 const VOICE_RAIL_TAGS = railTagsForTelemetry("continuous");
 
 /**
- * The light-time to the far end, in captured chunks: how many samples of the
- * ribbon fit in the gap, and so what fraction of it the trace has filled.
+ * What the ribbon's zone stands for, in captured chunks: the light-time to the
+ * far end, or {@link MIN_RIBBON_SPAN_SECONDS} of audio when that is shorter.
+ * It decides what fraction of the zone the trace has filled.
  *
- * **Fractional, and never rounded or floored.** A few hundred kilometres of
- * low orbit is well under a millisecond, so the gap can hold a twentieth of a
- * single 20 ms sample. `RailCrossing` limits its turning points to the
- * samples actually behind them, and it can only do that if it is handed the
- * real number.
+ * **Floored at five seconds, so the zone is always wide enough to hold a
+ * wave.** A few hundred kilometres of low orbit is well under a millisecond,
+ * which fits a twentieth of one 20 ms sample and draws a flat line. Above the
+ * floor the number is the real light-time, fractional and never rounded, since
+ * `RailCrossing` limits its turning points to the samples actually behind
+ * them.
  *
  * `undefined` when there is no separation to convert, which is the prop's
  * documented "caller does not know" reading: the trace falls back to the
@@ -77,7 +80,7 @@ export function crossingSpanSamples(
     return undefined;
   }
   if (separationSeconds <= 0) return undefined;
-  return separationSeconds / CHUNK_SECONDS;
+  return Math.max(separationSeconds, MIN_RIBBON_SPAN_SECONDS) / CHUNK_SECONDS;
 }
 
 export function RadioPtt({

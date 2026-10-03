@@ -122,17 +122,27 @@ export interface RadioTransmitState {
 const CHUNK_SECONDS = 0.02;
 
 /**
- * The ring's FLOOR: what to keep when there is no separation to size against,
- * 128 chunks or 2.56 seconds.
- *
- * Relying on this floor alone is a defect: the rail draws each sample at its
- * own age, so the trace reaches only as far as the oldest sample held.
- * Against the operator's common ten to sixty seconds of light-time this floor
- * alone draws 4% to 25% of the rail and reads as barely having started
- * talking, when the gap is in fact full of voice the transmitter has thrown
- * away.
+ * The shortest stretch of audio the ribbon's zone ever stands for, in seconds.
+ * Under this light-time the zone still holds this much voice, so the wave is
+ * always a wave the operator can see grow as they talk, rather than a gap too
+ * short to hold a single turning point.
  */
-export const AMPLITUDE_HISTORY = 128;
+export const MIN_RIBBON_SPAN_SECONDS = 5;
+
+/**
+ * The ring's FLOOR: what to keep when the separation is small or unknown, the
+ * {@link MIN_RIBBON_SPAN_SECONDS} of chunks plus the one sample the rail's
+ * reach measurement sits on.
+ *
+ * Relying on this floor alone against a long light-time is a defect: the rail
+ * draws each sample at its own age, so the trace reaches only as far as the
+ * oldest sample held. Against the operator's common ten to sixty seconds of
+ * light-time the floor alone draws a fraction of the rail and reads as barely
+ * having started talking, when the gap is in fact full of voice the
+ * transmitter has thrown away.
+ */
+export const AMPLITUDE_HISTORY =
+  Math.ceil(MIN_RIBBON_SPAN_SECONDS / CHUNK_SECONDS) + 1;
 
 /**
  * The ring's CEILING: 3001 chunks, which is 60 seconds of light-time plus the

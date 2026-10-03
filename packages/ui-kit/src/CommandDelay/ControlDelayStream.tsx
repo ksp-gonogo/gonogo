@@ -130,7 +130,10 @@ export interface ControlDelayStreamProps {
 }
 
 /**
- * The one-way delay, in seconds, under which {@link ControlDelayStream} draws nothing.
+ * The one-way delay, in seconds, under which {@link ControlDelayStream} draws no
+ * command streams. Ribbons are exempt: a continuous voice has no value to
+ * misread at a short gap, and the wave is only visible in low orbit if the
+ * strip draws there.
  *
  * @category CommandDelay
  */
@@ -559,7 +562,9 @@ function RibbonMark({
  * and confirmed zones split by dividers at T and 2T; a muted-to-clear
  * confidence ramp; deviation in the confirmed zone as the expected path dashed
  * plus the actual path in the warning token; zone and delay labels on hover.
- * Renders `null` when the one-way delay is near zero. Props-only.
+ * Renders `null` when the one-way delay is zero or unknown, and draws no command
+ * streams under {@link STREAM_MIN_DELAY_SECONDS}; a ribbon draws at any
+ * positive delay. Props-only.
  *
  * A continuous entry with no readback (the operator's voice) is drawn as a
  * ribbon in the outgoing zone of the same graph. Delivery only decides whether anything is drawn past the first
@@ -584,8 +589,9 @@ export function ControlDelayStream({
   // Every entry crosses the same gap, so the first one's light-time serves the strip.
   const first = streams[0] ?? ribbons[0];
   const oneWay = first?.oneWaySeconds ?? null;
-  if (!first || oneWay === null || oneWay < STREAM_MIN_DELAY_SECONDS)
-    return null;
+  if (!first || oneWay === null || oneWay <= 0) return null;
+  const drawStreams = oneWay >= STREAM_MIN_DELAY_SECONDS;
+  if (!drawStreams && ribbons.length === 0) return null;
 
   const span = 3 * oneWay;
   // Computed once and shared by the dividers and the line clips, so a line changes appearance only on a divider.
@@ -641,7 +647,7 @@ export function ControlDelayStream({
             />
           </linearGradient>
         </defs>
-        {streams.map((s, i) => (
+        {(drawStreams ? streams : []).map((s, i) => (
           <StreamPaths
             key={s.id}
             stream={s}

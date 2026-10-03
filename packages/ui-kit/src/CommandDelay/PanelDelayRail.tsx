@@ -28,9 +28,11 @@ import { railMark } from "./railTags";
 function handleHasContent(handle: CommandHandle): boolean {
   if (railMark(handle.tags) === "ribbon") {
     const delay = handle.effectiveDelaySeconds;
-    const marks = (handle.streams?.length ?? 0) + (handle.ribbons?.length ?? 0);
-    // The graph's own floor, not a positive-delay test, so the rail never mounts around nothing.
-    return delay !== null && delay >= STREAM_MIN_DELAY_SECONDS && marks > 0;
+    const ribbons = handle.ribbons?.length ?? 0;
+    const streams = handle.streams?.length ?? 0;
+    if (delay === null || delay <= 0) return false;
+    // The graph's own rule, so the rail never mounts around nothing: streams need its floor, ribbons do not.
+    return ribbons > 0 || (delay >= STREAM_MIN_DELAY_SECONDS && streams > 0);
   }
   return handle.inFlight.length > 0;
 }

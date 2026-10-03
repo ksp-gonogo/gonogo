@@ -498,10 +498,34 @@ describe("the ribbon mark", () => {
     const { container } = render(
       <ControlDelayStream
         streams={[]}
-        ribbons={[ribbon({ oneWaySeconds: 0.01 })]}
+        ribbons={[ribbon({ oneWaySeconds: 0 })]}
       />,
     );
     expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("draws a ribbon under the stream floor, so the wave shows in low orbit", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[
+          ribbon({ oneWaySeconds: 0.0007, amplitudes: [0.5, 0.9, 0.2] }),
+        ]}
+      />,
+    );
+    expect(container.querySelector("[data-ribbon]")).not.toBeNull();
+    expect(container.querySelector('[data-divider="t"]')).not.toBeNull();
+  });
+
+  it("still draws no command stream under the floor when a ribbon shares the strip", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[stream({ oneWaySeconds: 0.01 })]}
+        ribbons={[ribbon({ oneWaySeconds: 0.01 })]}
+      />,
+    );
+    expect(container.querySelector("[data-ribbon]")).not.toBeNull();
+    expect(container.querySelector("[data-stream-group]")).toBeNull();
   });
 });
 
