@@ -27,14 +27,14 @@ test.describe("widget DOM mirror: CrewStatus", () => {
   }) => {
     const pair = await bootstrapPair(browser, "crew-status", {
       waitForMain: async (page) => {
-        await expect(page.getByText("CREW", { exact: true })).toBeVisible({
+        await expect(page.getByText(/^CREW( STATUS)?$/)).toBeVisible({
           timeout: 30_000,
         });
       },
     });
 
     for (const page of [pair.main, pair.station]) {
-      await expect(page.getByText("CREW", { exact: true })).toBeVisible({
+      await expect(page.getByText(/^CREW( STATUS)?$/)).toBeVisible({
         timeout: 15_000,
       });
     }

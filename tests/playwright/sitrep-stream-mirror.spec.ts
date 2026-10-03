@@ -46,7 +46,7 @@ test.describe("Sitrep stream: recorded flight mirror", () => {
   }) => {
     const pair = await bootstrapPair(browser, "crew-status", {
       waitForMain: async (page) => {
-        await expect(page.getByText("CREW", { exact: true })).toBeVisible({
+        await expect(page.getByText(/^CREW( STATUS)?$/)).toBeVisible({
           timeout: 30_000,
         });
       },
@@ -63,7 +63,7 @@ test.describe("Sitrep stream: recorded flight mirror", () => {
     // Station proves real connectivity (the dashboard mounts, the widget
     // renders its static chrome) without asserting on stream-derived
     // content (see module doc comment for why).
-    await expect(pair.station.getByText("CREW", { exact: true })).toBeVisible({
+    await expect(pair.station.getByText(/^CREW( STATUS)?$/)).toBeVisible({
       timeout: 15_000,
     });
 

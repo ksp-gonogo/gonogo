@@ -36,7 +36,7 @@ test.describe("panel header aside", () => {
   }) => {
     const pair = await bootstrapPair(browser, "crew-status", {
       waitForMain: async (page) => {
-        await expect(page.getByText("CREW", { exact: true })).toBeVisible({
+        await expect(page.getByText(/^CREW( STATUS)?$/)).toBeVisible({
           timeout: 30_000,
         });
       },
@@ -67,7 +67,7 @@ test.describe("panel header aside", () => {
     const pair = await bootstrapPair(browser, "crew-status", {
       widget: { size: { w: 4, h: 6 } },
       waitForMain: async (page) => {
-        await expect(page.getByText("CREW", { exact: true })).toBeVisible({
+        await expect(page.getByText(/^CREW( STATUS)?$/)).toBeVisible({
           timeout: 30_000,
         });
       },
