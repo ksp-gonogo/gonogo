@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Floating, Meter, resourceColor, Unit } from "@ksp-gonogo/ui-kit";
+import { Box, Floating, Meter, resourceColor, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { PartActionCount } from "./PartActionMenu";
 import { METER_STATUS_COLOR } from "./partMeters";
@@ -58,22 +58,7 @@ export function PartTooltip({
       {/* Mounting is the subscription that makes the mod enumerate the part's PAW, so only for the hovered part. */}
       {showActionCount ? <PartActionCount flightId={hovered.flightId} /> : null}
       {meters.map((m) => (
-        <Meter
-          key={`meter-${m.resource}`}
-          label={m.displayName}
-          /* Handed over as they arrived: `Meter` marks a held figure and places a band, which a bare quantity would strip. */
-          value={m.amount}
-          capacity={m.capacity}
-          fillColor={resourceColor(m.resource)}
-          style={
-            m.status
-              ? {
-                  outline: `1px solid ${METER_STATUS_COLOR[m.status]}`,
-                  outlineOffset: "2px",
-                }
-              : undefined
-          }
-        />
+        <TooltipMeter key={`meter-${m.resource}`} entry={m} />
       ))}
       {otherResources.map((r) => (
         <div style={TOOLTIP_ROW} key={r.n}>
@@ -101,6 +86,30 @@ export function PartTooltip({
         ),
       )}
     </Floating>
+  );
+}
+
+/** One contributed meter, in a frame in the layout when its status is low or critical so the next row cannot paint over it the way it did an outline. */
+function TooltipMeter({ entry: m }: { entry: ShipMapPartMeterEntry }) {
+  const meter = (
+    <Meter
+      label={m.displayName}
+      /* Handed over as they arrived: `Meter` marks a held figure and places a band, which a bare quantity would strip. */
+      value={m.amount}
+      capacity={m.capacity}
+      fillColor={resourceColor(m.resource)}
+    />
+  );
+  if (!m.status) return meter;
+  return (
+    <Box
+      bordered
+      pad="chip"
+      radius="regular"
+      style={{ borderColor: METER_STATUS_COLOR[m.status] }}
+    >
+      {meter}
+    </Box>
   );
 }
 
