@@ -177,6 +177,23 @@ export const Input = styled.input`
 export const Select = styled.select`
   ${inputBase}
   width: 100%;
+  appearance: none;
+  /* The native arrow hugs the field's edge and cannot be inset, so the chevron is two gradient strokes drawn clear of it. */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+    linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - var(--offset-select-arrow-far)) 50%,
+    calc(100% - var(--offset-select-arrow-near)) 50%;
+  background-size:
+    var(--size-select-arrow) var(--size-select-arrow),
+    var(--size-select-arrow) var(--size-select-arrow);
+  background-repeat: no-repeat;
+  padding-inline-end: var(--inset-field-select-end);
+
+  @media (pointer: coarse) {
+    padding-inline-end: var(--inset-field-select-end);
+  }
 `;
 
 /**

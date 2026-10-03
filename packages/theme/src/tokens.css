@@ -789,6 +789,12 @@ textarea {
   --inset-field-touch: var(--space-10) var(--space-12);
   /* The trailing room a search field keeps for its clear control. */
   --inset-field-clearable-end: calc(var(--icon-size-control) + var(--space-12));
+  /* The trailing room a select keeps for its drawn arrow. */
+  --inset-field-select-end: var(--space-24);
+  /* The two strokes of a select's arrow: each one's size, and how far each sits from the field's end. */
+  --size-select-arrow: var(--space-4);
+  --offset-select-arrow-near: var(--space-12);
+  --offset-select-arrow-far: var(--space-16);
   /* A boxed form's surface. */
   --inset-form-box: var(--space-8) var(--space-10);
   /* A search input flush in its band. */
