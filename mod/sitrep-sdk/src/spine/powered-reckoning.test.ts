@@ -323,4 +323,35 @@ describe("poweredFlight", () => {
     }
     expect(withdrew).toBeGreaterThan(0);
   });
+
+  it("refuses a burn it cannot bound, and never integrates without end", () => {
+    const started = Date.now();
+    expect({
+      noFlow: reasonOf(
+        poweredFlight(
+          LAST,
+          HISTORY,
+          BODIES,
+          1e9,
+          evidence({ thrust: { ...FIRING, massFlow: value("kg/s", 0) } }),
+        ),
+      ),
+      farFuture: reasonOf(
+        poweredFlight(
+          LAST,
+          HISTORY,
+          BODIES,
+          1e9,
+          evidence({ stageFuel: 1e12 }),
+        ),
+      ),
+    }).toEqual({
+      noFlow: { reason: "under-physics", input: "@vessel.propulsion" },
+      farFuture: { reason: "under-physics", input: "@vessel.orbit" },
+    });
+    const answer = poweredFlight(LAST, HISTORY, BODIES, 20, evidence());
+    if (!("flight" in answer)) throw new Error(JSON.stringify(answer));
+    expect(Number.isNaN(answer.flight.stateAt(1e9).position[0])).toBe(true);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
 });

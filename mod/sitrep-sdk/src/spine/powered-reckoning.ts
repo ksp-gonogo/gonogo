@@ -300,6 +300,14 @@ interface SteadyBurn {
 const MAX_STEP_SECONDS = 1;
 
 /**
+ * The furthest the model carries a burn from its last observation, in seconds.
+ * Chosen: past an hour of unobserved thrust every vessel this models has
+ * staged or burned out, and the bound keeps the integrator's work finite
+ * whatever instant a caller asks about.
+ */
+const MAX_CARRY_SECONDS = 3600;
+
+/**
  * `start` at `fromUt` carried to `toUt` under point-mass gravity and `burn`, by
  * fourth-order Runge-Kutta in steps of at most a second.
  *
@@ -314,6 +322,10 @@ function integrateBurn(
   burn: SteadyBurn,
 ): StateVector {
   const span = toUt - fromUt;
+  if (!(Math.abs(span) <= MAX_CARRY_SECONDS)) {
+    const unknown: Vector3 = [Number.NaN, Number.NaN, Number.NaN];
+    return { position: unknown, velocity: unknown };
+  }
   const steps = Math.max(1, Math.ceil(Math.abs(span) / MAX_STEP_SECONDS));
   const h = span / steps;
   let r = start.position;
@@ -508,7 +520,7 @@ export function poweredFlight(
   if (
     !(thrustKn > 0) ||
     !(mass > 0) ||
-    !(flowKg >= 0) ||
+    !(flowKg > 0) ||
     massAtUt === undefined
   ) {
     return {
@@ -565,7 +577,7 @@ export function poweredFlight(
     };
   }
   const flow = flowKg / 1000;
-  if (flow > 0 && reckonUt > massAtUt + stageFuel / flow) {
+  if (reckonUt > massAtUt + stageFuel / flow) {
     return {
       declined: underPhysics(
         "@dv.stages",
@@ -576,6 +588,14 @@ export function poweredFlight(
 
   const elements = buildElements(orbit);
   const fromUt = elements.epoch;
+  if (!(Math.abs(reckonUt - fromUt) <= MAX_CARRY_SECONDS)) {
+    return {
+      declined: underPhysics(
+        "@vessel.orbit",
+        "further past the last observation than any burn this model will carry",
+      ),
+    };
+  }
   const start = solve(elements, fromUt);
   const nominal: SteadyBurn = {
     direction: () => measured.direction,
