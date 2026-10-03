@@ -20,6 +20,8 @@ export interface BannerPillProps {
   ariaLive?: "polite" | "assertive";
   /** Optional click handler. When set the pill becomes button-like. */
   onClick?: () => void;
+  /** The pill holds its own controls (a link, a dismiss button), so it takes the pointer without being one button itself. */
+  interactive?: boolean;
   children: ReactNode;
 }
 
@@ -34,6 +36,7 @@ export function BannerPill({
   role = "status",
   ariaLive,
   onClick,
+  interactive = false,
   children,
 }: BannerPillProps) {
   const liveValue = ariaLive ?? (role === "alert" ? "assertive" : "polite");
@@ -59,6 +62,7 @@ export function BannerPill({
       $accent={accent}
       $glow={glow}
       $clickable={Boolean(onClick)}
+      $interactive={interactive}
       role={role}
       aria-live={liveValue}
       onClick={onClick}
@@ -99,6 +103,7 @@ const InlinePill = styled.div<{
   $accent: string;
   $glow: string | undefined;
   $clickable: boolean;
+  $interactive: boolean;
 }>`
   display: inline-flex;
   align-items: center;
@@ -114,7 +119,7 @@ const InlinePill = styled.div<{
   font-family: inherit;
   white-space: nowrap;
   cursor: ${(p) => (p.$clickable ? "pointer" : "default")};
-  pointer-events: ${(p) => (p.$clickable ? "auto" : "none")};
+  pointer-events: ${(p) => (p.$clickable || p.$interactive ? "auto" : "none")};
   animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
   will-change: transform, opacity;

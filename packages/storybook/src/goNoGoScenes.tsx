@@ -81,8 +81,6 @@ export interface SceneStation {
   peerId: string;
   name: string;
   vote: Vote;
-  /** The version it reports, or none for a bundle too old to say. */
-  version?: string;
 }
 
 export interface GoNoGoMainSceneProps {
@@ -96,9 +94,6 @@ export interface GoNoGoMainSceneProps {
   w: number;
   h: number;
 }
-
-/** The version every station reports unless it says otherwise: this build's own. */
-export const THIS_VERSION = "0.0.0";
 
 /**
  * The main screen's board, over a vote aggregator fed by stations that have
@@ -116,8 +111,6 @@ export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
       peers.fire("connect", s.peerId);
       peers.fire("info", s.peerId, {
         name: s.name,
-        version: s.version,
-        buildTime: s.version ? "2026-09-28T09:00:00Z" : undefined,
       });
     }
     for (const s of stations) peers.fire("vote", s.peerId, s.vote);

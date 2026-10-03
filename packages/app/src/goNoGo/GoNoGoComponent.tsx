@@ -4,7 +4,6 @@ import type {
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
 import {
-  compareVersions,
   registerComponent,
   useActionInput,
   useScreen,
@@ -24,7 +23,6 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { playCountdownTone } from "../sound";
-import { VERSION } from "../version";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
 
@@ -354,10 +352,9 @@ function MainView({
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
-  // Selective rendering: chrome (auto-stage warning, per-cell version chip) drops at small widths so the GO/NO-GO grid stays the focus.
+  // Selective rendering: chrome (the auto-stage warning) drops at small widths so the GO/NO-GO grid stays the focus.
   const cols = w ?? 4;
   const showWarnChip = cols >= 6;
-  const showVersionChips = cols >= 5;
 
   return (
     <MainLayout>
@@ -391,12 +388,6 @@ function MainView({
         {stations.length === 0 && <Empty>No stations connected</Empty>}
         {stations.map((s) => {
           const cellState = deriveCellState(s, launched, abort);
-          const versionKind = compareVersions(VERSION, s.version);
-          const showVersionChip =
-            showVersionChips &&
-            (versionKind === "minor" ||
-              versionKind === "major" ||
-              versionKind === "unknown");
           return (
             <Cell
               key={s.peerId}
@@ -407,20 +398,6 @@ function MainView({
             >
               <CellName>{s.name}</CellName>
               <CellStatus>{cellLabel(cellState)}</CellStatus>
-              {showVersionChip && (
-                <Tooltip
-                  text={
-                    versionKind === "unknown"
-                      ? "Station didn't report a version"
-                      : `Station v${s.version} ↔ this v${VERSION}`
-                  }
-                  focusable
-                >
-                  <VersionChip $kind={versionKind}>
-                    v{s.version ?? "?"}
-                  </VersionChip>
-                </Tooltip>
-              )}
             </Cell>
           );
         })}
@@ -733,23 +710,6 @@ const CellStatus = styled.span`
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.12em;
-`;
-
-const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
-  minor: "var(--color-warn-mark)",
-  major: "var(--color-nogo-mark)",
-  unknown: "var(--color-text-muted)",
-};
-
-const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
-  margin-top: var(--gap-sub-readout);
-  padding: var(--inset-chip);
-  font-size: var(--font-size-compact);
-  letter-spacing: 0.1em;
-  border-radius: var(--radius-pill);
-  border: 1px solid ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
-  color: ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
-  background: rgba(0, 0, 0, 0.2);
 `;
 
 const Empty = styled.div`

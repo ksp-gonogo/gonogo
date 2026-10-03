@@ -4,32 +4,27 @@ import {
   GoNoGoMainScene,
   GoNoGoStationScene,
   type SceneStation,
-  THIS_VERSION,
 } from "../../goNoGoScenes";
 
 const FLIGHT: SceneStation = {
   peerId: "station-flight",
   name: "Flight",
   vote: "go",
-  version: THIS_VERSION,
 };
 const BOOSTER: SceneStation = {
   peerId: "station-booster",
   name: "Booster",
   vote: "go",
-  version: THIS_VERSION,
 };
 const GUIDANCE: SceneStation = {
   peerId: "station-guidance",
   name: "Guidance",
   vote: "go",
-  version: THIS_VERSION,
 };
 const EECOM: SceneStation = {
   peerId: "station-eecom",
   name: "EECOM",
   vote: "go",
-  version: THIS_VERSION,
 };
 
 const meta = {
@@ -50,8 +45,7 @@ type StationStory = StoryObj<typeof GoNoGoStationScene>;
 
 /**
  * The main screen polling four stations before launch: two GO, one holding
- * NO-GO, and one whose tile is not mounted so it casts no vote. Guidance runs
- * an older build and its tile says so.
+ * NO-GO, and one whose tile is not mounted so it casts no vote.
  */
 export const PollInProgress: Story = {
   name: "Main, poll in progress",
@@ -59,7 +53,7 @@ export const PollInProgress: Story = {
     stations: [
       FLIGHT,
       { ...BOOSTER, vote: "no-go" },
-      { ...GUIDANCE, version: "0.1.0" },
+      GUIDANCE,
       { ...EECOM, vote: null },
     ],
     w: 8,

@@ -62,6 +62,7 @@ import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { StationBuildMismatchNotice } from "../components/StationBuildMismatchNotice";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
@@ -478,6 +479,7 @@ function MainDashboard({
             <SceneChangeBanner />
             <FlightOutcomeBanner />
             <HomeFallbackNotice />
+            <StationBuildMismatchNotice host={peerHostService} />
             <SceneSwitchPrompt
               onLoad={(items, layouts) =>
                 dashboard.replaceState(items, layouts)
