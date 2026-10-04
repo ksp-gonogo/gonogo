@@ -151,6 +151,31 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The active craft's light-time from every centre, in seconds.</summary>
         public double ActiveSeconds { get; set; } = 1.0;
 
+        /// <summary>Whether the active craft's light-time reads as none while it has no link, as the game's own does, rather than holding its figure.</summary>
+        public bool DarkMeasuresNoDelay { get; set; }
+
+        private double? _break;
+
+        /// <summary>The hop the active craft was routed through stops carrying, this many light-seconds out from it: reported once, on the next tick.</summary>
+        public void BreakActivePath(double lightSecondsOut)
+        {
+            lock (_gate)
+            {
+                _break = lightSecondsOut;
+            }
+        }
+
+        /// <summary>The break to report this tick, if one is waiting.</summary>
+        public double? TakeBreak()
+        {
+            lock (_gate)
+            {
+                var taken = _break;
+                _break = null;
+                return taken;
+            }
+        }
+
         /// <summary>Whether the active craft has a link home.</summary>
         public bool ActiveConnected { get; set; } = true;
 
@@ -266,6 +291,14 @@ namespace Sitrep.Host.IntegrationTests
             var channels = ContactPlanSource.Channels();
             channels.Add(new ChannelDeclaration
             {
+                // The active craft's link report, as the comms Uplink declares it: Delayed, and exempt from the freeze by its topic.
+                Topic = ChannelEngine.ConnectivityMetaTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+            });
+            channels.Add(new ChannelDeclaration
+            {
                 Topic = RelayStateTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -317,6 +350,7 @@ namespace Sitrep.Host.IntegrationTests
             host.AddSampledSource(_ => new Ledger(_game), captured => Apply((Ledger)captured!));
             _source.Register(host);
             host.AddChannelSource(RelayStateTopic, _ => null);
+            host.AddChannelSource(ChannelEngine.ConnectivityMetaTopic, _ => new CommsLink { Connected = _game.ActiveConnected });
             host.AddCommandHandler<string, string>(RelayCommand, args =>
             {
                 Interlocked.Increment(ref _handled);
@@ -337,7 +371,19 @@ namespace Sitrep.Host.IntegrationTests
                 Interlocked.Increment(ref _steered);
                 return "steered";
             });
-            host.SetSignalDelaySource(_ => new CommsDelay { OneWaySeconds = _game.ActiveSeconds, Source = CommsDelaySource.SignalDelay });
+            host.SetSignalDelaySource(_ => new CommsDelay
+            {
+                // A craft with no path measures no light-time at all, as the live read does.
+                OneWaySeconds = _game.ActiveConnected || !_game.DarkMeasuresNoDelay ? _game.ActiveSeconds : (double?)null,
+                Source = CommsDelaySource.SignalDelay,
+            });
+            host.SetPathBreakSource((_, ut) =>
+            {
+                var at = _game.TakeBreak();
+                return at == null
+                    ? null
+                    : new[] { new PathBreak(ChannelEngine.NodeId, ut, at.Value) };
+            });
             host.SetConnectivitySource(_ => _game.ActiveConnected);
         }
 

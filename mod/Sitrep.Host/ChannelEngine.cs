@@ -1406,6 +1406,12 @@ namespace Sitrep.Host
             stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
             _courier = new Courier(_clock, _network);
+            // A break in a craft's route catches the light the craft sent. A
+            // TrueNow channel is the ground's own state, and a freeze-exempt
+            // report is a centre noticing the link, so neither was ever in flight.
+            _courier.SetNotCarriedByTheNode(topic =>
+                IsFreezeExempt(topic)
+                || (_channelDeclarations.TryGetValue(topic, out var declared) && declared.Delay == DelayRole.TrueNow));
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,
             // fired from the Courier thread's own clock callback, see

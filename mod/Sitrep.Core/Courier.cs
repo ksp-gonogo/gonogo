@@ -78,6 +78,21 @@ namespace Sitrep.Core
         private readonly IClock _clock;
         private readonly INetwork _network;
 
+        private Func<string, bool>? _notCarriedByTheNode;
+
+        /// <summary>
+        /// Names the topics on a craft's node that are not light the craft
+        /// sent: what the ground knows of itself (a centre's outbox), and a
+        /// centre's own observation of the link (the outage report). A break in
+        /// the craft's route catches what the craft transmitted, and nothing
+        /// else, so these are never refused as lost in flight.
+        /// </summary>
+        public void SetNotCarriedByTheNode(Func<string, bool> topic) => _notCarriedByTheNode = topic;
+
+        /// <summary>Whether a sample of <paramref name="topic"/> sent from <paramref name="node"/> at <paramref name="sentAtUt"/> ran into a break in the node's route (see <see cref="INetwork.DropPath"/>).</summary>
+        private bool LostInFlight(string node, string topic, double sentAtUt) =>
+            (_notCarriedByTheNode == null || !_notCarriedByTheNode(topic)) && _network.Lost(node, sentAtUt);
+
         // node -> Archive (one archive per node, shared across all topics on it).
         private readonly Dictionary<string, Archive> _archives = new Dictionary<string, Archive>();
 
@@ -895,7 +910,7 @@ namespace Sitrep.Core
                 var arrivedAt = double.NegativeInfinity;
                 foreach (var sample in archived)
                 {
-                    if (_network.Lost(node, sample.ValidAt))
+                    if (LostInFlight(node, topic, sample.ValidAt))
                     {
                         continue;
                     }
@@ -1036,7 +1051,7 @@ namespace Sitrep.Core
                 ? archive.ReadAtInstant(topic, subscriber.Vantage, fireUt - stampedDelaySeconds.Value)
                 : archive.ReadAtVantage(
                     topic, subscriber.Vantage, _network.DelayTo(subscriber.Vantage, node), fireUt);
-            if (sample == null || _network.Lost(node, sample.Value.ValidAt))
+            if (sample == null || LostInFlight(node, topic, sample.Value.ValidAt))
             {
                 return;
             }
@@ -1063,7 +1078,7 @@ namespace Sitrep.Core
         /// </summary>
         private void DeliverSample(string node, string topic, Subscriber subscriber, ArchiveSample forwarded, double fireUt)
         {
-            if (_network.Lost(node, forwarded.ValidAt))
+            if (LostInFlight(node, topic, forwarded.ValidAt))
             {
                 return;
             }
