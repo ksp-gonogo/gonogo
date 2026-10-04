@@ -1,4 +1,5 @@
 import type { AlertTone } from "@ksp-gonogo/sitrep-sdk";
+import { ReckoningMarkSvg } from "@ksp-gonogo/ui-kit";
 import type { PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
 
@@ -127,8 +128,13 @@ export function VesselMarker({
   const r = 5 / zoom;
   const style = markerStyle(state);
   const { colour, opacity } = style;
-  // Held draws hollow and dashed like a reckoned position: shape rather than shade, so it does not rely on colour alone (WCAG 1.4.1).
   const filled = style.filled && !held;
+  // A held position takes the held dot and a reckoned one the modelled triangle; overdue and lost keep their own warning rings.
+  const reckonedKind = held
+    ? "held"
+    : state === "predicted"
+      ? "modelled"
+      : null;
   return (
     <g
       pointerEvents="none"
@@ -157,17 +163,29 @@ export function VesselMarker({
           opacity={0.6}
         />
       )}
-      <circle
-        data-vessel-marker=""
-        cx={marker.x}
-        cy={marker.y}
-        r={r}
-        fill={filled ? colour : "none"}
-        stroke={filled ? "var(--color-text-inverse)" : colour}
-        strokeWidth={(filled ? 1 : 1.4) / zoom}
-        // Dashed ring for a reckoned position: the same visual language the upcoming-patch arcs already use for "computed, not observed".
-        strokeDasharray={filled ? undefined : `${3 / zoom} ${2.5 / zoom}`}
-      />
+      {reckonedKind === null ? (
+        <circle
+          data-vessel-marker=""
+          cx={marker.x}
+          cy={marker.y}
+          r={r}
+          fill={filled ? colour : "none"}
+          stroke={filled ? "var(--color-text-inverse)" : colour}
+          strokeWidth={(filled ? 1 : 1.4) / zoom}
+          // Dashed ring for an overdue or lost position: the same visual language the upcoming-patch arcs use for "computed, not observed".
+          strokeDasharray={filled ? undefined : `${3 / zoom} ${2.5 / zoom}`}
+        />
+      ) : (
+        // The kit's one held and modelled mark, sized to this diagram's zoom.
+        <g data-vessel-marker="">
+          <ReckoningMarkSvg
+            kind={reckonedKind}
+            x={marker.x}
+            y={marker.y}
+            scale={1.25 / zoom}
+          />
+        </g>
+      )}
       <circle
         cx={marker.x}
         cy={marker.y}

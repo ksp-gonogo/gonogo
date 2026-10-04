@@ -143,6 +143,8 @@ export function namedPairings(tokens: readonly string[]): Pairing[] {
       { token: `${tone}-mark`, kind: "non-text", on: surfaces },
     );
   }
+  // The modelled mark is a blue shape beside a figure, held to the same non-text floor as a tone's mark.
+  pairs.push({ token: "modelled-mark", kind: "non-text", on: surfaces });
   return pairs;
 }
 

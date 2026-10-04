@@ -80,7 +80,7 @@ export function ModelledAlongside({
 function ModelledMark({ children }: { children: ReactNode }) {
   return (
     <ModelledAlongside__Figure data-modelled-alongside="">
-      <HeldFigure data-held="" caption={MODELLED_TO_SCET}>
+      <HeldFigure data-held="" kind="modelled" caption={MODELLED_TO_SCET}>
         {children}
       </HeldFigure>
     </ModelledAlongside__Figure>

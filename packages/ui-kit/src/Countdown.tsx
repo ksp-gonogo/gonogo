@@ -85,14 +85,14 @@ export function Countdown({
     );
   }
   const currency = resolveCurrency(carried, { drawsReckoning: true });
-  const { shown, held, caption } = currency;
+  const { shown, held, mark, caption } = currency;
   const drawn = typeof value === "number" ? value : shown;
   if (drawn === undefined || drawn === null) return NULL_DISPLAY;
   const text = format(drawn);
   const figure = figureAttributes({ ...currency, shown: drawn });
   if (!held) return <span data-figure={figure["data-figure"]}>{text}</span>;
   return (
-    <HeldFigure {...figure} caption={caption}>
+    <HeldFigure {...figure} kind={mark ?? "held"} caption={caption}>
       {text}
     </HeldFigure>
   );

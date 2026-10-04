@@ -328,7 +328,7 @@ export {
   ROW_HEIGHT,
 } from "./gridUnits";
 export { HeldBadge, type HeldBadgeProps } from "./HeldBadge";
-export { HeldFigure, type HeldFigureProps } from "./HeldMark";
+export { HeldFigure, type HeldFigureProps, ReckoningMark } from "./HeldMark";
 export { HoverCard, type HoverCardProps } from "./HoverCard";
 export {
   ArrowDownIcon,
@@ -513,6 +513,14 @@ export {
   resolveCurrency,
 } from "./readingCurrency";
 export { reckoningBasisPhrase } from "./reckoningBasisPhrase";
+export {
+  type PaintReckoningMarkOptions,
+  paintReckonedPosition,
+  paintReckoningMark,
+  type ReckonedPosition,
+  ReckoningMarkSvg,
+} from "./reckoningMarkDraw";
+export { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
 export { resourceColor } from "./resourceColor";
 export { SearchBox, type SearchBoxProps } from "./SearchBox";
 export { Section, type SectionProps, SectionTitle } from "./Section";

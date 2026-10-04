@@ -1,6 +1,11 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useStream, useViewUt } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Reading,
+  stillTrue,
+  TargetKind,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { rosterDistance } from "../shared/rosterDistance";
@@ -11,15 +16,8 @@ export function useFlightState() {
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
   const vesselName = identity?.name;
   // Off `vessel.flight`'s own field reading, which stays live on rails.
-  const altitudeReading = useTelemetry("vessel.flight").altitudeAsl;
-  const altitudeNow = () => {
-    if (altitudeReading.reckoning.status === "available") {
-      return altitudeReading.reckoning.modelled;
-    }
-    if (altitudeReading.state === "observed") return altitudeReading.value;
-    return undefined;
-  };
-  const altitudeMeters = magnitudeOf(altitudeNow());
+  const altitudeReading: Reading<Value<"m">> =
+    useTelemetry("vessel.flight").altitudeAsl;
   // Not in the SDK's typed Topic tail, so read through `useStream`.
   const crashHasRecent = stillTrue(
     useStream<boolean>("crash.hasRecent"),
@@ -70,7 +68,8 @@ export function useFlightState() {
   return {
     vesselName,
     missionTime: missionTime ?? null,
-    altitudeMeters: altitudeMeters ?? null,
+    // The reading itself, so the figure carries its own mark: held keeps the dot, a model's figure the triangle.
+    altitude: altitudeReading,
     crashInProgress: activeVesselCrashed(),
     availableVessels,
     distanceOf,

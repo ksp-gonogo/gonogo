@@ -11,6 +11,7 @@ import {
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY } from "./NullValue";
+import type { ReckoningKind } from "./reckoningMarkSpec";
 import { heldWord } from "./status/streamStatusWord";
 import { formatQuantity } from "./units";
 
@@ -35,8 +36,13 @@ export type UnitValue<Unit extends string = string> =
 export interface Resolved<Unit extends string> {
   /** The number to draw; null or undefined draws the null token. */
   shown: Value<Unit> | null | undefined;
-  /** True when the number on screen is not a reading of now, so it takes the held mark. */
+  /** True when the number on screen is not a reading of now, so it takes a mark: `mark` says which. */
   held: boolean;
+  /**
+   * Which mark the figure takes: `held` for the last observation kept, `modelled`
+   * for a figure a model carried. Null exactly when `held` is false.
+   */
+  mark: ReckoningKind | null;
   /**
    * Whether the number is a fact the contract declares static, which is never
    * old and so is never marked held, whatever the reading's state.
@@ -129,11 +135,18 @@ function heldCurrency<Unit extends string>(
    * gradeless held reading a derived value produces.
    */
   if (isStaticValue(input.value)) {
-    return { shown: input.value, held: false, isStatic: true, caption: null };
+    return {
+      shown: input.value,
+      held: false,
+      mark: null,
+      isStatic: true,
+      caption: null,
+    };
   }
   return {
     shown: input.value,
     held: input.value !== undefined,
+    mark: input.value !== undefined ? "held" : null,
     isStatic: false,
     caption:
       input.value === undefined
@@ -162,6 +175,7 @@ export function resolveCurrency<Unit extends string>(
     return {
       shown: input,
       held: false,
+      mark: null,
       isStatic: isStaticValue(input),
       caption: null,
       band: null,
@@ -179,12 +193,21 @@ export function resolveCurrency<Unit extends string>(
   ) {
     const shown = input.reckoning.modelled;
     if (input.state === "held") {
-      return { ...heldCurrency(input), shown, band };
+      const held = heldCurrency(input);
+      // The figure drawn is the model's, so it is marked as modelled, from the instant the observation stopped.
+      return {
+        ...held,
+        shown,
+        mark: held.held ? "modelled" : null,
+        caption: held.caption === null ? null : `${held.caption}, modelled`,
+        band,
+      };
     }
     const carried = input.reckoning.beyondReceived;
     return {
       shown,
       held: carried,
+      mark: carried ? "modelled" : null,
       isStatic: false,
       caption: carried ? MODELLED_TO_SCET : null,
       band,
@@ -194,6 +217,7 @@ export function resolveCurrency<Unit extends string>(
     return {
       shown: input.value,
       held: false,
+      mark: null,
       isStatic: isStaticValue(input.value),
       caption: null,
       band,
@@ -204,6 +228,7 @@ export function resolveCurrency<Unit extends string>(
   return {
     shown: null,
     held: false,
+    mark: null,
     isStatic: false,
     caption: null,
     band: null,
@@ -220,11 +245,17 @@ export function resolveCurrency<Unit extends string>(
 export function figureAttributes(resolved: {
   readonly shown: unknown;
   readonly held: boolean;
+  readonly mark?: ReckoningKind | null;
   readonly isStatic: boolean;
-}): { "data-figure": string | undefined; "data-held": "" | undefined } {
+}): {
+  "data-figure": string | undefined;
+  "data-held": "" | undefined;
+  "data-reckoned": ReckoningKind | undefined;
+} {
   return {
     "data-figure":
       resolved.shown == null ? undefined : resolved.isStatic ? "static" : "",
     "data-held": resolved.held ? "" : undefined,
+    "data-reckoned": resolved.held ? (resolved.mark ?? "held") : undefined,
   };
 }

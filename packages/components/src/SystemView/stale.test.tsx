@@ -133,7 +133,7 @@ describe("SystemView when vessel.orbit is held", () => {
     await act(async () => {});
   });
 
-  it("draws the vessel marker hollow rather than dimmed, and names it as held", async () => {
+  it("draws the vessel marker as the kit's held dot rather than dimmed, and names it as held", async () => {
     const { fixture, view } = mount();
     const marker = await waitFor(() => {
       const found = view.container.querySelector("[data-vessel-position]");
@@ -150,10 +150,11 @@ describe("SystemView when vessel.orbit is held", () => {
     expect(held?.querySelector("title")?.textContent).toBe(
       "Vessel position, held",
     );
-    // Shape, not shade: the marker has no text to fall back on (WCAG 1.4.1), so held draws the hollow dashed ring of a computed position.
-    const ring = held?.querySelector("[data-vessel-marker]");
-    expect(ring?.getAttribute("fill")).toBe("none");
-    expect(ring?.getAttribute("stroke-dasharray")).not.toBeNull();
+    // The kit's held mark, the same dot a held figure carries: the marker has no text to fall back on (WCAG 1.4.1), and the shape is the held dot.
+    const mark = held?.querySelector(
+      "[data-vessel-marker] [data-reckoning-mark]",
+    );
+    expect(mark?.getAttribute("data-reckoning-mark")).toBe("held");
     await act(async () => {});
   });
 });

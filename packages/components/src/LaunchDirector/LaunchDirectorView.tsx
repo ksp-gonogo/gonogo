@@ -207,7 +207,7 @@ export function LaunchDirectorComponent({
             ) : inFlight ? (
               <InFlightPanel
                 missionTime={flight.missionTime}
-                altitudeMeters={flight.altitudeMeters}
+                altitude={flight.altitude}
                 crashInProgress={flight.crashInProgress}
                 availableVessels={flight.availableVessels}
                 distanceOf={flight.distanceOf}

@@ -1,8 +1,13 @@
 import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, type CommandButtonHandle, Tooltip } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  type CommandButtonHandle,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { ArmedButton } from "./ArmedButton";
-import { Altitude, formatMissionTime } from "./flightFigures";
+import { formatMissionTime } from "./flightFigures";
 import {
   CrashChip,
   FlightStatRow,
@@ -17,7 +22,7 @@ import { VesselSwitchList } from "./VesselSwitchList";
 
 export function InFlightPanel({
   missionTime,
-  altitudeMeters,
+  altitude,
   crashInProgress,
   availableVessels,
   distanceOf,
@@ -29,7 +34,7 @@ export function InFlightPanel({
   switchCmd,
 }: {
   missionTime: number | null;
-  altitudeMeters: number | null;
+  altitude: Reading<Value<"m">>;
   crashInProgress: boolean;
   availableVessels: TargetListEntry[] | undefined;
   distanceOf: (entry: TargetListEntry) => Reading<Value<"m">> | undefined;
@@ -56,7 +61,9 @@ export function InFlightPanel({
         </FlightStatRow>
         <FlightStatRow>
           <StatLabel>Altitude</StatLabel>
-          <StatValue>{<Altitude m={altitudeMeters} />}</StatValue>
+          <StatValue>
+            <Unit value={altitude} reckoned />
+          </StatValue>
         </FlightStatRow>
       </FlightStats>
       <PadActions>

@@ -8,13 +8,14 @@ import {
 import type { ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
-import { HeldMark, reservesHeldMark } from "./HeldMark";
+import { ReckoningMark, reservesMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import {
   figureAttributes,
   resolveCurrency,
   type UnitValue,
 } from "./readingCurrency";
+import type { ReckoningKind } from "./reckoningMarkSpec";
 import { standsApart, writtenAs } from "./standsApart";
 import { Tooltip, useTooltip } from "./Tooltip";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
@@ -57,13 +58,13 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
 `;
 
 // A held figure is relatively positioned and reserves the dot's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the dot alone.
-const Unit__Quantity = styled.span<{ $held: boolean }>`
+const Unit__Quantity = styled.span<{ $mark: ReckoningKind | null }>`
   white-space: nowrap;
-  ${({ $held }) =>
-    $held
+  ${({ $mark }) =>
+    $mark !== null
       ? css`
           position: relative;
-          ${reservesHeldMark}
+          ${reservesMark($mark)}
         `
       : ""}
 `;
@@ -199,6 +200,14 @@ export interface UnitProps<UnitSymbol extends string = string>
    * Honoured only inside a `<UnitSharedFormat>`; on a lone `<Unit>` it does nothing, since a number with no unit near it is not a readout. The member still reports, so its magnitude keeps its vote on the group's rung. The symbol is hidden from the accessibility tree as well as the screen.
    */
   hideUnitInGroup?: boolean;
+  /**
+   * Draw the reading's model rather than its observation, where the model has
+   * one, and mark the figure as modelled wherever it is not a reading of now:
+   * a blue triangle, where a held figure takes the warning dot. For a figure a
+   * person reads as the truth about now (a position, an altitude, a clock);
+   * leave it off where the number is an input to a computation.
+   */
+  reckoned?: boolean;
   /** A bare unit token, rendered as a symbol with no number. Used only when `value` is not passed; prefer passing a value. */
   children?: ReactNode;
   className?: string;
@@ -260,7 +269,9 @@ function UnitSymbol({
  * - no number (`pending`, `unowned`, `absent`): the null token
  * - held (`held`, any grade): the last observation in full, marked by a dot at superscript height in the warning hue, with the grade and the `asOfUt` instant on hover and in the spoken caption
  *
- * The mark is out of flow, so a column never reflows when a channel goes quiet, and it is not a live region: a widget that wants the change announced wraps its readout in `role="status"`. It never draws a reckoned figure; a widget that wants the model hands `reckoning.modelled` over as the `Value` it is.
+ * With `reckoned`, a reading with a model draws the model's figure and marks it modelled (a blue triangle) wherever it is not a reading of now.
+ *
+ * The mark is out of flow, so a column never reflows when a channel goes quiet, and it is not a live region: a widget that wants the change announced wraps its readout in `role="status"`. Without `reckoned` it never draws a reckoned figure.
  *
  * A held reading whose model publishes an {@link UncertaintyBand} also shows the interval (`1 km ± 0.025 km`, `1 km (0.97 to 1.03 km)`, `1 km (~1.2 km)`). A current reading shows none, and a band in another unit draws nothing.
  *
@@ -289,10 +300,11 @@ export function Unit<UnitSymbol extends string = string>({
   className,
   // Kept out of `opts`, which goes to the formatter: this is about drawing, not the number.
   hideUnitInGroup,
+  reckoned,
   ...opts
 }: UnitProps<UnitSymbol>) {
-  const currency = resolveCurrency(value);
-  const { shown, held, caption, band } = currency;
+  const currency = resolveCurrency(value, { drawsReckoning: reckoned });
+  const { shown, held, mark, caption, band } = currency;
   /*
    * Reports to an enclosing `<UnitSharedFormat>` and returns the format the group settled on; inert with no scope above it.
    * A held member reports as a live one does, so a column's rung does not move when one cell stops updating.
@@ -321,7 +333,7 @@ export function Unit<UnitSymbol extends string = string>({
     return (
       <Unit__Quantity
         className={className}
-        $held={held}
+        $mark={mark}
         {...figureAttributes(currency)}
         {...anchor}
       >
@@ -348,7 +360,7 @@ export function Unit<UnitSymbol extends string = string>({
           </Unit__Interval>
         )}
         {/* Silent: the caption below is what gets spoken, and the shape alone carries the meaning (WCAG 1.4.1). */}
-        {held && <HeldMark aria-hidden="true" data-held-mark="" />}
+        {mark !== null && <ReckoningMark kind={mark} />}
         {caption !== null && (
           <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
         )}

@@ -1,14 +1,18 @@
 /**
- * The mark a figure carries when it is no longer a reading of now: a dot at
- * superscript height in the warning hue the panel badge is painted from.
+ * The mark a figure carries when it is no longer a reading of now. A held
+ * figure takes a dot at superscript height in the warning hue the panel badge is
+ * painted from; a figure a model carried takes a blue triangle of the same
+ * footprint, about a pixel larger so the two weigh alike. One spec, in
+ * {@link RECKONING_MARK}, drives these DOM marks and the SVG and canvas faces.
  */
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
 import { useTooltip } from "./Tooltip";
-import { TONE_MARK } from "./tone";
 import { VisuallyHidden } from "./VisuallyHidden";
 
-const MARK_SIZE = "max(0.3em, 4px)";
+const MARK_SIZE = RECKONING_MARK.held.domSize;
+const MODELLED_MARK_SIZE = RECKONING_MARK.modelled.domSize;
 
 /**
  * The room a host holds at the end of its figure for the dot and the gap
@@ -23,6 +27,20 @@ export const reservesHeldMark = css`
     width: calc(${MARK_SIZE} + 0.14em);
   }
 `;
+
+/** {@link reservesHeldMark} for the modelled mark's slightly larger box. */
+export const reservesModelledMark = css`
+  &::after {
+    content: "";
+    display: inline-block;
+    width: calc(${MODELLED_MARK_SIZE} + 0.14em);
+  }
+`;
+
+/** The room to reserve for a kind of mark. */
+export function reservesMark(kind: ReckoningKind) {
+  return kind === "modelled" ? reservesModelledMark : reservesHeldMark;
+}
 
 /**
  * The dot itself. Absolutely positioned in the room its host reserves at the
@@ -43,8 +61,37 @@ export const HeldMark = styled.span`
   width: ${MARK_SIZE};
   height: ${MARK_SIZE};
   border-radius: var(--radius-circle);
-  background: ${TONE_MARK.warn};
+  background: ${RECKONING_MARK.held.color};
 `;
+
+/**
+ * The modelled mark: a triangle, point up, in the modelled hue, hung off its
+ * host exactly as {@link HeldMark} is.
+ *
+ * @category Unit
+ */
+export const ModelledMark = styled.span`
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: ${MODELLED_MARK_SIZE};
+  height: ${MODELLED_MARK_SIZE};
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: ${RECKONING_MARK.modelled.color};
+`;
+
+/**
+ * The DOM mark for a kind, silent to a screen reader: the caption beside it is
+ * what is spoken.
+ *
+ * @category Unit
+ */
+export function ReckoningMark({ kind }: { kind: ReckoningKind }) {
+  const Mark = kind === "modelled" ? ModelledMark : HeldMark;
+  return (
+    <Mark aria-hidden="true" data-held-mark="" data-reckoning-mark={kind} />
+  );
+}
 
 /**
  * Something for the mark to hang off, for a component that renders bare text
@@ -54,10 +101,10 @@ export const HeldMark = styled.span`
  *
  * @category Unit
  */
-export const HeldHost = styled.span`
+export const HeldHost = styled.span<{ $kind?: ReckoningKind }>`
   position: relative;
   white-space: nowrap;
-  ${reservesHeldMark}
+  ${({ $kind }) => reservesMark($kind ?? "held")}
 `;
 
 /**
@@ -68,21 +115,28 @@ export const HeldHost = styled.span`
 export interface HeldFigureProps extends HTMLAttributes<HTMLSpanElement> {
   /** What the mark means in words: spoken after the figure, and shown on hover. */
   caption: string | null;
+  /** Which mark: a held figure takes the dot, a figure a model carried the triangle. Defaults to `held`. */
+  kind?: ReckoningKind;
   children: ReactNode;
 }
 
 /**
- * A figure marked held: the dot, the caption spoken after the figure, and the
+ * A figure marked held or modelled: the mark for its `kind`, the caption spoken after the figure, and the
  * same caption in the kit's hover tip.
  *
  * @category Unit
  */
-export function HeldFigure({ caption, children, ...rest }: HeldFigureProps) {
+export function HeldFigure({
+  caption,
+  kind = "held",
+  children,
+  ...rest
+}: HeldFigureProps) {
   const { anchor, tip } = useTooltip(caption);
   return (
-    <HeldHost {...rest} {...anchor}>
+    <HeldHost $kind={kind} {...rest} {...anchor}>
       {children}
-      <HeldMark aria-hidden="true" data-held-mark="" />
+      <ReckoningMark kind={kind} />
       {caption !== null && (
         <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
       )}

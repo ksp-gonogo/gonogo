@@ -1,6 +1,7 @@
 import { getAugmentsForSlot } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { paintReckonedPosition } from "@ksp-gonogo/ui-kit";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";
 import {
@@ -12,8 +13,8 @@ import {
 } from "./camera";
 import {
   type MapProjection,
+  paintCrosshair,
   paintMapBase,
-  paintModelledMarker,
   paintPrediction,
   paintVesselMarker,
   sizedContext,
@@ -211,16 +212,28 @@ export function useMapPainting({
       lon.magnitude,
     );
     const { x, y } = worldToScreen(wx, wy, camera, w, h);
-    paintVesselMarker(canvas, ctx, x, y, positionHeld);
-    if (modelledPosition === null) return;
-    const modelled = adjustedMap(
-      WORLD_W,
-      WORLD_H,
-      modelledPosition.lat,
-      modelledPosition.lon,
-    );
-    const at = worldToScreen(modelled.x, modelled.y, camera, w, h);
-    paintModelledMarker(canvas, ctx, at.x, at.y);
+    if (modelledPosition === null && !positionHeld) {
+      paintVesselMarker(canvas, ctx, x, y);
+      return;
+    }
+    // The observation is held wherever it is not the current marker: the kit draws it faint beside a modelled position.
+    paintCrosshair(ctx, x, y, true);
+    const modelled =
+      modelledPosition === null
+        ? undefined
+        : adjustedMap(
+            WORLD_W,
+            WORLD_H,
+            modelledPosition.lat,
+            modelledPosition.lon,
+          );
+    paintReckonedPosition(canvas, ctx, {
+      held: { x, y },
+      modelled:
+        modelled === undefined
+          ? undefined
+          : worldToScreen(modelled.x, modelled.y, camera, w, h),
+    });
   }, [
     containerSize,
     camera,

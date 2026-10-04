@@ -128,7 +128,8 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
             {carried === null ? (
               NULL_DISPLAY
             ) : (
-              <Unit value={carried} decimals={decimals} />
+              // The field reading itself, so the model's figure takes the kit's modelled mark.
+              <Unit value={altitude} reckoned decimals={decimals} />
             )}
           </GridCellPair>
         )}

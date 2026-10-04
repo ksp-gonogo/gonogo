@@ -189,7 +189,7 @@ describe("the census of held-mark painters", () => {
   it("names every kit file that draws the mark, each with a painter rendered above", () => {
     const drawing = Object.entries(kitSources())
       .filter(([, source]) =>
-        /data-held-mark|<(HeldMark|InstrumentHeldMark|HeldFigure)\b/.test(
+        /data-held-mark|<(HeldMark|ReckoningMark|InstrumentHeldMark|HeldFigure)\b/.test(
           source,
         ),
       )

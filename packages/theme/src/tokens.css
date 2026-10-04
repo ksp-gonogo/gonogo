@@ -310,6 +310,9 @@ textarea {
 
   --color-warn-text: var(--palette-amber-200);
   --color-warn-mark: var(--palette-amber-400);
+
+  /* The mark of a figure a model carried: held keeps the warn dot, a modelled figure draws this blue as a triangle, so the two differ by shape and by hue. */
+  --color-modelled-mark: var(--palette-blue-300);
   --color-warn-status: var(--palette-amber-400);
   --color-warn-on-status: var(--palette-ink);
   --color-warn-muted: var(--palette-amber-900);

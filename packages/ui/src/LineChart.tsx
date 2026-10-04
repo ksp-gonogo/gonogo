@@ -7,6 +7,7 @@ import type {
 import {
   bandClaim,
   InstrumentHeldMark,
+  ReckoningMarkSvg,
   reckoningBasisPhrase,
   resolveCurrency,
   sayHeld,
@@ -478,6 +479,15 @@ export function LineChart({
               scaleY,
             ),
           })),
+          // Where the trace ends on a model's figure: the kit's modelled mark, so a reckoned tail reads as modelled and not only as a dashed line.
+          tail:
+            s.data.x.length > 0 &&
+            (s.data.reckoned ?? []).some((run) => run.to >= s.data.x.length - 1)
+              ? {
+                  cx: scaleX(s.data.x[s.data.x.length - 1]),
+                  cy: scaleY(s.data.y[s.data.y.length - 1]),
+                }
+              : null,
           observed: [
             ...new Set(
               contradicted.flatMap((bridge) => [bridge.to - 1, bridge.to]),
@@ -825,6 +835,17 @@ export function LineChart({
           )),
         )}
 
+      {drawables.map((d) =>
+        d.kind === "stroked" && d.tail !== null ? (
+          <ReckoningMarkSvg
+            key={`${d.id}-tail`}
+            kind="modelled"
+            x={d.tail.cx}
+            y={d.tail.cy}
+          />
+        ) : null,
+      )}
+
       {/* The measured instants on a modelled span. */}
       {drawables
         .filter(
@@ -889,7 +910,12 @@ export function LineChart({
               fontSize={10}
             >
               {t.label}
-              {t.currency.held && <InstrumentHeldMark size={10} />}
+              {t.currency.held && (
+                <InstrumentHeldMark
+                  size={10}
+                  kind={t.currency.mark ?? "held"}
+                />
+              )}
             </text>
           )}
         </React.Fragment>

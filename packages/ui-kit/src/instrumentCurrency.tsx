@@ -7,7 +7,7 @@
  * the bound is a line, with the same hue, shape and wording.
  */
 import type { ReactNode } from "react";
-import { TONE_MARK } from "./tone";
+import { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
 
 /**
  * The held mark, as an instrument can draw it.
@@ -18,16 +18,23 @@ import { TONE_MARK } from "./tone";
  *
  * @category Unit
  */
-export function InstrumentHeldMark({ size }: { size: number }) {
+export function InstrumentHeldMark({
+  size,
+  kind = "held",
+}: {
+  size: number;
+  kind?: ReckoningKind;
+}) {
   return (
     <tspan
       // Raised, so it reads as a mark on the figure rather than another figure.
       dy={-size * 0.55}
       fontSize={size}
-      fill={TONE_MARK.warn}
+      fill={RECKONING_MARK[kind].color}
       data-held-mark=""
+      data-reckoning-mark={kind}
     >
-      {"●"}
+      {RECKONING_MARK[kind].glyph}
     </tspan>
   );
 }

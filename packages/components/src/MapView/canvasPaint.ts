@@ -258,29 +258,31 @@ export function paintPrediction(
 }
 
 /**
- * The vessel's dot and crosshair at a screen-space point. A held position is a
- * hollow ring on a dashed crosshair, shape rather than shade, the same
- * treatment SystemView gives a held craft.
+ * The vessel's current-position dot and crosshair at a screen-space point. A
+ * position that is not current is drawn by the kit's `paintReckonedPosition`
+ * (the held and modelled marks) with {@link paintCrosshair} behind it.
  */
 export function paintVesselMarker(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  held = false,
 ): void {
   const accent = canvasColor(canvas, "--color-accent-fg", "#00ff88");
   ctx.beginPath();
   ctx.arc(x, y, 4, 0, Math.PI * 2);
-  if (held) {
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  } else {
-    ctx.fillStyle = accent;
-    ctx.fill();
-  }
+  ctx.fillStyle = accent;
+  ctx.fill();
+  paintCrosshair(ctx, x, y, false);
+}
 
+/** The crosshair through a position: solid for a current one, dashed where it is held. */
+export function paintCrosshair(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  held: boolean,
+): void {
   ctx.strokeStyle = "rgba(0,255,136,0.6)";
   ctx.lineWidth = 1;
   ctx.setLineDash(held ? [2, 2] : []);
@@ -290,22 +292,6 @@ export function paintVesselMarker(
   ctx.lineTo(x + cross, y);
   ctx.moveTo(x, y - cross);
   ctx.lineTo(x, y + cross);
-  ctx.stroke();
-  ctx.setLineDash([]);
-}
-
-/** Where the model puts the craft, beside its observed marker: a dashed ring in the modelled mark's hue. */
-export function paintModelledMarker(
-  canvas: HTMLCanvasElement,
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-): void {
-  ctx.beginPath();
-  ctx.arc(x, y, 5, 0, Math.PI * 2);
-  ctx.strokeStyle = canvasColor(canvas, "--color-warn-mark", "#d9a13b");
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([2, 2]);
   ctx.stroke();
   ctx.setLineDash([]);
 }
