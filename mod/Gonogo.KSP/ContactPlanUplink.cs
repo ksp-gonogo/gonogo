@@ -1,219 +1,72 @@
-using System;
 using System.Collections.Generic;
 using CommNet;
 using Gonogo.KSP.CommandCentres;
 using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
-using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Sitrep.Host.Comms;
-using Sitrep.Host.Propagation;
-using Sitrep.Propagation;
-using Sitrep.Propagation.Contacts;
 using Sitrep.Propagation.Visibility;
 using UnityEngine;
 
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// Publishes <c>comms.contacts</c>: for every ground station and craft that
-    /// could hold a link, the windows over the coming hours when one is
-    /// predicted.
-    ///
-    /// <para>The main thread captures the nodes, their orbits and each pair's
-    /// occluders and reach, but only when the schedule says the last plan is
-    /// out of date. The plan itself runs off both threads, on a stock analytic
-    /// propagator over a snapshot of the body table, because it takes tens of
-    /// milliseconds for a busy save. A provider that integrates still bounds
-    /// each craft's prediction, through the horizon it reports for it, and a
-    /// craft whose horizon it cannot state is left out of the plan rather than
-    /// trusted for all of it. Where the elected provider offers a secular seed
-    /// for a craft, the plan carries the craft's drift with it instead.</para>
+    /// Registers <c>comms.contacts</c> and <c>comms.route</c>, and is the game
+    /// <see cref="ContactPlanSource"/> plans from: every craft that carries a
+    /// radio and every ground station, read off the live scene on the main
+    /// thread. The planning and the publishing are the source's.
     /// </summary>
-    public sealed class ContactPlanUplink : ISitrepUplink
+    public sealed class ContactPlanUplink : ISitrepUplink, IContactGame
     {
-        public const string ContactsTopic = "comms.contacts";
-
-        public const string RouteTopic = "comms.route";
-
-        /// <summary>
-        /// Soft cap on contact plans started per second of game time. A plan is
-        /// made when an orbit moves, a node comes or goes, or half the horizon
-        /// has passed, so a steady save starts one every few hours and a burn
-        /// one every few seconds. Sustained above this, the schedule is
-        /// re-planning on noise rather than on change.
-        /// </summary>
-        private static readonly PerfBudget PlansStartedBudget = new PerfBudget(
-            "ContactPlanUplink plans started", threshold: 2, windowSec: 1.0, unit: "plans");
-
-        /// <summary>
-        /// The least wall time between two looks at whether a plan is due. Reading
-        /// every craft's orbit is cheap but not free, and nothing about a contact
-        /// plan needs to notice a change within half a second.
-        /// </summary>
-        private const float LookIntervalSeconds = 0.5f;
-
-        /// <summary>
-        /// The least wall time between two route publishes. A route is re-planned
-        /// for the current send instant every time, so it moves continuously; once
-        /// a second is as fine as anyone reads an arrival time.
-        /// </summary>
-        private const float RouteIntervalSeconds = 1.0f;
-
-        /// <summary>
-        /// Soft cap on route rows published per second: two per command centre,
-        /// once a second, so a save with twenty centres sits at forty.
-        /// </summary>
-        private static readonly PerfBudget RouteRowsBudget = new PerfBudget(
-            "ContactPlanUplink route rows", threshold: 400, windowSec: 1.0, unit: "rows");
-
         private readonly CommandCentreRegistry _centres;
-        private readonly ContactPlanSchedule _schedule = new ContactPlanSchedule();
-        private readonly ContactPlanRunner _runner = new ContactPlanRunner();
-        private IUplinkHost? _host;
-        private IChannelPublisher? _publisher;
-        private IChannelPublisher? _routePublisher;
-        private volatile ContactPlan? _plan;
-        private float _routedAt = float.NegativeInfinity;
+        private readonly ContactPlanSource _source;
         private KspVisibilityGeometryFactory? _surface;
-        private float _lookedAt = float.NegativeInfinity;
-        private volatile string? _lastFailure;
 
         /// <param name="centres">The registry the ground stations' ids come from, so the plan names them as the roster does.</param>
         public ContactPlanUplink(CommandCentreRegistry centres)
         {
             _centres = centres;
+            _source = new ContactPlanSource(
+                this,
+                () => Time.realtimeSinceStartup,
+                message => Debug.LogWarning("[Gonogo.ContactPlanUplink] " + message));
         }
 
-        /// <summary>Degraded while the most recent plan threw, naming what it threw; the next plan that finishes clears it.</summary>
-        public UplinkHealth Health()
-        {
-            var failure = _lastFailure;
-            return failure == null
-                ? UplinkHealth.Healthy
-                : UplinkHealth.Degraded("the last contact plan failed: " + failure);
-        }
+        public UplinkHealth Health() => _source.Health();
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "comms-contacts",
             Version = "1.0.0",
-            Channels = new List<ChannelDeclaration>
-            {
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = ContactsTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // Made on the ground from every node's orbit, so each centre
-                    // receives it one of its own light-times later.
-                    Delay = DelayRole.Delayed,
-                    // Never aboard anything, so nothing to replay on reacquisition.
-                    Recordable = false,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
-                },
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = RouteTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // Planned from comms.contacts, so it reaches each centre on the same delay.
-                    Delay = DelayRole.Delayed,
-                    Recordable = false,
-                    // Each centre's routes say where it can reach, which another
-                    // centre has no way to know.
-                    ViewerFilter = ContactRouting.ForViewer,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
-                },
-            },
+            Channels = ContactPlanSource.Channels(),
         };
 
         public void Register(IUplinkHost host)
         {
-            _host = host;
-            _publisher = host.Publisher(ContactsTopic);
-            _routePublisher = host.Publisher(RouteTopic);
             _surface = new KspVisibilityGeometryFactory(() => host.Kernel);
-            // The plan runs for either topic, since routes are read off it.
-            host.AddSampledSource(CaptureOnMain, PublishOnCourier, ContactsTopic, RouteTopic);
-            host.AddSampledSource(CaptureRouteInputsOnMain, PublishRoutesOnCourier, RouteTopic);
+            _source.Register(host);
         }
 
-        /// <summary>MAIN THREAD: who the routes are between and when, at most once a second.</summary>
-        internal object? CaptureRouteInputsOnMain(KspSnapshot? snapshot)
+        public IReadOnlyList<string> Centres()
         {
-            if (snapshot == null || Time.realtimeSinceStartup - _routedAt < RouteIntervalSeconds)
-            {
-                return null;
-            }
-            var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
-            if (string.IsNullOrEmpty(active))
-            {
-                return null;
-            }
-            _routedAt = Time.realtimeSinceStartup;
             var centres = new List<string>();
             foreach (var centre in _centres.EnumerateActive())
             {
                 centres.Add(centre.Id);
             }
-            return new RouteInputs("vessel:" + active, centres, snapshot.Ut);
+            return centres;
         }
 
-        /// <summary>COURIER THREAD: plans each centre's routes for now from the latest contact plan and publishes them.</summary>
-        internal void PublishRoutesOnCourier(object? captured)
-        {
-            var plan = _plan;
-            // A plan made after this instant belongs to a timeline the game has
-            // left, by a revert or a load; the next plan replaces it.
-            if (!(captured is RouteInputs inputs) || plan == null || inputs.Ut < plan.FromUt)
-            {
-                return;
-            }
-            var routes = ContactRouting.RoutesFor(plan, inputs.ActiveCraft, inputs.Centres, inputs.Ut);
-            RouteRowsBudget.Record(routes.Routes.Count, inputs.Ut);
-            _routePublisher?.Publish(routes, inputs.Ut);
-        }
-
-        private sealed class RouteInputs
-        {
-            public RouteInputs(string activeCraft, IReadOnlyList<string> centres, double ut)
-            {
-                ActiveCraft = activeCraft;
-                Centres = centres;
-                Ut = ut;
-            }
-
-            public string ActiveCraft { get; }
-
-            public IReadOnlyList<string> Centres { get; }
-
-            public double Ut { get; }
-        }
-
-        /// <summary>MAIN THREAD: starts a plan when the last one is out of date. Starting one costs a pool thread, not this one.</summary>
-        internal object? CaptureOnMain(KspSnapshot? snapshot)
+        public ContactGameLook? Look()
         {
             var bodies = FlightGlobals.Bodies;
             var vessels = FlightGlobals.Vessels;
-            if (snapshot == null || bodies == null || vessels == null || _host == null || _runner.Running)
+            if (bodies == null || vessels == null || _surface == null)
             {
                 return null;
             }
-            if (Time.realtimeSinceStartup - _lookedAt < LookIntervalSeconds)
-            {
-                return null;
-            }
-            _lookedAt = Time.realtimeSinceStartup;
 
-            var ut = snapshot.Ut;
-            var kernel = _host.Kernel;
-            var nodes = new List<PlanNode>();
-            var orbiting = new List<PropagationTarget>();
-            var fingerprint = new List<ContactNodeFingerprint>();
-            var comms = new Dictionary<string, CommNode>(StringComparer.Ordinal);
-            var stations = new HashSet<string>(StringComparer.Ordinal);
-
+            var nodes = new List<ContactGameNode>();
             foreach (var vessel in vessels)
             {
                 var comm = vessel != null && vessel.connection != null ? vessel.connection.Comm : null;
@@ -225,26 +78,18 @@ namespace Gonogo.KSP
                 var bodyIndex = bodies.IndexOf(vessel.mainBody);
                 if (vessel.LandedOrSplashed)
                 {
-                    var point = _surface!.CalibratedSurfacePoint(vessel.mainBody, comm);
-                    if (point == null)
+                    var point = _surface.CalibratedSurfacePoint(vessel.mainBody, comm);
+                    if (point != null)
                     {
-                        continue;
+                        nodes.Add(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm));
                     }
-                    nodes.Add(PlanNode.OnSurface(id, bodyIndex, point.Value));
-                    fingerprint.Add(new ContactNodeFingerprint(id, bodyIndex, null, point.Value));
+                    continue;
                 }
-                else
+                var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+                if (orbit != null)
                 {
-                    var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
-                    if (orbit == null)
-                    {
-                        continue;
-                    }
-                    var elements = KspVisibilityGeometryFactory.ElementsOf(orbit);
-                    orbiting.Add(PropagationTarget.Vessel(id, bodyIndex, elements));
-                    fingerprint.Add(new ContactNodeFingerprint(id, bodyIndex, elements));
+                    nodes.Add(ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm));
                 }
-                comms[id] = comm;
             }
 
             foreach (var centre in _centres.EnumerateActive())
@@ -261,137 +106,20 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                var point = _surface!.CalibratedSurfacePoint(bodies[bodyIndex], home.Node);
-                if (point == null)
+                var point = _surface.CalibratedSurfacePoint(bodies[bodyIndex], home.Node);
+                if (point != null)
                 {
-                    continue;
-                }
-                nodes.Add(PlanNode.OnSurface(home.Id, bodyIndex, point.Value));
-                fingerprint.Add(new ContactNodeFingerprint(home.Id, bodyIndex, null, point.Value));
-                comms[home.Id] = home.Node;
-                stations.Add(home.Id);
-            }
-
-            if (!_schedule.Due(fingerprint, ut))
-            {
-                return null;
-            }
-            // A craft with a secular seed is bounded by the seed's own span, not by
-            // the conic's horizon, which bounds the very drift the seed carries.
-            var secular = PropagationElection.Secular(kernel);
-            foreach (var target in orbiting)
-            {
-                var seed = ContactSeeds.Read(secular, target, ut);
-                if (seed != null)
-                {
-                    nodes.Add(PlanNode.Drifting(target.Id!, target, seed.Value));
-                    continue;
-                }
-                var horizon = PropagationElection.HorizonFor(kernel, target, ut);
-                if (horizon.Kind == PropagationHorizonKind.Unspecified)
-                {
-                    continue;
-                }
-                nodes.Add(PlanNode.Orbiting(
-                    target.Id!, target, horizon.Kind == PropagationHorizonKind.Until ? horizon.UntilUt : null));
-            }
-
-            var table = KspSystemTable.Current();
-            var occlusion = CommsElection.OcclusionModel(kernel);
-            Func<int, double> radiusOf = index => index >= 0 && index < bodies.Count
-                ? KspVisibilityGeometryFactory.OccludingRadiusOf(occlusion, bodies[index])
-                : 0.0;
-            var pairs = new List<PlanPair>();
-            for (var i = 0; i < nodes.Count; i++)
-            {
-                for (var j = i + 1; j < nodes.Count; j++)
-                {
-                    var a = nodes[i];
-                    var b = nodes[j];
-                    if (stations.Contains(a.Id) && stations.Contains(b.Id))
-                    {
-                        continue;
-                    }
-                    var occluders = Occluders(a.BodyIndex, b.BodyIndex, table, radiusOf);
-                    if (occluders == null)
-                    {
-                        continue;
-                    }
-                    var reach = CommsElection.ReachModel(kernel, comms[a.Id], comms[b.Id]).MaxRangeMeters;
-                    var link = CommsElection.LinkModel(kernel, comms[a.Id], comms[b.Id], ut);
-                    pairs.Add(new PlanPair(a.Id, b.Id, occluders, reach, link));
+                    nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, home.Node));
                 }
             }
 
-            var request = new ContactPlanRequest(
+            return new ContactGameLook(
                 nodes,
-                pairs,
-                new KeplerProvider(table),
+                KspSystemTable.Current(),
                 Planetarium.fetch != null ? bodies.IndexOf(Planetarium.fetch.Sun) : 0,
-                ut,
-                ContactPlanSchedule.HorizonSeconds,
-                fingerprint);
-            if (_runner.Offer(request, Failed))
-            {
-                _schedule.Planned(request);
-                PlansStartedBudget.Record(1, ut);
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// A plan that threw is forgotten, so the next look plans again rather than
-        /// waiting out half a horizon on a plan that never published.
-        /// </summary>
-        private void Failed(Exception ex)
-        {
-            _schedule.Forget();
-            _lastFailure = ex.GetType().Name + ": " + ex.Message;
-            Debug.LogWarning("[Gonogo.ContactPlanUplink] contact plan failed: " + ex);
-        }
-
-        /// <summary>COURIER THREAD: publishes whichever plan has finished since the last tick.</summary>
-        internal void PublishOnCourier(object? captured)
-        {
-            if (_runner.TryTake(out var plan) && plan != null)
-            {
-                _lastFailure = null;
-                _plan = plan;
-                _publisher?.Publish(ContactPlanWire.ToPayload(plan), plan.FromUt);
-            }
-        }
-
-        /// <summary>
-        /// The bodies that can come between the two ends: the patched-conic chain
-        /// between their bodies, plus each end's own body, which the chain leaves
-        /// out and which is the commonest occluder of all. Null when no path joins
-        /// the two bodies.
-        /// </summary>
-        private static List<OccludingBody>? Occluders(
-            int aBody, int bBody, IReadOnlyList<SystemBody> table, Func<int, double> radiusOf)
-        {
-            var chain = PatchedConicChain.OccludersBetween(aBody, bBody, table, radiusOf);
-            if (chain == null)
-            {
-                return null;
-            }
-            var seen = new HashSet<int>();
-            var occluders = new List<OccludingBody>();
-            foreach (var body in new[] { new OccludingBody(aBody, radiusOf(aBody)), new OccludingBody(bBody, radiusOf(bBody)) })
-            {
-                if (seen.Add(body.BodyIndex))
-                {
-                    occluders.Add(body);
-                }
-            }
-            foreach (var body in chain)
-            {
-                if (seen.Add(body.BodyIndex))
-                {
-                    occluders.Add(body);
-                }
-            }
-            return occluders;
+                (occlusion, index) => index >= 0 && index < bodies.Count
+                    ? KspVisibilityGeometryFactory.OccludingRadiusOf(occlusion, bodies[index])
+                    : 0.0);
         }
 
         /// <summary>Craft that carry a radio worth planning for: not debris, asteroids, comets or flags.</summary>

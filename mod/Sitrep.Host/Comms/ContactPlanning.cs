@@ -238,14 +238,18 @@ namespace Sitrep.Host.Comms
         private int _running;
         private ContactPlan? _finished;
 
-        /// <summary>Starts a plan for <paramref name="request"/>, unless one is already running. Returns whether it started.</summary>
-        public bool Offer(ContactPlanRequest request, Action<Exception>? onFailure = null)
+        /// <summary>
+        /// Starts a plan for <paramref name="request"/>, unless one is already
+        /// running. Returns whether it started. With <paramref name="inline"/>
+        /// the plan has also finished by the time this returns.
+        /// </summary>
+        public bool Offer(ContactPlanRequest request, Action<Exception>? onFailure = null, bool inline = false)
         {
             if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
             {
                 return false;
             }
-            Task.Run(() =>
+            Action run = () =>
             {
                 try
                 {
@@ -259,7 +263,13 @@ namespace Sitrep.Host.Comms
                 {
                     Volatile.Write(ref _running, 0);
                 }
-            });
+            };
+            if (inline)
+            {
+                run();
+                return true;
+            }
+            Task.Run(run);
             return true;
         }
 
