@@ -66,7 +66,7 @@ namespace Sitrep.Host.IntegrationTests
             var (code, reason, accepted) = Throttle(world);
 
             Assert.Equal(FaultCode.ContinuousInputWouldWait, code);
-            Assert.Contains("wait at " + Home, reason);
+            Assert.Contains("wait at Home Station", reason);
             Assert.Contains("pilot", reason);
             Assert.Contains("automation", reason);
             Assert.Null(accepted);

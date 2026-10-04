@@ -94,6 +94,9 @@ namespace Sitrep.Host.IntegrationTests
     {
         public const string Home = "ground:Home";
         public const string Far = "ground:Far";
+
+        /// <summary>The home station's name, which is not its id.</summary>
+        public const string HomeName = "Home Station";
         public const string ActiveGuid = "A";
         public const string RelayGuid = "X";
         public const string Active = "vessel:" + ActiveGuid;
@@ -200,7 +203,7 @@ namespace Sitrep.Host.IntegrationTests
             var nodes = new List<ContactGameNode>
             {
                 ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), null, "Lander"),
-                ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0)),
+                ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), null, HomeName),
                 ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0)),
             };
             lock (_gate)

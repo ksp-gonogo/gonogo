@@ -31,7 +31,7 @@ namespace Sitrep.Host.IntegrationTests
             await using var control = await ReckonedVantageWorld.StartAsync();
             await TickBothAsync(burned, control, 1, 2, 700, 702);
             Assert.Equal(
-                new[] { ScriptedContactGame.RelayGuid, Home },
+                new[] { ScriptedContactGame.RelayGuid, ScriptedContactGame.HomeName },
                 Hops(burned.Home.Path).Select(h => h.To).ToArray());
             Assert.Equal(
                 new[] { ScriptedContactGame.RelayGuid, Far },
@@ -99,13 +99,13 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(ScriptedContactGame.ActiveGuid, hops[0].From);
             Assert.Equal(ScriptedContactGame.RelayGuid, hops[0].To);
             Assert.False(hops[0].ToIsHome);
-            Assert.Equal(Home, hops[1].To);
+            Assert.Equal(ScriptedContactGame.HomeName, hops[1].To);
             Assert.True(hops[1].ToIsHome);
             Assert.All(hops, h => Assert.True(h.DistanceMeters > 0.0));
 
             using var network = JsonDocument.Parse(world.Home.Network!);
             Assert.Equal(
-                new[] { "Lander", "Relay", Home },
+                new[] { "Lander", "Relay", ScriptedContactGame.HomeName },
                 network.RootElement.GetProperty("nodes").EnumerateArray().Select(n => n.GetProperty("displayName").GetString()).ToArray());
             using var centre = JsonDocument.Parse(world.Home.CommandCentre!);
             Assert.Equal(Home, centre.RootElement.GetProperty("id").GetString());

@@ -69,6 +69,17 @@ namespace Sitrep.Host
 
         public void NoteHeard(string centre, string nodeId) => _delivery.Heard(centre, nodeId);
 
+        private Func<string, string, string?>? _nodeNames;
+
+        public void SetNodeNames(Func<string, string, string?> nameAt) => _nodeNames = nameAt;
+
+        /// <summary>The name <paramref name="centre"/> knows <paramref name="nodeId"/> by, or the id itself when it knows none.</summary>
+        private string NameOfNode(string centre, string nodeId)
+        {
+            var name = _nodeNames?.Invoke(centre, nodeId);
+            return string.IsNullOrEmpty(name) ? nodeId : name!;
+        }
+
         /// <summary>Each centre's plan as routes, with light times scaled as the game is set to delay them.</summary>
         private sealed class EngineSenderPlans : ISenderPlans
         {
@@ -309,7 +320,7 @@ namespace Sitrep.Host
             {
                 if (route[i].DepartUt > at + 1e-6)
                 {
-                    reason = "It would wait at " + (i == 0 ? job.Vantage : route[i - 1].To) + " for its next window.";
+                    reason = "It would wait at " + NameOfNode(job.Vantage, i == 0 ? job.Vantage : route[i - 1].To) + " for its next window.";
                 }
                 at = route[i].ArriveUt;
             }

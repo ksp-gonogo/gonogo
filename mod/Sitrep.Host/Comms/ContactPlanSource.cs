@@ -364,6 +364,7 @@ namespace Sitrep.Host.Comms
             }
             var plans = host as ICentrePlanHost;
             plans?.SetCentrePlans(PlanOf, () => System.Threading.Volatile.Read(ref _plansVersion));
+            plans?.SetNodeNames(NameAt);
             _streams.DeclareAddressedTopic(ContactsTopic);
             _streams.DeclareAddressedTopic(RouteTopic);
             // A plan is state, and an addressed sample is not kept for whoever
@@ -756,6 +757,19 @@ namespace Sitrep.Host.Comms
                 asked.Clear();
             }
             PathFramesBudget.Record(frames, looked.Ut);
+        }
+
+        /// <summary>The name <paramref name="centre"/> knows <paramref name="nodeId"/> by: a ground station's own, or a craft's as the centre last heard it. Courier thread only.</summary>
+        private string? NameAt(string centre, string nodeId)
+        {
+            foreach (var station in _stations)
+            {
+                if (station.Id == nodeId)
+                {
+                    return station.DisplayName;
+                }
+            }
+            return _hearing == null ? null : NameOf(_hearing.HeardAt(centre), nodeId);
         }
 
         private static string? NameOf(IReadOnlyCollection<CraftState> heard, string nodeId)

@@ -14,6 +14,14 @@ namespace Sitrep.Host.Comms
         /// <param name="version">A count that moves each time any centre's plan is replaced or dropped. Any thread.</param>
         void SetCentrePlans(Func<string, ContactPlan?> planOf, Func<int> version);
 
+        /// <summary>
+        /// Takes the name a centre knows a node by: a craft's as the centre last
+        /// heard it, a ground station's own. Null from the lookup when the centre
+        /// knows none. Courier thread only.
+        /// </summary>
+        /// <param name="nameAt">The centre, then the node's id.</param>
+        void SetNodeNames(Func<string, string, string?> nameAt);
+
         /// <summary>News of the node <paramref name="nodeId"/> has just reached <paramref name="centre"/>. Courier thread only.</summary>
         void NoteHeard(string centre, string nodeId);
     }
