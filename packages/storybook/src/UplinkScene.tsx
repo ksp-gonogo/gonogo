@@ -1,5 +1,4 @@
 import "./setup";
-import { gridToPixels } from "@ksp-gonogo/ui-kit";
 import {
   installRenderProbe,
   payloadFor,
@@ -8,6 +7,7 @@ import {
   sceneFromFixture,
 } from "@ksp-gonogo/uplink-tools/render-probe";
 import { useEffect, useRef, useState } from "react";
+import { resolveTile } from "../scripts/uplinkTile";
 
 export interface UplinkSceneProps {
   /** The Uplink's client id, as `defineUplinkClient` declares it. */
@@ -72,10 +72,7 @@ export function UplinkScene({
         api.readInventory(uplinkId),
       );
       const chosen = model.modes.find((m) => m.name === mode) ?? model.modes[0];
-      const tile =
-        w === undefined || h === undefined
-          ? chosen
-          : { ...chosen, w, h, ...gridToPixels(w, h) };
+      const tile = resolveTile(chosen, w, h);
       const own = api.mountScene(el, payloadFor(model, tile, false));
       scene = own;
       await own.ready;
