@@ -427,6 +427,7 @@ export {
 } from "./MarkerIcons";
 export {
   Meter,
+  type MeterKind,
   type MeterLayout,
   type MeterProps,
   MeterRowGroup,
@@ -484,12 +485,6 @@ export {
   WidgetSections,
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
-export {
-  ProgressBar,
-  type ProgressBarPercentProps,
-  type ProgressBarProps,
-  type ProgressBarQuantityProps,
-} from "./ProgressBar";
 export {
   ReadFrameControl,
   type ReadFrameControlProps,

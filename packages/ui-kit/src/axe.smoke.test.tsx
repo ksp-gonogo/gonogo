@@ -10,8 +10,8 @@ import { Card } from "./Card";
 import { Dial } from "./Dial";
 import { EmptyState } from "./EmptyState";
 import { Grid } from "./Grid";
+import { Meter } from "./Meter";
 import { Panel, PanelTitle } from "./Panel";
-import { ProgressBar } from "./ProgressBar";
 import { Row, RowName } from "./Row";
 import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
@@ -172,9 +172,14 @@ describe("a11y smoke (jest-axe)", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("ProgressBar has no axe violations", async () => {
+  it("a progress Meter has no axe violations", async () => {
     const { container } = render(
-      <ProgressBar value={64} ariaLabel="Biome coverage: Kerbin" />,
+      <Meter
+        kind="progress"
+        hideLabel
+        label="Biome coverage: Kerbin"
+        value={value("ratio", 0.64)}
+      />,
     );
     await expectNoA11yViolations(container);
   });
@@ -263,7 +268,12 @@ describe("a11y smoke (jest-axe)", () => {
     const { container } = render(
       <Grid cols="120px 1fr 60px">
         <span>Altimetry (Hi)</span>
-        <ProgressBar value={64} ariaLabel="Altimetry coverage" />
+        <Meter
+          kind="progress"
+          hideLabel
+          label="Altimetry coverage"
+          value={value("ratio", 0.64)}
+        />
         <span>64%</span>
       </Grid>,
     );

@@ -4,7 +4,7 @@ import styled from "styled-components";
 /**
  * Props for {@link Fill}.
  *
- * @category Meter
+ * @category Layout
  */
 export interface FillProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -18,12 +18,13 @@ export interface FillProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Fill container: a `position: relative` flex column that occupies exactly the
- * space its parent gives it, and can host an absolutely positioned overlay
- * (e.g. a graph plus a corner notice pill). Full width and height by default;
- * `grow` for a slot nested in another flex column.
+ * An overlay anchor that fills its parent: a `position: relative` flex column
+ * that occupies exactly the space its parent gives it, so an absolutely
+ * positioned overlay (e.g. a corner notice pill over a graph) has something to
+ * sit on. It draws nothing itself. Full width and height by default; `grow`
+ * for a slot nested in another flex column.
  *
- * @category Meter
+ * @category Layout
  */
 export function Fill({ grow = false, children, ...rest }: FillProps) {
   return (

@@ -75,7 +75,30 @@ interface MeterCommonProps
    * @defaultValue `"stacked"`
    */
   layout?: MeterLayout;
+  /**
+   * What the bar measures. `level` (the default) is a level within a range, a
+   * tank or a load, announced as a `role="meter"`. `progress` is work advancing
+   * to an end, announced as a `role="progressbar"`: the bar looks the same, a
+   * screen reader hears a different thing.
+   *
+   * @defaultValue `"level"`
+   */
+  kind?: MeterKind;
+  /**
+   * Draw the bar alone: no label or figure above it, as for a progress bar
+   * under a heading that already says what it is. The label stays as the
+   * accessible name and the figure as the spoken value. With no figure to draw
+   * the meter renders nothing at all.
+   */
+  hideLabel?: boolean;
 }
+
+/**
+ * What a {@link Meter} measures: a `level` within a range, or `progress` toward done.
+ *
+ * @category Meter
+ */
+export type MeterKind = "level" | "progress";
 
 /**
  * The props of {@link Meter}.
@@ -158,6 +181,8 @@ export function Meter<UnitSymbol extends string = string>({
   valueLabel,
   valueLabelNode,
   layout = "stacked",
+  kind = "level",
+  hideLabel = false,
   ...rest
 }: MeterProps<UnitSymbol>) {
   const shown = unwrap(value);
@@ -167,6 +192,8 @@ export function Meter<UnitSymbol extends string = string>({
     capacity === undefined ? undefined : held.figure,
   );
   if (fraction === null || !Number.isFinite(fraction)) {
+    // Absence, not a zero bar.
+    if (hideLabel) return null;
     return (
       <MeterFrame
         layout={layout}
@@ -183,6 +210,8 @@ export function Meter<UnitSymbol extends string = string>({
   const bar = {
     label,
     layout,
+    kind,
+    hideLabel,
     pct: Math.round(clamped * 100),
     tone,
     fillColor,
@@ -419,6 +448,8 @@ interface MeterBarProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   label: string;
   layout: MeterLayout;
+  kind: MeterKind;
+  hideLabel: boolean;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
   pct: number;
   tone: Tone;
@@ -447,6 +478,8 @@ interface MeterBarProps
 function MeterBar({
   label,
   layout,
+  kind,
+  hideLabel,
   pct,
   tone,
   fillColor,
@@ -459,14 +492,20 @@ function MeterBar({
   ...rest
 }: MeterBarProps) {
   return (
-    <MeterFrame layout={layout} label={label} display={display} {...rest}>
+    <MeterFrame
+      layout={layout}
+      label={label}
+      display={display}
+      hideHead={hideLabel}
+      {...rest}
+    >
       <BarTrack
         percent={pct}
         tone={tone}
         fillColor={fillColor}
         trackHeld={trackHeld}
         fillHeld={fillHeld}
-        role="meter"
+        role={kind === "progress" ? "progressbar" : "meter"}
         aria-label={label}
         aria-valuenow={pct}
         aria-valuemin={0}
@@ -505,14 +544,24 @@ function MeterFrame({
   layout,
   label,
   display,
+  hideHead = false,
   children,
   ...rest
 }: Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
   layout: MeterLayout;
   label: string;
   display: ReactNode;
+  /** Draw the bar alone; the track carries the name and the value. */
+  hideHead?: boolean;
   children: ReactNode;
 }) {
+  if (hideHead) {
+    return (
+      <Meter__Root $row={false} {...rest}>
+        <Meter__Bar $row={false}>{children}</Meter__Bar>
+      </Meter__Root>
+    );
+  }
   if (layout === "row") {
     return (
       <Meter__Root $row data-meter-row="" {...rest}>
