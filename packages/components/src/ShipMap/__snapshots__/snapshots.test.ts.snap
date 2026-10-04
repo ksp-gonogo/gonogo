@@ -10,6 +10,7 @@ exports[`Ship Map SVG snapshots > renders an empty parts list as a placeholder 1
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -32,6 +33,7 @@ exports[`Ship Map SVG snapshots > renders fuelline-tester-poststage2 (minimum-su
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -54,6 +56,7 @@ exports[`Ship Map SVG snapshots > renders fuelline-tester-prelaunch (multi-engin
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -76,6 +79,7 @@ exports[`Ship Map SVG snapshots > renders oxstat-ring (radial OX-STAT panels, ax
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -98,6 +102,7 @@ exports[`Ship Map SVG snapshots > renders rover-b-alone 1`] = `
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -120,6 +125,7 @@ exports[`Ship Map SVG snapshots > renders rover-merged (docked T-shape) 1`] = `
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -142,6 +148,7 @@ exports[`Ship Map SVG snapshots > renders synthetic-radial-offsets (part-local m
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
@@ -164,6 +171,7 @@ exports[`Ship Map SVG snapshots > renders winged-lander (radial winglets + two s
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
+  --color-focus: #00ff88;
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;

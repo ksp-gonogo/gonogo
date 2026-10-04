@@ -69,8 +69,30 @@ function findRepoRoot(start: string): string {
   throw new Error(`Could not locate workspace root from ${start}`);
 }
 
+/**
+ * Where a ring is drawn: the kit, and the widget library, whose SVG parts
+ * (an apsis marker, a ship part, a body on the system diagram) are focusable
+ * readouts with a ring of their own that must be the same colour.
+ */
+const RING_PATHS = ["packages/ui-kit/src", "packages/components/src"];
+
+/**
+ * A ring that is not an `outline`: an SVG shape classed `focus-ring`, or a
+ * `:focus-visible` rule painting a stroke, spelled with the accent.
+ */
+function shapeRings(text: string): string[] {
+  const found: string[] = [];
+  for (const m of text.matchAll(/:focus-visible[^{]*\{([^}]*)\}/g)) {
+    if (m[1]?.includes("--color-accent-fg")) found.push(m[0].trim());
+  }
+  for (const m of text.matchAll(/className="focus-ring"[^>]*?>/gs)) {
+    if (m[0].includes("--color-accent-fg")) found.push(m[0].slice(0, 80));
+  }
+  return found;
+}
+
 function kitSources(root: string): string[] {
-  return execFileSync("git", ["ls-files", "-z", "--", "packages/ui-kit/src"], {
+  return execFileSync("git", ["ls-files", "-z", "--", ...RING_PATHS], {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024,
@@ -95,6 +117,7 @@ function offenders(): { file: string; rule: string }[] {
       if (!ALLOWED_COLOUR.test(m[1]))
         out.push({ file: rel, rule: m[0].trim() });
     }
+    for (const rule of shapeRings(text)) out.push({ file: rel, rule });
   }
   return out;
 }
@@ -173,11 +196,27 @@ describe("design-system: focus rings use the theme's focus role", () => {
     ]).toHaveLength(0);
   });
 
+  it("can see an accent ring on a shape (planted)", () => {
+    expect(
+      shapeRings(
+        '<circle className="focus-ring" stroke="var(--color-accent-fg)" />',
+      ),
+    ).toHaveLength(1);
+    expect(
+      shapeRings("&:focus-visible { stroke: var(--color-accent-fg); }"),
+    ).toHaveLength(1);
+    expect(
+      shapeRings(
+        '<circle className="focus-ring" stroke="var(--color-focus)" />',
+      ),
+    ).toHaveLength(0);
+  });
+
   it("finds no ring drawn in another colour", () => {
     const found = offenders();
     if (found.length > 0) {
       throw new Error(
-        `${found.length} focus ring(s) in ui-kit are not the theme's focus ` +
+        `${found.length} focus ring(s) in ui-kit or components are not the theme's focus ` +
           `colour:\n${found.map((o) => `  ${o.file}: ${o.rule}`).join("\n")}\n` +
           `The theme declares a \`focus\` slot filled with var(--color-focus). ` +
           `Interpolate \`focusRing\` or \`focusRingInset\` from ` +

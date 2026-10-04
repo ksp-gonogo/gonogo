@@ -151,7 +151,7 @@ export function ShipPartGroup({
           width={box.w + 6}
           height={box.h + 6}
           fill="none"
-          stroke="var(--color-accent-fg)"
+          stroke="var(--color-focus)"
           strokeWidth={stroke(2)}
           rx={3}
           pointerEvents="none"

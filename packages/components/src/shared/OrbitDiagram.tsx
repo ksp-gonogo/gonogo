@@ -670,7 +670,7 @@ const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
   cursor: help;
   outline: none;
   &:focus-visible {
-    stroke: var(--color-accent-fg);
+    stroke: var(--color-focus);
     stroke-width: var(--apsis-focus-stroke-w);
   }
 `;

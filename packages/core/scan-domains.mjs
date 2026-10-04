@@ -60,7 +60,11 @@ export const SCAN_DOMAINS = {
   "src/styleguide-boundary.test.ts": [/^packages\/sitrep-client\//, UI_KIT],
   "src/styleguide-command-delay-single-source.test.ts": [MOD],
   "src/styleguide-duplicate-primitives.test.ts": [/^packages\/ui\//, UI_KIT],
-  "src/styleguide-focus-ring.test.ts": [UI_KIT, THEME],
+  "src/styleguide-focus-ring.test.ts": [
+    UI_KIT,
+    THEME,
+    /^packages\/components\//,
+  ],
   "src/styleguide-generated-null-unions.test.ts": [MOD],
   "src/styleguide-no-deprecations.test.ts": [UI_KIT, SDK],
   "src/styleguide-panel-parts.test.ts": [UI_KIT],

@@ -149,7 +149,7 @@ function Primitive({
               className="focus-ring"
               d={r.ring}
               fill="none"
-              stroke="var(--color-accent-fg)"
+              stroke="var(--color-focus)"
               strokeWidth={VESSEL_ORBIT_STROKE_WIDTH_SELECTED_PX + 4}
               strokeOpacity={0.9}
               pointerEvents="none"
@@ -245,7 +245,7 @@ function Primitive({
               cy={r.y}
               r={r.radiusPx + 3}
               fill="none"
-              stroke="var(--color-accent-fg)"
+              stroke="var(--color-focus)"
               strokeWidth={2}
               pointerEvents="none"
             />
