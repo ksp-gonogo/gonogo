@@ -106,6 +106,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The home centre's id, or null while there is none.</summary>
         string? HomeCentre();
+
+        /// <summary>What a real light time is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
+        double LightFactor();
     }
 
     /// <summary>
@@ -681,7 +684,7 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                var routes = ContactRouting.RoutesFor(plan, looked.ActiveCraft, new[] { centre }, looked.Ut);
+                var routes = ContactRouting.RoutesFor(plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor());
                 rows += routes.Routes.Count;
                 _streams!.PublishAddressedTo(RouteTopic, routes, looked.Ut, ToItself(centre));
             }
@@ -704,6 +707,7 @@ namespace Sitrep.Host.Comms
         {
             var frames = 0;
             var home = _audience!.HomeCentre();
+            var lightFactor = _audience.LightFactor();
             foreach (var centre in planning)
             {
                 _plans.TryGetValue(centre, out var plan);
@@ -727,7 +731,7 @@ namespace Sitrep.Host.Comms
 
                 var heard = _hearing!.HeardAt(centre);
                 var view = CentrePath.For(
-                    plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(heard, id), looked.Ut);
+                    plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(heard, id), looked.Ut, lightFactor);
                 var reshaped = !_pathShapes.TryGetValue(centre, out var shape) || shape != view.Shape;
                 _pathShapes[centre] = view.Shape;
                 var to = ToItself(centre);

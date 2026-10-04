@@ -116,6 +116,8 @@ namespace Sitrep.Host
 
         public string? HomeCentre() => _homeCommand.CentreId;
 
+        public double LightFactor() => _deliveryInputs.LightFactor;
+
         public IReadOnlyCollection<string> PlanningCentres()
         {
             var centres = new HashSet<string>(StringComparer.Ordinal);

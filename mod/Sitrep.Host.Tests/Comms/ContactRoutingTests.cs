@@ -46,6 +46,43 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void TheRowsQuoteTheLightTimesTheGameModels()
+        {
+            var routes = ContactRouting.RoutesFor(Plan, "vessel:probe", new[] { "ground:ksc" }, 10.0, 60.0);
+
+            Assert.All(routes.Routes, r => Assert.Equal(70.0, r.ArrivalUt!.Value, 9));
+        }
+
+        [Fact]
+        public void TheSendersRouteIsTheOneThatArrivesFirstUnderTheGamesLightTimes()
+        {
+            var plan = new ContactPlan(
+                0.0,
+                Horizon,
+                Step,
+                new[]
+                {
+                    Scaled("ground:ksc", "vessel:probe", 0.01, new ContactWindow(100.0, null)),
+                    Scaled("ground:ksc", "vessel:relay", 0.1, new ContactWindow(null, null)),
+                    Scaled("vessel:relay", "vessel:probe", 0.1, new ContactWindow(null, null)),
+                },
+                0,
+                0);
+
+            var route = new PlanRoutes(plan, 1000.0).Route("ground:ksc", "vessel:probe", 0.0, double.PositiveInfinity)!;
+
+            var hop = Assert.Single(route);
+            Assert.Equal("vessel:probe", hop.To);
+            Assert.Equal(100.0, hop.DepartUt, 9);
+            Assert.Equal(110.0, hop.ArriveUt, 9);
+        }
+
+        private static PairPlan Scaled(string a, string b, double lightSeconds, params ContactWindow[] windows) =>
+            new PairPlan(
+                a, b, Horizon, windows, 0.0, Step,
+                Enumerable.Repeat(lightSeconds * PairPlan.SpeedOfLight, (int)(Horizon / Step) + 1).ToArray());
+
+        [Fact]
         public void ACentreWithNoPredictedRouteHasNoArrivalAndIsNotLive()
         {
             var routes = ContactRouting.RoutesFor(Plan, "vessel:probe", new[] { "ground:island" }, 10.0);

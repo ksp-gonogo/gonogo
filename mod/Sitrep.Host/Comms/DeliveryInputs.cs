@@ -145,26 +145,19 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
+            // Chosen and admitted on the light times the game models, so the
+            // route that is taken is the one that arrives first under them, and
+            // every hop lands inside its window.
             var route = ContactRouter.EarliestArrival(
-                _plan, from, to, readyUt, double.IsInfinity(deadlineUt) ? (double?)null : deadlineUt);
+                _plan, from, to, readyUt, double.IsInfinity(deadlineUt) ? (double?)null : deadlineUt, _lightFactor);
             if (route == null)
             {
                 return null;
             }
-            // A hop that left as the one before landed still does, however the
-            // light time is scaled; a hop that waited for its window still waits
-            // for it.
             var hops = new List<PlannedHop>(route.Hops.Count);
-            var plannedAt = readyUt;
-            var at = readyUt;
             foreach (var hop in route.Hops)
             {
-                var waited = hop.DepartUt > plannedAt + 1e-6;
-                var depart = waited ? Math.Max(hop.DepartUt, at) : at;
-                var arrive = depart + ((hop.ArriveUt - hop.DepartUt) * _lightFactor);
-                hops.Add(new PlannedHop(hop.To, depart, arrive));
-                plannedAt = hop.ArriveUt;
-                at = arrive;
+                hops.Add(new PlannedHop(hop.To, hop.DepartUt, hop.ArriveUt));
             }
             return hops;
         }

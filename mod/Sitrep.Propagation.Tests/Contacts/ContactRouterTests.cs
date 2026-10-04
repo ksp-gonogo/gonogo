@@ -73,6 +73,56 @@ namespace Sitrep.Propagation.Tests.Contacts
             Assert.True(route.Live);
         }
 
+        /// <summary>
+        /// At real light speed the relay is the quick way: a fifth of a second,
+        /// against a hundred-second wait for the direct window. With light a
+        /// thousand times slower the relay takes two hundred seconds and the
+        /// direct window, ten seconds across once it opens, is the earlier
+        /// arrival. A route chosen at real light speed and stretched afterwards
+        /// takes the relay and arrives ninety seconds late.
+        /// </summary>
+        [Fact]
+        public void TheRouteIsChosenOnTheLightTimesTheGameModels()
+        {
+            var plan = Plan(
+                Pair("ground:a", "vessel:b", 0.01 * OneLightSecond, From(100.0)),
+                Pair("ground:a", "vessel:relay", 0.1 * OneLightSecond, Always()),
+                Pair("vessel:relay", "vessel:b", 0.1 * OneLightSecond, Always()));
+
+            var real = ContactRouter.EarliestArrival(plan, "ground:a", "vessel:b", 0.0)!;
+            Assert.Equal(new[] { "vessel:relay", "vessel:b" }, real.Hops.Select(h => h.To).ToArray());
+            Assert.Equal(0.2, real.ArrivalUt, 9);
+
+            var slow = ContactRouter.EarliestArrival(plan, "ground:a", "vessel:b", 0.0, null, 1000.0)!;
+            Assert.Equal(new[] { "vessel:b" }, slow.Hops.Select(h => h.To).ToArray());
+            Assert.Equal(100.0, slow.Hops[0].DepartUt, 9);
+            Assert.Equal(110.0, slow.ArrivalUt, 9);
+            Assert.Equal(0.01 * OneLightSecond, slow.Hops[0].DistanceMeters, 3);
+        }
+
+        [Fact]
+        public void AHopIsAdmittedOnlyIfItsSlowedLightStillLandsInsideTheWindow()
+        {
+            var plan = Plan(Pair("ground:a", "vessel:b", 0.01 * OneLightSecond, From(0.0, 5.0), From(500.0)));
+
+            Assert.Equal(0.0, ContactRouter.EarliestArrival(plan, "ground:a", "vessel:b", 0.0)!.Hops[0].DepartUt, 9);
+            var slow = ContactRouter.EarliestArrival(plan, "ground:a", "vessel:b", 0.0, null, 1000.0)!;
+            Assert.Equal(500.0, slow.Hops[0].DepartUt, 9);
+            Assert.Equal(510.0, slow.ArrivalUt, 9);
+        }
+
+        [Fact]
+        public void WithSignalDelayOffEveryHopLandsAsItLeaves()
+        {
+            var plan = Plan(Pair("ground:a", "vessel:b", OneLightSecond, Always()));
+
+            var route = ContactRouter.EarliestArrival(plan, "ground:a", "vessel:b", 10.0, null, 0.0)!;
+
+            Assert.Equal(10.0, route.ArrivalUt, 9);
+            Assert.True(route.Live);
+            Assert.Equal(OneLightSecond, route.Hops[0].DistanceMeters, 3);
+        }
+
         [Fact]
         public void AMessageNoneOfItsDestinationsIsPlannedForHasNoRoute()
         {

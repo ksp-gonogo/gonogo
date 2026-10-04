@@ -7,7 +7,8 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// The <c>comms.route</c> rows: the earliest-arrival route each way between
-    /// every command centre and the active craft, from the current contact plan.
+    /// every command centre and the active craft, from the current contact plan,
+    /// on the light times the game is set to model.
     /// </summary>
     public static class ContactRouting
     {
@@ -18,7 +19,9 @@ namespace Sitrep.Host.Comms
         /// A centre that is the active craft itself has no route to plan and gets
         /// no row.
         /// </summary>
-        public static CommsRoutes RoutesFor(ContactPlan plan, string activeCraft, IReadOnlyList<string> centres, double sentUt)
+        /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        public static CommsRoutes RoutesFor(
+            ContactPlan plan, string activeCraft, IReadOnlyList<string> centres, double sentUt, double lightFactor = 1.0)
         {
             var routes = new CommsRoutes();
             foreach (var centre in centres)
@@ -27,15 +30,15 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                routes.Routes.Add(Row(plan, centre, activeCraft, sentUt));
-                routes.Routes.Add(Row(plan, activeCraft, centre, sentUt));
+                routes.Routes.Add(Row(plan, centre, activeCraft, sentUt, lightFactor));
+                routes.Routes.Add(Row(plan, activeCraft, centre, sentUt, lightFactor));
             }
             return routes;
         }
 
-        private static CommsRoute Row(ContactPlan plan, string from, string to, double sentUt)
+        private static CommsRoute Row(ContactPlan plan, string from, string to, double sentUt, double lightFactor)
         {
-            var route = ContactRouter.EarliestArrival(plan, from, to, sentUt);
+            var route = ContactRouter.EarliestArrival(plan, from, to, sentUt, null, lightFactor);
             var row = new CommsRoute
             {
                 From = from,

@@ -6,8 +6,9 @@ namespace Sitrep.Propagation.Contacts
     /// <summary>One hop of a route: light leaves one node and lands on the next.</summary>
     public sealed class RouteHop
     {
-        public RouteHop(string from, string to, double departUt, double arriveUt, double windowCloseUt)
+        public RouteHop(string from, string to, double departUt, double arriveUt, double windowCloseUt, double distanceMeters = double.NaN)
         {
+            DistanceMeters = distanceMeters;
             From = from;
             To = to;
             DepartUt = departUt;
@@ -27,6 +28,9 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>When the window this hop uses closes, or the pair's horizon when it is still open there.</summary>
         public double WindowCloseUt { get; }
+
+        /// <summary>How far the light crosses, in metres: the separation when it lands. NaN for a hop built without one.</summary>
+        public double DistanceMeters { get; }
     }
 
     /// <summary>The earliest-arriving route from one node to another for a message sent at one instant.</summary>
@@ -88,6 +92,13 @@ namespace Sitrep.Propagation.Contacts
     /// <para>Ties go, in SABR's order, to the earlier arrival, then fewer hops, then
     /// the later route termination (the soonest a used window closes), then node id
     /// order, so the answer never depends on enumeration order.</para>
+    ///
+    /// <para>Every search takes a light factor: what a real light time is
+    /// multiplied by to get the delay the game is set to model, one at real
+    /// light speed and less for a faster light. The route is chosen on those
+    /// times and each hop is admitted on them, because which route arrives
+    /// first, and whether a hop lands before its window closes, both depend on
+    /// how long the light takes.</para>
     /// </summary>
     public static class ContactRouter
     {
@@ -100,8 +111,8 @@ namespace Sitrep.Propagation.Contacts
         /// its horizon, or before <paramref name="mustArriveByUt"/>.
         /// </summary>
         public static ContactRoute? EarliestArrival(
-            ContactPlan plan, string source, string destination, double sentUt, double? mustArriveByUt = null) =>
-            EarliestArrivalAtAny(plan, source, new[] { destination }, sentUt, mustArriveByUt);
+            ContactPlan plan, string source, string destination, double sentUt, double? mustArriveByUt = null, double lightFactor = 1.0) =>
+            EarliestArrivalAtAny(plan, source, new[] { destination }, sentUt, mustArriveByUt, lightFactor);
 
         /// <summary>
         /// The earliest-arriving route from <paramref name="source"/> to
@@ -111,7 +122,7 @@ namespace Sitrep.Propagation.Contacts
         /// station of a ground network can.
         /// </summary>
         public static ContactRoute? EarliestArrivalAtAny(
-            ContactPlan plan, string source, IReadOnlyCollection<string> destinations, double sentUt, double? mustArriveByUt = null)
+            ContactPlan plan, string source, IReadOnlyCollection<string> destinations, double sentUt, double? mustArriveByUt = null, double lightFactor = 1.0)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             if (destinations == null) throw new ArgumentNullException(nameof(destinations));
@@ -160,7 +171,7 @@ namespace Sitrep.Propagation.Contacts
                     {
                         continue;
                     }
-                    var hop = FirstAdmissibleHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt);
+                    var hop = FirstAdmissibleHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor);
                     if (hop == null)
                     {
                         continue;
@@ -187,7 +198,7 @@ namespace Sitrep.Propagation.Contacts
         /// window is the best one.
         /// </summary>
         public static RouteHop? FirstAdmissibleHop(
-            ContactPlan plan, PairPlan pair, string from, string to, double readyUt, double? mustArriveByUt)
+            ContactPlan plan, PairPlan pair, string from, string to, double readyUt, double? mustArriveByUt, double lightFactor = 1.0)
         {
             foreach (var window in pair.Windows)
             {
@@ -198,12 +209,12 @@ namespace Sitrep.Propagation.Contacts
                 {
                     continue;
                 }
-                var light = LightTime(pair, depart);
-                if (light == null)
+                var crossing = Crossing(pair, depart, lightFactor);
+                if (crossing == null)
                 {
                     continue;
                 }
-                var arrive = depart + light.Value;
+                var arrive = depart + crossing.Value.Seconds;
                 if (mustArriveByUt != null && arrive > mustArriveByUt.Value + Tolerance)
                 {
                     return null;
@@ -214,7 +225,7 @@ namespace Sitrep.Propagation.Contacts
                 {
                     continue;
                 }
-                return new RouteHop(from, to, depart, arrive, close);
+                return new RouteHop(from, to, depart, arrive, close, crossing.Value.Meters);
             }
             return null;
         }
@@ -226,14 +237,19 @@ namespace Sitrep.Propagation.Contacts
         /// because nothing in a planetary system moves at a sizeable fraction of
         /// light speed.
         /// </summary>
-        public static double? LightTime(PairPlan pair, double departUt)
+        public static double? LightTime(PairPlan pair, double departUt, double lightFactor = 1.0) =>
+            Crossing(pair, departUt, lightFactor)?.Seconds;
+
+        /// <summary>The light time of <see cref="LightTime"/>, with the separation it was taken over.</summary>
+        private static (double Seconds, double Meters)? Crossing(PairPlan pair, double departUt, double lightFactor)
         {
             var separation = pair.SeparationAt(departUt);
             if (separation == null)
             {
                 return null;
             }
-            var light = separation.Value / PairPlan.SpeedOfLight;
+            var meters = separation.Value;
+            var light = meters / PairPlan.SpeedOfLight * lightFactor;
             for (var i = 0; i < 3; i++)
             {
                 var then = pair.SeparationAt(departUt + light);
@@ -241,9 +257,10 @@ namespace Sitrep.Propagation.Contacts
                 {
                     break;
                 }
-                light = then.Value / PairPlan.SpeedOfLight;
+                meters = then.Value;
+                light = meters / PairPlan.SpeedOfLight * lightFactor;
             }
-            return light;
+            return (light, meters);
         }
 
         private static Dictionary<string, List<(PairPlan Pair, string Other)>> Adjacency(ContactPlan plan)

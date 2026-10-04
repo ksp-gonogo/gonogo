@@ -63,6 +63,7 @@ namespace Sitrep.Host.Comms
         /// <param name="stations">Every ground station, as the plan names them.</param>
         /// <param name="nameOf">The name the centre last heard a craft go by, or null.</param>
         /// <param name="ut">Now.</param>
+        /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         public static CentrePathView For(
             ContactPlan? plan,
             string? activeCraft,
@@ -70,7 +71,8 @@ namespace Sitrep.Host.Comms
             bool isHome,
             IReadOnlyList<ContactGameNode> stations,
             Func<string, string?> nameOf,
-            double ut)
+            double ut,
+            double lightFactor = 1.0)
         {
             var source = activeCraft == null ? "game" : activeCraft;
             var none = new CentrePathView(
@@ -92,8 +94,8 @@ namespace Sitrep.Host.Comms
             }
             var toGround = isHome || string.Equals(centre, activeCraft, StringComparison.Ordinal);
             var route = toGround
-                ? ContactRouter.EarliestArrivalAtAny(plan, activeCraft, new List<string>(ground.Keys), ut)
-                : ContactRouter.EarliestArrival(plan, activeCraft, centre, ut);
+                ? ContactRouter.EarliestArrivalAtAny(plan, activeCraft, new List<string>(ground.Keys), ut, null, lightFactor)
+                : ContactRouter.EarliestArrival(plan, activeCraft, centre, ut, null, lightFactor);
             if (route == null || !route.Live || route.Hops.Count == 0)
             {
                 return none;
@@ -117,7 +119,7 @@ namespace Sitrep.Host.Comms
                     ToIsHome = toHome,
                     Kind = fromHome || toHome ? CommsHopKind.Home : CommsHopKind.Relay,
                     // Where the receiver will be when the light lands, which is the length the light crosses.
-                    DistanceMeters = (hop.ArriveUt - hop.DepartUt) * PairPlan.SpeedOfLight,
+                    DistanceMeters = hop.DistanceMeters,
                 });
                 nodes.Add(Node(hop.To, ground, nameOf));
                 edges.Add(new CommsNetworkEdge { A = from, B = to, Active = true });
