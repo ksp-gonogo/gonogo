@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
@@ -19,105 +20,13 @@ namespace Sitrep.Host.Tests.Comms
         private static OrbitElements Orbit(double sma, double ecc = 0.0, double inc = 0.0) =>
             new OrbitElements(sma, ecc, inc, 0.0, 0.0, 0.0, 0.0, KerbinMu);
 
-        private static ContactNodeFingerprint[] Craft(params (string Id, OrbitElements Orbit)[] craft)
+        private static readonly SystemBody[] Bodies =
         {
-            var nodes = new ContactNodeFingerprint[craft.Length];
-            for (var i = 0; i < craft.Length; i++)
-            {
-                nodes[i] = new ContactNodeFingerprint(craft[i].Id, 1, craft[i].Orbit);
-            }
-            return nodes;
-        }
+            new SystemBody(-1, null),
+            new SystemBody(0, new OrbitElements(13_599_840_256.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1723328e18)),
+        };
 
-        private static ContactPlanRequest RequestFor(IReadOnlyList<ContactNodeFingerprint> fingerprint, double fromUt) =>
-            new ContactPlanRequest(
-                new PlanNode[0], new PlanPair[0], new KeplerProvider(), 1, fromUt, ContactPlanSchedule.HorizonSeconds, fingerprint);
-
-        [Fact]
-        public void APlanIsDueBeforeAnyHasBeenMade()
-        {
-            var schedule = new ContactPlanSchedule();
-
-            Assert.True(schedule.Due(Craft(("vessel:a", Orbit(700_000.0))), 0.0));
-        }
-
-        [Fact]
-        public void APlanIsNotDueWhileNothingHasMoved()
-        {
-            var schedule = new ContactPlanSchedule();
-            var nodes = Craft(("vessel:a", Orbit(700_000.0)));
-            schedule.Planned(RequestFor(nodes, 0.0));
-
-            Assert.False(schedule.Due(nodes, 600.0));
-        }
-
-        [Fact]
-        public void AnOrbitWobblingInsideTheToleranceDoesNotReplan()
-        {
-            var schedule = new ContactPlanSchedule();
-            schedule.Planned(RequestFor(Craft(("vessel:a", Orbit(700_000.0))), 0.0));
-
-            Assert.False(schedule.Due(Craft(("vessel:a", Orbit(700_010.0, 1e-6, 1e-5))), 600.0));
-        }
-
-        [Fact]
-        public void ABurnReplansOnceTheDriftIntervalHasPassed()
-        {
-            var schedule = new ContactPlanSchedule();
-            schedule.Planned(RequestFor(Craft(("vessel:a", Orbit(700_000.0))), 0.0));
-            var burned = Craft(("vessel:a", Orbit(900_000.0)));
-
-            Assert.False(schedule.Due(burned, ContactPlanSchedule.MinDriftReplanSeconds / 2.0));
-            Assert.True(schedule.Due(burned, ContactPlanSchedule.MinDriftReplanSeconds));
-        }
-
-        [Fact]
-        public void ANodeArrivingOrLeavingReplansAtOnce()
-        {
-            var schedule = new ContactPlanSchedule();
-            schedule.Planned(RequestFor(Craft(("vessel:a", Orbit(700_000.0))), 0.0));
-
-            Assert.True(schedule.Due(Craft(("vessel:a", Orbit(700_000.0)), ("vessel:b", Orbit(800_000.0))), 1.0));
-            Assert.True(schedule.Due(Craft(("vessel:b", Orbit(700_000.0))), 1.0));
-        }
-
-        [Fact]
-        public void APlanIsDueAgainHalfwayThroughItsHorizonOrWhenTimeGoesBack()
-        {
-            var schedule = new ContactPlanSchedule();
-            var nodes = Craft(("vessel:a", Orbit(700_000.0)));
-            schedule.Planned(RequestFor(nodes, 1000.0));
-
-            Assert.True(schedule.Due(nodes, 1000.0 + (ContactPlanSchedule.HorizonSeconds / 2.0)));
-            Assert.True(schedule.Due(nodes, 999.0));
-        }
-
-        [Fact]
-        public void AForgottenPlanIsDueAgainAtOnce()
-        {
-            var schedule = new ContactPlanSchedule();
-            var nodes = Craft(("vessel:a", Orbit(700_000.0)));
-            schedule.Planned(RequestFor(nodes, 0.0));
-
-            schedule.Forget();
-
-            Assert.True(schedule.Due(nodes, 1.0));
-        }
-
-        [Fact]
-        public void ALandedCraftThatDrivesOffReplansAndOneThatSitsStillDoesNot()
-        {
-            static RotatingGroundStation At(double longitudeDeg) =>
-                RotatingGroundStation.FromLatitudeLongitude(0.0, longitudeDeg, 0.0, 21_549.425, KerbinRadius, 0.0);
-            var schedule = new ContactPlanSchedule();
-            schedule.Planned(RequestFor(new[] { new ContactNodeFingerprint("vessel:rover", 1, null, At(10.0)) }, 0.0));
-
-            Assert.False(schedule.Due(new[] { new ContactNodeFingerprint("vessel:rover", 1, null, At(10.0)) }, 600.0));
-            Assert.True(schedule.Due(new[] { new ContactNodeFingerprint("vessel:rover", 1, null, At(12.0)) }, 600.0));
-        }
-
-        [Fact]
-        public void TheRunnerHandsBackTheFinishedPlanOnceAndRunsOneAtATime()
+        private static ContactPlanRequest TwoCraft(double fromUt = 0.0)
         {
             var nodes = new[]
             {
@@ -125,45 +34,81 @@ namespace Sitrep.Host.Tests.Comms
                 PlanNode.Orbiting("vessel:b", PropagationTarget.Vessel("vessel:b", 1, Orbit(KerbinRadius + 800_000.0))),
             };
             var pairs = new[] { new PlanPair("vessel:a", "vessel:b", new[] { new OccludingBody(1, KerbinRadius) }, null) };
-            var bodies = new[]
-            {
-                new SystemBody(-1, null),
-                new SystemBody(0, new OrbitElements(13_599_840_256.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1723328e18)),
-            };
-            var request = new ContactPlanRequest(
-                nodes, pairs, new KeplerProvider(bodies), 1, 0.0, 3600.0, new ContactNodeFingerprint[0]);
-            var runner = new ContactPlanRunner();
+            return new ContactPlanRequest(nodes, pairs, new KeplerProvider(Bodies), 1, fromUt, 3600.0);
+        }
 
-            Assert.True(runner.Offer(request));
-            Assert.False(runner.Offer(request));
-            ContactPlan? plan = null;
+        private static IReadOnlyDictionary<string, ContactPlanRequest> Round(params (string Centre, ContactPlanRequest Request)[] plans)
+        {
+            var round = new Dictionary<string, ContactPlanRequest>();
+            foreach (var (centre, request) in plans)
+            {
+                round[centre] = request;
+            }
+            return round;
+        }
+
+        private static IReadOnlyDictionary<string, ContactPlan>? Wait(ContactPlanRunner runner)
+        {
+            IReadOnlyDictionary<string, ContactPlan>? plans = null;
             var clock = Stopwatch.StartNew();
-            while (!runner.TryTake(out plan) && clock.Elapsed < TimeSpan.FromSeconds(30))
+            while (!runner.TryTake(out plans) && clock.Elapsed < TimeSpan.FromSeconds(30))
             {
                 Thread.Sleep(5);
             }
+            return plans;
+        }
 
-            Assert.NotNull(plan);
-            Assert.Single(plan!.Pairs);
+        [Fact]
+        public void AnOrbitWobblingInsideTheToleranceHasNotMoved()
+        {
+            Assert.False(ContactPlanSchedule.Moved(Orbit(700_000.0), Orbit(700_010.0, 1e-6, 1e-5)));
+        }
+
+        [Fact]
+        public void ABurnHasMovedTheOrbit()
+        {
+            Assert.True(ContactPlanSchedule.Moved(Orbit(700_000.0), Orbit(900_000.0)));
+            Assert.True(ContactPlanSchedule.Moved(Orbit(700_000.0), Orbit(700_000.0, 0.01)));
+            Assert.True(ContactPlanSchedule.Moved(Orbit(700_000.0), Orbit(700_000.0, 0.0, 0.01)));
+        }
+
+        [Fact]
+        public void TheRunnerHandsBackTheFinishedRoundOnceAndRunsOneAtATime()
+        {
+            var request = TwoCraft();
+            var runner = new ContactPlanRunner();
+
+            Assert.True(runner.Offer(Round(("ground:a", request), ("ground:b", request)), new object[0]));
+            Assert.False(runner.Offer(Round(("ground:a", request)), new object[0]));
+            var plans = Wait(runner);
+
+            Assert.NotNull(plans);
+            Assert.Equal(new[] { "ground:a", "ground:b" }, plans!.Keys.OrderBy(k => k));
+            Assert.Single(plans["ground:a"].Pairs);
             Assert.False(runner.TryTake(out _));
         }
 
         [Fact]
-        public void ARunThatThrowsIsReportedAndFreesTheRunner()
+        public void AnInlineRoundHasFinishedByTheTimeItIsOffered()
         {
-            var request = new ContactPlanRequest(
-                null!,
-                new PlanPair[0],
-                new KeplerProvider(),
-                1,
-                0.0,
-                3600.0,
-                new ContactNodeFingerprint[0]);
+            var runner = new ContactPlanRunner();
+
+            Assert.True(runner.Offer(Round(("ground:a", TwoCraft())), new object[0], inline: true));
+
+            Assert.False(runner.Running);
+            Assert.True(runner.TryTake(out var plans));
+            Assert.Single(plans!);
+        }
+
+        [Fact]
+        public void ARoundThatThrowsIsReportedAndFreesTheRunner()
+        {
+            var request = new ContactPlanRequest(null!, new PlanPair[0], new KeplerProvider(), 1, 0.0, 3600.0);
             var runner = new ContactPlanRunner();
             Exception? failure = null;
             using var reported = new ManualResetEventSlim();
 
-            runner.Offer(request, ex =>
+            runner.Offer(Round(("ground:a", request)), new object[0], ex =>
             {
                 failure = ex;
                 reported.Set();
@@ -178,6 +123,90 @@ namespace Sitrep.Host.Tests.Comms
             }
             Assert.False(runner.Running);
             Assert.False(runner.TryTake(out _));
+        }
+
+        /// <summary>
+        /// Two centres that have heard the same news of a craft plan it from the
+        /// same solved positions, and a later round solves only what is new.
+        /// </summary>
+        [Fact]
+        public void CentresThatHeardTheSameNewsShareTheirSolvedPositions()
+        {
+            var a = new object();
+            var b = new object();
+            ContactPlanRequest Remembering(object keyA, object keyB)
+            {
+                var nodes = new[]
+                {
+                    PlanNode.Orbiting("vessel:a", PropagationTarget.Vessel("vessel:a", 1, Orbit(KerbinRadius + 700_000.0))).RememberedAs(keyA),
+                    PlanNode.Orbiting("vessel:b", PropagationTarget.Vessel("vessel:b", 1, Orbit(KerbinRadius + 800_000.0))).RememberedAs(keyB),
+                };
+                var pairs = new[] { new PlanPair("vessel:a", "vessel:b", new[] { new OccludingBody(1, KerbinRadius) }, null) };
+                return new ContactPlanRequest(nodes, pairs, new KeplerProvider(Bodies), 1, 0.0, 3600.0);
+            }
+            var runner = new ContactPlanRunner();
+            var live = new object[] { a, b };
+
+            runner.Offer(Round(("ground:first", Remembering(a, b))), live, inline: true);
+            runner.TryTake(out var alone);
+            runner.Offer(Round(("ground:second", Remembering(a, b))), live, inline: true);
+            runner.TryTake(out var after);
+            var other = new object();
+            runner.Offer(Round(("ground:third", Remembering(a, other))), new object[] { a, other }, inline: true);
+            runner.TryTake(out var burned);
+
+            var first = alone!["ground:first"];
+            var second = after!["ground:second"];
+            var third = burned!["ground:third"];
+            Assert.True(
+                second.PositionSolves < first.PositionSolves / 2,
+                "the second centre solved " + second.PositionSolves + " positions of the first's " + first.PositionSolves);
+            Assert.True(
+                third.PositionSolves > second.PositionSolves && third.PositionSolves < first.PositionSolves,
+                "a centre with news of one craft solved " + third.PositionSolves + ", between " + second.PositionSolves + " and " + first.PositionSolves);
+            Assert.Equal(first.Pairs[0].Windows.Count, second.Pairs[0].Windows.Count);
+            for (var i = 0; i < first.Pairs[0].Windows.Count; i++)
+            {
+                Assert.Equal(first.Pairs[0].Windows[i].OpenUt, second.Pairs[0].Windows[i].OpenUt);
+                Assert.Equal(first.Pairs[0].Windows[i].CloseUt, second.Pairs[0].Windows[i].CloseUt);
+            }
+        }
+
+        [Fact]
+        public void APlanStartsAtTheInstantOnItsOwnGridAtOrBeforeTheOneAskedFor()
+        {
+            var request = TwoCraft(fromUt: 1234.5);
+            var runner = new ContactPlanRunner();
+
+            runner.Offer(Round(("ground:a", request)), new object[0], inline: true);
+            runner.TryTake(out var plans);
+
+            var plan = plans!["ground:a"];
+            Assert.Equal(request.Step(), plan.StepSeconds);
+            Assert.InRange(plan.FromUt, 1234.5 - plan.StepSeconds, 1234.5);
+            Assert.Equal(0.0, Math.IEEERemainder(plan.FromUt, plan.StepSeconds), 6);
+        }
+
+        /// <summary>A centre's grid is its own: what another centre has heard never chooses it.</summary>
+        [Fact]
+        public void CentresPlanningDifferentCraftEachRunOnTheirOwnGrid()
+        {
+            var slow = TwoCraft();
+            var fast = new ContactPlanRequest(
+                new[] { PlanNode.Orbiting("vessel:low", PropagationTarget.Vessel("vessel:low", 1, Orbit(KerbinRadius + 80_000.0))) },
+                new PlanPair[0],
+                new KeplerProvider(Bodies),
+                1,
+                0.0,
+                3600.0);
+            var runner = new ContactPlanRunner();
+
+            runner.Offer(Round(("ground:slow", slow), ("ground:fast", fast)), new object[0], inline: true);
+            runner.TryTake(out var plans);
+
+            Assert.Equal(slow.Step(), plans!["ground:slow"].StepSeconds);
+            Assert.Equal(fast.Step(), plans["ground:fast"].StepSeconds);
+            Assert.NotEqual(plans["ground:slow"].StepSeconds, plans["ground:fast"].StepSeconds);
         }
 
         [Fact]

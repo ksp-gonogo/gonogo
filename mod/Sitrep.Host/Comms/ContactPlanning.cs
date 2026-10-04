@@ -8,33 +8,7 @@ using Sitrep.Propagation.Visibility;
 
 namespace Sitrep.Host.Comms
 {
-    /// <summary>
-    /// What one node looked like when a plan was asked for, compact enough to
-    /// compare every tick: its id, the body it orbits or stands on, and its
-    /// orbit or its place on the surface.
-    /// </summary>
-    public readonly struct ContactNodeFingerprint
-    {
-        public ContactNodeFingerprint(string id, int bodyIndex, OrbitElements? orbit, RotatingGroundStation? surface = null)
-        {
-            Id = id;
-            BodyIndex = bodyIndex;
-            Orbit = orbit;
-            SurfacePoint = surface?.PositionAt(0.0);
-        }
-
-        public string Id { get; }
-
-        public int BodyIndex { get; }
-
-        /// <summary>The node's orbit, or null for one fixed to a surface.</summary>
-        public OrbitElements? Orbit { get; }
-
-        /// <summary>Where a surface node stands, as its position at UT 0, so two fingerprints of one place compare equal at any time.</summary>
-        public Vector3d? SurfacePoint { get; }
-    }
-
-    /// <summary>Everything one plan needs, captured on the main thread so the plan can run anywhere.</summary>
+    /// <summary>Everything one plan needs, as data, so the plan can run on any thread.</summary>
     public sealed class ContactPlanRequest
     {
         public ContactPlanRequest(
@@ -43,8 +17,7 @@ namespace Sitrep.Host.Comms
             IPropagationProvider propagator,
             int frameBodyIndex,
             double fromUt,
-            double horizonSeconds,
-            IReadOnlyList<ContactNodeFingerprint> fingerprint)
+            double horizonSeconds)
         {
             Nodes = nodes;
             Pairs = pairs;
@@ -52,7 +25,6 @@ namespace Sitrep.Host.Comms
             FrameBodyIndex = frameBodyIndex;
             FromUt = fromUt;
             HorizonSeconds = horizonSeconds;
-            Fingerprint = fingerprint;
         }
 
         public IReadOnlyList<PlanNode> Nodes { get; }
@@ -67,34 +39,77 @@ namespace Sitrep.Host.Comms
 
         public double HorizonSeconds { get; }
 
-        public IReadOnlyList<ContactNodeFingerprint> Fingerprint { get; }
-
-        /// <summary>Runs the plan this request describes.</summary>
-        public ContactPlan Run()
+        /// <summary>
+        /// Whether this would plan the same contacts as <paramref name="other"/>:
+        /// the same nodes going the same way, and the same pairs over the same
+        /// links. A craft is going the same way when both requests remember it
+        /// under the same object; a surface node, which is remembered under none,
+        /// when it has the same id.
+        /// </summary>
+        public bool Matches(ContactPlanRequest other)
         {
-            var step = ContactPlanner.StepFor(Nodes, Propagator, HorizonSeconds);
+            if (Nodes.Count != other.Nodes.Count || Pairs.Count != other.Pairs.Count || FrameBodyIndex != other.FrameBodyIndex)
+            {
+                return false;
+            }
+            for (var i = 0; i < Nodes.Count; i++)
+            {
+                var a = Nodes[i];
+                var b = other.Nodes[i];
+                if (a.Id != b.Id || a.BodyIndex != b.BodyIndex || !ReferenceEquals(a.Remembered, b.Remembered) || a.ValidUntilUt != b.ValidUntilUt)
+                {
+                    return false;
+                }
+            }
+            for (var i = 0; i < Pairs.Count; i++)
+            {
+                var a = Pairs[i];
+                var b = other.Pairs[i];
+                if (a.A != b.A || a.B != b.B || a.MaxRangeMeters != b.MaxRangeMeters || !Equals(a.Link, b.Link))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>The grid step this plan would choose for itself.</summary>
+        public double Step() => ContactPlanner.StepFor(Nodes, Propagator, HorizonSeconds);
+
+        /// <summary>
+        /// Runs the plan this request describes. Given
+        /// <paramref name="remembered"/>, it runs on that grid, starting at the
+        /// grid instant at or before <see cref="FromUt"/>, and shares the
+        /// positions it solves with every other plan run on it.
+        /// </summary>
+        public ContactPlan Run(PlanPositions? remembered = null)
+        {
+            var step = remembered?.StepSeconds ?? Step();
+            var fromUt = remembered == null ? FromUt : ContactPlanner.OnGrid(FromUt, step);
             return ContactPlanner.Plan(
-                Nodes, Pairs, Propagator, FrameBodyIndex, FromUt, HorizonSeconds, step, ContactPlanSchedule.EdgeToleranceSeconds);
+                Nodes, Pairs, Propagator, FrameBodyIndex, fromUt, HorizonSeconds, step, ContactPlanSchedule.EdgeToleranceSeconds, remembered);
         }
     }
 
     /// <summary>
-    /// When the contact plan is out of date: never planned, a node arrived or
-    /// left, an orbit or a surface node moved past the plan's tolerance, or half
-    /// the horizon has passed. Comparing orbits rather than positions is what keeps an n-body
-    /// propagator, which rewrites a craft's osculating elements a little every
-    /// frame, from re-planning every frame: the tolerances are far wider than
-    /// that wobble and far narrower than any burn.
+    /// The numbers that say when a contact plan, and the craft states it is
+    /// made of, are out of date. Comparing orbits rather than positions is what
+    /// keeps an n-body propagator, which rewrites a craft's osculating elements
+    /// a little every frame, from re-reading every craft every frame: the
+    /// tolerances are far wider than that wobble and far narrower than any
+    /// burn.
     /// </summary>
-    public sealed class ContactPlanSchedule
+    public static class ContactPlanSchedule
     {
         /// <summary>How far ahead a plan predicts.</summary>
         public const double HorizonSeconds = 6 * 3600.0;
 
         /// <summary>
-        /// The least game time between two plans made for an orbit that moved.
-        /// A burn moves the orbit every tick, and a plan made mid-burn is stale
-        /// by the next one; a node arriving or leaving still re-plans at once.
+        /// The least game time between two readings of a craft whose orbit is
+        /// moving, and between two plans for a centre whose news is of orbits
+        /// that moved. A burn moves the orbit every tick, and a plan made
+        /// mid-burn is stale by the next one; a craft arriving or leaving still
+        /// re-plans at once.
         /// </summary>
         public const double MinDriftReplanSeconds = 10.0;
 
@@ -110,109 +125,8 @@ namespace Sitrep.Host.Comms
         /// <summary>The change in inclination, node or periapsis argument, in radians, that counts as a new orbit.</summary>
         public const double AngleTolerance = 1e-3;
 
-        /// <summary>How far a landed craft may move, in metres, before its plan is out of date.</summary>
+        /// <summary>How far a landed craft or a ground station may move, in metres, before what was read of it is out of date.</summary>
         public const double SurfaceToleranceMeters = 1_000.0;
-
-        /// <summary>The last plan asked for, swapped whole so a failure on another thread can forget it safely.</summary>
-        private sealed class PlannedState
-        {
-            public PlannedState(IReadOnlyList<ContactNodeFingerprint> fingerprint, double fromUt)
-            {
-                Fingerprint = fingerprint;
-                FromUt = fromUt;
-            }
-
-            public IReadOnlyList<ContactNodeFingerprint> Fingerprint { get; }
-
-            public double FromUt { get; }
-        }
-
-        private PlannedState? _planned;
-
-        /// <summary>Whether a plan should be made now for nodes looking like <paramref name="current"/>.</summary>
-        public bool Due(IReadOnlyList<ContactNodeFingerprint> current, double nowUt)
-        {
-            var planned = Volatile.Read(ref _planned);
-            if (planned == null)
-            {
-                return true;
-            }
-            if (nowUt >= planned.FromUt + (HorizonSeconds / 2.0) || nowUt < planned.FromUt)
-            {
-                return true;
-            }
-            if (!SameNodes(planned.Fingerprint, current))
-            {
-                return true;
-            }
-            return nowUt >= planned.FromUt + MinDriftReplanSeconds && !Same(planned.Fingerprint, current);
-        }
-
-        /// <summary>Records that a plan was started from <paramref name="request"/>.</summary>
-        public void Planned(ContactPlanRequest request) =>
-            Volatile.Write(ref _planned, new PlannedState(request.Fingerprint, request.FromUt));
-
-        /// <summary>Forgets the last plan, so the next look makes one: for a plan that failed. Safe from any thread.</summary>
-        public void Forget() => Volatile.Write(ref _planned, null);
-
-        private static bool SameNodes(IReadOnlyList<ContactNodeFingerprint> a, IReadOnlyList<ContactNodeFingerprint> b)
-        {
-            if (a.Count != b.Count)
-            {
-                return false;
-            }
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var node in a)
-            {
-                ids.Add(node.Id);
-            }
-            foreach (var node in b)
-            {
-                if (!ids.Contains(node.Id))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private static bool Same(IReadOnlyList<ContactNodeFingerprint> a, IReadOnlyList<ContactNodeFingerprint> b)
-        {
-            if (a.Count != b.Count)
-            {
-                return false;
-            }
-            var byId = new Dictionary<string, ContactNodeFingerprint>(StringComparer.Ordinal);
-            foreach (var node in a)
-            {
-                byId[node.Id] = node;
-            }
-            foreach (var node in b)
-            {
-                if (!byId.TryGetValue(node.Id, out var was) || was.BodyIndex != node.BodyIndex)
-                {
-                    return false;
-                }
-                if (was.Orbit.HasValue != node.Orbit.HasValue)
-                {
-                    return false;
-                }
-                if (node.Orbit.HasValue && Moved(was.Orbit!.Value, node.Orbit.Value))
-                {
-                    return false;
-                }
-                if (was.SurfacePoint.HasValue != node.SurfacePoint.HasValue)
-                {
-                    return false;
-                }
-                if (node.SurfacePoint.HasValue
-                    && (node.SurfacePoint.Value - was.SurfacePoint!.Value).Magnitude() > SurfaceToleranceMeters)
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
 
         /// <summary>Whether <paramref name="now"/> is a different orbit from <paramref name="was"/>, past the tolerances above.</summary>
         public static bool Moved(OrbitElements was, OrbitElements now) =>
@@ -230,21 +144,44 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
-    /// Runs one contact plan at a time off the calling thread and hands back
-    /// the finished one. A plan for a busy save takes tens of milliseconds,
-    /// which is too long to hold the Courier thread for.
+    /// Runs one round of contact plans at a time off the calling thread, one
+    /// plan per command centre, and hands back the finished round. A plan for a
+    /// busy save takes tens of milliseconds, which is too long to hold the
+    /// Courier thread for.
+    ///
+    /// <para>Each plan runs on the grid its own nodes choose, and plans on the
+    /// same grid share the positions they solve, from one round to the next. So
+    /// two centres that have heard the same news solve each craft once between
+    /// them, and a centre re-planning for news of one craft solves only that
+    /// craft again. A centre's grid is never chosen from what another centre
+    /// has heard.</para>
     /// </summary>
     public sealed class ContactPlanRunner
     {
         private int _running;
-        private ContactPlan? _finished;
+        private IReadOnlyDictionary<string, ContactPlan>? _finished;
+
+        // Touched only by the round that is running, and one runs at a time.
+        private readonly List<PlanPositions> _positions = new List<PlanPositions>();
+
+        /// <summary>The most positions kept on one grid between rounds; past it that grid is forgotten and solved again as asked for.</summary>
+        public const long MaxPositionsKept = 4_000_000;
+
+        /// <summary>The most grids kept between rounds. Centres that disagree about which craft orbits fastest plan on different grids, and few do at once.</summary>
+        public const int MaxGridsKept = 4;
 
         /// <summary>
-        /// Starts a plan for <paramref name="request"/>, unless one is already
-        /// running. Returns whether it started. With <paramref name="inline"/>
-        /// the plan has also finished by the time this returns.
+        /// Starts a round of plans, unless one is already running. Returns
+        /// whether it started. With <paramref name="inline"/> the round has also
+        /// finished by the time this returns.
         /// </summary>
-        public bool Offer(ContactPlanRequest request, Action<Exception>? onFailure = null, bool inline = false)
+        /// <param name="byCentre">The plan to run for each centre.</param>
+        /// <param name="live">Every remembered node any centre still plans from; positions of the rest are forgotten.</param>
+        public bool Offer(
+            IReadOnlyDictionary<string, ContactPlanRequest> byCentre,
+            ICollection<object> live,
+            Action<Exception>? onFailure = null,
+            bool inline = false)
         {
             if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
             {
@@ -254,7 +191,7 @@ namespace Sitrep.Host.Comms
             {
                 try
                 {
-                    Volatile.Write(ref _finished, request.Run());
+                    Volatile.Write(ref _finished, Run(byCentre, live));
                 }
                 catch (Exception ex)
                 {
@@ -274,14 +211,54 @@ namespace Sitrep.Host.Comms
             return true;
         }
 
-        /// <summary>The plan that finished since the last call, if any.</summary>
-        public bool TryTake(out ContactPlan? plan)
+        private IReadOnlyDictionary<string, ContactPlan> Run(
+            IReadOnlyDictionary<string, ContactPlanRequest> byCentre, ICollection<object> live)
         {
-            plan = Interlocked.Exchange(ref _finished, null);
-            return plan != null;
+            var earliest = double.PositiveInfinity;
+            foreach (var request in byCentre.Values)
+            {
+                earliest = Math.Min(earliest, request.FromUt);
+            }
+            _positions.RemoveAll(grid => grid.Count > MaxPositionsKept);
+            foreach (var grid in _positions)
+            {
+                grid.Keep(live, earliest);
+            }
+
+            var plans = new Dictionary<string, ContactPlan>(StringComparer.Ordinal);
+            foreach (var entry in byCentre)
+            {
+                plans[entry.Key] = entry.Value.Run(GridFor(entry.Value));
+            }
+            return plans;
         }
 
-        /// <summary>Whether a plan is running now.</summary>
+        /// <summary>The kept grid <paramref name="request"/> would choose for itself, most recently used last.</summary>
+        private PlanPositions GridFor(ContactPlanRequest request)
+        {
+            var step = request.Step();
+            var grid = _positions.Find(kept => kept.FrameBodyIndex == request.FrameBodyIndex && kept.StepSeconds == step);
+            if (grid != null)
+            {
+                _positions.Remove(grid);
+            }
+            grid ??= new PlanPositions(request.FrameBodyIndex, step);
+            _positions.Add(grid);
+            if (_positions.Count > MaxGridsKept)
+            {
+                _positions.RemoveAt(0);
+            }
+            return grid;
+        }
+
+        /// <summary>The round that finished since the last call, if any.</summary>
+        public bool TryTake(out IReadOnlyDictionary<string, ContactPlan>? plans)
+        {
+            plans = Interlocked.Exchange(ref _finished, null);
+            return plans != null;
+        }
+
+        /// <summary>Whether a round is running now.</summary>
         public bool Running => Volatile.Read(ref _running) != 0;
     }
 

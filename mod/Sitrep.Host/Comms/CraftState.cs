@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Propagation.Contacts;
@@ -50,8 +49,10 @@ namespace Sitrep.Host.Comms
             SecularOrbit? secular,
             double? validUntilUt,
             bool plannable,
-            IReadOnlyDictionary<string, CraftLink> links)
+            IReadOnlyDictionary<string, CraftLink> links,
+            object? motion)
         {
+            Motion = motion ?? new object();
             Id = id;
             CapturedUt = capturedUt;
             Exists = exists;
@@ -94,6 +95,14 @@ namespace Sitrep.Host.Comms
         /// <summary>The craft's link to each other node that existed when this was read, by that node's id.</summary>
         public IReadOnlyDictionary<string, CraftLink> Links { get; }
 
+        /// <summary>
+        /// Stands for where the craft is going: two states carrying the same
+        /// object are of the same craft on the same orbit, or at the same place
+        /// on the surface, and differ only in their links and in when they were
+        /// read. Solved positions are remembered under it.
+        /// </summary>
+        public object Motion { get; }
+
         public static CraftState Orbiting(
             string id,
             double capturedUt,
@@ -103,15 +112,25 @@ namespace Sitrep.Host.Comms
             double? validUntilUt,
             bool plannable,
             IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(id, capturedUt, true, bodyIndex, orbit, null, secular, validUntilUt, plannable, links);
+            new CraftState(id, capturedUt, true, bodyIndex, orbit, null, secular, validUntilUt, plannable, links, null);
 
         public static CraftState Landed(
             string id, double capturedUt, int bodyIndex, RotatingGroundStation surface, IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(id, capturedUt, true, bodyIndex, null, surface, null, null, true, links);
+            new CraftState(id, capturedUt, true, bodyIndex, null, surface, null, null, true, links, null);
 
         /// <summary>The craft is gone: destroyed, recovered, or docked into another.</summary>
         public static CraftState Gone(string id, double capturedUt) =>
-            new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks);
+            new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks, null);
+
+        /// <summary>
+        /// This craft still going where it was, read again at
+        /// <paramref name="capturedUt"/>: the same orbit or place and the same
+        /// <see cref="Motion"/>, with its links and how far its orbit can be
+        /// trusted as they stand now.
+        /// </summary>
+        public CraftState ReadAgain(
+            double capturedUt, double? validUntilUt, bool plannable, IReadOnlyDictionary<string, CraftLink> links) =>
+            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion);
 
         /// <summary>The craft as a contact plan carries it, or null for one that is gone or cannot be planned.</summary>
         public PlanNode? ToPlanNode()
@@ -129,46 +148,5 @@ namespace Sitrep.Host.Comms
                 ? PlanNode.Drifting(Id, target, Secular.Value, ValidUntilUt)
                 : PlanNode.Orbiting(Id, target, ValidUntilUt);
         }
-    }
-
-    /// <summary>
-    /// Where craft states are recorded and heard: each on its craft's own
-    /// node, so the delay machinery carries it to each command centre as it
-    /// carries that craft's telemetry. Courier thread only.
-    /// </summary>
-    public interface ICraftStateHost
-    {
-        /// <summary>
-        /// Records <paramref name="state"/> as read aboard the craft at
-        /// <paramref name="ut"/>. While the craft is out of contact it is held
-        /// with the rest of the craft's recording, and dumped on reacquisition.
-        /// </summary>
-        /// <param name="vesselId">The craft's bare guid, as the fleet node carries it.</param>
-        void RecordCraftState(string vesselId, CraftState state, double ut);
-
-        /// <summary>
-        /// Notes that the craft still exists and is still measured, so that
-        /// its light-times are on file for the day it is not.
-        /// </summary>
-        void NoteCraftPresent(string vesselId);
-
-        /// <summary>
-        /// Records that the craft is gone as of <paramref name="ut"/>. It
-        /// reaches each centre at the light-time the craft was last measured at
-        /// while in contact, which is when its silence would. A craft that was
-        /// out of contact when it went sends nothing: no centre can tell its
-        /// loss from the blackout it was already in.
-        /// </summary>
-        void RecordCraftGone(string vesselId, double ut);
-
-        /// <summary>
-        /// Hears the craft's states as <paramref name="centre"/> receives them:
-        /// the newest already arrived at once, and each later one as it lands.
-        /// Returns the call that stops listening.
-        /// </summary>
-        Action HearCraftState(string vesselId, string centre, Action<CraftState> heard);
-
-        /// <summary>Calls <paramref name="reset"/> whenever the game's timeline is rewound or replaced, after everything recorded ahead of it has been dropped.</summary>
-        void OnTimelineReset(Action reset);
     }
 }

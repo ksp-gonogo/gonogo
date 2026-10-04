@@ -12,7 +12,13 @@ namespace Sitrep.Propagation.Contacts
     public sealed class PlanNode
     {
         private PlanNode(
-            string id, int bodyIndex, PropagationTarget? orbit, SecularOrbit? secular, RotatingGroundStation? surface, double? validUntilUt)
+            string id,
+            int bodyIndex,
+            PropagationTarget? orbit,
+            SecularOrbit? secular,
+            RotatingGroundStation? surface,
+            double? validUntilUt,
+            object? remembered = null)
         {
             Id = id;
             BodyIndex = bodyIndex;
@@ -20,7 +26,20 @@ namespace Sitrep.Propagation.Contacts
             Secular = secular;
             Surface = surface;
             ValidUntilUt = validUntilUt;
+            Remembered = remembered;
         }
+
+        /// <summary>
+        /// What a <see cref="PlanPositions"/> remembers this node's solved
+        /// positions under, or null to solve them afresh for every plan. Two
+        /// nodes carrying the same object are the same craft on the same orbit,
+        /// whichever plan they are in.
+        /// </summary>
+        public object? Remembered { get; }
+
+        /// <summary>This node, with its solved positions remembered under <paramref name="key"/>.</summary>
+        public PlanNode RememberedAs(object key) =>
+            new PlanNode(Id, BodyIndex, Orbit, Secular, Surface, ValidUntilUt, key);
 
         /// <summary>The node's id, in the <c>commandCentre.roster</c> vocabulary (<c>"ground:&lt;name&gt;"</c>, <c>"vessel:&lt;guid&gt;"</c>).</summary>
         public string Id { get; }
@@ -218,6 +237,109 @@ namespace Sitrep.Propagation.Contacts
     /// <para>KSP-free and thread-free: every input is captured before the call,
     /// so it can run anywhere.</para>
     /// </summary>
+    /// <summary>
+    /// Solved positions kept from one plan to the next, so plans that share a
+    /// node on the same orbit solve it once between them. Two command centres
+    /// that have heard the same news of a craft plan it from the same positions.
+    ///
+    /// <para>It holds one grid: a frame, a step, and instants that are whole
+    /// multiples of the step (see <see cref="ContactPlanner.OnGrid"/>). A plan
+    /// on any other grid solves for itself and leaves this alone. Not safe to
+    /// share between two plans running at once.</para>
+    /// </summary>
+    public sealed class PlanPositions
+    {
+        private readonly Dictionary<object, Dictionary<long, Vector3d>> _byKey = new Dictionary<object, Dictionary<long, Vector3d>>();
+        private readonly Dictionary<int, object> _bodyKeys = new Dictionary<int, object>();
+
+        public PlanPositions(int frameBodyIndex, double stepSeconds)
+        {
+            FrameBodyIndex = frameBodyIndex;
+            StepSeconds = stepSeconds;
+        }
+
+        public int FrameBodyIndex { get; }
+
+        public double StepSeconds { get; }
+
+        /// <summary>How many positions are held.</summary>
+        public long Count
+        {
+            get
+            {
+                long count = 0;
+                foreach (var row in _byKey.Values)
+                {
+                    count += row.Count;
+                }
+                return count;
+            }
+        }
+
+        /// <summary>Whether a plan in this frame, from <paramref name="fromUt"/> at <paramref name="stepSeconds"/>, lands on this grid.</summary>
+        public bool Fits(int frameBodyIndex, double fromUt, double stepSeconds)
+        {
+            if (frameBodyIndex != FrameBodyIndex || stepSeconds != StepSeconds)
+            {
+                return false;
+            }
+            var index = Math.Round(fromUt / stepSeconds);
+            return Math.Abs((index * stepSeconds) - fromUt) <= 1e-9 * Math.Max(1.0, Math.Abs(fromUt));
+        }
+
+        /// <summary>
+        /// Forgets every node not in <paramref name="live"/>, and every instant
+        /// before <paramref name="fromUt"/>. Bodies are always kept.
+        /// </summary>
+        public void Keep(ICollection<object> live, double fromUt)
+        {
+            var first = (long)Math.Floor(fromUt / StepSeconds);
+            var bodies = new HashSet<object>(_bodyKeys.Values);
+            foreach (var key in new List<object>(_byKey.Keys))
+            {
+                if (!bodies.Contains(key) && !live.Contains(key))
+                {
+                    _byKey.Remove(key);
+                    continue;
+                }
+                var row = _byKey[key];
+                foreach (var index in new List<long>(row.Keys))
+                {
+                    if (index < first)
+                    {
+                        row.Remove(index);
+                    }
+                }
+            }
+        }
+
+        internal object BodyKey(int bodyIndex)
+        {
+            if (!_bodyKeys.TryGetValue(bodyIndex, out var key))
+            {
+                key = new object();
+                _bodyKeys[bodyIndex] = key;
+            }
+            return key;
+        }
+
+        internal bool TryGet(object key, long index, out Vector3d position)
+        {
+            position = default;
+            return _byKey.TryGetValue(key, out var row) && row.TryGetValue(index, out position);
+        }
+
+        internal void Put(object key, long index, Vector3d position)
+        {
+            if (!_byKey.TryGetValue(key, out var row))
+            {
+                row = new Dictionary<long, Vector3d>();
+                _byKey[key] = row;
+            }
+            row[index] = position;
+        }
+    }
+
     public static class ContactPlanner
     {
         /// <summary>Grid samples per shortest cycle among the nodes: enough to see a window a seventy-second of a cycle long.</summary>
@@ -269,7 +391,8 @@ namespace Sitrep.Propagation.Contacts
             double fromUt,
             double horizonSeconds,
             double stepSeconds,
-            double refinementToleranceSeconds)
+            double refinementToleranceSeconds,
+            PlanPositions? remembered = null)
         {
             if (propagator == null) throw new ArgumentNullException(nameof(propagator));
             if (!(stepSeconds > 0.0) || double.IsInfinity(stepSeconds))
@@ -280,7 +403,14 @@ namespace Sitrep.Propagation.Contacts
             var gridCount = (int)Math.Ceiling(horizonSeconds / stepSeconds);
             var horizonUt = fromUt + (gridCount * stepSeconds);
             var frame = PropagationFrame.CentredOn(frameBodyIndex);
-            var cache = new PositionCache(Carried(nodes, propagator, frame, fromUt, horizonUt), propagator, frame, fromUt, stepSeconds, gridCount);
+            var cache = new PositionCache(
+                Carried(nodes, propagator, frame, fromUt, horizonUt),
+                propagator,
+                frame,
+                fromUt,
+                stepSeconds,
+                gridCount,
+                remembered != null && remembered.Fits(frameBodyIndex, fromUt, stepSeconds) ? remembered : null);
 
             var plans = new List<PairPlan>();
             foreach (var pair in pairs)
@@ -315,6 +445,13 @@ namespace Sitrep.Propagation.Contacts
 
             return new ContactPlan(fromUt, horizonUt, stepSeconds, plans, cache.Solves, cache.MarginEvaluations);
         }
+
+        /// <summary>
+        /// <paramref name="ut"/> moved back onto the grid of step
+        /// <paramref name="stepSeconds"/> that every plan sharing a
+        /// <see cref="PlanPositions"/> starts on.
+        /// </summary>
+        public static double OnGrid(double ut, double stepSeconds) => Math.Floor(ut / stepSeconds) * stepSeconds;
 
         /// <summary>
         /// The nodes the propagator can carry across the plan. A craft it cannot
@@ -378,9 +515,20 @@ namespace Sitrep.Propagation.Contacts
             private readonly double _fromUt;
             private readonly double _step;
             private readonly int _count;
+            private readonly PlanPositions? _remembered;
+            private readonly long _firstIndex;
 
-            public PositionCache(IReadOnlyList<PlanNode> nodes, IPropagationProvider propagator, PropagationFrame frame, double fromUt, double step, int count)
+            public PositionCache(
+                IReadOnlyList<PlanNode> nodes,
+                IPropagationProvider propagator,
+                PropagationFrame frame,
+                double fromUt,
+                double step,
+                int count,
+                PlanPositions? remembered = null)
             {
+                _remembered = remembered;
+                _firstIndex = (long)Math.Round(fromUt / step);
                 _nodes = new PlanNode[nodes.Count];
                 _nodeAt = new Vector3d?[nodes.Count][];
                 for (var i = 0; i < nodes.Count; i++)
@@ -417,10 +565,24 @@ namespace Sitrep.Propagation.Contacts
                 var cached = _nodeAt[n][g];
                 if (cached == null)
                 {
-                    cached = SolveNode(_nodes[n], ut);
+                    cached = Recalled(_nodes[n].Remembered, g) ?? Remember(_nodes[n].Remembered, g, SolveNode(_nodes[n], ut));
                     _nodeAt[n][g] = cached;
                 }
                 return cached.Value;
+            }
+
+            private Vector3d? Recalled(object? key, int g) =>
+                _remembered != null && key != null && _remembered.TryGet(key, _firstIndex + g, out var position)
+                    ? position
+                    : (Vector3d?)null;
+
+            private Vector3d Remember(object? key, int g, Vector3d position)
+            {
+                if (_remembered != null && key != null)
+                {
+                    _remembered.Put(key, _firstIndex + g, position);
+                }
+                return position;
             }
 
             public Vector3d BodyAt(int bodyIndex, double ut)
@@ -438,7 +600,8 @@ namespace Sitrep.Propagation.Contacts
                 var cached = row[g];
                 if (cached == null)
                 {
-                    cached = SolveBody(bodyIndex, ut);
+                    var key = _remembered?.BodyKey(bodyIndex);
+                    cached = Recalled(key, g) ?? Remember(key, g, SolveBody(bodyIndex, ut));
                     row[g] = cached;
                 }
                 return cached.Value;

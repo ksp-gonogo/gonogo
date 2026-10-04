@@ -73,7 +73,7 @@ namespace Sitrep.Host.Tests.Comms
             var recorder = new CraftStateRecorder();
             recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null);
 
-            var batch = recorder.Capture(Look(Craft("a", Orbit(700_010.0, 1e-6, 1e-5))), 600.0, null);
+            var batch = recorder.Capture(Look(Craft("a", Orbit(700_010.0, 1e-6, 1e-5))), 500.0, null);
 
             Assert.Empty(batch.States);
             Assert.Equal(new[] { "a" }, batch.Present);
@@ -112,34 +112,55 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Single(recorder.Capture(Look(ContactGameNode.LandedCraft("vessel:a", Kerbin, Surface(11.0))), 2.0, null).States);
         }
 
-        /// <summary>Every craft's links are to a different set of nodes once one arrives or leaves.</summary>
+        /// <summary>
+        /// A craft read because a distant one was launched or destroyed would
+        /// carry that news to a centre at its own light-time.
+        /// </summary>
         [Fact]
-        public void ANodeArrivingOrLeavingHasEveryCraftReadAgain()
+        public void NothingAnotherCraftDoesHasACraftRead()
         {
             var recorder = new CraftStateRecorder();
             var a = Craft("a", Orbit(700_000.0));
             recorder.Capture(Look(a), 0.0, null);
 
             var arrived = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0))), 1.0, null);
-            Assert.Equal(new[] { "vessel:a", "vessel:b" }, arrived.States.Select(s => s.Id).OrderBy(id => id));
+            Assert.Equal("vessel:b", Assert.Single(arrived.States).Id);
 
             var station = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0)), Ksc), 2.0, null);
-            Assert.Equal(2, station.States.Count);
+            Assert.Empty(station.States);
 
             var left = recorder.Capture(Look(a, Ksc), 3.0, null);
-            Assert.Equal("vessel:a", Assert.Single(left.States).Id);
+            Assert.Empty(left.States);
             Assert.Equal(new[] { "b" }, left.Gone);
         }
 
         [Fact]
-        public void ACraftIsReadAgainOnceHalfAPlansHorizonHasPassed()
+        public void ACraftThatHasNotMovedIsReadAgainEveryRefreshOnTheOrbitItWasFirstReadOn()
         {
             var recorder = new CraftStateRecorder();
-            var look = Look(Craft("a", Orbit(700_000.0)));
-            recorder.Capture(look, 0.0, null);
+            var first = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null).States);
+            var wobbled = Look(Craft("a", Orbit(700_010.0, 1e-6, 1e-5)), Craft("b", Orbit(800_000.0)));
 
-            Assert.Empty(recorder.Capture(look, (ContactPlanSchedule.HorizonSeconds / 2.0) - 1.0, null).States);
-            Assert.Single(recorder.Capture(look, ContactPlanSchedule.HorizonSeconds / 2.0, null).States);
+            Assert.DoesNotContain(recorder.Capture(wobbled, CraftStateRecorder.LinkRefreshSeconds - 1.0, null).States, s => s.Id == "vessel:a");
+            var again = recorder.Capture(wobbled, CraftStateRecorder.LinkRefreshSeconds, null).States.Single(s => s.Id == "vessel:a");
+
+            Assert.Equal(CraftStateRecorder.LinkRefreshSeconds, again.CapturedUt);
+            Assert.Equal(700_000.0, again.Orbit!.Value.Sma);
+            Assert.Same(first.Motion, again.Motion);
+            Assert.Contains("vessel:b", again.Links.Keys);
+            Assert.Empty(first.Links);
+        }
+
+        [Fact]
+        public void ACraftThatMovedIsGoingSomewhereNew()
+        {
+            var recorder = new CraftStateRecorder();
+            var first = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null).States);
+
+            var burned = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(900_000.0))), 60.0, null).States);
+
+            Assert.Equal(900_000.0, burned.Orbit!.Value.Sma);
+            Assert.NotSame(first.Motion, burned.Motion);
         }
 
         [Fact]
@@ -175,7 +196,11 @@ namespace Sitrep.Host.Tests.Comms
 
             CraftStateRecorder.Record(batch, host);
 
-            Assert.Equal(new[] { "gone b@1", "present a", "present a", "state a@1" }, host.Calls);
+            Assert.Equal(new[] { "gone b@1", "present a" }, host.Calls);
+
+            host.Calls.Clear();
+            CraftStateRecorder.Record(recorder.Capture(Look(Craft("a", Orbit(900_000.0))), 60.0, null), host);
+            Assert.Equal(new[] { "present a", "present a", "state a@60" }, host.Calls);
         }
 
         [Fact]

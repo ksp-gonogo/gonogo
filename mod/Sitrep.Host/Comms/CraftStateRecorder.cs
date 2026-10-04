@@ -9,39 +9,51 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// Decides when a craft's <see cref="CraftState"/> is out of date and reads
     /// a new one: when the craft first appears, when its orbit or its place on
-    /// the surface moves past the plan's tolerance, when a node arrives or
-    /// leaves (every craft's links are to a different set of nodes), and when
-    /// half a plan's horizon has passed, which is how a change the game gives
-    /// no sign of, a dish re-aimed or an antenna retracted, is picked up.
+    /// the surface moves past the plan's tolerance, and every
+    /// <see cref="LinkRefreshSeconds"/> whatever has happened, which is how a
+    /// change the game gives no sign of, a dish re-aimed or an antenna
+    /// retracted, is picked up, and how a craft's links come to name a craft
+    /// launched since it was last read.
+    ///
+    /// <para><b>Nothing another craft does has a craft read.</b> A craft read
+    /// because a distant one was launched or destroyed would carry that news to
+    /// each centre at its own light-time, which can be far shorter than the
+    /// distant craft's.</para>
     ///
     /// <para>A burn moves an orbit every tick, so a craft whose orbit is
     /// moving is read at most once per
-    /// <see cref="ContactPlanSchedule.MinDriftReplanSeconds"/>.</para>
+    /// <see cref="ContactPlanSchedule.MinDriftReplanSeconds"/>. A craft read
+    /// again without having moved keeps the orbit it was first read on, so an
+    /// n-body propagator's wobble never reaches a plan.</para>
     /// </summary>
     public sealed class CraftStateRecorder
     {
         public const string VesselPrefix = "vessel:";
 
         /// <summary>
-        /// Soft cap on craft states recorded per second of game time. A node
-        /// arriving or leaving records every craft at once, so a busy save
-        /// peaks at its craft count; sustained above this, the tolerances are
-        /// reading noise as change.
+        /// Soft cap on craft states recorded per second of game time. A game
+        /// load reads every craft at once, so a busy save peaks at its craft
+        /// count; sustained above this, the tolerances are reading noise as
+        /// change.
         /// </summary>
         private static readonly PerfBudget StatesRecordedBudget = new PerfBudget(
             "CraftStateRecorder craft states recorded", threshold: 600, windowSec: 1.0, unit: "states");
 
+        /// <summary>How often a craft that has not moved is read again, in seconds of game time.</summary>
+        public const double LinkRefreshSeconds = 600.0;
+
         private sealed class Read
         {
-            public Read(ContactGameNode node, double ut)
+            public Read(ContactGameNode node, CraftState state)
             {
                 Node = node;
-                Ut = ut;
+                State = state;
             }
 
+            /// <summary>The craft as the game showed it when its orbit or place was last taken.</summary>
             public ContactGameNode Node { get; }
 
-            public double Ut { get; }
+            public CraftState State { get; }
         }
 
         /// <summary>What <see cref="Capture"/> found, for the Courier thread to record.</summary>
@@ -69,7 +81,6 @@ namespace Sitrep.Host.Comms
 
         // Main-thread state, apart from the flag a timeline reset raises.
         private readonly Dictionary<string, Read> _read = new Dictionary<string, Read>(StringComparer.Ordinal);
-        private HashSet<string> _nodeIds = new HashSet<string>(StringComparer.Ordinal);
         private int _readAll;
 
         /// <summary>Has every craft read afresh on the next pass: the timeline was reset, and what was recorded ahead of it is gone. Safe from any thread.</summary>
@@ -78,14 +89,12 @@ namespace Sitrep.Host.Comms
         /// <summary>MAIN THREAD: the craft whose state is out of date, each read now.</summary>
         public Batch Capture(ContactGameLook look, double ut, Kernel? kernel)
         {
-            var nodeIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var node in look.Nodes)
+            if (Interlocked.Exchange(ref _readAll, 0) != 0)
             {
-                nodeIds.Add(node.Id);
+                _read.Clear();
             }
-            var everything = Interlocked.Exchange(ref _readAll, 0) != 0 || !nodeIds.SetEquals(_nodeIds);
-            _nodeIds = nodeIds;
 
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             var present = new List<string>();
             var states = new List<CraftState>();
             foreach (var node in look.Nodes)
@@ -94,19 +103,19 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
+                seen.Add(node.Id);
                 present.Add(GuidOf(node.Id));
-                if (!everything && _read.TryGetValue(node.Id, out var last) && !Due(last, node, ut))
+                var state = Due(node, look, ut, kernel);
+                if (state != null)
                 {
-                    continue;
+                    states.Add(state);
                 }
-                _read[node.Id] = new Read(node, ut);
-                states.Add(StateOf(node, look, ut, kernel));
             }
 
             var gone = new List<string>();
             foreach (var id in new List<string>(_read.Keys))
             {
-                if (!nodeIds.Contains(id))
+                if (!seen.Contains(id))
                 {
                     _read.Remove(id);
                     gone.Add(GuidOf(id));
@@ -114,6 +123,29 @@ namespace Sitrep.Host.Comms
             }
             StatesRecordedBudget.Record(states.Count, ut);
             return new Batch(ut, present, states, gone);
+        }
+
+        /// <summary>The craft's state read now, when its last one is out of date, or null while that one still stands.</summary>
+        private CraftState? Due(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel)
+        {
+            if (!_read.TryGetValue(node.Id, out var last) || ut < last.State.CapturedUt || Moved(last, node, ut))
+            {
+                var fresh = StateOf(node, look, ut, kernel);
+                _read[node.Id] = new Read(node, fresh);
+                return fresh;
+            }
+            if (ut < last.State.CapturedUt + LinkRefreshSeconds)
+            {
+                return null;
+            }
+            // A seed is anchored to when it was asked for, so a craft carried on
+            // one is read afresh each time.
+            var read = StateOf(node, look, ut, kernel);
+            var again = read.Secular != null || last.State.Secular != null
+                ? read
+                : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links);
+            _read[node.Id] = new Read(ReferenceEquals(again, read) ? node : last.Node, again);
+            return again;
         }
 
         /// <summary>COURIER THREAD: records what <see cref="Capture"/> read.</summary>
@@ -135,12 +167,8 @@ namespace Sitrep.Host.Comms
 
         public static string GuidOf(string nodeId) => nodeId.Substring(VesselPrefix.Length);
 
-        private static bool Due(Read last, ContactGameNode now, double ut)
+        private static bool Moved(Read last, ContactGameNode now, double ut)
         {
-            if (ut < last.Ut || ut >= last.Ut + (ContactPlanSchedule.HorizonSeconds / 2.0))
-            {
-                return true;
-            }
             var was = last.Node;
             if (was.BodyIndex != now.BodyIndex || was.Orbit.HasValue != now.Orbit.HasValue || was.Surface.HasValue != now.Surface.HasValue)
             {
@@ -152,7 +180,7 @@ namespace Sitrep.Host.Comms
                     > ContactPlanSchedule.SurfaceToleranceMeters;
             }
             return now.Orbit.HasValue
-                && ut >= last.Ut + ContactPlanSchedule.MinDriftReplanSeconds
+                && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds
                 && ContactPlanSchedule.Moved(was.Orbit!.Value, now.Orbit.Value);
         }
 

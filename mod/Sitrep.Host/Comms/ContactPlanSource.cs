@@ -90,21 +90,46 @@ namespace Sitrep.Host.Comms
         IReadOnlyList<string> Centres();
     }
 
+    /// <summary>Who a contact plan is made for. Any thread.</summary>
+    public interface IPlanAudienceHost
+    {
+        /// <summary>The centres a plan is kept for: the home centre always, and every centre a session is sitting at.</summary>
+        IReadOnlyCollection<string> PlanningCentres();
+    }
+
     /// <summary>
-    /// Publishes <c>comms.contacts</c> and <c>comms.route</c>: for every ground
-    /// station and craft that could hold a link, the windows over the coming
-    /// hours when one is predicted, and each command centre's earliest-arrival
-    /// route to and from the active craft over them.
+    /// Every centre's contact plan as one sample. Each session is sent its own
+    /// centre's, by <see cref="ContactPlanSource.OwnPlan"/>, and no other.
+    /// </summary>
+    public sealed class CentrePlans
+    {
+        public CentrePlans(IReadOnlyDictionary<string, CommsContacts> byCentre)
+        {
+            ByCentre = byCentre;
+        }
+
+        public IReadOnlyDictionary<string, CommsContacts> ByCentre { get; }
+    }
+
+    /// <summary>
+    /// Publishes <c>comms.contacts</c> and <c>comms.route</c>: for each command
+    /// centre, the windows over the coming hours when it believes a link will
+    /// hold between each ground station and craft it knows of, and its
+    /// earliest-arrival route to and from the active craft over them.
     ///
-    /// <para>The main thread captures the nodes, their orbits and each pair's
-    /// occluders and reach, but only when the schedule says the last plan is
-    /// out of date. The plan itself runs off both threads, on a stock analytic
-    /// propagator over a snapshot of the body table, because it takes tens of
-    /// milliseconds for a busy save. A provider that integrates still bounds
-    /// each craft's prediction, through the horizon it reports for it, and a
-    /// craft whose horizon it cannot state is left out of the plan rather than
-    /// trusted for all of it. Where the elected provider offers a secular seed
-    /// for a craft, the plan carries the craft's drift with it instead.</para>
+    /// <para>A centre's plan is made only of what that centre has heard. The
+    /// main thread reads each craft's <see cref="CraftState"/> when it changes
+    /// and it is recorded on the craft's own node; <see cref="CentreHearing"/>
+    /// receives it at each centre one light-time later; and
+    /// <see cref="ReckonedPlan"/> reckons every craft a centre has heard of
+    /// forward from the orbit it last reported. So nothing a craft does moves
+    /// a centre's plan until the news has reached that centre.</para>
+    ///
+    /// <para>A centre is planned for again when news reaches it, when the
+    /// ground stations change, and when half its plan's horizon has passed.
+    /// The plans run off both threads, on a stock analytic propagator over a
+    /// snapshot of the body table, because one takes tens of milliseconds for
+    /// a busy save.</para>
     /// </summary>
     public sealed class ContactPlanSource
     {
@@ -113,18 +138,18 @@ namespace Sitrep.Host.Comms
         public const string RouteTopic = "comms.route";
 
         /// <summary>
-        /// Soft cap on contact plans started per second of game time. A plan is
-        /// made when an orbit moves, a node comes or goes, or half the horizon
-        /// has passed, so a steady save starts one every few hours and a burn
-        /// one every few seconds. Sustained above this, the schedule is
-        /// re-planning on noise rather than on change.
+        /// Soft cap on contact plans started per second of game time. A centre is
+        /// planned for when news reaches it or half its horizon has passed, so a
+        /// steady save starts one per centre every few hours and a burn one per
+        /// centre every few seconds. Sustained above this, plans are being made
+        /// on noise rather than on news.
         /// </summary>
         private static readonly PerfBudget PlansStartedBudget = new PerfBudget(
-            "ContactPlanUplink plans started", threshold: 2, windowSec: 1.0, unit: "plans");
+            "ContactPlanUplink plans started", threshold: 20, windowSec: 1.0, unit: "plans");
 
         /// <summary>
-        /// The least wall time between two looks at whether a plan is due. Reading
-        /// every craft's orbit is cheap but not free, and nothing about a contact
+        /// The least wall time between two looks at the game. Reading every
+        /// craft's orbit is cheap but not free, and nothing about a contact
         /// plan needs to notice a change within half a second.
         /// </summary>
         public const float LookIntervalSeconds = 0.5f;
@@ -143,27 +168,96 @@ namespace Sitrep.Host.Comms
         private static readonly PerfBudget RouteRowsBudget = new PerfBudget(
             "ContactPlanUplink route rows", threshold: 400, windowSec: 1.0, unit: "rows");
 
+        /// <summary>What one centre's current plan was made from.</summary>
+        private sealed class Planned
+        {
+            public Planned(long news, int ground, double fromUt, ContactPlanRequest request)
+            {
+                News = news;
+                Ground = ground;
+                FromUt = fromUt;
+                Request = request;
+            }
+
+            /// <summary>The centre's news count when the plan was asked for, or when later news was last found to change nothing.</summary>
+            public long News { get; set; }
+
+            public int Ground { get; }
+
+            public double FromUt { get; }
+
+            public ContactPlanRequest Request { get; }
+        }
+
+        /// <summary>What the main thread read of the game on one look.</summary>
+        private sealed class Looked
+        {
+            public Looked(
+                double ut,
+                CraftStateRecorder.Batch craft,
+                PlanGround ground,
+                IReadOnlyList<ContactGameNode> stations,
+                IReadOnlyList<string> centres,
+                string? activeCraft,
+                bool routesDue)
+            {
+                Ut = ut;
+                Craft = craft;
+                Ground = ground;
+                Stations = stations;
+                Centres = centres;
+                ActiveCraft = activeCraft;
+                RoutesDue = routesDue;
+            }
+
+            public double Ut { get; }
+
+            public CraftStateRecorder.Batch Craft { get; }
+
+            public PlanGround Ground { get; }
+
+            public IReadOnlyList<ContactGameNode> Stations { get; }
+
+            public IReadOnlyList<string> Centres { get; }
+
+            public string? ActiveCraft { get; }
+
+            public bool RoutesDue { get; }
+        }
+
         private readonly IContactGame _game;
         private readonly Func<float> _wallSeconds;
         private readonly Action<string> _warn;
         private readonly bool _planInline;
-        private readonly ContactPlanSchedule _schedule = new ContactPlanSchedule();
         private readonly ContactPlanRunner _runner = new ContactPlanRunner();
         private readonly CraftStateRecorder _craft = new CraftStateRecorder();
         private IUplinkHost? _host;
         private ICraftStateHost? _craftHost;
-        private float _craftLookedAt = float.NegativeInfinity;
+        private IPlanAudienceHost? _audience;
         private IChannelPublisher? _publisher;
         private IChannelPublisher? _routePublisher;
-        private volatile ContactPlan? _plan;
-        private float _routedAt = float.NegativeInfinity;
-        private float _lookedAt = float.NegativeInfinity;
         private volatile string? _lastFailure;
+
+        // Main-thread pacing.
+        private float _lookedAt = float.NegativeInfinity;
+        private float _routedAt = float.NegativeInfinity;
+
+        // Courier-thread state from here down.
+        private CentreHearing? _hearing;
+        private readonly Dictionary<string, ContactPlan> _plans = new Dictionary<string, ContactPlan>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Planned> _planned = new Dictionary<string, Planned>(StringComparer.Ordinal);
+        private Dictionary<string, Planned> _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
+        private IReadOnlyList<ContactGameNode> _stations = new ContactGameNode[0];
+        private PlanGround? _ground;
+        private int _groundVersion;
+        private bool _plansUnpublished;
+        private bool _contactsWereSubscribed;
+        private volatile bool _timelineReset;
 
         /// <param name="game">The game the plan is made of.</param>
         /// <param name="wallSeconds">Wall time in seconds, for pacing how often the game is looked at.</param>
         /// <param name="warn">Where a plan that threw is reported.</param>
-        /// <param name="planInline">Run each plan on the capturing thread instead of a pool thread, so a tick that starts one also publishes it. For a scripted game, where which tick a plan lands on has to be the same every run.</param>
+        /// <param name="planInline">Run each round of plans on the Courier thread instead of a pool thread, so the tick that starts one also publishes it. For a scripted game, where which tick a plan lands on has to be the same every run.</param>
         public ContactPlanSource(IContactGame game, Func<float> wallSeconds, Action<string>? warn = null, bool planInline = false)
         {
             _game = game;
@@ -172,7 +266,7 @@ namespace Sitrep.Host.Comms
             _planInline = planInline;
         }
 
-        /// <summary>Degraded while the most recent plan threw, naming what it threw; the next plan that finishes clears it.</summary>
+        /// <summary>Degraded while the most recent round of plans threw, naming what it threw; the next round that finishes clears it.</summary>
         public UplinkHealth Health()
         {
             var failure = _lastFailure;
@@ -189,11 +283,12 @@ namespace Sitrep.Host.Comms
                 Requires = Requirement.None,
                 Topic = ContactsTopic,
                 Delivery = Delivery.LossyLatest,
-                // Made on the ground from every node's orbit, so each centre
-                // receives it one of its own light-times later.
                 Delay = DelayRole.Delayed,
                 // Never aboard anything, so nothing to replay on reacquisition.
                 Recordable = false,
+                // A centre's plan is what that centre believes, which another
+                // centre has no way to know.
+                ViewerFilter = OwnPlan,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
             },
             new ChannelDeclaration
@@ -201,7 +296,6 @@ namespace Sitrep.Host.Comms
                 Requires = Requirement.None,
                 Topic = RouteTopic,
                 Delivery = Delivery.LossyLatest,
-                // Planned from comms.contacts, so it reaches each centre on the same delay.
                 Delay = DelayRole.Delayed,
                 Recordable = false,
                 // Each centre's routes say where it can reach, which another
@@ -211,103 +305,41 @@ namespace Sitrep.Host.Comms
             },
         };
 
+        /// <summary>The plan of the centre a session is sitting at, or nothing for a centre that has none yet.</summary>
+        public static object? OwnPlan(object payload, ViewerContext viewer) =>
+            payload is CentrePlans plans && plans.ByCentre.TryGetValue(viewer.Vantage, out var own) ? own : null;
+
+        /// <summary>The plan <paramref name="centre"/> currently holds, or null. Courier thread only.</summary>
+        public ContactPlan? PlanOf(string centre) => _plans.TryGetValue(centre, out var plan) ? plan : null;
+
         public void Register(IUplinkHost host)
         {
             _host = host;
             _publisher = host.Publisher(ContactsTopic);
             _routePublisher = host.Publisher(RouteTopic);
             _craftHost = host as ICraftStateHost;
-            _craftHost?.OnTimelineReset(_craft.ReadAllAgain);
-            // Ungated: a centre can only plan from what it has heard, so a craft's
-            // state has to be on record before anyone asks for a plan of it.
-            host.AddSampledSource(CaptureCraftOnMain, RecordCraftOnCourier);
-            // The plan runs for either topic, since routes are read off it.
-            host.AddSampledSource(CaptureOnMain, PublishOnCourier, ContactsTopic, RouteTopic);
-            host.AddSampledSource(CaptureRouteInputsOnMain, PublishRoutesOnCourier, RouteTopic);
-        }
-
-        /// <summary>MAIN THREAD: reads the state of every craft whose last one is out of date.</summary>
-        internal object? CaptureCraftOnMain(KspSnapshot? snapshot)
-        {
-            if (snapshot == null || _host == null || _craftHost == null)
+            _audience = host as IPlanAudienceHost;
+            if (_craftHost == null || _audience == null)
             {
-                return null;
-            }
-            var wall = _wallSeconds();
-            if (wall - _craftLookedAt < LookIntervalSeconds)
-            {
-                return null;
-            }
-            var look = _game.Look();
-            if (look == null)
-            {
-                return null;
-            }
-            _craftLookedAt = wall;
-            return _craft.Capture(look, snapshot.Ut, _host.Kernel);
-        }
-
-        /// <summary>COURIER THREAD: records each craft state read this tick on its craft's own node.</summary>
-        internal void RecordCraftOnCourier(object? captured)
-        {
-            if (captured is CraftStateRecorder.Batch batch && _craftHost != null)
-            {
-                CraftStateRecorder.Record(batch, _craftHost);
-            }
-        }
-
-        /// <summary>MAIN THREAD: who the routes are between and when, at most once a second.</summary>
-        internal object? CaptureRouteInputsOnMain(KspSnapshot? snapshot)
-        {
-            var wall = _wallSeconds();
-            if (snapshot == null || wall - _routedAt < RouteIntervalSeconds)
-            {
-                return null;
-            }
-            var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
-            if (string.IsNullOrEmpty(active))
-            {
-                return null;
-            }
-            _routedAt = wall;
-            return new RouteInputs("vessel:" + active, new List<string>(_game.Centres()), snapshot.Ut);
-        }
-
-        /// <summary>COURIER THREAD: plans each centre's routes for now from the latest contact plan and publishes them.</summary>
-        internal void PublishRoutesOnCourier(object? captured)
-        {
-            var plan = _plan;
-            // A plan made after this instant belongs to a timeline the game has
-            // left, by a revert or a load; the next plan replaces it.
-            if (!(captured is RouteInputs inputs) || plan == null || inputs.Ut < plan.FromUt)
-            {
+                _warn("this host carries no craft states, so no contact plan can be made");
                 return;
             }
-            var routes = ContactRouting.RoutesFor(plan, inputs.ActiveCraft, inputs.Centres, inputs.Ut);
-            RouteRowsBudget.Record(routes.Routes.Count, inputs.Ut);
-            _routePublisher?.Publish(routes, inputs.Ut);
-        }
-
-        private sealed class RouteInputs
-        {
-            public RouteInputs(string activeCraft, IReadOnlyList<string> centres, double ut)
+            _hearing = new CentreHearing(_craftHost);
+            _craftHost.OnTimelineReset(() =>
             {
-                ActiveCraft = activeCraft;
-                Centres = centres;
-                Ut = ut;
-            }
-
-            public string ActiveCraft { get; }
-
-            public IReadOnlyList<string> Centres { get; }
-
-            public double Ut { get; }
+                _craft.ReadAllAgain();
+                _timelineReset = true;
+            });
+            // Ungated: a centre can only plan from what it has heard, so a craft's
+            // state has to be on record, and on its way, before anyone asks for a
+            // plan of it.
+            host.AddSampledSource(LookOnMain, PlanOnCourier);
         }
 
-        /// <summary>MAIN THREAD: starts a plan when the last one is out of date. Starting one costs a pool thread, not this one.</summary>
-        internal object? CaptureOnMain(KspSnapshot? snapshot)
+        /// <summary>MAIN THREAD: reads the craft whose state is out of date, the ground stations, and who is planning.</summary>
+        internal object? LookOnMain(KspSnapshot? snapshot)
         {
-            if (snapshot == null || _host == null || _runner.Running)
+            if (snapshot == null || _host == null || _craftHost == null)
             {
                 return null;
             }
@@ -323,152 +355,291 @@ namespace Sitrep.Host.Comms
             }
             _lookedAt = wall;
 
-            var ut = snapshot.Ut;
-            var kernel = _host.Kernel;
-            var nodes = new List<PlanNode>();
-            var orbiting = new List<PropagationTarget>();
-            var fingerprint = new List<ContactNodeFingerprint>();
-            var radios = new Dictionary<string, object?>(StringComparer.Ordinal);
-            var stations = new HashSet<string>(StringComparer.Ordinal);
-
+            var stations = new List<ContactGameNode>();
+            var stationNodes = new List<PlanNode>();
             foreach (var node in look.Nodes)
             {
-                if (node.Surface == null && node.Orbit == null)
+                if (node.Station && node.Surface != null)
                 {
-                    continue;
+                    stations.Add(node);
+                    stationNodes.Add(PlanNode.OnSurface(node.Id, node.BodyIndex, node.Surface.Value));
                 }
-                radios[node.Id] = node.Radio;
-                if (node.Station)
-                {
-                    stations.Add(node.Id);
-                }
-                if (node.Surface != null)
-                {
-                    nodes.Add(PlanNode.OnSurface(node.Id, node.BodyIndex, node.Surface.Value));
-                    fingerprint.Add(new ContactNodeFingerprint(node.Id, node.BodyIndex, null, node.Surface.Value));
-                    continue;
-                }
-                orbiting.Add(PropagationTarget.Vessel(node.Id, node.BodyIndex, node.Orbit!.Value));
-                fingerprint.Add(new ContactNodeFingerprint(node.Id, node.BodyIndex, node.Orbit.Value));
             }
+            // The radii are read here because the game's bodies may only be read
+            // on this thread; the plan is handed numbers.
+            var occlusion = CommsElection.OcclusionModel(_host.Kernel);
+            var radii = new double[look.Bodies.Count];
+            for (var i = 0; i < radii.Length; i++)
+            {
+                radii[i] = look.OccludingRadius(occlusion, i);
+            }
+            var ground = new PlanGround(
+                stationNodes, look.Bodies, look.FrameBodyIndex, index => index >= 0 && index < radii.Length ? radii[index] : 0.0);
 
-            if (!_schedule.Due(fingerprint, ut))
+            var routesDue = wall - _routedAt >= RouteIntervalSeconds;
+            if (routesDue)
             {
-                return null;
+                _routedAt = wall;
             }
-            // A craft with a secular seed is bounded by the seed's own span, not by
-            // the conic's horizon, which bounds the very drift the seed carries.
-            var secular = PropagationElection.Secular(kernel);
-            foreach (var target in orbiting)
-            {
-                var seed = ContactSeeds.Read(secular, target, ut);
-                if (seed != null)
-                {
-                    nodes.Add(PlanNode.Drifting(target.Id!, target, seed.Value));
-                    continue;
-                }
-                var horizon = PropagationElection.HorizonFor(kernel, target, ut);
-                if (horizon.Kind == PropagationHorizonKind.Unspecified)
-                {
-                    continue;
-                }
-                nodes.Add(PlanNode.Orbiting(
-                    target.Id!, target, horizon.Kind == PropagationHorizonKind.Until ? horizon.UntilUt : null));
-            }
-
-            var occlusion = CommsElection.OcclusionModel(kernel);
-            Func<int, double> radiusOf = index => look.OccludingRadius(occlusion, index);
-            var pairs = new List<PlanPair>();
-            for (var i = 0; i < nodes.Count; i++)
-            {
-                for (var j = i + 1; j < nodes.Count; j++)
-                {
-                    var a = nodes[i];
-                    var b = nodes[j];
-                    if (stations.Contains(a.Id) && stations.Contains(b.Id))
-                    {
-                        continue;
-                    }
-                    var occluders = Occluders(a.BodyIndex, b.BodyIndex, look.Bodies, radiusOf);
-                    if (occluders == null)
-                    {
-                        continue;
-                    }
-                    var reach = CommsElection.ReachModel(kernel, radios[a.Id], radios[b.Id]).MaxRangeMeters;
-                    var link = CommsElection.LinkModel(kernel, radios[a.Id], radios[b.Id], ut);
-                    pairs.Add(new PlanPair(a.Id, b.Id, occluders, reach, link));
-                }
-            }
-
-            var request = new ContactPlanRequest(
-                nodes,
-                pairs,
-                new KeplerProvider(look.Bodies),
-                look.FrameBodyIndex,
-                ut,
-                ContactPlanSchedule.HorizonSeconds,
-                fingerprint);
-            if (_runner.Offer(request, Failed, _planInline))
-            {
-                _schedule.Planned(request);
-                PlansStartedBudget.Record(1, ut);
-            }
-            return null;
+            var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            return new Looked(
+                snapshot.Ut,
+                _craft.Capture(look, snapshot.Ut, _host.Kernel),
+                ground,
+                stations,
+                new List<string>(_game.Centres()),
+                string.IsNullOrEmpty(active) ? null : CraftStateRecorder.VesselPrefix + active,
+                routesDue);
         }
 
         /// <summary>
-        /// A plan that threw is forgotten, so the next look plans again rather than
-        /// waiting out half a horizon on a plan that never published.
+        /// COURIER THREAD: records what was read, listens at every centre,
+        /// publishes the round of plans that finished, and starts the next for
+        /// each centre whose plan is out of date.
+        /// </summary>
+        internal void PlanOnCourier(object? captured)
+        {
+            if (!(captured is Looked looked) || _craftHost == null || _hearing == null || _audience == null || _host == null)
+            {
+                return;
+            }
+            if (_timelineReset)
+            {
+                _timelineReset = false;
+                _hearing.Reset();
+                _plans.Clear();
+                _planned.Clear();
+                _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
+                // A round still running was made of the old timeline; it is
+                // taken and dropped when it finishes, by the FromUt check below.
+            }
+
+            CraftStateRecorder.Record(looked.Craft, _craftHost);
+
+            var planning = _audience.PlanningCentres();
+            var listening = new HashSet<string>(looked.Centres, StringComparer.Ordinal);
+            listening.UnionWith(planning);
+            _hearing.Listen(listening, looked.Craft.Present);
+
+            NoteGround(looked);
+            TakeFinished(looked.Ut);
+            Forget(planning);
+            StartDue(planning, looked.Ut);
+            if (_planInline)
+            {
+                TakeFinished(looked.Ut);
+            }
+            PublishPlans(looked.Ut);
+            if (looked.RoutesDue)
+            {
+                PublishRoutes(looked, planning);
+            }
+        }
+
+        /// <summary>Keeps the ground the next plans are made over, and counts each time the stations or the bodies' sizes change.</summary>
+        private void NoteGround(Looked looked)
+        {
+            if (_ground == null || !SameGround(_ground, _stations, looked.Ground, looked.Stations))
+            {
+                _groundVersion++;
+            }
+            _ground = looked.Ground;
+            _stations = looked.Stations;
+        }
+
+        private static bool SameGround(
+            PlanGround was, IReadOnlyList<ContactGameNode> wasStations, PlanGround now, IReadOnlyList<ContactGameNode> nowStations)
+        {
+            if (was.Bodies.Count != now.Bodies.Count || was.FrameBodyIndex != now.FrameBodyIndex || wasStations.Count != nowStations.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < now.Bodies.Count; i++)
+            {
+                if (was.OccludingRadius(i) != now.OccludingRadius(i))
+                {
+                    return false;
+                }
+            }
+            for (var i = 0; i < nowStations.Count; i++)
+            {
+                var a = wasStations[i];
+                var b = nowStations[i];
+                if (a.Id != b.Id
+                    || a.BodyIndex != b.BodyIndex
+                    || (a.Surface!.Value.PositionAt(0.0) - b.Surface!.Value.PositionAt(0.0)).Magnitude() > ContactPlanSchedule.SurfaceToleranceMeters)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void TakeFinished(double ut)
+        {
+            if (!_runner.TryTake(out var finished) || finished == null)
+            {
+                return;
+            }
+            _lastFailure = null;
+            foreach (var entry in finished)
+            {
+                // A plan from after this instant belongs to a timeline the game
+                // has left, by a revert or a load; the next round replaces it.
+                if (!_offered.TryGetValue(entry.Key, out var from) || entry.Value.FromUt > ut)
+                {
+                    continue;
+                }
+                _plans[entry.Key] = entry.Value;
+                _planned[entry.Key] = from;
+                _plansUnpublished = true;
+            }
+        }
+
+        /// <summary>Drops the plan of a centre nobody is planning for any more.</summary>
+        private void Forget(IReadOnlyCollection<string> planning)
+        {
+            foreach (var centre in new List<string>(_plans.Keys))
+            {
+                if (!Has(planning, centre))
+                {
+                    _plans.Remove(centre);
+                    _planned.Remove(centre);
+                    _plansUnpublished = true;
+                }
+            }
+        }
+
+        private void StartDue(IReadOnlyCollection<string> planning, double ut)
+        {
+            if (_runner.Running || _ground == null || _hearing == null)
+            {
+                return;
+            }
+            var requests = new Dictionary<string, ContactPlanRequest>(StringComparer.Ordinal);
+            var offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
+            foreach (var centre in planning)
+            {
+                var request = Due(centre, ut);
+                if (request == null)
+                {
+                    continue;
+                }
+                requests[centre] = request;
+                offered[centre] = new Planned(_hearing.NewsAt(centre), _groundVersion, ut, request);
+            }
+            if (requests.Count == 0)
+            {
+                return;
+            }
+
+            _offered = offered;
+            if (_runner.Offer(requests, _hearing.EverythingHeard(), Failed, _planInline))
+            {
+                PlansStartedBudget.Record(requests.Count, ut);
+            }
+        }
+
+        /// <summary>
+        /// The plan to make for <paramref name="centre"/> now, or null while the
+        /// one it has still stands. It is planned for when it has no plan, when
+        /// the clock went back, when half its horizon has passed, when the ground
+        /// changed, and when news has reached it that changes what would be
+        /// planned: at once for a craft arriving or leaving, and once the drift
+        /// interval has passed for one whose orbit moved.
+        ///
+        /// <para>News that changes nothing starts no plan, so a craft read again
+        /// with the same orbit and the same links is not something a centre's
+        /// screen can see happen.</para>
+        /// </summary>
+        private ContactPlanRequest? Due(string centre, double ut)
+        {
+            var heard = _hearing!.HeardAt(centre);
+            if (!_planned.TryGetValue(centre, out var planned)
+                || ut < planned.FromUt
+                || ut >= planned.FromUt + (ContactPlanSchedule.HorizonSeconds / 2.0)
+                || planned.Ground != _groundVersion)
+            {
+                return ReckonedPlan.Request(heard, _ground!, ut, ContactPlanSchedule.HorizonSeconds);
+            }
+            var news = _hearing.NewsAt(centre);
+            if (planned.News == news)
+            {
+                return null;
+            }
+            var request = ReckonedPlan.Request(heard, _ground!, ut, ContactPlanSchedule.HorizonSeconds);
+            if (request.Matches(planned.Request))
+            {
+                planned.News = news;
+                return null;
+            }
+            return request.Nodes.Count != planned.Request.Nodes.Count || ut >= planned.FromUt + ContactPlanSchedule.MinDriftReplanSeconds
+                ? request
+                : null;
+        }
+
+        /// <summary>
+        /// A round that threw is forgotten, so the next look plans again rather
+        /// than waiting out half a horizon on plans that never published.
         /// </summary>
         private void Failed(Exception ex)
         {
-            _schedule.Forget();
             _lastFailure = ex.GetType().Name + ": " + ex.Message;
             _warn("contact plan failed: " + ex);
         }
 
-        /// <summary>COURIER THREAD: publishes whichever plan has finished since the last tick.</summary>
-        internal void PublishOnCourier(object? captured)
+        /// <summary>Publishes every centre's plan when one has changed, or when the first session to ask for them has just arrived.</summary>
+        private void PublishPlans(double ut)
         {
-            if (_runner.TryTake(out var plan) && plan != null)
+            var subscribed = _host!.IsAnyTopicSubscribed(ContactsTopic);
+            if (subscribed && !_contactsWereSubscribed)
             {
-                _lastFailure = null;
-                _plan = plan;
-                _publisher?.Publish(ContactPlanWire.ToPayload(plan), plan.FromUt);
+                _plansUnpublished = true;
             }
+            _contactsWereSubscribed = subscribed;
+            if (!subscribed || !_plansUnpublished)
+            {
+                return;
+            }
+            _plansUnpublished = false;
+            var byCentre = new Dictionary<string, CommsContacts>(StringComparer.Ordinal);
+            foreach (var entry in _plans)
+            {
+                byCentre[entry.Key] = ContactPlanWire.ToPayload(entry.Value);
+            }
+            _publisher?.Publish(new CentrePlans(byCentre), ut);
         }
 
-        /// <summary>
-        /// The bodies that can come between the two ends: the patched-conic chain
-        /// between their bodies, plus each end's own body, which the chain leaves
-        /// out and which is the commonest occluder of all. Null when no path joins
-        /// the two bodies.
-        /// </summary>
-        private static List<OccludingBody>? Occluders(
-            int aBody, int bBody, IReadOnlyList<SystemBody> table, Func<int, double> radiusOf)
+        /// <summary>Plans each centre's routes for now from that centre's own plan, and publishes them.</summary>
+        private void PublishRoutes(Looked looked, IReadOnlyCollection<string> planning)
         {
-            var chain = PatchedConicChain.OccludersBetween(aBody, bBody, table, radiusOf);
-            if (chain == null)
+            if (looked.ActiveCraft == null || !_host!.IsAnyTopicSubscribed(RouteTopic))
             {
-                return null;
+                return;
             }
-            var seen = new HashSet<int>();
-            var occluders = new List<OccludingBody>();
-            foreach (var body in new[] { new OccludingBody(aBody, radiusOf(aBody)), new OccludingBody(bBody, radiusOf(bBody)) })
+            var routes = new CommsRoutes();
+            foreach (var centre in planning)
             {
-                if (seen.Add(body.BodyIndex))
+                if (!_plans.TryGetValue(centre, out var plan) || looked.Ut < plan.FromUt)
                 {
-                    occluders.Add(body);
+                    continue;
+                }
+                routes.Routes.AddRange(ContactRouting.RoutesFor(plan, looked.ActiveCraft, new[] { centre }, looked.Ut).Routes);
+            }
+            RouteRowsBudget.Record(routes.Routes.Count, looked.Ut);
+            _routePublisher?.Publish(routes, looked.Ut);
+        }
+
+        private static bool Has(IReadOnlyCollection<string> centres, string centre)
+        {
+            foreach (var candidate in centres)
+            {
+                if (candidate == centre)
+                {
+                    return true;
                 }
             }
-            foreach (var body in chain)
-            {
-                if (seen.Add(body.BodyIndex))
-                {
-                    occluders.Add(body);
-                }
-            }
-            return occluders;
+            return false;
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Sitrep.Host
     /// node and heard at a command centre's vantage. Courier-thread state
     /// throughout.
     /// </summary>
-    public sealed partial class ChannelEngine : ICraftStateHost
+    public sealed partial class ChannelEngine : ICraftStateHost, IPlanAudienceHost
     {
         /// <summary>
         /// The prefix craft states are recorded under, one topic per craft. It is
@@ -79,6 +79,25 @@ namespace Sitrep.Host
         }
 
         public void OnTimelineReset(Action reset) => _timelineResetListeners.Add(reset);
+
+        public IReadOnlyCollection<string> PlanningCentres()
+        {
+            var centres = new HashSet<string>(StringComparer.Ordinal);
+            var home = _homeCommand.CentreId;
+            if (home != null)
+            {
+                centres.Add(home);
+            }
+            foreach (var session in _sessions.Values)
+            {
+                var vantage = VantageOf(session);
+                if (vantage != CommandCentres.FreshConnectionVantage.None && vantage != MetaVantage)
+                {
+                    centres.Add(vantage);
+                }
+            }
+            return centres;
+        }
 
         /// <summary>Tells every listener the timeline was reset. A listener that throws is reported and the rest still hear.</summary>
         private void NotifyTimelineResetListeners()

@@ -114,7 +114,8 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A rewind drops what was recorded ahead of it, so every craft is read
-        /// again on the tick after the one that rewound.
+        /// again: on the tick that rewound, and once more on the next, when the
+        /// reset has been seen.
         /// </summary>
         [Fact]
         public async Task ARewoundTimelineHasEveryCraftReadAgain()
@@ -122,8 +123,11 @@ namespace Sitrep.Host.IntegrationTests
             await using var world = await ReckonedVantageWorld.StartAsync();
             Ticks(world, 1, 700, 1000);
 
-            Ticks(world, 400, 401, 1000);
+            Ticks(world, 400, 401, 999);
             Assert.Equal(0.0, world.Uplink.Heard(Home, Relay)!.CapturedUt);
+
+            Ticks(world, 1000);
+            Assert.Equal(400.0, world.Uplink.Heard(Home, Relay)!.CapturedUt);
 
             Ticks(world, 1001);
             Assert.Equal(401.0, world.Uplink.Heard(Home, Relay)!.CapturedUt);
