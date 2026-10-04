@@ -3,7 +3,11 @@ import type { ComponentPropsWithoutRef } from "react";
 import styled, { css } from "styled-components";
 import { TONE_TEXT } from "./tone";
 
-/** Where a {@link Readout} sits: `hero` fills the remaining panel space and centres, `inline` sits baseline-aligned beside other content. */
+/**
+ * Where a {@link Readout} sits: `hero` fills the remaining panel space and centres, `inline` sits baseline-aligned beside other content.
+ *
+ * @category Readout
+ */
 export type ReadoutSize = "hero" | "inline";
 
 const Readout__Box = styled.div<{ $size: ReadoutSize; $tone: Tone }>`

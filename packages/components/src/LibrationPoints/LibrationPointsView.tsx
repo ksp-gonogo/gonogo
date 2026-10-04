@@ -88,7 +88,10 @@ export function LibrationPointsComponent({
   const orbitReading = librationPointsTopics.useTelemetry("vessel.orbit");
   const orbit = orbitOfNow(orbitReading);
   // The craft's figures are derived from this orbit, so they carry its mark: a model carrying it past the received edge marks them modelled.
-  const orbitMarking = derivedMarking(orbitReading);
+  const orbitMarking =
+    orbitReading.state === "observed" || orbitReading.state === "held"
+      ? derivedMarking(orbitReading)
+      : null;
   const identityReading = librationPointsTopics.useTelemetry("vessel.identity");
   const identity = stillTrue(identityReading, undefined);
 
