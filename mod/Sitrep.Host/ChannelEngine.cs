@@ -673,15 +673,31 @@ namespace Sitrep.Host
         ///
         /// <para>Deliberately ONE field of a fleet subject, not the namespace:
         /// that vessel's ordinary telemetry (.orbit, .delay) must keep freezing
-        /// on its own link, or the blackout would stop meaning anything. The
-        /// node test (rather than a bare prefix match) keeps the exemption to
-        /// genuine per-vessel topics.</para>
+        /// on its own link, or the blackout would stop meaning anything.</para>
+        ///
+        /// <para>Exactly core's two topics, <c>fleet.&lt;guid&gt;.contact</c> and
+        /// <c>silence.&lt;guid&gt;.state</c>, and no other topic that happens to
+        /// end the same way. An Uplink's own per-vessel <c>.state</c> or
+        /// <c>.contact</c> is that craft's telemetry: it is held through a
+        /// blackout and revealed on the ordinary terms.</para>
         /// </summary>
-        private bool IsFreezeExempt(string topic) =>
+        private static bool IsFreezeExempt(string topic) =>
             ActiveLinkReports.Contains(topic)
-            || ((topic.EndsWith(ContactMetaSuffix, StringComparison.Ordinal)
-                    || topic.EndsWith(SilenceStateSuffix, StringComparison.Ordinal))
-                && NodeFor(topic).StartsWith(FleetNodePrefix, StringComparison.Ordinal));
+            || IsPerVesselField(topic, FleetNodePrefix, ContactMetaSuffix)
+            || IsPerVesselField(topic, SilenceEventPrefix, SilenceStateSuffix);
+
+        /// <summary>Whether <paramref name="topic"/> is exactly <paramref name="prefix"/>, one key segment, and <paramref name="suffix"/>.</summary>
+        private static bool IsPerVesselField(string topic, string prefix, string suffix)
+        {
+            if (!topic.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            var dot = topic.IndexOf('.', prefix.Length);
+            return dot > prefix.Length
+                && topic.Length - dot == suffix.Length
+                && string.CompareOrdinal(topic, dot, suffix, 0, suffix.Length) == 0;
+        }
 
         // The built-in uplink-health-self-report channel (see
         // BuildSystemUplinksPayload's doc comment). Unlike every other

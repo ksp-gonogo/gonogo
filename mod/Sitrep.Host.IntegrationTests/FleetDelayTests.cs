@@ -394,6 +394,69 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// Core's two blackout reports are exempt from the freeze by their exact
+        /// topics. An Uplink's own per-vessel topic that happens to end in
+        /// <c>.state</c> or <c>.contact</c> is that craft's telemetry: it says
+        /// nothing during the outage, and arrives afterwards as the craft's
+        /// recording, where an exempt topic would have crossed mid-blackout on a
+        /// clock that is not the Uplink's to use.
+        /// </summary>
+        [Fact]
+        public async Task AnUplinksLikeNamedPerVesselTopicIsHeldThroughTheBlackout()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var coreState = "silence.q" + ChannelEngine.SilenceStateSuffix;
+                var coreContact = "fleet.q" + ChannelEngine.ContactMetaSuffix;
+                var uplinkState = FleetDelayTestUplink.ExtensionPrefix + "q" + ChannelEngine.SilenceStateSuffix;
+                var uplinkContact = FleetDelayTestUplink.ExtensionPrefix + "q" + ChannelEngine.ContactMetaSuffix;
+                foreach (var topic in new[] { "fleet.q.orbit", coreState, coreContact, uplinkState, uplinkContact })
+                {
+                    await SubscribeAsync(client, topic, Timeout);
+                }
+
+                engine.TickAndWait(0.0, ContactFixture(0.0, connected: true), Timeout);
+                engine.TickAndWait(1.0, ContactFixture(1.0, connected: true), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                // Dark from UT 2 to UT 8, twice the craft's 3-second light-time:
+                // long enough for a report made early in the outage to cross
+                // while the craft is still dark.
+                for (var ut = 2.0; ut <= 8.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, ContactFixture(ut, connected: false), Timeout);
+                }
+                var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
+
+                Assert.Contains(duringOutage, f => f.Topic == coreState && f.Meta.ValidAt >= 2.0);
+                Assert.Contains(duringOutage, f => f.Topic == coreContact && f.Meta.ValidAt >= 2.0);
+                Assert.DoesNotContain(duringOutage, f => f.Topic == uplinkState && f.Meta.ValidAt >= 2.0);
+                Assert.DoesNotContain(duringOutage, f => f.Topic == uplinkContact && f.Meta.ValidAt >= 2.0);
+
+                for (var ut = 9.0; ut <= 13.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, ContactFixture(ut, connected: true), Timeout);
+                }
+                var afterwards = await DrainAllStreamDataAsync(client, Quiet);
+
+                foreach (var topic in new[] { uplinkState, uplinkContact })
+                {
+                    var replay = afterwards.Where(f => f.Topic == topic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 8.0).ToList();
+                    Assert.NotEmpty(replay);
+                    Assert.All(replay, f => Assert.Equal(Staleness.Recorded, f.Meta.Staleness));
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Vessel "q" at a 3-second light-time while connected, collapsing to 0
         /// when it drops off the network (what the live routed read returns once
         /// there is no path to measure).

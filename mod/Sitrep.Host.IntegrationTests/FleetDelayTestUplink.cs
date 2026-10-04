@@ -176,6 +176,15 @@ namespace Sitrep.Host.IntegrationTests
                 _extensionSource?.Publisher(id + ".field").Publish(
                     new Dictionary<string, object?> { ["value"] = id },
                     cap.Ut);
+                // The same Uplink's own state and contact fields for the craft.
+                // They end as core's two blackout reports do and are not those
+                // reports: they are this craft's telemetry.
+                _extensionSource?.Publisher(id + ChannelEngine.SilenceStateSuffix).Publish(
+                    new Dictionary<string, object?> { ["value"] = connected ? "fine" : "worried" },
+                    cap.Ut);
+                _extensionSource?.Publisher(id + ChannelEngine.ContactMetaSuffix).Publish(
+                    new Dictionary<string, object?> { ["value"] = connected },
+                    cap.Ut);
                 // Plan 2c: the PRODUCTION FleetVesselLinkBuilder, compiled into
                 // this project (see the csproj), so the fleet.<id>.delay
                 // serialize path is exercised against the shape production

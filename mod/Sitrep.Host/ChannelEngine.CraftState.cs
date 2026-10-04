@@ -29,12 +29,7 @@ namespace Sitrep.Host
 
         private readonly List<Action> _timelineResetListeners = new List<Action>();
 
-        /// <summary>
-        /// The topic one craft's states are recorded under. The field is not
-        /// <c>state</c> or <c>contact</c>: <see cref="IsFreezeExempt"/> reads
-        /// those two suffixes on any per-vessel topic as a report of the
-        /// blackout itself, and a craft state is telemetry held through one.
-        /// </summary>
+        /// <summary>The topic one craft's states are recorded under. A craft state is telemetry, held through a blackout like the rest of it.</summary>
         internal static string CraftStateTopic(string vesselId) => CraftStatePrefix + vesselId + ".craft";
 
         /// <summary>The last state recorded of each present craft, to say again to a centre that has just gained a route to it.</summary>
