@@ -41,7 +41,8 @@ const OUT = join(root, "mod/sitrep-sdk/src/__generated__/delay-roles.ts");
  * reads as "every channel is delayed", which is exactly the state this file
  * exists to end.
  */
-const FLOOR = 20;
+// 18 since the four comms link channels became Delayed (Saga 840); the floor sits a little under it.
+const FLOOR = 15;
 
 const dispositions = readChannelDispositions(root);
 const trueNow = [...dispositions.entries()]
@@ -80,7 +81,7 @@ if (heldAtHome.length < HELD_AT_HOME_FLOOR) {
 if (trueNow.length < FLOOR) {
   console.error(
     `✖ delay-roles: the scan found ${trueNow.length} TrueNow channels, fewer ` +
-      `than the ${FLOOR} this repo has ever had. That is the scan being broken ` +
+      `than the floor of ${FLOOR}. That is the scan being broken ` +
       "rather than the mod delaying everything. Refusing to write the table.",
   );
   process.exit(1);

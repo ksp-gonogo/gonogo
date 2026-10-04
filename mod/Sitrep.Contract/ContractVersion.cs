@@ -2263,8 +2263,18 @@ namespace Sitrep.Contract
         /// expiry on <see cref="CommandAccepted"/>, and the <c>commandExpired</c>,
         /// <c>commandCancelled</c> and <c>continuousInputWouldWait</c> fault codes. All
         /// additive, so an Uplink built against 28.6 is unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 7 -&gt; 8: the link channels wait for the light.</b>
+        /// <c>comms.connectivity</c>, <c>comms.signal</c>, <c>comms.control</c> and
+        /// <c>comms.network</c> are Delayed where they were TrueNow: a command centre learns
+        /// whether a craft's radio answers when its signal arrives. No payload changes shape;
+        /// a reader sees the same values one light-time later, and the first three keep
+        /// reporting through a blackout as <c>comms.link</c> does. A report of a link,
+        /// <c>comms.link</c> and the per-craft contact and silence reports included, now
+        /// reaches each command centre at that centre's own light-time from the craft,
+        /// where every centre used to be sent it at the home centre's.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

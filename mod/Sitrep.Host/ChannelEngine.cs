@@ -560,10 +560,9 @@ namespace Sitrep.Host
          *      an ordinary Delayed channel passes straight through it
          *      (RevealDelayFor returns 0); while the subject is dark it returns
          *      +Inf and the sample is held in the blackout recorder instead,
-         *      to be replayed on reacquisition. The gate carries a real horizon
-         *      for exactly one shape: the freeze-exempt link/contact
-         *      MetaTopics, which must be able to report the outage from inside
-         *      it.
+         *      to be replayed on reacquisition. The freeze-exempt link/contact
+         *      reports pass it even then, because they must be able to report
+         *      the outage from inside it.
          *
          *   2. The LEDGER, in the Courier/Archive (INetwork.DelayTo). It asks
          *      WHEN DOES IT ARRIVE. Every recorded sample is scheduled at
@@ -610,8 +609,9 @@ namespace Sitrep.Host
         // The connectivity MetaTopic (comms.link): a Delayed channel that is
         // EXEMPT from the freeze-on-disconnect gate, exactly as CommsDelayTopic
         // is exempt from its own delay. It REPORTS the freeze (link up/down), so
-        // it must escape it: it reveals the disconnect edge at now-delay and
-        // keeps reporting connected:false through the blackout, so the client's
+        // it must escape it: it keeps reporting connected:false through the
+        // blackout, each sample landing at a centre one of that centre's own
+        // last-connected light-times after its instant, so the client's
         // "NO SIGNAL" flips at the correct delayed instant. Every OTHER Delayed
         // channel still freezes. The literal MUST match
         // Gonogo.KSP.CommsCoreUplink.LinkTopic (duplicated for the same
@@ -641,6 +641,24 @@ namespace Sitrep.Host
         public const string SilenceStateSuffix = ".state";
 
         /// <summary>
+        /// The channels that report the ACTIVE craft's link itself: whether it is
+        /// up (<c>comms.link</c>, <c>comms.connectivity</c>), how strong it is
+        /// (<c>comms.signal</c>) and what it lets the ground command
+        /// (<c>comms.control</c>). Delayed, and exempt from the freeze, because
+        /// each is how an operator learns the link went down: they reveal at the
+        /// light-time in force when the link was last up, through the blackout.
+        /// The literals match <c>Gonogo.KSP.CommsCoreUplink</c>'s topics, which
+        /// this project cannot reference.
+        /// </summary>
+        private static readonly HashSet<string> ActiveLinkReports = new HashSet<string>(StringComparer.Ordinal)
+        {
+            ConnectivityMetaTopic,
+            "comms.connectivity",
+            "comms.signal",
+            "comms.control",
+        };
+
+        /// <summary>
         /// Whether <paramref name="topic"/> escapes the freeze-on-disconnect
         /// gate. All three exempt shapes REPORT the blackout, so none can be
         /// subject to it: <see cref="ConnectivityMetaTopic"/> for the active
@@ -660,7 +678,7 @@ namespace Sitrep.Host
         /// genuine per-vessel topics.</para>
         /// </summary>
         private bool IsFreezeExempt(string topic) =>
-            topic == ConnectivityMetaTopic
+            ActiveLinkReports.Contains(topic)
             || ((topic.EndsWith(ContactMetaSuffix, StringComparison.Ordinal)
                     || topic.EndsWith(SilenceStateSuffix, StringComparison.Ordinal))
                 && NodeFor(topic).StartsWith(FleetNodePrefix, StringComparison.Ordinal));
@@ -774,17 +792,6 @@ namespace Sitrep.Host
 
         private double _signalDelaySeconds;
 
-        // The last _signalDelaySeconds observed while CONNECTED (see
-        // CaptureSignalDelay's snapshot). A genuine disconnect collapses the
-        // LIVE _signalDelaySeconds to 0 (no path ⇒ SignalDelay.Compute returns
-        // None ⇒ 0: see RevealDelayFor's doc comment), so a freeze-EXEMPT
-        // topic (ChannelDeclaration.FreezeExempt: the connectivity MetaTopic)
-        // reads THIS field instead while disconnected: it must still reveal
-        // its disconnect edge at the REAL last-known light-time horizon, not
-        // instantly at delay=0, which would defeat the whole point of the
-        // channel being Delayed rather than TrueNow. Frozen for the outage's
-        // duration (stops updating the instant _commsConnected goes false),
-        // resumes tracking live once reconnected.
         /// <summary>
         /// The unit descriptor, built once and never allowed to fail loudly.
         /// </summary>
@@ -816,12 +823,21 @@ namespace Sitrep.Host
             return _unitsDescriptorJson;
         }
 
-        // Per-subject last-connected delay (Plan 2b), keyed by NodeForTopic.
-        // Feeds the freeze-exempt reveal horizon for both exempt shapes: the
-        // active vessel's comms.link under "system", and each fleet subject's
-        // fleet.<guid>.contact under its own node.
+        // Per-subject last-connected delay (Plan 2b), keyed by NodeForTopic: what
+        // RefreshLedgerDelays holds a dark subject's node default at.
         private readonly Dictionary<string, double> _subjectLastConnectedDelay =
             new Dictionary<string, double>();
+
+        /// <summary>
+        /// Each subject node's whole ledger row set as it stood on the last tick
+        /// the subject was in contact: every centre's own light-time to it, and
+        /// "never" for a centre that had no route. A freeze-exempt report is
+        /// sent under this while the subject is dark, so each centre learns of
+        /// the outage at its own light-time and a centre that could not hear
+        /// the craft before it went quiet does not hear that it did.
+        /// </summary>
+        private readonly Dictionary<string, DelayStamp> _subjectLastConnectedStamp =
+            new Dictionary<string, DelayStamp>();
 
         // The routed light-time last written for each fleet.<guid> node. Shadows
         // the ledger's node-default purely so SetVesselDelay can snapshot the
@@ -4747,21 +4763,22 @@ namespace Sitrep.Host
                 return null;
             }
             return _courier.ReadRawAtVantage(
-                NodeFor(topic), topic, ObservationVantageFor(topic, vantage), nowUt);
+                NodeFor(topic), topic, ObservationVantageFor(topic, vantage), nowUt,
+                IsFreezeExempt(topic) ? ExemptStampFor(topic) : null);
         }
 
         /// <summary>
         /// Where <paramref name="topic"/> is OBSERVED from by someone standing at
-        /// <paramref name="selectedVantage"/>: itself for an ordinary Delayed
-        /// topic, and <see cref="MetaVantage"/> for an instant-class one.
+        /// <paramref name="selectedVantage"/>: itself for a Delayed topic, and
+        /// <see cref="MetaVantage"/> for an instant-class one.
         ///
-        /// <para>Instant-class is two things, and both mean "the ledger must not
-        /// apply the whole-network signal delay to this": a <c>TrueNow</c>
-        /// declaration, and freeze-exemption (comms.link,
-        /// fleet.&lt;guid&gt;.contact), which carries its OWN horizon in the
-        /// reveal gate. An exempt topic that kept the ordinary vantage would be
-        /// delayed TWICE: once by that gate horizon, then again by the ledger's
-        /// live per-vessel row.</para>
+        /// <para>Instant-class is a <c>TrueNow</c> declaration and nothing else.
+        /// A freeze-exempt report (comms.link, fleet.&lt;guid&gt;.contact) is
+        /// NOT in it: it is observed from the selected vantage like any Delayed
+        /// topic, and each sample carries that vantage's own light-time in its
+        /// stamp (see <see cref="ExemptStampFor"/>). Observed from the meta
+        /// vantage it would reach every centre at one instant, whichever centre
+        /// was nearer the craft.</para>
         ///
         /// <para>comms.delay is NOT in this class. It is an ordinary Delayed
         /// readout, and the delay it reports is carried to the client by the
@@ -4787,9 +4804,8 @@ namespace Sitrep.Host
         /// </summary>
         private string ObservationVantageFor(string topic, string selectedVantage)
         {
-            var isInstantClass = IsFreezeExempt(topic)
-                || (_channelDeclarations.TryGetValue(topic, out var declaration)
-                    && declaration.Delay == DelayRole.TrueNow);
+            var isInstantClass = _channelDeclarations.TryGetValue(topic, out var declaration)
+                && declaration.Delay == DelayRole.TrueNow;
             if (!isInstantClass)
             {
                 return selectedVantage;
@@ -6055,6 +6071,15 @@ namespace Sitrep.Host
                 CaptureSignalDelay(value);
             }
 
+            if (IsFreezeExempt(topic))
+            {
+                // Never held here. The ledger times it, one row per vantage, so
+                // it lands at each centre one of that centre's own light-times
+                // after the instant it describes.
+                RecordThrough(topic, value, ut, ExemptStampFor(topic));
+                return;
+            }
+
             var delay = RevealDelayFor(topic);
             if (delay <= 0.0)
             {
@@ -6099,7 +6124,7 @@ namespace Sitrep.Host
         /// non-replayed <see cref="Courier.Record"/> from this class goes through,
         /// so a topic cannot deliver a sample and forget it delivered one.
         /// </summary>
-        private void RecordThrough(string topic, object? value, double ut)
+        private void RecordThrough(string topic, object? value, double ut, DelayStamp? sentUnder = null)
         {
             double? gap = null;
             if (_pendingGapSinceUt.TryGetValue(topic, out var gapSince))
@@ -6108,7 +6133,7 @@ namespace Sitrep.Host
                 _pendingGapSinceUt.Remove(topic);
             }
             _lastRecordedUt[topic] = ut;
-            _courier.Record(NodeFor(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value), gap);
+            _courier.Record(NodeFor(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value), gap, sentUnder);
         }
 
         /// <summary>
@@ -6203,10 +6228,10 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The reveal-horizon delay (seconds) for <paramref name="topic"/>: 0
-        /// for a <see cref="DelayRole.TrueNow"/> channel, the last-known
-        /// light-time for the freeze-exempt MetaTopics, +Inf while the subject
-        /// is dark, and 0 for an ordinary connected Delayed channel, whose
-        /// light-time the LEDGER applies instead (Plan 1).
+        /// for a <see cref="DelayRole.TrueNow"/> channel and for a freeze-exempt
+        /// report, +Inf while the subject is dark, and 0 for an ordinary
+        /// connected Delayed channel. The LEDGER applies the light-time in every
+        /// finite case (Plan 1).
         ///
         /// <para><c>comms.delay</c> carries no special case here and no longer
         /// needs one. It is an ordinary Delayed readout: what defines the delay
@@ -6225,54 +6250,12 @@ namespace Sitrep.Host
                 return 0.0;
             }
 
-            // Connectivity MetaTopic (comms.link): Delayed but FREEZE-EXEMPT. It
-            // must NOT take the !_commsConnected → +Inf branch below, a link
-            // sample emitted DURING a blackout (connected:false) would otherwise
-            // buffer with an infinite horizon and never mature, so the disconnect
-            // edge could never reach the client and "NO SIGNAL" would never fire.
-            // Instead it rides the ordinary finite delay (revealed at now-delay),
-            // computed the same way as the connected path below. Placed BEFORE
-            // the !_commsConnected check precisely because it applies while
-            // disconnected. (The FlushReveal per-entry gate carries the matching
-            // topic == ConnectivityMetaTopic exemption.)
-            //
-            // Reads _lastConnectedDelaySeconds, NOT the live _signalDelaySeconds:
-            // a genuine disconnect collapses the live delay to 0 in the SAME tick
-            // (no path ⇒ SignalDelay.Compute returns None ⇒ 0, the backend that
-            // stops reporting connectivity is the same one that stops reporting
-            // hop geometry), so using the live value here would reveal the
-            // disconnect edge almost instantly instead of at the real last-known
-            // light-time horizon. _lastConnectedDelaySeconds freezes at the value
-            // in force the moment the link was last known up, which is the
-            // physically honest number: KSC cannot learn of the outage faster
-            // than light already in transit.
-            if (topic == ConnectivityMetaTopic)
-            {
-                // comms.link is the ACTIVE vessel's link meta -> the "system"
-                // subject's last-connected delay (Plan 2b).
-                var metaDelay = _subjectLastConnectedDelay.TryGetValue(NodeId, out var m) ? m : 0.0;
-                if (double.IsNaN(metaDelay) || double.IsInfinity(metaDelay) || metaDelay <= 0.0)
-                {
-                    return 0.0;
-                }
-                return metaDelay;
-            }
-
-            // Per-vessel contact MetaTopic (fleet.<guid>.contact): the same
-            // exemption as comms.link, one subject at a time, and read from that
-            // subject's own last-connected delay rather than the active vessel's.
-            // Same reason as above for not using the live node delay: the routed
-            // light-time collapses to 0 on the tick the craft drops off the
-            // network, so a live read would hand the operator the silence report
-            // instantly, ahead of the light that carries the evidence for it.
+            // A freeze-exempt report is not held by this gate at all: it reports
+            // the blackout, so it crosses during one, and what times it is the
+            // ledger (see Emit and ExemptStampFor).
             if (IsFreezeExempt(topic))
             {
-                var contactDelay = _subjectLastConnectedDelay.TryGetValue(NodeFor(topic), out var c) ? c : 0.0;
-                if (double.IsNaN(contactDelay) || double.IsInfinity(contactDelay) || contactDelay <= 0.0)
-                {
-                    return 0.0;
-                }
-                return contactDelay;
+                return 0.0;
             }
 
             // Freeze-on-disconnect: a down control link means nothing new can
@@ -6557,10 +6540,9 @@ namespace Sitrep.Host
         /// rate it was recorded and then fall silent, which is what a real
         /// broadcast does.</para>
         ///
-        /// <para>Freeze-exempt topics are unaffected: they ride
-        /// <see cref="MetaVantage"/>, whose explicit (vantage, node) rows are
-        /// pinned to 0 and outrank both the node-default and the whole-network
-        /// default written here.</para>
+        /// <para>Freeze-exempt topics do not read the live ledger while their
+        /// subject is dark: they are sent under the rows kept from its last
+        /// tick in contact, which this method also takes.</para>
         ///
         /// <para>Writes ONLY where it has something better to say: a connected
         /// subject, or one that has never been heard from, is left exactly as
@@ -6582,6 +6564,42 @@ namespace Sitrep.Host
                     _network.SetNodeDelay(node, vesselHeld);
                 }
             }
+
+            RememberConnectedStamp(NodeId);
+            foreach (var node in _vesselNodeDelay.Keys)
+            {
+                RememberConnectedStamp(node);
+            }
+        }
+
+        /// <summary>
+        /// Keep <paramref name="node"/>'s rows while its subject is in contact.
+        /// Skipped on the tick the link is found down, by which time the centre
+        /// passes have already rewritten their rows for a craft with no path, so
+        /// what stands is the last tick it could be heard.
+        /// </summary>
+        private void RememberConnectedStamp(string node)
+        {
+            if (SubjectConnected(node))
+            {
+                _subjectLastConnectedStamp[node] = _network.StampFor(node);
+            }
+        }
+
+        /// <summary>
+        /// The delays a freeze-exempt report on <paramref name="topic"/> leaves
+        /// under: the ledger as it stands while the subject is in contact, and
+        /// the rows from when it was last in contact while it is dark. Each
+        /// vantage's own row, so no centre is told on another centre's clock.
+        /// </summary>
+        private DelayStamp? ExemptStampFor(string topic)
+        {
+            var node = NodeFor(topic);
+            if (SubjectConnected(node))
+            {
+                return null;
+            }
+            return _subjectLastConnectedStamp.TryGetValue(node, out var held) ? held : null;
         }
 
         /// <summary>
@@ -6626,6 +6644,7 @@ namespace Sitrep.Host
             _subjectConnected.Remove(node);
             _subjectConnectivityHistory.Remove(node);
             _subjectLastConnectedDelay.Remove(node);
+            _subjectLastConnectedStamp.Remove(node);
             _vesselNodeDelay.Remove(node);
 
             // The recorder's per-topic bookkeeping is keyed by TOPIC, not node,
@@ -7074,17 +7093,13 @@ namespace Sitrep.Host
             // link was up) MUST still reveal as the advancing clock overtakes it,
             // that is the "last delaySeconds of pre-outage telemetry arrives,
             // THEN freezes" behaviour. Only samples captured DURING the blackout
-            // are withheld: non-MetaTopic ones carry an infinite horizon
-            // (RevealDelayFor's !_commsConnected branch) so they never mature,
-            // and the connectivity gate below is the belt-and-braces guard. The
-            // freeze-exempt topics (comms.link, fleet.<guid>.contact) are the
-            // exception so their disconnect edge + through-blackout state reveal
-            // at now-delay.
+            // are withheld: they carry an infinite horizon (RevealDelayFor's
+            // !_commsConnected branch) so they never mature, and the
+            // connectivity gate below is the belt-and-braces guard. The
+            // freeze-exempt topics are never in this buffer, see Emit.
             foreach (var topic in new List<string>(_revealBuffer.Keys))
             {
                 var list = _revealBuffer[topic];
-                var freezeExempt = IsFreezeExempt(topic);
-
                 var writeIdx = 0;
                 for (var readIdx = 0; readIdx < list.Count; readIdx++)
                 {
@@ -7095,14 +7110,10 @@ namespace Sitrep.Host
                     // delay authority to 0 therefore cannot prematurely reveal a
                     // still-future sample.
                     var horizonReached = entry.Ut <= now - entry.Delay;
-                    // Per-entry freeze gate: a freeze-exempt topic always passes;
-                    // every other topic reveals only samples captured while the
-                    // link was up at their UT. A finite-horizon non-exempt entry
-                    // is only ever buffered while connected, so ConnectivityAt is
-                    // true for it: this gate's real work is letting the exempt
-                    // topics through (whose blackout samples are precisely the
-                    // ones reporting connected:false / Silent / Lost).
-                    if (horizonReached && (freezeExempt || ConnectivityAt(NodeFor(topic), entry.Ut)))
+                    // Per-entry freeze gate: an entry reveals only if the link
+                    // was up at its UT. A finite-horizon entry is only ever
+                    // buffered while connected, so this holds for it.
+                    if (horizonReached && ConnectivityAt(NodeFor(topic), entry.Ut))
                     {
                         RecordThrough(topic, entry.Value, entry.Ut);
                     }

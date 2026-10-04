@@ -387,10 +387,9 @@ namespace Gonogo.KSP
             Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
-            // What KSC knows about the link WITHOUT waiting on it: whether the
-            // radio is answering, how strong it is, what it may command, the
-            // shape of the network, the geometry that occludes it. Ground-side
-            // facts, so they are not held behind a light-time.
+            // Not an observation of a craft at all: the universe's geometry and
+            // the rule the backend applies to it, and which centre this end of
+            // the link is. Nothing a light-time could carry.
             Delay = DelayRole.TrueNow,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
@@ -417,16 +416,36 @@ namespace Gonogo.KSP
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
+        /// <summary>
+        /// A report of the active craft's link itself: whether the radio is
+        /// answering, how strong it is, what it may command. A centre learns
+        /// whether a radio answers only when its signal arrives, so these are
+        /// DELAYED on the craft's node, and the engine exempts them from the
+        /// freeze by topic, as it does <c>comms.link</c>, because they are how
+        /// the blackout is reported.
+        /// </summary>
+        private static ChannelDeclaration LinkReport(string topic) => new ChannelDeclaration
+        {
+            Requires = Requirement.None,
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Delay = DelayRole.Delayed,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+        };
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "comms",
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                TrueNow(ConnectivityTopic),
-                TrueNow(SignalTopic),
-                TrueNow(ControlTopic),
-                TrueNow(NetworkTopic),
+                LinkReport(ConnectivityTopic),
+                LinkReport(SignalTopic),
+                LinkReport(ControlTopic),
+                // comms.network: DELAYED, with comms.path, which it is the graph
+                // form of: where the active craft's signal was routed is far-away
+                // state, and each centre sees it one of its own light-times late.
+                Delayed(NetworkTopic),
                 // comms.path: DELAYED. The route a signal took is a fact about
                 // where the craft and every relay in the chain WERE when the
                 // signal left, so it reveals with the telemetry that came down

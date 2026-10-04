@@ -1429,13 +1429,16 @@ namespace Sitrep.Core
         /// freezes and holds that topic's history from its instant until
         /// <see cref="ResetTimeline"/> clears every cursor on a quickload.</para>
         /// </summary>
-        public object? ReadRawAtVantage(string node, string topic, string vantage, double nowUt)
+        public object? ReadRawAtVantage(string node, string topic, string vantage, double nowUt, DelayStamp? under = null)
         {
             if (!_archives.TryGetValue(node, out var archive))
             {
                 return null;
             }
-            var sample = archive.ReadAtVantage(topic, vantage, _network.DelayTo(vantage, node), nowUt);
+            // A caller that sends this topic under rows of its own reads it back
+            // under the same ones, or the read and the delivery would disagree.
+            var delay = under != null ? under.For(vantage) : _network.DelayTo(vantage, node);
+            var sample = archive.ReadAtVantage(topic, vantage, delay, nowUt);
             return sample?.Value;
         }
 

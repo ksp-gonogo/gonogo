@@ -83,7 +83,7 @@ const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
  *
  * Two exist today: `VesselUplink.WarpChannel()` and `CalendarChannel()` each
  * carry 1 channel and score 1, which happens to be the right number. The
- * numbers in this file total 24 against 22 real channels; the gap is
+ * numbers in this file total 20 against 18 real channels; the gap is
  * `CommsCoreUplink`'s helper body and helper declaration line, which its entry
  * below explains.
  *
@@ -176,28 +176,28 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 4 explicit declarations.
   "mod/Gonogo.KSP/SystemUplink.cs": 4,
 
-  // What KSC can establish about the link from its OWN end: connectivity,
-  // signal strength, control state, and the network graph. Joined by
-  // comms.occlusion, which is ground-side by an even wider margin: not an
-  // observation of the vessel at all, but the universe's geometry plus the rule
-  // the elected comms backend applies to it, and delaying the rule would have a
-  // predictor computing tomorrow's blackout from yesterday's assumptions.
-  // Joined too by comms.commandCentre, which names WHICH centre the active
-  // vessel's OWN path resolved to, a fact about this end of the link rather
-  // than about another vessel.
+  // comms.occlusion: not an observation of the vessel at all, but the
+  // universe's geometry plus the rule the elected comms backend applies to it,
+  // and delaying the rule would have a predictor computing tomorrow's blackout
+  // from yesterday's assumptions. And comms.commandCentre, which names WHICH
+  // centre the active vessel's OWN path resolved to.
   //
-  // comms.delay and comms.path are Delayed rather than TrueNow, which is why
-  // the count is 8 rather than 10: the reveal gate and the command scheduler
-  // read the LEDGER (INetwork.DelayTo, filled by the ungated capture pass),
-  // while the channels of those names are readouts published from the same
-  // numbers. Both describe the far end of the link, so both wait for the
-  // light that carries them.
+  // Lowered from 8 to 4 (Saga 840). comms.connectivity, comms.signal,
+  // comms.control and comms.network were here as "what KSC can establish about
+  // the link from its own end". Under reckoned vantages that does not hold: a
+  // centre learns whether a radio answers only when its signal arrives, and
+  // the shape of the network is far-away state. All four are Delayed on the
+  // active craft's node now, the first three exempt from the freeze as
+  // comms.link is, because they are how a blackout is reported.
+  //
+  // comms.delay and comms.path were already Delayed. Both describe the far end
+  // of the link, so both wait for the light that carries them.
   //
   // Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
-  // the helper body + 6 call sites (one per topic) + the helper's own
-  // declaration line (also matches the call-site regex) = 7 helper matches.
-  // 1 explicit + 7 helper = 8.
-  "mod/Gonogo.KSP/CommsCoreUplink.cs": 8,
+  // the helper body + 2 call sites (one per topic) + the helper's own
+  // declaration line (also matches the call-site regex) = 3 helper matches.
+  // 1 explicit + 3 helper = 4.
+  "mod/Gonogo.KSP/CommsCoreUplink.cs": 4,
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched

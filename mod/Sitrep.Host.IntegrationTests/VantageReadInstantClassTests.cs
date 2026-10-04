@@ -13,7 +13,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para>Two paths reach the same archive: a SUBSCRIBER is routed onto
     /// <see cref="ChannelEngine.MetaVantage"/> when its topic is instant-class
-    /// (<c>TrueNow</c>, or freeze-exempt), and a READ
+    /// (<c>TrueNow</c>), and a READ
     /// (<see cref="ChannelEngine.ReadTopicAtVantage"/>, which is what a
     /// command-vantage alarm evaluates against) names a vantage of its own. The
     /// read used to take the whole-network light-time on every topic, so an
@@ -74,25 +74,15 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The freeze-exempt half of the same class. A freeze-exempt topic
-        /// carries its own horizon in the reveal gate (comms.link reveals at the
-        /// last-known link delay), so the ledger must not delay it a second
-        /// time: that is why the subscribe path routes it onto the meta vantage,
-        /// and a read has to inherit the same promise.
-        ///
-        /// <para>First tick with a link: the gate's horizon for comms.link is the
-        /// last-CONNECTED delay, still 0 here, so the sample reveals live while
-        /// the whole-network default is already 240. Delayed twice it would not
-        /// have arrived at the command vantage for four minutes.</para>
+        /// A freeze-exempt topic is NOT instant-class. comms.link reports the
+        /// link, so it crosses a blackout, but it is still a light-time old
+        /// wherever it is read: the subscriber and the read both get it one of
+        /// the vantage's own light-times after the instant it describes, and
+        /// neither gets it sooner.
         ///
         /// <para>Uses <see cref="ConnectivityHorizonTestUplink"/> rather than the
-        /// <see cref="FreezeGateTestUplink"/> the other two use, for the reason
-        /// that fixture's own doc comment gives: FreezeGateTestUplink registers
-        /// comms.delay twice, so CaptureSignalDelay runs twice per tick and the
-        /// second pass writes the INCOMING delay into the last-connected
-        /// snapshot. That pushes comms.link's own horizon out to 240 and the
-        /// sample never reveals at all, which is a property of the fixture and
-        /// not of the exemption being tested here.</para>
+        /// <see cref="FreezeGateTestUplink"/> the other two use, which registers
+        /// comms.delay twice.</para>
         /// </summary>
         [Fact]
         public async Task FreezeExemptTopicReadsTheSameAtACommandVantageAsASubscriberSees()
@@ -110,10 +100,19 @@ namespace Sitrep.Host.IntegrationTests
                     ConnectivityHorizonTestUplink.Snapshot(0.0, connected: true, delay: 240.0),
                     Timeout);
 
+                var early = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(early, f => f.Topic == ConnectivityHorizonTestUplink.LinkTopic);
+                Assert.Null(engine.ReadTopicAtVantage(ConnectivityHorizonTestUplink.LinkTopic, CommandVantage, 0.0));
+
+                engine.TickAndWait(
+                    241.0,
+                    ConnectivityHorizonTestUplink.Snapshot(241.0, connected: true, delay: 240.0),
+                    Timeout);
+
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
                 Assert.Contains(frames, f => f.Topic == ConnectivityHorizonTestUplink.LinkTopic);
 
-                var read = engine.ReadTopicAtVantage(ConnectivityHorizonTestUplink.LinkTopic, CommandVantage, 0.0);
+                var read = engine.ReadTopicAtVantage(ConnectivityHorizonTestUplink.LinkTopic, CommandVantage, 241.0);
                 var link = Assert.IsType<CommsLink>(read);
                 Assert.True(link.Connected);
             }
