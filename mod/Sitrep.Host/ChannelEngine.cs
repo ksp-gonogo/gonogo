@@ -7873,6 +7873,19 @@ namespace Sitrep.Host
         private IReadOnlyDictionary<string, string> _controlChannelValueKeys;
 
         /// <summary>
+        /// Whether <paramref name="job"/> writes a continuous input: a throttle
+        /// or a fly-by-wire axis. A switch or a mode on a control channel,
+        /// lights, SAS, gear, is not one, and is sent like any other command.
+        /// </summary>
+        private bool IsContinuousInput(DispatchCommandJob job)
+        {
+            _continuousCommands ??= ControlChannelDescriptor.ContinuousCommands();
+            return _continuousCommands.Contains(job.Command);
+        }
+
+        private IReadOnlyCollection<string> _continuousCommands;
+
+        /// <summary>
         /// How long the centre predicted a report would take to come home from the
         /// craft: a command that expires or runs out there at its last moment is
         /// still owed that long before its entry and its request are let go.

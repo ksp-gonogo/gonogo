@@ -76,6 +76,62 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The lights are a switch on a control channel, not a continuous input.
+        /// With the plan saying the way would wait, the press is accepted, held
+        /// at the centre and sent on when the window opens, where a throttle at
+        /// the same instant is refused.
+        /// </summary>
+        [Fact]
+        public async Task ASwitchOnAControlChannelIsHeldAndForwardedWhereAThrottleIsRefused()
+        {
+            await using var world = await RisingAsync();
+
+            FaultCode? code = null;
+            double? accepted = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.LightsCommand,
+                new Dictionary<string, object?> { ["enabled"] = true },
+                Home,
+                _ => { },
+                TestBudgets.Op,
+                onRefused: (c, _) => code = c,
+                onAccepted: seconds => accepted = seconds);
+
+            Assert.Null(code);
+            Assert.NotNull(accepted);
+            var entry = Assert.Single(Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending);
+            Assert.Equal(ScriptedContactUplink.LightsCommand, entry.Command);
+            Assert.Equal(Home, entry.PredictedHeldAt);
+            Assert.Equal(1.0, entry.CommandedValue);
+            Assert.NotNull(entry.LaneSeq);
+            Assert.Equal(0, world.Uplink.LitCount);
+            Assert.Equal(FaultCode.ContinuousInputWouldWait, Throttle(world).Code);
+
+            world.Tick(entry.PredictedHeldUntilUt!.Value + 1.0);
+            world.Tick(entry.PredictedArrivalUt!.Value + 5.0);
+            Assert.Equal(1, world.Uplink.LitCount);
+        }
+
+        [Fact]
+        public async Task TheFlyByWireAxesAreAContinuousInputAndAreRefusedAcrossAHold()
+        {
+            await using var world = await RisingAsync();
+
+            FaultCode? code = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.AxesCommand,
+                new Dictionary<string, object?> { ["pitch"] = 0.5 },
+                Home,
+                _ => { },
+                TestBudgets.Op,
+                onRefused: (c, _) => code = c);
+
+            Assert.Equal(FaultCode.ContinuousInputWouldWait, code);
+            world.Tick(3000.0);
+            Assert.Equal(0, world.Uplink.SteeredCount);
+        }
+
+        /// <summary>
         /// The relay's real link has nothing to do with it: the plan says the way
         /// is shut, so the write is refused though the link is up, and the refusal
         /// tells the operator nothing the centre had not heard.

@@ -233,6 +233,14 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>A control-channel write, a throttle, whose subject here is the relay.</summary>
         public const string ThrottleCommand = "vessel.control.setThrottle";
 
+        /// <summary>A switch on a control channel, the lights, whose subject here is the relay.</summary>
+        public const string LightsCommand = "vessel.control.setLights";
+
+        /// <summary>The fly-by-wire axes, a continuous input, whose subject here is the relay.</summary>
+        public const string AxesCommand = "vessel.control.setAxes";
+
+        private int _lit;
+        private int _steered;
         private readonly ScriptedContactGame _game;
         private readonly ChannelEngine _engine;
         private readonly ContactPlanSource _source;
@@ -269,6 +277,8 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     new CommandDeclaration { Command = RelayCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
+                    new CommandDeclaration { Command = LightsCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
+                    new CommandDeclaration { Command = AxesCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                 },
             };
         }
@@ -283,6 +293,12 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>How many throttle writes have run aboard the relay.</summary>
         public int ThrottledCount => Volatile.Read(ref _throttled);
+
+        /// <summary>How many times the lights have been switched aboard the relay.</summary>
+        public int LitCount => Volatile.Read(ref _lit);
+
+        /// <summary>How many axis writes have run aboard the relay.</summary>
+        public int SteeredCount => Volatile.Read(ref _steered);
 
         /// <summary>The newest state of a craft that has reached <paramref name="centre"/>, or null when it has heard nothing of it.</summary>
         public CraftState? Heard(string centre, string vesselId) =>
@@ -307,6 +323,16 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Interlocked.Increment(ref _throttled);
                 return "throttled";
+            });
+            host.AddCommandHandler<Dictionary<string, object?>, string>(LightsCommand, _ =>
+            {
+                Interlocked.Increment(ref _lit);
+                return "lit";
+            });
+            host.AddCommandHandler<Dictionary<string, object?>, string>(AxesCommand, _ =>
+            {
+                Interlocked.Increment(ref _steered);
+                return "steered";
             });
             host.SetSignalDelaySource(_ => new CommsDelay { OneWaySeconds = _game.ActiveSeconds, Source = CommsDelaySource.SignalDelay });
             host.SetConnectivitySource(_ => _game.ActiveConnected);

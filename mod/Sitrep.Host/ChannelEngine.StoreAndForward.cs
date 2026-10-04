@@ -201,8 +201,9 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Takes a delayed command onto store-and-forward when it is addressed to a
-        /// craft and is not a control-channel write; a control-channel write is sent
-        /// live or dropped. True when taken.
+        /// craft and is not a continuous input; a throttle or a fly-by-wire axis is
+        /// sent live or refused. A switch on a control channel, lights or gear, is a
+        /// command like any other, held and forwarded. True when taken.
         /// </summary>
         private bool TryDispatchHeld(DispatchCommandJob job, string node)
         {
@@ -218,7 +219,7 @@ namespace Sitrep.Host
             {
                 return false;
             }
-            if (CommandedScalar(job) != null)
+            if (IsContinuousInput(job))
             {
                 return RefusedAsContinuousAcrossAHold(job, craft);
             }
@@ -256,6 +257,8 @@ namespace Sitrep.Host
                 PredictedHeldAt = prediction.HeldAt,
                 PredictedHeldUntilUt = prediction.HeldUntilUt,
                 CancelDeadlineUt = prediction.CancelDeadlineUt,
+                // What a switch on a control channel asked for, as the live path carries it for a throttle.
+                CommandedValue = CommandedScalar(job),
                 Attempts = 1,
                 Members = new List<string> { requestId },
             });
@@ -272,7 +275,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Refuses a control-channel write, a throttle or a fly-by-wire axis,
+        /// Refuses a continuous input, a throttle or a fly-by-wire axis,
         /// whose sending centre's own plan says the way to the craft is not open
         /// all the way: it would wait at a node, and a continuous input that
         /// waits arrives as a wall of stale values. True when it was refused.
@@ -335,7 +338,7 @@ namespace Sitrep.Host
         private double? PlannedLiveSeconds(DispatchCommandJob job, string node)
         {
             var craft = CraftIdFor(node);
-            if (craft == null || CommandedScalar(job) == null || !SenderPlans.Reckons
+            if (craft == null || !IsContinuousInput(job) || !SenderPlans.Reckons
                 || !_activeCentreIds.Contains(job.Vantage)
                 || string.Equals(job.Vantage, craft, StringComparison.Ordinal))
             {

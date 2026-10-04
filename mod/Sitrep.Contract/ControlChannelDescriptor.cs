@@ -80,6 +80,41 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
+        /// The write commands that carry a CONTINUOUS input: one whose value is
+        /// a number on a range, a throttle or a control axis, rather than a
+        /// switch or a mode. A command is continuous when any channel it backs
+        /// has a floating-point value field.
+        ///
+        /// <para>The difference matters wherever a command can wait. A switch
+        /// thrown late is still the switch the operator threw. A stream of
+        /// throttle or stick values that waits arrives as a wall of stale
+        /// positions.</para>
+        /// </summary>
+        /// <param name="assembly">The assembly to read declarations from; this contract assembly when null.</param>
+        /// <returns>The continuous write commands' names.</returns>
+        public static IReadOnlyCollection<string> ContinuousCommands(Assembly assembly = null)
+        {
+            var target = assembly ?? typeof(ControlChannelDescriptor).Assembly;
+            var found = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var type in SafeTypes(target))
+            {
+                foreach (var property in SafeProperties(type))
+                {
+                    var attr = SafeControlChannelAttribute(property);
+                    if (attr == null || attr.Args == null) continue;
+
+                    var value = attr.Args.GetProperty(attr.ValueField, BindingFlags.Public | BindingFlags.Instance)?.PropertyType;
+                    value = value == null ? null : Nullable.GetUnderlyingType(value) ?? value;
+                    if (value == typeof(double) || value == typeof(float) || value == typeof(decimal))
+                    {
+                        found.Add(attr.WriteCommand);
+                    }
+                }
+            }
+            return found;
+        }
+
+        /// <summary>
         /// Pull the scalar a decoded args bag carries under <paramref name="valueKey"/>,
         /// as a double, or null when there is nothing usable there.
         ///
