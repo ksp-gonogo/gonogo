@@ -27,6 +27,7 @@ import { FramedDisplay } from "./FramedDisplay";
 import { fitBox, fitMask } from "./fitBox";
 import { focusRing, focusRingInset } from "./focusRing";
 import { GraphNotice } from "./GraphNotice";
+import { gridToPixels } from "./gridUnits";
 import { InactiveNotice, type PanelInactiveReason } from "./InactiveNotice";
 import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
@@ -938,7 +939,11 @@ function resolveCssLength(value: string): number | undefined {
 
 // A column beside the body wants an absolute width; a strip under it competes for the tile's height, so it takes a share.
 const SIDEBAR_INLINE_SIZE = "14rem";
-const SIDEBAR_BLOCK_SIZE = "40%";
+/** Grid rows a sidebar under the body takes, whatever it holds, so it is the same height in every widget and its content can never grow it. */
+const SIDEBAR_BLOCK_ROWS = 5;
+/** The cap that keeps a very short tile's body the larger share. */
+const SIDEBAR_BLOCK_MAX_SHARE = "45%";
+const SIDEBAR_BLOCK_SIZE = `min(${gridToPixels(1, SIDEBAR_BLOCK_ROWS).pxH}px, ${SIDEBAR_BLOCK_MAX_SHARE})`;
 
 function sidebarTracks(side: "start" | "end", size: string): string {
   return side === "start"
@@ -1000,7 +1005,9 @@ export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
   side?: PanelSidebarSide;
   /**
    * Size of the sidebar track: a width on the inline axis, a height on the
-   * block axis. Defaults to `14rem` and `40%` respectively.
+   * block axis. Defaults to `14rem`, and to a fixed five grid rows under the
+   * body (capped at 45% of a very short tile), so the body takes the rest and
+   * content never grows the sidebar. Overflow scrolls inside it.
    */
   size?: string;
   /** Gives the sidebar a top inset matching the delay rail's band, which the body track holds inside its scroller. */
@@ -1309,7 +1316,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   sidebarSide?: PanelSidebarSide;
   /**
    * Size of the sidebar track: a width when it sits beside the body, a height
-   * when it sits under it. Defaults to `14rem` and `40%` respectively.
+   * when it sits under it. Defaults to `14rem`, and to a fixed five grid rows
+   * under the body.
    */
   sidebarSize?: string;
   /**

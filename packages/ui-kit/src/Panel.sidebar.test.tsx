@@ -143,9 +143,9 @@ describe("Panel sidebar, auto axis", () => {
     resizeTo(box, 300, 600);
     expect(box.dataset.panelSplit).toBe("block");
     expect(getComputedStyle(box).gridTemplateColumns).toBe("minmax(0, 1fr)");
-    // The block default is a share of the height, since the strip competes with the body for the tile.
+    // The block default is a fixed number of grid rows, so no widget's content decides how much of the tile the frame loses.
     expect(getComputedStyle(box).gridTemplateRows).toBe(
-      "minmax(0, 1fr) minmax(0, 40%)",
+      "minmax(0, 1fr) minmax(0, min(157px, 45%))",
     );
   });
 
