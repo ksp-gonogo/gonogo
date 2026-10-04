@@ -10,6 +10,7 @@ import {
   Countdown,
   Grid,
   NULL_DISPLAY,
+  type ReckoningMarking,
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
@@ -84,6 +85,8 @@ export interface OrbitReadoutGridProps {
   inclination: UnitValue | undefined;
   eccentricity: UnitValue | undefined;
   period: number | undefined;
+  /** The mark the orbit reading gives the figures solved from it (apsis altitudes, period). */
+  marking?: ReckoningMarking | null;
 }
 
 export function OrbitReadoutGrid({
@@ -101,6 +104,7 @@ export function OrbitReadoutGrid({
   inclination,
   eccentricity,
   period,
+  marking,
 }: Readonly<OrbitReadoutGridProps>) {
   const cell = { apsides, noApsidesHere };
   const pairColumns = tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)";
@@ -125,7 +129,7 @@ export function OrbitReadoutGrid({
             {apoapsisAltitude === undefined ? (
               NULL_DISPLAY
             ) : (
-              <Unit value={value("m", apoapsisAltitude)} />
+              <Unit value={value("m", apoapsisAltitude)} marked={marking} />
             )}
           </ApsisCell>
         </OrbitValue>
@@ -147,7 +151,7 @@ export function OrbitReadoutGrid({
             {periapsisAltitude === undefined ? (
               NULL_DISPLAY
             ) : (
-              <Unit value={value("m", periapsisAltitude)} />
+              <Unit value={value("m", periapsisAltitude)} marked={marking} />
             )}
           </ApsisCell>
         </OrbitValue>
@@ -216,7 +220,7 @@ export function OrbitReadoutGrid({
               {period === undefined ? (
                 NULL_DISPLAY
               ) : (
-                <Unit value={value("s", period)} />
+                <Unit value={value("s", period)} marked={marking} />
               )}
             </OrbitValue>
           </Pair>

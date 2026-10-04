@@ -10,6 +10,7 @@ import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { ReckoningMark, reservesMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
+import type { ReckoningMarking } from "./readingCurrency";
 import {
   figureAttributes,
   resolveCurrency,
@@ -212,6 +213,12 @@ export interface UnitProps<UnitSymbol extends string = string>
    * leave it off where the number is an input to a computation.
    */
   reckoned?: boolean;
+  /**
+   * The mark and words for a figure derived from a reading rather than read
+   * off one (see {@link derivedMarking}), where `value` is a bare quantity that
+   * carries none of its own. Ignored when `value` is a whole `Reading`.
+   */
+  marked?: ReckoningMarking | null;
   /** A bare unit token, rendered as a symbol with no number. Used only when `value` is not passed; prefer passing a value. */
   children?: ReactNode;
   className?: string;
@@ -305,9 +312,20 @@ export function Unit<UnitSymbol extends string = string>({
   // Kept out of `opts`, which goes to the formatter: this is about drawing, not the number.
   hideUnitInGroup,
   reckoned,
+  marked,
   ...opts
 }: UnitProps<UnitSymbol>) {
-  const currency = resolveCurrency(value, { drawsReckoning: reckoned });
+  const resolvedCurrency = resolveCurrency(value, { drawsReckoning: reckoned });
+  // A bare quantity is current by construction, so a derived figure's mark comes from the caller.
+  const currency =
+    marked != null && !resolvedCurrency.held
+      ? {
+          ...resolvedCurrency,
+          held: true,
+          mark: marked.kind,
+          caption: marked.caption,
+        }
+      : resolvedCurrency;
   const { shown, held, mark, caption, band } = currency;
   /*
    * Reports to an enclosing `<UnitSharedFormat>` and returns the format the group settled on; inert with no scope above it.

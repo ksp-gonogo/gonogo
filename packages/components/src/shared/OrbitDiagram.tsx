@@ -5,7 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { ArcFarEnd } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { ReckoningMarkSvg, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 // biome-ignore lint/style/noRestrictedImports: SVG <circle> focus ring (a :focus-visible stroke on a shape), which neither an inline style nor a primitive can render
@@ -52,6 +52,8 @@ export interface OrbitDiagramProps {
   trueAnomaly: number | null;
   /** Argument of periapsis in degrees (rotates the ellipse in-plane). */
   argPe: number;
+  /** Where a model carries the craft past the last observation, the craft is drawn as the kit's modelled mark rather than the plain dot. */
+  craftMark?: "modelled" | null;
   /** Whether the vessel is in a stable orbit, drives trajectory colour. Defaults to true. */
   isOrbiting?: boolean;
   /** Body physical radius in same units as apoapsis/periapsis. */
@@ -178,6 +180,7 @@ export function OrbitDiagram({
   periapsis,
   trueAnomaly,
   argPe,
+  craftMark = null,
   isOrbiting = true,
   bodyRadius,
   bodyColor,
@@ -585,14 +588,22 @@ export function OrbitDiagram({
             )}
 
             {/* Vessel: SVG y-flipped relative to orbital frame */}
-            {vessel && (
-              <circle
-                cx={vessel.x}
-                cy={-vessel.y}
-                r={dotR * cfg.vesselDotScale}
-                fill="var(--color-accent-fg)"
-              />
-            )}
+            {vessel &&
+              (craftMark === "modelled" ? (
+                <ReckoningMarkSvg
+                  kind="modelled"
+                  x={vessel.x}
+                  y={-vessel.y}
+                  scale={(dotR * cfg.vesselDotScale) / 4}
+                />
+              ) : (
+                <circle
+                  cx={vessel.x}
+                  cy={-vessel.y}
+                  r={dotR * cfg.vesselDotScale}
+                  fill="var(--color-accent-fg)"
+                />
+              ))}
 
             {maneuverHandles && (
               <ManeuverHandles

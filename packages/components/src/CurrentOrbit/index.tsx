@@ -19,6 +19,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import {
+  derivedMarking,
   FramedDisplay,
   Panel,
   ReadoutCaption,
@@ -224,6 +225,7 @@ function CurrentOrbitComponent({
         inclination={orbitReading.inc}
         eccentricity={orbitReading.ecc}
         period={current(solve?.period)}
+        marking={derivedMarking(orbitReading)}
       />
     </Stack>
   );
@@ -256,6 +258,11 @@ function CurrentOrbitComponent({
                     // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
                     apoapsis={apoapsisR ?? 0}
                     periapsis={periapsisR}
+                    craftMark={
+                      derivedMarking(orbitReading)?.kind === "modelled"
+                        ? "modelled"
+                        : null
+                    }
                     trueAnomaly={orbitHeld ? null : (solve?.trueAnomaly ?? 0)}
                     argPe={orbit?.argPe?.magnitude ?? 0}
                     bodyColor={body?.color}

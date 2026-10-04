@@ -259,3 +259,44 @@ export function figureAttributes(resolved: {
     "data-reckoned": resolved.held ? (resolved.mark ?? "held") : undefined,
   };
 }
+
+/**
+ * The mark a derived figure takes, and its words: what a widget hands `<Unit marked>` for a number it computed from a reading's
+ * payload (an apoapsis solved from an orbit) rather than read off a field.
+ *
+ * @category Unit
+ */
+export interface ReckoningMarking {
+  kind: ReckoningKind;
+  caption: string;
+}
+
+/**
+ * How a figure derived from this reading should be marked, or null where the reading is a current observation of now.
+ *
+ * A current reading a model carried past the received edge marks `modelled`; a held one marks `held`, or `modelled` where a model
+ * carries it. Use it for a number a person reads as the truth about now; a figure that only feeds a computation takes no mark.
+ *
+ * @category Unit
+ */
+export function derivedMarking(
+  reading: Reading<unknown> | null | undefined,
+  /** The figure is carried by a model that the reading itself does not name, such as a position the map models from the orbit. */
+  carried = false,
+): ReckoningMarking | null {
+  if (reading == null) return null;
+  if (reading.state === "observed") {
+    return carried ||
+      (reading.reckoning.status === "available" &&
+        reading.reckoning.beyondReceived)
+      ? { kind: "modelled", caption: MODELLED_TO_SCET }
+      : null;
+  }
+  if (reading.state === "held") {
+    const said = sayCurrency(heldWord(reading.grade), reading.asOfUt);
+    return carried || reading.reckoning.status === "available"
+      ? { kind: "modelled", caption: `${said}, modelled` }
+      : { kind: "held", caption: said };
+  }
+  return null;
+}

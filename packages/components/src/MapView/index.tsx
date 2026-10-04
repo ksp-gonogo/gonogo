@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/core";
 import { Switch } from "@ksp-gonogo/ui";
 import {
+  derivedMarking,
   Panel,
   ReadoutCaption,
   Section,
@@ -281,6 +282,8 @@ function MapViewComponent({
               ? telemetry.altitudeReading
               : undefined
           }
+          modelledPosition={telemetry.modelledPosition}
+          positionMarking={derivedMarking(telemetry.latitudeReading, true)}
           positionNotice={positionNotice}
         />
       </WidgetScopeProvider>

@@ -12,6 +12,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
+import { derivedMarking } from "@ksp-gonogo/ui-kit";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useBodyName } from "../shared/useBodyName";
@@ -142,6 +143,9 @@ function OrbitViewComponent({
       showMarkers={showMarkers}
       bodyColor={body?.color}
       bodyRadius={body?.radius}
+      craftMark={
+        derivedMarking(orbitReading)?.kind === "modelled" ? "modelled" : null
+      }
       isOrbiting={isOrbiting}
       rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
       atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}

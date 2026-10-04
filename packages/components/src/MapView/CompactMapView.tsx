@@ -1,7 +1,9 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  type ReckoningMarking,
   Section,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -20,6 +22,8 @@ export function CompactMapView({
   lat,
   lon,
   altitude,
+  modelledPosition,
+  positionMarking,
   positionNotice,
 }: Readonly<{
   bodyLabel: string | undefined;
@@ -27,6 +31,9 @@ export function CompactMapView({
   lon: MapTelemetry["longitudeReading"];
   /** Omitted to leave the altitude row out. */
   altitude: MapTelemetry["altitudeReading"] | undefined;
+  /** Where a model puts the craft now; its coordinates are drawn in place of the last observed ones, marked modelled. */
+  modelledPosition: MapTelemetry["modelledPosition"];
+  positionMarking: ReckoningMarking | null;
   positionNotice: string | undefined;
 }>) {
   return (
@@ -41,7 +48,13 @@ export function CompactMapView({
             <CompactRow>
               <CompactLabel>Lat</CompactLabel>
               <CompactValue>
-                {lat.value === undefined ? (
+                {modelledPosition !== null ? (
+                  <Unit
+                    value={value("°", modelledPosition.lat)}
+                    marked={positionMarking}
+                    decimals={2}
+                  />
+                ) : lat.value === undefined ? (
                   NULL_DISPLAY
                 ) : (
                   <Unit value={lat} decimals={2} />
@@ -51,7 +64,13 @@ export function CompactMapView({
             <CompactRow>
               <CompactLabel>Lon</CompactLabel>
               <CompactValue>
-                {lon.value === undefined ? (
+                {modelledPosition !== null ? (
+                  <Unit
+                    value={value("°", modelledPosition.lon)}
+                    marked={positionMarking}
+                    decimals={2}
+                  />
+                ) : lon.value === undefined ? (
                   NULL_DISPLAY
                 ) : (
                   <Unit value={lon} decimals={2} />
@@ -62,7 +81,7 @@ export function CompactMapView({
               <CompactRow>
                 <CompactLabel>Alt</CompactLabel>
                 <CompactValue>
-                  <Unit value={altitude} />
+                  <Unit value={altitude} reckoned />
                 </CompactValue>
               </CompactRow>
             )}

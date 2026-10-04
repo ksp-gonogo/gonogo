@@ -3,7 +3,13 @@ import type {
   LibrationOffset,
 } from "@ksp-gonogo/sitrep-client";
 import { staticValue, type Tone, value } from "@ksp-gonogo/sitrep-sdk";
-import { Row, RowName, Text, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  type ReckoningMarking,
+  Row,
+  RowName,
+  Text,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
 
 /** Not stationkeeping carries no state, so it recedes through the `muted` level the rows pass alongside. */
@@ -24,15 +30,15 @@ export function LibrationReadouts({
   answer,
   offset,
   hasCraft,
-  craftHeldSince,
+  craftMarking,
   catalogueHeldSince,
 }: Readonly<{
   answer: LibrationAnswer;
   offset: LibrationOffset | null;
   /** Whether there is a craft orbit of now at all, observed or modelled. */
   hasCraft: boolean;
-  /** When the craft's orbit was last observed, while only a model places it. */
-  craftHeldSince: HeldSince;
+  /** The mark the craft's orbit gives the figures derived from it. */
+  craftMarking: ReckoningMarking | null;
   /** When the catalogue was last a reading of now; the pair's separation follows its orbit. */
   catalogueHeldSince: HeldSince;
 }>) {
@@ -57,17 +63,18 @@ export function LibrationReadouts({
         </Text>
       </Row>
       {/* With no orbit of now there is no craft to place, so there is nothing to say about one. */}
-      {hasCraft && (
-        <CraftOffsetRows offset={offset} heldSince={craftHeldSince} />
-      )}
+      {hasCraft && <CraftOffsetRows offset={offset} marking={craftMarking} />}
     </>
   );
 }
 
 function CraftOffsetRows({
   offset,
-  heldSince,
-}: Readonly<{ offset: LibrationOffset | null; heldSince: HeldSince }>) {
+  marking,
+}: Readonly<{
+  offset: LibrationOffset | null;
+  marking: ReckoningMarking | null;
+}>) {
   if (offset === null) {
     return (
       <Row>
@@ -87,9 +94,7 @@ function CraftOffsetRows({
       <Row>
         <RowName>Off station</RowName>
         <Text tone={KEEPING_TONE[offset.keeping]} level="muted">
-          <Unit
-            value={heldFigure(value("m", offset.distanceMetres), heldSince)}
-          />
+          <Unit value={value("m", offset.distanceMetres)} marked={marking} />
         </Text>
       </Row>
     </>

@@ -1,7 +1,11 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
-import { paintReckonedPosition, ReckoningMarkSvg } from "./index";
+import {
+  derivedMarking,
+  paintReckonedPosition,
+  ReckoningMarkSvg,
+} from "./index";
 import { Unit } from "./Unit";
 
 const AT = value("ut", 1_000);
@@ -122,5 +126,52 @@ describe("paintReckonedPosition", () => {
     paintReckonedPosition(canvas, ctx, { held: { x: 10, y: 10 } });
     expect(alphas).toEqual([1]);
     expect(ctx.stroke).not.toHaveBeenCalled();
+  });
+});
+
+describe("a figure derived from a reading", () => {
+  it("takes no mark from a current reading with no model past the edge", () => {
+    const current: Reading<Value<"m">> = {
+      state: "observed",
+      value: value("m", 1),
+      atUt: AT,
+      reckoning: { status: "none" },
+    };
+    expect(derivedMarking(current)).toBeNull();
+  });
+
+  it("is modelled where a model carries a current reading past the received edge", () => {
+    expect(derivedMarking(carried(false))?.kind).toBe("modelled");
+  });
+
+  it("is modelled over a held reading a model carries, and held where none does", () => {
+    expect(derivedMarking(carried(true))?.kind).toBe("modelled");
+    const held: Reading<Value<"m">> = {
+      state: "held",
+      value: value("m", 1),
+      asOfUt: AT,
+      grade: "held",
+      reckoning: { status: "none" },
+    };
+    expect(derivedMarking(held)?.kind).toBe("held");
+  });
+
+  it("draws the mark on a bare quantity handed to Unit as marked", () => {
+    const { container } = render(
+      <Unit
+        value={value("m", 5_000)}
+        marked={derivedMarking(carried(false))}
+      />,
+    );
+    expect(
+      container.querySelector('[data-reckoning-mark="modelled"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector("[data-unit-currency]")?.textContent,
+    ).toContain("modelled to SCET");
+  });
+
+  it("is forced modelled where the caller says a model carries it", () => {
+    expect(derivedMarking(carried(false), true)?.kind).toBe("modelled");
   });
 });

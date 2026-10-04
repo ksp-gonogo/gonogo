@@ -18,11 +18,16 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { type ControlFrame, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Select } from "@ksp-gonogo/ui";
-import { FieldLabel, FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
+import {
+  derivedMarking,
+  FieldLabel,
+  FramedDisplay,
+  Section,
+  Text,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
-import type { HeldSince } from "../shared/heldFigure";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import {
@@ -82,11 +87,8 @@ export function LibrationPointsComponent({
 
   const orbitReading = librationPointsTopics.useTelemetry("vessel.orbit");
   const orbit = orbitOfNow(orbitReading);
-  // Only a model carries a held orbit this far, so the craft's figures draw held.
-  const orbitHeldSince: HeldSince =
-    orbitReading.state === "held" && orbit !== undefined
-      ? { asOfUt: orbitReading.asOfUt, grade: orbitReading.grade }
-      : null;
+  // The craft's figures are derived from this orbit, so they carry its mark: a model carrying it past the received edge marks them modelled.
+  const orbitMarking = derivedMarking(orbitReading);
   const identityReading = librationPointsTopics.useTelemetry("vessel.identity");
   const identity = stillTrue(identityReading, undefined);
 
@@ -214,7 +216,7 @@ export function LibrationPointsComponent({
               answer={answer}
               offset={offset}
               hasCraft={orbit !== undefined}
-              craftHeldSince={orbitHeldSince}
+              craftMarking={orbitMarking}
               catalogueHeldSince={catalogueHeldSince}
             />
           </Section>
