@@ -243,6 +243,69 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(700_000.0, node.Orbit!.Value.Osculating!.Value.Sma);
         }
 
+        private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> Roster(params (string Guid, int Crew)[] craft) =>
+            craft.ToDictionary(
+                c => "vessel:" + c.Guid,
+                c => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>
+                {
+                    ["vesselId"] = c.Guid,
+                    ["name"] = c.Guid,
+                    ["crewCount"] = c.Crew,
+                    ["vesselType"] = (int)(c.Guid == "junk" ? VesselType.Debris : VesselType.Probe),
+                });
+
+        [Fact]
+        public void ACraftIsReadAgainWhenItsOwnListingChangesAndKeepsGoingWhereItWas()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Look(Craft("a", Orbit(700_000.0)), Ksc);
+            var first = recorder.Capture(look, 0.0, null, Roster(("a", 0))).States.Single();
+            Assert.Equal(0, first.Roster!["crewCount"]);
+
+            Assert.Empty(recorder.Capture(look, 5.0, null, Roster(("a", 0))).States);
+            var boarded = recorder.Capture(look, 6.0, null, Roster(("a", 2))).States.Single();
+
+            Assert.Equal(2, boarded.Roster!["crewCount"]);
+            Assert.Equal(6.0, boarded.CapturedUt);
+            Assert.Same(first.Motion, boarded.Motion);
+        }
+
+        [Fact]
+        public void ACraftWithNoRadioIsNotedOnceWhenItAppearsAndOnceWhenItIsGone()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Look(Craft("a", Orbit(700_000.0)), Ksc);
+
+            var appeared = recorder.Capture(look, 0.0, null, Roster(("a", 0), ("junk", 0)));
+            var junk = Assert.Single(appeared.SeenFromGround);
+            Assert.Equal("vessel:junk", junk.Id);
+            Assert.False(junk.Plannable);
+            Assert.Null(junk.ToPlanNode());
+            Assert.Equal(new[] { "a" }, appeared.Present);
+            Assert.Equal(new[] { "a", "junk" }, appeared.Known.OrderBy(k => k));
+
+            var still = recorder.Capture(look, 700.0, null, Roster(("a", 0), ("junk", 5)));
+            Assert.Empty(still.SeenFromGround);
+            Assert.Empty(still.GoneFromGround);
+
+            var went = recorder.Capture(look, 701.0, null, Roster(("a", 0)));
+            Assert.Equal(new[] { "junk" }, went.GoneFromGround);
+            Assert.Empty(went.Gone);
+        }
+
+        [Fact]
+        public void ACraftThatLosesItsRadioKeepsWhatWasLastHeardOfItAndIsNotCalledGone()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Ksc), 0.0, null, Roster(("a", 0)));
+
+            var silent = recorder.Capture(Look(Ksc), 5.0, null, Roster(("a", 0)));
+
+            Assert.Empty(silent.Gone);
+            Assert.Empty(silent.SeenFromGround);
+            Assert.Empty(silent.GoneFromGround);
+        }
+
         private sealed class RecordingHost : ICraftStateHost
         {
             public List<string> Calls { get; } = new List<string>();
@@ -259,6 +322,12 @@ namespace Sitrep.Host.Tests.Comms
             public void RecordCraftGone(string vesselId, double ut) => Calls.Add("gone " + vesselId + "@" + ut);
 
             public System.Action HearCraftState(string vesselId, string centre, System.Action<CraftState> heard) => () => { };
+
+            public void RecordCraftSeenFromGround(string vesselId, CraftState state, double ut) => Calls.Add("seen " + vesselId + "@" + ut);
+
+            public void RecordCraftGoneFromGround(string vesselId, double ut) => Calls.Add("unseen " + vesselId + "@" + ut);
+
+            public System.Action HearCraftLink(string vesselId, string centre, System.Action<bool> heard) => () => { };
 
             public void OnTimelineReset(System.Action reset)
             {

@@ -35,6 +35,24 @@ namespace Sitrep.Host.Comms
         void RecordCraftGone(string vesselId, double ut);
 
         /// <summary>
+        /// Records the state of a craft that carries no radio, as the ground
+        /// saw it at <paramref name="ut"/>. It says nothing itself, so no light
+        /// of its own carries this: every centre has it at once.
+        /// </summary>
+        void RecordCraftSeenFromGround(string vesselId, CraftState state, double ut);
+
+        /// <summary>Records that a craft with no radio is gone as of <paramref name="ut"/>, which every centre has at once, as it had its arrival.</summary>
+        void RecordCraftGoneFromGround(string vesselId, double ut);
+
+        /// <summary>
+        /// Hears whether the craft's radio answers, as <paramref name="centre"/>
+        /// learns it: an outage one of the centre's own light-times after the
+        /// last light the craft sent, and its return when its light arrives
+        /// again. Returns the call that stops listening.
+        /// </summary>
+        Action HearCraftLink(string vesselId, string centre, Action<bool> heard);
+
+        /// <summary>
         /// Hears the craft's states as <paramref name="centre"/> receives them:
         /// the newest already arrived at once, and each later one as it lands.
         /// Returns the call that stops listening.

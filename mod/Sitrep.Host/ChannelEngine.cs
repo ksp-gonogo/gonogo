@@ -676,15 +676,17 @@ namespace Sitrep.Host
         /// on its own link, or the blackout would stop meaning anything.</para>
         ///
         /// <para>Exactly core's two topics, <c>fleet.&lt;guid&gt;.contact</c> and
-        /// <c>silence.&lt;guid&gt;.state</c>, and no other topic that happens to
-        /// end the same way. An Uplink's own per-vessel <c>.state</c> or
+        /// <c>silence.&lt;guid&gt;.state</c>, with the engine's own report of each
+        /// craft's link beside its craft state, and no other topic that happens
+        /// to end the same way. An Uplink's own per-vessel <c>.state</c> or
         /// <c>.contact</c> is that craft's telemetry: it is held through a
         /// blackout and revealed on the ordinary terms.</para>
         /// </summary>
         private static bool IsFreezeExempt(string topic) =>
             ActiveLinkReports.Contains(topic)
             || IsPerVesselField(topic, FleetNodePrefix, ContactMetaSuffix)
-            || IsPerVesselField(topic, SilenceEventPrefix, SilenceStateSuffix);
+            || IsPerVesselField(topic, SilenceEventPrefix, SilenceStateSuffix)
+            || IsPerVesselField(topic, CraftStatePrefix, CraftLinkSuffix);
 
         /// <summary>Whether <paramref name="topic"/> is exactly <paramref name="prefix"/>, one key segment, and <paramref name="suffix"/>.</summary>
         private static bool IsPerVesselField(string topic, string prefix, string suffix)
@@ -3331,6 +3333,7 @@ namespace Sitrep.Host
             // Courier-thread-only, like SetSubjectConnected's other caller.
             _fleetVesselsThisTick.Add(vesselId);
             SetSubjectConnected(FleetNodePrefix + vesselId, connected, _clock.Now());
+            SayCraftLink(vesselId, connected);
         }
 
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
@@ -7158,6 +7161,7 @@ namespace Sitrep.Host
 
         private void ProcessTick(TickJob tick)
         {
+            _tickUt = tick.Ut;
             // Quickload / timeline-rewind detection: paired 1:1 with the
             // identical check GonogoBodiesServer/ReplayBodiesServer both used
             // to carry separately: now there is exactly one copy. Live KSP's

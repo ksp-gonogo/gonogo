@@ -362,14 +362,30 @@ public class OrbitEntry
 }
 
 /// <summary>
-/// The <c>system.vessels</c> channel payload: every known vessel, not just
-/// the active one (for a "what could I target" listing), wrapped as
-/// <c>{ "vessels": [ ... ] }</c>. The whole payload is <c>null</c> when
-/// nothing is loaded (the main menu), distinct from an empty roster when the
-/// game reports zero vessels. Like <see cref="SystemBodies"/>, it carries no
-/// per-payload <c>Meta</c>: that rides the envelope.
+/// The <c>system.vessels</c> channel payload: every vessel the receiving
+/// command centre has heard of, as it last heard it, wrapped as
+/// <c>{ "vessels": [ ... ] }</c>. Like <see cref="SystemBodies"/>, it carries
+/// no per-payload <c>Meta</c>: that rides the envelope.
+///
+/// <para>ADDRESSED: each command centre is sent its own list and no other
+/// centre's. An entry is what that vessel's own signal last told this centre,
+/// so its orbit, its situation and its crew are as old as the light that
+/// brought them: a burn far away shows here one of this centre's light-times
+/// after it was made. A vessel the centre has not heard from yet is not
+/// listed, which after a game load is every vessel for one light-time. A
+/// vessel that has gone leaves the list when its silence could have reached
+/// the centre.</para>
+///
+/// <para>A vessel of a kind that never carries a radio (debris, an asteroid
+/// or comet, a flag, a deployed experiment) says nothing, so nothing of it can
+/// be heard. It is listed from the moment it is in the game, as it stood then,
+/// and its entry does not change until it is gone.</para>
 /// <internal>
-/// Typing-only mirror of SystemViewProvider.BuildSystemVessels' shape.
+/// Each entry is SystemViewProvider.BuildSystemVessels' shape, read with the
+/// craft's CraftState and published per centre by ContactPlanSource. It was
+/// one list on the active craft's node, which handed every centre each
+/// craft's live orbit and link at the active craft's light-time and froze the
+/// whole list while the active craft was dark.
 /// </internal>
 /// </summary>
 /// <category>Solar system and fleet</category>
@@ -380,7 +396,7 @@ public class OrbitEntry
 #endif
 public class SystemVessels
 {
-    /// <summary>Every known vessel with a resolvable id, loaded or not. Debris and asteroids are included.</summary>
+    /// <summary>Every vessel this centre has heard of, loaded or not, in id order. Debris and asteroids are included.</summary>
     public IReadOnlyList<VesselRosterEntry> Vessels { get; set; } = new List<VesselRosterEntry>();
 }
 
@@ -466,9 +482,11 @@ public class VesselRosterEntry
     public int? CrewCapacity { get; set; }
 
     /// <summary>
-    /// Whether stock CommNet reports a live control link home for this
-    /// vessel right now (<c>Vessel.connection.IsConnected</c>), read for every
-    /// roster vessel, loaded or not. This is stock's reading, not the active
+    /// Whether this vessel has a live control link home, as the receiving
+    /// centre has heard it: an outage shows one of the centre's light-times
+    /// after the vessel's last light, and its return when its light arrives
+    /// again. Read for every roster vessel, loaded or not. This is stock
+    /// CommNet's reading (<c>Vessel.connection.IsConnected</c>), not the active
     /// vessel's <c>comms.*</c> channels, which a comms mod may provide.
     ///
     /// <para>Null when CommNet has no connection to read for this vessel, which

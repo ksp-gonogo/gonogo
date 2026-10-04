@@ -20,6 +20,9 @@ namespace Sitrep.Host.Comms
 
             public Dictionary<string, Action> Stop { get; } = new Dictionary<string, Action>(StringComparer.Ordinal);
 
+            /// <summary>Whether each craft's radio answers, as last heard here, by node id.</summary>
+            public Dictionary<string, bool> Link { get; } = new Dictionary<string, bool>(StringComparer.Ordinal);
+
             public long News { get; set; }
         }
 
@@ -73,13 +76,27 @@ namespace Sitrep.Host.Comms
                     ear.Stop[vesselId] = () => { };
                     var listeningEar = ear;
                     var listeningCentre = centre;
-                    ear.Stop[vesselId] = _host.HearCraftState(vesselId, centre, state =>
+                    var stopState = _host.HearCraftState(vesselId, centre, state =>
                     {
                         if (Heard(listeningEar, state))
                         {
                             _onHeard?.Invoke(listeningCentre, state.Id);
                         }
                     });
+                    var nodeId = CraftStateRecorder.VesselPrefix + vesselId;
+                    var stopLink = _host.HearCraftLink(vesselId, centre, connected =>
+                    {
+                        if (!listeningEar.Link.TryGetValue(nodeId, out var was) || was != connected)
+                        {
+                            listeningEar.Link[nodeId] = connected;
+                            listeningEar.News++;
+                        }
+                    });
+                    ear.Stop[vesselId] = () =>
+                    {
+                        stopState();
+                        stopLink();
+                    };
                 }
             }
         }
@@ -87,6 +104,14 @@ namespace Sitrep.Host.Comms
         /// <summary>The newest state <paramref name="centre"/> has received of each craft it has heard of, gone ones included.</summary>
         public IReadOnlyCollection<CraftState> HeardAt(string centre) =>
             _ears.TryGetValue(centre, out var ear) ? ear.Heard.Values : (IReadOnlyCollection<CraftState>)Array.Empty<CraftState>();
+
+        /// <summary>
+        /// Whether <paramref name="centre"/> has heard that the craft's radio
+        /// answers: true or false as its last report said, or null when no
+        /// report of it has reached the centre.
+        /// </summary>
+        public bool? LinkAt(string centre, string nodeId) =>
+            _ears.TryGetValue(centre, out var ear) && ear.Link.TryGetValue(nodeId, out var connected) ? connected : (bool?)null;
 
         /// <summary>A count that moves each time news reaches <paramref name="centre"/>.</summary>
         public long NewsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.News : 0;

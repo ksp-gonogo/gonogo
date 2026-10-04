@@ -52,8 +52,10 @@ namespace Sitrep.Host.Comms
             IReadOnlyDictionary<string, CraftLink> links,
             object? motion,
             bool settled,
-            string? name = null)
+            string? name = null,
+            IReadOnlyDictionary<string, object?>? roster = null)
         {
+            Roster = roster;
             Name = name;
             Settled = settled;
             Motion = motion ?? new object();
@@ -74,6 +76,13 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The craft's name as it stood when this was read, or null when none was read.</summary>
         public string? Name { get; }
+
+        /// <summary>
+        /// The craft's entry on <c>system.vessels</c> as it stood when this was
+        /// read: its name and type, its situation, its crew, its orbit. Null
+        /// for a state read with no roster to hand.
+        /// </summary>
+        public IReadOnlyDictionary<string, object?>? Roster { get; }
 
         /// <summary>When this was read off the craft.</summary>
         public double CapturedUt { get; }
@@ -146,15 +155,27 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public CraftState ReadAgain(
             double capturedUt, double? validUntilUt, bool plannable, IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true, Name);
+            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true, Name, Roster);
 
         /// <summary>This state, marked as read while the craft's orbit was still changing.</summary>
         public CraftState Unsettled() =>
-            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false, Name);
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false, Name, Roster);
 
         /// <summary>This state, carrying the craft's name as it was read with it.</summary>
         public CraftState Named(string? name) =>
-            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, name);
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, name, Roster);
+
+        /// <summary>This state, carrying the craft's roster entry as it was read with it.</summary>
+        public CraftState Listed(IReadOnlyDictionary<string, object?>? roster) =>
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, Name, roster);
+
+        /// <summary>
+        /// A craft that carries no radio: it exists and is listed, and no
+        /// contact plan includes it, since nothing can be sent to it or heard
+        /// from it.
+        /// </summary>
+        public static CraftState WithoutARadio(string id, double capturedUt, IReadOnlyDictionary<string, object?>? roster) =>
+            new CraftState(id, capturedUt, true, -1, null, null, null, null, false, NoLinks, null, true, null, roster);
 
         /// <summary>The craft as a contact plan carries it, or null for one that is gone or cannot be planned.</summary>
         public PlanNode? ToPlanNode()

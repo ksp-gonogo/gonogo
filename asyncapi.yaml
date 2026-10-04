@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.0.0
+  version: 29.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -2789,12 +2789,23 @@ channels:
     description: |-
       Carries a `SystemVessels`.
 
-      The `system.vessels` channel payload: every known vessel, not just the
-      active one (for a "what could I target" listing), wrapped as `{ "vessels": [
-      ... ] }`. The whole payload is `null` when nothing is loaded (the main
-      menu), distinct from an empty roster when the game reports zero vessels.
-      Like `SystemBodies`, it carries no per-payload `Meta`: that rides the
+      The `system.vessels` channel payload: every vessel the receiving command
+      centre has heard of, as it last heard it, wrapped as `{ "vessels": [ ... ]
+      }`. Like `SystemBodies`, it carries no per-payload `Meta`: that rides the
       envelope.
+
+      ADDRESSED: each command centre is sent its own list and no other centre's.
+      An entry is what that vessel's own signal last told this centre, so its
+      orbit, its situation and its crew are as old as the light that brought them:
+      a burn far away shows here one of this centre's light-times after it was
+      made. A vessel the centre has not heard from yet is not listed, which after
+      a game load is every vessel for one light-time. A vessel that has gone
+      leaves the list when its silence could have reached the centre.
+
+      A vessel of a kind that never carries a radio (debris, an asteroid or comet,
+      a flag, a deployed experiment) says nothing, so nothing of it can be heard.
+      It is listed from the moment it is in the game, as it stood then, and its
+      entry does not change until it is gone.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -18884,12 +18895,23 @@ components:
     SystemVessels:
       type: object
       description: |-
-        The `system.vessels` channel payload: every known vessel, not just the
-        active one (for a "what could I target" listing), wrapped as `{ "vessels": [
-        ... ] }`. The whole payload is `null` when nothing is loaded (the main
-        menu), distinct from an empty roster when the game reports zero vessels.
-        Like `SystemBodies`, it carries no per-payload `Meta`: that rides the
+        The `system.vessels` channel payload: every vessel the receiving command
+        centre has heard of, as it last heard it, wrapped as `{ "vessels": [ ... ]
+        }`. Like `SystemBodies`, it carries no per-payload `Meta`: that rides the
         envelope.
+
+        ADDRESSED: each command centre is sent its own list and no other centre's.
+        An entry is what that vessel's own signal last told this centre, so its
+        orbit, its situation and its crew are as old as the light that brought them:
+        a burn far away shows here one of this centre's light-times after it was
+        made. A vessel the centre has not heard from yet is not listed, which after
+        a game load is every vessel for one light-time. A vessel that has gone
+        leaves the list when its silence could have reached the centre.
+
+        A vessel of a kind that never carries a radio (debris, an asteroid or comet,
+        a flag, a deployed experiment) says nothing, so nothing of it can be heard.
+        It is listed from the moment it is in the game, as it stood then, and its
+        entry does not change until it is gone.
       required:
         - vessels
       properties:
@@ -18898,8 +18920,8 @@ components:
           items:
             $ref: "#/components/schemas/VesselRosterEntry"
           description: |-
-            Every known vessel with a resolvable id, loaded or not. Debris and asteroids
-            are included.
+            Every vessel this centre has heard of, loaded or not, in id order. Debris
+            and asteroids are included.
     TargetAvailable:
       type: object
       description: |-
@@ -20974,10 +20996,12 @@ components:
             - "null"
           x-sitrep-unit: flag
           description: |-
-            Whether stock CommNet reports a live control link home for this vessel right
-            now (`Vessel.connection.IsConnected`), read for every roster vessel, loaded
-            or not. This is stock's reading, not the active vessel's `comms.*` channels,
-            which a comms mod may provide.
+            Whether this vessel has a live control link home, as the receiving centre
+            has heard it: an outage shows one of the centre's light-times after the
+            vessel's last light, and its return when its light arrives again. Read for
+            every roster vessel, loaded or not. This is stock CommNet's reading
+            (`Vessel.connection.IsConnected`), not the active vessel's `comms.*`
+            channels, which a comms mod may provide.
 
             Null when CommNet has no connection to read for this vessel, which means
             unknown, not "no link". Two causes: rarely, a scene transition; and always,

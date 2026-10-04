@@ -223,6 +223,51 @@ namespace Sitrep.Host.IntegrationTests
 
         public IReadOnlyList<string> Centres() => new[] { Home, Far };
 
+        /// <summary>A spent stage with no radio, in the game from the start.</summary>
+        public const string DebrisGuid = "D";
+
+        /// <summary>Whether the spent stage is still in the game.</summary>
+        public bool DebrisExists { get; set; } = true;
+
+        /// <summary>How many crew the relay carries.</summary>
+        public int RelayCrew { get; set; }
+
+        /// <summary>
+        /// Every craft in the game as the snapshot's roster lists it, which is
+        /// what the game shows of each right now: the relay's orbit as it
+        /// stands, burn included.
+        /// </summary>
+        public List<object?> RosterSnapshot()
+        {
+            var roster = new List<object?>
+            {
+                new Dictionary<string, object?> { ["id"] = ActiveGuid, ["name"] = "Lander", ["vesselType"] = "Lander", ["situation"] = "LANDED" },
+            };
+            lock (_gate)
+            {
+                if (_relayExists)
+                {
+                    roster.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = RelayGuid,
+                        ["name"] = "Relay",
+                        ["vesselType"] = "Relay",
+                        ["situation"] = "ORBITING",
+                        ["crewCount"] = RelayCrew,
+                        ["commsConnected"] = RelayConnected,
+                        ["sma"] = _relayOrbit.Sma,
+                        ["ecc"] = _relayOrbit.Ecc,
+                        ["epoch"] = _relayOrbit.Epoch,
+                    });
+                }
+            }
+            if (DebrisExists)
+            {
+                roster.Add(new Dictionary<string, object?> { ["id"] = DebrisGuid, ["name"] = "Spent stage", ["vesselType"] = "Debris", ["situation"] = "ORBITING" });
+            }
+            return roster;
+        }
+
         public ContactGameLook Look()
         {
             var nodes = new List<ContactGameNode>
@@ -475,6 +520,26 @@ namespace Sitrep.Host.IntegrationTests
 
         public string? Routes => _latest.TryGetValue(ContactPlanSource.RouteTopic, out var payload) ? payload : null;
 
+        public string? Vessels => Latest(SystemViewProvider.VesselsTopic);
+
+        /// <summary>One craft's entry in the roster this centre holds, or null when the roster does not list it.</summary>
+        public JsonElement? Vessel(string vesselId)
+        {
+            if (Vessels == null)
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(Vessels);
+            foreach (var entry in doc.RootElement.GetProperty("vessels").EnumerateArray())
+            {
+                if (entry.GetProperty("vesselId").GetString() == vesselId)
+                {
+                    return entry.Clone();
+                }
+            }
+            return null;
+        }
+
         public string? Path => Latest(ContactPlanSource.PathTopic);
 
         public string? Network => Latest(ContactPlanSource.NetworkTopic);
@@ -621,6 +686,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     ["identity"] = new Dictionary<string, object?> { ["id"] = ScriptedContactGame.ActiveGuid },
                 },
+                ["vessels"] = Game.RosterSnapshot(),
             };
             Engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, Timeout);
         }

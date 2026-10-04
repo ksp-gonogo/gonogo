@@ -2297,8 +2297,16 @@ namespace Sitrep.Contract
         /// longer read by core.</para>
         ///
         /// <para><b>Major-29 line, reset to 0</b> with the Major.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 0 -&gt; 1: each command centre's own list of
+        /// vessels.</b> <c>system.vessels</c> is sent to each command centre alone and
+        /// lists what that centre has heard of each vessel, where every centre was sent
+        /// one list of every vessel as the game stood. No payload changes shape. What a
+        /// reader sees changes: a vessel is absent until the centre has heard from it,
+        /// its orbit, situation, crew and link are as that centre last heard them, and
+        /// the list no longer stops while the active vessel is out of contact.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

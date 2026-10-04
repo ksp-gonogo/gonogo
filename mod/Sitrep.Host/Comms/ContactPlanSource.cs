@@ -136,6 +136,14 @@ namespace Sitrep.Host.Comms
     /// centre's own plan has it (see <see cref="CentrePath"/>), to that centre
     /// alone.</para>
     ///
+    /// <para>And <c>system.vessels</c>: every craft a centre has heard of, as it
+    /// last heard it, to that centre alone. A craft's entry is the one read
+    /// with its state, so its orbit, its situation and its crew are as old as
+    /// the light that brought them, and whether its radio answers is what the
+    /// centre has heard of its link. A craft the centre has not heard of is not
+    /// listed. A craft with no radio is listed as the ground saw it when it
+    /// first appeared, and never again.</para>
+    ///
     /// <para>A centre is planned for again when news reaches it, when the
     /// ground stations change, and when half its plan's horizon has passed.
     /// The plans run off both threads, on a stock analytic propagator over a
@@ -153,6 +161,8 @@ namespace Sitrep.Host.Comms
         public const string NetworkTopic = "comms.network";
 
         public const string CommandCentreTopic = "comms.commandCentre";
+
+        public const string VesselsTopic = SystemViewProvider.VesselsTopic;
 
         private static readonly string[] PathTopics = { PathTopic, NetworkTopic, CommandCentreTopic };
 
@@ -280,6 +290,8 @@ namespace Sitrep.Host.Comms
         private readonly HashSet<string> _routesAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, HashSet<string>> _pathsAsked = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _pathShapes = new Dictionary<string, string>(StringComparer.Ordinal);
+        private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
         private int _plansVersion;
 
@@ -328,6 +340,16 @@ namespace Sitrep.Host.Comms
             new ChannelDeclaration
             {
                 Requires = Requirement.None,
+                Topic = VesselsTopic,
+                Delivery = Delivery.LossyLatest,
+                // Addressed: each centre is sent the craft it has heard of, as it heard them.
+                Delay = DelayRole.Delayed,
+                Recordable = false,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            },
+            new ChannelDeclaration
+            {
+                Requires = Requirement.None,
                 Topic = ContactsTopic,
                 Delivery = Delivery.LossyLatest,
                 // Addressed: each centre is sent its own plan and no other's.
@@ -372,6 +394,8 @@ namespace Sitrep.Host.Comms
             // told its centre's current plan and routes again.
             _streams.OnAddressedSubscribed(ContactsTopic, centre => _unpublished.Add(centre));
             _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
+            _streams.DeclareAddressedTopic(VesselsTopic);
+            _streams.OnAddressedSubscribed(VesselsTopic, centre => _vesselsAsked.Add(centre));
             foreach (var topic in PathTopics)
             {
                 var asked = new HashSet<string>(StringComparer.Ordinal);
@@ -439,7 +463,7 @@ namespace Sitrep.Host.Comms
             var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
             return new Looked(
                 snapshot.Ut,
-                _craft.Capture(look, snapshot.Ut, _host.Kernel),
+                _craft.Capture(look, snapshot.Ut, _host.Kernel, RosterOf(snapshot)),
                 ground,
                 stations,
                 new List<string>(_game.Centres()),
@@ -466,6 +490,7 @@ namespace Sitrep.Host.Comms
                 _planned.Clear();
                 _unsettled.Clear();
                 _pathShapes.Clear();
+                _vesselsNews.Clear();
                 System.Threading.Interlocked.Increment(ref _plansVersion);
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
                 // A round still running was made of the old timeline; it is
@@ -477,7 +502,7 @@ namespace Sitrep.Host.Comms
             var planning = _audience.PlanningCentres();
             var listening = new HashSet<string>(looked.Centres, StringComparer.Ordinal);
             listening.UnionWith(planning);
-            _hearing.Listen(listening, looked.Craft.Present);
+            _hearing.Listen(listening, looked.Craft.Known);
 
             NoteGround(looked);
             TakeFinished(looked.Ut);
@@ -490,6 +515,80 @@ namespace Sitrep.Host.Comms
             PublishPlans(looked.Ut);
             PublishRoutes(looked, planning);
             PublishPaths(looked, planning);
+            PublishVessels(looked, planning);
+        }
+
+        /// <summary>MAIN THREAD: each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
+        private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? RosterOf(KspSnapshot snapshot)
+        {
+            if (!(SystemViewProvider.BuildSystemVessels(snapshot) is IDictionary<string, object?> built)
+                || !built.TryGetValue("vessels", out var list)
+                || !(list is IEnumerable<object?> entries))
+            {
+                return null;
+            }
+            var roster = new Dictionary<string, IReadOnlyDictionary<string, object?>>(StringComparer.Ordinal);
+            foreach (var entry in entries)
+            {
+                if (entry is Dictionary<string, object?> listed && listed.TryGetValue("vesselId", out var id) && id is string vesselId)
+                {
+                    roster[CraftStateRecorder.VesselPrefix + vesselId] = listed;
+                }
+            }
+            return roster;
+        }
+
+        /// <summary>
+        /// Sends each planning centre the craft it has heard of, as it heard
+        /// them: when news has reached it since it was last sent the list, and
+        /// at once where a session has just sat down.
+        /// </summary>
+        private void PublishVessels(Looked looked, IReadOnlyCollection<string> planning)
+        {
+            if (!_host!.IsAnyTopicSubscribed(VesselsTopic))
+            {
+                _vesselsAsked.Clear();
+                _vesselsNews.Clear();
+                return;
+            }
+            var sent = 0;
+            foreach (var centre in planning)
+            {
+                var news = _hearing!.NewsAt(centre);
+                if (!_vesselsAsked.Contains(centre) && _vesselsNews.TryGetValue(centre, out var told) && told == news)
+                {
+                    continue;
+                }
+                _vesselsNews[centre] = news;
+                var heard = new List<CraftState>(_hearing.HeardAt(centre));
+                heard.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+                var vessels = new List<object?>(heard.Count);
+                foreach (var state in heard)
+                {
+                    if (!state.Exists || state.Roster == null)
+                    {
+                        continue;
+                    }
+                    var entry = new Dictionary<string, object?>(state.Roster.Count);
+                    foreach (var fact in state.Roster)
+                    {
+                        entry[fact.Key] = fact.Value;
+                    }
+                    // A craft cannot say its own radio has stopped answering. The
+                    // centre learns that from the silence, one light-time on.
+                    var link = _hearing.LinkAt(centre, state.Id);
+                    if (link != null)
+                    {
+                        entry["commsConnected"] = link.Value;
+                    }
+                    vessels.Add(entry);
+                }
+                _streams!.PublishAddressedTo(
+                    VesselsTopic, new Dictionary<string, object?> { ["vessels"] = vessels }, looked.Ut, ToItself(centre));
+                sent++;
+            }
+            _vesselsAsked.Clear();
+            PathFramesBudget.Record(sent, looked.Ut);
         }
 
         /// <summary>Keeps the ground the next plans are made over, and counts each time the stations or the bodies' sizes change.</summary>

@@ -90,27 +90,9 @@ namespace Gonogo.KSP
                     // not a behavior change.
                     Delay = DelayRole.TrueNow,
                 },
-                // system.vessels -- the M3 R3 roster capture-add. Same cadence
-                // as system.bodies: it re-emits as the roster's positions move
-                // and falls back to the 30s keyframe on a genuinely idle one.
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = SystemViewProvider.VesselsTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // Explicit retrofit: the roster's positions/identities
-                    // of OTHER vessels is comms-derived (the same class as
-                    // vessel.* telemetry), so this rides the delay clock.
-                    Delay = DelayRole.Delayed,
-                    // Not recordable. It is comms-derived from the NETWORK's
-                    // view of every craft, not an instrument reading the active
-                    // vessel took: a craft out of contact is by definition not
-                    // hearing the rest of the fleet either, so there is nothing
-                    // for it to have written down. Its first post-blackout
-                    // sample carries the outage as a Meta.GapSinceUt instead.
-                    Recordable = false,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
+                // system.vessels is not declared here. Each command centre is sent
+                // its own, made of what it has heard of each craft, by the contact
+                // plan source (ContactPlanSource.VesselsTopic).
                 // target.available -- everything the active vessel could target
                 // (vessels/bodies/in-range docking ports), for the TargetPicker.
                 // Same cadence as system.vessels: per-entry distance moves
@@ -209,7 +191,7 @@ namespace Gonogo.KSP
                     PropagationElection.BodyHorizonFor(host.Kernel, bodyIndex, sampleUt));
 
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
-            host.AddChannelSource(SystemViewProvider.VesselsTopic, SystemViewProvider.BuildSystemVessels);
+
             host.AddChannelSource(SystemViewProvider.TargetAvailableTopic, SystemViewProvider.BuildTargetAvailable);
             host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
             host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);

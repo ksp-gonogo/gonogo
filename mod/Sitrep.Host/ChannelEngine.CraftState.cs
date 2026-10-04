@@ -32,6 +32,62 @@ namespace Sitrep.Host
         /// <summary>The topic one craft's states are recorded under. A craft state is telemetry, held through a blackout like the rest of it.</summary>
         internal static string CraftStateTopic(string vesselId) => CraftStatePrefix + vesselId + ".craft";
 
+        /// <summary>
+        /// The topic the craft's link is reported under: whether its radio
+        /// answers. Exempt from the freeze, as the other reports of a blackout
+        /// are, so each centre hears of an outage at its own light-time.
+        /// </summary>
+        internal static string CraftLinkTopic(string vesselId) => CraftStatePrefix + vesselId + CraftLinkSuffix;
+
+        internal const string CraftLinkSuffix = ".link";
+
+        /// <summary>A craft with no radio is seen from the ground, so what is known of it is no distance from any centre.</summary>
+        private static readonly DelayStamp SeenFromGround = new DelayStamp(0.0);
+
+        /// <summary>The game time of the tick being worked through. Courier thread only.</summary>
+        private double _tickUt = double.NegativeInfinity;
+
+        /// <summary>The link last reported of each craft, so only a change is said.</summary>
+        private readonly Dictionary<string, bool> _craftLinkSaid = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+        /// <summary>Says a craft's link when it changes, on the craft's own node.</summary>
+        private void SayCraftLink(string vesselId, bool connected)
+        {
+            if (_craftLinkSaid.TryGetValue(vesselId, out var said) && said == connected)
+            {
+                return;
+            }
+            _craftLinkSaid[vesselId] = connected;
+            // The tick being worked through, not the clock, which this tick has not advanced yet.
+            Emit(CraftLinkTopic(vesselId), connected, Math.Max(_tickUt, _clock.Now()));
+        }
+
+        public void RecordCraftSeenFromGround(string vesselId, CraftState state, double ut)
+        {
+            var topic = CraftStateTopic(vesselId);
+            _lastRecordedUt[topic] = ut;
+            _courier.Record(NodeFor(topic), topic, state, ut, sentUnder: SeenFromGround);
+        }
+
+        public void RecordCraftGoneFromGround(string vesselId, double ut)
+        {
+            var topic = CraftStateTopic(vesselId);
+            _lastRecordedUt[topic] = ut;
+            _courier.Record(NodeFor(topic), topic, CraftState.Gone("vessel:" + vesselId, ut), ut, sentUnder: SeenFromGround);
+        }
+
+        public Action HearCraftLink(string vesselId, string centre, Action<bool> heard)
+        {
+            var topic = CraftLinkTopic(vesselId);
+            return _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
+            {
+                if (delivered.Payload is bool connected)
+                {
+                    heard(connected);
+                }
+            });
+        }
+
         /// <summary>The last state recorded of each present craft, to say again to a centre that has just gained a route to it.</summary>
         private readonly Dictionary<string, CraftState> _craftStateSaid = new Dictionary<string, CraftState>(StringComparer.Ordinal);
 
@@ -151,6 +207,7 @@ namespace Sitrep.Host
         {
             _craftStateStamps.Clear();
             _craftStateSaid.Clear();
+            _craftLinkSaid.Clear();
             foreach (var listener in _timelineResetListeners)
             {
                 try
