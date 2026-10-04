@@ -1,8 +1,8 @@
 import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  BigReadout,
   NULL_DISPLAY,
+  Readout,
   ReadoutCaption,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -37,10 +37,10 @@ export function AttitudeReadout({
       <div style={across ? READOUT_TRIPLE : READOUT_STACK}>
         {attitudeCells(heading, pitch, roll, reading).map((cell) =>
           across ? (
-            <BigReadout key={cell.label} style={READOUT_CELL}>
+            <Readout size="hero" key={cell.label} style={READOUT_CELL}>
               {cell.value}
               <ReadoutCaption>{cell.label}</ReadoutCaption>
-            </BigReadout>
+            </Readout>
           ) : (
             <div key={cell.label} style={READOUT_PAIR}>
               <span style={READOUT_LABEL}>{cell.label}</span>
@@ -130,7 +130,7 @@ const READOUT_STACK: CSSProperties = {
 };
 
 /**
- * Makes a `BigReadout` one of three in a row. Its own font size follows the
+ * Makes a hero `Readout` one of three in a row. Its own font size follows the
  * viewport, not the tile, so it takes the stacked readout's size instead; its
  * zeroed `min-width` would let the `1fr` columns collapse; `nowrap` keeps a
  * sign on the same line as its number.

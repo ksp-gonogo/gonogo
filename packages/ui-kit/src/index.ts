@@ -501,11 +501,7 @@ export {
   type ReadOnlyFieldProps,
   type ReadOnlyFieldValue,
 } from "./ReadOnlyField";
-export {
-  BigReadout,
-  Readout,
-  ReadoutCaption,
-} from "./Readout";
+export { Readout, ReadoutCaption, type ReadoutSize } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
 export {
   modelledBeyondReceived,

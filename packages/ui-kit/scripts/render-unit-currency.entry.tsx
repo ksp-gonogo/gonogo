@@ -24,7 +24,7 @@ import { Countdown } from "../src/Countdown";
 import { DataTable, type DataTableColumn } from "../src/DataTable";
 import { MissionDate } from "../src/MissionDate";
 import { ReckonedUnit } from "../src/ModelledAlongside";
-import { BigReadout, Readout, ReadoutCaption } from "../src/Readout";
+import { Readout, ReadoutCaption } from "../src/Readout";
 import { Unit } from "../src/Unit";
 
 /** An arbitrary but fixed instant, so the hover text is reproducible. */
@@ -405,7 +405,7 @@ function Sizes() {
           >
             {which === "current" ? "A reading of now" : "The last real reading"}
           </div>
-          <BigReadout>
+          <Readout size="hero">
             <Unit
               value={
                 which === "held"
@@ -413,7 +413,7 @@ function Sizes() {
                   : observed(v("m/s", 2_284))
               }
             />
-          </BigReadout>
+          </Readout>
           <Readout>
             <Unit
               value={
@@ -470,7 +470,7 @@ function Dates() {
           >
             {label}
           </div>
-          <BigReadout>{node}</BigReadout>
+          <Readout size="hero">{node}</Readout>
         </div>
       ))}
     </div>
@@ -572,7 +572,7 @@ function Countdowns() {
           >
             {label}
           </div>
-          <BigReadout>{node}</BigReadout>
+          <Readout size="hero">{node}</Readout>
           <div
             style={{
               color: "var(--color-text-muted)",
@@ -672,7 +672,7 @@ function ModelledFigures() {
           >
             {label}
           </div>
-          <BigReadout>{node}</BigReadout>
+          <Readout size="hero">{node}</Readout>
         </div>
       ))}
     </div>

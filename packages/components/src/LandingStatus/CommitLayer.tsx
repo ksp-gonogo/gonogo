@@ -133,14 +133,14 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
       role={alarmed ? "alert" : "status"}
       aria-live={alarmed ? "assertive" : "polite"}
     >
-      <Readout $tone={heroTone}>
+      <Readout tone={heroTone}>
         {heroValue}
         {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
       </Readout>
 
       {/* Under NO LANDING VECTOR the unavoidable touchdown speed is the one number that matters. */}
       {noLandingVector && impactSpeed != null && (
-        <Readout $tone="nogo">
+        <Readout tone="nogo">
           <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
           <ReadoutCaption>UNAVOIDABLE IMPACT</ReadoutCaption>
         </Readout>

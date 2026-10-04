@@ -1,5 +1,5 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
-import { BigReadout, ReadoutCaption, Sparkline } from "@ksp-gonogo/ui";
+import { Readout, ReadoutCaption, Sparkline } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Panel, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { GraphSeries } from "./GraphSeries";
@@ -60,10 +60,13 @@ export function GraphReadout({
             {seriesLabel !== readoutTitle && (
               <div style={READOUT_LABEL}>{seriesLabel}</div>
             )}
-            <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
+            <Readout
+              size="hero"
+              aria-label={`${seriesLabel} ${latest ?? "no data"}`}
+            >
               {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
               {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
-            </BigReadout>
+            </Readout>
           </div>
           {needsFetch && (
             <GraphSeries
