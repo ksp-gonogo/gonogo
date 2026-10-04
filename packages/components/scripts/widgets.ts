@@ -205,12 +205,14 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 2,
         focuses: [{ selector: "[data-tiny-panel]" }],
       },
-      // Small: gauge only, no sparkline.
+      // Small: the figure alone in the frame, no trend strip.
       { name: "small-3x3", w: 3, h: 3 },
-      // Default: gauge + sparkline + subtitle.
+      // Default: the gauge over its trend strip, in one frame.
       { name: "default-4x5", w: 4, h: 5 },
       // Wider room for the gauge to fill space.
       { name: "wide-6x8", w: 6, h: 8 },
+      // Portrait: the frame is taller than the gauge wants, so the trend strip takes the slack.
+      { name: "portrait-4x9", w: 4, h: 9 },
     ],
   },
   {

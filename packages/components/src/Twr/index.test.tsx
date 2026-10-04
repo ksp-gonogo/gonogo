@@ -117,9 +117,36 @@ describe("TwrComponent off the stream", () => {
         emitTwr(fixture, 1.832);
       });
       const trend = await screen.findByLabelText("TWR trend");
-      await waitFor(() => expect(trend.getAttribute("width")).toBe("300"));
+      // One pixel over the slot's floored width, which the strip clips, so the line reaches the frame's inner edge.
+      await waitFor(() => expect(trend.getAttribute("width")).toBe("301"));
     } finally {
       restore();
     }
+  });
+});
+
+describe("TwrComponent frame", () => {
+  it("draws the gauge and its trend inside one frame, with no sidebar", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "twr-test" }}>
+          <TwrComponent config={{}} id="twr-test" w={4} h={5} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      emitTwr(fixture, 1.832);
+    });
+    const gauge = await screen.findByRole("meter");
+    const trend = screen.getByRole("img", { name: "TWR trend" });
+    const strip = trend.closest("[data-framed-display-strip]");
+    expect(strip).not.toBeNull();
+    // The strip's parent is the frame itself, and the gauge sits in that same box.
+    expect(strip?.parentElement).toContainElement(gauge);
+    expect(document.querySelector("[data-panel-lone-frame]")).not.toBeNull();
   });
 });

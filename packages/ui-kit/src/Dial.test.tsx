@@ -92,6 +92,44 @@ describe("Dial", () => {
     expect(screen.getByRole("meter", { name: "X" })).toBeInTheDocument();
   });
 
+  it("colours each rounded end of the arc as the zone that reaches it", () => {
+    const { container } = render(
+      <Dial
+        value={pct(50)}
+        min={pct(0)}
+        max={pct(100)}
+        startAngle={-90}
+        sweep={180}
+        zones={[
+          { from: pct(0), to: pct(30), color: "red" },
+          { from: pct(30), to: pct(60), color: "orange" },
+          { from: pct(60), to: pct(100), color: "green" },
+        ]}
+        ariaLabel="Load"
+      />,
+    );
+    const caps = [...container.querySelectorAll("[data-dial-cap]")];
+    expect(caps.map((cap) => cap.getAttribute("fill"))).toEqual([
+      "red",
+      "green",
+    ]);
+  });
+
+  it("leaves an end in the track colour when no zone reaches it", () => {
+    const { container } = render(
+      <Dial
+        value={pct(50)}
+        min={pct(0)}
+        max={pct(100)}
+        startAngle={-90}
+        sweep={180}
+        zones={[{ from: pct(30), to: pct(60), color: "orange" }]}
+        ariaLabel="Load"
+      />,
+    );
+    expect(container.querySelector("[data-dial-cap]")).toBeNull();
+  });
+
   it("has no axe violations (compass with zones and ticks)", async () => {
     const { container } = render(
       <Dial

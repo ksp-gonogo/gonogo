@@ -12,7 +12,6 @@ import {
   FramedDisplay,
   Panel,
   Section,
-  Text,
   useElementSize,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -82,28 +81,23 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const sparkValues = series.v as number[];
 
-  // Layout follows grid size, not measured pixels, so the inner widgets cannot set up a ResizeObserver feedback loop.
+  // The variant follows grid size; only the drawings inside the frame are measured, and the frame's size never depends on them.
   const cols = w ?? 4;
   const rows = h ?? 5;
   const variant = variantFor(cols, rows);
   const showSparkline = variant === "normal";
-  // At the 4x5 default the gauge arc overlaps the subtitle row.
-  const showSubtitle = variant === "normal" && cols >= 5;
+  // Below five columns the caption would sit on the gauge arc.
+  const showCaption = variant === "normal" && cols >= 5;
 
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 200, h: 110 });
-
-  // Capped by width and by a slice of the widget height so the SVG never overflows its slot.
-  const gaugeMaxH = Math.max(64, rows * 25 * 0.4);
-  const gaugeW = Math.min(
-    gaugeSize.w || 200,
-    220,
-    Math.round(gaugeMaxH / 0.55),
+  // The dial draws the largest arc that fits what it is given, and at a height too short for any arc it draws the figure alone.
+  const gaugeW = Math.min(gaugeSize.w, GAUGE_MAX_W);
+  const gaugeH = Math.min(
+    gaugeSize.h - (showCaption ? CAPTION_CLEARANCE : 0),
+    Math.round(gaugeW / 2) + GAUGE_FIGURE_H,
   );
-  const gaugeH = Math.round(gaugeW * 0.55);
 
   const { ref: sparkRef, size: sparkSize } = useElementSize({ w: 120, h: 40 });
-  const sparkWidth = Math.max(40, sparkSize.w);
-  const sparkHeight = Math.max(16, sparkSize.h);
 
   if (twr === undefined) {
     return (
@@ -118,38 +112,39 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     );
   }
 
-  const toneColor = toneColorFor(twr);
-
   return (
     <Panel
       panelTitle="TWR"
-      fitToSize
-      panelSidebar={
-        showSparkline ? (
-          <FramedDisplay style={SPARK_FRAME_STYLE}>
-            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
-              <Sparkline
-                values={sparkValues}
-                width={sparkWidth}
-                height={sparkHeight}
-                color={toneColor}
-                ariaLabel="TWR trend"
-              />
-            </div>
-          </FramedDisplay>
-        ) : undefined
-      }
-      sections={[
-        showSubtitle && (
-          <Section key="caption" full>
-            <Text level="muted" size="xs">
-              Current stage · last {writeQuantity(value("s", SPARK_WINDOW_SEC))}
-            </Text>
-          </Section>
-        ),
-        <Section key="gauge" full>
-          <FramedDisplay padded style={GAUGE_FRAME_STYLE}>
-            <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
+      sections={
+        <Section fill>
+          <FramedDisplay
+            padded
+            style={FRAME_STYLE}
+            caption={
+              showCaption
+                ? `Current stage · last ${writeQuantity(value("s", SPARK_WINDOW_SEC))}`
+                : undefined
+            }
+            strip={
+              showSparkline ? (
+                <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
+                  <div style={SPARK_PLOT_STYLE}>
+                    <Sparkline
+                      values={sparkValues}
+                      width={sparkSize.w + SPARK_OVERDRAW_PX}
+                      height={sparkSize.h + SPARK_OVERDRAW_PX}
+                      color={toneColorFor(twr)}
+                      ariaLabel="TWR trend"
+                    />
+                  </div>
+                </div>
+              ) : undefined
+            }
+          >
+            <div
+              ref={gaugeRef}
+              style={showCaption ? GAUGE_SLOT_UNDER_CAPTION : GAUGE_SLOT_STYLE}
+            >
               <Dial
                 startAngle={-90}
                 sweep={180}
@@ -164,35 +159,51 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
               />
             </div>
           </FramedDisplay>
-        </Section>,
-      ]}
+        </Section>
+      }
     />
   );
 }
 
-/** The frame takes the height the sections leave, and the dial centres inside it. */
-const GAUGE_FRAME_STYLE = { flex: "1 1 auto", minHeight: 0 } as const;
+const FRAME_STYLE = { flex: 1, minHeight: 0, minWidth: 0 } as const;
 
-/** The dial centres in whatever height the frame leaves it. */
+const GAUGE_MAX_W = 280;
+
+/** What the dial needs under its arc's base line: half the track, then the drop to its large figure. */
+const GAUGE_FIGURE_H = 36;
+
+/** The height the frame's caption covers at its top edge, kept clear of the arc. */
+const CAPTION_CLEARANCE = 28;
+
+/** The measured size is floored, so the plot is drawn a pixel over and the strip clips it: the line reaches the frame's inner edge instead of stopping a fraction short. */
+const SPARK_OVERDRAW_PX = 1;
+
+/** The dial centres in the room the strip leaves, and anything it cannot fit is clipped here, short of the frame's border. */
 const GAUGE_SLOT_STYLE = {
   flex: "1 1 auto",
-  width: "100%",
+  minWidth: 0,
   minHeight: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  overflow: "hidden",
 } as const;
 
-/** The frame fills the sidebar, and the plot fills the frame to its inner edges with no inset. */
-const SPARK_FRAME_STYLE = { flex: "1 1 auto", height: "100%" } as const;
+const GAUGE_SLOT_UNDER_CAPTION = {
+  ...GAUGE_SLOT_STYLE,
+  alignItems: "flex-end",
+} as const;
 
 const SPARK_SLOT_STYLE = {
-  flex: "1 1 auto",
-  width: "100%",
-  height: "100%",
+  position: "relative",
+  flex: "1 1 0",
   minWidth: 0,
   minHeight: 0,
+  overflow: "hidden",
 } as const;
+
+/** Out of flow, so the plot's pixel of overdraw can never grow the strip it is measured from. */
+const SPARK_PLOT_STYLE = { position: "absolute", inset: 0 } as const;
 
 registerComponent<TwrConfig>({
   id: "twr",

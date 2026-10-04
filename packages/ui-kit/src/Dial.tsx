@@ -327,6 +327,33 @@ export function Dial<Unit extends string = string>({
             />
           ))}
 
+        {/* The track's rounded ends take the colour of the zone that reaches them, so a zoned arc has no grey cap. */}
+        {r > 0 &&
+          !isFullCircle &&
+          zones?.flatMap((z) => {
+            const lo = onAxis(z.from.min(z.to));
+            const hi = onAxis(z.from.max(z.to));
+            if (!hi.greaterThan(lo)) return [];
+            return [
+              // Clamped onto the axis already, so "not past the end" is "at the end".
+              lo.greaterThan(min) ? null : startAngle,
+              max.greaterThan(hi) ? null : startAngle + sweep,
+            ].flatMap((angle) => {
+              if (angle === null) return [];
+              const end = pointAt(cx, cy, r, angle);
+              return [
+                <circle
+                  key={`cap-${z.color}-${angle}`}
+                  data-dial-cap=""
+                  cx={end.x}
+                  cy={end.y}
+                  r={trackThickness / 2}
+                  fill={z.color}
+                />,
+              ];
+            });
+          })}
+
         {r > 0 &&
           zones?.map((z) => {
             const lo = onAxis(z.from.min(z.to));

@@ -29,7 +29,19 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    * pass a toned `Text`. Omitted, nothing is drawn.
    */
   footer?: ReactNode;
+  /**
+   * A band along the frame's bottom edge, inside the same border, for a trend
+   * of the figure drawn above it. It is never padded: its content runs to the
+   * frame's inner edges, while `padded` insets only the drawing above. Size
+   * the content to the band (it takes a share of the frame's height, within a
+   * floor and a ceiling) rather than giving the band a height. Omitted, the
+   * frame is the one drawing.
+   */
+  strip?: ReactNode;
 }
+
+const STRIP_MIN_PX = 24;
+const STRIP_MAX_PX = 96;
 
 /**
  * A bordered, sunken box for visual content (SVG diagrams, canvases, maps,
@@ -40,7 +52,8 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
  * It does not scroll or size itself: the caller decides how much room the
  * visual gets. Sized with `flex: 1`, a tall flex sibling collapses it, so put
  * a control overlaid on the frame rather than beside it. The visual fills to
- * the rounded edge unless `padded`.
+ * the rounded edge unless `padded`. A drawing and its trend share one frame
+ * through `strip`, never two frames stacked.
  *
  * @category Layout
  */
@@ -49,11 +62,26 @@ export function FramedDisplay({
   padded,
   caption,
   footer,
+  strip,
   ...rest
 }: FramedDisplayProps) {
+  const hasStrip = strip !== undefined && strip !== null && strip !== false;
   return (
-    <FramedDisplay__Box $padded={padded} {...rest}>
-      {children}
+    <FramedDisplay__Box
+      $padded={padded && !hasStrip}
+      $stacked={hasStrip}
+      {...rest}
+    >
+      {hasStrip ? (
+        <>
+          <FramedDisplay__Main $padded={padded}>{children}</FramedDisplay__Main>
+          <FramedDisplay__Strip data-framed-display-strip="">
+            {strip}
+          </FramedDisplay__Strip>
+        </>
+      ) : (
+        children
+      )}
       {caption !== undefined && caption !== null && (
         <FramedDisplay__Caption>{caption}</FramedDisplay__Caption>
       )}
@@ -64,9 +92,13 @@ export function FramedDisplay({
   );
 }
 
-const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
+const FramedDisplay__Box = styled.div<{
+  $padded?: boolean;
+  $stacked?: boolean;
+}>`
   position: relative;
   display: flex;
+  flex-direction: ${({ $stacked }) => ($stacked ? "column" : "row")};
   min-height: 0;
   min-width: 0;
   /* Sunken: the visual sits inside the panel surface rather than floating on it. */
@@ -84,6 +116,38 @@ const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
     width: 100%;
     height: 100%;
   }
+`;
+
+/** The drawing above a strip: it takes the height the strip leaves, and carries the frame's gutter itself so the strip stays flush. */
+const FramedDisplay__Main = styled.div<{ $padded?: boolean }>`
+  flex: 7 1 0;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  padding: ${({ $padded }) => ($padded ? "var(--inset-framed-display)" : "0")};
+
+  & > svg,
+  & > canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+`;
+
+/**
+ * Three parts in ten of the frame's height, floored so a trend stays legible
+ * in a short frame and capped so it never outgrows the drawing it sits under.
+ * A grow share, not a percentage height: a percentage does not resolve inside
+ * a frame that is itself a stretched flex item, and the band then sizes to its
+ * content.
+ */
+const FramedDisplay__Strip = styled.div`
+  flex: 3 1 0;
+  display: flex;
+  min-height: ${STRIP_MIN_PX}px;
+  max-height: ${STRIP_MAX_PX}px;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 /*

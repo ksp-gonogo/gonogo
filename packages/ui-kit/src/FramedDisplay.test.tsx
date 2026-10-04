@@ -46,6 +46,38 @@ describe("FramedDisplay", () => {
     expect(frame).toHaveTextContent("axes needed");
   });
 
+  it("holds a strip inside the same frame as the drawing above it", () => {
+    render(
+      <FramedDisplay data-testid="frame" strip={<svg aria-label="trend" />}>
+        <svg aria-label="gauge" />
+      </FramedDisplay>,
+    );
+    const frame = screen.getByTestId("frame");
+    expect(frame).toContainElement(screen.getByLabelText("gauge"));
+    const strip = frame.querySelector("[data-framed-display-strip]");
+    expect(strip).toContainElement(screen.getByLabelText("trend"));
+    expect(strip).not.toContainElement(screen.getByLabelText("gauge"));
+  });
+
+  it("keeps the frame's gutter off the strip, so a trend reaches the inner edges", () => {
+    render(
+      <FramedDisplay
+        data-testid="frame"
+        padded
+        strip={<svg aria-label="trend" />}
+      >
+        <svg aria-label="gauge" />
+      </FramedDisplay>,
+    );
+    const main = screen.getByLabelText("gauge").parentElement as HTMLElement;
+    const strip = screen.getByLabelText("trend").parentElement as HTMLElement;
+    expect(emittedRuleFor(screen.getByTestId("frame"))).toContain("padding:0");
+    expect(emittedRuleFor(main)).toContain(
+      "padding:var(--inset-framed-display)",
+    );
+    expect(emittedRuleFor(strip)).not.toContain("padding");
+  });
+
   it("draws no caption element at all when none is given", () => {
     const { container } = render(
       <FramedDisplay>
