@@ -2,15 +2,18 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { Gauge } from "./Gauge";
+import { Dial } from "./Dial";
 
 /** A thrust-to-weight ratio, the gauge's first and canonical subject. */
 const twr = (n: number) => value("1", n);
 
-describe("Gauge", () => {
+describe("Dial as a half-circle gauge", () => {
   it("renders the value as the centre label by default", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={twr(1.5)}
         min={twr(0)}
         max={twr(3)}
@@ -23,7 +26,10 @@ describe("Gauge", () => {
 
   it("writes the value's own unit beside it, with no unit prop to disagree", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={value("kN", 42)}
         min={value("kN", 0)}
         max={value("kN", 100)}
@@ -37,7 +43,10 @@ describe("Gauge", () => {
 
   it("is a meter that states its value, with the unit in words", () => {
     render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={value("kN", 42)}
         min={value("kN", 0)}
         max={value("kN", 100)}
@@ -55,7 +64,10 @@ describe("Gauge", () => {
 
   it("uses the supplied valueLabel when provided", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={twr(1.5)}
         min={twr(0)}
         max={twr(3)}
@@ -69,7 +81,10 @@ describe("Gauge", () => {
 
   it("renders one path per zone plus the track", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={twr(1.5)}
         min={twr(0)}
         max={twr(3)}
@@ -88,7 +103,10 @@ describe("Gauge", () => {
   it("clamps values outside [min, max] to the bounds", () => {
     // value above max should still render without throwing; needle pinned to max
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={twr(99)}
         min={twr(0)}
         max={twr(3)}
@@ -101,7 +119,16 @@ describe("Gauge", () => {
 
   it("renders an empty SVG gracefully when too small", () => {
     const { container } = render(
-      <Gauge value={twr(1)} min={twr(0)} max={twr(3)} width={4} height={4} />,
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
+        value={twr(1)}
+        min={twr(0)}
+        max={twr(3)}
+        width={4}
+        height={4}
+      />,
     );
     const svg = container.querySelector("svg");
     expect(svg).not.toBeNull();
@@ -110,7 +137,10 @@ describe("Gauge", () => {
 
   it("uses the supplied aria-label", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={twr(2)}
         min={twr(0)}
         max={twr(3)}
@@ -119,14 +149,17 @@ describe("Gauge", () => {
         ariaLabel="TWR dial"
       />,
     );
-    expect(container.querySelector("svg")?.getAttribute("aria-label")).toBe(
-      "TWR dial",
-    );
+    expect(
+      container.querySelector("[role=meter]")?.getAttribute("aria-label"),
+    ).toBe("TWR dial");
   });
 
   it("has no axe violations", async () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={twr(1.5)}
         min={twr(0)}
         max={twr(3)}

@@ -7,7 +7,6 @@ import {
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Dial } from "./Dial";
-import { Gauge } from "./Gauge";
 import { Meter } from "./Meter";
 import { SCALE_TOLERANCE } from "./standsApart";
 import { Tape } from "./Tape";
@@ -69,7 +68,10 @@ const cases = [
   {
     name: "Gauge",
     draw: (r: Reading<Value<"%">>) => (
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         width={160}
         height={90}
         value={r}

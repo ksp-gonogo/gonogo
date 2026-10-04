@@ -87,6 +87,14 @@ export interface DialProps<Unit extends string = string> {
   format?: FormatsFor<Unit>;
   /** Centre label override. Defaults to the value, written with its unit. */
   valueLabel?: string;
+  /**
+   * Draws a half-circle face with the figure under the hub, the instrument
+   * layout for a gauge whose figure is the point: the arc is raised to the top
+   * of the box and a strip is reserved under it for the figure. `regular` and
+   * `large` set the figure's size. Absent, the figure sits in the centre of
+   * the face. Honoured only for a face that sweeps 180° or less.
+   */
+  readout?: "regular" | "large";
   /** Needle colour. Defaults to `var(--color-text-primary)`. */
   needleColor?: string;
   /** Arc track colour. Defaults to `var(--color-border-subtle)`. */
@@ -97,6 +105,13 @@ export interface DialProps<Unit extends string = string> {
 
 const TRACK_THICKNESS = 6;
 const HUB_RADIUS = 3;
+
+/** The half-circle layout's face: a thicker track and hub, and the figure's size with its baseline below the hub (the strip reserved under the arc). */
+const RAISED = { track: 8, hub: 4, needle: 0.92 } as const;
+const READOUT = {
+  regular: { size: 16, drop: 18 },
+  large: { size: 24, drop: 32 },
+} as const;
 
 /** Point on a circle of radius `r`, `angleDeg` clockwise from up (12 o'clock). */
 function pointAt(
@@ -127,7 +142,7 @@ function arcPath(
 /**
  * A round instrument whose needle sweeps a configurable arc (by default a full
  * 360° compass), so it can show a heading that wraps as well as a bounded
- * value. The half-circle sibling is {@link Gauge}.
+ * value. With `readout`, a half-circle face puts its figure under the hub.
  *
  * Angles are degrees clockwise from 12 o'clock (up is 0°), as on a compass.
  * `startAngle` places `min`; `sweep` is the span from `min` to `max`.
@@ -174,6 +189,7 @@ export function Dial<Unit extends string = string>({
   zones,
   ticks,
   valueLabel,
+  readout,
   format,
   needleColor = "var(--color-text-primary)",
   trackColor = "var(--color-border-subtle)",
@@ -206,9 +222,20 @@ export function Dial<Unit extends string = string>({
   const interval =
     shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
 
+  const raised = readout !== undefined && sweep <= 180;
+  const trackThickness = raised ? RAISED.track : TRACK_THICKNESS;
+  const hubRadius = raised ? RAISED.hub : HUB_RADIUS;
+  const figure = readout === undefined ? null : READOUT[readout];
   const cx = width / 2;
-  const cy = height / 2;
-  const r = Math.min(width, height) / 2 - TRACK_THICKNESS - 2;
+  // Raised: the hub sits on the arc's base line, with the figure's strip below it.
+  const r =
+    raised && figure !== null
+      ? Math.min(
+          (width - trackThickness) / 2,
+          height - trackThickness - figure.drop,
+        )
+      : Math.min(width, height) / 2 - trackThickness - 2;
+  const cy = raised ? r + trackThickness / 2 : height / 2;
 
   const angleOf = (v: number): number => {
     const t = span > 0 ? (v - axisMin) / span : 0;
@@ -240,7 +267,12 @@ export function Dial<Unit extends string = string>({
       : null;
 
   const isFullCircle = sweep >= 360;
-  const needle = pointAt(cx, cy, r * 0.88, angleOf(display));
+  const needle = pointAt(
+    cx,
+    cy,
+    r * (raised ? RAISED.needle : 0.88),
+    angleOf(display),
+  );
 
   return (
     <Dial__Meter
@@ -283,14 +315,14 @@ export function Dial<Unit extends string = string>({
               r={r}
               fill="none"
               stroke={trackColor}
-              strokeWidth={TRACK_THICKNESS}
+              strokeWidth={trackThickness}
             />
           ) : (
             <path
               d={arcPath(cx, cy, r, startAngle, startAngle + sweep)}
               fill="none"
               stroke={trackColor}
-              strokeWidth={TRACK_THICKNESS}
+              strokeWidth={trackThickness}
               strokeLinecap="round"
             />
           ))}
@@ -306,7 +338,7 @@ export function Dial<Unit extends string = string>({
                 d={arcPath(cx, cy, r, onFace(lo), onFace(hi))}
                 fill="none"
                 stroke={z.color}
-                strokeWidth={TRACK_THICKNESS}
+                strokeWidth={trackThickness}
                 strokeLinecap="butt"
               />
             );
@@ -317,8 +349,8 @@ export function Dial<Unit extends string = string>({
             const at = tk.value.magnitude;
             const a = angleOf(at);
             const outer = pointAt(cx, cy, r, a);
-            const inner = pointAt(cx, cy, r - TRACK_THICKNESS, a);
-            const labelPt = pointAt(cx, cy, r - TRACK_THICKNESS - 8, a);
+            const inner = pointAt(cx, cy, r - trackThickness, a);
+            const labelPt = pointAt(cx, cy, r - trackThickness - 8, a);
             return (
               <g key={`tick-${at}-${tk.label ?? ""}`}>
                 <line
@@ -349,8 +381,8 @@ export function Dial<Unit extends string = string>({
           drawnInterval !== null &&
           (["lo", "hi"] as const).map((end) => {
             const a = onFace(onAxis(drawnInterval[end]));
-            const inner = pointAt(cx, cy, r - TRACK_THICKNESS / 2, a);
-            const outer = pointAt(cx, cy, r + TRACK_THICKNESS / 2, a);
+            const inner = pointAt(cx, cy, r - trackThickness / 2, a);
+            const outer = pointAt(cx, cy, r + trackThickness / 2, a);
             return (
               <InstrumentBound
                 key={end}
@@ -374,16 +406,16 @@ export function Dial<Unit extends string = string>({
               strokeWidth={2}
               strokeLinecap="round"
             />
-            <circle cx={cx} cy={cy} r={HUB_RADIUS} fill={needleColor} />
+            <circle cx={cx} cy={cy} r={hubRadius} fill={needleColor} />
           </>
         )}
 
         <text
           x={cx}
-          y={cy + r * 0.55}
+          y={raised && figure !== null ? cy + figure.drop : cy + r * 0.55}
           textAnchor="middle"
-          fontSize={13}
-          fontWeight="bold"
+          fontSize={raised && figure !== null ? figure.size : 13}
+          fontWeight={raised ? undefined : "bold"}
           fill={
             centreLabel === null
               ? "var(--color-text-muted)"
@@ -391,7 +423,9 @@ export function Dial<Unit extends string = string>({
           }
         >
           {centreLabel ?? NULL_DISPLAY}
-          {held && centreLabel !== null && <InstrumentHeldMark size={6} />}
+          {held && centreLabel !== null && (
+            <InstrumentHeldMark size={raised ? 7 : 6} />
+          )}
         </text>
       </svg>
       {tip}

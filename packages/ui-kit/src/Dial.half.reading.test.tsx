@@ -7,11 +7,11 @@ import {
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { Gauge } from "./Gauge";
+import { Dial } from "./Dial";
 import { NULL_DISPLAY } from "./NullValue";
 
 /**
- * The reckoning slot: what `<Gauge>` draws when it is handed a whole `Reading`
+ * The reckoning slot: what `<Dial startAngle={-90} sweep={180} readout="regular">` draws when it is handed a whole `Reading`
  * rather than a bare quantity: whether the figure is current, the model's two
  * bounds, and whether there is a number at all.
  */
@@ -64,7 +64,10 @@ const SIZE = { width: 160, height: 90 } as const;
 describe("Gauge, handed a Reading", () => {
   it("draws an observed reading exactly as it draws the bare quantity", () => {
     const asReading = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={banded(value("1", 1.84))}
         min={value("1", 0)}
@@ -72,7 +75,10 @@ describe("Gauge, handed a Reading", () => {
       />,
     );
     const asValue = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={value("1", 1.84)}
         min={value("1", 0)}
@@ -84,7 +90,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("marks a figure that is not a reading of now, the way a Unit does", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={{
           state: "held",
@@ -103,7 +112,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("says the currency in words, because the mark has none to say", () => {
     render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={{
           state: "held",
@@ -125,7 +137,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("leaves a current gauge's accessible name exactly as it was", () => {
     render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={banded(value("1", 1.84))}
         min={value("1", 0)}
@@ -138,7 +153,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("draws one mark per bound, and never a shaded interval", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={banded(value("1", 1.5), bandOf("1", 1.2, 1.5, 1.8))}
         min={value("1", 0)}
@@ -154,7 +172,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("places the two bounds apart, at their own points on the arc", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={banded(value("1", 1.5), bandOf("1", 1.2, 1.5, 1.8))}
         min={value("1", 0)}
@@ -167,7 +188,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("draws no bound for a model that offers no band", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={banded(value("1", 1.5))}
         min={value("1", 0)}
@@ -179,7 +203,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("ignores a band that arrived in another kind rather than placing it", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={banded(value("1", 1.5), bandOf("m", 1.2, 1.5, 1.8))}
         min={value("1", 0)}
@@ -191,7 +218,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("shows no needle for a reading that carries no number", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={{ state: "pending", reckoning: { status: "none" } }}
         min={value("1", 0)}
@@ -205,7 +235,10 @@ describe("Gauge, handed a Reading", () => {
 
   it("has no axe violations with the mark and the bounds drawn", async () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         {...SIZE}
         value={{
           state: "held",
@@ -233,7 +266,10 @@ describe("Gauge, handed a Reading", () => {
 describe("Gauge hover title", () => {
   it("says what the accessible name says, not a bare magnitude", () => {
     const { container } = render(
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         min={value("1", 0)}
         max={value("1", 3)}
         width={120}

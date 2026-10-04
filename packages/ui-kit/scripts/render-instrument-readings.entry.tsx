@@ -19,7 +19,6 @@ import {
 import { createRoot } from "react-dom/client";
 import { Dial } from "../src/Dial";
 import { DivergingBar } from "../src/DivergingBar";
-import { Gauge } from "../src/Gauge";
 import { Tape } from "../src/Tape";
 import {
   type InstrumentCase,
@@ -78,7 +77,10 @@ function Instrument({ c }: { c: InstrumentCase }) {
   const max = value(c.unit, c.max);
   if (c.instrument === "gauge") {
     return (
-      <Gauge
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={figure}
         min={min}
         max={max}

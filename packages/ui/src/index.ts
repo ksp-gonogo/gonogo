@@ -15,7 +15,6 @@ export * from "./FilterChip";
 export * from "./FilterList";
 export * from "./Form";
 export * from "./FramedDisplay";
-export * from "./Gauge";
 export * from "./Icons";
 export * from "./LineChart";
 export * from "./lineChartMath";

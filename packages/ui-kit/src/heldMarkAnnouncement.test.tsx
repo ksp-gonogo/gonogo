@@ -14,7 +14,6 @@ import { describe, expect, it } from "vitest";
 import { ControlDelayStream } from "./CommandDelay/ControlDelayStream";
 import { Countdown } from "./Countdown";
 import { Dial } from "./Dial";
-import { Gauge } from "./Gauge";
 import { HeldFigure, HeldHost, HeldMark } from "./HeldMark";
 import { unannouncedHeldMarks } from "./heldMarkAnnouncement";
 import { InstrumentHeldMark } from "./instrumentCurrency";
@@ -79,8 +78,11 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         onChange={() => undefined}
       />
     ),
-    Gauge: (grade) => (
-      <Gauge
+    "Dial, half face": (grade) => (
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
         value={held(value("1", 1.84), grade)}
         min={value("1", 0)}
         max={value("1", 3)}
@@ -172,15 +174,14 @@ function kitSources(): Record<string, string> {
  */
 const DRAWN_BY: Record<string, readonly string[]> = {
   "./HeldMark.tsx": ["Meter, caller's label", "Countdown", "UnitInput"],
-  "./instrumentCurrency.tsx": ["Gauge", "Dial", "Tape"],
+  "./instrumentCurrency.tsx": ["Dial", "Dial, half face", "Tape"],
   "./Unit.tsx": ["Unit"],
   "./Meter.tsx": ["Meter", "Meter, row pair", "Meter, caller's label"],
   "./Countdown.tsx": ["Countdown"],
   "./MissionDate.tsx": ["MissionDate"],
   "./UnitInput.tsx": ["UnitInput"],
   "./ModelledAlongside.tsx": ["ReckonedUnit"],
-  "./Gauge.tsx": ["Gauge"],
-  "./Dial.tsx": ["Dial"],
+  "./Dial.tsx": ["Dial", "Dial, half face"],
   "./Tape.tsx": ["Tape"],
   "./CommandDelay/ControlDelayStream.tsx": ["ControlDelayStream"],
 };

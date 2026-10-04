@@ -5,8 +5,9 @@ import {
   type TinyEssential,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Gauge, Sparkline } from "@ksp-gonogo/ui";
+import { Sparkline } from "@ksp-gonogo/ui";
 import {
+  Dial,
   EmptyState,
   FramedDisplay,
   Panel,
@@ -133,7 +134,9 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         <Section key="gauge" full>
           <FramedDisplay padded style={GAUGE_FRAME_STYLE}>
             <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
-              <Gauge
+              <Dial
+                startAngle={-90}
+                sweep={180}
                 value={twrReading}
                 min={GAUGE_MIN}
                 max={GAUGE_MAX}

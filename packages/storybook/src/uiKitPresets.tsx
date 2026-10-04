@@ -5,7 +5,6 @@ import type {
   CommandGroup,
   Countdown,
   Dial,
-  Gauge,
   LineGraph,
   MissionDate,
   ReadOnlyField,
@@ -41,29 +40,6 @@ const RANGE = { min: value("1", 0), max: value("1", 3) };
  * Enough to see the primitive; the states it deserves are still to be designed.
  */
 export const UI_KIT_PRESETS = {
-  Gauge: [
-    {
-      name: "Live",
-      args: { value: live("1", 1.42), ...RANGE, width: 140, height: 80 },
-    },
-    {
-      name: "Held",
-      args: { value: held("1", 1.42), ...RANGE, width: 140, height: 80 },
-    },
-    {
-      name: "Pending",
-      args: { value: pending(), ...RANGE, width: 140, height: 80 },
-    },
-    {
-      name: "Band",
-      args: {
-        value: live("1", 1.42, { lo: 1.3, hi: 1.55, kind: "sigma1" }),
-        ...RANGE,
-        width: 140,
-        height: 80,
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof Gauge>>,
   Dial: [
     {
       name: "Live",

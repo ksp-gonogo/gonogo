@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
-import { Dial, Gauge, ModelledAlongside, Tape, Unit } from "@ksp-gonogo/ui-kit";
+import { Dial, ModelledAlongside, Tape, Unit } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import { describe, expect, it } from "vitest";
 import { announcesHeld, describeElements } from "./probe-global";
@@ -31,7 +31,16 @@ describe("announcesHeld, on what the kit draws", () => {
   it.each([
     [
       "Gauge",
-      <Gauge key="g" value={HELD} {...SCALE} width={160} height={90} />,
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
+        key="g"
+        value={HELD}
+        {...SCALE}
+        width={160}
+        height={90}
+      />,
     ],
     [
       "Tape",
@@ -71,7 +80,15 @@ describe("announcesHeld, on what the kit draws", () => {
 
   it("does not stamp a current instrument", () => {
     const { container } = render(
-      <Gauge value={value("rpm", 240)} {...SCALE} width={160} height={90} />,
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        readout="regular"
+        value={value("rpm", 240)}
+        {...SCALE}
+        width={160}
+        height={90}
+      />,
     );
     expect(container.querySelector("[data-currency-in-name]")).toBeNull();
   });

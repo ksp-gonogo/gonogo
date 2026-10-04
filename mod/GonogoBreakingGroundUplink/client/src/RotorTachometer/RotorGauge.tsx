@@ -2,7 +2,7 @@ import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
-  Gauge,
+  Dial,
   Section,
   useElementSize,
   writeQuantity,
@@ -35,7 +35,10 @@ export function RotorGauge({
   return (
     <Section>
       <Cluster justify="center" ref={gaugeRef}>
-        <Gauge
+        <Dial
+          startAngle={-90}
+          sweep={180}
+          readout="regular"
           value={rpmReading}
           min={quantity("rpm", 0)}
           max={quantity("rpm", ROTOR_MAX_RPM)}

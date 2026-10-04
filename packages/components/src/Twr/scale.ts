@@ -5,7 +5,7 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { GaugeZone } from "@ksp-gonogo/ui";
+import type { DialZone } from "@ksp-gonogo/ui-kit";
 
 /**
  * Thrust over weight at standard gravity: kilonewtons over tonnes is newtons
@@ -20,7 +20,7 @@ export function twrOf(thrust: number, mass: number): number | null {
 export const GAUGE_MIN = value("1", 0);
 export const GAUGE_MAX = value("1", 3);
 
-export const ZONES: GaugeZone<"1">[] = [
+export const ZONES: DialZone<"1">[] = [
   {
     from: value("1", 0),
     to: value("1", 1),

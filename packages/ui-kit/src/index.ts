@@ -312,7 +312,6 @@ export {
 } from "./FramedDisplay";
 export type { FillQuantity } from "./fillQuantity";
 // `formatDuration` is deliberately not exported: durations leave this package only through `<Unit>`, `<Countdown>` and `<MissionDate>`.
-export { Gauge, type GaugeProps, type GaugeZone } from "./Gauge";
 export {
   GraphNotice,
   type GraphNoticePlacement,
