@@ -275,7 +275,7 @@ export interface ReckoningMarking {
  * How a figure derived from this reading should be marked, or null where the reading is a current observation of now.
  *
  * A current reading a model carried past the received edge marks `modelled`; a held one marks `held`, or `modelled` where a model
- * carries it. Use it for a number a person reads as the truth about now; a figure that only feeds a computation takes no mark.
+ * carries it. Use it for every displayed figure computed from a reading's payload, a plan's included.
  *
  * @category Unit
  */

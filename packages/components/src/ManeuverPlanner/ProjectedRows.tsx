@@ -8,18 +8,21 @@ import {
   stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import { type ReckoningMarking, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { Label, PreviewValue } from "./styles";
 
 interface ProjectedRowsProps {
   projected: ManeuverPlan["projected"] | null | undefined;
   body: BodyDefinition | undefined;
+  /** The mark the projection inherits from the orbit it was computed from. */
+  marking?: ReckoningMarking | null;
   prefix?: string;
 }
 
 export function ProjectedRows({
   projected,
   body,
+  marking = null,
   prefix = "New",
 }: ProjectedRowsProps) {
   // A two-body frame has no centre, so projected apsides are as meaningless in it as current ones.
@@ -54,23 +57,33 @@ export function ProjectedRows({
     <>
       <Label>{prefix} Ap</Label>
       <PreviewValue $accent="ap">
-        <Unit value={value("m", projected.ApR - (body?.radius ?? 0))} />
+        <Unit
+          value={value("m", projected.ApR - (body?.radius ?? 0))}
+          marked={marking}
+        />
       </PreviewValue>
       <Label>{prefix} Pe</Label>
       <PreviewValue $accent="pe">
-        <Unit value={value("m", projected.PeR - (body?.radius ?? 0))} />
+        <Unit
+          value={value("m", projected.PeR - (body?.radius ?? 0))}
+          marked={marking}
+        />
       </PreviewValue>
       <Label>{prefix} Ecc</Label>
       <PreviewValue>{projected.eccentricity.toFixed(4)}</PreviewValue>
       <Label>{prefix} T</Label>
       <PreviewValue>
-        <Unit value={value("s", projected.period)} />
+        <Unit value={value("s", projected.period)} marked={marking} />
       </PreviewValue>
       {projected.inclination !== undefined && (
         <>
           <Label>{prefix} Inc</Label>
           <PreviewValue>
-            <Unit value={value("°", projected.inclination)} decimals={2} />
+            <Unit
+              value={value("°", projected.inclination)}
+              marked={marking}
+              decimals={2}
+            />
           </PreviewValue>
         </>
       )}

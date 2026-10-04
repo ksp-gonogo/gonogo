@@ -8,8 +8,9 @@ import { TransferWindowComponent } from "./index";
 
 /**
  * What TransferWindow does when the parking orbit stops being current: it keeps
- * planning and marks the figures the orbit sets (the ejection and reach Δv)
- * held, since the dial, badge and countdowns ride the body catalogue. Held, cold and
+ * planning and marks the figures the orbit sets (the ejection Δv and angle, and
+ * the reach Δv) held, since the dial, badge and countdowns ride the body
+ * catalogue. Held, cold and
  * confirmed-none each read differently from outside.
  */
 
@@ -164,6 +165,8 @@ describe("TransferWindow when the parking orbit is held", () => {
     const reach = reachDeltaVFigures(view.container);
     expect(reach.length).toBeGreaterThan(0);
     for (const figure of reach) expect(isMarkedHeld(figure)).toBe(true);
+    // The ejection angle is costed off the parking orbit too.
+    expect(isMarkedHeld(figureBeside("Ejection angle"))).toBe(true);
     // Held, not withheld: the body-catalogue instruments stay, and no sentence stands in for the mark.
     expect(screen.getByText("Current phase")).toBeInTheDocument();
     expect(screen.getByText("IDEAL")).toBeInTheDocument();

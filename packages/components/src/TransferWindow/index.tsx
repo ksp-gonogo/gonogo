@@ -18,6 +18,7 @@ import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
   Cluster,
+  derivedMarking,
   FieldLabel,
   kspCalendar,
   Panel,
@@ -96,10 +97,8 @@ function TransferWindowComponent({
     observedOrbit !== undefined && orbitReading.reckoning.status === "available"
       ? { ...observedOrbit, ...orbitReading.reckoning.value }
       : observedOrbit;
-  const orbitHeldSince: HeldSince =
-    orbitReading.state === "held"
-      ? { asOfUt: orbitReading.asOfUt, grade: orbitReading.grade }
-      : null;
+  // Held or modelled, the parking orbit's mark goes on every figure the orbit sets (the ejection and reach figures).
+  const orbitMarking = derivedMarking(orbitReading);
   const orbitConfirmedAbsent = orbitReading.state === "absent";
   // A catalogue only changes when the game does, so a held one is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
@@ -318,7 +317,7 @@ function TransferWindowComponent({
               onSelect={setDestIndex}
               budgetHeldSince={budgetHeldSince}
               budgetConfirmedAbsent={budgetConfirmedAbsent}
-              orbitHeldSince={orbitHeldSince}
+              orbitMarking={orbitMarking}
             />
             {/* Container-queried on the body's own width. Renders whether or not a transfer solves, so the destination select stays reachable. */}
             <ContentGrid>
@@ -363,7 +362,7 @@ function TransferWindowComponent({
                   windows={windows}
                   selectedIndex={selIdx}
                   onSelect={setSelectedWindow}
-                  orbitHeldSince={orbitHeldSince}
+                  orbitMarking={orbitMarking}
                   catalogueHeldSince={catalogueHeldSince}
                   destPicker={
                     // Label and select are direct children of SectionHead so the select's narrow-width rule sizes correctly; the heading IS the control's label.

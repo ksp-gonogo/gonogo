@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { type ReckoningMarking, Unit } from "@ksp-gonogo/ui-kit";
 import type { PlanResult } from "./planning";
 import {
   FeasibilityBanner,
@@ -13,6 +13,8 @@ interface ShortfallBannerProps {
   requiredDeltaV: number;
   /** Vessel-total ΔV in m/s off the shared budget, `null` when there is no usable figure. */
   availableDeltaV: number | null;
+  /** The mark the required figure inherits from the orbit the plan was computed from. */
+  marking: ReckoningMarking | null;
 }
 
 export function ShortfallBanner({
@@ -20,6 +22,7 @@ export function ShortfallBanner({
   plan,
   requiredDeltaV,
   availableDeltaV,
+  marking,
 }: ShortfallBannerProps) {
   const available = availableDeltaV;
   // The null check only narrows for the compiler: the planner judges feasibility only against a real figure.
@@ -30,9 +33,18 @@ export function ShortfallBanner({
         ΔV shortfall: can't add node
       </FeasibilityBannerTitle>
       <FeasibilityBannerBody>
-        Required <Unit value={value("m/s", requiredDeltaV)} decimals={0} /> ·
-        available <Unit value={value("m/s", available)} decimals={0} /> ·{" "}
-        <Unit value={value("m/s", requiredDeltaV - available)} decimals={0} />{" "}
+        Required{" "}
+        <Unit
+          value={value("m/s", requiredDeltaV)}
+          marked={marking}
+          decimals={0}
+        />{" "}
+        · available <Unit value={value("m/s", available)} decimals={0} /> ·{" "}
+        <Unit
+          value={value("m/s", requiredDeltaV - available)}
+          marked={marking}
+          decimals={0}
+        />{" "}
         short.
       </FeasibilityBannerBody>
     </FeasibilityBanner>

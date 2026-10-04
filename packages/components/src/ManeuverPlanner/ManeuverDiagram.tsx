@@ -17,6 +17,7 @@ export function ManeuverDiagram({
   radial,
   setPrograde,
   setRadial,
+  orbitMarking,
 }: ManeuverPreviewProps) {
   if (!plan || !currentOrbit || !diagram.ApR || !diagram.PeR) return null;
   // Every curve here extrapolates the current orbit, so a refusal withholds the whole drawing.
@@ -52,6 +53,7 @@ export function ManeuverDiagram({
           ecc={diagram.ecc ?? 0}
           apoapsis={diagram.ApR}
           periapsis={diagram.PeR}
+          craftMark={orbitMarking?.kind === "modelled" ? "modelled" : null}
           trueAnomaly={diagram.trueAnomaly ?? 0}
           argPe={diagram.argPe ?? 0}
           bodyColor={body?.color}

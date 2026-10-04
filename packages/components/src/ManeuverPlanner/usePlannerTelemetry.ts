@@ -13,6 +13,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
+import { derivedMarking } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
@@ -56,6 +57,9 @@ export function usePlannerTelemetry() {
   const { value: target, needsDating: targetNeedsDating } =
     dateableReckonable(targetReading);
   const elementsNeedDating = orbitNeedsDating || targetNeedsDating;
+  // Every figure computed from the orbit (or the target's) takes the reading's mark, so a modelled or held basis is never drawn as a plain number.
+  const orbitMarking = derivedMarking(orbitReading);
+  const targetMarking = derivedMarking(targetReading);
   // Latched rather than `currentThrust > 0` and kept when held, so it survives a dropped frame; undefined is not "engines off".
   const propulsion = stillTrue(useTelemetry("vessel.propulsion"), undefined);
   const thrustLatch = propulsion
@@ -159,6 +163,8 @@ export function usePlannerTelemetry() {
   return {
     orbitObserved: orbitReading.state === "observed",
     elementsNeedDating,
+    orbitMarking,
+    targetMarking,
     thrustLatch,
     currentTrajectory,
     sma,

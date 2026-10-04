@@ -1,5 +1,10 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, SelectableRow, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  type ReckoningMarking,
+  SelectableRow,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import { fmtCountdown, fmtDays } from "./labels";
@@ -22,7 +27,7 @@ export function WindowsList({
   windows,
   selectedIndex,
   onSelect,
-  orbitHeldSince,
+  orbitMarking,
   catalogueHeldSince,
   destPicker,
   createAlarm,
@@ -30,8 +35,9 @@ export function WindowsList({
   windows: TransferWindowEntry[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  /** Ejection figures come from the parking orbit, so they hold with it. */
-  orbitHeldSince: HeldSince;
+  /** The ejection figures come from the parking orbit, so they take its mark. */
+  orbitMarking: ReckoningMarking | null;
+  /** The window Δv rests on the body catalogue, so it holds with it. */
   catalogueHeldSince: HeldSince;
   /** The destination select, on this section's heading line: it scopes THIS list. */
   destPicker: ReactNode;
@@ -84,10 +90,8 @@ export function WindowsList({
                     <ExpLabel>Ejection Δv</ExpLabel>
                     <ExpValue>
                       <Unit
-                        value={heldFigure(
-                          value("m/s", w.ejectionDeltaV),
-                          orbitHeldSince,
-                        )}
+                        value={value("m/s", w.ejectionDeltaV)}
+                        marked={orbitMarking}
                         decimals={0}
                       />
                     </ExpValue>
@@ -96,10 +100,8 @@ export function WindowsList({
                     <ExpLabel>Ejection angle</ExpLabel>
                     <ExpValue>
                       <Unit
-                        value={heldFigure(
-                          value("°", w.ejectionAngleDeg),
-                          catalogueHeldSince,
-                        )}
+                        value={value("°", w.ejectionAngleDeg)}
+                        marked={orbitMarking}
                         decimals={0}
                       />{" "}
                       to prograde

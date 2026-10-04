@@ -10,6 +10,15 @@ export type PresetId =
   | "match-target-inclination"
   | "match-target-plane";
 
+/** Whether the preset plans against the in-game target as well as the craft's own orbit. */
+export function usesTarget(preset: PresetId): boolean {
+  return (
+    preset === "hohmann-rendezvous-target" ||
+    preset === "match-target-inclination" ||
+    preset === "match-target-plane"
+  );
+}
+
 export interface ManeuverPlannerConfig {
   defaultPreset?: PresetId;
   /** Default standoff distance (m) for hohmann-rendezvous-target. */

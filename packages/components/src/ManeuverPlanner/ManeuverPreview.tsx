@@ -6,6 +6,7 @@ import {
   ContainerBreak,
   Countdown,
   Notice,
+  type ReckoningMarking,
   SectionTitle,
   SignalDelayBadge,
   Unit,
@@ -50,6 +51,10 @@ export interface ManeuverPreviewProps {
   setRadial: (n: number) => void;
   /** Vessel-total ΔV in m/s off the shared budget, `null` when there is no usable figure. */
   availableDeltaV: number | null;
+  /** The mark of the current orbit the diagram's craft rides on; null while it is a current observation. */
+  orbitMarking: ReckoningMarking | null;
+  /** The mark the planned figures inherit from the orbit (and the target, where the preset reads one) they were computed from. */
+  planMarking: ReckoningMarking | null;
   feasible: boolean | null;
   requiredDeltaV: number;
   currentUT: Value<"ut"> | undefined;
@@ -103,6 +108,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         plan={plan}
         requiredDeltaV={props.requiredDeltaV}
         availableDeltaV={props.availableDeltaV}
+        marking={props.planMarking}
       />
       {props.error && <Notice tone="warn">{props.error}</Notice>}
       <TriggerEditor
@@ -149,6 +155,7 @@ function PreviewBody({
   availableDeltaV,
   feasible,
   currentUT,
+  planMarking,
 }: ManeuverPreviewProps) {
   if (!plan) return null;
   if (isSequence(plan)) {
@@ -159,6 +166,7 @@ function PreviewBody({
         availableDeltaV={availableDeltaV}
         feasible={feasible}
         currentUT={currentUT}
+        marking={planMarking}
       />
     );
   }
@@ -166,7 +174,11 @@ function PreviewBody({
     <PreviewGrid>
       <Label>ΔV</Label>
       <PreviewValue>
-        <Unit value={value("m/s", plan.requiredDeltaV)} decimals={1} />
+        <Unit
+          value={value("m/s", plan.requiredDeltaV)}
+          marked={planMarking}
+          decimals={1}
+        />
       </PreviewValue>
 
       <Label>Burn in</Label>
@@ -176,7 +188,11 @@ function PreviewBody({
 
       <AvailableRow availableDeltaV={availableDeltaV} feasible={feasible} />
 
-      <ProjectedRows projected={plan.projected} body={body} />
+      <ProjectedRows
+        projected={plan.projected}
+        body={body}
+        marking={planMarking}
+      />
     </PreviewGrid>
   );
 }

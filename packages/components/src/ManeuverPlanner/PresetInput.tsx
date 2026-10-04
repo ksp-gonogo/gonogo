@@ -1,12 +1,13 @@
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
+  type ReckoningMarking,
   Stack,
   ToggleButton,
   Unit,
   UnitInput,
-  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
+import { mergeMarkings } from "../shared/mergeMarkings";
 import { PresetPicker } from "./PresetPicker";
 import { computeRelInc } from "./planning";
 import { PRESETS } from "./presets";
@@ -23,6 +24,10 @@ interface PresetInputProps {
     targetInclinationLive: number | undefined;
     targetLanLive: number | undefined;
     targetPeA: number | undefined;
+    /** The current orbit's mark, which the craft's own inclination and LAN carry. */
+    orbitMarking: ReckoningMarking | null;
+    /** The target's mark, which every figure read off its orbit carries. */
+    targetMarking: ReckoningMarking | null;
   };
 }
 
@@ -179,22 +184,49 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
     targetInclinationLive,
     targetLanLive,
     targetPeA,
+    orbitMarking,
+    targetMarking,
   } = telemetry;
   if (inputs.preset === "match-target-inclination") {
     return (
       <div style={PRESET_DESC_STYLE}>
-        {targetName
-          ? `Target: ${targetName} (${writeQuantity(value("°", targetInclinationLive ?? 0), { decimals: 1 })})`
-          : "No target selected in-game."}
+        {targetName ? (
+          <>
+            Target: {targetName} (
+            <Unit
+              value={value("°", targetInclinationLive ?? 0)}
+              marked={targetMarking}
+              decimals={1}
+            />
+            )
+          </>
+        ) : (
+          "No target selected in-game."
+        )}
       </div>
     );
   }
   if (inputs.preset === "match-target-plane") {
     return (
       <div style={PRESET_DESC_STYLE}>
-        {targetName && targetLanLive !== undefined
-          ? `Target: ${targetName}, i=${writeQuantity(value("°", targetInclinationLive ?? 0), { decimals: 1 })} Ω=${writeQuantity(value("°", targetLanLive), { decimals: 1 })}`
-          : "No target selected in-game (or target LAN unavailable)."}
+        {targetName && targetLanLive !== undefined ? (
+          <>
+            Target: {targetName}, i=
+            <Unit
+              value={value("°", targetInclinationLive ?? 0)}
+              marked={targetMarking}
+              decimals={1}
+            />{" "}
+            Ω=
+            <Unit
+              value={value("°", targetLanLive)}
+              marked={targetMarking}
+              decimals={1}
+            />
+          </>
+        ) : (
+          "No target selected in-game (or target LAN unavailable)."
+        )}
       </div>
     );
   }
@@ -211,16 +243,30 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
     return (
       <div style={PRESET_DESC_STYLE}>
         Target: {targetName}, PeA{" "}
-        {targetPeA === undefined
-          ? NULL_DISPLAY
-          : writeQuantity(value("m", targetPeA), { decimals: 1 })}
+        {targetPeA === undefined ? (
+          NULL_DISPLAY
+        ) : (
+          <Unit
+            value={value("m", targetPeA)}
+            marked={targetMarking}
+            decimals={1}
+          />
+        )}
         , i=
-        <Unit value={value("°", targetInclinationLive ?? 0)} decimals={1} />,
-        Δplane=
+        <Unit
+          value={value("°", targetInclinationLive ?? 0)}
+          marked={targetMarking}
+          decimals={1}
+        />
+        , Δplane=
         {planeMismatch === null ? (
           NULL_DISPLAY
         ) : (
-          <Unit value={value("°", planeMismatch)} decimals={1} />
+          <Unit
+            value={value("°", planeMismatch)}
+            marked={mergeMarkings(orbitMarking, targetMarking)}
+            decimals={1}
+          />
         )}
         {planeMismatch !== null && planeMismatch > 0.5
           ? " (plane match prepended)"

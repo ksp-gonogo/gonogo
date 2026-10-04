@@ -12,6 +12,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { currencyOf } from "../shared/currencyOf";
+import { mergeMarkings } from "../shared/mergeMarkings";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { BurnWindowsSection } from "./BurnWindowsSection";
 import { ConformanceSection } from "./ConformanceSection";
@@ -19,7 +20,7 @@ import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
 import { NewManeuverSection } from "./NewManeuverSection";
 import { NotPlannableNotice } from "./NotPlannableNotice";
-import type { ManeuverPlannerConfig } from "./presets";
+import { type ManeuverPlannerConfig, usesTarget } from "./presets";
 import { PaddedSection } from "./styles";
 import { useTriggerSnapshot } from "./triggerService";
 import type { FrozenPlanInputs, ThresholdOp } from "./triggerTypes";
@@ -49,6 +50,8 @@ export function ManeuverPlannerComponent({
     availableDeltaV,
     body,
     currentOrbit,
+    orbitMarking,
+    targetMarking,
   } = telemetry;
   const nodes = useManeuverNodes();
   // The plan stands until changed, but a change made while the link is down is missed, so its figures take the plan reading's currency.
@@ -98,6 +101,11 @@ export function ManeuverPlannerComponent({
     setError(null);
   }
 
+  // The plan inherits the basis of the orbit it was computed from, and of the target's too for a preset that reads one.
+  const planMarking = usesTarget(inputs.preset)
+    ? mergeMarkings(orbitMarking, targetMarking)
+    : orbitMarking;
+
   function renderPlanTab() {
     return (
       <>
@@ -141,6 +149,8 @@ export function ManeuverPlannerComponent({
             setPrograde={setPrograde}
             setRadial={setRadial}
             availableDeltaV={availableDeltaV}
+            orbitMarking={orbitMarking}
+            planMarking={planMarking}
             feasible={feasible}
             requiredDeltaV={requiredDeltaV}
             currentUT={currentUT}

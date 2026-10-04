@@ -1,6 +1,11 @@
 import type { BodyDefinition, ManeuverSequence } from "@ksp-gonogo/core";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { Countdown, SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Countdown,
+  type ReckoningMarking,
+  SectionTitle,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { AvailableRow } from "./AvailableRow";
 import { ProjectedRows } from "./ProjectedRows";
 import { Label, PreviewGrid, PreviewValue } from "./styles";
@@ -12,6 +17,8 @@ interface SequencePreviewProps {
   availableDeltaV: number | null;
   feasible: boolean | null;
   currentUT: Value<"ut"> | undefined;
+  /** The mark the plan inherits from the orbit it was computed from. */
+  marking: ReckoningMarking | null;
 }
 
 export function SequencePreview({
@@ -20,6 +27,7 @@ export function SequencePreview({
   availableDeltaV,
   feasible,
   currentUT,
+  marking,
 }: SequencePreviewProps) {
   const burn1 = seq.burns[0];
   const burn2 = seq.burns[1];
@@ -28,7 +36,11 @@ export function SequencePreview({
       <PreviewGrid>
         <Label>Total ΔV</Label>
         <PreviewValue>
-          <Unit value={value("m/s", seq.totalDeltaV)} decimals={1} />
+          <Unit
+            value={value("m/s", seq.totalDeltaV)}
+            marked={marking}
+            decimals={1}
+          />
         </PreviewValue>
 
         <AvailableRow availableDeltaV={availableDeltaV} feasible={feasible} />
@@ -38,7 +50,12 @@ export function SequencePreview({
       <PreviewGrid>
         <Label>ΔV</Label>
         <PreviewValue>
-          <Unit value={value("m/s", burn1.prograde)} decimals={1} /> prograde
+          <Unit
+            value={value("m/s", burn1.prograde)}
+            marked={marking}
+            decimals={1}
+          />{" "}
+          prograde
         </PreviewValue>
         <Label>Burn in</Label>
         <PreviewValue>
@@ -47,6 +64,7 @@ export function SequencePreview({
         <ProjectedRows
           projected={seq.transferEllipse}
           body={body}
+          marking={marking}
           prefix="Transfer"
         />
       </PreviewGrid>
@@ -57,7 +75,11 @@ export function SequencePreview({
           <PreviewGrid>
             <Label>ΔV</Label>
             <PreviewValue>
-              <Unit value={value("m/s", burn2.prograde)} decimals={1} />{" "}
+              <Unit
+                value={value("m/s", burn2.prograde)}
+                marked={marking}
+                decimals={1}
+              />{" "}
               prograde
             </PreviewValue>
             <Label>Burn in</Label>
@@ -67,6 +89,7 @@ export function SequencePreview({
             <ProjectedRows
               projected={seq.finalProjected}
               body={body}
+              marking={marking}
               prefix="Final"
             />
           </PreviewGrid>

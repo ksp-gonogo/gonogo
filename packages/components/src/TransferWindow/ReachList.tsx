@@ -2,6 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   NULL_DISPLAY,
+  type ReckoningMarking,
   Text,
   ToggleButton,
   Unit,
@@ -44,7 +45,7 @@ export function ReachList({
   onSelect,
   budgetHeldSince,
   budgetConfirmedAbsent,
-  orbitHeldSince,
+  orbitMarking,
 }: {
   entries: ReachEntry[];
   originName: string;
@@ -56,8 +57,8 @@ export function ReachList({
   onSelect: (bodyIndex: number) => void;
   budgetHeldSince: HeldSince;
   budgetConfirmedAbsent: boolean;
-  /** Each destination's Δv is costed from the parking orbit, so it holds with it. */
-  orbitHeldSince: HeldSince;
+  /** Each destination's Δv is costed from the parking orbit, so it takes the orbit's mark. */
+  orbitMarking: ReckoningMarking | null;
 }) {
   if (entries.length === 0) return null;
   const haveBudget = budgetDeltaV != null;
@@ -119,10 +120,8 @@ export function ReachList({
                   <ReachTdNum>
                     {entry.totalDeltaV != null ? (
                       <Unit
-                        value={heldFigure(
-                          value("m/s", entry.totalDeltaV),
-                          orbitHeldSince,
-                        )}
+                        value={value("m/s", entry.totalDeltaV)}
+                        marked={orbitMarking}
                         decimals={0}
                       />
                     ) : (

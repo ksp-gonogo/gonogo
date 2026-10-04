@@ -26,6 +26,8 @@ export function NewManeuverSection({
           targetInclinationLive: telemetry.targetInclinationLive,
           targetLanLive: telemetry.targetLanLive,
           targetPeA: telemetry.targetPeA,
+          orbitMarking: telemetry.orbitMarking,
+          targetMarking: telemetry.targetMarking,
         }}
       />
     </PaddedSection>
