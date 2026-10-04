@@ -672,15 +672,21 @@ namespace Sitrep.Host
                 return CommandResult.Fail(CommandErrorCode.WrongState, "That command belongs to an earlier timeline.");
             }
             var lane = new LaneKey(request.Epoch, vantage, request.Craft);
+            var entry = _pending.FirstOrDefault(p =>
+                p.LaneSeq == request.LaneSeq
+                && string.Equals(p.Vantage, vantage, StringComparison.Ordinal)
+                && string.Equals(p.Craft, request.Craft, StringComparison.Ordinal));
+            if (!HeldOrOverdue(entry, request, vantage, _clock.Now()))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongState,
+                    "That command is on its way and its reply is not late. It can be sent again once it is held somewhere or overdue.");
+            }
             var copy = _delivery.SendAgain(lane, request.LaneSeq, _clock.Now(), NextRequestId());
             if (copy == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound, "That command is already settled, or too late to send again in its place.");
             }
-            var entry = _pending.FirstOrDefault(p =>
-                p.LaneSeq == request.LaneSeq
-                && string.Equals(p.Vantage, vantage, StringComparison.Ordinal)
-                && string.Equals(p.Craft, request.Craft, StringComparison.Ordinal));
             if (entry != null)
             {
                 entry.Attempts = copy.Attempt;
@@ -691,6 +697,34 @@ namespace Sitrep.Host
                 }
             }
             return CommandResult<UplinkActionReply>.Ok(new UplinkActionReply { ThroughSeq = request.LaneSeq, Id = copy.Id, ExpiresAtUt = copy.DeleteAtUt });
+        }
+
+        /// <summary>
+        /// Whether a command may be sent again, by what its own centre knows: the
+        /// last report to reach the centre says it is held somewhere, or the
+        /// reply the centre predicted is late. A command that is on its way and
+        /// not yet due is left to arrive.
+        /// </summary>
+        private bool HeldOrOverdue(PendingUplink? entry, UplinkResendRequest request, string vantage, double now)
+        {
+            for (var i = _journey.Count - 1; i >= 0; i--)
+            {
+                var e = _journey[i];
+                if (e.LaneSeq != request.LaneSeq
+                    || !string.Equals(e.Craft, request.Craft, StringComparison.Ordinal)
+                    || !_journeyVantage.TryGetValue(e.Id, out var to)
+                    || !string.Equals(to, vantage, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (e.Kind == JourneyEventKind.Held)
+                {
+                    return true;
+                }
+                break;
+            }
+            // No prediction at all is a command the centre knew no way to send, which is held where it stands.
+            return entry == null || entry.PredictedReplyUt == null || now > entry.PredictedReplyUt.Value;
         }
 
         /// <summary>Courier thread, after the clock advance: sends on whatever can leave, expires and releases.</summary>

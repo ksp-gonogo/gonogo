@@ -133,6 +133,51 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Send again is for a command that is held somewhere or overdue. One
+        /// that left on an open route and is not yet due is left to arrive: a
+        /// second copy would only race the first. Once the reply the centre
+        /// predicted is late, it may be sent again.
+        /// </summary>
+        [Fact]
+        public void ACommandOnItsWayCanBeSentAgainOnlyOnceItsReplyIsLate()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                OpenRoute(engine);
+                Tick(engine, 0.0);
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op);
+                Tick(engine, 1.0);
+                var predictedReply = Assert.Single(Pending(engine)).PredictedReplyUt;
+                Assert.NotNull(predictedReply);
+                // The craft's link goes while the command is on its way, so nothing answers.
+                CutRoute(engine);
+                Tick(engine, 2.0);
+
+                var again = new UplinkResendRequest { Epoch = Journey(engine).Epoch, Craft = CraftNode, LaneSeq = 1 };
+                object? early = null;
+                engine.DispatchCommandAndWait(ChannelEngine.UplinkResendCommand, again, Centre, r => early = r, TestBudgets.Op);
+
+                var refused = Assert.IsType<CommandResult>(early);
+                Assert.False(refused.Success);
+                Assert.Equal(1, Assert.Single(Pending(engine)).Attempts);
+
+                Tick(engine, predictedReply!.Value + 1.0);
+                object? late = null;
+                engine.DispatchCommandAndWait(ChannelEngine.UplinkResendCommand, again, Centre, r => late = r, TestBudgets.Op);
+
+                Assert.IsType<CommandResult<UplinkActionReply>>(late);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public void ASendAgainFromAnotherCentreDoesNotTouchThisCentresCommand()
         {
