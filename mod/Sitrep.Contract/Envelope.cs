@@ -232,12 +232,13 @@ public class CommandAccepted
     ///
     /// <para>For a command held and forwarded on a lane it is how long the
     /// sending centre's own plan expects it to take to reach the craft, waits
-    /// included, and zero when that plan knows no route. It is what the centre
-    /// believed when it sent, and says nothing of whether the craft is really
+    /// included, and absent when that plan knows no route, as for a craft
+    /// the centre has not heard from yet. It is what the centre believed when
+    /// it sent, and says nothing of whether the craft is really
     /// listening.</para>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
-    public double OneWaySeconds { get; set; }
+    public double? OneWaySeconds { get; set; }
 
     /// <summary>
     /// When the engine predicts the reply will come back, from the routes at

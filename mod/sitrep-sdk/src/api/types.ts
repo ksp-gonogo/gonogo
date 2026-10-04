@@ -1511,7 +1511,7 @@ export interface InFlightCommand {
   topic: string;
   direction: RailDirection;
   dispatchedAt: number;
-  oneWaySeconds: number;
+  oneWaySeconds: number | null;
   reachEtaSeconds: number | null;
   replyEtaSeconds: number | null;
   predictedPhase: PredictedPhase;

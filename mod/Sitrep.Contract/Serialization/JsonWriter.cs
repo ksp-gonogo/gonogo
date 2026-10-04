@@ -1328,7 +1328,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append(',');
             AppendString(sb, "oneWaySeconds");
             sb.Append(':');
-            AppendNumber(sb, entry.OneWaySeconds);
+            AppendNullableNumber(sb, entry.OneWaySeconds);
 
             if (entry.CommandedValue.HasValue)
             {

@@ -5934,7 +5934,7 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double, double?, double?>? onAcceptedHeld = null) =>
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double?, double?, double?>? onAcceptedHeld = null) =>
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnAcceptedHeld = onAcceptedHeld });
 
         /// <summary>
@@ -5944,7 +5944,7 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
         {
             var barrier = new ManualResetEventSlim(false);
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId));
@@ -7893,7 +7893,7 @@ namespace Sitrep.Host
         private static double ReportHomeSeconds(PendingUplink entry) =>
             entry.PredictedReplyUt != null && entry.PredictedArrivalUt != null
                 ? Math.Max(0.0, entry.PredictedReplyUt.Value - entry.PredictedArrivalUt.Value)
-                : entry.OneWaySeconds;
+                : entry.OneWaySeconds ?? 0.0;
 
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
 
@@ -7918,8 +7918,8 @@ namespace Sitrep.Host
                 // centre; this is only the backstop, past both its predicted reply
                 // and its expiry, after which no copy of it can still run.
                 var due = entry.LaneSeq == null
-                    ? ut > entry.DispatchedAt + (2 * entry.OneWaySeconds)
-                    : ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * entry.OneWaySeconds), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
+                    ? ut > entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0))
+                    : ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
                 if (due)
                 {
                     _pendingDispatcher.Remove(entry.Id);
@@ -8906,14 +8906,14 @@ namespace Sitrep.Host
             /// can see, which is the active craft's and is the wrong path for a
             /// command addressed anywhere else.</para>
             /// </summary>
-            public readonly Action<double>? OnAccepted;
+            public readonly Action<double?>? OnAccepted;
             /// <summary>
             /// Called instead of <see cref="OnAccepted"/> when the dispatch is held
             /// for store-and-forward, with the one-way time, the predicted reply and
             /// the command's expiry. Null for a caller that only wants the one-way
             /// time, which then gets <see cref="OnAccepted"/>.
             /// </summary>
-            public Action<double, double?, double?>? OnAcceptedHeld { get; set; }
+            public Action<double?, double?, double?>? OnAcceptedHeld { get; set; }
             /// <summary>
             /// Called instead of <see cref="OnResult"/> when the dispatch's args
             /// cannot bind to the command's declared args type, carrying the
@@ -8928,7 +8928,7 @@ namespace Sitrep.Host
             /// <summary>The connection the request arrived on, or null for one the engine dispatched itself.</summary>
             public readonly string? SessionId;
 
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
             {
                 SessionId = sessionId;
                 OnMalformed = onMalformed;

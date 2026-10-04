@@ -664,9 +664,18 @@ namespace Sitrep.Contract
         /// reader typed for the old shape would treat the object as a value,
         /// which is a wire retype even though the C# property types are
         /// unchanged.</para>
+        ///
+        /// <para><b>Bumped 28 -&gt; 29: a light-time nobody can quote is absent,
+        /// not zero.</b> <see cref="PendingUplink.OneWaySeconds"/> and
+        /// <see cref="CommandAccepted.OneWaySeconds"/> are nullable, and null
+        /// when the sending centre's own plan knows no route to the craft, as
+        /// for a craft it has not heard from since a load. Both carried zero
+        /// there, which reads as "arrives at once". A pending entry writes
+        /// the key as null and the accept frame leaves it out, so a reader typed
+        /// for a number must now handle its absence.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 28;
+        public const int Major = 29;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -2286,8 +2295,10 @@ namespace Sitrep.Contract
         /// <see cref="ICommsBackend.Network"/> and
         /// <see cref="ICommsBackend.ControlPathTerminus"/> stay on the interface and are no
         /// longer read by core.</para>
+        ///
+        /// <para><b>Major-29 line, reset to 0</b> with the Major.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 9;
+        public const int Minor = 0;
     }
 }

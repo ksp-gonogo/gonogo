@@ -13,8 +13,8 @@ export interface InFlightCommandLike {
   glyph?: string;
   /** Which way the entry crosses the link. Absent reads as a command going up. */
   direction?: RailDirection;
-  /** The one-way delay the entry was sent under, which places an entry with no reply leg. */
-  oneWaySeconds?: number;
+  /** The one-way delay the entry was sent under, which places an entry with no reply leg. Absent or `null` for one sent with no route known. */
+  oneWaySeconds?: number | null;
 }
 
 /**
@@ -57,11 +57,7 @@ function oneWayOf(item: InFlightCommandLike): number | null {
   const reach = item.reachEtaSeconds;
   const reply = item.replyEtaSeconds;
   if (reach !== null && reply !== null && reply > reach) return reply - reach;
-  if (
-    reply === null &&
-    item.oneWaySeconds !== undefined &&
-    item.oneWaySeconds > 0
-  ) {
+  if (reply === null && item.oneWaySeconds != null && item.oneWaySeconds > 0) {
     return item.oneWaySeconds;
   }
   return null;

@@ -39,7 +39,8 @@ namespace Sitrep.Host.Tests
                 "Topic:System.String",
                 "Vantage:System.String",
                 "DispatchedAt:System.Double",
-                "OneWaySeconds:System.Double",
+                // Nullable since contract 29: null when the sending centre's plan knew no route, never zero.
+                "OneWaySeconds:System.Nullable`1[System.Double]",
                 // Added deliberately and on request, not by drift. The
                 // invariant this test guards forbids an execution/result/
                 // vessel-derived field; a commanded value is none of those, it

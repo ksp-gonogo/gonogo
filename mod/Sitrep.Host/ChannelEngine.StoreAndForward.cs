@@ -249,7 +249,8 @@ namespace Sitrep.Host
             }
 
             var prediction = Predict(lane, now, message.DeleteAtUt);
-            var oneWay = prediction.ArrivalUt != null ? Math.Max(0.0, prediction.ArrivalUt.Value - now) : 0.0;
+            // No arrival predicted is no figure at all, never a figure of zero.
+            var oneWay = prediction.ArrivalUt != null ? Math.Max(0.0, prediction.ArrivalUt.Value - now) : (double?)null;
             _pending.Add(new PendingUplink
             {
                 Id = requestId,

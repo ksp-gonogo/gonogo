@@ -192,7 +192,7 @@ namespace Sitrep.Host.IntegrationTests
                     _ => { },
                     TestBudgets.Op,
                     onRefused: (code, _) => refused[world] = code,
-                    onAccepted: seconds => light = seconds);
+                    onAccepted: seconds => light = seconds!.Value);
             }
 
             foreach (var world in new[] { lost, landed })

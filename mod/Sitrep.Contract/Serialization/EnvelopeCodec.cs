@@ -476,8 +476,12 @@ namespace Sitrep.Contract.Serialization
             AppendField(sb, "requestId");
             JsonWriter.AppendString(sb, msg.RequestId);
 
-            AppendField(sb, "oneWaySeconds");
-            JsonWriter.AppendNumber(sb, msg.OneWaySeconds);
+            // Left out when the centre has no figure, as the two predictions below are.
+            if (msg.OneWaySeconds.HasValue)
+            {
+                AppendField(sb, "oneWaySeconds");
+                JsonWriter.AppendNumber(sb, msg.OneWaySeconds.Value);
+            }
 
             if (msg.PredictedReplyUt.HasValue)
             {
@@ -509,7 +513,7 @@ namespace Sitrep.Contract.Serialization
             {
                 Type = "command-accepted",
                 RequestId = RequireString(raw, "requestId"),
-                OneWaySeconds = RequireDouble(raw, "oneWaySeconds"),
+                OneWaySeconds = OptionalDouble(raw, "oneWaySeconds"),
                 PredictedReplyUt = OptionalDouble(raw, "predictedReplyUt"),
                 ExpiresAtUt = OptionalDouble(raw, "expiresAtUt"),
             };

@@ -970,7 +970,7 @@ export class TelemetryClient {
    */
   private handleCommandAccepted(
     requestId: string,
-    oneWaySeconds: number,
+    oneWaySeconds: number | null | undefined,
     predictedReplyUt?: number | null,
     expiresAtUt?: number | null,
   ): void {
@@ -982,7 +982,17 @@ export class TelemetryClient {
      * would schedule a loss for a command that is finished.
      */
     if (!pending.resolve) return;
-    if (!Number.isFinite(oneWaySeconds) || oneWaySeconds < 0) return;
+    /*
+     * Null is the centre having no light-time to quote, because its plan knows
+     * no route yet. That is not a zero: the command is timed by its predicted
+     * reply or its expiry below, and by nothing here when it has neither.
+     */
+    const roundTrip =
+      oneWaySeconds != null &&
+      Number.isFinite(oneWaySeconds) &&
+      oneWaySeconds >= 0
+        ? this.clock.now() + 2 * oneWaySeconds
+        : undefined;
 
     /*
      * A held command replies when its route says, waits included, which can be
@@ -994,7 +1004,8 @@ export class TelemetryClient {
         ? predictedReplyUt
         : expiresAtUt != null && Number.isFinite(expiresAtUt)
           ? expiresAtUt
-          : this.clock.now() + 2 * oneWaySeconds;
+          : roundTrip;
+    if (etaConfirm === undefined) return;
     pending.cancelLossTimer?.();
     pending.status = { phase: "in-flight", requestId, etaConfirm };
     pending.cancelLossTimer = this.clock.schedule(

@@ -93,11 +93,12 @@ public class PendingUplink
     /// <summary>
     /// One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the
     /// delay changes. For a command on a lane it is how long the sending centre's
-    /// own plan expects it to take to reach the craft, waits included, and zero
-    /// when that plan knows no route.
+    /// own plan expects it to take to reach the craft, waits included, and
+    /// <c>null</c> when that plan knows no route: the centre has no figure to
+    /// give, which is not a figure of zero.
     /// </summary>
     [SitrepUnit(Units.Seconds)]
-    public double OneWaySeconds { get; set; }
+    public double? OneWaySeconds { get; set; }
 
     /// <summary>
     /// The scalar this command asked for, when its command is one half of a

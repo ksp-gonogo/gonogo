@@ -3151,10 +3151,11 @@ export interface CommandAccepted
 	*
 	* For a command held and forwarded on a lane it is how long the sending
 	* centre's own plan expects it to take to reach the craft, waits included, and
-	* zero when that plan knows no route. It is what the centre believed when it
-	* sent, and says nothing of whether the craft is really listening.
+	* absent when that plan knows no route, as for a craft the centre has not
+	* heard from yet. It is what the centre believed when it sent, and says
+	* nothing of whether the craft is really listening.
 	*/
-	oneWaySeconds: number;
+	oneWaySeconds?: number;
 	/**
 	* When the engine predicts the reply will come back, from the routes at
 	* dispatch, waits included. A client times its loss deadline from this when
@@ -8058,10 +8059,11 @@ export interface PendingUplink
 	/**
 	* One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay
 	* changes. For a command on a lane it is how long the sending centre's own
-	* plan expects it to take to reach the craft, waits included, and zero when
-	* that plan knows no route.
+	* plan expects it to take to reach the craft, waits included, and `null` when
+	* that plan knows no route: the centre has no figure to give, which is not a
+	* figure of zero.
 	*/
-	oneWaySeconds: Value<"s">;
+	oneWaySeconds?: Value<"s"> | null;
 	/**
 	* The scalar this command asked for, when its command is one half of a
 	* declared SitrepControlChannelAttribute channel: a throttle setting, a switch

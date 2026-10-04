@@ -246,3 +246,43 @@ describe("a command held for store-and-forward", () => {
     expect(c?.predictedPhase).not.toBe("lost");
   });
 });
+
+describe("a command sent with no route known", () => {
+  // What the mod sends for a craft its centre has not heard from: no light-time to quote, and no arrival to predict.
+  const unrouted = entry({
+    laneSeq: value("count", 1),
+    oneWaySeconds: null,
+    predictedArrivalUt: null,
+    predictedReplyUt: null,
+    expiresAtUt: value("ut", 3700),
+  });
+
+  it("has no light-time and no arrival, where a zero would say it lands at once", () => {
+    const row = deriveRailEntry(pendingCrossing(unrouted), 500);
+    expect(row?.oneWaySeconds).toBeNull();
+    expect(row?.reachEtaSeconds).toBeNull();
+    expect(row?.replyEtaSeconds).toBeNull();
+    expect(row?.predictedPhase).toBe("in-transit");
+  });
+
+  it("is neither lost nor overdue while it waits to be sent", () => {
+    const waiting = classifyRetained({
+      entry: unrouted,
+      nowUt: 3000,
+      present: true,
+      overdueMarginSeconds: 5,
+      pathConnectedDuring: () => false,
+    });
+    expect(waiting?.predictedPhase).toBe("in-transit");
+  });
+
+  it("with no expiry either, has nothing to be late against", () => {
+    const c = classifyRetained({
+      entry: { ...unrouted, laneSeq: null, expiresAtUt: null },
+      nowUt: 9000,
+      present: false,
+      acknowledged: false,
+    });
+    expect(c?.predictedPhase).toBe("in-transit");
+  });
+});

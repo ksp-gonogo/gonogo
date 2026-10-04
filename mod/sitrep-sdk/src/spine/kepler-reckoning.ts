@@ -86,7 +86,11 @@ export interface ConicThrustInput {
  * @category Reckoners
  */
 export interface ConicPendingInput {
-  pending: readonly { dispatchedAt: Quantityish; oneWaySeconds: Quantityish }[];
+  pending: readonly {
+    dispatchedAt: Quantityish;
+    /** Absent while the sending centre knows no route: such a command is held, and reaches nothing until it is sent. */
+    oneWaySeconds?: Quantityish | null;
+  }[];
 }
 
 /**
@@ -596,6 +600,7 @@ export function loadedRegimeDecline(
     );
   }
   const reaches = (pending?.pending ?? []).some((command) => {
+    if (command.oneWaySeconds == null) return false;
     const arrival = mag(command.dispatchedAt) + mag(command.oneWaySeconds);
     return arrival > point.validAt && arrival <= viewUt;
   });

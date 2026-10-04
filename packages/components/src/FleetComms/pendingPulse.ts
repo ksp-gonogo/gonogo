@@ -8,7 +8,8 @@ import { magnitudeOf, type Quantityish } from "../shared/magnitude";
  */
 export interface PendingPulseEntry {
   dispatchedAt: Quantityish;
-  oneWaySeconds: Quantityish;
+  /** Absent while the sending centre knows no route to the craft: nothing is travelling, so there is no pulse to draw. */
+  oneWaySeconds?: Quantityish;
 }
 
 export type UplinkPulseLeg = "outbound" | "return";
@@ -43,7 +44,7 @@ export function computeUplinkPulse(
 ): UplinkPulse | null {
   // An animation, so it works in raw seconds.
   const dispatchedAt = magnitudeOf(entry.dispatchedAt);
-  const oneWaySeconds = magnitudeOf(entry.oneWaySeconds);
+  const oneWaySeconds = magnitudeOf(entry.oneWaySeconds ?? null);
   if (oneWaySeconds === null || oneWaySeconds <= 0) return null;
   if (dispatchedAt === null || !Number.isFinite(utNow)) return null;
 

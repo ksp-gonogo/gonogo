@@ -50,7 +50,12 @@ export interface PendingEntry {
   topic: string;
   vantage: string;
   dispatchedAt: Value<"ut">;
-  oneWaySeconds: Value<"s">;
+  /**
+   * The one-way delay the command was sent under. Absent or `null` when the
+   * sending centre's plan knew no route to the craft: there is no figure, and
+   * that is never a figure of zero.
+   */
+  oneWaySeconds?: Value<"s"> | null;
   /**
    * The scalar the dispatch asked for, when its command is a declared control
    * channel's write half. Absent otherwise, and absent rather than zero when
@@ -92,8 +97,8 @@ export interface InFlightCommand {
   /** Which way the entry crosses the link: `command` up to the craft, `telemetry` down from it. */
   direction: RailDirection;
   dispatchedAt: number;
-  /** The one-way delay the crossing was sent under, frozen at the send. */
-  oneWaySeconds: number;
+  /** The one-way delay the crossing was sent under, frozen at the send; `null` when it was sent with no route known, so with no figure to freeze. */
+  oneWaySeconds: number | null;
   /** Seconds until the entry reaches the far end; `null` when no-path. */
   reachEtaSeconds: number | null;
   /** Seconds until the reply is expected back; `null` when no-path, and always for a fire-and-forget entry, which has no reply. */
@@ -117,7 +122,8 @@ export interface RailCrossing {
   topic: string;
   tags: RailTags;
   sentAt: Value<"ut">;
-  oneWaySeconds: Value<"s">;
+  /** `null` for a command sent with no route known: it has no arrival to predict until it is given one. */
+  oneWaySeconds: Value<"s"> | null;
   /** When it is predicted to arrive, when that is not one delay after `sentAt`: a held command. */
   predictedArrivalUt?: Value<"ut"> | null;
   /** When its reply is predicted back, when that is not two delays after `sentAt`. */
@@ -165,8 +171,10 @@ export function deriveRailEntry(
   nowUt: number,
 ): InFlightCommand | undefined {
   const now = value("ut", nowUt);
+  const oneWay = crossing.oneWaySeconds;
   const reachUt =
-    crossing.predictedArrivalUt ?? crossing.sentAt.plus(crossing.oneWaySeconds);
+    crossing.predictedArrivalUt ??
+    (oneWay ? crossing.sentAt.plus(oneWay) : null);
   const row = {
     id: crossing.id,
     label: crossing.label,
@@ -174,16 +182,27 @@ export function deriveRailEntry(
     topic: crossing.topic,
     direction: crossing.tags.direction,
     dispatchedAt: crossing.sentAt.magnitude,
-    oneWaySeconds: crossing.oneWaySeconds.magnitude,
-    reachEtaSeconds: reachUt.minus(now).magnitude,
+    oneWaySeconds: oneWay ? oneWay.magnitude : null,
+    reachEtaSeconds: reachUt ? reachUt.minus(now).magnitude : null,
   };
+  // No arrival predicted: it is waiting to be sent, which is still on its way out.
+  if (reachUt === null) {
+    return { ...row, replyEtaSeconds: null, predictedPhase: "in-transit" };
+  }
   if (crossing.tags.delivery === "fire-and-forget") {
     if (!now.lessThan(reachUt)) return undefined;
     return { ...row, replyEtaSeconds: null, predictedPhase: "in-transit" };
   }
   const replyUt =
     crossing.predictedReplyUt ??
-    crossing.sentAt.plus(crossing.oneWaySeconds.times(2));
+    (oneWay ? crossing.sentAt.plus(oneWay.times(2)) : null);
+  if (replyUt === null) {
+    return {
+      ...row,
+      replyEtaSeconds: null,
+      predictedPhase: now.lessThan(reachUt) ? "in-transit" : "awaiting-reply",
+    };
+  }
   return {
     ...row,
     replyEtaSeconds: replyUt.minus(now).magnitude,
@@ -214,7 +233,7 @@ export function pendingCrossing(entry: PendingEntry): RailCrossing {
     topic: entry.topic,
     tags: railTagsForCommand(entry.command),
     sentAt: entry.dispatchedAt,
-    oneWaySeconds: entry.oneWaySeconds,
+    oneWaySeconds: entry.oneWaySeconds ?? null,
     predictedArrivalUt: entry.predictedArrivalUt ?? null,
     predictedReplyUt: entry.predictedReplyUt ?? null,
   };
@@ -296,7 +315,11 @@ export function classifyRetained(args: {
     entry.predictedReplyUt ??
     (held && entry.expiresAtUt
       ? entry.expiresAtUt
-      : entry.dispatchedAt.plus(entry.oneWaySeconds.times(2)));
+      : entry.oneWaySeconds
+        ? entry.dispatchedAt.plus(entry.oneWaySeconds.times(2))
+        : null);
+  // No reply is predicted and nothing says when it expires: there is nothing to be late against yet.
+  if (replyUt === null) return base;
   // 'lost': path was not continuously up across the in-flight window. Not for
   // a held command: a break leaves it waiting at a node, not lost.
   if (

@@ -496,7 +496,7 @@ namespace Sitrep.Host.IntegrationTests
                     "KSC",
                     _ => { },
                     TestBudgets.Op,
-                    onAccepted: seconds => accepted.Add(seconds));
+                    onAccepted: seconds => accepted.Add(seconds!.Value));
 
                 Assert.Equal(new[] { signalDelay }, accepted);
             }
@@ -532,7 +532,7 @@ namespace Sitrep.Host.IntegrationTests
                     "KSC",
                     _ => { },
                     TestBudgets.Op,
-                    onAccepted: seconds => accepted.Add(seconds));
+                    onAccepted: seconds => accepted.Add(seconds!.Value));
 
                 Assert.Empty(accepted);
             }

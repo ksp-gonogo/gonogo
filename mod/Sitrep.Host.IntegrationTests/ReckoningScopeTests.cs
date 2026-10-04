@@ -42,14 +42,26 @@ namespace Sitrep.Host.IntegrationTests
             await using var world = await ReckonedVantageWorld.StartAsync();
             world.Tick(10.0);
 
-            world.Engine.DispatchCommandAndWait(ScriptedContactUplink.RelayCommand, "x", Home, _ => { }, TestBudgets.Op);
+            var told = false;
+            double? accepted = 0.0;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.RelayCommand, "x", Home, _ => { }, TestBudgets.Op,
+                onAccepted: seconds =>
+                {
+                    told = true;
+                    accepted = seconds;
+                });
 
+            // The centre knows no route, so it has no light-time to quote: absent, never zero.
+            Assert.True(told);
+            Assert.Null(accepted);
             var held = Assert.Single(world.Engine.JourneyAt(Home).Events);
             Assert.Equal(JourneyEventKind.Held, held.Kind);
             Assert.Equal(Home, held.At);
             var entry = Assert.Single(Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending);
             Assert.Equal(Home, entry.PredictedHeldAt);
             Assert.Null(entry.PredictedArrivalUt);
+            Assert.Null(entry.OneWaySeconds);
 
             // It hears of the relay at 600, plans it, and sends.
             foreach (var ut in new[] { 599.0, 601.0, 602.0, 603.0 })
