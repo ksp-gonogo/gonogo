@@ -21,16 +21,16 @@ export interface StatContributionsProps {
  * Every stat contributed to `slot`, drawn through the kit's own {@link Stat}.
  *
  * A fragment, not a wrapper: the cells land in the host's own
- * {@link StatStrip} as siblings of its built-in ones. Renders nothing when
+ * a `Grid` of stats as siblings of its built-in ones. Renders nothing when
  * nothing is contributed, so a host can place it unconditionally. An entry's
  * quantity is drawn through {@link Unit}, else its text, else the null token.
  *
  * @example
  * ```tsx
- * <StatStrip>
+ * <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
  *   <Stat label="Funds"><Unit value={funds} /></Stat>
  *   <StatContributions slot="astronaut-complex.readouts" />
- * </StatStrip>
+ * </Grid>
  * ```
  *
  * @category Readout

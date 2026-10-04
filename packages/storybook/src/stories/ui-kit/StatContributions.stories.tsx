@@ -1,9 +1,9 @@
 import { type StatEntry, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ContributionsPanelStore,
+  Grid,
   Stat,
   StatContributions,
-  StatStrip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -38,13 +38,13 @@ function Complex({ entries }: { entries: readonly StatEntry[] }) {
   return (
     <ContributionsPanelStore.Provider>
       <Contributed slot={SLOT} entries={entries} />
-      <StatStrip>
+      <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
         <Stat label="Roster">7 / 13</Stat>
         <Stat label="Hire price">
           <Unit value={live("f", 62_400)} />
         </Stat>
         <StatContributions slot={SLOT} />
-      </StatStrip>
+      </Grid>
     </ContributionsPanelStore.Provider>
   );
 }

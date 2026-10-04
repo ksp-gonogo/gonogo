@@ -23,14 +23,34 @@ describe("Grid", () => {
     });
   });
 
-  it("applies an auto-fill template when minColWidth is set", () => {
+  it("applies an auto-fill template, capped at the container, when minColWidth is set", () => {
     render(
       <Grid minColWidth="200px" data-testid="grid">
         <span>a</span>
       </Grid>,
     );
     expect(screen.getByTestId("grid")).toHaveStyle({
-      gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(min(200px, 100%), 1fr))",
     });
+  });
+
+  it("auto-fits where fit is set, so a lone cell takes the row", () => {
+    render(
+      <Grid minColWidth="7rem" fit data-testid="grid">
+        <span>a</span>
+      </Grid>,
+    );
+    expect(screen.getByTestId("grid")).toHaveStyle({
+      gridTemplateColumns: "repeat(auto-fit, minmax(min(7rem, 100%), 1fr))",
+    });
+  });
+
+  it("stretches its cells to a row's height on align=stretch", () => {
+    render(
+      <Grid align="stretch" data-testid="grid">
+        <span>a</span>
+      </Grid>,
+    );
+    expect(screen.getByTestId("grid")).toHaveStyle({ alignItems: "stretch" });
   });
 });

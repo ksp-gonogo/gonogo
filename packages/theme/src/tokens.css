@@ -532,8 +532,6 @@ textarea {
   --gap-readout-groups: var(--space-10);
   /* Lines of the centred content a tiny tile shows, and a hero value's caption. */
   --gap-tiny-content: var(--space-4);
-  /* Cells in a stat strip. */
-  --gap-stat-strip: var(--space-6);
   /* A row meter group stacked on one MeterStack's columns. */
   --gap-meter-rows: var(--space-2);
   /* A meter's label, bar and figure columns. */

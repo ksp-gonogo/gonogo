@@ -21,15 +21,26 @@ export interface StatProps
 }
 
 /**
- * One cell of a core-stat strip: a label, a figure, and at most one line under
+ * One cell of a core-stat strip (a {@link Grid} of `minColWidth="7rem" fit align="stretch"`): a label, a figure, and at most one line under
  * it. A `<dl>` per cell, so the label is associated with the figure
  * programmatically and a cell stays valid wherever it is dropped.
  *
+ * A strip of stats is a `Grid` with `minColWidth="7rem" fit align="stretch"
+ * gap="related-compact"`, so every stat gets the same room and the row reflows
+ * to fewer columns as the tile narrows. The strip is not a live region: add
+ * `role="status"` yourself only when its figures change rarely, since figures
+ * that move every frame would flood a screen reader.
+ *
  * @example
  * ```tsx
- * <Stat label="Next hire" tone={affordable ? "neutral" : "nogo"}>
- *   <Unit value={complex.nextHireCost} />
- * </Stat>
+ * <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
+ *   <Stat label="Next hire" tone={affordable ? "neutral" : "nogo"}>
+ *     <Unit value={complex.nextHireCost} />
+ *   </Stat>
+ *   <Stat label="Science" detail="this flight">
+ *     <Unit value={career.science} />
+ *   </Stat>
+ * </Grid>
  * ```
  *
  * @category Readout
@@ -51,37 +62,6 @@ export function Stat({
     </Stat__Root>
   );
 }
-
-/**
- * The strip a widget's core stats sit in: a self-fitting grid of {@link Stat}
- * cells, so every stat gets the same room and the row reflows to fewer columns
- * as the tile narrows.
- *
- * The strip is not a live region. Add `role="status"` yourself only when its
- * figures change rarely: figures that move every frame would flood a screen
- * reader.
- *
- * @example
- * ```tsx
- * <StatStrip>
- *   <Stat label="Funds">
- *     <Unit value={career.funds} />
- *   </Stat>
- *   <Stat label="Science" detail="this flight">
- *     <Unit value={career.science} />
- *   </Stat>
- * </StatStrip>
- * ```
- *
- * @category Readout
- */
-export const StatStrip = styled.div`
-  display: grid;
-  /* min() stops the 7rem floor overflowing a container narrower than it. */
-  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
-  gap: var(--gap-stat-strip);
-  align-items: stretch;
-`;
 
 const Stat__Root = styled.dl`
   display: flex;

@@ -4,8 +4,9 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { ContributionsPanelStore } from "./contributionsRead";
+import { Grid } from "./Grid";
 import { NULL_DISPLAY } from "./NullValue";
-import { Stat, StatStrip } from "./Stat";
+import { Stat } from "./Stat";
 import { StatContributions } from "./StatContributions";
 import { Unit } from "./Unit";
 import { WidgetMetaContext } from "./WidgetMetaContext";
@@ -74,14 +75,14 @@ describe("Stat", () => {
 
   it("passes an a11y smoke check as a strip", async () => {
     const { container } = render(
-      <StatStrip>
+      <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
         <Stat label="Funds">
           <Unit value={value("funds", 100)} />
         </Stat>
         <Stat label="Next hire" tone="nogo">
           <Unit value={value("funds", 24_000)} />
         </Stat>
-      </StatStrip>,
+      </Grid>,
     );
 
     await expectNoA11yViolations(container);
@@ -101,9 +102,9 @@ describe("StatContributions", () => {
           },
         ]}
       >
-        <StatStrip>
+        <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
           <StatContributions slot={SLOT} />
-        </StatStrip>
+        </Grid>
       </WithStats>,
     );
 
@@ -121,10 +122,16 @@ describe("StatContributions", () => {
           { id: "b", label: "Courses", text: "3" },
         ]}
       >
-        <StatStrip data-testid="strip">
+        <Grid
+          minColWidth="7rem"
+          fit
+          align="stretch"
+          gap="related-compact"
+          data-testid="strip"
+        >
           <Stat label="Funds">100</Stat>
           <StatContributions slot={SLOT} />
-        </StatStrip>
+        </Grid>
       </WithStats>,
     );
 

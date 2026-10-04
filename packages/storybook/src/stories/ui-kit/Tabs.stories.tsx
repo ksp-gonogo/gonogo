@@ -1,10 +1,10 @@
 import {
+  Grid,
   Meter,
   MeterStack,
   Row,
   Section,
   Stat,
-  StatStrip,
   type TabDescriptor,
   Tabs,
   Unit,
@@ -20,7 +20,7 @@ function Column({ children }: { children: ReactNode }) {
 
 const FLIGHT = (
   <Section>
-    <StatStrip>
+    <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
       <Stat label="Altitude">
         <Unit value={live("m", 71_240)} />
       </Stat>
@@ -30,7 +30,7 @@ const FLIGHT = (
       <Stat label="Apoapsis">
         <Unit value={live("m", 82_400)} />
       </Stat>
-    </StatStrip>
+    </Grid>
   </Section>
 );
 

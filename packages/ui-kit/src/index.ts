@@ -529,7 +529,7 @@ export {
 export { Slider, type SliderProps } from "./Slider";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { Stack, type StackProps } from "./Stack";
-export { Stat, type StatProps, StatStrip } from "./Stat";
+export { Stat, type StatProps } from "./Stat";
 export {
   StatContributions,
   type StatContributionsProps,

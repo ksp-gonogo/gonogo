@@ -1,7 +1,7 @@
 import "../../dist/stories/registrations";
 import { getAugments, getComponents } from "@ksp-gonogo/core";
 import { getContributions } from "@ksp-gonogo/sitrep-sdk/spine";
-import { Section, Stat, StatStrip, Text } from "@ksp-gonogo/ui-kit";
+import { Grid, Section, Stat, Text } from "@ksp-gonogo/ui-kit";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import coverage from "../../dist/stories/coverage.json";
 import { withGonogoFrame } from "../frame";
@@ -73,10 +73,10 @@ function Coverage() {
   }
   return (
     <Section title="Story coverage">
-      <StatStrip>
+      <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
         <Stat label="Widgets">{widgets.length}</Stat>
         <Stat label="Extensions">{extensions.length}</Stat>
-      </StatStrip>
+      </Grid>
       <Text>Every registration has a story.</Text>
     </Section>
   );

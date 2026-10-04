@@ -1,5 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { Stat, StatStrip, Unit } from "@ksp-gonogo/ui-kit";
+import { Grid, Stat, Unit } from "@ksp-gonogo/ui-kit";
 
 /**
  * The smallest widget body that reads telemetry: one Topic, three of its
@@ -8,7 +8,7 @@ import { Stat, StatStrip, Unit } from "@ksp-gonogo/ui-kit";
 export function FlightReadout() {
   const flight = useTelemetry("vessel.flight");
   return (
-    <StatStrip>
+    <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
       <Stat label="Altitude">
         <Unit value={flight.altitudeAsl} />
       </Stat>
@@ -18,6 +18,6 @@ export function FlightReadout() {
       <Stat label="Surface speed">
         <Unit value={flight.surfaceSpeed} />
       </Stat>
-    </StatStrip>
+    </Grid>
   );
 }

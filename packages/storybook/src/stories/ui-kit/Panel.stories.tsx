@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  Grid,
   Meter,
   MeterStack,
   Panel,
@@ -8,7 +9,6 @@ import {
   Row,
   Section,
   Stat,
-  StatStrip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -47,7 +47,7 @@ type Story = StoryObj<typeof meta>;
 
 const FLIGHT = (
   <Section key="flight" title="Flight">
-    <StatStrip>
+    <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
       <Stat label="Altitude">
         <Unit value={live("m", 71_240)} />
       </Stat>
@@ -57,7 +57,7 @@ const FLIGHT = (
       <Stat label="Apoapsis" tone="go">
         <Unit value={live("m", 82_400)} />
       </Stat>
-    </StatStrip>
+    </Grid>
   </Section>
 );
 
@@ -177,7 +177,7 @@ export const StreamHeld: Story = {
     panelStatus: "held",
     sections: (
       <Section title="Flight">
-        <StatStrip>
+        <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
           <Stat label="Altitude">
             <Unit value={held("m", 71_240)} />
           </Stat>
@@ -187,7 +187,7 @@ export const StreamHeld: Story = {
           <Stat label="Periapsis">
             <Unit value={pending<"m">()} />
           </Stat>
-        </StatStrip>
+        </Grid>
       </Section>
     ),
   },

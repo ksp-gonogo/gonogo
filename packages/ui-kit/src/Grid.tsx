@@ -7,7 +7,7 @@ import { GAP_VAR, type GapToken } from "./scales";
  *
  * @category Layout
  */
-export type GridAlign = "center" | "start" | "baseline";
+export type GridAlign = "center" | "start" | "baseline" | "stretch";
 
 /**
  * Props for {@link Grid}. Any other `div` attribute passes through.
@@ -17,7 +17,8 @@ export type GridAlign = "center" | "start" | "baseline";
 export interface GridProps extends HTMLAttributes<HTMLDivElement> {
   /**
    * `align-items` shorthand. Defaults to `center`; `baseline` is what a
-   * label/value grid wants, so a caption and a larger value share a baseline.
+   * label/value grid wants, so a caption and a larger value share a baseline;
+   * `stretch` makes every cell in a row as tall as the tallest.
    */
   align?: GridAlign;
   /**
@@ -26,10 +27,17 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    */
   cols?: string;
   /**
-   * Auto-fill responsive columns: `repeat(auto-fill, minmax(minColWidth, 1fr))`.
+   * Responsive columns: `repeat(auto-fill, minmax(min(minColWidth, 100%), 1fr))`.
+   * The `100%` cap stops the floor overflowing a container narrower than it.
    * Ignored when `cols` is set.
    */
   minColWidth?: string;
+  /**
+   * Auto-fit rather than auto-fill the `minColWidth` columns: a row with fewer
+   * cells than columns stretches them across the row instead of leaving empty
+   * tracks beside them. Only meaningful with `minColWidth`.
+   */
+  fit?: boolean;
   /** Gap between cells, as a gap job. Defaults to `related-dense`. */
   gap?: GapToken;
   /**
@@ -44,6 +52,7 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
   center: "center",
   start: "start",
   baseline: "baseline",
+  stretch: "stretch",
 };
 
 /**
@@ -56,6 +65,7 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
 export function Grid({
   cols,
   minColWidth,
+  fit = false,
   gap = "related-dense",
   rowGap,
   align = "center",
@@ -66,6 +76,7 @@ export function Grid({
     <Grid__Root
       $cols={cols}
       $minColWidth={minColWidth}
+      $fit={fit}
       $gap={gap}
       $rowGap={rowGap}
       $align={align}
@@ -79,6 +90,7 @@ export function Grid({
 const Grid__Root = styled.div<{
   $cols?: string;
   $minColWidth?: string;
+  $fit: boolean;
   $gap: GapToken;
   $rowGap?: GapToken;
   $align: GridAlign;
@@ -87,9 +99,10 @@ const Grid__Root = styled.div<{
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
   gap: ${({ $gap, $rowGap }) =>
     $rowGap ? `${GAP_VAR[$rowGap]} ${GAP_VAR[$gap]}` : GAP_VAR[$gap]};
-  grid-template-columns: ${({ $cols, $minColWidth }) => {
+  grid-template-columns: ${({ $cols, $minColWidth, $fit }) => {
     if ($cols) return $cols;
-    if ($minColWidth) return `repeat(auto-fill, minmax(${$minColWidth}, 1fr))`;
+    if ($minColWidth)
+      return `repeat(${$fit ? "auto-fit" : "auto-fill"}, minmax(min(${$minColWidth}, 100%), 1fr))`;
     return "1fr";
   }};
 `;

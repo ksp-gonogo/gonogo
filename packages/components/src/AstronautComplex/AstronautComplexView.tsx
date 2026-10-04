@@ -4,12 +4,12 @@ import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { canBeSacked, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Grid,
   NULL_DISPLAY,
   Panel,
   Section,
   Stat,
   StatContributions,
-  StatStrip,
   speakQuantity,
   Tabs,
   Tooltip,
@@ -183,10 +183,17 @@ export function AstronautComplexComponent(
         compactTitle={["ASTRONAUTS", "CREW"]}
         sections={
           <Section full gap="section-compact">
-            <StatStrip role="status" aria-live="polite">
+            <Grid
+              minColWidth="7rem"
+              fit
+              align="stretch"
+              gap="related-compact"
+              role="status"
+              aria-live="polite"
+            >
               {fundsStat}
               <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
-            </StatStrip>
+            </Grid>
             <div style={EMPTY_STYLE}>
               {complexConfirmedEmpty
                 ? "No applicant data (career mode only)"
@@ -207,7 +214,14 @@ export function AstronautComplexComponent(
       sections={[
         /* Both span: a tab strip beside anything reads as two widgets. */
         <Section key="stats" full>
-          <StatStrip role="status" aria-live="polite">
+          <Grid
+            minColWidth="7rem"
+            fit
+            align="stretch"
+            gap="related-compact"
+            role="status"
+            aria-live="polite"
+          >
             {fundsStat}
             <Stat
               label="Next Hire"
@@ -239,7 +253,7 @@ export function AstronautComplexComponent(
             </Stat>
             {/* Further cells an Uplink contributes, drawn like the three above. */}
             <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
-          </StatStrip>
+          </Grid>
         </Section>,
         <Section key="roster" full>
           <Tabs
