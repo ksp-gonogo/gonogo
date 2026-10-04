@@ -50,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
                 using var fixture = JsonDocument.Parse(File.ReadAllText(FixturePath));
                 var expected = fixture.RootElement.GetProperty("delayRoles");
 
-                foreach (var list in new[] { "trueNow", "heldAtHome", "trueNowPrefixes" })
+                foreach (var list in new[] { "trueNow", "heldAtHome", "trueNowPrefixes", "addressed" })
                 {
                     Assert.Equal(Strings(expected, list), Strings(roles.RootElement, list));
                 }
@@ -63,6 +63,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.DoesNotContain(DelayRolesTestUplink.HeldAtHomeTopic, trueNow);
                 Assert.DoesNotContain(DelayRolesTestUplink.DelayedTopic, trueNow.Concat(heldAtHome));
                 Assert.DoesNotContain(DelayRolesTestUplink.LivePrefix + "alpha", trueNow);
+                Assert.Equal(new[] { DelayRolesTestUplink.AddressedTopic }, Strings(roles.RootElement, "addressed"));
+                Assert.DoesNotContain(DelayRolesTestUplink.AddressedTopic, trueNow.Concat(heldAtHome));
             }
             finally
             {
@@ -110,6 +112,7 @@ namespace Sitrep.Host.IntegrationTests
             public const string SecondTrueNowTopic = "comms.dataRate";
             public const string DelayedTopic = "uplinktest.craftState";
             public const string LivePrefix = "uplinktest.live.";
+            public const string AddressedTopic = "uplinktest.said";
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
@@ -123,6 +126,7 @@ namespace Sitrep.Host.IntegrationTests
                     Declare(LinkTrueNowTopic, DelayRole.TrueNow),
                     Declare(SecondTrueNowTopic, DelayRole.TrueNow),
                     Declare(DelayedTopic, DelayRole.Delayed),
+                    Declare(AddressedTopic, DelayRole.Delayed),
                 },
             };
 
@@ -143,6 +147,7 @@ namespace Sitrep.Host.IntegrationTests
                     host.AddChannelSource(channel.Topic, _ => null);
                 }
                 host.RegisterDynamicNamespace(LivePrefix, Declare(LivePrefix, DelayRole.TrueNow));
+                ((Sitrep.Host.Commcast.IAddressedStreamHost)host).DeclareAddressedTopic(AddressedTopic);
             }
         }
     }

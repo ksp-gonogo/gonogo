@@ -12,6 +12,7 @@
       "system.uplinks"
     ],
     "heldAtHome": ["uplinktest.ledger"],
-    "trueNowPrefixes": ["uplinktest.live."]
+    "trueNowPrefixes": ["uplinktest.live."],
+    "addressed": ["uplinktest.said"]
   }
 }

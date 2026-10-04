@@ -73,6 +73,7 @@ namespace Sitrep.Host.Comms
         {
             var craft = new List<CraftState>();
             var nodes = new List<PlanNode>();
+            var unsettled = new List<string>();
             foreach (var state in heard)
             {
                 var node = state.ToPlanNode();
@@ -82,6 +83,10 @@ namespace Sitrep.Host.Comms
                 }
                 craft.Add(state);
                 nodes.Add(node.RememberedAs(state.Motion));
+                if (!state.Settled)
+                {
+                    unsettled.Add(state.Id);
+                }
             }
             craft.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
             nodes.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
@@ -103,7 +108,7 @@ namespace Sitrep.Host.Comms
             }
 
             return new ContactPlanRequest(
-                nodes, pairs, new KeplerProvider(ground.Bodies), ground.FrameBodyIndex, fromUt, horizonSeconds);
+                nodes, pairs, new KeplerProvider(ground.Bodies), ground.FrameBodyIndex, fromUt, horizonSeconds, unsettled);
         }
 
         private static void AddPair(List<PlanPair> pairs, CraftState from, string toId, int toBodyIndex, PlanGround ground)

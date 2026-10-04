@@ -53,6 +53,42 @@ namespace Sitrep.Core.Tests
             Assert.Equal(new[] { (20.0, (object?)"hello") }, c);
         }
 
+        /// <summary>A sample whose journey the caller already knows arrives when its stamp says, whatever the ledger holds.</summary>
+        [Fact]
+        public void ASampleRecordedUnderItsOwnStampArrivesWhenThatStampSays()
+        {
+            var (clock, _, courier) = Rig();
+            var b = Listen(courier, "b");
+            var c = Listen(courier, "c");
+            var stamp = new DelayStamp(double.PositiveInfinity, new Dictionary<string, double> { ["b"] = 0.0, ["c"] = 7.0 });
+
+            clock.AdvanceTo(100.0);
+            courier.RecordAddressed(Node, Topic, "reckoned", 100.0, stamp, new[] { "b", "c" });
+
+            clock.AdvanceTo(100.0);
+            Assert.Equal(new[] { (100.0, (object?)"reckoned") }, b);
+            clock.AdvanceTo(106.9);
+            Assert.Empty(c);
+            clock.AdvanceTo(107.0);
+            Assert.Equal(new[] { (107.0, (object?)"reckoned") }, c);
+        }
+
+        [Fact]
+        public void ASampleRecordedUnderItsOwnStampNeverReachesAVantageOutsideItsAudience()
+        {
+            var (clock, _, courier) = Rig();
+            var c = Listen(courier, "c");
+            var stamp = new DelayStamp(double.PositiveInfinity, new Dictionary<string, double> { ["b"] = 0.0 });
+
+            courier.RecordAddressed(Node, Topic, "for b", 0.0, stamp, new[] { "b" });
+            clock.AdvanceTo(1000.0);
+            var late = Listen(courier, "c");
+            clock.AdvanceTo(2000.0);
+
+            Assert.Empty(c);
+            Assert.Empty(late);
+        }
+
         [Fact]
         public void AVantageOutsideTheAudienceHearsNothing()
         {

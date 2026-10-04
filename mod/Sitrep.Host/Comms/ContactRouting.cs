@@ -33,34 +33,6 @@ namespace Sitrep.Host.Comms
             return routes;
         }
 
-        /// <summary>
-        /// The rows a session at <paramref name="viewer"/>'s vantage may see: those
-        /// that start or end there. Another centre's routes say where it can reach,
-        /// which this vantage has no way to know. A session aboard the active craft
-        /// sees none, since every row ends at it and all of them are other centres'.
-        /// </summary>
-        public static object? ForViewer(object payload, ViewerContext viewer)
-        {
-            if (!(payload is CommsRoutes routes))
-            {
-                return payload;
-            }
-            var mine = new CommsRoutes();
-            if (routes.Routes.Count > 0 && string.Equals(routes.Routes[0].To, viewer.Vantage, StringComparison.Ordinal))
-            {
-                return mine;
-            }
-            foreach (var route in routes.Routes)
-            {
-                if (string.Equals(route.From, viewer.Vantage, StringComparison.Ordinal)
-                    || string.Equals(route.To, viewer.Vantage, StringComparison.Ordinal))
-                {
-                    mine.Routes.Add(route);
-                }
-            }
-            return mine;
-        }
-
         private static CommsRoute Row(ContactPlan plan, string from, string to, double sentUt)
         {
             var route = ContactRouter.EarliestArrival(plan, from, to, sentUt);

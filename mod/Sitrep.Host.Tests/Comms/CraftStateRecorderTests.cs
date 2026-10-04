@@ -151,6 +151,32 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Empty(first.Links);
         }
 
+        /// <summary>
+        /// A craft whose orbit has changed since it was read is, as far as anyone
+        /// can tell, still burning, and is reckoned on a conic it is leaving.
+        /// </summary>
+        [Fact]
+        public void ACraftReadWhileItsOrbitIsChangingIsUnsettledUntilItIsFoundHoldingStill()
+        {
+            var recorder = new CraftStateRecorder();
+            var first = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null).States);
+            Assert.True(first.Settled);
+
+            var burning = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(800_000.0))), 20.0, null).States);
+            Assert.False(burning.Settled);
+
+            var stillBurning = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(900_000.0))), 30.0, null).States);
+            Assert.False(stillBurning.Settled);
+
+            var cutoff = Look(Craft("a", Orbit(900_000.0)));
+            Assert.Empty(recorder.Capture(cutoff, 35.0, null).States);
+            var settled = Assert.Single(recorder.Capture(cutoff, 40.0, null).States);
+            Assert.True(settled.Settled);
+            Assert.Equal(900_000.0, settled.Orbit!.Value.Sma);
+            Assert.Same(stillBurning.Motion, settled.Motion);
+            Assert.Empty(recorder.Capture(cutoff, 50.0, null).States);
+        }
+
         [Fact]
         public void ACraftThatMovedIsGoingSomewhereNew()
         {

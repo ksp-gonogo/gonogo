@@ -52,6 +52,7 @@ function readFixture() {
       trueNow: stringList(block, "trueNow"),
       heldAtHome: stringList(block, "heldAtHome"),
       trueNowPrefixes: stringList(block, "trueNowPrefixes"),
+      addressed: stringList(block, "addressed"),
     },
   };
 }
@@ -66,6 +67,7 @@ const HELD_AT_HOME = "uplinktest.ledger";
 const LINK_TRUE_NOW = "comms.linkMargin";
 const SECOND_TRUE_NOW = "comms.dataRate";
 const DYNAMIC_TRUE_NOW = "uplinktest.live.alpha";
+const ADDRESSED = "uplinktest.said";
 const DELAYED = "vessel.flight";
 
 function wire(topic: string, payload: unknown, validAt: number): string {
@@ -129,6 +131,27 @@ describe("an Uplink channel's delay role, carried on system.uplinks", () => {
     store.beginFrame();
 
     expect(store.sample(DYNAMIC_TRUE_NOW)?.validAt).toBe(UT_NOW);
+  });
+
+  it("reads an addressed sample when it is delivered, with no light-time taken off", () => {
+    /* The mod sent it to this centre after its own journey, which has nothing
+       to do with how far the active craft is. */
+    const { store, deliver } = connect({ delayRoles: fixture.delayRoles });
+    deliver(ADDRESSED, { pairs: [] }, UT_NOW);
+    store.beginFrame();
+
+    expect(store.sample(ADDRESSED)?.validAt).toBe(UT_NOW);
+  });
+
+  it("reads an addressed topic delayed from a mod whose roster has no addressed list", () => {
+    const { addressed: _, ...older } = fixture.delayRoles;
+    const { store, deliver } = connect({ delayRoles: older });
+    deliver(ADDRESSED, { pairs: [] }, UT_NOW);
+    deliver(HELD_AT_HOME, { programs: [] }, UT_NOW);
+    store.beginFrame();
+
+    expect(store.sample(ADDRESSED)).toBeUndefined();
+    expect(store.sample(HELD_AT_HOME)?.validAt).toBe(UT_NOW);
   });
 
   it("still holds a craft's state back a light-time", () => {

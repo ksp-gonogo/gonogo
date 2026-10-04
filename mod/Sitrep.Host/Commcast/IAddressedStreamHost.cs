@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Core;
 
@@ -32,6 +33,30 @@ namespace Sitrep.Host.Commcast
             double validAtUt,
             string fromCentre,
             IEnumerable<string> audience);
+
+        /// <summary>
+        /// Deliver <paramref name="payload"/>, valid at
+        /// <paramref name="validAtUt"/>, to each centre in
+        /// <paramref name="arrivesAfterSeconds"/> that many seconds later, and to
+        /// no other. For a sample whose journey the caller already knows rather
+        /// than one said across a distance now: a centre's own reckoning arrives
+        /// at that centre after zero. Courier thread only.
+        /// </summary>
+        void PublishAddressedTo(
+            string topic,
+            object payload,
+            double validAtUt,
+            IReadOnlyDictionary<string, double> arrivesAfterSeconds);
+
+        /// <summary>
+        /// Calls <paramref name="subscribed"/> on the Courier thread, with the
+        /// session's vantage, each time a session subscribes to the addressed
+        /// topic <paramref name="topic"/>. A transmission is not state, so a
+        /// listener that arrives after one landed is not sent it; a producer
+        /// whose samples ARE state says the current one again for that vantage
+        /// from here.
+        /// </summary>
+        void OnAddressedSubscribed(string topic, Action<string> subscribed);
 
         /// <summary>
         /// Whether a signal from <paramref name="fromCentre"/> has a routed path to

@@ -2245,8 +2245,18 @@ namespace Sitrep.Contract
         /// <para><b>Major-28 line, Bumped 4 -&gt; 5:</b> <see cref="CommsRoutes"/>, each command
         /// centre's predicted earliest-arrival route to and from the active craft. A new topic,
         /// so an Uplink built against 28.4 is unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 5 -&gt; 6: each command centre's own contact plan.</b>
+        /// <see cref="CommsContacts"/> and <see cref="CommsRoutes"/> are now what the receiving
+        /// centre reckons from the craft states it has heard, sent to that centre alone, where
+        /// both were one plan made from every craft's live orbit and sent to every centre.
+        /// <see cref="CommsContactPair.LowConfidence"/> marks a pair with an end last heard of
+        /// mid-burn. <c>system.uplinks</c>'s <c>delayRoles</c> block gains <c>addressed</c>,
+        /// the topics delivered to each listener after their own journey, which a client reads
+        /// on arrival. All additive on the wire, so an Uplink built against 28.5 is
+        /// unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

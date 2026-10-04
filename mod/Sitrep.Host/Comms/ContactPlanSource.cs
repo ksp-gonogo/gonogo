@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Host.Commcast;
 using Sitrep.Host.Propagation;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Contacts;
@@ -98,20 +99,6 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
-    /// Every centre's contact plan as one sample. Each session is sent its own
-    /// centre's, by <see cref="ContactPlanSource.OwnPlan"/>, and no other.
-    /// </summary>
-    public sealed class CentrePlans
-    {
-        public CentrePlans(IReadOnlyDictionary<string, CommsContacts> byCentre)
-        {
-            ByCentre = byCentre;
-        }
-
-        public IReadOnlyDictionary<string, CommsContacts> ByCentre { get; }
-    }
-
-    /// <summary>
     /// Publishes <c>comms.contacts</c> and <c>comms.route</c>: for each command
     /// centre, the windows over the coming hours when it believes a link will
     /// hold between each ground station and craft it knows of, and its
@@ -124,6 +111,12 @@ namespace Sitrep.Host.Comms
     /// <see cref="ReckonedPlan"/> reckons every craft a centre has heard of
     /// forward from the orbit it last reported. So nothing a craft does moves
     /// a centre's plan until the news has reached that centre.</para>
+    ///
+    /// <para>Each plan and each centre's routes are published to that centre
+    /// alone, zero seconds after they are made: the light-time was spent by
+    /// the craft states on their way in. No other centre is ever sent them,
+    /// and they are on no craft's node, so a centre keeps planning while the
+    /// active craft is out of contact.</para>
     ///
     /// <para>A centre is planned for again when news reaches it, when the
     /// ground stations change, and when half its plan's horizon has passed.
@@ -234,8 +227,7 @@ namespace Sitrep.Host.Comms
         private IUplinkHost? _host;
         private ICraftStateHost? _craftHost;
         private IPlanAudienceHost? _audience;
-        private IChannelPublisher? _publisher;
-        private IChannelPublisher? _routePublisher;
+        private IAddressedStreamHost? _streams;
         private volatile string? _lastFailure;
 
         // Main-thread pacing.
@@ -250,8 +242,9 @@ namespace Sitrep.Host.Comms
         private IReadOnlyList<ContactGameNode> _stations = new ContactGameNode[0];
         private PlanGround? _ground;
         private int _groundVersion;
-        private bool _plansUnpublished;
-        private bool _contactsWereSubscribed;
+        private readonly Dictionary<string, IReadOnlyCollection<string>> _unsettled = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+        private readonly HashSet<string> _unpublished = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<string> _routesAsked = new HashSet<string>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
 
         /// <param name="game">The game the plan is made of.</param>
@@ -283,12 +276,10 @@ namespace Sitrep.Host.Comms
                 Requires = Requirement.None,
                 Topic = ContactsTopic,
                 Delivery = Delivery.LossyLatest,
+                // Addressed: each centre is sent its own plan and no other's.
                 Delay = DelayRole.Delayed,
                 // Never aboard anything, so nothing to replay on reacquisition.
                 Recordable = false,
-                // A centre's plan is what that centre believes, which another
-                // centre has no way to know.
-                ViewerFilter = OwnPlan,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
             },
             new ChannelDeclaration
@@ -296,18 +287,12 @@ namespace Sitrep.Host.Comms
                 Requires = Requirement.None,
                 Topic = RouteTopic,
                 Delivery = Delivery.LossyLatest,
+                // Addressed: each centre is sent its own routes and no other's.
                 Delay = DelayRole.Delayed,
                 Recordable = false,
-                // Each centre's routes say where it can reach, which another
-                // centre has no way to know.
-                ViewerFilter = ContactRouting.ForViewer,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
             },
         };
-
-        /// <summary>The plan of the centre a session is sitting at, or nothing for a centre that has none yet.</summary>
-        public static object? OwnPlan(object payload, ViewerContext viewer) =>
-            payload is CentrePlans plans && plans.ByCentre.TryGetValue(viewer.Vantage, out var own) ? own : null;
 
         /// <summary>The plan <paramref name="centre"/> currently holds, or null. Courier thread only.</summary>
         public ContactPlan? PlanOf(string centre) => _plans.TryGetValue(centre, out var plan) ? plan : null;
@@ -315,15 +300,21 @@ namespace Sitrep.Host.Comms
         public void Register(IUplinkHost host)
         {
             _host = host;
-            _publisher = host.Publisher(ContactsTopic);
-            _routePublisher = host.Publisher(RouteTopic);
             _craftHost = host as ICraftStateHost;
             _audience = host as IPlanAudienceHost;
-            if (_craftHost == null || _audience == null)
+            _streams = host as IAddressedStreamHost;
+            if (_craftHost == null || _audience == null || _streams == null)
             {
-                _warn("this host carries no craft states, so no contact plan can be made");
+                _warn("this host carries no craft states or no addressed streams, so no contact plan can be made");
                 return;
             }
+            _streams.DeclareAddressedTopic(ContactsTopic);
+            _streams.DeclareAddressedTopic(RouteTopic);
+            // A plan is state, and an addressed sample is not kept for whoever
+            // subscribes after it landed, so a session that has just sat down is
+            // told its centre's current plan and routes again.
+            _streams.OnAddressedSubscribed(ContactsTopic, centre => _unpublished.Add(centre));
+            _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
             _hearing = new CentreHearing(_craftHost);
             _craftHost.OnTimelineReset(() =>
             {
@@ -409,6 +400,7 @@ namespace Sitrep.Host.Comms
                 _hearing.Reset();
                 _plans.Clear();
                 _planned.Clear();
+                _unsettled.Clear();
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
                 // A round still running was made of the old timeline; it is
                 // taken and dropped when it finishes, by the FromUt check below.
@@ -430,10 +422,7 @@ namespace Sitrep.Host.Comms
                 TakeFinished(looked.Ut);
             }
             PublishPlans(looked.Ut);
-            if (looked.RoutesDue)
-            {
-                PublishRoutes(looked, planning);
-            }
+            PublishRoutes(looked, planning);
         }
 
         /// <summary>Keeps the ground the next plans are made over, and counts each time the stations or the bodies' sizes change.</summary>
@@ -492,7 +481,8 @@ namespace Sitrep.Host.Comms
                 }
                 _plans[entry.Key] = entry.Value;
                 _planned[entry.Key] = from;
-                _plansUnpublished = true;
+                _unsettled[entry.Key] = from.Request.Unsettled;
+                _unpublished.Add(entry.Key);
             }
         }
 
@@ -505,7 +495,7 @@ namespace Sitrep.Host.Comms
                 {
                     _plans.Remove(centre);
                     _planned.Remove(centre);
-                    _plansUnpublished = true;
+                    _unsettled.Remove(centre);
                 }
             }
         }
@@ -588,47 +578,54 @@ namespace Sitrep.Host.Comms
             _warn("contact plan failed: " + ex);
         }
 
-        /// <summary>Publishes every centre's plan when one has changed, or when the first session to ask for them has just arrived.</summary>
+        /// <summary>Sends each centre whose plan has changed, or where a session has just sat down, its own plan.</summary>
         private void PublishPlans(double ut)
         {
-            var subscribed = _host!.IsAnyTopicSubscribed(ContactsTopic);
-            if (subscribed && !_contactsWereSubscribed)
+            foreach (var centre in _unpublished)
             {
-                _plansUnpublished = true;
+                if (_plans.TryGetValue(centre, out var plan))
+                {
+                    _unsettled.TryGetValue(centre, out var unsettled);
+                    _streams!.PublishAddressedTo(ContactsTopic, ContactPlanWire.ToPayload(plan, unsettled), ut, ToItself(centre));
+                }
             }
-            _contactsWereSubscribed = subscribed;
-            if (!subscribed || !_plansUnpublished)
-            {
-                return;
-            }
-            _plansUnpublished = false;
-            var byCentre = new Dictionary<string, CommsContacts>(StringComparer.Ordinal);
-            foreach (var entry in _plans)
-            {
-                byCentre[entry.Key] = ContactPlanWire.ToPayload(entry.Value);
-            }
-            _publisher?.Publish(new CentrePlans(byCentre), ut);
+            _unpublished.Clear();
         }
 
-        /// <summary>Plans each centre's routes for now from that centre's own plan, and publishes them.</summary>
+        /// <summary>
+        /// Plans each centre's routes for now from that centre's own plan, and
+        /// sends them to it: every planning centre once a second, and at once a
+        /// centre where a session has just sat down.
+        /// </summary>
         private void PublishRoutes(Looked looked, IReadOnlyCollection<string> planning)
         {
             if (looked.ActiveCraft == null || !_host!.IsAnyTopicSubscribed(RouteTopic))
             {
+                _routesAsked.Clear();
                 return;
             }
-            var routes = new CommsRoutes();
+            var rows = 0;
             foreach (var centre in planning)
             {
+                if (!looked.RoutesDue && !_routesAsked.Contains(centre))
+                {
+                    continue;
+                }
                 if (!_plans.TryGetValue(centre, out var plan) || looked.Ut < plan.FromUt)
                 {
                     continue;
                 }
-                routes.Routes.AddRange(ContactRouting.RoutesFor(plan, looked.ActiveCraft, new[] { centre }, looked.Ut).Routes);
+                var routes = ContactRouting.RoutesFor(plan, looked.ActiveCraft, new[] { centre }, looked.Ut);
+                rows += routes.Routes.Count;
+                _streams!.PublishAddressedTo(RouteTopic, routes, looked.Ut, ToItself(centre));
             }
-            RouteRowsBudget.Record(routes.Routes.Count, looked.Ut);
-            _routePublisher?.Publish(routes, looked.Ut);
+            _routesAsked.Clear();
+            RouteRowsBudget.Record(rows, looked.Ut);
         }
+
+        /// <summary>An audience of one centre, reached at once: what a centre reckons is no distance from it.</summary>
+        private static IReadOnlyDictionary<string, double> ToItself(string centre) =>
+            new Dictionary<string, double>(StringComparer.Ordinal) { [centre] = 0.0 };
 
         private static bool Has(IReadOnlyCollection<string> centres, string centre)
         {

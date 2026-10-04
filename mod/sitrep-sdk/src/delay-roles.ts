@@ -39,8 +39,9 @@ import {
  * `"delayed"` is `now - light-time`, the default every channel takes unless it
  * declares otherwise. `"true-now"` subtracts nothing: it is the live estimate,
  * held to the newest sample actually delivered. That is the whole of a TrueNow
- * fact, and it is also the right read for a fact held at the home command, whose
- * light-time the mod has already spent before delivering it.
+ * fact, and it is also the right read for a fact held at the home command and
+ * for an addressed sample, whose light-time the mod has already spent before
+ * delivering either.
  *
  * @category Delay and vantage
  */
@@ -70,9 +71,13 @@ export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
  * The roles a running mod stated for every channel it registered, as carried on
  * `system.uplinks.delayRoles`.
  *
- * Complete for that mod: a static topic in neither set is delayed, and so is a
+ * Complete for that mod: a static topic in no set is delayed, and so is a
  * dynamic topic under no prefix in `trueNowPrefixes`. No prefix list for held at
  * home, because a dynamic namespace cannot be held there.
+ *
+ * `addressed` is the topics whose samples are each sent to a named audience,
+ * such as a command centre's own contact plan: the mod delivers one to each
+ * listener after that sample's own journey, and to nobody else.
  *
  * @category Delay and vantage
  */
@@ -80,12 +85,18 @@ export interface DeclaredDelayRoles {
   readonly trueNow: ReadonlySet<string>;
   readonly heldAtHome: ReadonlySet<string>;
   readonly trueNowPrefixes: readonly string[];
+  readonly addressed: ReadonlySet<string>;
 }
 
+/* No generated list of addressed topics: the scan reads channel declarations,
+   and a topic is made addressed at registration. Until the running mod's
+   roster arrives an addressed topic therefore reads delayed, which is late
+   and never early. */
 const GENERATED_ROLES: DeclaredDelayRoles = {
   trueNow: new Set(GENERATED_TRUENOW_TOPICS),
   heldAtHome: new Set(GENERATED_HELD_AT_HOME_TOPICS),
   trueNowPrefixes: [],
+  addressed: new Set(),
 };
 
 function stringsOf(value: unknown): string[] | undefined {
@@ -100,7 +111,9 @@ function stringsOf(value: unknown): string[] | undefined {
  * contract 16.13 and not a mod declaring every channel delayed. A block missing
  * one of its lists is malformed rather than empty, and reads as absent for the
  * same reason: taking it at its word would move every core TrueNow channel into
- * the delayed lane on the strength of a field nobody sent.
+ * the delayed lane on the strength of a field nobody sent. `addressed` is the
+ * exception: a mod before contract 28.6 has no such list and addressed nothing
+ * a reader waits on, so its absence is an empty list.
  *
  * @category Delay and vantage
  */
@@ -121,6 +134,7 @@ export function readDeclaredDelayRoles(
     trueNow: new Set(trueNow),
     heldAtHome: new Set(heldAtHome),
     trueNowPrefixes,
+    addressed: new Set(stringsOf(raw.addressed) ?? []),
   };
 }
 
@@ -153,7 +167,9 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
  * A held-at-home topic takes the true-now lane. The delayed lane subtracts the
  * ACTIVE craft's light-time, which is not how far the reader is from the ledger:
  * a ground centre is no distance from it, and a crewed vessel is its own path
- * home, which the mod has already waited out before the frame arrived.
+ * home, which the mod has already waited out before the frame arrived. An
+ * addressed topic takes it for the same reason: each sample reached this reader
+ * after its own journey, which has nothing to do with the active craft.
  *
  * Takes the WHOLE topic only. A field subtopic (`time.warp.warpRate`) is not a
  * declared channel and returns `"delayed"` here, so a caller that resolves
@@ -168,7 +184,11 @@ export function delayLaneOf(
   topic: string,
   roles: DeclaredDelayRoles = GENERATED_ROLES,
 ): DelayLane {
-  if (roles.trueNow.has(topic) || roles.heldAtHome.has(topic)) {
+  if (
+    roles.trueNow.has(topic) ||
+    roles.heldAtHome.has(topic) ||
+    roles.addressed.has(topic)
+  ) {
     return "true-now";
   }
   return roles.trueNowPrefixes.some((prefix) => topic.startsWith(prefix))

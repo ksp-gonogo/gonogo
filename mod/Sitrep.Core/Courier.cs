@@ -719,9 +719,29 @@ namespace Sitrep.Core
             object? value,
             double validAtUt,
             string fromNode,
+            IEnumerable<string> audience) =>
+            RecordAddressed(node, topic, value, validAtUt, _network.StampFor(fromNode), audience);
+
+        /// <summary>
+        /// As <see cref="RecordAddressed(string, string, object?, double, string, IEnumerable{string})"/>,
+        /// for a sample whose journey to each listener the caller already knows:
+        /// it arrives at each vantage <paramref name="stamp"/> says, after
+        /// <paramref name="validAtUt"/>, rather than at the ledger's light-time
+        /// from a node.
+        ///
+        /// <para>For something that is not said across a distance at the moment
+        /// it is recorded. A command centre's own reckoning is no distance from
+        /// that centre, and a report that has already crossed the network
+        /// arrives when it landed, however long ago it was true.</para>
+        /// </summary>
+        public void RecordAddressed(
+            string node,
+            string topic,
+            object? value,
+            double validAtUt,
+            DelayStamp stamp,
             IEnumerable<string> audience)
         {
-            var stamp = _network.StampFor(fromNode);
             var addressed = new AddressedSample
             {
                 Sample = new ArchiveSample(value, validAtUt, _epoch, stamp),

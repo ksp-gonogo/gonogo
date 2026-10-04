@@ -272,6 +272,7 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Contains("\"a\":\"ground:ksc\"", json);
             Assert.Contains("\"openUt\":null", json);
             Assert.Contains("\"closeUt\":1.5", json);
+            Assert.Contains("\"lowConfidence\":false", json);
         }
     }
 }

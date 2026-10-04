@@ -2020,10 +2020,12 @@ namespace Sitrep.Host
         private Dictionary<string, object?>? _delayRolesPayload;
         private int _delayRolesDeclarationCount = -1;
         private int _delayRolesNamespaceCount = -1;
+        private int _delayRolesAddressedCount = -1;
 
         /// <summary>
         /// Every registered channel's delay role, as the client reads its lane from:
-        /// <c>{ trueNow, heldAtHome, trueNowPrefixes }</c>, each sorted ordinally.
+        /// <c>{ trueNow, heldAtHome, trueNowPrefixes, addressed }</c>, each sorted
+        /// ordinally.
         ///
         /// <para>Built from what this engine actually routes by rather than from what
         /// a manifest says: <c>heldAtHome</c> is <see cref="_heldAtHomeTopics"/>, so a
@@ -2040,7 +2042,8 @@ namespace Sitrep.Host
         {
             if (_delayRolesPayload != null
                 && _delayRolesDeclarationCount == _channelDeclarations.Count
-                && _delayRolesNamespaceCount == _dynamicNamespaces.Count)
+                && _delayRolesNamespaceCount == _dynamicNamespaces.Count
+                && _delayRolesAddressedCount == _addressedTopics.Count)
             {
                 return _delayRolesPayload;
             }
@@ -2070,18 +2073,25 @@ namespace Sitrep.Host
             }
 
             var heldAtHome = new List<string>(_heldAtHomeTopics);
+            // Delayed, and already delivered to each listener after its own
+            // journey, so a client must not take the active craft's light-time
+            // off them a second time.
+            var addressed = new List<string>(_addressedTopics);
             trueNow.Sort(StringComparer.Ordinal);
             heldAtHome.Sort(StringComparer.Ordinal);
             trueNowPrefixes.Sort(StringComparer.Ordinal);
+            addressed.Sort(StringComparer.Ordinal);
 
             _delayRolesPayload = new Dictionary<string, object?>
             {
                 ["trueNow"] = trueNow,
                 ["heldAtHome"] = heldAtHome,
                 ["trueNowPrefixes"] = trueNowPrefixes,
+                ["addressed"] = addressed,
             };
             _delayRolesDeclarationCount = _channelDeclarations.Count;
             _delayRolesNamespaceCount = _dynamicNamespaces.Count;
+            _delayRolesAddressedCount = _addressedTopics.Count;
             return _delayRolesPayload;
         }
 
@@ -2870,6 +2880,59 @@ namespace Sitrep.Host
                 throw new InvalidOperationException($"PublishAddressed(\"{topic}\"): the topic was never declared addressed.");
             }
             _courier.RecordAddressed(AddressedNode, topic, payload, validAtUt, CentreNodePrefix + fromCentre, audience);
+        }
+
+        public void PublishAddressedTo(
+            string topic,
+            object payload,
+            double validAtUt,
+            IReadOnlyDictionary<string, double> arrivesAfterSeconds)
+        {
+            if (!_addressedTopics.Contains(topic))
+            {
+                throw new InvalidOperationException($"PublishAddressedTo(\"{topic}\"): the topic was never declared addressed.");
+            }
+            // The base is never read: a vantage outside the audience is not
+            // delivered an addressed sample on any path.
+            _courier.RecordAddressed(
+                AddressedNode, topic, payload, validAtUt, new DelayStamp(double.PositiveInfinity, arrivesAfterSeconds), arrivesAfterSeconds.Keys);
+        }
+
+        /*
+         * Who to tell when a session subscribes to an addressed topic. Written
+         * only while Uplinks register, read on the Courier thread.
+         */
+        private readonly Dictionary<string, List<Action<string>>> _addressedSubscribeListeners =
+            new Dictionary<string, List<Action<string>>>(StringComparer.Ordinal);
+
+        public void OnAddressedSubscribed(string topic, Action<string> subscribed)
+        {
+            if (!_addressedSubscribeListeners.TryGetValue(topic, out var listeners))
+            {
+                listeners = new List<Action<string>>();
+                _addressedSubscribeListeners[topic] = listeners;
+            }
+            listeners.Add(subscribed);
+        }
+
+        /// <summary>Courier thread: tells an addressed topic's producer that a session at <paramref name="vantage"/> has just subscribed. A listener that throws is reported and skipped.</summary>
+        private void NotifyAddressedSubscribed(string topic, string vantage)
+        {
+            if (!_addressedSubscribeListeners.TryGetValue(topic, out var listeners))
+            {
+                return;
+            }
+            foreach (var listener in listeners)
+            {
+                try
+                {
+                    listener(vantage);
+                }
+                catch (Exception ex)
+                {
+                    LogHost("an addressed-subscribe listener for \"" + topic + "\" threw: " + ex);
+                }
+            }
         }
 
         public bool HasRoute(string fromCentre, string toCentre)
@@ -8100,6 +8163,7 @@ namespace Sitrep.Host
             // back cleanly without ever notifying a listener for a
             // subscribe that didn't actually complete.
             NotifyDynamicNamespaceSubscribed(topic);
+            NotifyAddressedSubscribed(topic, vantage);
 
             var ack = new EventMsg
             {

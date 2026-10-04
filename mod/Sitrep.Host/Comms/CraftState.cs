@@ -50,8 +50,10 @@ namespace Sitrep.Host.Comms
             double? validUntilUt,
             bool plannable,
             IReadOnlyDictionary<string, CraftLink> links,
-            object? motion)
+            object? motion,
+            bool settled)
         {
+            Settled = settled;
             Motion = motion ?? new object();
             Id = id;
             CapturedUt = capturedUt;
@@ -92,6 +94,13 @@ namespace Sitrep.Host.Comms
         /// <summary>False for a craft whose propagator could not say how far its orbit can be trusted: it is left out of every plan rather than trusted for all of it.</summary>
         public bool Plannable { get; }
 
+        /// <summary>
+        /// False for a craft read while its orbit was still changing: it is
+        /// reckoned on the conic it was on at that instant, which it has since
+        /// left, until a later state finds it holding still.
+        /// </summary>
+        public bool Settled { get; }
+
         /// <summary>The craft's link to each other node that existed when this was read, by that node's id.</summary>
         public IReadOnlyDictionary<string, CraftLink> Links { get; }
 
@@ -111,26 +120,32 @@ namespace Sitrep.Host.Comms
             SecularOrbit? secular,
             double? validUntilUt,
             bool plannable,
-            IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(id, capturedUt, true, bodyIndex, orbit, null, secular, validUntilUt, plannable, links, null);
+            IReadOnlyDictionary<string, CraftLink> links,
+            bool settled = true) =>
+            new CraftState(id, capturedUt, true, bodyIndex, orbit, null, secular, validUntilUt, plannable, links, null, settled);
 
         public static CraftState Landed(
             string id, double capturedUt, int bodyIndex, RotatingGroundStation surface, IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(id, capturedUt, true, bodyIndex, null, surface, null, null, true, links, null);
+            new CraftState(id, capturedUt, true, bodyIndex, null, surface, null, null, true, links, null, true);
 
         /// <summary>The craft is gone: destroyed, recovered, or docked into another.</summary>
         public static CraftState Gone(string id, double capturedUt) =>
-            new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks, null);
+            new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks, null, true);
 
         /// <summary>
         /// This craft still going where it was, read again at
         /// <paramref name="capturedUt"/>: the same orbit or place and the same
         /// <see cref="Motion"/>, with its links and how far its orbit can be
-        /// trusted as they stand now.
+        /// trusted as they stand now. Having been found where it was, it is
+        /// settled.
         /// </summary>
         public CraftState ReadAgain(
             double capturedUt, double? validUntilUt, bool plannable, IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion);
+            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true);
+
+        /// <summary>This state, marked as read while the craft's orbit was still changing.</summary>
+        public CraftState Unsettled() =>
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false);
 
         /// <summary>The craft as a contact plan carries it, or null for one that is gone or cannot be planned.</summary>
         public PlanNode? ToPlanNode()

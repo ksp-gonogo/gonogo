@@ -1511,6 +1511,10 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "lowConfidence");
+            sb.Append(':');
+            AppendBool(sb, p.LowConfidence);
             sb.Append('}');
         }
 

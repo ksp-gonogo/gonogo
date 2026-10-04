@@ -361,7 +361,8 @@
     "CommsContactPair": {
       "a": "id",
       "b": "id",
-      "horizonUt": "ut"
+      "horizonUt": "ut",
+      "lowConfidence": "flag"
     },
     "CommsContactWindow": {
       "closeUt": "ut",

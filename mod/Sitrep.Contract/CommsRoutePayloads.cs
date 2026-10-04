@@ -6,19 +6,20 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The route a message sent now would take between each command centre and the
-/// active craft, in both directions, predicted from the contact plan: the
-/// earliest arrival over every relay, waiting at a node for its next window where
-/// that arrives sooner.
+/// The route a message sent now would take between one command centre and the
+/// active craft, in both directions, predicted from that centre's own contact
+/// plan: the earliest arrival over every relay, waiting at a node for its next
+/// window where that arrives sooner.
 ///
-/// <para>A prediction. The live link the game reports decides what actually gets
-/// through, and today only a <see cref="CommsRoute.Live"/> route delivers: a
-/// message whose route would have to wait anywhere is not held for that window,
-/// so it is lost.</para>
+/// <para>A prediction, and the receiving centre's own: it is planned over the
+/// <c>comms.contacts</c> plan that centre holds, so it knows of nothing the
+/// centre has not heard. The live link the game reports decides what actually
+/// gets through, and today only a <see cref="CommsRoute.Live"/> route delivers:
+/// a message whose route would have to wait anywhere is not held for that
+/// window, so it is lost.</para>
 ///
-/// <para>Each session receives only the rows that start or end at its own
-/// vantage. DELAYED, so a centre learns its routes one of its own light-times
-/// after they were planned.</para>
+/// <para>Each session is sent only the rows of the centre it sits at, the two
+/// between that centre and the active craft.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]

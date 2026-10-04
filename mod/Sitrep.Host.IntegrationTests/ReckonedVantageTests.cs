@@ -41,35 +41,34 @@ namespace Sitrep.Host.IntegrationTests
             await TickBothAsync(burned, control, T0 + 299);
             SameAsControl(burned.Far, control.Far, "the far centre, one second before the burn's light reaches it");
 
-            await TickBothAsync(burned, control, T0 + 301, T0 + 302, T0 + 304);
+            await TickBothAsync(burned, control, T0 + 301, T0 + 302);
             Reckoned.Differs(control.Far.Contacts, burned.Far.Contacts, "the far centre's contact plan, once the burn's light has reached it");
             SameAsControl(burned.Home, control.Home, "the home centre, after the far centre has heard of the burn");
 
             await TickBothAsync(burned, control, T0 + 599);
             SameAsControl(burned.Home, control.Home, "the home centre, one second before the burn's light reaches it");
 
-            await TickBothAsync(burned, control, T0 + 601, T0 + 602, T0 + 604);
+            await TickBothAsync(burned, control, T0 + 601, T0 + 602);
             Reckoned.Differs(control.Home.Contacts, burned.Home.Contacts, "the home centre's contact plan, once the burn's light has reached it");
             Reckoned.Differs(control.Home.Routes, burned.Home.Routes, "the home centre's routes, once the burn's light has reached it");
         }
 
         [Fact]
-        public Task ACentresPlanStillMovesWhenNewsArrivesWhileTheActiveCraftIsDark() =>
-            Reckoned.StillViolatedAsync("publishing each centre's plan to that centre alone, off the active craft's node (Saga 782)", async () =>
-            {
-                await using var burned = await ReckonedVantageWorld.StartAsync();
-                await using var control = await ReckonedVantageWorld.StartAsync();
-                await BothHaveHeardOfTheRelayAsync(burned, control);
+        public async Task ACentresPlanStillMovesWhenNewsArrivesWhileTheActiveCraftIsDark()
+        {
+            await using var burned = await ReckonedVantageWorld.StartAsync();
+            await using var control = await ReckonedVantageWorld.StartAsync();
+            await BothHaveHeardOfTheRelayAsync(burned, control);
 
-                burned.Game.ActiveConnected = false;
-                control.Game.ActiveConnected = false;
-                burned.Game.BurnRelay(T0);
-                await TickBothAsync(burned, control, T0, T0 + 2, T0 + 12, T0 + 599);
-                SameAsControl(burned.Home, control.Home, "the home centre, before the burn's light reaches it, with the active craft dark");
+            burned.Game.ActiveConnected = false;
+            control.Game.ActiveConnected = false;
+            burned.Game.BurnRelay(T0);
+            await TickBothAsync(burned, control, T0, T0 + 2, T0 + 12, T0 + 599);
+            SameAsControl(burned.Home, control.Home, "the home centre, before the burn's light reaches it, with the active craft dark");
 
-                await TickBothAsync(burned, control, T0 + 601, T0 + 602, T0 + 604);
-                Reckoned.Differs(control.Home.Contacts, burned.Home.Contacts, "the home centre's contact plan, once the burn's light has reached it, with the active craft dark");
-            });
+            await TickBothAsync(burned, control, T0 + 601, T0 + 602);
+            Reckoned.Differs(control.Home.Contacts, burned.Home.Contacts, "the home centre's contact plan, once the burn's light has reached it, with the active craft dark");
+        }
 
         [Fact]
         public async Task ADestroyedCraftStaysInACentresPlanUntilItsSilenceCouldHaveArrived()
@@ -86,7 +85,7 @@ namespace Sitrep.Host.IntegrationTests
             await TickBothAsync(world, control, T0 + 599);
             SameAsControl(world.Home, control.Home, "the home centre, one second before the craft's silence could reach it");
 
-            await TickBothAsync(world, control, T0 + 601, T0 + 602, T0 + 604);
+            await TickBothAsync(world, control, T0 + 601, T0 + 602);
             Reckoned.True(!world.Home.PlansPair(Home, Relay), "the home centre's plan still carries a craft whose silence has reached it");
         }
 
@@ -121,7 +120,7 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         private static async Task BothHaveHeardOfTheRelayAsync(ReckonedVantageWorld world, ReckonedVantageWorld control)
         {
-            await TickBothAsync(world, control, 1, 2, 700, 702, 704);
+            await TickBothAsync(world, control, 1, 2, 700, 702);
             Assert.True(world.Home.PlansPair(Home, Relay), "the home centre should have the relay in its plan by now");
             Assert.NotNull(world.Home.Routes);
             Assert.Equal(control.Home.Contacts, world.Home.Contacts);
@@ -132,7 +131,7 @@ namespace Sitrep.Host.IntegrationTests
 
         private static async Task HasHeardOfTheRelayAsync(ReckonedVantageWorld world)
         {
-            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0, 704.0 })
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
             {
                 world.Tick(ut);
             }

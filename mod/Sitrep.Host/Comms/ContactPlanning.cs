@@ -17,7 +17,8 @@ namespace Sitrep.Host.Comms
             IPropagationProvider propagator,
             int frameBodyIndex,
             double fromUt,
-            double horizonSeconds)
+            double horizonSeconds,
+            IReadOnlyCollection<string>? unsettled = null)
         {
             Nodes = nodes;
             Pairs = pairs;
@@ -25,6 +26,7 @@ namespace Sitrep.Host.Comms
             FrameBodyIndex = frameBodyIndex;
             FromUt = fromUt;
             HorizonSeconds = horizonSeconds;
+            Unsettled = unsettled ?? new string[0];
         }
 
         public IReadOnlyList<PlanNode> Nodes { get; }
@@ -39,6 +41,9 @@ namespace Sitrep.Host.Comms
 
         public double HorizonSeconds { get; }
 
+        /// <summary>The nodes reckoned on an orbit that was still changing when it was read, by id.</summary>
+        public IReadOnlyCollection<string> Unsettled { get; }
+
         /// <summary>
         /// Whether this would plan the same contacts as <paramref name="other"/>:
         /// the same nodes going the same way, and the same pairs over the same
@@ -48,7 +53,10 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public bool Matches(ContactPlanRequest other)
         {
-            if (Nodes.Count != other.Nodes.Count || Pairs.Count != other.Pairs.Count || FrameBodyIndex != other.FrameBodyIndex)
+            if (Nodes.Count != other.Nodes.Count
+                || Pairs.Count != other.Pairs.Count
+                || FrameBodyIndex != other.FrameBodyIndex
+                || !new HashSet<string>(Unsettled).SetEquals(other.Unsettled))
             {
                 return false;
             }
@@ -305,15 +313,24 @@ namespace Sitrep.Host.Comms
     /// <summary>A contact plan as the <c>comms.contacts</c> channel carries it.</summary>
     public static class ContactPlanWire
     {
-        public static CommsContacts ToPayload(ContactPlan plan)
+        /// <param name="plan">The plan.</param>
+        /// <param name="unsettled">The nodes reckoned on an orbit that was still changing when it was read: every pair with one as an end is marked low confidence.</param>
+        public static CommsContacts ToPayload(ContactPlan plan, IReadOnlyCollection<string>? unsettled = null)
         {
+            var rough = new HashSet<string>(unsettled ?? new string[0], StringComparer.Ordinal);
             var payload = new CommsContacts
             {
                 HorizonUt = plan.HorizonUt,
             };
             foreach (var pair in plan.Pairs)
             {
-                var wire = new CommsContactPair { A = pair.A, B = pair.B, HorizonUt = pair.HorizonUt };
+                var wire = new CommsContactPair
+                {
+                    A = pair.A,
+                    B = pair.B,
+                    HorizonUt = pair.HorizonUt,
+                    LowConfidence = rough.Contains(pair.A) || rough.Contains(pair.B),
+                };
                 foreach (var window in pair.Windows)
                 {
                     wire.Windows.Add(new CommsContactWindow { OpenUt = window.OpenUt, CloseUt = window.CloseUt });

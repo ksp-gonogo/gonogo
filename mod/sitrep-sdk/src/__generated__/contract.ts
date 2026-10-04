@@ -2092,19 +2092,23 @@ export interface CommsCommandCentre
 	bodyIndex?: number | null;
 }
 /**
-* The predicted contact plan: for each pair of nodes that could hold a link (a
-* ground station and a craft, or two craft), the windows over the coming hours
-* when nothing blocks it and it is within reach.
+* One command centre's contact plan: for each pair of nodes that could hold a
+* link (a ground station and a craft, or two craft), the windows over the
+* coming hours when that centre predicts nothing blocks it and it is within
+* reach.
 *
-* A prediction, from the orbits as they stood when the plan was made. The live
-* link the game reports always decides what actually gets through; this says
-* when that link is expected to exist. A pair absent from
+* A prediction, and the receiving centre's own. Every craft is reckoned
+* forward from the last orbit that centre has heard it report, so the plan
+* holds nothing the centre could not know: a distant craft's burn moves the
+* plan one light-time after it happened, and a craft the centre has never
+* heard of is not in it. Two centres can hold different plans at the same
+* moment, and each session is sent only the plan of the centre it sits at.
+*
+* The live link the game reports always decides what actually gets through;
+* this says when that link is expected to exist. A pair absent from
 * `CommsContacts.pairs` was not predicted at all, which is different from a
 * pair listed with no windows: that one is predicted never to be in contact
 * before its `CommsContactPair.horizonUt`.
-*
-* DELAYED, so each command centre receives the plan one of its own light-times
-* after it was made, and so plans from what it could know by then.
 *
 * @category Comms
 */
@@ -2139,6 +2143,12 @@ export interface CommsContactPair
 	* Empty when none is predicted.
 	*/
 	windows: CommsContactWindow[];
+	/**
+	* True while either end was last heard of with its orbit still changing. It is
+	* reckoned on the orbit it reported mid-burn, which it has since left, so
+	* these windows are a rough guide until its next report.
+	*/
+	lowConfidence: boolean;
 }
 /**
 * One predicted stretch of contact.
@@ -2268,19 +2278,20 @@ export interface CommsOcclusion
 	bodies: CommsOcclusionBody[];
 }
 /**
-* The route a message sent now would take between each command centre and the
-* active craft, in both directions, predicted from the contact plan: the
-* earliest arrival over every relay, waiting at a node for its next window
-* where that arrives sooner.
+* The route a message sent now would take between one command centre and the
+* active craft, in both directions, predicted from that centre's own contact
+* plan: the earliest arrival over every relay, waiting at a node for its next
+* window where that arrives sooner.
 *
-* A prediction. The live link the game reports decides what actually gets
+* A prediction, and the receiving centre's own: it is planned over the
+* `comms.contacts` plan that centre holds, so it knows of nothing the centre
+* has not heard. The live link the game reports decides what actually gets
 * through, and today only a `CommsRoute.live` route delivers: a message whose
 * route would have to wait anywhere is not held for that window, so it is
 * lost.
 *
-* Each session receives only the rows that start or end at its own vantage.
-* DELAYED, so a centre learns its routes one of its own light-times after they
-* were planned.
+* Each session is sent only the rows of the centre it sits at, the two between
+* that centre and the active craft.
 *
 * @category Comms
 */

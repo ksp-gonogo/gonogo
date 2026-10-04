@@ -133,6 +133,32 @@ namespace Sitrep.Host.Tests.Comms
             Assert.False(ReckonedPlan.Request(new CraftState[0], Ground(Ksc), 100.0, 3600.0).Matches(before));
         }
 
+        [Fact]
+        public void APairWithAnUnsettledEndIsMarkedLowConfidenceOnTheWire()
+        {
+            var steady = Craft("a", 0.0, 1_300_000.0, Links(("ground:ksc", null), ("vessel:b", null)));
+            var burning = Craft("b", 0.0, 1_400_000.0, Links(("ground:ksc", null), ("vessel:a", null))).Unsettled();
+
+            var request = ReckonedPlan.Request(new[] { steady, burning }, Ground(Ksc), 0.0, 3600.0);
+            var wire = ContactPlanWire.ToPayload(request.Run(), request.Unsettled);
+
+            Assert.Equal(new[] { "vessel:b" }, request.Unsettled);
+            Assert.False(wire.Pairs.Single(p => p.A == "vessel:a" && p.B == "ground:ksc").LowConfidence);
+            Assert.True(wire.Pairs.Single(p => p.A == "vessel:b" && p.B == "ground:ksc").LowConfidence);
+            Assert.True(wire.Pairs.Single(p => p.A == "vessel:a" && p.B == "vessel:b").LowConfidence);
+        }
+
+        [Fact]
+        public void ACraftSettlingIsADifferentRequest()
+        {
+            var burning = Craft("a", 0.0, 1_300_000.0, Links(("ground:ksc", null))).Unsettled();
+            var settled = burning.ReadAgain(20.0, null, true, burning.Links);
+
+            var before = ReckonedPlan.Request(new[] { burning }, Ground(Ksc), 100.0, 3600.0);
+
+            Assert.False(ReckonedPlan.Request(new[] { settled }, Ground(Ksc), 100.0, 3600.0).Matches(before));
+        }
+
         private sealed class FixedMargin : IContactLinkModel
         {
             public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions) => 1.0;

@@ -22,9 +22,11 @@ namespace Sitrep.Host.Comms
     ///
     /// <para>A burn moves an orbit every tick, so a craft whose orbit is
     /// moving is read at most once per
-    /// <see cref="ContactPlanSchedule.MinDriftReplanSeconds"/>. A craft read
-    /// again without having moved keeps the orbit it was first read on, so an
-    /// n-body propagator's wobble never reaches a plan.</para>
+    /// <see cref="ContactPlanSchedule.MinDriftReplanSeconds"/>, and each such
+    /// state says it is not settled. Once the orbit has held still for that
+    /// long the craft is read again, settled. A craft read again without
+    /// having moved keeps the orbit it was first read on, so an n-body
+    /// propagator's wobble never reaches a plan.</para>
     /// </summary>
     public sealed class CraftStateRecorder
     {
@@ -128,13 +130,24 @@ namespace Sitrep.Host.Comms
         /// <summary>The craft's state read now, when its last one is out of date, or null while that one still stands.</summary>
         private CraftState? Due(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel)
         {
-            if (!_read.TryGetValue(node.Id, out var last) || ut < last.State.CapturedUt || Moved(last, node, ut))
+            if (!_read.TryGetValue(node.Id, out var last) || ut < last.State.CapturedUt)
             {
-                var fresh = StateOf(node, look, ut, kernel);
-                _read[node.Id] = new Read(node, fresh);
-                return fresh;
+                var first = StateOf(node, look, ut, kernel);
+                _read[node.Id] = new Read(node, first);
+                return first;
             }
-            if (ut < last.State.CapturedUt + LinkRefreshSeconds)
+            if (Moved(last, node, ut))
+            {
+                // An orbit that has changed since it was last read is, as far as
+                // anyone can tell, still changing.
+                var moving = node.Orbit.HasValue && last.Node.Orbit.HasValue
+                    ? StateOf(node, look, ut, kernel).Unsettled()
+                    : StateOf(node, look, ut, kernel);
+                _read[node.Id] = new Read(node, moving);
+                return moving;
+            }
+            var settling = !last.State.Settled && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds;
+            if (!settling && ut < last.State.CapturedUt + LinkRefreshSeconds)
             {
                 return null;
             }

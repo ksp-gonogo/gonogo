@@ -142,7 +142,10 @@ export interface SystemUplinksTopicPayloadMap {
      * Every registered channel's delay role, core and Uplink alike, each list
      * sorted. `trueNow` and `heldAtHome` name static topics; `trueNowPrefixes`
      * names the dynamic namespaces declared TrueNow, whose materialized topics
-     * are not listed on their own. A topic covered by none of them is delayed.
+     * are not listed on their own. `addressed` names the topics whose samples
+     * are each sent to a named audience and reach each listener after their own
+     * journey, so they arrive already delayed; it is absent on a mod build
+     * predating contract 28.6. A topic covered by none of them is delayed.
      * The client reads every lane from this, see `readDeclaredDelayRoles`.
      * Absent on a mod build predating contract 16.13.
      */
@@ -150,6 +153,7 @@ export interface SystemUplinksTopicPayloadMap {
       trueNow: string[];
       heldAtHome: string[];
       trueNowPrefixes: string[];
+      addressed?: string[];
     };
   };
 }

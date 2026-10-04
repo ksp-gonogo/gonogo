@@ -340,7 +340,41 @@ namespace Sitrep.Host.IntegrationTests
 
         public string? Routes => _latest.TryGetValue(ContactPlanSource.RouteTopic, out var payload) ? payload : null;
 
-        public void Received(string topic, string payload) => _latest[topic] = payload;
+        /// <summary>How many contact plans this centre has been sent.</summary>
+        public int ContactsFrames { get; private set; }
+
+        /// <summary>When the last contact plan this centre was sent was made, and when it arrived.</summary>
+        public (double ValidAt, double DeliveredAt, string Vantage)? ContactsMeta { get; private set; }
+
+        public void Received(string topic, string payload, double validAt, double deliveredAt, string vantage)
+        {
+            _latest[topic] = payload;
+            if (topic == ContactPlanSource.ContactsTopic)
+            {
+                ContactsFrames++;
+                ContactsMeta = (validAt, deliveredAt, vantage);
+            }
+        }
+
+        /// <summary>Whether the contact plan this centre holds marks the pair as low confidence, or null when it has no such pair.</summary>
+        public bool? LowConfidence(string a, string b)
+        {
+            if (Contacts == null)
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(Contacts);
+            foreach (var pair in doc.RootElement.GetProperty("pairs").EnumerateArray())
+            {
+                var pa = pair.GetProperty("a").GetString();
+                var pb = pair.GetProperty("b").GetString();
+                if ((pa == a && pb == b) || (pa == b && pb == a))
+                {
+                    return pair.GetProperty("lowConfidence").GetBoolean();
+                }
+            }
+            return null;
+        }
 
         /// <summary>Whether the contact plan this centre holds has a pair between the two nodes.</summary>
         public bool PlansPair(string a, string b) => PairWindows(a, b) != null;
@@ -467,10 +501,25 @@ namespace Sitrep.Host.IntegrationTests
                 if (root.TryGetProperty("type", out var type) && type.GetString() == "stream-data"
                     && root.TryGetProperty("payload", out var payload))
                 {
-                    view.Received(root.GetProperty("topic").GetString()!, payload.GetRawText());
+                    var meta = root.GetProperty("meta");
+                    view.Received(
+                        root.GetProperty("topic").GetString()!,
+                        payload.GetRawText(),
+                        meta.GetProperty("validAt").GetDouble(),
+                        meta.GetProperty("deliveredAt").GetDouble(),
+                        meta.GetProperty("vantage").GetString()!);
                 }
             }
         }
+
+        /// <summary>A further session sitting down at <paramref name="centre"/> now, and what its screen comes to hold.</summary>
+        public async Task<(TestClient Client, CentreView View)> SitDownAtAsync(string centre)
+        {
+            return (await ConnectAtAsync(centre), new CentreView());
+        }
+
+        /// <summary>Waits for <paramref name="client"/>'s socket to go quiet and takes in everything that arrived.</summary>
+        public static Task SettleAsync(TestClient client, CentreView view) => DrainAsync(client, view);
 
         private async Task<TestClient> ConnectAtAsync(string centre)
         {

@@ -56,27 +56,5 @@ namespace Sitrep.Host.Tests.Comms
                 Assert.False(r.Live);
             });
         }
-
-        [Fact]
-        public void ASessionSeesOnlyTheRoutesThatStartOrEndAtItsVantage()
-        {
-            var routes = ContactRouting.RoutesFor(Plan, "vessel:probe", new[] { "ground:ksc", "ground:forward" }, 10.0);
-
-            var seen = (CommsRoutes)ContactRouting.ForViewer(routes, new ViewerContext("ground:forward", "s1"))!;
-
-            Assert.Equal(2, seen.Routes.Count);
-            Assert.All(seen.Routes, r => Assert.True(r.From == "ground:forward" || r.To == "ground:forward"));
-            Assert.Equal(4, routes.Routes.Count);
-        }
-
-        [Fact]
-        public void ASessionAboardTheActiveCraftSeesNoCentresRoutes()
-        {
-            var routes = ContactRouting.RoutesFor(Plan, "vessel:probe", new[] { "ground:ksc", "ground:forward" }, 10.0);
-
-            var seen = (CommsRoutes)ContactRouting.ForViewer(routes, new ViewerContext("vessel:probe", "s1"))!;
-
-            Assert.Empty(seen.Routes);
-        }
     }
 }
