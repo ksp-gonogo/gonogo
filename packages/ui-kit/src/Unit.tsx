@@ -119,6 +119,10 @@ function toInterval<UnitSymbol extends string>(
   if (!standsApart(shown, [band.lo, band.hi], writtenAs(write))) return null;
   const below = width(band.lo, band.value);
   const above = width(band.value, band.hi);
+  // Half-widths that both write as zero, from ends that straddle a rounding boundary, claim nothing to read.
+  const writesZero = (text: string): boolean =>
+    /^[-+\u2212]?[0.,\s]*$/.test(text);
+  if (!oneFigure && writesZero(below) && writesZero(above)) return null;
   const anchored = write(band.value) === write(shown);
   // The spoken ends carry the unit's word; the written ends carry no symbol because one `<UnitSymbol>` follows the pair.
   const spoken = { ...opts, format: rung };
