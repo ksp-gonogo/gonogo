@@ -149,7 +149,10 @@ namespace Sitrep.Host.Comms
         private readonly bool _planInline;
         private readonly ContactPlanSchedule _schedule = new ContactPlanSchedule();
         private readonly ContactPlanRunner _runner = new ContactPlanRunner();
+        private readonly CraftStateRecorder _craft = new CraftStateRecorder();
         private IUplinkHost? _host;
+        private ICraftStateHost? _craftHost;
+        private float _craftLookedAt = float.NegativeInfinity;
         private IChannelPublisher? _publisher;
         private IChannelPublisher? _routePublisher;
         private volatile ContactPlan? _plan;
@@ -213,9 +216,44 @@ namespace Sitrep.Host.Comms
             _host = host;
             _publisher = host.Publisher(ContactsTopic);
             _routePublisher = host.Publisher(RouteTopic);
+            _craftHost = host as ICraftStateHost;
+            _craftHost?.OnTimelineReset(_craft.ReadAllAgain);
+            // Ungated: a centre can only plan from what it has heard, so a craft's
+            // state has to be on record before anyone asks for a plan of it.
+            host.AddSampledSource(CaptureCraftOnMain, RecordCraftOnCourier);
             // The plan runs for either topic, since routes are read off it.
             host.AddSampledSource(CaptureOnMain, PublishOnCourier, ContactsTopic, RouteTopic);
             host.AddSampledSource(CaptureRouteInputsOnMain, PublishRoutesOnCourier, RouteTopic);
+        }
+
+        /// <summary>MAIN THREAD: reads the state of every craft whose last one is out of date.</summary>
+        internal object? CaptureCraftOnMain(KspSnapshot? snapshot)
+        {
+            if (snapshot == null || _host == null || _craftHost == null)
+            {
+                return null;
+            }
+            var wall = _wallSeconds();
+            if (wall - _craftLookedAt < LookIntervalSeconds)
+            {
+                return null;
+            }
+            var look = _game.Look();
+            if (look == null)
+            {
+                return null;
+            }
+            _craftLookedAt = wall;
+            return _craft.Capture(look, snapshot.Ut, _host.Kernel);
+        }
+
+        /// <summary>COURIER THREAD: records each craft state read this tick on its craft's own node.</summary>
+        internal void RecordCraftOnCourier(object? captured)
+        {
+            if (captured is CraftStateRecorder.Batch batch && _craftHost != null)
+            {
+                CraftStateRecorder.Record(batch, _craftHost);
+            }
         }
 
         /// <summary>MAIN THREAD: who the routes are between and when, at most once a second.</summary>

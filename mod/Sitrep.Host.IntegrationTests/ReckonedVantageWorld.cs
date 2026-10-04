@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -213,8 +214,11 @@ namespace Sitrep.Host.IntegrationTests
         private readonly ScriptedContactGame _game;
         private readonly ChannelEngine _engine;
         private readonly ContactPlanSource _source;
+        private readonly ConcurrentDictionary<(string Centre, string VesselId), CraftState> _heard =
+            new ConcurrentDictionary<(string, string), CraftState>();
         private float _wall;
         private int _handled;
+        private bool _listening;
 
         public ScriptedContactUplink(ScriptedContactGame game, ChannelEngine engine)
         {
@@ -247,10 +251,18 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>How many times the relay's command has run aboard it.</summary>
         public int HandledCount => Volatile.Read(ref _handled);
 
+        /// <summary>The newest state of a craft that has reached <paramref name="centre"/>, or null when it has heard nothing of it.</summary>
+        public CraftState? Heard(string centre, string vesselId) =>
+            _heard.TryGetValue((centre, vesselId), out var state) ? state : null;
+
         public UplinkHealth Health() => _source.Health();
 
         public void Register(IUplinkHost host)
         {
+            // Before the plan's own sources, as the delay Uplinks are registered
+            // before the contact plan's in the game: what is recorded on a tick
+            // is sent under that tick's light-times.
+            host.AddSampledSource(_ => new Ledger(_game), captured => Apply((Ledger)captured!));
             _source.Register(host);
             host.AddChannelSource(RelayStateTopic, _ => null);
             host.AddCommandHandler<string, string>(RelayCommand, args =>
@@ -260,12 +272,22 @@ namespace Sitrep.Host.IntegrationTests
             });
             host.SetSignalDelaySource(_ => new CommsDelay { OneWaySeconds = _game.ActiveSeconds, Source = CommsDelaySource.SignalDelay });
             host.SetConnectivitySource(_ => _game.ActiveConnected);
-            host.AddSampledSource(_ => new Ledger(_game), captured => Apply((Ledger)captured!));
         }
 
         /// <summary>COURIER THREAD: the game's light-times and links, as its delay Uplinks would write them.</summary>
         private void Apply(Ledger ledger)
         {
+            if (!_listening)
+            {
+                _listening = true;
+                foreach (var centre in new[] { ScriptedContactGame.Home, ScriptedContactGame.Far })
+                {
+                    foreach (var vesselId in new[] { ScriptedContactGame.ActiveGuid, ScriptedContactGame.RelayGuid })
+                    {
+                        _engine.HearCraftState(vesselId, centre, state => _heard[(centre, vesselId)] = state);
+                    }
+                }
+            }
             _engine.SetVesselDelay(ScriptedContactGame.ActiveGuid, ledger.ActiveSeconds);
             _engine.SetVesselConnectivity(ScriptedContactGame.ActiveGuid, ledger.ActiveConnected);
             _engine.SetActiveVesselDelays(new Dictionary<string, double> { [ScriptedContactGame.Far] = ledger.ActiveSeconds });

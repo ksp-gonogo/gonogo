@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
+    public sealed partial class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -1087,7 +1087,7 @@ namespace Sitrep.Host
         // them onto that craft's own fleet.<guid> node. Written during
         // Register() (before Start()), same single-writer-before-start
         // discipline as _dynamicNamespaces above, then only read.
-        private readonly List<string> _perVesselNamespacePrefixes = new List<string>();
+        private readonly List<string> _perVesselNamespacePrefixes = new List<string> { CraftStatePrefix };
 
         // Static topics that declared ChannelDeclaration.HeldAtHome: NodeFor routes
         // them onto HomeCommandNode. Written during RegisterUplink (before Start()),
@@ -4644,7 +4644,8 @@ namespace Sitrep.Host
         /// </summary>
         public object? ReadTopicAtVantage(string topic, string vantage, double nowUt)
         {
-            if (string.IsNullOrEmpty(topic) || string.IsNullOrEmpty(vantage))
+            if (string.IsNullOrEmpty(topic) || string.IsNullOrEmpty(vantage)
+                || topic.StartsWith(CraftStatePrefix, StringComparison.Ordinal))
             {
                 return null;
             }
@@ -7088,6 +7089,7 @@ namespace Sitrep.Host
                 _pendingDispatcher.Clear();
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
+                NotifyTimelineResetListeners();
             }
 
             if (tick.Snapshot != null)
@@ -7929,6 +7931,14 @@ namespace Sitrep.Host
             // publish to this exact sub-topic still succeeds, instead of
             // being permanently rejected for a topic that simply hasn't
             // emitted yet.
+            // A craft state is the planner's input and no client's, whatever an
+            // Uplink has declared over the same prefix.
+            if (topic.StartsWith(CraftStatePrefix, StringComparison.Ordinal))
+            {
+                PublishUnknownTopicError(session, topic);
+                return;
+            }
+
             if (!_channelDeclarations.ContainsKey(topic))
             {
                 var dynamicPrefix = FindDynamicNamespaceForTopic(topic);

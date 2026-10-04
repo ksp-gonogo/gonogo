@@ -1,0 +1,217 @@
+using System.Collections.Generic;
+using System.Linq;
+using Sitrep.Contract;
+using Sitrep.Host.Comms;
+using Sitrep.Propagation;
+using Sitrep.Propagation.Visibility;
+using Xunit;
+
+namespace Sitrep.Host.Tests.Comms
+{
+    public class CraftStateRecorderTests
+    {
+        private const double KerbinMu = 3.5316e12;
+        private const double KerbinRadius = 600_000.0;
+        private const int Kerbin = 1;
+
+        private static OrbitElements Orbit(double sma, double ecc = 0.0, double inc = 0.0) =>
+            new OrbitElements(sma, ecc, inc, 0.0, 0.0, 0.0, 0.0, KerbinMu);
+
+        private static RotatingGroundStation Surface(double longitudeDeg) =>
+            RotatingGroundStation.FromLatitudeLongitude(0.0, longitudeDeg, 0.0, 21_549.425, KerbinRadius, 0.0);
+
+        private static ContactGameNode Craft(string guid, OrbitElements orbit) =>
+            ContactGameNode.OrbitingCraft("vessel:" + guid, Kerbin, orbit);
+
+        private static ContactGameLook Look(params ContactGameNode[] nodes) =>
+            new ContactGameLook(nodes, new SystemBody[0], Kerbin, (_, __) => 0.0);
+
+        private static readonly ContactGameNode Ksc = ContactGameNode.GroundStation("ground:ksc", Kerbin, Surface(0.0));
+
+        [Fact]
+        public void ACraftIsReadTheFirstTimeItIsSeen()
+        {
+            var recorder = new CraftStateRecorder();
+
+            var batch = recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Ksc), 5.0, null);
+
+            var state = Assert.Single(batch.States);
+            Assert.Equal("vessel:a", state.Id);
+            Assert.Equal(5.0, state.CapturedUt);
+            Assert.True(state.Exists);
+            Assert.True(state.Plannable);
+            Assert.Equal(700_000.0, state.Orbit!.Value.Sma);
+            Assert.Equal(new[] { "a" }, batch.Present);
+            Assert.Empty(batch.Gone);
+        }
+
+        [Fact]
+        public void AStateCarriesTheCraftsLinkToEveryOtherNodeAndNoneToItself()
+        {
+            var recorder = new CraftStateRecorder();
+
+            var batch = recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0)), Ksc), 0.0, null);
+
+            var a = batch.States.Single(s => s.Id == "vessel:a");
+            Assert.Equal(new[] { "ground:ksc", "vessel:b" }, a.Links.Keys.OrderBy(k => k));
+        }
+
+        [Fact]
+        public void AStationIsNeverRead()
+        {
+            var recorder = new CraftStateRecorder();
+
+            var batch = recorder.Capture(Look(Ksc), 0.0, null);
+
+            Assert.Empty(batch.States);
+            Assert.Empty(batch.Present);
+        }
+
+        [Fact]
+        public void ACraftThatHasNotMovedIsNotReadAgain()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null);
+
+            var batch = recorder.Capture(Look(Craft("a", Orbit(700_010.0, 1e-6, 1e-5))), 600.0, null);
+
+            Assert.Empty(batch.States);
+            Assert.Equal(new[] { "a" }, batch.Present);
+        }
+
+        [Fact]
+        public void ABurnIsReadOnceTheDriftIntervalHasPassed()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null);
+            var burned = Look(Craft("a", Orbit(900_000.0)));
+
+            Assert.Empty(recorder.Capture(burned, ContactPlanSchedule.MinDriftReplanSeconds / 2.0, null).States);
+            Assert.Single(recorder.Capture(burned, ContactPlanSchedule.MinDriftReplanSeconds, null).States);
+            Assert.Empty(recorder.Capture(burned, ContactPlanSchedule.MinDriftReplanSeconds + 1.0, null).States);
+        }
+
+        [Fact]
+        public void ACraftThatLandsIsReadAtOnce()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null);
+
+            var batch = recorder.Capture(Look(ContactGameNode.LandedCraft("vessel:a", Kerbin, Surface(10.0))), 1.0, null);
+
+            Assert.NotNull(Assert.Single(batch.States).Surface);
+        }
+
+        [Fact]
+        public void ALandedCraftIsReadAgainOnlyOnceItHasMovedPastTheTolerance()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(Look(ContactGameNode.LandedCraft("vessel:a", Kerbin, Surface(10.0))), 0.0, null);
+
+            Assert.Empty(recorder.Capture(Look(ContactGameNode.LandedCraft("vessel:a", Kerbin, Surface(10.01))), 1.0, null).States);
+            Assert.Single(recorder.Capture(Look(ContactGameNode.LandedCraft("vessel:a", Kerbin, Surface(11.0))), 2.0, null).States);
+        }
+
+        /// <summary>Every craft's links are to a different set of nodes once one arrives or leaves.</summary>
+        [Fact]
+        public void ANodeArrivingOrLeavingHasEveryCraftReadAgain()
+        {
+            var recorder = new CraftStateRecorder();
+            var a = Craft("a", Orbit(700_000.0));
+            recorder.Capture(Look(a), 0.0, null);
+
+            var arrived = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0))), 1.0, null);
+            Assert.Equal(new[] { "vessel:a", "vessel:b" }, arrived.States.Select(s => s.Id).OrderBy(id => id));
+
+            var station = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0)), Ksc), 2.0, null);
+            Assert.Equal(2, station.States.Count);
+
+            var left = recorder.Capture(Look(a, Ksc), 3.0, null);
+            Assert.Equal("vessel:a", Assert.Single(left.States).Id);
+            Assert.Equal(new[] { "b" }, left.Gone);
+        }
+
+        [Fact]
+        public void ACraftIsReadAgainOnceHalfAPlansHorizonHasPassed()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Look(Craft("a", Orbit(700_000.0)));
+            recorder.Capture(look, 0.0, null);
+
+            Assert.Empty(recorder.Capture(look, (ContactPlanSchedule.HorizonSeconds / 2.0) - 1.0, null).States);
+            Assert.Single(recorder.Capture(look, ContactPlanSchedule.HorizonSeconds / 2.0, null).States);
+        }
+
+        [Fact]
+        public void EveryCraftIsReadAgainAfterATimelineReset()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0)));
+            recorder.Capture(look, 100.0, null);
+
+            recorder.ReadAllAgain();
+
+            Assert.Equal(2, recorder.Capture(look, 101.0, null).States.Count);
+            Assert.Empty(recorder.Capture(look, 102.0, null).States);
+        }
+
+        [Fact]
+        public void ACraftReadAfterTheClockWentBackIsReadAgain()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Look(Craft("a", Orbit(700_000.0)));
+            recorder.Capture(look, 100.0, null);
+
+            Assert.Single(recorder.Capture(look, 50.0, null).States);
+        }
+
+        [Fact]
+        public void RecordingTellsTheHostOfTheGoneThenThePresentThenTheStates()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0))), 0.0, null);
+            var batch = recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 1.0, null);
+            var host = new RecordingHost();
+
+            CraftStateRecorder.Record(batch, host);
+
+            Assert.Equal(new[] { "gone b@1", "present a", "present a", "state a@1" }, host.Calls);
+        }
+
+        [Fact]
+        public void AGoneStatePlansNothingAndAnOrbitingOnePlansItsOrbit()
+        {
+            Assert.Null(CraftState.Gone("vessel:a", 0.0).ToPlanNode());
+
+            var recorder = new CraftStateRecorder();
+            var state = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null).States);
+            var node = state.ToPlanNode();
+
+            Assert.NotNull(node);
+            Assert.Equal("vessel:a", node!.Id);
+            Assert.Equal(700_000.0, node.Orbit!.Value.Osculating!.Value.Sma);
+        }
+
+        private sealed class RecordingHost : ICraftStateHost
+        {
+            public List<string> Calls { get; } = new List<string>();
+
+            public void RecordCraftState(string vesselId, CraftState state, double ut)
+            {
+                // The engine notes a craft present as it records its state.
+                NoteCraftPresent(vesselId);
+                Calls.Add("state " + vesselId + "@" + ut);
+            }
+
+            public void NoteCraftPresent(string vesselId) => Calls.Add("present " + vesselId);
+
+            public void RecordCraftGone(string vesselId, double ut) => Calls.Add("gone " + vesselId + "@" + ut);
+
+            public System.Action HearCraftState(string vesselId, string centre, System.Action<CraftState> heard) => () => { };
+
+            public void OnTimelineReset(System.Action reset)
+            {
+            }
+        }
+    }
+}

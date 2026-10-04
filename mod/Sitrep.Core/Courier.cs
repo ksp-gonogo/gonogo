@@ -602,14 +602,17 @@ namespace Sitrep.Core
             double validAtUt,
             Delivery delivery = Delivery.LossyLatest,
             bool isKeyframe = false,
-            double? gapSinceUt = null)
+            double? gapSinceUt = null,
+            DelayStamp? sentUnder = null)
         {
             // The delay ledger as it stands right now, pinned to this sample and
             // to every delivery scheduled from it. This is the only instant at
             // which the route the sample rides is knowable: read later, from a
             // catch-up or an in-flight reschedule, the ledger answers for a
-            // route the sample never took.
-            var stamp = _network.StampFor(node);
+            // route the sample never took. A caller that knows the route better
+            // than the ledger does now (a craft that has just gone, whose rows
+            // went with it) hands over the stamp it was last measured under.
+            var stamp = sentUnder ?? _network.StampFor(node);
 
             ArchiveFor(node).Record(topic, value, validAtUt, _epoch, stamp);
             NoteGapOpeningSample(node, topic, validAtUt, gapSinceUt);

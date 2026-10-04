@@ -214,7 +214,8 @@ namespace Sitrep.Host.Comms
             return true;
         }
 
-        private static bool Moved(OrbitElements was, OrbitElements now) =>
+        /// <summary>Whether <paramref name="now"/> is a different orbit from <paramref name="was"/>, past the tolerances above.</summary>
+        public static bool Moved(OrbitElements was, OrbitElements now) =>
             Math.Abs(now.Sma - was.Sma) > SmaTolerance * Math.Abs(was.Sma)
             || Math.Abs(now.Ecc - was.Ecc) > EccTolerance
             || AngleApart(now.Inc, was.Inc) > AngleTolerance
