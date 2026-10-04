@@ -170,7 +170,7 @@ namespace Sitrep.Host.Comms
             }
             foreach (var vesselId in batch.Present)
             {
-                host.NoteCraftPresent(vesselId);
+                host.NoteCraftPresent(vesselId, batch.Ut);
             }
             foreach (var state in batch.States)
             {

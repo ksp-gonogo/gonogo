@@ -498,7 +498,8 @@ namespace Sitrep.Core
             // always a single hop with no geometry or handles.
             if (_delays.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var pair))
             {
-                return SingleHop(pair * _scale);
+                // "Never" stays never whatever the scale: zero times it is not a number.
+                return SingleHop(double.IsPositiveInfinity(pair) ? pair : pair * _scale);
             }
             if (_nodeJourneys.TryGetValue(node, out var journey))
             {
@@ -561,7 +562,7 @@ namespace Sitrep.Core
                     continue;
                 }
                 byVantage ??= new Dictionary<string, double>();
-                byVantage[byNode.Key] = pinned * _scale;
+                byVantage[byNode.Key] = double.IsPositiveInfinity(pinned) ? pinned : pinned * _scale;
             }
 
             var stamp = new DelayStamp(baseDelay * _scale, byVantage);

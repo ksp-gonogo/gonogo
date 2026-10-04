@@ -18,10 +18,12 @@ namespace Sitrep.Host.Comms
         void RecordCraftState(string vesselId, CraftState state, double ut);
 
         /// <summary>
-        /// Notes that the craft still exists and is still measured, so that
-        /// its light-times are on file for the day it is not.
+        /// Notes that the craft still exists and is still measured at
+        /// <paramref name="ut"/>, so that its light-times are on file for the day
+        /// it is not. A centre that has gained a route to the craft since the
+        /// last note is sent the craft's last state again, from now.
         /// </summary>
-        void NoteCraftPresent(string vesselId);
+        void NoteCraftPresent(string vesselId, double ut);
 
         /// <summary>
         /// Records that the craft is gone as of <paramref name="ut"/>. It

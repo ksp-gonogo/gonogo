@@ -2823,6 +2823,37 @@ namespace Sitrep.Host
             {
                 next[row.Key] = new HashSet<string>(row.Value, StringComparer.Ordinal);
             }
+
+            /*
+             * A centre with no route to a node is delivered nothing from it. With
+             * no row of its own the pair fell through to the node's default, which
+             * is the home centre's light-time, so a centre that could not hear a
+             * craft at all was sent its telemetry on home's clock. The row says
+             * "never" instead, and every sample recorded while it stands is
+             * stamped that way for that centre.
+             *
+             * A pair that leaves the set gets its row back from whichever pass
+             * measures it, in this same handle; the row is cleared here only if
+             * nothing has replaced it.
+             */
+            foreach (var row in _unroutable)
+            {
+                next.TryGetValue(row.Key, out var still);
+                foreach (var node in row.Value)
+                {
+                    if ((still == null || !still.Contains(node)) && double.IsPositiveInfinity(_network.DelayTo(row.Key, node)))
+                    {
+                        _network.ClearDelay(row.Key, node);
+                    }
+                }
+            }
+            foreach (var row in next)
+            {
+                foreach (var node in row.Value)
+                {
+                    _network.SetDelay(row.Key, node, double.PositiveInfinity);
+                }
+            }
             _unroutable = next;
         }
 

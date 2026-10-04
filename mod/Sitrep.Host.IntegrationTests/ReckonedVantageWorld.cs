@@ -154,6 +154,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the relay has a link home.</summary>
         public bool RelayConnected { get; set; } = true;
 
+        /// <summary>Whether the far centre has a route to the relay. Without one it is listed as unable to reach it.</summary>
+        public bool FarRoutedToRelay { get; set; } = true;
+
         public bool RelayExists
         {
             get
@@ -335,9 +338,18 @@ namespace Sitrep.Host.IntegrationTests
             {
                 _engine.SetVesselDelay(ScriptedContactGame.RelayGuid, ledger.RelayFromHomeSeconds);
                 _engine.SetVesselConnectivity(ScriptedContactGame.RelayGuid, ledger.RelayConnected);
-                rows.Add((ScriptedContactGame.Far, ScriptedContactGame.RelayGuid, ledger.RelayFromFarSeconds));
+                if (ledger.FarRoutedToRelay)
+                {
+                    rows.Add((ScriptedContactGame.Far, ScriptedContactGame.RelayGuid, ledger.RelayFromFarSeconds));
+                }
             }
             _engine.SetAuthorityDelays(rows);
+            var unroutable = new Dictionary<string, IReadOnlyCollection<string>>();
+            if (ledger.RelayExists && !ledger.FarRoutedToRelay)
+            {
+                unroutable[ScriptedContactGame.Far] = new[] { ChannelEngine.FleetNodePrefix + ScriptedContactGame.RelayGuid };
+            }
+            _engine.SetUnroutable(unroutable);
 
             // The live links, for whether light that was sent lands and for a
             // relay's own link: the relay to each centre while it has one.
@@ -360,7 +372,10 @@ namespace Sitrep.Host.IntegrationTests
                 RelayConnected = game.RelayConnected;
                 RelayFromHomeSeconds = game.RelayFromHomeSeconds;
                 RelayFromFarSeconds = game.RelayFromFarSeconds;
+                FarRoutedToRelay = game.FarRoutedToRelay;
             }
+
+            public bool FarRoutedToRelay { get; }
 
             public double ActiveSeconds { get; }
 

@@ -37,13 +37,17 @@ namespace Sitrep.Host
         /// </summary>
         internal static string CraftStateTopic(string vesselId) => CraftStatePrefix + vesselId + ".craft";
 
+        /// <summary>The last state recorded of each present craft, to say again to a centre that has just gained a route to it.</summary>
+        private readonly Dictionary<string, CraftState> _craftStateSaid = new Dictionary<string, CraftState>(StringComparer.Ordinal);
+
         public void RecordCraftState(string vesselId, CraftState state, double ut)
         {
-            NoteCraftPresent(vesselId);
+            _craftStateSaid[vesselId] = state;
+            NoteCraftPresent(vesselId, ut);
             Emit(CraftStateTopic(vesselId), state, ut);
         }
 
-        public void NoteCraftPresent(string vesselId)
+        public void NoteCraftPresent(string vesselId, double ut)
         {
             var node = FleetNodePrefix + vesselId;
             if (!SubjectConnected(node))
@@ -51,11 +55,46 @@ namespace Sitrep.Host
                 _craftStateStamps.Remove(vesselId);
                 return;
             }
-            _craftStateStamps[vesselId] = _network.StampFor(node);
+            var stamp = _network.StampFor(node);
+            var gained = _craftStateStamps.TryGetValue(vesselId, out var before) && GainedARoute(before, stamp);
+            _craftStateStamps[vesselId] = stamp;
+            /*
+             * A state recorded while a centre had no route to the craft was
+             * stamped as never arriving there. Now that it can hear the craft, it
+             * hears where the craft is, one light-time from now, as it would hear
+             * anything else the craft is sending.
+             */
+            if (gained && _craftStateSaid.TryGetValue(vesselId, out var said))
+            {
+                Emit(CraftStateTopic(vesselId), said, ut);
+            }
+        }
+
+        /// <summary>Whether some centre that could not be reached under <paramref name="before"/> can be under <paramref name="now"/>.</summary>
+        private static bool GainedARoute(DelayStamp before, DelayStamp now)
+        {
+            if (ReferenceEquals(before, now))
+            {
+                return false;
+            }
+            var was = before.ByVantage();
+            if (was == null)
+            {
+                return false;
+            }
+            foreach (var row in was)
+            {
+                if (double.IsPositiveInfinity(row.Value) && !double.IsPositiveInfinity(now.For(row.Key)))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void RecordCraftGone(string vesselId, double ut)
         {
+            _craftStateSaid.Remove(vesselId);
             if (!_craftStateStamps.TryGetValue(vesselId, out var stamp))
             {
                 return;
@@ -112,6 +151,7 @@ namespace Sitrep.Host
         private void NotifyTimelineResetListeners()
         {
             _craftStateStamps.Clear();
+            _craftStateSaid.Clear();
             foreach (var listener in _timelineResetListeners)
             {
                 try

@@ -513,6 +513,10 @@ namespace Sitrep.Core
             foreach (var subscriber in new List<Subscriber>(subs))
             {
                 var fireUt = dumpedAtUt + dumpStamp.For(subscriber.Vantage);
+                if (double.IsPositiveInfinity(fireUt))
+                {
+                    continue;
+                }
                 _clock.Schedule(fireUt, () =>
                 {
                     // The whole dump left the node at dumpedAtUt, so one break
@@ -655,6 +659,12 @@ namespace Sitrep.Core
                 // sample's journey, not a question to re-ask the ledger when it
                 // lands (see Deliver()).
                 var delay = stamp.For(subscriber.Vantage);
+                if (double.IsPositiveInfinity(delay))
+                {
+                    // No route from this node to that vantage when the sample
+                    // left, so it never arrives there.
+                    continue;
+                }
                 // Capture this delivery's own fire-UT now: under a single large
                 // AdvanceTo() jump, several deliveries can drain in the same
                 // batch, and each must read/report its own arrival time rather
@@ -918,7 +928,7 @@ namespace Sitrep.Core
             {
                 var sampleDelay = DelayOf(sample, vantage, liveDelay);
                 var fireUt = sample.ValidAt + sampleDelay;
-                if (fireUt <= now)
+                if (fireUt <= now || double.IsPositiveInfinity(fireUt))
                 {
                     continue;
                 }

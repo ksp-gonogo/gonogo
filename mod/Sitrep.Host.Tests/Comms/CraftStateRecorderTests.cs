@@ -250,11 +250,11 @@ namespace Sitrep.Host.Tests.Comms
             public void RecordCraftState(string vesselId, CraftState state, double ut)
             {
                 // The engine notes a craft present as it records its state.
-                NoteCraftPresent(vesselId);
+                NoteCraftPresent(vesselId, ut);
                 Calls.Add("state " + vesselId + "@" + ut);
             }
 
-            public void NoteCraftPresent(string vesselId) => Calls.Add("present " + vesselId);
+            public void NoteCraftPresent(string vesselId, double ut) => Calls.Add("present " + vesselId);
 
             public void RecordCraftGone(string vesselId, double ut) => Calls.Add("gone " + vesselId + "@" + ut);
 
