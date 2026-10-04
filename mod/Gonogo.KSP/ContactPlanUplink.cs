@@ -149,14 +149,14 @@ namespace Gonogo.KSP
                     var point = _surface.CalibratedSurfacePoint(vessel.mainBody, comm);
                     if (point != null)
                     {
-                        nodes.Add(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm, vessel.vesselName));
+                        nodes.Add(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm, GameWords.VesselName(vessel)));
                     }
                     continue;
                 }
                 var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
                 if (orbit != null)
                 {
-                    nodes.Add(ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm, vessel.vesselName));
+                    nodes.Add(ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm, GameWords.VesselName(vessel)));
                 }
             }
 

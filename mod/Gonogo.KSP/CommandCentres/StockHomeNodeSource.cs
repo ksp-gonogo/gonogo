@@ -60,7 +60,7 @@ namespace Gonogo.KSP.CommandCentres
                 var home = homes[i];
                 yield return new KspCommandCentre(
                     ids[i],
-                    home.displaynodeName ?? home.nodeName ?? ids[i],
+                    DisplayNameOf(home, ids[i]),
                     CommandCentreKind.GroundStation,
                     BodyIndexOf(bodies[i]),
                     comm,
@@ -69,6 +69,19 @@ namespace Gonogo.KSP.CommandCentres
                     latitude: facts[i].Latitude,
                     longitude: facts[i].Longitude);
             }
+        }
+
+        /// <summary>
+        /// A station's name as the player reads it in game. Stock stores the
+        /// space centre's as a localisation tag (<c>#autoLOC_6002159</c>) and
+        /// resolves it wherever it draws it, so the stored text is put through
+        /// the game's own table here. A tag the table does not hold, and a home
+        /// with no display name at all, fall back to the node's own name.
+        /// </summary>
+        private static string DisplayNameOf(CommNetHome home, string id)
+        {
+            var plain = string.IsNullOrEmpty(home.nodeName) ? id : home.nodeName;
+            return string.IsNullOrEmpty(home.displaynodeName) ? plain : GameWords.Name(home.displaynodeName, plain);
         }
 
         /// <summary>
