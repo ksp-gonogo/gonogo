@@ -101,8 +101,9 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const gaugeH = Math.round(gaugeW * 0.55);
 
-  const { ref: sparkRef, size: sparkSize } = useElementSize({ w: 120, h: 24 });
+  const { ref: sparkRef, size: sparkSize } = useElementSize({ w: 120, h: 40 });
   const sparkWidth = Math.max(40, sparkSize.w);
+  const sparkHeight = Math.max(16, sparkSize.h);
 
   if (twr === undefined) {
     return (
@@ -123,6 +124,21 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     <Panel
       panelTitle="TWR"
       fitToSize
+      panelSidebar={
+        showSparkline ? (
+          <FramedDisplay style={SPARK_FRAME_STYLE}>
+            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
+              <Sparkline
+                values={sparkValues}
+                width={sparkWidth}
+                height={sparkHeight}
+                color={toneColor}
+                ariaLabel="TWR trend"
+              />
+            </div>
+          </FramedDisplay>
+        ) : undefined
+      }
       sections={[
         showSubtitle && (
           <Section key="caption" full>
@@ -149,19 +165,6 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
             </div>
           </FramedDisplay>
         </Section>,
-        showSparkline && (
-          <Section key="trend" full>
-            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
-              <Sparkline
-                values={sparkValues}
-                width={sparkWidth}
-                height={24}
-                color={toneColor}
-                ariaLabel="TWR trend"
-              />
-            </div>
-          </Section>
-        ),
       ]}
     />
   );
@@ -180,12 +183,15 @@ const GAUGE_SLOT_STYLE = {
   justifyContent: "center",
 } as const;
 
-// The margin tops the 12px section gap up to the 20px the Gauge's bottom-edge value label needs, so it is off the spacing ladder.
+/** The frame fills the sidebar, and the plot fills the frame to its inner edges with no inset. */
+const SPARK_FRAME_STYLE = { flex: "1 1 auto", height: "100%" } as const;
+
 const SPARK_SLOT_STYLE = {
+  flex: "1 1 auto",
   width: "100%",
-  height: "24px",
-  flex: "0 0 auto",
-  marginTop: "8px",
+  height: "100%",
+  minWidth: 0,
+  minHeight: 0,
 } as const;
 
 registerComponent<TwrConfig>({

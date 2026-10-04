@@ -146,7 +146,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/MapView/MapPoiLayer.styles.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 19,
-    "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
     "packages/ui/src/FileInput.tsx": 1,
