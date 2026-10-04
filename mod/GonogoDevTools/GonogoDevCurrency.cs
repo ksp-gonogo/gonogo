@@ -1860,8 +1860,7 @@ namespace Gonogo.DevTools
                         mode = false;
                         return "blackout (forcing DISCONNECTED)";
                     case "restore":
-                        mode = true;
-                        return "restore (forcing CONNECTED)";
+                        return "restore (no override; the real backend is in force)";
                     case "auto":
                     case null:
                     case "":

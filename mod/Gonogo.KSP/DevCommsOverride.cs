@@ -8,8 +8,8 @@ namespace Gonogo.KSP
     /// DEV-ONLY signal-blackout override for <see cref="CommsCoreUplink"/>'s
     /// connectivity capture / reveal-gate source. Lets the GonogoDevTools
     /// mini-mod (Deck-only, never shipped - see its own project comments)
-    /// force the active vessel's comms connectivity to CONNECTED or
-    /// DISCONNECTED regardless of what the elected <see cref="ICommsBackend"/>
+    /// force the active vessel's comms connectivity to DISCONNECTED
+    /// regardless of what the elected <see cref="ICommsBackend"/>
     /// (stock CommNet or RealAntennas) actually reports, so a headless test
     /// run can reproduce signal-loss bugs (e.g. an uplink command like
     /// <c>kos.keystroke</c> that should be gated/dropped during a blackout)
@@ -57,8 +57,8 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// <c>null</c> = no override, use the real elected backend's
-        /// connectivity. <c>false</c> = forced DISCONNECTED (blackout).
-        /// <c>true</c> = forced CONNECTED (restore).
+        /// connectivity. <c>false</c> = forced DISCONNECTED (blackout). Never
+        /// <c>true</c>: see <see cref="ModeOf"/>.
         /// </summary>
         internal static bool? Current
         {
@@ -128,23 +128,10 @@ namespace Gonogo.KSP
                     var root = ConfigNode.Load(RequestPath);
                     var node = root?.GetNode("FORCECOMMS");
                     var mode = node?.GetValue("mode")?.Trim().ToLowerInvariant();
-                    switch (mode)
+                    resolved = ModeOf(mode, out var recognised);
+                    if (!recognised)
                     {
-                        case "blackout":
-                            resolved = false;
-                            break;
-                        case "restore":
-                            resolved = true;
-                            break;
-                        case "auto":
-                        case null:
-                        case "":
-                            resolved = null;
-                            break;
-                        default:
-                            Debug.LogWarning(LogPrefix + "unrecognized mode '" + mode + "' in " + RequestPath + "; treating as 'auto'");
-                            resolved = null;
-                            break;
+                        Debug.LogWarning(LogPrefix + "unrecognized mode '" + mode + "' in " + RequestPath + "; treating as 'auto'");
                     }
                 }
             }
@@ -162,17 +149,39 @@ namespace Gonogo.KSP
             _cachedMode = resolved;
         }
 
-        private static string DescribeMode(bool? mode)
+        /// <summary>
+        /// The override a request's <c>mode</c> asks for: <c>false</c> for
+        /// <c>blackout</c>, and none for everything else.
+        ///
+        /// <para><c>restore</c> ends a blackout by handing the link back to the
+        /// real backend, the same as <c>auto</c>. It used to force CONNECTED,
+        /// and a request file left at <c>restore</c> then kept the reveal gate
+        /// open over a craft that had really lost its path: the path measured
+        /// zero, the gate did not hold the last light-time, and telemetry and
+        /// commands crossed at no delay at all. Nothing honest can be forced
+        /// connected, so no mode does it.</para>
+        /// </summary>
+        /// <param name="mode">The request's mode, trimmed and lower-cased, or null when it states none.</param>
+        /// <param name="recognised">False for a mode this does not know, which reads as <c>auto</c>.</param>
+        internal static bool? ModeOf(string? mode, out bool recognised)
         {
-            if (mode == false)
+            recognised = true;
+            switch (mode)
             {
-                return "BLACKOUT (forced disconnected)";
+                case "blackout":
+                    return false;
+                case "restore":
+                case "auto":
+                case null:
+                case "":
+                    return null;
+                default:
+                    recognised = false;
+                    return null;
             }
-            if (mode == true)
-            {
-                return "RESTORE (forced connected)";
-            }
-            return "AUTO (real backend)";
         }
+
+        private static string DescribeMode(bool? mode) =>
+            mode == false ? "BLACKOUT (forced disconnected)" : "AUTO (real backend)";
     }
 }

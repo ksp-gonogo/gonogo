@@ -36,8 +36,8 @@ namespace Gonogo.DevTools
     /// }
     /// </code>
     /// <c>blackout</c> forces the active vessel's comms connectivity to
-    /// DISCONNECTED; <c>restore</c> forces it to CONNECTED; <c>auto</c>
-    /// clears the override and returns to the real elected comms backend
+    /// DISCONNECTED; <c>restore</c> and <c>auto</c> both
+    /// clear the override and return to the real elected comms backend
     /// (stock CommNet or whichever backend an Uplink installed). With no request file (the
     /// production-safe default), nothing here does anything at all, and
     /// <c>DevCommsOverride</c> resolves to "no override" the same way.
