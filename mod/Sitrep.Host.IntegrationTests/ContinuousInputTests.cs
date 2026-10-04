@@ -105,13 +105,69 @@ namespace Sitrep.Host.IntegrationTests
 
             var (code, _, accepted) = Throttle(world);
 
+            // The press is told the centre's own plan's light-time, which is its
+            // reckoning of the geometry; the write itself crosses at the real one.
             Assert.Null(code);
-            Assert.Equal(world.Game.RelayFromHomeSeconds, accepted);
+            Assert.InRange(accepted!.Value, 0.9 * world.Game.RelayFromHomeSeconds, 1.1 * world.Game.RelayFromHomeSeconds);
             world.Tick(1600.0 + world.Game.RelayFromHomeSeconds - 1.0);
             Assert.Equal(0, world.Uplink.ThrottledCount);
             world.Tick(1600.0 + world.Game.RelayFromHomeSeconds + 1.0);
             Assert.Equal(1, world.Uplink.ThrottledCount);
         }
+
+        /// <summary>
+        /// The plan says the way is live and the relay's link has just gone,
+        /// which the centre has not heard. The press is accepted exactly as it
+        /// is with the link up, the write is lost on the way, and nothing tells
+        /// the centre so before the reply it predicted fails to come.
+        /// </summary>
+        [Fact]
+        public async Task APressThePlanLetsThroughLooksTheSameWithTheRealLinkUpOrDownAndTheLossIsLearnedNoSoonerThanLight()
+        {
+            await using var linked = await RisingAsync();
+            await using var dark = await RisingAsync();
+            linked.Tick(1600.0);
+            dark.Tick(1600.0);
+            dark.Game.RelayConnected = false;
+            linked.Tick(1601.0);
+            dark.Tick(1601.0);
+
+            var whenLinked = Throttle(linked);
+            var whenDark = Throttle(dark);
+
+            Assert.Null(whenLinked.Code);
+            Assert.Null(whenDark.Code);
+            Assert.NotNull(whenLinked.Accepted);
+            Assert.Equal(whenLinked.Accepted, whenDark.Accepted);
+            Assert.Equal(Shown(linked), Shown(dark));
+            Assert.Single(Pending(dark));
+
+            // Until its light could have crossed and come back, the dark press
+            // reads as the linked one does.
+            var oneWay = whenDark.Accepted!.Value;
+            dark.Tick(1601.0 + oneWay - 1.0);
+            linked.Tick(1601.0 + oneWay - 1.0);
+            Assert.Equal(Shown(linked), Shown(dark));
+            Assert.Single(Pending(dark));
+            dark.Tick(1601.0 + (2.0 * oneWay) - 1.0);
+            Assert.Single(Pending(dark));
+
+            dark.Tick(1601.0 + (2.0 * oneWay) + 1.0);
+            linked.Tick(1601.0 + (2.0 * oneWay) + 1.0);
+            Assert.Empty(Pending(dark));
+            Assert.Equal(0, dark.Uplink.ThrottledCount);
+            Assert.Equal(1, linked.Uplink.ThrottledCount);
+        }
+
+        private static List<PendingUplink> Pending(ReckonedVantageWorld world) =>
+            Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending;
+
+        /// <summary>What the pending list shows the operator for each entry.</summary>
+        private static string Shown(ReckonedVantageWorld world) =>
+            string.Join(
+                ";",
+                Pending(world).Select(e => string.Join(
+                    "|", e.Command, e.Vantage, e.DispatchedAt, e.OneWaySeconds, e.CommandedValue, e.PredictedArrivalUt, e.PredictedReplyUt, e.PredictedHeldAt)));
 
         [Fact]
         public async Task ADiscreteCommandOverTheSameRouteIsHeldAndForwarded()

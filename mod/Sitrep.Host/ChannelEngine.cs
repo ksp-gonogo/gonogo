@@ -7738,7 +7738,11 @@ namespace Sitrep.Host
                 return;
             }
 
-            if (!CanSend(job.Vantage, node))
+            // What a centre is told at the press is what its own plan says, so
+            // the press reads the same whether or not the far link is really up.
+            var plannedSeconds = PlannedLiveSeconds(job, node);
+            var lostOnTheWay = !CanSend(job.Vantage, node);
+            if (lostOnTheWay && plannedSeconds == null)
             {
                 job.Done?.Set();
                 return;
@@ -7759,7 +7763,7 @@ namespace Sitrep.Host
             // CaptureSignalDelay). Used for the pending-uplink prediction here
             // and, via the Courier's own DelayTo fallback below, for the actual
             // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
-            var uplinkDelay = _network.DelayTo(job.Vantage, node);
+            var uplinkDelay = plannedSeconds ?? _network.DelayTo(job.Vantage, node);
 
             var requestId = NextRequestId();
 
@@ -7809,6 +7813,16 @@ namespace Sitrep.Host
                 // them). Same branch and same number, so a client's loss
                 // deadline and the engine's own flight time cannot disagree.
                 job.OnAccepted?.Invoke(uplinkDelay);
+            }
+
+            if (lostOnTheWay)
+            {
+                // Sent on the centre's plan into a link that is not there. It
+                // never arrives and nothing answers, so the centre learns of
+                // the loss when the reply it predicted fails to come, a round
+                // trip after the press and no sooner.
+                job.Done?.Set();
+                return;
             }
 
             // No explicit uplinkDelaySeconds: the Courier falls back to

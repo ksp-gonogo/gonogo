@@ -321,6 +321,35 @@ namespace Sitrep.Host
             return true;
         }
 
+        /// <summary>
+        /// The light-time the sending centre's own plan gives a control-channel
+        /// write that the plan lets through: the way to the craft open all the
+        /// way, nothing waiting. Null for anything else, which is timed as it
+        /// always was.
+        ///
+        /// <para>The accept frame and the pending entry carry this and never the
+        /// live path's figure, because the live path knows whether the far link
+        /// is up. A write the plan lets through is accepted on it whatever the
+        /// link is really doing.</para>
+        /// </summary>
+        private double? PlannedLiveSeconds(DispatchCommandJob job, string node)
+        {
+            var craft = CraftIdFor(node);
+            if (craft == null || CommandedScalar(job) == null || !SenderPlans.Reckons
+                || !_activeCentreIds.Contains(job.Vantage)
+                || string.Equals(job.Vantage, craft, StringComparison.Ordinal))
+            {
+                return null;
+            }
+            var now = _clock.Now();
+            var route = SenderPlans.PlanOf(job.Vantage)?.Route(job.Vantage, craft, now, now + DeliveryNetwork.CommandLifetimeSeconds);
+            if (route == null || route.Count == 0)
+            {
+                return null;
+            }
+            return Math.Max(0.0, route[route.Count - 1].ArriveUt - now);
+        }
+
         /// <summary>The deadline a command's own declared arrive-before field carries, when it has one and the args set it.</summary>
         private double? ArriveBeforeUt(DispatchCommandJob job)
         {
