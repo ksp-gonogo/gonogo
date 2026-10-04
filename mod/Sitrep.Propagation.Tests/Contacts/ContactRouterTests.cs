@@ -57,6 +57,32 @@ namespace Sitrep.Propagation.Tests.Contacts
         }
 
         [Fact]
+        public void AMessageAnyOfSeveralNodesCanTakeGoesToTheOneItReachesFirst()
+        {
+            var plan = Plan(
+                Pair("vessel:b", "ground:near", OneLightSecond, From(1000.0)),
+                Pair("vessel:b", "vessel:relay", OneLightSecond, Always()),
+                Pair("vessel:relay", "ground:far", 3.0 * OneLightSecond, Always()),
+                Pair("vessel:relay", "ground:farther", 5.0 * OneLightSecond, Always()));
+
+            var route = ContactRouter.EarliestArrivalAtAny(plan, "vessel:b", new[] { "ground:near", "ground:far", "ground:farther", "ground:unplanned" }, 0.0)!;
+
+            Assert.Equal("ground:far", route.Destination);
+            Assert.Equal(new[] { "vessel:relay", "ground:far" }, route.Hops.Select(h => h.To).ToArray());
+            Assert.Equal(4.0, route.ArrivalUt, 9);
+            Assert.True(route.Live);
+        }
+
+        [Fact]
+        public void AMessageNoneOfItsDestinationsIsPlannedForHasNoRoute()
+        {
+            var plan = Plan(Pair("vessel:b", "vessel:relay", OneLightSecond, Always()));
+
+            Assert.Null(ContactRouter.EarliestArrivalAtAny(plan, "vessel:b", new[] { "ground:a", "ground:c" }, 0.0));
+            Assert.Null(ContactRouter.EarliestArrivalAtAny(plan, "vessel:b", new string[0], 0.0));
+        }
+
+        [Fact]
         public void AHopIsNotAdmittedWhenItsWindowClosesBeforeTheLightLands()
         {
             var plan = Plan(Pair("ground:a", "vessel:b", OneLightSecond, From(0.0, 10.5), From(500.0)));

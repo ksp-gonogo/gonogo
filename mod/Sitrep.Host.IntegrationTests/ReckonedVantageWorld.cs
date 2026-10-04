@@ -199,7 +199,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             var nodes = new List<ContactGameNode>
             {
-                ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0)),
+                ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), null, "Lander"),
                 ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0)),
                 ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0)),
             };
@@ -207,7 +207,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 if (_relayExists)
                 {
-                    nodes.Insert(0, ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit));
+                    nodes.Insert(0, ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit, null, "Relay"));
                 }
             }
             return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0);
@@ -399,6 +399,12 @@ namespace Sitrep.Host.IntegrationTests
         public string? Contacts => _latest.TryGetValue(ContactPlanSource.ContactsTopic, out var payload) ? payload : null;
 
         public string? Routes => _latest.TryGetValue(ContactPlanSource.RouteTopic, out var payload) ? payload : null;
+
+        public string? Path => Latest(ContactPlanSource.PathTopic);
+
+        public string? Network => Latest(ContactPlanSource.NetworkTopic);
+
+        public string? CommandCentre => Latest(ContactPlanSource.CommandCentreTopic);
 
         /// <summary>The last payload received on <paramref name="topic"/>, or null when none has been.</summary>
         public string? Latest(string topic) => _latest.TryGetValue(topic, out var payload) ? payload : null;
@@ -599,6 +605,9 @@ namespace Sitrep.Host.IntegrationTests
             await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = centre }));
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.ContactsTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.RouteTopic, Timeout)).Name);
+            Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.PathTopic, Timeout)).Name);
+            Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.NetworkTopic, Timeout)).Name);
+            Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.CommandCentreTopic, Timeout)).Name);
             return client;
         }
 

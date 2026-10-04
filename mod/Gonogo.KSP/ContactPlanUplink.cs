@@ -149,14 +149,14 @@ namespace Gonogo.KSP
                     var point = _surface.CalibratedSurfacePoint(vessel.mainBody, comm);
                     if (point != null)
                     {
-                        nodes.Add(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm));
+                        nodes.Add(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm, vessel.vesselName));
                     }
                     continue;
                 }
                 var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
                 if (orbit != null)
                 {
-                    nodes.Add(ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm));
+                    nodes.Add(ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm, vessel.vesselName));
                 }
             }
 
@@ -177,7 +177,7 @@ namespace Gonogo.KSP
                 var point = _surface.CalibratedSurfacePoint(bodies[bodyIndex], home.Node);
                 if (point != null)
                 {
-                    nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, home.Node));
+                    nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, home.Node, home.DisplayName));
                 }
             }
 

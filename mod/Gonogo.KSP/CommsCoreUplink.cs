@@ -15,12 +15,19 @@ namespace Gonogo.KSP
     /// The bundled CORE comms registration (comms-uplink-design.md §2.2, §6):
     /// it OWNS the exclusive <c>"comms"</c> capability (registering
     /// <see cref="CommNetBackend"/> as the always-present vanilla factory),
-    /// declares the four shared always-present channels + <c>comms.network</c>
-    /// + the core <c>comms.delay</c> channel ONCE, and sources them from
+    /// declares the shared always-present link channels and the core
+    /// <c>comms.delay</c> channel ONCE, and sources them from
     /// whichever backend the election picked: resolved at capture time via
     /// <c>host.Kernel.Query&lt;ICommsBackend&gt;("comms")</c>. Neither CommNet
     /// nor RealAntennas declares these channels itself; that is the
     /// shared-namespace-single-declaration rule (§5).
+    ///
+    /// <para><c>comms.path</c>, <c>comms.network</c> and
+    /// <c>comms.commandCentre</c> are not published from here. The elected
+    /// backend's solved path is every hop's state at this instant, so each
+    /// command centre is sent the path its own contact plan has instead
+    /// (<see cref="CentrePath"/>). The solved path is still read here, for the
+    /// light-time the delay ledger is written from.</para>
     ///
     /// <para>The elected backend reads live KSP, so every read happens in the
     /// capture-on-main sampler (<see cref="CaptureOnMain"/>): the same F1 seam
@@ -46,8 +53,6 @@ namespace Gonogo.KSP
         public const string ConnectivityTopic = "comms.connectivity";
         public const string SignalTopic = "comms.signal";
         public const string ControlTopic = "comms.control";
-        public const string PathTopic = "comms.path";
-        public const string NetworkTopic = "comms.network";
         public const string DelayTopic = "comms.delay";
 
         /// <summary>
@@ -74,7 +79,7 @@ namespace Gonogo.KSP
         /// consumer would otherwise write is a different curve per save with
         /// nothing on the wire saying so.</para>
         ///
-        /// <para>DELAYED, unlike its <c>TrueNow</c> siblings, because it is an
+        /// <para>DELAYED, because it is an
         /// observation of the CRAFT's link rather than a fact the command centre
         /// knows independently: a degradation should reach the operator one
         /// light-time after it happened, alongside the telemetry that suffered
@@ -89,7 +94,7 @@ namespace Gonogo.KSP
         /// consistency spec): a Delayed channel the engine special-cases as
         /// freeze-EXEMPT (see <see cref="Sitrep.Host.ChannelEngine.ConnectivityMetaTopic"/>,
         /// which this literal must match, and <see cref="Sitrep.Contract.CommsLink"/>).
-        /// It carries the same link up/down the TrueNow <c>comms.connectivity</c>
+        /// It carries the same link up/down the <c>comms.connectivity</c>
         /// observation channel does, but Delayed + freeze-exempt so the
         /// DISCONNECT EDGE escapes the reveal-gate freeze and reaches the client
         /// (revealed at the last-known light-time horizon), where a plain
@@ -117,17 +122,6 @@ namespace Gonogo.KSP
         /// why the per-vessel topics stay authoritative.</para>
         /// </summary>
         public const string FleetSilenceTopic = "fleet.silence";
-
-        /// <summary>
-        /// The <c>comms.commandCentre</c> topic:
-        /// identifies which command centre the active vessel's <c>ControlPath</c>
-        /// currently terminates at, KSC or a crewed control-source vessel, reusing
-        /// the SAME id/name/kind scheme <c>commandCentre.roster</c> uses. TrueNow
-        /// for the same reason the rest of this family is: it describes the active
-        /// vessel's OWN link (which node its own comms.path already names raw),
-        /// not a fact about some OTHER vessel's state.
-        /// </summary>
-        public const string CommandCentreTopic = "comms.commandCentre";
 
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1), that
@@ -342,13 +336,7 @@ namespace Gonogo.KSP
         /// <summary>The config as the settings author it, before any modifier: what the settings rows say.</summary>
         internal static SignalDelayConfig AuthoredSignalDelayConfig => _signalDelayConfig;
 
-        // Held the same way as _signalDelayConfig above: Plan 3's command-centre
-        // registry (GonogoAddon.cs builds it after uplink discovery, alongside the
-        // stock-home-node + crewed-vessel sources) so comms.commandCentre resolves
-        // the ACTIVE vessel's terminal node against the SAME live centres
-        // commandCentre.roster does, rather than constructing throwaway sources
-        // (and re-paying their FindObjectsOfType/vessel-scan cost) every comms
-        // capture tick.
+        // Held the same way as _signalDelayConfig above: the command-centre registry GonogoAddon builds after uplink discovery, for the readers that have no instance of this uplink in hand.
         private static CommandCentreRegistry? _commandCentreRegistry;
 
         /// <summary>Set the shared command-centre registry (called by GonogoAddon once Plan 3's registry is built).</summary>
@@ -361,13 +349,10 @@ namespace Gonogo.KSP
         private IChannelPublisher? _connectivity;
         private IChannelPublisher? _signal;
         private IChannelPublisher? _control;
-        private IChannelPublisher? _path;
-        private IChannelPublisher? _network;
         private IChannelPublisher? _delay;
         private IChannelPublisher? _link;
         private IChannelPublisher? _occlusion;
         private IChannelPublisher? _degrade;
-        private IChannelPublisher? _commandCentre;
 
         private Kernel? _kernel;
 
@@ -387,22 +372,20 @@ namespace Gonogo.KSP
             Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
-            // Not an observation of a craft at all: the universe's geometry and
-            // the rule the backend applies to it, and which centre this end of
-            // the link is. Nothing a light-time could carry.
+            // Not an observation of a craft at all: the universe's geometry and the rule the backend applies to it. Nothing a light-time could carry.
             Delay = DelayRole.TrueNow,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
         /// <summary>
         /// A comms READOUT: the same capture, published at light speed rather
-        /// than instantly. Used by <c>comms.delay</c> and <c>comms.path</c>,
-        /// which describe the far end of the link rather than this end of it.
+        /// than instantly. Used by <c>comms.delay</c>, which describes the far
+        /// end of the link rather than this end of it.
         ///
-        /// <para>NOT recordable, which is the other half of moving them.
-        /// Both are computed on the ground, by gonogo's own light-time math over
-        /// the elected backend's graph, so neither was ever aboard the craft and
-        /// replaying one on reacquisition would have the craft dump a recording
+        /// <para>NOT recordable, which is the other half of moving it. It is
+        /// computed on the ground, by gonogo's own light-time math over the
+        /// elected backend's graph, so it was never aboard the craft and
+        /// replaying it on reacquisition would have the craft dump a recording
         /// of a number it never held. The gap is stated instead
         /// (<c>Meta.GapSinceUt</c>).</para>
         /// </summary>
@@ -442,18 +425,6 @@ namespace Gonogo.KSP
                 LinkReport(ConnectivityTopic),
                 LinkReport(SignalTopic),
                 LinkReport(ControlTopic),
-                // comms.network: DELAYED, with comms.path, which it is the graph
-                // form of: where the active craft's signal was routed is far-away
-                // state, and each centre sees it one of its own light-times late.
-                Delayed(NetworkTopic),
-                // comms.path: DELAYED. The route a signal took is a fact about
-                // where the craft and every relay in the chain WERE when the
-                // signal left, so it reveals with the telemetry that came down
-                // it rather than ahead of it. Nothing depends on this channel to
-                // decide a delay: the routed light-times are written into the
-                // ledger by the capture pass (ChannelEngine.SetVesselDelay /
-                // SetAuthorityDelays / SetCentreDelay), which never reads a topic.
-                Delayed(PathTopic),
                 // comms.delay: DELAYED, and this is not circular. The reveal
                 // gate and the command scheduler read the LEDGER
                 // (INetwork.DelayTo), written straight from the capture pass;
@@ -463,12 +434,11 @@ namespace Gonogo.KSP
                 // light-time is measured from where the craft was, and an
                 // operator learns it moved one light-time after it did.
                 Delayed(DelayTopic),
-                // comms.occlusion is TrueNow for a stronger reason than its
-                // siblings: it is not an observation of the vessel at all but a
-                // statement about the universe's geometry and the rule the
-                // elected backend applies to it. A delayed model would have a
-                // predictor computing tomorrow's blackout from yesterday's
-                // assumptions.
+                // comms.occlusion is TrueNow: it is not an observation of the
+                // vessel at all but a statement about the universe's geometry and
+                // the rule the elected backend applies to it. A delayed model
+                // would have a predictor computing tomorrow's blackout from
+                // yesterday's assumptions.
                 TrueNow(OcclusionTopic),
                 // comms.link: Delayed (rides the normal light-time horizon) but
                 // the ENGINE special-cases it as freeze-EXEMPT by topic identity
@@ -505,7 +475,6 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                TrueNow(CommandCentreTopic),
             },
         };
 
@@ -550,13 +519,10 @@ namespace Gonogo.KSP
             _connectivity = host.Publisher(ConnectivityTopic);
             _signal = host.Publisher(SignalTopic);
             _control = host.Publisher(ControlTopic);
-            _path = host.Publisher(PathTopic);
-            _network = host.Publisher(NetworkTopic);
             _delay = host.Publisher(DelayTopic);
             _link = host.Publisher(LinkTopic);
             _occlusion = host.Publisher(OcclusionTopic);
             _degrade = host.Publisher(DegradeTopic);
-            _commandCentre = host.Publisher(CommandCentreTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -564,13 +530,10 @@ namespace Gonogo.KSP
                 ConnectivityTopic,
                 SignalTopic,
                 ControlTopic,
-                PathTopic,
-                NetworkTopic,
                 DelayTopic,
                 LinkTopic,
                 OcclusionTopic,
-                DegradeTopic,
-                CommandCentreTopic);
+                DegradeTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -859,34 +822,12 @@ namespace Gonogo.KSP
                     };
                 }
 
-                // comms.commandCentre: which centre the vessel's OWN path
-                // terminated at, KSC vs a crewed control-source vessel.
-                //
-                // Asked of the SEAM, in two halves. The elected backend says
-                // which node its own path ended at, because the path is its;
-                // core matches that node against its own centre registry,
-                // because the registry is core's and an Uplink may not even
-                // reference the type. A `backend is CommNetBackend` downcast
-                // here would leave the channel all-null forever on a
-                // RealAntennas install, indistinguishable from having no
-                // connection at all, dark exactly where RSS/RA's dozen ground
-                // stations make "which one am I talking to" a real question.
-                //
-                // A save with no comms model still lands on all-null, now via a
-                // terminus nothing can report rather than via a downcast that
-                // failed. That remains the right answer: a centre is where a
-                // control PATH terminates, and there are no paths.
-                var commandCentre = CommandCentreResolution.Resolve(
-                    backend.ControlPathTerminus(active), _commandCentreRegistry);
-
                 return new CommsCapture
                 {
                     Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Connectivity = connectivity,
                     Signal = backend.SignalStrength(),
                     Control = backend.ControlState(),
-                    Path = path,
-                    Network = backend.Network(active),
                     Delay = delay,
                     // The backend declares the RULE; the body list it applies to
                     // comes from the snapshot this capture was already handed
@@ -895,7 +836,6 @@ namespace Gonogo.KSP
                     Occlusion = OcclusionFor(backend, snapshot),
                     // The backend declares the RULE and its own rating under it.
                     Degrade = DegradeFor(backend),
-                    CommandCentre = commandCentre,
                 };
             }
             catch (Exception)
@@ -973,13 +913,11 @@ namespace Gonogo.KSP
             _connectivity?.Publish(capture.Connectivity, capture.Ut);
             _signal?.Publish(capture.Signal, capture.Ut);
             _control?.Publish(capture.Control, capture.Ut);
-            _path?.Publish(capture.Path, capture.Ut);
-            _network?.Publish(capture.Network, capture.Ut);
             _delay?.Publish(capture.Delay, capture.Ut);
             _occlusion?.Publish(capture.Occlusion, capture.Ut);
             _degrade?.Publish(capture.Degrade, capture.Ut);
             // comms.link: the client-facing, freeze-exempt-Delayed connectivity
-            // successor. Same Connected the TrueNow comms.connectivity carries,
+            // successor. Same Connected comms.connectivity carries,
             // but on the topic clients read so the disconnect edge survives the
             // reveal-gate freeze. See LinkTopic's doc comment.
             _link?.Publish(new CommsLink
@@ -987,7 +925,6 @@ namespace Gonogo.KSP
                 Connected = capture.Connectivity.Connected,
                 Meta = new PayloadMeta { Source = capture.Delay?.Meta?.Source ?? "game" },
             }, capture.Ut);
-            _commandCentre?.Publish(capture.CommandCentre, capture.Ut);
         }
 
         /// <summary>
@@ -1011,12 +948,9 @@ namespace Gonogo.KSP
             public CommsConnectivity Connectivity = new();
             public CommsSignal Signal = new();
             public CommsControl Control = new();
-            public CommsPath Path = new();
-            public CommsNetwork Network = new();
             public CommsDelay Delay = new();
             public CommsOcclusion Occlusion = new();
             public CommsDegrade Degrade = new();
-            public CommsCommandCentre CommandCentre = new();
         }
     }
 }

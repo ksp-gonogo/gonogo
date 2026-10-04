@@ -100,16 +100,30 @@ namespace Sitrep.Propagation.Contacts
         /// its horizon, or before <paramref name="mustArriveByUt"/>.
         /// </summary>
         public static ContactRoute? EarliestArrival(
-            ContactPlan plan, string source, string destination, double sentUt, double? mustArriveByUt = null)
+            ContactPlan plan, string source, string destination, double sentUt, double? mustArriveByUt = null) =>
+            EarliestArrivalAtAny(plan, source, new[] { destination }, sentUt, mustArriveByUt);
+
+        /// <summary>
+        /// The earliest-arriving route from <paramref name="source"/> to
+        /// whichever of <paramref name="destinations"/> a message sent at
+        /// <paramref name="sentUt"/> reaches first, or null when the plan
+        /// predicts none. For a message any of several nodes can take, as any
+        /// station of a ground network can.
+        /// </summary>
+        public static ContactRoute? EarliestArrivalAtAny(
+            ContactPlan plan, string source, IReadOnlyCollection<string> destinations, double sentUt, double? mustArriveByUt = null)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
-            if (string.Equals(source, destination, StringComparison.Ordinal))
+            if (destinations == null) throw new ArgumentNullException(nameof(destinations));
+            var ends = new HashSet<string>(destinations, StringComparer.Ordinal);
+            if (ends.Contains(source))
             {
-                return new ContactRoute(source, destination, sentUt, new RouteHop[0]);
+                return new ContactRoute(source, source, sentUt, new RouteHop[0]);
             }
 
             var adjacency = Adjacency(plan);
-            if (!adjacency.ContainsKey(source) || !adjacency.ContainsKey(destination))
+            ends.IntersectWith(adjacency.Keys);
+            if (!adjacency.ContainsKey(source) || ends.Count == 0)
             {
                 return null;
             }
@@ -133,9 +147,9 @@ namespace Sitrep.Propagation.Contacts
                 {
                     return null;
                 }
-                if (string.Equals(current, destination, StringComparison.Ordinal))
+                if (ends.Contains(current))
                 {
-                    return Unwind(best, source, destination, sentUt);
+                    return Unwind(best, source, current, sentUt);
                 }
                 settled.Add(current);
 

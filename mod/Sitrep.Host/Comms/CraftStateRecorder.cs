@@ -156,7 +156,7 @@ namespace Sitrep.Host.Comms
             var read = StateOf(node, look, ut, kernel);
             var again = read.Secular != null || last.State.Secular != null
                 ? read
-                : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links);
+                : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links).Named(read.Name);
             _read[node.Id] = new Read(ReferenceEquals(again, read) ? node : last.Node, again);
             return again;
         }
@@ -197,7 +197,10 @@ namespace Sitrep.Host.Comms
                 && ContactPlanSchedule.Moved(was.Orbit!.Value, now.Orbit.Value);
         }
 
-        private static CraftState StateOf(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel)
+        private static CraftState StateOf(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel) =>
+            Unnamed(node, look, ut, kernel).Named(node.DisplayName);
+
+        private static CraftState Unnamed(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel)
         {
             var links = new Dictionary<string, CraftLink>(StringComparer.Ordinal);
             foreach (var other in look.Nodes)

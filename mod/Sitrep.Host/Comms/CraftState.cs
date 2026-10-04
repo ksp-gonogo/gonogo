@@ -51,8 +51,10 @@ namespace Sitrep.Host.Comms
             bool plannable,
             IReadOnlyDictionary<string, CraftLink> links,
             object? motion,
-            bool settled)
+            bool settled,
+            string? name = null)
         {
+            Name = name;
             Settled = settled;
             Motion = motion ?? new object();
             Id = id;
@@ -69,6 +71,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The craft's node id, <c>"vessel:&lt;guid&gt;"</c>.</summary>
         public string Id { get; }
+
+        /// <summary>The craft's name as it stood when this was read, or null when none was read.</summary>
+        public string? Name { get; }
 
         /// <summary>When this was read off the craft.</summary>
         public double CapturedUt { get; }
@@ -141,11 +146,15 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public CraftState ReadAgain(
             double capturedUt, double? validUntilUt, bool plannable, IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true);
+            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true, Name);
 
         /// <summary>This state, marked as read while the craft's orbit was still changing.</summary>
         public CraftState Unsettled() =>
-            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false);
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false, Name);
+
+        /// <summary>This state, carrying the craft's name as it was read with it.</summary>
+        public CraftState Named(string? name) =>
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, name);
 
         /// <summary>The craft as a contact plan carries it, or null for one that is gone or cannot be planned.</summary>
         public PlanNode? ToPlanNode()

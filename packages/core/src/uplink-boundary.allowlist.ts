@@ -768,9 +768,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/CommsDegrade.cs",
       "mod/Sitrep.Contract/CommsBackendViews.cs",
       "mod/Gonogo.KSP/CommNetReach.cs",
-      "mod/Gonogo.KSP/CommandCentres/CommandCentreResolution.cs",
       "mod/Gonogo.KSP.Tests/Comms/CommNetBackendSharedShapeTests.cs",
-      "mod/Gonogo.KSP.Tests/Comms/CommandCentreOffTheSeamTests.cs",
       "mod/Sitrep.Host.Tests/CommsReachSeamTests.cs",
 
       /*

@@ -119,6 +119,8 @@ namespace Sitrep.Host
 
         public void OnTimelineReset(Action reset) => _timelineResetListeners.Add(reset);
 
+        public string? HomeCentre() => _homeCommand.CentreId;
+
         public IReadOnlyCollection<string> PlanningCentres()
         {
             var centres = new HashSet<string>(StringComparer.Ordinal);

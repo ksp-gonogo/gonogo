@@ -16,8 +16,9 @@ namespace Sitrep.Host.Comms
     public sealed class ContactGameNode
     {
         private ContactGameNode(
-            string id, int bodyIndex, OrbitElements? orbit, RotatingGroundStation? surface, bool station, object? radio)
+            string id, int bodyIndex, OrbitElements? orbit, RotatingGroundStation? surface, bool station, object? radio, string? displayName)
         {
+            DisplayName = displayName;
             Id = id;
             BodyIndex = bodyIndex;
             Orbit = orbit;
@@ -44,14 +45,20 @@ namespace Sitrep.Host.Comms
         /// <summary>The node as the comms backend knows it, handed back to the backend's reach and link models and never read here.</summary>
         public object? Radio { get; }
 
-        public static ContactGameNode OrbitingCraft(string id, int bodyIndex, OrbitElements orbit, object? radio = null) =>
-            new ContactGameNode(id, bodyIndex, orbit, null, false, radio);
+        /// <summary>The node's human-facing name: the craft's, or the ground station's as the roster shows it. Null when the game gives none.</summary>
+        public string? DisplayName { get; }
 
-        public static ContactGameNode LandedCraft(string id, int bodyIndex, RotatingGroundStation surface, object? radio = null) =>
-            new ContactGameNode(id, bodyIndex, null, surface, false, radio);
+        public static ContactGameNode OrbitingCraft(
+            string id, int bodyIndex, OrbitElements orbit, object? radio = null, string? displayName = null) =>
+            new ContactGameNode(id, bodyIndex, orbit, null, false, radio, displayName);
 
-        public static ContactGameNode GroundStation(string id, int bodyIndex, RotatingGroundStation surface, object? radio = null) =>
-            new ContactGameNode(id, bodyIndex, null, surface, true, radio);
+        public static ContactGameNode LandedCraft(
+            string id, int bodyIndex, RotatingGroundStation surface, object? radio = null, string? displayName = null) =>
+            new ContactGameNode(id, bodyIndex, null, surface, false, radio, displayName);
+
+        public static ContactGameNode GroundStation(
+            string id, int bodyIndex, RotatingGroundStation surface, object? radio = null, string? displayName = null) =>
+            new ContactGameNode(id, bodyIndex, null, surface, true, radio, displayName);
     }
 
     /// <summary>Everything a contact plan needs of the game, read at one instant on the main thread.</summary>
@@ -96,6 +103,9 @@ namespace Sitrep.Host.Comms
     {
         /// <summary>The centres a plan is kept for: the home centre always, and every centre a session is sitting at.</summary>
         IReadOnlyCollection<string> PlanningCentres();
+
+        /// <summary>The home centre's id, or null while there is none.</summary>
+        string? HomeCentre();
     }
 
     /// <summary>
@@ -118,6 +128,11 @@ namespace Sitrep.Host.Comms
     /// and they are on no craft's node, so a centre keeps planning while the
     /// active craft is out of contact.</para>
     ///
+    /// <para>It publishes <c>comms.path</c>, <c>comms.network</c> and
+    /// <c>comms.commandCentre</c> the same way: the active craft's path as each
+    /// centre's own plan has it (see <see cref="CentrePath"/>), to that centre
+    /// alone.</para>
+    ///
     /// <para>A centre is planned for again when news reaches it, when the
     /// ground stations change, and when half its plan's horizon has passed.
     /// The plans run off both threads, on a stock analytic propagator over a
@@ -129,6 +144,14 @@ namespace Sitrep.Host.Comms
         public const string ContactsTopic = "comms.contacts";
 
         public const string RouteTopic = "comms.route";
+
+        public const string PathTopic = "comms.path";
+
+        public const string NetworkTopic = "comms.network";
+
+        public const string CommandCentreTopic = "comms.commandCentre";
+
+        private static readonly string[] PathTopics = { PathTopic, NetworkTopic, CommandCentreTopic };
 
         /// <summary>
         /// Soft cap on contact plans started per second of game time. A centre is
@@ -160,6 +183,13 @@ namespace Sitrep.Host.Comms
         /// </summary>
         private static readonly PerfBudget RouteRowsBudget = new PerfBudget(
             "ContactPlanUplink route rows", threshold: 400, windowSec: 1.0, unit: "rows");
+
+        /// <summary>
+        /// Soft cap on path frames published per second: a path, and a network
+        /// and a terminus when they change, per command centre, once a second.
+        /// </summary>
+        private static readonly PerfBudget PathFramesBudget = new PerfBudget(
+            "ContactPlanUplink path frames", threshold: 600, windowSec: 1.0, unit: "frames");
 
         /// <summary>What one centre's current plan was made from.</summary>
         private sealed class Planned
@@ -245,6 +275,8 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, IReadOnlyCollection<string>> _unsettled = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
         private readonly HashSet<string> _unpublished = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _routesAsked = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, HashSet<string>> _pathsAsked = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _pathShapes = new Dictionary<string, string>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
         private int _plansVersion;
 
@@ -269,9 +301,27 @@ namespace Sitrep.Host.Comms
                 : UplinkHealth.Degraded("the last contact plan failed: " + failure);
         }
 
-        /// <summary>The two channels, for the manifest of the Uplink that registers this.</summary>
+        /// <summary>
+        /// One of the three path channels. Addressed: each centre is sent the
+        /// path its own plan has and no other's. Never aboard anything, so there
+        /// is nothing to replay on reacquisition.
+        /// </summary>
+        private static ChannelDeclaration PathChannel(string topic) => new ChannelDeclaration
+        {
+            Requires = Requirement.None,
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Delay = DelayRole.Delayed,
+            Recordable = false,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+        };
+
+        /// <summary>The five channels, for the manifest of the Uplink that registers this.</summary>
         public static List<ChannelDeclaration> Channels() => new List<ChannelDeclaration>
         {
+            PathChannel(PathTopic),
+            PathChannel(NetworkTopic),
+            PathChannel(CommandCentreTopic),
             new ChannelDeclaration
             {
                 Requires = Requirement.None,
@@ -318,6 +368,13 @@ namespace Sitrep.Host.Comms
             // told its centre's current plan and routes again.
             _streams.OnAddressedSubscribed(ContactsTopic, centre => _unpublished.Add(centre));
             _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
+            foreach (var topic in PathTopics)
+            {
+                var asked = new HashSet<string>(StringComparer.Ordinal);
+                _pathsAsked[topic] = asked;
+                _streams.DeclareAddressedTopic(topic);
+                _streams.OnAddressedSubscribed(topic, centre => asked.Add(centre));
+            }
             _hearing = new CentreHearing(_craftHost, plans == null ? (Action<string, string>?)null : plans.NoteHeard);
             _craftHost.OnTimelineReset(() =>
             {
@@ -404,6 +461,7 @@ namespace Sitrep.Host.Comms
                 _plans.Clear();
                 _planned.Clear();
                 _unsettled.Clear();
+                _pathShapes.Clear();
                 System.Threading.Interlocked.Increment(ref _plansVersion);
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
                 // A round still running was made of the old timeline; it is
@@ -427,6 +485,7 @@ namespace Sitrep.Host.Comms
             }
             PublishPlans(looked.Ut);
             PublishRoutes(looked, planning);
+            PublishPaths(looked, planning);
         }
 
         /// <summary>Keeps the ground the next plans are made over, and counts each time the stations or the bodies' sizes change.</summary>
@@ -501,6 +560,7 @@ namespace Sitrep.Host.Comms
                     _plans.Remove(centre);
                     _planned.Remove(centre);
                     _unsettled.Remove(centre);
+                    _pathShapes.Remove(centre);
                     System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
             }
@@ -627,6 +687,83 @@ namespace Sitrep.Host.Comms
             }
             _routesAsked.Clear();
             RouteRowsBudget.Record(rows, looked.Ut);
+        }
+
+        /// <summary>
+        /// Sends each planning centre the active craft's path as its own plan has
+        /// it: every centre once a second, and at once a centre where a session
+        /// has just sat down. The hop lengths move with the craft, so the path is
+        /// sent each time; the network and the terminus are sent when the path
+        /// names different nodes, and to a session that has just sat down.
+        ///
+        /// <para>A centre with no plan yet is sent nothing while there is a craft
+        /// to have a path: it has no belief to state, which is not the same as
+        /// believing there is no path.</para>
+        /// </summary>
+        private void PublishPaths(Looked looked, IReadOnlyCollection<string> planning)
+        {
+            var frames = 0;
+            var home = _audience!.HomeCentre();
+            foreach (var centre in planning)
+            {
+                _plans.TryGetValue(centre, out var plan);
+                if (plan != null && looked.Ut < plan.FromUt)
+                {
+                    plan = null;
+                }
+                if (plan == null && looked.ActiveCraft != null)
+                {
+                    continue;
+                }
+                var asked = false;
+                foreach (var topic in PathTopics)
+                {
+                    asked |= _pathsAsked[topic].Contains(centre);
+                }
+                if (!looked.RoutesDue && !asked)
+                {
+                    continue;
+                }
+
+                var heard = _hearing!.HeardAt(centre);
+                var view = CentrePath.For(
+                    plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(heard, id), looked.Ut);
+                var reshaped = !_pathShapes.TryGetValue(centre, out var shape) || shape != view.Shape;
+                _pathShapes[centre] = view.Shape;
+                var to = ToItself(centre);
+                if (_host!.IsAnyTopicSubscribed(PathTopic) && (reshaped || view.Path.Hops.Count > 0 || _pathsAsked[PathTopic].Contains(centre)))
+                {
+                    _streams!.PublishAddressedTo(PathTopic, view.Path, looked.Ut, to);
+                    frames++;
+                }
+                if (_host.IsAnyTopicSubscribed(NetworkTopic) && (reshaped || _pathsAsked[NetworkTopic].Contains(centre)))
+                {
+                    _streams!.PublishAddressedTo(NetworkTopic, view.Network, looked.Ut, to);
+                    frames++;
+                }
+                if (_host.IsAnyTopicSubscribed(CommandCentreTopic) && (reshaped || _pathsAsked[CommandCentreTopic].Contains(centre)))
+                {
+                    _streams!.PublishAddressedTo(CommandCentreTopic, view.CommandCentre, looked.Ut, to);
+                    frames++;
+                }
+            }
+            foreach (var asked in _pathsAsked.Values)
+            {
+                asked.Clear();
+            }
+            PathFramesBudget.Record(frames, looked.Ut);
+        }
+
+        private static string? NameOf(IReadOnlyCollection<CraftState> heard, string nodeId)
+        {
+            foreach (var state in heard)
+            {
+                if (state.Id == nodeId)
+                {
+                    return state.Name;
+                }
+            }
+            return null;
         }
 
         /// <summary>An audience of one centre, reached at once: what a centre reckons is no distance from it.</summary>

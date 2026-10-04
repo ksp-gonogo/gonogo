@@ -83,7 +83,7 @@ const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
  *
  * Two exist today: `VesselUplink.WarpChannel()` and `CalendarChannel()` each
  * carry 1 channel and score 1, which happens to be the right number. The
- * numbers in this file total 20 against 18 real channels; the gap is
+ * numbers in this file total 19 against 17 real channels; the gap is
  * `CommsCoreUplink`'s helper body and helper declaration line, which its entry
  * below explains.
  *
@@ -176,28 +176,34 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 4 explicit declarations.
   "mod/Gonogo.KSP/SystemUplink.cs": 4,
 
-  // comms.occlusion: not an observation of the vessel at all, but the
-  // universe's geometry plus the rule the elected comms backend applies to it,
-  // and delaying the rule would have a predictor computing tomorrow's blackout
-  // from yesterday's assumptions. And comms.commandCentre, which names WHICH
-  // centre the active vessel's OWN path resolved to.
-  //
-  // Lowered from 8 to 4 (Saga 840). comms.connectivity, comms.signal,
-  // comms.control and comms.network were here as "what KSC can establish about
-  // the link from its own end". Under reckoned vantages that does not hold: a
-  // centre learns whether a radio answers only when its signal arrives, and
-  // the shape of the network is far-away state. All four are Delayed on the
-  // active craft's node now, the first three exempt from the freeze as
-  // comms.link is, because they are how a blackout is reported.
-  //
-  // comms.delay and comms.path were already Delayed. Both describe the far end
-  // of the link, so both wait for the light that carries them.
-  //
-  // Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
-  // the helper body + 2 call sites (one per topic) + the helper's own
-  // declaration line (also matches the call-site regex) = 3 helper matches.
-  // 1 explicit + 3 helper = 4.
-  "mod/Gonogo.KSP/CommsCoreUplink.cs": 4,
+  /*
+   * comms.occlusion: not an observation of the vessel at all, but the
+   * universe's geometry plus the rule the elected comms backend applies to it,
+   * and delaying the rule would have a predictor computing tomorrow's blackout
+   * from yesterday's assumptions.
+   *
+   * Lowered from 8 to 4 (Saga 840). comms.connectivity, comms.signal,
+   * comms.control and comms.network were here as "what KSC can establish about
+   * the link from its own end". Under reckoned vantages that does not hold: a
+   * centre learns whether a radio answers only when its signal arrives, and
+   * the shape of the network is far-away state. All four are Delayed on the
+   * active craft's node now, the first three exempt from the freeze as
+   * comms.link is, because they are how a blackout is reported.
+   *
+   * Lowered from 4 to 3 (Saga 782 subtask 78). comms.commandCentre named the
+   * centre the game's solved path ended at, which is the state of every hop
+   * at this instant. Each centre is now sent the terminus of the path its own
+   * contact plan has, addressed to it alone, with comms.path and comms.network
+   * (ContactPlanSource).
+   *
+   * comms.delay was already Delayed: it describes the far end of the link, so
+   * it waits for the light that carries it.
+   *
+   * Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
+   * the helper body + 1 call site + the helper's own declaration line (also
+   * matches the call-site regex) = 2 helper matches. 1 explicit + 2 helper = 3.
+   */
+  "mod/Gonogo.KSP/CommsCoreUplink.cs": 3,
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched

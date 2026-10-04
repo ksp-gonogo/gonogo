@@ -19,7 +19,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "alarm.scet",
   "alarm.scet.fired",
   "alarm.scet.topics",
-  "comms.commandCentre",
   "comms.occlusion",
   "game.dlc",
   "ksp.revertAvailability",

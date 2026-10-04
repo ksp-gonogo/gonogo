@@ -1794,12 +1794,12 @@ export enum CommsHopKind {
 	Vessel = 2
 }
 /**
-* One ordered hop toward home in the control path. Per-hop RealAntennas facts
-* are not fields on this shared shape: the forward band rate rides the
-* RealAntennas Uplink's own `realantennas.hopRates` channel (a per-hop
-* annotation keyed by these same node ids, joined onto the route client-side),
-* and the other RealAntennas per-hop facts ride `CommsHop.extensions` under
-* `"realantennas"`.
+* One ordered hop toward home in the active vessel's path. Per-hop
+* RealAntennas facts are not fields on this shared shape: the forward band
+* rate rides the RealAntennas Uplink's own `realantennas.hopRates` channel (a
+* per-hop annotation keyed by these same node ids, joined onto the route
+* client-side), and the other RealAntennas per-hop facts ride
+* `CommsHop.extensions` under `"realantennas"`.
 *
 * Ground stations carry their OWN name in `CommsHop.from` and `CommsHop.to`
 * (RSS/RealAntennas fly a dozen of them), not a single shared "home" label:
@@ -1833,35 +1833,42 @@ export interface CommsHop
 	*/
 	kind: CommsHopKind;
 	/**
-	* Straight-line distance between the two endpoints, in metres: the geometry
-	* the signal delay's light-time is computed over. Null when the backend cannot
-	* supply per-hop geometry, never 0.
+	* Straight-line distance the signal crosses on this hop, in metres. Null when
+	* the hop's geometry is not known, never 0.
 	*/
 	distanceMeters?: Value<"m"> | null;
 	/**
 	* The provider-namespaced extension bag: how the elected comms backend carries
 	* per-hop facts this shared shape does not declare (see
-	* ProviderExtensionBagAttribute for the whole mechanism). Absent under the
-	* stock CommNet backend, which has nothing stock does not already say; a
-	* RealAntennas install fills `Extensions["realantennas"]` with band, tech
-	* level, modulation, encoder, required Eb/N0, beamwidth, EC draw and the
-	* reverse-direction rate, typed by the RealAntennas client's own
-	* `RealAntennasHopExt`. It rides `comms.path`, so it is Delayed like that
-	* channel.
+	* ProviderExtensionBagAttribute for the whole mechanism). Absent on
+	* `comms.path`, whose hops are worked out from the receiving command centre's
+	* own contact plan rather than read off the backend. A backend fills it on a
+	* route it solves itself: a RealAntennas install fills
+	* `Extensions["realantennas"]` with band, tech level, modulation, encoder,
+	* required Eb/N0, beamwidth, EC draw and the reverse-direction rate, typed by
+	* the RealAntennas client's own `RealAntennasHopExt`.
 	*/
 	extensions?: ProviderExtensions;
 }
 /**
-* The `comms.path` payload: always present, sourced from the elected comms
-* backend. Ordered hops from the active vessel home. An empty `CommsPath.hops`
-* means no path home, a real control-loss state rather than missing data.
+* The `comms.path` payload: the active vessel's path as the receiving command
+* centre believes it to stand now. Ordered hops from the active vessel to the
+* receiving centre itself, or, for the home centre, to whichever ground
+* station the signal reaches first. An empty `CommsPath.hops` means the centre
+* knows of no path that is open all the way now, which includes a path that
+* would have the signal wait at a relay (`comms.route` says where it would
+* wait).
 *
-* DELAYED, and NEVER RECKONABLE. The route is the one the arriving signal
-* took, so it reveals with the telemetry that came down it. It carries no
-* forward model and cannot be given one: a route changes DISCRETELY (a relay
-* drops below the horizon and the whole chain re-solves to different hops),
-* and every reckoning basis moves a continuous quantity. What you are shown is
-* the topology as observed; nothing may extrapolate it forward.
+* ADDRESSED: each command centre is sent its own, and no other centre's. It is
+* worked out from that centre's contact plan, which is made of what the centre
+* has heard of each craft, so a hop changes here only once the news of it has
+* reached the centre: a relay that drops out is still on the path until its
+* silence has crossed to you. Nothing is sent until the centre has a contact
+* plan, so the topic is absent, not empty, for the first moments of a session.
+*
+* NEVER RECKONABLE. A route changes DISCRETELY (a relay drops below the
+* horizon and the whole chain re-solves to different hops), and every
+* reckoning basis moves a continuous quantity.
 *
 * @category Comms
 */
@@ -1869,7 +1876,8 @@ export interface CommsPath
 {
 	/**
 	* The hops in order, the first starting at the active vessel and the last
-	* ending at home. Empty when there is no path home, never null.
+	* ending at the receiving centre, or at a ground station for the home centre.
+	* Empty when the centre knows of no open path, never null.
 	*/
 	hops: CommsHop[];
 }
@@ -1889,7 +1897,11 @@ export interface CommsNetworkNode
 	* can share.
 	*/
 	id: string;
-	/** The node's human-facing name: the vessel's name, or the ground station's. */
+	/**
+	* The node's human-facing name: the vessel's name as the receiving centre last
+	* heard it, or the ground station's. The node's `CommsNetworkNode.id` when no
+	* name is known.
+	*/
 	displayName: string;
 	/** `CommsHopKind.Home` for a ground station, `CommsHopKind.Relay` for a vessel. */
 	kind: CommsHopKind;
@@ -1907,17 +1919,19 @@ export interface CommsNetworkEdge
 	/** The `CommsNetworkNode.id` of the end nearer home. */
 	b: string;
 	/**
-	* True when the edge carries the vessel's current control path. The shipped
-	* backends report only the control path's edges, so every edge they emit is
-	* true.
+	* True when the edge carries the vessel's path. Only the path's own edges are
+	* sent, so every edge is true.
 	*/
 	active: boolean;
 }
 /**
-* The `comms.network` payload: always emitted, the network as the elected
-* comms backend sees it from the active vessel. The shipped backends report
-* the nodes and edges of the vessel's control path, so the graph is empty when
-* there is no path home.
+* The `comms.network` payload: the nodes and edges of the active vessel's path
+* as the receiving command centre believes it to stand now, which is
+* `comms.path` in graph form with each node named. The graph is empty when the
+* centre knows of no open path.
+*
+* ADDRESSED, on the same terms as `comms.path`: each command centre is sent
+* its own, made from what that centre has heard.
 *
 * @category Comms
 */
@@ -2057,17 +2071,17 @@ export interface CommsLink
 }
 /**
 * The `comms.commandCentre` payload: WHICH command centre the active vessel's
-* control path currently terminates at, a ground station or a crewed
-* control-source vessel (the stock "command center" mechanic), so a client can
-* show its own stats against the right name instead of assuming KSC. Shares
-* its id and kind scheme with `CommandCentreEntry` (the `commandCentre.roster`
-* entries): it names ONE entry from that same set, whichever one the vessel's
-* control path resolved to this tick. A ground station is preferred when the
-* last hop touches both.
+* path ends at, as the receiving command centre believes it to stand now, so a
+* client can show its own stats against the right name instead of assuming
+* KSC. It is where `comms.path`'s last hop ends: the receiving centre itself,
+* or, for the home centre, whichever ground station the signal reaches first.
+* Shares its id and kind scheme with `CommandCentreEntry` (the
+* `commandCentre.roster` entries).
 *
-* Every field is null when there is no live remote centre right now (no
-* connection, or the last hop touches neither a ground station nor a crewed
-* control source); `comms.link` already reports that case as no signal.
+* ADDRESSED, on the same terms as `comms.path`: each command centre is sent
+* its own, made from what that centre has heard.
+*
+* Every field is null when the centre knows of no open path.
 *
 * @category Comms
 */
@@ -2081,8 +2095,8 @@ export interface CommsCommandCentre
 	/** The centre's human-facing name. Null when no remote centre resolved. */
 	displayName?: string | null;
 	/**
-	* One of `GroundStation`, `CrewedVessel` or `Custom`, same as
-	* `CommandCentreEntry.kind`. Null when no remote centre resolved.
+	* `GroundStation` or `CrewedVessel`, as `CommandCentreEntry.kind` spells them.
+	* Null when no remote centre resolved.
 	*/
 	kind?: string | null;
 	/**

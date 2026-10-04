@@ -41,7 +41,7 @@ const OUT = join(root, "mod/sitrep-sdk/src/__generated__/delay-roles.ts");
  * reads as "every channel is delayed", which is exactly the state this file
  * exists to end.
  */
-// 18 since the four comms link channels became Delayed (Saga 840); the floor sits a little under it.
+// 17 since comms.commandCentre became addressed per centre (Saga 782 subtask 78); the floor sits a little under it.
 const FLOOR = 15;
 
 const dispositions = readChannelDispositions(root);

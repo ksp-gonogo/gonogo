@@ -2273,8 +2273,21 @@ namespace Sitrep.Contract
         /// <c>comms.link</c> and the per-craft contact and silence reports included, now
         /// reaches each command centre at that centre's own light-time from the craft,
         /// where every centre used to be sent it at the home centre's.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 8 -&gt; 9: each command centre's own path.</b>
+        /// <c>comms.path</c>, <c>comms.network</c> and <c>comms.commandCentre</c> are sent
+        /// to each command centre alone, worked out from that centre's own contact plan,
+        /// where every centre used to be shown the game's solved control path. No payload
+        /// changes shape. What a reader sees changes: a hop moves only once the news of it
+        /// has reached the centre, the home centre's path ends at whichever station its plan
+        /// reaches first, any other centre's at itself, a path that would wait at a relay
+        /// reads as none, and <see cref="CommsHop.Extensions"/> is absent on
+        /// <c>comms.path</c>. <c>comms.commandCentre</c> was TrueNow and is not any more.
+        /// <see cref="ICommsBackend.Network"/> and
+        /// <see cref="ICommsBackend.ControlPathTerminus"/> stay on the interface and are no
+        /// longer read by core.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 8;
+        public const int Minor = 9;
     }
 }
