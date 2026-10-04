@@ -77,7 +77,7 @@ describe("the SVG face", () => {
 
 describe("paintReckonedPosition", () => {
   function fakeCtx() {
-    return {
+    const ctx: Partial<CanvasRenderingContext2D> = {
       save: vi.fn(),
       restore: vi.fn(),
       beginPath: vi.fn(),
@@ -92,7 +92,8 @@ describe("paintReckonedPosition", () => {
       fillStyle: "",
       strokeStyle: "",
       lineWidth: 1,
-    } as unknown as CanvasRenderingContext2D;
+    };
+    return ctx as CanvasRenderingContext2D;
   }
 
   it("draws the held position faint beside a modelled one, joined by a track", () => {

@@ -496,7 +496,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is the alarm service reading the view instant into the plain UT seconds an alarm is stored, sent and settled in.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
-  "packages/components": 117,
+  "packages/components": 116,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

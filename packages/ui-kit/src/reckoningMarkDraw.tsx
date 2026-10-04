@@ -51,7 +51,11 @@ function resolvedColor(
   return v || fallback;
 }
 
-/** Options for {@link paintReckoningMark}. */
+/**
+ * Options for {@link paintReckoningMark}.
+ *
+ * @category Unit
+ */
 export interface PaintReckoningMarkOptions {
   /** Drawn faint: a held position shown beside a modelled one. */
   ghost?: boolean;
@@ -63,6 +67,8 @@ export interface PaintReckoningMarkOptions {
  * Paints the mark on a canvas, centred on a point in canvas pixels: a dot for
  * held, a triangle pointing up for modelled, in the hue the spec names.
  *
+ * @intent The single-mark canvas face for a third-party canvas that draws one
+ * held or modelled point; {@link paintReckonedPosition} composes it for a pair.
  * @category Unit
  */
 export function paintReckoningMark(
@@ -91,7 +97,11 @@ export function paintReckoningMark(
   ctx.restore();
 }
 
-/** Where a craft was last observed and where a model puts it now, in canvas pixels. */
+/**
+ * Where a craft was last observed and where a model puts it now, in canvas pixels.
+ *
+ * @category Unit
+ */
 export interface ReckonedPosition {
   /** The last observed position; drawn as the held mark. */
   held?: { x: number; y: number };

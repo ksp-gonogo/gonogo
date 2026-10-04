@@ -258,9 +258,9 @@ export function paintPrediction(
 }
 
 /**
- * The vessel's current-position dot and crosshair at a screen-space point. A
- * position that is not current is drawn by the kit's `paintReckonedPosition`
- * (the held and modelled marks) with {@link paintCrosshair} behind it.
+ * The vessel's dot and crosshair at a screen-space point, for a position that
+ * is a reading of now. A held or modelled one is drawn by the kit's
+ * `paintReckonedPosition` with {@link paintCrosshair} behind it.
  */
 export function paintVesselMarker(
   canvas: HTMLCanvasElement,

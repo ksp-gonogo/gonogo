@@ -188,8 +188,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:comms.link.meta.source":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:crash.lastCrash.altitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:crash.lastCrash.eventKind":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:crash.lastCrash.events":

@@ -29,7 +29,7 @@ export const reservesHeldMark = css`
 `;
 
 /** {@link reservesHeldMark} for the modelled mark's slightly larger box. */
-export const reservesModelledMark = css`
+export const reservesModelledTriangle = css`
   &::after {
     content: "";
     display: inline-block;
@@ -39,7 +39,7 @@ export const reservesModelledMark = css`
 
 /** The room to reserve for a kind of mark. */
 export function reservesMark(kind: ReckoningKind) {
-  return kind === "modelled" ? reservesModelledMark : reservesHeldMark;
+  return kind === "modelled" ? reservesModelledTriangle : reservesHeldMark;
 }
 
 /**
@@ -70,7 +70,7 @@ export const HeldMark = styled.span`
  *
  * @category Unit
  */
-export const ModelledMark = styled.span`
+export const ModelledTriangle = styled.span`
   position: absolute;
   right: 0;
   top: 0;
@@ -87,7 +87,7 @@ export const ModelledMark = styled.span`
  * @category Unit
  */
 export function ReckoningMark({ kind }: { kind: ReckoningKind }) {
-  const Mark = kind === "modelled" ? ModelledMark : HeldMark;
+  const Mark = kind === "modelled" ? ModelledTriangle : HeldMark;
   return (
     <Mark aria-hidden="true" data-held-mark="" data-reckoning-mark={kind} />
   );
