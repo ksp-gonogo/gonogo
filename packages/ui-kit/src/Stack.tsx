@@ -73,4 +73,11 @@ const Stack__Root = styled.div<{ $gap?: GapToken; $fill: boolean }>`
   flex-direction: column;
   gap: ${({ $gap }) => ($gap ? GAP_VAR[$gap] : "var(--gap-related)")};
   ${({ $fill }) => ($fill ? "flex: 1; min-height: 0;" : "")}
+
+  /* Rendered as a list it is still a layout box: the browser's own list indent, margin and bullets would shift and squeeze its rows. Zero specificity, so a caller's own rule still wins. */
+  &:where(ul, ol) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
 `;

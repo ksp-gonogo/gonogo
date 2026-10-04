@@ -648,6 +648,10 @@ textarea {
      that narrow, so it takes the step unconditionally rather than under a
      container query). */
   --inset-tiny: var(--space-6);
+  /* A sidebar's top inset when it sits UNDER the body: the body's bottom
+     inset is already above it, so the full panel top would double the gap
+     between a drawing and the readouts that annotate it. */
+  --inset-panel-sidebar-under: var(--space-4);
   /* No bottom inset: the body's own gap is the only space between the header and the content. */
   --inset-panel-header: 0 var(--gutter-panel);
   /* Above a hand-composed header row; inside a Panel the rail band is that inset. */

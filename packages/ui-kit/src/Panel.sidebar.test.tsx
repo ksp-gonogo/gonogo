@@ -259,4 +259,37 @@ describe("Panel sidebar, inset", () => {
     expect(style.getPropertyValue("padding-inline-start")).toBe("0");
     expect(style.getPropertyValue("padding-inline-end")).toBe("0");
   });
+
+  it("takes a small top inset and no rail band once it stacks under the body", () => {
+    // The body's bottom inset is already above it, and the header's rail is nowhere near.
+    render(
+      <Panel panelTitle="SYSTEM" panelSidebar="almanac">
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 300, 600);
+    expect(box.dataset.panelSplit).toBe("block");
+    expect(getComputedStyle(sidebarScroller()).paddingTop).toBe(
+      "var(--inset-panel-sidebar-under)",
+    );
+    expect(
+      getComputedStyle(sidebar()).getPropertyValue("padding-block-start"),
+    ).not.toBe("var(--panel-rail-band)");
+  });
+
+  it("keeps the rail band and the panel's top inset beside the body", () => {
+    render(
+      <Panel panelTitle="SYSTEM" panelSidebar="almanac">
+        diagram
+      </Panel>,
+    );
+    resizeTo(split() as HTMLElement, 600, 300);
+    expect(getComputedStyle(sidebarScroller()).paddingTop).toBe(
+      "var(--inset-panel-top)",
+    );
+    expect(
+      getComputedStyle(sidebar()).getPropertyValue("padding-block-start"),
+    ).toBe("var(--panel-rail-band)");
+  });
 });

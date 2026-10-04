@@ -304,7 +304,7 @@ const PAIR_LABEL: CSSProperties = {
 
 const DIAGRAM_FRAME: CSSProperties = { flex: 1, minWidth: 0, minHeight: 0 };
 
-const READOUTS: CSSProperties = { flex: "0 0 auto", listStyle: "none" };
+const READOUTS: CSSProperties = { flex: "0 0 auto" };
 
 const REFUSAL: CSSProperties = {
   flex: 1,

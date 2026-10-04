@@ -974,11 +974,19 @@ const PanelSplit__Box = styled.div<{
   ${({ $side }) =>
     $side === "start" ? "& > [data-panel-sidebar] { order: -1; }" : ""}
 
-  /* The sidebar gets the rail band when the rail travels with the header, since only the body's scroller holds it. */
-  ${({ $railBand }) =>
-    $railBand
+  /* The sidebar gets the rail band when the rail travels with the header, since only the body's scroller holds it. Under the body it is nowhere near the header, so it takes none. */
+  ${({ $railBand, $axis, $side }) =>
+    $railBand && !($axis === "block" && $side === "end")
       ? `& > [data-panel-sidebar] {
            padding-block-start: var(--panel-rail-band);
+         }`
+      : ""}
+
+  /* Under the body the sidebar follows the body's own bottom inset, so it takes a small top inset rather than the panel's. */
+  ${({ $axis, $side }) =>
+    $axis === "block" && $side === "end"
+      ? `& > [data-panel-sidebar] > * > [data-scroll-area-inner] {
+           padding-top: var(--inset-panel-sidebar-under);
          }`
       : ""}
 
