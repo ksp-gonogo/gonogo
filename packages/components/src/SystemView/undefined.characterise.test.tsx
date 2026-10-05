@@ -104,8 +104,8 @@ function kerbinOrbitWithEncounter() {
   };
 }
 
-/** The vessel dot; `SystemDiagram` paints it with the accent token alone. */
-const VESSEL_DOT = 'circle[fill="var(--color-accent-fg)"]';
+/** The vessel, drawn as the kit's vessel mark. */
+const VESSEL_DOT = "[data-vessel-mark]";
 /** The target body's dot, the only thing `vessel.target` changes in the SVG. */
 const TARGET_DOT = 'circle[fill="var(--color-nogo-mark)"]';
 
@@ -351,7 +351,9 @@ describe("SystemView: what undefined means today", () => {
       expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(1),
     );
     const [dot] = Array.from(container.querySelectorAll(VESSEL_DOT));
-    expect(Number.isFinite(Number(dot.getAttribute("cx")))).toBe(true);
-    expect(Number.isFinite(Number(dot.getAttribute("cy")))).toBe(true);
+    // The kit's vessel mark carries its point as the group's translate.
+    expect(dot.getAttribute("transform")).toMatch(
+      /^translate\(-?[\d.]+(e-?\d+)? -?[\d.]+(e-?\d+)?\)$/,
+    );
   });
 });

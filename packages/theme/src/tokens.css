@@ -313,6 +313,9 @@ textarea {
 
   /* The mark of a figure a model carried: held keeps the warn dot, a modelled figure draws this blue as a triangle, so the two differ by shape and by hue. */
   --color-modelled-mark: var(--palette-blue-300);
+  /* The apsides, on an orbit drawing and beside their readouts. Neither is the held amber nor the modelled blue, so an apsis never reads as a mark about how current a figure is. */
+  --color-apoapsis-mark: var(--color-data-12);
+  --color-periapsis-mark: var(--color-data-15);
   --color-warn-status: var(--palette-amber-400);
   --color-warn-on-status: var(--palette-ink);
   --color-warn-muted: var(--palette-amber-900);

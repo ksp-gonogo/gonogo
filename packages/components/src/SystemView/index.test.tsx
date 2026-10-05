@@ -313,9 +313,7 @@ describe("SystemViewComponent", () => {
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
     );
-    expect(
-      container.querySelectorAll('circle[fill="var(--color-accent-fg)"]'),
-    ).toHaveLength(0);
+    expect(container.querySelectorAll("[data-vessel-mark]")).toHaveLength(0);
   });
 
   it("draws exactly one vessel marker, at a real (non-origin) position, once vessel.orbit lands", async () => {
@@ -337,13 +335,14 @@ describe("SystemViewComponent", () => {
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
     });
     await waitFor(() => {
-      const dots = container.querySelectorAll(
-        'circle[fill="var(--color-accent-fg)"]',
-      );
+      const dots = container.querySelectorAll("[data-vessel-mark]");
       expect(dots).toHaveLength(1);
       const [dot] = Array.from(dots);
-      const x = Number(dot.getAttribute("cx"));
-      const y = Number(dot.getAttribute("cy"));
+      // The kit's vessel mark carries its point as the group's translate.
+      const [x, y] = (dot.getAttribute("transform") ?? "")
+        .replace(/^translate\(|\)$/g, "")
+        .split(" ")
+        .map(Number);
       expect(Number.isFinite(x)).toBe(true);
       expect(Number.isFinite(y)).toBe(true);
       expect(x !== 0 || y !== 0).toBe(true);

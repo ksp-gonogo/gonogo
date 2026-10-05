@@ -12,8 +12,8 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
-import { derivedMarking } from "@ksp-gonogo/ui-kit";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
+import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
@@ -138,14 +138,11 @@ function OrbitViewComponent({
       // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
       apoapsis={apoapsisR ?? 0}
       periapsis={periapsisR}
-      trueAnomaly={trueAnomaly ?? 0}
+      craft={craftOnOrbit(orbitReading, orbitObserved, solve)}
       argPe={argPe?.magnitude ?? 0}
       showMarkers={showMarkers}
       bodyColor={body?.color}
       bodyRadius={body?.radius}
-      craftMark={
-        derivedMarking(orbitReading)?.kind === "modelled" ? "modelled" : null
-      }
       isOrbiting={isOrbiting}
       rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
       atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}

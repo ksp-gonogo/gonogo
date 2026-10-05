@@ -1,5 +1,6 @@
 import { latLonToMap } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
+import { paintVesselMark } from "@ksp-gonogo/ui-kit";
 import type { EncounterKind } from "../shared/encounterKind";
 import { type Camera, cameraTransform, WORLD_H, WORLD_W } from "./camera";
 import {
@@ -258,9 +259,9 @@ export function paintPrediction(
 }
 
 /**
- * The vessel's dot and crosshair at a screen-space point, for a position that
+ * The vessel's mark and crosshair at a screen-space point, for a position that
  * is a reading of now. A held or modelled one is drawn by the kit's
- * `paintReckonedPosition` with {@link paintCrosshair} behind it.
+ * `paintVesselPositions` with {@link paintCrosshair} behind it.
  */
 export function paintVesselMarker(
   canvas: HTMLCanvasElement,
@@ -268,12 +269,8 @@ export function paintVesselMarker(
   x: number,
   y: number,
 ): void {
-  const accent = canvasColor(canvas, "--color-accent-fg", "#00ff88");
-  ctx.beginPath();
-  ctx.arc(x, y, 4, 0, Math.PI * 2);
-  ctx.fillStyle = accent;
-  ctx.fill();
   paintCrosshair(ctx, x, y, false);
+  paintVesselMark(canvas, ctx, "current", x, y);
 }
 
 /** The crosshair through a position: solid for a current one, dashed where it is held. */

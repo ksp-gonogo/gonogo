@@ -9,7 +9,7 @@ const BASE = {
   ecc: 0.1,
   apoapsis: 770_000,
   periapsis: 630_000,
-  trueAnomaly: 0,
+  craft: { current: 0 },
   argPe: 0,
 };
 
@@ -138,7 +138,7 @@ describe("OrbitDiagram projected overlay", () => {
       );
     expect(findApText()).toBeTruthy();
     const apMarker = container.querySelector(
-      'circle[fill="var(--color-warn-mark)"]',
+      'circle[fill="var(--color-apoapsis-mark)"]',
     );
     expect(apMarker).toBeTruthy();
     if (!apMarker) return;
@@ -311,5 +311,59 @@ describe("OrbitDiagram horizon mark", () => {
       />,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("OrbitDiagram craft marks", () => {
+  const marks = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("[data-vessel-mark]"));
+
+  it("draws each place the craft is known at with its own mark", () => {
+    const { container } = render(
+      <OrbitDiagram {...BASE} craft={{ held: 0, modelled: 90 }} />,
+    );
+    expect(
+      marks(container).map((m) => m.getAttribute("data-vessel-mark")),
+    ).toEqual(["held", "modelled"]);
+  });
+
+  it("draws no vessel where the craft's place is not known", () => {
+    const { container } = render(<OrbitDiagram {...BASE} craft={null} />);
+    expect(marks(container)).toHaveLength(0);
+  });
+
+  it("drops a place the one nearest to now covers, so two marks never sit on each other", () => {
+    const { container } = render(
+      <OrbitDiagram {...BASE} craft={{ held: 0, modelled: 0.5 }} />,
+    );
+    expect(
+      marks(container).map((m) => m.getAttribute("data-vessel-mark")),
+    ).toEqual(["modelled"]);
+  });
+
+  it("keeps the vessel point up however the orbit is turned", () => {
+    const { container } = render(
+      <OrbitDiagram {...BASE} argPe={70} craft={{ modelled: 30 }} />,
+    );
+    const [mark] = marks(container);
+    // The orbit's own group is the only thing that turns with the argument of periapsis, and the mark is outside it.
+    expect(mark.closest('g[transform^="rotate"]')).toBeNull();
+    // Periapsis sits at -argPe on screen, and the craft 30 degrees further round from there.
+    const [x, y] = (mark.getAttribute("transform") ?? "")
+      .replace(/^translate\(|\)$/g, "")
+      .split(" ")
+      .map(Number);
+    expect((Math.atan2(-y, x) * 180) / Math.PI).toBeCloseTo(100, 5);
+  });
+
+  it("colours neither apsis in a reckoning hue", () => {
+    const { container } = render(<OrbitDiagram {...BASE} />);
+    const fills = Array.from(
+      container.querySelectorAll('circle[role="img"]'),
+    ).map((c) => c.getAttribute("fill"));
+    expect(fills).toEqual([
+      "var(--color-apoapsis-mark)",
+      "var(--color-periapsis-mark)",
+    ]);
   });
 });

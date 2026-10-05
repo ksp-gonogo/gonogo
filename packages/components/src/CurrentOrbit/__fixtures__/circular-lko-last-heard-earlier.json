@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "scenario": "circular-lko-last-heard-earlier",
+    "notes": "circular-lko with elements taken 400 s before the link drops, so the conic carries the craft about a fifth of the way round from where it was last observed: the held place and the modelled place are drawn apart, each with its own mark."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 85000,
+  "o.PeA": 80000,
+  "o.ApR": 685000,
+  "o.PeR": 680000,
+  "o.sma": 682500,
+  "o.eccentricity": 0.00367,
+  "o.trueAnomaly": 45,
+  "o.argumentOfPeriapsis": 12.5,
+  "o.inclination": 0.3,
+  "o.period": 1795.4,
+  "o.timeToAp": 390.2,
+  "o.timeToPe": 1007.8,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 682500,
+          "ecc": 0.00367,
+          "inc": 0.3,
+          "lan": 0,
+          "argPe": 12.5,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": -390,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 10,
+    "stopsArriving": true
+  }
+}

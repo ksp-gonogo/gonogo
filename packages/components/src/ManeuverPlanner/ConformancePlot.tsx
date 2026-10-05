@@ -169,7 +169,7 @@ export function ConformancePlot({
               ecc={current.ecc}
               apoapsis={current.apoapsis}
               periapsis={current.periapsis}
-              trueAnomaly={current.trueAnomaly}
+              craft={{ current: current.trueAnomaly }}
               argPe={current.argPe}
               projected={planned}
               // Only a deviance is a flown-versus-planned comparison; filling any other regime would colour the burn itself.
@@ -196,7 +196,7 @@ export function ConformancePlot({
               ecc={current.ecc}
               apoapsis={current.apoapsis}
               periapsis={current.periapsis}
-              trueAnomaly={current.trueAnomaly}
+              craft={{ current: current.trueAnomaly }}
               argPe={current.argPe}
               projected={planned}
               corridor

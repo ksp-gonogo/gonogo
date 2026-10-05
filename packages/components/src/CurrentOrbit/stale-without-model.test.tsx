@@ -13,7 +13,7 @@ import { CurrentOrbitComponent } from "./index";
 
 /**
  * A stale orbit with no model is still drawn, as the last orbit there was: the
- * elements wear the held mark, the diagram has no craft on it, and the panel
+ * elements wear the held mark, the diagram draws the craft held at its last place, and the panel
  * says the orbit is held. Figures that place the craft now (apsis altitudes,
  * countdowns, period) stay null.
  */
@@ -73,7 +73,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     expect(vesselDot(container)).toBeNull();
   });
 
-  it("keeps the orbit on the diagram, with no craft on it, and says so in the header", async () => {
+  it("keeps the orbit on the diagram, with the craft held at its last place, and says so in the header", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -123,14 +123,14 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     expect(reading().reckoning.status).not.toBe("available");
 
     expect(screen.getByRole("img", { name: "Orbital diagram" })).toBeVisible();
-    expect(vesselDot(container)).toBeNull();
+    expect(vesselDot(container)).toHaveAttribute("data-vessel-mark", "held");
     expect(screen.getByText("HELD")).toBeInTheDocument();
   });
 });
 
-/** The craft's dot, the one circle the diagram fills in the accent colour. */
+/** The craft's mark on the diagram. */
 function vesselDot(container: HTMLElement): Element | null {
-  return container.querySelector('circle[fill="var(--color-accent-fg)"]');
+  return container.querySelector("[data-vessel-mark]");
 }
 
 /** The value cell beside a readout label, found through the label's text. */

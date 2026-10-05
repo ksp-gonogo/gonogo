@@ -5,7 +5,12 @@ import {
 } from "@ksp-gonogo/core";
 import type { ArcFarEnd } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { ReckoningMarkSvg, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  VESSEL_MARK,
+  type VesselMarkState,
+  VesselMarkSvg,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 // biome-ignore lint/style/noRestrictedImports: SVG <circle> focus ring (a :focus-visible stroke on a shape), which neither an inline style nor a primitive can render
@@ -39,6 +44,21 @@ export interface ManeuverHandleProps {
   scale?: number;
 }
 
+/**
+ * The craft's places on the orbit, as true anomalies in degrees, one for each
+ * way a place is known: `current` is a reading of now, `held` the last
+ * observation kept past its time, `modelled` where a model carries the craft to
+ * now. Each one given is drawn with its own mark; none draws no vessel.
+ */
+export type CraftOnOrbit = Partial<Record<VesselMarkState, number | null>>;
+
+/** In drawing order, so the place nearest to now sits on top. */
+const CRAFT_DRAW_ORDER: readonly VesselMarkState[] = [
+  "held",
+  "current",
+  "modelled",
+];
+
 export interface OrbitDiagramProps {
   /** Semi-major axis (distance units matching apoapsis/periapsis). */
   sma: number;
@@ -48,12 +68,10 @@ export interface OrbitDiagramProps {
   apoapsis: number;
   /** Periapsis radius from body centre. */
   periapsis: number;
-  /** Current vessel true anomaly in degrees, or null where the craft's place on the orbit is not known, which draws no vessel. */
-  trueAnomaly: number | null;
+  /** Where the craft is drawn, or null where its place on the orbit is not known. */
+  craft: CraftOnOrbit | null;
   /** Argument of periapsis in degrees (rotates the ellipse in-plane). */
   argPe: number;
-  /** Where a model carries the craft past the last observation, the craft is drawn as the kit's modelled mark rather than the plain dot. */
-  craftMark?: "modelled" | null;
   /** Whether the vessel is in a stable orbit, drives trajectory colour. Defaults to true. */
   isOrbiting?: boolean;
   /** Body physical radius in same units as apoapsis/periapsis. */
@@ -178,9 +196,8 @@ export function OrbitDiagram({
   ecc,
   apoapsis,
   periapsis,
-  trueAnomaly,
+  craft,
   argPe,
-  craftMark = null,
   isOrbiting = true,
   bodyRadius,
   bodyColor,
@@ -338,18 +355,25 @@ export function OrbitDiagram({
     ? "rgba(0,255,136,0.55)"
     : "rgba(255,80,0,0.55)";
 
-  const vessel =
-    trueAnomaly === null
-      ? null
-      : orbitalToCartesian(
-          trueAnomalyToRadius(sma, ecc, trueAnomaly),
-          trueAnomaly,
-        );
-
-  // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned.
+  // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned and the vessel mark stays point up.
   const argPeRad = (argPe * Math.PI) / 180;
   const cosA = Math.cos(argPeRad);
   const sinA = Math.sin(argPeRad);
+  const vesselR = dotR * cfg.vesselDotScale;
+  const craftMarks = placeCraft(craft, (nu) => {
+    const p = orbitalToCartesian(trueAnomalyToRadius(sma, ecc, nu), nu);
+    return { x: p.x * cosA - p.y * sinA, y: -(p.x * sinA + p.y * cosA) };
+  }).filter(
+    // A place a later one covers says nothing the later one does not, so only marks that stand clear of each other are drawn.
+    (mark, i, all) =>
+      all
+        .slice(i + 1)
+        .every(
+          (later) =>
+            Math.hypot(later.x - mark.x, later.y - mark.y) >
+            vesselR * 2 * VESSEL_MARK.ringRadius,
+        ),
+  );
   const apoMarker = { x: -apoapsis * cosA, y: apoapsis * sinA };
   const periMarker = { x: periapsis * cosA, y: -periapsis * sinA };
 
@@ -563,7 +587,7 @@ export function OrbitDiagram({
                     cx={-apoapsis}
                     cy={0}
                     r={dotR}
-                    fill="var(--color-warn-mark)"
+                    fill="var(--color-apoapsis-mark)"
                     aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
                     onMouseEnter={() => setHoveredMarker("ap")}
                     onMouseLeave={() => setHoveredMarker(null)}
@@ -576,7 +600,7 @@ export function OrbitDiagram({
                   cx={periapsis}
                   cy={0}
                   r={dotR}
-                  fill="var(--color-tag-blue-fg)"
+                  fill="var(--color-periapsis-mark)"
                   aria-label={`Periapsis altitude ${formatAltitude(periapsis, bodyRadius)}`}
                   onMouseEnter={() => setHoveredMarker("pe")}
                   onMouseLeave={() => setHoveredMarker(null)}
@@ -586,24 +610,6 @@ export function OrbitDiagram({
                 />
               </>
             )}
-
-            {/* Vessel: SVG y-flipped relative to orbital frame */}
-            {vessel &&
-              (craftMark === "modelled" ? (
-                <ReckoningMarkSvg
-                  kind="modelled"
-                  x={vessel.x}
-                  y={-vessel.y}
-                  scale={(dotR * cfg.vesselDotScale) / 4}
-                />
-              ) : (
-                <circle
-                  cx={vessel.x}
-                  cy={-vessel.y}
-                  r={dotR * cfg.vesselDotScale}
-                  fill="var(--color-accent-fg)"
-                />
-              ))}
 
             {maneuverHandles && (
               <ManeuverHandles
@@ -617,6 +623,25 @@ export function OrbitDiagram({
             )}
           </g>
 
+          {/* Outside the rotation group, and turned back against a focus frame's, so the vessel is point up on every orbit. */}
+          {craftMarks.map((mark) => (
+            <Rotated
+              key={mark.state}
+              transform={
+                focus?.rotationDeg
+                  ? `rotate(${-focus.rotationDeg} ${mark.x} ${mark.y})`
+                  : undefined
+              }
+            >
+              <VesselMarkSvg
+                state={mark.state}
+                x={mark.x}
+                y={mark.y}
+                r={vesselR}
+              />
+            </Rotated>
+          ))}
+
           {/* Outside the rotation group so the labels always read horizontally. */}
           {showMarkers && cfg.showLabels && (
             <g pointerEvents="none">
@@ -624,7 +649,7 @@ export function OrbitDiagram({
                 <ApsisLabel
                   x={apoLabelPos.x}
                   y={apoLabelPos.y}
-                  fill="var(--color-warn-mark)"
+                  fill="var(--color-apoapsis-mark)"
                   fontSizePx={labelPxSize}
                   vbPerPx={vbPerPx}
                   text={
@@ -637,7 +662,7 @@ export function OrbitDiagram({
               <ApsisLabel
                 x={periLabelPos.x}
                 y={periLabelPos.y}
-                fill="var(--color-tag-blue-fg)"
+                fill="var(--color-periapsis-mark)"
                 fontSizePx={labelPxSize}
                 vbPerPx={vbPerPx}
                 text={
@@ -652,6 +677,22 @@ export function OrbitDiagram({
       </DiagramSvg>
     </DiagramFrame>
   );
+}
+
+/** Each place the craft is known at, in drawing order, through `place` (true anomaly in degrees to SVG space). */
+function placeCraft(
+  craft: CraftOnOrbit | null,
+  place: (trueAnomaly: number) => { x: number; y: number },
+): { state: VesselMarkState; x: number; y: number }[] {
+  if (craft === null) return [];
+  return CRAFT_DRAW_ORDER.flatMap((state) => {
+    const nu = craft[state];
+    if (nu == null) return [];
+    const at = place(nu);
+    return Number.isFinite(at.x) && Number.isFinite(at.y)
+      ? [{ state, ...at }]
+      : [];
+  });
 }
 
 /** A string, not a node: it feeds an SVG `<text>` and an `aria-label`. */

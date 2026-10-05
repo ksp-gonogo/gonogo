@@ -132,9 +132,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
 
     // The active vessel's own bright ring, drawn by SystemDiagram, is present exactly once.
     await waitFor(() =>
-      expect(
-        container.querySelectorAll('circle[fill="var(--color-accent-fg)"]'),
-      ).toHaveLength(1),
+      expect(container.querySelectorAll("[data-vessel-mark]")).toHaveLength(1),
     );
 
     // The other vessel's faint contributed orbit ring is present.

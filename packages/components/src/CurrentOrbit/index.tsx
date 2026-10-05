@@ -28,6 +28,7 @@ import {
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import { countdownOf } from "../shared/countdownOf";
+import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
@@ -130,7 +131,7 @@ function CurrentOrbitComponent({
   const apsides = apsidesExist(readFrame.frame);
   const noApsidesHere = apsides === "invalid";
   const orbit = drawableOrbit(orbitReading);
-  // A held orbit no model carries says nothing of where the craft is now, so it is drawn with no craft on it.
+  // A held orbit no model carries says nothing of where the craft is now, so the craft is drawn held, at its last place.
   const orbitHeld =
     orbitReading.state === "held" &&
     orbitReading.reckoning.status !== "available";
@@ -258,12 +259,7 @@ function CurrentOrbitComponent({
                     // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
                     apoapsis={apoapsisR ?? 0}
                     periapsis={periapsisR}
-                    craftMark={
-                      derivedMarking(orbitReading)?.kind === "modelled"
-                        ? "modelled"
-                        : null
-                    }
-                    trueAnomaly={orbitHeld ? null : (solve?.trueAnomaly ?? 0)}
+                    craft={craftOnOrbit(orbitReading, observedOrbit, solve)}
                     argPe={orbit?.argPe?.magnitude ?? 0}
                     bodyColor={body?.color}
                     bodyRadius={body?.radius}

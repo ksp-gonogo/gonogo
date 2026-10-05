@@ -53,8 +53,9 @@ export function ManeuverDiagram({
           ecc={diagram.ecc ?? 0}
           apoapsis={diagram.ApR}
           periapsis={diagram.PeR}
-          craftMark={orbitMarking?.kind === "modelled" ? "modelled" : null}
-          trueAnomaly={diagram.trueAnomaly ?? 0}
+          craft={{
+            [orbitMarking?.kind ?? "current"]: diagram.trueAnomaly ?? 0,
+          }}
           argPe={diagram.argPe ?? 0}
           bodyColor={body?.color}
           bodyRadius={body?.radius}

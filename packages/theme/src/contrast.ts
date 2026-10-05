@@ -145,6 +145,11 @@ export function namedPairings(tokens: readonly string[]): Pairing[] {
   }
   // The modelled mark is a blue shape beside a figure, held to the same non-text floor as a tone's mark.
   pairs.push({ token: "modelled-mark", kind: "non-text", on: surfaces });
+  // The apsis hues colour the Ap and Pe readouts as well as their markers, so they are held to the text floor.
+  pairs.push(
+    { token: "apoapsis-mark", kind: "text", on: surfaces },
+    { token: "periapsis-mark", kind: "text", on: surfaces },
+  );
   return pairs;
 }
 

@@ -695,6 +695,15 @@ export {
 export { useWidgetBadges } from "./useWidgetBadges";
 export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
+export {
+  paintVesselMark,
+  paintVesselPositions,
+  VESSEL_MARK,
+  type VesselMarkState,
+  VesselMarkSvg,
+  type VesselMarkSvgProps,
+  type VesselPositions,
+} from "./vesselMark";
 export * from "./WidgetMetaContext";
 export { WidgetMeters, type WidgetMetersProps } from "./WidgetMeters";
 export {

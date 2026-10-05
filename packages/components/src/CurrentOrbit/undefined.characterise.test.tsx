@@ -119,8 +119,8 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
   it("keeps the Pe row on its normal accent rather than the impact-alert one", () => {
     renderCurrentOrbit({ w: 9, h: 18 });
 
-    // Absence takes the safe side: plain Pe blue, not the impact alert.
-    expect(valueFor("Pe").style.color).toBe("var(--color-tag-blue-fg)");
+    // Absence takes the safe side: the plain periapsis hue, not the impact alert.
+    expect(valueFor("Pe").style.color).toBe("var(--color-periapsis-mark)");
   });
 
   it("drops the supplementary rows by height, and dashes the two that remain", () => {

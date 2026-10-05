@@ -1,7 +1,7 @@
 import { getAugmentsForSlot } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { paintReckonedPosition } from "@ksp-gonogo/ui-kit";
+import { paintVesselPositions } from "@ksp-gonogo/ui-kit";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";
 import {
@@ -216,7 +216,7 @@ export function useMapPainting({
       paintVesselMarker(canvas, ctx, x, y);
       return;
     }
-    // The observation is held wherever it is not the current marker: the kit draws it faint beside a modelled position.
+    // The observation is held wherever it is not the current marker: the kit draws it ringed, beside a modelled position where there is one.
     paintCrosshair(ctx, x, y, true);
     const modelled =
       modelledPosition === null
@@ -227,7 +227,7 @@ export function useMapPainting({
             modelledPosition.lat,
             modelledPosition.lon,
           );
-    paintReckonedPosition(canvas, ctx, {
+    paintVesselPositions(canvas, ctx, {
       held: { x, y },
       modelled:
         modelled === undefined

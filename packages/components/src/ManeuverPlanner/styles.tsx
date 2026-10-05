@@ -118,8 +118,8 @@ const LABEL_STYLE: CSSProperties = {
 };
 
 export const accentColor = {
-  ap: "var(--color-warn-mark)",
-  pe: "var(--color-tag-blue-fg)",
+  ap: "var(--color-apoapsis-mark)",
+  pe: "var(--color-periapsis-mark)",
 };
 
 export function PreviewValue({
