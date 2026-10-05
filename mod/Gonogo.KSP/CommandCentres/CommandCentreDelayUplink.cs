@@ -135,9 +135,51 @@ namespace Gonogo.KSP.CommandCentres
             var kernel = _host?.Kernel;
             var backend = kernel != null ? CommsElection.Elected(kernel) : null;
 
-            var homeId = _home().CentreId;
-            var rows = new List<AuthorityRow>();
             var solves = new SolveCounter();
+            var capture = BuildLedger(
+                centres,
+                _home(),
+                vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
+                ActiveVesselGuid(snapshot),
+                (centre, guid, isHome) => RouteDelay(backend, centre, isHome, guid, config, vessels, solves),
+                (from, to) => RouteCentreDelay(backend, from, to, config, solves),
+                centre => SecondsToHome(centre, config),
+                centre => ReachesGround(centre, vessels, config));
+            capture.Ut = snapshot != null ? snapshot.Ut : 0.0;
+
+            PathSolveBudget.Record(solves.Count, capture.Ut);
+            return capture;
+        }
+
+        /// <summary>
+        /// Every row of the ledger for one pass, from the centres, the home
+        /// claimant's answer and the routes the game measures.
+        ///
+        /// <para>The home centre here is the one the roster marks home: the
+        /// claimant's answer, or the ground station standing in for it when
+        /// the claimant cannot say. Either way it is timed by the craft's own
+        /// path to the ground, whichever station that path ends at, because
+        /// every ground station is the home centre's own antenna. A stand-in
+        /// timed as an ordinary station was quoted the route to that one
+        /// station's own dish, by way of a far relay whenever the craft was
+        /// talking to a different station.</para>
+        /// </summary>
+        /// <param name="routeToCraft">One-way seconds from a centre to a craft's guid, told whether the centre is home, or null when nothing routes.</param>
+        /// <param name="routeBetweenCentres">One-way seconds between two centres, or null when nothing routes.</param>
+        /// <param name="secondsToHome">A non-ground centre's path home, or null when it has none to measure.</param>
+        /// <param name="reachesGround">Whether a crewed centre's route ends at a ground station, or null for any other kind.</param>
+        internal static LedgerCapture BuildLedger(
+            IReadOnlyList<ICommandCentre> centres,
+            HomeCommand home,
+            IReadOnlyList<string> subjectGuids,
+            string? activeGuid,
+            Func<ICommandCentre, string, bool, double?> routeToCraft,
+            Func<ICommandCentre, ICommandCentre, double?> routeBetweenCentres,
+            Func<ICommandCentre, double?> secondsToHome,
+            Func<ICommandCentre, bool?> reachesGround)
+        {
+            var homeId = HomeCentreId(centres, home);
+            var rows = new List<AuthorityRow>();
             void Row(string vantage, string node, double seconds) =>
                 rows.Add(new AuthorityRow { Vantage = vantage, Node = node, Seconds = seconds });
 
@@ -148,15 +190,13 @@ namespace Gonogo.KSP.CommandCentres
             {
                 if (!routed.TryGetValue((centre.Id, guid), out var seconds))
                 {
-                    seconds = RouteDelay(backend, centre, homeId, guid, config, vessels, solves);
+                    seconds = routeToCraft(centre, guid, homeId != null && centre.Id == homeId);
                     routed[(centre.Id, guid)] = seconds;
                 }
                 return seconds;
             }
 
             var pass = new AuthorityMatrixPass();
-            var subjectGuids = vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList();
-            var activeGuid = ActiveVesselGuid(snapshot);
             pass.Populate(centres, subjectGuids, Routed, Row);
             pass.PopulateActiveVessel(
                 centres,
@@ -164,31 +204,17 @@ namespace Gonogo.KSP.CommandCentres
                 homeId,
                 Routed,
                 (vantage, seconds) => Row(vantage, ChannelEngine.NodeId, seconds));
-            pass.PopulateCentrePairs(
-                centres,
-                (from, to) => RouteCentreDelay(backend, from, to, config, solves),
-                Row);
+            pass.PopulateCentrePairs(centres, routeBetweenCentres, Row);
             pass.PopulateHomeCommand(
                 centres,
-                HomeCentreId(centres, _home()),
-                centre => SecondsToHome(centre, config),
+                homeId,
+                secondsToHome,
                 (vantage, seconds) => Row(vantage, ChannelEngine.HomeCommandNode, seconds));
-
-            var unroutable = pass.Unroutable(
-                centres,
-                HomeCentreId(centres, _home()),
-                subjectGuids,
-                activeGuid,
-                Routed,
-                centre => ReachesGround(centre, vessels, config));
-
-            PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
 
             return new LedgerCapture
             {
                 Rows = rows,
-                Unroutable = unroutable,
-                Ut = snapshot != null ? snapshot.Ut : 0.0,
+                Unroutable = pass.Unroutable(centres, homeId, subjectGuids, activeGuid, Routed, reachesGround),
             };
         }
 
@@ -283,7 +309,7 @@ namespace Gonogo.KSP.CommandCentres
         private static double? RouteDelay(
             ICommsBackend? backend,
             ICommandCentre centre,
-            string? homeId,
+            bool centreIsHome,
             string guid,
             SignalDelayConfig? config,
             IList<Vessel> vessels,
@@ -295,7 +321,7 @@ namespace Gonogo.KSP.CommandCentres
                 return null;
             }
 
-            if (homeId != null && centre.Id == homeId)
+            if (centreIsHome)
             {
                 var (oneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
                 return oneWay;

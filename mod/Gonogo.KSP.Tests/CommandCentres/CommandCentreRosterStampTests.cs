@@ -84,6 +84,34 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.DoesNotContain(roster, e => e.IsHome || e.IsHomeFallback);
         }
 
+        /// <summary>
+        /// With no home identified a ground station stands in for it, and the
+        /// stand-in is home for the ledger too: it is timed by the craft's own
+        /// path to the ground, 39 seconds here, and not by the route to its
+        /// own dish, 509 seconds by way of a far relay while the craft talks
+        /// to another station. It gets no row of its own for the active craft,
+        /// as an identified home gets none.
+        /// </summary>
+        [Fact]
+        public void TheStationStandingInForHomeIsTimedAsHomeIsAndNotByTheRouteToItsOwnDish()
+        {
+            var centres = new ICommandCentre[] { new FixedCentre("ground:Baikerbanur"), new FixedCentre("ground:Crater Rim") };
+
+            var ledger = CommandCentreDelayUplink.BuildLedger(
+                centres,
+                HomeCommand.NotIdentified,
+                new[] { "m1" },
+                "m1",
+                (centre, guid, isHome) => isHome ? 39.0 : 509.0,
+                (from, to) => null,
+                centre => null,
+                centre => null);
+
+            var fleet = Assert.Single(ledger.Rows, r => r.Vantage == "ground:Baikerbanur" && r.Node == "fleet.m1");
+            Assert.Equal(39.0, fleet.Seconds);
+            Assert.DoesNotContain(ledger.Rows, r => r.Vantage == "ground:Baikerbanur" && r.Node == Sitrep.Host.ChannelEngine.NodeId);
+        }
+
         private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>
             Uplink(host, HomeCommand.NotIdentified, centreIds);
 
