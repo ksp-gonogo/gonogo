@@ -281,6 +281,19 @@ namespace Sitrep.Host
 
         public bool NetworkModelled() => _deliveryInputs.NetworkModelled;
 
+        public double? ControlRouteSeconds()
+        {
+            var home = HomeCentre();
+            if (home == null || !SubjectConnected(NodeId))
+            {
+                return null;
+            }
+            var seconds = _network.DelayTo(home, NodeId);
+            return double.IsNaN(seconds) || double.IsInfinity(seconds) ? (double?)null : seconds;
+        }
+
+        public double? LiveLinkSeconds(string from, string to) => _deliveryInputs.Links.LiveLink(from, to);
+
         public IReadOnlyCollection<string> PlanningCentres()
         {
             var centres = new HashSet<string>(StringComparer.Ordinal);

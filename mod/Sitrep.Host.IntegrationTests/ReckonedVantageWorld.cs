@@ -289,6 +289,47 @@ namespace Sitrep.Host.IntegrationTests
         /// what the game shows of each right now: the relay's orbit as it
         /// stands, burn included.
         /// </summary>
+        /// <summary>Whether the relay is within physics range of the active craft, loaded beside it.</summary>
+        public bool RelayInRange { get; set; }
+
+        /// <summary>The light-time of a direct radio link between the active craft and the relay, in seconds, or null for none.</summary>
+        public double? ActiveLinkedToRelaySeconds { get; set; }
+
+        /// <summary>The game's own target list for the active craft: the relay as it stands this instant, and one body.</summary>
+        public Dictionary<string, object?> TargetsSnapshot()
+        {
+            var entries = new List<object?>
+            {
+                new Dictionary<string, object?> { ["kind"] = "Body", ["name"] = "Mun", ["bodyIndex"] = 2, ["distance"] = 1.2e7, ["isCurrent"] = false },
+            };
+            lock (_gate)
+            {
+                if (_relayExists)
+                {
+                    var relay = new Dictionary<string, object?>
+                    {
+                        ["kind"] = "Vessel",
+                        ["name"] = "Relay",
+                        ["vesselId"] = RelayGuid,
+                        ["vesselType"] = "Relay",
+                        ["situation"] = "ORBITING",
+                        ["distance"] = 2500.0,
+                        ["isCurrent"] = true,
+                        ["inRange"] = RelayInRange,
+                    };
+                    // The game reads a craft's orbit as it stands only for one the active craft sees.
+                    if (RelayInRange)
+                    {
+                        relay["sma"] = _relayOrbit.Sma;
+                        relay["ecc"] = _relayOrbit.Ecc;
+                        relay["epoch"] = _relayOrbit.Epoch;
+                    }
+                    entries.Add(relay);
+                }
+            }
+            return new Dictionary<string, object?> { ["entries"] = entries };
+        }
+
         public List<object?> RosterSnapshot()
         {
             var roster = new List<object?>
@@ -551,6 +592,10 @@ namespace Sitrep.Host.IntegrationTests
             if (ledger.RelayExists && ledger.RelayConnected)
             {
                 links.Add((ScriptedContactGame.Home, ScriptedContactGame.Relay, ledger.RelayFromHomeSeconds));
+                if (ledger.ActiveLinkedToRelaySeconds != null)
+                {
+                    links.Add((ScriptedContactGame.Active, ScriptedContactGame.Relay, ledger.ActiveLinkedToRelaySeconds.Value));
+                }
                 if (ledger.FarLinkedToRelay)
                 {
                     links.Add((ScriptedContactGame.Far, ScriptedContactGame.Relay, ledger.RelayFromFarSeconds));
@@ -570,6 +615,7 @@ namespace Sitrep.Host.IntegrationTests
                 RelayFromHomeSeconds = game.RelayFromHomeSeconds;
                 RelayFromFarSeconds = game.RelayFromFarSeconds;
                 FarLinkedToRelay = game.FarLinkedToRelay;
+                ActiveLinkedToRelaySeconds = game.ActiveLinkedToRelaySeconds;
                 FarRoutedToRelay = game.FarRoutedToRelay;
             }
 
@@ -588,6 +634,8 @@ namespace Sitrep.Host.IntegrationTests
             public double RelayFromFarSeconds { get; }
 
             public bool FarLinkedToRelay { get; }
+
+            public double? ActiveLinkedToRelaySeconds { get; }
         }
     }
 
@@ -767,6 +815,7 @@ namespace Sitrep.Host.IntegrationTests
                     ["identity"] = new Dictionary<string, object?> { ["id"] = Game.ActiveNow },
                 },
                 ["vessels"] = Game.RosterSnapshot(),
+                ["targetAvailable"] = Game.TargetsSnapshot(),
             };
             Engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, Timeout);
         }

@@ -1321,15 +1321,19 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
   },
   "TargetListEntry": {
+    asOfUt: "ut",
     bodyIndex: "id",
     distance: "m",
     isCurrent: "flag",
     kind: "enum",
     name: "text",
+    orbitBodyIndex: "id",
     partId: "id",
     situation: "enum",
+    source: "enum",
     vesselId: "id",
     vesselType: "enum",
+    via: "text",
   },
   "ThermalHottestPart": {
     id: "id",
@@ -2499,6 +2503,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TargetAvailable": {
     entries: "TargetListEntry[]",
   },
+  "TargetListEntry": {
+    orbit: "OrbitEntry",
+  },
   "TimeCalendar": {
     meta: "PayloadMeta",
   },
@@ -2917,6 +2924,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "TargetListEntry": {
     kind: "TargetKind",
     situation: "Situation",
+    source: "TargetKnowledge",
     vesselType: "VesselType",
   },
   "VesselComms": {
@@ -3296,6 +3304,11 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "Other",
     3: "Position",
     4: "Part",
+  },
+  "TargetKnowledge": {
+    0: "InRange",
+    1: "DirectLink",
+    2: "CommandCentre",
   },
   "TrajectoryKind": {
     0: "Unspecified",

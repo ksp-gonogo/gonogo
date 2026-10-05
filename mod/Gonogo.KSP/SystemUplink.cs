@@ -93,25 +93,9 @@ namespace Gonogo.KSP
                 // system.vessels is not declared here. Each command centre is sent
                 // its own, made of what it has heard of each craft, by the contact
                 // plan source (ContactPlanSource.VesselsTopic).
-                // target.available -- everything the active vessel could target
-                // (vessels/bodies/in-range docking ports), for the TargetPicker.
-                // Same cadence as system.vessels: per-entry distance moves
-                // every tick while anything is in motion, and the 30s keyframe
-                // floor covers a genuinely idle scene.
-                // Delayed like system.vessels -- it carries OTHER vessels'/ports'
-                // comms-derived positions/distances, not a ground-side fact.
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = SystemViewProvider.TargetAvailableTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Delay = DelayRole.Delayed,
-                    // Not recordable, same reasoning as system.vessels above:
-                    // it is the network's roster of what could be targeted, not
-                    // an onboard reading.
-                    Recordable = false,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
+                // target.available is not declared here. It is the active craft's
+                // own list of what it knows of, assembled by the contact plan
+                // source (ContactPlanSource.TargetsTopic).
                 // system.frame -- what frame the game's navigation view is in.
                 // TrueNow, because it is a ground-side fact about the player's own
                 // screen rather than anything observed down a comms link: no delay
@@ -192,7 +176,6 @@ namespace Gonogo.KSP
 
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
 
-            host.AddChannelSource(SystemViewProvider.TargetAvailableTopic, SystemViewProvider.BuildTargetAvailable);
             host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
             host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);
             // Read through the election rather than off stock directly, which is

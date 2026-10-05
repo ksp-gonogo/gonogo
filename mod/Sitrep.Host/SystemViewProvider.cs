@@ -497,6 +497,15 @@ namespace Sitrep.Host
                     ["situation"] = situationRaw != null ? (int?)SharedMappers.ParseSituation(situationRaw) : null,
                     ["distance"] = GetDouble(raw, "distance"),
                     ["isCurrent"] = GetBool(raw, "isCurrent") ?? false,
+                    // A part is on a craft loaded beside this one, seen as it is. A body's place is not something learned.
+                    ["source"] = kind == TargetKind.Part ? (int?)(int)TargetKnowledge.InRange : null,
+                    ["asOfUt"] = kind == TargetKind.Part ? snapshot.Ut : (double?)null,
+                    ["via"] = null,
+                    // Written by the capture only for a vessel within physics range, which the active vessel sees as it is.
+                    ["orbit"] = raw.ContainsKey("sma") ? BuildOrbit(raw) : null,
+                    ["orbitBodyIndex"] = raw.ContainsKey("sma") && GetString(raw, "mainBody") is string orbited
+                        ? SharedMappers.ResolveBodyIndex(snapshot, orbited)
+                        : null,
                 });
             }
 
@@ -504,6 +513,35 @@ namespace Sitrep.Host
             {
                 ["entries"] = entries,
             };
+        }
+
+        /// <summary>
+        /// The bare guids of the vessels the raw <c>"targetAvailable"</c> group
+        /// marks as within physics range of the active vessel: loaded beside
+        /// it, so seen as they are.
+        /// </summary>
+        public static HashSet<string> TargetsInRange(KspSnapshot? snapshot)
+        {
+            var near = new HashSet<string>(System.StringComparer.Ordinal);
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue("targetAvailable", out var rawGroup)
+                || rawGroup is not IDictionary<string, object?> group
+                || !group.TryGetValue("entries", out var rawEntries)
+                || rawEntries is not IEnumerable<object?> rawList)
+            {
+                return near;
+            }
+            foreach (var rawEntry in rawList)
+            {
+                if (rawEntry is IDictionary<string, object?> raw
+                    && GetString(raw, "kind") == "Vessel"
+                    && GetBool(raw, "inRange") == true
+                    && GetString(raw, "vesselId") is string id)
+                {
+                    near.Add(id);
+                }
+            }
+            return near;
         }
 
         /// <summary>

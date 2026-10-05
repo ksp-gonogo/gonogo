@@ -2089,7 +2089,7 @@ namespace Gonogo.KSP
                         continue;
                     }
 
-                    entries.Add(new Dictionary<string, object?>
+                    var seen = new Dictionary<string, object?>
                     {
                         ["kind"] = "Vessel",
                         ["name"] = v.GetName(),
@@ -2098,7 +2098,17 @@ namespace Gonogo.KSP
                         ["situation"] = v.situation.ToString(),
                         ["distance"] = DistanceTo(v),
                         ["isCurrent"] = ReferenceEquals(current, v),
-                    });
+                        // Loaded beside the active vessel, which is the game's own physics range: the one case where it sees the other as it is.
+                        ["inRange"] = v.loaded,
+                    };
+                    // Its orbit as it stands is read only for a vessel the active one sees. Any other is known by what it was told.
+                    if (v.loaded)
+                    {
+                        var orbit = v.orbitDriver != null ? v.orbitDriver.orbit : null;
+                        seen["mainBody"] = orbit?.referenceBody != null ? orbit.referenceBody.bodyName : null;
+                        AddRosterOrbitFields(seen, orbit);
+                    }
+                    entries.Add(seen);
 
                     // Docking ports on LOADED vessels only -- enumerating every
                     // part on every unloaded vessel is neither cheap nor useful,

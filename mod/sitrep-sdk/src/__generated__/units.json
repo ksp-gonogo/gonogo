@@ -1281,15 +1281,19 @@
       "vesselId": "id"
     },
     "TargetListEntry": {
+      "asOfUt": "ut",
       "bodyIndex": "id",
       "distance": "m",
       "isCurrent": "flag",
       "kind": "enum",
       "name": "text",
+      "orbitBodyIndex": "id",
       "partId": "id",
       "situation": "enum",
+      "source": "enum",
       "vesselId": "id",
-      "vesselType": "enum"
+      "vesselType": "enum",
+      "via": "text"
     },
     "ThermalHottestPart": {
       "id": "id",
@@ -2424,6 +2428,9 @@
     },
     "TargetAvailable": {
       "entries": "TargetListEntry[]"
+    },
+    "TargetListEntry": {
+      "orbit": "OrbitEntry"
     },
     "TimeCalendar": {
       "meta": "PayloadMeta"

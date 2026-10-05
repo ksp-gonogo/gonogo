@@ -56,9 +56,10 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// Everything the contact plan source declares it sends addressed, and
-        /// says so on the declaration, which is what the generated table of
-        /// delay roles lists these channels from.
+        /// Everything the contact plan source sends to one centre alone it
+        /// declares addressed, which is what the generated table of delay
+        /// roles lists these channels from. The active craft's target list is
+        /// the one channel it publishes that is the craft's own telemetry.
         /// </summary>
         [Fact]
         public void EveryChannelThePlanSourceDeclaresSaysItIsAddressed()
@@ -66,7 +67,10 @@ namespace Sitrep.Host.Tests.Comms
             var channels = ContactPlanSource.Channels();
 
             Assert.Contains(channels, c => c.Topic == ContactPlanSource.RosterTopic);
-            Assert.All(channels, c => Assert.True(c.Addressed, c.Topic + " is sent addressed and does not declare it"));
+            Assert.False(channels.Single(c => c.Topic == ContactPlanSource.TargetsTopic).Addressed);
+            Assert.All(
+                channels.Where(c => c.Topic != ContactPlanSource.TargetsTopic),
+                c => Assert.True(c.Addressed, c.Topic + " is sent addressed and does not declare it"));
         }
 
         [Fact]

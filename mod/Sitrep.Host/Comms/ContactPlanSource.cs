@@ -130,6 +130,12 @@ namespace Sitrep.Host.Comms
 
         /// <summary>Whether the save models a comms network at all: see <see cref="DeliveryInputs.NetworkModelled"/>.</summary>
         bool NetworkModelled();
+
+        /// <summary>The light-time of the active craft's control route to the home centre as the game has it now, in seconds, or null while it has no route.</summary>
+        double? ControlRouteSeconds();
+
+        /// <summary>The light-time of the direct radio link between two nodes as the game has it now, in seconds, or null when they have none.</summary>
+        double? LiveLinkSeconds(string from, string to);
     }
 
     /// <summary>
@@ -184,6 +190,8 @@ namespace Sitrep.Host.Comms
         public const string CommandCentreTopic = "comms.commandCentre";
 
         public const string VesselsTopic = SystemViewProvider.VesselsTopic;
+
+        public const string TargetsTopic = "target.available";
 
         public const string RosterTopic = "commandCentre.roster";
 
@@ -272,10 +280,14 @@ namespace Sitrep.Host.Comms
                 string? activeCraft,
                 bool routesDue,
                 ContactRadio? radio,
-                IReadOnlyList<CommandCentreEntry>? roster)
+                IReadOnlyList<CommandCentreEntry>? roster,
+                IReadOnlyList<object?>? targets,
+                ICollection<string> inRange)
             {
                 Radio = radio;
                 Roster = roster;
+                Targets = targets;
+                InRange = inRange;
                 Ut = ut;
                 Craft = craft;
                 Ground = ground;
@@ -302,6 +314,12 @@ namespace Sitrep.Host.Comms
 
             /// <summary>Every command centre as the game had them on this look, or null.</summary>
             public IReadOnlyList<CommandCentreEntry>? Roster { get; }
+
+            /// <summary>The game's own target list on this look, or null when the snapshot carried none.</summary>
+            public IReadOnlyList<object?>? Targets { get; }
+
+            /// <summary>The bare guids of the craft within physics range of the active one on this look.</summary>
+            public ICollection<string> InRange { get; }
 
             public bool RoutesDue { get; }
         }
@@ -425,6 +443,19 @@ namespace Sitrep.Host.Comms
                 Addressed = true,
                 Recordable = false,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+            },
+            new ChannelDeclaration
+            {
+                Requires = Requirement.None,
+                Topic = TargetsTopic,
+                Delivery = Delivery.LossyLatest,
+                // The active craft's own list of what it knows of, so it is the
+                // craft's telemetry: on its node, at its light-time, held
+                // through its blackouts. Not addressed.
+                Delay = DelayRole.Delayed,
+                // The craft holds it, but it is put together here and not aboard, so there is no recording of it to replay.
+                Recordable = false,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             },
             RosterFigureChannel(UnreachableTopic),
             RosterFigureChannel(SeparationTopic),
@@ -575,7 +606,12 @@ namespace Sitrep.Host.Comms
                 string.IsNullOrEmpty(active) ? null : CraftStateRecorder.VesselPrefix + active,
                 routesDue,
                 look.Radio,
-                look.Roster);
+                look.Roster,
+                SystemViewProvider.BuildTargetAvailable(snapshot) is IDictionary<string, object?> targets
+                    && targets.TryGetValue("entries", out var listed)
+                    ? listed as IReadOnlyList<object?>
+                    : null,
+                SystemViewProvider.TargetsInRange(snapshot));
         }
 
         /// <summary>
@@ -609,6 +645,10 @@ namespace Sitrep.Host.Comms
                 _radioSaid.Clear();
                 _radioSent.Clear();
                 _rosterSent.Clear();
+                _said.Clear();
+                _homeKnew.Clear();
+                _seenNow.Clear();
+                _knowledge.Clear();
                 _rosterMemory.Clear();
                 _unreachableSent.Clear();
                 _vesselsNews.Clear();
@@ -640,6 +680,98 @@ namespace Sitrep.Host.Comms
             PublishPaths(looked, planning);
             PublishVessels(looked, planning);
             PublishRosters(looked, listening);
+            PublishTargets(looked);
+        }
+
+        /// <summary>What each craft has said, by when it said it.</summary>
+        private readonly SaidByWhen _said = new SaidByWhen();
+
+        /// <summary>What the home centre knew of each craft, by when it came to know it.</summary>
+        private readonly SaidByWhen _homeKnew = new SaidByWhen();
+
+        /// <summary>The newest sighting of each object, as it stands in the game.</summary>
+        private readonly Dictionary<string, CraftSighting> _seenNow = new Dictionary<string, CraftSighting>(StringComparer.Ordinal);
+
+        /// <summary>What each craft that has been the active one knows of the others, by its node id.</summary>
+        private readonly Dictionary<string, CraftKnowledge> _knowledge = new Dictionary<string, CraftKnowledge>(StringComparer.Ordinal);
+
+        private IChannelPublisher? _targets;
+
+        /// <summary>
+        /// Works out what the active craft knows of every other, and publishes
+        /// it as the craft's own <c>target.available</c>. The knowledge is kept
+        /// whether or not anyone is watching, so a list first asked for after
+        /// an hour out of contact is the hour-old one.
+        /// </summary>
+        private void PublishTargets(Looked looked)
+        {
+            foreach (var state in looked.Craft.States)
+            {
+                _said.Note(state.Id, looked.Ut, state);
+            }
+            foreach (var sighted in looked.Craft.Sightings)
+            {
+                _seenNow[sighted.Sighting.Id] = sighted.Sighting;
+            }
+            var home = _audience!.HomeCentre();
+            if (home != null)
+            {
+                foreach (var state in _hearing!.HeardAt(home))
+                {
+                    _homeKnew.Note(state.Id, looked.Ut, state);
+                }
+            }
+            var active = looked.ActiveCraft;
+            if (active == null)
+            {
+                return;
+            }
+            if (!_knowledge.TryGetValue(active, out var knowledge))
+            {
+                knowledge = new CraftKnowledge();
+                _knowledge[active] = knowledge;
+            }
+
+            var route = _audience.ControlRouteSeconds();
+            var via = home == null ? null : NameAt(home, home) ?? home;
+            var others = new HashSet<string>(_said.Ids, StringComparer.Ordinal);
+            others.UnionWith(_homeKnew.Ids);
+            others.UnionWith(_seenNow.Keys);
+            foreach (var guid in looked.InRange)
+            {
+                others.Add(CraftStateRecorder.VesselPrefix + guid);
+            }
+            others.Remove(active);
+            foreach (var id in others)
+            {
+                if (looked.InRange.Contains(CraftStateRecorder.GuidOf(id)))
+                {
+                    // Beside it, so seen as it is: what it last said and where it was last seen, which nothing has changed since.
+                    _seenNow.TryGetValue(id, out var seen);
+                    var asItIs = CraftSighting.Known(_said.AsOf(id, looked.Ut), seen);
+                    if (asItIs != null)
+                    {
+                        knowledge.Learn(asItIs.Exists ? asItIs : CraftState.Gone(id, looked.Ut), looked.Ut, TargetKnowledge.InRange, null);
+                    }
+                    continue;
+                }
+                var link = _audience.LiveLinkSeconds(active, id);
+                if (link != null && _said.AsOf(id, looked.Ut - link.Value) is CraftState said)
+                {
+                    knowledge.Learn(said, said.CapturedUt, TargetKnowledge.DirectLink, null);
+                }
+                if (route != null && _homeKnew.AsOf(id, looked.Ut - route.Value) is CraftState told)
+                {
+                    knowledge.Learn(told, told.CapturedUt, TargetKnowledge.CommandCentre, via);
+                }
+            }
+
+            if (!looked.RoutesDue || !_host!.IsAnyTopicSubscribed(TargetsTopic))
+            {
+                return;
+            }
+            _targets ??= _host.Publisher(TargetsTopic);
+            _targets.Publish(new Dictionary<string, object?> { ["entries"] = knowledge.Entries(looked.Targets, looked.InRange) }, looked.Ut);
         }
 
         /// <summary>The roster each centre was last sent.</summary>

@@ -144,6 +144,44 @@ const FULL_ENTRIES = [
   PORT_ALPHA,
 ];
 
+describe("TargetPickerComponent: what the craft knows of a target", () => {
+  let fixture: StreamFixture;
+
+  beforeEach(() => {
+    fixture = setupStreamFixture({ pinnedUt: 1240, suspendFrames: true });
+  });
+
+  it("marks a craft the active one only knows of, says how old and by what route, and quotes it no range", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, [
+      KERBIN,
+      {
+        ...RELAY_ONE,
+        distance: null,
+        source: 2, // CommandCentre
+        asOfUt: 1000,
+        via: "KSC",
+      },
+      { ...RELAY_TWO, source: 0, asOfUt: 1240 }, // InRange
+    ]);
+
+    const told = (
+      await screen.findAllByRole("button", { name: /Relay One/ })
+    )[0];
+    // No range, since a range is the craft's own to measure: the held mark stands where one would be, and its words say why.
+    expect(told.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(told.textContent).toMatch(/Last heard .+ ago via KSC/);
+    expect(told.textContent).not.toMatch(/1(\.0+)?\s?km/);
+
+    const near = (
+      await screen.findAllByRole("button", { name: /Relay Two/ })
+    )[0];
+    expect(within(near).getByText(/2(\.0+)?/)).toBeInTheDocument();
+    expect(near.querySelector("[data-held-mark]")).toBeNull();
+    await act(async () => {});
+  });
+});
+
 describe("TargetPickerComponent: Suggested + categorised list", () => {
   let fixture: StreamFixture;
 

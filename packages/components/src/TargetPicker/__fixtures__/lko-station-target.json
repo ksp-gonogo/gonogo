@@ -459,8 +459,11 @@
               "vesselId": "b21e7f04-9d3a-4c52-8e77-16fa5c930d81",
               "vesselType": 3,
               "situation": 3,
-              "distance": 950263.121456368,
-              "isCurrent": false
+              "distance": null,
+              "isCurrent": false,
+              "source": 2,
+              "asOfUt": 0,
+              "via": "KSC"
             },
             {
               "kind": 0,

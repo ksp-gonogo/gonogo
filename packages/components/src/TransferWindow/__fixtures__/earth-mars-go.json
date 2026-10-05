@@ -115,6 +115,18 @@
               "name": "Mars",
               "bodyIndex": 2,
               "isCurrent": true
+            },
+            {
+              "kind": 0,
+              "name": "Mars Relay",
+              "vesselId": "5d0c2a9e-71b4-4f38-a6d2-0e9b47c1f352",
+              "vesselType": 6,
+              "situation": 3,
+              "distance": null,
+              "isCurrent": false,
+              "source": 2,
+              "asOfUt": 0,
+              "via": "KSC"
             }
           ]
         },

@@ -7767,6 +7767,31 @@ export interface VesselRosterEntry
 	orbit?: OrbitEntry | null;
 }
 /**
+* How the active vessel comes to know of another vessel on `target.available`,
+* which is also how old what it knows can be.
+*
+* @category Orbits and trajectories
+*/
+export enum TargetKnowledge {
+	/**
+	* The other vessel is within physics range of the active vessel, which sees it
+	* as it is.
+	*/
+	InRange = 0,
+	/**
+	* The other vessel's radio reaches the active vessel directly, so what is
+	* known of it is one light-time of that link old.
+	*/
+	DirectLink = 1,
+	/**
+	* The active vessel's command centre knows of the other vessel, by tracking it
+	* or by hearing from it, and has told the active vessel over its control
+	* route. What is known is as old as the centre's own knowledge plus that
+	* route's light-time.
+	*/
+	CommandCentre = 2
+}
+/**
 * One entry in the `target.available` list: anything the active vessel could
 * set as its target right now. Built from KSP's `ITargetable` (Vessel /
 * CelestialBody / ModuleDockingNode all implement it) and classified by
@@ -7821,14 +7846,54 @@ export interface TargetListEntry
 	* (`FlightGlobals.fetch.VesselTarget`) right now.
 	*/
 	isCurrent: boolean;
+	/**
+	* How the active vessel knows of this vessel: see `TargetKnowledge`. Set for
+	* `TargetKind.Vessel` and for a `TargetKind.Part`, which is always in range.
+	* Null for a body, whose place is an ephemeris and not something learned.
+	*/
+	source?: TargetKnowledge | null;
+	/**
+	* The universal time what is known of this vessel was true at: now for one in
+	* range, and otherwise when the newest word or sighting of it the active
+	* vessel holds was made. The vessel's `TargetListEntry.situation` and
+	* `TargetListEntry.orbit` are as of this instant. Null for a body.
+	*/
+	asOfUt?: Value<"ut"> | null;
+	/**
+	* The display name of the command centre that told the active vessel of this
+	* one, for `TargetKnowledge.CommandCentre`. Null otherwise.
+	*/
+	via?: string | null;
+	/**
+	* The vessel's orbit as of `TargetListEntry.asOfUt`, so its place now can be
+	* worked out from where it was last known to be going. Null for a vessel not
+	* on an orbit, one whose orbit the active vessel has not been told, a part and
+	* a body.
+	*/
+	orbit?: OrbitEntry | null;
+	/**
+	* Index into `system.bodies` of the body `TargetListEntry.orbit` is round.
+	* Null wherever `TargetListEntry.orbit` is.
+	*/
+	orbitBodyIndex?: number | null;
 }
 /**
 * The `target.available` channel payload: the list of everything targetable
-* from the active vessel. Wrapper object `{ "entries": [ ... ] }`, like
-* `system.vessels`. A full keyframe arrives on subscribe (a late subscriber
-* gets the last one), then the list is re-sent whenever the set changes (a
-* target enters or leaves range, or the current target changes) and on a slow
-* periodic re-send, which is what refreshes each `TargetListEntry.distance`.
+* from the active vessel, as the active vessel knows it. Wrapper object `{
+* "entries": [ ... ] }`, like `system.vessels`.
+*
+* A vessel is on the list once the active vessel has come to know of it, by
+* whichever of three ways tells it soonest: it is within physics range and
+* seen as it is; its radio reaches the active vessel directly, one light-time
+* of that link ago; or the active vessel's command centre knows of it and has
+* said so over the control route, that route's light-time ago. Each entry says
+* which (`TargetListEntry.source`) and how old (`TargetListEntry.asOfUt`). A
+* vessel with no route home and nothing in range keeps the list it last had:
+* entries age, none is added. A vessel the active vessel has been told is gone
+* leaves the list.
+*
+* Delayed like the rest of the active vessel's telemetry: a centre reads the
+* list one of its own light-times after the vessel held it.
 *
 * @category Orbits and trajectories
 */

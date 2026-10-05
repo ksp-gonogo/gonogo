@@ -2358,8 +2358,18 @@ namespace Sitrep.Contract
         /// or out, where they came only with the vessel's radio. A vessel with no radio
         /// is listed when its light arrives, where it was listed at once, and carries
         /// its orbit, where it carried none. No payload changes shape.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 9 -&gt; 10: the target list as the active
+        /// vessel knows it.</b> <c>target.available</c> lists each other vessel once
+        /// the active vessel has come to know of it, and as it knows it, where it listed
+        /// every vessel as the game had it. <see cref="TargetListEntry"/> gains
+        /// <see cref="TargetListEntry.Source"/>, <see cref="TargetListEntry.AsOfUt"/>,
+        /// <see cref="TargetListEntry.Via"/>, <see cref="TargetListEntry.Orbit"/> and
+        /// <see cref="TargetListEntry.OrbitBodyIndex"/>, and
+        /// <see cref="TargetListEntry.Distance"/> is null for a vessel out of physics
+        /// range. Additive on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 9;
+        public const int Minor = 10;
     }
 }
