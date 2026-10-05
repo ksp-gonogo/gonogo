@@ -870,6 +870,13 @@ describe("AstronautComplexComponent", () => {
       "li",
     ) as HTMLElement;
     expect(within(row).getByText("Held by planted")).toBeInTheDocument();
+    // The wording is third-party prose, so the title names where it came from.
+    expect(within(row).getByText("Held by planted")).toHaveAttribute(
+      "data-tooltip",
+      expect.stringContaining(
+        "Reported by the game or its career mod: Held by planted",
+      ),
+    );
     // A kerbal held back is not an alarming state.
     expect(within(row).queryByText("Dead")).not.toBeInTheDocument();
   });

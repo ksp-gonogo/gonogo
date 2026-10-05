@@ -58,7 +58,10 @@ function unavailableSeverity(
   return isFatality(standing) ? "nogo" : undefined;
 }
 
-/** Why the kerbal cannot fly, until when (in the client's calendar) and aboard what. */
+/**
+ * Why the kerbal cannot fly, until when (in the client's calendar) and aboard what.
+ * The wording is the game's or its career mod's, passed through, so the title says whose it is.
+ */
 function unavailableTitle(kerbal: KerbalStatFields): string {
   const sentence =
     crewUnavailableSentence(
@@ -66,9 +69,10 @@ function unavailableTitle(kerbal: KerbalStatFields): string {
       kerbal.standingEndsAtUt,
       (ut) => speakQuantity(value("ut", ut)),
     ) ?? "Unavailable";
+  const reported = `Reported by the game or its career mod: ${sentence}`;
   return kerbal.currentVesselName
-    ? `${sentence} (${kerbal.currentVesselName})`
-    : sentence;
+    ? `${reported} (${kerbal.currentVesselName})`
+    : reported;
 }
 
 /** A ratio stat chip, rendered even when its reading is absent: a vanished chip reads as a kerbal without the stat. */
