@@ -59,7 +59,6 @@ namespace Gonogo.KSP.CommandCentres
         private readonly CommandCentreRegistry _registry;
         private readonly Func<HomeCommand> _home;
         private IUplinkHost? _host;
-        private IChannelPublisher? _rosterPublisher;
         private IChannelPublisher? _unreachablePublisher;
         private readonly CentreMemory _memory = new CentreMemory();
         private IChannelPublisher? _separationPublisher;
@@ -107,23 +106,10 @@ namespace Gonogo.KSP.CommandCentres
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = RosterTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // Who can command is a fact the home command holds, so each
-                    // vantage learns a change after its own delay to home. A
-                    // ground centre is effectively instant (sub-second, not
-                    // literally zero) and keeps the live picker it has always
-                    // had; a vessel vantage, piloted or not, sees the roster at
-                    // its light-time home, which is the only honest answer for a
-                    // craft that cannot know who came online until word reaches
-                    // it.
-                    Delay = DelayRole.Delayed,
-                    HeldAtHome = true,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
-                },
+                // commandCentre.roster is not declared here. Each command centre is
+                // sent its own by the contact plan source: the ground stations,
+                // and each craft that is a centre once that craft's own word of
+                // it has reached the centre.
                 new ChannelDeclaration
                 {
                     Requires = Requirement.None,
@@ -205,13 +191,12 @@ namespace Gonogo.KSP.CommandCentres
         public void Register(IUplinkHost host)
         {
             _host = host;
-            _rosterPublisher = host.Publisher(RosterTopic);
             _unreachablePublisher = host.Publisher(UnreachableTopic);
             _separationPublisher = host.Publisher(SeparationTopic);
             _activeVesselDelayPublisher = host.Publisher(ActiveVesselDelayTopic);
             host.AddSampledSource(CaptureLedgerOnMain, ApplyLedgerOnCourier);
             host.AddSampledSource(ObserveCentresOnMain, _ => { });
-            host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, RosterTopic, UnreachableTopic);
+            host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, UnreachableTopic);
         }
 
         /// <summary>
@@ -441,6 +426,9 @@ namespace Gonogo.KSP.CommandCentres
             return null;
         }
 
+        /// <summary>MAIN THREAD: every active centre as a roster entry, home marked. What the contact plan source makes each centre's own roster from.</summary>
+        internal List<CommandCentreEntry> RosterNow() => ToRoster(_registry.EnumerateActive(), _home());
+
         /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
         internal object? CaptureRosterOnMain(KspSnapshot? snapshot)
         {
@@ -462,7 +450,6 @@ namespace Gonogo.KSP.CommandCentres
                 return;
             }
 
-            _rosterPublisher?.Publish(cap.Roster, cap.Ut);
             _unreachablePublisher?.Publish(cap.Unreachable, cap.Ut);
         }
 

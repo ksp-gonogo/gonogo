@@ -113,6 +113,10 @@ namespace Sitrep.Host.Comms
         private readonly HashSet<string> _seenFromGround = new HashSet<string>(StringComparer.Ordinal);
         private int _readAll;
 
+        /// <summary>Each craft's command-centre entry as it was last said, by node id: null for one that was not a centre.</summary>
+        private readonly Dictionary<string, Sitrep.Contract.CommandCentreEntry?> _centreSaid =
+            new Dictionary<string, Sitrep.Contract.CommandCentreEntry?>(StringComparer.Ordinal);
+
         /// <summary>Has every craft read afresh on the next pass: the timeline was reset, and what was recorded ahead of it is gone. Safe from any thread.</summary>
         public void ReadAllAgain() => Interlocked.Exchange(ref _readAll, 1);
 
@@ -128,6 +132,7 @@ namespace Sitrep.Host.Comms
             {
                 _read.Clear();
                 _seenFromGround.Clear();
+                _centreSaid.Clear();
             }
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -146,9 +151,21 @@ namespace Sitrep.Host.Comms
                 // A craft that has gained a radio is heard from now on.
                 _seenFromGround.Remove(node.Id);
                 var state = Due(node, look, ut, kernel, listed);
+                _centreSaid.TryGetValue(node.Id, out var centreSaid);
+                if (state == null && !CentreRoster.Same(centreSaid, node.Centre) && _read.TryGetValue(node.Id, out var last))
+                {
+                    // It became a command centre, or stopped being one, and nothing
+                    // else about it changed: the same craft, said again as it now is.
+                    state = last.State.ReadAgain(ut, last.State.ValidUntilUt, last.State.Plannable, last.State.Links)
+                        .Named(last.State.Name)
+                        .Listed(last.State.Roster);
+                    state = last.State.Settled ? state : state.Unsettled();
+                    _read[node.Id] = new Read(last.Node, state);
+                }
                 if (state != null)
                 {
-                    states.Add(state);
+                    _centreSaid[node.Id] = node.Centre;
+                    states.Add(state.AsCentre(node.Centre));
                 }
             }
 

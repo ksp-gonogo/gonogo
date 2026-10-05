@@ -10,7 +10,9 @@ namespace Gonogo.KSP.Tests.CommandCentres
 {
     /// <summary>
     /// The second argument to <see cref="IChannelPublisher.Publish"/> is a
-    /// universe time.
+    /// universe time. Asserted on <c>commandCentre.unreachable</c>, which this
+    /// uplink publishes from the same capture the roster is read in; the roster
+    /// itself is each centre's own and is sent by the contact plan source.
     ///
     /// <para>The engine only ever clamps a stamp that is AHEAD of the clock, so
     /// a value far below current UT (such as a count passed in place of a UT)
@@ -21,14 +23,14 @@ namespace Gonogo.KSP.Tests.CommandCentres
     public class CommandCentreRosterStampTests
     {
         [Fact]
-        public void TheRosterIsStampedWithTheCaptureUt()
+        public void WhatThisUplinkPublishesIsStampedWithTheCaptureUt()
         {
             var host = new PublishRecordingHost();
             var uplink = Uplink(host, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
 
             uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 1_050_000.0 }));
 
-            var (_, ut) = Assert.Single(host.Recorder.Published);
+            var (_, ut) = Assert.Single(host.UnreachableRecorder.Published);
             Assert.Equal(1_050_000.0, ut);
         }
 
@@ -51,8 +53,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
             crowded.PublishRosterOnCourier(crowded.CaptureRosterOnMain(snapshot));
 
             Assert.Equal(
-                Assert.Single(emptyHost.Recorder.Published).Ut,
-                Assert.Single(crowdedHost.Recorder.Published).Ut);
+                Assert.Single(emptyHost.UnreachableRecorder.Published).Ut,
+                Assert.Single(crowdedHost.UnreachableRecorder.Published).Ut);
         }
 
         /// <summary>
@@ -69,7 +71,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
 
-            Assert.Equal(0.0, Assert.Single(host.Recorder.Published).Ut);
+            Assert.Equal(0.0, Assert.Single(host.UnreachableRecorder.Published).Ut);
         }
 
         /// <summary>
@@ -85,9 +87,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 HomeCommand.Identified("ground:Kerbal Space Center"),
                 "ground:woomerang", "ground:Kerbal Space Center", "vessel:abc");
 
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
-
-            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            var roster = uplink.RosterNow();
             Assert.Equal(new[] { "ground:Kerbal Space Center" }, roster.Where(e => e.IsHome).Select(e => e.Id));
             Assert.DoesNotContain(roster, e => e.IsHomeFallback);
         }
@@ -106,9 +106,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 HomeCommand.NotIdentified,
                 "vessel:abc", "ground:DSS 43 - Canberra", "ground:DSS 14 - Goldstone");
 
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
-
-            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            var roster = uplink.RosterNow();
             var home = Assert.Single(roster, e => e.IsHome);
             Assert.Equal("ground:DSS 14 - Goldstone", home.Id);
             Assert.True(home.IsHomeFallback);
@@ -128,9 +126,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 HomeCommand.Identified("ground:Kerbal Space Center"),
                 "ground:woomerang", "ground:Baikerbanur");
 
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
-
-            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            var roster = uplink.RosterNow();
             var home = Assert.Single(roster, e => e.IsHome);
             Assert.Equal("ground:Baikerbanur", home.Id);
             Assert.True(home.IsHomeFallback);
@@ -143,9 +139,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
             var host = new PublishRecordingHost();
             var uplink = Uplink(host, HomeCommand.NotIdentified, "vessel:abc");
 
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
-
-            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            var roster = uplink.RosterNow();
             Assert.DoesNotContain(roster, e => e.IsHome || e.IsHomeFallback);
         }
 

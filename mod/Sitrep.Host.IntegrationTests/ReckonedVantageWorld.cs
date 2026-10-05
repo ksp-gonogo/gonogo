@@ -226,6 +226,20 @@ namespace Sitrep.Host.IntegrationTests
 
         public IReadOnlyList<string> Centres() => new[] { Home, Far };
 
+        /// <summary>Whether the relay is a command centre: crewed, and on the roster.</summary>
+        public bool RelayIsCentre { get; set; }
+
+        /// <summary>The relay's roster entry while it is a command centre.</summary>
+        public static CommandCentreEntry RelayCentre => new CommandCentreEntry
+        {
+            Id = Relay, DisplayName = "Relay", Kind = nameof(CommandCentreKind.CrewedVessel), Active = true, DelayQuality = "routed",
+        };
+
+        private static CommandCentreEntry Station(string id) => new CommandCentreEntry
+        {
+            Id = id, DisplayName = id, Kind = nameof(CommandCentreKind.GroundStation), BodyIndex = Kerbin, Active = true, DelayQuality = "routed",
+        };
+
         /// <summary>What the active craft's radio says of its link, or null for a game that reads none.</summary>
         public ContactRadio? Radio { get; set; }
 
@@ -285,14 +299,21 @@ namespace Sitrep.Host.IntegrationTests
                 ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), null, HomeName),
                 ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0)),
             };
+            var roster = new List<CommandCentreEntry> { Station(Home), Station(Far) };
             lock (_gate)
             {
                 if (_relayExists)
                 {
-                    nodes.Insert(0, ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit, null, "Relay"));
+                    var relay = ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit, null, "Relay");
+                    if (RelayIsCentre)
+                    {
+                        relay.Centre = RelayCentre;
+                        roster.Add(RelayCentre);
+                    }
+                    nodes.Insert(0, relay);
                 }
             }
-            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0) { Radio = Radio };
+            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0) { Radio = Radio, Roster = roster };
         }
 
         private static RotatingGroundStation Surface(double longitudeDeg) =>

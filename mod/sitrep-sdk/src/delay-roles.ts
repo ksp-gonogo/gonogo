@@ -27,6 +27,7 @@
 // early shows an operator the future.
 
 import {
+  GENERATED_ADDRESSED_TOPICS,
   GENERATED_HELD_AT_HOME_TOPICS,
   GENERATED_TRUENOW_TOPICS,
   type GeneratedHeldAtHomeTopic,
@@ -88,15 +89,11 @@ export interface DeclaredDelayRoles {
   readonly addressed: ReadonlySet<string>;
 }
 
-/* No generated list of addressed topics: the scan reads channel declarations,
-   and a topic is made addressed at registration. Until the running mod's
-   roster arrives an addressed topic therefore reads delayed, which is late
-   and never early. */
 const GENERATED_ROLES: DeclaredDelayRoles = {
   trueNow: new Set(GENERATED_TRUENOW_TOPICS),
   heldAtHome: new Set(GENERATED_HELD_AT_HOME_TOPICS),
   trueNowPrefixes: [],
-  addressed: new Set(),
+  addressed: new Set(GENERATED_ADDRESSED_TOPICS),
 };
 
 function stringsOf(value: unknown): string[] | undefined {

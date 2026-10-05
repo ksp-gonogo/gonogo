@@ -148,6 +148,7 @@ namespace Sitrep.Host.Comms
                 ["settled"] = state.Settled,
                 ["name"] = state.Name,
                 ["roster"] = state.Roster == null ? null : new Dictionary<string, object?>(Copy(state.Roster)),
+                ["centre"] = CentreOf(state),
                 ["links"] = links,
             };
         }
@@ -174,8 +175,46 @@ namespace Sitrep.Host.Comms
             var plannable = Get(map, "plannable") is bool p && p;
             var settled = !(Get(map, "settled") is bool s) || s;
 
-            return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster);
+            var centre = Get(map, "centre") is Dictionary<string, object?> entry ? CentreFrom(entry) : null;
+            return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster).AsCentre(centre);
         }
+
+        /// <summary>The craft's roster entry as the save keeps it, or null for a craft that was not a command centre. A save's own layout, not the wire's.</summary>
+        private static Dictionary<string, object?>? CentreOf(CraftState state)
+        {
+            var centre = state.Centre;
+            if (centre == null)
+            {
+                return null;
+            }
+            return new Dictionary<string, object?>
+            {
+                ["id"] = centre.Id,
+                ["displayName"] = centre.DisplayName,
+                ["kind"] = centre.Kind,
+                ["bodyIndex"] = centre.BodyIndex == null ? null : (object)(double)centre.BodyIndex.Value,
+                ["latitude"] = centre.Latitude,
+                ["longitude"] = centre.Longitude,
+                ["active"] = centre.Active,
+                ["isHome"] = centre.IsHome,
+                ["isHomeFallback"] = centre.IsHomeFallback,
+                ["delayQuality"] = centre.DelayQuality,
+            };
+        }
+
+        private static CommandCentreEntry CentreFrom(Dictionary<string, object?> c) => new CommandCentreEntry
+        {
+            Id = Get(c, "id") as string,
+            DisplayName = Get(c, "displayName") as string,
+            Kind = Get(c, "kind") as string,
+            BodyIndex = Get(c, "bodyIndex") is double body ? (int)body : (int?)null,
+            Latitude = Get(c, "latitude") as double?,
+            Longitude = Get(c, "longitude") as double?,
+            Active = Get(c, "active") is bool active && active,
+            IsHome = Get(c, "isHome") is bool home && home,
+            IsHomeFallback = Get(c, "isHomeFallback") is bool fallback && fallback,
+            DelayQuality = Get(c, "delayQuality") as string,
+        };
 
         /// <summary>The state by how the craft was held when it was heard: standing on a surface, on an orbit, or neither for one with no radio.</summary>
         private static CraftState Moving(

@@ -47,7 +47,6 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "career.facilities",
   "career.mode",
   "career.status",
-  "commandCentre.roster",
   "commandCentre.unreachable",
   "missions.active",
   "science.archive",
@@ -62,3 +61,20 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
 /** One of the topics above, as a key union for the type layer. */
 export type GeneratedHeldAtHomeTopic =
   (typeof GENERATED_HELD_AT_HOME_TOPICS)[number];
+
+/**
+ * Every channel the mod declares `Addressed`: each command centre is sent
+ * its own samples and no other centre's, stamped as they are made.
+ */
+export const GENERATED_ADDRESSED_TOPICS = [
+  "commandCentre.roster",
+  "comms.commandCentre",
+  "comms.contacts",
+  "comms.degrade",
+  "comms.delay",
+  "comms.network",
+  "comms.path",
+  "comms.route",
+  "comms.signal",
+  "system.vessels",
+] as const;

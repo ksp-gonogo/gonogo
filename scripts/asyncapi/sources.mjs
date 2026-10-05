@@ -236,6 +236,7 @@ function channelDisposition(body, substitute) {
     keyframeIntervalUt: keyframeInterval(body),
     absenceIsData: boolProperty(body, "AbsenceIsData", substitute),
     heldAtHome: boolProperty(body, "HeldAtHome", substitute),
+    addressed: boolProperty(body, "Addressed", substitute),
   };
 }
 

@@ -113,21 +113,12 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 latitude: latitude,
                 longitude: longitude);
 
-        /// <summary>
-        /// Drive the uplink's real capture/publish pair over a registry holding
-        /// <paramref name="centres"/>, and return what actually reached the channel.
-        /// </summary>
+        /// <summary>The roster the uplink reads over a registry holding <paramref name="centres"/>.</summary>
         private static List<CommandCentreEntry> PublishRoster(params ICommandCentre[] centres)
         {
             var registry = new CommandCentreRegistry();
             registry.RegisterSource(new StaticSource(centres));
-
-            var host = new CapturingUplinkHost();
-            var uplink = new CommandCentreDelayUplink(registry);
-            uplink.Register(host);
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
-
-            return Assert.IsType<List<CommandCentreEntry>>(host.RosterPublisher.LastPayload);
+            return new CommandCentreDelayUplink(registry).RosterNow();
         }
 
         private sealed class StaticSource : ICommandCentreSource

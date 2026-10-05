@@ -54,6 +54,22 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ACraftHeardToBeACommandCentreComesBackAsOne()
+        {
+            var entry = new CommandCentreEntry
+            {
+                Id = "vessel:a", DisplayName = "Alpha", Kind = "CrewedVessel", BodyIndex = 2, Active = true, IsHome = true, IsHomeFallback = true, DelayQuality = "routed",
+            };
+            var centre = CraftState.Orbiting("vessel:a", 1.0, 1, Orbit, null, null, true, new Dictionary<string, CraftLink>()).AsCentre(entry);
+            var plain = CraftState.Orbiting("vessel:b", 1.0, 1, Orbit, null, null, true, new Dictionary<string, CraftLink>());
+
+            var back = RoundTrip(centre, plain).Centres.Single().States;
+
+            Assert.True(CentreRoster.Same(entry, back.Single(s => s.Id == "vessel:a").Centre));
+            Assert.Null(back.Single(s => s.Id == "vessel:b").Centre);
+        }
+
+        [Fact]
         public void ALandedCraftAGoneOneAndOneWithNoRadioEachComeBackAsWhatTheyWere()
         {
             var surface = RotatingGroundStation.FromLatitudeLongitude(10.0, 20.0, 0.0, 21_549.425, 600_000.0, 75.0);

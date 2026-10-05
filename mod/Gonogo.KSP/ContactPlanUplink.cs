@@ -22,13 +22,16 @@ namespace Gonogo.KSP
         private readonly CommandCentreRegistry _centres;
         private readonly ContactPlanSource _source;
         private readonly DeliveryInputs _inputs;
+        private readonly System.Func<HomeCommand> _home;
         private KspVisibilityGeometryFactory? _surface;
         private IUplinkHost? _host;
 
         /// <param name="centres">The registry the ground stations' ids come from, so the plan names them as the roster does.</param>
         /// <param name="inputs">Where each tick's live links are handed to store-and-forward delivery.</param>
-        public ContactPlanUplink(CommandCentreRegistry centres, DeliveryInputs? inputs = null)
+        /// <param name="home">Which centre is home, as the engine has it, for marking it on the roster. Not identified when omitted.</param>
+        public ContactPlanUplink(CommandCentreRegistry centres, DeliveryInputs? inputs = null, System.Func<HomeCommand>? home = null)
         {
+            _home = home ?? (() => HomeCommand.NotIdentified);
             _centres = centres;
             _inputs = inputs ?? new DeliveryInputs();
             _source = new ContactPlanSource(
@@ -136,6 +139,17 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            var active = _centres.EnumerateActive();
+            var roster = CommandCentreDelayUplink.ToRoster(active, _home());
+            var centreOf = new Dictionary<string, CommandCentreEntry>(System.StringComparer.Ordinal);
+            foreach (var entry in roster)
+            {
+                if (entry.Id != null)
+                {
+                    centreOf[entry.Id] = entry;
+                }
+            }
+
             var nodes = new List<ContactGameNode>();
             foreach (var vessel in vessels)
             {
@@ -151,18 +165,20 @@ namespace Gonogo.KSP
                     var point = _surface.CalibratedSurfacePoint(vessel.mainBody, comm);
                     if (point != null)
                     {
-                        nodes.Add(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm, GameWords.VesselName(vessel)));
+                        nodes.Add(AsCentre(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm, GameWords.VesselName(vessel)), centreOf));
                     }
                     continue;
                 }
                 var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
                 if (orbit != null)
                 {
-                    nodes.Add(ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm, GameWords.VesselName(vessel)));
+                    nodes.Add(AsCentre(
+                        ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm, GameWords.VesselName(vessel)),
+                        centreOf));
                 }
             }
 
-            foreach (var centre in _centres.EnumerateActive())
+            foreach (var centre in active)
             {
                 if (centre.Kind != CommandCentreKind.GroundStation
                     || !(centre is KspCommandCentre home)
@@ -192,7 +208,18 @@ namespace Gonogo.KSP
                     : 0.0)
             {
                 Radio = RadioOfActive(),
+                Roster = roster,
             };
+        }
+
+        /// <summary>The craft's node, carrying its roster entry when the craft is a command centre.</summary>
+        private static ContactGameNode AsCentre(ContactGameNode node, Dictionary<string, CommandCentreEntry> centreOf)
+        {
+            if (centreOf.TryGetValue(node.Id, out var entry))
+            {
+                node.Centre = entry;
+            }
+            return node;
         }
 
         /// <summary>

@@ -345,6 +345,21 @@ namespace Sitrep.Contract
         /// <para>Defaults to <c>false</c>.</para>
         /// </summary>
         public bool HeldAtHome { get; set; } = false;
+
+        /// <summary>
+        /// Whether each command centre is sent its own samples of this channel
+        /// and no other centre's, each stamped as it is made. A client reads
+        /// such a channel as it is delivered, taking no light-time off it: what
+        /// a centre is sent is already what that centre knows.
+        /// <internal>
+        /// Declarative. Only core's own sources can publish an addressed sample
+        /// (Sitrep.Host's IAddressedStreamHost), so an Uplink that sets this
+        /// declares a channel nobody is sent. It is here so the generated
+        /// fallback table of delay roles can list these channels, which the
+        /// running mod otherwise states only on <c>system.uplinks</c>.
+        /// </internal>
+        /// </summary>
+        public bool Addressed { get; set; } = false;
     }
 
     /// <summary>

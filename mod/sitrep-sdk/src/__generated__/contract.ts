@@ -938,6 +938,14 @@ export interface ChannelEmissionReport
 * The channel payload is a bare array of these entries, like
 * `SpaceCenterPoiEntry`, one per centre, keyed by `CommandCentreEntry.id`.
 *
+* ADDRESSED: each command centre is sent its own roster, the centres it knows
+* of. A ground station is on every centre's. A vessel that is a command centre
+* joins a centre's roster when the vessel's own word that it is one has
+* reached that centre, and stays on it until its word that it no longer is, or
+* that it is gone, has: a crew boarding a vessel far away does not put a new
+* centre on your roster before the light of it could arrive. A centre always
+* lists itself.
+*
 * @category Comms
 */
 export interface CommandCentreEntry

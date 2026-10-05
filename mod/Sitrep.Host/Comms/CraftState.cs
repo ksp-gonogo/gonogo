@@ -84,6 +84,25 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public IReadOnlyDictionary<string, object?>? Roster { get; }
 
+        /// <summary>
+        /// The craft's entry on <c>commandCentre.roster</c> as it stood when
+        /// this was read, or null for a craft that was not a command centre
+        /// then. A centre lists the craft as one from when this reaches it.
+        /// </summary>
+        public Sitrep.Contract.CommandCentreEntry? Centre { get; private set; }
+
+        /// <summary>
+        /// This state, saying whether the craft was a command centre when it
+        /// was read. Said last, after every other change to a state, each of
+        /// which makes a state that says nothing of it.
+        /// </summary>
+        public CraftState AsCentre(Sitrep.Contract.CommandCentreEntry? centre)
+        {
+            var said = (CraftState)MemberwiseClone();
+            said.Centre = centre;
+            return said;
+        }
+
         /// <summary>When this was read off the craft.</summary>
         public double CapturedUt { get; }
 

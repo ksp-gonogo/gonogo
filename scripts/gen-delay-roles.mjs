@@ -78,6 +78,28 @@ if (heldAtHome.length < HELD_AT_HOME_FLOOR) {
   process.exit(1);
 }
 
+/*
+ * Addressed: each command centre is sent its own samples, stamped as they are
+ * made, so a reader takes no light-time off them. Their own table for the same
+ * reason held-at-home has one: it is a different claim from TrueNow.
+ */
+const addressed = [...dispositions.entries()]
+  .filter(([, disposition]) => disposition.addressed === true)
+  .map(([topic]) => topic)
+  .sort();
+
+/** The same floor for the third table: empty reads as "nothing is addressed", and every such channel would be read late. */
+const ADDRESSED_FLOOR = 8;
+
+if (addressed.length < ADDRESSED_FLOOR) {
+  console.error(
+    `✖ delay-roles: the scan found ${addressed.length} addressed channels, fewer ` +
+      `than the ${ADDRESSED_FLOOR} this repo has. That is the scan being broken ` +
+      "rather than the mod addressing nothing. Refusing to write the table.",
+  );
+  process.exit(1);
+}
+
 if (trueNow.length < FLOOR) {
   console.error(
     `✖ delay-roles: the scan found ${trueNow.length} TrueNow channels, fewer ` +
@@ -125,9 +147,17 @@ const lines = [
   "export type GeneratedHeldAtHomeTopic =",
   "  (typeof GENERATED_HELD_AT_HOME_TOPICS)[number];",
   "",
+  "/**",
+  " * Every channel the mod declares `Addressed`: each command centre is sent",
+  " * its own samples and no other centre's, stamped as they are made.",
+  " */",
+  "export const GENERATED_ADDRESSED_TOPICS = [",
+  ...addressed.map((topic) => `  ${JSON.stringify(topic)},`),
+  "] as const;",
+  "",
 ];
 
 writeFileSync(OUT, lines.join("\n"));
 console.log(
-  `codegen (delay-roles) -> ${OUT} (${trueNow.length} TrueNow, ${heldAtHome.length} held at home)`,
+  `codegen (delay-roles) -> ${OUT} (${trueNow.length} TrueNow, ${heldAtHome.length} held at home, ${addressed.length} addressed)`,
 );

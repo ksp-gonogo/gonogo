@@ -19,6 +19,19 @@ namespace Sitrep.Contract;
 /// straight over, so each element is written by JsonWriter's own
 /// AppendCommandCentreEntry.
 /// </internal></para>
+///
+/// <para>ADDRESSED: each command centre is sent its own roster, the centres it
+/// knows of. A ground station is on every centre's. A vessel that is a command
+/// centre joins a centre's roster when the vessel's own word that it is one
+/// has reached that centre, and stays on it until its word that it no longer
+/// is, or that it is gone, has: a crew boarding a vessel far away does not put
+/// a new centre on your roster before the light of it could arrive. A centre
+/// always lists itself.
+/// <internal>
+/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreRoster. It was
+/// one list held at home, which told every ground centre of a new vessel centre
+/// the instant the game had one (Saga 782 subtask 100).
+/// </internal></para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]

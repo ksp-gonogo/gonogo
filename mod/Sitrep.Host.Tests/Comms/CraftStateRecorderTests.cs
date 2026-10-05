@@ -271,6 +271,28 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ACraftIsSaidAgainWhenItBecomesACommandCentreAndWhenItStopsBeingOne()
+        {
+            var recorder = new CraftStateRecorder();
+            var plain = Craft("a", Orbit(700_000.0));
+            var first = recorder.Capture(Look(plain, Ksc), 0.0, null).States.Single();
+            Assert.Null(first.Centre);
+
+            var crewed = Craft("a", Orbit(700_000.0));
+            crewed.Centre = new Sitrep.Contract.CommandCentreEntry { Id = "vessel:a", DisplayName = "Alpha", Active = true };
+            var boarded = recorder.Capture(Look(crewed, Ksc), 5.0, null).States.Single();
+            Assert.Equal("Alpha", boarded.Centre!.DisplayName);
+            Assert.Equal(5.0, boarded.CapturedUt);
+            Assert.Same(first.Motion, boarded.Motion);
+
+            Assert.Empty(recorder.Capture(Look(crewed, Ksc), 6.0, null).States);
+
+            var left = recorder.Capture(Look(plain, Ksc), 7.0, null).States.Single();
+            Assert.Null(left.Centre);
+            Assert.Equal(7.0, left.CapturedUt);
+        }
+
+        [Fact]
         public void ACraftWithNoRadioIsNotedOnceWhenItAppearsAndOnceWhenItIsGone()
         {
             var recorder = new CraftStateRecorder();

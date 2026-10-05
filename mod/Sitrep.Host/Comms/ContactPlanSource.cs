@@ -48,6 +48,9 @@ namespace Sitrep.Host.Comms
         /// <summary>The node's human-facing name: the craft's, or the ground station's as the roster shows it. Null when the game gives none.</summary>
         public string? DisplayName { get; }
 
+        /// <summary>The craft's entry on <c>commandCentre.roster</c> while it is a command centre, or null.</summary>
+        public CommandCentreEntry? Centre { get; set; }
+
         public static ContactGameNode OrbitingCraft(
             string id, int bodyIndex, OrbitElements orbit, object? radio = null, string? displayName = null) =>
             new ContactGameNode(id, bodyIndex, orbit, null, false, radio, displayName);
@@ -89,6 +92,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>What the active craft's radio says of its own link now, or null when there is no active craft or no backend to ask.</summary>
         public ContactRadio? Radio { get; set; }
+
+        /// <summary>Every command centre as the game has them now, or null for a game that keeps no roster.</summary>
+        public IReadOnlyList<CommandCentreEntry>? Roster { get; set; }
     }
 
     /// <summary>The game a contact plan is made of. Asked on the main thread only.</summary>
@@ -170,6 +176,8 @@ namespace Sitrep.Host.Comms
 
         public const string VesselsTopic = SystemViewProvider.VesselsTopic;
 
+        public const string RosterTopic = "commandCentre.roster";
+
         public const string DelayTopic = "comms.delay";
 
         public const string SignalTopic = "comms.signal";
@@ -248,9 +256,11 @@ namespace Sitrep.Host.Comms
                 IReadOnlyList<string> centres,
                 string? activeCraft,
                 bool routesDue,
-                ContactRadio? radio)
+                ContactRadio? radio,
+                IReadOnlyList<CommandCentreEntry>? roster)
             {
                 Radio = radio;
+                Roster = roster;
                 Ut = ut;
                 Craft = craft;
                 Ground = ground;
@@ -274,6 +284,9 @@ namespace Sitrep.Host.Comms
 
             /// <summary>What the active craft's radio said on this look, or null.</summary>
             public ContactRadio? Radio { get; }
+
+            /// <summary>Every command centre as the game had them on this look, or null.</summary>
+            public IReadOnlyList<CommandCentreEntry>? Roster { get; }
 
             public bool RoutesDue { get; }
         }
@@ -357,6 +370,7 @@ namespace Sitrep.Host.Comms
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Delay = DelayRole.Delayed,
+            Addressed = true,
             Recordable = false,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
@@ -373,10 +387,22 @@ namespace Sitrep.Host.Comms
             new ChannelDeclaration
             {
                 Requires = Requirement.None,
+                Topic = RosterTopic,
+                Delivery = Delivery.LossyLatest,
+                // Addressed: each centre is sent the centres it knows of.
+                Delay = DelayRole.Delayed,
+                Addressed = true,
+                Recordable = false,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+            },
+            new ChannelDeclaration
+            {
+                Requires = Requirement.None,
                 Topic = VesselsTopic,
                 Delivery = Delivery.LossyLatest,
                 // Addressed: each centre is sent the craft it has heard of, as it heard them.
                 Delay = DelayRole.Delayed,
+                Addressed = true,
                 Recordable = false,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             },
@@ -387,6 +413,7 @@ namespace Sitrep.Host.Comms
                 Delivery = Delivery.LossyLatest,
                 // Addressed: each centre is sent its own plan and no other's.
                 Delay = DelayRole.Delayed,
+                Addressed = true,
                 // Never aboard anything, so nothing to replay on reacquisition.
                 Recordable = false,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -398,6 +425,7 @@ namespace Sitrep.Host.Comms
                 Delivery = Delivery.LossyLatest,
                 // Addressed: each centre is sent its own routes and no other's.
                 Delay = DelayRole.Delayed,
+                Addressed = true,
                 Recordable = false,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
             },
@@ -428,6 +456,8 @@ namespace Sitrep.Host.Comms
             // told its centre's current plan and routes again.
             _streams.OnAddressedSubscribed(ContactsTopic, centre => _unpublished.Add(centre));
             _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
+            _streams.DeclareAddressedTopic(RosterTopic);
+            _streams.OnAddressedSubscribed(RosterTopic, centre => _rosterAsked.Add(centre));
             _streams.DeclareAddressedTopic(VesselsTopic);
             _streams.OnAddressedSubscribed(VesselsTopic, centre => _vesselsAsked.Add(centre));
             foreach (var topic in PathTopics)
@@ -503,7 +533,8 @@ namespace Sitrep.Host.Comms
                 new List<string>(_game.Centres()),
                 string.IsNullOrEmpty(active) ? null : CraftStateRecorder.VesselPrefix + active,
                 routesDue,
-                look.Radio);
+                look.Radio,
+                look.Roster);
         }
 
         /// <summary>
@@ -536,6 +567,7 @@ namespace Sitrep.Host.Comms
                 _pathShapes.Clear();
                 _radioSaid.Clear();
                 _radioSent.Clear();
+                _rosterSent.Clear();
                 _vesselsNews.Clear();
                 System.Threading.Interlocked.Increment(ref _plansVersion);
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
@@ -564,6 +596,41 @@ namespace Sitrep.Host.Comms
             PublishRoutes(looked, planning);
             PublishPaths(looked, planning);
             PublishVessels(looked, planning);
+            PublishRosters(looked, listening);
+        }
+
+        /// <summary>The roster each centre was last sent.</summary>
+        private readonly Dictionary<string, List<CommandCentreEntry>> _rosterSent =
+            new Dictionary<string, List<CommandCentreEntry>>(StringComparer.Ordinal);
+
+        private readonly HashSet<string> _rosterAsked = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Sends each centre the centres it knows of: when that list has
+        /// changed, and at once where a session has just sat down. Every
+        /// centre is sent one, planned for or not, because a session reads the
+        /// roster to choose where to sit.
+        /// </summary>
+        private void PublishRosters(Looked looked, IReadOnlyCollection<string> centres)
+        {
+            if (looked.Roster == null || !_host!.IsAnyTopicSubscribed(RosterTopic))
+            {
+                _rosterAsked.Clear();
+                _rosterSent.Clear();
+                return;
+            }
+            foreach (var centre in centres)
+            {
+                var roster = CentreRoster.For(centre, looked.Roster, _hearing!.HeardAt(centre));
+                var asked = _rosterAsked.Contains(centre);
+                if (!asked && _rosterSent.TryGetValue(centre, out var sent) && CentreRoster.Same(sent, roster))
+                {
+                    continue;
+                }
+                _rosterSent[centre] = roster;
+                _streams!.PublishAddressedTo(RosterTopic, roster, looked.Ut, ToItself(centre));
+            }
+            _rosterAsked.Clear();
         }
 
         /// <summary>Keeps a copy of what every centre has heard whenever any of it changes, so a save on the main thread reads a whole one.</summary>

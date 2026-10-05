@@ -2339,8 +2339,14 @@ namespace Sitrep.Contract
         /// <c>comms.route</c>, and the commands it sends, run through whichever ground
         /// station reaches the craft first, where they ran through the home station
         /// alone. No payload changes shape.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 6 -&gt; 7: each command centre's own
+        /// roster.</b> <c>commandCentre.roster</c> is sent to each command centre alone.
+        /// A vessel that is a command centre is listed once its own word of it has
+        /// reached the receiving centre, where every ground centre was told of it at
+        /// once. No payload changes shape.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 6;
+        public const int Minor = 7;
     }
 }
