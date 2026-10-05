@@ -31,10 +31,13 @@ export function useDialFit({
   dialFit: number;
   /** Whether the readout's three cells fit on one line; true until a ResizeObserver reports. */
   readoutAcross: boolean;
+  /** The attitude column's measured width, which the numeric readout scales its figures against; 0 until a ResizeObserver reports. */
+  columnWidth: number;
   attachAttitude: (el: HTMLDivElement | null) => void;
 } {
   const [dialFit, setDialFit] = useState(180);
   const [readoutAcross, setReadoutAcross] = useState(true);
+  const [columnWidth, setColumnWidth] = useState(0);
   const throttleReservedRef = useRef(false);
   const controlModeRef = useRef(false);
   const dialObserverRef = useRef<ResizeObserver | null>(null);
@@ -64,10 +67,11 @@ export function useDialFit({
         setDialFit(Math.min(cap, Math.floor(fit)));
         // The readout carries no throttle bar, so it gets the full width.
         setReadoutAcross(w >= READOUT_TRIPLE_PX);
+        setColumnWidth(Math.floor(w));
       }
     });
     ro.observe(el);
     dialObserverRef.current = ro;
   }, []);
-  return { dialFit, readoutAcross, attachAttitude };
+  return { dialFit, readoutAcross, columnWidth, attachAttitude };
 }

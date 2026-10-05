@@ -17,12 +17,28 @@ import type { CSSProperties, ReactNode } from "react";
  */
 export const READOUT_TRIPLE_PX = 158;
 
+/** The largest a figure grows to, so a tall wide tile does not turn three angles into a banner. */
+const READOUT_FIGURE_MAX_PX = 40;
+
+/** A figure's font size as a fraction of the column's width: the widest cell (`-180°`) is three ems, so three across fill three quarters of the column at most. */
+const READOUT_FIGURE_PER_COLUMN = 1 / 12;
+
+/** The readout's figure size: the type scale's own at the narrowest, growing with the column. */
+function figureSize(columnWidth: number): string {
+  const grown = Math.min(
+    READOUT_FIGURE_MAX_PX,
+    Math.floor(columnWidth * READOUT_FIGURE_PER_COLUMN),
+  );
+  return `max(var(--font-size-figure), ${grown}px)`;
+}
+
 /** Heading, pitch and roll as numbers, shown in place of the dial; a held attitude wears Unit's held mark on each. */
 export function AttitudeReadout({
   heading,
   pitch,
   roll,
   across,
+  columnWidth,
   reading,
 }: {
   heading: number | null;
@@ -30,6 +46,8 @@ export function AttitudeReadout({
   roll: number | null;
   /** Whether the three cells fit on one line. */
   across: boolean;
+  /** The column the readout sits in, in pixels; the figures grow with it up to {@link READOUT_FIGURE_MAX_PX}. */
+  columnWidth: number;
   reading: TopicReading<unknown>;
 }) {
   return (
@@ -37,7 +55,11 @@ export function AttitudeReadout({
       <div style={across ? READOUT_TRIPLE : READOUT_STACK}>
         {attitudeCells(heading, pitch, roll, reading).map((cell) =>
           across ? (
-            <Readout size="hero" key={cell.label} style={READOUT_CELL}>
+            <Readout
+              size="hero"
+              key={cell.label}
+              style={{ ...READOUT_CELL, fontSize: figureSize(columnWidth) }}
+            >
               {cell.value}
               <ReadoutCaption>{cell.label}</ReadoutCaption>
             </Readout>

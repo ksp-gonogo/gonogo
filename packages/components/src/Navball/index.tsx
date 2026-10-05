@@ -163,7 +163,7 @@ function NavballComponent({
   const cols = w ?? 8;
   const rows = h ?? 11;
   const showControlSurface = controlMode && rows >= 18 && cols >= 7;
-  const { dialFit, readoutAcross, attachAttitude } = useDialFit({
+  const { dialFit, readoutAcross, columnWidth, attachAttitude } = useDialFit({
     reserveThrottle: cols >= 5,
     controlSurface: showControlSurface,
   });
@@ -206,6 +206,7 @@ function NavballComponent({
                   pitch={pitch}
                   roll={roll}
                   across={readoutAcross}
+                  columnWidth={columnWidth}
                   reading={attitudeReading}
                 />
               </div>
