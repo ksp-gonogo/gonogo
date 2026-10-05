@@ -108,6 +108,97 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Null(world.Engine.HeardSnapshotNow()!.Centres.SingleOrDefault(c => c.Centre == Home)?.States.SingleOrDefault(s => s.Id == Relay));
         }
 
+        /// <summary>
+        /// A process that resumes a game resets its timeline twice, a tick
+        /// apart, and only the first reset comes with the load. The second
+        /// keeps what the save held, where it used to leave every centre
+        /// knowing nothing.
+        /// </summary>
+        [Fact]
+        public async Task AResetOneTickAfterALoadKeepsWhatTheSaveHeld()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+            var saved = SavedAndReadBack(world);
+
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), saved, savedUt: 702.0);
+            world.Tick(703.0);
+            world.Tick(702.5);
+            world.Tick(703.5);
+            await world.SettleAsync();
+
+            Assert.NotNull(world.Engine.HeardSnapshotNow()!.Centres.SingleOrDefault(c => c.Centre == Home)?.States.SingleOrDefault(s => s.Id == Relay));
+        }
+
+        /// <summary>
+        /// A quickload turns the clock back before the game hands the save's
+        /// own record over. The engine was told what the save held when it was
+        /// written, so the rewind restores that, and not what an earlier scene
+        /// change had carried: home keeps the newest reading it had at the
+        /// save, where it was put back to an older one.
+        /// </summary>
+        [Fact]
+        public async Task AQuickloadRestoresWhatTheNewestSaveHeldThoughTheClockTurnsBackBeforeTheGameHandsItOver()
+        {
+            var game = new ScriptedContactGame { Radio = ThroughTheRelay(0.9) };
+            await using var world = await ReckonedVantageWorld.StartAsync(game);
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+            // A scene change: the game saves, and loads what it has just saved.
+            var atSceneChange = SavedAndReadBack(world);
+            world.Engine.NoteSaved(new DeliverySnapshot(), atSceneChange, 702.0);
+            world.Engine.NoteSaveReloaded(new DeliverySnapshot(), atSceneChange, 702.0);
+
+            world.Game.Radio = ThroughTheRelay(0.4);
+            foreach (var ut in new[] { 1000.0, 1002.0, 1700.0, 1702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+            var quicksave = SavedAndReadBack(world);
+            Assert.Equal(0.4, quicksave!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength, 6);
+            world.Engine.NoteSaved(new DeliverySnapshot(), quicksave, 1702.0);
+            world.Tick(1704.0);
+
+            world.Tick(1702.02);
+            world.Tick(1703.0);
+            await world.SettleAsync();
+
+            Assert.Equal(0.4, world.Engine.HeardSnapshotNow()!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength, 6);
+        }
+
+        /// <summary>
+        /// Loading an older save than the newest one written turns the clock
+        /// back past what the newest held. Nothing of the newer save is
+        /// restored: a centre never knows what it had not yet heard.
+        /// </summary>
+        [Fact]
+        public async Task ARewindToBeforeTheNewestSaveRestoresNothingOfIt()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+            var saved = SavedAndReadBack(world);
+            Assert.NotNull(saved!.Centres.Single(c => c.Centre == Home).States.SingleOrDefault(s => s.Id == Relay));
+            world.Engine.NoteSaved(new DeliverySnapshot(), saved, 702.0);
+
+            world.Tick(300.0);
+            world.Tick(301.0);
+            await world.SettleAsync();
+
+            Assert.Null(world.Engine.HeardSnapshotNow()!.Centres.SingleOrDefault(c => c.Centre == Home)?.States.SingleOrDefault(s => s.Id == Relay));
+        }
+
         private static ContactRadio ThroughTheRelay(double strength) => new ContactRadio(
             ScriptedContactGame.Active,
             true,

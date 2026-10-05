@@ -41,9 +41,37 @@ namespace Sitrep.Host
         private Func<string, ContactPlan?>? _centrePlans;
         private Func<int>? _centrePlansVersion;
         private string? _activeCraftId;
-        private DeliverySnapshot? _carriedBySave;
-        private DeliverySnapshot? _reloadedSave;
+        private SavedGame? _loadedGame;
+        private SavedGame? _latestSave;
         private int _gameLoaded;
+
+        /// <summary>
+        /// What one save of the game holds of this engine: what delivery held,
+        /// what each centre had heard, the UT it was written at and the save
+        /// folder it belongs to, null where the caller did not say.
+        /// </summary>
+        private sealed class SavedGame
+        {
+            public SavedGame(DeliverySnapshot delivery, HeardSnapshot? heard, double ut, string? save)
+            {
+                Delivery = delivery;
+                Heard = heard;
+                Ut = ut;
+                Save = save;
+            }
+
+            public DeliverySnapshot Delivery { get; }
+
+            public HeardSnapshot? Heard { get; }
+
+            public double Ut { get; }
+
+            public string? Save { get; }
+
+            /// <summary>Whether a timeline that starts at <paramref name="ut"/> in <paramref name="save"/> had this save behind it: the same game, written no later than that instant.</summary>
+            public bool IsBehind(double ut, string? save) =>
+                Ut <= ut + 0.001 && (Save == null || save == null || string.Equals(Save, save, StringComparison.Ordinal));
+        }
 
         /// <summary>
         /// The live link graph and light scaling store-and-forward reads, written
@@ -113,50 +141,71 @@ namespace Sitrep.Host
         /// game. While a loaded game's snapshot waits for the next tick to restore
         /// it, that snapshot is what the game holds. Callable from any thread.
         /// </summary>
-        public DeliverySnapshot DeliverySnapshotNow() => Volatile.Read(ref _carriedBySave) ?? _delivery.Snapshot();
+        public DeliverySnapshot DeliverySnapshotNow() => Volatile.Read(ref _loadedGame)?.Delivery ?? _delivery.Snapshot();
 
         /// <summary>
-        /// A game was loaded, carrying <paramref name="carried"/>: the next tick
-        /// starts a new timeline and restores what the save held. Callable from any
-        /// thread.
+        /// A game was loaded, carrying <paramref name="carried"/> and
+        /// <paramref name="heard"/>: the next tick starts a new timeline and
+        /// restores what the save held. Callable from any thread.
         /// </summary>
-        public void NoteGameLoaded(DeliverySnapshot? carried, HeardSnapshot? heard = null)
+        /// <param name="savedUt">The UT the save was written at, or negative infinity when it does not say.</param>
+        /// <param name="save">The save folder the game belongs to, or null when unknown.</param>
+        public void NoteGameLoaded(DeliverySnapshot? carried, HeardSnapshot? heard = null, double savedUt = double.NegativeInfinity, string? save = null)
         {
-            _heardLoaded?.Invoke(heard);
-            Volatile.Write(ref _reloadedSave, null);
-            Volatile.Write(ref _carriedBySave, carried ?? new DeliverySnapshot());
+            var loaded = new SavedGame(carried ?? new DeliverySnapshot(), heard, savedUt, save);
+            Volatile.Write(ref _latestSave, loaded);
+            Volatile.Write(ref _loadedGame, loaded);
             Interlocked.Exchange(ref _gameLoaded, 1);
         }
 
         /// <summary>
         /// The game loaded this process's own latest save, as it does on every
-        /// scene change, which starts no new timeline. Should a rewind start one
-        /// anyway (a quickload of that same save), it restores what this save
-        /// held rather than nothing. Callable from any thread.
+        /// scene change, which starts no new timeline. Callable from any thread.
         /// </summary>
-        public void NoteSaveReloaded(DeliverySnapshot? carried, HeardSnapshot? heard = null)
-        {
-            _heardReloaded?.Invoke(heard);
-            Volatile.Write(ref _reloadedSave, carried);
-        }
+        public void NoteSaveReloaded(DeliverySnapshot? carried, HeardSnapshot? heard = null, double savedUt = double.NegativeInfinity, string? save = null) =>
+            Volatile.Write(ref _latestSave, new SavedGame(carried ?? new DeliverySnapshot(), heard, savedUt, save));
+
+        /// <summary>
+        /// The game was saved at <paramref name="ut"/>, holding
+        /// <paramref name="delivery"/> and <paramref name="heard"/>. Callable
+        /// from any thread.
+        ///
+        /// <para>The newest save written or loaded is what any later reset of
+        /// the timeline restores from, when that save lies behind the instant
+        /// the timeline restarts at. A quickload turns the clock back before
+        /// the game hands the save's record over, and a resumed game has been
+        /// seen to reset twice a tick apart, so a record handed over once and
+        /// used once left a centre with an older save's knowledge or with
+        /// none. A rewind to before the newest save restores nothing of it:
+        /// the load that caused it brings its own record.</para>
+        /// </summary>
+        public void NoteSaved(DeliverySnapshot? delivery, HeardSnapshot? heard, double ut, string? save = null) =>
+            Volatile.Write(ref _latestSave, new SavedGame(delivery ?? new DeliverySnapshot(), heard, ut, save));
 
         private Func<HeardSnapshot?>? _heardNow;
-        private Action<HeardSnapshot?>? _heardLoaded;
-        private Action<HeardSnapshot?>? _heardReloaded;
+        private Action<HeardSnapshot?>? _heardRestore;
 
-        public void SetHeardStore(Func<HeardSnapshot?> now, Action<HeardSnapshot?> loaded, Action<HeardSnapshot?> reloaded)
+        public void SetHeardStore(Func<HeardSnapshot?> now, Action<HeardSnapshot?> restoreAtReset)
         {
             _heardNow = now;
-            _heardLoaded = loaded;
-            _heardReloaded = reloaded;
+            _heardRestore = restoreAtReset;
         }
 
         /// <summary>
         /// What every command centre has heard of every craft right now, for
-        /// saving with the game, or null when nothing here keeps it. Callable
-        /// from any thread.
+        /// saving with the game, or null when nothing here keeps it. While a
+        /// loaded game waits for the tick that restores it, what it carried is
+        /// what the game holds. Callable from any thread.
         /// </summary>
-        public HeardSnapshot? HeardSnapshotNow() => _heardNow?.Invoke();
+        public HeardSnapshot? HeardSnapshotNow()
+        {
+            var loaded = Volatile.Read(ref _loadedGame);
+            if (loaded != null && _heardNow != null)
+            {
+                return loaded.Heard ?? new HeardSnapshot(new HeardAtCentre[0]);
+            }
+            return _heardNow?.Invoke();
+        }
 
         private void CreateDelivery()
         {
@@ -868,15 +917,25 @@ namespace Sitrep.Host
         /// <summary>Whether a game load asked for a new timeline since the last tick.</summary>
         private bool TakeGameLoaded() => Interlocked.Exchange(ref _gameLoaded, 0) == 1;
 
-        /// <summary>A new timeline: drop everything in the network, then restore what a loaded save carried.</summary>
-        private void ResetDelivery()
+        /// <summary>
+        /// A new timeline starting at <paramref name="ut"/> in
+        /// <paramref name="save"/>: drop everything in the network, then
+        /// restore what the loaded game carried, or failing a load what the
+        /// newest save behind that instant held. Returns what was restored
+        /// from, for the log.
+        /// </summary>
+        private string ResetDelivery(double ut, string? save)
         {
             _delivery.Reset();
             _deliveryJobs.Clear();
             _journey.Clear();
             _journeyVantage.Clear();
             _laneCraftNodes.Clear();
-            var carried = Interlocked.Exchange(ref _carriedBySave, null) ?? Interlocked.Exchange(ref _reloadedSave, null);
+            var loaded = Interlocked.Exchange(ref _loadedGame, null);
+            var latest = Volatile.Read(ref _latestSave);
+            var from = loaded ?? (latest != null && latest.IsBehind(ut, save) ? latest : null);
+            _heardRestore?.Invoke(from?.Heard);
+            var carried = from?.Delivery;
             if (carried != null)
             {
                 _delivery.Restore(carried, _courier.CurrentEpoch);
@@ -889,6 +948,14 @@ namespace Sitrep.Host
                     _laneCraftNodes[command.Lane.Craft] = command.ExecNode;
                 }
             }
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            if (from != null)
+            {
+                return (loaded != null ? "restored the loaded game, saved at UT " : "restored the newest save, written at UT ") + from.Ut.ToString("F2", ic);
+            }
+            return latest == null
+                ? "restored nothing, no save has been written or loaded"
+                : "restored nothing, the newest save is of UT " + latest.Ut.ToString("F2", ic) + " in '" + latest.Save + "'";
         }
 
         /// <summary>

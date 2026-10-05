@@ -23,11 +23,12 @@ namespace Sitrep.Host.Comms
         void SetNodeNames(Func<string, string, string?> nameAt);
 
         /// <summary>
-        /// Takes the three calls a save and a load need of what the centres have
-        /// heard: read it now, take what a loaded game carried, and take what a
-        /// reload of this process's own save carried. Each is safe on any thread.
+        /// Takes the two calls a save and a load need of what the centres have
+        /// heard: read it now, on any thread, and at each reset of the
+        /// timeline, on the courier thread and before the reset is announced,
+        /// what to start the new timeline knowing, or null for nothing.
         /// </summary>
-        void SetHeardStore(Func<HeardSnapshot?> now, Action<HeardSnapshot?> loaded, Action<HeardSnapshot?> reloaded);
+        void SetHeardStore(Func<HeardSnapshot?> now, Action<HeardSnapshot?> restoreAtReset);
 
         /// <summary>News of the node <paramref name="nodeId"/> has just reached <paramref name="centre"/>. Courier thread only.</summary>
         void NoteHeard(string centre, string nodeId);

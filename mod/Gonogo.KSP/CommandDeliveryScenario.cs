@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Sitrep.Host.Comms;
 using UnityEngine;
 
@@ -17,6 +18,11 @@ namespace Gonogo.KSP
     /// timeline. A quickload of the latest save carries its token too, so the
     /// round trip still hands the engine what it held, for the rewind that
     /// load starts.</para>
+    ///
+    /// <para>Each save also tells the engine what it has just written and at
+    /// what UT. A quickload turns the clock back before this module is loaded
+    /// again, so the engine restores from what it was told at the save, not
+    /// from a record that has yet to arrive.</para>
     /// </summary>
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
     public sealed class CommandDeliveryScenario : ScenarioModule
@@ -24,6 +30,7 @@ namespace Gonogo.KSP
         private const string DeliveryKey = "delivery";
         private const string TokenKey = "token";
         private const string HeardKey = "heard";
+        private const string UtKey = "ut";
 
         private static string? _lastSavedToken;
 
@@ -34,13 +41,21 @@ namespace Gonogo.KSP
             {
                 var token = node.GetValue(TokenKey);
                 var carried = DeliverySnapshotCodec.Decode(node.GetValue(DeliveryKey));
-                var heard = HeardSnapshotCodec.Decode(node.GetValue(HeardKey));
-                if (token != null && string.Equals(token, _lastSavedToken, StringComparison.Ordinal))
+                var encodedHeard = node.GetValue(HeardKey);
+                var heard = HeardSnapshotCodec.Decode(encodedHeard);
+                var savedUt = double.TryParse(node.GetValue(UtKey), NumberStyles.Float, CultureInfo.InvariantCulture, out var ut)
+                    ? ut
+                    : double.NegativeInfinity;
+                var ownLatest = token != null && string.Equals(token, _lastSavedToken, StringComparison.Ordinal);
+                Debug.Log("[Gonogo] CommandDeliveryScenario loaded a save of UT " + savedUt.ToString("F2", CultureInfo.InvariantCulture)
+                    + (ownLatest ? ", this process's own latest" : ", not this process's latest, so a new timeline")
+                    + ", heard " + (encodedHeard?.Length ?? 0) + " chars" + (heard == null ? " (none read)" : ""));
+                if (ownLatest)
                 {
-                    GonogoAddon.SharedEngine?.NoteSaveReloaded(carried, heard);
+                    GonogoAddon.SharedEngine?.NoteSaveReloaded(carried, heard, savedUt, HighLogic.SaveFolder);
                     return;
                 }
-                GonogoAddon.SharedEngine?.NoteGameLoaded(carried, heard);
+                GonogoAddon.SharedEngine?.NoteGameLoaded(carried, heard, savedUt, HighLogic.SaveFolder);
             }
             catch (Exception ex)
             {
@@ -56,6 +71,8 @@ namespace Gonogo.KSP
                 var token = Guid.NewGuid().ToString("N");
                 node.SetValue(TokenKey, token, true);
                 _lastSavedToken = token;
+                var ut = Planetarium.GetUniversalTime();
+                node.SetValue(UtKey, ut.ToString("R", CultureInfo.InvariantCulture), true);
                 var snapshot = GonogoAddon.SharedEngine?.DeliverySnapshotNow();
                 if (snapshot != null)
                 {
@@ -66,6 +83,7 @@ namespace Gonogo.KSP
                 {
                     node.SetValue(HeardKey, HeardSnapshotCodec.Encode(heard), true);
                 }
+                GonogoAddon.SharedEngine?.NoteSaved(snapshot, heard, ut, HighLogic.SaveFolder);
             }
             catch (Exception ex)
             {

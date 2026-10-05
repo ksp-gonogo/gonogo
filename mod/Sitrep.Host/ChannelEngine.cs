@@ -7179,7 +7179,16 @@ namespace Sitrep.Host
             // its history goes whole rather than from the tick's UT onward.
             // A game load is a new timeline whatever its save or UT says, so held
             // commands from one game never carry into another.
-            var saveChanged = (tick.Save != null && _timelineSave != null && tick.Save != _timelineSave) || TakeGameLoaded();
+            // The load is taken whether or not the save changed with it, or it would start a second timeline a tick later.
+            var gameLoaded = TakeGameLoaded();
+            var folderChanged = tick.Save != null && _timelineSave != null && tick.Save != _timelineSave;
+            var saveChanged = gameLoaded || folderChanged;
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            var why = gameLoaded
+                ? "a game was loaded"
+                : folderChanged
+                    ? "the save changed from '" + _timelineSave + "' to '" + tick.Save + "'"
+                    : "the clock went back from UT " + _clock.Now().ToString("F2", ic);
             if (tick.Save != null)
             {
                 _timelineSave = tick.Save;
@@ -7226,7 +7235,7 @@ namespace Sitrep.Host
                 // rather than carried forward or pruned normally.
                 _pending.Clear();
                 _pendingDispatcher.Clear();
-                ResetDelivery();
+                LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save));
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
                 NotifyTimelineResetListeners();

@@ -363,12 +363,12 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
 
-        // What every centre has heard, for a save taken from another thread, and
-        // what a loaded save carried, waiting for the reset that load starts.
+        // What every centre has heard, for a save taken from another thread.
         private HeardSnapshot? _heardNow;
         private long _heardNowNews = -1;
-        private HeardSnapshot? _heardLoaded;
-        private HeardSnapshot? _heardReloaded;
+
+        // COURIER THREAD: what the reset just announced starts every centre knowing, or null for nothing.
+        private HeardSnapshot? _heardToRestore;
         private int _plansVersion;
 
         /// <param name="game">The game the plan is made of.</param>
@@ -513,7 +513,7 @@ namespace Sitrep.Host.Comms
             var plans = host as ICentrePlanHost;
             plans?.SetCentrePlans(PlanOf, () => System.Threading.Volatile.Read(ref _plansVersion));
             plans?.SetNodeNames(NameAt);
-            plans?.SetHeardStore(HeardNow, NoteHeardLoaded, NoteHeardReloaded);
+            plans?.SetHeardStore(HeardNow, heard => _heardToRestore = heard);
             _streams.DeclareAddressedTopic(ContactsTopic);
             _streams.DeclareAddressedTopic(RouteTopic);
             // A plan is state, and an addressed sample is not kept for whoever
@@ -631,8 +631,8 @@ namespace Sitrep.Host.Comms
                 _hearing.Reset();
                 // A load starts every centre where the save left it, knowing what
                 // it had heard by then and nothing that was still on its way.
-                var carried = System.Threading.Interlocked.Exchange(ref _heardLoaded, null)
-                    ?? System.Threading.Interlocked.Exchange(ref _heardReloaded, null);
+                var carried = _heardToRestore;
+                _heardToRestore = null;
                 if (carried != null)
                 {
                     _hearing.Restore(carried);
@@ -892,23 +892,8 @@ namespace Sitrep.Host.Comms
             System.Threading.Volatile.Write(ref _heardNow, _hearing!.Snapshot());
         }
 
-        /// <summary>
-        /// What every centre has heard, for saving with the game. While a loaded
-        /// game's own snapshot waits for the tick that restores it, that is what
-        /// the game holds. Any thread.
-        /// </summary>
-        public HeardSnapshot? HeardNow() =>
-            System.Threading.Volatile.Read(ref _heardLoaded) ?? System.Threading.Volatile.Read(ref _heardNow);
-
-        /// <summary>A game was loaded carrying <paramref name="heard"/>: the timeline reset that load starts restores it. Any thread.</summary>
-        public void NoteHeardLoaded(HeardSnapshot? heard)
-        {
-            System.Threading.Volatile.Write(ref _heardReloaded, null);
-            System.Threading.Volatile.Write(ref _heardLoaded, heard ?? new HeardSnapshot(new HeardAtCentre[0]));
-        }
-
-        /// <summary>The game loaded this process's own latest save, which starts no new timeline. Should a rewind start one anyway, it restores what that save held. Any thread.</summary>
-        public void NoteHeardReloaded(HeardSnapshot? heard) => System.Threading.Volatile.Write(ref _heardReloaded, heard);
+        /// <summary>What every centre has heard, for saving with the game. Any thread.</summary>
+        public HeardSnapshot? HeardNow() => System.Threading.Volatile.Read(ref _heardNow);
 
         /// <summary>MAIN THREAD: each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? RosterOf(KspSnapshot snapshot)
