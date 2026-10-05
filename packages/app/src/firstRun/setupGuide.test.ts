@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { CKAN_UPLINK_FILTER, RUN_COMMAND } from "./setupGuide";
+import {
+  CKAN_UPLINK_FILTER,
+  RUN_COMMAND,
+  RUN_COMMAND_LINES,
+  runCommandFor,
+} from "./setupGuide";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // Spelled out as literals so the turbo input scan can see exactly which two files this reads.
@@ -14,26 +19,47 @@ function codeById(html: string, id: string): string | undefined {
   return new RegExp(`<code id="${id}">([^<]*)</code>`).exec(html)?.[1];
 }
 
-/** A multi-line shell command as the single line it runs as. */
-function oneLine(command: string): string {
-  return command.replace(/\\\n/g, " ").replace(/\s+/g, " ").trim();
+/** A multi-line command as the single line it runs as, once `continuation` and the line break after it are taken out. */
+function oneLine(command: string, continuation: string): string {
+  return command
+    .split(`${continuation}\n`)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 describe("the run command is spelled once", () => {
-  it("has no line continuation, so it pastes into every shell", () => {
-    expect(RUN_COMMAND).not.toMatch(/[\\`^\n]/);
+  it("has no line continuation in its source, so each shell's form adds only its own", () => {
+    for (const line of RUN_COMMAND_LINES) expect(line).not.toMatch(/[\\`^\n]/);
+    expect(RUN_COMMAND).toBe(RUN_COMMAND_LINES.join(" "));
   });
 
-  it("is the command the static home page prints", () => {
+  it("breaks between flags and runs as the same one line in sh and in PowerShell", () => {
+    const posix = runCommandFor("posix");
+    const powershell = runCommandFor("powershell");
+    expect(posix.split("\n")).toHaveLength(RUN_COMMAND_LINES.length);
+    expect(oneLine(posix, "\\")).toBe(RUN_COMMAND);
+    expect(oneLine(powershell, "`")).toBe(RUN_COMMAND);
+    // A backslash continues nothing in PowerShell, and a backtick is a command substitution in sh.
+    expect(powershell).not.toContain("\\");
+    expect(posix).not.toContain("`");
+    // The continuation has to be the last character on its line in both shells.
+    for (const line of posix.split("\n").slice(0, -1))
+      expect(line).toMatch(/ \\$/);
+    for (const line of powershell.split("\n").slice(0, -1))
+      expect(line).toMatch(/ `$/);
+  });
+
+  it("is the command the static home page prints, in its sh form", () => {
     const html = readFileSync(HOME_PAGE, "utf8");
-    expect(codeById(html, "run-command")).toBe(RUN_COMMAND);
+    expect(codeById(html, "run-command")).toBe(runCommandFor("posix"));
     expect(codeById(html, "ckan-filter")).toBe(CKAN_UPLINK_FILTER);
   });
 
-  it("is the command the README prints, once its continuations are joined", () => {
+  it("is the command the README prints, in its sh form", () => {
     const block = /```bash\n(docker run[\s\S]*?)\n```/.exec(
       readFileSync(README, "utf8"),
     );
-    expect(oneLine(block?.[1] ?? "")).toBe(RUN_COMMAND);
+    expect(block?.[1]).toBe(runCommandFor("posix"));
   });
 });

@@ -48,6 +48,21 @@ describe("CommandBlock", () => {
     expect(screen.getByRole("button")).toHaveTextContent("Copy");
   });
 
+  it("keeps a long command on one line in a scroll region the keyboard can reach", () => {
+    const long =
+      "docker run --rm -e KSP_HOST=192.168.1.20 -p 3000:3000 ghcr.io/ksp-gonogo/gonogo:latest";
+    render(<CommandBlock command={long} label="run command" />);
+
+    const region = screen.getByRole("group", { name: "run command" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveStyle({ overflowX: "auto" });
+    expect(screen.getByText(long)).toHaveStyle({ whiteSpace: "pre" });
+    // The button is a sibling of the region, so it does not scroll away with the text.
+    expect(region).not.toContainElement(
+      screen.getByRole("button", { name: "Copy run command" }),
+    );
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(
       <CommandBlock command="docker ps" label="status command" />,

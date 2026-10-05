@@ -34,6 +34,8 @@ export const WIZARD_COPY = {
   "container.instruction":
     "Start the Gonogo container. It serves this app and the relay that lets other screens join yours. If it is already running, there is nothing to do here.",
   "container.runCommandLabel": "run command",
+  "container.powershellNote":
+    "Written for PowerShell, the default terminal on Windows. In Command Prompt, type ^ in place of the ` that ends each line.",
   "container.check.checking": "Checking the container at {url}",
   "container.check.pass": "The container is running",
   "container.check.fail": "No answer from the container at {url}",

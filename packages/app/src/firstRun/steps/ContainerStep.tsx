@@ -2,7 +2,11 @@ import { Button, CommandBlock } from "@ksp-gonogo/ui";
 import { Stack, Text } from "@ksp-gonogo/ui-kit";
 import { relayCheck } from "../checks";
 import { runs, say } from "../copy";
-import { CONTAINER_STATUS_COMMAND, RUN_COMMAND } from "../setupGuide";
+import {
+  browserShell,
+  CONTAINER_STATUS_COMMAND,
+  runCommandFor,
+} from "../setupGuide";
 import { useRelayHealth } from "../useRelayHealth";
 import { Hint, Prose, StepCheck } from "./StepParts";
 
@@ -15,6 +19,7 @@ import { Hint, Prose, StepCheck } from "./StepParts";
 export function ContainerStep() {
   const { health, recheck } = useRelayHealth();
   const check = relayCheck(health);
+  const shell = browserShell();
 
   return (
     <Stack gap="related-comfortable">
@@ -22,9 +27,14 @@ export function ContainerStep() {
         {say("container.instruction")}
       </Text>
       <CommandBlock
-        command={RUN_COMMAND}
+        command={runCommandFor(shell)}
         label={say("container.runCommandLabel")}
       />
+      {shell === "powershell" && (
+        <Text level="muted" size="sm">
+          {say("container.powershellNote")}
+        </Text>
+      )}
       <StepCheck check={check} />
       {check.state === "fail" && (
         <Hint>

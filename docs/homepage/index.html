@@ -182,11 +182,20 @@
             and start it. Then run this in a terminal:
           </p>
           <div class="command">
-            <code id="run-command">docker run -d --name gonogo --restart unless-stopped --add-host=host.docker.internal:host-gateway -e KSP_HOST=host.docker.internal -p 8080:8080 -p 3002:3002 -p 3478:3478/tcp -p 3478:3478/udp -p 49160-49170:49160-49170/udp ghcr.io/ksp-gonogo/gonogo:latest</code>
+            <code id="run-command">docker run -d --name gonogo --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
+  -e KSP_HOST=host.docker.internal \
+  -p 8080:8080 -p 3002:3002 \
+  -p 3478:3478/tcp -p 3478:3478/udp \
+  -p 49160-49170:49160-49170/udp \
+  ghcr.io/ksp-gonogo/gonogo:latest</code>
             <button class="copy" type="button" data-copy="run-command" aria-label="Copy run command">Copy</button>
           </div>
           <p>
-            It is one line, so it pastes into any terminal. With Podman, type
+            That is the form for macOS, Linux and WSL. In Windows PowerShell,
+            end each line with a backtick (<code class="inline">`</code>) in
+            place of the <code class="inline">\</code>, or type it as one
+            line. With Podman, type
             <code class="inline">podman</code> in place of
             <code class="inline">docker</code>.
           </p>

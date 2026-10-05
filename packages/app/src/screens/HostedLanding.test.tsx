@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   CKAN_UPLINK_FILTER,
   LOCAL_APP_URL,
-  RUN_COMMAND,
+  runCommandFor,
   SETUP_LINKS,
 } from "../firstRun/setupGuide";
 import { HostedLanding } from "./HostedLanding";
@@ -17,7 +17,9 @@ describe("HostedLanding", () => {
     expect(
       screen.getByText(/runs on your own computer, not on this website/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(RUN_COMMAND)).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "run command" }).textContent).toBe(
+      runCommandFor("posix"),
+    );
     expect(
       screen.getByRole("button", { name: "Copy run command" }),
     ).toBeInTheDocument();

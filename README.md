@@ -46,6 +46,8 @@ docker run -d --name gonogo --restart unless-stopped \
   ghcr.io/ksp-gonogo/gonogo:latest
 ```
 
+That is the form for macOS, Linux and WSL. In Windows PowerShell, end each line with a backtick (`` ` ``) in place of the `\`, or type it as one line; the app's own setup screen prints the PowerShell form when it is opened on Windows.
+
 `KSP_HOST` tells the whole stack where KSP is, telemetry, kOS, and camera feeds all point at it out of the box. The command above assumes KSP runs on the same computer; if it runs on a different one, replace both `host.docker.internal` values with that computer's IP (e.g. `-e KSP_HOST=192.168.1.50`), the `--add-host` line is then unnecessary. The wide UDP range is only needed to relay station connections from outside your network; see [docs/NETWORKING.md](docs/NETWORKING.md) if you want that.
 
 Open [localhost:8080](http://localhost:8080) once it is running. Bear in mind that if you run KSP and gonogo on the same computer, you may have trouble with KSP pausing when minimised.

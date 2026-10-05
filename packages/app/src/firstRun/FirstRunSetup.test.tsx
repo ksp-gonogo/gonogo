@@ -33,7 +33,7 @@ import {
   CONTAINER_LOGS_COMMAND,
   CONTAINER_STATUS_COMMAND,
   MOD_LOG_COMMAND,
-  RUN_COMMAND,
+  runCommandFor,
   SETUP_LINKS,
 } from "./setupGuide";
 
@@ -261,7 +261,10 @@ describe("FirstRunSetup: the container check", () => {
       .setup()
       .click(screen.getByRole("button", { name: say("welcome.advance") }));
 
-    expect(screen.getByText(RUN_COMMAND)).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "run command" }).textContent).toBe(
+      runCommandFor("posix"),
+    );
+    expect(screen.queryByText(say("container.powershellNote"))).toBeNull();
     expect(
       screen.getByRole("button", {
         name: `Copy ${say("container.runCommandLabel")}`,

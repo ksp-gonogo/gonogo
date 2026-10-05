@@ -1,9 +1,11 @@
 import { CommandBlock } from "@ksp-gonogo/ui";
 import styled from "styled-components";
+import { say } from "../firstRun/copy";
 import {
+  browserShell,
   CKAN_UPLINK_FILTER,
   LOCAL_APP_URL,
-  RUN_COMMAND,
+  runCommandFor,
   SETUP_LINKS,
 } from "../firstRun/setupGuide";
 
@@ -24,6 +26,7 @@ import {
  */
 export function HostedLanding() {
   const stationHref = `${import.meta.env.BASE_URL}station`;
+  const shell = browserShell();
   return (
     <Wrap>
       <Hero>
@@ -52,10 +55,11 @@ export function HostedLanding() {
               <a href={SETUP_LINKS.docker}>install Docker</a> and start it. Then
               run this in a terminal:
             </StepText>
-            <CommandBlock command={RUN_COMMAND} label="run command" />
+            <CommandBlock command={runCommandFor(shell)} label="run command" />
             <StepText>
-              It is one line, so it pastes into any terminal. With Podman, type{" "}
-              <code>podman</code> in place of <code>docker</code>.
+              {shell === "powershell" && `${say("container.powershellNote")} `}
+              With Podman, type <code>podman</code> in place of{" "}
+              <code>docker</code>.
             </StepText>
           </Step>
           <Step>

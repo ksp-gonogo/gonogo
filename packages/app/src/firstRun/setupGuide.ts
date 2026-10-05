@@ -11,10 +11,11 @@
 export const CONTAINER_NAME = "gonogo";
 
 /**
- * Starts the app and the relay in one container. One line with no shell
- * continuations, so the same text pastes into PowerShell, cmd, bash and zsh.
+ * Starts the app and the relay in one container, one entry per line it is
+ * printed on. Every surface that prints the command renders these lines, so
+ * the README, the home page and the app cannot drift.
  */
-export const RUN_COMMAND = [
+export const RUN_COMMAND_LINES = [
   `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped`,
   "--add-host=host.docker.internal:host-gateway",
   "-e KSP_HOST=host.docker.internal",
@@ -22,7 +23,30 @@ export const RUN_COMMAND = [
   "-p 3478:3478/tcp -p 3478:3478/udp",
   "-p 49160-49170:49160-49170/udp",
   "ghcr.io/ksp-gonogo/gonogo:latest",
-].join(" ");
+] as const;
+
+/** The run command as the single line it runs as, with no continuation of any shell's. */
+export const RUN_COMMAND = RUN_COMMAND_LINES.join(" ");
+
+/** The shell a command is written for: the default terminal's on Windows, and sh, bash and zsh everywhere else. */
+export type CommandShell = "posix" | "powershell";
+
+/**
+ * What ends a line that carries on to the next. A backslash continues a line
+ * only in sh, bash and zsh; PowerShell takes a backtick. Command Prompt takes
+ * neither (its own is `^`), and a browser cannot tell it from PowerShell, so
+ * the surfaces that print the PowerShell form say so beside it, in the copy
+ * table's `container.powershellNote`.
+ */
+const LINE_CONTINUATION: Record<CommandShell, string> = {
+  posix: "\\",
+  powershell: "`",
+};
+
+/** The run command broken between flags, each line but the last ending in `shell`'s continuation, so the text pastes and runs as printed. */
+export function runCommandFor(shell: CommandShell): string {
+  return RUN_COMMAND_LINES.join(` ${LINE_CONTINUATION[shell]}\n  `);
+}
 
 /** Lists the container when it is running, and prints only a header row when it is not. */
 export const CONTAINER_STATUS_COMMAND = `docker ps --filter name=${CONTAINER_NAME}`;
@@ -59,7 +83,12 @@ export const SETUP_LINKS = {
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",
 } as const;
 
-/** True on a Windows browser, where the log check is `findstr` rather than `grep`. */
+/** True on a Windows browser, where the log check is `findstr` rather than `grep` and a command is written for PowerShell. */
 export function isWindows(): boolean {
   return /Windows/.test(globalThis.navigator?.userAgent ?? "");
+}
+
+/** The shell this browser's operating system opens by default. */
+export function browserShell(): CommandShell {
+  return isWindows() ? "powershell" : "posix";
 }
