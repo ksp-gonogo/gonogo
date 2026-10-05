@@ -168,6 +168,15 @@ public class TargetListEntry
 [SitrepTopic("target.available")]
 public class TargetAvailable
 {
-    /// <summary>Every current target candidate. Empty, never null, when there is none.</summary>
+    /// <summary>
+    /// Every current target candidate. Empty, never null, when there is none.
+    ///
+    /// <para>A model can carry part of this list forward: the range to a
+    /// vessel the active one only knows of, which has no measured
+    /// <see cref="TargetListEntry.Distance"/>, follows from that vessel's
+    /// <see cref="TargetListEntry.Orbit"/> and the active vessel's own orbit.
+    /// Every other field of every entry is the observation.</para>
+    /// </summary>
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]
     public IReadOnlyList<TargetListEntry> Entries { get; set; } = new List<TargetListEntry>();
 }

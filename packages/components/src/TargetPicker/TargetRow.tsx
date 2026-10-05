@@ -41,7 +41,7 @@ export function TargetRow({
         {seenAsItIs(entry) ? (
           <SeenRange entry={entry} distance={distance} />
         ) : (
-          <KnownOnly entry={entry} />
+          <KnownOnly entry={entry} distance={distance} />
         )}
       </RowDistance>
       {isPending && <Spinner ariaLabel="Setting target" />}
@@ -66,17 +66,36 @@ function SeenRange({
 }
 
 /**
- * A craft the active one only knows of. It has no range to quote, since a
- * range is something the craft measures, so the place a range would be takes
- * the held mark, with how old the knowledge is and how it came on hover and
- * in the spoken name. The clock is read here and not in the list, so only
- * these rows follow it.
+ * A craft the active one only knows of. It has no measured range, since a
+ * range is something the craft measures. Where the orbit it was last heard or
+ * sighted on can be carried to now, the range that orbit gives stands in its
+ * place under the modelled mark; where it cannot, the held mark stands alone.
+ * Either way the words on hover and in the spoken name say how old the
+ * knowledge is and how it came. The clock is read here and not in the list,
+ * so only these rows follow it.
  */
-function KnownOnly({ entry }: Readonly<{ entry: TargetListEntry }>) {
+function KnownOnly({
+  entry,
+  distance,
+}: Readonly<{
+  entry: TargetListEntry;
+  distance: Reading<Value<"m">> | undefined;
+}>) {
   const viewUt = useViewUt();
+  const caption = knowledgeCaption(entry, viewUt);
+  const reckoned =
+    distance?.reckoning.status === "available"
+      ? distance.reckoning.modelled
+      : undefined;
+  if (reckoned == null || !reckoned.isFinite()) {
+    return <HeldFigure caption={caption}>{NULL_DISPLAY}</HeldFigure>;
+  }
   return (
-    <HeldFigure caption={knowledgeCaption(entry, viewUt)}>
-      {NULL_DISPLAY}
+    <HeldFigure
+      kind="modelled"
+      caption={`${caption}. Range reckoned along that orbit`}
+    >
+      <Unit value={reckoned} />
     </HeldFigure>
   );
 }

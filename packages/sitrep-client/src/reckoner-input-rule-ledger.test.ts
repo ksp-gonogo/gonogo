@@ -101,12 +101,16 @@ describe("the input-rule ledger", () => {
      * - `comms.delay`: bound. It re-measures the first hop from the craft's own
      *   orbit, so a delay quoted past the elements' reach is a light-time to
      *   somewhere nobody says the craft is
+     * - `target.available`: bound. The range to a craft only known of is
+     *   measured from where the active craft's own elements put it, so it
+     *   reaches no further than they do
      *
      * `reckoner-input-rules.test.ts` proves the mechanism against synthetic
      * models; this says what it currently reaches in the tree.
      */
     expect(pairsTheRulesCanBiteOn()).toEqual([
       "comms.delay <- vessel.orbit",
+      "target.available <- vessel.orbit",
       "vessel.flight <- vessel.orbit",
       "vessel.orbit.truth <- vessel.orbit",
     ]);

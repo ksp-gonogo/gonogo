@@ -7899,7 +7899,14 @@ export interface TargetListEntry
 */
 export interface TargetAvailable
 {
-	/** Every current target candidate. Empty, never null, when there is none. */
+	/**
+	* Every current target candidate. Empty, never null, when there is none.
+	*
+	* A model can carry part of this list forward: the range to a vessel the
+	* active one only knows of, which has no measured `TargetListEntry.distance`,
+	* follows from that vessel's `TargetListEntry.orbit` and the active vessel's
+	* own orbit. Every other field of every entry is the observation.
+	*/
 	entries: TargetListEntry[];
 }
 /**

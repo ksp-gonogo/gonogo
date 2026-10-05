@@ -38,6 +38,7 @@ import {
 import { poweredFlight, poweredFlightEvidence } from "./powered-reckoning";
 import type { SubjectDep } from "./processors";
 import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
+import { knownCraftOrbits, knownCraftRangeAt } from "./target-range-reckoning";
 
 /**
  * Core's vanilla forward models, registered through the SAME seam an Uplink
@@ -631,6 +632,97 @@ function registerCommsDelayReckoner(): void {
 }
 
 /**
+ * `target.available.entries[i].distance` for each craft the active one only
+ * knows of, from that craft's orbit as it was last heard or sighted and the
+ * active craft's own.
+ *
+ * ## The claim is one row at a time
+ *
+ * A roster is not one reckoning class. A craft within physics range carries a
+ * range the active craft measured, a body carries one too, and neither is this
+ * model's to move. So `modelled` names `entries.<i>.distance` for exactly the
+ * rows it places, beside the root every model claims: every other field of
+ * the roster is the observation carried along, and only those rows' ranges
+ * read as modelled.
+ *
+ * ## Where it withdraws
+ *
+ * It needs the active craft on a conic, by the same admissibility every other
+ * conic here asks for, so a craft under thrust or in the air offers no ranges
+ * and each such row falls back to saying only how old its news is. A row with
+ * no orbit, a hyperbolic one, or one round a body the catalogue cannot weigh
+ * is simply not named.
+ */
+function registerTargetRosterReckoner(): void {
+  registerReckoner("target.available", CORE_RECKONER_OWNER, {
+    deps: [
+      "vessel.orbit",
+      "system.bodies",
+      { reading: "vessel.propulsion" },
+      { reading: "system.uplink.pending" },
+    ],
+    reckon(point, [orbitPoint, bodiesPoint, thrust, pending], { reckonUt }) {
+      const entries = point.payload?.entries;
+      if (entries == null || entries.length === 0) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: "an empty roster has no craft to place",
+          },
+        };
+      }
+      const admissible = keplerAdmissibility(
+        orbitPoint,
+        bodiesPoint?.payload ?? undefined,
+        reckonUt,
+        loadedCoastEvidence(thrust, pending),
+      );
+      if ("declined" in admissible) return admissible;
+      if (orbitPoint?.payload == null) {
+        return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      }
+      const craft = orbitPoint.payload;
+      const facts = deriveCelestialFacts(
+        bodiesPoint?.payload?.bodies,
+        reckonUt,
+      );
+      const known = knownCraftOrbits(entries, facts).filter((k) =>
+        Number.isFinite(knownCraftRangeAt(craft, k, facts, reckonUt)),
+      );
+      if (known.length === 0) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: "no craft on this roster is known only by an orbit that can be carried forward",
+          },
+        };
+      }
+      const byIndex = new Map(known.map((k) => [k.index, k]));
+      return {
+        modelled: movedFields(
+          "kepler-propagation",
+          ...known.map((k) => `entries.${k.index}.distance`),
+        ),
+        reckon: (at) => ({
+          entries: entries.map((entry, index) => {
+            const placed = byIndex.get(index);
+            return placed === undefined
+              ? entry
+              : {
+                  ...entry,
+                  distance: value(
+                    "m",
+                    knownCraftRangeAt(craft, placed, facts, at),
+                  ),
+                };
+          }),
+        }),
+      };
+    },
+  });
+}
+
+/**
  * `vessel.orbit.truth.position` and `.velocity`: the state vector the same conic
  * produces.
  *
@@ -872,6 +964,7 @@ export function registerCoreReckoners(): void {
   registerOrbitReckoner();
   registerOrbitTruthReckoner();
   registerCommsDelayReckoner();
+  registerTargetRosterReckoner();
 }
 
 registerCoreReckoners();

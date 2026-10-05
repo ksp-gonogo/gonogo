@@ -4,6 +4,7 @@ import {
   registerAugment,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
@@ -11,6 +12,7 @@ import {
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -178,6 +180,107 @@ describe("TargetPickerComponent: what the craft knows of a target", () => {
     )[0];
     expect(within(near).getByText(/2(\.0+)?/)).toBeInTheDocument();
     expect(near.querySelector("[data-held-mark]")).toBeNull();
+    await act(async () => {});
+  });
+});
+
+describe("TargetPickerComponent: the range to a craft only known of", () => {
+  let fixture: StreamFixture;
+
+  const MU = 3.5316e12;
+  const SMA = 2_000_000;
+  /** Half the active craft's period: it is at 180 degrees and a craft that orbits half as often is at 90. */
+  const HALF_ORBIT = Math.PI * Math.sqrt(SMA ** 3 / MU);
+  const KNOWN_SMA = SMA * Math.cbrt(4);
+
+  const circular = (sma: number) => ({
+    sma,
+    ecc: 0,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: 0,
+  });
+
+  beforeEach(() => {
+    fixture = setupStreamFixture({ pinnedUt: HALF_ORBIT, suspendFrames: true });
+  });
+
+  function emitSky() {
+    act(() => {
+      fixture.emit("system.bodies", {
+        bodies: [
+          { index: 1, name: "Kerbin", radius: 600_000, gravParameter: MU },
+        ],
+      });
+      fixture.emit(
+        "vessel.orbit",
+        {
+          ...circular(SMA),
+          referenceBodyIndex: 1,
+          mu: MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
+        },
+        { validAt: 0, quality: Quality.OnRails },
+      );
+    });
+  }
+
+  const KNOWN_RELAY = {
+    ...RELAY_ONE,
+    distance: null,
+    source: 2, // CommandCentre
+    asOfUt: 0,
+    via: "KSC",
+    orbit: circular(KNOWN_SMA),
+    orbitBodyIndex: 1,
+  };
+
+  it("shows where its heard orbit puts it now, marked as modelled, with how old the news is and by what route", async () => {
+    renderPicker(fixture);
+    emitSky();
+    act(() => {
+      fixture.emit(
+        "target.available",
+        { entries: [KERBIN, KNOWN_RELAY] },
+        { validAt: 0 },
+      );
+    });
+
+    const told = (
+      await screen.findAllByRole("button", { name: /Relay One/ })
+    )[0];
+    // The two radii at right angles: 2,000 km and 3,175 km make 3,752 km.
+    await waitFor(() => expect(told.textContent).toMatch(/3\.8\s?Mm/));
+    expect(
+      told.querySelector('[data-reckoning-mark="modelled"]'),
+    ).not.toBeNull();
+    expect(told.textContent).toMatch(/Last heard .+ ago via KSC/);
+    await act(async () => {});
+  });
+
+  it("keeps the held mark and quotes no range where the craft's orbit was not heard", async () => {
+    renderPicker(fixture);
+    emitSky();
+    act(() => {
+      fixture.emit(
+        "target.available",
+        {
+          entries: [
+            KERBIN,
+            { ...KNOWN_RELAY, orbit: null, orbitBodyIndex: null },
+          ],
+        },
+        { validAt: 0 },
+      );
+    });
+
+    const told = (
+      await screen.findAllByRole("button", { name: /Relay One/ })
+    )[0];
+    expect(told.querySelector('[data-reckoning-mark="held"]')).not.toBeNull();
+    expect(told.textContent).not.toMatch(/Mm|km/);
     await act(async () => {});
   });
 });

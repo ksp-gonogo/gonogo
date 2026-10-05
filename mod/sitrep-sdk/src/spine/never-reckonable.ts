@@ -109,7 +109,6 @@ export const NEVER_RECKONABLE = [
   "spaceCenter.launchSites",
   "spaceCenter.partsAvailable",
   "robotics.available",
-  "target.available",
 
   // -- Identity, roster and crew. A name does not propagate, and a crew list
   // changes by event rather than continuously.

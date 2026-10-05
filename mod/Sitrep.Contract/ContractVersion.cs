@@ -2368,8 +2368,15 @@ namespace Sitrep.Contract
         /// <see cref="TargetListEntry.OrbitBodyIndex"/>, and
         /// <see cref="TargetListEntry.Distance"/> is null for a vessel out of physics
         /// range. Additive on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 10 -&gt; 11: a model for the range to a
+        /// vessel only known of.</b> <see cref="TargetAvailable.Entries"/> is marked
+        /// reckonable by Kepler propagation from <c>@vessel.orbit</c> and
+        /// <c>@system.bodies</c>: the range to a vessel out of physics range follows
+        /// from its orbit on the list and the active vessel's own. No payload changes
+        /// shape and nothing moves on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 10;
+        public const int Minor = 11;
     }
 }

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.10.0
+  version: 29.11.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -19035,7 +19035,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TargetListEntry"
-          description: Every current target candidate. Empty, never null, when there is none.
+          description: |-
+            Every current target candidate. Empty, never null, when there is none.
+
+            A model can carry part of this list forward: the range to a vessel the
+            active one only knows of, which has no measured `TargetListEntry.distance`,
+            follows from that vessel's `TargetListEntry.orbit` and the active vessel's
+            own orbit. Every other field of every entry is the observation.
     TargetKind:
       type: integer
       description: |-
