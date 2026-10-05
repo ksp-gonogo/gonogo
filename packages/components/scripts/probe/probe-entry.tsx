@@ -694,6 +694,30 @@ async function mountInto(
     }
   }
 
+  // A pinch arrives as wheel events with the control key held, one notch each, at the pointer.
+  for (const z of payload.zooms ?? []) {
+    const el = findIn(root, z.selector);
+    if (!el) {
+      throw new Error(`Probe: zoom selector "${z.selector}" not found`);
+    }
+    const box = el.getBoundingClientRect();
+    const [fx, fy] = z.at ?? [0.5, 0.5];
+    for (let step = 0; step < Math.abs(z.steps); step++) {
+      el.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          ctrlKey: true,
+          deltaY: z.steps > 0 ? -100 : 100,
+          clientX: box.left + box.width * fx,
+          clientY: box.top + box.height * fy,
+        }),
+      );
+      await settle(30);
+    }
+    await settle(z.awaitMs ?? 200);
+  }
+
   /*
    * Focuses come after the hovers, so a mode can put both states on screen
    * together (a hovered aside control beside a tabbed-to tile). `.focus()`,

@@ -64,6 +64,20 @@ export interface ProbePayload {
    */
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
+   * Optional synthetic pinch-zoom steps, dispatched after the hovers. Captures
+   * a zoomed view of a surface that zooms under the pointer, a map above all:
+   * each entry sends `steps` wheel events with the control key held (the form
+   * a trackpad pinch arrives in, and the only one a zoom handler here takes),
+   * at a point given as fractions of the matched element's box, so the zoom
+   * keeps that point where it is. Negative `steps` zoom out.
+   */
+  zooms?: ReadonlyArray<{
+    selector: string;
+    steps: number;
+    at?: readonly [number, number];
+    awaitMs?: number;
+  }>;
+  /**
    * Optional synthetic keyboard focus moves, dispatched after the hovers.
    * Captures a state that keyboard focus reaches and a pointer does not: the
    * tiny tile's hover-revealed title is one, and unlike a click's dispatched
@@ -105,6 +119,7 @@ export interface ProbeSize {
   config?: Record<string, unknown>;
   clicks?: ProbePayload["clicks"];
   hovers?: ProbePayload["hovers"];
+  zooms?: ProbePayload["zooms"];
   focuses?: ProbePayload["focuses"];
 }
 
@@ -138,6 +153,7 @@ export function probePayload(opts: {
     series,
     clicks: size.clicks,
     hovers: size.hovers,
+    zooms: size.zooms,
     focuses: size.focuses,
     profile: opts.profile,
     asDashboard: opts.asDashboard,

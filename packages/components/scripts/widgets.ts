@@ -125,6 +125,24 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 12,
         config: { bodyOverride: "Mun" },
       },
+      // Zoomed in on the craft, twice and four times: the track, the trail and the marker have to stay on the ground they cross while the map grows under them.
+      ...[
+        { name: "zoom-2x-12x18", steps: 5 },
+        { name: "zoom-4x-12x18", steps: 10 },
+      ].map(({ name, steps }) => ({
+        name,
+        w: 12,
+        h: 18,
+        zooms: [
+          {
+            selector: '[data-testid="map-view-base-canvas"]',
+            steps,
+            // The craft in both scenes, as fractions of the map: longitude -132 on the equator.
+            at: [0.383, 0.5] as const,
+          },
+        ],
+        forFixtures: ["kerbin-over-desert", "kerbin-held-over-desert"],
+      })),
     ],
   },
   {

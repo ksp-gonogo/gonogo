@@ -151,6 +151,8 @@ export interface SizeMode {
    * where a hover opens the readout beside it.
    */
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /** Optional synthetic pinch-zoom steps, dispatched after the hovers: see `ProbePayload.zooms`. */
+  zooms?: ProbePayload["zooms"];
   /**
    * Optional synthetic keyboard focus moves, dispatched after the hovers.
    * Captures a state only focus reaches: the tiny tile's hover-revealed
