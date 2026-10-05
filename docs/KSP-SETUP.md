@@ -4,17 +4,19 @@ gonogo reads your game through mods installed in KSP. This page lists the mods y
 
 ## The mods you need
 
-Install all of these:
+One mod is required:
 
-- **The Gonogo mod** (build-and-copy install, below). This is how gonogo reads the game, telemetry, career state, science, comms, and more, streamed live over one WebSocket on port **8090**
-- **[kOS](https://ksp-kos.github.io/KOS/)** for the kOS Terminal widget, plus the **GonogoKosUplink** mod that connects the two (see [kOS](#kos) below)
-- **[SCANsat](https://github.com/S-C-A-N/SCANsat)** for the map and scanning widgets, plus the **GonogoScansatUplink** mod
-- **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for in-game camera parts
-- **[Kerbcast](https://github.com/jonpepler/kerbcast)** for streaming and controlling the cameras
+- **The Gonogo mod**, listed on CKAN as **Gonogo** (identifier `GonogoCore`). This is how gonogo reads the game: telemetry, career state, science, comms and more, streamed live over one WebSocket on port **8090**. See [Installing the Gonogo mod](#installing-the-gonogo-mod)
 
-kOS and SCANsat are on CKAN; HullcamVDS Continued is on SpaceDock. The Gonogo mod, the two `Gonogo*Uplink` mods and kerbcast are hand installs, all walked through below.
+Everything else is optional, and each one adds widgets without touching the rest of the dashboard:
 
-Only the Gonogo mod is required. Everything else adds widgets: without kerbcast you get no camera feeds, without kOS no terminal, and the rest of the dashboard is unaffected. Start with the Gonogo mod, confirm telemetry is arriving, then add the others.
+- **[kOS](https://ksp-kos.github.io/KOS/)** and the **GonogoKosUplink** mod that connects it, for the kOS Terminal widget (see [kOS](#kos))
+- **[SCANsat](https://github.com/S-C-A-N/SCANsat)** and the **GonogoScansatUplink** mod, for the map and scanning widgets
+- **[Kerbcast](https://github.com/jonpepler/kerbcast)** and the **GonogoKerbcastUplink** mod, for streaming and controlling cameras, with **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for the in-game camera parts (see [Camera feeds](#camera-feeds-kerbcast))
+
+An Uplink is a small mod that connects gonogo to one other mod. Each lists the Gonogo mod as its dependency, so a mod manager that finds them installs the Gonogo mod first. Without kerbcast you get no camera feeds, without kOS no terminal, and so on. Start with the Gonogo mod, confirm telemetry is arriving, then add whichever of the others you want.
+
+To see every Uplink CKAN lists, type `dep:GonogoCore` into its search box. kOS and SCANsat are on CKAN too, and HullcamVDS Continued is on SpaceDock. Kerbcast and any Uplink CKAN does not list are hand installs, walked through below.
 
 ### Where your KSP install is
 
@@ -29,7 +31,13 @@ Inside it you will see a `GameData/` folder already containing `Squad/`. That is
 
 ## Installing the Gonogo mod
 
-> **Not released yet.** The Gonogo mod isn't on CKAN or SpaceDock, and there is no downloadable zip. The publish pipeline (`.github/workflows/publish-mods.yml`) builds the mod zips already, but the SpaceDock upload needs a per-mod repository variable that has not been set, so nothing has been published anywhere. Until that lands, the only install is a build from source. It needs [the .NET SDK](https://dotnet.microsoft.com/download) (10.x, which is what CI builds with) and takes about five minutes. This section will get a straight download link once a release ships.
+The easiest install is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN) by following its own guide, search it for **Gonogo**, tick it and press Apply. CKAN puts `GameData/Gonogo/` in place and keeps it updated.
+
+Without CKAN, download `Gonogo-<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is).
+
+> **Not on CKAN yet?** The CKAN listing and the downloadable zip arrive with the first release that carries them, and until then neither exists. If a search for **Gonogo** finds nothing, or the releases page has no `Gonogo-<version>.zip`, the only install is a build from source, below. It needs [the .NET SDK](https://dotnet.microsoft.com/download) (10.x, which is what CI builds with) and takes about five minutes.
+
+The steps below are that build from source.
 
 ### 1. Find KSP's managed assemblies
 
@@ -78,7 +86,7 @@ That includes playing with someone who isn't on your network: they don't need th
 
 ### Installing the kOS and SCANsat Uplinks
 
-An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half.
+An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half. If CKAN lists the Uplink (search `dep:GonogoCore`), install it there and skip this section; the steps below are the hand install.
 
 Both Uplinks live in the [gonogo-uplinks](https://github.com/ksp-gonogo/gonogo-uplinks) repository, whose [building guide](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/docs/building.md) covers the reference set a build needs. From a checkout of it, each plugin builds the same way as the Gonogo mod, with one extra argument pointing at your `GameData/` so it can link against the mod it extends:
 
