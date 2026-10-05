@@ -258,11 +258,7 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:science.instruments.experimentId":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:science.instruments.partName":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:science.instruments.resettable":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:science.lab.partName":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:science.lab.valueModel":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
