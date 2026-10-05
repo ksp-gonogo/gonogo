@@ -164,6 +164,9 @@ function walkValue(
   let indexType: ts.Type | undefined;
   for (const constituent of constituents) {
     for (const prop of ctx.checker.getPropertiesOfType(constituent)) {
+      // A payload is data. The methods of a runtime class (`Value.plus`) are
+      // never on the wire, so they are neither required nor declared fields.
+      if ((prop.flags & ts.SymbolFlags.Method) !== 0) continue;
       const optional = (prop.flags & ts.SymbolFlags.Optional) !== 0;
       const existing = declared.get(prop.getName());
       if (existing) {

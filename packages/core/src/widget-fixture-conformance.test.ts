@@ -619,6 +619,27 @@ describe("the widget-fixture check can fail", () => {
     ).toEqual([]);
   });
 
+  it("grades a Value field by its serialised shape, never by the methods of the runtime class", () => {
+    const orbit = {
+      referenceBodyIndex: 1,
+      sma: { magnitude: 700000, unit: "m" },
+      ecc: { magnitude: 0, unit: "1" },
+      inc: { magnitude: 0, unit: "\u00b0" },
+    };
+    const omitted = (payload: unknown) =>
+      checkFixturePayloads(contract(), { "vessel.orbit": payload })
+        .omittedFields;
+    const fields = omitted(orbit).map((o) => `${o.path}.${o.field}`);
+    expect(fields.filter((f) => f.startsWith(".sma."))).toEqual([]);
+    expect(fields.filter((f) => f.startsWith(".ecc."))).toEqual([]);
+    expect(fields).toContain("(root).meta");
+    expect(
+      omitted({ ...orbit, sma: { unit: "m" } }).map(
+        (o) => `${o.path}.${o.field}`,
+      ),
+    ).toContain(".sma.magnitude");
+  });
+
   it("does not grade the harness's own directives", () => {
     // `_scene.config` is arbitrary widget config and `_meta.notes` is prose. A
     // reader that took them for payloads would report the scene language as
