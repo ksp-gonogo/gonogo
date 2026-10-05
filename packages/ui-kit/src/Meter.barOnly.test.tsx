@@ -149,7 +149,7 @@ describe("Meter statement", () => {
       />,
     );
     const statement = container.querySelector('[data-meter-part="statement"]');
-    expect(statement).toHaveTextContent(/3.*of.*5/);
+    expect(statement).toHaveTextContent("3 / 5");
     // The label is still only the accessible name.
     expect(screen.queryByText("Nodes researched")).toBeNull();
     expect(
@@ -183,10 +183,10 @@ describe("Meter statement", () => {
     );
     expect(
       container.querySelector('[data-meter-part="statement"]'),
-    ).toHaveTextContent(/100.*of.*200/);
+    ).toHaveTextContent(/100.* \/ .*200/);
   });
 
-  it("words the headed figure as a statement too, in place of the slash", () => {
+  it("writes the headed figure with the slash, in its head", () => {
     const { container } = render(
       <Meter
         statement
@@ -195,8 +195,8 @@ describe("Meter statement", () => {
         capacity={value("kg", 400)}
       />,
     );
-    expect(container).toHaveTextContent(/120.*of.*400/);
-    expect(container).not.toHaveTextContent("/");
+    expect(container).toHaveTextContent(/120.* \/ .*400/);
+    expect(container).not.toHaveTextContent(" of ");
     // Headed, the figure stays in the head: no second line under the bar.
     expect(container.querySelector('[data-meter-part="statement"]')).toBeNull();
   });

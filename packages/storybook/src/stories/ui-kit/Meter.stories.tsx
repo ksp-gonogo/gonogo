@@ -40,16 +40,6 @@ export const Tank: Story = {
   },
 };
 
-/** The same pair written as a statement: how much of how much, where the slash only pairs them. */
-export const Statement: Story = {
-  args: {
-    label: "Liquid fuel",
-    value: live("units", 1260),
-    capacity: live("units", 3600),
-    statement: true,
-  },
-};
-
 /** The bar alone under a heading that names it, keeping its statement on a line beneath. */
 export const BarAloneWithStatement: Story = {
   args: {

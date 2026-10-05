@@ -83,11 +83,11 @@ interface MeterCommonProps
    */
   hideLabel?: boolean;
   /**
-   * Write the figure as a statement, `120 of 400 kg`, where a capacity is
-   * given, rather than the terse `120 / 400 kg`. A capacity can change (a tank
-   * is staged away, a queue grows), and the statement says how much of how
-   * much where the bar alone says only how full. With `hideLabel` it is drawn
-   * on a line under the bar, so a bar-only meter can still say it.
+   * Keep the figure, `120 / 400 kg`, on a line under a bar drawn alone with
+   * `hideLabel`. A capacity can change (a tank is staged away, a queue grows),
+   * and the statement says how much of how much where the bar alone says only
+   * how full. A headed meter already writes it in its head, so this changes
+   * nothing there.
    */
   statement?: boolean;
 }
@@ -446,7 +446,7 @@ interface MeterBarProps
   label: string;
   layout: MeterLayout;
   hideLabel: boolean;
-  /** Whether the figure is written as a statement, and so kept under a bar drawn alone. */
+  /** Whether the figure is kept on a line under a bar drawn alone. */
   statement: boolean;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
   pct: number;
@@ -629,7 +629,6 @@ function MeterPairBar<UnitSymbol extends string = string>({
    * drawn on the bar.
    */
   const caption = heldCaption(value) ?? heldCaption(capacity);
-  const between = bar.statement ? " of " : " / ";
   const display =
     valueLabelNode ??
     (valueLabel !== undefined ? (
@@ -637,7 +636,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
     ) : bar.layout === "row" ? (
       <Meter__Pair $marked={bar.fillHeld || bar.trackHeld}>
         <Unit value={value} hideUnitInGroup />
-        {between}
+        {" / "}
         <Unit value={capacity} />
         {(bar.fillHeld || bar.trackHeld) && (
           <HeldMark aria-hidden="true" data-held-mark="" />
@@ -646,7 +645,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
     ) : (
       <>
         <Unit value={value} />
-        {between}
+        {" / "}
         <Unit value={capacity} />
       </>
     ));
