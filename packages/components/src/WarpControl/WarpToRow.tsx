@@ -11,13 +11,14 @@ import {
   ReadoutCaption,
   Stack,
   Unit,
+  UnitInput,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { AlarmCreator } from "../shared/AlarmsLauncher";
 import type { TimeTrigger } from "../TransferWindow/config";
 
-type Target = "ut" | "node";
+type Target = "for" | "node" | "ut";
 
 const LEAD_CHOICES_SECONDS = [30, 60, 300, 600] as const;
 
@@ -47,15 +48,25 @@ export function WarpToRow({
 }: Readonly<{ createAlarm: AlarmCreator<TimeTrigger> }>) {
   const viewUt = useViewUt();
   const nodes = useManeuverNodes();
-  const [target, setTarget] = useState<Target>("ut");
+  const [target, setTarget] = useState<Target>("for");
+  const [forSeconds, setForSeconds] = useState<number>(0);
   const [utTarget, setUtTarget] = useState<number | null>(null);
   const [leadSeconds, setLeadSeconds] = useState<number>(
     LEAD_CHOICES_SECONDS[1],
   );
 
   const node = nextNode(nodes, viewUt);
+  // A duration counts from the UT the widget is showing when it is confirmed, so the instant is read at the press and not fixed while the operator types.
   const instant =
-    target === "ut" ? utTarget : node === null ? null : node.UT - leadSeconds;
+    target === "for"
+      ? viewUt === undefined || forSeconds <= 0
+        ? null
+        : viewUt.magnitude + forSeconds
+      : target === "ut"
+        ? utTarget
+        : node === null
+          ? null
+          : node.UT - leadSeconds;
   const timeTo =
     instant === null || viewUt === undefined
       ? null
@@ -66,9 +77,11 @@ export function WarpToRow({
     if (instant === null || !armable) return;
     createAlarm({
       name:
-        target === "ut"
-          ? "Warp to UT"
-          : `${writeQuantity(value("s", leadSeconds))} before node`,
+        target === "for"
+          ? `Warp for ${writeQuantity(value("s", forSeconds))}`
+          : target === "ut"
+            ? "Warp to UT"
+            : `${writeQuantity(value("s", leadSeconds))} before node`,
       trigger: { kind: "time", ut: instant, leadSeconds: STEP_DOWN_SECONDS },
     });
   };
@@ -86,10 +99,10 @@ export function WarpToRow({
         <Cluster gap="related-packed" role="group" aria-label="Warp target">
           <ToggleButton
             size="sm"
-            active={target === "ut"}
-            onClick={() => setTarget("ut")}
+            active={target === "for"}
+            onClick={() => setTarget("for")}
           >
-            UT
+            For
           </ToggleButton>
           <ToggleButton
             size="sm"
@@ -98,9 +111,24 @@ export function WarpToRow({
           >
             Before node
           </ToggleButton>
+          <ToggleButton
+            size="sm"
+            active={target === "ut"}
+            onClick={() => setTarget("ut")}
+          >
+            UT
+          </ToggleButton>
         </Cluster>
 
-        {target === "ut" ? (
+        {target === "for" ? (
+          <UnitInput
+            label="Warp for"
+            unit="s"
+            rungs={["d", "h", "min"]}
+            value={value("s", forSeconds)}
+            onChange={(next) => setForSeconds(next.magnitude)}
+          />
+        ) : target === "ut" ? (
           <MissionDateField
             label="Target instant"
             value={utTarget}

@@ -642,12 +642,23 @@ const WIDGETS: WidgetRenderConfig[] = [
         config: { requireAlarmUnderDelay: false },
         forFixtures: ["delayed-no-alarm"],
       },
-      // The warp-to row opened on its UT target; it needs rows>=6 to appear at all.
+      // The warp-to row opened on its duration target, which it leads with; it needs rows>=6 to appear at all.
+      {
+        name: "warp-to-for-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [{ selector: "button[aria-expanded]" }],
+        forFixtures: ["realtime-1x"],
+      },
+      // The absolute UT target, kept behind the duration.
       {
         name: "warp-to-ut-open-8x7",
         w: 8,
         h: 7,
-        clicks: [{ selector: "button[aria-expanded]" }],
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:last-child' },
+        ],
         forFixtures: ["realtime-1x"],
       },
       // The node target with no maneuver node planned: the state with nothing to arm.
@@ -657,7 +668,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 7,
         clicks: [
           { selector: "button[aria-expanded]" },
-          { selector: '[aria-label="Warp target"] button:last-child' },
+          { selector: '[aria-label="Warp target"] button:nth-child(2)' },
         ],
         forFixtures: ["realtime-1x"],
       },

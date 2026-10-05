@@ -104,6 +104,7 @@ describe("WarpControl: warp-to targets", () => {
     const { creator } = await mount({ withNode: false });
 
     await user.click(screen.getByRole("button", { name: "Warp to" }));
+    await user.click(screen.getByRole("button", { name: "UT" }));
     const arm = () =>
       screen.getByRole("button", { name: "Set alarm" }) as HTMLButtonElement;
     // Nothing is stated until the operator types an instant.
@@ -123,6 +124,32 @@ describe("WarpControl: warp-to targets", () => {
     expect(creator.mock.calls[0][0]).toMatchObject({
       name: "Warp to UT",
       trigger: { kind: "time", ut: 299 * 21_600 },
+    });
+  });
+
+  it("leads with a duration, and arms an alarm that long after the clock when confirmed", async () => {
+    const user = userEvent.setup();
+    const { creator } = await mount({ withNode: false });
+
+    await user.click(screen.getByRole("button", { name: "Warp to" }));
+    const arm = () =>
+      screen.getByRole("button", { name: "Set alarm" }) as HTMLButtonElement;
+    expect(screen.getByRole("button", { name: "For" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // No duration is stated until one is typed.
+    expect(arm().disabled).toBe(true);
+
+    const minutes = screen.getByRole("spinbutton", { name: /MIN/i });
+    await user.clear(minutes);
+    await user.type(minutes, "5");
+    expect(arm().disabled).toBe(false);
+    await user.click(arm());
+
+    expect(creator.mock.calls[0][0]).toMatchObject({
+      name: expect.stringContaining("Warp for"),
+      trigger: { kind: "time", ut: VIEW_UT + 300 },
     });
   });
 });
