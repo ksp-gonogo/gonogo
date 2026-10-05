@@ -4,7 +4,6 @@ using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
-using UnityEngine;
 
 namespace Gonogo.KSP
 {
@@ -44,23 +43,21 @@ namespace Gonogo.KSP
     /// uplink that rides light-time, the same class as
     /// <c>vessel.control.*</c>.</para>
     ///
-    /// <para>When Serenity is absent, <see cref="Register"/> reports
-    /// <see cref="Availability.Unavailable"/>, registers empty/false sources
-    /// for every declared channel (so a subscriber sees a well-defined
-    /// "nothing here" rather than silence indistinguishable from "not
-    /// subscribed"), and skips command registration entirely: there is
-    /// nothing for a robotics command to actuate without the DLC's part
-    /// modules loaded.</para>
+    /// <para>Serenity is detected live, not at <see cref="Register"/>: KSP lists
+    /// its installed expansions after the loading screen has begun, so a check at
+    /// Register would condemn the Uplink on a machine that has the DLC.
+    /// <see cref="Health"/> reports Unavailable while it is absent, the capture
+    /// leaves the robotics and deployed groups out, and a robotics command finds
+    /// no part to actuate and refuses.</para>
     /// </summary>
     [SitrepUplink("breakingGround")]
     public sealed class BreakingGroundUplink : ISitrepUplink
     {
         private readonly IRoboticsActuator _actuator;
 
-        // Set at Register when Serenity isn't installed (the uplink goes
-        // inert). Null == available. The check runs at Register only; Health()
-        // reads this cached result rather than re-probing every call.
-        private string? _unavailableReason;
+        private readonly ExpansionHealth _expansion = new ExpansionHealth(
+            () => ExpansionsLoader.IsExpansionInstalled("Serenity"),
+            "Breaking Ground (Serenity) is not installed");
 
         public BreakingGroundUplink(IRoboticsActuator actuator)
         {
@@ -142,27 +139,12 @@ namespace Gonogo.KSP
         };
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>):
-        /// Unavailable with the "Serenity not installed" reason when the DLC is
-        /// absent (the uplink went inert at Register), else Healthy.</summary>
-        public UplinkHealth Health() =>
-            _unavailableReason != null
-                ? new UplinkHealth(UplinkHealthState.Unavailable, _unavailableReason)
-                : UplinkHealth.Healthy;
+        /// Unavailable with the "Serenity not installed" reason while the DLC is
+        /// absent, else Healthy.</summary>
+        public UplinkHealth Health() => _expansion.Report();
 
         public void Register(IUplinkHost host)
         {
-            if (!ExpansionsLoader.IsExpansionInstalled("Serenity"))
-            {
-                var reason = "Breaking Ground (Serenity) is not installed";
-                Debug.LogWarning("[Gonogo.BreakingGroundUplink] UNAVAILABLE: " + reason + " (all robotics.*/deployed.* channels disabled)");
-                _unavailableReason = reason;
-                host.SetAvailability(Availability.Unavailable(reason));
-                host.AddChannelSource(BreakingGroundViewProvider.RoboticsTopic, _ => null);
-                host.AddChannelSource(BreakingGroundViewProvider.RoboticsAvailableTopic, _ => null);
-                host.AddChannelSource(BreakingGroundViewProvider.DeployedTopic, _ => null);
-                return;
-            }
-
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsTopic, BreakingGroundViewProvider.BuildRobotics);
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsAvailableTopic, BreakingGroundViewProvider.BuildRoboticsAvailable);
             host.AddChannelSource(BreakingGroundViewProvider.DeployedTopic, BreakingGroundViewProvider.BuildDeployed);

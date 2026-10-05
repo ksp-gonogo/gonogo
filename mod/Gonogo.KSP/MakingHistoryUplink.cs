@@ -3,7 +3,6 @@ using Expansions;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
-using UnityEngine;
 
 namespace Gonogo.KSP
 {
@@ -12,8 +11,9 @@ namespace Gonogo.KSP
     /// <c>missions.active</c> channel, the running mission's name, phase,
     /// objectives and score. Shipped IN the core mod DLL like
     /// <see cref="BreakingGroundUplink"/> (auto-discovered, not a separate
-    /// installable package) and inert when Making History is not installed,
-    /// gated on <c>ExpansionsLoader.IsExpansionInstalled("MakingHistory")</c>.
+    /// installable package). Its health reads
+    /// <c>ExpansionsLoader.IsExpansionInstalled("MakingHistory")</c> live, and
+    /// the channel carries nothing while no mission is loaded.
     ///
     /// <para>The raw read is <see cref="MissionCapture"/> (the
     /// <c>Values["missions"]</c> group <c>KspHost.Sample</c> records); the
@@ -27,8 +27,9 @@ namespace Gonogo.KSP
     [SitrepUplink("makingHistory")]
     public sealed class MakingHistoryUplink : ISitrepUplink
     {
-        // Set at Register when the expansion is absent. Null == available.
-        private string? _unavailableReason;
+        private readonly ExpansionHealth _expansion = new ExpansionHealth(
+            () => ExpansionsLoader.IsExpansionInstalled("MakingHistory"),
+            "Making History is not installed");
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -53,23 +54,10 @@ namespace Gonogo.KSP
             Commands = new List<CommandDeclaration>(),
         };
 
-        public UplinkHealth Health() =>
-            _unavailableReason != null
-                ? new UplinkHealth(UplinkHealthState.Unavailable, _unavailableReason)
-                : UplinkHealth.Healthy;
+        public UplinkHealth Health() => _expansion.Report();
 
         public void Register(IUplinkHost host)
         {
-            if (!ExpansionsLoader.IsExpansionInstalled("MakingHistory"))
-            {
-                var reason = "Making History is not installed";
-                Debug.LogWarning("[Gonogo.MakingHistoryUplink] UNAVAILABLE: " + reason + " (missions.active disabled)");
-                _unavailableReason = reason;
-                host.SetAvailability(Availability.Unavailable(reason));
-                host.AddChannelSource(MakingHistoryViewProvider.MissionTopic, _ => null);
-                return;
-            }
-
             host.AddChannelSource(MakingHistoryViewProvider.MissionTopic, MakingHistoryViewProvider.BuildMissionStatus);
         }
     }
