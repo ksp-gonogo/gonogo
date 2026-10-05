@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.11.0
+  version: 29.12.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -11550,6 +11550,18 @@ components:
           description: |-
             Straight-line distance the signal crosses on this hop, in metres. Null when
             the hop's geometry is not known, never 0.
+        strength:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ratio
+          description: |-
+            What this hop's link is worth at the distance it crosses, from 0 to 1, in
+            the comms backend's own terms (see `CommsSignal`). On `comms.path` it is
+            worked out for the receiving command centre's own believed hop, from what
+            that centre has heard of the two ends' antennas, so it is a model and not a
+            measurement. Null when the backend states no strength for the hop, or the
+            centre has not heard enough to work one out.
         extensions:
           type:
             - object
@@ -11564,10 +11576,12 @@ components:
             `RealAntennasHopExt`.
 
             On `comms.path` a hop carries the facts the active vessel's radio last
-            reported of that same hop, as the receiving command centre heard them. A hop
-            the centre believes in and has heard no report of carries none, and a report
-            reaches a centre no sooner than light from the farthest node on the path it
-            was measured over.
+            reported of that same hop, as the receiving command centre heard them, and a
+            report reaches a centre no sooner than light from the farthest node on the
+            path it was measured over. A hop the centre believes in and has heard no
+            report of carries the facts the backend works out for it, from what the
+            centre has heard of the two ends' antennas, or none where the backend states
+            none.
           additionalProperties: true
     CommsHopKind:
       type: integer
@@ -12048,6 +12062,7 @@ components:
         discriminator for the whole family rather than a second one per field.
       required:
         - strength
+        - modelled
       properties:
         strength:
           type: number
@@ -12056,6 +12071,16 @@ components:
             Link strength from 0 to 1, in the backend's own terms (see this type's
             summary), so compare values only within one install. 0 when no link state
             could be read.
+        modelled:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether `CommsSignal.strength` is worked out and not measured. A command
+            centre is sent the strength of the path it believes in. Where the active
+            vessel's radio last reported on that very path, the reported strength is
+            sent and this is false. Where it reported on another path, or has not
+            reported, the strength is what the backend works out for the believed path
+            from what the centre has heard, and this is true.
     ContractActionArgs:
       type: object
       description: |-

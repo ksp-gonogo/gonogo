@@ -6,6 +6,7 @@ import {
   EmptyState,
   Grid,
   getWidgetShape,
+  HeldFigure,
   NULL_DISPLAY,
   Panel,
   Section,
@@ -47,6 +48,10 @@ function signalHeadline({
   return controlLabel;
 }
 
+/** What the modelled mark on the strength means, on hover and in the spoken name. */
+const MODELLED_STRENGTH =
+  "Worked out for the path this command centre believes in, not measured";
+
 export function CommSignalComponent({
   w,
   h,
@@ -59,6 +64,7 @@ export function CommSignalComponent({
     pct,
     bars,
     control,
+    strengthModelled,
   } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
   const delayReading = useTelemetry("comms.delay");
@@ -136,8 +142,16 @@ export function CommSignalComponent({
     relayCount,
     showFullPath,
   });
-  const percent =
+  const figure =
     pct === null ? null : <Unit value={value("%", pct * 100)} decimals={0} />;
+  const percent =
+    figure !== null && strengthModelled ? (
+      <HeldFigure kind="modelled" caption={MODELLED_STRENGTH}>
+        {figure}
+      </HeldFigure>
+    ) : (
+      figure
+    );
   const headline = signalHeadline({
     noSignal,
     connected,

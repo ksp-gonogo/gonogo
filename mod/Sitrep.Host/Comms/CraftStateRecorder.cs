@@ -434,7 +434,8 @@ namespace Sitrep.Host.Comms
                 }
                 links[other.Id] = new CraftLink(
                     CommsElection.ReachModel(kernel, node.Radio, other.Radio).MaxRangeMeters,
-                    CommsElection.LinkModel(kernel, node.Radio, other.Radio, ut));
+                    CommsElection.LinkModel(kernel, node.Radio, other.Radio, ut),
+                    CommsElection.LinkStrength(kernel, node.Radio, other.Radio, ut));
             }
             if (node.Surface != null)
             {

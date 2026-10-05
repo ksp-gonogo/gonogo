@@ -272,6 +272,14 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>What the active craft's radio says of its link, or null for a game that reads none.</summary>
         public ContactRadio? Radio { get; set; }
 
+        /// <summary>
+        /// What the comms backend says a link between two nodes is worth, by
+        /// their node ids, or null for a world whose backend states no
+        /// strength. Set before the world starts: it decides whether a backend
+        /// is elected at all.
+        /// </summary>
+        public System.Func<string, string, double?>? LinkStrengths { get; set; }
+
         /// <summary>The craft the game has active now, which a test can switch.</summary>
         public string ActiveNow { get; set; } = ActiveGuid;
 
@@ -363,18 +371,20 @@ namespace Sitrep.Host.IntegrationTests
 
         public ContactGameLook Look()
         {
+            // A node's radio is its own id where a backend is elected, so the backend can tell the pair it is asked about.
+            object? Antenna(string id) => LinkStrengths == null ? null : id;
             var nodes = new List<ContactGameNode>
             {
-                ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), null, "Lander"),
-                ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), null, HomeName),
-                ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0)),
+                ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), Antenna(Active), "Lander"),
+                ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), Antenna(Home), HomeName),
+                ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0), Antenna(Far)),
             };
             var roster = new List<CommandCentreEntry> { Station(Home), Station(Far) };
             lock (_gate)
             {
                 if (_relayExists)
                 {
-                    var relay = ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit, null, "Relay");
+                    var relay = ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit, Antenna(Relay), "Relay");
                     if (RelayIsCentre)
                     {
                         relay.Centre = RelayCentre;
@@ -396,8 +406,67 @@ namespace Sitrep.Host.IntegrationTests
     /// and links into the engine's ledger each tick, as the game's own Uplinks
     /// do in production.
     /// </summary>
-    internal sealed class ScriptedContactUplink : ISitrepUplink
+    internal sealed class ScriptedContactUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
+        /// <summary>Elects a comms backend that states strengths, where the scripted game has any to state.</summary>
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            if (_game.LinkStrengths != null)
+            {
+                CommsElection.RegisterCapability(kernel, _ => new StatedStrengthBackend(_game));
+            }
+        }
+
+        /// <summary>A backend with nothing to say but what each link is worth, and that a path is worth the least of its links.</summary>
+        private sealed class StatedStrengthBackend : ICommsBackend, ICommsPathStrength
+        {
+            private readonly ScriptedContactGame _game;
+            private readonly TestCommsCoreUplink.FakeCommsBackend _plain = new TestCommsCoreUplink.FakeCommsBackend("scripted-strength", null);
+
+            public StatedStrengthBackend(ScriptedContactGame game) => _game = game;
+
+            public string ProviderId => _plain.ProviderId;
+
+            public IContactLinkStrength? LinkStrength(object? from, object? to, double ut)
+            {
+                var stated = from is string a && to is string b ? _game.LinkStrengths?.Invoke(a, b) : null;
+                return stated == null ? null : new Flat(stated.Value);
+            }
+
+            public double Combine(IReadOnlyList<double> hopStrengths) => PathStrengths.Weakest(hopStrengths);
+
+            public CommsConnectivity Connectivity() => _plain.Connectivity();
+
+            public CommsSignal SignalStrength() => _plain.SignalStrength();
+
+            public CommsControl ControlState() => _plain.ControlState();
+
+            public CommsPath Path(object? vessel) => new CommsPath();
+
+            public CommsNetwork Network(object? vessel) => _plain.Network(vessel);
+
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+
+            public bool? StillCarriesTo(object? vessel, string nodeId) => null;
+
+            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
+
+            public object? ControlPathTerminus(object? vessel) => null;
+
+            public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            private sealed class Flat : IContactLinkStrength
+            {
+                private readonly double _strength;
+
+                public Flat(double strength) => _strength = strength;
+
+                public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(_strength);
+            }
+        }
+
         /// <summary>A delayed command whose subject is the relay's own node.</summary>
         public const string RelayCommand = "reckoned.relay";
 
@@ -802,6 +871,12 @@ namespace Sitrep.Host.IntegrationTests
             var game = scripted ?? new ScriptedContactGame();
             engine.RegisterCommandCentreSource(new Grounds(ScriptedContactGame.Home, ScriptedContactGame.Far));
             var uplink = new ScriptedContactUplink(game, engine);
+            if (game.LinkStrengths != null)
+            {
+                // Only where the script elects a backend: every other world runs with none, as it always has.
+                uplink.DeclareCapabilities(engine.Kernel);
+                engine.ResolveCapabilities();
+            }
             engine.RegisterUplink(uplink);
             engine.Start();
             var world = new ReckonedVantageWorld(engine, game, uplink);

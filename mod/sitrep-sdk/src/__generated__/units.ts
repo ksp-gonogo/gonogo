@@ -432,6 +432,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     from: "id",
     fromIsHome: "flag",
     kind: "enum",
+    strength: "ratio",
     to: "id",
     toIsHome: "flag",
   },
@@ -487,6 +488,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     departUt: "ut",
   },
   "CommsSignal": {
+    modelled: "flag",
     strength: "ratio",
   },
   "ContractActionArgs": {
@@ -1706,6 +1708,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     modelName: "text",
   },
   "comms.signal": {
+    modelled: "flag",
     strength: "ratio",
   },
   "crash.lastCrash": {

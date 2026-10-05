@@ -30,19 +30,22 @@
               "from": "Explorer II",
               "to": "Relay Sat 1",
               "kind": 1,
-              "distanceMeters": 1250000
+              "distanceMeters": 1250000,
+              "strength": 0.62
             },
             {
               "from": "Relay Sat 1",
               "to": "Relay Sat 2",
               "kind": 1,
-              "distanceMeters": 2400000
+              "distanceMeters": 2400000,
+              "strength": 0.8
             },
             {
               "from": "Relay Sat 2",
               "to": "home",
               "kind": 0,
-              "distanceMeters": 640000
+              "distanceMeters": 640000,
+              "strength": 0.9
             }
           ]
         }
@@ -53,6 +56,13 @@
           "connected": true,
           "signalStrength": 0.55,
           "controlState": 4
+        }
+      },
+      {
+        "channel": "comms.signal",
+        "value": {
+          "strength": 0.62,
+          "modelled": true
         }
       },
       {

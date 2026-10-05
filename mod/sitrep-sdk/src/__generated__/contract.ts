@@ -1756,6 +1756,15 @@ export interface CommsSignal
 	* could be read.
 	*/
 	strength: Value<"ratio">;
+	/**
+	* Whether `CommsSignal.strength` is worked out and not measured. A command
+	* centre is sent the strength of the path it believes in. Where the active
+	* vessel's radio last reported on that very path, the reported strength is
+	* sent and this is false. Where it reported on another path, or has not
+	* reported, the strength is what the backend works out for the believed path
+	* from what the centre has heard, and this is true.
+	*/
+	modelled: boolean;
 }
 /**
 * What the active vessel can be commanded to do, for `CommsControl`. The
@@ -1863,6 +1872,15 @@ export interface CommsHop
 	*/
 	distanceMeters?: Value<"m"> | null;
 	/**
+	* What this hop's link is worth at the distance it crosses, from 0 to 1, in
+	* the comms backend's own terms (see `CommsSignal`). On `comms.path` it is
+	* worked out for the receiving command centre's own believed hop, from what
+	* that centre has heard of the two ends' antennas, so it is a model and not a
+	* measurement. Null when the backend states no strength for the hop, or the
+	* centre has not heard enough to work one out.
+	*/
+	strength?: Value<"ratio"> | null;
+	/**
 	* The provider-namespaced extension bag: how the elected comms backend carries
 	* per-hop facts this shared shape does not declare (see
 	* ProviderExtensionBagAttribute for the whole mechanism). A RealAntennas
@@ -1872,10 +1890,12 @@ export interface CommsHop
 	* `RealAntennasHopExt`.
 	*
 	* On `comms.path` a hop carries the facts the active vessel's radio last
-	* reported of that same hop, as the receiving command centre heard them. A hop
-	* the centre believes in and has heard no report of carries none, and a report
-	* reaches a centre no sooner than light from the farthest node on the path it
-	* was measured over.
+	* reported of that same hop, as the receiving command centre heard them, and a
+	* report reaches a centre no sooner than light from the farthest node on the
+	* path it was measured over. A hop the centre believes in and has heard no
+	* report of carries the facts the backend works out for it, from what the
+	* centre has heard of the two ends' antennas, or none where the backend states
+	* none.
 	*/
 	extensions?: ProviderExtensions;
 }

@@ -7,15 +7,17 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// How one craft's radio reaches one other node, as it stood when the
-    /// craft's state was read: the declared range, and the backend's link
-    /// model with its dishes aimed where they were aimed then.
+    /// craft's state was read: the declared range, the backend's link model
+    /// with its dishes aimed where they were aimed then, and what the backend
+    /// says the link is worth.
     /// </summary>
     public readonly struct CraftLink
     {
-        public CraftLink(double? maxRangeMeters, IContactLinkModel? link)
+        public CraftLink(double? maxRangeMeters, IContactLinkModel? link, IContactLinkStrength? strength = null)
         {
             MaxRangeMeters = maxRangeMeters;
             Link = link;
+            Strength = strength;
         }
 
         /// <summary>The longest distance the pair can talk over, in metres, or null when the backend states none.</summary>
@@ -23,6 +25,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The backend's link model for the pair, or null to plan the pair on geometry and range alone.</summary>
         public IContactLinkModel? Link { get; }
+
+        /// <summary>What the backend says the pair's link is worth at a separation, or null when it states no strength.</summary>
+        public IContactLinkStrength? Strength { get; }
     }
 
     /// <summary>

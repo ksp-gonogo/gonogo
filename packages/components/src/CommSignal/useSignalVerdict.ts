@@ -33,6 +33,11 @@ export interface SignalVerdict {
   control: ControlDescription;
   /** The observed strength reading, or null wherever `pct` is. */
   strengthReading: TinyEssential["value"];
+  /**
+   * The strength is what was worked out for the path this command centre
+   * believes in, where the craft's radio has not reported on that path.
+   */
+  strengthModelled: boolean;
 }
 
 /** The link verdict the body and the tiny essentials both draw. */
@@ -42,10 +47,15 @@ export function useSignalVerdict(): SignalVerdict {
   const commsReading = useTelemetry("vessel.comms");
   const connected =
     linkReading.state === "observed" ? linkReading.value.connected : undefined;
+  // The strength sent to this command centre for the path it believes in. The craft's own figure is of whatever path the game had it on, and stands in only until the centre is sent one.
+  const signalReading = useTelemetry("comms.signal");
+  const told =
+    signalReading.state === "observed" ? signalReading.value : undefined;
   const strength =
-    commsReading.state === "observed"
+    told?.strength ??
+    (commsReading.state === "observed"
       ? commsReading.value.signalStrength
-      : undefined;
+      : undefined);
   const noSignal =
     linkReading.state === "held" || commsReading.state === "held";
   // Kept through a held reading because a pill that blanked between frames would read as a control loss; `noSignal` withholds it on screen.
@@ -83,7 +93,13 @@ export function useSignalVerdict(): SignalVerdict {
     pct,
     bars: signalBarCount({ noSignal, connected, pct, controlState }),
     control: describeControl(controlStateName, controlState),
-    strengthReading: pct === null ? null : commsReading.signalStrength,
+    strengthReading:
+      pct === null
+        ? null
+        : told === undefined
+          ? commsReading.signalStrength
+          : signalReading.strength,
+    strengthModelled: told?.modelled === true,
   };
 }
 

@@ -322,6 +322,9 @@ namespace Sitrep.Host.Comms
             public ICollection<string> InRange { get; }
 
             public bool RoutesDue { get; }
+
+            /// <summary>The comms backend's rule for what a whole path is worth from its hops, or null when it states none.</summary>
+            public Func<IReadOnlyList<double>, double>? PathStrength { get; set; }
         }
 
         private readonly IContactGame _game;
@@ -359,6 +362,10 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The radio reading each centre was last sent its signal and grading from.</summary>
         private readonly Dictionary<string, ContactRadio> _radioSent = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
+
+        /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at.</summary>
+        private readonly Dictionary<string, (long Strength, bool Modelled, string? GradedBy, long? Grade)> _signalSent =
+            new Dictionary<string, (long, bool, string?, long?)>(StringComparer.Ordinal);
         private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
@@ -611,7 +618,10 @@ namespace Sitrep.Host.Comms
                     && targets.TryGetValue("entries", out var listed)
                     ? listed as IReadOnlyList<object?>
                     : null,
-                SystemViewProvider.TargetsInRange(snapshot));
+                SystemViewProvider.TargetsInRange(snapshot))
+            {
+                PathStrength = CommsElection.PathStrength(_host.Kernel),
+            };
         }
 
         /// <summary>
@@ -644,6 +654,7 @@ namespace Sitrep.Host.Comms
                 _pathShapes.Clear();
                 _radioSaid.Clear();
                 _radioSent.Clear();
+                _signalSent.Clear();
                 _rosterSent.Clear();
                 _said.Clear();
                 _homeKnew.Clear();
@@ -1042,6 +1053,7 @@ namespace Sitrep.Host.Comms
                     _unsettled.Remove(centre);
                     _pathShapes.Remove(centre);
                     _radioSent.Remove(centre);
+                    _signalSent.Remove(centre);
                     System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
             }
@@ -1191,7 +1203,12 @@ namespace Sitrep.Host.Comms
             var source = looked.ActiveCraft ?? "game";
             foreach (var centre in planning)
             {
-                frames += PublishReading(looked, centre);
+                var radio = looked.ActiveCraft == null ? null : _hearing!.RadioAt(centre, looked.ActiveCraft);
+                var radioNews = radio != null && (!_radioSent.TryGetValue(centre, out var sent) || !ReferenceEquals(sent, radio));
+                if (radio != null)
+                {
+                    _radioSent[centre] = radio;
+                }
                 _plans.TryGetValue(centre, out var plan);
                 if (plan != null && looked.Ut < plan.FromUt)
                 {
@@ -1206,6 +1223,8 @@ namespace Sitrep.Host.Comms
                 }
                 if (plan == null && looked.ActiveCraft != null)
                 {
+                    // No plan, so no believed path to weigh: the centre has only what the radio last said.
+                    frames += PublishSignal(looked, centre, null, radio);
                     continue;
                 }
                 var asked = false;
@@ -1213,15 +1232,24 @@ namespace Sitrep.Host.Comms
                 {
                     asked |= _pathsAsked[topic].Contains(centre);
                 }
-                if (!looked.RoutesDue && !asked)
+                if (!looked.RoutesDue && !asked && !radioNews)
                 {
                     continue;
                 }
 
                 var heard = _hearing!.HeardAt(centre);
                 var view = CentrePath.For(
-                    plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(heard, id), looked.Ut, lightFactor);
-                WithHeardFacts(view.Path, looked.ActiveCraft == null ? null : _hearing.RadioAt(centre, looked.ActiveCraft));
+                    plan,
+                    looked.ActiveCraft,
+                    centre,
+                    centre == home,
+                    _stations,
+                    id => NameOf(heard, id),
+                    looked.Ut,
+                    lightFactor,
+                    new PathStrengths(heard, looked.PathStrength));
+                WithHeardFacts(view.Path, radio);
+                frames += PublishSignal(looked, centre, view, radio);
                 var reshaped = !_pathShapes.TryGetValue(centre, out var shape) || shape != view.Shape;
                 _pathShapes[centre] = view.Shape;
                 var to = ToItself(centre);
@@ -1307,39 +1335,53 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Sends <paramref name="centre"/> the active craft's signal and its
-        /// grading, from the newest reading of that craft's radio to have
-        /// reached the centre: when a newer one has, and at once where a session
-        /// has just sat down. A centre that has heard none is sent nothing.
-        /// Returns how many frames it sent.
+        /// Sends <paramref name="centre"/> the strength and grading of the
+        /// active craft's link as that centre has it: the radio's own report
+        /// where it is of the path the centre believes in, and what the
+        /// backend works out for that path where it is not. Sent when either
+        /// moves by <see cref="ContactRadio.Quantum"/> or changes kind, and at
+        /// once where a session has just sat down. A centre with nothing heard
+        /// and nothing to work out is sent nothing. Returns how many frames it
+        /// sent.
         /// </summary>
-        private int PublishReading(Looked looked, string centre)
+        /// <param name="view">The centre's believed path, or null when it has no plan.</param>
+        /// <param name="radio">The newest reading of the craft's radio to have reached the centre, or null.</param>
+        private int PublishSignal(Looked looked, string centre, CentrePathView? view, ContactRadio? radio)
         {
             if (looked.ActiveCraft == null)
             {
                 return 0;
             }
-            var radio = _hearing!.RadioAt(centre, looked.ActiveCraft);
-            if (radio == null)
+            var told = CentreSignal.For(view?.Path ?? new CommsPath(), view?.Strength, radio);
+            if (told == null)
             {
                 return 0;
             }
-            var news = !_radioSent.TryGetValue(centre, out var sent) || !ReferenceEquals(sent, radio);
-            _radioSent[centre] = radio;
+            var degrade = told.Value.Degrade;
+            var said = (
+                Quanta(told.Value.Strength),
+                told.Value.Modelled,
+                degrade?.ModelId,
+                degrade?.Level == null ? (long?)null : Quanta(degrade.Level.Value));
+            var news = !_signalSent.TryGetValue(centre, out var was) || !was.Equals(said);
+            _signalSent[centre] = said;
             var to = ToItself(centre);
             var frames = 0;
             if (_host!.IsAnyTopicSubscribed(SignalTopic) && (news || _pathsAsked[SignalTopic].Contains(centre)))
             {
-                _streams!.PublishAddressedTo(SignalTopic, new CommsSignal { Strength = radio.Strength }, looked.Ut, to);
+                _streams!.PublishAddressedTo(
+                    SignalTopic, new CommsSignal { Strength = told.Value.Strength, Modelled = told.Value.Modelled }, looked.Ut, to);
                 frames++;
             }
-            if (_host.IsAnyTopicSubscribed(DegradeTopic) && (news || _pathsAsked[DegradeTopic].Contains(centre)))
+            if (degrade != null && _host.IsAnyTopicSubscribed(DegradeTopic) && (news || _pathsAsked[DegradeTopic].Contains(centre)))
             {
-                _streams!.PublishAddressedTo(DegradeTopic, radio.Degrade, looked.Ut, to);
+                _streams!.PublishAddressedTo(DegradeTopic, degrade, looked.Ut, to);
                 frames++;
             }
             return frames;
         }
+
+        private static long Quanta(double value) => (long)Math.Round(value / ContactRadio.Quantum);
 
         /// <summary>The name <paramref name="centre"/> knows <paramref name="nodeId"/> by: a ground station's own, or a craft's as the centre last heard it. Courier thread only.</summary>
         private string? NameAt(string centre, string nodeId)

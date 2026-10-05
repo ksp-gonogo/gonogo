@@ -41,6 +41,11 @@ namespace Sitrep.Host.Tests
             // relay-mediated one without parsing an endpoint name.
             nameof(CommsHop.FromIsHome),
             nameof(CommsHop.ToIsHome),
+            // What the hop's link is worth, from 0 to 1. Every backend that
+            // states a strength states this one number, through
+            // ICommsPathStrength, so it is the shared shape and not a provider
+            // fact. Ruled by the operator on 2026-10-05 (Saga subtask 105).
+            nameof(CommsHop.Strength),
             nameof(CommsHop.Extensions),
         };
 

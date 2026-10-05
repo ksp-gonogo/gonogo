@@ -31,6 +31,9 @@ namespace Sitrep.Host.Comms
         /// nodes in the same order and end at the same centre.
         /// </summary>
         public string Shape { get; set; } = "";
+
+        /// <summary>What the whole path is worth, worked out from its hops, or null when it could not be.</summary>
+        public double? Strength { get; set; }
     }
 
     /// <summary>
@@ -64,6 +67,7 @@ namespace Sitrep.Host.Comms
         /// <param name="nameOf">The name the centre last heard a craft go by, or null.</param>
         /// <param name="ut">Now.</param>
         /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        /// <param name="strengths">What the centre can work out about hop strengths, or null to state none.</param>
         public static CentrePathView For(
             ContactPlan? plan,
             string? activeCraft,
@@ -72,7 +76,8 @@ namespace Sitrep.Host.Comms
             IReadOnlyList<ContactGameNode> stations,
             Func<string, string?> nameOf,
             double ut,
-            double lightFactor = 1.0)
+            double lightFactor = 1.0,
+            PathStrengths? strengths = null)
         {
             var source = activeCraft == null ? "game" : activeCraft;
             var none = new CentrePathView(
@@ -100,6 +105,10 @@ namespace Sitrep.Host.Comms
             {
                 return none;
             }
+            if (toGround && strengths != null)
+            {
+                route = StrongestOfTheEarliest(plan, activeCraft, ground.Keys, route, ut, lightFactor, strengths);
+            }
 
             var hops = new List<CommsHop>(route.Hops.Count);
             var nodes = new List<CommsNetworkNode>(route.Hops.Count + 1) { Node(activeCraft, ground, nameOf) };
@@ -111,6 +120,7 @@ namespace Sitrep.Host.Comms
                 var toHome = ground.ContainsKey(hop.To);
                 var from = WireId(hop.From, ground);
                 var to = WireId(hop.To, ground);
+                var facts = strengths?.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters);
                 hops.Add(new CommsHop
                 {
                     From = from,
@@ -120,6 +130,8 @@ namespace Sitrep.Host.Comms
                     Kind = fromHome || toHome ? CommsHopKind.Home : CommsHopKind.Relay,
                     // Where the receiver will be when the light lands, which is the length the light crosses.
                     DistanceMeters = hop.DistanceMeters,
+                    Strength = facts?.Strength,
+                    Extensions = facts?.Extensions,
                 });
                 nodes.Add(Node(hop.To, ground, nameOf));
                 edges.Add(new CommsNetworkEdge { A = from, B = to, Active = true });
@@ -132,7 +144,60 @@ namespace Sitrep.Host.Comms
                 Terminus(route.Destination, ground, nameOf))
             {
                 Shape = shape.ToString(),
+                Strength = strengths?.Of(hops.ConvertAll(h => h.Strength)),
             };
+        }
+
+        /// <summary>
+        /// Of the routes to each station that arrive no later than the plan
+        /// can tell apart from the earliest, the one the backend holds
+        /// strongest. Stations in sight of one craft differ by milliseconds
+        /// of light, and a backend that routes for strength picks among them
+        /// by strength, so this is the path the game itself is most likely
+        /// on. A route with no strength to state loses to one with any, and
+        /// with nothing to choose by the earliest stands.
+        /// </summary>
+        private static ContactRoute StrongestOfTheEarliest(
+            ContactPlan plan,
+            string activeCraft,
+            IEnumerable<string> stations,
+            ContactRoute earliest,
+            double ut,
+            double lightFactor,
+            PathStrengths strengths)
+        {
+            var best = earliest;
+            var bestStrength = StrengthOf(earliest, ut, strengths);
+            var latest = earliest.ArrivalUt + (ContactPlanSchedule.EdgeToleranceSeconds * Math.Max(lightFactor, 0.0));
+            foreach (var station in stations)
+            {
+                if (station == earliest.Destination)
+                {
+                    continue;
+                }
+                var route = ContactRouter.EarliestArrival(plan, activeCraft, station, ut, null, lightFactor);
+                if (route == null || !route.Live || route.Hops.Count == 0 || route.ArrivalUt > latest)
+                {
+                    continue;
+                }
+                var strength = StrengthOf(route, ut, strengths);
+                if (strength != null && (bestStrength == null || strength.Value > bestStrength.Value))
+                {
+                    best = route;
+                    bestStrength = strength;
+                }
+            }
+            return best;
+        }
+
+        private static double? StrengthOf(ContactRoute route, double ut, PathStrengths strengths)
+        {
+            var hops = new List<double?>(route.Hops.Count);
+            foreach (var hop in route.Hops)
+            {
+                hops.Add(strengths.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters)?.Strength);
+            }
+            return strengths.Of(hops);
         }
 
         /// <summary>

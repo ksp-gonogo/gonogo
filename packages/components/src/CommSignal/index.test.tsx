@@ -76,6 +76,48 @@ describe("CommSignalComponent", () => {
     expect(screen.getByText("None")).toBeInTheDocument();
   });
 
+  it("shows the strength this command centre was sent for its own path, over the craft's own figure", async () => {
+    const fixture = newFixture();
+    renderComm(fixture);
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("vessel.comms", {
+        connected: true,
+        signalStrength: 0.82,
+        controlState: CONTROL_STATE_FULL,
+      });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("60 %"));
+    expect(visibleText()).not.toContain("82 %");
+    expect(
+      document.querySelector('[data-reckoning-mark="modelled"]'),
+    ).toBeNull();
+  });
+
+  it("marks a strength worked out for the believed path as modelled, and says so", async () => {
+    const fixture = newFixture();
+    renderComm(fixture);
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("vessel.comms", {
+        connected: true,
+        signalStrength: 0.82,
+        controlState: CONTROL_STATE_FULL,
+      });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: true });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("60 %"));
+    expect(
+      document.querySelector('[data-reckoning-mark="modelled"]'),
+    ).not.toBeNull();
+    expect(document.body.textContent).toMatch(
+      /worked out for the path this command centre believes in/i,
+    );
+  });
+
   it("formats signal delay in seconds or minutes depending on magnitude", async () => {
     const fixture = newFixture();
     renderComm(fixture);

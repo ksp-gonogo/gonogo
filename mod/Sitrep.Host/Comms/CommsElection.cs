@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Comms
@@ -184,6 +185,69 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// The elected backend's strength model for a pair of nodes, or null
+        /// when it states none: the backend is not an
+        /// <see cref="ICommsPathStrength"/>, it has nothing for this pair, or
+        /// asking it threw.
+        ///
+        /// <para>THREADING: main thread only, as every other backend read at this
+        /// seam; the model it returns is pure.</para>
+        /// </summary>
+        public static IContactLinkStrength? LinkStrength(Kernel? kernel, object? from, object? to, double ut)
+        {
+            if (kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                return (Elected(kernel) as ICommsPathStrength)?.LinkStrength(from, to, ut);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The elected backend's rule for what a whole path is worth from its
+        /// hops, or null when it states none. Read on the main thread; the rule
+        /// itself is pure and may be called anywhere. A rule that throws is
+        /// answered as not a number, which states no strength.
+        /// </summary>
+        public static Func<IReadOnlyList<double>, double>? PathStrength(Kernel? kernel)
+        {
+            if (kernel == null)
+            {
+                return null;
+            }
+            ICommsPathStrength? backend;
+            try
+            {
+                backend = Elected(kernel) as ICommsPathStrength;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            if (backend == null)
+            {
+                return null;
+            }
+            return hops =>
+            {
+                try
+                {
+                    return backend.Combine(hops);
+                }
+                catch (Exception)
+                {
+                    return double.NaN;
+                }
+            };
         }
     }
 }

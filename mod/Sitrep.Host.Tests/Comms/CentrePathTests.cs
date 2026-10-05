@@ -76,6 +76,89 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(1, view.CommandCentre.BodyIndex);
         }
 
+        private sealed class Flat : IContactLinkStrength
+        {
+            private readonly double _strength;
+
+            public Flat(double strength) => _strength = strength;
+
+            public ContactHopFacts FactsAt(double ut, double separationMeters) =>
+                new ContactHopFacts(_strength, new System.Collections.Generic.Dictionary<string, object?> { ["test"] = _strength });
+        }
+
+        private static readonly OrbitElements AnOrbit = new OrbitElements(700_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.5316e12);
+
+        private static PathStrengths Heard(params (string Craft, string To, double Strength)[] links) =>
+            new PathStrengths(
+                links.GroupBy(l => l.Craft).Select(craft => CraftState.Orbiting(
+                    craft.Key, 0.0, 1, AnOrbit, null, null, true,
+                    craft.ToDictionary(l => l.To, l => new CraftLink(1e12, null, new Flat(l.Strength))))),
+                null);
+
+        [Fact]
+        public void EachBelievedHopCarriesWhatTheBackendSaysItIsWorthAndThePathTheLeastOfThem()
+        {
+            var plan = Plan(
+                Pair(Probe, Relay, 1.0, Always()),
+                Pair(Relay, Forward, 2.0, Always()));
+
+            var view = CentrePath.For(
+                plan, Probe, Ksc, true, Stations, Name, 10.0, 1.0,
+                Heard((Probe, Relay, 0.9), (Relay, Forward, 0.6)));
+
+            Assert.Equal(new double?[] { 0.9, 0.6 }, view.Path.Hops.Select(h => h.Strength).ToArray());
+            Assert.All(view.Path.Hops, h => Assert.NotNull(h.Extensions));
+            Assert.Equal(0.6, view.Strength!.Value, 9);
+        }
+
+        [Fact]
+        public void WithNoStrengthsTheHopsCarryNoneAndThePathIsWorthNothingStated()
+        {
+            var plan = Plan(Pair(Probe, Ksc, 2.0, Always()));
+
+            var view = CentrePath.For(plan, Probe, Ksc, true, Stations, Name, 10.0);
+
+            Assert.Null(view.Path.Hops.Single().Strength);
+            Assert.Null(view.Strength);
+        }
+
+        /// <summary>
+        /// Two stations a millisecond of light apart are the same arrival as
+        /// far as the plan can tell, so the stronger is the believed path, as
+        /// it is the game's.
+        /// </summary>
+        [Fact]
+        public void BetweenStationsTheSignalReachesAtTheSameTimeTheHomeCentreBelievesInTheStrongerPath()
+        {
+            var plan = Plan(
+                Pair(Probe, Ksc, 2.0, Always()),
+                Pair(Probe, Forward, 2.001, Always()));
+
+            var plain = CentrePath.For(plan, Probe, Ksc, true, Stations, Name, 10.0);
+            Assert.Equal("Kerbal Space Center", plain.Path.Hops.Single().To);
+
+            var view = CentrePath.For(
+                plan, Probe, Ksc, true, Stations, Name, 10.0, 1.0,
+                Heard((Probe, Ksc, 0.3), (Probe, Forward, 0.8)));
+
+            Assert.Equal("Forward Station", view.Path.Hops.Single().To);
+            Assert.Equal(0.8, view.Strength!.Value, 9);
+        }
+
+        [Fact]
+        public void AStrongerPathThatArrivesLaterThanThePlanCanTellApartIsNotPreferred()
+        {
+            var plan = Plan(
+                Pair(Probe, Ksc, 2.0, Always()),
+                Pair(Probe, Forward, 4.0, Always()));
+
+            var view = CentrePath.For(
+                plan, Probe, Ksc, true, Stations, Name, 10.0, 1.0,
+                Heard((Probe, Ksc, 0.3), (Probe, Forward, 0.8)));
+
+            Assert.Equal("Kerbal Space Center", view.Path.Hops.Single().To);
+        }
+
         [Fact]
         public void AGroundStationThatIsNotHomeIsShownOnlyThePathToItself()
         {

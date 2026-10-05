@@ -392,6 +392,7 @@
       "from": "id",
       "fromIsHome": "flag",
       "kind": "enum",
+      "strength": "ratio",
       "to": "id",
       "toIsHome": "flag"
     },
@@ -447,6 +448,7 @@
       "departUt": "ut"
     },
     "CommsSignal": {
+      "modelled": "flag",
       "strength": "ratio"
     },
     "ContractActionArgs": {
@@ -1661,6 +1663,7 @@
       "modelName": "text"
     },
     "comms.signal": {
+      "modelled": "flag",
       "strength": "ratio"
     },
     "crash.lastCrash": {

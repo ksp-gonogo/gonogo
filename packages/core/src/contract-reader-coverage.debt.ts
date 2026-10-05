@@ -74,8 +74,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.commandCentre.id":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.commandCentre.kind":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.connected":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.controlSource":
@@ -97,8 +95,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:comms.occlusion.modelId":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.modelName":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.signal.strength":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:eva.crew.count":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",

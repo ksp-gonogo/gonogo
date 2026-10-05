@@ -2148,6 +2148,10 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "strength");
             sb.Append(':');
             AppendNumber(sb, s.Strength);
+            sb.Append(',');
+            AppendString(sb, "modelled");
+            sb.Append(':');
+            AppendBool(sb, s.Modelled);
             sb.Append('}');
         }
 
@@ -2199,6 +2203,17 @@ namespace Sitrep.Contract.Serialization
             if (h.DistanceMeters.HasValue)
             {
                 AppendNumber(sb, h.DistanceMeters.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "strength");
+            sb.Append(':');
+            if (h.Strength.HasValue)
+            {
+                AppendNumber(sb, h.Strength.Value);
             }
             else
             {

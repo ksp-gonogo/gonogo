@@ -134,6 +134,17 @@ public class CommsSignal
     /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double Strength { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="Strength"/> is worked out and not measured. A
+    /// command centre is sent the strength of the path it believes in. Where
+    /// the active vessel's radio last reported on that very path, the reported
+    /// strength is sent and this is false. Where it reported on another path,
+    /// or has not reported, the strength is what the backend works out for the
+    /// believed path from what the centre has heard, and this is true.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Modelled { get; set; }
 }
 
 /// <summary>
@@ -259,6 +270,18 @@ public class CommsHop
     public double? DistanceMeters { get; set; }
 
     /// <summary>
+    /// What this hop's link is worth at the distance it crosses, from 0 to 1,
+    /// in the comms backend's own terms (see <see cref="CommsSignal"/>). On
+    /// <c>comms.path</c> it is worked out for the receiving command centre's
+    /// own believed hop, from what that centre has heard of the two ends'
+    /// antennas, so it is a model and not a measurement. Null when the
+    /// backend states no strength for the hop, or the centre has not heard
+    /// enough to work one out.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? Strength { get; set; }
+
+    /// <summary>
     /// The provider-namespaced extension bag: how the elected comms backend
     /// carries per-hop facts this shared shape does not declare (see
     /// <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism).
@@ -269,9 +292,11 @@ public class CommsHop
     ///
     /// <para>On <c>comms.path</c> a hop carries the facts the active vessel's
     /// radio last reported of that same hop, as the receiving command centre
-    /// heard them. A hop the centre believes in and has heard no report of
-    /// carries none, and a report reaches a centre no sooner than light from
-    /// the farthest node on the path it was measured over.</para>
+    /// heard them, and a report reaches a centre no sooner than light from the
+    /// farthest node on the path it was measured over. A hop the centre
+    /// believes in and has heard no report of carries the facts the backend
+    /// works out for it, from what the centre has heard of the two ends'
+    /// antennas, or none where the backend states none.</para>
     /// </summary>
     // The key is omitted when no provider filled a bag, so a payload no provider
     // extended carries no trace of the mechanism.

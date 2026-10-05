@@ -2375,8 +2375,18 @@ namespace Sitrep.Contract
         /// <c>@system.bodies</c>: the range to a vessel out of physics range follows
         /// from its orbit on the list and the active vessel's own. No payload changes
         /// shape and nothing moves on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 11 -&gt; 12: the strength of the path a
+        /// command centre believes in.</b> <see cref="CommsHop"/> gains
+        /// <see cref="CommsHop.Strength"/> and <see cref="CommsSignal"/> gains
+        /// <see cref="CommsSignal.Modelled"/>. <c>comms.signal</c>,
+        /// <c>comms.degrade</c> and the hop facts on <c>comms.path</c> describe the
+        /// receiving centre's own believed path, worked out by the comms backend
+        /// through the new <see cref="ICommsPathStrength"/> and
+        /// <see cref="IContactLinkStrength"/>, where they described the path the
+        /// game had chosen. Additive on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 11;
+        public const int Minor = 12;
     }
 }

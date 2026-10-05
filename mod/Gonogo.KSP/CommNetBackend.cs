@@ -23,7 +23,7 @@ namespace Gonogo.KSP
     /// (<see cref="CommsCoreUplink"/>). It is a stateless view over
     /// <see cref="ActiveVesselScope.Current"/>, not a cached snapshot.</para>
     /// </summary>
-    public sealed class CommNetBackend : CommsBackendBase
+    public sealed class CommNetBackend : CommsBackendBase, ICommsPathStrength
     {
         public const string Id = "commnet";
 
@@ -269,6 +269,20 @@ namespace Gonogo.KSP
         /// A tick with no readable link is UNRATED rather than rated unusable.
         /// </summary>
         public override ICommsDegradeModel DegradeModel() => CommNetDegrade.From(LinkState());
+
+        /// <summary>
+        /// Stock's strength for a pair at a separation: how far inside its
+        /// longest range the pair is, through the range curve
+        /// (<see cref="RangeCurveStrength"/>). The longest range is the one
+        /// <see cref="ReachModel"/> states, so a pair reads as having some
+        /// strength exactly where it reads as in reach. Null for a pair with
+        /// no stated reach.
+        /// </summary>
+        public IContactLinkStrength? LinkStrength(object? from, object? to, double ut) =>
+            CommNetStrength.For(ReachModel(from, to).MaxRangeMeters);
+
+        /// <summary>The product of the hops, as stock's own <c>CommPath.signalStrength</c> is.</summary>
+        public double Combine(IReadOnlyList<double> hopStrengths) => CommNetStrength.Product(hopStrengths);
 
         /// <summary>
         /// Stock's occlusion geometry, built from the LIVE difficulty settings
