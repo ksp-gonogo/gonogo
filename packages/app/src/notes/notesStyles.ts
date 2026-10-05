@@ -60,22 +60,6 @@ export const RowActions = styled.div`
   align-items: center;
 `;
 
-export const DoneBtn = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  padding: var(--inset-control-compact);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  @media (hover: hover) {
-    &:hover {
-      color: var(--color-go-text);
-    }
-  }
-`;
-
 export const DeleteBtn = styled.button`
   background: none;
   border: none;

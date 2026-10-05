@@ -33,6 +33,13 @@ describe("NotesView", () => {
     expect(actions.addNote).toHaveBeenCalledWith("check fuel");
   });
 
+  it("offers one way to remove a note, which deletes it", () => {
+    const actions = renderNotes([note("a", "first", 0)]);
+    expect(screen.queryByLabelText("Mark note done")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Delete note"));
+    expect(actions.deleteNote).toHaveBeenCalledWith("a");
+  });
+
   it("commits an edited body on Enter", () => {
     const actions = renderNotes([note("a", "first", 0)]);
     fireEvent.click(screen.getByText("first"));

@@ -1,16 +1,10 @@
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  CloseIcon,
-} from "@ksp-gonogo/ui-kit";
+import { ChevronDownIcon, ChevronUpIcon, CloseIcon } from "@ksp-gonogo/ui-kit";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { NoteRenderedText } from "./NoteRenderedText";
 import type { NotesActions } from "./NotesView";
 import {
   Body,
   DeleteBtn,
-  DoneBtn,
   Item,
   RenderedBody,
   ReorderBtn,
@@ -109,13 +103,6 @@ export function NoteRow({
         )}
       </Body>
       <RowActions>
-        <DoneBtn
-          type="button"
-          aria-label="Mark note done"
-          onClick={() => actions.deleteNote(note.id)}
-        >
-          <CheckIcon size="var(--icon-size-control)" />
-        </DoneBtn>
         <DeleteBtn
           type="button"
           aria-label="Delete note"

@@ -1,4 +1,5 @@
 import { usePrintableFields } from "@ksp-gonogo/data";
+import { Floating } from "@ksp-gonogo/ui-kit";
 import {
   type ChangeEvent,
   forwardRef,
@@ -58,6 +59,11 @@ export const TagAutocomplete = forwardRef<
   forwardedRef,
 ) {
   const localRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  // Re-read on every placement, so the list follows the field it belongs to.
+  const popoverAnchor = () => {
+    const rect = localRef.current?.getBoundingClientRect();
+    return rect ? { x: rect.left, y: rect.bottom + 4 } : null;
+  };
   useImperativeHandle(forwardedRef, () => localRef.current as never, []);
 
   const options = useKeyOptions();
@@ -201,27 +207,29 @@ export const TagAutocomplete = forwardRef<
         autoFocus={autoFocus}
       />
       {openAt !== null && filtered.length > 0 && (
-        <Popover role="listbox" aria-label="Variable suggestions">
-          {filtered.map((opt, i) => (
-            <PopoverItem
-              key={opt.key}
-              type="button"
-              role="option"
-              $selected={i === selectedIdx}
-              aria-selected={i === selectedIdx}
-              onMouseDown={(e) => {
-                // mousedown rather than click so the input's blur handler (which clears openAt) doesn't fire first.
-                e.preventDefault();
-                insertSelection(opt);
-              }}
-              onMouseEnter={() => setSelectedIdx(i)}
-            >
-              <OptLabel>{opt.label}</OptLabel>
-              <OptKey>{opt.key}</OptKey>
-              <OptGroup>{opt.group}</OptGroup>
-            </PopoverItem>
-          ))}
-        </Popover>
+        <Floating anchor={popoverAnchor}>
+          <Popover role="listbox" aria-label="Variable suggestions">
+            {filtered.map((opt, i) => (
+              <PopoverItem
+                key={opt.key}
+                type="button"
+                role="option"
+                $selected={i === selectedIdx}
+                aria-selected={i === selectedIdx}
+                onMouseDown={(e) => {
+                  // mousedown rather than click so the input's blur handler (which clears openAt) doesn't fire first.
+                  e.preventDefault();
+                  insertSelection(opt);
+                }}
+                onMouseEnter={() => setSelectedIdx(i)}
+              >
+                <OptLabel>{opt.label}</OptLabel>
+                <OptKey>{opt.key}</OptKey>
+                <OptGroup>{opt.group}</OptGroup>
+              </PopoverItem>
+            ))}
+          </Popover>
+        </Floating>
       )}
     </Wrap>
   );
@@ -281,16 +289,13 @@ const StyledTextarea = styled.textarea`
 `;
 
 const Popover = styled.div`
-  position: absolute;
-  left: 0;
-  top: calc(100% + 4px);
-  z-index: var(--z-dropdown);
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.96));
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   max-height: 240px;
-  width: max(280px, 100%);
+  width: 280px;
+  max-width: calc(100vw - 16px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
