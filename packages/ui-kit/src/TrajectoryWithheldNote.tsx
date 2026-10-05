@@ -6,16 +6,24 @@ import { Stack } from "./Stack";
 import { Text } from "./Text";
 import { Tooltip } from "./Tooltip";
 
-/** A refusal from the propagation seam, narrowed for the readouts below. */
+/**
+ * The `withheld` answer of `useOrbitTrajectory`: a path that may not be drawn,
+ * and the reason why.
+ *
+ * @category EmptyState
+ */
 export type WithheldTrajectory = Extract<
   OrbitTrajectory,
   { shape: "withheld" }
 >;
 
 /**
- * What a widget says when the propagation seam refuses a curve, in the badge's
- * vocabulary. Each reason keeps its own sentence because each has a different
- * remedy; one table so no two panels word the same refusal differently.
+ * The heading and sentence for a withheld path, for a widget that lays the
+ * words out itself. Each reason has its own wording because each has a
+ * different remedy. Use this rather than wording your own, so every widget says
+ * the same refusal the same way.
+ *
+ * @category EmptyState
  */
 export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
   heading: string;
@@ -57,9 +65,12 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
 }
 
 /**
- * The refusal standing in for the drawing. A status, not an alert: a provider
- * declining to extrapolate is the system working. `compact` keeps the heading
- * only, for a strip beside a readout.
+ * The refusal standing in for a path's drawing, as a status rather than an
+ * alert: a provider declining to vouch for a path that far is the system
+ * working. `compact` keeps the heading only, with the sentence on hover, for a
+ * strip beside a readout or a caption.
+ *
+ * @category EmptyState
  */
 export function TrajectoryWithheldNote({
   withheld,

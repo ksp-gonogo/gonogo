@@ -5,8 +5,15 @@
  * An Uplink that contributes a projection needs to say where a point IS in the
  * frame it chose: a frame choice, that choice resolved to a state at one
  * instant, the forward and inverse position transforms, and the fact that a
- * pulsating frame's coordinates are ratios rather than distances. That is the
- * whole of what is below.
+ * pulsating frame's coordinates are ratios rather than distances.
+ *
+ * Two things built on those transforms are here too, because an author drawing
+ * in a frame needs them beside it:
+ *
+ * - a craft's path in the frame you chose, from `useOrbitTrajectory`, with
+ *   `trajectoryFrameLabel` to name the frame beside it
+ * - a body pair's five libration points, which stand still only in that pair's
+ *   rotating-pulsating frame, and a craft's offset from the nearest one
  *
  * ## Why this is not the root barrel
  *
@@ -95,10 +102,9 @@
  * - `frameSides` and `FrameSides`, which replicate the in-game frame selector's
  *   own notion of which bodies sit on each side, and so track something outside
  *   this repo
- * - the libration arithmetic's two station-keeping thresholds, which are tuning
- *   rather than physics. The arithmetic itself is below: a libration point only
- *   means something under n-body gravity, so the widget that draws them lives in
- *   the Uplink that supplies it, and that Uplink is its consumer
+ * - the two station-keeping thresholds behind `LibrationStationKeeping`, which
+ *   are tuning rather than physics: read the meaning, not the distance it was
+ *   cut at
  * - `CelestialFacts` and `CelestialBody`, the catalogue every function below
  *   takes. Already on the root barrel, which is where the catalogue is produced,
  *   and a type reachable through two paths raises a canonicality question for no

@@ -7,7 +7,13 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { UnitValue } from "./readingCurrency";
 
-/** Turns a quantity computed from the body catalogue into the figure a readout draws, carrying how exact and how current it is. */
+/**
+ * Turns a quantity computed from the body catalogue into the figure a readout
+ * draws, carrying how exact and how current it is. Made by
+ * {@link ephemerisFigureOf}; hand the result to `Unit`'s `value`.
+ *
+ * @category Unit
+ */
 export type EphemerisFigure = <Unit extends string>(
   figure: Value<Unit>,
 ) => UnitValue<Unit>;
@@ -15,7 +21,8 @@ export type EphemerisFigure = <Unit extends string>(
 /**
  * The figure-maker for quantities computed from `bodies`' orbits and the clock
  * alone: a phase angle between two planets, a transfer window between them, a
- * pair's separation.
+ * pair's separation. Pass the catalogue reading and the bodies the figure rests
+ * on.
  *
  * Where every one of those bodies is deterministic (a fixed conic, which is
  * every body of a stock install) the figure is stamped deterministic and takes
@@ -24,8 +31,11 @@ export type EphemerisFigure = <Unit extends string>(
  * drift like craft) the figure is only as current as the catalogue, and a held
  * catalogue hands it over as held.
  *
- * A figure that also rests on the craft does not come through here: it takes
- * the craft's mark, since one inexact input makes the result inexact.
+ * A figure that also rests on the craft does not come through here: give it
+ * the craft's mark with `derivedMarking`, since one inexact input makes the
+ * result inexact.
+ *
+ * @category Unit
  */
 export function ephemerisFigureOf(
   catalogue: Reading<CelestialFacts> | undefined,

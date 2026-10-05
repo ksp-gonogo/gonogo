@@ -60,22 +60,30 @@ import {
 
 export const LAGRANGE_POINT_NAMES = ["L1", "L2", "L3", "L4", "L5"] as const;
 
+/**
+ * One of a pair's five libration points: `L1` between the two bodies, `L2`
+ * beyond the secondary, `L3` opposite it, and `L4` and `L5` leading and trailing
+ * it by sixty degrees.
+ *
+ * @category Frames of reference
+ */
 export type LagrangePointName = (typeof LAGRANGE_POINT_NAMES)[number];
 
 /**
- * Why a pair has no five points, or that it has them.
+ * Why a pair has no five points, or that it has them, as {@link LibrationAnswer}'s
+ * `refusal`.
  *
- * <b>Zero means something TRUE.</b> `NotAttempted` is "no pair was named", which
- * is the state a widget is in before an operator picks one and the state a
- * catalogue that has not arrived leaves it in. It is deliberately NOT a
- * catch-all: an `Unspecified = 0` reading as "nothing was refused" is how a
- * feature that never ran once looked healthy on every frame it published.
+ * Zero is `NotAttempted`, "no pair was named": the state before an operator
+ * picks one, and while the catalogue has not arrived. It is not a refusal, so
+ * say what to pick rather than showing it as a fault. Only `NotRefused` comes
+ * with points.
  *
- * The three real refusals are separated by what an operator would DO about
- * them, which is the only distinction worth carrying: a body the catalogue does
- * not have is a different situation from a body that cannot have a pair at all,
- * and both are different from a pair that is real and whose states this instant
- * do not determine.
+ * The three refusals differ in what an operator would do about them: a body the
+ * catalogue does not carry, a body that cannot have a pair at all, and a real
+ * pair whose states at this instant do not determine its points. The answer's
+ * `because` carries the sentence for each.
+ *
+ * @category Frames of reference
  */
 export const LIBRATION_REFUSALS = {
   /** No pair was named, so no points were sought. Not a fault and not a complaint. */
@@ -95,10 +103,21 @@ export const LIBRATION_REFUSALS = {
   NotRefused: 4,
 } as const;
 
+/**
+ * One value of {@link LIBRATION_REFUSALS}.
+ *
+ * @category Frames of reference
+ */
 export type LibrationRefusal =
   (typeof LIBRATION_REFUSALS)[keyof typeof LIBRATION_REFUSALS];
 
-/** The pair, as far as it could be identified. */
+/**
+ * A body and its parent, the pair whose five libration points are wanted. Named
+ * for the secondary, the smaller body: choosing the Mun means the Kerbin-Mun
+ * pair. {@link librationPairsOf} lists the ones a catalogue can form.
+ *
+ * @category Frames of reference
+ */
 export interface LibrationPair {
   /** The body the pair is named FOR, and the one whose system is the secondary side. */
   secondaryIndex: number;
@@ -108,6 +127,12 @@ export interface LibrationPair {
   primaryName: string | null;
 }
 
+/**
+ * One libration point of an answered pair, in the pair's own frame and in
+ * inertial metres.
+ *
+ * @category Frames of reference
+ */
 export interface LibrationPoint {
   name: LagrangePointName;
   /**
@@ -119,6 +144,15 @@ export interface LibrationPoint {
   inertial: Vector3;
 }
 
+/**
+ * What {@link lagrangePointsAt} found for a pair at one instant: the five points
+ * and the frame they stand still in, or a refusal saying why there are none.
+ *
+ * Branch on `refusal` before reading anything else. Every field below it is
+ * empty, `NaN` or null unless it is `NotRefused`.
+ *
+ * @category Frames of reference
+ */
 export interface LibrationAnswer {
   refusal: LibrationRefusal;
   /** Which pair, as far as it is known. Null only when no body was named at all. */
@@ -166,16 +200,24 @@ export const LIBRATION_ON_STATION_UNITS = 0.02;
 export const LIBRATION_DRIFTING_UNITS = 0.15;
 
 /**
- * What a craft's offset from the nearest point MEANS. Semantic and never a
- * colour: the widget owns the palette, so one theme change reaches every
- * reading of this at once.
+ * What a craft's offset from the nearest point means: holding station on it,
+ * drifting off it, or not station-keeping on it at all. A meaning rather than a
+ * colour, so a widget picks the tone.
  *
  * `elsewhere` is not a fault. A craft in low orbit is nearest to some libration
- * point in the arithmetic sense and is not stationkeeping on it, and dressing
- * that as an alarm would be an alarm about nothing.
+ * point in the arithmetic sense and is not station-keeping on it, so draw it as
+ * neutral rather than as an alarm.
+ *
+ * @category Frames of reference
  */
 export type LibrationStationKeeping = "on-station" | "drifting" | "elsewhere";
 
+/**
+ * Where a craft sits against an answered pair's points: which one it is nearest,
+ * how far off it, and what that distance means. From {@link librationOffsetOf}.
+ *
+ * @category Frames of reference
+ */
 export interface LibrationOffset {
   nearest: LagrangePointName;
   /** The craft in the pair's frame: multiples of the separation. */
@@ -334,6 +376,12 @@ export function librationPositionsFor(
  * argument, because the pair is one choice. Pass the `system` when the caller
  * already solved the whole catalogue at this instant, which is the ordinary case
  * for a widget also placing a craft.
+ *
+ * The points stand still only in the pair's rotating-pulsating frame, the
+ * answer's `frame`, whose coordinates are multiples of the bodies' separation.
+ * Draw them there; on a metre-scaled diagram they would move.
+ *
+ * @category Frames of reference
  */
 export function lagrangePointsAt(
   facts: CelestialFacts | undefined,
@@ -444,10 +492,12 @@ export function lagrangePointsAt(
 /**
  * Which point a craft is nearest, how far off it is, and what that means.
  *
- * The metre distance is taken between the two INERTIAL positions rather than by
- * multiplying a frame coordinate by the separation, because a pulsating frame's
- * coordinate is a ratio and the two operations only agree for points at the same
- * instant. Taking it in metres needs no convention at all.
+ * Pass the craft's root-centred inertial position, in metres, at the answer's
+ * own instant. `null` when the answer is a refusal or the position is not
+ * finite. The metre distance is measured between inertial positions, so it is a
+ * real distance even though the frame's coordinates are ratios.
+ *
+ * @category Frames of reference
  */
 export function librationOffsetOf(
   answer: LibrationAnswer,
@@ -491,12 +541,14 @@ export function librationOffsetOf(
 }
 
 /**
- * Every pair the catalogue can form, secondary body first in wire order.
+ * Every pair the catalogue can form, in the catalogue's body order.
  *
- * The list a pair control offers, and the only place the rule lives: a pair
- * needs a body with a parent and a gravitational parameter on both sides, so a
- * body the arithmetic would refuse never reaches the control. Offering it and
- * then refusing it is how a control teaches an operator to distrust it.
+ * Build a pair control from this rather than from the body list: a pair needs a
+ * body with a parent and a gravitational parameter on both sides, and this
+ * leaves out every body {@link lagrangePointsAt} would refuse, so a control
+ * never offers a choice that cannot be drawn.
+ *
+ * @category Frames of reference
  */
 export function librationPairsOf(
   facts: CelestialFacts | undefined,
@@ -519,7 +571,12 @@ export function librationPairsOf(
   return out;
 }
 
-/** How a pair is named where an operator meets it: primary first, the way every libration pair is written. */
+/**
+ * A pair's name as an operator reads it, primary first ("Kerbin-Mun"), the way
+ * libration pairs are written. `"no pair"` for null.
+ *
+ * @category Frames of reference
+ */
 export function librationPairLabel(pair: LibrationPair | null): string {
   if (pair === null) return "no pair";
   const primary = pair.primaryName ?? "?";

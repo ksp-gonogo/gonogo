@@ -79,6 +79,8 @@ export interface TrajectoryPoint {
 /**
  * Which frame a set of points is expressed in. A client-side vocabulary: the
  * points are sampled and re-expressed here, never read off the wire.
+ *
+ * @category Frames of reference
  */
 export const TrajectoryFrameKindLike = {
   Unspecified: 0,
@@ -91,7 +93,13 @@ export const TrajectoryFrameKindLike = {
 export type TrajectoryFrameKindLike =
   (typeof TrajectoryFrameKindLike)[keyof typeof TrajectoryFrameKindLike];
 
-/** The frame identity that travels with a drawn curve. */
+/**
+ * The frame a drawn curve is in, carried on an arc so a widget names it rather
+ * than assuming it. Build one yourself for a frame your own drawing sets, and
+ * name it with {@link trajectoryFrameLabel}.
+ *
+ * @category Frames of reference
+ */
 export interface TrajectoryFrame {
   kind: TrajectoryFrameKindLike;
   /** Index into `system.bodies` of the frame's centre, when it has one. */
@@ -155,6 +163,16 @@ export type TrajectoryWithheldReason =
    */
   | "frame-unavailable";
 
+/**
+ * How a craft's path may be drawn at the instant on screen, from
+ * {@link useOrbitTrajectory}: as a conic from its elements, as the sampled arc
+ * the provider vouched for, or not at all.
+ *
+ * A `withheld` answer carries its reason. Show it where the curve would be: it
+ * is a statement about what the provider vouched for, not a missing value.
+ *
+ * @category Frames of reference
+ */
 export type OrbitTrajectory =
   | {
       /**
@@ -526,19 +544,15 @@ function sampleArc(
 }
 
 /**
- * What frame a curve was drawn in, as a phrase a widget puts beside it.
+ * What frame a curve was drawn in, as a phrase to put beside it, in the words
+ * the game uses for its own frames.
  *
- * <b>Every widget that draws a curve says this.</b> The same points are a
- * different path in every frame, so a curve with no frame named is a picture
- * whose meaning the reader has to guess, and the guess it invites is whichever
- * frame that widget drew in last. That is the failure this exists to
- * prevent, and it is why the phrase is built here once rather than in each
- * widget: four widgets naming the same frame four ways is the same problem
- * wearing four hats.
+ * Name the frame on every drawing of a path: the same points are a different
+ * path in every frame. Use this rather than wording your own, so every widget
+ * names one frame the same way. Pass the catalogue for the body names; a body it
+ * has not named shows as its index.
  *
- * A body the catalogue has not named renders as its index rather than being
- * dropped, because a frame missing half its name still says more than a frame
- * with no name at all.
+ * @category Frames of reference
  */
 export function trajectoryFrameLabel(
   frame: TrajectoryFrame | null | undefined,
