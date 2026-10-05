@@ -2,8 +2,9 @@ name: Publish mod zips
 
 # WHAT BOUNDS THIS MATRIX: an Uplink gets a leg here when it declares a CKAN
 # identity (its own .netkan) AND its plugin assembly compiles against the
-# reference set vendored in ksp-gonogo/ksp-managed. No Uplink in this
-# repository carries a .netkan, so Gonogo core is the only leg; the Uplinks
+# reference set vendored in ksp-gonogo/ksp-managed. Only Gonogo core carries a
+# .netkan here (mod/Gonogo.KSP/GonogoCore.netkan, indexed from the GitHub
+# Release asset this workflow attaches), so it is the only leg; the Uplinks
 # published to CKAN build from the gonogo-uplinks repository.
 #
 # OUTSTANDING PREREQ: SpaceDock publish needs a repo VARIABLE per mod that does

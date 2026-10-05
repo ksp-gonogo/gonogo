@@ -1,0 +1,35 @@
+{
+  "spec_version": "v1.34",
+  "identifier": "GonogoCore",
+  "$kref": "#/ckan/github/ksp-gonogo/gonogo/asset_match/^Gonogo-v.+\\.zip$",
+  "$vref": "#/ckan/ksp-avc",
+  "x_netkan_github": {
+    "prereleases": false
+  },
+  "x_netkan_version_edit": {
+    "find": "^[vV]?(?<version>.+)$",
+    "replace": "${version}"
+  },
+  "name": "Gonogo",
+  "abstract": "Mission-control telemetry and command stream for Kerbal Space Program, read by the Gonogo dashboard over one WebSocket.",
+  "author": "jpeps",
+  "license": "MIT",
+  "release_status": "stable",
+  "tags": [
+    "plugin",
+    "telemetry",
+    "control"
+  ],
+  "resources": {
+    "homepage": "https://ksp-gonogo.github.io/",
+    "repository": "https://github.com/ksp-gonogo/gonogo",
+    "bugtracker": "https://github.com/ksp-gonogo/gonogo/issues",
+    "manual": "https://github.com/ksp-gonogo/gonogo/blob/main/docs/KSP-SETUP.md"
+  },
+  "install": [
+    {
+      "file": "GameData/Gonogo",
+      "install_to": "GameData"
+    }
+  ]
+}

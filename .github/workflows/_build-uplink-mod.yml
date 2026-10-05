@@ -235,6 +235,10 @@ jobs:
             echo "bundled $uplink_license"
           fi
 
+          node scripts/write-avc-version.mjs \
+            "GameData/${{ inputs.gamedata }}/${{ inputs.gamedata }}.version" \
+            "${{ inputs.id }}" "${{ inputs.version }}"
+
           {
             echo "version=${{ inputs.version }}"
             echo "git_sha=${GITHUB_SHA}"
@@ -260,9 +264,10 @@ jobs:
       # login (SpaceDock has no API tokens), multipart upload to
       # /api/mod/<id>/update. Per-mod listing id is passed in as
       # spacedock_mod_id: see OUTSTANDING PREREQS §2 in publish-mods.yml.
-      # No KSP-AVC `.version` manifest exists for any gonogo mod yet (design
-      # doc §2/§6 gap), so game-version is a hardcoded placeholder pending
-      # that follow-up. Uses the zip just built above, no artifact download.
+      # The zip carries a KSP-AVC `.version` (scripts/write-avc-version.mjs)
+      # that CKAN reads for compatibility; SpaceDock takes its game-version
+      # from the form field below instead. Uses the zip just built above, no
+      # artifact download.
       - name: Publish ${{ inputs.id }} to SpaceDock
         if: ${{ inputs.channel == 'release' }}
         env:
@@ -278,9 +283,7 @@ jobs:
 
           ZIP="${{ env.ZIP_NAME }}"
           VERSION="${{ inputs.version }}"
-          # Placeholder until a Gonogo.version / KSP-AVC manifest exists
-          # (design doc §2 gap): the mod targets KSP 1.12.3 per
-          # docs/superpowers/plans/2026-07-06-m5b-first-run.md.
+          # Keep in step with KSP_VERSION in scripts/write-avc-version.mjs.
           GAME_VERSION="1.12.3"
           git log --oneline -20 > sd-changelog.md
 
