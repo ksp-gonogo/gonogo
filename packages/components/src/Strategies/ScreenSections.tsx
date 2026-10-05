@@ -149,9 +149,8 @@ export function ScreenSections({
                             commandLabel={`Deactivate ${s.title}`}
                             label="Deactivate"
                             confirmLabel="Confirm deactivate"
+                            confirmTone="nogo"
                             pendingLabel="Deactivating..."
-                            active
-                            tone="go"
                             title="Deactivate this strategy"
                           />
                         )}
