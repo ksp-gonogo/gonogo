@@ -620,6 +620,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "WarpControl/__fixtures__",
     outPath: "renders/warp-control-widget",
     modes: [
+      // The kit's tiny form: the warp level over the reset-to-1× button.
+      { name: "tiny-3x3", w: 3, h: 3 },
       // minSize 4×4, below the full-ladder threshold (cols*rows=16 < 20):
       // stepper only (cols≥3, rows≥3). Mode caption visible (rows=4≥4).
       { name: "minimal-4x4", w: 4, h: 4 },

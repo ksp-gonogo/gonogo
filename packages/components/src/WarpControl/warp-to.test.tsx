@@ -73,12 +73,12 @@ describe("WarpControl: warp-to targets", () => {
     const { creator, container } = await mount({ withNode: true });
 
     await user.click(screen.getByRole("button", { name: "Warp to" }));
-    await user.click(screen.getByRole("button", { name: "Node minus lead" }));
+    await user.click(screen.getByRole("button", { name: "Before node" }));
     await user.click(screen.getByRole("button", { name: "Set alarm" }));
 
     expect(creator).toHaveBeenCalledTimes(1);
     expect(creator.mock.calls[0][0]).toMatchObject({
-      name: expect.stringContaining("Node minus"),
+      name: expect.stringContaining("before node"),
       trigger: { kind: "time", ut: NODE_UT - 60 },
     });
     await expectNoA11yViolations(container);
@@ -89,7 +89,7 @@ describe("WarpControl: warp-to targets", () => {
     const { creator } = await mount({ withNode: false });
 
     await user.click(screen.getByRole("button", { name: "Warp to" }));
-    await user.click(screen.getByRole("button", { name: "Node minus lead" }));
+    await user.click(screen.getByRole("button", { name: "Before node" }));
 
     expect(screen.getByText("No maneuver node ahead")).toBeTruthy();
     expect(

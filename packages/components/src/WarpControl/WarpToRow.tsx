@@ -68,7 +68,7 @@ export function WarpToRow({
       name:
         target === "ut"
           ? "Warp to UT"
-          : `Node minus ${writeQuantity(value("s", leadSeconds))}`,
+          : `${writeQuantity(value("s", leadSeconds))} before node`,
       trigger: { kind: "time", ut: instant, leadSeconds: STEP_DOWN_SECONDS },
     });
   };
@@ -96,7 +96,7 @@ export function WarpToRow({
             active={target === "node"}
             onClick={() => setTarget("node")}
           >
-            Node minus lead
+            Before node
           </ToggleButton>
         </Cluster>
 
@@ -109,7 +109,8 @@ export function WarpToRow({
         ) : node === null ? (
           <ReadoutCaption>No maneuver node ahead</ReadoutCaption>
         ) : (
-          <Cluster gap="related-packed" role="group" aria-label="Lead">
+          <Cluster gap="related-packed" role="group" aria-label="Lead time">
+            <ReadoutCaption>Lead</ReadoutCaption>
             {LEAD_CHOICES_SECONDS.map((seconds) => (
               <ToggleButton
                 key={seconds}

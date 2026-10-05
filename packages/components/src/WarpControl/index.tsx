@@ -6,7 +6,7 @@ import {
   useGameContext,
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useState } from "react";
 import {
   useAlarmCreator,
@@ -24,7 +24,12 @@ import {
 } from "./config";
 import { WarpControlConfigForm } from "./WarpControlConfigForm";
 import { WarpControlView } from "./WarpControlView";
-import { normalizeWarpMode, TOP_WARP_INDEX, warpLabel } from "./warpLevels";
+import {
+  formatRate,
+  normalizeWarpMode,
+  TOP_WARP_INDEX,
+  warpLabel,
+} from "./warpLevels";
 import "./slots";
 
 export { delayRequiringAlarm } from "./alarmGate";
@@ -42,15 +47,8 @@ const topics = defineTopicManifest({
   ],
 });
 
-/**
- * Time-warp control: the current warp rate and a ladder of step buttons. The
- * full 8-button ladder yields to a 3-button stepper when the tile is small.
- */
-function WarpControlComponent({
-  config,
-  w,
-  h,
-}: Readonly<ComponentProps<WarpControlConfig>>) {
+/** Everything the body and the tiny form share: the warp reading, the pause and alarm gates, and the actions bound to them. */
+function useWarpControl(config: WarpControlConfig | undefined) {
   // Every warp field is a discrete simulation mode that cannot drift between updates, so the last state received still holds.
   const warpReading = topics.useTelemetry("time.warp");
   const warp = stillTrue(warpReading, undefined);
@@ -131,6 +129,78 @@ function WarpControlComponent({
     },
   });
 
+  return {
+    warp,
+    scene,
+    hasGameSignal,
+    warpableScene,
+    currentIndex,
+    effectivePaused,
+    alarmRequired,
+    blockingDelay,
+    delayReading,
+    pending,
+    createAlarm,
+    openAlarms,
+    setWarp,
+    togglePause,
+  };
+}
+
+/** The tiny form: the warp level, and the one button that drops it to realtime. */
+function useWarpEssentials({
+  config,
+}: Readonly<ComponentProps<WarpControlConfig>>): readonly TinyEssential[] {
+  const { warp, warpableScene, hasGameSignal, currentIndex, setWarp } =
+    useWarpControl(config);
+  const rate = magnitudeOf(warp?.warpRate);
+  const physics = normalizeWarpMode(warp?.warpMode) === "Physics";
+  const realtime = currentIndex === 0;
+  return [
+    {
+      label: "WARP",
+      word: formatRate(rate),
+      tone: physics ? "warn" : "neutral",
+    },
+    {
+      label: "RESET",
+      control: {
+        label: "▶ 1×",
+        active: realtime,
+        disabled: realtime || (hasGameSignal && !warpableScene),
+        title: "Reset time warp to 1×",
+        onPress: () => setWarp(0),
+      },
+    },
+  ];
+}
+
+/**
+ * Time-warp control: the current warp rate and a ladder of step buttons. The
+ * full 8-button ladder yields to a 3-button stepper when the tile is small.
+ */
+function WarpControlComponent({
+  config,
+  w,
+  h,
+}: Readonly<ComponentProps<WarpControlConfig>>) {
+  const {
+    warp,
+    scene,
+    hasGameSignal,
+    warpableScene,
+    currentIndex,
+    effectivePaused,
+    alarmRequired,
+    blockingDelay,
+    delayReading,
+    pending,
+    createAlarm,
+    openAlarms,
+    setWarp,
+    togglePause,
+  } = useWarpControl(config);
+
   return (
     <WarpControlView
       cols={w ?? 6}
@@ -160,8 +230,15 @@ registerComponent<WarpControlConfig>({
     "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level.",
   tags: ["control", "time"],
   defaultSize: { w: 6, h: 5 },
-  minSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
   component: WarpControlComponent,
+  tiny: {
+    title: "WARP",
+    // The body's own floor: below it the ladder has no room.
+    bodyMinSize: { w: 4, h: 4 },
+    bindsActions: true,
+    useEssentials: useWarpEssentials,
+  },
   configComponent: WarpControlConfigForm,
   channels: topics.channels,
   optionalChannels: topics.optionalChannels,
