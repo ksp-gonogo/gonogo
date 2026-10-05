@@ -42,6 +42,16 @@ namespace Sitrep.Host.Comms
         private readonly ICraftStateHost _host;
         private readonly Action<string, string>? _onHeard;
         private readonly Dictionary<string, Ear> _ears = new Dictionary<string, Ear>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// What each centre that is not listed just now had heard when it was
+        /// last listened at, or was restored with. A centre is missing from
+        /// the game's list for the first ticks of a resumed game, while its
+        /// ground stations and crewed craft are still being built, and through
+        /// any moment it has no pilot. It is the same centre when it is listed
+        /// again, and knows what it knew.
+        /// </summary>
+        private readonly Dictionary<string, Ear> _away = new Dictionary<string, Ear>(StringComparer.Ordinal);
         private readonly HashSet<string> _craft = new HashSet<string>(StringComparer.Ordinal);
 
         /// <param name="host">Where each craft's states are heard.</param>
@@ -76,7 +86,16 @@ namespace Sitrep.Host.Comms
             {
                 if (!_ears.TryGetValue(centre, out var ear))
                 {
-                    ear = new Ear();
+                    if (_away.TryGetValue(centre, out ear))
+                    {
+                        _away.Remove(centre);
+                        // Listed again: whatever is planned for it is planned from what it knows.
+                        ear.News++;
+                    }
+                    else
+                    {
+                        ear = new Ear();
+                    }
                     _ears[centre] = ear;
                 }
                 foreach (var vesselId in _craft)
@@ -167,11 +186,13 @@ namespace Sitrep.Host.Comms
             return all;
         }
 
-        /// <summary>Everything every centre has heard, as it stands, for saving with the game.</summary>
+        /// <summary>Everything every centre has heard, as it stands, for saving with the game: the centres listed now and those that are not.</summary>
         public HeardSnapshot Snapshot()
         {
-            var centres = new List<HeardAtCentre>(_ears.Count);
-            foreach (var ear in _ears)
+            var centres = new List<HeardAtCentre>(_ears.Count + _away.Count);
+            var all = new List<KeyValuePair<string, Ear>>(_ears);
+            all.AddRange(_away);
+            foreach (var ear in all)
             {
                 centres.Add(new HeardAtCentre(
                     ear.Key,
@@ -188,16 +209,18 @@ namespace Sitrep.Host.Comms
         /// the game was saved. Called after <see cref="Reset"/>, before the
         /// first <see cref="Listen"/> of the new timeline, which then listens
         /// for whatever each craft says from here on. A state heard later
-        /// replaces a restored one only if it was read later.
+        /// replaces a restored one only if it was read later. A centre the
+        /// first passes do not list keeps what it is given here until it is.
         /// </summary>
         public void Restore(HeardSnapshot snapshot)
         {
             foreach (var centre in snapshot.Centres)
             {
-                if (!_ears.TryGetValue(centre.Centre, out var ear))
+                if (!_ears.TryGetValue(centre.Centre, out var ear) && !_away.TryGetValue(centre.Centre, out ear))
                 {
+                    // Not listened at until the game lists it, which Listen then finds here.
                     ear = new Ear();
-                    _ears[centre.Centre] = ear;
+                    _away[centre.Centre] = ear;
                 }
                 foreach (var state in centre.States)
                 {
@@ -233,16 +256,21 @@ namespace Sitrep.Host.Comms
             {
                 Deafen(centre);
             }
+            _away.Clear();
             _craft.Clear();
         }
 
+        /// <summary>Stops listening at a centre the game no longer lists, and keeps what it had heard for when it is listed again.</summary>
         private void Deafen(string centre)
         {
-            foreach (var stop in _ears[centre].Stop.Values)
+            var ear = _ears[centre];
+            foreach (var stop in ear.Stop.Values)
             {
                 stop();
             }
+            ear.Stop.Clear();
             _ears.Remove(centre);
+            _away[centre] = ear;
         }
 
         /// <summary>An older state arriving after a newer one, down a path that has since shortened, changes nothing: the centre keeps the newest news it has.</summary>
