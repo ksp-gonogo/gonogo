@@ -1,0 +1,113 @@
+{
+  "_meta": {
+    "scenario": "kerbin-over-desert",
+    "notes": "kerbin-lko-equator turned in longitude so the craft is over the desert, a ground where the mark's keyline is drawn against tan rather than ocean."
+  },
+  "v.body": "Kerbin",
+  "v.lat": 0,
+  "v.long": -132.0,
+  "v.altitude": 85000,
+  "n.pitch": 0,
+  "n.heading": 90,
+  "v.dynamicPressure": 0,
+  "v.mach": 0,
+  "v.surfaceSpeed": 2070.873,
+  "v.verticalSpeed": 0,
+  "t.universalTime": 1234567,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "a.physicsMode": "Orbital",
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 685000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 153.0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 1234567,
+          "mu": 3531600000000,
+          "patches": [
+            {
+              "sma": 685000,
+              "ecc": 0,
+              "inc": 0,
+              "lan": 153.0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 1234567,
+              "period": 1895.527,
+              "startUt": 1234567,
+              "endUt": 1236462.527,
+              "patchStartTransition": 0,
+              "patchEndTransition": 1,
+              "peA": 85000,
+              "apA": 85000,
+              "semiLatusRectum": 685000,
+              "semiMinorAxis": 685000,
+              "referenceBody": "Kerbin",
+              "referenceBodyIndex": 1,
+              "mu": 3531600000000
+            }
+          ],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": -132.0,
+          "altitudeAsl": 85000,
+          "altitudeTerrain": 85000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 2070.873,
+          "orbitalSpeed": 2270.599,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null,
+              "surfaceGravity": 1.00034160493135,
+              "rotationPeriod": 21549.4251830899
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 1234567
+  }
+}

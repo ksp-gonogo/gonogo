@@ -38,6 +38,12 @@ export const VESSEL_MARK = {
   ],
   /** The width of the green outline round a held or modelled shape. */
   outlineWidth: 0.3,
+  /**
+   * How far a keyline shows beyond the mark's own edge. Drawn in white and
+   * blended by difference, white inverts whatever is beneath it, so the mark
+   * has a border on a picture where no one hue stands clear of every ground.
+   */
+  keylineWidth: 0.25,
   /** How far from its centre the largest of the three reaches, outline included: two marks nearer than twice this overlap. */
   reach: 1.4,
 } as const;
@@ -66,6 +72,18 @@ function cornersOf(
 }
 
 /**
+ * White, and it has to be: difference against white is the inverse of the
+ * ground, and against any other colour it is not.
+ */
+const KEYLINE = "rgb(255 255 255)";
+
+/** The stroke that shows `keylineWidth` of keyline beyond a mark's edge, half of any stroke lying inside the shape and under the mark. */
+function keylineStroke(state: VesselMarkState, r: number): number {
+  const outline = state === "current" ? 0 : VESSEL_MARK.outlineWidth;
+  return r * (outline + 2 * VESSEL_MARK.keylineWidth);
+}
+
+/**
  * The props of {@link VesselMarkSvg}.
  *
  * @category Unit
@@ -76,6 +94,12 @@ export interface VesselMarkSvgProps {
   /** The radius of the current vessel's circle, in the diagram's own units. The held and modelled shapes fill the same footprint. */
   r: number;
   state?: VesselMarkState;
+  /**
+   * Draw a thin keyline round the mark in the inverse of whatever is beneath
+   * it. For a mark that sits on a picture (a map, an image) rather than a flat
+   * ground; on a flat ground the mark's own hues already stand clear.
+   */
+  keyline?: boolean;
 }
 
 /**
@@ -90,16 +114,35 @@ export function VesselMarkSvg({
   y,
   r,
   state = "current",
+  keyline = false,
 }: Readonly<VesselMarkSvgProps>) {
+  const border = {
+    "data-vessel-keyline": "",
+    fill: "none",
+    stroke: KEYLINE,
+    strokeWidth: keylineStroke(state, r),
+    strokeLinejoin: "round" as const,
+    style: { mixBlendMode: "difference" as const },
+  };
+  const corners =
+    state === "current"
+      ? ""
+      : cornersOf(state, 0, 0, r)
+          .map(([px, py]) => `${px},${py}`)
+          .join(" ");
   return (
     <g data-vessel-mark={state} transform={`translate(${x} ${y})`} {...HIDDEN}>
+      {keyline &&
+        (state === "current" ? (
+          <circle r={r} {...border} />
+        ) : (
+          <polygon points={corners} {...border} />
+        ))}
       {state === "current" ? (
         <circle r={r} fill={VESSEL_MARK.color} />
       ) : (
         <polygon
-          points={cornersOf(state, 0, 0, r)
-            .map(([px, py]) => `${px},${py}`)
-            .join(" ")}
+          points={corners}
           fill={RECKONING_MARK[state].color}
           stroke={VESSEL_MARK.color}
           strokeWidth={r * VESSEL_MARK.outlineWidth}
@@ -120,6 +163,65 @@ function resolvedColor(
   return v || fallback;
 }
 
+/** Traces a mark's silhouette as the current path. */
+function traceMark(
+  ctx: CanvasRenderingContext2D,
+  state: VesselMarkState,
+  x: number,
+  y: number,
+  radius: number,
+): void {
+  ctx.beginPath();
+  if (state === "current") {
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    return;
+  }
+  cornersOf(state, x, y, radius).forEach(([px, py], i) => {
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+}
+
+/**
+ * Paints a mark's keyline alone, in white, on whatever compositing the context
+ * or its canvas is set to. A canvas stacked over the picture it marks cannot
+ * blend with it from inside its own pixels, so such a stack paints its
+ * keylines on a layer of their own that carries `mix-blend-mode: difference`,
+ * under the layer the marks are painted on.
+ *
+ * @category Unit
+ */
+export function paintVesselKeyline(
+  ctx: CanvasRenderingContext2D,
+  state: VesselMarkState,
+  x: number,
+  y: number,
+  radius = 4,
+): void {
+  ctx.save();
+  traceMark(ctx, state, x, y, radius);
+  ctx.strokeStyle = KEYLINE;
+  ctx.lineWidth = keylineStroke(state, radius);
+  ctx.lineJoin = "round";
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * Options for {@link paintVesselMark} and {@link paintVesselPositions}.
+ *
+ * @category Unit
+ */
+export interface PaintVesselMarkOptions {
+  /**
+   * Draw a thin keyline round the mark in the inverse of what this same canvas
+   * already holds beneath it. For a mark painted onto its own picture; a mark
+   * on a layer above its picture takes {@link paintVesselKeyline} instead.
+   */
+  keyline?: boolean;
+}
+
 /**
  * Paints the vessel mark on a canvas, centred on a point in canvas pixels, the
  * triangle always point up. `radius` is the current vessel's circle, 4 px
@@ -134,20 +236,21 @@ export function paintVesselMark(
   x: number,
   y: number,
   radius = 4,
+  { keyline = false }: PaintVesselMarkOptions = {},
 ): void {
+  if (keyline) {
+    ctx.save();
+    ctx.globalCompositeOperation = "difference";
+    paintVesselKeyline(ctx, state, x, y, radius);
+    ctx.restore();
+  }
   const green = resolvedColor(canvas, VESSEL_MARK.cssVar, VESSEL_MARK.fallback);
   ctx.save();
-  ctx.beginPath();
+  traceMark(ctx, state, x, y, radius);
   if (state === "current") {
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fillStyle = green;
     ctx.fill();
   } else {
-    cornersOf(state, x, y, radius).forEach(([px, py], i) => {
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-    ctx.closePath();
     const spec = RECKONING_MARK[state];
     ctx.fillStyle = resolvedColor(canvas, spec.cssVar, spec.fallback);
     ctx.fill();
@@ -181,6 +284,7 @@ export function paintVesselPositions(
   ctx: CanvasRenderingContext2D,
   positions: VesselPositions,
   radius = 4,
+  options: PaintVesselMarkOptions = {},
 ): void {
   const { held, modelled } = positions;
   if (held !== undefined && modelled !== undefined) {
@@ -202,6 +306,6 @@ export function paintVesselPositions(
   for (const state of ["held", "current", "modelled"] as const) {
     const at = positions[state];
     if (at !== undefined)
-      paintVesselMark(canvas, ctx, state, at.x, at.y, radius);
+      paintVesselMark(canvas, ctx, state, at.x, at.y, radius, options);
   }
 }

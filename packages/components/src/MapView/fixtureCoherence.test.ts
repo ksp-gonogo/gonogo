@@ -199,9 +199,11 @@ beforeAll(() => {
 describe("MapView fixtures describe scenes that can exist", () => {
   it("found the fixtures to check, so an empty sweep cannot read as a clean one", () => {
     expect(scenes.map((s) => s.slug).sort()).toEqual([
+      "kerbin-held-over-desert",
       "kerbin-launchpad",
       "kerbin-lko-equator",
       "kerbin-mun-encounter",
+      "kerbin-over-desert",
       "kerbin-plane-change-node",
       "kerbin-reentry",
       "kerbin-reentry-held",

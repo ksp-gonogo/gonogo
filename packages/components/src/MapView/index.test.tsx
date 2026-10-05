@@ -234,12 +234,16 @@ describe("MapViewComponent", () => {
   it("renders without crashing with full prediction + impact data", async () => {
     const { container, fixture } = renderMap();
     await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
-    // 5 canvases: base, overlay, persistent-data, prediction, data.
+    // 6 canvases: base, overlay, persistent-data, prediction, the marker's keyline, data.
     await waitFor(() => {
-      if (container.querySelectorAll("canvas").length !== 5) {
+      if (container.querySelectorAll("canvas").length !== 6) {
         throw new Error("map canvases have not all rendered yet");
       }
     });
+    // The keyline is painted white on a layer that inverts the map beneath it, and sits under the marker's own layer.
+    const keyline = container.querySelector("canvas[data-vessel-keyline]");
+    expect(keyline).toHaveStyle({ mixBlendMode: "difference" });
+    expect(keyline?.nextElementSibling).toHaveAttribute("data-vessel-position");
   });
 
   /**

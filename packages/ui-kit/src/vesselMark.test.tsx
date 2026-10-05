@@ -85,3 +85,43 @@ describe("VesselMarkSvg", () => {
     expect(new Set(shapes.map((s) => s.fill)).size).toBe(3);
   });
 });
+
+describe("the vessel mark's keyline", () => {
+  function keylined(state: "current" | "held" | "modelled", keyline: boolean) {
+    const { container } = render(
+      <svg aria-hidden="true">
+        <VesselMarkSvg x={0} y={0} r={10} state={state} keyline={keyline} />
+      </svg>,
+    );
+    return container.querySelector("[data-vessel-keyline]");
+  }
+
+  it("draws none unless asked, so a mark on a flat ground is what it was", () => {
+    for (const state of ["current", "held", "modelled"] as const) {
+      expect(keylined(state, false)).toBeNull();
+    }
+  });
+
+  it("draws a white outline blended by difference under the mark, so it is the inverse of the ground", () => {
+    for (const state of ["current", "held", "modelled"] as const) {
+      const keyline = keylined(state, true);
+      expect(keyline).toHaveAttribute("stroke", "rgb(255 255 255)");
+      expect(keyline).toHaveAttribute("fill", "none");
+      expect(keyline).toHaveStyle({ mixBlendMode: "difference" });
+      // Under the mark: the first thing drawn in the group.
+      expect(keyline?.parentElement?.firstElementChild).toBe(keyline);
+    }
+  });
+
+  it("shows the same width of keyline beyond a current circle as beyond an outlined shape", () => {
+    const beyond = (state: "current" | "held") => {
+      const stroke = Number(
+        keylined(state, true)?.getAttribute("stroke-width"),
+      );
+      const outline = state === "current" ? 0 : 10 * VESSEL_MARK.outlineWidth;
+      return (stroke - outline) / 2;
+    };
+    expect(beyond("current")).toBeCloseTo(10 * VESSEL_MARK.keylineWidth, 6);
+    expect(beyond("held")).toBeCloseTo(10 * VESSEL_MARK.keylineWidth, 6);
+  });
+});

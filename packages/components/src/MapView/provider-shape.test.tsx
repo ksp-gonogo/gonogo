@@ -162,7 +162,7 @@ describe("MapView predicts the ground track only in the shape the provider state
     // The position is measured, not extrapolated, so only the forward track goes.
     const container = await mountMap(UNBOUNDED_HORIZON);
     // The map is drawn: only one layer is empty.
-    expect(container.querySelectorAll("canvas").length).toBe(5);
+    expect(container.querySelectorAll("canvas").length).toBe(6);
     expect(visibleText(container)).not.toContain("No position data");
     expect(visibleText(container)).not.toContain("Waiting for telemetry");
   });
