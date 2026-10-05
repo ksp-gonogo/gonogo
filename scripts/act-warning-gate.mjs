@@ -77,6 +77,8 @@
  *   pnpm act-warning-gate              check against the committed debt
  *   pnpm act-warning-gate --filter ui  restrict to packages matching a substring
  *   pnpm act-warning-gate --except a,b leave out the packages with exactly these names
+ *   pnpm act-warning-gate --filter components --shard 2/4
+ *                                      measure one quarter of the files, for a CI leg
  *   pnpm act-warning-gate --update --only <substring>
  *                                      rewrite ONLY entries matching <substring>
  *   pnpm act-warning-gate --update --all
@@ -115,6 +117,8 @@ const except =
 const onlyIdx = args.indexOf("--only");
 const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 const all = args.includes("--all");
+const shardIdx = args.indexOf("--shard");
+const shard = shardIdx >= 0 ? (args[shardIdx + 1] ?? "") : null;
 
 /*
  * Both refusals happen HERE, before a single suite runs.
@@ -130,6 +134,19 @@ if (update && (filter || except.length > 0) && !only) {
       "it from one package's measurement would delete every entry that was never run, " +
       "reporting the rest of the tree as fixed. Either drop the scope, or add --only " +
       "<substring> to say which entries you actually mean to rewrite.",
+  );
+  process.exit(1);
+}
+if (shard !== null && !/^[1-9]\d*\/[1-9]\d*$/.test(shard)) {
+  console.error(
+    `Refusing --shard ${shard || "(missing)"}: it has to read <index>/<count>, for example 2/4.`,
+  );
+  process.exit(1);
+}
+if (shard !== null && update) {
+  console.error(
+    "Refusing --shard with --update. A shard sees a fraction of the files, so rewriting " +
+      "entries from it would record the rest of the tree as fixed.",
   );
   process.exit(1);
 }
@@ -328,25 +345,46 @@ function measure(pkg) {
   const plant = rendersReact(pkg)
     ? join(repoRoot, pkg.dir, "src", PROVOCATION_FILE)
     : null;
-  if (plant) writeFileSync(plant, PROVOCATION_SOURCE);
-
   // spawnSync rather than execFileSync, and BOTH streams. Vitest prints the
   // warnings on stderr, and execFileSync returns only stdout when the command
   // succeeds, so reading its return value silently dropped every warning from any
   // suite that passed, which is all of them. The self-test caught that on the first
   // run, which is the entire argument for having one.
-  let run;
-  try {
-    run = spawnSync("pnpm", argv, {
+  const runVitest = (extra) =>
+    spawnSync("pnpm", [...argv, ...extra], {
       cwd: repoRoot,
       encoding: "utf8",
       env: SUITE_ENV,
       maxBuffer: 256 * 1024 * 1024,
     });
-  } finally {
-    if (plant) rmSync(plant, { force: true });
+
+  // A shard picks files by path, so a plant dropped into the tree would land in one
+  // shard only and every other shard would fail as BLIND. Under a shard the plant
+  // runs on its own, after the real suite, in every shard.
+  let run;
+  let provocationRun = null;
+  if (shard === null) {
+    if (plant) writeFileSync(plant, PROVOCATION_SOURCE);
+    try {
+      run = runVitest([]);
+    } finally {
+      if (plant) rmSync(plant, { force: true });
+    }
+  } else {
+    run = runVitest([`--shard=${shard}`]);
+    if (plant) {
+      writeFileSync(plant, PROVOCATION_SOURCE);
+      try {
+        provocationRun = runVitest([`src/${PROVOCATION_FILE}`]);
+      } finally {
+        rmSync(plant, { force: true });
+      }
+    }
   }
-  const output = `${run.stdout ?? ""}\n${run.stderr ?? ""}`;
+  const output = [run, provocationRun]
+    .filter(Boolean)
+    .map((r) => `${r.stdout ?? ""}\n${r.stderr ?? ""}`)
+    .join("\n");
   const failed = run.status !== 0;
 
   const { byFile, failures } = attribute(output);
@@ -636,7 +674,12 @@ if (crashed.length > 0) {
 // never run, and reading their absence as "fixed" would report the whole tree green
 // from one package's suite.
 const measuredPackages = new Set(packages.map((p) => p.short));
-const inScope = (file) => measuredPackages.has(file.split("/")[0]);
+// Under a shard a debt entry for a file in another shard is absent from the
+// measurement without being fixed, so only files this shard actually measured
+// can be compared. New and grown files are always among them.
+const inScope = (file) =>
+  measuredPackages.has(file.split("/")[0]) &&
+  (shard === null || file in measured);
 
 const firstProblems = compare(measured, KNOWN_ACT_WARNINGS, inScope);
 

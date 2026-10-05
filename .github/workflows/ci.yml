@@ -168,9 +168,11 @@ jobs:
   # effect (turbo builds every package's `^build` dependency before running its
   # `test` task).
   #
-  # Sharded by package, never by file: the cross-file ratchets read the whole
-  # tree from core's own scans, so they stay together in `rest`. `components`
-  # alone is most of the wall time, which is why it has a leg to itself.
+  # Sharded by package first: the cross-file ratchets read the whole tree from
+  # core's own scans, so they stay together in `rest`. `components` alone is most
+  # of the wall time, so it is further split by FILE with vitest's own `--shard`,
+  # which is safe there because vitest isolates every file and nothing in the
+  # package reads the whole tree. Each file runs in exactly one shard.
   unit-test:
     name: unit-test (${{ matrix.leg }})
     runs-on: ubuntu-latest
@@ -178,8 +180,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - leg: components
-            turbo-scope: --filter=@ksp-gonogo/components
+          - leg: components 1/4
+            turbo-scope: --filter=@ksp-gonogo/components -- --shard=1/4
+          - leg: components 2/4
+            turbo-scope: --filter=@ksp-gonogo/components -- --shard=2/4
+          - leg: components 3/4
+            turbo-scope: --filter=@ksp-gonogo/components -- --shard=3/4
+          - leg: components 4/4
+            turbo-scope: --filter=@ksp-gonogo/components -- --shard=4/4
           # Every package but components, so a package added later lands here
           # without anyone editing the matrix.
           - leg: rest
@@ -290,7 +298,7 @@ jobs:
       # and enforced from both sides. Keeping this step green is the point: a step
       # that is permanently red hides the next unrelated failure behind it, which is
       # what happened to `visual`.
-      - if: matrix.leg == 'components'
+      - if: matrix.leg == 'components 1/4'
         run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
       # Says out loud which suites did not run. Three of them are gated on a
@@ -567,8 +575,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - leg: components
-            scope: --filter components
+          - leg: components 1/4
+            scope: --filter components --shard 1/4
+          - leg: components 2/4
+            scope: --filter components --shard 2/4
+          - leg: components 3/4
+            scope: --filter components --shard 3/4
+          - leg: components 4/4
+            scope: --filter components --shard 4/4
           - leg: app
             scope: --filter app
           # Everything the two legs above do not name, so a package added later
