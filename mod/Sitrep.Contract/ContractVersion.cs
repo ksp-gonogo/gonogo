@@ -2345,8 +2345,14 @@ namespace Sitrep.Contract
         /// A vessel that is a command centre is listed once its own word of it has
         /// reached the receiving centre, where every ground centre was told of it at
         /// once. No payload changes shape.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 7 -&gt; 8:</b>
+        /// <c>commandCentre.unreachable</c>, <c>commandCentre.separation</c> and
+        /// <c>commandCentre.activeVesselDelay</c> are sent to each command centre
+        /// alone, about the centres on its own roster and from its own contact plan,
+        /// so they agree with the roster it holds. No payload changes shape.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

@@ -141,6 +141,12 @@ public class CommandCentreEntry
 /// centre that has not been on the roster since the mod started is not
 /// listed at all: an absent id is a fact about what is unknown, not about what
 /// is reachable.</para>
+///
+/// <para>ADDRESSED: each command centre is sent its own, the centres that have
+/// left its own <c>commandCentre.roster</c>. A vessel centre that is destroyed
+/// or loses its crew is listed here when its own word of that, or its silence,
+/// has reached the receiving centre, and <see cref="LastReachableUt"/> is when
+/// it was last on that centre's roster.</para>
 /// <internal>
 /// Published RAW, like the roster: each element is written by JsonWriter's own
 /// AppendUnreachableCentreEntry.
@@ -217,22 +223,19 @@ public class CentreSeparationEntry
 /// node is exactly no distance from itself, and without the row a reader would
 /// fall through to "unavailable" for the one pair it is most certain about.</para>
 ///
-/// <para>DELAYED, on the same reasoning as <c>comms.delay</c>: a separation is
-/// measured between two places a signal has to cross, so the figure a reader
-/// holds is the one their own light has brought them. It is the separation as
-/// OBSERVED, never as it is at this instant, and a pair whose geometry has
-/// changed since says so one light-time later.
+/// <para>ADDRESSED: each command centre is sent its own. The pairs are between
+/// the centres on the receiving centre's own <c>commandCentre.roster</c>, and
+/// each figure is the light-time of the route that centre's own contact plan
+/// has open now, so a centre is quoted no separation from a vessel it has not
+/// heard is a command centre, and a figure moves when the news that moves it
+/// has arrived. Every ground station is the home centre's own antenna, so home
+/// is as far from a vessel as its nearest station is.
 /// <internal>
-/// Delaying it does NOT make the gate depend on itself. What schedules traffic between vantages is the
-/// engine's delay LEDGER, written directly by
-/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> from the rows
-/// below; those writes never read a topic. This channel is a readout off the
-/// same rows, so the two are separate paths out of one source.
-///
-/// Published from the rows <c>CommandCentreDelayUplink.CaptureLedgerOnMain</c>
-/// already builds for the engine's delay ledger, filtered to the
-/// <c>centre.</c> node namespace. No additional graph solve: the pass that
-/// writes the ledger is the pass that produces these.
+/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreFigures. What
+/// schedules traffic between vantages is the engine's delay LEDGER, written by
+/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> from the game's
+/// own links, and is not this. One list held at home named a new vessel centre
+/// to every ground centre at once (Saga 782 subtask 103).
 /// </internal></para>
 /// </summary>
 /// <category>Comms</category>
@@ -282,14 +285,15 @@ public class CentreDelayEntry
 /// <para>The crewed centre that IS the active craft is listed at an explicit
 /// zero: a craft is no distance from itself.</para>
 ///
-/// <para>DELAYED, on the same reasoning as <c>comms.delay</c>: each centre
-/// learns the figures one of its own light-times after they held, so a centre's
-/// own entry is the delay it was under when the frame left.
+/// <para>ADDRESSED: each command centre is sent its own. The centres listed are
+/// those on the receiving centre's own <c>commandCentre.roster</c>, and each
+/// figure is worked out from that centre's own contact plan, as
+/// <c>comms.delay</c> is: the receiving centre's own entry and its
+/// <c>comms.delay</c> are the same path.
 /// <internal>
-/// Published from the rows <c>CommandCentreDelayUplink.CaptureLedgerOnMain</c>
-/// builds against <c>ChannelEngine.NodeId</c>, the same set
-/// <c>IUplinkHost.SetActiveVesselDelays</c> writes into the ledger, so the
-/// readout and the ledger cannot disagree about which centre has a row.
+/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreFigures. The
+/// rows <c>IUplinkHost.SetActiveVesselDelays</c> writes into the ledger are the
+/// game's own and are not these.
 /// </internal></para>
 /// </summary>
 /// <category>Comms</category>

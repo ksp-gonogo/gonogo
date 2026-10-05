@@ -1038,6 +1038,12 @@ export interface CommandCentreEntry
 * the mod started is not listed at all: an absent id is a fact about what is
 * unknown, not about what is reachable.
 *
+* ADDRESSED: each command centre is sent its own, the centres that have left
+* its own `commandCentre.roster`. A vessel centre that is destroyed or loses
+* its crew is listed here when its own word of that, or its silence, has
+* reached the receiving centre, and `UnreachableCentreEntry.lastReachableUt`
+* is when it was last on that centre's roster.
+*
 * @category Comms
 */
 export interface UnreachableCentreEntry
@@ -1097,11 +1103,13 @@ export interface CentreSeparationEntry
 * exactly no distance from itself, and without the row a reader would fall
 * through to "unavailable" for the one pair it is most certain about.
 *
-* DELAYED, on the same reasoning as `comms.delay`: a separation is measured
-* between two places a signal has to cross, so the figure a reader holds is
-* the one their own light has brought them. It is the separation as OBSERVED,
-* never as it is at this instant, and a pair whose geometry has changed since
-* says so one light-time later.
+* ADDRESSED: each command centre is sent its own. The pairs are between the
+* centres on the receiving centre's own `commandCentre.roster`, and each
+* figure is the light-time of the route that centre's own contact plan has
+* open now, so a centre is quoted no separation from a vessel it has not heard
+* is a command centre, and a figure moves when the news that moves it has
+* arrived. Every ground station is the home centre's own antenna, so home is
+* as far from a vessel as its nearest station is.
 *
 * @category Comms
 */
@@ -1138,9 +1146,10 @@ export interface CentreDelayEntry
 * The crewed centre that IS the active craft is listed at an explicit zero: a
 * craft is no distance from itself.
 *
-* DELAYED, on the same reasoning as `comms.delay`: each centre learns the
-* figures one of its own light-times after they held, so a centre's own entry
-* is the delay it was under when the frame left.
+* ADDRESSED: each command centre is sent its own. The centres listed are those
+* on the receiving centre's own `commandCentre.roster`, and each figure is
+* worked out from that centre's own contact plan, as `comms.delay` is: the
+* receiving centre's own entry and its `comms.delay` are the same path.
 *
 * @category Comms
 */

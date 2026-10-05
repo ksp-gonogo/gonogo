@@ -178,6 +178,12 @@ namespace Sitrep.Host.Comms
 
         public const string RosterTopic = "commandCentre.roster";
 
+        public const string UnreachableTopic = "commandCentre.unreachable";
+
+        public const string SeparationTopic = "commandCentre.separation";
+
+        public const string ActiveVesselDelayTopic = "commandCentre.activeVesselDelay";
+
         public const string DelayTopic = "comms.delay";
 
         public const string SignalTopic = "comms.signal";
@@ -375,6 +381,22 @@ namespace Sitrep.Host.Comms
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
+        /// <summary>
+        /// One of the three channels that describe the centres on a roster.
+        /// Addressed: each centre is sent figures for its own roster, from its
+        /// own plan. Never aboard anything, so nothing to replay.
+        /// </summary>
+        private static ChannelDeclaration RosterFigureChannel(string topic) => new ChannelDeclaration
+        {
+            Requires = Requirement.None,
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Delay = DelayRole.Delayed,
+            Addressed = true,
+            Recordable = false,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+        };
+
         /// <summary>The channels, for the manifest of the Uplink that registers this.</summary>
         public static List<ChannelDeclaration> Channels() => new List<ChannelDeclaration>
         {
@@ -395,6 +417,9 @@ namespace Sitrep.Host.Comms
                 Recordable = false,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
             },
+            RosterFigureChannel(UnreachableTopic),
+            RosterFigureChannel(SeparationTopic),
+            RosterFigureChannel(ActiveVesselDelayTopic),
             new ChannelDeclaration
             {
                 Requires = Requirement.None,
@@ -458,6 +483,13 @@ namespace Sitrep.Host.Comms
             _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
             _streams.DeclareAddressedTopic(RosterTopic);
             _streams.OnAddressedSubscribed(RosterTopic, centre => _rosterAsked.Add(centre));
+            foreach (var topic in FigureTopics)
+            {
+                var asked = new HashSet<string>(StringComparer.Ordinal);
+                _figuresAsked[topic] = asked;
+                _streams.DeclareAddressedTopic(topic);
+                _streams.OnAddressedSubscribed(topic, centre => asked.Add(centre));
+            }
             _streams.DeclareAddressedTopic(VesselsTopic);
             _streams.OnAddressedSubscribed(VesselsTopic, centre => _vesselsAsked.Add(centre));
             foreach (var topic in PathTopics)
@@ -568,6 +600,8 @@ namespace Sitrep.Host.Comms
                 _radioSaid.Clear();
                 _radioSent.Clear();
                 _rosterSent.Clear();
+                _rosterMemory.Clear();
+                _unreachableSent.Clear();
                 _vesselsNews.Clear();
                 System.Threading.Interlocked.Increment(ref _plansVersion);
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
@@ -605,32 +639,100 @@ namespace Sitrep.Host.Comms
 
         private readonly HashSet<string> _rosterAsked = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>What has been on each centre's own roster, and left it.</summary>
+        private readonly Dictionary<string, RosterMemory> _rosterMemory = new Dictionary<string, RosterMemory>(StringComparer.Ordinal);
+
+        /// <summary>The ids each centre was last told have left its roster, joined.</summary>
+        private readonly Dictionary<string, string> _unreachableSent = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>The centres with a session that has just subscribed to each of the three figure topics.</summary>
+        private readonly Dictionary<string, HashSet<string>> _figuresAsked = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        private static readonly string[] FigureTopics = { UnreachableTopic, SeparationTopic, ActiveVesselDelayTopic };
+
         /// <summary>
-        /// Sends each centre the centres it knows of: when that list has
-        /// changed, and at once where a session has just sat down. Every
-        /// centre is sent one, planned for or not, because a session reads the
-        /// roster to choose where to sit.
+        /// Sends each centre the centres it knows of, which of them have left,
+        /// how far apart they are and how far each is from the active craft.
+        /// The roster and what has left it go when they change, the two sets
+        /// of light-times once a second, and all four at once where a session
+        /// has just sat down. What has left is remembered whether or not
+        /// anyone is watching, so a centre's last time on a roster does not
+        /// depend on who was subscribed when it went.
         /// </summary>
         private void PublishRosters(Looked looked, IReadOnlyCollection<string> centres)
         {
-            if (looked.Roster == null || !_host!.IsAnyTopicSubscribed(RosterTopic))
+            if (looked.Roster == null)
             {
                 _rosterAsked.Clear();
-                _rosterSent.Clear();
+                foreach (var asked in _figuresAsked.Values)
+                {
+                    asked.Clear();
+                }
                 return;
             }
+            var home = _audience!.HomeCentre();
+            var lightFactor = _audience.LightFactor();
+            IReadOnlyCollection<string>? stations = null;
             foreach (var centre in centres)
             {
                 var roster = CentreRoster.For(centre, looked.Roster, _hearing!.HeardAt(centre));
-                var asked = _rosterAsked.Contains(centre);
-                if (!asked && _rosterSent.TryGetValue(centre, out var sent) && CentreRoster.Same(sent, roster))
+                if (!_rosterMemory.TryGetValue(centre, out var memory))
+                {
+                    memory = new RosterMemory();
+                    _rosterMemory[centre] = memory;
+                }
+                memory.Observe(roster, looked.Ut);
+                var to = ToItself(centre);
+
+                var changed = !_rosterSent.TryGetValue(centre, out var sent) || !CentreRoster.Same(sent, roster);
+                if (_host!.IsAnyTopicSubscribed(RosterTopic) && (changed || _rosterAsked.Contains(centre)))
+                {
+                    _rosterSent[centre] = roster;
+                    _streams!.PublishAddressedTo(RosterTopic, roster, looked.Ut, to);
+                }
+
+                if (_host.IsAnyTopicSubscribed(UnreachableTopic))
+                {
+                    var gone = memory.Unreachable();
+                    var ids = string.Join("\u0001", gone.ConvertAll(entry => entry.Id));
+                    if (_figuresAsked[UnreachableTopic].Contains(centre) || !_unreachableSent.TryGetValue(centre, out var told) || told != ids)
+                    {
+                        _unreachableSent[centre] = ids;
+                        _streams!.PublishAddressedTo(UnreachableTopic, gone, looked.Ut, to);
+                    }
+                }
+
+                var separationDue = _host.IsAnyTopicSubscribed(SeparationTopic) && (looked.RoutesDue || _figuresAsked[SeparationTopic].Contains(centre));
+                var delaysDue = _host.IsAnyTopicSubscribed(ActiveVesselDelayTopic) && (looked.RoutesDue || _figuresAsked[ActiveVesselDelayTopic].Contains(centre));
+                if (!separationDue && !delaysDue)
                 {
                     continue;
                 }
-                _rosterSent[centre] = roster;
-                _streams!.PublishAddressedTo(RosterTopic, roster, looked.Ut, ToItself(centre));
+                _plans.TryGetValue(centre, out var plan);
+                if (plan != null && looked.Ut < plan.FromUt)
+                {
+                    plan = null;
+                }
+                stations ??= StationIds();
+                if (separationDue)
+                {
+                    _streams!.PublishAddressedTo(
+                        SeparationTopic, CentreFigures.Separation(roster, plan, home, stations, looked.Ut, lightFactor), looked.Ut, to);
+                }
+                if (delaysDue)
+                {
+                    _streams!.PublishAddressedTo(
+                        ActiveVesselDelayTopic,
+                        CentreFigures.ActiveVesselDelays(roster, plan, looked.ActiveCraft, home, stations, looked.Ut, lightFactor),
+                        looked.Ut,
+                        to);
+                }
             }
             _rosterAsked.Clear();
+            foreach (var asked in _figuresAsked.Values)
+            {
+                asked.Clear();
+            }
         }
 
         /// <summary>Keeps a copy of what every centre has heard whenever any of it changes, so a save on the main thread reads a whole one.</summary>

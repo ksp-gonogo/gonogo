@@ -39,52 +39,31 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.Empty(ledger.Prefixes);
         }
 
-        [Fact]
-        public void TheRosterSourceIsGatedOnItsOwnTopicNotTheFleetNamespace()
-        {
-            var host = new RecordingUplinkHost();
-            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
-
-            uplink.Register(host);
-
-            var roster = Assert.Single(host.SampledSources.Where(
-                s => s.Handle.Equals((Action<object?>)uplink.PublishRosterOnCourier)));
-            Assert.Equal(
-                new[] { CommandCentreDelayUplink.UnreachableTopic },
-                roster.Prefixes);
-        }
-
         /// <summary>
-        /// The memory behind <c>commandCentre.unreachable</c> is fed by a source with no
-        /// subscription gate, so a centre's last-reachable time does not depend on whether
-        /// anyone was watching when it left.
+        /// The roster, what has left it, the separations and each centre's delay
+        /// to the active craft are each command centre's own, made from what that
+        /// centre has heard, so the contact plan source declares and sends them.
+        /// Held at home, each told every ground centre of a vessel centre at once.
         /// </summary>
         [Fact]
-        public void TheCentreMemoryIsFedUngated()
-        {
-            var host = new RecordingUplinkHost();
-            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
-
-            uplink.Register(host);
-
-            Assert.Contains(host.SampledSources, s => s.Prefixes.Length == 0 && !s.Handle.Equals((Action<object?>)uplink.ApplyLedgerOnCourier));
-        }
-
-        /// <summary>
-        /// The roster is each command centre's own, made from what that centre
-        /// has heard, so the contact plan source declares and sends it. One list
-        /// held at home told every ground centre of a new vessel centre at once.
-        /// </summary>
-        [Fact]
-        public void TheRosterIsDeclaredByTheContactPlanSourceAndNotHeldAtHome()
+        public void TheRosterAndItsFiguresAreDeclaredByTheContactPlanSourceAndNotHeldAtHome()
         {
             var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
 
-            Assert.DoesNotContain(uplink.Manifest.Channels, c => c.Topic == CommandCentreDelayUplink.RosterTopic);
-            var roster = Assert.Single(
-                Sitrep.Host.Comms.ContactPlanSource.Channels().Where(c => c.Topic == CommandCentreDelayUplink.RosterTopic));
-            Assert.False(roster.HeldAtHome);
-            Assert.Equal(DelayRole.Delayed, roster.Delay);
+            Assert.Empty(uplink.Manifest.Channels);
+            foreach (var topic in new[]
+            {
+                CommandCentreDelayUplink.RosterTopic,
+                CommandCentreDelayUplink.UnreachableTopic,
+                CommandCentreDelayUplink.SeparationTopic,
+                CommandCentreDelayUplink.ActiveVesselDelayTopic,
+            })
+            {
+                var channel = Assert.Single(Sitrep.Host.Comms.ContactPlanSource.Channels().Where(c => c.Topic == topic));
+                Assert.False(channel.HeldAtHome);
+                Assert.True(channel.Addressed);
+                Assert.Equal(DelayRole.Delayed, channel.Delay);
+            }
         }
 
         /// <summary>
@@ -99,7 +78,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             uplink.Register(host);
 
-            Assert.Equal(3, host.SampledSources.Count);
+            Assert.Single(host.SampledSources);
             Assert.DoesNotContain(
                 host.SampledSources,
                 s => s.Prefixes.Contains(ChannelEngine.FleetNodePrefix));
@@ -158,12 +137,13 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
-        /// The readout a client times its clock and header by is the same set the
-        /// ledger was just handed: home and an unrouted centre stay absent rather
-        /// than reading zero, and the craft's own centre is its explicit zero.
+        /// The ledger pass hands its rows to the engine and publishes nothing.
+        /// What a client is shown of each centre's delay is that centre's own,
+        /// from what it has heard, and is the contact plan source's to send: the
+        /// ledger's rows are the game's links as they stand.
         /// </summary>
         [Fact]
-        public void EachCentresOwnDelayToTheActiveCraftIsPublishedAsTheLedgerHoldsIt()
+        public void TheLedgerPassPublishesNothing()
         {
             var host = new RecordingUplinkHost();
             var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
@@ -173,26 +153,15 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 ("vessel:G", ChannelEngine.NodeId, 0.0),
                 ("ground:gs1", ChannelEngine.NodeId, 3.0),
                 ("ground:gs1", AuthorityMatrixPass.FleetNode("G"), 3.0)));
-            uplink.ApplyLedgerOnCourier(Capture());
 
-            var published = host.Published
-                .Where(p => p.Topic == CommandCentreDelayUplink.ActiveVesselDelayTopic)
-                .Select(p => Assert.IsType<CommandCentreActiveVesselDelay>(p.Payload))
-                .ToList();
-            Assert.Equal(2, published.Count);
-            Assert.Equal(
-                new[] { ("ground:gs1", 3.0), ("vessel:G", 0.0) },
-                published[0].Centres.Select(c => (c.Id, c.OneWaySeconds)));
-            Assert.Empty(published[1].Centres);
+            Assert.Empty(host.Published);
         }
 
         [Fact]
         public void TheActiveCraftDelayReadoutIsDelayedAndNeverRecorded()
         {
-            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
-
             var readout = Assert.Single(
-                uplink.Manifest.Channels.Where(c => c.Topic == CommandCentreDelayUplink.ActiveVesselDelayTopic));
+                Sitrep.Host.Comms.ContactPlanSource.Channels().Where(c => c.Topic == CommandCentreDelayUplink.ActiveVesselDelayTopic));
 
             Assert.Equal(DelayRole.Delayed, readout.Delay);
             Assert.False(readout.HeldAtHome);

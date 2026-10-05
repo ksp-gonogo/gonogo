@@ -9,71 +9,12 @@ using Xunit;
 namespace Gonogo.KSP.Tests.CommandCentres
 {
     /// <summary>
-    /// The second argument to <see cref="IChannelPublisher.Publish"/> is a
-    /// universe time. Asserted on <c>commandCentre.unreachable</c>, which this
-    /// uplink publishes from the same capture the roster is read in; the roster
-    /// itself is each centre's own and is sent by the contact plan source.
-    ///
-    /// <para>The engine only ever clamps a stamp that is AHEAD of the clock, so
-    /// a value far below current UT (such as a count passed in place of a UT)
-    /// sails straight through and gets recorded as stamped in the deep past.
-    /// The assertions below are therefore on the STAMP rather than on the
-    /// payload, which is otherwise easy to leave uncovered.</para>
+    /// Which centre the roster this uplink reads marks as home. The roster is
+    /// sent to each command centre by the contact plan source; the marking is
+    /// still decided here, from the home-command claimant's answer.
     /// </summary>
     public class CommandCentreRosterStampTests
     {
-        [Fact]
-        public void WhatThisUplinkPublishesIsStampedWithTheCaptureUt()
-        {
-            var host = new PublishRecordingHost();
-            var uplink = Uplink(host, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
-
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 1_050_000.0 }));
-
-            var (_, ut) = Assert.Single(host.UnreachableRecorder.Published);
-            Assert.Equal(1_050_000.0, ut);
-        }
-
-        /// <summary>
-        /// The defect stated as a property: a stamp is a time, so it cannot
-        /// depend on how many centres happen to exist. Both passes read the same
-        /// clock, so both must publish the same stamp; under the count bug they
-        /// differ by three.
-        /// </summary>
-        [Fact]
-        public void TheStampDoesNotMoveWithTheNumberOfCentres()
-        {
-            var emptyHost = new PublishRecordingHost();
-            var empty = Uplink(emptyHost);
-            var crowdedHost = new PublishRecordingHost();
-            var crowded = Uplink(crowdedHost, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
-
-            var snapshot = new KspSnapshot { Ut = 1_050_000.0 };
-            empty.PublishRosterOnCourier(empty.CaptureRosterOnMain(snapshot));
-            crowded.PublishRosterOnCourier(crowded.CaptureRosterOnMain(snapshot));
-
-            Assert.Equal(
-                Assert.Single(emptyHost.UnreachableRecorder.Published).Ut,
-                Assert.Single(crowdedHost.UnreachableRecorder.Published).Ut);
-        }
-
-        /// <summary>
-        /// A capture taken before the first snapshot has no time to quote. Zero
-        /// is the same "no reading yet" the ledger capture beside it uses, and
-        /// the point of asserting it is that it stays a deliberate floor rather
-        /// than drifting back into a count.
-        /// </summary>
-        [Fact]
-        public void AnUnsnapshottedCaptureStampsZeroRatherThanACount()
-        {
-            var host = new PublishRecordingHost();
-            var uplink = Uplink(host, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
-
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
-
-            Assert.Equal(0.0, Assert.Single(host.UnreachableRecorder.Published).Ut);
-        }
-
         /// <summary>
         /// The roster publishes the home-command claimant's answer rather than working
         /// home out again: exactly the named centre carries the flag, wherever it is listed.
@@ -141,36 +82,6 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             var roster = uplink.RosterNow();
             Assert.DoesNotContain(roster, e => e.IsHome || e.IsHomeFallback);
-        }
-
-        /// <summary>
-        /// A centre that was on the roster and is not now is published with its name and
-        /// the UT of the last pass that saw it, and leaves the list when it returns.
-        /// </summary>
-        [Fact]
-        public void ACentreThatLeftTheRosterIsPublishedUnreachableWithItsLastSeenUt()
-        {
-            var host = new PublishRecordingHost();
-            var registry = new CommandCentreRegistry();
-            var source = new FixedCentreSource(new[] { "ground:Dish", "ground:KSC" });
-            registry.RegisterSource(source);
-            var uplink = new CommandCentreDelayUplink(registry);
-            uplink.Register(host);
-
-            uplink.ObserveCentresOnMain(new KspSnapshot { Ut = 100.0 });
-            source.Set("ground:KSC");
-            uplink.ObserveCentresOnMain(new KspSnapshot { Ut = 200.0 });
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 200.0 }));
-
-            var gone = Assert.Single(Assert.IsType<List<UnreachableCentreEntry>>(Assert.Single(host.UnreachableRecorder.Published).Payload));
-            Assert.Equal("ground:Dish", gone.Id);
-            Assert.Equal(100.0, gone.LastReachableUt);
-
-            source.Set("ground:KSC", "ground:Dish");
-            uplink.ObserveCentresOnMain(new KspSnapshot { Ut = 300.0 });
-            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 300.0 }));
-
-            Assert.Empty(Assert.IsType<List<UnreachableCentreEntry>>(host.UnreachableRecorder.Published.Last().Payload));
         }
 
         private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>

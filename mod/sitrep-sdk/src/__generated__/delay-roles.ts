@@ -47,7 +47,6 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "career.facilities",
   "career.mode",
   "career.status",
-  "commandCentre.unreachable",
   "missions.active",
   "science.archive",
   "spaceCenter.astronautComplex",
@@ -67,7 +66,10 @@ export type GeneratedHeldAtHomeTopic =
  * its own samples and no other centre's, stamped as they are made.
  */
 export const GENERATED_ADDRESSED_TOPICS = [
+  "commandCentre.activeVesselDelay",
   "commandCentre.roster",
+  "commandCentre.separation",
+  "commandCentre.unreachable",
   "comms.commandCentre",
   "comms.contacts",
   "comms.degrade",

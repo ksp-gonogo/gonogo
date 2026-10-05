@@ -34,17 +34,6 @@ namespace Gonogo.KSP.CommandCentres
         public const string ActiveVesselDelayTopic = "commandCentre.activeVesselDelay";
 
         /// <summary>
-        /// Soft cap on separation PAIRS published per second. The matrix is
-        /// centres squared, and a crewed-heavy career makes every controllable
-        /// craft a centre, so this is the number that grows quadratically in
-        /// something the operator controls. It is a publish-volume budget rather
-        /// than a work budget: the rows are already built for the ledger, and
-        /// what this watches is the wire.
-        /// </summary>
-        private static readonly PerfBudget SeparationPairsBudget = new PerfBudget(
-            "CommandCentreDelayUplink separation pairs", threshold: 4000, windowSec: 1.0, unit: "pairs");
-
-        /// <summary>
         /// Soft cap on graph SOLVES per pass. Every row but home's and every
         /// centre-to-centre row runs a Dijkstra over the whole node list, in the
         /// elected backend's own router, unlike the home rows, which only read a
@@ -59,10 +48,6 @@ namespace Gonogo.KSP.CommandCentres
         private readonly CommandCentreRegistry _registry;
         private readonly Func<HomeCommand> _home;
         private IUplinkHost? _host;
-        private IChannelPublisher? _unreachablePublisher;
-        private readonly CentreMemory _memory = new CentreMemory();
-        private IChannelPublisher? _separationPublisher;
-        private IChannelPublisher? _activeVesselDelayPublisher;
 
         /// <param name="registry">The same registry the engine enumerates for set-vantage validation.</param>
         /// <param name="home">
@@ -104,99 +89,28 @@ namespace Gonogo.KSP.CommandCentres
         {
             Id = "command-centre-delay",
             Version = "1.0.0",
-            Channels = new List<ChannelDeclaration>
-            {
-                // commandCentre.roster is not declared here. Each command centre is
-                // sent its own by the contact plan source: the ground stations,
-                // and each craft that is a centre once that craft's own word of
-                // it has reached the centre.
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = UnreachableTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // The same fact as the roster seen from the other side, so it
-                    // reaches each vantage on the same delay.
-                    Delay = DelayRole.Delayed,
-                    HeldAtHome = true,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
-                },
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = SeparationTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // DELAYED on the same reasoning as comms.delay, and the
-                    // circularity this used to claim does not exist. What gates
-                    // one vantage's traffic to another is the LEDGER: the rows
-                    // CaptureLedgerOnMain writes go straight into the engine
-                    // through SetCentreDelay/SetAuthorityDelays, which never read
-                    // a topic. This channel is a READOUT built from the same
-                    // rows, so delaying it changes what an operator is shown and
-                    // nothing about what carries it. The number they are shown is
-                    // then the separation as OBSERVED, which is the only one
-                    // anybody at a vantage could have.
-                    Delay = DelayRole.Delayed,
-                    // Never aboard anything: the matrix is solved on the ground
-                    // over the whole node list, so there is no craft that could
-                    // have written it down and nothing to replay on
-                    // reacquisition. The gap is stated instead.
-                    Recordable = false,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
-                },
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = ActiveVesselDelayTopic,
-                    Delivery = Delivery.LossyLatest,
-                    // A readout off the same rows the ledger is written from,
-                    // delayed like comms.delay: a centre learns how far the
-                    // craft is from it one of its own light-times later, and a
-                    // pilot aboard learns it at once.
-                    Delay = DelayRole.Delayed,
-                    // Solved on the ground over the whole node list, so never
-                    // aboard the craft and nothing to replay on reacquisition.
-                    Recordable = false,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
-            },
+            // No channels. The roster, what has left it, the separations and
+            // each centre's delay to the active craft are each centre's own,
+            // sent by the contact plan source from what that centre has heard.
+            // This Uplink writes the delay ledger the engine times traffic by.
+            Channels = new List<ChannelDeclaration>(),
         };
 
         /// <summary>
-        /// Registers the delay matrix and the roster as SEPARATE sampled
-        /// sources, because only one of the two is a published channel.
-        ///
-        /// <para>The matrix pass is UNGATED. Its output is not a topic: it is
-        /// the (vantage, node) delay ledger the engine consults when it
-        /// schedules a command, and centre-to-centre rows now price currency
+        /// Registers the delay matrix pass, UNGATED. Its output is not a topic:
+        /// it is the (vantage, node) delay ledger the engine consults when it
+        /// schedules a command, and centre-to-centre rows price currency
         /// spends. Riding it on a topic-prefix gate, as it used to, made every
         /// one of those numbers depend on whether some browser tab happened to
-        /// be subscribed to a <c>fleet.*</c> topic, i.e. a career outcome
-        /// decided by an operator's dashboard layout. <see cref="FleetChannels"/>'s
-        /// silence capture is ungated for exactly this reason.</para>
+        /// be subscribed to a <c>fleet.*</c> topic.
         ///
         /// <para>The cost is real and accepted: the routed solves counted by
-        /// <see cref="PathSolveBudget"/> now run every tick rather than only
-        /// while someone is watching the fleet. That budget is the place to
-        /// watch it; re-gating the ledger to save the solves would trade
-        /// correctness for frame time.</para>
-        ///
-        /// <para>The roster stays gated, on its OWN topic rather than on the
-        /// fleet namespace it used to borrow: it is published as
-        /// <see cref="RosterTopic"/> and read by nothing else, so "nobody is
-        /// subscribed to the roster" is the precise condition under which
-        /// building it is wasted work. Gating it on <c>fleet.</c> was a
-        /// coincidence of the two jobs having shared one source.</para>
+        /// <see cref="PathSolveBudget"/> run every tick.</para>
         /// </summary>
         public void Register(IUplinkHost host)
         {
             _host = host;
-            _unreachablePublisher = host.Publisher(UnreachableTopic);
-            _separationPublisher = host.Publisher(SeparationTopic);
-            _activeVesselDelayPublisher = host.Publisher(ActiveVesselDelayTopic);
             host.AddSampledSource(CaptureLedgerOnMain, ApplyLedgerOnCourier);
-            host.AddSampledSource(ObserveCentresOnMain, _ => { });
-            host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, UnreachableTopic);
         }
 
         /// <summary>
@@ -333,28 +247,6 @@ namespace Gonogo.KSP.CommandCentres
             reach?.SetUnroutable(cap.Unroutable);
             (_host as ICentreRouteWriter)?.SetCentreRoutes(
                 centreRoutes.ToDictionary(r => r.Key, r => (IReadOnlyCollection<string>)r.Value));
-
-            PublishSeparation(cap);
-            PublishActiveVesselDelay(activeVesselRows, cap.Ut);
-        }
-
-        /// <summary>
-        /// Publishes the rows just handed to the ledger as
-        /// <see cref="ActiveVesselDelayTopic"/>, in ordinal centre order so an
-        /// unchanged set reads the same on every pass.
-        /// </summary>
-        private void PublishActiveVesselDelay(IReadOnlyDictionary<string, double> rows, double ut)
-        {
-            if (_activeVesselDelayPublisher == null)
-            {
-                return;
-            }
-
-            var centres = rows
-                .OrderBy(r => r.Key, StringComparer.Ordinal)
-                .Select(r => new CentreDelayEntry { Id = r.Key, OneWaySeconds = r.Value })
-                .ToList();
-            _activeVesselDelayPublisher.Publish(new CommandCentreActiveVesselDelay { Centres = centres }, ut);
         }
 
         /// <summary>
@@ -367,91 +259,8 @@ namespace Gonogo.KSP.CommandCentres
                 ? VesselViewProvider.TryGetActiveVesselId(snapshot)
                 : ActiveVesselScope.Current?.id.ToString();
 
-        /// <summary>
-        /// Publishes the centre-to-centre half of the ledger as
-        /// <see cref="SeparationTopic"/>.
-        ///
-        /// <para>It rides the ledger's capture rather than a source of its own
-        /// because the rows are ALREADY BUILT here: re-deriving them under a
-        /// subscription gate would run the whole centres-squared graph solve a
-        /// second time to publish numbers the first pass had in hand. The cost
-        /// of that choice is that this channel emits whether or not anyone is
-        /// subscribed, which the emission policy keeps small (nothing goes out
-        /// while the matrix is unchanged).</para>
-        ///
-        /// <para>Only the <c>centre.</c> namespace: the <c>fleet.</c> rows in the
-        /// same list are a centre's delay to a SUBJECT craft it observes, which
-        /// is a different question from how far two vantages are apart, and a
-        /// craft that is a vantage appears here under its own centre id.</para>
-        /// </summary>
-        private void PublishSeparation(LedgerCapture cap)
-        {
-            if (_separationPublisher == null)
-            {
-                return;
-            }
-
-            var pairs = new List<CentreSeparationEntry>();
-            foreach (var row in cap.Rows)
-            {
-                if (!row.Node.StartsWith(ChannelEngine.CentreNodePrefix))
-                {
-                    continue;
-                }
-
-                pairs.Add(new CentreSeparationEntry
-                {
-                    From = row.Vantage,
-                    To = row.Node.Substring(ChannelEngine.CentreNodePrefix.Length),
-                    OneWaySeconds = row.Seconds,
-                });
-            }
-
-            SeparationPairsBudget.Record(pairs.Count, cap.Ut);
-            _separationPublisher.Publish(new CommandCentreSeparation { Pairs = pairs }, cap.Ut);
-        }
-
-        /// <summary>
-        /// MAIN-THREAD capture: remember the active centres and when they were seen.
-        /// Ungated, so a centre's last-reachable time is the last pass that saw it and
-        /// not the last pass somebody was subscribed.
-        /// </summary>
-        internal object? ObserveCentresOnMain(KspSnapshot? snapshot)
-        {
-            if (snapshot != null)
-            {
-                _memory.Observe(_registry.EnumerateActive(), snapshot.Ut);
-            }
-
-            return null;
-        }
-
         /// <summary>MAIN THREAD: every active centre as a roster entry, home marked. What the contact plan source makes each centre's own roster from.</summary>
         internal List<CommandCentreEntry> RosterNow() => ToRoster(_registry.EnumerateActive(), _home());
-
-        /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
-        internal object? CaptureRosterOnMain(KspSnapshot? snapshot)
-        {
-            var active = _registry.EnumerateActive();
-            var roster = ToRoster(active, _home());
-            return new RosterCapture
-            {
-                Roster = roster,
-                Unreachable = _memory.Unreachable(new HashSet<string>(active.Select(c => c.Id), StringComparer.Ordinal)),
-                Ut = snapshot != null ? snapshot.Ut : 0.0,
-            };
-        }
-
-        /// <summary>COURIER-THREAD handle: publish the roster.</summary>
-        internal void PublishRosterOnCourier(object? captured)
-        {
-            if (captured is not RosterCapture cap)
-            {
-                return;
-            }
-
-            _unreachablePublisher?.Publish(cap.Unreachable, cap.Ut);
-        }
 
         /// <summary>
         /// One-way seconds from a centre to a subject vessel. The home command, as the
@@ -639,22 +448,5 @@ namespace Gonogo.KSP.CommandCentres
             public double Ut;
         }
 
-        private sealed class RosterCapture
-        {
-            public List<CommandCentreEntry> Roster = new List<CommandCentreEntry>();
-
-            public List<UnreachableCentreEntry> Unreachable = new List<UnreachableCentreEntry>();
-
-            /// <summary>
-            /// The capture's own universe time, carried across to the courier
-            /// thread so the publish is stamped with when the roster was READ
-            /// rather than with whatever the courier thread can reach. Passing
-            /// anything else here, such as the roster's entry COUNT, would
-            /// land unnoticed: a number far below any real UT slips through
-            /// the engine's forward-only clamp, so the sample would land
-            /// stamped in the deep past.
-            /// </summary>
-            public double Ut;
-        }
     }
 }

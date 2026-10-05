@@ -25,6 +25,14 @@ namespace Sitrep.Host.IntegrationTests
         private const string Far = ScriptedContactGame.Far;
         private const string Relay = ScriptedContactGame.Relay;
 
+        private static readonly string[] Topics =
+        {
+            ContactPlanSource.RosterTopic,
+            ContactPlanSource.UnreachableTopic,
+            ContactPlanSource.SeparationTopic,
+            ContactPlanSource.ActiveVesselDelayTopic,
+        };
+
         private sealed class Seated : System.IAsyncDisposable
         {
             public ReckonedVantageWorld World = null!;
@@ -55,8 +63,8 @@ namespace Sitrep.Host.IntegrationTests
         private static async Task<Seated> SeatedAsync()
         {
             var world = await ReckonedVantageWorld.StartAsync();
-            var (homeClient, homeView) = await world.SitDownAtAsync(Home, ContactPlanSource.RosterTopic);
-            var (farClient, farView) = await world.SitDownAtAsync(Far, ContactPlanSource.RosterTopic);
+            var (homeClient, homeView) = await world.SitDownAtAsync(Home, Topics);
+            var (farClient, farView) = await world.SitDownAtAsync(Far, Topics);
             return new Seated { World = world, HomeClient = homeClient, HomeView = homeView, FarClient = farClient, FarView = farView };
         }
 
@@ -136,6 +144,91 @@ namespace Sitrep.Host.IntegrationTests
             await seated.TickAsync(T0 + 301, T0 + 302, T0 + 304);
             Assert.DoesNotContain(Relay, Ids(seated.FarView));
             Reckoned.True(Ids(seated.HomeView).Contains(Relay), "the home centre's roster dropped a destroyed craft when the far centre heard");
+        }
+
+        /// <summary>The ids named anywhere in a centre's separations.</summary>
+        private static string[] Separated(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.SeparationTopic);
+            if (payload == null)
+            {
+                return new string[0];
+            }
+            using var doc = JsonDocument.Parse(payload);
+            return doc.RootElement.GetProperty("pairs").EnumerateArray()
+                .SelectMany(p => new[] { p.GetProperty("from").GetString()!, p.GetProperty("to").GetString()! })
+                .Distinct()
+                .ToArray();
+        }
+
+        private static string[] Delayed(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.ActiveVesselDelayTopic);
+            if (payload == null)
+            {
+                return new string[0];
+            }
+            using var doc = JsonDocument.Parse(payload);
+            return doc.RootElement.GetProperty("centres").EnumerateArray().Select(c => c.GetProperty("id").GetString()!).ToArray();
+        }
+
+        private static string[] Unreachable(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.UnreachableTopic);
+            if (payload == null)
+            {
+                return new string[0];
+            }
+            using var doc = JsonDocument.Parse(payload);
+            return doc.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetString()!).ToArray();
+        }
+
+        /// <summary>
+        /// A separation or a delay names the centres it is between. A centre is
+        /// quoted none for a craft it has not yet heard is a command centre,
+        /// so neither figure tells it of one before its roster does.
+        /// </summary>
+        [Fact]
+        public async Task ACentreIsQuotedNoSeparationOrDelayForACraftItHasNotHeardIsACentre()
+        {
+            await using var seated = await SeatedAsync();
+            await seated.TickAsync(1, 2, 700, 702);
+            Assert.Contains(Far, Separated(seated.FarView));
+
+            seated.World.Game.RelayIsCentre = true;
+            await seated.TickAsync(T0, T0 + 2, T0 + 12, T0 + 299);
+            Reckoned.True(!Separated(seated.FarView).Contains(Relay), "the far centre was quoted a separation from a craft it had not heard was a command centre");
+            Reckoned.True(!Delayed(seated.FarView).Contains(Relay), "the far centre was quoted the delay of a craft it had not heard was a command centre");
+            Reckoned.True(!Separated(seated.HomeView).Contains(Relay), "the home centre was quoted a separation from a craft it had not heard was a command centre");
+
+            await seated.TickAsync(T0 + 301, T0 + 302, T0 + 304);
+            Assert.Contains(Relay, Separated(seated.FarView));
+            Assert.Contains(Relay, Delayed(seated.FarView));
+            Reckoned.True(!Separated(seated.HomeView).Contains(Relay), "the home centre's separations moved when the far centre heard");
+
+            await seated.TickAsync(T0 + 601, T0 + 602, T0 + 604);
+            Assert.Contains(Relay, Separated(seated.HomeView));
+        }
+
+        /// <summary>A centre is told another has left when it leaves that centre's own roster, which is when its silence arrives.</summary>
+        [Fact]
+        public async Task ACentreIsToldAnotherHasLeftWhenItLeavesItsOwnRoster()
+        {
+            await using var seated = await SeatedAsync();
+            seated.World.Game.RelayIsCentre = true;
+            await seated.TickAsync(1, 2, 700, 702);
+            Assert.Empty(Unreachable(seated.HomeView));
+
+            seated.World.Game.DestroyRelay();
+            await seated.TickAsync(T0, T0 + 2, T0 + 299);
+            Reckoned.True(!Unreachable(seated.FarView).Contains(Relay), "the far centre was told a centre had left before its silence could arrive");
+
+            await seated.TickAsync(T0 + 301, T0 + 302, T0 + 304);
+            Assert.Equal(new[] { Relay }, Unreachable(seated.FarView));
+            Reckoned.True(!Unreachable(seated.HomeView).Contains(Relay), "the home centre was told a centre had left when the far centre heard");
+
+            await seated.TickAsync(T0 + 601, T0 + 602, T0 + 604);
+            Assert.Equal(new[] { Relay }, Unreachable(seated.HomeView));
         }
 
         [Fact]
