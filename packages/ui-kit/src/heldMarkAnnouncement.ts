@@ -77,7 +77,7 @@ function describe(mark: Element): string {
  * means: its grade's word to a screen reader and on hover, with the hover
  * naming the same "as of" instant the spoken words do.
  *
- * Keyed on the mark rather than the figure, so a dot drawn by hand outside any
+ * Keyed on the mark rather than the figure, so a mark drawn by hand outside any
  * kit primitive is still asked about.
  *
  * @category Testing

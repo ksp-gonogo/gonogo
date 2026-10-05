@@ -1,6 +1,6 @@
 /**
  * The mark a figure carries when it is no longer a reading of now. A held
- * figure takes a dot at superscript height in the warning hue the panel badge is
+ * figure takes a square at superscript height in the warning hue the panel badge is
  * painted from; a figure a model carried takes a blue triangle of the same
  * footprint, about a pixel larger so the two weigh alike. One spec, in
  * {@link RECKONING_MARK}, drives these DOM marks and the SVG and canvas faces.
@@ -15,7 +15,7 @@ const MARK_SIZE = RECKONING_MARK.held.domSize;
 const MODELLED_MARK_SIZE = RECKONING_MARK.modelled.domSize;
 
 /**
- * The room a host holds at the end of its figure for the dot and the gap
+ * The room a host holds at the end of its figure for the square and the gap
  * before it, so a held figure keeps its mark inside its own box whatever clips
  * or wraps around it. It is a generated box with no content: it adds nothing
  * to the host's accessible name and nothing to the clipboard.
@@ -43,10 +43,10 @@ export function reservesMark(kind: ReckoningKind) {
 }
 
 /**
- * The dot itself. Absolutely positioned in the room its host reserves at the
+ * The square itself. Absolutely positioned in the room its host reserves at the
  * end of the figure (see {@link reservesHeldMark}), at superscript height, so
- * the dot is inside the host's box and the line never grows. Sized in `em`
- * with a pixel floor, so it stays a dot in small text.
+ * the square is inside the host's box and the line never grows. Sized in `em`
+ * with a pixel floor, so it stays a square in small text.
  *
  * It needs a positioned container that reserves that room: use
  * {@link HeldHost}, or give a container of your own `position: relative`,
@@ -60,7 +60,6 @@ export const HeldMark = styled.span`
   top: 0;
   width: ${MARK_SIZE};
   height: ${MARK_SIZE};
-  border-radius: var(--radius-circle);
   background: ${RECKONING_MARK.held.color};
 `;
 
@@ -115,7 +114,7 @@ export const HeldHost = styled.span<{ $kind?: ReckoningKind }>`
 export interface HeldFigureProps extends HTMLAttributes<HTMLSpanElement> {
   /** What the mark means in words: spoken after the figure, and shown on hover. */
   caption: string | null;
-  /** Which mark: a held figure takes the dot, a figure a model carried the triangle. Defaults to `held`. */
+  /** Which mark: a held figure takes the square, a figure a model carried the triangle. Defaults to `held`. */
   kind?: ReckoningKind;
   children: ReactNode;
 }

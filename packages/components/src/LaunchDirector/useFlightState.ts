@@ -68,7 +68,7 @@ export function useFlightState() {
   return {
     vesselName,
     missionTime: missionTime ?? null,
-    // The reading itself, so the figure carries its own mark: held keeps the dot, a model's figure the triangle.
+    // The reading itself, so the figure carries its own mark: held keeps the square, a model's figure the triangle.
     altitude: altitudeReading,
     crashInProgress: activeVesselCrashed(),
     availableVessels,

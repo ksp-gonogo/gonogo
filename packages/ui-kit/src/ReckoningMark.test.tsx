@@ -52,7 +52,7 @@ describe("a figure a model carried", () => {
     ).toMatch(/HELD.*modelled/);
   });
 
-  it("keeps the held dot, and the observation, where it does not ask for the model", () => {
+  it("keeps the held square, and the observation, where it does not ask for the model", () => {
     const { container } = render(<Unit value={carried(true)} />);
     expect(
       container.querySelector('[data-reckoning-mark="held"]'),
@@ -62,7 +62,7 @@ describe("a figure a model carried", () => {
 });
 
 describe("the SVG face", () => {
-  it("draws a dot for held and a triangle for modelled", () => {
+  it("draws a square for held and a triangle for modelled", () => {
     const { container } = render(
       <svg aria-hidden="true">
         <ReckoningMarkSvg kind="held" x={5} y={5} />
@@ -71,7 +71,9 @@ describe("the SVG face", () => {
     );
     expect(
       container.querySelector("circle[data-reckoning-mark=held]"),
-    ).not.toBeNull();
+    ).toBeNull();
+    const square = container.querySelector("rect[data-reckoning-mark=held]");
+    expect(square?.getAttribute("width")).toBe(square?.getAttribute("height"));
     const triangle = container.querySelector(
       "polygon[data-reckoning-mark=modelled]",
     );
@@ -86,6 +88,7 @@ describe("paintReckonedPosition", () => {
       restore: vi.fn(),
       beginPath: vi.fn(),
       arc: vi.fn(),
+      rect: vi.fn(),
       moveTo: vi.fn(),
       lineTo: vi.fn(),
       closePath: vi.fn(),
@@ -111,7 +114,9 @@ describe("paintReckonedPosition", () => {
       held: { x: 10, y: 10 },
       modelled: { x: 30, y: 20 },
     });
-    expect(ctx.arc).toHaveBeenCalledTimes(1);
+    // The held square and no dot.
+    expect(ctx.rect).toHaveBeenCalledTimes(1);
+    expect(ctx.arc).not.toHaveBeenCalled();
     expect(ctx.stroke).toHaveBeenCalledTimes(1);
     expect(alphas).toEqual([0.45, 1]);
   });

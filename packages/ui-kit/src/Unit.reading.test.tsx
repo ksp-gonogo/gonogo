@@ -157,22 +157,23 @@ describe("Unit: a reading that is held", () => {
     expect(quantity(container).hasAttribute("data-held")).toBe(true);
   });
 
-  it("marks with a superscript dot, and draws no underline under the value", () => {
+  it("marks with a superscript square, and draws no underline under the value", () => {
     const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     const css = emittedCss();
     expect(css).not.toContain("text-decoration-style:dotted");
-    expect(css).toContain("border-radius:var(--radius-circle)");
+    // A square: the mark's own rule rounds nothing.
+    expect(markRule(container)).not.toContain("border-radius");
   });
 
-  it("takes the dot's hue from the same token the panel badge paints", () => {
+  it("takes the mark's hue from the same token the panel badge paints", () => {
     // One fact, one colour: the mark and the badge above it are the same `warning` severity.
     render(<Unit value={stale(12_400, "held")} />);
     const css = emittedCss();
     expect(css).toContain(TONE_MARK.warn);
   });
 
-  it("paints the dot from a token and never from a literal hue", () => {
+  it("paints the mark from a token and never from a literal hue", () => {
     // A hex typed in here is a hue the theme cannot restyle.
     const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(markRule(container)).not.toMatch(/#[0-9a-f]{3,8}\b/i);
@@ -186,8 +187,8 @@ describe("Unit: a reading that is held", () => {
     expect(visibleText(marked)).toBe(visibleText(plain));
   });
 
-  it("keeps the dot inside the figure's own box, so a clipping edge cannot cut it off", () => {
-    // jsdom has no layout, so assert the rules that place it: the dot is absolute against the right edge, and the host reserves that room itself.
+  it("keeps the mark inside the figure's own box, so a clipping edge cannot cut it off", () => {
+    // jsdom has no layout, so assert the rules that place it: the mark is absolute against the right edge, and the host reserves that room itself.
     const { container } = render(<Unit value={stale(12_400, "held")} />);
     const rule = markRule(container);
     expect(rule).toContain("position:absolute");

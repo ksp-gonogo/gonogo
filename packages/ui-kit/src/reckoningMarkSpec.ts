@@ -13,7 +13,8 @@
 export type ReckoningKind = "held" | "modelled";
 
 /**
- * The spec for each kind. `held` is a dot in the warning hue; `modelled` is a
+ * The spec for each kind. `held` is a square in the warning hue, a stop sign
+ * for data that has stopped; `modelled` is a
  * triangle, point up, in the modelled hue and about a pixel larger, so the two
  * weigh alike at small sizes.
  *
@@ -21,8 +22,8 @@ export type ReckoningKind = "held" | "modelled";
  */
 export const RECKONING_MARK = {
   held: {
-    shape: "dot",
-    glyph: "●",
+    shape: "square",
+    glyph: "■",
     color: "var(--color-warn-mark)",
     cssVar: "--color-warn-mark",
     fallback: "rgb(217 161 59)",

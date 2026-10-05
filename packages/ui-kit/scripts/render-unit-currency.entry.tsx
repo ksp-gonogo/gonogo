@@ -387,8 +387,8 @@ function Ruler() {
 
 /**
  * The mark across the type scale, which is the other thing a relative size can
- * get wrong: a dot sized in `em` has to stay a dot at 32px and still be a dot
- * rather than a smudge at 11px.
+ * get wrong: a square sized in `em` has to stay a square at 32px and still be
+ * one rather than a smudge at 11px.
  */
 function Sizes() {
   return (

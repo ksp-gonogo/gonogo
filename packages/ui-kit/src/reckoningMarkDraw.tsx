@@ -4,11 +4,14 @@
  */
 import { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
 
+/** Half the held square's side in units of the mark's radius, which gives it the area of a dot of that radius, so the square weighs what the triangle beside it does. */
+const HELD_SQUARE_HALF = 0.89;
+
 /** The opacity of a held position drawn beside a modelled one. */
 const GHOST_OPACITY = 0.45;
 
 /**
- * The mark as an SVG shape centred on a point: a dot for held, a triangle
+ * The mark as an SVG shape centred on a point: a square for held, a triangle
  * pointing up for modelled.
  *
  * @category Unit
@@ -36,7 +39,18 @@ export function ReckoningMarkSvg({
     "data-reckoning-mark": kind,
     "aria-hidden": true as const,
   };
-  if (kind === "held") return <circle cx={x} cy={y} r={r} {...common} />;
+  if (kind === "held") {
+    const half = r * HELD_SQUARE_HALF;
+    return (
+      <rect
+        x={x - half}
+        y={y - half}
+        width={2 * half}
+        height={2 * half}
+        {...common}
+      />
+    );
+  }
   const points = `${x},${y - r} ${x + r},${y + r * 0.8} ${x - r},${y + r * 0.8}`;
   return <polygon points={points} {...common} />;
 }
@@ -64,7 +78,7 @@ export interface PaintReckoningMarkOptions {
 }
 
 /**
- * Paints the mark on a canvas, centred on a point in canvas pixels: a dot for
+ * Paints the mark on a canvas, centred on a point in canvas pixels: a square for
  * held, a triangle pointing up for modelled, in the hue the spec names.
  *
  * @intent The single-mark canvas face for a third-party canvas that draws one
@@ -86,7 +100,8 @@ export function paintReckoningMark(
   ctx.fillStyle = resolvedColor(canvas, spec.cssVar, spec.fallback);
   ctx.beginPath();
   if (kind === "held") {
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    const half = r * HELD_SQUARE_HALF;
+    ctx.rect(x - half, y - half, 2 * half, 2 * half);
   } else {
     ctx.moveTo(x, y - r);
     ctx.lineTo(x + r, y + r * 0.8);

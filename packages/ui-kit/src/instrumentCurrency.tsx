@@ -3,7 +3,7 @@
  * quantity: the held mark, the model's two bounds, and the sentence a
  * screen reader hears.
  *
- * The vocabulary is `<Unit>`'s and `<Meter>`'s, in SVG: the dot is a tspan and
+ * The vocabulary is `<Unit>`'s and `<Meter>`'s, in SVG: the held square is a tspan and
  * the bound is a line, with the same hue, shape and wording.
  */
 import type { ReactNode } from "react";

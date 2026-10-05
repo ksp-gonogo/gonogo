@@ -58,7 +58,7 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
       : ""}
 `;
 
-// A held figure is relatively positioned and reserves the dot's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the dot alone.
+// A held figure is relatively positioned and reserves the mark's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the dot alone.
 const Unit__Quantity = styled.span<{ $mark: ReckoningKind | null }>`
   white-space: nowrap;
   ${({ $mark }) =>
@@ -278,7 +278,7 @@ function UnitSymbol({
  * Handed a `Reading<Value<UnitSymbol>>`, it also draws whether the number is current, in three treatments:
  * - current (`observed`): drawn as a bare `Value` is, with no mark
  * - no number (`pending`, `unowned`, `absent`): the null token
- * - held (`held`, any grade): the last observation in full, marked by a dot at superscript height in the warning hue, with the grade and the `asOfUt` instant on hover and in the spoken caption
+ * - held (`held`, any grade): the last observation in full, marked by a square at superscript height in the warning hue, with the grade and the `asOfUt` instant on hover and in the spoken caption
  *
  * With `reckoned`, a reading with a model draws the model's figure and marks it modelled (a blue triangle) wherever it is not a reading of now.
  *
@@ -348,7 +348,7 @@ export function Unit<UnitSymbol extends string = string>({
     shown == null || band === null || !held
       ? null
       : toInterval(shown, bandIn(band, shown.unit), resolved, formatted.rung);
-  // The hover says in words what the dot says in shape, plus the instant and the band's claim.
+  // The hover says in words what the mark says in shape, plus the instant and the band's claim.
   const { anchor, tip } = useTooltip(hover(caption, interval));
 
   if (value !== undefined || children === undefined) {
