@@ -2329,8 +2329,13 @@ namespace Sitrep.Contract
         /// and its grading are the active vessel's own reading, arriving no sooner than
         /// light from the farthest node on the path it was measured over, and absent
         /// until the first one arrives. No payload changes shape.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 4 -&gt; 5:</b> a hop on <c>comms.path</c>
+        /// carries <see cref="CommsHop.Extensions"/> again, as the receiving centre
+        /// heard them from the active vessel's radio, where it carried none since
+        /// the path became each centre's own. No payload changes shape.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

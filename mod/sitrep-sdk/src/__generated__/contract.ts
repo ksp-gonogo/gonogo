@@ -1848,13 +1848,17 @@ export interface CommsHop
 	/**
 	* The provider-namespaced extension bag: how the elected comms backend carries
 	* per-hop facts this shared shape does not declare (see
-	* ProviderExtensionBagAttribute for the whole mechanism). Absent on
-	* `comms.path`, whose hops are worked out from the receiving command centre's
-	* own contact plan rather than read off the backend. A backend fills it on a
-	* route it solves itself: a RealAntennas install fills
-	* `Extensions["realantennas"]` with band, tech level, modulation, encoder,
-	* required Eb/N0, beamwidth, EC draw and the reverse-direction rate, typed by
-	* the RealAntennas client's own `RealAntennasHopExt`.
+	* ProviderExtensionBagAttribute for the whole mechanism). A RealAntennas
+	* install fills `Extensions["realantennas"]` with band, tech level,
+	* modulation, encoder, required Eb/N0, beamwidth, EC draw and the
+	* reverse-direction rate, typed by the RealAntennas client's own
+	* `RealAntennasHopExt`.
+	*
+	* On `comms.path` a hop carries the facts the active vessel's radio last
+	* reported of that same hop, as the receiving command centre heard them. A hop
+	* the centre believes in and has heard no report of carries none, and a report
+	* reaches a centre no sooner than light from the farthest node on the path it
+	* was measured over.
 	*/
 	extensions?: ProviderExtensions;
 }

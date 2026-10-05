@@ -925,6 +925,7 @@ namespace Sitrep.Host.Comms
                 var heard = _hearing!.HeardAt(centre);
                 var view = CentrePath.For(
                     plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(heard, id), looked.Ut, lightFactor);
+                WithHeardFacts(view.Path, looked.ActiveCraft == null ? null : _hearing.RadioAt(centre, looked.ActiveCraft));
                 var reshaped = !_pathShapes.TryGetValue(centre, out var shape) || shape != view.Shape;
                 _pathShapes[centre] = view.Shape;
                 var to = ToItself(centre);
@@ -955,6 +956,30 @@ namespace Sitrep.Host.Comms
                 asked.Clear();
             }
             PathFramesBudget.Record(frames, looked.Ut);
+        }
+
+        /// <summary>
+        /// Gives each hop of a centre's path the comms backend's own facts
+        /// about it, where the newest reading of the craft's radio to have
+        /// reached that centre was measured over the same hop. A hop the centre
+        /// believes in and has heard no reading of carries none.
+        /// </summary>
+        internal static void WithHeardFacts(CommsPath path, ContactRadio? radio)
+        {
+            if (radio == null)
+            {
+                return;
+            }
+            foreach (var hop in path.Hops)
+            {
+                foreach (var read in radio.Hops)
+                {
+                    if (read.Extensions != null && read.From == hop.From && read.To == hop.To)
+                    {
+                        hop.Extensions = read.Extensions;
+                    }
+                }
+            }
         }
 
         /// <summary>Records what the active craft's radio said on this look, when it says something new.</summary>

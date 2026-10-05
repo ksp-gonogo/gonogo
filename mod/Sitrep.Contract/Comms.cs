@@ -262,13 +262,16 @@ public class CommsHop
     /// The provider-namespaced extension bag: how the elected comms backend
     /// carries per-hop facts this shared shape does not declare (see
     /// <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism).
-    /// Absent on <c>comms.path</c>, whose hops are worked out from the
-    /// receiving command centre's own contact plan rather than read off the
-    /// backend. A backend fills it on a route it solves itself: a RealAntennas
-    /// install fills <c>Extensions["realantennas"]</c> with band, tech level,
-    /// modulation, encoder, required Eb/N0, beamwidth, EC draw and the
-    /// reverse-direction rate, typed by the RealAntennas client's own
-    /// <c>RealAntennasHopExt</c>.
+    /// A RealAntennas install fills <c>Extensions["realantennas"]</c> with
+    /// band, tech level, modulation, encoder, required Eb/N0, beamwidth, EC
+    /// draw and the reverse-direction rate, typed by the RealAntennas client's
+    /// own <c>RealAntennasHopExt</c>.
+    ///
+    /// <para>On <c>comms.path</c> a hop carries the facts the active vessel's
+    /// radio last reported of that same hop, as the receiving command centre
+    /// heard them. A hop the centre believes in and has heard no report of
+    /// carries none, and a report reaches a centre no sooner than light from
+    /// the farthest node on the path it was measured over.</para>
     /// </summary>
     // The key is omitted when no provider filled a bag, so a payload no provider
     // extended carries no trace of the mechanism.

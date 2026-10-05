@@ -208,6 +208,71 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(0.5, Strength(seated.HomeView)!.Value, 6);
         }
 
+        private static ContactRadio ThroughTheRelayOnBand(string band) => new ContactRadio(
+            ScriptedContactGame.Active,
+            true,
+            0.5,
+            new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 0.5 },
+            new[]
+            {
+                new RadioHop(
+                    ScriptedContactGame.ActiveGuid,
+                    ScriptedContactGame.RelayGuid,
+                    true,
+                    new Dictionary<string, object?> { ["test"] = new Dictionary<string, object?> { ["band"] = band } }),
+                new RadioHop(ScriptedContactGame.RelayGuid, ScriptedContactGame.HomeName, false),
+            });
+
+        /// <summary>The band the first hop of the centre's path says it is on, or null when the hop carries no facts.</summary>
+        private static string? Band(CentreView view)
+        {
+            using var doc = JsonDocument.Parse(view.Path!);
+            var hop = doc.RootElement.GetProperty("hops")[0];
+            return hop.TryGetProperty("extensions", out var bag)
+                ? bag.GetProperty("test").GetProperty("band").GetString()
+                : null;
+        }
+
+        /// <summary>
+        /// A comms backend's own facts about a hop are the craft's radio's to
+        /// state. A centre's path carries them once the reading that states
+        /// them has reached that centre, on the hop it was measured over, and a
+        /// change in them arrives the same way.
+        /// </summary>
+        [Fact]
+        public async Task AHopOnACentresPathCarriesTheBackendsFactsAsThatCentreHeardThem()
+        {
+            await using var seated = await SeatedAsync(ThroughTheRelayOnBand("S"));
+            await seated.TickAsync(1, 2, 299);
+            await seated.TickAsync(700, 702, 704);
+            Assert.Equal("S", Band(seated.HomeView));
+            Assert.Equal("S", Band(seated.FarView));
+            using (var doc = JsonDocument.Parse(seated.HomeView.Path!))
+            {
+                Assert.False(doc.RootElement.GetProperty("hops")[1].TryGetProperty("extensions", out _));
+            }
+
+            seated.World.Game.Radio = ThroughTheRelayOnBand("X");
+            await seated.TickAsync(T0, T0 + 2, T0 + 12, T0 + 299);
+            Reckoned.True(Band(seated.FarView) == "S", "the far centre's path showed a hop's new band before the reading of it could arrive");
+
+            await seated.TickAsync(T0 + 301, T0 + 302, T0 + 304);
+            Assert.Equal("X", Band(seated.FarView));
+            Reckoned.True(Band(seated.HomeView) == "S", "the home centre's path showed a hop's new band when the far centre heard of it");
+
+            await seated.TickAsync(T0 + 601, T0 + 602, T0 + 604);
+            Assert.Equal("X", Band(seated.HomeView));
+        }
+
+        [Fact]
+        public async Task AHopNoReadingWasMeasuredOverCarriesNoFacts()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+
+            Assert.Null(Band(seated.HomeView));
+        }
+
         [Fact]
         public async Task AReadingOverADirectPathArrivesAtTheCraftsOwnLightTime()
         {

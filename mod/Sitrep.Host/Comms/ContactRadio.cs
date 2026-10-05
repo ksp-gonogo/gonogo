@@ -95,12 +95,52 @@ namespace Sitrep.Host.Comms
             }
             for (var i = 0; i < Hops.Count; i++)
             {
-                if (other.Hops[i].From != Hops[i].From || other.Hops[i].To != Hops[i].To)
+                if (other.Hops[i].From != Hops[i].From
+                    || other.Hops[i].To != Hops[i].To
+                    || !SameFacts(other.Hops[i].Extensions, Hops[i].Extensions))
                 {
                     return false;
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// Whether two bags of a backend's facts read the same: the same keys,
+        /// and each value equal, a number being equal to one within a hundredth
+        /// of it, so a rate that drifts with range is not said every tick.
+        /// </summary>
+        internal static bool SameFacts(IReadOnlyDictionary<string, object?>? a, IReadOnlyDictionary<string, object?>? b)
+        {
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+            if (a.Count != b.Count)
+            {
+                return false;
+            }
+            foreach (var fact in a)
+            {
+                if (!b.TryGetValue(fact.Key, out var other) || !SameFact(fact.Value, other))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool SameFact(object? a, object? b)
+        {
+            if (a is IReadOnlyDictionary<string, object?> bagA && b is IReadOnlyDictionary<string, object?> bagB)
+            {
+                return SameFacts(bagA, bagB);
+            }
+            if (a is double x && b is double y)
+            {
+                return x == y || Math.Abs(x - y) <= Quantum * Math.Max(Math.Abs(x), Math.Abs(y));
+            }
+            return Equals(a, b);
         }
     }
 }
