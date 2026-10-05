@@ -39,7 +39,7 @@ describe("WarpControl tiny mode", () => {
     });
     expect(button).toHaveTextContent("1×");
     expect(screen.getAllByRole("button")).toHaveLength(1);
-    await waitFor(() => expect(document.body.textContent).toContain("1.0k×"));
+    await waitFor(() => expect(document.body.textContent).toContain("1k×"));
     await expectNoA11yViolations(container);
   });
 

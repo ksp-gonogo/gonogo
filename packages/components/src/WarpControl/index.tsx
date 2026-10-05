@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import {
   useAlarmCreator,
@@ -24,12 +25,7 @@ import {
 } from "./config";
 import { WarpControlConfigForm } from "./WarpControlConfigForm";
 import { WarpControlView } from "./WarpControlView";
-import {
-  formatRate,
-  normalizeWarpMode,
-  TOP_WARP_INDEX,
-  warpLabel,
-} from "./warpLevels";
+import { normalizeWarpMode, TOP_WARP_INDEX, warpLabel } from "./warpLevels";
 import "./slots";
 
 export { delayRequiringAlarm } from "./alarmGate";
@@ -153,13 +149,18 @@ function useWarpEssentials({
 }: Readonly<ComponentProps<WarpControlConfig>>): readonly TinyEssential[] {
   const { warp, warpableScene, hasGameSignal, currentIndex, setWarp } =
     useWarpControl(config);
-  const rate = magnitudeOf(warp?.warpRate);
   const physics = normalizeWarpMode(warp?.warpMode) === "Physics";
   const realtime = currentIndex === 0;
   return [
     {
       label: "WARP",
-      word: formatRate(rate),
+      // The ladder's own label while on the high-warp ladder; physics warp has its own, so its rate is written as it is.
+      word:
+        warp === undefined
+          ? NULL_DISPLAY
+          : currentIndex !== null && !physics
+            ? warpLabel(currentIndex)
+            : `${writeQuantity(warp.warpRate, { decimals: 0 })}×`,
       tone: physics ? "warn" : "neutral",
     },
     {

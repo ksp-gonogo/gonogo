@@ -49,7 +49,7 @@ export function WarpToRow({
   const viewUt = useViewUt();
   const nodes = useManeuverNodes();
   const [target, setTarget] = useState<Target>("for");
-  const [forSeconds, setForSeconds] = useState<number>(0);
+  const [forDuration, setForDuration] = useState(value("s", 0));
   const [utTarget, setUtTarget] = useState<number | null>(null);
   const [leadSeconds, setLeadSeconds] = useState<number>(
     LEAD_CHOICES_SECONDS[1],
@@ -59,9 +59,9 @@ export function WarpToRow({
   // A duration counts from the UT the widget is showing when it is confirmed, so the instant is read at the press and not fixed while the operator types.
   const instant =
     target === "for"
-      ? viewUt === undefined || forSeconds <= 0
+      ? viewUt === undefined || !forDuration.greaterThan(value("s", 0))
         ? null
-        : viewUt.magnitude + forSeconds
+        : viewUt.plus(forDuration).valueOf()
       : target === "ut"
         ? utTarget
         : node === null
@@ -78,7 +78,7 @@ export function WarpToRow({
     createAlarm({
       name:
         target === "for"
-          ? `Warp for ${writeQuantity(value("s", forSeconds))}`
+          ? `Warp for ${writeQuantity(forDuration)}`
           : target === "ut"
             ? "Warp to UT"
             : `${writeQuantity(value("s", leadSeconds))} before node`,
@@ -125,8 +125,8 @@ export function WarpToRow({
             label="Warp for"
             unit="s"
             rungs={["d", "h", "min"]}
-            value={value("s", forSeconds)}
-            onChange={(next) => setForSeconds(next.magnitude)}
+            value={forDuration}
+            onChange={setForDuration}
           />
         ) : target === "ut" ? (
           <MissionDateField
