@@ -182,6 +182,51 @@ export function predictedPoint(f: Frame): { lat: number; lon: number } {
   return { lat: f.lat, lon: f.lon + dLon };
 }
 
+/**
+ * The craft's `vessel.orbit` elements at the pinned instant, from the same state its flight figures give: `vDown` straight down and `vHoriz` eastward, `agl` above the equator at `lon`, in the body's non-rotating frame.
+ * A frame with no motion is a rectilinear fall; its eccentricity is held just under 1 so the conic stays an ellipse.
+ */
+function orbitFor(f: Frame, epoch: number): Record<string, unknown> {
+  const r = R + f.aglMeters;
+  const theta = f.lon * DEG;
+  const vr = -f.vDown;
+  const vt = f.vHoriz;
+  const speedSq = vr * vr + vt * vt;
+  const energy = speedSq / 2 - MU / r;
+  const h = r * vt;
+  const ecc = Math.min(0.9999, Math.sqrt(1 + (2 * energy * h * h) / (MU * MU)));
+  // Eccentricity vector in the orbital plane: ((v^2 - mu/r) r - (r.v) v) / mu, with r along theta and v = vr r^ + vt e^.
+  const k = speedSq - MU / r;
+  const ex =
+    (k * r * Math.cos(theta) -
+      r * vr * (vr * Math.cos(theta) - vt * Math.sin(theta))) /
+    MU;
+  const ey =
+    (k * r * Math.sin(theta) -
+      r * vr * (vr * Math.sin(theta) + vt * Math.cos(theta))) /
+    MU;
+  const argPe = Math.atan2(ey, ex);
+  const nu = theta - argPe;
+  const E =
+    2 *
+    Math.atan2(
+      Math.sqrt(1 - ecc) * Math.sin(nu / 2),
+      Math.sqrt(1 + ecc) * Math.cos(nu / 2),
+    );
+  const meanAnomaly = E - ecc * Math.sin(E);
+  return {
+    referenceBodyIndex: 3,
+    sma: -MU / (2 * energy),
+    ecc,
+    inc: 0,
+    lan: 0,
+    argPe: argPe / DEG,
+    meanAnomalyAtEpoch: meanAnomaly,
+    epoch,
+    mu: MU,
+  };
+}
+
 function channelsFor(f: Frame, oneWaySeconds: number): Record<string, unknown> {
   const vSurf = Math.sqrt(f.vDown * f.vDown + f.vHoriz * f.vHoriz);
   const terrain = terrainFor(f.aglMeters);
@@ -202,17 +247,7 @@ function channelsFor(f: Frame, oneWaySeconds: number): Record<string, unknown> {
       parentBodyIndex: 3,
       launchUt: null,
     },
-    "vessel.orbit": {
-      referenceBodyIndex: 3,
-      sma: 250_000,
-      ecc: 0.02,
-      inc: 0,
-      lan: 0,
-      argPe: 0,
-      meanAnomalyAtEpoch: 0,
-      epoch: 10,
-      mu: MU,
-    },
+    "vessel.orbit": orbitFor(f, 10),
     "vessel.flight": {
       latitude: f.lat,
       longitude: f.lon,

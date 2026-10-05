@@ -6,7 +6,6 @@ import {
   FAINT_TEXT_STYLE,
   Grid,
   NULL_DISPLAY,
-  ReadoutCaption,
   Text,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
@@ -110,20 +109,13 @@ export function SolutionReadouts({
         <StackedField label="Available dV">
           {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "start",
-          }}
-        >
-          <ReadoutCaption>Affordable</ReadoutCaption>
+        <StackedField label="Affordable">
           <Affordable
             noLandingVector={noLandingVector}
             affordable={affordable}
             affordableFromObserved={affordableFromObserved}
           />
-        </div>
+        </StackedField>
         <StackedField label="Touchdown (coast)">
           {<Mps v={solution.speedAtImpact} from={solveCurrency} />}
         </StackedField>

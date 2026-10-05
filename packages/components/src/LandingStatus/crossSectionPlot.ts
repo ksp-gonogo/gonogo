@@ -140,11 +140,42 @@ export function buildCrossSectionPlot(
   const groundUnderVessel = nearestGround(slice, vesselX);
   const vesselY = groundUnderVessel + aglMeters;
 
+  /*
+   * The frame is anchored on the GROUND, spanning the patch across and the same distance up: a vessel far above the relief is simply out of the picture.
+   * Equal spans both ways because the frame is spatial, so a slope drawn here is the slope.
+   */
+  const across = slice.halfSpan * 2;
+  const groundLo = Math.min(...slice.points.map((p) => p.y));
+  const floor = groundLo - across * GROUND_INSET;
+  /*
+   * Tall enough to hold the vessel when it fits within the cap, and otherwise not stretched at all, so the picture stays a terrain profile.
+   * Equal scale survives either branch, since the arranger derives the box shape from the two spans.
+   */
+  const reach = (vesselY - floor) * VESSEL_HEADROOM;
+  // One span used both ways, so the square box never stretches the slope.
+  const span =
+    reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
+  const halfWide = span / 2;
+
+  /*
+   * Past the sampled patch the ground is held at its outermost elevation, so the terrain always spans the frame; the window only opens wider than the patch to bring the vessel in.
+   */
+  const first = slice.points[0];
+  const last = slice.points[slice.points.length - 1];
+  const terrain =
+    halfWide > slice.halfSpan
+      ? [
+          { x: -halfWide, y: first.y },
+          ...slice.points,
+          { x: halfWide, y: last.y },
+        ]
+      : slice.points;
+
   const layers: PlotLayer[] = [
     {
       kind: "region",
       id: "ground",
-      boundary: slice.points,
+      boundary: terrain,
       side: "below",
       tone: "neutral",
       // Filled, so which side of the profile the vessel is on reads at a glance.
@@ -154,7 +185,7 @@ export function buildCrossSectionPlot(
     {
       kind: "series",
       id: "skyline",
-      points: slice.points,
+      points: terrain,
       tone: "neutral",
       description: "terrain profile along the ground track",
     },
@@ -222,29 +253,12 @@ export function buildCrossSectionPlot(
     });
   }
 
-  /*
-   * The frame is anchored on the GROUND, spanning the patch across and the same distance up: a vessel far above the relief is simply out of the picture.
-   * Equal spans both ways because the frame is spatial, so a slope drawn here is the slope.
-   */
-  const across = slice.halfSpan * 2;
-  const groundLo = Math.min(...slice.points.map((p) => p.y));
-  const floor = groundLo - across * GROUND_INSET;
-  /*
-   * Tall enough to hold the vessel when it fits within the cap, and otherwise not stretched at all, so the picture stays a terrain profile.
-   * Equal scale survives either branch, since the arranger derives the box shape from the two spans.
-   */
-  const reach = (vesselY - floor) * VESSEL_HEADROOM;
-  // One span used both ways, so the square box never stretches the slope.
-  const span =
-    reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
-  const halfWide = span / 2;
-
   return {
     subject: "landing-cross-section",
     title: "Cross-section",
     frame: {
       kind: "spatial",
-      // Centred on the site; a patch narrower than the span stops short of the edges, the honest picture of less sampled ground.
+      // Centred on the site.
       xDomain: [-halfWide, halfWide],
       xUnit: "m",
       yDomain: [floor, floor + span],

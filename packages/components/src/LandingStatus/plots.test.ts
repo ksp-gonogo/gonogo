@@ -92,6 +92,15 @@ describe("cross-section plot", () => {
     expect(yHi).toBeGreaterThan(160);
   });
 
+  it("draws the ground edge to edge when the window opens wider than the patch", () => {
+    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
+    const [xLo, xHi] = frameOf(plot).xDomain;
+    const skyline = plot?.layers.find((l) => l.id === "skyline");
+    if (skyline?.kind !== "series") throw new Error("expected a series");
+    expect(skyline.points[0].x).toBe(xLo);
+    expect(skyline.points[skyline.points.length - 1].x).toBe(xHi);
+  });
+
   it("says both speeds inside the frame, because a map has no gutter", () => {
     const plot = buildCrossSectionPlot(crossSection());
     const captions = plot?.layers.filter((l) => l.kind === "caption") ?? [];

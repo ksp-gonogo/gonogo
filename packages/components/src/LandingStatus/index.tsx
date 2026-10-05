@@ -9,6 +9,7 @@ import {
   Section,
   Stack,
   Text,
+  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { PlotBoard } from "../Plots/PlotBoard";
 import { AltitudeRail } from "./AltitudeRail";
@@ -44,7 +45,7 @@ type LandingStatusConfig = Record<string, never>;
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
-  const [measureScroller, scrollerHeight] = useScrollerHeight();
+  const [measureScroller, railFrame] = useScrollerHeight();
   const model = useLandingModel();
   const {
     flight,
@@ -129,6 +130,7 @@ function LandingStatusComponent({
       {comDatumNote}
       {heightEl}
       {divertEl}
+      <WidgetSections />
     </Stack>
   );
 
@@ -142,6 +144,8 @@ function LandingStatusComponent({
   return (
     <Panel
       panelTitle="LANDING"
+      // Planted sections go beside the altitude rail, in the readouts column, never under it.
+      panelSections={false}
       // Host-derived: the panel watches every topic this widget declares.
       sections={[
         // The link state, first and full width: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away.
@@ -192,7 +196,10 @@ function LandingStatusComponent({
         /* Not a filling section: the readouts scroll with the panel body, and a section held to the leftover height would overflow past the body's bottom inset. */
         <Section key="descent" full>
           {board === "not-descending" && !landed ? (
-            <EmptyState>No landing in progress</EmptyState>
+            <Stack>
+              <EmptyState>No landing in progress</EmptyState>
+              <WidgetSections />
+            </Stack>
           ) : (
             // Rail and content sit inside the panel's own body, which owns the single inset.
             <div
@@ -211,10 +218,10 @@ function LandingStatusComponent({
                     // An instrument dimension: the width the scale's labels and track need.
                     width: 64,
                     position: "sticky",
-                    top: 0,
+                    top: railFrame.top,
                     alignSelf: "flex-start",
-                    // The scroller's measured visible height, so the scale spans what the operator can see.
-                    height: scrollerHeight > 0 ? scrollerHeight : undefined,
+                    // The visible height below the rail's top edge, so the whole scale and its cue are in view.
+                    height: railFrame.height > 0 ? railFrame.height : undefined,
                   }}
                 >
                   <AltitudeRail
@@ -251,6 +258,7 @@ function LandingStatusComponent({
                       {carriedAltitudeEl}
                       {comDatumNote}
                       {divertEl}
+                      <WidgetSections />
                     </div>
                   </div>
                 ) : (
