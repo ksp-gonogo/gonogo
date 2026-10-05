@@ -493,6 +493,11 @@ namespace Sitrep.Contract.Serialization
                 AppendField(sb, "expiresAtUt");
                 JsonWriter.AppendNumber(sb, msg.ExpiresAtUt.Value);
             }
+            if (msg.Warning != null)
+            {
+                AppendField(sb, "warning");
+                JsonWriter.AppendString(sb, msg.Warning);
+            }
 
             sb.Append('}');
             return sb.ToString();
@@ -516,6 +521,7 @@ namespace Sitrep.Contract.Serialization
                 OneWaySeconds = OptionalDouble(raw, "oneWaySeconds"),
                 PredictedReplyUt = OptionalDouble(raw, "predictedReplyUt"),
                 ExpiresAtUt = OptionalDouble(raw, "expiresAtUt"),
+                Warning = raw.TryGetValue("warning", out var warning) ? warning as string : null,
             };
         }
 

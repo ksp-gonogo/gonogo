@@ -286,6 +286,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     predictedReplyUt: "ut",
     requestId: "id",
     type: "id",
+    warning: "text",
   },
   "CommandCentreEntry": {
     active: "flag",

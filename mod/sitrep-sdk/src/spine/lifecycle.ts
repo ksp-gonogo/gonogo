@@ -199,7 +199,13 @@ export type CommandFoundOutcome =
  */
 export type CommandStatus =
   | { phase: "idle" }
-  | { phase: "in-flight"; requestId: string; etaConfirm: number }
+  | {
+      phase: "in-flight";
+      requestId: string;
+      etaConfirm: number;
+      /** What the mod said of a command it accepted against the odds, as a sentence to show: a continuous input that its centre's plan says will be dropped on the way. Absent for an ordinary command. */
+      warning?: string;
+    }
   | { phase: "confirmed"; requestId: string; result: unknown }
   | {
       phase: "failed";

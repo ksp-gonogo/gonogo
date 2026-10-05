@@ -309,7 +309,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>A switch on a control channel, the lights, whose subject here is the relay.</summary>
         public const string LightsCommand = "vessel.control.setLights";
 
-        /// <summary>The fly-by-wire axes, a continuous input, whose subject here is the relay.</summary>
+        /// <summary>The fly-by-wire axes, a continuous input, whose subject here is the active craft.</summary>
         public const string AxesCommand = "vessel.control.setAxes";
 
         private int _lit;
@@ -359,7 +359,8 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = RelayCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                     new CommandDeclaration { Command = LightsCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
-                    new CommandDeclaration { Command = AxesCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
+                    // The axes fly the ACTIVE craft, which reaches the ground through the relay.
+                    new CommandDeclaration { Command = AxesCommand, Delay = DelayRole.Delayed, Subject = ChannelEngine.ConnectivityMetaTopic },
                 },
             };
         }
@@ -378,7 +379,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>How many times the lights have been switched aboard the relay.</summary>
         public int LitCount => Volatile.Read(ref _lit);
 
-        /// <summary>How many axis writes have run aboard the relay.</summary>
+        /// <summary>How many axis writes have run aboard the active craft.</summary>
         public int SteeredCount => Volatile.Read(ref _steered);
 
         /// <summary>The newest state of a craft that has reached <paramref name="centre"/>, or null when it has heard nothing of it.</summary>

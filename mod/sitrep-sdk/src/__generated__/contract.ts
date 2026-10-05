@@ -3168,6 +3168,14 @@ export interface CommandAccepted
 	* command that is not held at all.
 	*/
 	expiresAtUt?: number;
+	/**
+	* What the operator should know about a command that was accepted anyway, as a
+	* sentence to show them. Present for a continuous input, a throttle or a
+	* control axis, that the sending centre's plan says would have to wait at a
+	* node: it is sent, and it is dropped where it would have waited, so it is
+	* likely to be lost. Absent otherwise.
+	*/
+	warning?: string;
 }
 /**
 * A request the mod could not carry out: a frame it could not read, an unknown

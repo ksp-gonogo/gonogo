@@ -213,8 +213,9 @@ namespace Sitrep.Host
         /// <summary>
         /// Takes a delayed command onto store-and-forward when it is addressed to a
         /// craft and is not a continuous input; a throttle or a fly-by-wire axis is
-        /// sent live or refused. A switch on a control channel, lights or gear, is a
-        /// command like any other, held and forwarded. True when taken.
+        /// sent live, or accepted with a warning and dropped where it would have
+        /// waited. A switch on a control channel, lights or gear, is a command like
+        /// any other, held and forwarded. True when taken.
         /// </summary>
         private bool TryDispatchHeld(DispatchCommandJob job, string node)
         {
@@ -232,7 +233,7 @@ namespace Sitrep.Host
             }
             if (IsContinuousInput(job))
             {
-                return RefusedAsContinuousAcrossAHold(job, craft);
+                return DroppedAsContinuousAcrossAHold(job, craft);
             }
 
             var now = _clock.Now();
@@ -276,7 +277,7 @@ namespace Sitrep.Host
             });
             if (job.OnAcceptedHeld != null)
             {
-                job.OnAcceptedHeld(oneWay, prediction.ReplyUt, message.DeleteAtUt);
+                job.OnAcceptedHeld(oneWay, prediction.ReplyUt, message.DeleteAtUt, null);
             }
             else
             {
@@ -286,19 +287,31 @@ namespace Sitrep.Host
             return true;
         }
 
+        /// <summary>What a journey report says of a continuous input dropped where it would have waited.</summary>
+        internal const string ContinuousInputDropped = "it would have waited here, and a continuous input is not held";
+
         /// <summary>
-        /// Refuses a continuous input, a throttle or a fly-by-wire axis,
-        /// whose sending centre's own plan says the way to the craft is not open
-        /// all the way: it would wait at a node, and a continuous input that
-        /// waits arrives as a wall of stale values. True when it was refused.
+        /// Takes a continuous input, a throttle or a fly-by-wire axis, whose
+        /// sending centre's own plan says it would wait at a node on the way to
+        /// the craft. It is accepted, with a warning that it will be lost where
+        /// it waits, and it is dropped there: at the centre at once when the
+        /// first hop is shut, or at the relay it would have reached, in which
+        /// case the centre learns of it when a report from that relay could have
+        /// come home. True when it was taken.
         ///
-        /// <para>The centre's own plan decides, and never the live link, so the
-        /// refusal tells the operator nothing the centre has not heard. A plan
-        /// that says the way is live leaves the write on the path it has always
-        /// taken, as does a centre holding no plan at all, which has nothing to
-        /// judge by.</para>
+        /// <para>Sending it is the operator's call, not the instrument's: the
+        /// centre and the pilot may have agreed a manoeuvre that opens the way.
+        /// So it is never refused. It is never held either, because a held
+        /// stream of stick positions arrives as a wall of stale ones.</para>
+        ///
+        /// <para>The centre's own plan decides, and never the live link, so
+        /// nothing here tells the operator anything the centre has not heard. A
+        /// plan that says the way is open leaves the write on the path it has
+        /// always taken, as does a centre holding no plan at all, which has
+        /// nothing to judge by. A wait no longer than a dish takes to turn is
+        /// not a hold (<see cref="ContinuousInput.NotAHoldSeconds"/>).</para>
         /// </summary>
-        private bool RefusedAsContinuousAcrossAHold(DispatchCommandJob job, string craft)
+        private bool DroppedAsContinuousAcrossAHold(DispatchCommandJob job, string craft)
         {
             if (!SenderPlans.Reckons || string.Equals(job.Vantage, craft, StringComparison.Ordinal))
             {
@@ -311,27 +324,85 @@ namespace Sitrep.Host
             }
             var now = _clock.Now();
             var route = plan.Route(job.Vantage, craft, now, now + DeliveryNetwork.CommandLifetimeSeconds);
-            string? reason = null;
-            if (route == null || route.Count == 0)
-            {
-                reason = "This centre knows no route to the craft within the hour.";
-            }
-            var at = now;
-            for (var i = 0; reason == null && route != null && i < route.Count; i++)
-            {
-                if (route[i].DepartUt > at + 1e-6)
-                {
-                    reason = "It would wait at " + NameOfNode(job.Vantage, i == 0 ? job.Vantage : route[i - 1].To) + " for its next window.";
-                }
-                at = route[i].ArriveUt;
-            }
-            if (reason == null)
+            var hold = ContinuousInput.FirstHold(route, job.Vantage, now);
+            if (hold == null)
             {
                 return false;
             }
-            job.OnRefused?.Invoke(
-                FaultCode.ContinuousInputWouldWait,
-                reason + " A continuous input cannot be held and sent on later, so fly this from a pilot aboard or leave it to automation on the craft.");
+
+            var at = hold.Value.At;
+            var droppedUt = hold.Value.ArrivesUt;
+            // A report from the node it is dropped at takes as long to come home as the input took to get there.
+            var knownUt = droppedUt + (droppedUt - now);
+            var requestId = NextRequestId();
+            var lane = new LaneKey(_courier.CurrentEpoch, job.Vantage, craft);
+            _deliveryJobs[requestId] = job;
+            if (job.SessionId != null)
+            {
+                _pendingDispatcher[requestId] = job.SessionId;
+            }
+            _pending.Add(new PendingUplink
+            {
+                Id = requestId,
+                ClientRequestId = job.ClientRequestId,
+                Command = job.Command,
+                Label = job.Label ?? "",
+                Topic = job.Topic ?? "",
+                Vantage = job.Vantage,
+                DispatchedAt = now,
+                // It reaches no craft, so there is no light-time to the craft to quote.
+                OneWaySeconds = null,
+                Craft = craft,
+                PredictedReplyUt = knownUt,
+                PredictedHeldAt = at,
+                CommandedValue = CommandedScalar(job),
+                Attempts = 1,
+                Members = new List<string> { requestId },
+            });
+
+            var warning = "A continuous input is lost if it has to wait, and this centre's plan says it would wait at "
+                + NameOfNode(job.Vantage, at) + ". Fly this from a pilot aboard or leave it to automation on the craft.";
+            if (job.OnAcceptedHeld != null)
+            {
+                job.OnAcceptedHeld(null, knownUt, null, warning);
+            }
+            else
+            {
+                job.OnAccepted?.Invoke(null);
+                job.OnWarned?.Invoke(warning);
+            }
+
+            // What was sent on a timeline the game has since left never happened on this one.
+            void Dropped()
+            {
+                if (_courier.CurrentEpoch != lane.Epoch)
+                {
+                    return;
+                }
+                // The pending backstop may have let the request go a moment before
+                // the report it was waiting for; the report still settles it.
+                _deliveryJobs[requestId] = job;
+                OnJourneyReport(new ReportMessage
+                {
+                Id = requestId + "-dropped",
+                To = job.Vantage,
+                Kind = JourneyKind.Discarded,
+                About = requestId,
+                Lane = lane,
+                At = at,
+                AtUt = droppedUt,
+                    LandedUt = knownUt,
+                    Detail = ContinuousInputDropped,
+                });
+            }
+            if (knownUt <= now)
+            {
+                Dropped();
+            }
+            else
+            {
+                _clock.Schedule(knownUt, Dropped);
+            }
             job.Done?.Set();
             return true;
         }
@@ -571,6 +642,12 @@ namespace Sitrep.Host
                 case JourneyKind.Discarded when report.Detail == "its lane moved on":
                     Settle(report.About);
                     job.OnRefused?.Invoke(FaultCode.CommandExpired, "Its place on the lane passed before it arrived.");
+                    break;
+                case JourneyKind.Discarded when report.Detail == ContinuousInputDropped:
+                    Settle(report.About);
+                    job.OnRefused?.Invoke(
+                        FaultCode.ContinuousInputWouldWait,
+                        "It was dropped at " + NameOfNode(report.To, report.At) + ": it would have waited there for its next window, and a continuous input is not held.");
                     break;
                 case JourneyKind.Discarded when report.Detail == "cancelled":
                     Settle(report.About);

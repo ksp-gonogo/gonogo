@@ -2305,8 +2305,16 @@ namespace Sitrep.Contract
         /// reader sees changes: a vessel is absent until the centre has heard from it,
         /// its orbit, situation, crew and link are as that centre last heard them, and
         /// the list no longer stops while the active vessel is out of contact.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 1 -&gt; 2:</b>
+        /// <see cref="CommandAccepted.Warning"/>, a sentence on the accept frame of a
+        /// command that was accepted though it is likely to be lost. A continuous input
+        /// whose centre's plan says it would wait is now accepted with that warning and
+        /// dropped where it would have waited, with <c>continuousInputWouldWait</c>
+        /// arriving later as the news of its loss, where it was refused at the press.
+        /// Additive on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

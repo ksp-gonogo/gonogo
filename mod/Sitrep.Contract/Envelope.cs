@@ -252,6 +252,16 @@ public class CommandAccepted
     /// <summary>When the command is deleted wherever it is, if it has not run. Absent for a command that is not held at all.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? ExpiresAtUt { get; set; }
+
+    /// <summary>
+    /// What the operator should know about a command that was accepted anyway,
+    /// as a sentence to show them. Present for a continuous input, a throttle
+    /// or a control axis, that the sending centre's plan says would have to
+    /// wait at a node: it is sent, and it is dropped where it would have
+    /// waited, so it is likely to be lost. Absent otherwise.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Warning { get; set; }
 }
 
 /// <summary>

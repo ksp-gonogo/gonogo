@@ -329,10 +329,12 @@ export const FaultCode = {
    */
   CommandCancelled: "commandCancelled",
   /**
-   * A continuous input, a throttle or a control axis, was refused because the
-   * sending command centre's own plan says it would wait at a node on its way to
-   * the craft. Held and sent on later it would arrive as a run of stale values,
-   * so it is not sent at all.
+   * A continuous input, a throttle or a control axis, was dropped at a node
+   * where it would have had to wait on its way to the craft. Held and sent on
+   * later it would arrive as a run of stale values, so a node that cannot send
+   * it on at once drops it. It was accepted with a warning when it was sent, and
+   * this is the news of its loss, arriving when a report from that node could
+   * have reached the sending centre.
    */
   ContinuousInputWouldWait: "continuousInputWouldWait",
   /**
@@ -642,7 +644,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "it would wait on its way, and a continuous input cannot",
-    meaning: "A continuous input, a throttle or a control axis, was refused because the sending command centre's own plan says it would wait at a node on its way to the craft. Held and sent on later it would arrive as a run of stale values, so it is not sent at all.",
+    meaning: "A continuous input, a throttle or a control axis, was dropped at a node where it would have had to wait on its way to the craft. Held and sent on later it would arrive as a run of stale values, so a node that cannot send it on at once drops it. It was accepted with a warning when it was sent, and this is the news of its loss, arriving when a report from that node could have reached the sending centre.",
   },
   {
     id: "undelivered",

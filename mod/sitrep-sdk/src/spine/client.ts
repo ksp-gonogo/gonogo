@@ -844,6 +844,7 @@ export class TelemetryClient {
         message.oneWaySeconds,
         message.predictedReplyUt,
         message.expiresAtUt,
+        message.warning,
       );
       return;
     }
@@ -973,6 +974,7 @@ export class TelemetryClient {
     oneWaySeconds: number | null | undefined,
     predictedReplyUt?: number | null,
     expiresAtUt?: number | null,
+    warning?: string | null,
   ): void {
     const pending = this.commands.get(requestId);
     if (!pending) return;
@@ -1007,7 +1009,9 @@ export class TelemetryClient {
           : roundTrip;
     if (etaConfirm === undefined) return;
     pending.cancelLossTimer?.();
-    pending.status = { phase: "in-flight", requestId, etaConfirm };
+    pending.status = warning
+      ? { phase: "in-flight", requestId, etaConfirm, warning }
+      : { phase: "in-flight", requestId, etaConfirm };
     pending.cancelLossTimer = this.clock.schedule(
       etaConfirm + LOSS_MARGIN,
       () => this.handleLoss(requestId),

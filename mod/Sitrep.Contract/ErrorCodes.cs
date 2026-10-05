@@ -213,10 +213,12 @@ public sealed class FaultCode : IEquatable<FaultCode>
     public static readonly FaultCode CommandCancelled = Mod("commandCancelled", "it was cancelled before it ran");
 
     /// <summary>
-    /// A continuous input, a throttle or a control axis, was refused because the
-    /// sending command centre's own plan says it would wait at a node on its way
-    /// to the craft. Held and sent on later it would arrive as a run of stale
-    /// values, so it is not sent at all.
+    /// A continuous input, a throttle or a control axis, was dropped at a node
+    /// where it would have had to wait on its way to the craft. Held and sent
+    /// on later it would arrive as a run of stale values, so a node that cannot
+    /// send it on at once drops it. It was accepted with a warning when it was
+    /// sent, and this is the news of its loss, arriving when a report from that
+    /// node could have reached the sending centre.
     /// </summary>
     public static readonly FaultCode ContinuousInputWouldWait = Mod("continuousInputWouldWait", "it would wait on its way, and a continuous input cannot");
 

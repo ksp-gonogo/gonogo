@@ -91,6 +91,8 @@ const OMITTED_WHEN_NULL = new Set([
   "CommandAccepted.expiresAtUt",
   // The same writer guards this one on HasValue as well: a centre whose plan knows no route has no light-time to quote, and writes none.
   "CommandAccepted.oneWaySeconds",
+  // And this one: only a command accepted against the odds carries a warning.
+  "CommandAccepted.warning",
   // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
   // JsonWriter.AppendCommandResult writes neither key on a success, rather than putting an empty refusal shape on every ack.

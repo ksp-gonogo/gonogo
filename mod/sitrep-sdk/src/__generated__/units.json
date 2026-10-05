@@ -245,7 +245,8 @@
       "oneWaySeconds": "s",
       "predictedReplyUt": "ut",
       "requestId": "id",
-      "type": "id"
+      "type": "id",
+      "warning": "text"
     },
     "CommandCentreEntry": {
       "active": "flag",

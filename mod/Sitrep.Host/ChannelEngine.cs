@@ -5943,7 +5943,7 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double?, double?, double?>? onAcceptedHeld = null) =>
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double?, double?, double?, string?>? onAcceptedHeld = null) =>
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnAcceptedHeld = onAcceptedHeld });
 
         /// <summary>
@@ -5953,10 +5953,10 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<string>? onWarned = null)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnWarned = onWarned });
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -7927,8 +7927,12 @@ namespace Sitrep.Host
                 // A held command's entry goes when its settling report reaches this
                 // centre; this is only the backstop, past both its predicted reply
                 // and its expiry, after which no copy of it can still run.
+                // An entry off the lanes that predicts its own answer, a continuous
+                // input dropped on its way, goes when that answer is overdue.
                 var due = entry.LaneSeq == null
-                    ? ut > entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0))
+                    ? ut > (entry.PredictedReplyUt != null
+                        ? entry.PredictedReplyUt.Value + PendingSettleMarginSeconds
+                        : entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)))
                     : ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
                 if (due)
                 {
@@ -8589,7 +8593,7 @@ namespace Sitrep.Host
                                 Message = reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                        }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt) =>
+                        }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt, warning) =>
                         {
                             // A held command: the reply may come long after twice the
                             // one-way time, so the client sizes its loss deadline from
@@ -8600,6 +8604,7 @@ namespace Sitrep.Host
                                 OneWaySeconds = oneWaySeconds,
                                 PredictedReplyUt = predictedReplyUt,
                                 ExpiresAtUt = expiresAtUt,
+                                Warning = warning,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(held)));
                         }, onAccepted: oneWaySeconds =>
@@ -8923,7 +8928,10 @@ namespace Sitrep.Host
             /// the command's expiry. Null for a caller that only wants the one-way
             /// time, which then gets <see cref="OnAccepted"/>.
             /// </summary>
-            public Action<double?, double?, double?>? OnAcceptedHeld { get; set; }
+            public Action<double?, double?, double?, string?>? OnAcceptedHeld { get; set; }
+
+            /// <summary>Told what the acceptance warns of, for a caller that takes <see cref="OnAccepted"/> and has no frame to put a warning on.</summary>
+            public Action<string>? OnWarned { get; set; }
             /// <summary>
             /// Called instead of <see cref="OnResult"/> when the dispatch's args
             /// cannot bind to the command's declared args type, carrying the
