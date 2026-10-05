@@ -136,13 +136,50 @@ namespace Sitrep.Host.Comms
         /// <summary>How far a landed craft or a ground station may move, in metres, before what was read of it is out of date.</summary>
         public const double SurfaceToleranceMeters = 1_000.0;
 
-        /// <summary>Whether <paramref name="now"/> is a different orbit from <paramref name="was"/>, past the tolerances above.</summary>
-        public static bool Moved(OrbitElements was, OrbitElements now) =>
-            Math.Abs(now.Sma - was.Sma) > SmaTolerance * Math.Abs(was.Sma)
-            || Math.Abs(now.Ecc - was.Ecc) > EccTolerance
-            || AngleApart(now.Inc, was.Inc) > AngleTolerance
-            || AngleApart(now.Lan, was.Lan) > AngleTolerance
-            || AngleApart(now.ArgPe, was.ArgPe) > AngleTolerance;
+        /// <summary>
+        /// Whether <paramref name="now"/> is a different orbit from
+        /// <paramref name="was"/>, past the tolerances above.
+        ///
+        /// <para>Size and shape are compared as they are. Where the orbit lies
+        /// and where the craft is on it are compared by where each set of
+        /// elements puts the craft, at the newer epoch and a quarter and half
+        /// a turn on, and not angle by angle: the argument of periapsis of a
+        /// circular orbit and the node of an equatorial one are not defined,
+        /// and the game's values for them wander by degrees from one reading
+        /// to the next while the craft goes round the same circle. Read angle
+        /// by angle, a coasting craft on such an orbit looked as though it was
+        /// burning every ten seconds.</para>
+        /// </summary>
+        public static bool Moved(OrbitElements was, OrbitElements now)
+        {
+            if (Math.Abs(now.Sma - was.Sma) > SmaTolerance * Math.Abs(was.Sma)
+                || Math.Abs(now.Ecc - was.Ecc) > EccTolerance)
+            {
+                return true;
+            }
+            var closed = was.Ecc >= 0.0 && was.Ecc < 1.0 && now.Ecc >= 0.0 && now.Ecc < 1.0
+                && was.Sma > 0.0 && now.Sma > 0.0 && was.Mu > 0.0 && now.Mu > 0.0;
+            if (!closed)
+            {
+                // No period to step round, so the angles are all there is to compare.
+                return AngleApart(now.Inc, was.Inc) > AngleTolerance
+                    || AngleApart(now.Lan, was.Lan) > AngleTolerance
+                    || AngleApart(now.ArgPe, was.ArgPe) > AngleTolerance;
+            }
+            var period = 2.0 * Math.PI * Math.Sqrt(now.Sma * now.Sma * now.Sma / now.Mu);
+            var apart = AngleTolerance * Math.Abs(was.Sma);
+            foreach (var turn in new[] { 0.0, 0.25, 0.5 })
+            {
+                var ut = now.Epoch + (turn * period);
+                var gap = Sitrep.Propagation.KeplerProvider.StateFrom(now, ut).Position
+                    - Sitrep.Propagation.KeplerProvider.StateFrom(was, ut).Position;
+                if (gap.Magnitude() > apart)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         private static double AngleApart(double a, double b)
         {

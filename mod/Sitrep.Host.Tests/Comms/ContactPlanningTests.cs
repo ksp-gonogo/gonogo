@@ -64,6 +64,46 @@ namespace Sitrep.Host.Tests.Comms
             Assert.False(ContactPlanSchedule.Moved(Orbit(700_000.0), Orbit(700_010.0, 1e-6, 1e-5)));
         }
 
+        private const double MunMu = 6.5138398e10;
+
+        /// <summary>
+        /// Two readings of one coasting craft ten seconds apart, as the game
+        /// gave them on a rig: a nearly circular, nearly equatorial orbit of
+        /// the Mun, whose periapsis is so ill-defined that its argument
+        /// wandered a third of a degree while the craft went on round the same
+        /// circle. The mean anomaly moved the other way by as much.
+        /// </summary>
+        [Fact]
+        public void ACircularOrbitWhosePeriapsisWandersHasNotMoved()
+        {
+            var was = OrbitElements.FromKspDegrees(
+                229998.5897949, 5.9e-06, 0.0001239, 76.619569, 282.2393159, 3.728574, 638164933.670523, MunMu);
+            var now = OrbitElements.FromKspDegrees(
+                229998.5884454, 5.8e-06, 0.0001239, 76.6194596, 281.8626248, 3.7587514, 638164943.870514, MunMu);
+
+            Assert.False(ContactPlanSchedule.Moved(was, now));
+        }
+
+        /// <summary>The same turn of the periapsis on an orbit that has one is a different orbit.</summary>
+        [Fact]
+        public void AnEccentricOrbitWhosePeriapsisTurnsHasMoved()
+        {
+            var was = new OrbitElements(700_000.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu);
+            var now = new OrbitElements(700_000.0, 0.3, 0.0, 0.0, 0.0066, -0.0066, 0.0, KerbinMu);
+
+            Assert.True(ContactPlanSchedule.Moved(was, now));
+        }
+
+        /// <summary>The craft set back along the same orbit, as a burn that cancels itself or a teleport leaves it, is somewhere else.</summary>
+        [Fact]
+        public void TheSameOrbitWithTheCraftElsewhereOnItHasMoved()
+        {
+            var was = new OrbitElements(700_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu);
+            var now = new OrbitElements(700_000.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, KerbinMu);
+
+            Assert.True(ContactPlanSchedule.Moved(was, now));
+        }
+
         [Fact]
         public void ABurnHasMovedTheOrbit()
         {
