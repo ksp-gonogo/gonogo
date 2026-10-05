@@ -469,6 +469,16 @@ const POWERED_PATHS = [
 ] as const;
 
 /**
+ * `vessel.flight`'s two burn-moved fields.
+ *
+ * @category Reckoners
+ */
+export interface PoweredFlightFields {
+  altitudeAsl: Value<"m">;
+  orbitalSpeed: Value<"m/s">;
+}
+
+/**
  * A burn carried forward: the state at any instant inside its horizon, and how
  * well that state is known.
  *
@@ -478,10 +488,22 @@ export interface PoweredFlight {
   readonly modelled: readonly ModelledField[];
   /** Position and velocity at `ut`, body-centred inertial. */
   stateAt(ut: number): StateVector;
+  /**
+   * The nominal burn's state at `ut` first, then each perturbed burn's, so a
+   * caller deriving its own quantity can band it the way the elements are.
+   */
+  spreadAt(ut: number): readonly StateVector[];
   /** The orbit the craft is on at `ut`, in wire units. */
   elementsAt(ut: number): PoweredOrbitProjection;
   /** One-sigma bands over every moved path, at `ut`. */
   bandsAt(ut: number): ReckonedBands;
+  /**
+   * The craft's altitude above a sea level of `seaLevel` metres and its orbital
+   * speed at `ut`, as `vessel.flight` carries them.
+   */
+  flightAt(ut: number, seaLevel: number): PoweredFlightFields;
+  /** One-sigma bands over `altitudeAsl` and `orbitalSpeed`, from the same perturbed burns that band the elements. */
+  flightBandsAt(ut: number, seaLevel: number): ReckonedBands;
 }
 
 /**
@@ -683,10 +705,43 @@ export function poweredFlight(
         })),
       ],
       stateAt: (ut) => statesAt(ut)[0],
+      spreadAt: (ut) => statesAt(ut),
       elementsAt: (ut) => projection(toWire(statesAt(ut)[0], ut)),
       bandsAt: (ut) => {
         const [mid, ...others] = statesAt(ut).map((state) => toWire(state, ut));
         return bandsAround(mid, others);
+      },
+      flightAt: (ut, seaLevel) => {
+        const { altitude, speed } = surface(statesAt(ut)[0], seaLevel);
+        return {
+          altitudeAsl: value("m", altitude),
+          orbitalSpeed: value("m/s", speed),
+        };
+      },
+      flightBandsAt: (ut, seaLevel) => {
+        const [mid, ...others] = statesAt(ut).map((s) => surface(s, seaLevel));
+        const band = (
+          unit: "m" | "m/s",
+          centre: number,
+          samples: readonly number[],
+        ) => ({
+          value: value(unit, centre),
+          lo: value(unit, Math.min(centre, ...samples)),
+          hi: value(unit, Math.max(centre, ...samples)),
+          kind: "sigma1" as const,
+        });
+        return {
+          altitudeAsl: band(
+            "m",
+            mid.altitude,
+            others.map((o) => o.altitude),
+          ),
+          orbitalSpeed: band(
+            "m/s",
+            mid.speed,
+            others.map((o) => o.speed),
+          ),
+        };
       },
     },
   };
@@ -805,6 +860,13 @@ function bandsAround(
     };
   }
   return bands;
+}
+
+function surface(state: StateVector, seaLevel: number) {
+  return {
+    altitude: norm(state.position) - seaLevel,
+    speed: norm(state.velocity),
+  };
 }
 
 function normalise(a: Vector3): Vector3 {

@@ -349,4 +349,106 @@ describe("the vessel.orbit reckoner", () => {
     expect(reading.reckoning.value.sma?.magnitude).toBeGreaterThan(burn(3).sma);
     expect(reading.reckoning.bands?.sma?.kind).toBe("sigma1");
   });
+  /**
+   * `vessel.flight` under the same burn: altitude and orbital speed come off
+   * the integrated state rather than being held, each with a band.
+   */
+  it("carries vessel.flight under thrust with the powered model", () => {
+    let wall = LIGHT_TIME_SECONDS;
+    const clock = new ViewClock({
+      nowWall: () => wall,
+      warpRate: () => 1,
+      delaySeconds: () => LIGHT_TIME_SECONDS,
+    });
+    const store = new TimelineStore(clock);
+    store.setTransportConnected(false);
+    store.ingest(
+      "system.bodies",
+      point(0, AIRLESS, Quality.OnRails) as TimelinePoint<ConicBodiesInput>,
+    );
+    const n = Math.sqrt(PLANET_MU / SMA ** 3);
+    const burn = (t: number) => {
+      const speed = Math.sqrt(PLANET_MU / SMA) + 6 * t;
+      return {
+        position: [SMA * Math.cos(n * t), SMA * Math.sin(n * t), 0] as const,
+        velocity: [
+          -speed * Math.sin(n * t),
+          speed * Math.cos(n * t),
+          0,
+        ] as const,
+        speed,
+      };
+    };
+    for (const t of [1, 2, 3]) {
+      const s = burn(t);
+      const e = elementsFromState(
+        { position: [...s.position], velocity: [...s.velocity] },
+        PLANET_MU,
+        t,
+      );
+      store.ingest(
+        "vessel.orbit",
+        point(
+          t,
+          {
+            ...orbitPayload(),
+            sma: value("m", e.sma),
+            ecc: value("1", e.ecc),
+            inc: value("°", 0),
+            lan: value("°", (e.lan * 180) / Math.PI),
+            argPe: value("°", (e.argPe * 180) / Math.PI),
+            meanAnomalyAtEpoch: value("rad", e.meanAnomalyAtEpoch),
+            epoch: value("ut", t),
+          },
+          Quality.Loaded,
+        ),
+      );
+    }
+    const flightPayload = (altitude: number, speed: number) => ({
+      altitudeAsl: value("m", altitude),
+      orbitalSpeed: value("m/s", speed),
+    });
+    store.ingest(
+      "vessel.flight",
+      point(3, flightPayload(SMA - 1_000_000, burn(3).speed), Quality.Loaded),
+    );
+    store.ingest(
+      "vessel.propulsion",
+      point(
+        3,
+        {
+          ...propulsion(60),
+          massFlow: value("kg/s", 20),
+          thrustStartedUt: value("ut", 0),
+        },
+        Quality.Loaded,
+      ),
+    );
+    store.ingest(
+      "vessel.structure",
+      point(3, { currentStage: 2 }, Quality.Loaded),
+    );
+    store.ingest(
+      "dv.stages",
+      point(3, [{ stage: 2, fuelMass: value("t", 4) }], Quality.Loaded),
+    );
+
+    wall = 3 + LIGHT_TIME_SECONDS + 20;
+    store.beginFrame();
+    const reading =
+      store.sampleReading<ReturnType<typeof flightPayload>>("vessel.flight");
+
+    expect(reading.reckoning.status).toBe("available");
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.basis).toBe("powered-integration");
+    expect(reading.reckoning.modelled.map((m) => m.path)).toEqual(
+      expect.arrayContaining(["altitudeAsl", "orbitalSpeed"]),
+    );
+    expect(reading.reckoning.value.orbitalSpeed?.magnitude).toBeGreaterThan(
+      burn(3).speed,
+    );
+    expect(reading.reckoning.bands?.orbitalSpeed?.kind).toBe("sigma1");
+    expect(reading.reckoning.bands?.altitudeAsl?.kind).toBe("sigma1");
+  });
 });

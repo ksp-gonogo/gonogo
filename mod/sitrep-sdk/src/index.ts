@@ -403,6 +403,7 @@ export {
   elementsFromState,
   type PoweredFlight,
   type PoweredFlightEvidence,
+  type PoweredFlightFields,
   type PoweredOrbitProjection,
   type PoweredThrustInput,
   poweredFlight,

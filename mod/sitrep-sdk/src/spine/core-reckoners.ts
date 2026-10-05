@@ -3,6 +3,7 @@ import { magnitudeOr } from "../magnitude";
 import {
   currentAtReckonTime,
   type ModelledField,
+  type ReckonerAnswer,
   type ReckonerFrame,
   type ReckoningDecline,
 } from "../reading";
@@ -55,6 +56,13 @@ import { knownCraftOrbits, knownCraftRangeAt } from "./target-range-reckoning";
  * two produce the same numbers at the same view times, withdrawal instants
  * included.
  */
+
+/**
+ * How much of `vessel.orbit`'s own record the burn model is handed: enough
+ * recent element sets to measure which way the engines push and how fast that
+ * direction turns. The conic ignores it; a cause needs one point.
+ */
+const POWERED_WINDOW = { spanUt: 10, maxSamples: 32 } as const;
 
 /**
  * How far a first-order advance of a RELATIVE position stays honest, in seconds.
@@ -248,6 +256,49 @@ function registerDockReckoner(): void {
 }
 
 /**
+ * The burn model read as `vessel.flight`'s two moved fields: altitude above sea
+ * level and orbital speed, off the integrated state rather than a conic.
+ *
+ * The bands come from the same perturbed burns that band the orbit's elements,
+ * so a craft's altitude and its orbit are held to the same one-sigma spread.
+ */
+function poweredFlightModel(
+  orbitPoint: TimelinePoint<TopicPayload<"vessel.orbit">>,
+  orbitWindow: readonly TimelinePoint<TopicPayload<"vessel.orbit">>[],
+  bodies: Parameters<typeof poweredFlight>[2],
+  reckonUt: number,
+  evidence: ReturnType<typeof poweredFlightEvidence>,
+  seaLevel: number,
+): ReckonerAnswer<
+  TopicPayload<"vessel.flight">,
+  Pick<TopicPayload<"vessel.flight">, "altitudeAsl" | "orbitalSpeed">
+> {
+  if (!Number.isFinite(seaLevel)) {
+    return {
+      declined: {
+        reason: "input-absent",
+        input: "@system.bodies",
+        note: "the reference body publishes no radius, so there is no sea level to measure from",
+      },
+    };
+  }
+  const powered = poweredFlight(
+    orbitPoint,
+    orbitWindow,
+    bodies,
+    reckonUt,
+    evidence,
+  );
+  if ("declined" in powered) return powered;
+  const { flight } = powered;
+  return {
+    modelled: movedFields("powered-integration", "altitudeAsl", "orbitalSpeed"),
+    reckon: (at) => flight.flightAt(at, seaLevel),
+    bandAt: (at) => flight.flightBandsAt(at, seaLevel),
+  };
+}
+
+/**
  * `vessel.flight.altitudeAsl` and `.orbitalSpeed`, off the conic ABOVE the air
  * and off the observed descent rates below it.
  *
@@ -298,8 +349,11 @@ function registerFlightReckoner(): void {
       "system.bodies",
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
+      { reading: "dv.stages" },
+      { reading: "vessel.structure" },
     ],
     window: DESCENT_WINDOW,
+    depWindows: { "vessel.orbit": POWERED_WINDOW },
     /*
      * The opt-out is scoped to the AIR model and not to this registration,
      * because the registration returns two models and the reason is true of
@@ -321,7 +375,11 @@ function registerFlightReckoner(): void {
         },
       },
     },
-    reckon(point, [orbitPoint, bodiesPoint, thrust, pending], frame) {
+    reckon(
+      point,
+      [orbitWindow, bodiesPoint, thrust, pending, stages, structure],
+      frame,
+    ) {
       const { reckonUt, history } = frame;
       const bodies = bodiesPoint?.payload ?? undefined;
       /*
@@ -329,6 +387,7 @@ function registerFlightReckoner(): void {
        * because the SELECTOR below needs the reference body index, so the frame
        * cannot be classified before the elements are known to have arrived.
        */
+      const orbitPoint = orbitWindow[orbitWindow.length - 1];
       if (orbitPoint?.payload == null) {
         return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
       }
@@ -409,7 +468,21 @@ function registerFlightReckoner(): void {
         reckonUt,
         loadedCoastEvidence(thrust, pending),
       );
-      if ("declined" in admissible) return admissible;
+      if ("declined" in admissible) {
+        const coldOrUnknown =
+          thrust.value === undefined || !isUnderThrust(thrust.value);
+        if (admissible.declined.reason !== "under-physics" || coldOrUnknown) {
+          return admissible;
+        }
+        return poweredFlightModel(
+          orbitPoint,
+          orbitWindow,
+          bodies,
+          reckonUt,
+          poweredFlightEvidence(thrust, stages, structure, pending),
+          seaLevel,
+        );
+      }
       if (!Number.isFinite(seaLevel)) {
         return {
           declined: {
@@ -949,13 +1022,6 @@ function registerOrbitReckoner(): void {
     },
   });
 }
-
-/**
- * How much of `vessel.orbit`'s own record the burn model is handed: enough
- * recent element sets to measure which way the engines push and how fast that
- * direction turns. The conic ignores it; a cause needs one point.
- */
-const POWERED_WINDOW = { spanUt: 10, maxSamples: 32 } as const;
 
 export function registerCoreReckoners(): void {
   registerTargetReckoner();

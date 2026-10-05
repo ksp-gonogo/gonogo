@@ -15,7 +15,7 @@ import {
  * a real one the moment a value could carry two models: every function here used
  * to be able to assume one row per (topic, field).
  */
-describe("a value served by two models", () => {
+describe("a value served by several models", () => {
   it("answers with one row per model, each with its own inputs", () => {
     const rows = reckonableValuesOf("vessel.flight").filter(
       (row) => row.field === "altitudeAsl",
@@ -23,11 +23,19 @@ describe("a value served by two models", () => {
 
     expect(rows.map((row) => row.basis)).toEqual([
       "kepler-propagation",
+      "powered-integration",
       "rate-integration",
     ]);
     // The point of two rows rather than one row with two bases: the input lists differ, and a merged list could not say which inputs buy which model.
     expect(rows.map((row) => row.inputs.map(reckonableInputSpelling))).toEqual([
       ["@vessel.orbit", "@system.bodies"],
+      [
+        "@vessel.orbit",
+        "@vessel.propulsion",
+        "@dv.stages",
+        "@vessel.structure",
+        "@system.bodies",
+      ],
       ["verticalSpeed", "gForce", "@system.bodies"],
     ]);
   });
@@ -40,13 +48,21 @@ describe("a value served by two models", () => {
      * this forward" wants everything any model of it needs; a consumer asking
      * which inputs buy which model reads the rows above.
      *
-     * `@system.bodies` is declared by BOTH models and appears once.
+     * `@system.bodies` and `@vessel.orbit` are declared by more than one model and appear once.
      */
     expect(
       reckonableInputsOf("vessel.flight", "altitudeAsl")?.map(
         reckonableInputSpelling,
       ),
-    ).toEqual(["@vessel.orbit", "@system.bodies", "verticalSpeed", "gForce"]);
+    ).toEqual([
+      "@vessel.orbit",
+      "@system.bodies",
+      "@vessel.propulsion",
+      "@dv.stages",
+      "@vessel.structure",
+      "verticalSpeed",
+      "gForce",
+    ]);
   });
 
   it("still answers undefined for a value no model carries", () => {

@@ -2385,8 +2385,15 @@ namespace Sitrep.Contract
         /// through the new <see cref="ICommsPathStrength"/> and
         /// <see cref="IContactLinkStrength"/>, where they described the path the
         /// game had chosen. Additive on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 12 -&gt; 13: a burn carried on the flight
+        /// readout.</b> <see cref="ReckoningBases.PoweredIntegration"/> marks
+        /// <see cref="VesselFlight.AltitudeAsl"/> and <see cref="VesselFlight.OrbitalSpeed"/>,
+        /// so the altitude and speed an operator watches during a burn are carried by the
+        /// same model as the orbit. Additive: the existing marks are unchanged and nothing
+        /// moves on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 12;
+        public const int Minor = 13;
     }
 }

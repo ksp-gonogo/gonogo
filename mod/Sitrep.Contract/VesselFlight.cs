@@ -46,6 +46,8 @@ public class VesselFlight
     // system.bodies again, for the atmosphere depth: that depth is the boundary between the two
     // models, and without it neither knows which regime it is in.
     [SitrepReckonable(ReckoningBases.RateIntegration, "verticalSpeed", "gForce", "@system.bodies")]
+    // Under thrust the conic and the descent both stand down; the burn model carries the altitude off its integrated state, banded the way vessel.orbit's elements are.
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double AltitudeAsl { get; set; }
 
     /// <summary>Height above terrain (AGL, KSP's <c>Vessel.radarAltitude</c>), metres. Not derivable from orbital elements, so it is streamed as measured.</summary>
@@ -65,6 +67,7 @@ public class VesselFlight
     // The vis-viva speed falls out of the elements and mu alone. No body radius, so system.bodies
     // is NOT declared: an input a model does not use is a false promise the gate cannot catch.
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double OrbitalSpeed { get; set; }
 
     /// <summary>Multiples of standard gravity (KSP's <c>Vessel.geeForce</c>).</summary>

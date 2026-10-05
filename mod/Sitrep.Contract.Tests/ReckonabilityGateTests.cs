@@ -119,8 +119,13 @@ namespace Sitrep.Contract.Tests
                 {
                     ReckoningBases.KeplerPropagation,
                     ReckoningBases.RateIntegration,
+                    ReckoningBases.PoweredIntegration,
                 },
-                ["VesselFlight.OrbitalSpeed"] = new[] { ReckoningBases.KeplerPropagation },
+                ["VesselFlight.OrbitalSpeed"] = new[]
+                {
+                    ReckoningBases.KeplerPropagation,
+                    ReckoningBases.PoweredIntegration,
+                },
                 // A coast moves the phase and a burn moves every element, so the phase carries both.
                 ["VesselOrbit.MeanAnomalyAtEpoch"] = new[]
                 {
