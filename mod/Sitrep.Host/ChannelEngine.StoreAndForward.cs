@@ -92,7 +92,15 @@ namespace Sitrep.Host
             public IDeliveryRoutes? PlanOf(string centre)
             {
                 var plan = _engine._centrePlans?.Invoke(centre);
-                return plan == null ? null : new PlanRoutes(plan, _engine._deliveryInputs.LightFactor);
+                if (plan == null)
+                {
+                    return null;
+                }
+                var home = _engine.HomeCentre();
+                // Every ground station is home's own antenna, and no other centre's.
+                return centre == home
+                    ? new PlanRoutes(plan, _engine._deliveryInputs.LightFactor, home, _engine._activeGroundIds)
+                    : new PlanRoutes(plan, _engine._deliveryInputs.LightFactor);
             }
         }
 
@@ -905,10 +913,15 @@ namespace Sitrep.Host
                 {
                     return Ledger(to, fromNode);
                 }
-                return _engine._deliveryInputs.Links.LivePath(from, to);
+                var links = _engine._deliveryInputs.Links;
+                return GroundNetwork.Shortest(from, to, _engine.HomeCentre(), _engine._activeGroundIds, links.LivePath);
             }
 
-            public double? LiveLink(string from, string to) => _engine._deliveryInputs.Links.LiveLink(from, to);
+            public double? LiveLink(string from, string to)
+            {
+                var links = _engine._deliveryInputs.Links;
+                return GroundNetwork.Shortest(from, to, _engine.HomeCentre(), _engine._activeGroundIds, links.LiveLink);
+            }
 
             private double? Ledger(string vantage, string node) =>
                 _engine.CanSend(vantage, node) ? _engine._network.DelayTo(vantage, node) : (double?)null;

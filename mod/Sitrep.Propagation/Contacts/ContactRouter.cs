@@ -124,25 +124,55 @@ namespace Sitrep.Propagation.Contacts
         public static ContactRoute? EarliestArrivalAtAny(
             ContactPlan plan, string source, IReadOnlyCollection<string> destinations, double sentUt, double? mustArriveByUt = null, double lightFactor = 1.0)
         {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            return EarliestArrivalBetween(plan, new[] { source }, destinations, sentUt, mustArriveByUt, lightFactor);
+        }
+
+        /// <summary>
+        /// The earliest-arriving route from whichever of
+        /// <paramref name="sources"/> a message ready at
+        /// <paramref name="sentUt"/> can leave by, to whichever of
+        /// <paramref name="destinations"/> it reaches first, or null when the
+        /// plan predicts none. For a sender or a receiver that has several
+        /// antennas, as a centre that owns a ground network has: the route's
+        /// <see cref="ContactRoute.Source"/> and
+        /// <see cref="ContactRoute.Destination"/> name the two that were used.
+        /// </summary>
+        public static ContactRoute? EarliestArrivalBetween(
+            ContactPlan plan,
+            IReadOnlyCollection<string> sources,
+            IReadOnlyCollection<string> destinations,
+            double sentUt,
+            double? mustArriveByUt = null,
+            double lightFactor = 1.0)
+        {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
             if (destinations == null) throw new ArgumentNullException(nameof(destinations));
             var ends = new HashSet<string>(destinations, StringComparer.Ordinal);
-            if (ends.Contains(source))
+            foreach (var source in sources)
             {
-                return new ContactRoute(source, source, sentUt, new RouteHop[0]);
+                if (ends.Contains(source))
+                {
+                    return new ContactRoute(source, source, sentUt, new RouteHop[0]);
+                }
             }
 
             var adjacency = Adjacency(plan);
             ends.IntersectWith(adjacency.Keys);
-            if (!adjacency.ContainsKey(source) || ends.Count == 0)
+            var best = new Dictionary<string, Label>(StringComparer.Ordinal);
+            foreach (var source in sources)
+            {
+                if (adjacency.ContainsKey(source))
+                {
+                    best[source] = new Label(sentUt, 0, double.PositiveInfinity, source, null, null);
+                }
+            }
+            if (best.Count == 0 || ends.Count == 0)
             {
                 return null;
             }
 
-            var best = new Dictionary<string, Label>(StringComparer.Ordinal)
-            {
-                [source] = new Label(sentUt, 0, double.PositiveInfinity, source, null, null),
-            };
             var settled = new HashSet<string>(StringComparer.Ordinal);
             while (true)
             {
@@ -160,7 +190,7 @@ namespace Sitrep.Propagation.Contacts
                 }
                 if (ends.Contains(current))
                 {
-                    return Unwind(best, source, current, sentUt);
+                    return Unwind(best, current, sentUt);
                 }
                 settled.Add(current);
 
@@ -300,18 +330,19 @@ namespace Sitrep.Propagation.Contacts
             return string.CompareOrdinal(a.Path, b.Path) < 0;
         }
 
-        private static ContactRoute Unwind(Dictionary<string, Label> best, string source, string destination, double sentUt)
+        private static ContactRoute Unwind(Dictionary<string, Label> best, string destination, double sentUt)
         {
             var hops = new List<RouteHop>();
             var node = destination;
-            while (!string.Equals(node, source, StringComparison.Ordinal))
+            // A source is the one node on the way back that nothing led to.
+            while (best[node].Previous != null)
             {
                 var label = best[node];
                 hops.Add(label.Hop!);
                 node = label.Previous!;
             }
             hops.Reverse();
-            return new ContactRoute(source, destination, sentUt, hops);
+            return new ContactRoute(node, destination, sentUt, hops);
         }
 
         private sealed class Label

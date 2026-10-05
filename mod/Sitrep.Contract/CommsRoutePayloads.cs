@@ -14,9 +14,12 @@ namespace Sitrep.Contract;
 /// <para>A prediction, and the receiving centre's own: it is planned over the
 /// <c>comms.contacts</c> plan that centre holds, so it knows of nothing the
 /// centre has not heard. The live link the game reports decides what actually
-/// gets through, and today only a <see cref="CommsRoute.Live"/> route delivers:
-/// a message whose route would have to wait anywhere is not held for that
-/// window, so it is lost.</para>
+/// gets through.</para>
+///
+/// <para>Every ground station is the home centre's own antenna. Its rows run
+/// through whichever station reaches the craft first, as its
+/// <c>comms.path</c> does, and a wait for a station's window is a wait at the
+/// home centre itself. Every other centre is quoted its own antenna only.</para>
 ///
 /// <para>Each session is sent only the rows of the centre it sits at, the two
 /// between that centre and the active craft.</para>

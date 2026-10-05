@@ -867,7 +867,8 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                var routes = ContactRouting.RoutesFor(plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor());
+                var routes = ContactRouting.RoutesFor(
+                    plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor(), _audience.HomeCentre(), StationIds());
                 rows += routes.Routes.Count;
                 _streams!.PublishAddressedTo(RouteTopic, routes, looked.Ut, ToItself(centre));
             }
@@ -980,6 +981,17 @@ namespace Sitrep.Host.Comms
                     }
                 }
             }
+        }
+
+        /// <summary>Every ground station's id, as the plans name them.</summary>
+        private IReadOnlyCollection<string> StationIds()
+        {
+            var ids = new List<string>(_stations.Count);
+            foreach (var station in _stations)
+            {
+                ids.Add(station.Id);
+            }
+            return ids;
         }
 
         /// <summary>Records what the active craft's radio said on this look, when it says something new.</summary>

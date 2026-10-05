@@ -123,6 +123,49 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
+    /// The home centre and the ground stations. Home hears whatever any ground
+    /// station hears, and speaks through whichever of them can reach the
+    /// craft, so each station is one of home's own antennas: its telemetry
+    /// path, its command route and whether its light lands all run through
+    /// any of them. Every other centre has its own antenna and no more.
+    /// </summary>
+    public static class GroundNetwork
+    {
+        /// <summary>The nodes a message for <paramref name="node"/> may leave from or land at: every antenna when it is home, itself otherwise.</summary>
+        public static IReadOnlyCollection<string> EndsOf(string node, string? home, IReadOnlyCollection<string>? antennas)
+        {
+            if (home == null || antennas == null || antennas.Count == 0 || node != home)
+            {
+                return new[] { node };
+            }
+            var ends = new HashSet<string>(antennas, System.StringComparer.Ordinal) { home };
+            return ends;
+        }
+
+        /// <summary>
+        /// The shortest of <paramref name="lightBetween"/> over every pairing
+        /// of the two nodes' ends, or null when none of them has a link.
+        /// </summary>
+        public static double? Shortest(
+            string from, string to, string? home, IReadOnlyCollection<string>? antennas, System.Func<string, string, double?> lightBetween)
+        {
+            double? shortest = null;
+            foreach (var a in EndsOf(from, home, antennas))
+            {
+                foreach (var b in EndsOf(to, home, antennas))
+                {
+                    var light = lightBetween(a, b);
+                    if (light != null && (shortest == null || light.Value < shortest.Value))
+                    {
+                        shortest = light;
+                    }
+                }
+            }
+            return shortest;
+        }
+    }
+
+    /// <summary>
     /// One contact plan's routes, for store-and-forward delivery: what the
     /// command centre that held the plan believed, fixed as it stood.
     /// </summary>
@@ -130,13 +173,19 @@ namespace Sitrep.Host.Comms
     {
         private readonly ContactPlan? _plan;
         private readonly double _lightFactor;
+        private readonly string? _home;
+        private readonly IReadOnlyCollection<string>? _antennas;
 
         /// <param name="plan">The plan, or null for no plan at all, which predicts no route.</param>
         /// <param name="lightFactor">What each hop's real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
-        public PlanRoutes(ContactPlan? plan, double lightFactor = 1.0)
+        /// <param name="home">The home centre, when the plan is its own, or null.</param>
+        /// <param name="antennas">Every ground station, each of which is the home centre's own antenna: see <see cref="GroundNetwork"/>.</param>
+        public PlanRoutes(ContactPlan? plan, double lightFactor = 1.0, string? home = null, IReadOnlyCollection<string>? antennas = null)
         {
             _plan = plan;
             _lightFactor = lightFactor;
+            _home = home;
+            _antennas = antennas;
         }
 
         public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt)
@@ -148,16 +197,24 @@ namespace Sitrep.Host.Comms
             // Chosen and admitted on the light times the game models, so the
             // route that is taken is the one that arrives first under them, and
             // every hop lands inside its window.
-            var route = ContactRouter.EarliestArrival(
-                _plan, from, to, readyUt, double.IsInfinity(deadlineUt) ? (double?)null : deadlineUt, _lightFactor);
+            var route = ContactRouter.EarliestArrivalBetween(
+                _plan,
+                GroundNetwork.EndsOf(from, _home, _antennas),
+                GroundNetwork.EndsOf(to, _home, _antennas),
+                readyUt,
+                double.IsInfinity(deadlineUt) ? (double?)null : deadlineUt,
+                _lightFactor);
             if (route == null)
             {
                 return null;
             }
             var hops = new List<PlannedHop>(route.Hops.Count);
-            foreach (var hop in route.Hops)
+            for (var i = 0; i < route.Hops.Count; i++)
             {
-                hops.Add(new PlannedHop(hop.To, hop.DepartUt, hop.ArriveUt));
+                var hop = route.Hops[i];
+                // Light that lands at any of home's antennas has landed at home.
+                var landsAt = i == route.Hops.Count - 1 && to == _home ? to : hop.To;
+                hops.Add(new PlannedHop(landsAt, hop.DepartUt, hop.ArriveUt));
             }
             return hops;
         }

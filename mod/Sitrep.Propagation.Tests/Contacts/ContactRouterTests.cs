@@ -124,6 +124,34 @@ namespace Sitrep.Propagation.Tests.Contacts
         }
 
         [Fact]
+        public void AMessageThatCanLeaveFromAnyOfSeveralNodesLeavesFromTheOneThatGetsItThereFirst()
+        {
+            var plan = Plan(
+                Pair("ground:own", "vessel:b", OneLightSecond, From(1000.0)),
+                Pair("ground:other", "vessel:b", 2.0 * OneLightSecond, Always()));
+
+            var route = ContactRouter.EarliestArrivalBetween(plan, new[] { "ground:own", "ground:other" }, new[] { "vessel:b" }, 10.0)!;
+
+            Assert.Equal("ground:other", route.Source);
+            Assert.Equal("vessel:b", route.Destination);
+            var hop = Assert.Single(route.Hops);
+            Assert.Equal("ground:other", hop.From);
+            Assert.Equal(12.0, route.ArrivalUt, 9);
+            Assert.True(route.Live);
+        }
+
+        [Fact]
+        public void ASourceThePlanDoesNotCarryIsPassedOverForOneItDoes()
+        {
+            var plan = Plan(Pair("ground:other", "vessel:b", OneLightSecond, Always()));
+
+            var route = ContactRouter.EarliestArrivalBetween(plan, new[] { "ground:unplanned", "ground:other" }, new[] { "vessel:b" }, 0.0)!;
+
+            Assert.Equal("ground:other", route.Source);
+            Assert.Null(ContactRouter.EarliestArrivalBetween(plan, new[] { "ground:unplanned" }, new[] { "vessel:b" }, 0.0));
+        }
+
+        [Fact]
         public void AMessageNoneOfItsDestinationsIsPlannedForHasNoRoute()
         {
             var plan = Plan(Pair("vessel:b", "vessel:relay", OneLightSecond, Always()));

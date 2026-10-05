@@ -2334,8 +2334,13 @@ namespace Sitrep.Contract
         /// carries <see cref="CommsHop.Extensions"/> again, as the receiving centre
         /// heard them from the active vessel's radio, where it carried none since
         /// the path became each centre's own. No payload changes shape.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 5 -&gt; 6:</b> the home centre's rows on
+        /// <c>comms.route</c>, and the commands it sends, run through whichever ground
+        /// station reaches the craft first, where they ran through the home station
+        /// alone. No payload changes shape.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

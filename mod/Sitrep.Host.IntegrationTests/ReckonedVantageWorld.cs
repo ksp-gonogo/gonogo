@@ -182,6 +182,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the relay has a link home.</summary>
         public bool RelayConnected { get; set; } = true;
 
+        /// <summary>Whether the far station has a link to the relay. Without one the home station's link is what the relay reaches the ground by.</summary>
+        public bool FarLinkedToRelay { get; set; } = true;
+
         /// <summary>Whether the far centre has a route to the relay. Without one it is listed as unable to reach it.</summary>
         public bool FarRoutedToRelay { get; set; } = true;
 
@@ -498,7 +501,10 @@ namespace Sitrep.Host.IntegrationTests
             if (ledger.RelayExists && ledger.RelayConnected)
             {
                 links.Add((ScriptedContactGame.Home, ScriptedContactGame.Relay, ledger.RelayFromHomeSeconds));
-                links.Add((ScriptedContactGame.Far, ScriptedContactGame.Relay, ledger.RelayFromFarSeconds));
+                if (ledger.FarLinkedToRelay)
+                {
+                    links.Add((ScriptedContactGame.Far, ScriptedContactGame.Relay, ledger.RelayFromFarSeconds));
+                }
             }
             _inputs.SetLinks(new LiveLinkGraph(links));
         }
@@ -513,6 +519,7 @@ namespace Sitrep.Host.IntegrationTests
                 RelayConnected = game.RelayConnected;
                 RelayFromHomeSeconds = game.RelayFromHomeSeconds;
                 RelayFromFarSeconds = game.RelayFromFarSeconds;
+                FarLinkedToRelay = game.FarLinkedToRelay;
                 FarRoutedToRelay = game.FarRoutedToRelay;
             }
 
@@ -529,6 +536,8 @@ namespace Sitrep.Host.IntegrationTests
             public double RelayFromHomeSeconds { get; }
 
             public double RelayFromFarSeconds { get; }
+
+            public bool FarLinkedToRelay { get; }
         }
     }
 

@@ -20,8 +20,16 @@ namespace Sitrep.Host.Comms
         /// no row.
         /// </summary>
         /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        /// <param name="home">The home centre, or null.</param>
+        /// <param name="antennas">Every ground station, each of which is the home centre's own antenna: see <see cref="GroundNetwork"/>.</param>
         public static CommsRoutes RoutesFor(
-            ContactPlan plan, string activeCraft, IReadOnlyList<string> centres, double sentUt, double lightFactor = 1.0)
+            ContactPlan plan,
+            string activeCraft,
+            IReadOnlyList<string> centres,
+            double sentUt,
+            double lightFactor = 1.0,
+            string? home = null,
+            IReadOnlyCollection<string>? antennas = null)
         {
             var routes = new CommsRoutes();
             foreach (var centre in centres)
@@ -30,15 +38,17 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                routes.Routes.Add(Row(plan, centre, activeCraft, sentUt, lightFactor));
-                routes.Routes.Add(Row(plan, activeCraft, centre, sentUt, lightFactor));
+                routes.Routes.Add(Row(plan, centre, activeCraft, sentUt, lightFactor, home, antennas));
+                routes.Routes.Add(Row(plan, activeCraft, centre, sentUt, lightFactor, home, antennas));
             }
             return routes;
         }
 
-        private static CommsRoute Row(ContactPlan plan, string from, string to, double sentUt, double lightFactor)
+        private static CommsRoute Row(
+            ContactPlan plan, string from, string to, double sentUt, double lightFactor, string? home, IReadOnlyCollection<string>? antennas)
         {
-            var route = ContactRouter.EarliestArrival(plan, from, to, sentUt, null, lightFactor);
+            var route = ContactRouter.EarliestArrivalBetween(
+                plan, GroundNetwork.EndsOf(from, home, antennas), GroundNetwork.EndsOf(to, home, antennas), sentUt, null, lightFactor);
             var row = new CommsRoute
             {
                 From = from,
@@ -56,7 +66,9 @@ namespace Sitrep.Host.Comms
             {
                 if (hop.DepartUt > at + HoldTolerance)
                 {
-                    row.Holds.Add(new CommsRouteHold { At = hop.From, ArriveUt = at, DepartUt = hop.DepartUt });
+                    // A message waiting for one of home's antennas to have a window is waiting at home.
+                    var waitsAt = hop.From == route.Source ? from : hop.From;
+                    row.Holds.Add(new CommsRouteHold { At = waitsAt, ArriveUt = at, DepartUt = hop.DepartUt });
                 }
                 at = hop.ArriveUt;
             }
