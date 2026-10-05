@@ -23,9 +23,8 @@ export interface BarTrackProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * The track and fill a `Meter` draws, as a level or as progress. The two kinds
- * differ in role (`meter` against `progressbar`), never in how the bar looks,
- * so the role and its aria attributes arrive through `rest`.
+ * The track and fill a `Meter` draws. The role and its aria attributes arrive
+ * through `rest`, since a decorative track carries none.
  */
 export function BarTrack({
   percent,

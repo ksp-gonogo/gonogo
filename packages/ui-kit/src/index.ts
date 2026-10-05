@@ -427,7 +427,6 @@ export {
 } from "./MarkerIcons";
 export {
   Meter,
-  type MeterKind,
   type MeterLayout,
   type MeterProps,
   MeterRowGroup,

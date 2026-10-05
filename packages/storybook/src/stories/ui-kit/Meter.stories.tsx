@@ -40,6 +40,27 @@ export const Tank: Story = {
   },
 };
 
+/** The same pair written as a statement: how much of how much, where the slash only pairs them. */
+export const Statement: Story = {
+  args: {
+    label: "Liquid fuel",
+    value: live("units", 1260),
+    capacity: live("units", 3600),
+    statement: true,
+  },
+};
+
+/** The bar alone under a heading that names it, keeping its statement on a line beneath. */
+export const BarAloneWithStatement: Story = {
+  args: {
+    label: "Nodes researched",
+    value: live("count", 3),
+    capacity: live("count", 5),
+    hideLabel: true,
+    statement: true,
+  },
+};
+
 /** The last figure after the link dropped: the fill is marked held. */
 export const Held: Story = {
   args: { value: held("ratio", 0.62), tone: "warn" },

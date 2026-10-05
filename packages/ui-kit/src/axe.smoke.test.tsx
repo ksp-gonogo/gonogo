@@ -172,10 +172,9 @@ describe("a11y smoke (jest-axe)", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("a progress Meter has no axe violations", async () => {
+  it("a bar-only Meter has no axe violations", async () => {
     const { container } = render(
       <Meter
-        kind="progress"
         hideLabel
         label="Biome coverage: Kerbin"
         value={value("ratio", 0.64)}
@@ -269,7 +268,6 @@ describe("a11y smoke (jest-axe)", () => {
       <Grid cols="120px 1fr 60px">
         <span>Altimetry (Hi)</span>
         <Meter
-          kind="progress"
           hideLabel
           label="Altimetry coverage"
           value={value("ratio", 0.64)}

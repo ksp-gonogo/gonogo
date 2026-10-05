@@ -982,10 +982,17 @@ const PanelSplit__Box = styled.div<{
          }`
       : ""}
 
-  /* Under the body the sidebar follows the body's own bottom inset, so it takes a small top inset rather than the panel's. */
+  /* Under the body the two insets meet in one seam, so each side gives the small one: the body's bottom is no longer the panel's edge, and the sidebar's top is no longer its first line under a header. */
   ${({ $axis, $side }) =>
     $axis === "block" && $side === "end"
-      ? `& > [data-panel-sidebar] > * > [data-scroll-area-inner] {
+      ? `& > [data-panel-body] {
+           --panel-body-bottom: var(--inset-panel-sidebar-under);
+         }
+         /* The grid opened for augments under a body whose every section fills holds nothing until one binds, and left in flow it costs the seam a row gap under the drawing. */
+         & > [data-panel-body] > :empty {
+           display: none;
+         }
+         & > [data-panel-sidebar] > * > [data-scroll-area-inner] {
            padding-top: var(--inset-panel-sidebar-under);
          }`
       : ""}

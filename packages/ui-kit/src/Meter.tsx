@@ -76,29 +76,21 @@ interface MeterCommonProps
    */
   layout?: MeterLayout;
   /**
-   * What the bar measures. `level` (the default) is a level within a range, a
-   * tank or a load, announced as a `role="meter"`. `progress` is work advancing
-   * to an end, announced as a `role="progressbar"`: the bar looks the same, a
-   * screen reader hears a different thing.
-   *
-   * @defaultValue `"level"`
-   */
-  kind?: MeterKind;
-  /**
-   * Draw the bar alone: no label or figure above it, as for a progress bar
-   * under a heading that already says what it is. The label stays as the
-   * accessible name and the figure as the spoken value. With no figure to draw
-   * the meter renders nothing at all.
+   * Draw the bar alone: no label or figure above it, as for a bar under a
+   * heading that already says what it is. The label stays as the accessible
+   * name and the figure as the spoken value. With no figure to draw the meter
+   * renders nothing at all. Add `statement` to keep the figure, under the bar.
    */
   hideLabel?: boolean;
+  /**
+   * Write the figure as a statement, `120 of 400 kg`, where a capacity is
+   * given, rather than the terse `120 / 400 kg`. A capacity can change (a tank
+   * is staged away, a queue grows), and the statement says how much of how
+   * much where the bar alone says only how full. With `hideLabel` it is drawn
+   * on a line under the bar, so a bar-only meter can still say it.
+   */
+  statement?: boolean;
 }
-
-/**
- * What a {@link Meter} measures: a `level` within a range, or `progress` toward done.
- *
- * @category Meter
- */
-export type MeterKind = "level" | "progress";
 
 /**
  * The props of {@link Meter}.
@@ -161,6 +153,11 @@ export interface MeterProps<UnitSymbol extends string = string>
  * <Meter label="Ore" value={value("kg", 120)} capacity={value("kg", 400)} />
  * ```
  *
+ * @example A bar alone with its statement under it, as work advances toward a total that can move
+ * ```tsx
+ * <Meter hideLabel statement label="Nodes researched" value={done} capacity={queued} />
+ * ```
+ *
  * @example Row meters in a stack, sharing columns so every bar lines up
  * ```tsx
  * <MeterStack>
@@ -181,8 +178,8 @@ export function Meter<UnitSymbol extends string = string>({
   valueLabel,
   valueLabelNode,
   layout = "stacked",
-  kind = "level",
   hideLabel = false,
+  statement = false,
   ...rest
 }: MeterProps<UnitSymbol>) {
   const shown = unwrap(value);
@@ -210,8 +207,8 @@ export function Meter<UnitSymbol extends string = string>({
   const bar = {
     label,
     layout,
-    kind,
     hideLabel,
+    statement,
     pct: Math.round(clamped * 100),
     tone,
     fillColor,
@@ -448,8 +445,9 @@ interface MeterBarProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   label: string;
   layout: MeterLayout;
-  kind: MeterKind;
   hideLabel: boolean;
+  /** Whether the figure is written as a statement, and so kept under a bar drawn alone. */
+  statement: boolean;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
   pct: number;
   tone: Tone;
@@ -478,8 +476,8 @@ interface MeterBarProps
 function MeterBar({
   label,
   layout,
-  kind,
   hideLabel,
+  statement,
   pct,
   tone,
   fillColor,
@@ -497,6 +495,7 @@ function MeterBar({
       label={label}
       display={display}
       hideHead={hideLabel}
+      statement={statement}
       {...rest}
     >
       <BarTrack
@@ -505,7 +504,7 @@ function MeterBar({
         fillColor={fillColor}
         trackHeld={trackHeld}
         fillHeld={fillHeld}
-        role={kind === "progress" ? "progressbar" : "meter"}
+        role="meter"
         aria-label={label}
         aria-valuenow={pct}
         aria-valuemin={0}
@@ -545,6 +544,7 @@ function MeterFrame({
   label,
   display,
   hideHead = false,
+  statement = false,
   children,
   ...rest
 }: Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
@@ -553,12 +553,19 @@ function MeterFrame({
   display: ReactNode;
   /** Draw the bar alone; the track carries the name and the value. */
   hideHead?: boolean;
+  /** With `hideHead`, keep the figure on a line under the bar. */
+  statement?: boolean;
   children: ReactNode;
 }) {
   if (hideHead) {
     return (
       <Meter__Root $row={false} {...rest}>
         <Meter__Bar $row={false}>{children}</Meter__Bar>
+        {statement && (
+          <Meter__Statement data-meter-part="statement">
+            {display}
+          </Meter__Statement>
+        )}
       </Meter__Root>
     );
   }
@@ -622,6 +629,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
    * drawn on the bar.
    */
   const caption = heldCaption(value) ?? heldCaption(capacity);
+  const between = bar.statement ? " of " : " / ";
   const display =
     valueLabelNode ??
     (valueLabel !== undefined ? (
@@ -629,7 +637,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
     ) : bar.layout === "row" ? (
       <Meter__Pair $marked={bar.fillHeld || bar.trackHeld}>
         <Unit value={value} hideUnitInGroup />
-        {" / "}
+        {between}
         <Unit value={capacity} />
         {(bar.fillHeld || bar.trackHeld) && (
           <HeldMark aria-hidden="true" data-held-mark="" />
@@ -638,7 +646,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
     ) : (
       <>
         <Unit value={value} />
-        {" / "}
+        {between}
         <Unit value={capacity} />
       </>
     ));
@@ -896,6 +904,17 @@ const Meter__Value = styled.span<{ $row: boolean }>`
   text-overflow: ellipsis;
   /* Room for the held mark Unit draws outside this box, reserved unconditionally so a quiet channel causes no reflow. */
   padding-right: max(0.44em, var(--inset-meter-mark));
+`;
+
+/* The figure under a bar drawn alone: the row form's smaller step, since it annotates the bar rather than heading it. */
+const Meter__Statement = styled.span`
+  font-size: var(--font-size-compact);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 /* The layer the marks are drawn in, over the track rather than inside its clip. */

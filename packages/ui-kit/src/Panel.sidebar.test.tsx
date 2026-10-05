@@ -278,6 +278,24 @@ describe("Panel sidebar, inset", () => {
     ).not.toBe("var(--panel-rail-band)");
   });
 
+  it("steps the body's bottom inset down to meet a sidebar under it", () => {
+    render(
+      <Panel panelTitle="SYSTEM" panelSidebar="almanac">
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 600, 300);
+    const beside = getComputedStyle(body()).getPropertyValue(
+      "--panel-body-bottom",
+    );
+    expect(beside).toBe("var(--inset-panel-bottom)");
+    resizeTo(box, 300, 600);
+    expect(
+      getComputedStyle(body()).getPropertyValue("--panel-body-bottom"),
+    ).toBe("var(--inset-panel-sidebar-under)");
+  });
+
   it("keeps the rail band and the panel's top inset beside the body", () => {
     render(
       <Panel panelTitle="SYSTEM" panelSidebar="almanac">
