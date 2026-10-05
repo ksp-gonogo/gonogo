@@ -34,14 +34,14 @@ describe("isStationRoute", () => {
     expect(isStationRoute()).toBe(true);
   });
 
-  it("is base-path-relative, matches /gonogo/station under a sub-path BASE_URL (GitHub Pages)", () => {
+  it("is base-path-relative, matches /app/station under a sub-path BASE_URL (GitHub Pages)", () => {
     const original = import.meta.env.BASE_URL;
-    import.meta.env.BASE_URL = "/gonogo/";
+    import.meta.env.BASE_URL = "/app/";
     try {
-      setPath("/gonogo/station");
+      setPath("/app/station");
       expect(isStationRoute()).toBe(true);
       // The main screen's own path under the same sub-path base must NOT match.
-      setPath("/gonogo/");
+      setPath("/app/");
       expect(isStationRoute()).toBe(false);
     } finally {
       import.meta.env.BASE_URL = original;
@@ -77,11 +77,11 @@ describe("currentRoute", () => {
 
   it("is base-path-relative under a sub-path BASE_URL", () => {
     const original = import.meta.env.BASE_URL;
-    import.meta.env.BASE_URL = "/gonogo/";
+    import.meta.env.BASE_URL = "/app/";
     try {
-      setPath("/gonogo/pilot");
+      setPath("/app/pilot");
       expect(currentRoute()).toBe("pilot");
-      setPath("/gonogo/");
+      setPath("/app/");
       expect(currentRoute()).toBe("main");
     } finally {
       import.meta.env.BASE_URL = original;

@@ -19,7 +19,7 @@ The main screen needs the KSP computer's address on your network. Find it on the
 - **macOS**: System Settings, Network, Wi-Fi, Details, TCP/IP
 - **Linux / SteamOS / Steam Deck**: run `ip addr show`, look for an `inet` address on your active connection
 
-It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in **Settings → Data Sources → Sitrep Stream** (the database icon in the bottom-right **+** menu), or seed it once with `KSP_HOST=<address>` on the container. [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp) covers both, and the build-time `VITE_SITREP_HOST` floor that only applies when you build from a checkout.
+It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in **Settings → Connection → Telemetry stream** (the gear in the bottom-right **+** menu), or seed it once with `KSP_HOST=<address>` on the container. [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp) covers both, and the build-time `VITE_SITREP_HOST` floor that only applies when you build from a checkout.
 
 If the main screen can't reach the KSP computer on the same WiFi, a firewall on the KSP computer is the usual cause; Windows and macOS often block local network traffic by default. This is a main-screen-to-KSP problem only. Stations never contact the KSP computer, so no firewall or port on that machine can stop a station connecting.
 
@@ -28,7 +28,7 @@ If the main screen can't reach the KSP computer on the same WiFi, a firewall on 
 1. On the main screen, hover the **+** button (bottom-right) and press **Add station** (the broadcast symbol). The modal shows a four-character **share code** (e.g. `AB3K`), the same code as a link and a QR code, and the TURN indicator described [below](#checking-the-relay-works)
 2. On the other device, open the station page. Any of these work:
    - Scan the QR code, or open the link from the modal. Both carry the code as `?host=<code>`, so the station connects on landing with nothing to type
-   - Type [ksp-gonogo.github.io/gonogo/station](https://ksp-gonogo.github.io/gonogo/station) into the browser. This is the public build of the same app and it is what the QR points at
+   - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app and it is what the QR points at
    - On the same WiFi, `http://<main-screen-computer-ip>:8080/station`, served by your own container. Running from a checkout it is `http://<main-screen-computer-ip>:5173/station`
 3. If you didn't arrive by QR or link, the station shows a **Connect to Mission Control** screen. Type the four-character code and press **Connect**
 

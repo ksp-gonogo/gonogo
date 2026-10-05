@@ -23,7 +23,7 @@ You can use widget profiles to dynamically switch dashboards based on what you'r
 
 ## What you need
 
-**If you just want to run a station**, simply go to https://ksp-gonogo.github.io/gonogo/station and enter the share code. Everything should just work.
+**If you just want to run a station**, simply go to https://ksp-gonogo.github.io/app/station and enter the share code. Everything should just work.
 
 To host, you need:
 
@@ -50,14 +50,14 @@ docker run -d --name gonogo --restart unless-stopped \
 
 Open [localhost:8080](http://localhost:8080) once it is running. Bear in mind that if you run KSP and gonogo on the same computer, you may have trouble with KSP pausing when minimised.
 
-Once the main screen is up (mod setup walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md)), load a game and you should see data coming in. To point the main screen somewhere else later, use **Settings → Data Sources** in the bottom-right **+** menu, anything you save there overrides `KSP_HOST`.
+Once the main screen is up (mod setup walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md)), load a game and you should see data coming in. To point the main screen somewhere else later, use **Settings → Connection** in the bottom-right **+** menu, anything you save there overrides `KSP_HOST`.
 
 ### Adding a station screen
 
 A station is any other browser: a tablet, a second laptop, a phone.
 
 1. On the main screen, hover the **+** button (bottom-right) to reveal the expanded menu, and press the **Add station** button (the broadcast symbol) to get a share code
-2. On the other device, open the station page at [ksp-gonogo.github.io/gonogo/station](https://ksp-gonogo.github.io/gonogo/station)
+2. On the other device, open the station page at [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station)
 3. Enter the share code and connect
 
 ---

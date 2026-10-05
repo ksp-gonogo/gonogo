@@ -1,77 +1,124 @@
 name: Deploy to GitHub Pages
 
-# Channel model: the Pages site carries BOTH channels in one artifact.
+# Publishes one channel of the site at https://ksp-gonogo.github.io/, which is
+# served from the `main` branch of ksp-gonogo/ksp-gonogo.github.io. That
+# repository is a deploy target shared by several tenants:
 #
-#   /gonogo/        the latest RELEASE build: downloaded from the newest
-#                   GitHub Release's site asset (uploaded by release.yml).
-#                   End users and the README only ever see this.
-#   /gonogo/rc/     the release-candidate channel: rebuilt from the ref it is
-#                   given, version-suffixed `-rc.<shortsha>` so stations and
-#                   the hello handshake identify it.
+#   /                the landing page (docs/homepage)         release channel
+#   /README.md       one link to this repository, written once release channel
+#   /app/            the latest RELEASE app                   release channel
+#   /gonogo/         redirects from the old project-page URLs release channel
+#   /rc/             the release-candidate app                rc channel
 #
-# Until the first GitHub Release exists, the RC build is served at the root
-# too, which matches the pre-channel behaviour.
+# The Uplink developer docs at /uplink-dev-docs/ are not in that repository at
+# all: GitHub serves that path from the uplink-dev-docs repository's own Pages,
+# and nothing here writes under it.
 #
-# Nothing triggers this on a push. rc.yml calls it for the nightly and on-demand
-# RC, and release.yml dispatches it right after uploading a new site asset, so a
-# release re-composes the root without waiting for the next RC.
+# A run writes ONLY its own channel's paths and commits only those, so an RC
+# never touches the release. The one shared file is
+# the empty /.nojekyll marker, which either channel creates when it is missing. The path lists live in
+# scripts/pages-compose.mjs (OWNED_PATHS), which this file stages from.
+#
+#   rc       rebuilt from the ref it is given, base /rc/, version-suffixed
+#            `-rc.<shortsha>` so stations and the hello handshake identify it.
+#   release  the newest GitHub Release's site asset (built by release.yml with
+#            base /app/), plus the landing page and the redirects from the ref
+#            this runs on, so neither can drift from a release.
+#
+# Nothing triggers this on a push. rc.yml calls it with channel=rc, and
+# release.yml dispatches it with channel=release right after uploading a new
+# site asset.
+#
+# Secret required:
+#   PAGES_DEPLOY_TOKEN: fine-grained PAT, Contents: write on
+#                       ksp-gonogo/ksp-gonogo.github.io and nothing else.
 
 on:
   workflow_call:
     inputs:
+      channel:
+        description: "Which channel to publish: rc or release"
+        required: true
+        type: string
       ref:
-        description: "Commit to build the RC from (default: the calling ref)"
+        description: "Commit to build from (default: the calling ref)"
         required: false
         type: string
   workflow_dispatch:
+    inputs:
+      channel:
+        description: "Which channel to publish"
+        required: true
+        type: choice
+        options:
+          - rc
+          - release
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# One writer at a time: two runs pushing to the site repository would race.
 concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  SITE_REPO: ${{ github.repository_owner }}/${{ github.repository_owner }}.github.io
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check the channel and the deploy token
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          PAGES_DEPLOY_TOKEN: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+        run: |
+          case "$CHANNEL" in
+            rc|release) ;;
+            *) echo "::error::channel must be rc or release (got '$CHANNEL')"; exit 1 ;;
+          esac
+          if [ -z "$PAGES_DEPLOY_TOKEN" ]; then
+            echo "::error::PAGES_DEPLOY_TOKEN is not set, so there is no way to write to $SITE_REPO"
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
 
       - id: sha
-        run: |
-          SHA="${{ inputs.ref || github.sha }}"
-          echo "short=${SHA:0:7}" >> "$GITHUB_OUTPUT"
+        env:
+          SHA: ${{ inputs.ref || github.sha }}
+        run: echo "short=${SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
 
       - uses: pnpm/action-setup@v6
+        if: inputs.channel == 'rc'
         with:
           run_install: false
 
       - name: Get pnpm store path
+        if: inputs.channel == 'rc'
         id: pnpm-cache
-        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v5
+        if: inputs.channel == 'rc'
         with:
           path: ${{ steps.pnpm-cache.outputs.store }}
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
+        if: inputs.channel == 'rc'
         run: pnpm install --frozen-lockfile
 
       - name: Confirm Axiom token presence
+        if: inputs.channel == 'rc'
         env:
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
         # Length only: never the value. GitHub masks the secret in logs
@@ -86,9 +133,10 @@ jobs:
           fi
 
       - name: Build RC-channel app
+        if: inputs.channel == 'rc'
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
-          VITE_BASE_PATH: /gonogo/rc/
+          VITE_BASE_PATH: /rc/
           GONOGO_VERSION_SUFFIX: -rc.${{ steps.sha.outputs.short }}
           # Axiom ingest. If the secret isn't set the logger silently
           # skips installing the Axiom transport, so dropping the secret
@@ -96,50 +144,56 @@ jobs:
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
 
       - name: Fetch latest release site
-        id: prod
+        if: inputs.channel == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p prod-site
-          if gh release download --repo "${{ github.repository }}" \
-               --pattern gonogo-site.tar.gz --dir . 2>/dev/null; then
-            tar -xzf gonogo-site.tar.gz -C prod-site
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "Root will serve the latest release site asset."
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No release site asset yet: RC build will serve the root too."
+          mkdir -p packages/app/dist
+          gh release download --repo "${{ github.repository }}" \
+            --pattern gonogo-site.tar.gz --dir "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/gonogo-site.tar.gz" -C packages/app/dist
+          # A site asset from before the move was built for /gonogo/ and would load nothing from /app/.
+          if ! grep -q '"/app/' packages/app/dist/index.html; then
+            echo "::error::the latest release's site asset was not built with VITE_BASE_PATH=/app/, so it cannot be served from /app/"
+            exit 1
           fi
 
-      - name: Compose site (release at /, RC at /rc/)
-        run: |
-          mkdir -p site site/rc
-          cp -R packages/app/dist/. site/rc/
-          if [ "${{ steps.prod.outputs.found }}" = "true" ]; then
-            cp -R prod-site/. site/
-          else
-            # Bootstrap: no release exists yet, so the RC channel serves
-            # the root as well. The /rc/ copy above was built with base
-            # /gonogo/rc/; the root needs its own base.
-            VITE_BASE_PATH=/gonogo/ \
-            GONOGO_VERSION_SUFFIX="-rc.${{ steps.sha.outputs.short }}" \
-            VITE_AXIOM_TOKEN="${{ secrets.VITE_AXIOM_TOKEN }}" \
-              pnpm --filter @ksp-gonogo/app build
-            cp -R packages/app/dist/. site/
-          fi
-          # Pages only serves the ROOT 404.html as the SPA fallback, and
-          # after composition that's the release build: a deep link to
-          # /gonogo/rc/station would boot the wrong app. Materialise the
-          # RC SPA's routes as real files instead.
-          mkdir -p site/rc/station
-          cp site/rc/index.html site/rc/station/index.html
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
+      - name: Check out the site repository
+        uses: actions/checkout@v5
         with:
-          path: site
+          repository: ${{ env.SITE_REPO }}
+          ref: main
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+          path: _site
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Compose this channel's paths
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: node scripts/pages-compose.mjs "$CHANNEL" packages/app/dist _site
+
+      - name: Commit and push this channel's paths only
+        working-directory: _site
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          SOURCE: ${{ github.repository }}@${{ steps.sha.outputs.short }}
+        run: |
+          mapfile -t OWNED < <(node --input-type=module -e '
+            import { OWNED_PATHS } from "../scripts/pages-compose.mjs";
+            console.log(OWNED_PATHS[process.env.CHANNEL].join("\n"));
+          ')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- "${OWNED[@]}"
+          if git diff --cached --quiet; then
+            echo "Nothing changed for the $CHANNEL channel."
+            exit 0
+          fi
+          git commit -m "deploy($CHANNEL): $SOURCE"
+          # Another tenant may have pushed since the checkout. Its paths are not ours, so a rebase cannot conflict.
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            echo "push $attempt was refused, rebasing onto the site's new head"
+            git pull --rebase origin main
+          done
+          echo "::error::could not push to $SITE_REPO after 5 attempts"
+          exit 1

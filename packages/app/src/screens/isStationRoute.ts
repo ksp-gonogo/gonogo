@@ -8,7 +8,7 @@
 /**
  * Which deployment configuration this page load is, from the URL alone.
  *
- * Base-path-relative: `BASE_URL` is `/` in dev and `/gonogo/` on GitHub
+ * Base-path-relative: `BASE_URL` is `/` in dev and `/app/` or `/rc/` on GitHub
  * Pages, so the raw pathname is stripped of that prefix before matching,
  * otherwise a sub-path deploy would never match.
  */

@@ -6,13 +6,26 @@ This page is for whoever maintains the deployed gonogo. Day-to-day use runs loca
 
 > **Where the work goes.** Day-to-day work lands on `staging`, which deploys nothing by itself. The release-candidate channel is built from `staging` by `rc.yml`, nightly and on demand; `main` moves only when a release is cut. The remote default branch is `main`, on purpose: it is the real latest version, what a new visitor sees. See Release and RC channels below.
 
-The app is deployed to GitHub Pages at [ksp-gonogo.github.io/gonogo](https://ksp-gonogo.github.io/gonogo/). The workflow is `.github/workflows/deploy.yml`, called by `rc.yml` and dispatched by `release.yml`; nothing triggers it on a push. It builds with `pnpm turbo build --filter=@ksp-gonogo/app...`. One deploy carries both channels: it rebuilds `/gonogo/rc/` from the commit it is given, while the root `/gonogo/` is the latest release's site asset rather than anything this run built. See Release and RC channels below.
+The site is [ksp-gonogo.github.io](https://ksp-gonogo.github.io/), served by GitHub Pages from the `main` branch of the `ksp-gonogo/ksp-gonogo.github.io` repository. That repository is a deploy target and is never edited by hand. It holds several tenants, each at its own path:
+
+| Path | What | Written by |
+| --- | --- | --- |
+| `/` | the landing page, `docs/homepage/index.html` | `deploy.yml`, release channel |
+| `/app/` (stations: `/app/station`) | the latest release of the app | `deploy.yml`, release channel |
+| `/rc/` (stations: `/rc/station`) | the release-candidate app | `deploy.yml`, rc channel |
+| `/gonogo/...` | redirects from the old project-page URLs, keeping the query string and hash | `deploy.yml`, release channel |
+| `README.md` (in the repository, not on the site) | one link to this repository, written once and then kept | `deploy.yml`, release channel |
+
+The Uplink developer docs at `ksp-gonogo.github.io/uplink-dev-docs/` are not in that repository: GitHub serves that path from the `uplink-dev-docs` repository's own Pages, and nothing here writes under it.
+
+The workflow is `.github/workflows/deploy.yml`, called by `rc.yml` with `channel=rc` and dispatched by `release.yml` with `channel=release`; nothing triggers it on a push. A run checks the site repository out, writes its own channel's paths with `scripts/pages-compose.mjs`, and commits exactly those paths, so an RC cannot disturb the release. The one shared file is the empty `/.nojekyll` marker, which either channel creates when it is missing: the site builds with legacy Jekyll, which would otherwise drop the underscore-named files a Vite build emits and render the README onto the site. See Release and RC channels below.
 
 > The hosted page can't run the **main screen**. The main screen needs to reach your KSP install over a plain `ws://` connection, which a browser blocks from an `https://` page (mixed content), so the main screen always runs locally against your own KSP. What the hosted page is for is **station** screens: a station on someone else's network loads the app from here and joins with the share code.
 
 Requirements:
 
-- GitHub Pages source must be set to **GitHub Actions** in repo settings.
+- The `PAGES_DEPLOY_TOKEN` secret: a fine-grained personal access token with **Contents: read and write** on `ksp-gonogo/ksp-gonogo.github.io` and nothing else. `deploy.yml` fails on its first step when it is missing.
+- In `ksp-gonogo/ksp-gonogo.github.io`, Pages source is **Deploy from a branch**, `main` at `/`. This repository's own Pages is off: while it is on, GitHub serves `ksp-gonogo.github.io/gonogo/` from here and the redirects in the site repository are never reached.
 - `VITE_AXIOM_TOKEN` is a GitHub Actions secret, passed through in `deploy.yml` so production logs ship to Axiom. Without the secret the log transport silently doesn't install, and local dev never hits Axiom.
 
 Build locally:
@@ -76,7 +89,7 @@ Everything user-facing moves only when a release is cut. A separate release-cand
 
 | Surface | Release channel | RC channel (`rc.yml`) |
 | --- | --- | --- |
-| Pages site | `ksp-gonogo.github.io/gonogo/` | `ksp-gonogo.github.io/gonogo/rc/` (stations: `/gonogo/rc/station`) |
+| Pages site | `ksp-gonogo.github.io/app/`, with the landing page at the root | `ksp-gonogo.github.io/rc/` (stations: `/rc/station`) |
 | Bundle image | `ghcr.io/ksp-gonogo/gonogo:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo:rc` |
 | Relay image | `ghcr.io/ksp-gonogo/gonogo-relay:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo-relay:rc` |
 | Mod GameData zips | attached to the GitHub Release, and pushed to SpaceDock | built and kept as a CI artifact only (`rc-<shortsha>`) |
@@ -84,7 +97,7 @@ Everything user-facing moves only when a release is cut. A separate release-cand
 | NuGet package | `KspGonogo.Sitrep.Contract`, only if the contract version moved | never published (CI packs, gates and probes it) |
 | App version | `X.Y.Z` | `X.Y.Z-rc.<shortsha>` |
 
-Both images also carry a `sha-<commit>` tag in both channels. `gonogo` and `gonogo-relay` are the only two images; there is no third service image. The earlier dev channel (`/gonogo/dev/`, `:dev`) is gone: the first Pages deploy of the new layout replaces the whole site, so `/gonogo/dev/` disappears, while old `:dev` image tags linger on GHCR.
+Both images also carry a `sha-<commit>` tag in both channels. `gonogo` and `gonogo-relay` are the only two images; there is no third service image. The earlier dev channel (`/gonogo/dev/`, `:dev`) is gone, while old `:dev` image tags linger on GHCR.
 
 **How an RC is built.** `rc.yml` checks out `staging` and acts on its head sha:
 
@@ -115,7 +128,7 @@ The `bump` input accepts `auto` (the default), `patch`, `minor` or `major`; forc
 - uploads the production site as the GitHub Release asset `gonogo-site.tar.gz`,
 - dispatches `publish-images.yml` with `channel=release`, tagging `gonogo` and `gonogo-relay` `:<version>` + `:latest`,
 - dispatches `publish-mods.yml` with `channel=release`, attaching each mod GameData zip in that workflow's matrix to the Release and pushing it to SpaceDock (a mod whose `vars.SPACEDOCK_MOD_ID_*` repo variable is unset warns and skips the SpaceDock half instead of failing),
-- dispatches `deploy.yml` so the Pages root flips to this release immediately rather than on the next RC,
+- dispatches `deploy.yml` with `channel=release`, which publishes that asset at `/app/` along with the landing page and the old-URL redirects,
 - publishes `@ksp-gonogo/ui-kit` and `@ksp-gonogo/sitrep-sdk` to npm, each only if its own `package.json` version has moved. An unchanged version is skipped, but the skip is checked against the published tarball, so a package whose version stopped moving while its code kept moving fails the release instead of going quiet.
 - publishes `KspGonogo.Sitrep.Contract` to nuget.org when its version is not there yet. The version is `Major.Minor.PackagePatch`: `Major.Minor` is the contract's own, read from `ContractVersion.cs`; `PackagePatch` is the package's own (Sitrep.Contract.Package.csproj), for a change to `Sitrep.Contract.TestSupport` or `Sitrep.Core` (both ship inside the package) with no contract move. The `publish-nuget` job packs once with both determinism flags set, gates that file, builds `GonogoProbeUplink` (`scripts/nuget-probe-uplink/`, kept here only to be probed) against it outside the repo (plus a planted gap that must fail), and pushes the same file. When the version IS already on nuget.org, it downloads that published copy and compares it against the fresh pack with the build-identity regions (PE timestamp, debug-directory timestamps, PDB id, PDB checksum, module MVID) normalised out; a real difference fails the release asking for a `PackagePatch` bump rather than skipping silently. It authenticates through nuget.org trusted publishing, bound to `release.yml` with no environment, and needs the `NUGET_USER` secret: the nuget.org profile name that owns the policy. There is no API key.
 
@@ -123,7 +136,7 @@ The version in `packages/app/package.json` only ever changes through this flow. 
 
 The release commit is pushed with `GITHUB_TOKEN`, and token pushes do not fire workflow triggers, so **CI never runs on the release commit**, and therefore `rc.yml` builds no RC for it either. Each publisher is dispatched by `release.yml` explicitly, in the order above; there is no second Pages run racing the release.
 
-**How the Pages site holds both channels:** `deploy.yml` builds the RC app (`base /gonogo/rc/`, `-rc.<shortsha>` suffix) from the commit it is given, downloads the newest release's `gonogo-site.tar.gz` for the root, and deploys the composed artifact. Until the first release exists, the RC build serves the root too. `release.yml` dispatches that same job, so a release never wipes the RC channel: the root takes the new release asset and `/rc/` is rebuilt from the release commit. Straight after a cut the two channels are the same tree, one of them suffixed `-rc.<shortsha>`.
+**How the Pages site holds both channels:** each channel is its own `deploy.yml` run writing its own directory. The rc channel builds the app (base `/rc/`, `-rc.<shortsha>` suffix) from the commit it is given and replaces `/rc/`. The release channel downloads the newest release's `gonogo-site.tar.gz` (built by `release.yml` with base `/app/`), replaces `/app/` with it, and rewrites the landing page and the redirects from the commit it runs on. Neither reads or removes the other's directory, so a release leaves the RC exactly as the last RC run left it. A site asset built before the move to `/app/` cannot be served from there, and the release channel refuses one.
 
 **Checking a release landed.** A release fans out into three further workflow runs, so `release.yml` going green is not the whole answer:
 
@@ -131,17 +144,17 @@ The release commit is pushed with `GITHUB_TOKEN`, and token pushes do not fire w
 gh run list --limit 10                                     # release.yml plus what it dispatched
 gh release view v<X.Y.Z> --json assets --jq '.assets[].name'
 
-curl -s https://ksp-gonogo.github.io/gonogo/     | grep gonogo-version
-curl -s https://ksp-gonogo.github.io/gonogo/rc/ | grep gonogo-version
+curl -s https://ksp-gonogo.github.io/app/ | grep gonogo-version
+curl -s https://ksp-gonogo.github.io/rc/  | grep gonogo-version
 ```
 
 Every build stamps `<meta name="gonogo-version">` and `<meta name="gonogo-build-time">` into the page shell for exactly this, so both channels can be read without dev-tools. The same string is baked into the JS as `__GONOGO_VERSION__` and announced in the peer `hello` handshake. For the images, `podman pull ghcr.io/ksp-gonogo/gonogo:<version>` proves the tag exists, and a running relay answers `GET /version`.
 
-**Rolling back.** There is no undo command, and the sanctioned move is forward: fix, and cut the next release. If the root has to serve the previous release *now*, demote the bad one and re-compose, because the root follows whatever GitHub calls the latest release and a pre-release is not it:
+**Rolling back.** There is no undo command, and the sanctioned move is forward: fix, and cut the next release. If `/app/` has to serve the previous release *now*, demote the bad one and publish again, because `/app/` follows whatever GitHub calls the latest release and a pre-release is not it. This only reaches back as far as the first release built for `/app/`: an older site asset was built for `/gonogo/` and the release channel refuses it.
 
 ```bash
 gh release edit v<bad> --prerelease
-gh workflow run deploy.yml --ref main                              # root falls back to the previous release asset
+gh workflow run deploy.yml --ref main -f channel=release           # /app/ falls back to the previous release asset
 gh workflow run publish-images.yml --ref v<previous> -f channel=release   # moves :latest back
 ```
 
@@ -157,4 +170,4 @@ Two things do not come back. An npm or NuGet publish cannot be undone, so a bad 
 
 RC builds compare by their base `X.Y.Z` (the `-rc.<shortsha>` suffix is ignored), so an RC station against the release it forked from is silent. Because stations always load the newest deploy of their channel while main screens run a container pulled at install time, skew is normal, the banner is the nudge to `docker pull`. When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
 
-**One caveat for RC testing:** `/gonogo/` and `/gonogo/rc/` share an origin, so an RC station and a release station on the same device share localStorage, layout, station identity, share-code. Convenient (your station keeps its identity across channels) but an RC-channel layout experiment edits the same saved layout the release station uses.
+**One caveat for RC testing:** `/app/` and `/rc/` share an origin, so an RC station and a release station on the same device share localStorage, layout, station identity, share-code. Convenient (your station keeps its identity across channels) but an RC-channel layout experiment edits the same saved layout the release station uses.

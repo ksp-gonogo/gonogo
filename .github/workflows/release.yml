@@ -5,22 +5,22 @@ name: release
 # so the tag-push trigger below only matters for manually pushed tags).
 #
 # A release is the deliberate act that moves what users see; pushes to
-# rc.yml only ever moves the RC channel (/gonogo/rc/ + `:rc` images).
+# rc.yml only ever moves the RC channel (/rc/ + `:rc` images).
 # This workflow:
 #
 #   1. runs the full test suite at the tag (the release commit was pushed
 #      with GITHUB_TOKEN, so the CI workflow never ran on it, the gate
 #      lives here),
 #   2. builds the production site and uploads it as the GitHub Release
-#      asset `gonogo-site.tar.gz` (deploy.yml composes the Pages root
-#      from the newest release's asset),
+#      asset `gonogo-site.tar.gz` (deploy.yml publishes the newest
+#      release's asset at ksp-gonogo.github.io/app/),
 #   3. dispatches publish-images.yml with channel=release so both GHCR
 #      images (gonogo, gonogo-relay) get `<version>` + `latest` tags,
 #   4. dispatches publish-mods.yml with channel=release so every mod
 #      GameData zip in that workflow's matrix gets attached to this release
 #      and pushed to SpaceDock,
-#   5. dispatches deploy.yml so the Pages root flips to this release
-#      immediately instead of on the next push to main,
+#   5. dispatches deploy.yml with channel=release, which writes this release
+#      to /app/ along with the landing page and the old-URL redirects,
 #   6. publishes any @ksp-gonogo package whose own version has moved to
 #      public npm (see the publish-packages job),
 #   7. publishes KspGonogo.Sitrep.Contract to nuget.org when its version has
@@ -119,7 +119,7 @@ jobs:
       - name: Build production site
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
-          VITE_BASE_PATH: /gonogo/
+          VITE_BASE_PATH: /app/
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
 
       - name: Pack site asset
@@ -153,13 +153,14 @@ jobs:
             --ref "${{ steps.version.outputs.tag }}" \
             -f channel=release
 
-      - name: Redeploy Pages with the new release at the root
+      - name: Publish the release app and the landing page to Pages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run deploy.yml \
             --repo "${{ github.repository }}" \
-            --ref main
+            --ref main \
+            -f channel=release
 
   # Publishes each package whose own version has moved, via npm OIDC trusted
   # publishing: no NPM_TOKEN, nothing to rotate, provenance on every publish.

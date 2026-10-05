@@ -259,10 +259,12 @@ const VERSION = `${pkg.version}${process.env.GONOGO_VERSION_SUFFIX ?? ""}`;
 
 const BUILD_TIME = new Date().toISOString();
 
-// GitHub Pages has no server-side routing: a direct hit on /gonogo/station
-// returns 404 because no station/index.html exists. Pages falls back to
-// 404.html, so ship a byte-for-byte copy of index.html under that name and
-// the SPA boots for every route.
+// A static host has no server-side routing: a direct hit on /station returns
+// 404 because no station/index.html exists. A host that falls back to the
+// 404.html beside the app boots the SPA from this byte-for-byte copy of
+// index.html. The shared Pages site is not one: only its ROOT 404.html is a
+// fallback and that belongs to the landing page, so the deploy writes each
+// route out as a real file instead (scripts/pages-compose.mjs).
 const spaFallback = (): PluginOption => ({
   name: "gonogo-spa-fallback",
   apply: "build",

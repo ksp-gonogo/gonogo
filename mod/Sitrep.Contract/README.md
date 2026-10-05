@@ -1,6 +1,6 @@
 # KspGonogo.Sitrep.Contract
 
-The C# half of the [Gonogo](https://ksp-gonogo.github.io/gonogo/) Uplink surface: the
+The C# half of the [Gonogo](https://ksp-gonogo.github.io/) Uplink surface: the
 attributes, descriptors and payload types a Kerbal Space Program mod implements to publish
 telemetry into a Gonogo dashboard, plus the version stamp that decides whether the host will
 load your Uplink at all.

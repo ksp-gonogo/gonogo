@@ -3,7 +3,7 @@ name: RC
 # Builds the release-candidate channel from the head of `staging`, every night
 # and on demand:
 #
-#   Pages app       /gonogo/rc/ (stations: /gonogo/rc/station)   deploy.yml
+#   Pages app       ksp-gonogo.github.io/rc/ (stations: /rc/station)  deploy.yml
 #   images          ghcr.io/ksp-gonogo/gonogo{,-relay}:rc         publish-images.yml
 #   mod zips        build artifacts, version rc-<shortsha>        publish-mods.yml
 #   app version     X.Y.Z-rc.<shortsha>
@@ -129,10 +129,9 @@ jobs:
     if: ${{ !cancelled() && needs.gate.outputs.build == 'true' && needs.ci.result != 'failure' && needs.ci.result != 'cancelled' }}
     permissions:
       contents: read
-      pages: write
-      id-token: write
     uses: ./.github/workflows/deploy.yml
     with:
+      channel: rc
       ref: ${{ needs.gate.outputs.sha }}
     secrets: inherit
 
