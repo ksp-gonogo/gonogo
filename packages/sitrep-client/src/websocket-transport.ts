@@ -74,8 +74,24 @@ export interface WebSocketTransportOptions {
   host?: string;
   /** Port to connect to (default `8090`). Ignored when `url` is given. */
   port?: number;
-  /** Delay between reconnect attempts, ms (default 5000). */
+  /** Delay before the first reconnect attempt, ms (default 5000). It doubles per consecutive failed attempt up to {@link maxRetryIntervalMs}. */
   retryIntervalMs?: number;
+  /** Ceiling the doubling retry delay settles at, ms (default 30000). */
+  maxRetryIntervalMs?: number;
+  /**
+   * How long a subscribed, open socket may deliver nothing before the transport
+   * asks the server something it must answer, ms (default 30000; 0 turns the
+   * watchdog off).
+   *
+   * A tunnel or proxy can keep the TCP leg to the browser open after the
+   * server behind it has gone, so no `close` ever fires. Silence alone proves
+   * nothing, since a quiet scene may publish nothing for longer than this: the
+   * socket is dropped only if the probe goes unanswered for
+   * {@link probeTimeoutMs}.
+   */
+  silenceTimeoutMs?: number;
+  /** How long the answer to a liveness probe may take before the socket is dropped, ms (default 5000). */
+  probeTimeoutMs?: number;
   /** Give up (settle to `disconnected`) after this long retrying, ms (default 5 min). */
   retryTimeoutMs?: number;
   /**
@@ -154,6 +170,18 @@ function decodeFrame(data: unknown): DecodedFrame | null {
 const DEFAULT_PORT = 8090;
 const DEFAULT_RETRY_INTERVAL_MS = 5_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_MAX_RETRY_INTERVAL_MS = 30_000;
+const DEFAULT_SILENCE_TIMEOUT_MS = 30_000;
+const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
+
+/**
+ * The topic a liveness probe subscribes to. Nothing declares it, so the mod
+ * refuses the subscribe with a reliable `unknownTopic` error frame on every
+ * call and registers nothing: the one request the protocol always answers,
+ * whatever the scene is publishing. The transport swallows that reply, so it
+ * never reaches the client's ownership bookkeeping.
+ */
+export const LIVENESS_PROBE_TOPIC = "liveness.probe";
 
 /**
  * How many undelivered command-requests the transport holds for the next open.
@@ -212,6 +240,9 @@ export class WebSocketTransport implements Transport {
 
   private readonly url: string;
   private readonly retryIntervalMs: number;
+  private readonly maxRetryIntervalMs: number;
+  private readonly silenceTimeoutMs: number;
+  private readonly probeTimeoutMs: number;
   private readonly retryTimeoutMs: number;
   private readonly onStreamFrame?: (info: StreamFrameInfo) => void;
   private readonly onBinaryFrame?: (info: BinaryFrameInfo) => void;
@@ -222,6 +253,9 @@ export class WebSocketTransport implements Transport {
   private disposed = false;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryStart: number | null = null;
+  private failedAttempts = 0;
+  private silenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private probeTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly messageListeners = new Set<
     (message: ServerMessage) => void
@@ -262,6 +296,11 @@ export class WebSocketTransport implements Transport {
       `ws://${options.host ?? "localhost"}:${options.port ?? DEFAULT_PORT}`;
     this.retryIntervalMs = options.retryIntervalMs ?? DEFAULT_RETRY_INTERVAL_MS;
     this.retryTimeoutMs = options.retryTimeoutMs ?? DEFAULT_RETRY_TIMEOUT_MS;
+    this.maxRetryIntervalMs =
+      options.maxRetryIntervalMs ?? DEFAULT_MAX_RETRY_INTERVAL_MS;
+    this.silenceTimeoutMs =
+      options.silenceTimeoutMs ?? DEFAULT_SILENCE_TIMEOUT_MS;
+    this.probeTimeoutMs = options.probeTimeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS;
     this.onStreamFrame = options.onStreamFrame;
     this.onBinaryFrame = options.onBinaryFrame;
     /* The DOM's constructor and this transport's minimal one differ in the
@@ -309,11 +348,13 @@ export class WebSocketTransport implements Transport {
     if (message.type === "subscribe") {
       this.subscribedTopics.add(message.topic);
       this.sendRaw(message);
+      this.armSilenceWatch();
       return;
     }
     if (message.type === "unsubscribe") {
       this.subscribedTopics.delete(message.topic);
       this.sendRaw(message);
+      if (this.subscribedTopics.size === 0) this.stopSilenceWatch();
       return;
     }
     if (message.type === "set-vantage") {
@@ -378,6 +419,7 @@ export class WebSocketTransport implements Transport {
   dispose(): void {
     this.disposed = true;
     this.stopRetrying();
+    this.stopSilenceWatch();
     const ws = this.ws;
     this.ws = null;
     ws?.close();
@@ -420,6 +462,7 @@ export class WebSocketTransport implements Transport {
       // `retryTimeoutMs` of wall-clock after it would give up with zero
       // retries: fatal for hours-long sessions.
       this.retryStart = null;
+      this.failedAttempts = 0;
       this.setStatus("connected");
       // Re-assert the vantage FIRST: the mod reads the session's selected vantage at subscribe time, so a re-subscribe sent ahead of it would re-point every topic at the fresh session's default.
       if (this.selectedVantage !== null) {
@@ -431,9 +474,12 @@ export class WebSocketTransport implements Transport {
       }
       const queued = this.pendingCommands.splice(0);
       for (const message of queued) this.sendRaw(message);
+      this.armSilenceWatch();
     });
     ws.addEventListener("message", (event) => {
-      if (this.ws === ws) this.handleMessage(event.data);
+      if (this.ws !== ws) return;
+      this.armSilenceWatch();
+      this.handleMessage(event.data);
     });
     // Both `close` and `error` route through the same drop handler. An `error`
     // that never fires `close` would otherwise strand the transport (Fix #2);
@@ -453,6 +499,7 @@ export class WebSocketTransport implements Transport {
   private handleDrop(ws: WebSocketLike): void {
     if (this.ws !== ws) return;
     this.ws = null;
+    this.stopSilenceWatch();
     // Defensive close for the error path (harmless on an already-closed socket) so a stuck-open socket can't linger while we reconnect.
     try {
       ws.close();
@@ -479,10 +526,51 @@ export class WebSocketTransport implements Transport {
     }
 
     this.setStatus("reconnecting");
+    const delay = Math.min(
+      this.retryIntervalMs * 2 ** this.failedAttempts,
+      Math.max(this.maxRetryIntervalMs, this.retryIntervalMs),
+    );
+    this.failedAttempts++;
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
       this.open();
-    }, this.retryIntervalMs);
+    }, delay);
+  }
+
+  /**
+   * (Re)start the dead-socket countdown. Runs only while the socket is open
+   * and something is subscribed: with nothing subscribed the server has
+   * nothing to say, so silence proves nothing.
+   */
+  private armSilenceWatch(): void {
+    this.stopSilenceWatch();
+    if (this.silenceTimeoutMs <= 0 || this.disposed) return;
+    const ws = this.ws;
+    if (!ws || ws.readyState !== this.WebSocketImpl.OPEN) return;
+    if (this.subscribedTopics.size === 0) return;
+    this.silenceTimer = setTimeout(() => {
+      this.silenceTimer = null;
+      if (!this.sendRaw({ type: "subscribe", topic: LIVENESS_PROBE_TOPIC })) {
+        this.handleDrop(ws);
+        return;
+      }
+      // Any frame at all, the probe's reply or ordinary data, re-arms the watch and clears this timer.
+      this.probeTimer = setTimeout(() => {
+        this.probeTimer = null;
+        this.handleDrop(ws);
+      }, this.probeTimeoutMs);
+    }, this.silenceTimeoutMs);
+  }
+
+  private stopSilenceWatch(): void {
+    if (this.silenceTimer !== null) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+    if (this.probeTimer !== null) {
+      clearTimeout(this.probeTimer);
+      this.probeTimer = null;
+    }
   }
 
   /**
@@ -569,6 +657,11 @@ export class WebSocketTransport implements Transport {
       message = parseServerMessage(frame.text);
     } catch {
       // Malformed / unknown envelope: drop it, same posture as the legacy data source's own JSON guard.
+      return;
+    }
+
+    // The probe's own reply: it proved the link is alive by arriving, and means nothing to anything above.
+    if (message.type === "error" && message.topic === LIVENESS_PROBE_TOPIC) {
       return;
     }
 

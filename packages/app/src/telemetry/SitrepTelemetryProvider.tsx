@@ -176,12 +176,23 @@ export function SitrepTelemetryProvider({
   // FRESH one on re-setup, instead of leaving the memo pinned to a disposed
   // transport (which silently strands the whole live stream, the socket never
   // reconnects and no frame ever arrives).
+  const [transport, setTransport] = useState<Transport | null>(null);
   const [client, setClient] = useState<TelemetryClient | null>(null);
+  /*
+   * Bumped each time the owned transport comes back after a drop. The wire
+   * carries no process identity, so a blip and a restarted game look the same
+   * from here; either way the client, and the store the provider builds for
+   * it, are rebuilt. A restarted mod counts its timeline epoch from zero, and
+   * a store holding a higher epoch refuses every frame of the new game as a
+   * straggler, so the old state cannot be kept. Widgets fall back to their
+   * waiting state until the new keyframes land.
+   */
+  const [generation, setGeneration] = useState(0);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reconnectNonce has no direct use in the body, bumping it (the panel's Reconnect action, once the transport has given up) must force this effect to tear down and rebuild even when host/port are unchanged.
   useEffect(() => {
     if (!enabled) {
-      setClient(null);
+      setTransport(null);
       reportSitrepTransportStatus("disconnected");
       return;
     }
@@ -201,25 +212,42 @@ export function SitrepTelemetryProvider({
     // Mirror the OWNED transport's connection status into the Connection tab's
     // "Sitrep Stream" row: an injected test transport has no bearing on what
     // that row should report about the real connection.
-    const unsubStatus = ownedTransport?.onStatusChange(
-      reportSitrepTransportStatus,
-    );
+    let dropped = false;
+    const unsubStatus = ownedTransport?.onStatusChange((status) => {
+      reportSitrepTransportStatus(status);
+      if (status === "reconnecting") dropped = true;
+      if (status === "connected" && dropped) {
+        dropped = false;
+        setGeneration((g) => g + 1);
+      }
+    });
     if (ownedTransport) reportSitrepTransportStatus(ownedTransport.status);
-    const transport = injectedTransport ?? ownedTransport;
-    const telemetryClient = new TelemetryClient(transport as Transport);
     logger.tag("sitrep").info("live stream transport mounted", {
       host: resolvedHost,
       port: resolvedPort,
       injected: injectedTransport !== undefined,
     });
+    setTransport(injectedTransport ?? ownedTransport ?? null);
+    return () => {
+      unsubStatus?.();
+      ownedTransport?.dispose();
+      setTransport(null);
+    };
+  }, [enabled, resolvedHost, resolvedPort, injectedTransport, reconnectNonce]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: generation has no direct use in the body, bumping it on a reconnect must rebuild the client (and with it the store) over the same transport.
+  useEffect(() => {
+    if (!transport) {
+      setClient(null);
+      return;
+    }
+    const telemetryClient = new TelemetryClient(transport);
     setClient(telemetryClient);
     return () => {
       telemetryClient.dispose();
-      unsubStatus?.();
-      ownedTransport?.dispose();
       setClient(null);
     };
-  }, [enabled, resolvedHost, resolvedPort, injectedTransport, reconnectNonce]);
+  }, [transport, generation]);
 
   if (!client) return <>{children}</>;
 

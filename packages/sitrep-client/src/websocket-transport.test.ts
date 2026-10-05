@@ -20,6 +20,7 @@ import { LOSS_MARGIN, TelemetryClient } from "./client";
 import { makeMeta } from "./stub-transport";
 import type { TransportStatus } from "./transport";
 import {
+  LIVENESS_PROBE_TOPIC,
   MAX_PENDING_COMMANDS,
   SEND_QUEUE_FULL,
   WebSocketTransport,
@@ -302,6 +303,128 @@ describe("WebSocketTransport", () => {
       { timeout: WAIT_TIMEOUT_MS },
     );
     transport.dispose();
+  });
+
+  it("treats a subscribed socket that goes silent without closing as dead, and re-subscribes on a fresh one", async () => {
+    const receivedByConnection: string[][] = [];
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        const bucket: string[] = [];
+        receivedByConnection.push(bucket);
+        client.addEventListener("message", (event) => {
+          bucket.push(event.data as string);
+        });
+      }),
+    );
+
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 10,
+      silenceTimeoutMs: 50,
+      probeTimeoutMs: 50,
+    });
+    await waitForStatus(transport, "connected");
+    transport.send({ type: "subscribe", topic: "vessel.flight" });
+
+    await waitForStatus(transport, "reconnecting");
+    await waitForStatus(transport, "connected");
+    await vi.waitFor(
+      () => {
+        expect(receivedByConnection.length).toBeGreaterThanOrEqual(2);
+        expect(
+          receivedByConnection[0].map((raw) => JSON.parse(raw)),
+        ).toContainEqual({ type: "subscribe", topic: LIVENESS_PROBE_TOPIC });
+        expect(JSON.parse(receivedByConnection[1][0])).toEqual({
+          type: "subscribe",
+          topic: "vessel.flight",
+        });
+      },
+      { timeout: WAIT_TIMEOUT_MS },
+    );
+    transport.dispose();
+  });
+
+  it("keeps a quiet socket whose server answers the liveness probe, and never hands the reply on", async () => {
+    let connections = 0;
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        connections++;
+        client.addEventListener("message", (event) => {
+          const message = JSON.parse(String(event.data));
+          if (message.topic !== LIVENESS_PROBE_TOPIC) return;
+          client.send(
+            JSON.stringify({
+              type: "error",
+              topic: LIVENESS_PROBE_TOPIC,
+              code: FaultCode.UnknownTopic,
+              message: "no channel is declared",
+            }),
+          );
+        });
+      }),
+    );
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 10,
+      silenceTimeoutMs: 30,
+      probeTimeoutMs: 200,
+    });
+    const delivered: ServerMessage[] = [];
+    transport.onMessage((m) => delivered.push(m));
+    await waitForStatus(transport, "connected");
+    transport.send({ type: "subscribe", topic: "vessel.flight" });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(transport.status).toBe("connected");
+    expect(connections).toBe(1);
+    expect(delivered).toEqual([]);
+    transport.dispose();
+  });
+
+  it("does not call a socket dead for being quiet when nothing is subscribed", async () => {
+    server.use(link.addEventListener("connection", () => undefined));
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 10,
+      silenceTimeoutMs: 30,
+    });
+    await waitForStatus(transport, "connected");
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(transport.status).toBe("connected");
+    transport.dispose();
+  });
+
+  it("doubles the retry delay per failed attempt up to its ceiling", async () => {
+    vi.useFakeTimers();
+    try {
+      const opened: number[] = [];
+      class RefusedSocket {
+        static readonly OPEN = 1;
+        readonly readyState = 3;
+        constructor() {
+          opened.push(Date.now());
+          queueMicrotask(() => this.fail?.());
+        }
+        private fail?: () => void;
+        send() {}
+        close() {}
+        addEventListener(type: string, listener: () => void) {
+          if (type === "error") this.fail = listener;
+        }
+      }
+      const transport = new WebSocketTransport({
+        url: SITREP_URL,
+        retryIntervalMs: 100,
+        maxRetryIntervalMs: 300,
+        retryTimeoutMs: 60_000,
+        WebSocketImpl: RefusedSocket as never,
+      });
+      await vi.advanceTimersByTimeAsync(1_000);
+      transport.dispose();
+      const gaps = opened.slice(1).map((t, i) => t - opened[i]);
+      expect(gaps.slice(0, 4)).toEqual([100, 200, 300, 300]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("gives up to disconnected once the retry timeout elapses without ever connecting", async () => {
