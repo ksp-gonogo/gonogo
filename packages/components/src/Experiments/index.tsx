@@ -107,7 +107,7 @@ function ExperimentsComponent({
   const filter = useRowFilter({ placeholder: "Filter instruments..." });
   const labReading = useTelemetry("science.lab");
   const labRaw = stillTrue(labReading, undefined);
-  const labs = parseLab(labRaw);
+  const allLabs = parseLab(labRaw);
   const labHeld = heldGrade(labReading);
 
   const contributedInstruments = useContributions("experiments.instruments");
@@ -130,7 +130,7 @@ function ExperimentsComponent({
         ),
         showLab && (
           <Section key="lab">
-            <LabSection labs={labs} heldGrade={labHeld} />
+            <LabSection labs={allLabs} heldGrade={labHeld} />
           </Section>
         ),
       ]}
@@ -144,6 +144,10 @@ function ExperimentsComponent({
     return waiting("Awaiting instrument telemetry");
   if ((instruments?.length ?? 0) === 0 && contributed.length === 0)
     return waiting("No instruments aboard");
+
+  // The lab is searched by its part name like any instrument, so the filter covers every row below it.
+  const labs =
+    allLabs?.filter((lab) => filter.matches(lab.partName)) ?? allLabs;
 
   const matchesFilter = (inst: Instrument) =>
     filter.matches(`${inst.expId} ${inst.partTitle}`);

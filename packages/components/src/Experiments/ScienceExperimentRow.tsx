@@ -2,15 +2,22 @@ import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
 import type { CommandReply, ScienceTransmission } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Card,
   CommandButton,
   type CommandButtonHandle,
   HeldBadge,
   Inline,
-  Row,
-  RowName,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import type { Instrument } from "./instrument";
+
+/** What each state badge on an instrument row means, shown on hover and focus. */
+const BADGE_MEANING = {
+  data: "Holds science data that has not been transmitted or recovered",
+  deployed: "The experiment has been run on this instrument",
+  oneShot: "Can run once only, and cannot be reset",
+  inoperable: "Cannot be run in its current state, so it offers no controls",
+} as const;
 
 export interface ScienceExperimentRowProps {
   /** The instrument this row renders. */
@@ -43,50 +50,69 @@ export function ScienceExperimentRow({
   onTransmitted,
   heldGrade,
 }: Readonly<ScienceExperimentRowProps>) {
+  const actions = !instrument.inoperable && (
+    <Inline inset>
+      {!instrument.deployed && !instrument.hasData && deployCmd && (
+        <CommandButton
+          size="sm"
+          handle={deployCmd}
+          args={{ partId: instrument.partId }}
+          commandLabel={`Deploy ${instrument.partTitle}`}
+          label="Deploy"
+          pendingLabel="Deploying..."
+        />
+      )}
+      {instrument.hasData && transmitCmd && (
+        <CommandButton
+          size="sm"
+          handle={transmitCmd}
+          args={{ partId: instrument.partId }}
+          commandLabel={`Transmit ${instrument.partTitle}`}
+          label="Transmit"
+          confirmLabel="Confirm transmit"
+          pendingLabel="Transmitting..."
+          onConfirmed={(reply) => {
+            if (reply?.payload) onTransmitted?.(reply.payload);
+          }}
+        />
+      )}
+    </Inline>
+  );
   return (
-    // Wraps, because a row can carry all four badges at once.
-    <Row wrap>
-      <Tooltip text={instrument.partTitle} announce={false}>
-        <RowName>{instrument.partTitle}</RowName>
-      </Tooltip>
-      <Inline wrap>
-        {instrument.hasData && <Badge tone="go">DATA</Badge>}
-        {instrument.deployed && <Badge>DEPLOYED</Badge>}
-        {!instrument.rerunnable && <Badge>ONE-SHOT</Badge>}
-        {instrument.inoperable && <Badge tone="nogo">INOPERABLE</Badge>}
-        {heldGrade !== undefined && (
-          <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
-        )}
-      </Inline>
-      {/* Hidden rather than disabled: the INOPERABLE badge already says why. */}
-      {!instrument.inoperable && (
-        <Inline inset>
-          {!instrument.deployed && !instrument.hasData && deployCmd && (
-            <CommandButton
-              size="sm"
-              handle={deployCmd}
-              args={{ partId: instrument.partId }}
-              commandLabel={`Deploy ${instrument.partTitle}`}
-              label="Deploy"
-              pendingLabel="Deploying..."
-            />
+    <Card
+      as="li"
+      title={instrument.partTitle}
+      tone={
+        instrument.inoperable ? "nogo" : instrument.hasData ? "go" : undefined
+      }
+      titleRight={
+        <Inline wrap>
+          {instrument.hasData && (
+            <Tooltip text={BADGE_MEANING.data}>
+              <Badge tone="go">DATA</Badge>
+            </Tooltip>
           )}
-          {instrument.hasData && transmitCmd && (
-            <CommandButton
-              size="sm"
-              handle={transmitCmd}
-              args={{ partId: instrument.partId }}
-              commandLabel={`Transmit ${instrument.partTitle}`}
-              label="Transmit"
-              confirmLabel="Confirm transmit"
-              pendingLabel="Transmitting..."
-              onConfirmed={(reply) => {
-                if (reply?.payload) onTransmitted?.(reply.payload);
-              }}
-            />
+          {instrument.deployed && (
+            <Tooltip text={BADGE_MEANING.deployed}>
+              <Badge>DEPLOYED</Badge>
+            </Tooltip>
+          )}
+          {!instrument.rerunnable && (
+            <Tooltip text={BADGE_MEANING.oneShot}>
+              <Badge>ONE-SHOT</Badge>
+            </Tooltip>
+          )}
+          {instrument.inoperable && (
+            <Tooltip text={BADGE_MEANING.inoperable}>
+              <Badge tone="nogo">INOPERABLE</Badge>
+            </Tooltip>
+          )}
+          {heldGrade !== undefined && (
+            <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
           )}
         </Inline>
-      )}
-    </Row>
+      }
+      footer={actions || undefined}
+    />
   );
 }

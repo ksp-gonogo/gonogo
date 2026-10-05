@@ -154,8 +154,8 @@ describe("ScienceExperimentRow", () => {
     expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
   });
 
-  // The full badge set is wider than the row, so the row must wrap rather than crush the name.
-  it("lays the row and its badge cluster out to wrap, and keeps the whole name in reach", () => {
+  // The full badge set is wider than the row, so the cluster must wrap rather than crush the name.
+  it("wraps the badge cluster, and says what each badge means", () => {
     renderRow(
       <ScienceExperimentRow
         instrument={instrument({
@@ -167,17 +167,15 @@ describe("ScienceExperimentRow", () => {
         })}
       />,
     );
-    const name = screen.getByText("Mystery Goo™ Containment Unit");
-    expect(name).toHaveAttribute(
-      "data-tooltip",
+    expect(screen.getByRole("listitem")).toHaveTextContent(
       "Mystery Goo™ Containment Unit",
-    );
-    expect(getComputedStyle(screen.getByRole("listitem")).flexWrap).toBe(
-      "wrap",
     );
     const badges = screen.getByText("INOPERABLE").parentElement;
     expect(badges).not.toBeNull();
     expect(getComputedStyle(badges as Element).flexWrap).toBe("wrap");
+    for (const badge of ["DATA", "DEPLOYED", "ONE-SHOT", "INOPERABLE"]) {
+      expect(screen.getByText(badge)).toHaveAttribute("data-tooltip");
+    }
   });
   it("has no axe violations across instrument states", async () => {
     const { container } = renderRow(
