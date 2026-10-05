@@ -28,12 +28,12 @@
       "text": "0f1e4a5f"
     },
     "mun-and-minmus-bases-stopped-arriving--default.png": {
-      "hash": "c31dff0fdbd18fb2",
+      "hash": "5aaf067a4a86a4ae",
       "elements": 69,
       "text": "7e5d4ed7"
     },
     "mun-and-minmus-bases-stopped-arriving--min.png": {
-      "hash": "a007b774025c87d9",
+      "hash": "0f70f598a8795273",
       "elements": 69,
       "text": "0f1e4a5f"
     },
@@ -58,9 +58,9 @@
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "8ce444baf79caf72",
+      "hash": "8a87deb6d75958d8",
       "elements": 68,
-      "text": "6826e90c"
+      "text": "85537890"
     },
     "servos--default.png": {
       "hash": "ced5fa36bc112506",
@@ -73,7 +73,7 @@
       "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "83267f51ac5ef18a",
+      "hash": "7e84768ca54bef58",
       "elements": 61,
       "text": "08e4ea00"
     }
