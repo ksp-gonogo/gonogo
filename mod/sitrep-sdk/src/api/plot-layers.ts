@@ -125,6 +125,12 @@ export interface PlotRegionLayer extends PlotLayerBase {
   opacity?: number;
   /** Names the region, drawn up its own free edge rather than in the legend. */
   label?: string;
+  /**
+   * Draws the region as diagonal hatching rather than a wash: ground, sky or
+   * space the plot has no reading of, so it reads as unknown rather than as a
+   * measured quantity. `opacity` sets the strength of the hatching.
+   */
+  hatched?: boolean;
 }
 
 /**

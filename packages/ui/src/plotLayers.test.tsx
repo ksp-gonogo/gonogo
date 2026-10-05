@@ -122,6 +122,35 @@ describe("plot layers", () => {
     expect(label).toBe("Test plot; right of the curve is decelerating");
   });
 
+  it("fills a hatched region with a pattern and a plain one with the tone", () => {
+    const { container } = chart([
+      {
+        kind: "region",
+        id: "unknown",
+        boundary: [
+          { x: 10, y: 0 },
+          { x: 10, y: 1000 },
+        ],
+        side: "left",
+        hatched: true,
+      },
+      {
+        kind: "region",
+        id: "known",
+        boundary: [
+          { x: 60, y: 0 },
+          { x: 60, y: 1000 },
+        ],
+        side: "right",
+      },
+    ]);
+    const hatched = drawn(container, "unknown");
+    expect(hatched?.hasAttribute("data-hatched")).toBe(true);
+    expect(hatched?.getAttribute("fill")).toMatch(/^url\(#/);
+    expect(container.querySelector("pattern")).not.toBeNull();
+    expect(drawn(container, "known")?.hasAttribute("data-hatched")).toBe(false);
+  });
+
   it("adds no clause for a layer with nothing to say", () => {
     const { container } = chart([
       { kind: "marker", id: "here", at: { x: 40, y: 400 } },

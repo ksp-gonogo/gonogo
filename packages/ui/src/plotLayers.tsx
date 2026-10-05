@@ -1,6 +1,6 @@
 import type { PlotEmphasis, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { TONE_MARK, TONE_TEXT } from "@ksp-gonogo/ui-kit";
-import type { ReactElement } from "react";
+import { type ReactElement, useId } from "react";
 
 /**
  * Draws the `PlotLayer` vocabulary inside `LineChart`'s plot rect. Layers arrive in data space, so a
@@ -28,6 +28,11 @@ const REGION_LABEL_SIZE = 9;
 /** Width a rotated edge word takes, for a corner readout to clear. */
 const EDGE_STRIP_PX = 13;
 const DEFAULT_REGION_OPACITY = 0.1;
+
+/** Spacing between hatch lines, px. */
+const HATCH_PITCH = 5;
+
+const DEFAULT_HATCH_OPACITY = 0.5;
 const DEFAULT_FIELD_OPACITY = 0.5;
 
 /** A layer's lines, fills and dots. */
@@ -432,6 +437,7 @@ function RegionLayer({
   layer: Extract<PlotLayer, { kind: "region" }>;
   frame: PlotLayerFrame;
 }) {
+  const hatchId = useId();
   const scaleY = scaleYOf(frame, layer);
   const project = (p: { x: number; y: number }) => ({
     x: frame.scaleX(p.x),
@@ -456,14 +462,38 @@ function RegionLayer({
 
   return (
     <>
+      {layer.hatched && (
+        <defs>
+          <pattern
+            id={hatchId}
+            width={HATCH_PITCH}
+            height={HATCH_PITCH}
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <line
+              x1={0}
+              y1={0}
+              x2={0}
+              y2={HATCH_PITCH}
+              stroke={toneColor(layer)}
+              strokeWidth={1}
+              strokeOpacity={layer.opacity ?? DEFAULT_HATCH_OPACITY}
+            />
+          </pattern>
+        </defs>
+      )}
       <polygon
         data-plot-layer={layer.id}
         data-plot-layer-kind="region"
+        data-hatched={layer.hatched ? "" : undefined}
         points={ring
           .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
           .join(" ")}
-        fill={toneColor(layer)}
-        fillOpacity={layer.opacity ?? DEFAULT_REGION_OPACITY}
+        fill={layer.hatched ? `url(#${hatchId})` : toneColor(layer)}
+        fillOpacity={
+          layer.hatched ? undefined : (layer.opacity ?? DEFAULT_REGION_OPACITY)
+        }
       />
       {frame.labels && layer.label && (
         <text

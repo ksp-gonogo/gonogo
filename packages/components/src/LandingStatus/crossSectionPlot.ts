@@ -158,34 +158,58 @@ export function buildCrossSectionPlot(
   const halfWide = span / 2;
 
   /*
-   * Past the sampled patch the ground is held at its outermost elevation, so the terrain always spans the frame; the window only opens wider than the patch to bring the vessel in.
+   * The window opens wider than the patch only to bring the vessel in. Past the outermost sample nothing is known of the ground, so those columns are hatched and the skyline stops at the last sample.
    */
   const first = slice.points[0];
   const last = slice.points[slice.points.length - 1];
-  const terrain =
+  const unknownSides: PlotLayer[] =
     halfWide > slice.halfSpan
       ? [
-          { x: -halfWide, y: first.y },
-          ...slice.points,
-          { x: halfWide, y: last.y },
+          {
+            kind: "region",
+            id: "unsampled-left",
+            side: "left",
+            boundary: [
+              { x: first.x, y: floor },
+              { x: first.x, y: floor + span },
+            ],
+            tone: "neutral",
+            hatched: true,
+            description:
+              "ground before the sampled patch along the track is unknown",
+          },
+          {
+            kind: "region",
+            id: "unsampled-right",
+            side: "right",
+            boundary: [
+              { x: last.x, y: floor },
+              { x: last.x, y: floor + span },
+            ],
+            tone: "neutral",
+            hatched: true,
+            description:
+              "ground beyond the sampled patch along the track is unknown",
+          },
         ]
-      : slice.points;
+      : [];
 
   const layers: PlotLayer[] = [
     {
       kind: "region",
       id: "ground",
-      boundary: terrain,
+      boundary: slice.points,
       side: "below",
       tone: "neutral",
       // Filled, so which side of the profile the vessel is on reads at a glance.
       opacity: 0.3,
       description: "terrain below the ground track",
     },
+    ...unknownSides,
     {
       kind: "series",
       id: "skyline",
-      points: terrain,
+      points: slice.points,
       tone: "neutral",
       description: "terrain profile along the ground track",
     },
