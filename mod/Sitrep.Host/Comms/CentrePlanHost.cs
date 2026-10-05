@@ -22,6 +22,13 @@ namespace Sitrep.Host.Comms
         /// <param name="nameAt">The centre, then the node's id.</param>
         void SetNodeNames(Func<string, string, string?> nameAt);
 
+        /// <summary>
+        /// Takes the three calls a save and a load need of what the centres have
+        /// heard: read it now, take what a loaded game carried, and take what a
+        /// reload of this process's own save carried. Each is safe on any thread.
+        /// </summary>
+        void SetHeardStore(Func<HeardSnapshot?> now, Action<HeardSnapshot?> loaded, Action<HeardSnapshot?> reloaded);
+
         /// <summary>News of the node <paramref name="nodeId"/> has just reached <paramref name="centre"/>. Courier thread only.</summary>
         void NoteHeard(string centre, string nodeId);
     }

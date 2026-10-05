@@ -112,8 +112,9 @@ namespace Sitrep.Host
         /// starts a new timeline and restores what the save held. Callable from any
         /// thread.
         /// </summary>
-        public void NoteGameLoaded(DeliverySnapshot? carried)
+        public void NoteGameLoaded(DeliverySnapshot? carried, HeardSnapshot? heard = null)
         {
+            _heardLoaded?.Invoke(heard);
             Volatile.Write(ref _reloadedSave, null);
             Volatile.Write(ref _carriedBySave, carried ?? new DeliverySnapshot());
             Interlocked.Exchange(ref _gameLoaded, 1);
@@ -125,7 +126,29 @@ namespace Sitrep.Host
         /// anyway (a quickload of that same save), it restores what this save
         /// held rather than nothing. Callable from any thread.
         /// </summary>
-        public void NoteSaveReloaded(DeliverySnapshot? carried) => Volatile.Write(ref _reloadedSave, carried);
+        public void NoteSaveReloaded(DeliverySnapshot? carried, HeardSnapshot? heard = null)
+        {
+            _heardReloaded?.Invoke(heard);
+            Volatile.Write(ref _reloadedSave, carried);
+        }
+
+        private Func<HeardSnapshot?>? _heardNow;
+        private Action<HeardSnapshot?>? _heardLoaded;
+        private Action<HeardSnapshot?>? _heardReloaded;
+
+        public void SetHeardStore(Func<HeardSnapshot?> now, Action<HeardSnapshot?> loaded, Action<HeardSnapshot?> reloaded)
+        {
+            _heardNow = now;
+            _heardLoaded = loaded;
+            _heardReloaded = reloaded;
+        }
+
+        /// <summary>
+        /// What every command centre has heard of every craft right now, for
+        /// saving with the game, or null when nothing here keeps it. Callable
+        /// from any thread.
+        /// </summary>
+        public HeardSnapshot? HeardSnapshotNow() => _heardNow?.Invoke();
 
         private void CreateDelivery()
         {

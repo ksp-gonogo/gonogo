@@ -130,6 +130,48 @@ namespace Sitrep.Host.Comms
             return all;
         }
 
+        /// <summary>Everything every centre has heard, as it stands, for saving with the game.</summary>
+        public HeardSnapshot Snapshot()
+        {
+            var centres = new List<HeardAtCentre>(_ears.Count);
+            foreach (var ear in _ears)
+            {
+                centres.Add(new HeardAtCentre(
+                    ear.Key,
+                    new List<CraftState>(ear.Value.Heard.Values),
+                    new Dictionary<string, bool>(ear.Value.Link, StringComparer.Ordinal)));
+            }
+            return new HeardSnapshot(centres);
+        }
+
+        /// <summary>
+        /// Takes back what a save carried: each centre knows what it knew when
+        /// the game was saved. Called after <see cref="Reset"/>, before the
+        /// first <see cref="Listen"/> of the new timeline, which then listens
+        /// for whatever each craft says from here on. A state heard later
+        /// replaces a restored one only if it was read later.
+        /// </summary>
+        public void Restore(HeardSnapshot snapshot)
+        {
+            foreach (var centre in snapshot.Centres)
+            {
+                if (!_ears.TryGetValue(centre.Centre, out var ear))
+                {
+                    ear = new Ear();
+                    _ears[centre.Centre] = ear;
+                }
+                foreach (var state in centre.States)
+                {
+                    Heard(ear, state);
+                }
+                foreach (var link in centre.Links)
+                {
+                    ear.Link[link.Key] = link.Value;
+                }
+                ear.News++;
+            }
+        }
+
         /// <summary>
         /// Forgets everything heard and every craft, and stops listening: the
         /// timeline was reset, and what was heard on the old one may never have

@@ -58,6 +58,13 @@ namespace Sitrep.Propagation.Visibility
             _distanceFromCentreMeters = bodyRadiusMeters + altitudeMeters;
         }
 
+        /// <summary>The outward unit normal at the station at <see cref="ReferenceUt"/>, in the body-centred inertial frame.</summary>
+        public Vector3d NormalAtReference => _normalAtReference;
+
+        /// <summary>The UT <see cref="NormalAtReference"/> was observed at.</summary>
+        public double ReferenceUt => _referenceUt;
+
+
         /// <summary>
         /// Build a station from body-fixed geodetic coordinates, given the body's
         /// prime-meridian orientation at <paramref name="referenceUt"/>.

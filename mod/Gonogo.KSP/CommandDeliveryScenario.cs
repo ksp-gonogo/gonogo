@@ -6,8 +6,9 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// Saves what store-and-forward delivery holds (held commands, light in
-    /// flight, lanes, stored cancels) with the game, and starts a new timeline
-    /// restored from it when a game is loaded.
+    /// flight, lanes, stored cancels) and what each command centre has heard of
+    /// each craft with the game, and starts a new timeline restored from them
+    /// when a game is loaded.
     ///
     /// <para>A scenario is saved and loaded again on every scene change, which is
     /// not a new timeline. Each save stamps a token, and a load carrying the token
@@ -22,6 +23,7 @@ namespace Gonogo.KSP
     {
         private const string DeliveryKey = "delivery";
         private const string TokenKey = "token";
+        private const string HeardKey = "heard";
 
         private static string? _lastSavedToken;
 
@@ -32,12 +34,13 @@ namespace Gonogo.KSP
             {
                 var token = node.GetValue(TokenKey);
                 var carried = DeliverySnapshotCodec.Decode(node.GetValue(DeliveryKey));
+                var heard = HeardSnapshotCodec.Decode(node.GetValue(HeardKey));
                 if (token != null && string.Equals(token, _lastSavedToken, StringComparison.Ordinal))
                 {
-                    GonogoAddon.SharedEngine?.NoteSaveReloaded(carried);
+                    GonogoAddon.SharedEngine?.NoteSaveReloaded(carried, heard);
                     return;
                 }
-                GonogoAddon.SharedEngine?.NoteGameLoaded(carried);
+                GonogoAddon.SharedEngine?.NoteGameLoaded(carried, heard);
             }
             catch (Exception ex)
             {
@@ -57,6 +60,11 @@ namespace Gonogo.KSP
                 if (snapshot != null)
                 {
                     node.SetValue(DeliveryKey, DeliverySnapshotCodec.Encode(snapshot), true);
+                }
+                var heard = GonogoAddon.SharedEngine?.HeardSnapshotNow();
+                if (heard != null)
+                {
+                    node.SetValue(HeardKey, HeardSnapshotCodec.Encode(heard), true);
                 }
             }
             catch (Exception ex)
