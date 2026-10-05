@@ -188,8 +188,9 @@ export type Probe = [
 ];
 `;
 
-// The read-frame and libration-point arithmetic that lives on the `/spine`
-// subpath, which first-party code reaches and an Uplink author may not. Named
+// The read-frame and libration-point arithmetic as the `/spine` subpath names
+// it, which first-party code reaches and an Uplink author may not: an author
+// reaches the published half of it through `/frames`. Named
 // individually so the probe reads like a real client; as above, a rename is
 // invisible here because the specifier is externalised rather than resolved.
 const SPINE_PROBE_SOURCE = `

@@ -1,10 +1,11 @@
-import type { CelestialBody, CelestialFacts } from "@ksp-gonogo/sitrep-client";
 import {
   asDeterministic,
+  type CelestialBody,
+  type CelestialFacts,
   type Reading,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { UnitValue } from "@ksp-gonogo/ui-kit";
+import type { UnitValue } from "./readingCurrency";
 
 /** Turns a quantity computed from the body catalogue into the figure a readout draws, carrying how exact and how current it is. */
 export type EphemerisFigure = <Unit extends string>(

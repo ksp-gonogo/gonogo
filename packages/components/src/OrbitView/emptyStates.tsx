@@ -1,9 +1,9 @@
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
-import { Text } from "@ksp-gonogo/ui-kit";
 import {
+  Text,
   trajectoryWithheldCopy,
   type WithheldTrajectory,
-} from "../shared/trajectoryWithheld";
+} from "@ksp-gonogo/ui-kit";
 import { NoData } from "./styles";
 
 /** The refusal copy comes from the shared table; only the container is local, and it takes over the whole panel body. */

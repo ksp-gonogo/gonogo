@@ -1,8 +1,8 @@
 import {
   type OrbitTrajectory,
   TrajectoryKindLike,
-} from "@ksp-gonogo/sitrep-client";
-import { render } from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/spine";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import {
   TrajectoryWithheldNote,
   trajectoryWithheldCopy,
-} from "./trajectoryWithheld";
+} from "./TrajectoryWithheldNote";
 
 /** Every reason the seam can hand back, listed so a new one cannot slip past unworded. */
 const EVERY_REASON = [

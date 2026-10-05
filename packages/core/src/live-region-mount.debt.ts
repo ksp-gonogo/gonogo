@@ -16,7 +16,6 @@ export const LIVE_REGION_MOUNT_DEBT: Record<string, number> = {
   "packages/components/src/Experiments/index.tsx": 1,
   "packages/components/src/LaunchDirector/InFlightPanel.tsx": 1,
   "packages/components/src/LaunchDirector/LaunchDirectorView.tsx": 2,
-  "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
   "packages/components/src/MapView/index.tsx": 1,
   "packages/components/src/Navball/ControlSurface.tsx": 1,
   "packages/components/src/PowerSystems/PowerSystemsView.tsx": 2,

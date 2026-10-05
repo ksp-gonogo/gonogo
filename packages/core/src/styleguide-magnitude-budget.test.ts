@@ -205,11 +205,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // it is a horizontal-travel estimate that needs the speed, the time to impact
   // and, in vacuum, a surface gravity backed out of mu and the radius.
   "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 20,
-  // 1: the view instant, unwrapped to bucket it and to hand it to the frame
-  // arithmetic. Every function that solves a body's position takes a bare UT,
-  // because a Kepler solve is trigonometry on a number and not an operation the
-  // algebra has a term for.
-  "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
   /*
    * 3: the burn's first post-burn patch drawn as the planned conic. A
    * `ProjectedOrbit` is plain numbers because core's maneuver solver computes

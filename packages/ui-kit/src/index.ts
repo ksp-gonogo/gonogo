@@ -280,6 +280,7 @@ export {
   ExpandableText,
   type ExpandableTextProps,
 } from "./ExpandableText";
+export { type EphemerisFigure, ephemerisFigureOf } from "./ephemerisFigure";
 export { Fill, type FillProps } from "./Fill";
 export {
   FilterChip,
@@ -612,6 +613,11 @@ export {
   type UseTooltipResult,
   useTooltip,
 } from "./Tooltip";
+export {
+  TrajectoryWithheldNote,
+  trajectoryWithheldCopy,
+  type WithheldTrajectory,
+} from "./TrajectoryWithheldNote";
 export { Truncate } from "./Truncate";
 export {
   TONE_LABEL,

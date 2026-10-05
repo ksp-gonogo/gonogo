@@ -1,4 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import type { EphemerisFigure } from "@ksp-gonogo/ui-kit";
 import {
   Button,
   type ReckoningMarking,
@@ -6,7 +7,6 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import type { EphemerisFigure } from "../shared/ephemerisFigure";
 import { fmtCountdown, fmtDays } from "./labels";
 import {
   ColDv,

@@ -59,6 +59,19 @@ import {
   frameInstantAt,
   frameVector,
   fromFrame,
+  type LagrangePointName,
+  LIBRATION_REFUSALS,
+  type LibrationAnswer,
+  type LibrationOffset,
+  type LibrationPair,
+  type LibrationPoint,
+  type LibrationRefusal,
+  type LibrationStationKeeping,
+  lagrangePointsAt,
+  librationOffsetOf,
+  librationPairLabel,
+  librationPairsOf,
+  type OrbitTrajectory,
   READ_FRAME_KINDS,
   type ReadFrameChoice,
   type ReadFrameKind,
@@ -67,8 +80,12 @@ import {
   type SystemInstant,
   systemInstantAt,
   TRAJECTORY_SCALE_CONVENTIONS,
+  type TrajectoryFrame,
+  TrajectoryFrameKindLike,
   type TrajectoryScaleConvention,
   toFrame,
+  trajectoryFrameLabel,
+  useOrbitTrajectory,
 } from "@ksp-gonogo/sitrep-sdk/frames";
 
 type Equal<Left, Right> =
@@ -205,3 +222,63 @@ export const _refusesTheWireShapeDirectly = (
 /** And the tuple is not a wire vector either, so the two cannot be crossed silently. */
 // @ts-expect-error: a tuple has no `x`/`y`/`z` leaves carrying units
 export const _tupleIsNotAWireVector: Vector3<"m"> = [1, 2, 3] as FrameVector3;
+
+/**
+ * A pair control lists its pairs from the catalogue, names each one, and the
+ * chosen pair's five points and a craft's offset from the nearest come back in
+ * the pair's own frame. A craft position is a frame tuple, never a wire vector.
+ */
+export function _placesTheLibrationPoints(
+  facts: CelestialFacts,
+  ut: number,
+  vesselInertial: FrameVector3,
+): string {
+  const pairs: readonly LibrationPair[] = librationPairsOf(facts);
+  const label = librationPairLabel(pairs[0] ?? null);
+  const answer: LibrationAnswer = lagrangePointsAt(
+    facts,
+    pairs[0]?.secondaryIndex,
+    ut,
+  );
+  const refusal: LibrationRefusal = answer.refusal;
+  if (refusal !== LIBRATION_REFUSALS.NotRefused) return label;
+  const first: LibrationPoint | undefined = answer.points[0];
+  const name: LagrangePointName | undefined = first?.name;
+  const offset: LibrationOffset | null = librationOffsetOf(
+    answer,
+    vesselInertial,
+  );
+  const keeping: LibrationStationKeeping | undefined = offset?.keeping;
+  return `${label} ${name ?? ""} ${keeping ?? ""}`;
+}
+
+/** A craft's path drawn in that pair's frame says which frame it arrived in, so a curve in another cannot pass as this one. */
+export function useDrawsThePathInThePairsFrame(
+  orbit: Parameters<typeof useOrbitTrajectory>[0],
+  answer: LibrationAnswer,
+  facts: CelestialFacts,
+): boolean {
+  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit, {
+    readFrame: { choice: answer.frameChoice, facts },
+  });
+  return (
+    trajectory?.shape === "arc" &&
+    trajectory.frame.kind === TrajectoryFrameKindLike.RotatingPulsating
+  );
+}
+
+/** A widget drawing in a frame it built itself names it with the one phrase every other widget uses. */
+export function _namesThePairsFrame(
+  answer: LibrationAnswer,
+  facts: CelestialFacts,
+): string {
+  const frame: TrajectoryFrame = {
+    kind: TrajectoryFrameKindLike.RotatingPulsating,
+    primaryBodyIndex: answer.pair?.primaryIndex ?? undefined,
+    secondaryBodyIndex: answer.pair?.secondaryIndex,
+    lengthsPulsate: true,
+    scaleConvention: TRAJECTORY_SCALE_CONVENTIONS.separationAtPointInstant,
+    unitLength: answer.frame?.unitLength,
+  };
+  return trajectoryFrameLabel(frame, facts);
+}

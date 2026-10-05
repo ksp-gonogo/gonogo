@@ -26,13 +26,13 @@ import {
   Section,
   Stack,
   Tooltip,
+  TrajectoryWithheldNote,
 } from "@ksp-gonogo/ui-kit";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
-import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useStreamBody } from "../shared/useStreamBody";

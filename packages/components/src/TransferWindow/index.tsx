@@ -19,6 +19,7 @@ import {
   Badge,
   Cluster,
   derivedMarking,
+  ephemerisFigureOf,
   FieldLabel,
   kspCalendar,
   Panel,
@@ -27,7 +28,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
-import { ephemerisFigureOf } from "../shared/ephemerisFigure";
 import type { HeldSince } from "../shared/heldFigure";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import {

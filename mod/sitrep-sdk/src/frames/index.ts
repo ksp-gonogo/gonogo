@@ -95,10 +95,10 @@
  * - `frameSides` and `FrameSides`, which replicate the in-game frame selector's
  *   own notion of which bodies sit on each side, and so track something outside
  *   this repo
- * - the libration-point arithmetic, a second domain vocabulary of eleven names
- *   including two tunable station-keeping thresholds. First-party code reaches
- *   it through `/spine`; publishing it needs its own decision and a consumer
- *   asking for it
+ * - the libration arithmetic's two station-keeping thresholds, which are tuning
+ *   rather than physics. The arithmetic itself is below: a libration point only
+ *   means something under n-body gravity, so the widget that draws them lives in
+ *   the Uplink that supplies it, and that Uplink is its consumer
  * - `CelestialFacts` and `CelestialBody`, the catalogue every function below
  *   takes. Already on the root barrel, which is where the catalogue is produced,
  *   and a type reachable through two paths raises a canonicality question for no
@@ -113,6 +113,26 @@ export {
   controlFrameToReadFrameChoice,
   readFrameChoicesEqual,
 } from "../spine/control-frame-to-read-frame";
+export {
+  type LagrangePointName,
+  LIBRATION_REFUSALS,
+  type LibrationAnswer,
+  type LibrationOffset,
+  type LibrationPair,
+  type LibrationPoint,
+  type LibrationRefusal,
+  type LibrationStationKeeping,
+  lagrangePointsAt,
+  librationOffsetOf,
+  librationPairLabel,
+  librationPairsOf,
+} from "../spine/lagrange";
+export {
+  type OrbitTrajectory,
+  type TrajectoryFrame,
+  TrajectoryFrameKindLike,
+  trajectoryFrameLabel,
+} from "../spine/orbit-trajectory";
 export {
   type BodyWithdrawal,
   type FrameCoordinates,
@@ -129,6 +149,7 @@ export {
   type TrajectoryScaleConvention,
   toFrame,
 } from "../spine/reference-frame";
+export { useOrbitTrajectory } from "../spine/use-orbit-trajectory";
 
 /**
  * A bare `[x, y, z]`. The only `Vector3` this subpath makes reachable, and the
