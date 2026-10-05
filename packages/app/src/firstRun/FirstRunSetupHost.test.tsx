@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
-import { ModalProvider } from "@ksp-gonogo/ui";
+import { ModalProvider, useModal } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
@@ -15,6 +15,7 @@ import {
   hasSeenFirstRunSetup,
   markFirstRunSetupSeen,
 } from "./firstRunFlag";
+import { requestFirstRunSetup } from "./firstRunRequest";
 
 function stepHeading(index: number, heading: string): string {
   return say("shell.stepHeading", { index, total: 6, heading });
@@ -167,6 +168,40 @@ describe("FirstRunSetupHost", () => {
     expect(hasSeenFirstRunSetup()).toBe(true);
   });
 
+  it("opens again on request after the first-run flag is spent", async () => {
+    markFirstRunSetupSeen();
+    renderHost();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    act(() => requestFirstRunSetup());
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.getByText(stepHeading(1, say("welcome.heading"))),
+    ).toBeInTheDocument();
+  });
+
+  it("swaps a dialog that closes itself before asking for one aria-modal dialog, never two", async () => {
+    markFirstRunSetupSeen();
+    render(
+      <ModalProvider>
+        <FirstRunSetupHost analyticsConsent={answeredConsent()} />
+        <SettingsOpener />
+      </ModalProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Open settings" }));
+    expect(
+      await screen.findByRole("dialog", { name: "Settings" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Run setup again" }));
+
+    await screen.findByText(stepHeading(1, say("welcome.heading")));
+    expect(screen.queryByRole("dialog", { name: "Settings" })).toBeNull();
+    expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1);
+  });
+
   it("never leaves two aria-modal dialogs reachable at once on first boot", async () => {
     const consent = new AnalyticsConsentService(memoryStorage());
     const { container } = render(<ConsentThenSetup consent={consent} />);
@@ -218,4 +253,31 @@ function ConsentGate({
   );
   if (answered) return null;
   return <AnalyticsConsentModal service={service} />;
+}
+
+/** Opens a stand-in settings dialog that hands off to the setup the way the Settings button does. */
+function SettingsOpener() {
+  const { open, close } = useModal();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        let id = "";
+        id = open(
+          <button
+            type="button"
+            onClick={() => {
+              close(id);
+              requestFirstRunSetup();
+            }}
+          >
+            Run setup again
+          </button>,
+          { title: "Settings" },
+        );
+      }}
+    >
+      Open settings
+    </button>
+  );
 }

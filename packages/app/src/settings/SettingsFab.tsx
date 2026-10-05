@@ -7,6 +7,7 @@ import {
 import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { requestFirstRunSetup } from "../firstRun/firstRunRequest";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
@@ -23,7 +24,7 @@ import { SettingsModal } from "./SettingsModal";
  * mirroring the per-tab dots.
  */
 export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
-  const { open } = useModal();
+  const { open, close } = useModal();
   const service = useSettingsService();
   const serialService = useSerialDeviceService();
   const screen = useScreen();
@@ -40,12 +41,18 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const hasIssue = dataSourceIssue || serialIssue;
 
   function handleClick() {
-    open(
+    let modalId = "";
+    // Settings closes before the setup opens: two aria-modal dialogs must never be up at once.
+    const runSetupAgain = () => {
+      close(modalId);
+      requestFirstRunSetup();
+    };
+    modalId = open(
       <ModalTelemetryBridge>
         <SettingsProvider service={service}>
           <ScreenProvider value={screen}>
             <SerialDeviceProvider service={serialService}>
-              <SettingsModal />
+              <SettingsModal onRunSetupAgain={runSetupAgain} />
             </SerialDeviceProvider>
           </ScreenProvider>
         </SettingsProvider>

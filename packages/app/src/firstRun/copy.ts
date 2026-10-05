@@ -118,7 +118,13 @@ export const WIZARD_COPY = {
   "done.next":
     "Load a save in KSP, then press the + button in the bottom-right corner of the dashboard to add widgets.",
   "done.settings":
-    "This setup opens only once. Settings, behind that same + button, carries the same readings from now on: the KSP connection under Connection, and each Uplink's health and whether its client loaded on its own page under Uplinks.",
+    "This setup opens by itself only once. Settings, behind that same + button, carries the same readings from now on: the KSP connection under Connection, and each Uplink's health and whether its client loaded on its own page under Uplinks. Run setup again, also under Connection, opens this flow again.",
+
+  "settings.heading": "Setup",
+  "settings.label": "First-run setup",
+  "settings.description":
+    "Open the setup again. It checks the container, the connection to KSP and your Uplinks.",
+  "settings.action": "Run setup again",
 } as const;
 
 export type CopyKey = keyof typeof WIZARD_COPY;

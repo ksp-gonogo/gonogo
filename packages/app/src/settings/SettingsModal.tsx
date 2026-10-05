@@ -10,11 +10,12 @@ import {
 } from "@ksp-gonogo/serial";
 import { SettingsPersistenceState } from "@ksp-gonogo/sitrep-sdk";
 import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
+import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
@@ -35,6 +36,8 @@ import { UplinksSettings, useUplinkPages } from "./UplinksSettings";
 export interface SettingsModalProps {
   /** The tab to open on, such as "connection". Otherwise the first tab asking for attention. */
   initialTabId?: string;
+  /** Closes this dialog and opens the first-run setup. Without it the Connection tab offers no way to rerun the setup. */
+  onRunSetupAgain?: () => void;
 }
 
 /**
@@ -44,7 +47,10 @@ export interface SettingsModalProps {
  * Each tab can raise an attention dot; the Settings FAB aggregates those dots
  * into its own badge (see SettingsFab).
  */
-export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
+export function SettingsModal({
+  initialTabId,
+  onRunSetupAgain,
+}: SettingsModalProps = {}) {
   const screen = useScreen();
   const settings = getSettingsForScreen(screen).filter(
     (def) => def.uplink === undefined,
@@ -112,7 +118,7 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
     tabs.push({
       id: "connection",
       label: "Connection",
-      content: <ConnectionPanel />,
+      content: <ConnectionPanel onRunSetupAgain={onRunSetupAgain} />,
       indicator: connectionIssue,
     });
   }
@@ -178,7 +184,9 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
  * The Connection tab: the game host this screen streams from, and whether the
  * stream is up. Each Uplink's own health is on its page under Uplinks.
  */
-function ConnectionPanel() {
+function ConnectionPanel({
+  onRunSetupAgain,
+}: Readonly<{ onRunSetupAgain?: () => void }>) {
   return (
     <SectionStack>
       <Stack as="section" gap="related-comfortable">
@@ -187,6 +195,20 @@ function ConnectionPanel() {
         </SectionTitle>
         <SitrepConnection />
       </Stack>
+      {onRunSetupAgain && (
+        <Stack as="section" gap="related-comfortable">
+          <SectionTitle as="h3" $rule>
+            {say("settings.heading")}
+          </SectionTitle>
+          <SettingLine>
+            <RowText>
+              <RowLabel>{say("settings.label")}</RowLabel>
+              <RowDesc>{say("settings.description")}</RowDesc>
+            </RowText>
+            <Button onClick={onRunSetupAgain}>{say("settings.action")}</Button>
+          </SettingLine>
+        </Stack>
+      )}
     </SectionStack>
   );
 }

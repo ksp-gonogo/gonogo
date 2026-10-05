@@ -5,6 +5,7 @@ import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { say } from "./copy";
 import { FirstRunSetup } from "./FirstRunSetup";
 import { hasSeenFirstRunSetup, markFirstRunSetupSeen } from "./firstRunFlag";
+import { onFirstRunSetupRequested } from "./firstRunRequest";
 
 /**
  * The single first-run auto-open. Mounted on the MAIN screen only: a station
@@ -15,6 +16,10 @@ import { hasSeenFirstRunSetup, markFirstRunSetupSeen } from "./firstRunFlag";
  * flag is written the instant the modal opens, not on completion, so the "never
  * re-opens once dismissed" guarantee holds even if the operator closes it
  * immediately.
+ *
+ * Also opens it on request from `requestFirstRunSetup`, which is how Settings
+ * reopens it after the first auto-open is spent. The requester closes its own
+ * dialog first, so two `aria-modal="true"` dialogs are never up at once.
  *
  * Renders nothing itself, it is a pure side-effect component, same shape as
  * `AnalyticsConsentHost` minus that component's own modal (this one goes
@@ -44,13 +49,7 @@ export function FirstRunSetupHost({
   const openedRef = useRef(false);
 
   useEffect(() => {
-    const openIfClear = () => {
-      if (openedRef.current) return;
-      if (!analyticsConsent.hasAnswered()) return;
-      if (hasSeenFirstRunSetup()) return;
-      openedRef.current = true;
-      markFirstRunSetupSeen();
-
+    const openSetup = () => {
       let modalId = "";
       modalId = open(
         <ModalTelemetryBridge>
@@ -60,9 +59,23 @@ export function FirstRunSetupHost({
       );
     };
 
+    const openIfClear = () => {
+      if (openedRef.current) return;
+      if (!analyticsConsent.hasAnswered()) return;
+      if (hasSeenFirstRunSetup()) return;
+      openedRef.current = true;
+      markFirstRunSetupSeen();
+      openSetup();
+    };
+
     openIfClear();
     // The operator answering the consent ask is what clears the way, so watch for it rather than leaving this unopened for the whole session.
-    return analyticsConsent.subscribe(openIfClear);
+    const stopWatchingConsent = analyticsConsent.subscribe(openIfClear);
+    const stopWatchingRequests = onFirstRunSetupRequested(openSetup);
+    return () => {
+      stopWatchingConsent();
+      stopWatchingRequests();
+    };
   }, [open, close, analyticsConsent]);
 
   return null;

@@ -57,7 +57,7 @@ describe("the wizard's copy table", () => {
   it("keys every string by step and field", () => {
     for (const key of KEYS) {
       expect(key).toMatch(
-        /^(shell|welcome|container|connect|uplinks|health|done)(\.[A-Za-z]+)+$/,
+        /^(shell|welcome|container|connect|uplinks|health|done|settings)(\.[A-Za-z]+)+$/,
       );
     }
   });

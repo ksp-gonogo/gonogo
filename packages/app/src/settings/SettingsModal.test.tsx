@@ -35,6 +35,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { say } from "../firstRun/copy";
 import { resolveUplinkIdentity } from "../uplinks/identity";
 import {
   __resetUplinkOutcomes,
@@ -42,7 +43,7 @@ import {
 } from "../uplinks/loaderState";
 import { registerSetting } from "./registry";
 import { SettingsProvider } from "./SettingsContext";
-import { SettingsModal } from "./SettingsModal";
+import { SettingsModal, type SettingsModalProps } from "./SettingsModal";
 import { SettingsService } from "./SettingsService";
 
 /*
@@ -91,12 +92,15 @@ function memoryStorage(): Storage {
  */
 const renderedTrees: Array<() => void> = [];
 
-function renderModal(screen_: "main" | "station" = "main") {
+function renderModal(
+  screen_: "main" | "station" = "main",
+  props: SettingsModalProps = {},
+) {
   const service = new SettingsService(memoryStorage());
   const view = render(
     <ScreenProvider value={screen_}>
       <SettingsProvider service={service}>
-        <SettingsModal />
+        <SettingsModal {...props} />
       </SettingsProvider>
     </ScreenProvider>,
   );
@@ -460,6 +464,31 @@ describe("SettingsModal: an Uplink's page reports its health", () => {
     expect(
       screen.getByRole("tab", { name: /^Connection/ }),
     ).not.toHaveAccessibleDescription(/attention/i);
+  });
+});
+
+describe("SettingsModal Connection tab: run setup again", () => {
+  it("offers the setup again and calls the handler it was given", async () => {
+    const onRunSetupAgain = vi.fn();
+    registerDataSource(makeSitrepStub());
+    renderModal("main", { onRunSetupAgain });
+    await openConnectionTab();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: say("settings.action") }));
+
+    expect(onRunSetupAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers nothing to press when no handler was given", async () => {
+    registerDataSource(makeSitrepStub());
+    renderModal("main");
+    await openConnectionTab();
+
+    expect(
+      screen.queryByRole("button", { name: say("settings.action") }),
+    ).toBeNull();
   });
 });
 
