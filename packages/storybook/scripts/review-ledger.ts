@@ -15,6 +15,7 @@ import { Fingerprinter } from "./fingerprint";
 import type { TargetKind } from "./generate-stories";
 import {
   fold,
+  type ItemKind,
   ledgerPath,
   readExport,
   readLedger,
@@ -64,9 +65,14 @@ function fingerprintsIn(tree: string, sha: string) {
   );
   const fingerprinter = new Fingerprinter(tree);
   const faults: string[] = [];
-  const of = (item: { kind: TargetKind; id: string }): string | null => {
+  const of = (item: { kind: ItemKind; id: string }): string | null => {
+    if (item.kind === "prose") {
+      faults.push(`prose ${item.id} carries no fingerprint`);
+      return null;
+    }
     const result = fingerprinter.fingerprint({
-      ...item,
+      kind: item.kind,
+      id: item.id,
       stories: targets[item.kind]?.[item.id] ?? [],
     });
     if ("hash" in result) return result.hash;

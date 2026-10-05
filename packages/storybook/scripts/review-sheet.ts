@@ -13,6 +13,13 @@
  * row: every run first drops one slot's rows and fails as BLIND if that check
  * does not report it.
  *
+ * A fourth kind, `prose`, lists every string of each registered copy table
+ * (`prose-sources.ts`): its current text, a box to rewrite it in, and the
+ * story that shows it, found by reading each of the table's stories in the
+ * built preview. A string no story shows is a fault like a missing story, and
+ * every run plants one and fails as BLIND if it is not reported. The export
+ * carries each rewritten string with the text it replaces, for `prose-apply`.
+ *
  * Each item carries its fingerprint and how it stands against the review
  * ledger (`--ledger <path>`, see `ledger.ts`). The page lists only what is not
  * approved at its current fingerprint, and says how many it left out; `--all`
@@ -20,8 +27,8 @@
  * missing story.
  *
  * `--storybook-url <url>` is where the links point (default
- * http://localhost:6006), `--only <id,id>` narrows the page, `--out <dir>`
- * moves it from `dist/review/`.
+ * http://localhost:6006), `--only <id,id>` and `--kind <kind,kind>` narrow the
+ * page, `--out <dir>` moves it from `dist/review/`.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -30,16 +37,24 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { Project, SyntaxKind } from "ts-morph";
 import type { Registered } from "../src/stories/Coverage.stories";
-import { serve, storyIds } from "./built";
+import { serve, storyEntries } from "./built";
 import { Fingerprinter } from "./fingerprint";
 import type { TargetKind } from "./generate-stories";
 import {
+  type ItemKind,
   ledgerKey,
   ledgerPath,
   readLedger,
   type Standing,
   standing,
 } from "./ledger";
+import {
+  proseFingerprint,
+  readCopy,
+  type Shown,
+  storiesShowing,
+} from "./prose";
+import { PROSE_SOURCES, type ProseSource } from "./prose-sources";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(HERE, "../dist");
@@ -48,19 +63,29 @@ const STORIES = join(DIST, "stories");
 const TEMPLATE = join(HERE, "review-sheet.html");
 const REGISTRY_STORY = "coverage--registry";
 const KINDS: readonly TargetKind[] = ["widget", "extension", "primitive"];
+const ITEM_KINDS: readonly ItemKind[] = [...KINDS, "prose"];
+/** A string planted in every copy table that no story shows, which the shown-nowhere check must report. */
+const PROSE_PLANT = "planted prose: no story shows these words";
 const REPO = resolve(HERE, "../../..");
 const SLOTS = resolve(REPO, "mod/sitrep-sdk/src/api/slots.ts");
 
 type Targets = Record<TargetKind, Record<string, string[]>>;
 
 interface Listing {
-  kind: TargetKind;
+  kind: ItemKind;
   id: string;
   title: string;
   subtitle: string;
   /** The slot an augment row fills. */
   slot?: string;
   stories: string[];
+  /** A prose item's current text. */
+  text?: string;
+}
+
+/** A listing with stories of its own to be fingerprinted by: everything but prose. */
+interface TargetListing extends Listing {
+  kind: TargetKind;
 }
 
 interface Reviewed extends Listing {
@@ -146,8 +171,8 @@ function listings(
   registered: Registered[],
   primitives: [string[], string][],
   targets: Targets,
-): Listing[] {
-  const out: Listing[] = [];
+): TargetListing[] {
+  const out: TargetListing[] = [];
   for (const r of registered) {
     const kind = r.kind === "widget" ? "widget" : "extension";
     out.push({
@@ -190,6 +215,94 @@ function faults(all: Listing[], indexed: Set<string>): string[] {
   return out;
 }
 
+/** What each story's page reads once it has settled: every element's text and worded attribute. */
+async function readShown(base: string, ids: readonly string[]): Promise<Shown> {
+  const shown: Record<string, string[]> = {};
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    for (const id of ids) {
+      await page.goto(`${base}/iframe.html?id=${id}&viewMode=story`);
+      await page.waitForFunction(
+        () =>
+          (document.querySelector("#storybook-root")?.children.length ?? 0) > 0,
+      );
+      let last = "";
+      for (let tries = 0; tries < 20; tries++) {
+        await page.waitForTimeout(250);
+        const now = await page.evaluate(
+          () => document.querySelector("#storybook-root")?.textContent ?? "",
+        );
+        if (now === last) break;
+        last = now;
+      }
+      shown[id] = await page.evaluate(() => {
+        const root = document.querySelector("#storybook-root");
+        if (root === null) return [];
+        const out = new Set<string>();
+        for (const el of [root, ...root.querySelectorAll("*")]) {
+          const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+          if (text !== "") out.add(text);
+          for (const name of ["aria-label", "title", "placeholder"]) {
+            const value = el.getAttribute(name);
+            if (value) out.add(value.replace(/\s+/g, " ").trim());
+          }
+        }
+        return [...out];
+      });
+    }
+  } finally {
+    await browser.close();
+  }
+  return shown;
+}
+
+/**
+ * One source's strings as listings, each with the stories that show it, and a
+ * fault for each string none does.
+ */
+function proseListings(
+  source: ProseSource,
+  shown: Shown,
+  order: readonly string[],
+): { listings: Listing[]; faults: string[] } {
+  const file = resolve(REPO, source.file);
+  const entries = readCopy(
+    readFileSync(file, "utf8"),
+    source.exportName,
+    source.file,
+  );
+  const listings: Listing[] = [];
+  const found: string[] = [];
+  if (order.length === 0) {
+    found.push(
+      `prose source ${source.id} has no story titled ${source.storyTitle}`,
+    );
+  }
+  if (storiesShowing("plant", PROSE_PLANT, shown, order).length > 0) {
+    throw new Error(
+      `BLIND: a planted string no story shows was found in ${source.storyTitle}, so a string reported as shown means nothing.`,
+    );
+  }
+  for (const entry of entries) {
+    const stories = storiesShowing(entry.key, entry.text, shown, order);
+    if (stories.length === 0) {
+      found.push(
+        `prose ${source.id}:${entry.key} is shown by no story titled ${source.storyTitle}`,
+      );
+    }
+    listings.push({
+      kind: "prose",
+      id: `${source.id}:${entry.key}`,
+      title: entry.key,
+      subtitle: source.title,
+      stories,
+      text: entry.text,
+    });
+  }
+  return { listings, faults: found };
+}
+
 /** Every slot id the sdk's `SlotRegistry` declares. */
 function declaredSlots(): string[] {
   const file = new Project({
@@ -218,6 +331,7 @@ async function main(): Promise<void> {
     flag(argv, "--storybook-url") ?? "http://localhost:6006"
   ).replace(/\/+$/, "");
   const only = flag(argv, "--only");
+  const kinds = flag(argv, "--kind");
   const everything = argv.includes("--all");
   const outDir = resolve(flag(argv, "--out") ?? join(DIST, "review"));
 
@@ -230,9 +344,20 @@ async function main(): Promise<void> {
   const { server, url } = await serve(STATIC);
   let registered: Registered[];
   let indexed: Set<string>;
+  const prose: Listing[] = [];
+  const proseFaults: string[] = [];
   try {
-    indexed = new Set(await storyIds(url));
+    const entries = await storyEntries(url);
+    indexed = new Set(entries.map((entry) => entry.id));
     registered = await readRegistered(url);
+    for (const source of PROSE_SOURCES) {
+      const order = entries
+        .filter((entry) => entry.title === source.storyTitle)
+        .map((entry) => entry.id);
+      const read = proseListings(source, await readShown(url, order), order);
+      prose.push(...read.listings);
+      proseFaults.push(...read.faults);
+    }
   } finally {
     server.close();
   }
@@ -267,8 +392,17 @@ async function main(): Promise<void> {
       standing: standing(entry, print.hash),
     });
   }
+  for (const l of prose) {
+    const fingerprint = proseFingerprint(l.text ?? "");
+    reviewed.push({
+      ...l,
+      fingerprint,
+      standing: standing(ledger[ledgerKey(l.kind, l.id)], fingerprint),
+    });
+  }
   const found = [
     ...unprinted,
+    ...proseFaults,
     ...faults(all, indexed),
     ...unlistedSlots(all, declared).map(
       (slot) => `slot ${slot} is declared and no augment row fills it`,
@@ -284,7 +418,19 @@ async function main(): Promise<void> {
   }
 
   const wanted = only ? new Set(only.split(",").map((s) => s.trim())) : null;
-  const asked = wanted ? reviewed.filter((l) => wanted.has(l.id)) : reviewed;
+  const wantedKinds = kinds
+    ? new Set(kinds.split(",").map((s) => s.trim()))
+    : null;
+  for (const kind of wantedKinds ?? []) {
+    if (!ITEM_KINDS.some((k) => k === kind)) {
+      throw new Error(`--kind ${kind} is not one of ${ITEM_KINDS.join(", ")}`);
+    }
+  }
+  const asked = reviewed.filter(
+    (l) =>
+      (!wanted || wanted.has(l.id)) &&
+      (!wantedKinds || wantedKinds.has(l.kind)),
+  );
   const items = everything
     ? asked
     : asked.filter((l) => l.standing !== "approved");
@@ -308,10 +454,12 @@ async function main(): Promise<void> {
       JSON.stringify(data).replace(/</g, "\\u003c"),
     ),
   );
-  const count = (kind: TargetKind) =>
-    items.filter((i) => i.kind === kind).length;
+  const count = (kind: ItemKind) => items.filter((i) => i.kind === kind).length;
   console.log(
     `review-sheet: ${count("widget")} widgets, ${count("extension")} extensions, ${count("primitive")} ui-kit components, every one linked to a story in the built index`,
+  );
+  console.log(
+    `review-sheet: ${count("prose")} prose strings from ${PROSE_SOURCES.length} copy table(s), every one shown by a story (plant: a string no story shows, reported)`,
   );
   const changed = items.filter((i) => i.standing === "changed").length;
   console.log(

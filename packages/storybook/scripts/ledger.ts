@@ -31,7 +31,10 @@ export type Ledger = Record<string, Entry>;
 /** How an item stands against the ledger: approved still, approved at a fingerprint it no longer has, or never approved. */
 export type Standing = "approved" | "changed" | "unapproved";
 
-export function ledgerKey(kind: TargetKind, id: string): string {
+/** What a review-sheet item is: a story target, or one string of a copy table. */
+export type ItemKind = TargetKind | "prose";
+
+export function ledgerKey(kind: ItemKind, id: string): string {
   return `${kind}:${id}`;
 }
 
@@ -94,7 +97,7 @@ export function writeLedger(ledger: Ledger, file: string): void {
 }
 
 export interface ExportItem {
-  kind: TargetKind;
+  kind: ItemKind;
   id: string;
   approved: boolean;
   /** Absent from an export written before the sheet carried fingerprints. */
@@ -108,7 +111,7 @@ export interface SheetExport {
   items: ExportItem[];
 }
 
-const KINDS: readonly string[] = ["widget", "extension", "primitive"];
+const KINDS: readonly string[] = ["widget", "extension", "primitive", "prose"];
 
 export function readExport(file: string): SheetExport {
   const raw: unknown = JSON.parse(readFileSync(file, "utf8"));
@@ -132,7 +135,7 @@ export function readExport(file: string): SheetExport {
       throw new Error(`${file} item ${i} is malformed`);
     }
     return {
-      kind: item.kind as TargetKind,
+      kind: item.kind as ItemKind,
       id: item.id,
       approved: item.approved,
       fingerprint: item.fingerprint,

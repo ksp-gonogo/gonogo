@@ -13,6 +13,7 @@
     "review-sheet": "pnpm build-storybook && tsx scripts/review-sheet.ts",
     "typecheck": "pnpm generate && tsc --noEmit",
     "review-ledger": "tsx scripts/review-ledger.ts",
+    "prose-apply": "tsx scripts/prose-apply.ts",
     "test": "vitest run"
   },
   "dependencies": {

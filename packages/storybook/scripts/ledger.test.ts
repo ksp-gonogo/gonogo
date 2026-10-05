@@ -221,9 +221,7 @@ describe("review ledger", () => {
     );
     const sheet = readExport(file);
     const ledger: Ledger = {};
-    fold(ledger, sheet, (item) =>
-      real(root, { ...item, stories: SUBJECT.stories }),
-    );
+    fold(ledger, sheet, (item) => real(root, { ...SUBJECT, id: item.id }));
     const entry = ledger[ledgerKey("widget", "gauge-panel")];
     expect(entry.fingerprint).toBe(real(root, SUBJECT));
     expect(entry.date).toBe("2026-09-28T19:53:06.509Z");
