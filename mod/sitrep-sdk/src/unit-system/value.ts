@@ -323,13 +323,29 @@ export interface Value<Unit extends string = string> {
   readonly static?: true;
 
   /**
+   * Present, and `true`, on a value that is exact at any instant: computed
+   * from fixed inputs and the clock, with no model error to carry. A body's
+   * orbital elements on a fixed conic are the case, and the contract stamps
+   * them only while the body's own horizon says the conic is the whole truth.
+   * A figure drawn from one is not a guess, so it takes no held or modelled
+   * mark. Unlike {@link Value.static} it describes a value that moves, and it
+   * survives derivation: see {@link carryDeterminism}.
+   */
+  readonly deterministic?: true;
+
+  /**
    * Present so a value still works where a number is genuinely wanted:
    * `Math.max`, a `<progress value>`, a chart's y-axis. It does NOT rescue the
    * operators above, which TypeScript rejects on object types no matter what
    * `valueOf` says.
    */
   valueOf(): number;
-  toJSON(): { magnitude: number; unit: Unit; static?: true };
+  toJSON(): {
+    magnitude: number;
+    unit: Unit;
+    static?: true;
+    deterministic?: true;
+  };
   toString(): string;
 
   /**
@@ -697,9 +713,21 @@ const prototype = {
     return this.magnitude;
   },
   toJSON(this: Value) {
-    return this.static
-      ? { magnitude: this.magnitude, unit: this.unit, static: true as const }
-      : { magnitude: this.magnitude, unit: this.unit };
+    if (this.static) {
+      return {
+        magnitude: this.magnitude,
+        unit: this.unit,
+        static: true as const,
+      };
+    }
+    if (this.deterministic) {
+      return {
+        magnitude: this.magnitude,
+        unit: this.unit,
+        deterministic: true as const,
+      };
+    }
+    return { magnitude: this.magnitude, unit: this.unit };
   },
   toString(this: Value): string {
     // Debug output, never a UI surface: rendering is `<Unit>`'s job and it is the only thing that knows the rung, the word and the spacing.
@@ -892,6 +920,71 @@ export function asStatic<Unit extends string>(
 }
 
 /**
+ * `figure` stamped deterministic: exact at any instant. The decoder mints
+ * these where the contract says so; a caller reaches for it only through
+ * {@link carryDeterminism}, which checks the inputs.
+ *
+ * @category Units and values
+ */
+export function asDeterministic<Unit extends string>(
+  figure: Value<Unit>,
+): Value<Unit> {
+  const instance: { magnitude: number; unit: Unit; deterministic: true } =
+    Object.assign(Object.create(prototype), {
+      magnitude: figure.magnitude,
+      unit: figure.unit,
+      deterministic: true,
+    });
+  return instance as Value<Unit>;
+}
+
+/**
+ * Whether `candidate` is a value stamped deterministic.
+ *
+ * @category Units and values
+ */
+export function isDeterministicValue(candidate: unknown): boolean {
+  return isValue(candidate) && candidate.deterministic === true;
+}
+
+/**
+ * Whether a figure drawn from `candidate` is exact with no observation of now:
+ * a static value (constant) or a deterministic one (exact at any instant).
+ *
+ * @category Units and values
+ */
+export function isExactValue(candidate: unknown): boolean {
+  return (
+    isValue(candidate) &&
+    (candidate.static === true || candidate.deterministic === true)
+  );
+}
+
+/**
+ * `figure` stamped deterministic when every one of `inputs` is static or
+ * deterministic, and returned as it came otherwise. The clock is the one input
+ * that needs no entry: a figure computed from exact values at an instant is
+ * exact at that instant.
+ *
+ * This is how the stamp survives derivation, which arithmetic alone never
+ * grants: the algebra mints a bare value, and the caller, who knows everything
+ * the figure was computed from, states it here. One input that is neither (a
+ * craft's orbit, a budget) leaves the result unstamped, and it takes that
+ * input's mark as before. An empty `inputs` stamps nothing: a figure computed
+ * from nothing declared has made no claim.
+ *
+ * @category Units and values
+ */
+export function carryDeterminism<Unit extends string>(
+  figure: Value<Unit>,
+  inputs: readonly unknown[],
+): Value<Unit> {
+  return inputs.length > 0 && inputs.every(isExactValue)
+    ? asDeterministic(figure)
+    : figure;
+}
+
+/**
  * Whether `candidate` is a value the contract declares static.
  *
  * @category Units and values
@@ -936,11 +1029,15 @@ export function hydrate<Candidate>(candidate: Candidate): Candidate {
   if (Object.getPrototypeOf(candidate) === prototype) {
     return candidate;
   }
-  return (
-    candidate.static === true
-      ? staticValue(candidate.unit, candidate.magnitude)
-      : value(candidate.unit, candidate.magnitude)
-  ) as Candidate;
+  if (candidate.static === true) {
+    return staticValue(candidate.unit, candidate.magnitude) as Candidate;
+  }
+  if (candidate.deterministic === true) {
+    return asDeterministic(
+      value(candidate.unit, candidate.magnitude),
+    ) as Candidate;
+  }
+  return value(candidate.unit, candidate.magnitude) as Candidate;
 }
 
 /**

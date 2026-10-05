@@ -5,6 +5,7 @@
  * thing on a readout and another on the instrument beside it.
  */
 import {
+  isDeterministicValue,
   isStaticValue,
   type Reading,
   type UncertaintyBand,
@@ -48,6 +49,13 @@ export interface Resolved<Unit extends string> {
    * old and so is never marked held, whatever the reading's state.
    */
   isStatic: boolean;
+  /**
+   * Whether the number is exact at any instant: computed from fixed inputs and
+   * the clock, as a figure between two bodies on fixed conics is. It moves, so
+   * it is not static, and it is never a guess, so it takes no held or modelled
+   * mark whatever the reading's state.
+   */
+  isDeterministic: boolean;
   /**
    * What the mark means in words: the grade where the reading names one, a
    * grade-neutral word where it does not, and the instant the number was last
@@ -134,12 +142,13 @@ function heldCurrency<Unit extends string>(
    * gets no dot. Whatever is marked gets words, including the ordinary
    * gradeless held reading a derived value produces.
    */
-  if (isStaticValue(input.value)) {
+  if (isStaticValue(input.value) || isDeterministicValue(input.value)) {
     return {
       shown: input.value,
       held: false,
       mark: null,
-      isStatic: true,
+      isStatic: isStaticValue(input.value),
+      isDeterministic: isDeterministicValue(input.value),
       caption: null,
     };
   }
@@ -148,6 +157,7 @@ function heldCurrency<Unit extends string>(
     held: input.value !== undefined,
     mark: input.value !== undefined ? "held" : null,
     isStatic: false,
+    isDeterministic: false,
     caption:
       input.value === undefined
         ? null
@@ -177,6 +187,7 @@ export function resolveCurrency<Unit extends string>(
       held: false,
       mark: null,
       isStatic: isStaticValue(input),
+      isDeterministic: isDeterministicValue(input),
       caption: null,
       band: null,
     };
@@ -189,7 +200,9 @@ export function resolveCurrency<Unit extends string>(
   if (
     options.drawsReckoning &&
     input.reckoning.status === "available" &&
-    (input.state === "observed" || input.state === "held")
+    (input.state === "observed" || input.state === "held") &&
+    // An exact figure needs no model to carry it, so it is never drawn as one.
+    !isDeterministicValue(input.value)
   ) {
     const shown = input.reckoning.modelled;
     if (input.state === "held") {
@@ -209,6 +222,7 @@ export function resolveCurrency<Unit extends string>(
       held: carried,
       mark: carried ? "modelled" : null,
       isStatic: false,
+      isDeterministic: false,
       caption: carried ? MODELLED_TO_SCET : null,
       band,
     };
@@ -219,6 +233,7 @@ export function resolveCurrency<Unit extends string>(
       held: false,
       mark: null,
       isStatic: isStaticValue(input.value),
+      isDeterministic: isDeterministicValue(input.value),
       caption: null,
       band,
     };
@@ -230,6 +245,7 @@ export function resolveCurrency<Unit extends string>(
     held: false,
     mark: null,
     isStatic: false,
+    isDeterministic: false,
     caption: null,
     band: null,
   };
@@ -238,8 +254,8 @@ export function resolveCurrency<Unit extends string>(
 /**
  * The attributes every figure-drawing primitive stamps on the element that
  * carries its figure: `data-figure` names it as a figure, `"static"` for a fact
- * the contract declares static, and `data-held` marks one that is not a reading
- * of now. A render sweep reads the pair to find a held figure drawn as current.
+ * the contract declares static and `"deterministic"` for one exact at any
+ * instant, and `data-held` marks one that is not a reading of now. A render sweep reads the pair to find a held figure drawn as current.
  * No `data-figure` where there is no number to draw.
  */
 export function figureAttributes(resolved: {
@@ -247,6 +263,7 @@ export function figureAttributes(resolved: {
   readonly held: boolean;
   readonly mark?: ReckoningKind | null;
   readonly isStatic: boolean;
+  readonly isDeterministic?: boolean;
 }): {
   "data-figure": string | undefined;
   "data-held": "" | undefined;
@@ -254,7 +271,13 @@ export function figureAttributes(resolved: {
 } {
   return {
     "data-figure":
-      resolved.shown == null ? undefined : resolved.isStatic ? "static" : "",
+      resolved.shown == null
+        ? undefined
+        : resolved.isStatic
+          ? "static"
+          : resolved.isDeterministic
+            ? "deterministic"
+            : "",
     "data-held": resolved.held ? "" : undefined,
     "data-reckoned": resolved.held ? (resolved.mark ?? "held") : undefined,
   };

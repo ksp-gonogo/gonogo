@@ -161,3 +161,87 @@ describe("wrapTopicPayload", () => {
     expect(decoded.radius.plus(value("m", 1)).static).toBeUndefined();
   });
 });
+
+describe("a body's orbit, deterministic while its horizon says so", () => {
+  /** `PropagationHorizonKind` and `TrajectoryKind` as the wire carries them. */
+  const ANALYTIC = { kind: 1, trajectoryKind: 1, untilUt: null };
+  const INTEGRATED = { kind: 2, trajectoryKind: 2, untilUt: 86_400 };
+  const UNSPECIFIED = { kind: 0, trajectoryKind: 0, untilUt: null };
+
+  type Body = {
+    radius: Value;
+    orbit: { sma: Value; ecc: Value; epoch: Value };
+  };
+
+  const body = (horizon: unknown) =>
+    wrapTypePayload("BodyEntry", {
+      radius: 600_000,
+      orbit: { sma: 13_599_840_256, ecc: 0, epoch: 0 },
+      ...(horizon === undefined ? {} : { horizon }),
+    } as never) as Body;
+
+  it("stamps every element of the orbit under an Unbounded, Analytic horizon", () => {
+    const kerbin = body(ANALYTIC);
+    expect(kerbin.orbit.sma.deterministic).toBe(true);
+    expect(kerbin.orbit.ecc.deterministic).toBe(true);
+    expect(kerbin.orbit.epoch.deterministic).toBe(true);
+    // The orbit moves, so it is not a static fact, and the stamps are not confused.
+    expect(kerbin.orbit.sma.static).toBeUndefined();
+    expect(kerbin.radius.static).toBe(true);
+    expect(kerbin.radius.deterministic).toBeUndefined();
+  });
+
+  it("stamps nothing once a provider bounds the horizon, as an n-body install does", () => {
+    const moon = body(INTEGRATED);
+    expect(moon.orbit.sma.deterministic).toBeUndefined();
+    expect(moon.orbit.ecc.deterministic).toBeUndefined();
+    // Its radius is still a fact about the body.
+    expect(moon.radius.static).toBe(true);
+  });
+
+  it("stamps nothing for a horizon the producer could not fill", () => {
+    expect(body(UNSPECIFIED).orbit.sma.deterministic).toBeUndefined();
+  });
+
+  it("reads a payload with no horizon at all as a stock install", () => {
+    // A host older than the field has no seam for a provider to bound a body through.
+    expect(body(undefined).orbit.sma.deterministic).toBe(true);
+  });
+
+  it("leaves the same shape under a rostered vessel alone, since a craft's orbit drifts", () => {
+    const vessel = wrapTypePayload("VesselRosterEntry", {
+      orbit: { sma: 700_000, ecc: 0.01 },
+    } as never) as { orbit: { sma: Value } };
+    expect(vessel.orbit.sma.unit).toBe("m");
+    expect(vessel.orbit.sma.deterministic).toBeUndefined();
+  });
+
+  it("reaches the bodies of the system through the Topic", () => {
+    const payload = wrapTopicPayload<{ bodies: Body[] }>("system.bodies", {
+      bodies: [
+        { radius: 1, orbit: { sma: 2, ecc: 0, epoch: 0 }, horizon: ANALYTIC },
+        { radius: 1, orbit: { sma: 2, ecc: 0, epoch: 0 }, horizon: INTEGRATED },
+      ],
+    } as never);
+    expect(payload.bodies[0]?.orbit.sma.deterministic).toBe(true);
+    expect(payload.bodies[1]?.orbit.sma.deterministic).toBeUndefined();
+  });
+
+  it("keeps the stamp across the structured-clone hop and through JSON", () => {
+    const decoded = body(ANALYTIC);
+    const cloned = structuredClone(decoded);
+    hydratePayload(cloned);
+    const parsed = JSON.parse(JSON.stringify(decoded));
+    hydratePayload(parsed);
+    expect(cloned.orbit.sma.deterministic).toBe(true);
+    expect(typeof cloned.orbit.sma.plus).toBe("function");
+    expect(parsed.orbit.sma.deterministic).toBe(true);
+  });
+
+  it("is idempotent, since a payload can be decoded again on reconnect", () => {
+    const once = body(ANALYTIC);
+    const twice = wrapTypePayload("BodyEntry", once as never) as Body;
+    expect(twice.orbit.sma.deterministic).toBe(true);
+    expect(twice.orbit.sma.magnitude).toBe(13_599_840_256);
+  });
+});

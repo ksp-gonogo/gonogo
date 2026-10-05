@@ -241,6 +241,55 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void CollectsTheFieldsDeterministicWhileAHorizonSaysSo()
+        {
+            var maps = UnitDescriptor.Collect();
+
+            // A body's elements are exact while its own horizon is Unbounded and Analytic.
+            Assert.Equal("horizon", maps.DeterministicWhileByType["BodyEntry"]["orbit"]);
+            // The declaration is on the use site: the same shape under a rostered vessel is a craft's orbit, which drifts.
+            Assert.DoesNotContain("VesselRosterEntry", maps.DeterministicWhileByType.Keys);
+            Assert.DoesNotContain("OrbitEntry", maps.DeterministicWhileByType.Keys);
+        }
+
+        private sealed class GatedByNothing
+        {
+            [SitrepDeterministicWhile("Missing")]
+            public OrbitEntry? Orbit { get; set; }
+        }
+
+        private sealed class GatedByANumber
+        {
+            [SitrepDeterministicWhile(nameof(Until))]
+            public OrbitEntry? Orbit { get; set; }
+
+            public double Until { get; set; }
+        }
+
+        private sealed class DeterministicAndStatic
+        {
+            [SitrepStatic]
+            [SitrepDeterministicWhile(nameof(Horizon))]
+            public double Level { get; set; }
+
+            public PropagationHorizon Horizon { get; set; } = new();
+        }
+
+        [Theory]
+        [InlineData(typeof(GatedByNothing), "Orbit", "Missing")]
+        [InlineData(typeof(GatedByANumber), "Orbit", "Until")]
+        [InlineData(typeof(DeterministicAndStatic), "Level", "SitrepStatic")]
+        public void ADeterministicDeclarationThatCannotHoldIsRejected(Type holder, string property, string named)
+        {
+            var prop = holder.GetProperty(property)!;
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                UnitDescriptor.RequireDeterministicWhileIsSound(prop));
+
+            Assert.Contains(named, ex.Message);
+        }
+
+        [Fact]
         public void IsStableAcrossCalls()
         {
             // Every collection is sorted, so re-running produces identical

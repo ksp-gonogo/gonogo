@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
 import {
   buildElements,
+  CELESTIAL_FACTS,
   CONTROL_FRAME_TOPIC,
   LIBRATION_REFUSALS,
   type LibrationAnswer,
@@ -13,6 +14,7 @@ import {
   TRAJECTORY_SCALE_CONVENTIONS,
   TrajectoryFrameKindLike,
   useOrbitTrajectory,
+  useProcessor,
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
@@ -28,6 +30,7 @@ import {
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
+import { ephemerisFigureOf } from "../shared/ephemerisFigure";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import {
@@ -39,7 +42,6 @@ import { LibrationDiagram } from "./LibrationDiagram";
 import { LibrationReadouts } from "./LibrationReadouts";
 import { autoPair, resolveFor, vesselInertialAt } from "./pairResolution";
 import { librationPointsTopics } from "./topics";
-import { useCatalogueWithCurrency } from "./useCatalogue";
 
 /** Bucket the view instant so the points recompute about once a second, not once a render. */
 const UT_BUCKET_SECONDS = 1;
@@ -78,7 +80,11 @@ export function LibrationPointsComponent({
   config,
   id,
 }: Readonly<ComponentProps<LibrationPointsConfig>>) {
-  const { facts, heldSince: catalogueHeldSince } = useCatalogueWithCurrency();
+  const catalogue = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    catalogue?.state === "observed" || catalogue?.state === "held"
+      ? catalogue.value
+      : undefined;
   const viewUt = useViewUt()?.magnitude;
   const ut = quantiseUt(
     typeof viewUt === "number" ? viewUt : undefined,
@@ -220,7 +226,10 @@ export function LibrationPointsComponent({
               offset={offset}
               hasCraft={orbit !== undefined}
               craftMarking={orbitMarking}
-              catalogueHeldSince={catalogueHeldSince}
+              ephemerisFigure={ephemerisFigureOf(catalogue, [
+                primaryBody,
+                secondaryBody,
+              ])}
             />
           </Section>
         ) : undefined

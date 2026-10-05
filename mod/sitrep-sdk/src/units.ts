@@ -45,6 +45,7 @@ import {
   GENERATED_TOPIC_SHAPES,
   GENERATED_TOPIC_STATICS,
   GENERATED_TOPIC_UNITS,
+  GENERATED_TYPE_DETERMINISTIC_WHILE,
   GENERATED_TYPE_ENUMS,
   GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_STATICS,
@@ -423,6 +424,22 @@ export function staticsForTopic(topic: TopicId): readonly string[] {
   if (registered !== undefined) return registered;
   const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
   return handDeclared === undefined ? NO_STATICS : staticsForType(handDeclared);
+}
+
+const NO_GATES: Readonly<Record<string, string>> = Object.freeze({});
+
+/**
+ * The fields of `typeName` the contract declares deterministic while a sibling
+ * horizon says so, each against that horizon's field name. A value decoded
+ * under one is stamped `Value.deterministic` only when the horizon it arrived
+ * with is Unbounded and Analytic. Empty for a type that declares none.
+ *
+ * @category Units and values
+ */
+export function deterministicWhileForType(
+  typeName: string,
+): Readonly<Record<string, string>> {
+  return GENERATED_TYPE_DETERMINISTIC_WHILE[typeName] ?? NO_GATES;
 }
 
 /**

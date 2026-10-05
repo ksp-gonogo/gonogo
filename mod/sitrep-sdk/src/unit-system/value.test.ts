@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
 import {
+  asDeterministic,
+  asStatic,
+  carryDeterminism,
   hydrate,
+  isDeterministicValue,
+  isExactValue,
   isValue,
   type UnknownUnit,
   type Value,
@@ -503,5 +508,51 @@ describe("vectorMagnitude", () => {
       JSON.stringify({ x: value("m", 6), y: value("m", 8), z: value("m", 0) }),
     );
     expect(vectorMagnitude(decoded).magnitude).toBe(10);
+  });
+});
+
+describe("the deterministic stamp", () => {
+  const sma = asDeterministic(value("m", 13_599_840_256));
+  const radius = asStatic(value("m", 600_000));
+  const craftAltitude = value("m", 85_000);
+
+  it("marks a value exact at any instant without calling it static", () => {
+    expect(isDeterministicValue(sma)).toBe(true);
+    expect(sma.static).toBeUndefined();
+    expect(isExactValue(sma)).toBe(true);
+    expect(isExactValue(radius)).toBe(true);
+    expect(isExactValue(craftAltitude)).toBe(false);
+  });
+
+  it("is not carried by arithmetic alone, which cannot know what a result rests on", () => {
+    expect(sma.plus(value("m", 1)).deterministic).toBeUndefined();
+  });
+
+  it("survives a derivation whose every input is static or deterministic", () => {
+    const apoapsis = carryDeterminism(sma.plus(radius), [sma, radius]);
+    expect(isDeterministicValue(apoapsis)).toBe(true);
+    expect(apoapsis.magnitude).toBe(13_600_440_256);
+  });
+
+  it("is lost to one input that is neither, so the figure takes that input's mark", () => {
+    const range = carryDeterminism(sma.minus(craftAltitude), [
+      sma,
+      radius,
+      craftAltitude,
+    ]);
+    expect(isDeterministicValue(range)).toBe(false);
+    expect(range.magnitude).toBe(13_599_755_256);
+  });
+
+  it("stamps nothing for a figure that names no inputs", () => {
+    expect(isDeterministicValue(carryDeterminism(value("m", 1), []))).toBe(
+      false,
+    );
+  });
+
+  it("comes back from a serialisation hop", () => {
+    const back = hydrate(JSON.parse(JSON.stringify(sma)));
+    expect(isDeterministicValue(back)).toBe(true);
+    expect(typeof back.plus).toBe("function");
   });
 });

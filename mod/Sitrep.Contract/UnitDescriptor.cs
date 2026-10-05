@@ -114,6 +114,14 @@ namespace Sitrep.Contract
 
             /// <summary>The same, keyed by Topic id.</summary>
             public SortedDictionary<string, SortedSet<string>> StaticByTopic { get; set; }
+
+            /// <summary>
+            /// Type name to the camelCase fields it declares
+            /// <see cref="SitrepDeterministicWhileAttribute"/>, each against the
+            /// camelCase sibling horizon that gates it, for every type with at
+            /// least one.
+            /// </summary>
+            public SortedDictionary<string, SortedDictionary<string, string>> DeterministicWhileByType { get; set; }
         }
 
         /// <summary>
@@ -234,6 +242,7 @@ namespace Sitrep.Contract
             var enumMembers = new SortedDictionary<string, SortedDictionary<long, string>>(StringComparer.Ordinal);
             var staticByType = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
             var staticByTopic = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+            var deterministicWhileByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
 
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
             var assemblyTypes = LoadableTypes(target);
@@ -256,8 +265,15 @@ namespace Sitrep.Contract
                 var nested = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 var enums = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 var statics = new SortedSet<string>(StringComparer.Ordinal);
+                var deterministicWhile = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
+                    var gated = prop.GetCustomAttribute<SitrepDeterministicWhileAttribute>();
+                    if (gated != null)
+                    {
+                        deterministicWhile.Add(CamelCase(prop.Name), CamelCase(gated.Horizon));
+                    }
+
                     if (prop.GetCustomAttribute<SitrepStaticAttribute>() != null)
                     {
                         var staticField = CamelCase(prop.Name);
@@ -348,6 +364,11 @@ namespace Sitrep.Contract
                     }
                 }
 
+                if (deterministicWhile.Count > 0)
+                {
+                    deterministicWhileByType.Add(WireName(type), deterministicWhile);
+                }
+
                 if (nested.Count > 0)
                 {
                     shapesByType.Add(WireName(type), nested);
@@ -391,7 +412,44 @@ namespace Sitrep.Contract
                 EnumMembers = enumMembers,
                 StaticByType = staticByType,
                 StaticByTopic = staticByTopic,
+                DeterministicWhileByType = deterministicWhileByType,
             };
+        }
+
+        /// <summary>
+        /// Throws unless <paramref name="prop"/>'s
+        /// <see cref="SitrepDeterministicWhileAttribute"/> names a sibling
+        /// <see cref="PropagationHorizon"/> on the same type, and the property
+        /// is not also <see cref="SitrepStaticAttribute"/> or
+        /// <see cref="SitrepReckonableAttribute"/>. A gate that does not exist
+        /// would make the value deterministic by default, and a value cannot be
+        /// both exact at every instant and carried by a model with error.
+        /// </summary>
+        /// <param name="prop">A contract property carrying the attribute.</param>
+        public static void RequireDeterministicWhileIsSound(PropertyInfo prop)
+        {
+            var gated = prop.GetCustomAttribute<SitrepDeterministicWhileAttribute>();
+            if (gated == null)
+            {
+                return;
+            }
+
+            var site = prop.DeclaringType?.Name + "." + prop.Name;
+            var gate = prop.DeclaringType?.GetProperty(gated.Horizon, BindingFlags.Public | BindingFlags.Instance);
+            if (gate == null || gate.PropertyType != typeof(PropagationHorizon))
+            {
+                throw new InvalidOperationException(
+                    "[SitrepDeterministicWhile] on " + site + " names \"" + gated.Horizon +
+                    "\", which is not a PropagationHorizon property of the same type.");
+            }
+
+            if (prop.IsDefined(typeof(SitrepStaticAttribute), false)
+                || prop.IsDefined(typeof(SitrepReckonableAttribute), false))
+            {
+                throw new InvalidOperationException(
+                    "[SitrepDeterministicWhile] on " + site +
+                    " beside [SitrepStatic] or [SitrepReckonable]: a value is exact at every instant, constant, or carried by a model, never two of them.");
+            }
         }
 
         /// <summary>

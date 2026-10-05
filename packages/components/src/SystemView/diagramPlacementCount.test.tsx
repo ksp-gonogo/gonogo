@@ -33,6 +33,7 @@ function body(index: number, name: string, sma: number): CelestialBody {
     meanAnomalyAtEpoch: null,
     epoch: null,
     horizon: ANALYTIC_BODY_HORIZON,
+    deterministic: true,
     period: null,
     trueAnomaly: 1,
     mass: null,

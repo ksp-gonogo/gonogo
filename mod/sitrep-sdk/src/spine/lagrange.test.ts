@@ -49,6 +49,7 @@ function body(over: Partial<CelestialBody> & { index: number }): CelestialBody {
     epoch: null,
     // Libration points are a statement about a pair's geometry, not about how far anyone will vouch for it, so these fixtures are unbounded throughout.
     horizon: ANALYTIC_BODY_HORIZON,
+    deterministic: true,
     period: null,
     trueAnomaly: null,
     mass: null,

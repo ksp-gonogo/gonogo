@@ -6,7 +6,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { type HeldSince, heldFigure } from "../shared/heldFigure";
+import type { EphemerisFigure } from "../shared/ephemerisFigure";
 import { fmtCountdown, fmtDays } from "./labels";
 import {
   ColDv,
@@ -28,7 +28,7 @@ export function WindowsList({
   selectedIndex,
   onSelect,
   orbitMarking,
-  catalogueHeldSince,
+  ephemerisFigure,
   destPicker,
   createAlarm,
 }: {
@@ -37,8 +37,8 @@ export function WindowsList({
   onSelect: (index: number) => void;
   /** The ejection figures come from the parking orbit, so they take its mark. */
   orbitMarking: ReckoningMarking | null;
-  /** The window Δv rests on the body catalogue, so it holds with it. */
-  catalogueHeldSince: HeldSince;
+  /** The window Δv rests on the two bodies' orbits alone, so it is exact where they are and as old as the catalogue where they are not. */
+  ephemerisFigure: EphemerisFigure;
   /** The destination select, on this section's heading line: it scopes THIS list. */
   destPicker: ReactNode;
   createAlarm: ((w: TransferWindowEntry) => void) | null;
@@ -61,12 +61,7 @@ export function WindowsList({
               >
                 <ColWait>{fmtCountdown(w.waitSeconds)}</ColWait>
                 <ColDv>
-                  <Unit
-                    value={heldFigure(
-                      value("m/s", w.deltaV),
-                      catalogueHeldSince,
-                    )}
-                  />
+                  <Unit value={ephemerisFigure(value("m/s", w.deltaV))} />
                 </ColDv>
                 <ColTof>{fmtDays(w.transferTimeSec)}</ColTof>
               </SelectableRow>

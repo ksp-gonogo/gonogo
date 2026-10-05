@@ -10,7 +10,7 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { type HeldSince, heldFigure } from "../shared/heldFigure";
+import type { EphemerisFigure } from "../shared/ephemerisFigure";
 
 /** Not stationkeeping carries no state, so it recedes through the `muted` level the rows pass alongside. */
 const KEEPING_TONE: Record<LibrationOffset["keeping"], Tone> = {
@@ -31,7 +31,7 @@ export function LibrationReadouts({
   offset,
   hasCraft,
   craftMarking,
-  catalogueHeldSince,
+  ephemerisFigure,
 }: Readonly<{
   answer: LibrationAnswer;
   offset: LibrationOffset | null;
@@ -39,8 +39,8 @@ export function LibrationReadouts({
   hasCraft: boolean;
   /** The mark the craft's orbit gives the figures derived from it. */
   craftMarking: ReckoningMarking | null;
-  /** When the catalogue was last a reading of now; the pair's separation follows its orbit. */
-  catalogueHeldSince: HeldSince;
+  /** The pair's separation follows the secondary's orbit alone, so it is exact where that orbit is and as old as the catalogue where it is not. */
+  ephemerisFigure: EphemerisFigure;
 }>) {
   return (
     <>
@@ -48,10 +48,7 @@ export function LibrationReadouts({
         <RowName>Separation</RowName>
         <Text>
           <Unit
-            value={heldFigure(
-              value("m", answer.frame?.unitLength ?? 0),
-              catalogueHeldSince,
-            )}
+            value={ephemerisFigure(value("m", answer.frame?.unitLength ?? 0))}
           />
         </Text>
       </Row>

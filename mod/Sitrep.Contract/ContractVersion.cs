@@ -2313,8 +2313,16 @@ namespace Sitrep.Contract
         /// dropped where it would have waited, with <c>continuousInputWouldWait</c>
         /// arriving later as the news of its loss, where it was refused at the press.
         /// Additive on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 2 -&gt; 3:</b>
+        /// <see cref="SitrepDeterministicWhileAttribute"/>, which declares a value exact
+        /// at any instant while a sibling <see cref="PropagationHorizon"/> is Unbounded and
+        /// Analytic, the <c>GENERATED_TYPE_DETERMINISTIC_WHILE</c> map it generates, and
+        /// <see cref="UnitDescriptor.RequireDeterministicWhileIsSound"/>.
+        /// <see cref="BodyEntry.Orbit"/> is the first, gated on <see cref="BodyEntry.Horizon"/>.
+        /// Nothing on the wire changes, so an Uplink built against 29.2 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

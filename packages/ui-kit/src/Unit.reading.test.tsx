@@ -1,4 +1,5 @@
 import {
+  asDeterministic,
   type Reading,
   staticValue,
   type Value,
@@ -583,5 +584,69 @@ describe("a figure the contract declares static", () => {
     expect(
       container.querySelector("[data-figure]")?.getAttribute("data-figure"),
     ).toBe("");
+  });
+});
+
+describe("a figure exact at any instant", () => {
+  const phase = asDeterministic(value("°", 44.3));
+
+  it("is never marked held, and says it is deterministic rather than static", () => {
+    const { container } = render(
+      <Unit
+        value={{
+          state: "held",
+          reckoning: { status: "none" },
+          value: phase,
+          asOfUt: AT,
+          grade: "held",
+        }}
+      />,
+    );
+
+    expect(container.querySelector("[data-held]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
+    expect(
+      container.querySelector("[data-figure]")?.getAttribute("data-figure"),
+    ).toBe("deterministic");
+  });
+
+  it("is never drawn as a model's figure either, since nothing carried it", () => {
+    const { container } = render(
+      <Unit
+        value={{
+          state: "held",
+          reckoning: {
+            status: "available",
+            atUt: AT,
+            beyondReceived: true,
+            modelled: value("°", 50),
+            basis: "kepler-propagation",
+          },
+          value: phase,
+          asOfUt: AT,
+          grade: "held",
+        }}
+      />,
+    );
+
+    expect(container.querySelector("[data-held]")).toBeNull();
+    expect(container.querySelector("[data-reckoned]")).toBeNull();
+    expect(container).toHaveTextContent("44.3");
+  });
+
+  it("leaves the same figure without the stamp marked", () => {
+    const { container } = render(
+      <Unit
+        value={{
+          state: "held",
+          reckoning: { status: "none" },
+          value: value("°", 44.3),
+          asOfUt: AT,
+          grade: "held",
+        }}
+      />,
+    );
+
+    expect(container.querySelector("[data-held]")).not.toBeNull();
   });
 });

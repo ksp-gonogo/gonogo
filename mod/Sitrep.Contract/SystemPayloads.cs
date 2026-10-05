@@ -66,7 +66,12 @@ public class BodyEntry
     [SitrepStatic]
     public double? Radius { get; set; }
 
-    /// <summary>Orbital elements about the parent body; null only for the root star, which has no parent to orbit.</summary>
+    /// <summary>
+    /// Orbital elements about the parent body; null only for the root star, which has no parent to orbit.
+    /// Exact at any instant while <see cref="Horizon"/> is Unbounded and Analytic, so a figure
+    /// computed from them alone is not a guess.
+    /// </summary>
+    [SitrepDeterministicWhile(nameof(Horizon))]
     public OrbitEntry? Orbit { get; set; }
 
     /// <summary>

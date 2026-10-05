@@ -480,14 +480,18 @@ export {
 // second spelling of it worth exporting.
 export {
   affineVectorUnitFor,
+  asDeterministic,
   assertGuardsRegistered,
   calendarRatio,
+  carryDeterminism,
   type DeclaredUnit,
   Dimension,
   declaredUnitFor,
   displaySymbol,
   hydrate,
   isCalendarUnit,
+  isDeterministicValue,
+  isExactValue,
   isStaticValue,
   isUnit,
   isValue,

@@ -7396,7 +7396,8 @@ export interface BodyEntry
 	radius?: Value<"m"> | null;
 	/**
 	* Orbital elements about the parent body; null only for the root star, which
-	* has no parent to orbit.
+	* has no parent to orbit. Exact at any instant while `BodyEntry.horizon` is
+	* Unbounded and Analytic, so a figure computed from them alone is not a guess.
 	*/
 	orbit?: OrbitEntry | null;
 	/**

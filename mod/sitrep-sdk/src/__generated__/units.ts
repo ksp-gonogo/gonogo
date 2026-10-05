@@ -3030,6 +3030,20 @@ export const GENERATED_TOPIC_STATICS: Readonly<Record<string, readonly string[]>
   "spaceCenter.crewRoster": ["courage", "stupidity"],
 };
 
+/**
+ * The fields each shape declares [SitrepDeterministicWhile], each against the
+ * sibling horizon that gates it: every quantity under the field is exact at
+ * any instant while that horizon is Unbounded and Analytic, and stamped so as
+ * it is decoded. Keyed by the generated interface name in ./contract.ts.
+ *
+ * @category Units and values
+ */
+export const GENERATED_TYPE_DETERMINISTIC_WHILE: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  "BodyEntry": {
+    orbit: "horizon",
+  },
+};
+
 /** Each enum an `enum` field names, as its wire value to member name. */
 export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {
   "CommsControlSource": {

@@ -41,8 +41,12 @@ export {
   type UnitRung,
 } from "./registry";
 export {
+  asDeterministic,
   asStatic,
+  carryDeterminism,
   hydrate,
+  isDeterministicValue,
+  isExactValue,
   isStaticValue,
   isValue,
   type PointUnit,

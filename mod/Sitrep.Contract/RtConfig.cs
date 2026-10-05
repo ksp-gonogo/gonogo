@@ -1667,6 +1667,7 @@ public static class RtConfig
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
                 UnitDescriptor.RequireStaticIsNotReckonable(prop);
+                UnitDescriptor.RequireDeterministicWhileIsSound(prop);
             }
         }
         var vocabulary = maps.Vocabulary;
@@ -1804,6 +1805,18 @@ public static class RtConfig
         sb.Append("/** The same, keyed by Topic id. */\n");
         sb.Append("export const GENERATED_TOPIC_STATICS: Readonly<Record<string, readonly string[]>> = {\n");
         AppendStaticBody(sb, maps.StaticByTopic);
+        sb.Append("};\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * The fields each shape declares [SitrepDeterministicWhile], each against the\n");
+        sb.Append(" * sibling horizon that gates it: every quantity under the field is exact at\n");
+        sb.Append(" * any instant while that horizon is Unbounded and Analytic, and stamped so as\n");
+        sb.Append(" * it is decoded. Keyed by the generated interface name in ./contract.ts.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Units and values\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_TYPE_DETERMINISTIC_WHILE: Readonly<Record<string, Readonly<Record<string, string>>>> = {\n");
+        AppendMapBody(sb, maps.DeterministicWhileByType);
         sb.Append("};\n\n");
 
         sb.Append("/** Each enum an `enum` field names, as its wire value to member name. */\n");

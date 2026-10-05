@@ -43,6 +43,7 @@ function makeBody(
     epoch: null,
     // About geometry, not how far anyone vouches for it, so every body is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
+    deterministic: true,
     period: null,
     trueAnomaly: null,
     mass: null,

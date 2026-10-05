@@ -27,7 +27,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
-import { type HeldSince, heldFigure } from "../shared/heldFigure";
+import { ephemerisFigureOf } from "../shared/ephemerisFigure";
+import type { HeldSince } from "../shared/heldFigure";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import {
   type TimeTrigger,
@@ -106,11 +107,6 @@ function TransferWindowComponent({
     factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
-  // The phase angles and window figures are functions of the catalogue's orbits, dated by it.
-  const catalogueHeldSince: HeldSince =
-    factsReading?.state === "held"
-      ? { asOfUt: factsReading.asOfUt, grade: factsReading.grade }
-      : null;
   const bodies = facts?.bodies ?? NO_BODIES;
   // Through the canonical funnel, which coalesces a non-finite reading to 0 rather than passing NaN into the porkchop.
   const nowUt = magnitudeOr(useViewUt(), 0);
@@ -166,6 +162,11 @@ function TransferWindowComponent({
       dests[0] ??
       null,
     [dests, destIndex, targetBodyIndex],
+  );
+  // The phase angles and window figures are functions of the two bodies' orbits and the clock, nothing else.
+  const ephemerisFigure = useMemo(
+    () => ephemerisFigureOf(factsReading, [origin, dest]),
+    [factsReading, origin, dest],
   );
 
   const cycleDestination = () => {
@@ -335,18 +336,16 @@ function TransferWindowComponent({
                       </Cluster>
                       <NowValue>
                         <Unit
-                          value={heldFigure(
+                          value={ephemerisFigure(
                             value("°", solution.currentPhaseDeg),
-                            catalogueHeldSince,
                           )}
                           decimals={1}
                         />
                         <Muted>
                           {" / ideal "}
                           <Unit
-                            value={heldFigure(
+                            value={ephemerisFigure(
                               value("°", solution.idealPhaseDeg),
-                              catalogueHeldSince,
                             )}
                             decimals={1}
                           />
@@ -363,7 +362,7 @@ function TransferWindowComponent({
                   selectedIndex={selIdx}
                   onSelect={setSelectedWindow}
                   orbitMarking={orbitMarking}
-                  catalogueHeldSince={catalogueHeldSince}
+                  ephemerisFigure={ephemerisFigure}
                   destPicker={
                     // Label and select are direct children of SectionHead so the select's narrow-width rule sizes correctly; the heading IS the control's label.
                     <>

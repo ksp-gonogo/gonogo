@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.2.0
+  version: 29.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -9007,7 +9007,8 @@ components:
         orbit:
           description: |-
             Orbital elements about the parent body; null only for the root star, which
-            has no parent to orbit.
+            has no parent to orbit. Exact at any instant while `BodyEntry.horizon` is
+            Unbounded and Analytic, so a figure computed from them alone is not a guess.
           anyOf:
             - $ref: "#/components/schemas/OrbitEntry"
             - type: "null"

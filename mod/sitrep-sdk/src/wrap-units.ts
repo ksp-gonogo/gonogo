@@ -1,6 +1,11 @@
+import {
+  PropagationHorizonKind,
+  TrajectoryKind,
+} from "./__generated__/contract";
 import { PROVIDER_EXTENSIONS_FIELD } from "./extensions";
 import type { TopicId } from "./topics";
 import {
+  asDeterministic,
   hydrate,
   isValue,
   lookupUnit,
@@ -8,6 +13,7 @@ import {
   value,
 } from "./unit-system";
 import {
+  deterministicWhileForType,
   providerExtensionShapes,
   type ShapesByField,
   shapesForTopic,
@@ -234,7 +240,57 @@ function wrap<Payload>(
       );
     }
   }
+  /*
+   * Last, over what the passes above wrapped: a field the contract declares
+   * deterministic while a sibling horizon says so takes the stamp on every
+   * quantity under it, or on none.
+   */
+  for (const [field, gate] of Object.entries(
+    deterministicWhileForType(owner),
+  )) {
+    if (!(field in target)) continue;
+    if (!horizonIsExact(target[gate])) continue;
+    target[field] = stampDeterministic(target[field]);
+  }
   return payload;
+}
+
+/**
+ * Whether a decoded `PropagationHorizon` says its elements are the whole
+ * truth: Unbounded and Analytic. A payload with no horizon at all is a host
+ * older than the field, which has no seam for a provider to bound a body
+ * through, so it is a stock install and reads as exact. `Unspecified` is a
+ * producer that has the field and could not fill it, and does not.
+ */
+function horizonIsExact(horizon: unknown): boolean {
+  if (horizon === undefined || horizon === null) return true;
+  if (typeof horizon !== "object") return false;
+  const { kind, trajectoryKind } = horizon as {
+    kind?: unknown;
+    trajectoryKind?: unknown;
+  };
+  return (
+    kind === PropagationHorizonKind.Unbounded &&
+    trajectoryKind === TrajectoryKind.Analytic
+  );
+}
+
+/** Every quantity under `node` restamped deterministic; structure otherwise untouched, and a static value left static. */
+function stampDeterministic(node: unknown): unknown {
+  if (isValue(node)) {
+    return node.static === true ? node : asDeterministic(node);
+  }
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) node[i] = stampDeterministic(node[i]);
+    return node;
+  }
+  if (node !== null && typeof node === "object") {
+    const entries = node as Record<string, unknown>;
+    for (const key of Object.keys(entries)) {
+      entries[key] = stampDeterministic(entries[key]);
+    }
+  }
+  return node;
 }
 
 function wrapScalarOrList(

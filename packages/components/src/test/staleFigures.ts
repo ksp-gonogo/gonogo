@@ -2,6 +2,8 @@
 export interface Figure {
   text: string;
   isStatic: boolean;
+  /** Exact at any instant, so never old: a figure between bodies on fixed conics. */
+  isDeterministic: boolean;
   held: boolean;
 }
 
@@ -16,13 +18,14 @@ export function figuresIn(container: Element): Figure[] {
     .map((el) => ({
       text: (el.textContent ?? "").trim(),
       isStatic: el.getAttribute("data-figure") === "static",
+      isDeterministic: el.getAttribute("data-figure") === "deterministic",
       held: el.closest("[data-held]") !== null,
     }));
 }
 
 /**
- * The stale figures drawn identical to a live one and marked as neither held
- * nor static. Matched as a multiset of texts, so a figure that moved position
+ * The stale figures drawn identical to a live one and marked as neither held,
+ * static nor deterministic. Matched as a multiset of texts, so a figure that moved position
  * between the two renders is still paired with its twin.
  */
 export function unmarkedStaleFigures(
@@ -33,7 +36,7 @@ export function unmarkedStaleFigures(
   for (const f of live) liveTexts.set(f.text, (liveTexts.get(f.text) ?? 0) + 1);
   const unmarked: string[] = [];
   for (const f of stale) {
-    if (f.held || f.isStatic) continue;
+    if (f.held || f.isStatic || f.isDeterministic) continue;
     const left = liveTexts.get(f.text) ?? 0;
     if (left === 0) continue;
     liveTexts.set(f.text, left - 1);

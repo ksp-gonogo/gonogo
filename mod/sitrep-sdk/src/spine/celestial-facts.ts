@@ -3,7 +3,13 @@ import {
   PropagationHorizonKind,
   TrajectoryKind,
 } from "../__generated__/contract";
-import { asStatic, isValue, type Value, value } from "../unit-system";
+import {
+  asStatic,
+  isDeterministicValue,
+  isValue,
+  type Value,
+  value,
+} from "../unit-system";
 import {
   deriveEscapeVelocity,
   derivePeriod,
@@ -156,6 +162,15 @@ export interface CelestialBody {
   epoch: number | null;
   /** What the elected provider vouches these elements for; see {@link BodyHorizon}. */
   horizon: BodyHorizon;
+  /**
+   * Whether this body's place at any instant is exact: its elements arrived
+   * stamped deterministic, which the contract grants only while
+   * {@link CelestialBody.horizon} is Unbounded and Analytic. The root star has
+   * no elements to drift and is exact too. A figure computed only from exact
+   * bodies and the clock is not a guess; under an n-body install this is false
+   * and such a figure is as old as the catalogue it came from.
+   */
+  deterministic: boolean;
   /** Orbital period, seconds: derived `2π√(a³/μ_parent)`. OURS, and see below. */
   period: number | null;
   /** True anomaly, degrees in [0, 360), solved for the frame's view time. OURS. */
@@ -267,6 +282,12 @@ function mapHorizon(wire: BodyEntry["horizon"] | undefined): BodyHorizon {
   };
 }
 
+/** Whether every element the wire delivered for this orbit carries the deterministic stamp. */
+function orbitIsDeterministic(orbit: NonNullable<BodyEntry["orbit"]>): boolean {
+  const elements = Object.values(orbit).filter(isValue);
+  return elements.length > 0 && elements.every(isDeterministicValue);
+}
+
 function mapBody(
   entry: BodyEntry,
   byIndex: Map<number, BodyEntry>,
@@ -315,6 +336,7 @@ function mapBody(
     meanAnomalyAtEpoch,
     epoch,
     horizon: mapHorizon(entry.horizon),
+    deterministic: orbit === null || orbitIsDeterministic(orbit),
     period: derivePeriod(semiMajorAxis, parentGravParameter),
     trueAnomaly: deriveTrueAnomalyDeg({
       semiMajorAxis,

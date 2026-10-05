@@ -43,6 +43,7 @@ function mkBody(
     epoch: null,
     // Geometry fixtures: every body here is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
+    deterministic: true,
     period: null,
     trueAnomaly: null,
     mass: null,
