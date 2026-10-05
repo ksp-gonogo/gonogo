@@ -654,7 +654,6 @@ namespace Sitrep.Host
         {
             ConnectivityMetaTopic,
             "comms.connectivity",
-            "comms.signal",
             "comms.control",
         };
 

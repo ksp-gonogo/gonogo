@@ -347,12 +347,9 @@ namespace Gonogo.KSP
         internal static CommandCentreRegistry? CommandCentres => _commandCentreRegistry;
 
         private IChannelPublisher? _connectivity;
-        private IChannelPublisher? _signal;
         private IChannelPublisher? _control;
-        private IChannelPublisher? _delay;
         private IChannelPublisher? _link;
         private IChannelPublisher? _occlusion;
-        private IChannelPublisher? _degrade;
 
         private Kernel? _kernel;
 
@@ -374,28 +371,6 @@ namespace Gonogo.KSP
             Delivery = Delivery.LossyLatest,
             // Not an observation of a craft at all: the universe's geometry and the rule the backend applies to it. Nothing a light-time could carry.
             Delay = DelayRole.TrueNow,
-            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-        };
-
-        /// <summary>
-        /// A comms READOUT: the same capture, published at light speed rather
-        /// than instantly. Used by <c>comms.delay</c>, which describes the far
-        /// end of the link rather than this end of it.
-        ///
-        /// <para>NOT recordable, which is the other half of moving it. It is
-        /// computed on the ground, by gonogo's own light-time math over the
-        /// elected backend's graph, so it was never aboard the craft and
-        /// replaying it on reacquisition would have the craft dump a recording
-        /// of a number it never held. The gap is stated instead
-        /// (<c>Meta.GapSinceUt</c>).</para>
-        /// </summary>
-        private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
-        {
-            Requires = Requirement.None,
-            Topic = topic,
-            Delivery = Delivery.LossyLatest,
-            Delay = DelayRole.Delayed,
-            Recordable = false,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
@@ -423,17 +398,12 @@ namespace Gonogo.KSP
             Channels = new List<ChannelDeclaration>
             {
                 LinkReport(ConnectivityTopic),
-                LinkReport(SignalTopic),
                 LinkReport(ControlTopic),
-                // comms.delay: DELAYED, and this is not circular. The reveal
-                // gate and the command scheduler read the LEDGER
-                // (INetwork.DelayTo), written straight from the capture pass;
-                // this channel is a READOUT published from the same numbers. Two
-                // paths out of one source, so delaying the readout leaves the
-                // gate that carries it untouched. What it changes is honesty: a
-                // light-time is measured from where the craft was, and an
-                // operator learns it moved one light-time after it did.
-                Delayed(DelayTopic),
+                // comms.delay, comms.signal and comms.degrade are not declared
+                // here. Each command centre is sent its own by the contact plan
+                // source, from what that centre has heard. This Uplink still
+                // measures the delay over the game's own links for the engine's
+                // ledger: see SetSignalDelaySource below.
                 // comms.occlusion is TrueNow: it is not an observation of the
                 // vessel at all but a statement about the universe's geometry and
                 // the rule the elected backend applies to it. A delayed model
@@ -451,18 +421,6 @@ namespace Gonogo.KSP
                 {
                     Requires = Requirement.None,
                     Topic = LinkTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Delay = DelayRole.Delayed,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
-                // comms.degrade: Delayed, and the only shared comms channel that
-                // is. See DegradeTopic: a link GRADING is an observation of the
-                // craft, so it reveals at the same light-time horizon as the
-                // telemetry it describes rather than jumping ahead of it.
-                new ChannelDeclaration
-                {
-                    Requires = Requirement.None,
-                    Topic = DegradeTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -517,23 +475,17 @@ namespace Gonogo.KSP
             }
 
             _connectivity = host.Publisher(ConnectivityTopic);
-            _signal = host.Publisher(SignalTopic);
             _control = host.Publisher(ControlTopic);
-            _delay = host.Publisher(DelayTopic);
             _link = host.Publisher(LinkTopic);
             _occlusion = host.Publisher(OcclusionTopic);
-            _degrade = host.Publisher(DegradeTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
                 HandleOnCourier,
                 ConnectivityTopic,
-                SignalTopic,
                 ControlTopic,
-                DelayTopic,
                 LinkTopic,
-                OcclusionTopic,
-                DegradeTopic);
+                OcclusionTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -911,11 +863,8 @@ namespace Gonogo.KSP
                 return;
             }
             _connectivity?.Publish(capture.Connectivity, capture.Ut);
-            _signal?.Publish(capture.Signal, capture.Ut);
             _control?.Publish(capture.Control, capture.Ut);
-            _delay?.Publish(capture.Delay, capture.Ut);
             _occlusion?.Publish(capture.Occlusion, capture.Ut);
-            _degrade?.Publish(capture.Degrade, capture.Ut);
             // comms.link: the client-facing, freeze-exempt-Delayed connectivity
             // successor. Same Connected comms.connectivity carries,
             // but on the topic clients read so the disconnect edge survives the

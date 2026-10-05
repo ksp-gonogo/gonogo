@@ -1,0 +1,254 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Sitrep.Contract;
+using Sitrep.Host.Comms;
+using Xunit;
+
+using static Sitrep.Host.IntegrationTests.WsTestHarness;
+
+namespace Sitrep.Host.IntegrationTests
+{
+    /// <summary>
+    /// <c>comms.delay</c>, <c>comms.signal</c> and <c>comms.degrade</c> are
+    /// each command centre's own. The delay is the light-time of the path that
+    /// centre believes in. The signal and its grading are the active craft's
+    /// own reading of its whole path, which reaches a centre no sooner than
+    /// light from the farthest node on that path.
+    ///
+    /// <para>The active craft is one light-second from both centres. The relay
+    /// is ten light-minutes from the home centre and five from the far one.</para>
+    /// </summary>
+    public class CentreLinkReadingsTests
+    {
+        private const double T0 = 1000.0;
+
+        private const string Home = ScriptedContactGame.Home;
+        private const string Far = ScriptedContactGame.Far;
+
+        private static readonly string[] Readings =
+        {
+            ContactPlanSource.DelayTopic, ContactPlanSource.SignalTopic, ContactPlanSource.DegradeTopic,
+        };
+
+        private sealed class Seated : System.IAsyncDisposable
+        {
+            public ReckonedVantageWorld World = null!;
+            public TestClient HomeClient = null!;
+            public CentreView HomeView = null!;
+            public TestClient FarClient = null!;
+            public CentreView FarView = null!;
+
+            public async Task TickAsync(params double[] uts)
+            {
+                foreach (var ut in uts)
+                {
+                    World.Tick(ut);
+                }
+                await Task.WhenAll(
+                    ReckonedVantageWorld.SettleAsync(HomeClient, HomeView),
+                    ReckonedVantageWorld.SettleAsync(FarClient, FarView));
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                await HomeClient.DisposeAsync();
+                await FarClient.DisposeAsync();
+                await World.DisposeAsync();
+            }
+        }
+
+        private static async Task<Seated> SeatedAsync(ContactRadio? radio = null)
+        {
+            var world = await ReckonedVantageWorld.StartAsync();
+            world.Game.Radio = radio;
+            var (homeClient, homeView) = await world.SitDownAtAsync(Home, Readings);
+            var (farClient, farView) = await world.SitDownAtAsync(Far, Readings);
+            return new Seated { World = world, HomeClient = homeClient, HomeView = homeView, FarClient = farClient, FarView = farView };
+        }
+
+        private static double? Delay(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.DelayTopic);
+            if (payload == null)
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(payload);
+            var seconds = doc.RootElement.GetProperty("oneWaySeconds");
+            return seconds.ValueKind == JsonValueKind.Null ? (double?)null : seconds.GetDouble();
+        }
+
+        private static double PathSeconds(CentreView view)
+        {
+            using var doc = JsonDocument.Parse(view.Path!);
+            var metres = doc.RootElement.GetProperty("hops").EnumerateArray().Sum(h => h.GetProperty("distanceMeters").GetDouble());
+            return metres / SignalDelay.SpeedOfLightMetersPerSecond * ScriptedContactGame.LightFactor;
+        }
+
+        private static double? Strength(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.SignalTopic);
+            if (payload == null)
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(payload);
+            return doc.RootElement.GetProperty("strength").GetDouble();
+        }
+
+        private static double? Level(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.DegradeTopic);
+            if (payload == null)
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(payload);
+            var level = doc.RootElement.GetProperty("level");
+            return level.ValueKind == JsonValueKind.Null ? (double?)null : level.GetDouble();
+        }
+
+        private static ContactRadio Direct(double strength) => new ContactRadio(
+            ScriptedContactGame.Active,
+            true,
+            strength,
+            new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 1.0 - strength },
+            new[] { new RadioHop(ScriptedContactGame.ActiveGuid, ScriptedContactGame.HomeName, false) });
+
+        private static ContactRadio ThroughTheRelay(double strength) => new ContactRadio(
+            ScriptedContactGame.Active,
+            true,
+            strength,
+            new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 1.0 - strength },
+            new[]
+            {
+                new RadioHop(ScriptedContactGame.ActiveGuid, ScriptedContactGame.RelayGuid, true),
+                new RadioHop(ScriptedContactGame.RelayGuid, ScriptedContactGame.HomeName, false),
+            });
+
+        [Fact]
+        public async Task ACentresDelayIsTheLightTimeOfThePathItIsShown()
+        {
+            await using var seated = await SeatedAsync();
+            await seated.TickAsync(1, 2, 700, 702);
+
+            var home = Delay(seated.HomeView);
+            var far = Delay(seated.FarView);
+            Assert.NotNull(home);
+            Assert.NotNull(far);
+            Assert.Equal(PathSeconds(seated.HomeView), home!.Value, 0);
+            Assert.Equal(PathSeconds(seated.FarView), far!.Value, 0);
+            Assert.NotEqual(home.Value, far.Value, 0);
+
+            var (validAt, deliveredAt) = seated.HomeView.Stamps[ContactPlanSource.DelayTopic];
+            Assert.Equal(validAt, deliveredAt);
+        }
+
+        /// <summary>
+        /// The relay is destroyed, so the game's own path for the active craft,
+        /// and with it the game's own delay, is gone that instant. A centre's
+        /// delay stays the light-time of the path it still believes in until
+        /// the relay's silence could have reached it.
+        /// </summary>
+        [Fact]
+        public async Task ACentresDelayHoldsUntilTheNewsThatChangesItsPathArrives()
+        {
+            await using var seated = await SeatedAsync();
+            await seated.TickAsync(1, 2, 700, 702);
+            Assert.NotNull(Delay(seated.HomeView));
+
+            seated.World.Game.DestroyRelay();
+            await seated.TickAsync(T0, T0 + 2, T0 + 12, T0 + 299);
+            Assert.NotNull(Delay(seated.FarView));
+            Assert.NotNull(Delay(seated.HomeView));
+
+            await seated.TickAsync(T0 + 301, T0 + 302, T0 + 304);
+            Assert.Null(Delay(seated.FarView));
+            Reckoned.True(Delay(seated.HomeView) != null, "the home centre's delay went when the far centre heard the relay was gone");
+
+            await seated.TickAsync(T0 + 599);
+            Reckoned.True(Delay(seated.HomeView) != null, "the home centre's delay went one second before the relay's silence could reach it");
+
+            await seated.TickAsync(T0 + 601, T0 + 602, T0 + 604);
+            Assert.Null(Delay(seated.HomeView));
+        }
+
+        /// <summary>
+        /// The craft's radio reads its whole path at once, far hops included.
+        /// The craft is a second away, so its reading would tell a centre what
+        /// the relay's link is doing minutes before the relay's own light
+        /// could. It does not: it arrives when the relay's light does.
+        /// </summary>
+        [Fact]
+        public async Task AReadingOfAPathThroughARelayReachesACentreNoSoonerThanTheRelaysLight()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            Assert.Equal(0.9, Strength(seated.HomeView)!.Value, 6);
+            Assert.Equal(0.9, Strength(seated.FarView)!.Value, 6);
+            Assert.Equal(0.1, Level(seated.FarView)!.Value, 6);
+
+            seated.World.Game.Radio = ThroughTheRelay(0.5);
+            await seated.TickAsync(T0, T0 + 2, T0 + 12, T0 + 299);
+            Reckoned.True(Strength(seated.FarView) == 0.9, "the far centre was shown a reading of the relay's hop before the relay's light could reach it");
+            Reckoned.True(System.Math.Abs(Level(seated.FarView)!.Value - 0.1) < 1e-9, "the far centre was shown a grading of the relay's hop before the relay's light could reach it");
+            Reckoned.True(Strength(seated.HomeView) == 0.9, "the home centre was shown a reading of the relay's hop within seconds");
+
+            await seated.TickAsync(T0 + 301, T0 + 302, T0 + 304);
+            Assert.Equal(0.5, Strength(seated.FarView)!.Value, 6);
+            Assert.Equal(0.5, Level(seated.FarView)!.Value, 6);
+            Reckoned.True(Strength(seated.HomeView) == 0.9, "the home centre's reading moved when the far centre heard it");
+
+            await seated.TickAsync(T0 + 599);
+            Reckoned.True(Strength(seated.HomeView) == 0.9, "the home centre's reading moved one second before the relay's light could reach it");
+
+            await seated.TickAsync(T0 + 601, T0 + 602, T0 + 604);
+            Assert.Equal(0.5, Strength(seated.HomeView)!.Value, 6);
+        }
+
+        [Fact]
+        public async Task AReadingOverADirectPathArrivesAtTheCraftsOwnLightTime()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+
+            seated.World.Game.Radio = Direct(0.4);
+            await seated.TickAsync(T0, T0 + 0.5);
+            Assert.Equal(0.9, Strength(seated.HomeView)!.Value, 6);
+
+            await seated.TickAsync(T0 + 2, T0 + 3, T0 + 4);
+            Assert.Equal(0.4, Strength(seated.HomeView)!.Value, 6);
+            Assert.Equal(0.4, Strength(seated.FarView)!.Value, 6);
+        }
+
+        [Fact]
+        public async Task ACentreThatHasHeardNoReadingIsSentNoSignal()
+        {
+            await using var seated = await SeatedAsync();
+            await seated.TickAsync(1, 2, 700, 702);
+
+            Assert.Null(Strength(seated.HomeView));
+            Assert.Null(seated.HomeView.Latest(ContactPlanSource.DegradeTopic));
+        }
+
+        /// <summary>A reading is state, and an addressed sample is not kept for whoever subscribes after it landed, so it is said again.</summary>
+        [Fact]
+        public async Task ASessionThatSitsDownLaterIsSentItsCentresDelayAndReading()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+
+            var (late, view) = await seated.World.SitDownAtAsync(Home, Readings);
+            await using var _ = late;
+            seated.World.Tick(703);
+            seated.World.Tick(704);
+            await ReckonedVantageWorld.SettleAsync(late, view);
+
+            Assert.NotNull(Delay(view));
+            Assert.Equal(0.9, Strength(view)!.Value, 6);
+            Assert.Equal(0.1, Level(view)!.Value, 6);
+        }
+    }
+}

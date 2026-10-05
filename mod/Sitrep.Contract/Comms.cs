@@ -89,10 +89,18 @@ public class CommsConnectivity
 }
 
 /// <summary>
-/// The <c>comms.signal</c> payload: always present, sourced from the elected
-/// comms backend. A strength from 0 to 1 whose meaning depends on the backend:
-/// stock CommNet reports a coarse range fraction, RealAntennas a
-/// link-budget-derived value.
+/// The <c>comms.signal</c> payload: the active vessel's own reading of its
+/// link, sourced from the elected comms backend. A strength from 0 to 1 whose
+/// meaning depends on the backend: stock CommNet reports a coarse range
+/// fraction, RealAntennas a link-budget-derived value.
+///
+/// <para>ADDRESSED: each command centre is sent its own, the newest reading to
+/// have reached it. A reading is of the vessel's whole path at one instant, so
+/// it reaches a centre no sooner than light leaving the farthest node on that
+/// path at that instant could: it never tells a centre what a relay's link is
+/// doing before the relay's own light has. Absent until the first reading
+/// arrives. The path it was measured over is the game's, which is not always
+/// the path the centre believes in on <c>comms.path</c>.</para>
 ///
 /// <para>A save with the stock CommNet difficulty option off models no link
 /// budget at all and reports 1 here: nothing attenuates a link that is not
@@ -444,18 +452,23 @@ public enum CommsDelaySource
 /// <see cref="CommsLink"/>, and this reports <c>0</c> and
 /// <c>connected:true</c>.
 ///
-/// <para>DELAYED, like the telemetry it describes. A light-time is measured
-/// over the route a signal actually took, so the figure that reaches an
-/// operator is the delay as it WAS when the light left, and a craft whose delay
-/// has grown says so one light-time after it grew. Read it as an observation
-/// rather than as the current state of the link.
+/// <para>ADDRESSED: each command centre is sent its own, and no other
+/// centre's. It is the light-time of the active vessel's path as the receiving
+/// centre believes it to stand, which is the path that centre is sent on
+/// <c>comms.path</c>, so the two always agree. The path is worked out from
+/// what the centre has heard of each craft, so the figure moves only once the
+/// news that moves it has reached the centre: a relay that drops out goes on
+/// counting towards the delay until its silence has crossed to you. A zero
+/// that is a setting (delay switched off, or a save with no comms network) is
+/// sent at once.
 /// <internal>
-/// Delaying it is not circular. What releases every other Delayed channel is the engine's delay LEDGER
-/// (<c>INetwork.DelayTo</c>), fed by <c>ChannelEngine.CaptureSignalDelay</c> and
-/// the per-vessel/per-centre writes, all of which run on the ungated capture
-/// path. This channel is a readout published from the same computation. The SDK
-/// side is the same shape: <c>DelayAuthority</c> subscribes to the raw stream,
-/// so the value it hands <c>ViewClock</c> is never itself gated by a view time.
+/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreDelay. It is
+/// not what the engine times deliveries by. That is the delay LEDGER
+/// (<c>INetwork.DelayTo</c>), fed by <c>ChannelEngine.CaptureSignalDelay</c>
+/// from the game's own links on the ungated capture path, because it decides
+/// when light that was really sent really lands. The elected backend's whole
+/// solved path was published here until Saga 782 subtask 95; a far hop
+/// re-routing then reached a centre after only its light-time to the craft.
 /// </internal></para>
 /// </summary>
 /// <category>Comms</category>

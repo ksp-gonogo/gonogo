@@ -223,6 +223,9 @@ namespace Sitrep.Host.IntegrationTests
 
         public IReadOnlyList<string> Centres() => new[] { Home, Far };
 
+        /// <summary>What the active craft's radio says of its link, or null for a game that reads none.</summary>
+        public ContactRadio? Radio { get; set; }
+
         /// <summary>The craft the game has active now, which a test can switch.</summary>
         public string ActiveNow { get; set; } = ActiveGuid;
 
@@ -286,7 +289,7 @@ namespace Sitrep.Host.IntegrationTests
                     nodes.Insert(0, ContactGameNode.OrbitingCraft(Relay, Kerbin, _relayOrbit, null, "Relay"));
                 }
             }
-            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0);
+            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0) { Radio = Radio };
         }
 
         private static RotatingGroundStation Surface(double longitudeDeg) =>

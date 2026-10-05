@@ -23,6 +23,9 @@ namespace Sitrep.Host.Comms
             /// <summary>Whether each craft's radio answers, as last heard here, by node id.</summary>
             public Dictionary<string, bool> Link { get; } = new Dictionary<string, bool>(StringComparer.Ordinal);
 
+            /// <summary>The newest reading of each craft's radio to have arrived here, by node id.</summary>
+            public Dictionary<string, ContactRadio> Radio { get; } = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
+
             public long News { get; set; }
         }
 
@@ -92,10 +95,19 @@ namespace Sitrep.Host.Comms
                             listeningEar.News++;
                         }
                     });
+                    var stopRadio = _host.HearCraftRadio(vesselId, centre, radio =>
+                    {
+                        // An older reading arriving after a newer one, down a path that has since shortened, changes nothing.
+                        if (!listeningEar.Radio.TryGetValue(nodeId, out var held) || held.CapturedUt < radio.CapturedUt)
+                        {
+                            listeningEar.Radio[nodeId] = radio;
+                        }
+                    });
                     ear.Stop[vesselId] = () =>
                     {
                         stopState();
                         stopLink();
+                        stopRadio();
                     };
                 }
             }
@@ -112,6 +124,10 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public bool? LinkAt(string centre, string nodeId) =>
             _ears.TryGetValue(centre, out var ear) && ear.Link.TryGetValue(nodeId, out var connected) ? connected : (bool?)null;
+
+        /// <summary>The newest reading of the craft's radio to have reached <paramref name="centre"/>, or null when none has.</summary>
+        public ContactRadio? RadioAt(string centre, string nodeId) =>
+            _ears.TryGetValue(centre, out var ear) && ear.Radio.TryGetValue(nodeId, out var radio) ? radio : null;
 
         /// <summary>A count that moves each time news reaches <paramref name="centre"/>.</summary>
         public long NewsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.News : 0;

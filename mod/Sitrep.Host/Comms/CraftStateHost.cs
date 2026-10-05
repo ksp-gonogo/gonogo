@@ -53,6 +53,16 @@ namespace Sitrep.Host.Comms
         Action HearCraftLink(string vesselId, string centre, Action<bool> heard);
 
         /// <summary>
+        /// Records what a craft's radio says of its own link, on the craft's
+        /// node. It reaches each centre no sooner than light from the farthest
+        /// node on the path it was measured over.
+        /// </summary>
+        void RecordCraftRadio(string vesselId, ContactRadio radio, double ut);
+
+        /// <summary>Calls <paramref name="heard"/> each time a radio reading of the craft reaches <paramref name="centre"/>. Returns what stops it.</summary>
+        Action HearCraftRadio(string vesselId, string centre, Action<ContactRadio> heard);
+
+        /// <summary>
         /// Hears the craft's states as <paramref name="centre"/> receives them:
         /// the newest already arrived at once, and each later one as it lands.
         /// Returns the call that stops listening.

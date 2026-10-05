@@ -210,12 +210,12 @@ public static class CommsDegradeModels
 /// different quality curves on two saves. This channel names its rule, so a
 /// consumer acting on the number can see which grading produced it.</para>
 ///
-/// <para>Delayed, like the link observations it grades and unlike the
-/// always-live <c>comms.delay</c>. A rating is an observation of the craft's
-/// link, so an operator learns of a degradation one light-time after it
-/// happened, at the same instant the telemetry that suffered it arrives.
-/// Through a blackout it holds its last-known value; the disconnect itself
-/// reaches a client on <c>comms.link</c>, which is not held.</para>
+/// <para>ADDRESSED: each command centre is sent its own, with
+/// <c>comms.signal</c> and from the same reading of the vessel's radio. A
+/// rating is of the vessel's whole path at one instant, so it reaches a centre
+/// no sooner than light leaving the farthest node on that path could. Absent
+/// until the first reading arrives. Through a blackout it keeps its last
+/// value; the disconnect itself reaches a client on <c>comms.link</c>.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]

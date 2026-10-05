@@ -329,6 +329,10 @@ namespace Sitrep.Host.Tests.Comms
 
             public System.Action HearCraftLink(string vesselId, string centre, System.Action<bool> heard) => () => { };
 
+            public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut) => Calls.Add("radio " + vesselId + "@" + ut);
+
+            public System.Action HearCraftRadio(string vesselId, string centre, System.Action<ContactRadio> heard) => () => { };
+
             public void OnTimelineReset(System.Action reset)
             {
             }

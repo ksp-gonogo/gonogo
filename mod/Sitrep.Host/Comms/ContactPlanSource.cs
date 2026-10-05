@@ -86,6 +86,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>How large a body is as an occluder under a backend's occlusion model, in metres, or zero for an index that names no body.</summary>
         public Func<ICommsOcclusionModel, int, double> OccludingRadius { get; }
+
+        /// <summary>What the active craft's radio says of its own link now, or null when there is no active craft or no backend to ask.</summary>
+        public ContactRadio? Radio { get; set; }
     }
 
     /// <summary>The game a contact plan is made of. Asked on the main thread only.</summary>
@@ -109,6 +112,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>What a real light time is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
         double LightFactor();
+
+        /// <summary>Whether the save models a comms network at all: see <see cref="DeliveryInputs.NetworkModelled"/>.</summary>
+        bool NetworkModelled();
     }
 
     /// <summary>
@@ -164,7 +170,13 @@ namespace Sitrep.Host.Comms
 
         public const string VesselsTopic = SystemViewProvider.VesselsTopic;
 
-        private static readonly string[] PathTopics = { PathTopic, NetworkTopic, CommandCentreTopic };
+        public const string DelayTopic = "comms.delay";
+
+        public const string SignalTopic = "comms.signal";
+
+        public const string DegradeTopic = "comms.degrade";
+
+        private static readonly string[] PathTopics = { PathTopic, NetworkTopic, CommandCentreTopic, DelayTopic, SignalTopic, DegradeTopic };
 
         /// <summary>
         /// Soft cap on contact plans started per second of game time. A centre is
@@ -235,8 +247,10 @@ namespace Sitrep.Host.Comms
                 IReadOnlyList<ContactGameNode> stations,
                 IReadOnlyList<string> centres,
                 string? activeCraft,
-                bool routesDue)
+                bool routesDue,
+                ContactRadio? radio)
             {
+                Radio = radio;
                 Ut = ut;
                 Craft = craft;
                 Ground = ground;
@@ -257,6 +271,9 @@ namespace Sitrep.Host.Comms
             public IReadOnlyList<string> Centres { get; }
 
             public string? ActiveCraft { get; }
+
+            /// <summary>What the active craft's radio said on this look, or null.</summary>
+            public ContactRadio? Radio { get; }
 
             public bool RoutesDue { get; }
         }
@@ -290,6 +307,12 @@ namespace Sitrep.Host.Comms
         private readonly HashSet<string> _routesAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, HashSet<string>> _pathsAsked = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _pathShapes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>The radio reading last recorded of each craft, so only a change is said.</summary>
+        private readonly Dictionary<string, ContactRadio> _radioSaid = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
+
+        /// <summary>The radio reading each centre was last sent its signal and grading from.</summary>
+        private readonly Dictionary<string, ContactRadio> _radioSent = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
         private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
@@ -338,12 +361,15 @@ namespace Sitrep.Host.Comms
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
-        /// <summary>The five channels, for the manifest of the Uplink that registers this.</summary>
+        /// <summary>The channels, for the manifest of the Uplink that registers this.</summary>
         public static List<ChannelDeclaration> Channels() => new List<ChannelDeclaration>
         {
             PathChannel(PathTopic),
             PathChannel(NetworkTopic),
             PathChannel(CommandCentreTopic),
+            PathChannel(DelayTopic),
+            PathChannel(SignalTopic),
+            PathChannel(DegradeTopic),
             new ChannelDeclaration
             {
                 Requires = Requirement.None,
@@ -476,7 +502,8 @@ namespace Sitrep.Host.Comms
                 stations,
                 new List<string>(_game.Centres()),
                 string.IsNullOrEmpty(active) ? null : CraftStateRecorder.VesselPrefix + active,
-                routesDue);
+                routesDue,
+                look.Radio);
         }
 
         /// <summary>
@@ -507,6 +534,8 @@ namespace Sitrep.Host.Comms
                 _planned.Clear();
                 _unsettled.Clear();
                 _pathShapes.Clear();
+                _radioSaid.Clear();
+                _radioSent.Clear();
                 _vesselsNews.Clear();
                 System.Threading.Interlocked.Increment(ref _plansVersion);
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
@@ -515,6 +544,7 @@ namespace Sitrep.Host.Comms
             }
 
             CraftStateRecorder.Record(looked.Craft, _craftHost);
+            SayRadio(looked);
 
             var planning = _audience.PlanningCentres();
             var listening = new HashSet<string>(looked.Centres, StringComparer.Ordinal);
@@ -716,6 +746,7 @@ namespace Sitrep.Host.Comms
                     _planned.Remove(centre);
                     _unsettled.Remove(centre);
                     _pathShapes.Remove(centre);
+                    _radioSent.Remove(centre);
                     System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
             }
@@ -860,12 +891,22 @@ namespace Sitrep.Host.Comms
             var frames = 0;
             var home = _audience!.HomeCentre();
             var lightFactor = _audience.LightFactor();
+            var modelled = _audience.NetworkModelled();
+            var source = looked.ActiveCraft ?? "game";
             foreach (var centre in planning)
             {
+                frames += PublishReading(looked, centre);
                 _plans.TryGetValue(centre, out var plan);
                 if (plan != null && looked.Ut < plan.FromUt)
                 {
                     plan = null;
+                }
+                // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state.
+                var measured = modelled && lightFactor > 0.0;
+                if (!measured && _host!.IsAnyTopicSubscribed(DelayTopic) && (looked.RoutesDue || _pathsAsked[DelayTopic].Contains(centre)))
+                {
+                    _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, source), looked.Ut, ToItself(centre));
+                    frames++;
                 }
                 if (plan == null && looked.ActiveCraft != null)
                 {
@@ -902,12 +943,70 @@ namespace Sitrep.Host.Comms
                     _streams!.PublishAddressedTo(CommandCentreTopic, view.CommandCentre, looked.Ut, to);
                     frames++;
                 }
+                // The light-time of the very path the centre was just sent, so the two never disagree.
+                if (measured && _host.IsAnyTopicSubscribed(DelayTopic) && (reshaped || view.Path.Hops.Count > 0 || _pathsAsked[DelayTopic].Contains(centre)))
+                {
+                    _streams!.PublishAddressedTo(DelayTopic, CentreDelay.Over(view.Path, lightFactor, source), looked.Ut, to);
+                    frames++;
+                }
             }
             foreach (var asked in _pathsAsked.Values)
             {
                 asked.Clear();
             }
             PathFramesBudget.Record(frames, looked.Ut);
+        }
+
+        /// <summary>Records what the active craft's radio said on this look, when it says something new.</summary>
+        private void SayRadio(Looked looked)
+        {
+            var radio = looked.Radio;
+            if (radio == null)
+            {
+                return;
+            }
+            if (_radioSaid.TryGetValue(radio.CraftId, out var said) && radio.SaysTheSameAs(said))
+            {
+                return;
+            }
+            radio.CapturedUt = looked.Ut;
+            _radioSaid[radio.CraftId] = radio;
+            _craftHost!.RecordCraftRadio(CraftStateRecorder.GuidOf(radio.CraftId), radio, looked.Ut);
+        }
+
+        /// <summary>
+        /// Sends <paramref name="centre"/> the active craft's signal and its
+        /// grading, from the newest reading of that craft's radio to have
+        /// reached the centre: when a newer one has, and at once where a session
+        /// has just sat down. A centre that has heard none is sent nothing.
+        /// Returns how many frames it sent.
+        /// </summary>
+        private int PublishReading(Looked looked, string centre)
+        {
+            if (looked.ActiveCraft == null)
+            {
+                return 0;
+            }
+            var radio = _hearing!.RadioAt(centre, looked.ActiveCraft);
+            if (radio == null)
+            {
+                return 0;
+            }
+            var news = !_radioSent.TryGetValue(centre, out var sent) || !ReferenceEquals(sent, radio);
+            _radioSent[centre] = radio;
+            var to = ToItself(centre);
+            var frames = 0;
+            if (_host!.IsAnyTopicSubscribed(SignalTopic) && (news || _pathsAsked[SignalTopic].Contains(centre)))
+            {
+                _streams!.PublishAddressedTo(SignalTopic, new CommsSignal { Strength = radio.Strength }, looked.Ut, to);
+                frames++;
+            }
+            if (_host.IsAnyTopicSubscribed(DegradeTopic) && (news || _pathsAsked[DegradeTopic].Contains(centre)))
+            {
+                _streams!.PublishAddressedTo(DegradeTopic, radio.Degrade, looked.Ut, to);
+                frames++;
+            }
+            return frames;
         }
 
         /// <summary>The name <paramref name="centre"/> knows <paramref name="nodeId"/> by: a ground station's own, or a craft's as the centre last heard it. Courier thread only.</summary>

@@ -88,6 +88,90 @@ namespace Sitrep.Host
             });
         }
 
+        internal const string CraftRadioSuffix = ".radio";
+
+        /// <summary>The topic a craft's radio readings are recorded under.</summary>
+        internal static string CraftRadioTopic(string vesselId) => CraftStatePrefix + vesselId + CraftRadioSuffix;
+
+        /// <summary>The delays each craft's last radio reading taken in contact was sent under, which is what the reading that says the link has gone is sent under too.</summary>
+        private readonly Dictionary<string, DelayStamp> _craftRadioStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Records a reading of a craft's radio on the craft's own node.
+        ///
+        /// <para>The reading is of a whole path, every hop of it as it stood at
+        /// one instant, so it is sent to each centre under the longest of the
+        /// light-times from the nodes on that path: a centre farther from a
+        /// relay than from the craft does not learn through the craft's reading
+        /// what the relay's own light has not yet told it.</para>
+        ///
+        /// <para>A reading that the link has gone is how each centre learns its
+        /// strength is nothing, so it is sent under the delays of the last
+        /// reading taken in contact, as the other reports of a blackout are. A
+        /// craft that was never in contact has nothing to say.</para>
+        /// </summary>
+        public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut)
+        {
+            DelayStamp? stamp;
+            if (radio.Connected && SubjectConnected(FleetNodePrefix + vesselId))
+            {
+                stamp = WholePathStamp(vesselId, radio.Hops);
+                _craftRadioStamps[vesselId] = stamp;
+            }
+            if (!_craftRadioStamps.TryGetValue(vesselId, out stamp))
+            {
+                return;
+            }
+            var topic = CraftRadioTopic(vesselId);
+            _lastRecordedUt[topic] = ut;
+            _courier.Record(NodeFor(topic), topic, radio, ut, sentUnder: stamp);
+        }
+
+        /// <summary>For every centre, the longest light-time to it from the craft or from any craft on <paramref name="hops"/>.</summary>
+        private DelayStamp WholePathStamp(string vesselId, IReadOnlyList<RadioHop> hops)
+        {
+            var stamps = new List<DelayStamp> { _network.StampFor(FleetNodePrefix + vesselId) };
+            foreach (var hop in hops)
+            {
+                if (hop.ToIsCraft)
+                {
+                    stamps.Add(_network.StampFor(FleetNodePrefix + hop.To));
+                }
+            }
+            if (stamps.Count == 1)
+            {
+                return stamps[0];
+            }
+            var longest = double.NegativeInfinity;
+            var byVantage = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var stamp in stamps)
+            {
+                longest = Math.Max(longest, stamp.BaseSeconds);
+            }
+            foreach (var centre in _activeCentreIds)
+            {
+                var slowest = double.NegativeInfinity;
+                foreach (var stamp in stamps)
+                {
+                    slowest = Math.Max(slowest, stamp.For(centre));
+                }
+                byVantage[centre] = slowest;
+            }
+            return new DelayStamp(longest, byVantage);
+        }
+
+        public Action HearCraftRadio(string vesselId, string centre, Action<ContactRadio> heard)
+        {
+            var topic = CraftRadioTopic(vesselId);
+            return _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
+            {
+                if (delivered.Payload is ContactRadio radio)
+                {
+                    heard(radio);
+                }
+            });
+        }
+
         /// <summary>The last state recorded of each present craft, to say again to a centre that has just gained a route to it.</summary>
         private readonly Dictionary<string, CraftState> _craftStateSaid = new Dictionary<string, CraftState>(StringComparer.Ordinal);
 
@@ -183,6 +267,8 @@ namespace Sitrep.Host
 
         public double LightFactor() => _deliveryInputs.LightFactor;
 
+        public bool NetworkModelled() => _deliveryInputs.NetworkModelled;
+
         public IReadOnlyCollection<string> PlanningCentres()
         {
             var centres = new HashSet<string>(StringComparer.Ordinal);
@@ -217,6 +303,7 @@ namespace Sitrep.Host
             _craftStateStamps.Clear();
             _craftStateSaid.Clear();
             _craftLinkSaid.Clear();
+            _craftRadioStamps.Clear();
             foreach (var listener in _timelineResetListeners)
             {
                 try

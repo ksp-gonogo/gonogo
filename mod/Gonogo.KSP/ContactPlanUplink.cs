@@ -23,6 +23,7 @@ namespace Gonogo.KSP
         private readonly ContactPlanSource _source;
         private readonly DeliveryInputs _inputs;
         private KspVisibilityGeometryFactory? _surface;
+        private IUplinkHost? _host;
 
         /// <param name="centres">The registry the ground stations' ids come from, so the plan names them as the roster does.</param>
         /// <param name="inputs">Where each tick's live links are handed to store-and-forward delivery.</param>
@@ -47,6 +48,7 @@ namespace Gonogo.KSP
 
         public void Register(IUplinkHost host)
         {
+            _host = host;
             _surface = new KspVisibilityGeometryFactory(() => host.Kernel);
             _source.Register(host);
             // Ungated: whether light that was sent lands is asked of these links
@@ -187,7 +189,49 @@ namespace Gonogo.KSP
                 Planetarium.fetch != null ? bodies.IndexOf(Planetarium.fetch.Sun) : 0,
                 (occlusion, index) => index >= 0 && index < bodies.Count
                     ? KspVisibilityGeometryFactory.OccludingRadiusOf(occlusion, bodies[index])
-                    : 0.0);
+                    : 0.0)
+            {
+                Radio = RadioOfActive(),
+            };
+        }
+
+        /// <summary>
+        /// MAIN THREAD: what the elected comms backend says of the active craft's
+        /// link now, and the hops it says so over. Null with no active craft, no
+        /// backend, or a backend read that threw, which is tried again on the
+        /// next look.
+        /// </summary>
+        private ContactRadio? RadioOfActive()
+        {
+            var active = ActiveVesselScope.Current;
+            var kernel = _host?.Kernel;
+            if (active == null || kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                var backend = CommsElection.Elected(kernel);
+                if (backend == null)
+                {
+                    return null;
+                }
+                var hops = new List<RadioHop>();
+                foreach (var hop in backend.Path(active).Hops)
+                {
+                    hops.Add(new RadioHop(hop.From, hop.To, !hop.ToIsHome, hop.Extensions));
+                }
+                return new ContactRadio(
+                    "vessel:" + active.id,
+                    backend.Connectivity().Connected,
+                    backend.SignalStrength().Strength,
+                    CommsDegradeModels.ToPayload(backend.DegradeModel()),
+                    hops);
+            }
+            catch (System.Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>Craft that carry a radio worth planning for: not debris, asteroids, comets or flags.</summary>

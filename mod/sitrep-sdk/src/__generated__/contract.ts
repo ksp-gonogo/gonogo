@@ -1710,10 +1710,18 @@ export interface CommsConnectivity
 	hasLocalControl: boolean;
 }
 /**
-* The `comms.signal` payload: always present, sourced from the elected comms
-* backend. A strength from 0 to 1 whose meaning depends on the backend: stock
-* CommNet reports a coarse range fraction, RealAntennas a link-budget-derived
-* value.
+* The `comms.signal` payload: the active vessel's own reading of its link,
+* sourced from the elected comms backend. A strength from 0 to 1 whose meaning
+* depends on the backend: stock CommNet reports a coarse range fraction,
+* RealAntennas a link-budget-derived value.
+*
+* ADDRESSED: each command centre is sent its own, the newest reading to have
+* reached it. A reading is of the vessel's whole path at one instant, so it
+* reaches a centre no sooner than light leaving the farthest node on that path
+* at that instant could: it never tells a centre what a relay's link is doing
+* before the relay's own light has. Absent until the first reading arrives.
+* The path it was measured over is the game's, which is not always the path
+* the centre believes in on `comms.path`.
 *
 * A save with the stock CommNet difficulty option off models no link budget at
 * all and reports 1 here: nothing attenuates a link that is not modelled. A
@@ -1997,11 +2005,14 @@ export enum CommsDelaySource {
 * here and `connected:false` on `CommsLink`, and this reports `0` and
 * `connected:true`.
 *
-* DELAYED, like the telemetry it describes. A light-time is measured over the
-* route a signal actually took, so the figure that reaches an operator is the
-* delay as it WAS when the light left, and a craft whose delay has grown says
-* so one light-time after it grew. Read it as an observation rather than as
-* the current state of the link.
+* ADDRESSED: each command centre is sent its own, and no other centre's. It is
+* the light-time of the active vessel's path as the receiving centre believes
+* it to stand, which is the path that centre is sent on `comms.path`, so the
+* two always agree. The path is worked out from what the centre has heard of
+* each craft, so the figure moves only once the news that moves it has reached
+* the centre: a relay that drops out goes on counting towards the delay until
+* its silence has crossed to you. A zero that is a setting (delay switched
+* off, or a save with no comms network) is sent at once.
 *
 * @category Comms
 */
@@ -2194,12 +2205,12 @@ export interface CommsContactWindow
 * its rule, so a consumer acting on the number can see which grading produced
 * it.
 *
-* Delayed, like the link observations it grades and unlike the always-live
-* `comms.delay`. A rating is an observation of the craft's link, so an
-* operator learns of a degradation one light-time after it happened, at the
-* same instant the telemetry that suffered it arrives. Through a blackout it
-* holds its last-known value; the disconnect itself reaches a client on
-* `comms.link`, which is not held.
+* ADDRESSED: each command centre is sent its own, with `comms.signal` and from
+* the same reading of the vessel's radio. A rating is of the vessel's whole
+* path at one instant, so it reaches a centre no sooner than light leaving the
+* farthest node on that path could. Absent until the first reading arrives.
+* Through a blackout it keeps its last value; the disconnect itself reaches a
+* client on `comms.link`.
 *
 * @category Comms
 */

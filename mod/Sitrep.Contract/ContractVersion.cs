@@ -2321,8 +2321,16 @@ namespace Sitrep.Contract
         /// <see cref="UnitDescriptor.RequireDeterministicWhileIsSound"/>.
         /// <see cref="BodyEntry.Orbit"/> is the first, gated on <see cref="BodyEntry.Horizon"/>.
         /// Nothing on the wire changes, so an Uplink built against 29.2 is unaffected.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 3 -&gt; 4: each command centre's own delay,
+        /// signal and grading.</b> <c>comms.delay</c>, <c>comms.signal</c> and
+        /// <c>comms.degrade</c> are sent to each command centre alone. The delay is the
+        /// light-time of the path that centre is sent on <c>comms.path</c>. The signal
+        /// and its grading are the active vessel's own reading, arriving no sooner than
+        /// light from the farthest node on the path it was measured over, and absent
+        /// until the first one arrives. No payload changes shape.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }
