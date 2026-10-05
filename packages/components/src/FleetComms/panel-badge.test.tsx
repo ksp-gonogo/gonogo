@@ -65,8 +65,8 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
     act(() => {
       fixture.store.beginFrame();
     });
-    expect(await screen.findByText("AWAITING")).toBeInTheDocument();
-    expect(screen.queryByText("NO LINK")).toBeNull();
+    expect(await screen.findByText("COMMS AWAITING")).toBeInTheDocument();
+    expect(screen.queryByText("NO COMMS LINK")).toBeNull();
   });
 
   it("shows LINK once comms.link reports a connection", async () => {
@@ -74,7 +74,9 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
     act(() => {
       fixture.emit("comms.link", { connected: true });
     });
-    await waitFor(() => expect(screen.getByText("LINK")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("COMMS LINKED")).toBeInTheDocument(),
+    );
   });
 
   it("shows NO LINK for a positively-reported outage", async () => {
@@ -83,7 +85,7 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
       fixture.emit("comms.link", { connected: false });
     });
     await waitFor(() =>
-      expect(screen.getByText("NO LINK")).toBeInTheDocument(),
+      expect(screen.getByText("NO COMMS LINK")).toBeInTheDocument(),
     );
   });
 });

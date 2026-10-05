@@ -6,32 +6,40 @@ import { commsLinkBadge } from "./badge";
 describe("commsLinkBadge", () => {
   it("labels a live link GO-toned", () => {
     expect(commsLinkBadge(true)).toEqual([
-      { id: "fleet-comms-link", label: "LINK", tone: "go" },
+      { id: "fleet-comms-link", label: "COMMS LINKED", tone: "go" },
     ]);
   });
 
   it("labels a positively-reported outage NOGO-toned", () => {
     expect(commsLinkBadge(false)).toEqual([
-      { id: "fleet-comms-link", label: "NO LINK", tone: "nogo" },
+      { id: "fleet-comms-link", label: "NO COMMS LINK", tone: "nogo" },
     ]);
   });
 
   it("still shows a badge for an unknown link, carrying the null glyph", () => {
     expect(commsLinkBadge(null)).toEqual([
-      { id: "fleet-comms-link", label: NULL_DISPLAY, tone: "neutral" },
+      {
+        id: "fleet-comms-link",
+        label: `COMMS ${NULL_DISPLAY}`,
+        tone: "neutral",
+      },
     ]);
   });
 
   it("says a link not yet heard from is awaited, which is neither a link nor an outage", () => {
     expect(commsLinkBadge("awaiting")).toEqual([
-      { id: "fleet-comms-link", label: "AWAITING", tone: "neutral" },
+      { id: "fleet-comms-link", label: "COMMS AWAITING", tone: "neutral" },
     ]);
   });
 
   // `undefined` is an unevaluated Processor dep: "nothing known", never a LINK claim.
   it("treats a not-yet-evaluated processor as unknown, not as a link", () => {
     expect(commsLinkBadge(undefined)).toEqual([
-      { id: "fleet-comms-link", label: NULL_DISPLAY, tone: "neutral" },
+      {
+        id: "fleet-comms-link",
+        label: `COMMS ${NULL_DISPLAY}`,
+        tone: "neutral",
+      },
     ]);
   });
 });

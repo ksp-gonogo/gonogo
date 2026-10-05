@@ -86,6 +86,55 @@
             }
           ]
         }
+      },
+      {
+        "channel": "fleet.v-station-1.contact",
+        "value": {
+          "connected": true,
+          "lastContactUt": 0
+        }
+      },
+      {
+        "channel": "fleet.v-station-1.delay",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 1.2
+        }
+      },
+      {
+        "channel": "fleet.v-probe-mun.contact",
+        "value": {
+          "connected": true,
+          "lastContactUt": 0
+        }
+      },
+      {
+        "channel": "fleet.v-probe-mun.delay",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 0.8
+        }
+      },
+      {
+        "channel": "fleet.v-lander-duna.contact",
+        "value": {
+          "connected": true,
+          "lastContactUt": 0
+        }
+      },
+      {
+        "channel": "fleet.v-lander-duna.delay",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 620.0
+        }
+      },
+      {
+        "channel": "fleet.v-orbiter-eve.contact",
+        "value": {
+          "connected": false,
+          "lastContactUt": -3600
+        }
       }
     ],
     "stopsArriving": true

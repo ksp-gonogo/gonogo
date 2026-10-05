@@ -68,9 +68,9 @@ function renderBadge() {
 /** The one pill in the rendered header, whatever it currently says. */
 function badgeText(): string | null {
   const pill =
-    screen.queryByText("LINK") ??
-    screen.queryByText("NO LINK") ??
-    screen.queryByText(NULL_DISPLAY);
+    screen.queryByText("COMMS LINKED") ??
+    screen.queryByText("NO COMMS LINK") ??
+    screen.queryByText(`COMMS ${NULL_DISPLAY}`);
   return pill?.textContent ?? null;
 }
 
@@ -79,9 +79,9 @@ describe("FleetComms badge: what undefined means today", () => {
     renderBadge();
 
     // An unobserved reading resolves to the honest unknown, neither LINK nor NO LINK.
-    await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
-    expect(badgeText()).not.toBe("LINK");
-    expect(badgeText()).not.toBe("NO LINK");
+    await waitFor(() => expect(badgeText()).toBe(`COMMS ${NULL_DISPLAY}`));
+    expect(badgeText()).not.toBe("COMMS LINKED");
+    expect(badgeText()).not.toBe("NO COMMS LINK");
   });
 
   it("renders that same placeholder for a confirmed comms.link tombstone", async () => {
@@ -98,7 +98,7 @@ describe("FleetComms badge: what undefined means today", () => {
     );
 
     // The badge renders a tombstone the same as never-arrived.
-    await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
+    await waitFor(() => expect(badgeText()).toBe(`COMMS ${NULL_DISPLAY}`));
   });
 
   it("renders that same placeholder when the record arrives without a connected field", async () => {
@@ -113,6 +113,6 @@ describe("FleetComms badge: what undefined means today", () => {
     );
 
     // A live comms record without `connected` renders as unknown too.
-    await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
+    await waitFor(() => expect(badgeText()).toBe(`COMMS ${NULL_DISPLAY}`));
   });
 });

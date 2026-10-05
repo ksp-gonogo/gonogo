@@ -10,6 +10,7 @@ import { commsRollup } from "./comms";
 import { useFleet } from "./fleet";
 import { RosterTable } from "./RosterTable";
 import { fleetRosterTopics } from "./topics";
+import { useFleetEssentials } from "./useFleetEssentials";
 
 export type { CommsLink, FleetVessel } from "./fleet";
 
@@ -73,6 +74,11 @@ registerComponent<FleetRosterConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
+  tiny: {
+    title: "FLEET",
+    bodyMinSize: { w: 5, h: 6 },
+    useEssentials: useFleetEssentials,
+  },
   channels: fleetRosterTopics.channels,
   /* Mission control only by declaration: nothing read is ground-only, so derivation alone would put it on a pilot's screen. */
   seats: ["mission-control"],

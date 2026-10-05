@@ -1,6 +1,6 @@
 import { registerAugment } from "@ksp-gonogo/core";
 import { ToggleButton } from "@ksp-gonogo/ui";
-import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Cluster, ReadoutCaption, Tooltip } from "@ksp-gonogo/ui-kit";
 // Side-effect import: the header link badge is a contribution registered alongside this augment.
 import "./badge";
 import {
@@ -19,8 +19,9 @@ function FleetCommsActions() {
   const instanceId = useFleetCommsInstanceId();
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
   return (
-    <Cluster justify="start">
-      <Tooltip text="Show commlinks">
+    <Cluster justify="start" role="group" aria-label="Comms overlays">
+      <ReadoutCaption>Comms overlay</ReadoutCaption>
+      <Tooltip text="Draw the comm links between vessels, relays and stations on the diagram">
         <ToggleButton
           type="button"
           size="sm"
@@ -30,7 +31,7 @@ function FleetCommsActions() {
           Commlinks
         </ToggleButton>
       </Tooltip>
-      <Tooltip text="Show command traffic">
+      <Tooltip text="Draw the commands in flight along their comm path on the diagram">
         <ToggleButton
           type="button"
           size="sm"

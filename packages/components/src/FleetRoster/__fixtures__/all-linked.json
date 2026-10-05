@@ -10,8 +10,14 @@
         "channel": "system.bodies",
         "value": {
           "bodies": [
-            { "index": 0, "name": "Kerbin" },
-            { "index": 1, "name": "Sun" }
+            {
+              "index": 0,
+              "name": "Kerbin"
+            },
+            {
+              "index": 1,
+              "name": "Sun"
+            }
           ]
         }
       },
@@ -53,6 +59,48 @@
               "commsControlSource": 1
             }
           ]
+        }
+      },
+      {
+        "channel": "fleet.v-station-1.contact",
+        "value": {
+          "connected": true,
+          "lastContactUt": 0
+        }
+      },
+      {
+        "channel": "fleet.v-station-1.delay",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 1.2
+        }
+      },
+      {
+        "channel": "fleet.v-comsat-1.contact",
+        "value": {
+          "connected": true,
+          "lastContactUt": 0
+        }
+      },
+      {
+        "channel": "fleet.v-comsat-1.delay",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 2.5
+        }
+      },
+      {
+        "channel": "fleet.v-transfer-1.contact",
+        "value": {
+          "connected": true,
+          "lastContactUt": 0
+        }
+      },
+      {
+        "channel": "fleet.v-transfer-1.delay",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 2.5
         }
       }
     ]

@@ -26,12 +26,16 @@ export const COMMS_LINK = CORE_UPLINK_CLIENT.registerProcessor({
 /** An unknown link still draws a badge, so it stays distinguishable from no comms at all. */
 export function commsLinkBadge(link: CommsLinkState | undefined): BadgeEntry[] {
   if (link === true)
-    return [{ id: "fleet-comms-link", label: "LINK", tone: "go" }];
+    return [{ id: "fleet-comms-link", label: "COMMS LINKED", tone: "go" }];
   if (link === false)
-    return [{ id: "fleet-comms-link", label: "NO LINK", tone: "nogo" }];
+    return [{ id: "fleet-comms-link", label: "NO COMMS LINK", tone: "nogo" }];
   if (link === "awaiting")
-    return [{ id: "fleet-comms-link", label: "AWAITING", tone: "neutral" }];
-  return [{ id: "fleet-comms-link", label: NULL_DISPLAY, tone: "neutral" }];
+    return [
+      { id: "fleet-comms-link", label: "COMMS AWAITING", tone: "neutral" },
+    ];
+  return [
+    { id: "fleet-comms-link", label: `COMMS ${NULL_DISPLAY}`, tone: "neutral" },
+  ];
 }
 
 CORE_UPLINK_CLIENT.registerContribution({
