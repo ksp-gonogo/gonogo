@@ -310,6 +310,48 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The craft is three light-seconds away and its link is seen to be back
+        /// on the tick at UT 6. What it recorded while dark is sent from then, so
+        /// it lands at UT 9. The edge used to be dated by the clock before that
+        /// tick had moved it, at UT 5, which sent the recording a tick before
+        /// the link was there to carry it.
+        /// </summary>
+        [Fact]
+        public async Task ARecordingMadeWhileDarkIsSentFromTheTickTheLinkCameBack()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.v.orbit", Timeout);
+
+                engine.TickAndWait(0.0, TailFixture(0.0, connected: true), Timeout);
+                engine.TickAndWait(1.0, TailFixture(1.0, connected: true), Timeout);
+                for (var ut = 2.0; ut <= 5.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, TailFixture(ut, connected: false), Timeout);
+                }
+                for (var ut = 6.0; ut <= 12.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, TailFixture(ut, connected: true), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var recorded = frames.Where(f => f.Topic == "fleet.v.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 5.0).ToList();
+                Assert.NotEmpty(recorded);
+                Assert.All(recorded, f => Assert.True(
+                    f.Meta.DeliveredAt >= 9.0,
+                    "a sample recorded at UT " + f.Meta.ValidAt + " was delivered at UT " + f.Meta.DeliveredAt + ", before light sent when the link came back could land"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The officially-lost feature publishes <c>fleet.&lt;guid&gt;.contact</c>
         /// while the craft is dark: that is the only time it has anything to
         /// say. On the ordinary Delayed path every one of those samples takes an
@@ -360,6 +402,8 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(5.0, ContactFixture(5.0, connected: true), Timeout);
                 engine.TickAndWait(6.0, ContactFixture(6.0, connected: true), Timeout);
                 engine.TickAndWait(7.0, ContactFixture(7.0, connected: true), Timeout);
+                // The recording is sent from UT 5, when the link is back, and is three light-seconds from landing.
+                engine.TickAndWait(8.0, ContactFixture(8.0, connected: true), Timeout);
                 var afterHorizon = await DrainAllStreamDataAsync(client, Quiet);
 
                 // The reports captured WHILE the craft was dark survived the

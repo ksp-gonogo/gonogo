@@ -3331,7 +3331,8 @@ namespace Sitrep.Host
             // active vessel's link stays on SetConnectivitySource.
             // Courier-thread-only, like SetSubjectConnected's other caller.
             _fleetVesselsThisTick.Add(vesselId);
-            SetSubjectConnected(FleetNodePrefix + vesselId, connected, _clock.Now());
+            // The tick being worked through, not the clock, which this tick has not advanced yet.
+            SetSubjectConnected(FleetNodePrefix + vesselId, connected, Math.Max(_tickUt, _clock.Now()));
             SayCraftLink(vesselId, connected);
         }
 
