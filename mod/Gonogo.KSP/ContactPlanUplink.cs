@@ -138,6 +138,15 @@ namespace Gonogo.KSP
             {
                 return null;
             }
+            // A scene that is still loading has no vessels to show, which is not the same as none existing.
+            if (!VesselListStanding.Stands(
+                    HighLogic.LoadedSceneIsFlight,
+                    FlightGlobals.ready,
+                    vessels.Count,
+                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count))
+            {
+                return null;
+            }
 
             var active = _centres.EnumerateActive();
             var roster = CommandCentreDelayUplink.ToRoster(active, _home());
