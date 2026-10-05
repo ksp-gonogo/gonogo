@@ -175,7 +175,7 @@ function Dialog({ children }: Readonly<{ children: ReactNode }>) {
         gap: "var(--gap-related-comfortable)",
       }}
     >
-      <h2 style={{ margin: 0, fontSize: "var(--font-size-title)" }}>
+      <h2 style={{ margin: 0, fontSize: "var(--font-size-lg)" }}>
         {say("shell.title")}
       </h2>
       {children}

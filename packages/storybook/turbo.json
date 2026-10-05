@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // prose.test reads the wizard's copy table, to hold it to the shape prose-apply can rewrite.
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/app/src/firstRun/copy.ts"
+      ]
+    }
+  }
+}

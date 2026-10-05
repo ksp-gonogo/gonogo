@@ -114,13 +114,17 @@ export function shownPattern(text: string): string {
   let out = "";
   let at = 0;
   for (const m of text.matchAll(marks)) {
-    out += literal(text.slice(at, m.index));
-    if (m[4] !== undefined) out += literal(m[4]);
-    else if (m[2] !== undefined) out += `(?:${literal(m[2])}|${literal(m[3])})`;
-    else out += ".+";
+    out += literal(text.slice(at, m.index)) + markPattern(m);
     at = m.index + m[0].length;
   }
   return out + literal(text.slice(at));
+}
+
+/** One mark as a page shows it: a link's words, either form of a plural, or any text for a value. */
+function markPattern(m: RegExpMatchArray): string {
+  if (m[4] !== undefined) return literal(m[4]);
+  if (m[2] !== undefined) return `(?:${literal(m[2])}|${literal(m[3])})`;
+  return ".+";
 }
 
 /**

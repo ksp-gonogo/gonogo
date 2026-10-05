@@ -14,7 +14,9 @@ import {
 } from "./prose";
 import { PROSE_SOURCES } from "./prose-sources";
 
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const HERE = dirname(fileURLToPath(import.meta.url));
+// Spelled out as a literal so the turbo input scan can see which file outside this package the suite reads.
+const WIZARD_COPY = resolve(HERE, "../../app/src/firstRun/copy.ts");
 
 const MODULE = `/* A table. */
 export const COPY = {
@@ -72,15 +74,17 @@ describe("readCopy", () => {
     expect(() => readCopy(MODULE, "MISSING")).toThrow(/declares no MISSING/);
   });
 
-  it("reads every registered source", () => {
-    for (const source of PROSE_SOURCES) {
-      const entries = readCopy(
-        readFileSync(resolve(REPO, source.file), "utf8"),
-        source.exportName,
-        source.file,
-      );
-      expect(entries.length).toBeGreaterThan(0);
-    }
+  it("reads the wizard's table, the one registered source", () => {
+    expect(PROSE_SOURCES.map((source) => source.file)).toEqual([
+      "packages/app/src/firstRun/copy.ts",
+    ]);
+    const [wizard] = PROSE_SOURCES;
+    const entries = readCopy(
+      readFileSync(WIZARD_COPY, "utf8"),
+      wizard.exportName,
+      wizard.file,
+    );
+    expect(entries.length).toBeGreaterThan(0);
   });
 });
 
