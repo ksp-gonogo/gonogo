@@ -219,14 +219,17 @@ export type {
   FlightRecord,
   FlightRecoveryOutcome,
   MissionMeta,
+  ReadingSeriesRange,
   Sample,
   SeriesBridge,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,
   SeriesTimeBasis,
+  TopicFieldHandle,
   UnitHint,
 } from "./flight/types";
+export { seriesKeyOf } from "./flight/types";
 export * from "./ksp-enum-names";
 export { isLocked, unlessLocked } from "./locked";
 // The magnitude unwrap, beside `Value` because that is what it unwraps. ui-kit re-exports these three, so no call site moved.

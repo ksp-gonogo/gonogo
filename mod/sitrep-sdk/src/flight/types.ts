@@ -1,5 +1,6 @@
 import type { DataKey, StreamStatusValue } from "../api/types";
-import type { BandKind, ReckoningBasis } from "../reading";
+import type { BandKind, Reading, ReckoningBasis } from "../reading";
+import type { TopicId } from "../topics";
 import type { SitrepUnit } from "../units";
 
 // Units hint used by the graph widget's axis-grouping heuristic and by display formatting. "raw" is the fallback for values we don't want to classify.
@@ -269,6 +270,73 @@ export interface SeriesRange<Payload = unknown> {
    * Not a promise that anything was sampled at it: `t` may end well short, and
    * on a declining tail that shortfall is the whole point.
    */
+  windowEndAt?: number;
+}
+
+/**
+ * Names one plotted quantity: a Topic, and the dotted path of one field inside
+ * its payload. Omit `field` to plot a Topic whose payload is itself the
+ * quantity.
+ *
+ * A field rather than a whole Topic, because a trace is one number over time
+ * and a Topic is a record of many.
+ *
+ * @category Flight recording
+ */
+export interface TopicFieldHandle {
+  /** A contract Topic, or any string for a registered, derived or computed one. */
+  topic: TopicId | (string & {});
+  field?: string;
+}
+
+/**
+ * The flat key a {@link TopicFieldHandle} reads: `<topic>.<field>`, or the
+ * Topic alone.
+ *
+ * @category Flight recording
+ */
+export function seriesKeyOf(handle: TopicFieldHandle): string {
+  return handle.field ? `${handle.topic}.${handle.field}` : handle.topic;
+}
+
+/**
+ * A windowed series in which every sample is a {@link Reading}: the value with
+ * its unit still on it, and how it came to be known. `t` and `readings` have
+ * identical length and `t` ascends.
+ *
+ * Each sample reads the way a point read at that instant would have:
+ *
+ * - `"observed"`: the craft measured it and it arrived live
+ * - `"held"` with grade `"recorded"` or `"last-before-blackout"`: the craft
+ *   measured it and it arrived late. Exact for its own instant, so a trace
+ *   draws it as it draws a live sample
+ * - `"held"` with `reckoning.status` `"available"`: nobody measured this
+ *   instant. `value` is the last observation before it and
+ *   `reckoning.modelled` is what the model says for it, with its `basis` and,
+ *   where the model offers one, its `band`. This is the only kind a trace has
+ *   cause to set apart
+ *
+ * A consumer derives its modelled spans from the samples, so nothing beside
+ * them says which part of the trace a model drew.
+ *
+ * {@link SeriesRange} is the older shape of the same window, with bare
+ * magnitudes and the same facts as index runs. Prefer this one for anything
+ * drawn live; `SeriesRange` remains what a stored flight is read back as.
+ *
+ * @typeParam Payload - What each sample holds: a `Value` for a quantity.
+ *
+ * @category Flight recording
+ */
+export interface ReadingSeriesRange<Payload = unknown> {
+  t: number[];
+  readings: Reading<Payload>[];
+  /** The clock `t` is stamped against. See {@link SeriesRange.basis}. */
+  basis?: SeriesTimeBasis;
+  /** Indices a known hole precedes. See {@link SeriesRange.breaks}. */
+  breaks?: number[];
+  /** Gaps the sampling missed and the value's own model carried. See {@link SeriesBridge}. */
+  bridges?: SeriesBridge[];
+  /** The instant the window was asked for. See {@link SeriesRange.windowEndAt}. */
   windowEndAt?: number;
 }
 

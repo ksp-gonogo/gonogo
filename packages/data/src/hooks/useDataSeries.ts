@@ -4,7 +4,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
-import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
+import type { StreamStatusValue, Value } from "@ksp-gonogo/sitrep-sdk";
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 import type {
@@ -13,6 +13,10 @@ import type {
   SeriesReckonedSpan,
   SeriesStatusSpan,
 } from "../types";
+import {
+  rememberWindowSource,
+  type WindowModelledInstant,
+} from "./seriesWindowSource";
 
 /**
  * Deliberately carries no `basis`: an empty series has no `t` to be stamped
@@ -167,8 +171,16 @@ function reckonedEqual(
   );
 }
 
+/** The two ends of a band as the magnitudes a chart shades between. */
+export function bandEnds(
+  lo: Value | undefined,
+  hi: Value | undefined,
+): [number | undefined, number | undefined] {
+  return [lo?.toWire(), hi?.toWire()];
+}
+
 /** A sample as a plottable value: a quantity's magnitude, anything else as-is. */
-function plotValue(payload: unknown): unknown {
+export function plotValue(payload: unknown): unknown {
   return payload !== null &&
     typeof payload === "object" &&
     "magnitude" in payload
@@ -264,6 +276,9 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
     // numbers. A declared quantity arrives wrapped from the decode, so
     // without this every stream-backed chart drew nothing.
     const nextV = observed.map((p) => plotValue(p.payload));
+    // Kept beside the magnitudes for `useSeriesReadings`, which hands each sample back with its unit and its provenance.
+    const payloads = observed.map((p) => p.payload);
+    const modelled = new Map<number, WindowModelledInstant>();
     const nextBreaks: number[] = [];
     const nextBridges: SeriesBridge[] = [];
     for (let i = 0; i < observed.length; i++) {
@@ -316,6 +331,7 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
        * observed one does.
        */
       nextV.push(plotValue(sample.value));
+      payloads.push(sample.value);
       /*
        * A banded instant and an unbanded one do not share a run even under one
        * basis, and neither do two kinds. A run carries ONE `bandKind` over a
@@ -336,10 +352,16 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
        * ahead of the number it describes and left nothing in between able to
        * notice a unit.
        */
-      const lo = bandLo?.toWire();
-      const hi = bandHi?.toWire();
+      const [lo, hi] = bandEnds(bandLo, bandHi);
       const kind =
         lo !== undefined && hi !== undefined ? sample.bandKind : undefined;
+      modelled.set(i, {
+        basis: sample.basis,
+        band:
+          bandLo !== undefined && bandHi !== undefined && kind !== undefined
+            ? { lo: bandLo, hi: bandHi, kind }
+            : undefined,
+      });
       const open = nextReckoned[nextReckoned.length - 1];
       const continues =
         open !== undefined &&
@@ -433,6 +455,7 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
        */
       windowEndAt: nextReckoned.length > 0 ? toUt : undefined,
     };
+    rememberWindowSource(lastSnapshotRef.current, { payloads, modelled });
     return lastSnapshotRef.current;
   }, [store, topic, windowSec]);
 

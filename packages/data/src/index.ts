@@ -68,6 +68,7 @@ export * from "./hooks/useFlight";
 export * from "./hooks/useManeuverFeasibility";
 export * from "./hooks/useManeuverNodes";
 export * from "./hooks/usePartsLive";
+export * from "./hooks/useSeriesReadings";
 export * from "./hooks/useTopicFields";
 export * from "./hooks/useTopology";
 // `buildResourcesByFlightId`: the pure per-flightId resources lookup
