@@ -88,7 +88,12 @@ export function usePanZoom(
     setPan({ x: 0, y: 0 });
   }, []);
 
-  return { zoom, pan, isDragging, handlePointerDown, resetView };
+  /** Centres the view on a point in the diagram's own user units, keeping the zoom. */
+  const focusOn = useCallback((point: { x: number; y: number }) => {
+    setPan({ x: point.x, y: point.y });
+  }, []);
+
+  return { zoom, pan, isDragging, handlePointerDown, resetView, focusOn };
 }
 
 export type PanZoom = ReturnType<typeof usePanZoom>;

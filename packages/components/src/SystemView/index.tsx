@@ -22,7 +22,7 @@ import { type ControlFrame, value } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -152,6 +152,8 @@ function SystemViewComponent({
     selectedVesselId,
     selectedEntity,
     handleEntityActivate,
+    clearSelection,
+    activeVesselEntityId,
     decorate,
     traffic,
     utNow,
@@ -292,7 +294,27 @@ function SystemViewComponent({
         : null,
     [bodies, vesselBody],
   );
-  const panelBody = focusedBody ?? vesselBodyRecord;
+  // A pressed body stays in the aside once the pointer leaves it, until it is pressed again or a vessel is selected.
+  const [pinnedBodyIndex, setPinnedBodyIndex] = useState<number | null>(null);
+  const pinnedBody = useMemo(
+    () => bodies.find((b) => b.index === pinnedBodyIndex) ?? null,
+    [bodies, pinnedBodyIndex],
+  );
+  const activateBody = useCallback(
+    (body: CelestialBody) => {
+      clearSelection();
+      setPinnedBodyIndex((prev) => (prev === body.index ? null : body.index));
+    },
+    [clearSelection],
+  );
+  const activateEntity = useCallback(
+    (id: string) => {
+      setPinnedBodyIndex(null);
+      handleEntityActivate(id);
+    },
+    [handleEntityActivate],
+  );
+  const panelBody = focusedBody ?? pinnedBody ?? vesselBodyRecord;
   const panelPhaseAngle =
     panelBody && phaseAngles.has(panelBody.index)
       ? (phaseAngles.get(panelBody.index) ?? null)
@@ -501,6 +523,17 @@ function SystemViewComponent({
                     phaseAngles={phaseAngles}
                     transferStatuses={transferStatuses}
                     onFocusBodyChange={setFocusedBody}
+                    pinnedBodyIndex={pinnedBodyIndex}
+                    onBodyActivate={activateBody}
+                    vesselSelected={
+                      activeVesselEntityId !== null &&
+                      selectedVesselId === activeVesselEntityId
+                    }
+                    onVesselActivate={
+                      activeVesselEntityId === null
+                        ? undefined
+                        : () => activateEntity(activeVesselEntityId)
+                    }
                     predicted={predicted}
                     projection={projection}
                     width={size.w}
@@ -515,7 +548,7 @@ function SystemViewComponent({
                     ctx={overlayContext}
                     decorate={decorate}
                     selectedId={selectedVesselId}
-                    onEntityActivate={handleEntityActivate}
+                    onEntityActivate={activateEntity}
                     pulses={traffic.pulses}
                     // Real-UT bookkeeping clock: a CME's arrive and clear times are real-UT facts, not delayed telemetry.
                     nowUt={utNow}

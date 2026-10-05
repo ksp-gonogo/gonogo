@@ -1,8 +1,10 @@
 import { getBody } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { activateOnKey } from "./activateOnKey";
 import type { PlacedBody, PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
+import { InteractiveMarker } from "./SystemEntitiesLayer";
 import { normalizePhaseAngle } from "./transferWindow";
 import type { CelestialBody } from "./useCelestialBodies";
 
@@ -50,6 +52,8 @@ export function BodyMark({
   transferStatus,
   onHoverStart,
   onHoverEnd,
+  pinned,
+  onActivate,
 }: Readonly<{
   placed: PlacedBody;
   parentAt: PlacedPoint;
@@ -60,6 +64,9 @@ export function BodyMark({
   transferStatus: "go" | "soon" | undefined;
   onHoverStart: (body: CelestialBody) => void;
   onHoverEnd: () => void;
+  /** The body's almanac is pinned in the aside. */
+  pinned: boolean;
+  onActivate: (body: CelestialBody) => void;
 }>) {
   const c = placed.body;
   if ((c.semiMajorAxis ?? 0) <= 0) return null;
@@ -78,19 +85,52 @@ export function BodyMark({
         depthPx={depthPx}
         zoom={zoom}
       />
-      <circle
-        data-body={c.name ?? ""}
-        data-depth-px={depthPx}
-        cx={placed.x}
-        cy={placed.y}
-        r={dotR}
-        fill={dotFill(tone, c)}
-        stroke="var(--color-text-inverse)"
-        strokeWidth={1 / zoom}
+      <InteractiveMarker
+        role="button"
+        tabIndex={0}
+        aria-label={c.name ?? "Body"}
+        aria-pressed={pinned}
+        style={{ cursor: "pointer" }}
         onPointerEnter={() => onHoverStart(c)}
         onPointerLeave={onHoverEnd}
-        style={{ cursor: "pointer" }}
-      />
+        // A press on a body pins it and never starts a pan.
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => onActivate(c)}
+        onKeyDown={activateOnKey(() => onActivate(c))}
+      >
+        <circle
+          className="focus-ring"
+          cx={placed.x}
+          cy={placed.y}
+          r={dotR * 1.9}
+          fill="none"
+          stroke="var(--color-focus)"
+          strokeWidth={2 / zoom}
+          pointerEvents="none"
+        />
+        <circle
+          data-body={c.name ?? ""}
+          data-depth-px={depthPx}
+          cx={placed.x}
+          cy={placed.y}
+          r={dotR}
+          fill={dotFill(tone, c)}
+          stroke="var(--color-text-inverse)"
+          strokeWidth={1 / zoom}
+        />
+      </InteractiveMarker>
+      {pinned && (
+        <circle
+          data-body-pinned={c.name ?? ""}
+          cx={placed.x}
+          cy={placed.y}
+          r={dotR * 1.9}
+          fill="none"
+          stroke="var(--color-focus)"
+          strokeWidth={2 / zoom}
+          pointerEvents="none"
+        />
+      )}
       {!labelWouldCollideWithParent && (
         <text
           x={placed.x + dotR + 3 / zoom}

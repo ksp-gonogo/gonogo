@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent } from "react";
+import type { CSSProperties } from "react";
 import { useMemo } from "react";
 // An SVG <g> keyboard focus ring (a pseudo-class plus descendant rule) that inline style cannot express, shared by point markers and vessel rings.
 // biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
@@ -7,6 +7,7 @@ import { hasSweep, PulseSweeps, type SystemEntityPulse } from "./pulseSweeps";
 
 export type { SystemEntityPulse } from "./pulseSweeps";
 
+import { activateOnKey } from "./activateOnKey";
 import {
   type ResolvedSystemEntity,
   resolveSystemEntities,
@@ -77,15 +78,6 @@ export function SystemEntitiesLayer({
       <PulseSweeps pulses={pulses} resolved={resolved} />
     </svg>
   );
-}
-
-/** Enter and Space activate, as they do a native button. */
-function activateOnKey(activate: () => void) {
-  return (e: KeyboardEvent) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    e.preventDefault();
-    activate();
-  };
 }
 
 function Primitive({
@@ -281,7 +273,7 @@ const POINT_INTERACTIVE_STYLE: CSSProperties = {
 
 const POINT_STATIC_STYLE: CSSProperties = { pointerEvents: "none" };
 
-const InteractiveMarker = styled.g`
+export const InteractiveMarker = styled.g`
   outline: none;
   .focus-ring {
     visibility: hidden;

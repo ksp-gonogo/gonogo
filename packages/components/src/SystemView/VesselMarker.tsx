@@ -1,7 +1,9 @@
 import type { AlertTone } from "@ksp-gonogo/sitrep-sdk";
 import { VesselMarkSvg } from "@ksp-gonogo/ui-kit";
+import { activateOnKey } from "./activateOnKey";
 import type { PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
+import { InteractiveMarker } from "./SystemEntitiesLayer";
 
 /**
  * How a craft's position on the diagram is KNOWN, which is not the same as
@@ -111,6 +113,8 @@ export function VesselMarker({
   zoom,
   state = "observed",
   held = false,
+  selected = false,
+  onActivate,
 }: Readonly<{
   at: PlacedPoint;
   crowdAnchor: PlacedPoint;
@@ -118,6 +122,10 @@ export function VesselMarker({
   state?: VesselPlotState;
   /** The read this position came off is no longer arriving; see the prop on the diagram. */
   held?: boolean;
+  /** The active vessel's own info is showing in the aside. */
+  selected?: boolean;
+  /** Absent leaves the marker inert, as it is where no aside has anything to say about the craft. */
+  onActivate?: () => void;
 }>) {
   const pos = { x: at.x, y: at.y };
   const { marker, leaderFrom } = resolveVesselMarkerPlacement(
@@ -190,6 +198,48 @@ export function VesselMarker({
         strokeWidth={0.6 / zoom}
         opacity={0.5}
       />
+      {selected && (
+        <circle
+          data-vessel-selected=""
+          cx={marker.x}
+          cy={marker.y}
+          r={r * 2.8}
+          fill="none"
+          stroke="var(--color-focus)"
+          strokeWidth={2 / zoom}
+        />
+      )}
+      {onActivate && (
+        <InteractiveMarker
+          data-vessel-hit=""
+          role="button"
+          tabIndex={0}
+          aria-label="Active vessel"
+          aria-pressed={selected}
+          style={{ cursor: "pointer", pointerEvents: "all" }}
+          // A press on the craft selects it and never starts a pan.
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={onActivate}
+          onKeyDown={activateOnKey(onActivate)}
+        >
+          <circle
+            className="focus-ring"
+            cx={marker.x}
+            cy={marker.y}
+            r={r * 3.2}
+            fill="none"
+            stroke="var(--color-focus)"
+            strokeWidth={2 / zoom}
+            pointerEvents="none"
+          />
+          <circle
+            cx={marker.x}
+            cy={marker.y}
+            r={Math.max(r * 2.6, 12 / zoom)}
+            fill="transparent"
+          />
+        </InteractiveMarker>
+      )}
     </g>
   );
 }

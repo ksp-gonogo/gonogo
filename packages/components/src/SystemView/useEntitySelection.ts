@@ -27,5 +27,5 @@ export function useEntitySelection<Entity extends SystemEntity>(
     () => entities.find((e) => e.id === selectedId) ?? null,
     [entities, selectedId],
   );
-  return { selectedId, selectedEntity, activate };
+  return { selectedId, selectedEntity, activate, deselect };
 }

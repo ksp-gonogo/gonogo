@@ -66,6 +66,14 @@ export interface SystemDiagramProps {
   transferStatuses?: ReadonlyMap<number, "go" | "soon">;
   /** Fires when the hovered body changes, with `null` when the cursor leaves all dots. */
   onFocusBodyChange?: (body: CelestialBody | null) => void;
+  /** The body whose almanac is pinned in the aside, if any. */
+  pinnedBodyIndex?: number | null;
+  /** Fires when a body is pressed; the host pins it, or releases it when it is already pinned. */
+  onBodyActivate?: (body: CelestialBody) => void;
+  /** The active vessel's own info is showing in the aside. */
+  vesselSelected?: boolean;
+  /** Fires when the vessel marker is pressed. Absent leaves the marker inert. */
+  onVesselActivate?: () => void;
   /** Multi-SOI predicted trajectory; `ut` locates the live patch. */
   predicted?: { orbitPatches: readonly TrajectoryPatch[]; ut: number } | null;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
@@ -96,6 +104,10 @@ export function SystemDiagram({
   phaseAngles,
   transferStatuses,
   onFocusBodyChange,
+  pinnedBodyIndex = null,
+  onBodyActivate,
+  vesselSelected = false,
+  onVesselActivate,
   predicted,
   projection = null,
   width,
@@ -222,7 +234,7 @@ export function SystemDiagram({
   }, [focusedBody, onFocusBodyChange]);
 
   const emptyDiagram = !parent || children.length === 0;
-  const { zoom, pan, isDragging, handlePointerDown, resetView } = view;
+  const { zoom, pan, isDragging, handlePointerDown, resetView, focusOn } = view;
 
   const hoverStart = useCallback(
     (body: CelestialBody) => setFocusedBody(body),
@@ -248,12 +260,13 @@ export function SystemDiagram({
       onPointerLeave={clearHover}
       style={{ ...CONTAINER, cursor: isDragging ? "grabbing" : "grab" }}
     >
+      {/* biome-ignore lint/a11y/useSemanticElements: an SVG cannot be a fieldset; a group rather than an image because an image's children are presentational and the bodies and the active vessel are pressable */}
       <svg
         width="100%"
         height="100%"
         viewBox={vbStr}
         preserveAspectRatio="xMidYMid meet"
-        role="img"
+        role="group"
         aria-label={`System view around ${parentName}`}
         style={SVG_ROOT}
       >
@@ -363,6 +376,8 @@ export function SystemDiagram({
               transferStatus={transferStatuses?.get(p.body.index)}
               onHoverStart={hoverStart}
               onHoverEnd={clearHover}
+              pinned={p.body.index === pinnedBodyIndex}
+              onActivate={onBodyActivate ?? NO_ACTIVATE}
             />
           );
         })}
@@ -386,15 +401,31 @@ export function SystemDiagram({
             zoom={zoom}
             state={vesselPlotState}
             held={vesselPositionHeld}
+            selected={vesselSelected}
+            onActivate={onVesselActivate}
           />
         )}
       </svg>
 
-      {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
-        <TextButton type="button" onClick={resetView} style={RESET_BUTTON}>
-          Reset view
-        </TextButton>
-      )}
+      <div style={VIEW_BUTTONS}>
+        {placed.vessel && (
+          <TextButton
+            type="button"
+            onClick={() =>
+              placed.vessel &&
+              focusOn({ x: placed.vessel.x, y: placed.vessel.y })
+            }
+            style={VIEW_BUTTON}
+          >
+            Focus vessel
+          </TextButton>
+        )}
+        {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+          <TextButton type="button" onClick={resetView} style={VIEW_BUTTON}>
+            Reset view
+          </TextButton>
+        )}
+      </div>
     </div>
   );
 }
@@ -415,10 +446,17 @@ const CONTAINER: CSSProperties = {
 
 const SVG_ROOT: CSSProperties = { display: "block", flex: 1 };
 
-const RESET_BUTTON: CSSProperties = {
+const NO_ACTIVATE = () => {};
+
+const VIEW_BUTTONS: CSSProperties = {
   position: "absolute",
   bottom: "8px",
   right: "8px",
+  display: "flex",
+  gap: "var(--gap-related)",
+};
+
+const VIEW_BUTTON: CSSProperties = {
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",

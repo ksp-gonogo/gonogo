@@ -24,6 +24,10 @@ export interface CommsEntities {
   selectedVesselId: string | null;
   selectedEntity: ContributedEntity | null;
   handleEntityActivate: (id: string) => void;
+  /** Drops the selection, whatever it is. */
+  clearSelection: () => void;
+  /** The active vessel's own entity, whose roster fields the aside shows when the marker is pressed; null when no contribution describes it. */
+  activeVesselEntityId: string | null;
   decorate: (id: string) => SystemEntityStyle | undefined;
   traffic: TrafficState;
   utNow: number | undefined;
@@ -65,11 +69,35 @@ export function useCommsEntities({
       ? withoutActiveVessel
       : withoutActiveVessel.filter((e) => e.shape.kind !== "connection-line");
   }, [rawEntities, activeVesselId, activeVesselHasOrbit, showCommlinks]);
+  /*
+   * The active vessel's entry is selectable even while the diagram draws its own ring instead, since its roster fields and comms path are what the aside shows.
+   * Connection lines are never selected.
+   */
+  const selectable = useMemo(
+    () =>
+      showCommlinks
+        ? rawEntities
+        : rawEntities.filter((e) => e.shape.kind !== "connection-line"),
+    [rawEntities, showCommlinks],
+  );
   const {
     selectedId: selectedVesselId,
     selectedEntity,
     activate: handleEntityActivate,
-  } = useEntitySelection(entities);
+    deselect: clearSelection,
+  } = useEntitySelection(selectable);
+  const activeVesselEntityId = useMemo(
+    () =>
+      activeVesselId == null
+        ? null
+        : (rawEntities.find(
+            (e) =>
+              e.vesselId === activeVesselId &&
+              e.shape.kind !== "connection-line" &&
+              e.meta != null,
+          )?.id ?? null),
+    [rawEntities, activeVesselId],
+  );
   // NO_COMMS_PATH when nothing is selected or the selection carries no vesselId.
   const commsPath = useMemo(
     () =>
@@ -117,6 +145,8 @@ export function useCommsEntities({
     selectedVesselId,
     selectedEntity,
     handleEntityActivate,
+    clearSelection,
+    activeVesselEntityId,
     decorate,
     traffic,
     utNow,

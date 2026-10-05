@@ -15,6 +15,7 @@ const view = {
   isDragging: false,
   handlePointerDown: () => {},
   resetView: () => {},
+  focusOn: () => {},
 };
 
 function body(index: number, name: string, sma: number): CelestialBody {
