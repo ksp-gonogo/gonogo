@@ -87,6 +87,107 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A crewed craft becomes a command centre after the active craft's
+        /// frame has left. It was not listening then, so the frame never
+        /// arrives there. It used to read the frame's stamp at its base, the
+        /// home centre's light-time, and catch up on it on home's clock. What
+        /// is sent once it exists and has a route reaches it at its own
+        /// light-time.
+        /// </summary>
+        [Fact]
+        public async Task ACentreBornAfterAFrameWasSentIsNotSentItOnHomesClock()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var centres = new Centres(Home);
+            engine.RegisterCommandCentreSource(centres);
+            engine.RegisterUplink(new HomeLedgerTestUplink());
+            engine.Start();
+            try
+            {
+                // A source only speaks while someone is subscribed to it.
+                await using var listener = await WsTestHarness.TestClient.ConnectAsync(engine.BoundPort, TestBudgets.Op);
+                await WsTestHarness.SubscribeAsync(listener, HomeLedgerTestUplink.CraftTopic, TestBudgets.Op);
+                Tick(engine, 0.0, craft: 1.0);
+                Tick(engine, 10.0, craft: 2.0);
+
+                // The crewed craft becomes a centre, with no route to the active craft yet.
+                centres.Add(Pilot);
+                engine.SetUnroutable(NoRouteFrom(Pilot));
+                Tick(engine, 11.0, craft: 2.0);
+                await using var seated = await WsTestHarness.TestClient.ConnectAsync(engine.BoundPort, TestBudgets.Op);
+                await seated.SendAsync(Sitrep.Contract.Serialization.EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Pilot }));
+                await WsTestHarness.SubscribeAsync(seated, HomeLedgerTestUplink.CraftTopic, TestBudgets.Op);
+                Tick(engine, 10.0 + HomeDelay + 1.0, craft: 2.0);
+                Tick(engine, 10.0 + HomeDelay + 2.0, craft: 2.0);
+
+                var before = await WsTestHarness.DrainAllStreamDataAsync(seated, TestBudgets.Quiet);
+                Assert.DoesNotContain(before, f => f.Topic == HomeLedgerTestUplink.CraftTopic);
+                Assert.Equal(2.0, System.Convert.ToDouble(Read(engine, Home, 10.0 + HomeDelay + 2.0)));
+
+                engine.SetActiveVesselDelays(new Dictionary<string, double> { [Pilot] = 5.0 });
+                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>>());
+                Tick(engine, 300.0, craft: 9.0);
+                Tick(engine, 304.0, craft: 9.0);
+                Tick(engine, 306.0, craft: 9.0);
+
+                var after = await WsTestHarness.DrainAllStreamDataAsync(seated, TestBudgets.Quiet);
+                var heard = Assert.Single(after, f => f.Topic == HomeLedgerTestUplink.CraftTopic);
+                Assert.Equal(300.0, heard.Meta.ValidAt);
+                Assert.Equal(305.0, heard.Meta.DeliveredAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>Command centres a test can add to while the engine runs.</summary>
+        private sealed class Centres : ICommandCentreSource
+        {
+            private readonly List<string> _ids;
+
+            public Centres(params string[] ids) => _ids = new List<string>(ids);
+
+            public string ProviderId => "late-born-centre-test";
+
+            public void Add(string id)
+            {
+                lock (_ids)
+                {
+                    _ids.Add(id);
+                }
+            }
+
+            public IEnumerable<ICommandCentre> Enumerate()
+            {
+                lock (_ids)
+                {
+                    return _ids.ConvertAll(id => (ICommandCentre)new Centre(id));
+                }
+            }
+
+            private sealed class Centre : ICommandCentre
+            {
+                public Centre(string id) => Id = id;
+
+                public string Id { get; }
+
+                public string DisplayName => Id;
+
+                public CommandCentreKind Kind =>
+                    Id.StartsWith("vessel:", System.StringComparison.Ordinal) ? CommandCentreKind.CrewedVessel : CommandCentreKind.GroundStation;
+
+                public int? BodyIndex => null;
+
+                public double? Latitude => null;
+
+                public double? Longitude => null;
+
+                public bool IsActiveNow() => true;
+            }
+        }
+
+        /// <summary>
         /// The far centre cannot reach the relay, so it hears nothing of it and
         /// does not plan it. When a route opens it hears where the relay is one of
         /// its own light-times later, though the relay did nothing in between.

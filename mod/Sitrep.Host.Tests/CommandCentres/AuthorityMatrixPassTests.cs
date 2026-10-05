@@ -104,9 +104,13 @@ namespace Sitrep.Host.Tests.CommandCentres
                 (centre, guid) => centre.Id == "vessel:F" && guid == "H" ? 6.0 : (double?)null,
                 _ => true);
 
-            Assert.Equal(new[] { "vessel:F", "vessel:G" }, unroutable.Keys.OrderBy(k => k));
+            Assert.Equal(new[] { "ground:gs1", "vessel:F", "vessel:G" }, unroutable.Keys.OrderBy(k => k));
             Assert.Equal(new[] { "fleet.G", ChannelEngine.NodeId }, unroutable["vessel:F"]);
             Assert.Equal(new[] { "fleet.H" }, unroutable["vessel:G"]);
+            // A ground station that is not home has no route of its own to either
+            // craft, so it is listed against both and is not sent them on home's clock.
+            Assert.Equal(new[] { "fleet.G", "fleet.H", ChannelEngine.NodeId }, unroutable["ground:gs1"]);
+            Assert.False(unroutable.ContainsKey("ksc"));
         }
 
         [Fact]

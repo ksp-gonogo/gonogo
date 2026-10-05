@@ -41,8 +41,27 @@ namespace Sitrep.Core
         private readonly string[]? _vantages;
         private readonly double[]? _seconds;
 
+        /*
+         * Who the command centres were when the stamp was taken, and who they
+         * are now. A centre that is one now and was not one then was not
+         * listening when this light left, so it has no row and must not read
+         * the base, which is the home centre's light-time. Both are references
+         * shared by every stamp the network takes while its centres hold still.
+         */
+        private readonly HashSet<string>? _centresThen;
+        private readonly CentreRoll? _centresNow;
+
         public DelayStamp(double baseSeconds, IReadOnlyDictionary<string, double>? byVantage = null)
+            : this(baseSeconds, byVantage, null, null)
         {
+        }
+
+        /// <summary>A stamp that knows which command centres existed when it was taken, so one born since is never served by it.</summary>
+        internal DelayStamp(
+            double baseSeconds, IReadOnlyDictionary<string, double>? byVantage, HashSet<string>? centresThen, CentreRoll? centresNow)
+        {
+            _centresThen = centresThen;
+            _centresNow = centresNow;
             _baseSeconds = baseSeconds;
             if (byVantage == null || byVantage.Count == 0)
             {
@@ -100,6 +119,10 @@ namespace Sitrep.Core
                     }
                 }
             }
+            if (_centresNow != null && _centresThen != null && !_centresThen.Contains(vantage) && _centresNow.IsCentre(vantage))
+            {
+                return double.PositiveInfinity;
+            }
             return _baseSeconds;
         }
 
@@ -117,7 +140,7 @@ namespace Sitrep.Core
             var rows = ByVantage();
             if (rows == null)
             {
-                return new DelayStamp(_baseSeconds + extraSeconds);
+                return new DelayStamp(_baseSeconds + extraSeconds, null, _centresThen, _centresNow);
             }
 
             var shifted = new Dictionary<string, double>(rows.Count);
@@ -125,8 +148,24 @@ namespace Sitrep.Core
             {
                 shifted[pair.Key] = pair.Value + extraSeconds;
             }
-            return new DelayStamp(_baseSeconds + extraSeconds, shifted);
+            return new DelayStamp(_baseSeconds + extraSeconds, shifted, _centresThen, _centresNow);
         }
+    }
+
+    /// <summary>
+    /// The command centres as they stand now, for the stamps taken under a
+    /// network to ask of. One instance per network, read by every stamp it has
+    /// ever taken.
+    /// </summary>
+    internal sealed class CentreRoll
+    {
+        private HashSet<string> _now = new HashSet<string>(StringComparer.Ordinal);
+
+        public HashSet<string> Now => _now;
+
+        public bool IsCentre(string vantage) => _now.Contains(vantage);
+
+        public void Set(HashSet<string> centres) => _now = centres;
     }
 
     /// <summary>
@@ -416,6 +455,14 @@ namespace Sitrep.Core
         /// gets.</para>
         /// </summary>
         void ForgetDrops();
+
+        /// <summary>
+        /// C#-ONLY. Names the command centres as they stand now. A stamp taken
+        /// from here on serves each of them, and a stamp taken earlier serves
+        /// none that was not a centre when it was taken: a centre is not sent
+        /// what left before it existed.
+        /// </summary>
+        void SetCentres(IReadOnlyCollection<string> centres);
     }
 
     /// <summary>
@@ -565,9 +612,23 @@ namespace Sitrep.Core
                 byVantage[byNode.Key] = double.IsPositiveInfinity(pinned) ? pinned : pinned * _scale;
             }
 
-            var stamp = new DelayStamp(baseDelay * _scale, byVantage);
+            var stamp = new DelayStamp(baseDelay * _scale, byVantage, _centres.Now, _centres);
             _stamps[node] = stamp;
             return stamp;
+        }
+
+        private readonly CentreRoll _centres = new CentreRoll();
+
+        public void SetCentres(IReadOnlyCollection<string> centres)
+        {
+            var next = new HashSet<string>(centres ?? (IReadOnlyCollection<string>)Array.Empty<string>(), StringComparer.Ordinal);
+            if (next.SetEquals(_centres.Now))
+            {
+                return;
+            }
+            // A new set, never the old one changed: the stamps already taken hold the old one as who was there then.
+            _centres.Set(next);
+            _revision++;
         }
 
         /// <summary>

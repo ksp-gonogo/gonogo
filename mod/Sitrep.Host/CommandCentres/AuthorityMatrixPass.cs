@@ -243,12 +243,15 @@ namespace Sitrep.Host.CommandCentres
         /// complete set for this pass: a command from a listed centre to a listed
         /// node is refused at dispatch rather than quoted a delay.
         ///
-        /// <para>Only a centre with a route of its own is ever listed. The home
-        /// centre's reach to a craft is that craft's own link home, which the
-        /// engine already holds, and a ground station reaches whatever the ground
-        /// network reaches, so neither is listed against a craft. A crewed centre
-        /// always reaches its own craft. The home command's ledger is listed for
-        /// a centre <see cref="OffTheGroundNetwork"/> names.</para>
+        /// <para>Every centre but home is listed against a craft it has no route
+        /// of its own to. The home centre's reach to a craft is that craft's own
+        /// link home, which the engine already holds, so it is never listed. A
+        /// ground station that is not home hears a craft only over its own route:
+        /// left unlisted it read the node default, which is the home centre's
+        /// light-time, and was sent a craft it could not hear on home's clock. A
+        /// crewed centre always reaches its own craft. The home command's ledger
+        /// is listed for a centre <see cref="OffTheGroundNetwork"/> names, and
+        /// every ground station stands on that network.</para>
         /// </summary>
         /// <param name="activeCentres">The registry's currently-active centres.</param>
         /// <param name="homeCentreId">The centre the roster marks home, or null.</param>
@@ -277,7 +280,7 @@ namespace Sitrep.Host.CommandCentres
 
             foreach (var centre in activeCentres)
             {
-                if (centre.Id == homeCentreId || centre.Kind == CommandCentreKind.GroundStation)
+                if (centre.Id == homeCentreId)
                 {
                     continue;
                 }

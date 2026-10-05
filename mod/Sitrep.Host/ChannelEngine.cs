@@ -7162,6 +7162,7 @@ namespace Sitrep.Host
         private void ProcessTick(TickJob tick)
         {
             _tickUt = tick.Ut;
+            _network.SetCentres(_activeCentreIds);
             // Quickload / timeline-rewind detection: paired 1:1 with the
             // identical check GonogoBodiesServer/ReplayBodiesServer both used
             // to carry separately: now there is exactly one copy. Live KSP's

@@ -170,7 +170,16 @@ namespace Sitrep.Host
 
         public void OnTimelineReset(Action reset) => _timelineResetListeners.Add(reset);
 
-        public string? HomeCentre() => _homeCommand.CentreId;
+        /// <summary>
+        /// The centre the roster marks home: the claimant's answer, or the ground
+        /// station standing in for it when the claimant names none, which is
+        /// where a connection that has chosen no vantage stands.
+        /// </summary>
+        public string? HomeCentre()
+        {
+            var home = _freshConnectionVantage;
+            return home == CommandCentres.FreshConnectionVantage.None ? null : home;
+        }
 
         public double LightFactor() => _deliveryInputs.LightFactor;
 
