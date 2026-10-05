@@ -10,11 +10,18 @@ namespace Sitrep.Host.Comms
     /// <summary>What one command centre has heard, for saving with the game.</summary>
     public sealed class HeardAtCentre
     {
-        public HeardAtCentre(string centre, IReadOnlyList<CraftState> states, IReadOnlyDictionary<string, bool> links)
+        private static readonly IReadOnlyList<ContactRadio> NoRadios = new ContactRadio[0];
+
+        public HeardAtCentre(
+            string centre,
+            IReadOnlyList<CraftState> states,
+            IReadOnlyDictionary<string, bool> links,
+            IReadOnlyList<ContactRadio>? radios = null)
         {
             Centre = centre;
             States = states;
             Links = links;
+            Radios = radios ?? NoRadios;
         }
 
         public string Centre { get; }
@@ -24,6 +31,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>Whether each craft's radio answers, as the centre last heard, by node id.</summary>
         public IReadOnlyDictionary<string, bool> Links { get; }
+
+        /// <summary>The newest reading of each craft's radio to have reached the centre: what its signal and grading are made from.</summary>
+        public IReadOnlyList<ContactRadio> Radios { get; }
     }
 
     /// <summary>
@@ -74,7 +84,15 @@ namespace Sitrep.Host.Comms
                 {
                     links[link.Key] = link.Value;
                 }
-                centres.Add(new Dictionary<string, object?> { ["centre"] = centre.Centre, ["states"] = states, ["links"] = links });
+                var radios = new List<object?>();
+                foreach (var radio in centre.Radios)
+                {
+                    radios.Add(RadioOf(radio));
+                }
+                centres.Add(new Dictionary<string, object?>
+                {
+                    ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios,
+                });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
             var sb = new StringBuilder();
@@ -116,7 +134,12 @@ namespace Sitrep.Host.Comms
                             }
                         }
                     }
-                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links));
+                    var radios = new List<ContactRadio>();
+                    foreach (var radio in List(centre, "radios"))
+                    {
+                        radios.Add(RadioFrom((Dictionary<string, object?>)radio!));
+                    }
+                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios));
                 }
                 return new HeardSnapshot(centres);
             }
@@ -177,6 +200,59 @@ namespace Sitrep.Host.Comms
 
             var centre = Get(map, "centre") is Dictionary<string, object?> entry ? CentreFrom(entry) : null;
             return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster).AsCentre(centre);
+        }
+
+        /// <summary>A radio reading as the save keeps it. A save's own layout, not the wire's.</summary>
+        private static Dictionary<string, object?> RadioOf(ContactRadio radio)
+        {
+            var hops = new List<object?>();
+            foreach (var hop in radio.Hops)
+            {
+                hops.Add(new Dictionary<string, object?>
+                {
+                    ["from"] = hop.From, ["to"] = hop.To, ["toIsCraft"] = hop.ToIsCraft, ["extensions"] = hop.Extensions,
+                });
+            }
+            return new Dictionary<string, object?>
+            {
+                ["craftId"] = radio.CraftId,
+                ["capturedUt"] = radio.CapturedUt,
+                ["connected"] = radio.Connected,
+                ["strength"] = radio.Strength,
+                ["gradedBy"] = radio.Degrade.ModelId,
+                ["gradedByName"] = radio.Degrade.ModelName,
+                ["grade"] = radio.Degrade.Level,
+                ["hops"] = hops,
+            };
+        }
+
+        private static ContactRadio RadioFrom(Dictionary<string, object?> r)
+        {
+            var hops = new List<RadioHop>();
+            foreach (var item in List(r, "hops"))
+            {
+                var hop = (Dictionary<string, object?>)item!;
+                hops.Add(new RadioHop(
+                    (string)hop["from"]!,
+                    (string)hop["to"]!,
+                    Get(hop, "toIsCraft") is bool craft && craft,
+                    Get(hop, "extensions") as Dictionary<string, object?>));
+            }
+            var degrade = new CommsDegrade
+            {
+                ModelId = Get(r, "gradedBy") as string ?? "",
+                ModelName = Get(r, "gradedByName") as string ?? "",
+                Level = Get(r, "grade") as double?,
+            };
+            return new ContactRadio(
+                (string)r["craftId"]!,
+                Get(r, "connected") is bool connected && connected,
+                (double)r["strength"]!,
+                degrade,
+                hops)
+            {
+                CapturedUt = (double)r["capturedUt"]!,
+            };
         }
 
         /// <summary>The craft's roster entry as the save keeps it, or null for a craft that was not a command centre. A save's own layout, not the wire's.</summary>

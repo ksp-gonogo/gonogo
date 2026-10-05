@@ -107,5 +107,72 @@ namespace Sitrep.Host.IntegrationTests
 
             Assert.Null(world.Engine.HeardSnapshotNow()!.Centres.SingleOrDefault(c => c.Centre == Home)?.States.SingleOrDefault(s => s.Id == Relay));
         }
+
+        private static ContactRadio ThroughTheRelay(double strength) => new ContactRadio(
+            ScriptedContactGame.Active,
+            true,
+            strength,
+            new Sitrep.Contract.CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 1.0 - strength },
+            new[]
+            {
+                new RadioHop(ScriptedContactGame.ActiveGuid, ScriptedContactGame.RelayGuid, true),
+                new RadioHop(ScriptedContactGame.RelayGuid, ScriptedContactGame.HomeName, false),
+            });
+
+        private static double? Strength(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.SignalTopic);
+            if (payload == null)
+            {
+                return null;
+            }
+            using var doc = System.Text.Json.JsonDocument.Parse(payload);
+            return doc.RootElement.GetProperty("strength").GetDouble();
+        }
+
+        /// <summary>
+        /// The reading of the craft's radio that home had heard is in the save.
+        /// A session that sits down after the load is sent home's signal at
+        /// once, where it had none until the craft's next reading had crossed
+        /// the ten light-minutes its path runs through. A reading taken after
+        /// the save, which had not arrived, is not in it.
+        /// </summary>
+        [Fact]
+        public async Task AfterALoadACentreStillHasTheSignalItHadHeardAndNotTheOneStillOnItsWay()
+        {
+            var game = new ScriptedContactGame { Radio = ThroughTheRelay(0.9) };
+            await using var world = await ReckonedVantageWorld.StartAsync(game);
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            // The reading changes a hundred seconds before the save, five hundred short of home.
+            world.Game.Radio = ThroughTheRelay(0.4);
+            foreach (var ut in new[] { 1000.0, 1002.0, 1100.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+            var saved = SavedAndReadBack(world);
+            Assert.Equal(0.9, saved!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength, 6);
+
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), saved);
+            var (client, view) = await world.SitDownAtAsync(Home, ContactPlanSource.SignalTopic, ContactPlanSource.DegradeTopic);
+            await using var seated = client;
+            world.Tick(1101.0);
+            world.Tick(1102.0);
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            Reckoned.True(Strength(view) != 0.4, "the load showed home a reading that had not reached it when the game was saved");
+            Assert.Equal(0.9, Strength(view)!.Value, 6);
+
+            world.Tick(1699.0);
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            Assert.Equal(0.9, Strength(view)!.Value, 6);
+
+            world.Tick(1703.0);
+            world.Tick(1704.0);
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            Assert.Equal(0.4, Strength(view)!.Value, 6);
+        }
     }
 }

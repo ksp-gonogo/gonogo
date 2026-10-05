@@ -741,7 +741,7 @@ namespace Sitrep.Host.Comms
             long news = centres.Count;
             foreach (var centre in centres)
             {
-                news += _hearing!.NewsAt(centre);
+                news += _hearing!.NewsAt(centre) + _hearing.ReadingsAt(centre);
             }
             if (news == _heardNowNews)
             {

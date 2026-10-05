@@ -27,6 +27,9 @@ namespace Sitrep.Host.Comms
             public Dictionary<string, ContactRadio> Radio { get; } = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
 
             public long News { get; set; }
+
+            /// <summary>How many radio readings have arrived here. Apart from <see cref="News"/>, which a plan is checked against: a reading changes no plan.</summary>
+            public long Readings { get; set; }
         }
 
         private readonly ICraftStateHost _host;
@@ -101,6 +104,7 @@ namespace Sitrep.Host.Comms
                         if (!listeningEar.Radio.TryGetValue(nodeId, out var held) || held.CapturedUt < radio.CapturedUt)
                         {
                             listeningEar.Radio[nodeId] = radio;
+                            listeningEar.Readings++;
                         }
                     });
                     ear.Stop[vesselId] = () =>
@@ -129,6 +133,9 @@ namespace Sitrep.Host.Comms
         public ContactRadio? RadioAt(string centre, string nodeId) =>
             _ears.TryGetValue(centre, out var ear) && ear.Radio.TryGetValue(nodeId, out var radio) ? radio : null;
 
+        /// <summary>A count that moves each time a radio reading reaches <paramref name="centre"/>.</summary>
+        public long ReadingsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.Readings : 0;
+
         /// <summary>A count that moves each time news reaches <paramref name="centre"/>.</summary>
         public long NewsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.News : 0;
 
@@ -155,7 +162,8 @@ namespace Sitrep.Host.Comms
                 centres.Add(new HeardAtCentre(
                     ear.Key,
                     new List<CraftState>(ear.Value.Heard.Values),
-                    new Dictionary<string, bool>(ear.Value.Link, StringComparer.Ordinal)));
+                    new Dictionary<string, bool>(ear.Value.Link, StringComparer.Ordinal),
+                    new List<ContactRadio>(ear.Value.Radio.Values)));
             }
             return new HeardSnapshot(centres);
         }
@@ -184,7 +192,13 @@ namespace Sitrep.Host.Comms
                 {
                     ear.Link[link.Key] = link.Value;
                 }
+                // A reading heard after the load replaces a restored one only if it was taken later, as a state does.
+                foreach (var radio in centre.Radios)
+                {
+                    ear.Radio[radio.CraftId] = radio;
+                }
                 ear.News++;
+                ear.Readings++;
             }
         }
 

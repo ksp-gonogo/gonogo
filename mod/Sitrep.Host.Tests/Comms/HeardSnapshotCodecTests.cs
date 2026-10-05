@@ -70,6 +70,51 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ARadioReadingACentreHadHeardComesBackWithItsPathAndItsHopFacts()
+        {
+            var reading = new ContactRadio(
+                "vessel:a",
+                true,
+                0.62,
+                new CommsDegrade { ModelId = "m", ModelName = "Model", Level = 0.3 },
+                new[]
+                {
+                    new RadioHop("a", "relay", true, new Dictionary<string, object?> { ["ra"] = new Dictionary<string, object?> { ["band"] = "X", ["rate"] = 1200.0 } }),
+                    new RadioHop("relay", "KSC", false),
+                })
+            {
+                CapturedUt = 55.0,
+            };
+            var ungraded = new ContactRadio("vessel:b", false, 0.0, new CommsDegrade { ModelId = "unknown" }) { CapturedUt = 60.0 };
+            var snapshot = new HeardSnapshot(new[]
+            {
+                new HeardAtCentre("ground:ksc", new CraftState[0], new Dictionary<string, bool>(), new[] { reading, ungraded }),
+            });
+
+            var back = HeardSnapshotCodec.Decode(HeardSnapshotCodec.Encode(snapshot))!.Centres.Single().Radios;
+
+            var a = back.Single(r => r.CraftId == "vessel:a");
+            Assert.Equal(55.0, a.CapturedUt);
+            Assert.True(a.SaysTheSameAs(reading));
+            Assert.Equal("Model", a.Degrade.ModelName);
+            Assert.True(a.Hops[0].ToIsCraft);
+            Assert.False(a.Hops[1].ToIsCraft);
+            Assert.Null(a.Hops[1].Extensions);
+            var b = back.Single(r => r.CraftId == "vessel:b");
+            Assert.False(b.Connected);
+            Assert.Null(b.Degrade.Level);
+            Assert.Empty(b.Hops);
+        }
+
+        [Fact]
+        public void ASaveFromBeforeReadingsWereKeptCarriesNone()
+        {
+            var old = new HeardSnapshot(new[] { new HeardAtCentre("ground:ksc", new CraftState[0], new Dictionary<string, bool>()) });
+
+            Assert.Empty(HeardSnapshotCodec.Decode(HeardSnapshotCodec.Encode(old))!.Centres.Single().Radios);
+        }
+
+        [Fact]
         public void ALandedCraftAGoneOneAndOneWithNoRadioEachComeBackAsWhatTheyWere()
         {
             var surface = RotatingGroundStation.FromLatitudeLongitude(10.0, 20.0, 0.0, 21_549.425, 600_000.0, 75.0);
