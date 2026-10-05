@@ -3,8 +3,8 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Block,
   ButtonGroup,
+  Card,
   CommandButton,
   getWidgetShape,
   Panel,
@@ -24,12 +24,6 @@ import {
   SECTION_LABEL_STYLE,
   SUMMARY_STYLE,
 } from "./styles";
-
-/**
- * A contract as a grouping rather than a box: the panel is already a surface,
- * so the separation is the list gap and the title's weight.
- */
-const ContractCard = Block;
 
 export function ContractManagerComponent({
   w,
@@ -109,7 +103,7 @@ export function ContractManagerComponent({
           {activeCount > 0 && <div style={SECTION_LABEL_STYLE}>Active</div>}
           <div style={cardListStyle(multiColumn)}>
             {active.map((c) => (
-              <ContractCard
+              <Card
                 key={c.id}
                 title={c.title}
                 titleRight={
@@ -137,13 +131,13 @@ export function ContractManagerComponent({
                     title="Cancel this contract: forfeits all progress"
                   />
                 </div>
-              </ContractCard>
+              </Card>
             ))}
           </div>
           {offeredCount > 0 && <div style={SECTION_LABEL_STYLE}>Offered</div>}
           <div style={cardListStyle(multiColumn)}>
             {offered?.map((c) => (
-              <ContractCard
+              <Card
                 key={c.id}
                 title={c.title}
                 titleRight={
@@ -178,7 +172,7 @@ export function ContractManagerComponent({
                     pendingLabel="Declining..."
                   />
                 </ButtonGroup>
-              </ContractCard>
+              </Card>
             ))}
           </div>
         </Section>

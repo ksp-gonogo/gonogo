@@ -42,15 +42,21 @@ export const SECTION_LABEL_STYLE = {
   marginTop: "var(--gap-list-heading)",
 } as const;
 
+/*
+ * `auto` pins the actions to the foot of the card: grid rows stretch every card
+ * to the tallest in its row, so without it the buttons sit at different heights.
+ */
 export const OFFERED_ACTIONS_STYLE = {
-  marginTop: "var(--gap-actions)",
+  marginTop: "auto",
+  paddingTop: "var(--gap-actions)",
 } as const;
 
 export const ACTIVE_ACTIONS_STYLE = {
   display: "flex",
   justifyContent: "flex-end",
   gap: "var(--gap-related)",
-  marginTop: "var(--gap-actions)",
+  marginTop: "auto",
+  paddingTop: "var(--gap-actions)",
 } as const;
 
 export const DEADLINE_STYLE = {
