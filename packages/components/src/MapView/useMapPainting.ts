@@ -216,7 +216,7 @@ export function useMapPainting({
       paintVesselMarker(canvas, ctx, x, y);
       return;
     }
-    // The observation is held wherever it is not the current marker: the kit draws it ringed, beside a modelled position where there is one.
+    // The observation is held wherever it is not the current marker: the kit draws it as the held square, beside a modelled position where there is one.
     paintCrosshair(ctx, x, y, true);
     const modelled =
       modelledPosition === null

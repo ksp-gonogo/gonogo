@@ -150,7 +150,7 @@ describe("SystemView when vessel.orbit is held", () => {
     expect(held?.querySelector("title")?.textContent).toBe(
       "Vessel position, held",
     );
-    // The kit's held vessel mark: the marker has no text to fall back on (WCAG 1.4.1), so the dashed ring is what says held.
+    // The kit's held vessel mark: the marker has no text to fall back on (WCAG 1.4.1), so the square is what says held.
     const mark = held?.querySelector("[data-vessel-marker] [data-vessel-mark]");
     expect(mark?.getAttribute("data-vessel-mark")).toBe("held");
     await act(async () => {});

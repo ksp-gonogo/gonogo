@@ -127,7 +127,7 @@ export function VesselMarker({
   );
   const r = 5 / zoom;
   const { colour, opacity } = markerStyle(state);
-  // The kit's vessel mark, ringed where the position is held or reckoned; overdue and lost keep their own warning rings.
+  // The kit's vessel mark, a square where the position is held and a triangle where it is reckoned; overdue and lost keep their own warning rings.
   const vesselMark = held
     ? "held"
     : state === "predicted"

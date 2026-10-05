@@ -355,7 +355,7 @@ export function OrbitDiagram({
     ? "rgba(0,255,136,0.55)"
     : "rgba(255,80,0,0.55)";
 
-  // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned and the vessel mark stays point up.
+  // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned and the vessel mark stays upright.
   const argPeRad = (argPe * Math.PI) / 180;
   const cosA = Math.cos(argPeRad);
   const sinA = Math.sin(argPeRad);
@@ -371,7 +371,7 @@ export function OrbitDiagram({
         .every(
           (later) =>
             Math.hypot(later.x - mark.x, later.y - mark.y) >
-            vesselR * 2 * VESSEL_MARK.ringRadius,
+            vesselR * 2 * VESSEL_MARK.reach,
         ),
   );
   const apoMarker = { x: -apoapsis * cosA, y: apoapsis * sinA };
@@ -623,7 +623,7 @@ export function OrbitDiagram({
             )}
           </g>
 
-          {/* Outside the rotation group, and turned back against a focus frame's, so the vessel is point up on every orbit. */}
+          {/* Outside the rotation group, and turned back against a focus frame's, so the vessel mark is upright on every orbit. */}
           {craftMarks.map((mark) => (
             <Rotated
               key={mark.state}

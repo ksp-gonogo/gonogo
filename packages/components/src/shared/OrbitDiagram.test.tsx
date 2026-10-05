@@ -341,7 +341,7 @@ describe("OrbitDiagram craft marks", () => {
     ).toEqual(["modelled"]);
   });
 
-  it("keeps the vessel point up however the orbit is turned", () => {
+  it("keeps the vessel mark upright however the orbit is turned", () => {
     const { container } = render(
       <OrbitDiagram {...BASE} argPe={70} craft={{ modelled: 30 }} />,
     );
