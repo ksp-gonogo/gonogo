@@ -288,6 +288,50 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(0.4, Strength(seated.FarView)!.Value, 6);
         }
 
+        private static ContactRadio Lost() => new ContactRadio(
+            ScriptedContactGame.Active,
+            false,
+            0.0,
+            new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 1.0 },
+            new RadioHop[0]);
+
+        /// <summary>
+        /// The craft's link goes. Its radio then reads nothing at all, and that
+        /// reading is how a centre learns the strength fell to nothing: it
+        /// arrives one light-time after the loss, as the news that the link is
+        /// down does, and the last good reading does not stand through the
+        /// outage.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TheReadingThatTheLinkHasGoneArrivesOneLightTimeAfterTheLoss(bool pathBreaks)
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            Assert.Equal(0.9, Strength(seated.HomeView)!.Value, 6);
+
+            seated.World.Game.ActiveConnected = false;
+            seated.World.Game.Radio = Lost();
+            if (pathBreaks)
+            {
+                seated.World.Game.BreakActivePath(0.5);
+            }
+            await seated.TickAsync(T0, T0 + 0.5);
+            Reckoned.True(Strength(seated.HomeView) == 0.9, "a centre learned the strength had gone before the light of the loss could arrive");
+
+            await seated.TickAsync(T0 + 2, T0 + 3, T0 + 4, T0 + 5);
+            Assert.Equal(0.0, Strength(seated.HomeView)!.Value, 6);
+            Assert.Equal(1.0, Level(seated.HomeView)!.Value, 6);
+            Assert.Equal(0.0, Strength(seated.FarView)!.Value, 6);
+
+            // And when the link is back, the first reading taken in contact arrives as any does.
+            seated.World.Game.ActiveConnected = true;
+            seated.World.Game.Radio = Direct(0.7);
+            await seated.TickAsync(T0 + 100, T0 + 102, T0 + 103, T0 + 104);
+            Assert.Equal(0.7, Strength(seated.HomeView)!.Value, 6);
+        }
+
         [Fact]
         public async Task ACentreThatHasHeardNoReadingIsSentNoSignal()
         {

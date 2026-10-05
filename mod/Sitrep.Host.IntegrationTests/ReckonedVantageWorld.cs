@@ -540,9 +540,14 @@ namespace Sitrep.Host.IntegrationTests
             host.SetPathBreakSource((_, ut) =>
             {
                 var at = _game.TakeBreak();
+                // The active craft's break names both of its nodes, as the game's own watcher does.
                 return at == null
                     ? null
-                    : new[] { new PathBreak(ChannelEngine.NodeId, ut, at.Value) };
+                    : new[]
+                    {
+                        new PathBreak(ChannelEngine.NodeId, ut, at.Value),
+                        new PathBreak(ChannelEngine.FleetNodePrefix + ScriptedContactGame.ActiveGuid, ut, at.Value),
+                    };
             });
             host.SetConnectivitySource(_ => _game.ActiveConnected);
         }

@@ -1413,6 +1413,7 @@ namespace Sitrep.Host
             _courier.SetNotCarriedByTheNode(topic =>
                 IsFreezeExempt(topic)
                 || IsPerVesselField(topic, CraftStatePrefix, CraftSightingSuffix)
+                || IsPerVesselField(topic, CraftStatePrefix, CraftRadioLostSuffix)
                 || (_channelDeclarations.TryGetValue(topic, out var declared) && declared.Delay == DelayRole.TrueNow));
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,

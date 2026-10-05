@@ -105,6 +105,17 @@ namespace Sitrep.Host
         /// <summary>The topic a craft's radio readings are recorded under.</summary>
         internal static string CraftRadioTopic(string vesselId) => CraftStatePrefix + vesselId + CraftRadioSuffix;
 
+        internal const string CraftRadioLostSuffix = ".radiolost";
+
+        /// <summary>
+        /// The topic the reading that a craft's link has gone is recorded
+        /// under. Apart from its other readings because it is not light the
+        /// craft sent: it is the ground noticing that nothing arrives, as the
+        /// report that the link is down is. A break in the craft's path
+        /// retires the light the craft had in flight, and this is not that.
+        /// </summary>
+        internal static string CraftRadioLostTopic(string vesselId) => CraftStatePrefix + vesselId + CraftRadioLostSuffix;
+
         /// <summary>The delays each craft's last radio reading taken in contact was sent under, which is what the reading that says the link has gone is sent under too.</summary>
         private readonly Dictionary<string, DelayStamp> _craftRadioStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
 
@@ -134,7 +145,7 @@ namespace Sitrep.Host
             {
                 return;
             }
-            var topic = CraftRadioTopic(vesselId);
+            var topic = radio.Connected ? CraftRadioTopic(vesselId) : CraftRadioLostTopic(vesselId);
             _lastRecordedUt[topic] = ut;
             _courier.Record(NodeFor(topic), topic, radio, ut, sentUnder: stamp);
         }
@@ -174,14 +185,20 @@ namespace Sitrep.Host
 
         public Action HearCraftRadio(string vesselId, string centre, Action<ContactRadio> heard)
         {
-            var topic = CraftRadioTopic(vesselId);
-            return _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
+            Action Hear(string topic) => _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
             {
                 if (delivered.Payload is ContactRadio radio)
                 {
                     heard(radio);
                 }
             });
+            var stopReadings = Hear(CraftRadioTopic(vesselId));
+            var stopLost = Hear(CraftRadioLostTopic(vesselId));
+            return () =>
+            {
+                stopReadings();
+                stopLost();
+            };
         }
 
         /// <summary>The last state recorded of each present craft, to say again to a centre that has just gained a route to it.</summary>
