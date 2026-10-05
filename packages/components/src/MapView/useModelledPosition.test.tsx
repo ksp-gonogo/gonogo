@@ -71,8 +71,19 @@ function Probe() {
   return null;
 }
 
+/**
+ * Lets the frame the provider schedules land inside `act`. On every clock frame
+ * and every delivery the provider books a `store.beginFrame()` for the next
+ * animation frame, on top of the frame a test mints by hand, and that one is a
+ * React update like any other: left to fire between two steps it lands outside
+ * `act` on any machine slow enough for a step to outlast it.
+ */
+function scheduledFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 describe("useModelledPosition", () => {
-  it("keeps the modelled place a light-time ahead of the held one on every frame, for an orbit whose patch starts at each sample's own instant", () => {
+  it("keeps the modelled place a light-time ahead of the held one on every frame, for an orbit whose patch starts at each sample's own instant", async () => {
     const wall = createFakeWallClock();
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
@@ -94,11 +105,12 @@ describe("useModelledPosition", () => {
       clock.emitFrame();
       store.beginFrame();
     };
-    act(() => {
+    await act(async () => {
       const at = { validAt: U0, deliveredAt: U0 };
       transport.emit("system.bodies", payloadOf("system.bodies"), at);
       transport.emit("vessel.identity", payloadOf("vessel.identity"), at);
       frame();
+      await scheduledFrame();
     });
 
     // One sample every 1.02 s, taken at a fraction of a second as the mod's are, each arriving a light-time later.
@@ -106,7 +118,7 @@ describe("useModelledPosition", () => {
     for (let taken = 0.137; taken < 6; taken += 1.02) samples.push(taken);
     const separations: number[] = [];
     for (let now = DELAY; now <= DELAY + 6; now += 0.25) {
-      act(() => {
+      await act(async () => {
         while (samples.length > 0 && samples[0] + DELAY <= now) {
           const taken = samples.shift() as number;
           const meta = { validAt: U0 + taken, deliveredAt: U0 + taken + DELAY };
@@ -121,6 +133,7 @@ describe("useModelledPosition", () => {
           );
         }
         frame();
+        await scheduledFrame();
       });
       if (drawn.held !== undefined && drawn.modelled !== undefined) {
         separations.push(drawn.modelled - drawn.held);
