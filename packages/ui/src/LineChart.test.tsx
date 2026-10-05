@@ -553,7 +553,7 @@ describe("LineChart threshold currency", () => {
           {
             id: "current",
             value: 400,
-            axis: "primary",
+            kind: "marker",
             label: "400 pascals @ 30 km",
             reading,
           },
@@ -598,10 +598,9 @@ describe("LineChart threshold currency", () => {
           {
             id: "current",
             value: 420,
-            axis: "primary",
+            kind: "marker",
             label: "420 pascals @ 29 km",
             reading: carried,
-            drawsReckoning: true,
           },
         ]}
         width={400}
@@ -618,5 +617,67 @@ describe("LineChart threshold currency", () => {
       expect(container.querySelector("[data-held-mark]")).toBeNull();
       expect(chartName(container)).not.toMatch(/400 pascals/);
     }
+  });
+});
+
+/** A threshold's tone comes from its kind and the trace on its axis, never from the caller. */
+describe("LineChart threshold tone", () => {
+  function lineFor(kind: "limit" | "target" | "marker", ys: number[]) {
+    const { container } = render(
+      <LineChart
+        series={[
+          {
+            id: "s",
+            label: "Trace",
+            axis: "primary",
+            color: "#fff",
+            data: { x: ys.map((_, i) => i * 1000), y: ys },
+          },
+        ]}
+        xDomain={[0, 3000]}
+        yDomainPrimary={[0, 100]}
+        thresholds={[{ id: "t", value: 50, kind, label: "Fifty" }]}
+        width={400}
+        height={200}
+      />,
+    );
+    const line = container.querySelector("[data-threshold-kind]");
+    if (!line) throw new Error("no threshold line drawn");
+    return { line, name: chartName(container) };
+  }
+
+  it("draws a limit quietly until the trace passes it, then says so in tone and in words", () => {
+    const below = lineFor("limit", [10, 20, 30]);
+    expect(below.line.getAttribute("stroke")).toBe("var(--color-text-faint)");
+    expect(below.name).not.toMatch(/limit passed/);
+
+    const passed = lineFor("limit", [10, 40, 60]);
+    expect(passed.line.getAttribute("stroke")).toBe("var(--color-warn-mark)");
+    expect(passed.name).toMatch(/Fifty: limit passed/);
+  });
+
+  it("reads a limit approached from above the same way", () => {
+    expect(lineFor("limit", [90, 60, 40]).line.getAttribute("stroke")).toBe(
+      "var(--color-warn-mark)",
+    );
+  });
+
+  it("draws a target in the go tone once the trace reaches it", () => {
+    const short = lineFor("target", [10, 20, 30]);
+    expect(short.line.getAttribute("stroke")).toBe("var(--color-text-faint)");
+
+    const reached = lineFor("target", [10, 30, 50]);
+    expect(reached.line.getAttribute("stroke")).toBe("var(--color-go-mark)");
+    expect(reached.name).toMatch(/Fifty: target reached/);
+  });
+
+  it("never changes a marker's tone, and draws it solid", () => {
+    const before = lineFor("marker", [10, 20, 30]);
+    const after = lineFor("marker", [10, 40, 60]);
+    expect(after.line.getAttribute("stroke")).toBe(
+      before.line.getAttribute("stroke"),
+    );
+    expect(after.line.getAttribute("stroke-dasharray")).toBeNull();
+    expect(after.name).not.toMatch(/passed|reached/);
   });
 });

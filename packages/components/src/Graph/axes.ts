@@ -1,10 +1,10 @@
 import type { DataKeyMeta } from "@ksp-gonogo/data";
-import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { type PlotLayer, seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries } from "@ksp-gonogo/ui";
 import { plotLayerExtent } from "@ksp-gonogo/ui";
-import type { GraphSeriesConfig } from "./types";
+import type { GraphSeries } from "./types";
 
-export function withDefaults(raw: GraphSeriesConfig): GraphSeriesConfig {
+export function withDefaults(raw: GraphSeries): GraphSeries {
   return { ...raw, type: raw.type ?? "line" };
 }
 
@@ -55,22 +55,24 @@ export function timeWindowDomain(
 }
 
 export function resolveAxes(
-  configs: GraphSeriesConfig[],
+  configs: GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
 ): Array<"primary" | "secondary"> {
   // An undefined axis must read as "auto", or the series lands on neither axis.
-  const axisOf = (c: GraphSeriesConfig) => c.axis ?? "auto";
+  const axisOf = (c: GraphSeries) => c.axis ?? "auto";
   if (configs.every((c) => axisOf(c) !== "auto")) {
     return configs.map((c) => c.axis as "primary" | "secondary");
   }
-  const units = configs.map((c) => metaMap.get(c.key)?.unit ?? "raw");
+  const units = configs.map(
+    (c) => metaMap.get(seriesKeyOf(c.source))?.unit ?? "raw",
+  );
   const seen: string[] = [];
   for (const u of units) {
     if (!seen.includes(u)) seen.push(u);
   }
   return configs.map((c) => {
     if (axisOf(c) !== "auto") return c.axis as "primary" | "secondary";
-    const u = metaMap.get(c.key)?.unit ?? "raw";
+    const u = metaMap.get(seriesKeyOf(c.source))?.unit ?? "raw";
     return seen.indexOf(u) === 0 ? "primary" : "secondary";
   });
 }

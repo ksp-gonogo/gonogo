@@ -1,11 +1,12 @@
 import type { DataKeyMeta } from "@ksp-gonogo/data";
+import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
-import type { GraphSeriesConfig } from "./types";
+import type { GraphSeries } from "./types";
 
 /** The header names the plotted units, not the series, because units dedupe where names do not; with no known unit it stays "GRAPH". */
 export function computeUnitsLabel(
-  series: readonly GraphSeriesConfig[],
+  series: readonly GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
   axes: Array<"primary" | "secondary">,
   xIsTime: boolean,
@@ -17,7 +18,7 @@ export function computeUnitsLabel(
     secondary: [],
   };
   series.forEach((cfg, i) => {
-    const unit = metaMap.get(cfg.key)?.unit;
+    const unit = metaMap.get(seriesKeyOf(cfg.source))?.unit;
     if (!unit) return;
     const bucket = byAxis[axes[i]];
     if (!bucket.includes(unit)) bucket.push(unit);
@@ -32,12 +33,15 @@ export function computeUnitsLabel(
 
 /** The series names, as the header's tooltip. */
 export function computeFullTitle(
-  series: readonly GraphSeriesConfig[],
+  series: readonly GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
 ): string | undefined {
   return (
     series
-      .map((cfg) => cfg.label ?? metaMap.get(cfg.key)?.label ?? cfg.key)
+      .map((cfg) => {
+        const key = seriesKeyOf(cfg.source);
+        return cfg.label ?? metaMap.get(key)?.label ?? key;
+      })
       .join(", ") || undefined
   );
 }

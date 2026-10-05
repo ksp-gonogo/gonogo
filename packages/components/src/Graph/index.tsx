@@ -1,7 +1,10 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
+import { useTopicFieldCatalog } from "@ksp-gonogo/data";
+import { useMemo } from "react";
 import { GraphConfigComponent } from "./GraphConfigForm";
 import { GraphView } from "./GraphView";
+import { graphThresholdsOf, graphViewConfigOf } from "./savedConfig";
 import type { GraphConfig } from "./types";
 
 function GraphComponent({
@@ -9,7 +12,13 @@ function GraphComponent({
   w,
   h,
 }: Readonly<ComponentProps<GraphConfig>>) {
-  return <GraphView config={config} w={w} h={h} />;
+  const catalog = useTopicFieldCatalog();
+  const view = useMemo(() => graphViewConfigOf(config), [config]);
+  const thresholds = useMemo(
+    () => graphThresholdsOf(config, catalog),
+    [config, catalog],
+  );
+  return <GraphView config={view} thresholds={thresholds} w={w} h={h} />;
 }
 
 registerComponent<GraphConfig>({
@@ -35,8 +44,11 @@ export { GraphView } from "./GraphView";
 export type {
   ComputedSeries,
   GraphConfig,
+  GraphSeries,
   GraphSeriesConfig,
+  GraphThreshold,
   GraphThresholdConfig,
+  GraphViewConfig,
 } from "./types";
 export { TIME_AXIS } from "./types";
 export { GraphComponent };

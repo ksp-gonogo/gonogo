@@ -9,7 +9,7 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-/** One threshold line: its label, value and which Y axis it draws against. */
+/** One threshold line: its label, value, which Y axis it draws against and what kind of line it is. */
 export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
   return (
     <div style={ROW}>
@@ -37,6 +37,18 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
       >
         <option value="primary">Primary</option>
         <option value="secondary">Secondary</option>
+      </Select>
+      <Select
+        aria-label="Kind"
+        value={threshold.kind ?? "limit"}
+        onChange={(e) =>
+          onUpdate(threshold.id, {
+            kind: e.target.value as GraphThresholdConfig["kind"],
+          })
+        }
+      >
+        <option value="limit">Limit</option>
+        <option value="target">Target</option>
       </Select>
       <IconButton
         type="button"

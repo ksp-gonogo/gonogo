@@ -8,7 +8,7 @@ const CURVE = { id: "c", label: "Curve", xs: [0, 1, 2], ys: [1, 2, 3] };
 const REFERENCE_PLOT = {
   series: [],
   windowSec: 60,
-  xKey: "vessel.flight.altitudeAsl",
+  x: { topic: "vessel.flight", field: "altitudeAsl" },
 };
 
 /** The kit, not the widget, decides where a chart's notice sits: from the measured space and from whether the plot has anything to cover. */

@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { plotColumnsOf } from "@ksp-gonogo/data";
 import {
   combineReadings,
   type TinyEssential,
@@ -15,6 +16,7 @@ import {
   useElementSize,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
+import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import {
@@ -74,12 +76,12 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // A held TWR stays drawn, never blanked: the empty state means the craft has no engine.
   const twr = twrReading.value;
   const series = useComputedSeries(
-    "vessel.propulsion.currentThrust",
-    "vessel.propulsion.totalMass",
+    { topic: "vessel.propulsion", field: "currentThrust" },
+    { topic: "vessel.propulsion", field: "totalMass" },
     SPARK_WINDOW_SEC,
     twrOf,
   );
-  const sparkValues = series.v as number[];
+  const sparkValues = useMemo(() => plotColumnsOf(series).v, [series]);
 
   // The variant follows grid size; only the drawings inside the frame are measured, and the frame's size never depends on them.
   const cols = w ?? 4;

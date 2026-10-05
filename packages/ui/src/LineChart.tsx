@@ -81,18 +81,57 @@ export interface ChartSeries {
   data: ChartSeriesData;
 }
 
-/** Horizontal reference line at a constant Y, with an optional right-anchored label. */
+/**
+ * What a threshold line is for, which decides how it is drawn.
+ *
+ * - `limit`: a figure not to pass. Dashed and quiet until a trace on its axis has passed it, then in the warning tone
+ * - `target`: a figure to reach. Dashed and quiet until a trace on its axis has reached it, then in the go tone
+ * - `marker`: where something is now. Solid, and never changes tone
+ */
+export type ThresholdKind = "limit" | "target" | "marker";
+
+/** Horizontal reference line at a constant Y, with an optional right-anchored label. Its tone comes from `kind` and the plotted data, never from the caller. */
 export interface ThresholdRule {
   id: string;
+  /** Where the line stands, in the axis's unit. */
   value: number;
-  axis: "primary" | "secondary";
+  kind: ThresholdKind;
+  /** `"primary"` when omitted. */
+  axis?: "primary" | "secondary";
   label?: string;
-  color?: string;
-  dashed?: boolean;
-  /** When held, the label carries the held-reading mark and the chart's accessible name says so. */
+  /** What the line was drawn from. A held one marks the label, and one a model carried is marked as modelled; the chart's accessible name says which. */
   reading?: UnitValue;
-  /** The line stands at the reading's modelled figure rather than its observation, so a figure carried to SCET is marked too. */
-  drawsReckoning?: boolean;
+}
+
+/** A trace has passed a line when its newest figure is on it, or on the other side of it from its oldest. */
+function hasPassed(ys: readonly number[], at: number): boolean {
+  if (ys.length === 0) return false;
+  const newest = ys[ys.length - 1] - at;
+  if (newest === 0) return true;
+  if (ys.length === 1) return false;
+  return Math.sign(ys[0] - at) !== Math.sign(newest);
+}
+
+/** The line takes the mark tone, and its label the text tone of the same state: a mark tone is not legible as type. */
+function thresholdTone(
+  kind: ThresholdKind,
+  passed: boolean,
+): { line: string; label: string } {
+  if (kind === "marker") {
+    return {
+      line: "var(--color-text-primary)",
+      label: "var(--color-text-primary)",
+    };
+  }
+  if (!passed) {
+    return {
+      line: "var(--color-text-faint)",
+      label: "var(--color-text-faint)",
+    };
+  }
+  return kind === "limit"
+    ? { line: "var(--color-warn-mark)", label: "var(--color-warn-text)" }
+    : { line: "var(--color-go-mark)", label: "var(--color-go-text)" };
 }
 
 export type AxisScale = "linear" | "log";
@@ -502,20 +541,34 @@ export function LineChart({
 
   const thresholdLines = useMemo(() => {
     if (!thresholds) return [];
-    return thresholds.map((t) => ({
-      id: t.id,
-      label: t.label,
-      currency: resolveCurrency(t.reading, {
-        drawsReckoning: t.drawsReckoning,
-      }),
-      color: t.color ?? "var(--color-text-faint)",
-      dashed: t.dashed ?? true,
-      y:
-        t.axis === "primary"
-          ? scaleYPrimary(t.value)
-          : scaleYSecondary(t.value),
-    }));
-  }, [thresholds, scaleYPrimary, scaleYSecondary]);
+    return thresholds.map((t) => {
+      const axis = t.axis ?? "primary";
+      // A marker has nothing to pass, and a dashed series is a reference curve, not a trace of the craft.
+      const passed =
+        t.kind !== "marker" &&
+        series.some(
+          (s) =>
+            s.axis === axis &&
+            s.type !== "band" &&
+            !s.dashed &&
+            hasPassed(s.data.y, t.value),
+        );
+      return {
+        id: t.id,
+        label: t.label,
+        kind: t.kind,
+        passed,
+        // The line stands where the reading's model has it, so a figure carried forward is marked as that.
+        currency: resolveCurrency(t.reading, { drawsReckoning: true }),
+        tone: thresholdTone(t.kind, passed),
+        dashed: t.kind !== "marker",
+        y:
+          axis === "primary"
+            ? scaleYPrimary(t.value)
+            : scaleYSecondary(t.value),
+      };
+    });
+  }, [thresholds, series, scaleYPrimary, scaleYSecondary]);
 
   /*
    * Shape and dash are not channels a screen reader has, so each layer and each reckoned run adds a
@@ -543,9 +596,16 @@ export function LineChart({
     return clauses;
   });
 
-  const thresholdClauses = thresholdLines
-    .filter((t) => t.currency.held)
-    .map((t) => sayHeld(t.label ?? t.id, t.currency.caption));
+  // Tone is not a channel a screen reader has either, so a passed limit and a reached target each say so.
+  const thresholdClauses = thresholdLines.flatMap((t) => {
+    const name = t.label ?? t.id;
+    const clauses: string[] = [];
+    if (t.passed && t.kind === "limit") clauses.push(`${name}: limit passed`);
+    if (t.passed && t.kind === "target")
+      clauses.push(`${name}: target reached`);
+    if (t.currency.held) clauses.push(sayHeld(name, t.currency.caption));
+    return clauses;
+  });
 
   const chartLabel = [
     ariaLabel ?? "Telemetry line chart",
@@ -897,16 +957,18 @@ export function LineChart({
             y1={t.y}
             x2={plotX1}
             y2={t.y}
-            stroke={t.color}
+            stroke={t.tone.line}
             strokeWidth={1}
             strokeDasharray={t.dashed ? "4 3" : undefined}
+            data-threshold-kind={t.kind}
+            data-threshold-passed={t.passed || undefined}
           />
           {t.label && (
             <text
               x={plotX1 - 4}
               y={t.y - 3}
               textAnchor="end"
-              fill={t.color}
+              fill={t.tone.label}
               fontSize={10}
             >
               {t.label}

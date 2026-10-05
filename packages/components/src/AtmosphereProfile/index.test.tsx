@@ -82,9 +82,13 @@ describe("AtmosphereProfileComponent", () => {
 
     await waitFor(() => {
       const text = container.textContent ?? "";
-      // speakQuantity writes the unit's word, not its symbol, since a chart annotation is read aloud.
+      // The chart writes the unit's word, not its symbol, since a chart annotation is read aloud.
       expect(text).toMatch(/pascals/);
     });
+    // A marker: where the craft is, with no crossing tone to take.
+    expect(
+      container.querySelector('[data-threshold-kind="marker"]'),
+    ).not.toBeNull();
   });
 
   it("shows the airless notice for non-atmospheric bodies", async () => {

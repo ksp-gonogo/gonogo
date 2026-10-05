@@ -22,7 +22,7 @@ import { AtmosphereProfileComponent } from "./index";
  * pressure line stays on the held altitude and wears the held mark.
  */
 
-const PRESSURE_LINE = /pascals @ 6 km/;
+const PRESSURE_LINE = /At 6 km: [\d.]+ kilopascals/;
 
 function heldMark(container: HTMLElement): Element | null {
   return container.querySelector("text [data-held-mark]");
@@ -128,7 +128,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
     expect(visibleText(container)).not.toContain("Skin");
     // The line stays on the last altitude, and a screen reader hears that it is held.
     expect(visibleText(container)).toMatch(PRESSURE_LINE);
-    expect(chartName(container)).toMatch(/pascals @ 6 km, .+/);
+    expect(chartName(container)).toMatch(/At 6 km: [\d.]+ kilopascals, .+/);
   });
 
   it("draws no widget-level sentence about currency, the marked line says it", async () => {

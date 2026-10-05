@@ -3,8 +3,12 @@ import type {
   SeriesRange,
   SeriesTimeBasis,
 } from "@ksp-gonogo/data";
-import { useTopicFieldCatalog } from "@ksp-gonogo/data";
-import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { plotColumnsOf, useTopicFieldCatalog } from "@ksp-gonogo/data";
+import {
+  magnitudeOf,
+  type PlotLayer,
+  seriesKeyOf,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries, ThresholdRule } from "@ksp-gonogo/ui";
 import { LineChart, utXTickFormat } from "@ksp-gonogo/ui";
 import {
@@ -14,7 +18,9 @@ import {
   getSizeBucket,
   Panel,
   placeGraphNotice,
+  resolveCurrency,
   Section,
+  speakQuantity,
   Text,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -41,8 +47,12 @@ import {
 } from "./header";
 import { buildLiveSeries } from "./liveSeries";
 import { formatNumericTick, unitTick } from "./ticks";
-import type { ComputedSeries, GraphConfig, GraphVariant } from "./types";
-import { TIME_AXIS } from "./types";
+import type {
+  ComputedSeries,
+  GraphThreshold,
+  GraphVariant,
+  GraphViewConfig,
+} from "./types";
 
 /** A caller-sampled static curve overlaid on a non-time chart, as parallel `xs` / `ys` arrays; nothing is subscribed for it. */
 export interface ReferenceCurve {
@@ -57,8 +67,35 @@ export interface ReferenceCurve {
   axis?: "primary" | "secondary";
 }
 
+/**
+ * A threshold as the chart draws it: placed at the figure its quantity
+ * resolves to, which is the model's where the reading carries one, and labelled
+ * with that figure after the caller's own words. A line with no finite figure
+ * is not drawn.
+ */
+function thresholdRuleOf(
+  line: GraphThreshold,
+  index: number,
+): ThresholdRule | null {
+  const { shown } = resolveCurrency(line.value, { drawsReckoning: true });
+  // The one number the chart's scale needs, taken where the line is placed.
+  const at = magnitudeOf(shown);
+  if (at === null) return null;
+  return {
+    id: line.id ?? `threshold-${index}`,
+    value: at,
+    kind: line.kind,
+    axis: line.axis,
+    // The unit's word rather than its symbol: a chart annotation is read aloud.
+    label: [line.label, speakQuantity(shown)].filter(Boolean).join(": "),
+    reading: "state" in line.value ? line.value : undefined,
+  };
+}
+
 export interface GraphViewProps {
-  config: GraphConfig | undefined;
+  config: GraphViewConfig | undefined;
+  /** Lines across the plot, each at a quantity in its axis's unit. */
+  thresholds?: readonly GraphThreshold[];
   referenceCurves?: ReadonlyArray<ReferenceCurve>;
   /** Overrides the panel header, which otherwise names the plotted units. */
   title?: string;
@@ -87,6 +124,7 @@ const EMPTY_LAYERS: readonly PlotLayer[] = Object.freeze([]);
 
 export function GraphView({
   config,
+  thresholds,
   referenceCurves,
   title,
   emptyState = "Configure series to begin graphing",
@@ -107,9 +145,10 @@ export function GraphView({
   const layers = ownLayers ?? EMPTY_LAYERS;
 
   const windowSec = config?.windowSec ?? 300;
-  const xKey = config?.xKey ?? TIME_AXIS;
+  const xSource = config?.x;
+  const xKey = xSource ? seriesKeyOf(xSource) : undefined;
   const xPinned = config?.xDomain !== undefined;
-  const xIsTime = !xPinned && xKey === TIME_AXIS;
+  const xIsTime = !xPinned && xKey === undefined;
 
   const catalog = useTopicFieldCatalog();
   const metaMap = useMemo(() => {
@@ -117,14 +156,15 @@ export function GraphView({
     for (const c of computedSeries ?? []) map.set(c.meta.key, c.meta);
     return map;
   }, [catalog, computedSeries]);
-  const xMeta = xIsTime || xPinned ? null : (metaMap.get(xKey) ?? null);
+  const xMeta =
+    xKey === undefined || xPinned ? null : (metaMap.get(xKey) ?? null);
   const axes = resolveAxes(series, metaMap);
 
   const units = useMemo(
     () =>
       title !== undefined
         ? ""
-        : computeUnitsLabel(series, metaMap, axes, xIsTime, xMeta, xKey),
+        : computeUnitsLabel(series, metaMap, axes, xIsTime, xMeta, xKey ?? ""),
     [title, series, metaMap, axes, xIsTime, xMeta, xKey],
   );
 
@@ -183,7 +223,8 @@ export function GraphView({
   const seriesData = useMemo(() => {
     if (!computedSeries?.length) return fetchedData;
     const merged = new Map(fetchedData);
-    for (const c of computedSeries) merged.set(c.meta.key, c.data);
+    for (const c of computedSeries)
+      merged.set(c.meta.key, plotColumnsOf(c.data));
     return merged;
   }, [fetchedData, computedSeries]);
   const computedKeys = useMemo(
@@ -211,7 +252,9 @@ export function GraphView({
   }, []);
 
   const hasThirdUnit = (() => {
-    const units = series.map((c) => metaMap.get(c.key)?.unit ?? "raw");
+    const units = series.map(
+      (c) => metaMap.get(seriesKeyOf(c.source))?.unit ?? "raw",
+    );
     return new Set(units).size > 2;
   })();
 
@@ -224,9 +267,17 @@ export function GraphView({
     xData,
   );
 
-  const extraFetchKeys = series
-    .filter((cfg) => cfg.type === "band" && cfg.keyHigh)
-    .map((cfg) => cfg.keyHigh as string);
+  const extraFetches = series.flatMap((cfg) =>
+    cfg.type === "band" && cfg.high ? [cfg.high] : [],
+  );
+
+  const thresholdRules = useMemo(
+    () =>
+      (thresholds ?? [])
+        .map(thresholdRuleOf)
+        .filter((rule): rule is ThresholdRule => rule !== null),
+    [thresholds],
+  );
 
   // Reference curves are functions of X, so a time-axis graph skips them.
   const overlaySeries: ChartSeries[] =
@@ -246,7 +297,7 @@ export function GraphView({
 
   const reckonedWindowEnd = series.reduce<number | undefined>(
     (furthest, cfg) => {
-      const raw = seriesData.get(cfg.key);
+      const raw = seriesData.get(seriesKeyOf(cfg.source));
       const end =
         raw && (raw.reckoned?.length ?? 0) > 0 ? raw.windowEndAt : undefined;
       if (end === undefined) return furthest;
@@ -266,7 +317,7 @@ export function GraphView({
   // The clock the samples are stamped against, as the fetcher declared it; the first series with samples decides.
   const timeBasis: SeriesTimeBasis =
     series
-      .map((cfg) => seriesData.get(cfg.key))
+      .map((cfg) => seriesData.get(seriesKeyOf(cfg.source)))
       .find((range) => range !== undefined && range.t.length > 0)?.basis ??
     "wall-ms";
 
@@ -288,15 +339,16 @@ export function GraphView({
 
   if (resolvedVariant === "readout") {
     const cfg = series[0];
+    const key = seriesKeyOf(cfg.source);
     return (
       <GraphReadout
         title={title}
         headerActions={headerActions}
         cfg={cfg}
-        meta={metaMap.get(cfg.key)}
-        raw={seriesData.get(cfg.key) ?? { t: [], v: [] }}
+        meta={metaMap.get(key)}
+        raw={seriesData.get(key) ?? { t: [], v: [] }}
         containerRef={containerRef}
-        needsFetch={!computedKeys.has(cfg.key)}
+        needsFetch={!computedKeys.has(key)}
         windowSec={windowSec}
         onData={handleData}
       />
@@ -353,7 +405,7 @@ export function GraphView({
               yScalePrimary={config?.yScalePrimary}
               yScaleSecondary={config?.yScaleSecondary}
               yTickFormat={yTickFormat}
-              thresholds={config?.thresholds as ThresholdRule[] | undefined}
+              thresholds={thresholdRules}
               layers={layers}
               hideXAxis={config?.hideXAxis}
               spatial={config?.spatial}
@@ -372,9 +424,11 @@ export function GraphView({
         )}
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
         <GraphFetchers
-          series={series.filter((cfg) => !computedKeys.has(cfg.key))}
-          extraFetchKeys={extraFetchKeys}
-          xFetchKey={!xIsTime && !xPinned ? xKey : undefined}
+          series={series.filter(
+            (cfg) => !computedKeys.has(seriesKeyOf(cfg.source)),
+          )}
+          extraFetches={extraFetches}
+          xFetch={xPinned ? undefined : xSource}
           windowSec={windowSec}
           onData={handleData}
           onXData={handleXData}

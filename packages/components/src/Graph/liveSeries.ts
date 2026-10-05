@@ -1,12 +1,13 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
+import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries, ChartSeriesData } from "@ksp-gonogo/ui";
 import { alignXY } from "./align";
 import { paletteColor } from "./palette";
-import type { GraphSeriesConfig } from "./types";
+import type { GraphSeries } from "./types";
 
 /** Each configured series resolved to plottable data: paired against the shared X buffer on a parametric axis, or read straight off its own timestamps on a time axis. */
 export function buildLiveSeries(
-  series: readonly GraphSeriesConfig[],
+  series: readonly GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
   seriesData: Map<string, SeriesRange<number>>,
   axes: Array<"primary" | "secondary">,
@@ -14,8 +15,9 @@ export function buildLiveSeries(
   xData: SeriesRange<number>,
 ): ChartSeries[] {
   return series.map((cfg, i) => {
-    const meta = metaMap.get(cfg.key);
-    const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
+    const key = seriesKeyOf(cfg.source);
+    const meta = metaMap.get(key);
+    const raw = seriesData.get(key) ?? { t: [], v: [] };
     // Only a time axis keeps spans, reckoned runs and bridges: on a re-paired parametric axis they would name the wrong part of the curve.
     const baseData = xIsTime
       ? {
@@ -29,8 +31,8 @@ export function buildLiveSeries(
       : alignXY(raw as SeriesRange<number>, xData);
 
     let data: ChartSeriesData = baseData;
-    if (cfg.type === "band" && cfg.keyHigh) {
-      const rawHigh = seriesData.get(cfg.keyHigh) ?? { t: [], v: [] };
+    if (cfg.type === "band" && cfg.high) {
+      const rawHigh = seriesData.get(seriesKeyOf(cfg.high)) ?? { t: [], v: [] };
       const highData = xIsTime
         ? { x: rawHigh.t, y: rawHigh.v as number[] }
         : alignXY(rawHigh as SeriesRange<number>, xData);
@@ -46,7 +48,7 @@ export function buildLiveSeries(
 
     return {
       id: cfg.id,
-      label: cfg.label ?? meta?.label ?? cfg.key,
+      label: cfg.label ?? meta?.label ?? key,
       axis: axes[i],
       color: cfg.color ?? paletteColor(i),
       type: cfg.type ?? "line",

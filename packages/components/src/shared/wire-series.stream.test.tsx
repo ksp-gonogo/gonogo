@@ -1,4 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
+import { plotColumnsOf } from "@ksp-gonogo/data";
 import { PRODUCTION_DERIVED_CHANNELS } from "@ksp-gonogo/sitrep-client";
 import { act, render, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
@@ -150,8 +151,8 @@ describe("useComputedSeries", () => {
     const { result } = renderHook(
       () =>
         useComputedSeries(
-          "vessel.propulsion.currentThrust",
-          "vessel.propulsion.totalMass",
+          { topic: "vessel.propulsion", field: "currentThrust" },
+          { topic: "vessel.propulsion", field: "totalMass" },
           300,
           ratio,
         ),
@@ -178,7 +179,7 @@ describe("useComputedSeries", () => {
 
     // The middle sample's zero mass answers null and is dropped, as a non-numeric fetched sample is.
     await waitFor(() => {
-      expect(result.current.v).toEqual([5, 5]);
+      expect(plotColumnsOf(result.current).v).toEqual([5, 5]);
     });
   });
 });

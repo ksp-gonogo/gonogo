@@ -1376,7 +1376,7 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         },
 
-        // ── thresholds (dashed + solid) ──────────────────────────────────
+        // ── thresholds (a limit the trace passes, a target it reaches) ───
         {
           name: "thresholds-10x8",
           w: 10,
@@ -1398,14 +1398,14 @@ const WIDGETS: WidgetRenderConfig[] = [
                 value: 70000,
                 axis: "primary",
                 label: "Atmosphere top",
-                dashed: true,
+                kind: "limit",
               },
               {
                 id: "tower",
                 value: 10000,
                 axis: "primary",
-                label: "10 km",
-                dashed: false,
+                label: "Tower clear",
+                kind: "target",
               },
             ],
           },

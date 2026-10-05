@@ -5,7 +5,7 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import { useMemo } from "react";
-import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { GraphView, type GraphViewConfig, type ReferenceCurve } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
@@ -75,19 +75,19 @@ function EscapeProfileComponent({
   }, [body, config?.altitudeCeiling, narrow]);
 
   // Orbital speed against altitude: touching the curve means escape. Scatter, because a line series draws nothing for a single sample.
-  const graphConfig: GraphConfig = useMemo(
+  const graphConfig: GraphViewConfig = useMemo(
     () => ({
       series: [
         {
           id: "speed-trace",
-          key: "vessel.flight.orbitalSpeed",
+          source: { topic: "vessel.flight", field: "orbitalSpeed" },
           label: "Orbital speed",
           axis: "primary",
           type: "scatter",
         },
       ],
       windowSec,
-      xKey: "vessel.flight.altitudeAsl",
+      x: { topic: "vessel.flight", field: "altitudeAsl" },
     }),
     [windowSec],
   );

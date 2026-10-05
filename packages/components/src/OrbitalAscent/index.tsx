@@ -7,8 +7,8 @@ import {
 import { useMemo } from "react";
 import {
   type ComputedSeries,
-  type GraphConfig,
   GraphView,
+  type GraphViewConfig,
   type ReferenceCurve,
 } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -93,8 +93,8 @@ function OrbitalAscentComponent({
 
   const windowSec = config?.windowSec ?? 600;
   const horizontalData = useComputedSeries(
-    "vessel.flight.surfaceSpeed",
-    "vessel.flight.verticalSpeed",
+    { topic: "vessel.flight", field: "surfaceSpeed" },
+    { topic: "vessel.flight", field: "verticalSpeed" },
     windowSec,
     horizontalOf,
   );
@@ -118,19 +118,19 @@ function OrbitalAscentComponent({
     return buildReferenceCurve(body, ceiling);
   }, [body, config?.altitudeCeiling]);
 
-  const graphConfig: GraphConfig = useMemo(
+  const graphConfig: GraphViewConfig = useMemo(
     () => ({
       series: [
         {
           id: "ascent-trace",
-          key: HORIZONTAL_SPEED_KEY,
+          source: { topic: HORIZONTAL_SPEED_KEY },
           label: "Horizontal velocity",
           axis: "primary",
           type: "line",
         },
       ],
       windowSec,
-      xKey: "vessel.flight.altitudeAsl",
+      x: { topic: "vessel.flight", field: "altitudeAsl" },
     }),
     [windowSec],
   );

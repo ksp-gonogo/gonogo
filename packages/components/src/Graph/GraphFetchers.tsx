@@ -1,24 +1,25 @@
-import type { SeriesRange } from "@ksp-gonogo/data";
+import type { SeriesRange, TopicFieldHandle } from "@ksp-gonogo/data";
+import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import { GraphSeries } from "./GraphSeries";
-import type { GraphSeriesConfig } from "./types";
+import type { GraphSeries as GraphSeriesSpec } from "./types";
 
 interface Props {
   /** Every configured series not already supplied via `computedSeries`. */
-  series: readonly GraphSeriesConfig[];
-  /** Band upper-bound keys, fetched alongside their lower-bound series. */
-  extraFetchKeys: readonly string[];
-  /** The X-axis key to fetch, or `undefined` on a time or pinned axis. */
-  xFetchKey: string | undefined;
+  series: readonly GraphSeriesSpec[];
+  /** Band upper-bound fields, fetched alongside their lower-bound series. */
+  extraFetches: readonly TopicFieldHandle[];
+  /** The X-axis field to fetch, or `undefined` on a time or pinned axis. */
+  xFetch: TopicFieldHandle | undefined;
   windowSec: number;
   onData: (key: string, data: SeriesRange<number>) => void;
   onXData: (key: string, data: SeriesRange<number>) => void;
 }
 
-/** Mounts the invisible per-key fetchers a chart's live series, band highs and X axis need; nothing here renders anything itself. */
+/** Mounts the invisible per-field fetchers a chart's live series, band highs and X axis need; nothing here renders anything itself. */
 export function GraphFetchers({
   series,
-  extraFetchKeys,
-  xFetchKey,
+  extraFetches,
+  xFetch,
   windowSec,
   onData,
   onXData,
@@ -28,23 +29,23 @@ export function GraphFetchers({
       {series.map((cfg) => (
         <GraphSeries
           key={cfg.id}
-          dataKey={cfg.key}
+          source={cfg.source}
           windowSec={windowSec}
           onData={onData}
         />
       ))}
-      {extraFetchKeys.map((k) => (
+      {extraFetches.map((source) => (
         <GraphSeries
-          key={`extra-${k}`}
-          dataKey={k}
+          key={`extra-${seriesKeyOf(source)}`}
+          source={source}
           windowSec={windowSec}
           onData={onData}
         />
       ))}
-      {xFetchKey !== undefined && (
+      {xFetch !== undefined && (
         <GraphSeries
-          key={`x-${xFetchKey}`}
-          dataKey={xFetchKey}
+          key={`x-${seriesKeyOf(xFetch)}`}
+          source={xFetch}
           windowSec={windowSec}
           onData={onXData}
         />

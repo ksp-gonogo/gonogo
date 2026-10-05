@@ -9,8 +9,8 @@ import type { VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
   type ComputedSeries,
-  type GraphConfig,
   GraphView,
+  type GraphViewConfig,
   type ReferenceCurve,
 } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -99,8 +99,8 @@ function KeplerPeriodComponent({
 
   const windowSec = config?.windowSec ?? 60;
   const periodData = useComputedSeries(
-    "vessel.orbit.sma",
-    "vessel.orbit.mu",
+    { topic: "vessel.orbit", field: "sma" },
+    { topic: "vessel.orbit", field: "mu" },
     windowSec,
     periodOf,
   );
@@ -121,19 +121,19 @@ function KeplerPeriodComponent({
   }, [body, config?.smaCeiling]);
 
   // Scatter, never a line: consecutive samples share an SMA and a line would join them misleadingly.
-  const graphConfig: GraphConfig = useMemo(
+  const graphConfig: GraphViewConfig = useMemo(
     () => ({
       series: [
         {
           id: "current-orbit",
-          key: CURRENT_PERIOD_KEY,
+          source: { topic: CURRENT_PERIOD_KEY },
           label: "Current orbit",
           axis: "primary",
           type: "scatter",
         },
       ],
       windowSec,
-      xKey: "vessel.orbit.sma",
+      x: { topic: "vessel.orbit", field: "sma" },
       // SMA spans many orders of magnitude across the system, log scale makes both sides of the curve readable.
       yScalePrimary: "log",
     }),

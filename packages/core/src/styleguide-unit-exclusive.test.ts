@@ -155,10 +155,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
   //    sentinel or a subtraction around a kit call rather than a ladder. Kept
   //    listed because the gate is an inventory: a line that vanishes is a file
   //    that changed shape, and that is worth seeing.
-  "packages/components/src/AtmosphereProfile/index.tsx": {
-    count: 1,
-    why: "delegates to speakQuantity(value('Pa', p))",
-  },
   "packages/components/src/shared/OrbitDiagram.tsx": {
     count: 1,
     why: "delegates to writeQuantity(value('m', ...)) after subtracting the body radius",

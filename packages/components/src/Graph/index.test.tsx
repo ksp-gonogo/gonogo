@@ -64,6 +64,42 @@ describe("GraphComponent", () => {
     });
   });
 
+  it("draws a saved threshold as a line of its kind, labelled with its value in the axis's unit", async () => {
+    const config = {
+      series: [{ id: "s1", key: ALTITUDE, axis: "primary" as const }],
+      windowSec: 300,
+      thresholds: [
+        { id: "top", value: 70_000, axis: "primary" as const, label: "Top" },
+        {
+          id: "goal",
+          value: 100,
+          axis: "primary" as const,
+          label: "Goal",
+          kind: "target" as const,
+        },
+      ],
+    };
+
+    renderOnStream(<GraphComponent config={config} id="graph-test" />);
+
+    act(() => {
+      flight(5, { altitudeAsl: 50 });
+    });
+    act(() => {
+      flight(10, { altitudeAsl: 150 });
+    });
+
+    await waitFor(() => {
+      // A line saved before kinds existed is a limit, and this one has not been passed.
+      const top = document.querySelector('[data-threshold-kind="limit"]');
+      expect(top?.getAttribute("data-threshold-passed")).toBeNull();
+      const goal = document.querySelector('[data-threshold-kind="target"]');
+      expect(goal?.getAttribute("data-threshold-passed")).toBe("true");
+    });
+    expect(document.body.textContent).toMatch(/Top: 70\.0 kilometres/);
+    await act(async () => {});
+  });
+
   it("shows empty state when no series are configured", () => {
     const config = {
       series: [],

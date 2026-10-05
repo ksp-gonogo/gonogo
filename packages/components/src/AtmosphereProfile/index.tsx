@@ -1,14 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
-import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
-import { Fill, speakQuantity, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { deriveReading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import { Fill, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import {
-  type GraphConfig,
-  type GraphThresholdConfig,
-  GraphView,
-} from "../Graph";
+import { type GraphThreshold, GraphView, type GraphViewConfig } from "../Graph";
 import { magnitudeOf } from "../shared/magnitude";
+import type { StreamBody } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 import { LiveAirChip } from "./LiveAirChip";
@@ -50,10 +47,8 @@ function AtmosphereProfileComponent({
   /* Resolved against the `system.bodies` roster the name came from, so a planet-pack rename resolves. */
   const body = useStreamBody(bodyName);
   /* Off the same reading as the atmospheric numbers, modelled fields overlaid. A held record with no model still places the line, which wears the held mark. */
-  const altitude =
-    magnitudeOf((flight ?? flightObserved)?.altitudeAsl) ?? undefined;
-  // Magnitudes: all three feed threshold checks and the chart's own number-taking readouts.
-  const liveDensity = magnitudeOf(flight?.atmDensity);
+  const altitude = (flight ?? flightObserved)?.altitudeAsl;
+  const liveDensity = flight?.atmDensity;
 
   const cols = w ?? 8;
   const rows = h ?? 8;
@@ -72,44 +67,49 @@ function AtmosphereProfileComponent({
     return curve;
   }, [body, config?.altitudeCeiling, narrow]);
 
-  // No vertical marker in the chart engine: a horizontal threshold at the live altitude's pressure stands in.
-  const currentPressure = useMemo(() => {
-    if (!body || altitude === undefined) return undefined;
-    return pressureFor(body, altitude);
-  }, [body, altitude]);
+  /**
+   * No vertical marker in the chart engine, so a horizontal line at the
+   * pressure of the craft's altitude stands in. It is a reading of its own: the
+   * pressure at the altitude observed, and at the altitude the conic carries
+   * the craft to, so the chart draws whichever the flight reading supports and
+   * marks a held or modelled one.
+   */
+  const pressureReading = useMemo(
+    () =>
+      body
+        ? deriveReading(
+            flightReading,
+            (observed) => pressureAt(body, observed.altitudeAsl),
+            (modelled) => pressureAt(body, modelled.altitudeAsl),
+          )
+        : undefined,
+    [body, flightReading],
+  );
 
-  const thresholds: GraphThresholdConfig[] | undefined = useMemo(() => {
-    if (currentPressure === undefined || currentPressure <= 0) return undefined;
-    if (altitude === undefined) return undefined;
-    // Narrow: drop the " @ N km" suffix so the right-anchored label stays short.
-    const label = narrow
-      ? formatPressure(currentPressure)
-      : `${formatPressure(currentPressure)} @ ${writeQuantity(value("m", altitude), { decimals: 0 })}`;
+  const thresholds: GraphThreshold[] | undefined = useMemo(() => {
+    if (pressureReading === undefined || altitude == null) return undefined;
     return [
       {
         id: "current-pressure",
-        value: currentPressure,
-        axis: "primary",
-        label,
-        color: "var(--color-warn-mark)",
-        dashed: false,
-        /* The altitude is the craft's own, so a held record marks the label. */
-        reading: readingOf(flightReading, (f) => f.altitudeAsl),
-        drawsReckoning: true,
+        value: pressureReading,
+        kind: "marker",
+        // Narrow: the pressure alone, so the right-anchored label stays short.
+        label: narrow
+          ? undefined
+          : `At ${writeQuantity(altitude, { decimals: 0 })}`,
       },
     ];
-  }, [currentPressure, altitude, narrow, flightReading]);
+  }, [pressureReading, altitude, narrow]);
 
-  const graphConfig: GraphConfig = useMemo(
+  const graphConfig: GraphViewConfig = useMemo(
     () => ({
-      // No live series: a body-aware reference plot, with the threshold marking the current altitude's pressure.
+      // No live series: a body-aware reference plot, with the marker at the current altitude's pressure.
       series: [],
       windowSec: 60,
-      xKey: "vessel.flight.altitudeAsl",
+      x: { topic: "vessel.flight", field: "altitudeAsl" },
       yScalePrimary: "log",
-      thresholds,
     }),
-    [thresholds],
+    [],
   );
 
   const showNoModelNotice =
@@ -129,14 +129,14 @@ function AtmosphereProfileComponent({
   const title = narrow ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
     chipFits &&
-    liveDensity !== null &&
-    liveDensity > 1e-9 &&
+    liveDensity?.greaterThan(value(liveDensity.unit, 1e-9)) === true &&
     body?.hasAtmosphere === true;
   return (
     <Fill>
       <Fill grow>
         <GraphView
           config={graphConfig}
+          thresholds={thresholds}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
           notice={notice}
@@ -160,16 +160,24 @@ function AtmosphereProfileComponent({
   );
 }
 
-// A string, not a node: a chart annotation label is measured as text. `speakQuantity` gives the word rather than the symbol.
-function formatPressure(p: number): string {
-  return speakQuantity(value("Pa", p));
+/** The pressure at an altitude, or nothing where the body has none there: a log axis cannot place zero. */
+function pressureAt(
+  body: StreamBody,
+  altitude: Value<"m"> | null | undefined,
+): Value<"Pa"> | undefined {
+  const metres = magnitudeOf(altitude);
+  if (metres === null) return undefined;
+  const pascals = pressureFor(body, metres);
+  return pascals !== undefined && pascals > 0
+    ? value("Pa", pascals)
+    : undefined;
 }
 
 registerComponent<AtmosphereProfileConfig>({
   id: "atmosphere-profile",
   name: "Atmosphere Profile",
   description:
-    "Atmospheric pressure as a function of altitude (log Y) for the current body. A live horizontal threshold marks the pressure at the vessel's current altitude.",
+    "Atmospheric pressure as a function of altitude (log Y) for the current body. A horizontal marker stands at the pressure of the vessel's current altitude.",
   tags: ["telemetry", "graph", "atmosphere"],
   defaultSize: { w: 8, h: 8 },
   minSize: { w: 5, h: 4 },

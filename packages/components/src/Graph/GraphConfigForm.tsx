@@ -90,7 +90,7 @@ export function GraphConfigComponent({
         value: 0,
         axis: "primary",
         label: "",
-        dashed: true,
+        kind: "limit",
       },
     ]);
   };
