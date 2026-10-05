@@ -20,6 +20,13 @@ export interface SignalVerdict {
   noSignal: boolean;
   /** Nothing about the link has arrived yet. */
   nothingHasArrived: boolean;
+  /**
+   * Nothing has arrived and something is on its way: the first light-time of a
+   * session, when the craft's first word has not crossed the distance yet.
+   * That is not a verdict on the link, so it never reads as no signal. A
+   * topic that arrived saying it has nothing is an answer, and is not awaited.
+   */
+  awaitingFirstSignal: boolean;
   /** Signal strength as a 0 to 1 fraction, where one is current and positive. */
   pct: number | null;
   bars: number | null;
@@ -59,13 +66,20 @@ export function useSignalVerdict(): SignalVerdict {
   const strengthValid =
     typeof raw === "number" && Number.isFinite(raw) && raw > 0;
   const pct = strengthValid ? Math.max(0, Math.min(1, raw)) : null;
+  const nothingHasArrived =
+    connected === undefined &&
+    strength === undefined &&
+    controlState === undefined;
   return {
     connected,
     noSignal,
-    nothingHasArrived:
-      connected === undefined &&
-      strength === undefined &&
-      controlState === undefined,
+    nothingHasArrived,
+    awaitingFirstSignal:
+      nothingHasArrived &&
+      !noSignal &&
+      linkReading.state !== "absent" &&
+      commsReading.state !== "absent" &&
+      (linkReading.state === "pending" || commsReading.state === "pending"),
     pct,
     bars: signalBarCount({ noSignal, connected, pct, controlState }),
     control: describeControl(controlStateName, controlState),
@@ -80,11 +94,23 @@ const ESSENTIAL_TONE: Record<Tone, TinyEssentialTone> = {
   neutral: "neutral",
 };
 
+/** The tiny tile's word for the first light-time, before the link has said anything. */
+export const AWAITING_WORD = "AWAIT";
+
 /** The signal figure with its bars, which is all a tiny tile has room for; a lost link says LOS beside the bars, as the body's headline does. */
 export function useCommSignalEssentials(): readonly TinyEssential[] {
-  const { connected, noSignal, bars, control, strengthReading } =
-    useSignalVerdict();
+  const {
+    connected,
+    noSignal,
+    awaitingFirstSignal,
+    bars,
+    control,
+    strengthReading,
+  } = useSignalVerdict();
   const level = { lit: bars, of: 4 };
+  if (awaitingFirstSignal) {
+    return [{ label: "Signal", word: AWAITING_WORD, level, tone: "neutral" }];
+  }
   if (noSignal) {
     return [{ label: "Signal", value: null, level, tone: "neutral" }];
   }

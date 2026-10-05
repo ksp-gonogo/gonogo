@@ -40,10 +40,10 @@ afterEach(() => {
 });
 
 describe("CommSignal: what undefined means today", () => {
-  it("renders the no-signal empty state and NO readout when nothing has arrived", () => {
+  it("renders the awaiting empty state and NO readout when nothing has arrived", () => {
     const { container } = renderComm();
 
-    expect(screen.getByText("No signal data")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting first signal")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^Signal \d of 4$/)).toBeNull();
     expect(screen.queryByText("Control")).toBeNull();
     expect(screen.queryByText("Delay")).toBeNull();
@@ -52,7 +52,7 @@ describe("CommSignal: what undefined means today", () => {
     expect(visibleText(container)).toContain("COMMNET");
   });
 
-  it("still reports no signal data when only the delay has arrived", async () => {
+  it("still awaits the first signal when only the delay has arrived", async () => {
     const { fixture } = renderComm();
 
     act(() => {
@@ -61,7 +61,7 @@ describe("CommSignal: what undefined means today", () => {
 
     // The delay alone does not lift the empty state.
     await waitFor(() =>
-      expect(screen.getByText("No signal data")).toBeTruthy(),
+      expect(screen.getByText("Awaiting first signal")).toBeTruthy(),
     );
     expect(visibleText()).not.toContain("1s");
 
@@ -91,7 +91,7 @@ describe("CommSignal: what undefined means today", () => {
     expect(screen.queryByText("LOS")).toBeNull();
   });
 
-  it("reports no signal data when the control-state NAME resolves but its ordinal does not", async () => {
+  it("still awaits the first signal when the control-state NAME resolves but its ordinal does not", async () => {
     const { fixture } = renderComm();
 
     act(() => {
@@ -100,7 +100,7 @@ describe("CommSignal: what undefined means today", () => {
 
     // Only the level feeds the gate, so a resolved name alone does not lift it.
     await waitFor(() =>
-      expect(screen.getByText("No signal data")).toBeTruthy(),
+      expect(screen.getByText("Awaiting first signal")).toBeTruthy(),
     );
     expect(screen.queryByText("Unknown")).toBeNull();
   });
@@ -122,7 +122,7 @@ describe("CommSignal: what undefined means today", () => {
       fixture.emit("vessel.comms", null);
     });
 
-    // A confirmed "no comms" renders as "nothing has come through yet".
+    // A confirmed "no comms" is an answer, so it is not awaited.
     await waitFor(() =>
       expect(screen.getByText("No signal data")).toBeTruthy(),
     );

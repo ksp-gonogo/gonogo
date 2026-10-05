@@ -4,16 +4,23 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 // A contribution's `compute` sees payloads without staleness, so a Processor judges `comms.link` first.
 
-/** `true` connected, `false` a positive report of no link, `null` unknown. */
-export type CommsLinkState = boolean | null;
+/**
+ * `true` connected, `false` a positive report of no link, `null` unknown, and
+ * `"awaiting"` while the link's first word is still on its way: the first
+ * light-time of a session, which says nothing about the link either way.
+ */
+export type CommsLinkState = boolean | "awaiting" | null;
 
 export const COMMS_LINK = CORE_UPLINK_CLIENT.registerProcessor({
   id: "comms-link-state",
   deps: [{ reading: "comms.link" }] as const,
-  compute: ([linkReading]): CommsLinkState =>
-    linkReading.state === "observed"
-      ? (linkReading.value.connected ?? null)
-      : null,
+  compute: ([linkReading]): CommsLinkState => {
+    if (linkReading.state === "observed") {
+      return linkReading.value.connected ?? null;
+    }
+    // A topic that arrived saying it has nothing is an answer, so only one not yet heard from is awaited.
+    return linkReading.state === "pending" ? "awaiting" : null;
+  },
 });
 
 /** An unknown link still draws a badge, so it stays distinguishable from no comms at all. */
@@ -22,6 +29,8 @@ export function commsLinkBadge(link: CommsLinkState | undefined): BadgeEntry[] {
     return [{ id: "fleet-comms-link", label: "LINK", tone: "go" }];
   if (link === false)
     return [{ id: "fleet-comms-link", label: "NO LINK", tone: "nogo" }];
+  if (link === "awaiting")
+    return [{ id: "fleet-comms-link", label: "AWAITING", tone: "neutral" }];
   return [{ id: "fleet-comms-link", label: NULL_DISPLAY, tone: "neutral" }];
 }
 

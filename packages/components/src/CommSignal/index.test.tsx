@@ -32,9 +32,11 @@ afterEach(() => {
 });
 
 describe("CommSignalComponent", () => {
-  it("renders the no-data placeholder until any signal field arrives", () => {
+  it("says it is awaiting the first signal until any signal field arrives, and never that there is none", () => {
     renderComm(newFixture());
-    expect(screen.getByText("No signal data")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting first signal")).toBeInTheDocument();
+    expect(screen.queryByText(/no signal/i)).toBeNull();
+    expect(screen.queryByLabelText(/no signal/i)).toBeNull();
   });
 
   it("labels the bars accessibly from signal strength", async () => {

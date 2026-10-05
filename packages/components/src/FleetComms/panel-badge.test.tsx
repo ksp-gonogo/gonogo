@@ -1,7 +1,6 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
-  NULL_DISPLAY,
   Panel,
   PanelBadgesProvider,
   useWidgetBadges,
@@ -60,9 +59,14 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
     unmount = undefined;
   });
 
-  it("shows the unknown glyph before comms.link has ever delivered a sample", async () => {
+  it("says the link is awaited, never NO LINK, before comms.link has ever delivered a sample", async () => {
     unmount = renderPanel(fixture).unmount;
-    expect(await screen.findByText(NULL_DISPLAY)).toBeInTheDocument();
+    // The link is judged once a frame, and the fixture mints none by itself.
+    act(() => {
+      fixture.store.beginFrame();
+    });
+    expect(await screen.findByText("AWAITING")).toBeInTheDocument();
+    expect(screen.queryByText("NO LINK")).toBeNull();
   });
 
   it("shows LINK once comms.link reports a connection", async () => {

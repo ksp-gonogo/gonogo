@@ -26,6 +26,9 @@ import {
 } from "./signalVerdict";
 import { useSignalVerdict } from "./useSignalVerdict";
 
+/** Said while the craft's first word is still crossing the distance, which is not a lost link. */
+export const AWAITING_FIRST_SIGNAL = "Awaiting first signal";
+
 /** The figure beside the bars. Nulled when the link is held, including the control label, which is read off the held `vessel.comms`. */
 function signalHeadline({
   noSignal,
@@ -48,8 +51,15 @@ export function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  const { connected, noSignal, nothingHasArrived, pct, bars, control } =
-    useSignalVerdict();
+  const {
+    connected,
+    noSignal,
+    nothingHasArrived,
+    awaitingFirstSignal,
+    pct,
+    bars,
+    control,
+  } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
   const delayReading = useTelemetry("comms.delay");
   const delay =
@@ -103,7 +113,9 @@ export function CommSignalComponent({
         panelTitle="COMMNET"
         sections={
           <Section>
-            <EmptyState>No signal data</EmptyState>
+            <EmptyState>
+              {awaitingFirstSignal ? AWAITING_FIRST_SIGNAL : "No signal data"}
+            </EmptyState>
           </Section>
         }
       />

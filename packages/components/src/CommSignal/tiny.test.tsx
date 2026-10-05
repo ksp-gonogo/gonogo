@@ -33,6 +33,16 @@ describe("CommSignal tiny mode", () => {
     await act(async () => {});
   });
 
+  it("says AWAIT, never LOS or a zero, before the link's first word has arrived", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });
+
+    await waitFor(() => expect(visibleText()).toContain("AWAIT"));
+    expect(visibleText()).not.toContain("LOS");
+    expect(screen.queryByRole("img", { name: "Signal 0 of 4" })).toBeNull();
+    await act(async () => {});
+  });
+
   it("says LOS beside the bars when the link is lost, and announces it politely", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });
