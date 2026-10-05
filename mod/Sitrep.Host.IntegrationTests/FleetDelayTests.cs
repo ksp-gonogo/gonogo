@@ -402,9 +402,12 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(5.0, ContactFixture(5.0, connected: true), Timeout);
                 engine.TickAndWait(6.0, ContactFixture(6.0, connected: true), Timeout);
                 engine.TickAndWait(7.0, ContactFixture(7.0, connected: true), Timeout);
-                // The recording is sent from UT 5, when the link is back, and is three light-seconds from landing.
-                engine.TickAndWait(8.0, ContactFixture(8.0, connected: true), Timeout);
                 var afterHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                // The recording is sent from UT 5, when the link is back, and is
+                // three light-seconds from landing. Read apart from the reports
+                // above, which a later sample of the same topic would supersede.
+                engine.TickAndWait(8.0, ContactFixture(8.0, connected: true), Timeout);
+                var afterReplay = await DrainAllStreamDataAsync(client, Quiet);
 
                 // The reports captured WHILE the craft was dark survived the
                 // freeze and reached the client, on their own last-known horizon.
@@ -425,7 +428,7 @@ namespace Sitrep.Host.IntegrationTests
                 // difference the exemption buys: the exempt reports get out on
                 // their own light-time as the outage runs, and everything else
                 // waits for the link and arrives labelled as a replay.
-                var orbitReplay = afterHorizon
+                var orbitReplay = afterHorizon.Concat(afterReplay)
                     .Where(f => f.Topic == "fleet.q.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0)
                     .ToList();
                 Assert.NotEmpty(orbitReplay);
