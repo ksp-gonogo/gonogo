@@ -174,14 +174,27 @@ namespace Sitrep.Host.Comms
             var plannable = Get(map, "plannable") is bool p && p;
             var settled = !(Get(map, "settled") is bool s) || s;
 
-            CraftState state;
+            return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster);
+        }
+
+        /// <summary>The state by how the craft was held when it was heard: standing on a surface, on an orbit, or neither for one with no radio.</summary>
+        private static CraftState Moving(
+            Dictionary<string, object?> map,
+            string id,
+            double capturedUt,
+            int bodyIndex,
+            bool plannable,
+            bool settled,
+            Dictionary<string, CraftLink> links,
+            IReadOnlyDictionary<string, object?>? roster)
+        {
             if (Get(map, "surface") is Dictionary<string, object?> surface)
             {
-                state = CraftState.Landed(id, capturedUt, bodyIndex, SurfaceFrom(surface), links);
+                return CraftState.Landed(id, capturedUt, bodyIndex, SurfaceFrom(surface), links);
             }
-            else if (Get(map, "orbit") is Dictionary<string, object?> orbit)
+            if (Get(map, "orbit") is Dictionary<string, object?> orbit)
             {
-                state = CraftState.Orbiting(
+                return CraftState.Orbiting(
                     id,
                     capturedUt,
                     bodyIndex,
@@ -192,11 +205,7 @@ namespace Sitrep.Host.Comms
                     links,
                     settled);
             }
-            else
-            {
-                state = CraftState.WithoutARadio(id, capturedUt, roster);
-            }
-            return state.Named(name).Listed(roster);
+            return CraftState.WithoutARadio(id, capturedUt, roster);
         }
 
         private static IDictionary<string, object?> Copy(IReadOnlyDictionary<string, object?> roster)
