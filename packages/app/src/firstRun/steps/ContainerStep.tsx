@@ -1,13 +1,10 @@
 import { Button, CommandBlock } from "@ksp-gonogo/ui";
 import { Stack, Text } from "@ksp-gonogo/ui-kit";
 import { relayCheck } from "../checks";
-import {
-  CONTAINER_STATUS_COMMAND,
-  RUN_COMMAND,
-  SETUP_LINKS,
-} from "../setupGuide";
+import { runs, say } from "../copy";
+import { CONTAINER_STATUS_COMMAND, RUN_COMMAND } from "../setupGuide";
 import { useRelayHealth } from "../useRelayHealth";
-import { DocLink, Hint, StepCheck } from "./StepParts";
+import { Hint, Prose, StepCheck } from "./StepParts";
 
 /**
  * Confirms the container is up by asking its relay half. The app half needs no
@@ -22,32 +19,26 @@ export function ContainerStep() {
   return (
     <Stack gap="related-comfortable">
       <Text level="muted" size="sm">
-        Start the Gonogo container. It serves this app and the relay that lets
-        other screens join yours. If it is already running, there is nothing to
-        do here.
+        {say("container.instruction")}
       </Text>
-      <CommandBlock command={RUN_COMMAND} label="run command" />
+      <CommandBlock
+        command={RUN_COMMAND}
+        label={say("container.runCommandLabel")}
+      />
       <StepCheck check={check} />
       {check.state === "fail" && (
         <Hint>
-          <span>
-            This checks again every few seconds. To see whether the container is
-            running:
-          </span>
+          <span>{say("container.hint.status")}</span>
           <CommandBlock
             command={CONTAINER_STATUS_COMMAND}
-            label="container status command"
+            label={say("container.statusCommandLabel")}
           />
           <span>
-            If that lists no container, run the first command. If it lists one,
-            port 3002 was not published: remove the container and run the first
-            command again, unchanged. The{" "}
-            <DocLink href={SETUP_LINKS.deployment}>deployment guide</DocLink>{" "}
-            covers the relay and its ports.
+            <Prose runs={runs("container.hint.fix")} />
           </span>
           <div>
             <Button variant="ghost" type="button" onClick={recheck}>
-              Check again
+              {say("container.recheck")}
             </Button>
           </div>
         </Hint>

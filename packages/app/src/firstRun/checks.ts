@@ -6,6 +6,7 @@
 
 import type { DataSourceStatus } from "@ksp-gonogo/core";
 import { relayBaseUrl } from "../peer/iceServers";
+import { say } from "./copy";
 import type { RelayHealth } from "./useRelayHealth";
 import type {
   UplinkReadinessEntry,
@@ -26,10 +27,13 @@ export interface SetupCheck {
 export function relayCheck(health: RelayHealth): SetupCheck {
   const url = relayBaseUrl();
   if (health === "checking")
-    return { state: "checking", text: `Checking the container at ${url}` };
+    return {
+      state: "checking",
+      text: say("container.check.checking", { url }),
+    };
   if (health === "ok")
-    return { state: "pass", text: "The container is running" };
-  return { state: "fail", text: `No answer from the container at ${url}` };
+    return { state: "pass", text: say("container.check.pass") };
+  return { state: "fail", text: say("container.check.fail", { url }) };
 }
 
 export function connectionCheck(
@@ -37,10 +41,13 @@ export function connectionCheck(
   address: string,
 ): SetupCheck {
   if (status === "connected")
-    return { state: "pass", text: `Connected to KSP at ${address}` };
+    return { state: "pass", text: say("connect.check.pass", { address }) };
   if (status === "reconnecting")
-    return { state: "checking", text: `Trying to reach KSP at ${address}` };
-  return { state: "fail", text: `Not connected to KSP at ${address}` };
+    return {
+      state: "checking",
+      text: say("connect.check.checking", { address }),
+    };
+  return { state: "fail", text: say("connect.check.fail", { address }) };
 }
 
 /**
@@ -62,25 +69,27 @@ export function uplinksCheck({
   if (waitingForMod)
     return {
       state: "checking",
-      text: "Waiting for the mod to report its Uplinks",
+      text: say("uplinks.check.waiting"),
     };
 
   const installed = entries.filter((entry) => entry.installed);
   if (installed.length === 0)
     return {
       state: "pass",
-      text: "No Uplinks installed, which is fine: they are optional",
+      text: say("uplinks.check.none"),
     };
 
   const attention = installed.filter(needsAttention).length;
-  const noun = installed.length === 1 ? "Uplink" : "Uplinks";
   if (attention === 0)
     return {
       state: "pass",
-      text: `${installed.length} ${noun} installed, all working`,
+      text: say("uplinks.check.allWorking", { installed: installed.length }),
     };
   return {
     state: "attention",
-    text: `${installed.length} ${noun} installed, ${attention} ${attention === 1 ? "needs" : "need"} attention`,
+    text: say("uplinks.check.attention", {
+      installed: installed.length,
+      attention,
+    }),
   };
 }

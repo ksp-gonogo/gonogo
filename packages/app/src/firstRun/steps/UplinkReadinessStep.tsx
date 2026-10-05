@@ -6,12 +6,13 @@ import { StatusList, UplinkHealthReport } from "../../settings/UplinkStatus";
 import { UplinkIdentityBlock } from "../../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../../uplinks/UplinkIntegrityDetail";
 import { uplinksCheck } from "../checks";
-import { CKAN_UPLINK_FILTER, SETUP_LINKS } from "../setupGuide";
+import { runs, say } from "../copy";
+import { CKAN_UPLINK_FILTER } from "../setupGuide";
 import {
   type UplinkReadinessEntry,
   useUplinkReadiness,
 } from "../useUplinkReadiness";
-import { DocLink, Hint, StepCheck } from "./StepParts";
+import { Hint, Prose, StepCheck } from "./StepParts";
 
 /**
  * The count line, the one thing here worth announcing when it changes. A
@@ -26,11 +27,13 @@ function summarise(entries: readonly UplinkReadinessEntry[]): string {
   const refused = installed.filter(
     (entry) => entry.state === "contract-mismatch",
   );
-  const noun = installed.length === 1 ? "Uplink has" : "Uplinks have";
-  const line = `${loaded.length} of ${installed.length} installed ${noun} a loaded client`;
+  const summary = say("uplinks.summary", {
+    loaded: loaded.length,
+    installed: installed.length,
+  });
   return refused.length === 0
-    ? line
-    : `${line}; ${refused.length} refused for a contract mismatch`;
+    ? summary
+    : say("uplinks.summaryRefused", { summary, refused: refused.length });
 }
 
 /**
@@ -57,16 +60,14 @@ export function UplinkReadinessStep() {
   return (
     <Stack gap="related-comfortable">
       <Text level="muted" size="sm">
-        Uplinks are optional add-ons. Each one connects Gonogo to one other mod
-        and adds its widgets, such as camera feeds or a scripting terminal.
-        Gonogo works without any. To find them, type this into the search box in
-        CKAN:
+        {say("uplinks.intro")}
       </Text>
-      <CommandBlock command={CKAN_UPLINK_FILTER} label="CKAN search" />
+      <CommandBlock
+        command={CKAN_UPLINK_FILTER}
+        label={say("uplinks.searchLabel")}
+      />
       <Text level="muted" size="sm">
-        Install one, restart KSP, and it appears below. The{" "}
-        <DocLink href={SETUP_LINKS.ckanUserGuide}>CKAN user guide</DocLink>{" "}
-        covers searching and installing.
+        <Prose runs={runs("uplinks.install")} />
       </Text>
       <StepCheck check={check} />
       {!waitingForMod && installed.length > 0 && (
@@ -83,18 +84,12 @@ export function UplinkReadinessStep() {
       )}
       {waitingForMod && (
         <Hint>
-          <span>
-            This list comes from the mod, so it stays empty until the previous
-            step is connected to KSP.
-          </span>
+          <span>{say("uplinks.hint.waiting")}</span>
         </Hint>
       )}
       {check.state === "attention" && (
         <Hint>
-          <span>
-            A row that is not working says why. Each Uplink also has its own
-            page under Settings, Uplinks, with the same readings.
-          </span>
+          <span>{say("uplinks.hint.attention")}</span>
         </Hint>
       )}
     </Stack>
@@ -125,9 +120,10 @@ function ContractMismatchDetail({
 
   return (
     <Text level="muted" size="sm">
-      Built for contract {declaredContract.major}.{declaredContract.minor}; this
-      mod speaks {coreContract.major}.{coreContract.minor}. The mod refused it,
-      so none of its channels or commands are running.
+      {say("uplinks.row.contractMismatch", {
+        declared: `${declaredContract.major}.${declaredContract.minor}`,
+        core: `${coreContract.major}.${coreContract.minor}`,
+      })}
     </Text>
   );
 }
@@ -150,7 +146,7 @@ function UplinkReadinessRow({
         <Name>{entry.name}</Name>
         {!entry.rosterEntry && entry.version && (
           <Text level="faint" size="xs">
-            v{entry.version}
+            {say("uplinks.row.version", { version: entry.version })}
           </Text>
         )}
         <ReadinessReading state={entry.state} />
@@ -182,27 +178,37 @@ function ReadinessReading({
 }: Readonly<{ state: UplinkReadinessEntry["state"] }>) {
   switch (state) {
     case "loaded":
-      return <Badge tone="go">Client loaded</Badge>;
+      return <Badge tone="go">{say("uplinks.row.loaded")}</Badge>;
     case "loading":
       return (
         <StatusIndicator tone="neutral" pulse="fast">
-          Client loading
+          {say("uplinks.row.loading")}
         </StatusIndicator>
       );
     case "quarantined":
-      return <StatusIndicator tone="nogo">Client quarantined</StatusIndicator>;
+      return (
+        <StatusIndicator tone="nogo">
+          {say("uplinks.row.quarantined")}
+        </StatusIndicator>
+      );
     case "contract-mismatch":
       return (
         <StatusIndicator tone="nogo">
-          Refused: contract mismatch
+          {say("uplinks.row.refused")}
         </StatusIndicator>
       );
     case "unavailable":
       return (
-        <StatusIndicator tone="nogo">Mod reports unavailable</StatusIndicator>
+        <StatusIndicator tone="nogo">
+          {say("uplinks.row.unavailable")}
+        </StatusIndicator>
       );
     case "no-client":
-      return <StatusIndicator tone="warn">No client loaded</StatusIndicator>;
+      return (
+        <StatusIndicator tone="warn">
+          {say("uplinks.row.noClient")}
+        </StatusIndicator>
+      );
   }
 }
 

@@ -2,6 +2,7 @@ import { useModal } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import type { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
+import { say } from "./copy";
 import { FirstRunSetup } from "./FirstRunSetup";
 import { hasSeenFirstRunSetup, markFirstRunSetupSeen } from "./firstRunFlag";
 
@@ -55,7 +56,7 @@ export function FirstRunSetupHost({
         <ModalTelemetryBridge>
           <FirstRunSetup onFinish={() => close(modalId)} />
         </ModalTelemetryBridge>,
-        { title: "Set up Gonogo" },
+        { title: say("shell.title") },
       );
     };
 

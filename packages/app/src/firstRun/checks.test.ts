@@ -6,6 +6,7 @@ import {
   relayCheck,
   uplinksCheck,
 } from "./checks";
+import { say } from "./copy";
 import type { UplinkReadinessEntry } from "./useUplinkReadiness";
 
 function entry(
@@ -43,11 +44,11 @@ describe("relayCheck", () => {
     expect(relayCheck("checking").state).toBe("checking");
     expect(relayCheck("ok")).toEqual({
       state: "pass",
-      text: "The container is running",
+      text: say("container.check.pass"),
     });
     expect(relayCheck("unreachable")).toEqual({
       state: "fail",
-      text: "No answer from the container at http://localhost:3002",
+      text: say("container.check.fail", { url: "http://localhost:3002" }),
     });
   });
 });
@@ -62,12 +63,12 @@ describe("connectionCheck", () => {
   it("passes when connected and fails otherwise, naming the address", () => {
     expect(connectionCheck("connected", "10.0.0.5:8090")).toEqual({
       state: "pass",
-      text: "Connected to KSP at 10.0.0.5:8090",
+      text: say("connect.check.pass", { address: "10.0.0.5:8090" }),
     });
     for (const status of ["disconnected", "error", undefined] as const)
       expect(connectionCheck(status, "localhost:8090")).toEqual({
         state: "fail",
-        text: "Not connected to KSP at localhost:8090",
+        text: say("connect.check.fail", { address: "localhost:8090" }),
       });
   });
 });
@@ -82,7 +83,7 @@ describe("uplinksCheck", () => {
   it("passes with no Uplinks at all, because none is required", () => {
     expect(uplinksCheck({ entries: [], waitingForMod: false })).toEqual({
       state: "pass",
-      text: "No Uplinks installed, which is fine: they are optional",
+      text: say("uplinks.check.none"),
     });
   });
 
@@ -91,7 +92,10 @@ describe("uplinksCheck", () => {
     expect(needsAttention(degraded)).toBe(false);
     expect(
       uplinksCheck({ entries: [entry({}), degraded], waitingForMod: false }),
-    ).toEqual({ state: "pass", text: "2 Uplinks installed, all working" });
+    ).toEqual({
+      state: "pass",
+      text: say("uplinks.check.allWorking", { installed: 2 }),
+    });
   });
 
   it("asks for attention, never failure, when an Uplink is not working", () => {
@@ -110,13 +114,13 @@ describe("uplinksCheck", () => {
     ];
     expect(uplinksCheck({ entries, waitingForMod: false })).toEqual({
       state: "attention",
-      text: "4 Uplinks installed, 3 need attention",
+      text: say("uplinks.check.attention", { installed: 4, attention: 3 }),
     });
     expect(
       uplinksCheck({
         entries: [entry({ state: "contract-mismatch" })],
         waitingForMod: false,
       }).text,
-    ).toBe("1 Uplink installed, 1 needs attention");
+    ).toBe(say("uplinks.check.attention", { installed: 1, attention: 1 }));
   });
 });

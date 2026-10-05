@@ -26,6 +26,7 @@ import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
 } from "../uplinks/loaderState";
+import { type CopyRun, runs, say } from "./copy";
 import { FirstRunSetup } from "./FirstRunSetup";
 import {
   CKAN_UPLINK_FILTER,
@@ -35,6 +36,15 @@ import {
   RUN_COMMAND,
   SETUP_LINKS,
 } from "./setupGuide";
+
+function stepHeading(index: number, heading: string): string {
+  return say("shell.stepHeading", { index, total: 6, heading });
+}
+
+/** The words one of a sentence's links is drawn with. */
+function linkWords(sentence: readonly CopyRun[], link: string): string {
+  return sentence.find((run) => run.link === link)?.text ?? "";
+}
 
 /**
  * Drives the flow against the real boundaries it uses in the app: a live
@@ -140,16 +150,22 @@ function renderSetup(
 
 async function goToUplinks() {
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Get started" }));
-  await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
-  await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
+  await user.click(
+    screen.getByRole("button", { name: say("welcome.advance") }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: say("container.advance") }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: say("connect.advance") }),
+  );
 }
 
 async function goToHealth() {
   await goToUplinks();
   await userEvent
     .setup()
-    .click(screen.getByRole("button", { name: "Review setup" }));
+    .click(screen.getByRole("button", { name: say("uplinks.advance") }));
 }
 
 async function emitRoster(wsClients: LinkClient[], uplinks: unknown[]) {
@@ -173,29 +189,49 @@ describe("FirstRunSetup: step sequence", () => {
     const { wsClients } = renderSetup({ onFinish });
     const user = userEvent.setup();
 
-    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Get started" }));
+    expect(
+      screen.getByText(stepHeading(1, say("welcome.heading"))),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: say("welcome.advance") }),
+    );
 
     expect(
-      screen.getByText("Step 2 of 6: Start the container"),
+      screen.getByText(stepHeading(2, say("container.heading"))),
     ).toBeInTheDocument();
-    await screen.findByText("The container is running");
-    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
+    await screen.findByText(say("container.check.pass"));
+    await user.click(
+      screen.getByRole("button", { name: say("container.advance") }),
+    );
 
-    expect(screen.getByText("Step 3 of 6: Connect to KSP")).toBeInTheDocument();
+    expect(
+      screen.getByText(stepHeading(3, say("connect.heading"))),
+    ).toBeInTheDocument();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
+    await user.click(
+      screen.getByRole("button", { name: say("connect.advance") }),
+    );
 
-    expect(screen.getByText("Step 4 of 6: Uplinks")).toBeInTheDocument();
+    expect(
+      screen.getByText(stepHeading(4, say("uplinks.heading"))),
+    ).toBeInTheDocument();
     await emitRoster(wsClients, []);
-    await user.click(screen.getByRole("button", { name: "Review setup" }));
+    await user.click(
+      screen.getByRole("button", { name: say("uplinks.advance") }),
+    );
 
-    expect(screen.getByText("Step 5 of 6: Health check")).toBeInTheDocument();
-    await screen.findByText("The container is running");
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(
+      screen.getByText(stepHeading(5, say("health.heading"))),
+    ).toBeInTheDocument();
+    await screen.findByText(say("container.check.pass"));
+    await user.click(
+      screen.getByRole("button", { name: say("health.advance") }),
+    );
 
-    expect(screen.getByText("Step 6 of 6: Done")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Finish" }));
+    expect(
+      screen.getByText(stepHeading(6, say("done.heading"))),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: say("done.advance") }));
     expect(onFinish).toHaveBeenCalledTimes(1);
     await act(async () => {});
   });
@@ -204,13 +240,17 @@ describe("FirstRunSetup: step sequence", () => {
     renderSetup();
     const user = userEvent.setup();
     expect(
-      screen.queryByRole("button", { name: "Back" }),
+      screen.queryByRole("button", { name: say("shell.back") }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Get started" }));
-    await screen.findByText("The container is running");
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: say("welcome.advance") }),
+    );
+    await screen.findByText(say("container.check.pass"));
+    await user.click(screen.getByRole("button", { name: say("shell.back") }));
+    expect(
+      screen.getByText(stepHeading(1, say("welcome.heading"))),
+    ).toBeInTheDocument();
   });
 });
 
@@ -219,13 +259,15 @@ describe("FirstRunSetup: the container check", () => {
     renderSetup();
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Get started" }));
+      .click(screen.getByRole("button", { name: say("welcome.advance") }));
 
     expect(screen.getByText(RUN_COMMAND)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Copy run command" }),
+      screen.getByRole("button", {
+        name: `Copy ${say("container.runCommandLabel")}`,
+      }),
     ).toBeInTheDocument();
-    await screen.findByText("The container is running");
+    await screen.findByText(say("container.check.pass"));
     expect(
       screen.queryByText(CONTAINER_STATUS_COMMAND),
     ).not.toBeInTheDocument();
@@ -235,26 +277,30 @@ describe("FirstRunSetup: the container check", () => {
     renderSetup(undefined, { relay: "down" });
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Get started" }));
+      .click(screen.getByRole("button", { name: say("welcome.advance") }));
 
     await screen.findByText(
-      "No answer from the container at http://localhost:3002",
+      say("container.check.fail", { url: "http://localhost:3002" }),
     );
     expect(screen.getByText(CONTAINER_STATUS_COMMAND)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "deployment guide" }),
+      screen.getByRole("link", {
+        name: linkWords(runs("container.hint.fix"), "deployment"),
+      }),
     ).toHaveAttribute("href", SETUP_LINKS.deployment);
     expect(
-      screen.getByRole("button", { name: "Check again" }),
+      screen.getByRole("button", { name: say("container.recheck") }),
     ).toBeInTheDocument();
   });
 
   it("picks up a container started after the step opened, on Check again", async () => {
     renderSetup(undefined, { relay: "down" });
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Get started" }));
+    await user.click(
+      screen.getByRole("button", { name: say("welcome.advance") }),
+    );
     await screen.findByText(
-      "No answer from the container at http://localhost:3002",
+      say("container.check.fail", { url: "http://localhost:3002" }),
     );
 
     server.use(
@@ -262,17 +308,23 @@ describe("FirstRunSetup: the container check", () => {
         HttpResponse.json({ status: "ok", turn: null }),
       ),
     );
-    await user.click(screen.getByRole("button", { name: "Check again" }));
-    await screen.findByText("The container is running");
+    await user.click(
+      screen.getByRole("button", { name: say("container.recheck") }),
+    );
+    await screen.findByText(say("container.check.pass"));
   });
 });
 
 describe("FirstRunSetup: the KSP connection check", () => {
   async function goToConnect() {
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Get started" }));
-    await screen.findByText("The container is running");
-    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
+    await user.click(
+      screen.getByRole("button", { name: say("welcome.advance") }),
+    );
+    await screen.findByText(say("container.check.pass"));
+    await user.click(
+      screen.getByRole("button", { name: say("container.advance") }),
+    );
   }
 
   it("names the three causes, each with its way out, while there is no connection", async () => {
@@ -280,15 +332,21 @@ describe("FirstRunSetup: the KSP connection check", () => {
     await goToConnect();
 
     expect(
-      screen.getByText("Not connected to KSP at localhost:8090"),
+      screen.getByText(
+        say("connect.check.fail", { address: "localhost:8090" }),
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText(MOD_LOG_COMMAND.posix)).toBeInTheDocument();
     expect(screen.getByText(/KSP is not running yet/)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "KSP setup guide" }),
+      screen.getByRole("link", {
+        name: linkWords(runs("connect.hint.notInstalled"), "kspSetup"),
+      }),
     ).toHaveAttribute("href", SETUP_LINKS.kspSetup);
     expect(
-      screen.getByRole("link", { name: "networking guide" }),
+      screen.getByRole("link", {
+        name: linkWords(runs("connect.hint.blocked"), "networking"),
+      }),
     ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
@@ -297,10 +355,14 @@ describe("FirstRunSetup: the KSP connection check", () => {
     await goToConnect();
 
     expect(
-      screen.getByText("Connected to KSP at localhost:8090"),
+      screen.getByText(
+        say("connect.check.pass", { address: "localhost:8090" }),
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("link", { name: "networking guide" }),
+      screen.queryByRole("link", {
+        name: linkWords(runs("connect.hint.blocked"), "networking"),
+      }),
     ).not.toBeInTheDocument();
   });
 });
@@ -310,17 +372,17 @@ describe("FirstRunSetup: the health check", () => {
     const { wsClients } = renderSetup(undefined, { ksp: "connected" });
     await goToUplinks();
     await emitRoster(wsClients, []);
-    await screen.findByText(
-      "No Uplinks installed, which is fine: they are optional",
-    );
+    await screen.findByText(say("uplinks.check.none"));
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Review setup" }));
+      .click(screen.getByRole("button", { name: say("uplinks.advance") }));
 
-    await screen.findByText("Everything is working");
-    expect(screen.getByText("The container is running")).toBeInTheDocument();
+    await screen.findByText(say("health.verdict.allWorking"));
+    expect(screen.getByText(say("container.check.pass"))).toBeInTheDocument();
     expect(
-      screen.getByText("Connected to KSP at localhost:8090"),
+      screen.getByText(
+        say("connect.check.pass", { address: "localhost:8090" }),
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(CONTAINER_LOGS_COMMAND)).not.toBeInTheDocument();
   });
@@ -330,10 +392,14 @@ describe("FirstRunSetup: the health check", () => {
     await goToHealth();
     await emitRoster(wsClients, []);
 
-    await screen.findByText("2 of 3 checks need a look");
+    await screen.findByText(
+      say("health.verdict.needLook", { bad: 2, total: 3 }),
+    );
     expect(screen.getByText(CONTAINER_LOGS_COMMAND)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Checking telemetry is arriving" }),
+      screen.getByRole("link", {
+        name: linkWords(runs("health.hint.guides"), "telemetryChecks"),
+      }),
     ).toHaveAttribute("href", SETUP_LINKS.telemetryChecks);
   });
 
@@ -342,7 +408,9 @@ describe("FirstRunSetup: the health check", () => {
     await goToHealth();
     await emitRoster(wsClients, [rosterEntry({ id: "widget-noclient" })]);
 
-    await screen.findByText("1 of 3 checks needs a look");
+    await screen.findByText(
+      say("health.verdict.needLook", { bad: 1, total: 3 }),
+    );
     expect(screen.getByText(/Go back to the Uplinks step/)).toBeInTheDocument();
     expect(screen.queryByText(CONTAINER_LOGS_COMMAND)).not.toBeInTheDocument();
   });
@@ -352,15 +420,13 @@ describe("FirstRunSetup: the Uplinks reading", () => {
   it("says it is waiting until the mod answers, never guessing a state first", async () => {
     const { wsClients } = renderSetup();
     await goToUplinks();
+    expect(screen.getByText(say("uplinks.check.waiting"))).toBeInTheDocument();
     expect(
-      screen.getByText("Waiting for the mod to report its Uplinks"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("No client loaded")).not.toBeInTheDocument();
+      screen.queryByText(say("uplinks.row.noClient")),
+    ).not.toBeInTheDocument();
 
     await emitRoster(wsClients, []);
-    await screen.findByText(
-      "No Uplinks installed, which is fine: they are optional",
-    );
+    await screen.findByText(say("uplinks.check.none"));
   });
 
   it("reads one row per Uplink, saying whether its client loaded", async () => {
@@ -395,22 +461,28 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     // assertion below it then reads a list that is still outcome-only.
     await waitFor(() =>
       expect(
-        screen.getByText("1 of 4 installed Uplinks have a loaded client"),
+        screen.getByText(say("uplinks.summary", { loaded: 1, installed: 4 })),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByText("Client loaded")).toBeInTheDocument();
-    expect(screen.getByText("Client quarantined")).toBeInTheDocument();
+    expect(screen.getByText(say("uplinks.row.loaded"))).toBeInTheDocument();
+    expect(
+      screen.getByText(say("uplinks.row.quarantined")),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         "apiVersion incompatible: host 1.0.0, client built for 2.0.0",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("No client loaded")).toBeInTheDocument();
+    expect(screen.getByText(say("uplinks.row.noClient"))).toBeInTheDocument();
     expect(screen.getByText("widget-noclient")).toBeInTheDocument();
-    expect(screen.getByText("Mod reports unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText(say("uplinks.row.unavailable")),
+    ).toBeInTheDocument();
     expect(screen.getByText("no antenna in range")).toBeInTheDocument();
     expect(
-      screen.getByText("4 Uplinks installed, 3 need attention"),
+      screen.getByText(
+        say("uplinks.check.attention", { installed: 4, attention: 3 }),
+      ),
     ).toBeInTheDocument();
   });
 
@@ -429,7 +501,7 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       }),
     ]);
 
-    await screen.findByText("1 Uplink installed, all working");
+    await screen.findByText(say("uplinks.check.allWorking", { installed: 1 }));
     expect(screen.getByText("degraded")).toBeInTheDocument();
     expect(
       screen.getByText("No camera on the active craft"),
@@ -447,7 +519,9 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       screen.getByText(/Uplinks are optional add-ons/),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "CKAN user guide" }),
+      screen.getByRole("link", {
+        name: linkWords(runs("uplinks.install"), "ckanUserGuide"),
+      }),
     ).toHaveAttribute("href", SETUP_LINKS.ckanUserGuide);
   });
 
@@ -474,7 +548,9 @@ describe("FirstRunSetup: the Uplinks reading", () => {
      * already in the store before render, so it is on screen before the
      * roster frame that adds the row it is compared against.
      */
-    await screen.findByText("1 of 2 installed Uplinks have a loaded client");
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 2 }),
+    );
     expect(screen.getByText("widget-noclient")).toBeInTheDocument();
     expect(screen.getByText("by tester")).toBeInTheDocument();
     expect(screen.getByText("example/repo")).toBeInTheDocument();
@@ -504,8 +580,12 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await goToUplinks();
     await emitRoster(wsClients, [rosterEntry({ id: "widget-tampered" })]);
 
-    await screen.findByText("0 of 1 installed Uplink has a loaded client");
-    expect(screen.getByText("Client quarantined")).toBeInTheDocument();
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 0, installed: 1 }),
+    );
+    expect(
+      screen.getByText(say("uplinks.row.quarantined")),
+    ).toBeInTheDocument();
     expect(screen.getByText(/sha256-aaa/)).toBeInTheDocument();
     expect(screen.getByText(/sha256-bbb/)).toBeInTheDocument();
   });
@@ -521,26 +601,32 @@ describe("FirstRunSetup: accessibility", () => {
     const passing = renderSetup();
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Get started" }));
-    await screen.findByText("The container is running");
+      .click(screen.getByRole("button", { name: say("welcome.advance") }));
+    await screen.findByText(say("container.check.pass"));
     await expectNoA11yViolations(passing.container);
     passing.unmount();
 
     const failing = renderSetup(undefined, { relay: "down" });
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Get started" }));
-    await screen.findByRole("button", { name: "Check again" });
+      .click(screen.getByRole("button", { name: say("welcome.advance") }));
+    await screen.findByRole("button", { name: say("container.recheck") });
     await expectNoA11yViolations(failing.container);
   });
 
   it("has no axe violations on the Connect step with its failure hints open", async () => {
     const { container } = renderSetup();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Get started" }));
-    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
+    await user.click(
+      screen.getByRole("button", { name: say("welcome.advance") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: say("container.advance") }),
+    );
     expect(
-      screen.getByRole("link", { name: "networking guide" }),
+      screen.getByRole("link", {
+        name: linkWords(runs("connect.hint.blocked"), "networking"),
+      }),
     ).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
@@ -557,8 +643,10 @@ describe("FirstRunSetup: accessibility", () => {
       rosterEntry({ id: "widget-loaded" }),
       rosterEntry({ id: "widget-noclient" }),
     ]);
-    await screen.findByText("1 of 2 installed Uplinks have a loaded client");
-    expect(screen.getByText("Client loaded")).toBeInTheDocument();
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 2 }),
+    );
+    expect(screen.getByText(say("uplinks.row.loaded"))).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 
@@ -566,7 +654,9 @@ describe("FirstRunSetup: accessibility", () => {
     const { container, wsClients } = renderSetup(undefined, { relay: "down" });
     await goToHealth();
     await emitRoster(wsClients, []);
-    await screen.findByText("2 of 3 checks need a look");
+    await screen.findByText(
+      say("health.verdict.needLook", { bad: 2, total: 3 }),
+    );
     await expectNoA11yViolations(container);
   });
 
@@ -574,8 +664,12 @@ describe("FirstRunSetup: accessibility", () => {
     const { container, wsClients } = renderSetup();
     await goToHealth();
     await emitRoster(wsClients, []);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Step 6 of 6: Done")).toBeInTheDocument();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: say("health.advance") }));
+    expect(
+      screen.getByText(stepHeading(6, say("done.heading"))),
+    ).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 });

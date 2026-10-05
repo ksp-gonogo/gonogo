@@ -8,12 +8,17 @@ import { useEffect, useState } from "react";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
 import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { say } from "./copy";
 import { FirstRunSetupHost } from "./FirstRunSetupHost";
 import {
   __resetFirstRunSetupForTests,
   hasSeenFirstRunSetup,
   markFirstRunSetupSeen,
 } from "./firstRunFlag";
+
+function stepHeading(index: number, heading: string): string {
+  return say("shell.stepHeading", { index, total: 6, heading });
+}
 
 /**
  * Proves the first-run auto-open host: real `ModalProvider` + the real setup
@@ -67,7 +72,9 @@ describe("FirstRunSetupHost", () => {
   it("auto-opens the setup flow on its first step on first run", async () => {
     renderHost();
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
+    expect(
+      screen.getByText(stepHeading(1, say("welcome.heading"))),
+    ).toBeInTheDocument();
   });
 
   it("marks the first-run flag the instant it opens (idempotent even if never finished)", async () => {
@@ -101,15 +108,25 @@ describe("FirstRunSetupHost", () => {
     await screen.findByRole("dialog");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Get started" }));
+    await user.click(
+      screen.getByRole("button", { name: say("welcome.advance") }),
+    );
     // The container step asks the relay as it mounts; wait for the answer so it lands inside this test.
-    await screen.findByText("The container is running");
-    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
-    await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
-    await user.click(screen.getByRole("button", { name: "Review setup" }));
-    await screen.findByText("The container is running");
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(screen.getByRole("button", { name: "Finish" }));
+    await screen.findByText(say("container.check.pass"));
+    await user.click(
+      screen.getByRole("button", { name: say("container.advance") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: say("connect.advance") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: say("uplinks.advance") }),
+    );
+    await screen.findByText(say("container.check.pass"));
+    await user.click(
+      screen.getByRole("button", { name: say("health.advance") }),
+    );
+    await user.click(screen.getByRole("button", { name: say("done.advance") }));
 
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -167,7 +184,9 @@ describe("FirstRunSetupHost", () => {
     await waitFor(() =>
       expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1),
     );
-    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
+    expect(
+      screen.getByText(stepHeading(1, say("welcome.heading"))),
+    ).toBeInTheDocument();
   });
 });
 

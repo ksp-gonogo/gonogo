@@ -7,20 +7,24 @@ import {
   type SetupCheck,
   uplinksCheck,
 } from "../checks";
-import { CONTAINER_LOGS_COMMAND, SETUP_LINKS } from "../setupGuide";
+import { runs, say } from "../copy";
+import { CONTAINER_LOGS_COMMAND } from "../setupGuide";
 import { useConnectionCheck } from "../useConnectionCheck";
 import { useRelayHealth } from "../useRelayHealth";
 import { useUplinkReadiness } from "../useUplinkReadiness";
-import { CheckReading, DocLink, Hint } from "./StepParts";
+import { CheckReading, Hint, Prose } from "./StepParts";
 
 const SETTLED_BAD: readonly CheckState[] = ["fail", "attention"];
 
 function verdict(checks: readonly SetupCheck[]): string {
   if (checks.some((check) => check.state === "checking"))
-    return "Checking your setup";
+    return say("health.verdict.checking");
   const bad = checks.filter((check) => SETTLED_BAD.includes(check.state));
-  if (bad.length === 0) return "Everything is working";
-  return `${bad.length} of ${checks.length} checks ${bad.length === 1 ? "needs" : "need"} a look`;
+  if (bad.length === 0) return say("health.verdict.allWorking");
+  return say("health.verdict.needLook", {
+    bad: bad.length,
+    total: checks.length,
+  });
 }
 
 /**
@@ -33,9 +37,9 @@ export function HealthStep() {
   const connection = useConnectionCheck();
   const uplinks = uplinksCheck(useUplinkReadiness());
   const rows = [
-    { name: "Container", check: relay },
-    { name: "KSP connection", check: connection },
-    { name: "Uplinks", check: uplinks },
+    { name: say("health.row.container"), check: relay },
+    { name: say("health.row.connection"), check: connection },
+    { name: say("health.row.uplinks"), check: uplinks },
   ];
   const checks = rows.map((row) => row.check);
   const plumbingBad = [relay, connection].some((check) =>
@@ -45,9 +49,7 @@ export function HealthStep() {
   return (
     <Stack gap="related-comfortable">
       <Text level="muted" size="sm">
-        These are the same checks as the steps before, all in one place. Go back
-        to a step to fix what it reports; this page updates when a check
-        changes.
+        {say("health.intro")}
       </Text>
       <LiveRegion as="div">
         <Text weight="semibold">{verdict(checks)}</Text>
@@ -62,31 +64,19 @@ export function HealthStep() {
       </RowList>
       {plumbingBad && (
         <Hint>
-          <span>
-            The container's own log usually says why something is not working:
-          </span>
+          <span>{say("health.hint.log")}</span>
           <CommandBlock
             command={CONTAINER_LOGS_COMMAND}
-            label="container log command"
+            label={say("health.logCommandLabel")}
           />
           <span>
-            <DocLink href={SETUP_LINKS.telemetryChecks}>
-              Checking telemetry is arriving
-            </DocLink>{" "}
-            walks the KSP side, and{" "}
-            <DocLink href={SETUP_LINKS.networking}>
-              the networking guide
-            </DocLink>{" "}
-            covers running KSP on another computer.
+            <Prose runs={runs("health.hint.guides")} />
           </span>
         </Hint>
       )}
       {uplinks.state === "attention" && (
         <Hint>
-          <span>
-            Go back to the Uplinks step: each row there says why it is not
-            working. Uplinks are optional, so this does not stop Gonogo.
-          </span>
+          <span>{say("health.hint.uplinks")}</span>
         </Hint>
       )}
     </Stack>

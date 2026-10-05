@@ -3,6 +3,8 @@ import { LiveRegion, StatusIndicator } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CheckState, SetupCheck } from "../checks";
+import type { CopyRun } from "../copy";
+import { SETUP_LINKS } from "../setupGuide";
 
 const TONE: Record<CheckState, Tone> = {
   checking: "neutral",
@@ -34,6 +36,23 @@ export function StepCheck({ check }: Readonly<{ check: SetupCheck }>) {
     <LiveRegion as="div">
       <CheckReading check={check} />
     </LiveRegion>
+  );
+}
+
+/** A sentence from the copy table, each linked run drawn as a {@link DocLink}. */
+export function Prose({ runs }: Readonly<{ runs: readonly CopyRun[] }>) {
+  return (
+    <>
+      {runs.map((run) => {
+        const href = run.link && Reflect.get(SETUP_LINKS, run.link);
+        if (typeof href !== "string") return run.text;
+        return (
+          <DocLink key={`${run.link}:${run.text}`} href={href}>
+            {run.text}
+          </DocLink>
+        );
+      })}
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
+import { type CopyKey, say } from "./copy";
 import { ConnectStep } from "./steps/ConnectStep";
 import { ContainerStep } from "./steps/ContainerStep";
 import { DoneStep } from "./steps/DoneStep";
@@ -8,7 +9,7 @@ import { HealthStep } from "./steps/HealthStep";
 import { UplinkReadinessStep } from "./steps/UplinkReadinessStep";
 import { WelcomeStep } from "./steps/WelcomeStep";
 
-type SetupStep =
+export type SetupStep =
   | "welcome"
   | "container"
   | "connect"
@@ -25,28 +26,28 @@ const ORDER: readonly SetupStep[] = [
   "done",
 ];
 
-const HEADING: Record<SetupStep, string> = {
-  welcome: "Welcome",
-  container: "Start the container",
-  connect: "Connect to KSP",
-  uplinks: "Uplinks",
-  health: "Health check",
-  done: "Done",
-};
+const HEADING = {
+  welcome: "welcome.heading",
+  container: "container.heading",
+  connect: "connect.heading",
+  uplinks: "uplinks.heading",
+  health: "health.heading",
+  done: "done.heading",
+} as const satisfies Record<SetupStep, CopyKey>;
 
 /**
  * The label on the button that leaves each step. The last one is "Finish"
  * rather than "Close" because the modal chrome already has a Close, and two
  * buttons of the same name in one dialog is a keyboard operator's problem.
  */
-const ADVANCE_LABEL: Record<SetupStep, string> = {
-  welcome: "Get started",
-  container: "Connect to KSP",
-  connect: "Check Uplinks",
-  uplinks: "Review setup",
-  health: "Next",
-  done: "Finish",
-};
+const ADVANCE_LABEL = {
+  welcome: "welcome.advance",
+  container: "container.advance",
+  connect: "connect.advance",
+  uplinks: "uplinks.advance",
+  health: "health.advance",
+  done: "done.advance",
+} as const satisfies Record<SetupStep, CopyKey>;
 
 export interface FirstRunSetupProps {
   /**
@@ -54,6 +55,8 @@ export interface FirstRunSetupProps {
    * it mounted this in.
    */
   onFinish?: () => void;
+  /** The step the flow opens on, for a story that shows one step. The app always opens on the first. */
+  initialStep?: SetupStep;
 }
 
 /**
@@ -66,8 +69,11 @@ export interface FirstRunSetupProps {
  * of its own, so there is no dialog chrome here: a step heading, the step body,
  * and a nav footer.
  */
-export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
-  const [step, setStep] = useState<SetupStep>("welcome");
+export function FirstRunSetup({
+  onFinish,
+  initialStep = "welcome",
+}: Readonly<FirstRunSetupProps> = {}) {
+  const [step, setStep] = useState<SetupStep>(initialStep);
   const index = ORDER.indexOf(step);
 
   function advance() {
@@ -81,7 +87,11 @@ export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
   return (
     <Stack gap="related-comfortable">
       <StepHeading aria-live="polite">
-        Step {index + 1} of {ORDER.length}: {HEADING[step]}
+        {say("shell.stepHeading", {
+          index: index + 1,
+          total: ORDER.length,
+          heading: say(HEADING[step]),
+        })}
       </StepHeading>
       {step === "welcome" && <WelcomeStep />}
       {step === "container" && <ContainerStep />}
@@ -96,11 +106,11 @@ export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
             type="button"
             onClick={() => setStep(ORDER[index - 1])}
           >
-            Back
+            {say("shell.back")}
           </Button>
         )}
         <Button variant="primary" type="button" onClick={advance}>
-          {ADVANCE_LABEL[step]}
+          {say(ADVANCE_LABEL[step])}
         </Button>
       </Nav>
     </Stack>
