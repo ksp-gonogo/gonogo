@@ -123,6 +123,9 @@
       {
         "channel": "vessel.maneuver",
         "value": {
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0"
+          },
           "nodes": [
             {
               "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
@@ -233,6 +236,10 @@
       {
         "channel": "vessel.orbit",
         "value": {
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+            "quality": 0
+          },
           "referenceBodyIndex": 1,
           "sma": {
             "magnitude": 342639.122959941,

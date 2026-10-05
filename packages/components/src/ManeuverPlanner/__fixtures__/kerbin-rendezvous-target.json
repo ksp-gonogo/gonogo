@@ -11,6 +11,10 @@
         "value": {
           "bodies": [
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Kerbin",
               "index": 1,
               "parentIndex": 0,
@@ -34,6 +38,10 @@
       {
         "channel": "vessel.orbit",
         "value": {
+          "meta": {
+            "source": "vessel:v-tug",
+            "quality": 0
+          },
           "referenceBodyIndex": 1,
           "sma": 800000,
           "ecc": 0,
@@ -90,6 +98,9 @@
       {
         "channel": "vessel.maneuver",
         "value": {
+          "meta": {
+            "source": "vessel:v-tug"
+          },
           "nodes": []
         }
       }

@@ -14,6 +14,10 @@
         "value": {
           "bodies": [
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Sun",
               "index": 0,
               "parentIndex": null,
@@ -36,6 +40,10 @@
               }
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Kerbin",
               "index": 1,
               "parentIndex": 0,
@@ -66,6 +74,10 @@
               }
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Mun",
               "index": 2,
               "parentIndex": 1,
@@ -92,6 +104,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Minmus",
               "index": 3,
               "parentIndex": 1,
@@ -118,6 +134,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Moho",
               "index": 4,
               "parentIndex": 0,
@@ -144,6 +164,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Eve",
               "index": 5,
               "parentIndex": 0,
@@ -174,6 +198,10 @@
               }
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Duna",
               "index": 6,
               "parentIndex": 0,
@@ -204,6 +232,10 @@
               }
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Ike",
               "index": 7,
               "parentIndex": 6,
@@ -230,6 +262,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Jool",
               "index": 8,
               "parentIndex": 0,
@@ -260,6 +296,10 @@
               }
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Laythe",
               "index": 9,
               "parentIndex": 8,
@@ -290,6 +330,10 @@
               }
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Vall",
               "index": 10,
               "parentIndex": 8,
@@ -316,6 +360,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Bop",
               "index": 11,
               "parentIndex": 8,
@@ -342,6 +390,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Tylo",
               "index": 12,
               "parentIndex": 8,
@@ -368,6 +420,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Gilly",
               "index": 13,
               "parentIndex": 5,
@@ -394,6 +450,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Pol",
               "index": 14,
               "parentIndex": 8,
@@ -420,6 +480,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Dres",
               "index": 15,
               "parentIndex": 0,
@@ -446,6 +510,10 @@
               "atmosphere": null
             },
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Eeloo",
               "index": 16,
               "parentIndex": 0,
@@ -491,6 +559,10 @@
       {
         "channel": "vessel.orbit",
         "value": {
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+            "quality": 0
+          },
           "referenceBodyIndex": 1,
           "sma": 850000.575174203,
           "ecc": 3.56929155433913e-5,

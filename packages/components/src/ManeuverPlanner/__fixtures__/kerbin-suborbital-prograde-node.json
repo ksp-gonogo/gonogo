@@ -124,6 +124,10 @@
         "value": {
           "bodies": [
             {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
               "name": "Kerbin",
               "index": 1,
               "parentIndex": 0,
@@ -136,6 +140,10 @@
       {
         "channel": "vessel.orbit",
         "value": {
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+            "quality": 0
+          },
           "sma": 342639.122959941,
           "ecc": 0.9013376733527575,
           "inc": 7.48670482007197,
@@ -162,6 +170,9 @@
       {
         "channel": "vessel.maneuver",
         "value": {
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0"
+          },
           "nodes": [
             {
               "id": "node-1",
