@@ -7489,8 +7489,11 @@ namespace Sitrep.Host
             FlushReveal(tick.Ut);
             PruneAllConnectivityHistory();
 
+            // Before the clock moves: a command that lands during this advance is
+            // run against the craft that is active now, not the one that was.
+            NoteActiveCraft(tick.Snapshot);
             _clock.AdvanceTo(tick.Ut);
-            TickDelivery(tick.Snapshot, tick.Ut);
+            TickDelivery(tick.Ut);
             tick.Done?.Set();
         }
 

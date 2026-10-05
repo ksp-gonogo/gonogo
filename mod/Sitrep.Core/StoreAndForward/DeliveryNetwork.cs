@@ -105,7 +105,11 @@ namespace Sitrep.Core.StoreAndForward
         private readonly Dictionary<string, List<Held>> _held = new Dictionary<string, List<Held>>(StringComparer.Ordinal);
         private readonly List<Flight> _flights = new List<Flight>();
         private readonly Dictionary<string, List<CancelMessage>> _storedCancels = new Dictionary<string, List<CancelMessage>>(StringComparer.Ordinal);
-        private readonly Dictionary<string, HashSet<string>> _seen = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        // What each node has taken in, and when, so a second arrival of the same message is told from the first.
+        private readonly Dictionary<string, Dictionary<string, double>> _seen = new Dictionary<string, Dictionary<string, double>>(StringComparer.Ordinal);
+
+        // The copies of each lane number its centre has sent and not yet had word of.
+        private readonly Dictionary<(LaneKey Lane, long Seq), HashSet<string>> _copiesOut = new Dictionary<(LaneKey, long), HashSet<string>>();
         private readonly Dictionary<LaneKey, LaneCollector> _collectors = new Dictionary<LaneKey, LaneCollector>();
         private readonly Dictionary<LaneKey, LaneSender> _senders = new Dictionary<LaneKey, LaneSender>();
         private readonly Dictionary<string, CommandMessage> _sentCommands = new Dictionary<string, CommandMessage>(StringComparer.Ordinal);
@@ -221,6 +225,7 @@ namespace Sitrep.Core.StoreAndForward
                         Channel = channel,
                     };
                     _sentCommands[message.Id] = message;
+                    CopiesOut(lane, seq).Add(message.Id);
                     Hold(lane.Vantage, message, nowUt, null);
                     Depart(lane.Vantage, nowUt);
                     return message;
@@ -275,6 +280,7 @@ namespace Sitrep.Core.StoreAndForward
                     };
                     sender.AddCopy(seq, deleteAt);
                     _sentCommands[copy.Id] = copy;
+                    CopiesOut(lane, seq).Add(copy.Id);
                     Hold(lane.Vantage, copy, nowUt, null);
                     Depart(lane.Vantage, nowUt);
                     return copy;
@@ -430,6 +436,7 @@ namespace Sitrep.Core.StoreAndForward
                 foreach (var held in _held.Values.SelectMany(h => h))
                 {
                     held.EndWatch?.Invoke();
+                    held.CancelWake?.Invoke();
                 }
                 _held.Clear();
                 foreach (var flight in _flights)
@@ -439,6 +446,7 @@ namespace Sitrep.Core.StoreAndForward
                 _flights.Clear();
                 _storedCancels.Clear();
                 _seen.Clear();
+                _copiesOut.Clear();
                 _collectors.Clear();
                 _senders.Clear();
                 _sentCommands.Clear();
@@ -537,6 +545,16 @@ namespace Sitrep.Core.StoreAndForward
                         {
                             _leftSender.Add(sent.Id);
                         }
+                    }
+                    // A copy the save still held somewhere is one its centre has had no last word of.
+                    var stillOut = snapshot.Held.Select(h => h.Message)
+                        .Concat(snapshot.Flights.Select(f => f.Message))
+                        .Concat(snapshot.Collectors.SelectMany(c => c.Waiting))
+                        .Concat(snapshot.Collectors.SelectMany(c => c.Scheduled.Select(d => d.Command)))
+                        .OfType<CommandMessage>();
+                    foreach (var copy in stillOut)
+                    {
+                        CopiesOut(copy.Lane, copy.LaneSeq).Add(copy.Id);
                     }
                     _nextId = Math.Max(_nextId, snapshot.NextId);
                 }
@@ -662,8 +680,14 @@ namespace Sitrep.Core.StoreAndForward
 
         private void Deliver(string node, DeliveryMessage message, double atUt, string? cameFrom)
         {
+            // A node acts once on a message that is for it. One only passing
+            // through, come round again because the plan changed under it, is held
+            // again like any other arrival: dropped here it would be gone, with the
+            // node that sent it sure it had been received.
             var seen = SeenAt(node);
-            if (!seen.Add(message.Id))
+            var again = seen.ContainsKey(message.Id);
+            seen[message.Id] = atUt;
+            if (again && (IsFor(node, message) || IsHeldAt(node, message.Id)))
             {
                 return;
             }
@@ -735,6 +759,24 @@ namespace Sitrep.Core.StoreAndForward
             {
                 Hold(node, cancel, atUt, cameFrom);
             }
+        }
+
+        /// <summary>Whether <paramref name="node"/> is where <paramref name="message"/> is going: the craft for a command, the craft or the node it is aimed at for a cancel, the centre for a report.</summary>
+        private static bool IsFor(string node, DeliveryMessage message) =>
+            string.Equals(node, message.Destination, StringComparison.Ordinal)
+            || (message is CancelMessage cancel && cancel.TargetNode != null && string.Equals(node, cancel.TargetNode, StringComparison.Ordinal));
+
+        private bool IsHeldAt(string node, string id) =>
+            _held.TryGetValue(node, out var list) && list.Any(h => string.Equals(h.Message.Id, id, StringComparison.Ordinal));
+
+        private HashSet<string> CopiesOut(LaneKey lane, long seq)
+        {
+            if (!_copiesOut.TryGetValue((lane, seq), out var copies))
+            {
+                copies = new HashSet<string>(StringComparer.Ordinal);
+                _copiesOut[(lane, seq)] = copies;
+            }
+            return copies;
         }
 
         /// <summary>Stops every copy of lane number <paramref name="seq"/> held at <paramref name="node"/>. True when the node held one.</summary>
@@ -851,7 +893,34 @@ namespace Sitrep.Core.StoreAndForward
                     held.ReportedHeld = true;
                     Report(node, command, JourneyKind.Held, nowUt, until: waitsUntil);
                 }
+                WakeAt(node, held, waitsUntil, nowUt);
             }
+        }
+
+        /// <summary>
+        /// Has a message that is waiting for a window looked again at the instant
+        /// the window is planned to open, rather than at whichever tick comes
+        /// next. Under warp a tick spans many seconds, and a window shorter than
+        /// that opens and shuts between two of them.
+        /// </summary>
+        private void WakeAt(string node, Held held, double? opensUt, double nowUt)
+        {
+            if (opensUt == null || opensUt.Value <= nowUt + Tolerance || held.WakeUt == opensUt.Value)
+            {
+                return;
+            }
+            held.CancelWake?.Invoke();
+            var at = opensUt.Value;
+            held.WakeUt = at;
+            held.CancelWake = _clock.Schedule(at, () => Locked(() =>
+            {
+                held.WakeUt = double.NaN;
+                held.CancelWake = null;
+                if (_held.TryGetValue(node, out var waiting) && waiting.Contains(held))
+                {
+                    Depart(node, at);
+                }
+            }));
         }
 
         /// <summary>Whether command centres here plan from what they have heard, and send on that.</summary>
@@ -1144,7 +1213,65 @@ namespace Sitrep.Core.StoreAndForward
             {
                 entry.Value.RemoveAll(c => nowUt > c.DeleteAtUt);
             }
+            Forget(nowUt);
         }
+
+        /// <summary>
+        /// Lets go of what nothing can still need. A sent command is kept so it
+        /// can be sent again, chased by a cancel, and so a report about it can
+        /// find the plan it went by: all of that is over a lifetime after the
+        /// last instant it could have run. What a node has seen is kept to tell a
+        /// second arrival from the first, which is over after two.
+        /// </summary>
+        private void Forget(double nowUt)
+        {
+            List<string>? finished = null;
+            foreach (var sent in _sentCommands.Values)
+            {
+                if (nowUt > sent.DeleteAtUt + CommandLifetimeSeconds && !StillSomewhere(sent.Id))
+                {
+                    (finished ??= new List<string>()).Add(sent.Id);
+                }
+            }
+            if (finished != null)
+            {
+                foreach (var id in finished)
+                {
+                    var sent = _sentCommands[id];
+                    _sentCommands.Remove(id);
+                    _leftSender.Remove(id);
+                    if (_copiesOut.TryGetValue((sent.Lane, sent.LaneSeq), out var copies) && copies.Remove(id) && copies.Count == 0)
+                    {
+                        _copiesOut.Remove((sent.Lane, sent.LaneSeq));
+                    }
+                }
+            }
+
+            var longAgo = nowUt - (2.0 * CommandLifetimeSeconds);
+            foreach (var seen in _seen.Values)
+            {
+                List<string>? old = null;
+                foreach (var entry in seen)
+                {
+                    if (entry.Value < longAgo)
+                    {
+                        (old ??= new List<string>()).Add(entry.Key);
+                    }
+                }
+                if (old != null)
+                {
+                    foreach (var id in old)
+                    {
+                        seen.Remove(id);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Whether a copy is still held at a node or on its way to one.</summary>
+        private bool StillSomewhere(string id) =>
+            _held.Values.Any(list => list.Any(h => string.Equals(h.Message.Id, id, StringComparison.Ordinal)))
+            || _flights.Any(f => string.Equals(f.Message.Id, id, StringComparison.Ordinal));
 
         private Held? Hold(string node, DeliveryMessage message, double atUt, string? cameFrom)
         {
@@ -1207,17 +1334,34 @@ namespace Sitrep.Core.StoreAndForward
         /// <summary>A report that settles a lane number tells the sender so.</summary>
         private void Settle(ReportMessage report)
         {
+            var key = (report.Lane, report.LaneSeq);
             switch (report.Kind)
             {
                 case JourneyKind.Reply:
-                case JourneyKind.Expired:
                 case JourneyKind.Cancelled:
                 case JourneyKind.CancelStored:
                 case JourneyKind.CancelLate:
+                    _copiesOut.Remove(key);
                     Sender(report.Lane).Resolve(report.LaneSeq);
                     break;
-                case JourneyKind.Discarded when report.Detail != "a copy is already waiting":
-                    Sender(report.Lane).Resolve(report.LaneSeq);
+                case JourneyKind.Expired:
+                case JourneyKind.Discarded:
+                    // One copy is accounted for. A copy sent again may still be out
+                    // there and may still run, and while it is the number is not
+                    // settled: its own expiry closes it if nothing else does.
+                    if (_copiesOut.TryGetValue(key, out var copies))
+                    {
+                        copies.Remove(report.About);
+                        report.OtherCopiesOut = copies.Count > 0;
+                        if (copies.Count == 0)
+                        {
+                            _copiesOut.Remove(key);
+                        }
+                    }
+                    if (!report.OtherCopiesOut && report.Detail != "a copy is already waiting")
+                    {
+                        Sender(report.Lane).Resolve(report.LaneSeq);
+                    }
                     break;
             }
         }
@@ -1268,11 +1412,11 @@ namespace Sitrep.Core.StoreAndForward
                 _release,
                 (atUt, run) => _clock.Schedule(atUt, () => Locked(run)));
 
-        private HashSet<string> SeenAt(string node)
+        private Dictionary<string, double> SeenAt(string node)
         {
             if (!_seen.TryGetValue(node, out var seen))
             {
-                seen = new HashSet<string>(StringComparer.Ordinal);
+                seen = new Dictionary<string, double>(StringComparer.Ordinal);
                 _seen[node] = seen;
             }
             return seen;
@@ -1324,6 +1468,12 @@ namespace Sitrep.Core.StoreAndForward
 
             /// <summary>Cancels the scheduled end of custody.</summary>
             public Action? EndWatch { get; set; }
+
+            /// <summary>When this copy is next due to look for its window, or NaN when no look is scheduled.</summary>
+            public double WakeUt { get; set; } = double.NaN;
+
+            /// <summary>Cancels that scheduled look.</summary>
+            public Action? CancelWake { get; set; }
         }
 
         private sealed class Flight

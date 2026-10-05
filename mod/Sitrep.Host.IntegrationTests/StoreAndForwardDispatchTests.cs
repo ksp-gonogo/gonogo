@@ -178,6 +178,33 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A command for the active craft is one light-second from landing when
+        /// the game switches to another craft. It lands on that tick. It was sent
+        /// to the craft that was active, so it does not run against the one that
+        /// is now: the active craft used to be read after the clock had already
+        /// landed it.
+        /// </summary>
+        [Fact]
+        public async System.Threading.Tasks.Task ACommandLandingOnTheTickOfAVesselSwitchDoesNotRunAgainstTheNewCraft()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0, 1000.0 })
+            {
+                world.Tick(ut);
+            }
+            object? result = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.ActiveCommand, "x", ScriptedContactGame.Home, r => result = r, TestBudgets.Op);
+            Assert.Single(Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending);
+
+            world.Game.ActiveNow = "B";
+            world.Tick(1003.0);
+            world.Tick(1010.0);
+
+            Assert.Equal(0, world.Uplink.ActiveHandledCount);
+        }
+
         [Fact]
         public void ASendAgainFromAnotherCentreDoesNotTouchThisCentresCommand()
         {

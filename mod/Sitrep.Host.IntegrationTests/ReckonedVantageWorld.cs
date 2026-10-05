@@ -223,6 +223,9 @@ namespace Sitrep.Host.IntegrationTests
 
         public IReadOnlyList<string> Centres() => new[] { Home, Far };
 
+        /// <summary>The craft the game has active now, which a test can switch.</summary>
+        public string ActiveNow { get; set; } = ActiveGuid;
+
         /// <summary>A spent stage with no radio, in the game from the start.</summary>
         public const string DebrisGuid = "D";
 
@@ -309,6 +312,14 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>A switch on a control channel, the lights, whose subject here is the relay.</summary>
         public const string LightsCommand = "vessel.control.setLights";
 
+        /// <summary>A delayed command whose subject is whichever craft is active.</summary>
+        public const string ActiveCommand = "reckoned.active";
+
+        private int _activeHandled;
+
+        /// <summary>How many times the active craft's command has run.</summary>
+        public int ActiveHandledCount => Volatile.Read(ref _activeHandled);
+
         /// <summary>The fly-by-wire axes, a continuous input, whose subject here is the active craft.</summary>
         public const string AxesCommand = "vessel.control.setAxes";
 
@@ -359,6 +370,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = RelayCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                     new CommandDeclaration { Command = LightsCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
+                    new CommandDeclaration { Command = ActiveCommand, Delay = DelayRole.Delayed, Subject = ChannelEngine.ConnectivityMetaTopic },
                     // The axes fly the ACTIVE craft, which reaches the ground through the relay.
                     new CommandDeclaration { Command = AxesCommand, Delay = DelayRole.Delayed, Subject = ChannelEngine.ConnectivityMetaTopic },
                 },
@@ -406,6 +418,11 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Interlocked.Increment(ref _throttled);
                 return "throttled";
+            });
+            host.AddCommandHandler<string, string>(ActiveCommand, args =>
+            {
+                Interlocked.Increment(ref _activeHandled);
+                return "active:" + args;
             });
             host.AddCommandHandler<Dictionary<string, object?>, string>(LightsCommand, _ =>
             {
@@ -685,7 +702,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 ["vessel"] = new Dictionary<string, object?>
                 {
-                    ["identity"] = new Dictionary<string, object?> { ["id"] = ScriptedContactGame.ActiveGuid },
+                    ["identity"] = new Dictionary<string, object?> { ["id"] = Game.ActiveNow },
                 },
                 ["vessels"] = Game.RosterSnapshot(),
             };

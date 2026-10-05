@@ -223,6 +223,14 @@ namespace Sitrep.Core.StoreAndForward
         /// <summary>When it reached its command centre: set as it is delivered there, and the same as <see cref="AtUt"/> for one made at the centre itself.</summary>
         public double LandedUt { get; set; }
 
+        /// <summary>
+        /// For a report that one copy of a command expired or was discarded:
+        /// whether another copy of the same lane number, one sent again, is still
+        /// unaccounted for and may yet run. Set as the report is delivered at its
+        /// centre. While it is true the command is not finished.
+        /// </summary>
+        public bool OtherCopiesOut { get; set; }
+
         public override string Destination => To;
 
         public override double ExpiresUt => double.PositiveInfinity;

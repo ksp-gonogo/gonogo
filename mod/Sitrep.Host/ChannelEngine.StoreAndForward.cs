@@ -654,6 +654,11 @@ namespace Sitrep.Host
                     Settle(report.About);
                     Deliver(job, report.Result);
                     break;
+                case JourneyKind.Expired when report.OtherCopiesOut:
+                    // A copy sent again is still out there and may yet run, so the
+                    // command is not finished: only this copy is. Its reply, or the
+                    // last copy's end, settles the request.
+                    break;
                 case JourneyKind.Expired:
                     Settle(report.About);
                     job.OnRefused?.Invoke(FaultCode.CommandExpired, "It expired at " + report.At + " before it could run.");
@@ -661,6 +666,8 @@ namespace Sitrep.Host
                 case JourneyKind.Cancelled:
                     Settle(report.About);
                     job.OnRefused?.Invoke(FaultCode.CommandCancelled, "It was cancelled at " + report.At + ".");
+                    break;
+                case JourneyKind.Discarded when report.Detail == "its lane moved on" && report.OtherCopiesOut:
                     break;
                 case JourneyKind.Discarded when report.Detail == "its lane moved on":
                     Settle(report.About);
@@ -828,14 +835,19 @@ namespace Sitrep.Host
             return entry == null || entry.PredictedReplyUt == null || now > entry.PredictedReplyUt.Value;
         }
 
-        /// <summary>Courier thread, after the clock advance: sends on whatever can leave, expires and releases.</summary>
-        private void TickDelivery(KspSnapshot? snapshot, double ut)
+        /// <summary>Courier thread, before the clock advance: which craft is active on this tick.</summary>
+        private void NoteActiveCraft(KspSnapshot? snapshot)
         {
             var active = snapshot != null ? VesselViewProvider.TryGetActiveVesselId(snapshot) : null;
             if (active != null)
             {
                 _activeCraftId = "vessel:" + active;
             }
+        }
+
+        /// <summary>Courier thread, after the clock advance: sends on whatever can leave, expires and releases.</summary>
+        private void TickDelivery(double ut)
+        {
             var version = _centrePlansVersion?.Invoke() ?? 0;
             if (version != _seenPlanVersion)
             {
