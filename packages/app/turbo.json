@@ -3,7 +3,8 @@
   "extends": ["//"],
   "tasks": {
     // bakedClientHash reads each Uplink's ExpectedClientHash.g.cs and runs
-    // scripts/uplink-matrix.mjs; topic-cs-sync walks mod/ for the C# topic ids.
+    // scripts/uplink-matrix.mjs; topic-cs-sync walks mod/ for the C# topic ids;
+    // setupGuide holds the README and the static home page to the app's run command.
     "test": {
       "dependsOn": ["^build"],
       "inputs": [
@@ -16,7 +17,9 @@
         "!$TURBO_ROOT$/mod/**/.turbo/**",
         "!$TURBO_ROOT$/mod/**/node_modules/**",
         "!$TURBO_ROOT$/mod/**/coverage/**",
-        "$TURBO_ROOT$/scripts/uplink-matrix.mjs"
+        "$TURBO_ROOT$/scripts/uplink-matrix.mjs",
+        "$TURBO_ROOT$/README.md",
+        "$TURBO_ROOT$/docs/homepage/index.html"
       ]
     }
   }

@@ -17,6 +17,7 @@
 import type {
   ContractVersionReading,
   SystemUplinkHealth,
+  UplinkHealthEntry,
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useSyncExternalStore } from "react";
@@ -45,7 +46,7 @@ export type UplinkReadinessState =
 export interface UplinkReadinessEntry {
   /** The mod-reported id, and the join key. */
   id: string;
-  /** The loader's resolved name where it recorded one, else the id. */
+  /** The loader's resolved name where it recorded one, else the name the Uplink gives itself, else the id. */
   name: string;
   /** The version one of the two sides reported, or null when neither did. */
   version: string | null;
@@ -59,6 +60,8 @@ export interface UplinkReadinessEntry {
   declaredContract: ContractVersionReading | null;
   /** The contract version the running mod speaks, repeated per row so a row renders alone. */
   coreContract: ContractVersionReading | null;
+  /** The mod's whole roster row, health self-report included, or null for an id the mod does not list. */
+  rosterEntry: UplinkHealthEntry | null;
   /** The recorded load outcome, or null when nothing was attempted for this id. */
   outcome: UplinkLoadOutcome | null;
   state: UplinkReadinessState;
@@ -134,13 +137,14 @@ export function computeUplinkReadiness(
     const declaredContract = rosterEntry?.contract ?? null;
     return {
       id,
-      name: outcome?.name ?? id,
+      name: outcome?.name ?? rosterEntry?.name ?? id,
       version: rosterEntry?.version ?? outcome?.version ?? null,
       installed,
       modAvailable,
       modReason: rosterEntry?.reason ?? null,
       declaredContract,
       coreContract,
+      rosterEntry: rosterEntry ?? null,
       outcome,
       state: stateOf(
         outcome,

@@ -2,18 +2,35 @@ import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { ConnectStep } from "./steps/ConnectStep";
+import { ContainerStep } from "./steps/ContainerStep";
 import { DoneStep } from "./steps/DoneStep";
+import { HealthStep } from "./steps/HealthStep";
 import { UplinkReadinessStep } from "./steps/UplinkReadinessStep";
 import { WelcomeStep } from "./steps/WelcomeStep";
 
-type SetupStep = "welcome" | "connect" | "uplinks" | "done";
+type SetupStep =
+  | "welcome"
+  | "container"
+  | "connect"
+  | "uplinks"
+  | "health"
+  | "done";
 
-const ORDER: readonly SetupStep[] = ["welcome", "connect", "uplinks", "done"];
+const ORDER: readonly SetupStep[] = [
+  "welcome",
+  "container",
+  "connect",
+  "uplinks",
+  "health",
+  "done",
+];
 
 const HEADING: Record<SetupStep, string> = {
   welcome: "Welcome",
-  connect: "Connect",
+  container: "Start the container",
+  connect: "Connect to KSP",
   uplinks: "Uplinks",
+  health: "Health check",
   done: "Done",
 };
 
@@ -24,8 +41,10 @@ const HEADING: Record<SetupStep, string> = {
  */
 const ADVANCE_LABEL: Record<SetupStep, string> = {
   welcome: "Get started",
+  container: "Connect to KSP",
   connect: "Check Uplinks",
-  uplinks: "Next",
+  uplinks: "Review setup",
+  health: "Next",
   done: "Finish",
 };
 
@@ -38,9 +57,10 @@ export interface FirstRunSetupProps {
 }
 
 /**
- * The setup an operator walks through the first time they open Gonogo: what an
- * Uplink is, connecting to the mod, then a reading per installed Uplink saying
- * whether its client loaded.
+ * The setup an operator walks through the first time they open Gonogo. Between
+ * a welcome and a close, each step is one instruction, the command that carries
+ * it out, and a check the app runs by itself: the container, the connection to
+ * the mod, each installed Uplink, then all three together.
  *
  * Composed for embedding inside an existing modal rather than opening a dialog
  * of its own, so there is no dialog chrome here: a step heading, the step body,
@@ -64,8 +84,10 @@ export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
         Step {index + 1} of {ORDER.length}: {HEADING[step]}
       </StepHeading>
       {step === "welcome" && <WelcomeStep />}
+      {step === "container" && <ContainerStep />}
       {step === "connect" && <ConnectStep />}
       {step === "uplinks" && <UplinkReadinessStep />}
+      {step === "health" && <HealthStep />}
       {step === "done" && <DoneStep />}
       <Nav>
         {index > 0 && (

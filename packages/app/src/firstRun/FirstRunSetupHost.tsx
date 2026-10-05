@@ -33,8 +33,8 @@ import { hasSeenFirstRunSetup, markFirstRunSetupSeen } from "./firstRunFlag";
  * (mounted above `MainScreen` in `main.tsx`), not nested inside this
  * component's own provider tree, so the content passed to `open()` re-wraps
  * `ModalTelemetryBridge` itself; see that component's own doc comment for why
- * the portal does not inherit it. That bridge is what lets the Uplinks step
- * read the live `system.uplinkHealth` stream.
+ * the portal does not inherit it. That bridge is what lets the Uplinks and
+ * health steps read the live `system.uplinkHealth` stream.
  */
 export function FirstRunSetupHost({
   analyticsConsent,

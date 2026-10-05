@@ -10,7 +10,6 @@ export const LIVE_REGION_MOUNT_DEBT: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/RoboticsConsoleView.tsx": 3,
   "packages/app/src/alarms/AlarmsModal.tsx": 4,
   "packages/app/src/components/VantageControl.tsx": 1,
-  "packages/app/src/firstRun/steps/UplinkReadinessStep.tsx": 1,
   "packages/app/src/screens/PilotScreen.tsx": 1,
   "packages/app/src/settings/UplinksSettings.tsx": 1,
   "packages/components/src/ContractManager/ContractManagerView.tsx": 1,

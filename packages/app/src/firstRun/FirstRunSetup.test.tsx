@@ -7,7 +7,7 @@ import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { ws } from "msw";
+import { HttpResponse, http, ws } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 import {
@@ -27,6 +27,14 @@ import {
   setUplinkOutcome,
 } from "../uplinks/loaderState";
 import { FirstRunSetup } from "./FirstRunSetup";
+import {
+  CKAN_UPLINK_FILTER,
+  CONTAINER_LOGS_COMMAND,
+  CONTAINER_STATUS_COMMAND,
+  MOD_LOG_COMMAND,
+  RUN_COMMAND,
+  SETUP_LINKS,
+} from "./setupGuide";
 
 /**
  * Drives the flow against the real boundaries it uses in the app: a live
@@ -36,6 +44,7 @@ import { FirstRunSetup } from "./FirstRunSetup";
  */
 
 const SITREP_URL = "ws://localhost:8090";
+const RELAY_HEALTH_URL = "http://localhost:3002/health";
 const link = ws.link(SITREP_URL);
 const server = setupServer();
 
@@ -80,11 +89,11 @@ function streamFrame(topic: string, payload: unknown): string {
  * same id/name production uses, so the connect step's embedded
  * `SitrepConnection` has something to render.
  */
-function makeSitrepStub(): DataSource {
+function makeSitrepStub(status: DataSourceStatus): DataSource {
   return {
     id: "sitrep",
     name: "Sitrep Stream",
-    status: "disconnected" as DataSourceStatus,
+    status,
     connect: async () => {},
     disconnect: () => {},
     schema: () => [],
@@ -109,10 +118,18 @@ function wrapper({ children }: { children: ReactNode }) {
  * opens its socket as soon as the wrapper mounts, not when the Uplinks step
  * first subscribes, so a listener added after `render()` would miss it.
  */
-function renderSetup(props?: { onFinish?: () => void }) {
-  registerDataSource(makeSitrepStub());
+function renderSetup(
+  props?: { onFinish?: () => void },
+  world: { relay?: "up" | "down"; ksp?: DataSourceStatus } = {},
+) {
+  registerDataSource(makeSitrepStub(world.ksp ?? "disconnected"));
   const wsClients: LinkClient[] = [];
   server.use(
+    http.get(RELAY_HEALTH_URL, () =>
+      world.relay === "down"
+        ? HttpResponse.error()
+        : HttpResponse.json({ status: "ok", turn: null }),
+    ),
     link.addEventListener("connection", ({ client }) => {
       wsClients.push(client);
     }),
@@ -124,7 +141,15 @@ function renderSetup(props?: { onFinish?: () => void }) {
 async function goToUplinks() {
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "Get started" }));
+  await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
   await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
+}
+
+async function goToHealth() {
+  await goToUplinks();
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Review setup" }));
 }
 
 async function emitRoster(wsClients: LinkClient[], uplinks: unknown[]) {
@@ -143,23 +168,33 @@ function rosterEntry(overrides: { id: string } & Record<string, unknown>) {
 }
 
 describe("FirstRunSetup: step sequence", () => {
-  it("opens on Welcome and walks the four steps", async () => {
+  it("opens on Welcome and walks the six steps", async () => {
     const onFinish = vi.fn();
     const { wsClients } = renderSetup({ onFinish });
     const user = userEvent.setup();
 
-    expect(screen.getByText("Step 1 of 4: Welcome")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Get started" }));
 
-    expect(screen.getByText("Step 2 of 4: Connect")).toBeInTheDocument();
+    expect(
+      screen.getByText("Step 2 of 6: Start the container"),
+    ).toBeInTheDocument();
+    await screen.findByText("The container is running");
+    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
+
+    expect(screen.getByText("Step 3 of 6: Connect to KSP")).toBeInTheDocument();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
 
-    expect(screen.getByText("Step 3 of 4: Uplinks")).toBeInTheDocument();
+    expect(screen.getByText("Step 4 of 6: Uplinks")).toBeInTheDocument();
     await emitRoster(wsClients, []);
+    await user.click(screen.getByRole("button", { name: "Review setup" }));
+
+    expect(screen.getByText("Step 5 of 6: Health check")).toBeInTheDocument();
+    await screen.findByText("The container is running");
     await user.click(screen.getByRole("button", { name: "Next" }));
 
-    expect(screen.getByText("Step 4 of 4: Done")).toBeInTheDocument();
+    expect(screen.getByText("Step 6 of 6: Done")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Finish" }));
     expect(onFinish).toHaveBeenCalledTimes(1);
     await act(async () => {});
@@ -173,8 +208,143 @@ describe("FirstRunSetup: step sequence", () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Get started" }));
+    await screen.findByText("The container is running");
     await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Step 1 of 4: Welcome")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
+  });
+});
+
+describe("FirstRunSetup: the container check", () => {
+  it("prints the run command and confirms the container by itself", async () => {
+    renderSetup();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Get started" }));
+
+    expect(screen.getByText(RUN_COMMAND)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Copy run command" }),
+    ).toBeInTheDocument();
+    await screen.findByText("The container is running");
+    expect(
+      screen.queryByText(CONTAINER_STATUS_COMMAND),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says what to run and where to read more when nothing answers", async () => {
+    renderSetup(undefined, { relay: "down" });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Get started" }));
+
+    await screen.findByText(
+      "No answer from the container at http://localhost:3002",
+    );
+    expect(screen.getByText(CONTAINER_STATUS_COMMAND)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "deployment guide" }),
+    ).toHaveAttribute("href", SETUP_LINKS.deployment);
+    expect(
+      screen.getByRole("button", { name: "Check again" }),
+    ).toBeInTheDocument();
+  });
+
+  it("picks up a container started after the step opened, on Check again", async () => {
+    renderSetup(undefined, { relay: "down" });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Get started" }));
+    await screen.findByText(
+      "No answer from the container at http://localhost:3002",
+    );
+
+    server.use(
+      http.get(RELAY_HEALTH_URL, () =>
+        HttpResponse.json({ status: "ok", turn: null }),
+      ),
+    );
+    await user.click(screen.getByRole("button", { name: "Check again" }));
+    await screen.findByText("The container is running");
+  });
+});
+
+describe("FirstRunSetup: the KSP connection check", () => {
+  async function goToConnect() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Get started" }));
+    await screen.findByText("The container is running");
+    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
+  }
+
+  it("names the three causes, each with its way out, while there is no connection", async () => {
+    renderSetup();
+    await goToConnect();
+
+    expect(
+      screen.getByText("Not connected to KSP at localhost:8090"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(MOD_LOG_COMMAND.posix)).toBeInTheDocument();
+    expect(screen.getByText(/KSP is not running yet/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "KSP setup guide" }),
+    ).toHaveAttribute("href", SETUP_LINKS.kspSetup);
+    expect(
+      screen.getByRole("link", { name: "networking guide" }),
+    ).toHaveAttribute("href", SETUP_LINKS.networking);
+  });
+
+  it("reads connected and drops the hints once the mod answers", async () => {
+    renderSetup(undefined, { ksp: "connected" });
+    await goToConnect();
+
+    expect(
+      screen.getByText("Connected to KSP at localhost:8090"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "networking guide" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("FirstRunSetup: the health check", () => {
+  it("reports all three checks in one place and says so when all pass", async () => {
+    const { wsClients } = renderSetup(undefined, { ksp: "connected" });
+    await goToUplinks();
+    await emitRoster(wsClients, []);
+    await screen.findByText(
+      "No Uplinks installed, which is fine: they are optional",
+    );
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Review setup" }));
+
+    await screen.findByText("Everything is working");
+    expect(screen.getByText("The container is running")).toBeInTheDocument();
+    expect(
+      screen.getByText("Connected to KSP at localhost:8090"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(CONTAINER_LOGS_COMMAND)).not.toBeInTheDocument();
+  });
+
+  it("counts what needs a look and offers the log command and the guides", async () => {
+    const { wsClients } = renderSetup(undefined, { relay: "down" });
+    await goToHealth();
+    await emitRoster(wsClients, []);
+
+    await screen.findByText("2 of 3 checks need a look");
+    expect(screen.getByText(CONTAINER_LOGS_COMMAND)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Checking telemetry is arriving" }),
+    ).toHaveAttribute("href", SETUP_LINKS.telemetryChecks);
+  });
+
+  it("sends an Uplink problem back to the Uplinks step, not to the container log", async () => {
+    const { wsClients } = renderSetup(undefined, { ksp: "connected" });
+    await goToHealth();
+    await emitRoster(wsClients, [rosterEntry({ id: "widget-noclient" })]);
+
+    await screen.findByText("1 of 3 checks needs a look");
+    expect(screen.getByText(/Go back to the Uplinks step/)).toBeInTheDocument();
+    expect(screen.queryByText(CONTAINER_LOGS_COMMAND)).not.toBeInTheDocument();
   });
 });
 
@@ -188,10 +358,8 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(screen.queryByText("No client loaded")).not.toBeInTheDocument();
 
     await emitRoster(wsClients, []);
-    await waitFor(() =>
-      expect(
-        screen.getByText("No Uplinks reported by the mod"),
-      ).toBeInTheDocument(),
+    await screen.findByText(
+      "No Uplinks installed, which is fine: they are optional",
     );
   });
 
@@ -241,6 +409,46 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(screen.getByText("widget-noclient")).toBeInTheDocument();
     expect(screen.getByText("Mod reports unavailable")).toBeInTheDocument();
     expect(screen.getByText("no antenna in range")).toBeInTheDocument();
+    expect(
+      screen.getByText("4 Uplinks installed, 3 need attention"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows each Uplink's own health report: its state, what it says, and its facts", async () => {
+    setUplinkOutcome({ id: "cameras", name: "cameras", status: "loaded" });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [
+      rosterEntry({
+        id: "cameras",
+        health: {
+          state: 1,
+          detail: "No camera on the active craft",
+          facts: [{ label: "Sidecar", value: "listening on 8088" }],
+        },
+      }),
+    ]);
+
+    await screen.findByText("1 Uplink installed, all working");
+    expect(screen.getByText("degraded")).toBeInTheDocument();
+    expect(
+      screen.getByText("No camera on the active craft"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Sidecar")).toBeInTheDocument();
+    expect(screen.getByText("listening on 8088")).toBeInTheDocument();
+  });
+
+  it("prints the CKAN search that lists Uplinks, and never calls one required", async () => {
+    renderSetup();
+    await goToUplinks();
+
+    expect(screen.getByText(CKAN_UPLINK_FILTER)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Uplinks are optional add-ons/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "CKAN user guide" }),
+    ).toHaveAttribute("href", SETUP_LINKS.ckanUserGuide);
   });
 
   it("shows the declared identity of an Uplink the loader described, and nothing for one it never reached", async () => {
@@ -309,11 +517,31 @@ describe("FirstRunSetup: accessibility", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("has no axe violations on the Connect step", async () => {
-    const { container } = renderSetup();
+  it("has no axe violations on the container step, passing and failing", async () => {
+    const passing = renderSetup();
     await userEvent
       .setup()
       .click(screen.getByRole("button", { name: "Get started" }));
+    await screen.findByText("The container is running");
+    await expectNoA11yViolations(passing.container);
+    passing.unmount();
+
+    const failing = renderSetup(undefined, { relay: "down" });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Get started" }));
+    await screen.findByRole("button", { name: "Check again" });
+    await expectNoA11yViolations(failing.container);
+  });
+
+  it("has no axe violations on the Connect step with its failure hints open", async () => {
+    const { container } = renderSetup();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Get started" }));
+    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
+    expect(
+      screen.getByRole("link", { name: "networking guide" }),
+    ).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 
@@ -331,6 +559,23 @@ describe("FirstRunSetup: accessibility", () => {
     ]);
     await screen.findByText("1 of 2 installed Uplinks have a loaded client");
     expect(screen.getByText("Client loaded")).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+
+  it("has no axe violations on the health step with something to fix", async () => {
+    const { container, wsClients } = renderSetup(undefined, { relay: "down" });
+    await goToHealth();
+    await emitRoster(wsClients, []);
+    await screen.findByText("2 of 3 checks need a look");
+    await expectNoA11yViolations(container);
+  });
+
+  it("has no axe violations on the Done step", async () => {
+    const { container, wsClients } = renderSetup();
+    await goToHealth();
+    await emitRoster(wsClients, []);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Step 6 of 6: Done")).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 });

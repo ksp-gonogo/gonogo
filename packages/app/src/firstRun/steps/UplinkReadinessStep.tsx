@@ -1,18 +1,17 @@
-import {
-  Badge,
-  EmptyState,
-  Stack,
-  StatusIndicator,
-  Text,
-} from "@ksp-gonogo/ui-kit";
+import { CommandBlock } from "@ksp-gonogo/ui";
+import { Badge, Stack, StatusIndicator, Text } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { ConnectionRow, Name } from "../../settings/SitrepConnection";
+import { StatusList, UplinkHealthReport } from "../../settings/UplinkStatus";
 import { UplinkIdentityBlock } from "../../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../../uplinks/UplinkIntegrityDetail";
+import { uplinksCheck } from "../checks";
+import { CKAN_UPLINK_FILTER, SETUP_LINKS } from "../setupGuide";
 import {
   type UplinkReadinessEntry,
   useUplinkReadiness,
 } from "../useUplinkReadiness";
+import { DocLink, Hint, StepCheck } from "./StepParts";
 
 /**
  * The count line, the one thing here worth announcing when it changes. A
@@ -36,13 +35,19 @@ function summarise(entries: readonly UplinkReadinessEntry[]): string {
 
 /**
  * The step that answers "are the Uplinks I installed actually working". One row
- * per Uplink, each carrying a reading rather than an instruction: there is
- * nothing for the app to offer an operator whose client did not load, because
- * an Uplink's client ships with the Uplink and is fetched from the mod's own
- * declaration, not from anywhere this screen could reach.
+ * per Uplink, each carrying the health the Uplink reports for itself and
+ * whether its client loaded here. The camera Uplink is a row like any other,
+ * so there is no camera check anywhere else in the flow.
+ *
+ * Nothing on a row is an instruction: an Uplink's client ships with the Uplink
+ * and is fetched from the mod's own declaration, not from anywhere this screen
+ * could reach.
  */
 export function UplinkReadinessStep() {
-  const { entries, waitingForMod } = useUplinkReadiness();
+  const readiness = useUplinkReadiness();
+  const { entries, waitingForMod } = readiness;
+  const check = uplinksCheck(readiness);
+  const installed = entries.filter((entry) => entry.installed);
 
   /*
    * The count is a claim about what the mod reports installed, so it waits for
@@ -50,13 +55,22 @@ export function UplinkReadinessStep() {
    * reading, and holding it back behind a connection would hide it.
    */
   return (
-    <Stack gap="related-dense">
-      {waitingForMod ? (
-        <StatusIndicator tone="neutral" pulse="fast" live>
-          Waiting for the mod to report its Uplinks
-        </StatusIndicator>
-      ) : (
-        <Text level="muted" size="sm" role="status" aria-live="polite">
+    <Stack gap="related-comfortable">
+      <Text level="muted" size="sm">
+        Uplinks are optional add-ons. Each one connects Gonogo to one other mod
+        and adds its widgets, such as camera feeds or a scripting terminal.
+        Gonogo works without any. To find them, type this into the search box in
+        CKAN:
+      </Text>
+      <CommandBlock command={CKAN_UPLINK_FILTER} label="CKAN search" />
+      <Text level="muted" size="sm">
+        Install one, restart KSP, and it appears below. The{" "}
+        <DocLink href={SETUP_LINKS.ckanUserGuide}>CKAN user guide</DocLink>{" "}
+        covers searching and installing.
+      </Text>
+      <StepCheck check={check} />
+      {!waitingForMod && installed.length > 0 && (
+        <Text level="muted" size="sm">
           {summarise(entries)}
         </Text>
       )}
@@ -67,22 +81,33 @@ export function UplinkReadinessStep() {
           ))}
         </RowList>
       )}
-      {!waitingForMod && entries.length === 0 && (
-        <EmptyState>No Uplinks reported by the mod</EmptyState>
+      {waitingForMod && (
+        <Hint>
+          <span>
+            This list comes from the mod, so it stays empty until the previous
+            step is connected to KSP.
+          </span>
+        </Hint>
+      )}
+      {check.state === "attention" && (
+        <Hint>
+          <span>
+            A row that is not working says why. Each Uplink also has its own
+            page under Settings, Uplinks, with the same readings.
+          </span>
+        </Hint>
       )}
     </Stack>
   );
 }
 
 /**
- * The reason under a row, where there is one. A quarantine carries the loader's
- * own refusal text; an Uplink the mod calls unavailable carries the mod's,
- * verbatim. Every other state has nothing to add and adds nothing.
+ * The loader's own refusal text under a quarantined row. An Uplink the mod
+ * calls unavailable needs nothing here: its health report already carries the
+ * mod's reason, verbatim.
  */
 function reasonFor(entry: UplinkReadinessEntry): string | null {
-  if (entry.state === "quarantined") return entry.outcome?.reason ?? null;
-  if (entry.state === "unavailable") return entry.modReason;
-  return null;
+  return entry.state === "quarantined" ? (entry.outcome?.reason ?? null) : null;
 }
 
 /**
@@ -123,13 +148,19 @@ function UplinkReadinessRow({
     <RowItem>
       <ConnectionRow>
         <Name>{entry.name}</Name>
-        {entry.version && (
+        {!entry.rosterEntry && entry.version && (
           <Text level="faint" size="xs">
             v{entry.version}
           </Text>
         )}
         <ReadinessReading state={entry.state} />
       </ConnectionRow>
+      {/* The Uplink's own report of its health: state, what it says about it, and the facts it lists. */}
+      {entry.rosterEntry && (
+        <StatusList>
+          <UplinkHealthReport entry={entry.rosterEntry} />
+        </StatusList>
+      )}
       {identity && <UplinkIdentityBlock identity={identity} />}
       {entry.state === "contract-mismatch" && (
         <ContractMismatchDetail entry={entry} />

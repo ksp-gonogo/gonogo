@@ -2,8 +2,10 @@ import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
+import { HttpResponse, http } from "msw";
+import { setupServer } from "msw/node";
 import { useEffect, useState } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
 import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { FirstRunSetupHost } from "./FirstRunSetupHost";
@@ -48,6 +50,15 @@ function answeredConsent(): AnalyticsConsentService {
   return svc;
 }
 
+// The container step asks the relay for its health; answer at the network boundary rather than leave it to a refused connection.
+const server = setupServer(
+  http.get("http://localhost:3002/health", () =>
+    HttpResponse.json({ status: "ok", turn: null }),
+  ),
+);
+
+beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
+afterAll(() => server.close());
 beforeEach(() => {
   __resetFirstRunSetupForTests();
 });
@@ -56,7 +67,7 @@ describe("FirstRunSetupHost", () => {
   it("auto-opens the setup flow on its first step on first run", async () => {
     renderHost();
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Step 1 of 4: Welcome")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
   });
 
   it("marks the first-run flag the instant it opens (idempotent even if never finished)", async () => {
@@ -91,7 +102,12 @@ describe("FirstRunSetupHost", () => {
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Get started" }));
+    // The container step asks the relay as it mounts; wait for the answer so it lands inside this test.
+    await screen.findByText("The container is running");
+    await user.click(screen.getByRole("button", { name: "Connect to KSP" }));
     await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
+    await user.click(screen.getByRole("button", { name: "Review setup" }));
+    await screen.findByText("The container is running");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Finish" }));
 
@@ -151,7 +167,7 @@ describe("FirstRunSetupHost", () => {
     await waitFor(() =>
       expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1),
     );
-    expect(screen.getByText("Step 1 of 4: Welcome")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 6: Welcome")).toBeInTheDocument();
   });
 });
 
