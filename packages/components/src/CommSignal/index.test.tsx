@@ -94,6 +94,7 @@ describe("CommSignalComponent", () => {
     expect(
       document.querySelector('[data-reckoning-mark="modelled"]'),
     ).toBeNull();
+    await act(async () => {});
   });
 
   it("marks a strength worked out for the believed path as modelled, and says so", async () => {
@@ -116,6 +117,7 @@ describe("CommSignalComponent", () => {
     expect(document.body.textContent).toMatch(
       /worked out for the path this command centre believes in/i,
     );
+    await act(async () => {});
   });
 
   it("formats signal delay in seconds or minutes depending on magnitude", async () => {
