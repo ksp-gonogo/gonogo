@@ -11,7 +11,7 @@ import { ViewClock } from "./view-clock";
 /**
  * Local, self-contained stream fixture (sitrep-client can't depend on
  * `@ksp-gonogo/components`' `setupStreamFixture`: this package sits
- * BELOW it in the dependency graph). Same `FixedViewClock` + `StubTransport`
+ * BELOW it in the dependency graph). Same `ViewClock` + `StubTransport`
  * pattern that fixture wraps, built directly from this package's own
  * exports (`createFakeWallClock`, `ViewClock`, `TimelineStore`,
  * `StubTransport`, `TelemetryClient`, `TelemetryProvider`).

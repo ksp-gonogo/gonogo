@@ -785,11 +785,6 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        // NOTE (Plan 2b): the Plan-2 `FleetFreezesTogetherOnGlobalDisconnectAndResumes`
-        // test was REMOVED (its premise -- all fleet topics freeze together on the
-        // global link -- is the one intended behaviour change). The pre-outage-tail-
-        // drains case + active-vessel parity land in a later task.
-
         /// <summary>
         /// A KspSnapshot at <paramref name="ut"/> whose <c>vessels</c> roster
         /// carries each vessel's id, a per-vessel <c>delay</c> (one-way seconds,

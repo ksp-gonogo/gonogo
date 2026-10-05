@@ -10,9 +10,7 @@
  * to pin.
  *
  * The tree is at zero: `BANNER_COMMENT_DEBT` is empty and there is no tolerated
- * sectioning exemption any more (see `styleguide-banner-comments.test.ts` for
- * the history of `SECTIONED_CEILINGS` and `SCHEME_MIN`, retired 2026-09-30 once
- * `mod/`'s last 37 files / 201 banners were cleaned, Saga 697 second slice). A
+ * sectioning exemption. A
  * file that genuinely needs sections gets a plain sentence on the thing it
  * introduces, never a decorated banner.
  */
@@ -67,12 +65,11 @@ export const BANNER_COMMENT_DEBT: Record<string, number> = {};
  * directory, a changed `git ls-files` invocation, or a cwd that is not the repo
  * root. `styleguide-earth-day` shipped in exactly that state for weeks.
  *
- * The population floors this file used to carry alongside it
- * (`filesWithBanner`, `banners`) are gone: the real count is zero and a floor
- * cannot sit above zero without failing on a clean tree. The instrument check
- * for "did the scan actually look at banners" is now the planted-violation test
- * in `styleguide-banner-comments.test.ts`, the same shape every other
- * zero-count scan in this tree uses.
+ * There is no population floor, because the real count is zero
+ * and a floor cannot sit above zero without failing on a clean tree. The
+ * instrument check for "did the scan actually look at banners" is the
+ * planted-violation test in `styleguide-banner-comments.test.ts`, the same
+ * shape every other zero-count scan in this tree uses.
  */
 export const SCAN_FLOORS = {
   /** Hand-written source files walked. 2,784 at seed time, 3,940 on 2026-09-30. */

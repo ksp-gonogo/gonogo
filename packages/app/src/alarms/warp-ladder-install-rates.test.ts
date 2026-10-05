@@ -16,17 +16,16 @@ import { AlarmHostService } from "./AlarmHostService";
 /**
  * The warp ladder has to be the INSTALL's, not stock's.
  *
- * `WarpControl` picks a warp index by looking a rate up in a hardcoded
- * `HIGH_WARP_RATES` table that is KSP's stock one, and `AlarmBanner` mirrors the
- * same list to tell the operator what rate they are at. Neither reads the rate
- * the game keeps sending on `time.warp`, and an install is free to publish a
- * different table: Kopernicus and RealSolarSystem both do.
+ * An install is free to publish a warp table other than KSP's stock one,
+ * Kopernicus and RealSolarSystem both do, so a ladder built from stock's rates
+ * picks an index by the wrong rate. `WarpRateTable` reads the table the game
+ * sends on `time.warp` instead.
  *
  * Measured on the Deck against the shipped realism-pack install on 2026-09-12 by
  * commanding each index and reading `time.warp.warpRate` back:
  *
- * | index | this install | `HIGH_WARP_RATES` |
- * |-------|--------------|-------------------|
+ * | index | this install | stock |
+ * |-------|--------------|-------|
  * | 2     | 100          | 10                |
  * | 3     | 1000         | 50                |
  * | 4     | 10000        | 100               |

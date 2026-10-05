@@ -132,7 +132,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/__tests__/topic-cs-sync.test.ts": 1,
   "packages/app/src/__tests__/uplink-widget-declarations.test.ts": 1,
   "packages/app/src/alarms/AlarmBanner.tsx": 2,
-  "packages/app/src/alarms/AlarmHostService.test.ts": 3,
+  "packages/app/src/alarms/AlarmHostService.test.ts": 2,
   "packages/app/src/alarms/AlarmHostService.ts": 3,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 3,
   "packages/app/src/alarms/AlarmsModal.tsx": 5,
@@ -372,5 +372,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1551,
+  files: 1618,
 } as const;

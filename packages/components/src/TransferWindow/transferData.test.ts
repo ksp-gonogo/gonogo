@@ -590,7 +590,7 @@ describe("porkchop grid quantisation: why it scales with the chart", () => {
 });
 
 describe("reach list recompute quantum: derived from what the column can show", () => {
-  // The widget's one-Kerbin-day `REACH_RECOMPUTE_UT`, kept literal so a change to the widget's constant fails this.
+  // The widget's one-Kerbin-day `reachRecomputeUt`, kept literal so a change to the widget's constant fails this.
   const KERBIN_DAY = 21_600;
 
   it("holds under warp, where the old 60-second bucket did not", () => {

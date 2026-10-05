@@ -415,7 +415,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   /*
    * ONE, and it is the same fill fraction `fillQuantity.ts` spends its own on:
    * `Meter` takes the pair as two props, so the division belongs to this file,
-   * and `fillQuantity` keeps its copy for `ProgressBar`, which still takes a
+   * and `fillQuantity` keeps its copy for `TinyEssentials`, which takes a
    * pair.
    *
    * `dividedBy` has already checked the two halves are the same kind and made

@@ -124,15 +124,9 @@ function fakeTelemetry(): FakeTelemetry {
     store.beginFrame();
   }
 
-  // Seed the action-group current-value read so `f.ag1`'s toggle -> absolute
-  // bridge (`getCurrentValue` in `map-command.ts`) has a real boolean to
-  // invert: without it, `buildArgs` returns INVALID and the command never
-  // maps at all.
-  //
   // Publishes the whole `vessel.control` record (the NAMED action-group list
-  // the mod now sends), not the old `vessel.control.actionGroups.0` positional
-  // subtopic: identity travels with each entry's `index` now, so the bridge
-  // finds the group rather than indexing at a position.
+  // the mod sends): identity travels with each entry's `index`, so a group is
+  // found by its index rather than by a position.
   publish("vessel.control", {
     actionGroups: [{ index: 1, name: "AG1", state: false }],
   });

@@ -193,7 +193,7 @@ describe("useCommand", () => {
 // ── inFlight: this hook's own accumulated dispatch set ───────────────────
 
 /**
- * Local, self-contained stream fixture: same `FixedViewClock` +
+ * Local, self-contained stream fixture: same `ViewClock` +
  * `StubTransport` pattern `use-route-commands.test.tsx` uses (sitrep-client
  * can't depend on `@ksp-gonogo/components`' `setupStreamFixture`, which
  * sits above it in the dependency graph).

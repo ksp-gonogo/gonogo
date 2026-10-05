@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
  *
  * A file counts as predicting when it exports a `solve*`, `predict*`,
  * `propagate*`, `extrapolate*` or `forecast*` function, or calls one of the
- * propagation and solver entry points in `PREDICTOR_CALLS`. LandingStatus also
+ * propagation and solver entry points in `PREDICTOR_CALLS_RE`. LandingStatus also
  * counts a `project*` export, a prefix that elsewhere names screen projection.
  * `PREDICTING_FILES` names the ones that exist today and each must carry the
  * marker; a new predicting file fails until it is added here with its reason

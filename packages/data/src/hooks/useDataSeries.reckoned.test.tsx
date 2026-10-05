@@ -107,7 +107,7 @@ const ECCENTRIC_KERBIN_ORBIT = {
    * `VesselViewProvider.cs`). Not nullable on the wire, so an element set
    * without it is a recording of a producer that dropped a required field
    * rather than a neutral scene. The JSON gate beside it
-   * (`orbitFixtureHorizon`) cannot see an inline one, and this is the
+   * cannot see an inline one, and this is the
    * constant the next reckoning test gets copied from.
    */
   horizon: { kind: 1, trajectoryKind: 1 },

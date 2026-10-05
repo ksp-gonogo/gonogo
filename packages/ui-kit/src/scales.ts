@@ -80,8 +80,8 @@ export const INSET_NAME = {
  * The corner handles a surface primitive accepts.
  *
  * Three, and they name a role rather than a size: an ordinary corner, a corner
- * on something floating above the app, and a stadium. `displayFrame` is not
- * here because that corner belongs to `FramedDisplay` alone, and `circle` is
+ * on something floating above the app, and a stadium. The display-frame
+ * corner is not here because it belongs to `FramedDisplay` alone, and `circle` is
  * not a corner at all.
  */
 export type RadiusToken = "regular" | "floating" | "pill";

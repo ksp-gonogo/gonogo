@@ -7,7 +7,7 @@ import "./index";
 
 /**
  * Characterisation, not specification: what CrewStatus renders when its reads are absent.
- * `renderBody` checks `crewCount === undefined` separately because `known` can be true before the headcount lands.
+ * `CrewRoster` checks `crewCount === undefined` separately because `known` can be true before the headcount lands.
  */
 
 // `vessel.identity.vesselType === 7` is `VesselType.EVA`, the kerbal on EVA.

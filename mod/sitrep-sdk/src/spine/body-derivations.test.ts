@@ -9,10 +9,6 @@ import {
  * What is left after mass, surface gravity and the hill sphere moved onto the
  * wire: the two values the GAME has no answer for, plus the orbital period,
  * which it does hold but computes with this exact expression.
- *
- * `deriveHillSphere`'s own case used to read "computes a·(1−e)·∛(m/3M)", which
- * is the textbook form. KSP's is a·(1−e)·(m/M)^(1/3), with no three, so the test
- * pinned a number about 31% below the game's as correct.
  */
 
 // Kerbin's stock figures (μ, radius, orbit) for round-number sanity checks.

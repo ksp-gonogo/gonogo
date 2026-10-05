@@ -1,7 +1,7 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * How much there is, and what that is a fraction of, for {@link ProgressBar}. Both
+ * How much there is, and what that is a fraction of, for {@link TinyEssentials}. Both
  * halves share one unit, and the primitive divides them itself under a type
  * that refuses to cross dimensions.
  *

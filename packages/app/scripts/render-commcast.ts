@@ -997,7 +997,7 @@ async function main(): Promise<void> {
      *
      * The reveal does not always release: a scene can end with its thread empty
      * and every message parked in the transit strip with no countdown to print,
-     * which is the widget's feed and its own `deliveryFor` disagreeing about
+     * which is the widget's feed and its own transit strip disagreeing about
      * them. On one page rendering all six in turn, only the first thread scene
      * came out right. A fresh document per scene plus the warm-up below took it
      * from one scene in six to five in six.

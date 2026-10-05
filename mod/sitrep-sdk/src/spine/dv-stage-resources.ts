@@ -116,8 +116,7 @@ export function deriveCurrentStageResourceMax(
  * Ready-to-register definitions:
  * `store.registerDerivedChannel(dvCurrentStageResourceChannel)` /
  * `...(dvCurrentStageResourceMaxChannel)`. `fields: true` on each exposes
- * `dv.currentStageResource.<name>` / `dv.currentStageResourceMax.<name>`: the
- * targets `map-topic.ts`'s `RESOURCE_STAGE_SCOPED` resolution points at.
+ * `dv.currentStageResource.<name>` / `dv.currentStageResourceMax.<name>`.
  * The channel's status is the worst across `dv.stages` and
  * `vessel.structure`, both genuinely consulted every call.
  */

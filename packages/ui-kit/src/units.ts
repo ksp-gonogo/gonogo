@@ -267,10 +267,7 @@ export const LADDERS = {
     { from: 8e9, symbol: "GB", per: 8e9 },
   ],
   /**
-   * The BIT-family rate rungs. Bits and bytes share a dimension but never
-   * share rungs, so a rate arriving in a byte unit climbs `dataRateBytes`
-   * below instead: `0.004 MB/s` reads `4 kB/s`, never `32 kbit/s`. Which of
-   * the two a value gets is decided by its declared unit, see `ladderFor`.
+   * The bit-rate rungs, decimal throughout and based in bit/s, matching `data`.
    */
   dataRate: [
     { from: 0, symbol: "bit/s", per: 1 },
