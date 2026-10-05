@@ -1412,6 +1412,7 @@ namespace Sitrep.Host
             // report is a centre noticing the link, so neither was ever in flight.
             _courier.SetNotCarriedByTheNode(topic =>
                 IsFreezeExempt(topic)
+                || IsPerVesselField(topic, CraftStatePrefix, CraftSightingSuffix)
                 || (_channelDeclarations.TryGetValue(topic, out var declared) && declared.Delay == DelayRole.TrueNow));
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,

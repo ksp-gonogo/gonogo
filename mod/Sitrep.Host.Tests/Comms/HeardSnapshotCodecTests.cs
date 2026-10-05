@@ -107,6 +107,38 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void WhereACentreHadSeenAnObjectToBeComesBackAndSoDoesOneSeenToBeGone()
+        {
+            var listed = new Dictionary<string, object?>
+            {
+                ["vesselId"] = "junk", ["name"] = "Spent stage", ["vesselType"] = (int)VesselType.Debris, ["situation"] = 32, ["bodyIndex"] = 1,
+                ["crewCount"] = 4,
+                ["orbit"] = new Dictionary<string, object?> { ["sma"] = 700_000.0 },
+            };
+            var snapshot = new HeardSnapshot(new[]
+            {
+                new HeardAtCentre(
+                    "ground:ksc",
+                    new CraftState[0],
+                    new Dictionary<string, bool>(),
+                    null,
+                    new[] { CraftSighting.Of("vessel:junk", 12.0, listed), CraftSighting.Gone("vessel:lost", 15.0) }),
+            });
+
+            var back = HeardSnapshotCodec.Decode(HeardSnapshotCodec.Encode(snapshot))!.Centres.Single().Sightings;
+
+            var junk = back.Single(s => s.Id == "vessel:junk");
+            Assert.True(junk.Exists);
+            Assert.Equal(12.0, junk.CapturedUt);
+            Assert.Equal("Spent stage", junk.Listed!["name"]);
+            Assert.Equal((int)VesselType.Debris, junk.Listed["vesselType"]);
+            Assert.Equal(1, junk.Listed["bodyIndex"]);
+            Assert.False(junk.Listed.ContainsKey("crewCount"));
+            Assert.Equal(700_000.0, ((Dictionary<string, object?>)junk.Listed["orbit"]!)["sma"]);
+            Assert.False(back.Single(s => s.Id == "vessel:lost").Exists);
+        }
+
+        [Fact]
         public void ASaveFromBeforeReadingsWereKeptCarriesNone()
         {
             var old = new HeardSnapshot(new[] { new HeardAtCentre("ground:ksc", new CraftState[0], new Dictionary<string, bool>()) });

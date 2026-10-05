@@ -2351,8 +2351,15 @@ namespace Sitrep.Contract
         /// <c>commandCentre.activeVesselDelay</c> are sent to each command centre
         /// alone, about the centres on its own roster and from its own contact plan,
         /// so they agree with the roster it holds. No payload changes shape.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 8 -&gt; 9: where a vessel is, by sight.</b>
+        /// An entry's orbit, situation and body on <c>system.vessels</c> reach a
+        /// command centre at the straight-line light-time from the vessel, in contact
+        /// or out, where they came only with the vessel's radio. A vessel with no radio
+        /// is listed when its light arrives, where it was listed at once, and carries
+        /// its orbit, where it carried none. No payload changes shape.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 8;
+        public const int Minor = 9;
     }
 }

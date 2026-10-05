@@ -64,6 +64,20 @@ namespace Sitrep.Host.Comms
             public CraftState State { get; }
         }
 
+        /// <summary>One sighting, and the light-time from the object to each command centre when it was made, in seconds by centre id.</summary>
+        public sealed class Sighted
+        {
+            public Sighted(CraftSighting sighting, IReadOnlyDictionary<string, double> lightSeconds)
+            {
+                Sighting = sighting;
+                LightSeconds = lightSeconds;
+            }
+
+            public CraftSighting Sighting { get; }
+
+            public IReadOnlyDictionary<string, double> LightSeconds { get; }
+        }
+
         /// <summary>What <see cref="Capture"/> found, for the Courier thread to record.</summary>
         public sealed class Batch
         {
@@ -72,24 +86,19 @@ namespace Sitrep.Host.Comms
                 IReadOnlyList<string> present,
                 IReadOnlyList<CraftState> states,
                 IReadOnlyList<string> gone,
-                IReadOnlyList<CraftState>? seenFromGround = null,
-                IReadOnlyList<string>? goneFromGround = null,
+                IReadOnlyList<Sighted>? sightings = null,
                 IReadOnlyList<string>? known = null)
             {
                 Ut = ut;
                 Present = present;
                 States = states;
                 Gone = gone;
-                SeenFromGround = seenFromGround ?? new CraftState[0];
-                GoneFromGround = goneFromGround ?? new string[0];
+                Sightings = sightings ?? new Sighted[0];
                 Known = known ?? present;
             }
 
-            /// <summary>Craft with no radio that are in the game for the first time this pass.</summary>
-            public IReadOnlyList<CraftState> SeenFromGround { get; }
-
-            /// <summary>Craft with no radio that were in the game at the last pass and are not now, by bare guid.</summary>
-            public IReadOnlyList<string> GoneFromGround { get; }
+            /// <summary>The objects whose place was seen afresh this pass, each with how long its light takes to reach each centre.</summary>
+            public IReadOnlyList<Sighted> Sightings { get; }
 
             /// <summary>Every craft there is anything to hear of, radio or not, by bare guid.</summary>
             public IReadOnlyList<string> Known { get; }
@@ -109,8 +118,15 @@ namespace Sitrep.Host.Comms
         // Main-thread state, apart from the flag a timeline reset raises.
         private readonly Dictionary<string, Read> _read = new Dictionary<string, Read>(StringComparer.Ordinal);
 
-        // The craft with no radio that have been noted, by node id.
-        private readonly HashSet<string> _seenFromGround = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>What each object was last seen as, and when, by node id.</summary>
+        private readonly Dictionary<string, (IReadOnlyDictionary<string, object?>? Listed, double Ut)> _sighted =
+            new Dictionary<string, (IReadOnlyDictionary<string, object?>?, double)>(StringComparer.Ordinal);
+
+        /// <summary>The light-times of the last pass, for an object that is gone by this one and can no longer be measured.</summary>
+        private IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? _lastSight;
+
+        /// <summary>The centres the last pass measured to. A centre that is new has seen nothing, so everything is seen again for it.</summary>
+        private HashSet<string> _sightCentres = new HashSet<string>(StringComparer.Ordinal);
         private int _readAll;
 
         /// <summary>Each craft's command-centre entry as it was last said, by node id: null for one that was not a centre.</summary>
@@ -131,9 +147,14 @@ namespace Sitrep.Host.Comms
             if (Interlocked.Exchange(ref _readAll, 0) != 0)
             {
                 _read.Clear();
-                _seenFromGround.Clear();
+                _sighted.Clear();
+                _lastSight = null;
                 _centreSaid.Clear();
             }
+
+            var sight = look.Sight;
+            var sightAgain = NewCentreIn(sight);
+            var sightings = new List<Sighted>();
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var present = new List<string>();
@@ -148,8 +169,6 @@ namespace Sitrep.Host.Comms
                 present.Add(GuidOf(node.Id));
                 IReadOnlyDictionary<string, object?>? listed = null;
                 roster?.TryGetValue(node.Id, out listed);
-                // A craft that has gained a radio is heard from now on.
-                _seenFromGround.Remove(node.Id);
                 var state = Due(node, look, ut, kernel, listed);
                 _centreSaid.TryGetValue(node.Id, out var centreSaid);
                 if (state == null && !CentreRoster.Same(centreSaid, node.Centre) && _read.TryGetValue(node.Id, out var last))
@@ -167,11 +186,19 @@ namespace Sitrep.Host.Comms
                     _centreSaid[node.Id] = node.Centre;
                     states.Add(state.AsCentre(node.Centre));
                 }
+                // Seen whenever it has something new to say, since that is when where it is going is read.
+                if (sight != null
+                    && sight.TryGetValue(node.Id, out var light)
+                    && (state != null || sightAgain || !_sighted.ContainsKey(node.Id))
+                    && _read.TryGetValue(node.Id, out var read))
+                {
+                    var sighting = CraftSighting.Of(node.Id, ut, listed, read.State.PlaceOnly());
+                    _sighted[node.Id] = (sighting.Listed, ut);
+                    sightings.Add(new Sighted(sighting, light));
+                }
             }
 
             var known = new List<string>(present);
-            var seenFromGround = new List<CraftState>();
-            var goneFromGround = new List<string>();
             if (roster != null)
             {
                 foreach (var entry in roster)
@@ -181,23 +208,34 @@ namespace Sitrep.Host.Comms
                         continue;
                     }
                     known.Add(GuidOf(entry.Key));
-                    // Only a kind of craft that never carries a radio is taken
-                    // as seen from the ground. Any other with none to read this
-                    // pass, as at a scene change, keeps what was last heard of it.
-                    if (NeverCarriesARadio(entry.Value) && !_read.ContainsKey(entry.Key) && _seenFromGround.Add(entry.Key))
+                    // No radio to read this pass: debris, a flag, an asteroid, a
+                    // crewed craft with no antenna. It says nothing, and is seen.
+                    if (sight == null || !sight.TryGetValue(entry.Key, out var light))
                     {
-                        seenFromGround.Add(CraftState.WithoutARadio(entry.Key, ut, entry.Value));
+                        continue;
+                    }
+                    var sighting = CraftSighting.Of(entry.Key, ut, entry.Value);
+                    if (sightAgain || SeenAfresh(entry.Key, sighting.Listed, ut))
+                    {
+                        _sighted[entry.Key] = (sighting.Listed, ut);
+                        sightings.Add(new Sighted(sighting, light));
                     }
                 }
-                foreach (var id in new List<string>(_seenFromGround))
+                foreach (var id in new List<string>(_sighted.Keys))
                 {
-                    if (!roster.ContainsKey(id))
+                    if (seen.Contains(id) || roster.ContainsKey(id))
                     {
-                        _seenFromGround.Remove(id);
-                        goneFromGround.Add(GuidOf(id));
+                        continue;
+                    }
+                    _sighted.Remove(id);
+                    // It can no longer be measured, so its going is seen over the distance it was last at.
+                    if (_lastSight != null && _lastSight.TryGetValue(id, out var light))
+                    {
+                        sightings.Add(new Sighted(CraftSighting.Gone(id, ut), light));
                     }
                 }
             }
+            _lastSight = sight;
 
             var gone = new List<string>();
             foreach (var id in new List<string>(_read.Keys))
@@ -209,34 +247,68 @@ namespace Sitrep.Host.Comms
                     gone.Add(GuidOf(id));
                 }
             }
-            StatesRecordedBudget.Record(states.Count + seenFromGround.Count, ut);
-            return new Batch(ut, present, states, gone, seenFromGround, goneFromGround, known);
+            StatesRecordedBudget.Record(states.Count + sightings.Count, ut);
+            return new Batch(ut, present, states, gone, sightings, known);
+        }
+
+        /// <summary>Whether this pass measures to a centre the last one did not, and notes the centres it measures to.</summary>
+        private bool NewCentreIn(IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? sight)
+        {
+            if (sight == null)
+            {
+                return false;
+            }
+            var centres = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var row in sight.Values)
+            {
+                centres.UnionWith(row.Keys);
+            }
+            var grew = !centres.IsSubsetOf(_sightCentres);
+            _sightCentres = centres;
+            return grew;
+        }
+
+        /// <summary>
+        /// Whether an object with no radio is to be seen again: it has not been
+        /// seen, or it is in another situation or round another body or
+        /// tracked under another name, or it has moved off the orbit it was
+        /// last seen on and long enough ago that a drifting one is not seen
+        /// every pass.
+        /// </summary>
+        private bool SeenAfresh(string id, IReadOnlyDictionary<string, object?>? listed, double ut)
+        {
+            if (!_sighted.TryGetValue(id, out var last) || ut < last.Ut)
+            {
+                return true;
+            }
+            if (CraftSighting.SamePlace(last.Listed, listed))
+            {
+                return false;
+            }
+            return ut >= last.Ut + ContactPlanSchedule.MinDriftReplanSeconds || Discretely(last.Listed, listed);
+        }
+
+        /// <summary>Whether two listings differ in anything but the orbit.</summary>
+        private static bool Discretely(IReadOnlyDictionary<string, object?>? was, IReadOnlyDictionary<string, object?>? now)
+        {
+            if (was == null || now == null)
+            {
+                return true;
+            }
+            foreach (var key in new[] { "vesselId", "name", "vesselType", "situation", "bodyIndex" })
+            {
+                was.TryGetValue(key, out var a);
+                now.TryGetValue(key, out var b);
+                if (!Equals(a, b))
+                {
+                    return true;
+                }
+            }
+            return (was.TryGetValue("orbit", out var o1) && o1 != null) != (now.TryGetValue("orbit", out var o2) && o2 != null);
         }
 
         /// <summary>The roster keys a craft is read again for. Its orbit is read when it moves, and its link is told by its own report.</summary>
         private static readonly string[] ListedFacts = { "name", "vesselType", "situation", "bodyIndex", "crewCount", "crewCapacity", "commsControlSource" };
-
-        /// <summary>Whether a roster entry is of a kind the game never gives a radio: debris, an asteroid or comet, a flag, a deployed experiment, a dropped part, or a kind it could not name.</summary>
-        private static bool NeverCarriesARadio(IReadOnlyDictionary<string, object?> listed)
-        {
-            if (!listed.TryGetValue("vesselType", out var raw) || !(raw is int type))
-            {
-                return false;
-            }
-            switch ((VesselType)type)
-            {
-                case VesselType.Debris:
-                case VesselType.SpaceObject:
-                case VesselType.Flag:
-                case VesselType.DeployedScienceController:
-                case VesselType.DeployedSciencePart:
-                case VesselType.DroppedPart:
-                case VesselType.Unknown:
-                    return true;
-                default:
-                    return false;
-            }
-        }
 
         private static bool ListedDifferently(IReadOnlyDictionary<string, object?>? was, IReadOnlyDictionary<string, object?>? now)
         {
@@ -323,13 +395,9 @@ namespace Sitrep.Host.Comms
             {
                 host.RecordCraftState(GuidOf(state.Id), state, batch.Ut);
             }
-            foreach (var vesselId in batch.GoneFromGround)
+            foreach (var sighted in batch.Sightings)
             {
-                host.RecordCraftGoneFromGround(vesselId, batch.Ut);
-            }
-            foreach (var state in batch.SeenFromGround)
-            {
-                host.RecordCraftSeenFromGround(GuidOf(state.Id), state, batch.Ut);
+                host.RecordCraftSighting(GuidOf(sighted.Sighting.Id), sighted.Sighting, batch.Ut, sighted.LightSeconds);
             }
         }
 

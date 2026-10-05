@@ -292,27 +292,86 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(7.0, left.CapturedUt);
         }
 
+        /// <summary>Every object named is this many light-seconds from the one centre.</summary>
+        private static ContactGameLook Sighting(ContactGameLook look, double seconds, params string[] guids)
+        {
+            look.Sight = guids.ToDictionary(
+                g => "vessel:" + g,
+                g => (IReadOnlyDictionary<string, double>)new Dictionary<string, double> { ["ground:ksc"] = seconds });
+            return look;
+        }
+
         [Fact]
-        public void ACraftWithNoRadioIsNotedOnceWhenItAppearsAndOnceWhenItIsGone()
+        public void AnObjectWithNoRadioIsSeenWhenItAppearsAndSeenToBeGoneOverTheDistanceItWasLastAt()
         {
             var recorder = new CraftStateRecorder();
-            var look = Look(Craft("a", Orbit(700_000.0)), Ksc);
+            ContactGameLook Looking(params string[] guids) => Sighting(Look(Craft("a", Orbit(700_000.0)), Ksc), 40.0, guids);
 
-            var appeared = recorder.Capture(look, 0.0, null, Roster(("a", 0), ("junk", 0)));
-            var junk = Assert.Single(appeared.SeenFromGround);
-            Assert.Equal("vessel:junk", junk.Id);
-            Assert.False(junk.Plannable);
-            Assert.Null(junk.ToPlanNode());
+            var appeared = recorder.Capture(Looking("a", "junk"), 0.0, null, Roster(("a", 0), ("junk", 0)));
+            var junk = appeared.Sightings.Single(s => s.Sighting.Id == "vessel:junk");
+            Assert.True(junk.Sighting.Exists);
+            Assert.Null(junk.Sighting.Place);
+            Assert.Equal(40.0, junk.LightSeconds["ground:ksc"]);
+            Assert.Equal("junk", junk.Sighting.Listed!["name"]);
+            Assert.False(junk.Sighting.Listed.ContainsKey("crewCount"));
             Assert.Equal(new[] { "a" }, appeared.Present);
             Assert.Equal(new[] { "a", "junk" }, appeared.Known.OrderBy(k => k));
 
-            var still = recorder.Capture(look, 700.0, null, Roster(("a", 0), ("junk", 5)));
-            Assert.Empty(still.SeenFromGround);
-            Assert.Empty(still.GoneFromGround);
+            var still = recorder.Capture(Looking("a", "junk"), 700.0, null, Roster(("a", 0), ("junk", 5)));
+            Assert.DoesNotContain(still.Sightings, s => s.Sighting.Id == "vessel:junk");
 
-            var went = recorder.Capture(look, 701.0, null, Roster(("a", 0)));
-            Assert.Equal(new[] { "junk" }, went.GoneFromGround);
+            var went = recorder.Capture(Looking("a"), 701.0, null, Roster(("a", 0)));
+            var gone = went.Sightings.Single(s => s.Sighting.Id == "vessel:junk");
+            Assert.False(gone.Sighting.Exists);
+            Assert.Equal(40.0, gone.LightSeconds["ground:ksc"]);
             Assert.Empty(went.Gone);
+        }
+
+        [Fact]
+        public void ACraftWithARadioIsSeenToowheneverItHasSomethingNewToSayAndTheSightingCarriesOnlyWhereItIs()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Sighting(Look(Craft("a", Orbit(700_000.0)), Ksc), 3.0, "a");
+
+            var first = recorder.Capture(look, 0.0, null, Roster(("a", 2)));
+            var seen = Assert.Single(first.Sightings).Sighting;
+            Assert.Equal("vessel:a", seen.Id);
+            Assert.NotNull(seen.Place);
+            Assert.Empty(seen.Place!.Links);
+            Assert.Null(seen.Place.Roster);
+            Assert.Same(first.States.Single().Motion, seen.Place.Motion);
+            Assert.False(seen.Listed!.ContainsKey("crewCount"));
+
+            Assert.Empty(recorder.Capture(look, 5.0, null, Roster(("a", 2))).Sightings);
+        }
+
+        [Fact]
+        public void NothingIsSeenWhereTheGameTracksNothingBySight()
+        {
+            var recorder = new CraftStateRecorder();
+
+            var batch = recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Ksc), 0.0, null, Roster(("a", 0), ("junk", 0)));
+
+            Assert.Empty(batch.Sightings);
+            Assert.Single(batch.States);
+        }
+
+        [Fact]
+        public void ACentreThatIsNewIsShownEverythingAgain()
+        {
+            var recorder = new CraftStateRecorder();
+            var look = Sighting(Look(Craft("a", Orbit(700_000.0)), Ksc), 3.0, "a", "junk");
+            recorder.Capture(look, 0.0, null, Roster(("a", 0), ("junk", 0)));
+            Assert.Empty(recorder.Capture(look, 1.0, null, Roster(("a", 0), ("junk", 0))).Sightings);
+
+            var withAnother = Look(Craft("a", Orbit(700_000.0)), Ksc);
+            withAnother.Sight = new[] { "a", "junk" }.ToDictionary(
+                g => "vessel:" + g,
+                g => (IReadOnlyDictionary<string, double>)new Dictionary<string, double> { ["ground:ksc"] = 3.0, ["vessel:crewed"] = 9.0 });
+            var again = recorder.Capture(withAnother, 2.0, null, Roster(("a", 0), ("junk", 0)));
+
+            Assert.Equal(new[] { "vessel:a", "vessel:junk" }, again.Sightings.Select(s => s.Sighting.Id).OrderBy(id => id));
+            Assert.All(again.Sightings, s => Assert.Equal(9.0, s.LightSeconds["vessel:crewed"]));
         }
 
         [Fact]
@@ -324,8 +383,7 @@ namespace Sitrep.Host.Tests.Comms
             var silent = recorder.Capture(Look(Ksc), 5.0, null, Roster(("a", 0)));
 
             Assert.Empty(silent.Gone);
-            Assert.Empty(silent.SeenFromGround);
-            Assert.Empty(silent.GoneFromGround);
+            Assert.Empty(silent.Sightings);
         }
 
         private sealed class RecordingHost : ICraftStateHost
@@ -345,9 +403,10 @@ namespace Sitrep.Host.Tests.Comms
 
             public System.Action HearCraftState(string vesselId, string centre, System.Action<CraftState> heard) => () => { };
 
-            public void RecordCraftSeenFromGround(string vesselId, CraftState state, double ut) => Calls.Add("seen " + vesselId + "@" + ut);
+            public void RecordCraftSighting(string vesselId, CraftSighting sighting, double ut, IReadOnlyDictionary<string, double> lightSeconds) =>
+                Calls.Add("seen " + vesselId + "@" + ut);
 
-            public void RecordCraftGoneFromGround(string vesselId, double ut) => Calls.Add("unseen " + vesselId + "@" + ut);
+            public System.Action HearCraftSighting(string vesselId, string centre, System.Action<CraftSighting> seen) => () => { };
 
             public System.Action HearCraftLink(string vesselId, string centre, System.Action<bool> heard) => () => { };
 

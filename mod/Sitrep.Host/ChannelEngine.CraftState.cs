@@ -41,9 +41,6 @@ namespace Sitrep.Host
 
         internal const string CraftLinkSuffix = ".link";
 
-        /// <summary>A craft with no radio is seen from the ground, so what is known of it is no distance from any centre.</summary>
-        private static readonly DelayStamp SeenFromGround = new DelayStamp(0.0);
-
         /// <summary>The game time of the tick being worked through. Courier thread only.</summary>
         private double _tickUt = double.NegativeInfinity;
 
@@ -62,18 +59,33 @@ namespace Sitrep.Host
             Emit(CraftLinkTopic(vesselId), connected, Math.Max(_tickUt, _clock.Now()));
         }
 
-        public void RecordCraftSeenFromGround(string vesselId, CraftState state, double ut)
+        internal const string CraftSightingSuffix = ".seen";
+
+        /// <summary>
+        /// The topic an object's sightings are recorded under. Never held by a
+        /// blackout and never lost with a broken path: a sighting is light off
+        /// the object itself, which no radio and no relay carries.
+        /// </summary>
+        internal static string CraftSightingTopic(string vesselId) => CraftStatePrefix + vesselId + CraftSightingSuffix;
+
+        public void RecordCraftSighting(string vesselId, CraftSighting sighting, double ut, IReadOnlyDictionary<string, double> lightSeconds)
         {
-            var topic = CraftStateTopic(vesselId);
+            var topic = CraftSightingTopic(vesselId);
             _lastRecordedUt[topic] = ut;
-            _courier.Record(NodeFor(topic), topic, state, ut, sentUnder: SeenFromGround);
+            // A centre the sighting has no light-time to is never sent it.
+            _courier.Record(NodeFor(topic), topic, sighting, ut, sentUnder: new DelayStamp(double.PositiveInfinity, lightSeconds));
         }
 
-        public void RecordCraftGoneFromGround(string vesselId, double ut)
+        public Action HearCraftSighting(string vesselId, string centre, Action<CraftSighting> seen)
         {
-            var topic = CraftStateTopic(vesselId);
-            _lastRecordedUt[topic] = ut;
-            _courier.Record(NodeFor(topic), topic, CraftState.Gone("vessel:" + vesselId, ut), ut, sentUnder: SeenFromGround);
+            var topic = CraftSightingTopic(vesselId);
+            return _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
+            {
+                if (delivered.Payload is CraftSighting sighting)
+                {
+                    seen(sighting);
+                }
+            });
         }
 
         public Action HearCraftLink(string vesselId, string centre, Action<bool> heard)

@@ -95,6 +95,15 @@ namespace Sitrep.Host.Comms
 
         /// <summary>Every command centre as the game has them now, or null for a game that keeps no roster.</summary>
         public IReadOnlyList<CommandCentreEntry>? Roster { get; set; }
+
+        /// <summary>
+        /// For each object the game's tracking can place, by node id, the
+        /// straight-line light-time from it to each command centre, in seconds
+        /// at the speed the game is set to model, by centre id. Null when
+        /// nothing can be tracked by sight at all, which leaves every craft
+        /// known by its radio alone.
+        /// </summary>
+        public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? Sight { get; set; }
     }
 
     /// <summary>The game a contact plan is made of. Asked on the main thread only.</summary>

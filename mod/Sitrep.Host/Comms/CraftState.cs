@@ -180,6 +180,26 @@ namespace Sitrep.Host.Comms
         public CraftState Unsettled() =>
             new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false, Name, Roster);
 
+        /// <summary>
+        /// This craft as it was last heard, where it was seen to be at
+        /// <paramref name="seenUt"/>: its links, its name and whether it is a
+        /// command centre unchanged, since a sighting says none of them.
+        /// </summary>
+        /// <param name="place">Where it was seen to be going, or null when the sighting read no orbit, which leaves it going where it was heard to be.</param>
+        /// <param name="roster">Its entry as heard, with where it is as seen.</param>
+        public CraftState SeenAt(double seenUt, CraftState? place, IReadOnlyDictionary<string, object?>? roster)
+        {
+            var from = place ?? this;
+            var seen = new CraftState(
+                Id, seenUt, true, from.BodyIndex, from.Orbit, from.Surface, from.Secular, from.ValidUntilUt, from.Plannable, Links, from.Motion, from.Settled, Name, roster);
+            seen.Centre = Centre;
+            return seen;
+        }
+
+        /// <summary>Only where this craft is going, as a sighting carries it: no links, no name, no entry and nothing of whether it is a command centre.</summary>
+        public CraftState PlaceOnly() =>
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, NoLinks, Motion, Settled);
+
         /// <summary>This state, carrying the craft's name as it was read with it.</summary>
         public CraftState Named(string? name) =>
             new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, name, Roster);

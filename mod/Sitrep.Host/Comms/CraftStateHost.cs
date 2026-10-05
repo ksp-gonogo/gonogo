@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sitrep.Host.Comms
 {
@@ -39,17 +40,17 @@ namespace Sitrep.Host.Comms
         /// saw it at <paramref name="ut"/>. It says nothing itself, so no light
         /// of its own carries this: every centre has it at once.
         /// </summary>
-        void RecordCraftSeenFromGround(string vesselId, CraftState state, double ut);
-
-        /// <summary>Records that a craft with no radio is gone as of <paramref name="ut"/>, which every centre has at once, as it had its arrival.</summary>
-        void RecordCraftGoneFromGround(string vesselId, double ut);
-
         /// <summary>
-        /// Hears whether the craft's radio answers, as <paramref name="centre"/>
-        /// learns it: an outage one of the centre's own light-times after the
-        /// last light the craft sent, and its return when its light arrives
-        /// again. Returns the call that stops listening.
+        /// Records where an object was seen to be, on its own node. It reaches
+        /// each centre named in <paramref name="lightSeconds"/> after that many
+        /// seconds, the straight-line light-time from the object, whatever its
+        /// radio is doing, and no centre it does not name.
         /// </summary>
+        void RecordCraftSighting(string vesselId, CraftSighting sighting, double ut, IReadOnlyDictionary<string, double> lightSeconds);
+
+        /// <summary>Calls <paramref name="seen"/> each time a sighting of the object reaches <paramref name="centre"/>. Returns what stops it.</summary>
+        Action HearCraftSighting(string vesselId, string centre, Action<CraftSighting> seen);
+
         Action HearCraftLink(string vesselId, string centre, Action<bool> heard);
 
         /// <summary>

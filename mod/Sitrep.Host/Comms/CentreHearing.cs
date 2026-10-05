@@ -16,7 +16,14 @@ namespace Sitrep.Host.Comms
     {
         private sealed class Ear
         {
+            /// <summary>The newest state each craft has been heard to say, by node id.</summary>
             public Dictionary<string, CraftState> Heard { get; } = new Dictionary<string, CraftState>(StringComparer.Ordinal);
+
+            /// <summary>The newest sighting of each object, by node id.</summary>
+            public Dictionary<string, CraftSighting> Seen { get; } = new Dictionary<string, CraftSighting>(StringComparer.Ordinal);
+
+            /// <summary>What is known of each craft from the two together: see <see cref="CraftSighting.Known"/>.</summary>
+            public Dictionary<string, CraftState> Known { get; } = new Dictionary<string, CraftState>(StringComparer.Ordinal);
 
             public Dictionary<string, Action> Stop { get; } = new Dictionary<string, Action>(StringComparer.Ordinal);
 
@@ -90,6 +97,8 @@ namespace Sitrep.Host.Comms
                         }
                     });
                     var nodeId = CraftStateRecorder.VesselPrefix + vesselId;
+                    // Seeing a craft is not hearing from it: nothing that waits for the craft's own word is told.
+                    var stopSeen = _host.HearCraftSighting(vesselId, centre, sighting => Seen(listeningEar, sighting));
                     var stopLink = _host.HearCraftLink(vesselId, centre, connected =>
                     {
                         if (!listeningEar.Link.TryGetValue(nodeId, out var was) || was != connected)
@@ -110,6 +119,7 @@ namespace Sitrep.Host.Comms
                     ear.Stop[vesselId] = () =>
                     {
                         stopState();
+                        stopSeen();
                         stopLink();
                         stopRadio();
                     };
@@ -117,9 +127,13 @@ namespace Sitrep.Host.Comms
             }
         }
 
-        /// <summary>The newest state <paramref name="centre"/> has received of each craft it has heard of, gone ones included.</summary>
+        /// <summary>
+        /// What <paramref name="centre"/> knows of each craft it has heard from
+        /// or seen, gone ones included: where each is as it was last seen or
+        /// heard, whichever is newer, and the rest as it was last heard.
+        /// </summary>
         public IReadOnlyCollection<CraftState> HeardAt(string centre) =>
-            _ears.TryGetValue(centre, out var ear) ? ear.Heard.Values : (IReadOnlyCollection<CraftState>)Array.Empty<CraftState>();
+            _ears.TryGetValue(centre, out var ear) ? ear.Known.Values : (IReadOnlyCollection<CraftState>)Array.Empty<CraftState>();
 
         /// <summary>
         /// Whether <paramref name="centre"/> has heard that the craft's radio
@@ -145,7 +159,7 @@ namespace Sitrep.Host.Comms
             var all = new HashSet<object>();
             foreach (var ear in _ears.Values)
             {
-                foreach (var state in ear.Heard.Values)
+                foreach (var state in ear.Known.Values)
                 {
                     all.Add(state.Motion);
                 }
@@ -163,7 +177,8 @@ namespace Sitrep.Host.Comms
                     ear.Key,
                     new List<CraftState>(ear.Value.Heard.Values),
                     new Dictionary<string, bool>(ear.Value.Link, StringComparer.Ordinal),
-                    new List<ContactRadio>(ear.Value.Radio.Values)));
+                    new List<ContactRadio>(ear.Value.Radio.Values),
+                    new List<CraftSighting>(ear.Value.Seen.Values)));
             }
             return new HeardSnapshot(centres);
         }
@@ -187,6 +202,10 @@ namespace Sitrep.Host.Comms
                 foreach (var state in centre.States)
                 {
                     Heard(ear, state);
+                }
+                foreach (var sighting in centre.Sightings)
+                {
+                    Seen(ear, sighting);
                 }
                 foreach (var link in centre.Links)
                 {
@@ -234,8 +253,35 @@ namespace Sitrep.Host.Comms
                 return false;
             }
             ear.Heard[state.Id] = state;
+            Know(ear, state.Id);
             ear.News++;
             return true;
+        }
+
+        /// <summary>A sighting older than the newest one held changes nothing.</summary>
+        private static bool Seen(Ear ear, CraftSighting sighting)
+        {
+            if (ear.Seen.TryGetValue(sighting.Id, out var held) && held.CapturedUt >= sighting.CapturedUt)
+            {
+                return false;
+            }
+            ear.Seen[sighting.Id] = sighting;
+            Know(ear, sighting.Id);
+            ear.News++;
+            return true;
+        }
+
+        private static void Know(Ear ear, string id)
+        {
+            ear.Heard.TryGetValue(id, out var heard);
+            ear.Seen.TryGetValue(id, out var seen);
+            var known = CraftSighting.Known(heard, seen);
+            if (known == null)
+            {
+                ear.Known.Remove(id);
+                return;
+            }
+            ear.Known[id] = known;
         }
 
         private static bool Contains(IReadOnlyCollection<string> centres, string centre)

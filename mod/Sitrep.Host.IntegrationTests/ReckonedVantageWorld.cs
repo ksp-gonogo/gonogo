@@ -226,6 +226,35 @@ namespace Sitrep.Host.IntegrationTests
 
         public IReadOnlyList<string> Centres() => new[] { Home, Far };
 
+        /// <summary>
+        /// How long the relay's light takes to reach the home centre in a
+        /// straight line, in seconds, or null for as long as its radio's route
+        /// takes, which makes seeing it and hearing it the same.
+        /// </summary>
+        public double? RelaySeenFromHomeSeconds { get; set; }
+
+        /// <summary>How long the spent stage's light takes to reach either centre, in seconds.</summary>
+        public double DebrisSeenSeconds { get; set; }
+
+        /// <summary>Whether the tracking station can place anything by sight. Without it every craft is known by its radio alone.</summary>
+        public bool TracksBySight { get; set; } = true;
+
+        private IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? Sight()
+        {
+            if (!TracksBySight)
+            {
+                return null;
+            }
+            static IReadOnlyDictionary<string, double> Row(double home, double far) =>
+                new Dictionary<string, double> { [Home] = home, [Far] = far };
+            return new Dictionary<string, IReadOnlyDictionary<string, double>>
+            {
+                [Active] = Row(ActiveSeconds, ActiveSeconds),
+                [Relay] = Row(RelaySeenFromHomeSeconds ?? RelayFromHomeSeconds, RelayFromFarSeconds),
+                ["vessel:" + DebrisGuid] = Row(DebrisSeenSeconds, DebrisSeenSeconds),
+            };
+        }
+
         /// <summary>Whether the relay is a command centre: crewed, and on the roster.</summary>
         public bool RelayIsCentre { get; set; }
 
@@ -313,7 +342,7 @@ namespace Sitrep.Host.IntegrationTests
                     nodes.Insert(0, relay);
                 }
             }
-            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0) { Radio = Radio, Roster = roster };
+            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0) { Radio = Radio, Roster = roster, Sight = Sight() };
         }
 
         private static RotatingGroundStation Surface(double longitudeDeg) =>

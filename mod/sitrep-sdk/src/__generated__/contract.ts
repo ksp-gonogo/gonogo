@@ -7637,22 +7637,30 @@ export interface OrbitEntry
 }
 /**
 * The `system.vessels` channel payload: every vessel the receiving command
-* centre has heard of, as it last heard it, wrapped as `{ "vessels": [ ... ]
-* }`. Like `SystemBodies`, it carries no per-payload `Meta`: that rides the
-* envelope.
+* centre knows of, wrapped as `{ "vessels": [ ... ] }`. Like `SystemBodies`,
+* it carries no per-payload `Meta`: that rides the envelope.
 *
-* ADDRESSED: each command centre is sent its own list and no other centre's.
-* An entry is what that vessel's own signal last told this centre, so its
-* orbit, its situation and its crew are as old as the light that brought them:
-* a burn far away shows here one of this centre's light-times after it was
-* made. A vessel the centre has not heard from yet is not listed, which after
-* a game load is every vessel for one light-time. A vessel that has gone
-* leaves the list when its silence could have reached the centre.
+* ADDRESSED: each command centre is sent its own list and no other centre's. A
+* centre knows a vessel in two ways, and an entry is made of both.
 *
-* A vessel of a kind that never carries a radio (debris, an asteroid or comet,
-* a flag, a deployed experiment) says nothing, so nothing of it can be heard.
-* It is listed from the moment it is in the game, as it stood then, and its
-* entry does not change until it is gone.
+* **By sight: where it is.** A vessel's orbit, its situation and its body are
+* tracked by looking at it, whether or not it has a radio and whether or not
+* it is in contact. That reaches a centre in a straight line at light speed,
+* through no relay, so a burn far away shows here after the distance between
+* the vessel and this centre and no sooner. A vessel with no radio at all
+* (debris, an asteroid, a flag, a crewed vessel with no antenna) is known this
+* way only: it is listed once its light has arrived, with its name and kind,
+* and leaves when the light of its going has.
+*
+* **By radio: everything else.** A vessel's crew and its link are its own to
+* say, and arrive over its radio's route at that route's light-time. A vessel
+* that has been seen and not yet heard has no crew count and no link state,
+* which are absent and not zero. Where a vessel has a radio its location is as
+* fresh as the newer of the two.
+*
+* What can be tracked by sight is the game's own tracking station rule at the
+* station's current level. Where the game lets the station place no vessel at
+* all, nothing is known by sight and every entry is what was heard.
 *
 * @category Solar system and fleet
 */

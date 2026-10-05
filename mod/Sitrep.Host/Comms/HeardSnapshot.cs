@@ -16,13 +16,20 @@ namespace Sitrep.Host.Comms
             string centre,
             IReadOnlyList<CraftState> states,
             IReadOnlyDictionary<string, bool> links,
-            IReadOnlyList<ContactRadio>? radios = null)
+            IReadOnlyList<ContactRadio>? radios = null,
+            IReadOnlyList<CraftSighting>? sightings = null)
         {
             Centre = centre;
             States = states;
             Links = links;
             Radios = radios ?? NoRadios;
+            Sightings = sightings ?? NoSightings;
         }
+
+        private static readonly IReadOnlyList<CraftSighting> NoSightings = new CraftSighting[0];
+
+        /// <summary>The newest sighting of each object to have reached the centre: where each was last seen to be.</summary>
+        public IReadOnlyList<CraftSighting> Sightings { get; }
 
         public string Centre { get; }
 
@@ -89,9 +96,20 @@ namespace Sitrep.Host.Comms
                 {
                     radios.Add(RadioOf(radio));
                 }
+                var sightings = new List<object?>();
+                foreach (var sighting in centre.Sightings)
+                {
+                    sightings.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = sighting.Id,
+                        ["capturedUt"] = sighting.CapturedUt,
+                        ["exists"] = sighting.Exists,
+                        ["listed"] = sighting.Listed == null ? null : new Dictionary<string, object?>(Copy(sighting.Listed)),
+                    });
+                }
                 centres.Add(new Dictionary<string, object?>
                 {
-                    ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios,
+                    ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios, ["sightings"] = sightings,
                 });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
@@ -139,7 +157,18 @@ namespace Sitrep.Host.Comms
                     {
                         radios.Add(RadioFrom((Dictionary<string, object?>)radio!));
                     }
-                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios));
+                    var sightings = new List<CraftSighting>();
+                    foreach (var item2 in List(centre, "sightings"))
+                    {
+                        var seen = (Dictionary<string, object?>)item2!;
+                        var seenId = (string)seen["id"]!;
+                        var seenUt = (double)seen["capturedUt"]!;
+                        // Where the craft was going is not saved with a sighting: the heard state's own orbit stands until it is seen again.
+                        sightings.Add(Get(seen, "exists") is bool there && there
+                            ? CraftSighting.Of(seenId, seenUt, Get(seen, "listed") is Dictionary<string, object?> listing ? Listed(listing) : null)
+                            : CraftSighting.Gone(seenId, seenUt));
+                    }
+                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings));
                 }
                 return new HeardSnapshot(centres);
             }

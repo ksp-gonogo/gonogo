@@ -209,7 +209,109 @@ namespace Gonogo.KSP
             {
                 Radio = RadioOfActive(),
                 Roster = roster,
+                Sight = SightOf(vessels, active, roster),
             };
+        }
+
+        /// <summary>
+        /// MAIN THREAD: the straight-line light-time from every object the game
+        /// knows the orbit of to every command centre, or null when the
+        /// tracking station cannot place a vessel at all.
+        ///
+        /// <para>What a tracking station can do is the game's own rule, read
+        /// live: <c>GameVariables.GetOrbitDisplayMode</c> at the station's
+        /// current level is what <c>Vessel.vesselOrbitsUnlocked</c> asks, and
+        /// every stock level answers AllOrbits or better. An object the game
+        /// has no state vectors for, an untracked asteroid, is placed by
+        /// nothing, as it is drawn with no orbit in the game.</para>
+        ///
+        /// <para>The home centre sees through every ground station, so its
+        /// light-time is the shortest of theirs.</para>
+        /// </summary>
+        private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? SightOf(
+            List<Vessel> vessels, IReadOnlyList<ICommandCentre> centres, List<CommandCentreEntry> roster)
+        {
+            if (!TrackingStationPlacesVessels())
+            {
+                return null;
+            }
+            var config = CommsCoreUplink.SignalDelayConfig;
+            var factor = config.Enabled && config.LightSpeedScale > 0.0 ? 1.0 / config.LightSpeedScale : 0.0;
+            string? home = null;
+            foreach (var entry in roster)
+            {
+                if (entry.IsHome)
+                {
+                    home = entry.Id;
+                }
+            }
+            var eyes = new List<(string Id, Vector3d Position, bool Ground)>();
+            foreach (var centre in centres)
+            {
+                if (centre is KspCommandCentre placed)
+                {
+                    eyes.Add((placed.Id, placed.Position, placed.Kind == CommandCentreKind.GroundStation));
+                }
+            }
+
+            var sight = new Dictionary<string, IReadOnlyDictionary<string, double>>(System.StringComparer.Ordinal);
+            foreach (var vessel in vessels)
+            {
+                if (vessel == null || !OrbitKnown(vessel))
+                {
+                    continue;
+                }
+                var at = vessel.GetWorldPos3D();
+                var row = new Dictionary<string, double>(System.StringComparer.Ordinal);
+                var nearestGround = double.PositiveInfinity;
+                foreach (var eye in eyes)
+                {
+                    var seconds = (eye.Position - at).magnitude / PairPlan.SpeedOfLight * factor;
+                    row[eye.Id] = seconds;
+                    if (eye.Ground)
+                    {
+                        nearestGround = System.Math.Min(nearestGround, seconds);
+                    }
+                }
+                if (home != null && row.ContainsKey(home) && !double.IsPositiveInfinity(nearestGround))
+                {
+                    row[home] = nearestGround;
+                }
+                sight["vessel:" + vessel.id] = row;
+            }
+            return sight;
+        }
+
+        private static bool TrackingStationPlacesVessels()
+        {
+            try
+            {
+                var rules = GameVariables.Instance;
+                if (rules == null)
+                {
+                    // No rules to ask, as at the main menu, is not a station that cannot track.
+                    return true;
+                }
+                var level = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.TrackingStation);
+                return rules.GetOrbitDisplayMode(level) >= GameVariables.OrbitDisplayMode.AllOrbits;
+            }
+            catch (System.Exception)
+            {
+                return true;
+            }
+        }
+
+        /// <summary>Whether the game has state vectors for the vessel, which every craft it made for the player has.</summary>
+        private static bool OrbitKnown(Vessel vessel)
+        {
+            try
+            {
+                return vessel.DiscoveryInfo == null || OrbitKnowledge.Known(vessel.DiscoveryInfo.Level);
+            }
+            catch (System.Exception)
+            {
+                return true;
+            }
         }
 
         /// <summary>The craft's node, carrying its roster entry when the craft is a command centre.</summary>
