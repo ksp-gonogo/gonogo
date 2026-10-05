@@ -1,47 +1,23 @@
 # `ksp-gonogo.github.io`: the Gonogo home page
 
-The Gonogo app deploys as a **project page** at `https://ksp-gonogo.github.io/gonogo/`
-(built + published by `.github/workflows/deploy.yml`, Vite base `/gonogo/`). GitHub only
-serves an **organisation** site (`https://ksp-gonogo.github.io/`, no `/gonogo/` suffix)
-from a repo literally named `ksp-gonogo.github.io`. So making the org root the Gonogo
-front door needs that one extra repo, it can't come from this repo's Pages.
+`index.html` in this folder is the page served at `https://ksp-gonogo.github.io/`. It is
+self-contained (no build step, inline CSS and one inline script for the copy buttons) and
+matches the app's dark theme.
 
-`index.html` in this folder is a ready-to-serve, self-contained front door (no build step,
-inline CSS, matches the app's dark/accent theme). It mirrors the in-app `HostedLanding`
-and links straight into the app + station + GitHub.
+It is the first half of setup, the half that happens before a local app exists: start the
+container, install the mod through CKAN, open `http://localhost:8080`. The second half is
+the setup that opens by itself in the local app and checks each part. Nothing on this page
+checks anything, because an `https://` page cannot reach `http://localhost` or a KSP
+install (mixed content).
 
-## Recommended: org-root landing that links into the app (lowest risk)
+It says the same thing as the in-app `HostedLanding`, which is what `/app/` shows when it
+is opened over HTTPS. `packages/app/src/firstRun/setupGuide.test.ts` fails if the run
+command printed here drifts from the one the app prints.
 
-Keep the app where it is (`/gonogo/`) and let the org root be a static front door.
+## How it gets published
 
-```sh
-# One-time, run by a ksp-gonogo org owner (creates a PUBLIC repo, your call):
-gh repo create ksp-gonogo/ksp-gonogo.github.io --public \
-  --description "Gonogo: mission control for Kerbal Space Program"
-
-tmp=$(mktemp -d) && cd "$tmp" && git init -b main
-cp /path/to/gonogo/docs/homepage/index.html .
-git add index.html && git commit -m "feat: Gonogo org front door"
-git remote add origin https://github.com/ksp-gonogo/ksp-gonogo.github.io.git
-git push -u origin main
-```
-
-Then in the new repo: **Settings → Pages → Source = Deploy from a branch → `main` / root**.
-Within a minute `https://ksp-gonogo.github.io/` serves the landing, and its buttons go to
-`https://ksp-gonogo.github.io/gonogo/` (app) and `.../gonogo/station`.
-
-## Alternative: serve the app itself at the org root
-
-Heavier: point `deploy.yml` at the `ksp-gonogo.github.io` repo and rebuild with
-`VITE_BASE_PATH=/` (every asset/route path changes, and the deploy needs cross-repo
-write permission). Only worth it if you want the full app, not a landing, at the root.
-Not done here: flag if that's what you want.
-
-## Why this part isn't automated
-
-Creating a public org repo and changing Pages settings are account/infra actions that
-belong to you, not an autonomous agent. Everything else (the landing asset and the
-`jonpepler → ksp-gonogo` rename across the app, docs, netkans, and image/URL refs) is
-already done on this branch. The deploy workflows derive the owner from
-`${{ github.repository_owner }}`, so image pushes + Pages already target `ksp-gonogo`
-automatically once merged.
+Nothing in this folder is deployed by hand. `deploy.yml`'s release channel copies
+`index.html` to the root of the `ksp-gonogo/ksp-gonogo.github.io` repository each time a
+release is cut, beside the release app at `/app/` and the redirects from the old
+`/gonogo/...` URLs. See [DEPLOYMENT.md](../DEPLOYMENT.md) for the layout of that site and
+which workflow owns which path.

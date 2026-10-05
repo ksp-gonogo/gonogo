@@ -102,12 +102,12 @@ To set or change the host by hand:
 
 1. On the main screen, hover the **+** button in the bottom-right corner. A tower of buttons expands above it, each with its name beside it
 2. Press the **Settings** button (the gear)
-3. Open the **Data Sources** tab
+3. Open the **Connection** tab
 4. Under **Game host**, the row is named **Telemetry stream**. Press the gear on that row to reveal **Host** and **Port**, set Host to the KSP computer's address, and press **Save**
 
 The change takes effect immediately, with no restart and no page reload. Port defaults to `8090` and there is normally no reason to touch it.
 
-On a brand new browser this same connection panel opens by itself as the first step of a short setup flow, so you may meet it before you go looking for it. It only ever opens once.
+On a brand new browser this same connection row is part of a short setup that opens by itself. It walks through the container, this connection and your Uplinks, checking each one for you, so you may meet the row before you go looking for it. The setup only ever opens once.
 
 Building the app from source and want the default baked in rather than set per-browser? `VITE_SITREP_HOST`/`VITE_SITREP_PORT` in `packages/app/.env.local` (gitignored; see [CONTRIBUTING.md](../CONTRIBUTING.md#getting-set-up)) set the build-time floor that both the Settings panel and `KSP_HOST` override.
 
@@ -130,7 +130,7 @@ Open `KSP.log` in your KSP install folder and search for `[Gonogo]`. A working s
 
 ### 2. Does the app say it is connected?
 
-Open **Settings, Data Sources** as above. The **Telemetry stream** row shows a status word next to its name:
+Open **Settings, Connection** as above. The **Telemetry stream** row shows a status word next to its name:
 
 - **CONNECTED**: the browser has an open socket to the mod. Expect this from the main menu, before any save is loaded. The connection is fine; if widgets are still empty, load a save
 - **DISCONNECTED**: nothing is getting through. The row also grows a **Reconnect** button and a line of setup text
@@ -140,7 +140,7 @@ When the connection is down, the Settings button in the FAB tower carries an ora
 
 If the mod started (check 1 passed) but the app says disconnected, the problem is between the two machines: a wrong Host, or a firewall on the KSP computer. Windows and macOS both block incoming local-network connections by default; [NETWORKING.md](NETWORKING.md) covers this.
 
-Below the connection row, **Uplink health** lists every Uplink the mod reports installed, and **Loaded clients** lists the client bundles the app loaded or refused, each refusal with its reason. Both lists come off the live stream, so an empty **Uplink health** list is itself a sign that nothing is arriving.
+The **Uplinks** tab beside it has a page for every Uplink the mod reports installed, showing the health the Uplink reports for itself and whether the app loaded its client, with the reason when it refused one. The list comes off the live stream, so an empty **Uplinks** tab is itself a sign that nothing is arriving.
 
 ### 3. Does a widget draw?
 
@@ -152,9 +152,9 @@ If System View draws bodies, telemetry is arriving and you are done. Fly somethi
 
 The kOS Terminal widget needs two mods in KSP: **[kOS](https://ksp-kos.github.io/KOS/)** itself, and **GonogoKosUplink**, which is what lets gonogo talk to it (both installed above).
 
-There is no separate bridge process, no proxy to start and no second port. kOS rides the same WebSocket on 8090 as everything else: the app dispatches a script over the stream and reads the result back off it. So there is no kOS host to configure, and no kOS entry in the Data Sources panel; setting the one **Host** above is the whole of the setup.
+There is no separate bridge process, no proxy to start and no second port. kOS rides the same WebSocket on 8090 as everything else: the app dispatches a script over the stream and reads the result back off it. So there is no kOS host to configure, and no kOS entry on the Connection tab; setting the one **Host** above is the whole of the setup.
 
-The widget lists the CPUs the mod reports. With no CPU reaching it, for any reason, it reads *"No kOS CPUs detected. Boot a kOS processor in-flight."* That one message covers a kOS processor you haven't switched on, GonogoKosUplink not being installed, and no telemetry stream at all, so work down the three checks above before assuming it is a kOS problem. The rest of the dashboard is unaffected either way, and **Settings, Data Sources, Uplink health** is where kOS's own health is reported.
+The widget lists the CPUs the mod reports. With no CPU reaching it, for any reason, it reads *"No kOS CPUs detected. Boot a kOS processor in-flight."* That one message covers a kOS processor you haven't switched on, GonogoKosUplink not being installed, and no telemetry stream at all, so work down the three checks above before assuming it is a kOS problem. The rest of the dashboard is unaffected either way, and **Settings, Uplinks** is where kOS's own health is reported.
 
 ## Camera feeds (kerbcast)
 
@@ -172,6 +172,6 @@ Restart KSP. kerbcast starts automatically when a flight scene loads; there's no
 
 ### Connecting the dashboard
 
-There is nothing to configure. kerbcast is dialled at the same **Host** you already set for the telemetry stream, on its own port 8088, so there is no camera row in the Data Sources panel and no second address to keep in sync.
+There is nothing to configure. kerbcast is dialled at the same **Host** you already set for the telemetry stream, on its own port 8088, so there is no camera row on the Connection tab and no second address to keep in sync.
 
 In gonogo, press **+** and add the **Camera Feed** widget. Camera feeds follow the same CommNet rule as the rest of the data: they cut out when you lose the connection.
