@@ -1762,6 +1762,29 @@ const WIDGETS: WidgetRenderConfig[] = [
         config: { defaultPreset: "hohmann-rendezvous-target" },
         forFixtures: ["kerbin-rendezvous-target"],
       },
+      // The custom burn's three components, which open on a preset that takes none.
+      {
+        name: "custom-burn-10x18",
+        w: 10,
+        h: 18,
+        config: { defaultPreset: "custom-apo" },
+        forFixtures: ["kerbin-rendezvous-target"],
+      },
+      {
+        name: "custom-burn-7x18",
+        w: 7,
+        h: 18,
+        config: { defaultPreset: "custom-apo" },
+        forFixtures: ["kerbin-rendezvous-target"],
+      },
+      // The Conformance tab with no planned burn to compare.
+      {
+        name: "conformance-empty-10x12",
+        w: 10,
+        h: 12,
+        clicks: [{ selector: "[id$='conformance-tab']" }],
+        forFixtures: ["kerbin-rendezvous-target"],
+      },
       // The mobile tile and aspect extremes at this widget's minSize, where the shared 9x8, 5x18 and 18x5 fall below it.
       { name: "mobile-9x9", w: 9, h: 9 },
       { name: "portrait-7x18", w: 7, h: 18 },

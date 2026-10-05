@@ -1,6 +1,6 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import type { OrbitPatch } from "@ksp-gonogo/sitrep-sdk";
-import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { EmptyState, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import type { ProjectedOrbit } from "../shared/OrbitDiagram";
 import { BurnConformanceRow } from "./BurnConformanceRow";
 import { ConformancePlot } from "./ConformancePlot";
@@ -57,7 +57,13 @@ export function ConformanceSection({
     period,
     elementsNeedDating,
   } = telemetry;
-  if (nodes.length === 0) return null;
+  if (nodes.length === 0) {
+    return (
+      <PaddedSection>
+        <EmptyState>No planned burns to compare</EmptyState>
+      </PaddedSection>
+    );
+  }
   const current =
     sma !== undefined &&
     ecc !== undefined &&

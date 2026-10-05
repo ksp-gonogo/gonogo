@@ -1,5 +1,6 @@
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Grid,
   NULL_DISPLAY,
   type ReckoningMarking,
   Stack,
@@ -99,24 +100,26 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
       {inputs.preset === "custom-ut" && (
         <UtModeInputs api={api} currentUT={telemetry.currentUT} />
       )}
-      <UnitInput
-        label="Prograde"
-        unit="m/s"
-        value={value("m/s", inputs.prograde)}
-        onChange={(next) => setPrograde(next.magnitude)}
-      />
-      <UnitInput
-        label="Normal"
-        unit="m/s"
-        value={value("m/s", inputs.normal)}
-        onChange={(next) => setNormal(next.magnitude)}
-      />
-      <UnitInput
-        label="Radial"
-        unit="m/s"
-        value={value("m/s", inputs.radial)}
-        onChange={(next) => setRadial(next.magnitude)}
-      />
+      <Grid minColWidth="6rem" fit gap="related">
+        <UnitInput
+          label="Prograde"
+          unit="m/s"
+          value={value("m/s", inputs.prograde)}
+          onChange={(next) => setPrograde(next.magnitude)}
+        />
+        <UnitInput
+          label="Normal"
+          unit="m/s"
+          value={value("m/s", inputs.normal)}
+          onChange={(next) => setNormal(next.magnitude)}
+        />
+        <UnitInput
+          label="Radial"
+          unit="m/s"
+          value={value("m/s", inputs.radial)}
+          onChange={(next) => setRadial(next.magnitude)}
+        />
+      </Grid>
     </Stack>
   );
 }
