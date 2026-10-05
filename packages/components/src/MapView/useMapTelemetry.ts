@@ -15,6 +15,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { unlessLocked } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
+import { isGroundedSituation } from "../LandingStatus/grounded";
 import { type EncounterKind, encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyNamed } from "../shared/streamBody";
@@ -57,6 +58,8 @@ export interface MapTelemetry {
   impactLat: number | undefined;
   impactLon: number | undefined;
   vesselOnThisBody: boolean;
+  /** Whether the craft is flying, so its conic lays a ground track and carries its position; false on the ground, where it turns with the body and has neither. */
+  predictable: boolean;
 }
 
 /**
@@ -162,7 +165,15 @@ export function useMapTelemetry(
     () => bodyNamed(bodies, targetBodyId),
     [bodies, targetBodyId],
   );
+  /* On the ground the craft turns with the body. Its elements still describe a conic, one that falls through the surface, so a track laid from them is a single point and a position carried along them is wrong. */
+  const identityReading = useTelemetry("vessel.identity");
+  const predictable = !isGroundedSituation(
+    identityReading.state === "observed" || identityReading.state === "held"
+      ? identityReading.value.situation
+      : undefined,
+  );
   const modelledPosition = useModelledPosition({
+    enabled: predictable,
     targetBodyId,
     body,
     lat,
@@ -218,5 +229,6 @@ export function useMapTelemetry(
     impactLon: impactMarked ? impact.lon : undefined,
     // An override that diverges from the vessel's body suppresses every vessel-relative draw and the follow chrome.
     vesselOnThisBody: !bodyOverride || bodyOverride === bodyName,
+    predictable,
   };
 }

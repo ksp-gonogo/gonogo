@@ -104,7 +104,8 @@ async function mountMap(horizon: PropagationHorizonLike) {
       vesselId: "v1",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 1,
+      // In orbit, as the elements beside it say: a craft on the ground lays no track.
+      situation: 3,
       parentBodyIndex: 1,
       launchUt: 0,
     });

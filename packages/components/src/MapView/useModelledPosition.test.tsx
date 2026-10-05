@@ -61,6 +61,7 @@ function Probe() {
   const roster = bodies.state === "observed" ? bodies.value : undefined;
   const body = useMemo(() => bodyNamed(roster, "Kerbin"), [roster]);
   const modelled = useModelledPosition({
+    enabled: true,
     targetBodyId: "Kerbin",
     body,
     lat: position?.latitude,

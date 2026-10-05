@@ -192,7 +192,7 @@ function MapViewComponent({
   }, [viewMode, lat, lon, speed, adjustedMap, baseZoom, setCamera]);
 
   const { predictionSegments, maneuverSegments } = useGroundTrackPrediction({
-    enabled: predictionEnabled,
+    enabled: predictionEnabled && telemetry.predictable,
     trajectory: telemetry.trajectory,
     orbitPatches: telemetry.orbitPatches,
     maneuverNodes: telemetry.maneuverNodes,

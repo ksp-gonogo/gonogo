@@ -5,6 +5,8 @@ import type { bodyNamed } from "../shared/streamBody";
 import { quantiseUt } from "./predictionThrottle";
 
 interface ModelledPositionInputs {
+  /** False while the craft is on the ground, where no conic carries its position. */
+  enabled: boolean;
   targetBodyId: string | undefined;
   body: ReturnType<typeof bodyNamed>;
   lat: Value<"°"> | undefined;
@@ -34,6 +36,7 @@ const REACHED_SECONDS = 1e-3;
  * Not a reckoner: the carrying forward is `vessel.orbit`'s own registered reckoning, read here as a Reading. What this adds is a coordinate conversion from the conic's state to a ground point, which is a drawing figure on no channel.
  */
 export function useModelledPosition({
+  enabled,
   targetBodyId,
   body,
   lat,
@@ -55,6 +58,7 @@ export function useModelledPosition({
   const from = receivedUt === undefined ? undefined : quantiseUt(receivedUt, 1);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the reading changes every frame; invalidation is gated on the two instants' buckets
   return useMemo(() => {
+    if (!enabled) return null;
     if (bucket === undefined || receivedUt === undefined) return null;
     if (lat === undefined || lon === undefined || !targetBodyId) return null;
     const rotationPeriod = body?.rotationPeriod;
@@ -86,5 +90,5 @@ export function useModelledPosition({
     if (derived.reckoning.status !== "available") return null;
     const { lat: modelledLat, lon: modelledLon } = derived.reckoning.modelled;
     return { lat: modelledLat, lon: modelledLon };
-  }, [bucket, from, lat, lon, targetBodyId, body]);
+  }, [enabled, bucket, from, lat, lon, targetBodyId, body]);
 }
