@@ -389,3 +389,89 @@ public class SetVantage
     [SitrepUnit(Units.Id)]
     public string CentreId { get; set; } = "";
 }
+
+/// <summary>
+/// Server-to-client: the first frame on every connection, sent before
+/// anything is asked for. <see cref="BootId"/> names the run of the mod the
+/// connection has reached.
+///
+/// <para>A client that reconnects and reads the id it read before has reached
+/// the same run: every <c>meta.timelineEpoch</c> it remembers still counts on
+/// from where it was, and only the connection's own state has to be set up
+/// again, which is each subscription and, where one was chosen, the vantage
+/// (see <see cref="SetVantage"/>: a new connection starts at the home command
+/// whatever the last one chose). A different id is another run, whose epochs
+/// count from zero, so nothing remembered of the old one can be compared with
+/// it.</para>
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Hello
+{
+    /// <summary>The frame type, always <c>"hello"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"hello\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "hello";
+
+    /// <summary>
+    /// An opaque id made afresh each time the mod starts its stream, the same
+    /// on every connection until it next does. Compare it for equality only.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string BootId { get; set; } = "";
+}
+
+/// <summary>
+/// Client-to-server: asks for a <see cref="Pong"/>, to tell a connection that
+/// is quiet from one that is dead. A subscribed connection can be silent for
+/// as long as nothing it subscribed to changes, so silence alone says nothing;
+/// a ping that goes unanswered does. It is answered at once and in every
+/// scene, changes nothing, and needs no subscription.
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Ping
+{
+    /// <summary>The frame type, always <c>"ping"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"ping\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "ping";
+
+    /// <summary>
+    /// Anything the client likes, returned unchanged in the answering
+    /// <see cref="Pong"/> so it can tell which ping was answered. May be
+    /// omitted, in which case the answer carries an empty one.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Nonce { get; set; } = "";
+}
+
+/// <summary>Server-to-client: the answer to a <see cref="Ping"/>.</summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Pong
+{
+    /// <summary>The frame type, always <c>"pong"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"pong\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "pong";
+
+    /// <summary>The <see cref="Ping.Nonce"/> of the ping this answers.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Nonce { get; set; } = "";
+}

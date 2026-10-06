@@ -1317,6 +1317,14 @@ namespace Sitrep.Host
 
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
 
+        /// <summary>
+        /// Names this run to every connection (see <see cref="Hello"/>). Made
+        /// with the engine and not with the process, because it is the
+        /// engine's timeline epoch that counts from zero: a second engine in
+        /// one process is as new to a client as a restarted game.
+        /// </summary>
+        public string BootId { get; } = Guid.NewGuid().ToString("N");
+
         private long _ackSeq;
         private long _requestSeq;
 
@@ -8437,6 +8445,14 @@ namespace Sitrep.Host
 
             connection.MessageReceived += payload => OnMessageReceived(session, payload);
             connection.Closed += () => OnConnectionClosed(session);
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId })));
+            }
+            catch (Exception publishEx)
+            {
+                LogHost("could not greet a new connection: " + SafeExceptionMessage(publishEx));
+            }
         }
 
         private void OnMessageReceived(ClientSession session, ArraySegment<byte> payload)
@@ -8472,9 +8488,13 @@ namespace Sitrep.Host
                     case SetVantage sv:
                         HandleSetVantage(session, sv);
                         break;
+                    case Ping ping:
+                        // Answered here, on the socket's own thread: it is the connection that is being asked after, and a busy Courier must not make a live one look dead.
+                        session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WritePong(new Pong { Nonce = ping.Nonce })));
+                        break;
                     default:
                         /* Unreachable while ParseClientMessage returns only the
-                           four handled types. A fifth one added without a case
+                           five handled types. A fifth one added without a case
                            here would otherwise be accepted and do nothing, with
                            nothing on the wire to say so. */
                         RefuseUnhandledEnvelope(session, msg);

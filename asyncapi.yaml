@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.14.0
+  version: 29.15.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -2367,6 +2367,9 @@ channels:
       closes delivery on it: see the subscription gate in the document description.
       `set-vantage` selects the command centre this connection commands from and
       observes at, which governs both what it reads and how long its commands take.
+      The mod opens every connection with a `hello` naming the run it has reached,
+      and answers a `ping` with a `pong` at once, in any scene and with nothing
+      subscribed, which is how a client tells a quiet connection from a dead one.
       An `error` frame carries a code and, when it answers a dispatch, the
       `requestId` it refers to.
 
@@ -2381,6 +2384,12 @@ channels:
         $ref: "#/components/messages/unsubscribe"
       setVantage:
         $ref: "#/components/messages/setVantage"
+      ping:
+        $ref: "#/components/messages/ping"
+      hello:
+        $ref: "#/components/messages/hello"
+      pong:
+        $ref: "#/components/messages/pong"
       error:
         $ref: "#/components/messages/error"
   settings.gonogo:
@@ -5664,22 +5673,25 @@ operations:
     action: send
     channel:
       $ref: "#/channels/session"
-    title: Open or close delivery, or change vantage
+    title: Open or close delivery, change vantage, or ask whether the connection is alive
     tags:
       - name: session
     messages:
       - $ref: "#/channels/session/messages/subscribe"
       - $ref: "#/channels/session/messages/unsubscribe"
       - $ref: "#/channels/session/messages/setVantage"
+      - $ref: "#/channels/session/messages/ping"
   session.notices:
     action: receive
     channel:
       $ref: "#/channels/session"
-    title: Connection-scoped errors
+    title: The greeting, the answer to a ping, and connection-scoped errors
     description: An `event` frame is NOT here. It names a topic and is only ever emitted for one this connection has subscribed to, so it sits on the topic channels alongside their `stream-data`.
     tags:
       - name: session
     messages:
+      - $ref: "#/channels/session/messages/hello"
+      - $ref: "#/channels/session/messages/pong"
       - $ref: "#/channels/session/messages/error"
 components:
   correlationIds:
@@ -7419,6 +7431,21 @@ components:
       title: A named occurrence on a topic, carrying no payload of its own
       payload:
         $ref: "#/components/schemas/EventMsg"
+    hello:
+      name: hello
+      title: The first frame on a connection, naming the run it reached
+      payload:
+        $ref: "#/components/schemas/Hello"
+    ping:
+      name: ping
+      title: Ask whether the connection is alive
+      payload:
+        $ref: "#/components/schemas/Ping"
+    pong:
+      name: pong
+      title: The answer to a ping
+      payload:
+        $ref: "#/components/schemas/Pong"
     setVantage:
       name: set-vantage
       title: Select this connection's command centre
@@ -8561,7 +8588,7 @@ components:
         $ref: "#/components/schemas/Subscribe"
       examples:
         - name: open-vessel-flight
-          summary: The first frame a client sends. Until it does the socket stays silent, and the mod answers this one with an `event` named `subscribed` on the `vessel.flight` channel.
+          summary: The first frame a client sends. Until it does the socket carries nothing but the mod's `hello`, and the mod answers this one with an `event` named `subscribed` on the `vessel.flight` channel.
           payload:
             type: subscribe
             topic: vessel.flight
@@ -14235,6 +14262,35 @@ components:
           description: |-
             Any other KSP mode (a scenario or a mission), which has no player-career
             surface.
+    Hello:
+      type: object
+      description: |-
+        Server-to-client: the first frame on every connection, sent before anything
+        is asked for. `Hello.bootId` names the run of the mod the connection has
+        reached.
+
+        A client that reconnects and reads the id it read before has reached the
+        same run: every `meta.timelineEpoch` it remembers still counts on from where
+        it was, and only the connection's own state has to be set up again, which is
+        each subscription and, where one was chosen, the vantage (see `SetVantage`:
+        a new connection starts at the home command whatever the last one chose). A
+        different id is another run, whose epochs count from zero, so nothing
+        remembered of the old one can be compared with it.
+      required:
+        - type
+        - bootId
+      properties:
+        type:
+          type: string
+          const: hello
+          x-sitrep-unit: id
+          description: The frame type, always `"hello"`.
+        bootId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            An opaque id made afresh each time the mod starts its stream, the same on
+            every connection until it next does. Compare it for equality only.
     HireApplicantArgs:
       type: object
       description: |-
@@ -16238,6 +16294,46 @@ components:
         - const: 3
           title: Unknown
           description: A raw value this contract does not recognise.
+    Ping:
+      type: object
+      description: |-
+        Client-to-server: asks for a `Pong`, to tell a connection that is quiet from
+        one that is dead. A subscribed connection can be silent for as long as
+        nothing it subscribed to changes, so silence alone says nothing; a ping that
+        goes unanswered does. It is answered at once and in every scene, changes
+        nothing, and needs no subscription.
+      required:
+        - type
+        - nonce
+      properties:
+        type:
+          type: string
+          const: ping
+          x-sitrep-unit: id
+          description: The frame type, always `"ping"`.
+        nonce:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Anything the client likes, returned unchanged in the answering `Pong` so it
+            can tell which ping was answered. May be omitted, in which case the answer
+            carries an empty one.
+    Pong:
+      type: object
+      description: "Server-to-client: the answer to a `Ping`."
+      required:
+        - type
+        - nonce
+      properties:
+        type:
+          type: string
+          const: pong
+          x-sitrep-unit: id
+          description: The frame type, always `"pong"`.
+        nonce:
+          type: string
+          x-sitrep-unit: id
+          description: The `Ping.nonce` of the ping this answers.
     PropagationCertification:
       type: integer
       description: |-

@@ -701,6 +701,10 @@
       "outcome": "enum",
       "reason": "id"
     },
+    "Hello": {
+      "bootId": "id",
+      "type": "id"
+    },
     "HireApplicantArgs": {
       "applicantName": "id"
     },
@@ -952,6 +956,14 @@
       "predictedReplyUt": "ut",
       "topic": "id",
       "vantage": "id"
+    },
+    "Ping": {
+      "nonce": "id",
+      "type": "id"
+    },
+    "Pong": {
+      "nonce": "id",
+      "type": "id"
     },
     "PropagationHorizon": {
       "kind": "enum",

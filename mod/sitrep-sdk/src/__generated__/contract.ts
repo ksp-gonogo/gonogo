@@ -3330,6 +3330,63 @@ export interface SetVantage
 	centreId: string;
 }
 /**
+* Server-to-client: the first frame on every connection, sent before anything
+* is asked for. `Hello.bootId` names the run of the mod the connection has
+* reached.
+*
+* A client that reconnects and reads the id it read before has reached the
+* same run: every `meta.timelineEpoch` it remembers still counts on from where
+* it was, and only the connection's own state has to be set up again, which is
+* each subscription and, where one was chosen, the vantage (see `SetVantage`:
+* a new connection starts at the home command whatever the last one chose). A
+* different id is another run, whose epochs count from zero, so nothing
+* remembered of the old one can be compared with it.
+*
+* @category Stream messages
+*/
+export interface Hello
+{
+	/** The frame type, always `"hello"`. */
+	type: "hello";
+	/**
+	* An opaque id made afresh each time the mod starts its stream, the same on
+	* every connection until it next does. Compare it for equality only.
+	*/
+	bootId: string;
+}
+/**
+* Client-to-server: asks for a `Pong`, to tell a connection that is quiet from
+* one that is dead. A subscribed connection can be silent for as long as
+* nothing it subscribed to changes, so silence alone says nothing; a ping that
+* goes unanswered does. It is answered at once and in every scene, changes
+* nothing, and needs no subscription.
+*
+* @category Stream messages
+*/
+export interface Ping
+{
+	/** The frame type, always `"ping"`. */
+	type: "ping";
+	/**
+	* Anything the client likes, returned unchanged in the answering `Pong` so it
+	* can tell which ping was answered. May be omitted, in which case the answer
+	* carries an empty one.
+	*/
+	nonce: string;
+}
+/**
+* Server-to-client: the answer to a `Ping`.
+*
+* @category Stream messages
+*/
+export interface Pong
+{
+	/** The frame type, always `"pong"`. */
+	type: "pong";
+	/** The `Ping.nonce` of the ping this answers. */
+	nonce: string;
+}
+/**
 * One kerbal currently outside a craft, on the `eva.crew` channel.
 *
 * A kerbal on EVA is a vessel in KSP's model, with its own id, so it already

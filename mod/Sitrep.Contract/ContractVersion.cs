@@ -2398,8 +2398,17 @@ namespace Sitrep.Contract
         /// the one the radio measured on a path the centre does not believe in. It
         /// was sent before with nothing to tell it from a strength measured on the
         /// believed path. Additive on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 14 -&gt; 15: a connection says which run it
+        /// reached, and can be asked whether it is alive.</b> Three envelopes:
+        /// <see cref="Hello"/>, sent first on every connection with the run's
+        /// <see cref="Hello.BootId"/>, and <see cref="Ping"/> answered by
+        /// <see cref="Pong"/>. A client had to treat every reconnect as a new
+        /// process, and had no request the protocol promised to answer. Additive:
+        /// a client that knows none of the three drops a frame type it does not
+        /// know, and never sends a ping.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 14;
+        public const int Minor = 15;
     }
 }

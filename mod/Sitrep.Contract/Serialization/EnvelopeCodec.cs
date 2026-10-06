@@ -632,10 +632,74 @@ namespace Sitrep.Contract.Serialization
             return new SetVantage { Type = "set-vantage", CentreId = RequireString(raw, "centreId") };
         }
 
+        /// <summary>Serializes a <c>hello</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WriteHello(Hello msg) => WriteTypeAndString(msg.Type, "bootId", msg.BootId);
+
+        /// <summary>Parses a <c>hello</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>hello</c>
+        /// envelope, or <c>bootId</c> is missing or not a string.</exception>
+        public static Hello ParseHello(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "hello");
+            return new Hello { Type = "hello", BootId = RequireString(raw, "bootId") };
+        }
+
+        /// <summary>Serializes a <c>ping</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WritePing(Ping msg) => WriteTypeAndString(msg.Type, "nonce", msg.Nonce);
+
+        /// <summary>Parses a <c>ping</c> envelope. A missing <c>nonce</c> reads as an empty one.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>ping</c> envelope.</exception>
+        public static Ping ParsePing(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "ping");
+            return new Ping { Type = "ping", Nonce = TryGetString(raw, "nonce") ?? "" };
+        }
+
+        /// <summary>Serializes a <c>pong</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WritePong(Pong msg) => WriteTypeAndString(msg.Type, "nonce", msg.Nonce);
+
+        /// <summary>Parses a <c>pong</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>pong</c>
+        /// envelope, or <c>nonce</c> is missing or not a string.</exception>
+        public static Pong ParsePong(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "pong");
+            return new Pong { Type = "pong", Nonce = RequireString(raw, "nonce") };
+        }
+
+        private static string WriteTypeAndString(string type, string name, string value)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, type);
+
+            AppendField(sb, name);
+            JsonWriter.AppendString(sb, value);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Parses a server-to-client envelope (<c>StreamData&lt;object?&gt;</c>,
         /// <see cref="EventMsg"/>, <c>CommandResponse&lt;object?&gt;</c>,
-        /// <see cref="CommandAccepted"/> or <see cref="ErrorMsg"/>), dispatching
+        /// <see cref="CommandAccepted"/>, <see cref="ErrorMsg"/>,
+        /// <see cref="Hello"/> or <see cref="Pong"/>), dispatching
         /// on the <c>"type"</c> field the same way the TypeScript SDK does.
         /// <internal>
         /// Mirrors <c>parseServerMessage</c> in
@@ -660,6 +724,8 @@ namespace Sitrep.Contract.Serialization
                     "command-response" => ParseCommandResponse(json),
                     "command-accepted" => ParseCommandAccepted(json),
                     "error" => ParseErrorMsg(json),
+                    "hello" => ParseHello(json),
+                    "pong" => ParsePong(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown server envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };
@@ -672,8 +738,8 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
-        /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/> or
-        /// <c>CommandRequest&lt;object?&gt;</c>), dispatching on the
+        /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/>,
+        /// <see cref="Ping"/> or <c>CommandRequest&lt;object?&gt;</c>), dispatching on the
         /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
@@ -698,6 +764,7 @@ namespace Sitrep.Contract.Serialization
                     "subscribe" => ParseSubscribe(json),
                     "unsubscribe" => ParseUnsubscribe(json),
                     "set-vantage" => ParseSetVantage(json),
+                    "ping" => ParsePing(json),
                     "command-request" => ParseCommandRequest(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),

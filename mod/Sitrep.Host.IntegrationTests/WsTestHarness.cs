@@ -162,6 +162,7 @@ namespace Sitrep.Host.IntegrationTests
                     SingleWriter = true,
                     SingleReader = false,
                 });
+            private readonly TaskCompletionSource<Hello> _hello = new TaskCompletionSource<Hello>(TaskCreationOptions.RunContinuationsAsynchronously);
             private readonly CancellationTokenSource _pumpCts = new CancellationTokenSource();
             private Thread? _pumpThread;
 
@@ -215,7 +216,14 @@ namespace Sitrep.Host.IntegrationTests
                         }
                         else
                         {
-                            _incoming.Writer.TryWrite(Encoding.UTF8.GetString(frame));
+                            var text = Encoding.UTF8.GetString(frame);
+                            // The greeting belongs to the connection and not to anything a test asked for, so it is kept aside for the tests that are about it.
+                            if (text.StartsWith("{\"type\":\"hello\"", StringComparison.Ordinal))
+                            {
+                                _hello.TrySetResult(EnvelopeCodec.ParseHello(text));
+                                continue;
+                            }
+                            _incoming.Writer.TryWrite(text);
                         }
                     }
                 }
@@ -227,6 +235,16 @@ namespace Sitrep.Host.IntegrationTests
                     // AggregateException from GetResult) just ends the loop.
                     // It must never escape and fault the thread.
                 }
+            }
+
+            /// <summary>The greeting the server opened this connection with.</summary>
+            public async Task<Hello> HelloAsync(TimeSpan timeout)
+            {
+                if (await Task.WhenAny(_hello.Task, Task.Delay(timeout)) != _hello.Task)
+                {
+                    throw new TimeoutException($"No hello arrived within {timeout}.");
+                }
+                return await _hello.Task;
             }
 
             public Task SendAsync(string text)

@@ -176,6 +176,9 @@ const SESSION_DESCRIPTION = `Frames that belong to the connection rather than to
 closes delivery on it: see the subscription gate in the document description.
 \`set-vantage\` selects the command centre this connection commands from and
 observes at, which governs both what it reads and how long its commands take.
+The mod opens every connection with a \`hello\` naming the run it has reached,
+and answers a \`ping\` with a \`pong\` at once, in any scene and with nothing
+subscribed, which is how a client tells a quiet connection from a dead one.
 An \`error\` frame carries a code and, when it answers a dispatch, the
 \`requestId\` it refers to.
 
@@ -495,6 +498,9 @@ export function buildDocument({
       subscribe: { $ref: "#/components/messages/subscribe" },
       unsubscribe: { $ref: "#/components/messages/unsubscribe" },
       setVantage: { $ref: "#/components/messages/setVantage" },
+      ping: { $ref: "#/components/messages/ping" },
+      hello: { $ref: "#/components/messages/hello" },
+      pong: { $ref: "#/components/messages/pong" },
       error: { $ref: "#/components/messages/error" },
     },
   };
@@ -507,7 +513,7 @@ export function buildDocument({
       {
         name: "open-vessel-flight",
         summary:
-          "The first frame a client sends. Until it does the socket stays silent, " +
+          "The first frame a client sends. Until it does the socket carries nothing but the mod's `hello`, " +
           "and the mod answers this one with an `event` named `subscribed` on the " +
           "`vessel.flight` channel.",
         payload: { type: "subscribe", topic: "vessel.flight" },
@@ -523,6 +529,21 @@ export function buildDocument({
     name: "set-vantage",
     title: "Select this connection's command centre",
     payload: schemas.ref("SetVantage"),
+  };
+  messages.ping = {
+    name: "ping",
+    title: "Ask whether the connection is alive",
+    payload: schemas.ref("Ping"),
+  };
+  messages.hello = {
+    name: "hello",
+    title: "The first frame on a connection, naming the run it reached",
+    payload: schemas.ref("Hello"),
+  };
+  messages.pong = {
+    name: "pong",
+    title: "The answer to a ping",
+    payload: schemas.ref("Pong"),
   };
   messages.event = {
     name: "event",
@@ -543,24 +564,30 @@ export function buildDocument({
   operations["session.control"] = {
     action: "send",
     channel: { $ref: "#/channels/session" },
-    title: "Open or close delivery, or change vantage",
+    title:
+      "Open or close delivery, change vantage, or ask whether the connection is alive",
     tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/subscribe" },
       { $ref: "#/channels/session/messages/unsubscribe" },
       { $ref: "#/channels/session/messages/setVantage" },
+      { $ref: "#/channels/session/messages/ping" },
     ],
   };
   operations["session.notices"] = {
     action: "receive",
     channel: { $ref: "#/channels/session" },
-    title: "Connection-scoped errors",
+    title: "The greeting, the answer to a ping, and connection-scoped errors",
     description:
       "An `event` frame is NOT here. It names a topic and is only ever emitted " +
       "for one this connection has subscribed to, so it sits on the topic " +
       "channels alongside their `stream-data`.",
     tags: [{ name: "session" }],
-    messages: [{ $ref: "#/channels/session/messages/error" }],
+    messages: [
+      { $ref: "#/channels/session/messages/hello" },
+      { $ref: "#/channels/session/messages/pong" },
+      { $ref: "#/channels/session/messages/error" },
+    ],
   };
 
   for (const { key: topic, type } of topics) {

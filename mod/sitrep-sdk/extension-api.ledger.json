@@ -8111,6 +8111,10 @@
   "pending": {
     "breaks": [
       {
+        "key": "sitrep-sdk . CONTRACT_MINOR",
+        "note": "The constant follows the contract from 14 to 15 (the hello, ping and pong envelopes). Its type is the literal number, so every contract Minor reads as a retype. A caller compares it or prints it, and is unaffected."
+      },
+      {
         "key": "ui-kit . VESSEL_MARK",
         "note": "The mark's spec gains the lost state, its keyline is described as two rings (light and dark) where it was one inverted stroke, and reach is computed from the shapes (1.47 r, was 1.4). A caller reading radius, the shapes of current, held and modelled, or reach is unaffected; one that read the old single keyline's fields must read the rings"
       },

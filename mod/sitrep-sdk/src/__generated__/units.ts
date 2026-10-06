@@ -741,6 +741,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     outcome: "enum",
     reason: "id",
   },
+  "Hello": {
+    bootId: "id",
+    type: "id",
+  },
   "HireApplicantArgs": {
     applicantName: "id",
   },
@@ -992,6 +996,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     predictedReplyUt: "ut",
     topic: "id",
     vantage: "id",
+  },
+  "Ping": {
+    nonce: "id",
+    type: "id",
+  },
+  "Pong": {
+    nonce: "id",
+    type: "id",
   },
   "PropagationHorizon": {
     kind: "enum",
