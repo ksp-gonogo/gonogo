@@ -25,6 +25,9 @@ namespace Gonogo.KSP
         private readonly System.Func<HomeCommand> _home;
         private KspVisibilityGeometryFactory? _surface;
         private bool? _listStood;
+
+        /// <summary>The links as they were last read from a vessel list that stood, or null before any was.</summary>
+        private LiveLinkGraph? _linksLastRead;
         private IUplinkHost? _host;
 
         /// <param name="centres">The registry the ground stations' ids come from, so the plan names them as the roster does.</param>
@@ -78,6 +81,15 @@ namespace Gonogo.KSP
             {
                 return null;
             }
+            // A list still being filled shows no craft and so no links. That is not the links having gone: light on its way over one still lands.
+            if (!VesselListStanding.Stands(
+                    HighLogic.LoadedSceneIsFlight,
+                    FlightGlobals.ready,
+                    vessels.Count,
+                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count))
+            {
+                return _linksLastRead;
+            }
             var config = CommsCoreUplink.SignalDelayConfig;
             var factor = config.Enabled && config.LightSpeedScale > 0.0 ? 1.0 / config.LightSpeedScale : 0.0;
             _inputs.SetLightFactor(factor);
@@ -118,7 +130,8 @@ namespace Gonogo.KSP
                     }
                 }
             }
-            return new LiveLinkGraph(links);
+            _linksLastRead = new LiveLinkGraph(links);
+            return _linksLastRead;
         }
 
         public IReadOnlyList<string> Centres()
