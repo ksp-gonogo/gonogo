@@ -156,6 +156,70 @@ namespace Sitrep.Host.Tests
             Assert.All(gaps, gap => Assert.True(gap <= Math.Max(SampleCadence.IntervalUt, 5 * tickUt) + tickUt, $"{gap} UT at {warpRate}x"));
         }
 
+        /// <summary>
+        /// The editor: KSP stops the game clock there, so the UT gate never opens
+        /// again after the last Space Center sample. Driven like
+        /// <c>GonogoAddon.FixedUpdate</c>: fifty physics ticks a real second, the
+        /// Space Center advancing UT at 1x, then a frozen UT that sits less than
+        /// one interval past the last sample, which the UT gate alone never
+        /// samples.
+        /// </summary>
+        [Fact]
+        public void AStoppedClockIsSampledOnceARealSecondFromTheMomentItStops()
+        {
+            const double tickRealSec = 0.02;
+            var gate = new SampleGate();
+            var editorSampleRealSecs = new List<double>();
+
+            for (var tick = 0; tick < 50 * 20; tick++)
+            {
+                var realSec = tick * tickRealSec;
+                var inEditor = realSec >= 10.0;
+                var ut = inEditor ? 660.5 : 650.0 + realSec;
+                if (gate.Admit(ut, warpRate: 1.0, realSec) && inEditor) editorSampleRealSecs.Add(realSec);
+            }
+
+            Assert.NotEmpty(editorSampleRealSecs);
+            Assert.True(editorSampleRealSecs[0] <= 10.0 + SampleCadence.StoppedClockIntervalRealSec + tickRealSec, $"first editor sample at {editorSampleRealSecs[0]} s");
+            Assert.InRange(editorSampleRealSecs.Count, 9, 11);
+        }
+
+        /// <summary>
+        /// KSP names the scene it is going to at the load request and tears the
+        /// old scene's Planetarium down during the load, so a loading scene is a
+        /// stopped clock under the target scene's name with half its state
+        /// built. The stopped-clock rule waits for the scene to be ready.
+        /// </summary>
+        [Fact]
+        public void AStoppedClockIsNotSampledWhileASceneLoadsAndIsOnceItIsReady()
+        {
+            var gate = new SampleGate();
+            Assert.True(gate.Admit(ut: 100.0, warpRate: 1.0, realSec: 0.0));
+
+            gate.SceneLoadRequested();
+            for (var realSec = 0.02; realSec < 5.0; realSec += 0.02)
+            {
+                Assert.False(gate.Admit(ut: 100.5, warpRate: 1.0, realSec), $"sampled a loading scene at {realSec} s");
+            }
+
+            gate.SceneReady();
+            Assert.True(gate.Admit(ut: 100.5, warpRate: 1.0, realSec: 5.02));
+        }
+
+        [Fact]
+        public void AMovingClockIsNeverSampledByTheStoppedClockRule()
+        {
+            Assert.False(SampleCadence.ShouldSampleStoppedClock(ut: 100.02, previousTickUt: 100.0, realSecSinceLastSample: 5.0));
+            Assert.False(SampleCadence.ShouldSampleStoppedClock(ut: 100.0, previousTickUt: null, realSecSinceLastSample: 5.0));
+        }
+
+        [Fact]
+        public void AStoppedClockWaitsOutTheRealIntervalSinceTheLastSample()
+        {
+            Assert.False(SampleCadence.ShouldSampleStoppedClock(ut: 100.0, previousTickUt: 100.0, realSecSinceLastSample: 0.5));
+            Assert.True(SampleCadence.ShouldSampleStoppedClock(ut: 100.0, previousTickUt: 100.0, realSecSinceLastSample: SampleCadence.StoppedClockIntervalRealSec));
+        }
+
         [Fact]
         public void QuantumMatchesWhatTheGateActuallyLets()
         {

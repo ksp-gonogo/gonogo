@@ -96,13 +96,15 @@ namespace Gonogo.KSP
         /// <summary>The running engine, for the scenario that saves what store-and-forward holds; null before it starts.</summary>
         internal static ChannelEngine? SharedEngine { get; private set; }
         private bool _shutDown;
-        private double? _lastSampledUt;
+        private readonly SampleGate _sampleGate = new SampleGate();
         private string? _sessionPath;
         private float _lastFlushRealtime;
 
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
+            GameEvents.onGameSceneLoadRequested.Add(OnSceneLoadRequested);
+            GameEvents.onLevelWasLoadedGUIReady.Add(OnSceneReady);
 
             try
             {
@@ -509,12 +511,15 @@ namespace Gonogo.KSP
                 // (GonogoBodiesServer's rewind-detection can't fire because
                 // Tick is never reached) across exactly the event most worth
                 // capturing. See SampleCadence's doc comment.
-                var ut = _host.NowUt();
-                if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleCadence.IntervalUtAt(TimeWarp.CurrentRate)))
+                //
+                // The editors stop the game clock, so the UT gate alone would
+                // never sample them again: SampleCadence.ShouldSampleStoppedClock
+                // samples a clock that did not move since the last physics tick
+                // on real time instead. SampleGate holds both.
+                if (!_sampleGate.Admit(_host.NowUt(), TimeWarp.CurrentRate, nowRealtime))
                 {
                     return;
                 }
-                _lastSampledUt = ut;
 
                 // ONE Sample() call per cadence tick feeds BOTH the recorder
                 // and the system.bodies emit path below - the v1 mod sampled
@@ -545,6 +550,10 @@ namespace Gonogo.KSP
                 Debug.LogError("[Gonogo] FixedUpdate sampling failed: " + ex);
             }
         }
+
+        private void OnSceneLoadRequested(GameScenes scene) => _sampleGate.SceneLoadRequested();
+
+        private void OnSceneReady(GameScenes scene) => _sampleGate.SceneReady();
 
         private void OnDestroy() => Shutdown();
 
@@ -579,6 +588,9 @@ namespace Gonogo.KSP
             // The final save is just the LAST flush, to the same fixed path
             // every periodic flush already used.
             FlushRecording();
+
+            GameEvents.onGameSceneLoadRequested.Remove(OnSceneLoadRequested);
+            GameEvents.onLevelWasLoadedGUIReady.Remove(OnSceneReady);
 
             try
             {

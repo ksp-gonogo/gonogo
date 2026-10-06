@@ -26,6 +26,12 @@ namespace Sitrep.Host
     /// event most worth capturing. So any <c>ut &lt; lastSampledUt</c> is
     /// treated as an immediate forced resample rather than a gated skip, and
     /// the new (lower) UT becomes the cadence anchor going forward.
+    ///
+    /// Stopped clock (the editors): KSP does not advance UT there, so the
+    /// forward gate never opens again after the last Space Center sample and
+    /// nothing true only in the editor would ever be read.
+    /// <see cref="ShouldSampleStoppedClock"/> samples such a clock on real
+    /// time instead, every sample stamped with the one UT the game stands at.
     /// </summary>
     public static class SampleCadence
     {
@@ -93,6 +99,25 @@ namespace Sitrep.Host
         /// </summary>
         public static double ObservationQuantumUt(double intervalUt, double tickUt) =>
             tickUt > intervalUt ? tickUt : intervalUt;
+
+        /// <summary>
+        /// The real time the mod leaves between two samples of a game whose
+        /// clock has stopped, in seconds: the 1x rate, so a stopped scene
+        /// costs the wire what 1x flight does.
+        /// </summary>
+        public const double StoppedClockIntervalRealSec = 1.0;
+
+        /// <summary>
+        /// True when the game clock has not moved since the previous physics
+        /// tick and <see cref="StoppedClockIntervalRealSec"/> of real time has
+        /// passed since the last sample. Compared tick to tick rather than
+        /// against the last sample, because the clock can stop less than one
+        /// interval past it, where the forward gate would wait forever.
+        /// </summary>
+        public static bool ShouldSampleStoppedClock(double ut, double? previousTickUt, double realSecSinceLastSample) =>
+            previousTickUt.HasValue
+            && ut == previousTickUt.Value
+            && realSecSinceLastSample >= StoppedClockIntervalRealSec;
 
         /// <summary>
         /// True when the caller should call <c>Sample()</c> now: first-ever
