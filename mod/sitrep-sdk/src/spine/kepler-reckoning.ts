@@ -30,11 +30,8 @@ import {
  */
 
 /**
- * The slice of `vessel.orbit` a conic needs.
- *
- * Declared structurally rather than as `VesselOrbitPayload`, so the propagator
- * depends on no record built on top of it. Every field is one
- * `VesselOrbitPayload` already carries, so a payload passes without a cast.
+ * The fields of `vessel.orbit` that {@link keplerAdmissibility} reads. A
+ * `vessel.orbit` payload can be passed as it is.
  *
  * @category Reckoners
  */
@@ -54,7 +51,8 @@ export interface ConicOrbitInput {
 }
 
 /**
- * The slice of `system.bodies` a conic needs: enough to find the air.
+ * The fields of `system.bodies` used to find where a body's atmosphere starts.
+ * A `system.bodies` payload can be passed as it is.
  *
  * @category Reckoners
  */
@@ -68,8 +66,7 @@ export interface ConicBodiesInput {
 }
 
 /**
- * The slice of `vessel.propulsion` that says whether anything is pushing the
- * craft.
+ * The fields of `vessel.propulsion` that say whether the engines are firing.
  *
  * @category Reckoners
  */
@@ -80,8 +77,8 @@ export interface ConicThrustInput {
 }
 
 /**
- * The slice of `system.uplink.pending` that says when each command in flight
- * reaches the craft: one way, `dispatchedAt + oneWaySeconds`.
+ * The fields of `system.uplink.pending` that say when each travelling command
+ * reaches the craft: its `dispatchedAt` plus its `oneWaySeconds`.
  *
  * @category Reckoners
  */
@@ -94,11 +91,9 @@ export interface ConicPendingInput {
 }
 
 /**
- * What a craft under physics has to show before its elements are carried as a
- * coast: that its engines are cold, and which commands reach it in the gap.
- *
- * Build one with {@link loadedCoastEvidence} from the two Readings, so every
- * model asking the conic reads them the same way.
+ * What {@link keplerAdmissibility} needs to carry forward the orbit of a craft
+ * the game is fully simulating: whether its engines are firing, and which
+ * commands will reach it. Build it with {@link loadedCoastEvidence}.
  *
  * @category Reckoners
  */
@@ -110,11 +105,10 @@ export interface LoadedCoastEvidence {
 }
 
 /**
- * {@link LoadedCoastEvidence} from the `vessel.propulsion` and
- * `system.uplink.pending` Readings a model declared as `{ reading }` deps.
- *
- * A held reading still counts, the way a held body roster does: a change-gated
- * channel that last changed a minute ago is saying its value now IS that value.
+ * Returns a {@link LoadedCoastEvidence} from the `vessel.propulsion` and
+ * `system.uplink.pending` readings a reckoner declared as `{ reading }`
+ * dependencies. A held reading counts: its last value is still the current
+ * one.
  *
  * @category Reckoners
  */
@@ -135,8 +129,8 @@ export function loadedCoastEvidence(
 }
 
 /**
- * Wire elements as `buildElements` reads them: every angle-bearing field as a
- * bare magnitude carrier, whatever wrapper the wire currently puts round it.
+ * Orbital elements as a payload carries them, which {@link buildElements}
+ * takes. Each angle may be a `Value` or a plain number.
  *
  * @category Reckoners
  */
@@ -166,14 +160,11 @@ function degToRad(deg: number): number {
 }
 
 /**
- * Build the internal-radian `OrbitElements` (`kepler.ts`) from wire elements:
- * the ONE place the wire's degree/radian unit mix is normalized (inc/lan/argPe
- * degrees→radians; `meanAnomalyAtEpoch` already radians, the documented KSP
- * quirk) and a `null` `lan`/`argPe` (undefined node/apsis on a
- * near-equatorial/near-circular orbit) is substituted with 0, a
- * physically-arbitrary-but-harmless reference. Shared by the self-vessel
- * OnRails branch, the target-orbit derivation and every registered reckoner, so
- * all of them propagate through the identical conversion.
+ * Returns {@link OrbitElements} from elements as a payload carries them,
+ * converting the inclination, ascending node and argument of periapsis from
+ * degrees to radians (the mean anomaly already arrives in radians). An
+ * ascending node or argument of periapsis that is `null`, as on an equatorial
+ * or circular orbit, becomes 0.
  *
  * @category Reckoners
  */
@@ -191,12 +182,9 @@ export function buildElements(o: WireOrbitElements): OrbitElements {
 }
 
 /**
- * `kepler.solve`/`solveAnomalies` throw a `RangeError` for `ecc >= 1`,
- * elliptical-only, matching the C# side (see their own doc comments); that
- * throwing contract is intentional. A genuine hyperbolic OnRails trajectory (a
- * fast escape/flyby while time-warping) is real, though, so every caller here
- * checks explicitly rather than letting the throw escape into derived-channel
- * resolution or a reading build.
+ * Returns whether an orbit with eccentricity `ecc` is not elliptical: 1 or
+ * more, as on an escape or a flyby. {@link solve} throws for such an orbit;
+ * {@link trySolve} returns `null`.
  *
  * @category Reckoners
  */
@@ -205,8 +193,8 @@ export function isHyperbolic(ecc: number): boolean {
 }
 
 /**
- * Non-throwing `kepler.solve`: `null` on a hyperbolic orbit instead of a
- * RangeError.
+ * Returns the same as {@link solve}, or `null` for an orbit that is not
+ * elliptical instead of throwing.
  *
  * @category Reckoners
  */
@@ -218,8 +206,8 @@ export function trySolve(
 }
 
 /**
- * Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of
- * a RangeError.
+ * Returns the same as {@link solveAnomalies}, or `null` for an orbit that is
+ * not elliptical instead of throwing.
  *
  * @category Reckoners
  */
@@ -231,10 +219,10 @@ export function trySolveAnomalies(
 }
 
 /**
- * Dead-reckon a vessel's parent-relative position/velocity from its wire orbit
- * elements at `ut`, through the same `buildElements` + `trySolve` path the
- * active vessel uses. Returns null for a hyperbolic / unsolvable orbit rather
- * than throwing. No new math, just the shared propagator.
+ * Returns a craft's position and velocity relative to its parent body at
+ * `ut`, from its orbital elements as a payload carries them, or `null` for an
+ * orbit that is not elliptical. The same computation Gonogo uses for the
+ * active craft.
  *
  * @category Reckoners
  */
@@ -246,30 +234,11 @@ export function propagateVesselOrbit(
 }
 
 /**
- * The radius below which a vacuum two-body coast stops describing what happens:
- * the top of the atmosphere, or the surface on a body that has none.
- *
- * `kepler-propagation` states its own limits, and the third of them is "a
- * perturbation the propagator does not model". Drag is that perturbation, and
- * it is not a gentle one: a capsule crossing the interface at orbital speed
- * loses most of it inside a couple of minutes, so a conic carried past this
- * radius is not a worse estimate but a different trajectory. Below the surface
- * it is not a trajectory at all.
- *
- * One number covers both because the model is asking one question, and the
- * separate cases would only differ in a sentence nothing reads. `atmosphere`
- * absent means airless on this wire rather than unknown, which is what makes
- * the surface a sound floor rather than a guess.
- *
- * `undefined` when nothing here resolves, and the caller treats that as "no
- * evidence" rather than as a reason to decline: see
- * {@link keplerAdmissibility}.
- *
- * `withinAtmosphere` asks this too, for the view-time end of its span, so that
- * the selector and the conic's own floor test the identical comparison rather
- * than two spellings of it. It reaches this only after
- * {@link atmosphereDepthOf} has returned, which is what keeps the surface fallback
- * below from reading as an atmosphere on an airless body.
+ * Returns the distance from the body's centre, in metres, below which an
+ * orbit model stops holding: the top of the atmosphere, or the surface of a
+ * body with none. Drag at the atmosphere changes the path within minutes.
+ * `undefined` when the body is not in `bodies`, which callers treat as no
+ * evidence either way.
  *
  * @category Reckoners
  */
@@ -291,29 +260,10 @@ export function entryInterfaceRadius(
 }
 
 /**
- * How deep the parent body's air is, or `undefined` when there is none and when
- * there is no evidence either way.
- *
- * The published depth, minted ONCE, because it is the boundary BOTH forward
- * models of an altitude are drawn against and a second reading of the same field
- * is how they would come to disagree about where the vacuum ends.
- * {@link entryInterfaceRadius} adds it to the body radius, because a conic works
- * in radii; `withinAtmosphere` compares it against the observed `altitudeAsl`,
- * because a rate integration works in altitude ASL. Those are the same line,
- * since `altitudeAsl` is `radius - seaLevel` by definition, but they are not the
- * same INSTANT: the altitude is the craft's at the last packet and the radius is
- * the conic's at the view time. `withinAtmosphere` therefore asks both ends, the
- * far one through {@link entryInterfaceRadius} itself, so a descent that crosses
- * the line during the gap is handed to the air rather than to a conic that will
- * refuse on a floor the selector never consulted.
- *
- * `undefined` for an airless body rather than zero, and that is what makes the
- * atmospheric branch decline to claim one: there is no atmospheric regime
- * without air, where a floor at the bare surface would have read as one. An
- * absent roster returns `undefined` for the same reason it does above, which the
- * two callers then treat oppositely and both correctly: the conic has no
- * interface to have crossed and carries on, and the rate integration has no
- * evidence it is in air and stands down.
+ * Returns how high the parent body's atmosphere reaches, in metres above sea
+ * level, or `undefined` for a body with no atmosphere or one not in `bodies`.
+ * {@link entryInterfaceRadius} is built on the same figure, so the two never
+ * disagree about where the air ends.
  *
  * @category Reckoners
  */
@@ -382,48 +332,23 @@ function trajectoryAuthority(
 }
 
 /**
- * Whether a two-body advance of these elements to `viewUt` is admissible, and
- * which published input says it is not.
+ * Returns whether an orbit may be carried forward to `viewUt` by a two-body
+ * model, or a {@link ReckoningDecline} naming the input that rules it out. It
+ * declines when:
  *
- * Five withdrawal conditions, in the order they cost least to ask:
+ * - the propagation provider says the orbit holds forever but is not a fixed
+ *   ellipse, or does not say what it is
+ * - the craft is being fully simulated by the game, and `coast` does not show
+ *   that its engines are cold, that the elements were taken after the last
+ *   burn ended, that it is above the atmosphere, and that no command reaches
+ *   it before `viewUt`
+ * - `viewUt` is at or past the next change of sphere of influence
+ * - `viewUt` is past the orbit's own `horizon`
+ * - the orbit reaches into the atmosphere by `viewUt`
  *
- * - **who owns the trajectory, where nothing bounds it.** The elected
- *   propagation provider states, on every element set it publishes, what kind
- *   of result it is. An `Unbounded` reach paired with a shape that is not
- *   `Analytic` is a licence to carry an integrated path forever as an ellipse,
- *   which is not a degraded conic but a different physics
- * - **under physics without a coast to show for it.** A loaded craft's
- *   elements are osculating, and they describe a coast only while nothing is
- *   pushing it: see {@link loadedCoastDecline} for what `coast` has to show.
- *   Without `coast` a loaded craft is never carried
- * - **the SOI transition.** A patched conic is only the CURRENT patch, so a
- *   view time at or past the transition is asking this conic about an orbit
- *   round a different body
- * - **the producer's own stated reach.** `orbit.horizon` is where an
- *   INTEGRATING propagation provider says its elements stop holding; the
- *   stock analytic provider says `Unbounded` and this never bites for it. It is
- *   also the seam a per-craft bound would arrive through, rather than anything
- *   here growing a constant of its own
- * - **the atmosphere interface.** A conic through air draws the same confident
- *   dashes a conic through vacuum draws, and the failure is worst exactly where
- *   an operator leans on it hardest
- *
- * **Declining takes positive evidence.** With no body roster there is no
- * interface to have crossed, so an absent `bodies` is not a reason to withdraw:
- * blanking every propagated reading for the frames before a once-a-second
- * channel lands would be a withdrawal asserted on the LACK of a fact. Same
- * posture the SOI condition takes on an absent `encounter`.
- *
- * **The authority condition is the exception, and deliberately.** Under an
- * unbounded reach an unstated shape is not a missing fact to be generous about,
- * it is the permissive default `TrajectoryKind.Unspecified = 0` was numbered to
- * remove: a producer that forgets gets a decline rather than "conic, obviously".
- *
- * What is still unbounded on rails, and cannot be bounded here: a BURN that
- * has not been seen. A craft out of contact is exactly one whose burns we
- * cannot see, and the `kepler-propagation` basis states that limit in its own
- * words. That is what a basis is for. A loaded craft is held to more, because
- * it is the one a command can light: see {@link loadedCoastDecline}.
+ * A missing `bodies` or encounter is not a reason to decline. A burn that
+ * nothing has reported, such as by a craft out of contact, cannot be seen
+ * here.
  *
  * @category Reckoners
  */
@@ -551,9 +476,9 @@ function loadedCoastDecline(
 }
 
 /**
- * Whether `vessel.propulsion` says something is pushing the craft: thrust now,
- * or a period of thrust in progress. A thrust that is not a number counts, so
- * an unreadable figure is never taken for cold engines.
+ * Returns whether `vessel.propulsion` shows the engines firing, now or in a
+ * burn still in progress. A thrust figure that is not a number counts as
+ * firing.
  *
  * @category Reckoners
  */
@@ -562,13 +487,11 @@ export function isUnderThrust(thrust: ConicThrustInput): boolean {
 }
 
 /**
- * The two conditions every model of a LOADED craft shares, whatever pushes it:
- * the craft is clear of the air at the elements' own epoch, and no command
- * reaches it between those elements and `viewUt`.
- *
- * A command already arrived by the elements' epoch has had its effect
- * observed. One arriving in the gap can change the throttle, the attitude or
- * the stage, and no model here follows it, so it ends every one of them.
+ * Returns a decline for a craft the game is fully simulating when either of
+ * two conditions fails, or `null` when both hold: the craft is above the
+ * atmosphere when its elements were taken, and no command reaches it between
+ * then and `viewUt`. A command arriving in that gap can change the throttle,
+ * the attitude or the stage, which no model follows.
  *
  * @category Reckoners
  */
@@ -614,13 +537,10 @@ export function loadedRegimeDecline(
 }
 
 /**
- * A refusal to carry a LOADED craft's motion forward, naming the input that
- * withheld it. The orbit exists and the craft is being simulated; what is
- * refused is advancing it, so a consumer can still solve the current reading
+ * Returns a {@link ReckoningDecline} with reason `"under-physics"`, naming
+ * `input` and with `note` for the player: the craft is being fully simulated,
+ * so its motion is not carried forward. Its current orbit can still be solved
  * at its own epoch.
- *
- * Only a model that has already established the craft is under physics may
- * raise it, which is why it lives beside the not-on-rails arm.
  *
  * @category Reckoners
  */
@@ -634,13 +554,8 @@ export function magnitude(v: Vector3): number {
 }
 
 /**
- * A position advanced by a constant velocity: the whole of
- * `linear-dead-reckoning`, and it is one multiply-add per axis on purpose.
- *
- * Shared by the two relative-geometry reckoners rather than written twice, and
- * there is deliberately nothing from the conic in it: a relative pair has no
- * elements, no epoch and no mu, so pretending the two models have machinery in
- * common would be a shared abstraction over two things that are not alike.
+ * Returns `position` moved at `velocity` for `dt` seconds, all as plain
+ * numbers: the whole of the `linear-dead-reckoning` model.
  *
  * @category Reckoners
  */

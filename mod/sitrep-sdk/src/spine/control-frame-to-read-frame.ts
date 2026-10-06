@@ -35,22 +35,13 @@ function indexFor(
 }
 
 /**
- * The live `system.frame` reading, as a `ReadFrameChoice` a widget can pass to
- * {@link resolveReadFrame}.
+ * Returns the player's selected frame, from the `system.frame` reading, as a
+ * {@link ReadFrameChoice} to pass to {@link resolveReadFrame}.
  *
- * Three of `ControlFrameKind`'s six members convert: `BodyCentredInertial` and
- * `BodyCentredBodyDirection` carry the centred body by name in `centreBody`,
- * and `RotatingPulsating` carries its pair explicitly in `primaryBody` /
- * `secondaryBody`, where a `ReadFrameChoice` names only the secondary and
- * infers the primary as that body's own parent. Every other kind returns
- * null: `Unspecified` because nothing was stated, `BarycentricRotating` and
- * `BodySurface` because no read-frame kind means them, and a frame with
- * `targetFrameSelected` set because it is defined against a vessel rather
- * than a body, which sits beside `kind` and no read frame carries at all.
- *
- * Also null when the frame or the catalogue is absent, or when the body name
- * it names is not (yet) in `facts.indexByName`: a mid-resync catalogue is a
- * real state, not a different frame.
+ * Only three frame kinds have a matching choice: body-centred inertial,
+ * body-centred with the body direction, and rotating-pulsating. Every other
+ * frame, a frame relative to a target vessel, and a frame whose body is not
+ * in `facts` yet, return `null`. So does a missing frame or catalogue.
  *
  * @category Frames of reference
  */
@@ -85,13 +76,9 @@ export function controlFrameToReadFrameChoice(
 }
 
 /**
- * Whether two read-frame choices would draw the same picture.
- *
- * A widget offering "follow the Control Frame" beside its own named frames
- * needs this to hide the option when it coincides with one already on offer,
- * rather than showing an operator two entries with one behaviour, per the
- * operator ruling that a choice which would draw identically is hidden the
- * same as a Control Frame with nothing to follow.
+ * Returns whether two frame choices would draw the same picture. Use it to
+ * hide a "follow the Control Frame" option when it matches a frame already
+ * offered, so the player does not see two entries that do the same thing.
  *
  * @category Frames of reference
  */

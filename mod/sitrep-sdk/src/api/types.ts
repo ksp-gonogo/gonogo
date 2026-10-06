@@ -74,10 +74,11 @@ export type ActionInputKind = "button" | "analog";
  * @category Actions
  */
 export interface ActionInputPayload {
+  /** Which kind of input fired. */
   kind: ActionInputKind;
-  /** Button: true=pressed, false=released. Analog: normalised to -1..1. */
+  /** For a button, `true` when pressed and `false` when released; for an axis, from -1 to 1. */
   value: boolean | number;
-  /** Device-specific raw value before normalisation, if the handler wants it. */
+  /** The device's own value before conversion, if the handler wants it. */
   raw?: unknown;
 }
 
@@ -88,11 +89,13 @@ export interface ActionInputPayload {
  * @category Actions
  */
 export interface ActionDefinition {
-  /** Stable ID used when persisting an input→action mapping. Unique per component. */
+  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. */
   id: string;
+  /** The action's name, shown where the player binds inputs. */
   label: string;
   /** Which input kinds may drive this action. */
   accepts: readonly ActionInputKind[];
+  /** A longer description, shown where the player binds inputs. */
   description?: string;
 }
 
@@ -1127,10 +1130,10 @@ export interface BodyMapConfig {
 }
 
 /**
- * Approximate exponential atmosphere model. Real KSP atmospheres are tabulated
- * and not purely exponential, but a single scale-height approximation is enough
- * to draw a recognisable pressure-vs-altitude curve and to distinguish "thin"
- * from "thick" atmospheres at a glance.
+ * An atmosphere as pressure falling exponentially with height, from a surface
+ * pressure and a scale height. KSP's real atmospheres are not quite
+ * exponential, so use it to draw a pressure curve or compare atmospheres, not
+ * to compute flight.
  *
  * @category Solar system and fleet
  */
@@ -1142,9 +1145,9 @@ export interface AtmosphereModel {
 }
 
 /**
- * A celestial body, as the registry in `./bodies.ts` stores it.
- *
- * A planet pack adds or overrides an entry with `registerBody`.
+ * A celestial body for maps and diagrams: its size, look and imaging limits.
+ * Register one with {@link registerBody}; a planet pack registers its own to
+ * replace stock ones.
  *
  * @category Solar system and fleet
  */
@@ -1171,9 +1174,9 @@ export interface BodyDefinition {
   soi?: number;
   /** Texture map metadata, required for accurate lat/lon → pixel mapping. */
   map?: BodyMapConfig;
-  /** If the body has an atmosphere */
+  /** Whether the body has an atmosphere. */
   hasAtmosphere: boolean;
-  /** The height above sea level where the atmosphere is stopped */
+  /** How high the atmosphere reaches, metres above sea level. */
   maxAtmosphere: number;
   /** Optional atmosphere model. Only meaningful when `hasAtmosphere` is true. */
   atmosphere?: AtmosphereModel;
@@ -1787,7 +1790,8 @@ export interface UseRouteCommandsResult {
 // sitrep-client.
 
 /**
- * The staleness/absence status a topic (raw or derived) is in.
+ * How current a Topic is, as one word: `"live"`, one of the reasons it is
+ * held (as in {@link HeldGrade}), `"absent"`, or `"resyncing"` after a rewind.
  *
  * @category Stream messages
  */

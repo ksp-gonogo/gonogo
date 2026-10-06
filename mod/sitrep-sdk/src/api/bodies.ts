@@ -22,9 +22,9 @@ import type { BodyDefinition } from "./types";
  * Imaging altitude window for a body, with sensible defaults derived from
  * radius and atmosphere when explicit values are missing.
  *
- * Atmospheric bodies get a floor of (maxAtmosphere + 10 km), you can't image
- * through the soup. Airless bodies use 5 % of the radius as the floor.
- * The ceiling is 0.8 × radius; the ideal is 0.2 × radius.
+ * The defaults: the lowest altitude is the top of the atmosphere plus 10 km,
+ * or 5% of the radius for an airless body; the highest is 0.8 × the radius;
+ * the ideal is 0.2 × the radius.
  *
  * @category Solar system and fleet
  */
@@ -79,7 +79,8 @@ function bodies(): Map<string, BodyDefinition> {
 }
 
 /**
- * Add or override a body. Last write wins, which is how a planet pack overrides.
+ * Adds a body, or replaces one with the same id. A planet pack calls it after
+ * {@link registerStockBodies} to replace stock bodies.
  *
  * @category Solar system and fleet
  */
@@ -88,7 +89,7 @@ export function registerBody(def: BodyDefinition): void {
 }
 
 /**
- * The body registered under `id`, or `undefined`.
+ * Returns the body registered under `id`, or `undefined`.
  *
  * @category Solar system and fleet
  */
@@ -97,7 +98,7 @@ export function getBody(id: string): BodyDefinition | undefined {
 }
 
 /**
- * Every registered body.
+ * Returns every registered body.
  *
  * @category Solar system and fleet
  */
@@ -106,7 +107,7 @@ export function getAllBodies(): BodyDefinition[] {
 }
 
 /**
- * For use in tests only: resets the body registry to empty.
+ * Removes every registered body. For tests.
  *
  * @category Solar system and fleet
  */

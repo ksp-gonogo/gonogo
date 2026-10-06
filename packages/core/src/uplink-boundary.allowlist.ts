@@ -575,19 +575,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
-       * -- the client-side read of comms.degrade. One prose
-       * sentence names the two shipped backends, and it is the sentence that
-       * tells an author why to use this helper instead of
-       * `1 - comms.signal.strength`: that field is a range fraction on one
-       * install and rate-ladder headroom on the other, so the obvious
-       * arithmetic is a different quality curve per save with nothing on the
-       * wire saying so. Written generically it reads as caution rather than as
-       * the concrete trap it is. Text only: the helper treats `modelId` as an
-       * opaque string and has no RA type, import or branch, and its own test
-       * deliberately uses made-up ids so nothing here names a shipped backend's.
-       */
-      "mod/sitrep-sdk/src/comms-degrade.ts",
-      /*
        * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
@@ -1079,11 +1066,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * channel the ordinal rides (`kerbalism.resourceDefs[].flowModeOrdinal`)
        * and why the type is here rather than there. A channel path in a contract
        * doc comment is the text-only wire mention this bucket documents; the
-       * SDK's two files carry the same sentence for the same reason.
+       * SDK's index carries the same sentence for the same reason.
        */
       "mod/Sitrep.Contract/KspEnums.cs",
       "mod/sitrep-sdk/src/index.ts",
-      "mod/sitrep-sdk/src/ksp-enum-names.ts",
       /*
        * -- FIRE-AND-FORGET command budget: the per-file budget
        * for dispatches that discard their outcome is keyed by file path, so it

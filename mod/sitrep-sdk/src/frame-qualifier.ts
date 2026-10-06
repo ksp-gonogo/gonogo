@@ -3,12 +3,10 @@ import { ControlFrameKind } from "./__generated__/contract";
 import type { ReadFrameChoice } from "./spine/reference-frame";
 
 /**
- * A frame to qualify a quantity against: the live Control Frame as
- * `system.frame` carries it, or a widget's own read frame.
- *
- * <p>A read frame is taken already resolved. `follow-control-frame` names no
- * frame of its own, so it answers "unknown", the same as a Control Frame that
- * has not been reported: resolve it with `resolveReadFrame` first.</p>
+ * A reference frame to check a quantity against: the Control Frame as
+ * `system.frame` reports it, or a widget's own read frame. Resolve a read
+ * frame of `follow-control-frame` with `resolveReadFrame` first; unresolved,
+ * it counts as unknown.
  *
  * @category Orbits and trajectories
  */
@@ -19,27 +17,19 @@ function isReadFrame(frame: QualifiedFrame): frame is ReadFrameChoice {
 }
 
 /**
- * Whether a quantity means anything in the frame currently in force.
- *
- * <p>Three states rather than a boolean, because "we have not been told what
- * frame this is" is not the same as "this frame makes the number meaningless",
- * and collapsing them picks one wrong behaviour or the other: a boolean that
- * defaults to valid quotes a length in a frame where lengths are not lengths,
- * and one that defaults to invalid blanks the boards for the moment before the
- * first frame sample lands.</p>
+ * Whether a quantity has a meaning in a reference frame: `"valid"`,
+ * `"invalid"`, or `"unknown"` when no frame has been reported yet. Treat
+ * `"unknown"` apart from `"invalid"`: the frame may simply not have arrived.
  *
  * @category Orbits and trajectories
  */
 export type FrameValidity = "valid" | "invalid" | "unknown";
 
 /**
- * Whether a distance quoted in this frame is a distance.
- *
- * <p>A rotating-pulsating frame holds its two primaries' separation fixed, so
- * its length unit varies with time. A readout in that frame must suppress an
- * absolute length or label it as a pulsating-frame unit, and that is a physics
- * rule rather than a wording choice, so it lives here once instead of in each
- * widget that quotes a length.</p>
+ * Returns whether a distance shown in this frame is a real distance. In a
+ * rotating-pulsating frame the unit of length changes over time, since the
+ * frame holds the distance between its two bodies fixed, so a distance there
+ * is `"invalid"`: hide it, or label it as a distance in that frame's units.
  *
  * @category Orbits and trajectories
  */
@@ -60,13 +50,9 @@ export function lengthsAreLengths(
 }
 
 /**
- * Whether apsides exist in this frame at all.
- *
- * <p>An apsis is defined against a centre, and the rotating frames have a pair
- * rather than a centre; a frame defined against the current target returns
- * before apsides are computed at all. In those an apsis is not merely
- * unavailable, it is undefined, which is a different thing to tell an operator
- * than "not measured".</p>
+ * Returns whether periapsis and apoapsis exist in this frame. They need a
+ * single central body, so they are `"invalid"` in the rotating frames, which
+ * turn about a pair of bodies, and in a frame relative to the target.
  *
  * @category Orbits and trajectories
  */
@@ -109,18 +95,12 @@ const FRAME_NAMES: Readonly<Record<number, string>> = {
 };
 
 /**
- * The frame in force, named so an operator can see WHY a readout beside it says
- * a quantity does not exist.
+ * Returns a name for the Control Frame to show beside a readout, such as
+ * `"Kerbin-Centred Inertial"`, or `undefined` when no frame has been reported.
  *
- * <p>A kind this build has no name for renders as the kind rather than as a
- * guess: a frame added by a later producer should read as obviously incomplete
- * instead of being rounded to whichever neighbour is closest, because a wrong
- * frame name is a wrong claim about what every coordinate on the board
- * means.</p>
- *
- * <p>A body the payload did not carry leaves its placeholder standing, for the
- * same reason: "&lt;centre&gt;-Centred Inertial" says a body is missing, where
- * "-Centred Inertial" reads like a formatting slip.</p>
+ * A frame kind this version has no name for is shown by its number, and a body
+ * the frame did not report keeps its placeholder, such as
+ * `"<centre>-Centred Inertial"`, so a gap is visible rather than guessed at.
  *
  * @category Orbits and trajectories
  */
@@ -149,13 +129,14 @@ export function controlFrameLabel(
 }
 
 /**
- * What to put where a number would go, or undefined when the number itself
- * belongs there.
+ * Returns the text to show in place of a quantity that has no meaning in the
+ * current frame, such as `"No apoapsis in this frame"`, or `undefined` when
+ * the quantity is valid and should be shown. Showing a reason, rather than
+ * leaving the readout blank, tells the player it comes from the frame they
+ * chose and not from a lost signal.
  *
- * <p>The sentence rather than a blank, because a readout that simply vanishes
- * reads as a link fault. This is the console saying the quantity does not exist
- * in the frame the operator chose, which is a fact about their own view and
- * something they can act on by changing it.</p>
+ * @param validity - From {@link lengthsAreLengths} or {@link apsidesExist}.
+ * @param quantity - The quantity's name, such as `"apoapsis"`.
  *
  * @category Orbits and trajectories
  */

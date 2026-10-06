@@ -25,26 +25,17 @@ import { getHost } from "./host";
 import type { UplinkClientHandle } from "./types";
 
 /**
- * Which clock a THRESHOLD's condition is judged on.
+ * Which clock a threshold alarm is judged on:
  *
- * - `"command"`: the command centre this screen commands from, judged against
- *   what that centre has been told. A craft reading reaches it one light-time
- *   behind the craft; the career balance reaches a ground centre as it changes.
- *   The simulation evaluates it, and the warp stops on the tick that centre
- *   learns the condition holds
- * - `"scet"`: the craft's own clock. The simulation evaluates it, and the warp
- *   stops on the tick that clock reaches the condition
+ * - `"command"`, the default: what the command centre this screen commands
+ *   from has been told. A craft's value reaches it one signal delay late, so
+ *   the alarm stops time warp when the centre learns of the condition
+ * - `"scet"`: the craft's own clock. The alarm stops time warp when the
+ *   condition is true at the craft
  *
- * Absent means `"command"`.
- *
- * A time alarm takes no vantage. Its instant is a universal time, every clock
- * agrees on one, and there is nothing for a choice to select between.
- *
- * A `"scet"` threshold can be refused: what the simulation is able to read
- * pre-reveal is a table inside the mod, and it is not published anywhere a
- * caller could consult first. A refusal is not silent, the operator's row says
- * NOT ARMED and carries the mod's reason, and the alarm never fires: the
- * simulation judges every alarm, at either vantage, and nothing else does.
+ * The mod may refuse a `"scet"` threshold for a value it cannot read ahead of
+ * the delay. The alarm's row then shows it as not armed with the mod's reason,
+ * and it never fires. A time alarm takes no vantage.
  *
  * @category Alarms
  */
@@ -56,13 +47,13 @@ export type UplinkAlarmVantage = "command" | "scet";
  * @category Alarms
  */
 export interface UplinkAlarmTimeTrigger {
+  /** Always `"time"`. */
   kind: "time";
   /** KSP universal time to fire at, seconds. */
   ut: number;
   /**
-   * Seconds before {@link ut} to step the warp down, so the operator arrives
-   * with time to act rather than at the instant itself. Defaults to the app's
-   * own default when omitted.
+   * Seconds before `ut` to drop out of time warp, so the player has time to
+   * act. Omitted, Gonogo's default is used.
    */
   leadSeconds?: number;
 }
@@ -75,21 +66,19 @@ export interface UplinkAlarmTimeTrigger {
 export type UplinkAlarmThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
 /**
- * Fires while a numeric field on a Topic compares true.
- *
- * Addressed as a Topic and a path into its payload, never as one flat dotted
- * string: a Topic id can be two segments or three, so splitting a joined key
- * back apart is a guess, and an alarm armed against the wrong subject is
- * accepted and then never fires.
+ * Fires while a numeric field of a Topic compares true against `value`. The
+ * Topic and the path inside its payload are given separately.
  *
  * @category Alarms
  */
 export interface UplinkAlarmThresholdTrigger {
+  /** Always `"threshold"`. */
   kind: "threshold";
   /** The Topic carrying the value, e.g. `"vessel.flight"`. */
   topic: TopicId;
   /** Dotted path into that Topic's payload, e.g. `"altitudeAsl"`. */
   fieldPath: string;
+  /** How the field is compared with `value`. */
   op: UplinkAlarmThresholdOp;
   /** The value to compare against, as a plain magnitude in the field's own unit. */
   value: number;
@@ -112,56 +101,48 @@ export type UplinkAlarmTrigger =
   | UplinkAlarmThresholdTrigger;
 
 /**
- * What an Uplink asks the app to create.
+ * An alarm an Uplink asks Gonogo to create, through {@link useAlarmRequest}.
  *
  * @category Alarms
  */
 export interface UplinkAlarmRequest {
   /**
-   * This Uplink's own name for the thing the alarm is about, e.g.
-   * `"facility-upgrade:LaunchPad"`. Scoped to the requesting Uplink, so two
-   * Uplinks may use the same string without colliding.
-   *
-   * It is what makes the request idempotent, and it is required for that
-   * reason. One key is one alarm: asking again with a key the Uplink already
-   * has an alarm for RETARGETS that alarm rather than adding a second, so a
-   * button pressed twice, or a request re-issued after a reconnect, leaves the
-   * operator with one row instead of a growing pile of near-duplicates.
-   *
-   * The operator stays in charge of the result. Deleting the alarm really
-   * deletes it; a later request under the same key creates a fresh one, which
-   * is the honest reading of pressing the button again.
+   * Your Uplink's name for what the alarm is about, such as
+   * `"facility-upgrade:LaunchPad"`. Other Uplinks' keys never clash with yours.
+   * A request with a key you already have an alarm for updates that alarm
+   * rather than adding another. If the player deleted the alarm, the next
+   * request with that key creates a new one.
    */
   key: string;
-  /** The row's name, as the operator reads it. Keep it about the event, not the Uplink. */
+  /** The alarm's name, as the player reads it. Name the event, not the Uplink. */
   name: string;
   /** Optional longer note on the row. */
   notes?: string;
+  /** When the alarm fires. */
   trigger: UplinkAlarmTrigger;
 }
 
 /**
- * Ask the app to create an alarm on this Uplink's behalf.
+ * Returns a function that asks Gonogo to create an alarm for your Uplink. Pass
+ * the handle {@link defineUplinkClient} returned, so the alarm records which
+ * Uplink asked for it. Where no alarm list is mounted, such as outside the
+ * dashboard, the function does nothing.
  *
- * ```ts
- * const requestAlarm = useAlarmRequest(MY_UPLINK);
- * // in a click handler:
- * requestAlarm({
- *   key: `facility-upgrade:${id}`,
- *   name: `${facility} upgrade complete`,
- *   trigger: { kind: "time", ut: finishesAtUt },
- * });
+ * @example
+ * ```tsx
+ * const MY_UPLINK = defineUplinkClient({ id: "myuplink", version: "1.0.0", name: "My Uplink" });
+ *
+ * function RemindMe({ facility, finishesAtUt }: { facility: string; finishesAtUt: number }) {
+ *   const requestAlarm = useAlarmRequest(MY_UPLINK);
+ *   const remind = () =>
+ *     requestAlarm({
+ *       key: `facility-upgrade:${facility}`,
+ *       name: `${facility} upgrade complete`,
+ *       trigger: { kind: "time", ut: finishesAtUt },
+ *     });
+ *   return <Button onClick={remind}>Remind me</Button>;
+ * }
  * ```
- *
- * The handle is the one `defineUplinkClient` returned, and it is a parameter
- * rather than something the request declares for itself: the alarm records who
- * asked for it, and provenance an author types by hand is provenance that can
- * name somebody else.
- *
- * Returns a no-op when no alarm surface is mounted (a probe harness, a widget
- * rendered outside the dashboard). A widget that wants to hide the affordance
- * in that case should hide it on its own condition rather than probing this:
- * an alarm request is a thing to offer wherever the widget renders.
  *
  * @category Alarms
  */

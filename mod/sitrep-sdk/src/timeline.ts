@@ -16,40 +16,28 @@ import type { Meta } from "./__generated__/contract";
  */
 
 /**
- * One point on a topic's `ClientTimeline`.
- *
- * `payload: null` is a tombstone (absence-as-data), a
- * confirmed "there is no value", distinct from `undefined` (never received).
- * `meta` is kept whole (not just the payload) because quality-picking,
- * subject-provenance guarding and staleness all
- * need fields beyond the value itself.
- *
- * `epoch` is the client-side timeline-reset generation this point was
- * ingested under (mirrors `meta.timelineEpoch`, copied in verbatim by
- * whoever constructs the point: `ClientTimeline.append` trusts it, it does
- * not re-derive it from `meta`).
+ * One received sample of a Topic: its value, when it is valid, and what is
+ * known about where it came from. A reckoner and a derived channel receive
+ * these.
  *
  * @category Processors
  */
 export interface TimelinePoint<Payload = unknown> {
+  /** The UT the value is valid at. */
   validAt: number;
+  /** The value, or `null` when the game confirmed there is none. */
   payload: Payload | null;
+  /** Where the sample came from and how good it is, such as its source craft. */
   meta: Meta;
+  /** The timeline generation it was received in; loading a save starts a new one. */
   epoch: number;
 }
 
 /**
- * What a `derive()` function reads inputs through, enforces the
- * "single-view-time invariant". Deliberately NOT `(topic) => value`, it
- * returns the whole `TimelinePoint` (so `derive` can read `meta.quality`/
- * `meta.source` for quality-picking and subject-provenance), and it is
- * always bound to one frame's frozen `viewUt` by `TimelineStore.sample`/`sampleDerived`: there
- * is no overload that takes a UT, and no way to ask for "latest" from inside
- * a derivation. That is what makes the invariant structural rather than a
- * convention derive authors have to remember: `get` physically cannot read
- * any UT but the one this derive call was invoked for. `get` also resolves
- * derived-on-derived inputs transparently (it's just another `sample()`
- * call), so a derived channel can list another derived channel as an input.
+ * How a derived channel's `derive` reads its inputs: `get(topic)` returns that
+ * Topic's sample at the same view time `derive` was called for, including its
+ * `meta`. There is no way to ask for any other time, so every input is from
+ * one instant. Another derived channel can be read the same way.
  *
  * @category Processors
  */
@@ -66,33 +54,15 @@ export type DerivedGet = <Payload = unknown>(
 export interface DerivedChannelDefinition<Payload> {
   /** The topic this channel registers as, e.g. `"system.state"`. */
   topic: string;
-  /**
-   * Declarative list of input topics this channel reads. Not currently used
-   * to drive subscription ref-counting (that requires wiring `TimelineStore`
-   * to `TelemetryClient`'s subscribe machinery, not yet done); recorded
-   * here as the channel's own documentation of its dependencies, and
-   * reserved for that wiring.
-   */
+  /** The Topics `derive` reads. Listing them does not subscribe to them. */
   inputs: string[];
   /**
-   * Pure function: same `(get, viewUt)` inputs must produce the same output,
-   * always (the replay/scrub contract). Two distinct
-   * "nothing" results: never conflate them:
-   * - Return `undefined` when an input has no point at-or-before `viewUt`
-   *   yet in the current epoch: "not whole yet" (cold start, or
-   *   resynchronizing after an epoch reset until the first post-reset
-   *   keyframe lands per input). `sample()`/`sampleDerived` propagate
-   *   this as "no point at all", never a fabricated tombstone.
-   * - Return `null` for a confirmed absence (a tombstoned input, or the
-   *   channel's own subject genuinely gone): never a fabricated
-   *   zero-valued record.
+   * Computes the channel's value at `viewUt`. The same inputs must give the
+   * same result, so a replay draws the same thing. Return `undefined` while an
+   * input has not arrived yet, and `null` when the value is confirmed absent;
+   * never a made-up zero.
    */
   derive: (get: DerivedGet, viewUt: number) => Payload | null | undefined;
-  /**
-   * Expose `"<topic>.<field>"` subtopics that read a single field off the
-   * one memoized record: e.g. `system.state.bodyCount`.
-   * Field names are resolved dynamically off whatever `derive` returns, so
-   * no static field list is needed here.
-   */
+  /** Whether each field of the value can also be read as its own Topic, such as `system.state.bodyCount`. */
   fields?: boolean;
 }

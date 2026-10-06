@@ -33,49 +33,25 @@ const MAX_NEWTON_ITERATIONS = 50;
 const NEWTON_TOLERANCE = 1e-12;
 
 /**
- * The client half of the propagation seam: whether an element set holds for a
- * window, asked BEFORE propagating into it.
+ * How far an orbit's elements can be trusted forward in time, as the payload
+ * carries it beside them. Check it with {@link canPropagate} before carrying
+ * an orbit forward.
  *
- * The client twin of `IPropagationProvider.CanPropagate(target, frame, fromUt,
- * toUt)`, in the same shape.
- *
- * ## Why a client cannot work this out itself
- *
- * The horizon depends on the perturbation environment (which bodies are near,
- * how massive, how far), so it arrives on the sample from the only thing that
- * knows. It is a LOCAL property: the same save at the same instant has horizons
- * differing by orders of magnitude between craft, because the perturbation
- * ratio scales as `2 (mu_perturber / mu_primary) (r / d)^3`. A measured 20 km
- * Minmus orbit drifts ~11 m per hour under two-body extrapolation; an ordinary
- * high-Kerbin orbit perturbed by the Mun drifts ~19 km per hour. One global
- * horizon cannot be right, and reconstructing it client-side would mean
- * reimplementing the thing this seam exists to avoid.
- *
- * Under stock the provider is the analytic two-body solver, which has no
- * horizon and says so (`Unbounded`), so this permits everything. It refuses
- * once a provider that integrates, such as an n-body backend, returns `Until`.
+ * It differs from craft to craft, because it depends on nearby bodies: in an
+ * n-body game, a low orbit around a small moon can stay accurate for hours
+ * while a high orbit near another body drifts kilometres in an hour. In stock
+ * KSP every orbit is `Unbounded`.
  *
  * @category Orbits and trajectories
  */
 export interface PropagationHorizonLike {
   kind: PropagationHorizonKindLike;
-  /**
-   * Only meaningful for `Until`; a UT, not a duration.
-   *
-   * `null` as well as absent, because the C# is `double?` and the wire keeps
-   * the key: every horizon that is not `Until` arrives as `"untilUt":null`,
-   * which is the common case. `horizonUtOf` has always tested for it; this
-   * mirror simply did not say so until the generated type did.
-   */
+  /** For `Until`, the UT the elements are trusted until: an instant, not a duration. `null` or absent otherwise. */
   untilUt?: { magnitude: number } | number | null;
   /**
-   * What kind of result these elements are: a closed-form conic, or a snapshot
-   * of an integrated path. Optional HERE and required on the wire, because this
-   * shape also describes a caller-built horizon in a test.
-   *
-   * Carried so a refusal can say what a client cannot DO rather than who it
-   * cannot ask. Never consulted by the gate's decision, which is `kind` and
-   * `untilUt` alone: the horizon says reach and this says shape.
+   * Whether the elements are a fixed orbit or a snapshot of a path the game is
+   * integrating. Always present in a payload. It does not change what
+   * {@link canPropagate} decides, only what its refusal reports.
    */
   trajectoryKind?: TrajectoryKindLike;
 }
@@ -136,18 +112,15 @@ export function horizonUtOf(
 }
 
 /**
- * Whether `horizon` authorises propagating across `[fromUt, toUt]`.
- *
- * An `Unspecified` horizon REFUSES. Nobody stated one, and "nobody said" must
- * not read as "trust this forever": that is the permissive default this whole
- * seam exists to remove, and it would fail silently the first time a producer
- * forgot the field.
- *
- * An `Until` horizon with no usable UT also refuses, for the same reason: the
- * horizon claims a bound and then fails to name it.
+ * Returns whether an orbit with this horizon may be carried across
+ * `fromUt` to `toUt`, both in UT seconds, or why not. An `Unbounded` horizon
+ * allows any window. An `Until` horizon allows a window that ends by its
+ * `untilUt`. A missing horizon, an `Unspecified` one, or an `Until` with no
+ * UT is refused, since nothing says how far the orbit holds.
  *
  * @category Orbits and trajectories
  */
+// Tolerates `undefined` rather than trusting the type: absent means a producer that predates or dropped the field.
 export function canPropagate(
   horizon: PropagationHorizonLike | undefined,
   fromUt: number,
@@ -185,23 +158,16 @@ export function canPropagate(
 }
 
 /**
- * Classical (Keplerian) orbital elements for a body relative to its parent,
- * plus the epoch/mean-anomaly pair needed to propagate the orbit forward
- * (or backward) in time.
- *
- * Unit convention: ALL angles (`inc`, `lan`, `argPe`, `meanAnomalyAtEpoch`)
- * are in RADIANS, not degrees. `epoch` and the `ut` passed to `solve` are in
- * UT seconds (KSP's universal time) -- never wall-clock. `mu` is the parent
- * body's standard gravitational parameter (GM), in the same length/time
- * units as the resulting state vector (KSP convention: meters and seconds).
- * Mirrors `OrbitElements.cs`.
+ * Classical orbital elements of a body or craft relative to its parent, with
+ * the epoch and mean anomaly needed to carry the orbit forward or back in
+ * time. Angles are in radians, times in UT seconds, and lengths in metres.
  *
  * @category Orbits and trajectories
  */
 export interface OrbitElements {
-  /** Semi-major axis. */
+  /** Semi-major axis, in metres. */
   sma: number;
-  /** Eccentricity (0 = circular, <1 = elliptical). */
+  /** Eccentricity: 0 for a circle, below 1 for an ellipse. */
   ecc: number;
   /** Inclination, radians. */
   inc: number;
@@ -213,20 +179,21 @@ export interface OrbitElements {
   meanAnomalyAtEpoch: number;
   /** UT (seconds) at which `meanAnomalyAtEpoch` is valid. */
   epoch: number;
-  /** Parent body's standard gravitational parameter (GM). */
+  /** The parent body's gravitational parameter (GM), in m³/s². */
   mu: number;
 }
 
 /**
- * A plain (x, y, z) tuple. Mirrors `Vector3d.cs`.
+ * A vector as three plain numbers, `[x, y, z]`, as the orbit and frame
+ * functions take and return it.
  *
  * @category Frames of reference
  */
 export type Vector3 = readonly [x: number, y: number, z: number];
 
 /**
- * Position + velocity, both parent-body-relative, at a single instant. Mirrors
- * `StateVector` in `Vector3d.cs`.
+ * A position and velocity relative to the parent body, at one instant, in
+ * metres and metres per second.
  *
  * @category Orbits and trajectories
  */
@@ -236,28 +203,24 @@ export interface StateVector {
 }
 
 /**
- * The angular part of a Kepler solve: mean anomaly (from the epoch + mean
- * motion), eccentric anomaly (Newton-Raphson on Kepler's equation), and true
- * anomaly -- everything `solve()` needs before it gets to the perifocal
- * position/velocity. All in RADIANS. `meanMotion` (rad/s) is exposed
- * alongside them so a caller that needs a period/time-to-apsis (derived from
- * mean motion, not from any one anomaly) doesn't have to recompute
- * `sqrt(mu/sma^3)` a second time.
+ * Where an orbit is at one instant, as angles in radians, with its mean
+ * motion. {@link solveAnomalies} returns one.
  *
  * @category Orbits and trajectories
  */
 export interface Anomalies {
   meanAnomaly: number;
+  /** Eccentric anomaly at the solved instant. */
   eccentricAnomaly: number;
+  /** True anomaly at the solved instant. */
   trueAnomaly: number;
   /** Mean motion, radians/second: `sqrt(mu / sma^3)`. */
   meanMotion: number;
 }
 
 /**
- * Eccentric to true anomaly by the half-angle form, well behaved in every
- * quadrant. Radians, `0 <= ecc < 1`. The one copy: the propagation, the patch
- * chain and the manoeuvre planner all convert through it.
+ * Returns the true anomaly for an eccentric anomaly, both in radians, for an
+ * elliptical orbit (`0 <= ecc < 1`). Correct in every quadrant.
  *
  * @category Orbits and trajectories
  */
@@ -294,12 +257,10 @@ export function eccentricFromTrueAnomaly(
 }
 
 /**
- * Solves for `orbit`'s mean/eccentric/true anomaly at time `ut` -- the exact
- * angular computation `solve()` itself uses, exposed standalone for callers
- * that need an anomaly (or the mean motion) without a full state vector
- * (`orbital-solve.ts`'s true anomaly, period and apsis countdowns). Reuses the
- * SAME Newton-Raphson solve `solve()` calls below -- never reimplement Kepler's
- * equation a second time. Same ellipse-only guard as `solve()`.
+ * Returns `orbit`'s anomalies and mean motion at `ut`, in UT seconds: the
+ * same computation {@link solve} makes, for a caller that needs an angle or
+ * the orbital period rather than a position. Throws a `RangeError` for an
+ * orbit that is not elliptical.
  *
  * @category Orbits and trajectories
  */
@@ -373,20 +334,12 @@ export interface ConicSolution {
 }
 
 /**
- * Advances a conic to `ut` and returns where it is along the orbit: the one
- * place the mean anomaly is stepped, Kepler's equation solved and the radius
- * taken, whatever the caller does next with them.
+ * Returns where an orbit is at `ut`, in its own plane: its anomalies and its
+ * distance from the body's centre. For a position, use {@link solve}.
  *
- * The mean motion is an input, not derived here, because the right figure
- * depends on where the orbit came from. A patch off the wire carries the
- * game's own period, so pass `2π / period` and the track keeps the game's
- * numbers; a bare element set has only the body's `mu`, so pass
- * `√(mu / sma³)`. Deriving one from the other here would shift the first by
- * the last digits of the period the game rounded.
- *
- * Elliptical only: throws a `RangeError` for `ecc` outside `[0, 1)`, as
- * `solve` does. Rotating the result out of the orbital plane is
- * `rotatePerifocalToInertial`'s job.
+ * Pass the mean motion yourself, in radians per second: `2π / period` for an
+ * orbit from the game, which carries its period, or `√(mu / sma³)` for
+ * elements alone. Throws a `RangeError` when `ecc` is not between 0 and 1.
  *
  * @category Orbits and trajectories
  * @intent an Uplink drawing its own patch chain or manoeuvre preview advances a conic the same way the built-in widgets do, with the figure for the mean motion that suits its source
@@ -414,11 +367,9 @@ export function solveConic(
 }
 
 /**
- * Solve for the state vector of `orbit` at time `ut` (UT seconds). Mirrors
- * `KeplerProvider.Solve`. Deterministic -- same inputs, same outputs, no
- * wall-clock/random dependence. Throws for parabolic/hyperbolic
- * eccentricities (ecc < 0 or ecc >= 1), same guard as the C# side (via
- * `solveAnomalies`).
+ * Returns the position and velocity of `orbit` at `ut`, in UT seconds,
+ * relative to its parent body. The same result as the mod's own propagation.
+ * Throws a `RangeError` for an orbit that is not elliptical.
  *
  * @category Orbits and trajectories
  */

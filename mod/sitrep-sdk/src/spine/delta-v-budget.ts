@@ -45,20 +45,10 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 
 /**
- * One stage's row: the fourteen scalar fields `StageDeltaVEntry` actually
- * carries, under the names the widgets already render off.
- *
- * Fourteen, with ONE spelling each, pinned to the wire that exists.
- * `KspHost.BuildDeltaV` writes exactly sixteen keys and `dvVac`/`twrVac`/
- * `thrustAsl` are the names it writes, so a `deltaVVac`/`TWRVac`/`thrustASL`
- * fallback matches nothing; `stageMass`/`ispVac`/`ispASL`/`ispActual` are on no
- * wire at all and would sit permanently `NaN`, rendered by nothing.
- *
- * Every field is a magnitude rather than a `Value`: these feed bar scaling, a
- * rocket-equation solve and `Math.max`, all arithmetic on numbers, and the row
- * is where that conversion has always happened. **`NaN` means the wire carried
- * no figure**, which is why every reader filters on `Number.isFinite` rather
- * than truthiness: a stage with no engine has no ΔV, and a spent stage has 0.
+ * One stage of the active craft's delta-v, from `dv.stages`, as plain numbers
+ * for drawing and arithmetic. A field is `NaN` when the game gave no figure,
+ * so check with `Number.isFinite`: a stage with no engine has no delta-v, while
+ * a spent stage has 0.
  *
  * @category Orbits and trajectories
  */
@@ -81,26 +71,21 @@ export interface DeltaVStage {
 }
 
 /**
- * Where the budget came from and how old it is.
- *
- * Its own provenance rather than a nested `Reading`, for the reason
- * `ReadingDep`'s doc gives and `SHIP_SYSTEMS.levels` already follows: a
- * `Reading` is one Topic's currency, and a budget joined across `dv.summary`,
- * `dv.stages` and `vessel.structure` is not one Topic's anything.
+ * How current a {@link DeltaVBudget} is, from its `dv.summary` reading.
  *
  * @category Orbits and trajectories
  */
 export interface BudgetProvenance {
-  /** The reading arm `dv.summary` arrived on. */
+  /** The state of the `dv.summary` reading. */
   state: ReadingState;
   /** UT the summary was observed at; undefined when nothing has been observed. */
   asOfUt: Value<"ut"> | undefined;
   /** Seconds between that observation and the frame this was derived for. */
   ageSec: number | undefined;
   /**
-   * The stock ΔV sim confirmed it has no figure for this craft, as opposed to
-   * none having arrived. A craft with no engines really has no budget; a craft
-   * we have not heard from has one we do not know. They must not render alike.
+   * Whether the game confirmed it has no delta-v for this craft, as for a craft
+   * with no engines, rather than none having arrived yet. Show the two
+   * differently.
    */
   confirmedAbsent: boolean;
 }
@@ -171,8 +156,8 @@ function field(entry: StageWireEntry, key: string): number {
 }
 
 /**
- * One wire row to a {@link DeltaVStage}. Exported so a widget test can build a
- * row without a live evaluator.
+ * Returns one `dv.stages` entry as a {@link DeltaVStage}, or `null` when it is
+ * not one.
  *
  * @category Orbits and trajectories
  */
@@ -233,9 +218,10 @@ const NO_BUDGET: DeltaVBudget = {
 };
 
 /**
- * The whole derivation, pure. Exported so a test can exercise it directly
- * without a live evaluator, the way every processor in the tree exposes its
- * derivation beside its handle.
+ * Returns a {@link DeltaVBudget} from the `dv.summary` reading, the raw
+ * `dv.stages` payload, the craft's current stage and the view time: the same
+ * computation {@link DELTA_V_BUDGET} runs each frame, for use without a
+ * running telemetry stream, such as in a test.
  *
  * @category Orbits and trajectories
  */
@@ -299,9 +285,9 @@ export function deriveDeltaVBudget(
 }
 
 /**
- * `core:delta-v-budget`. The owner-stamped Processor handle. Import it to
- * consume the budget, never re-declare it: a second registration under the same
- * id with a different compute throws (processors.ts).
+ * The processor that computes the active craft's {@link DeltaVBudget} once per
+ * frame. Read it with `useProcessor(DELTA_V_BUDGET)`, or list it in a
+ * contribution's `deps`. Do not register a processor with the same id.
  *
  * @category Orbits and trajectories
  */

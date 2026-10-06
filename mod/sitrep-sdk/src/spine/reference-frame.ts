@@ -65,13 +65,15 @@ import type { CelestialBody, CelestialFacts } from "./celestial-facts";
 import { type OrbitElements, solve, type Vector3 } from "./kepler";
 
 /**
- * The frames a widget may ask to draw in.
+ * The reference frames a widget may draw in:
  *
- * `follow-control-frame` is a real member rather than an absence: a widget that
- * wants to show what the player is looking at is making a choice, and one that
- * has not chosen is a different state. It resolves against the observed frame
- * the settings channel carries, and resolves to nothing when no such channel is
- * mounted, which is the ordinary case.
+ * - `follow-control-frame`: whatever frame the player has selected in game,
+ *   where a mod reports one. With no such mod, there is none to follow
+ * - `body-centred-inertial`: centred on a body, not rotating
+ * - `parent-direction`: centred on a body, turning to keep its parent in one
+ *   direction
+ * - `rotating-pulsating`: turning with a body and its parent, and scaled so the
+ *   distance between them stays 1
  *
  * @category Frames of reference
  */
@@ -83,46 +85,40 @@ export const READ_FRAME_KINDS = [
 ] as const;
 
 /**
- * One of `READ_FRAME_KINDS`.
+ * One of {@link READ_FRAME_KINDS}.
  *
  * @category Frames of reference
  */
 export type ReadFrameKind = (typeof READ_FRAME_KINDS)[number];
 
 /**
- * One widget's frame choice.
- *
- * Parameterised by a single body, exactly as the n-body mod's own selector is:
- * the centred frames are that body, and the two rotating frames are that body
- * and its parent. Carrying a pair here instead would let a caller name a pair
- * the mod cannot form, and then the frame we drew would not be a frame anyone
- * could switch to in game.
+ * A frame a widget draws in: a {@link ReadFrameKind} and the body it is built
+ * on. The centred frames are centred on that body; the rotating frames turn
+ * with that body and its parent, as the game's own frame selector does.
  *
  * @category Frames of reference
  */
 export interface ReadFrameChoice {
+  /** Which kind of frame. */
   kind: ReadFrameKind;
   /** The selected body's `system.bodies` index. Unused by `follow-control-frame`. */
   bodyIndex?: number | null;
 }
 
 /**
- * How to read a coordinate in a frame.
+ * What a coordinate in a frame is measured in.
  *
  * @category Frames of reference
  */
 export const TRAJECTORY_SCALE_CONVENTIONS = {
   /** Metres. Every frame whose length unit stands still. */
   metres: "metres",
-  /**
-   * A multiple of the primaries' separation at the instant of the point itself.
-   * Never a distance; see this module's own note on why this one was chosen.
-   */
+  /** A multiple of the distance between the frame's two bodies at the point's own instant. Not a distance. */
   separationAtPointInstant: "separation-at-point-instant",
 } as const;
 
 /**
- * One of `TRAJECTORY_SCALE_CONVENTIONS`.
+ * One of {@link TRAJECTORY_SCALE_CONVENTIONS}.
  *
  * @category Frames of reference
  */
@@ -130,17 +126,16 @@ export type TrajectoryScaleConvention =
   (typeof TRAJECTORY_SCALE_CONVENTIONS)[keyof typeof TRAJECTORY_SCALE_CONVENTIONS];
 
 /**
- * A frame's own state at one instant: everything a point transform needs, and
- * nothing that depends on the points.
- *
- * Separated out because that independence is what makes this affordable. The
- * frame work is the whole cost and it is shared by every point on every curve
- * drawn in the same frame at the same instant, where the per-point work is a
- * rotation and a subtraction.
+ * A frame's state at one instant: where it is, how it is turned and how it is
+ * scaled. Compute it once with {@link frameInstantAt} and pass it to
+ * {@link toFrame} and {@link fromFrame} for every point at that instant.
+ * Positions and velocities are relative to the root body, in metres and
+ * metres per second, not turning.
  *
  * @category Frames of reference
  */
 export interface FrameInstant {
+  /** The instant, as a UT. */
   ut: number;
   /** Root-centred inertial position of the frame's origin, metres. */
   origin: Vector3;
@@ -154,10 +149,11 @@ export interface FrameInstant {
   basis: readonly [Vector3, Vector3, Vector3];
   /** The frame's angular velocity in inertial components, rad/s. Zero for a non-rotating frame. */
   angularVelocity: Vector3;
-  /** What a pulsating frame divides by, metres. Exactly 1 for every other frame. */
+  /** What a rotating-pulsating frame divides lengths by, metres: the distance between its bodies. Exactly 1 for every other frame. */
   unitLength: number;
-  /** That unit's rate of change, m/s. Exactly 0 for every other frame. */
+  /** How fast `unitLength` changes, m/s. Exactly 0 for every other frame. */
   unitLengthRate: number;
+  /** What the frame's coordinates are measured in. */
   scaleConvention: TrajectoryScaleConvention;
 }
 
@@ -167,7 +163,9 @@ export interface FrameInstant {
  * @category Frames of reference
  */
 export interface FrameCoordinates {
+  /** The position, in the frame's coordinates. */
   position: Vector3;
+  /** The velocity, in the frame's coordinates. Meaningful only when a velocity was given. */
   velocity: Vector3;
 }
 
@@ -290,19 +288,15 @@ function elementsOf(
 }
 
 /**
- * Why a body the catalogue carries has no state at this instant: a provider
- * vouched for its elements only so far, and this instant is past that.
- *
- * Distinct from the other reason a body is missing, an unsolvable parent chain,
- * which is a defect in the catalogue rather than a statement anybody made.
+ * Why a body has no position at an instant: its propagation provider says its
+ * orbit holds only until `untilUt`, and the instant is later.
  *
  * @category Frames of reference
  */
 export interface BodyWithdrawal {
   /**
-   * The body whose horizon ran out: this body, or the ancestor it is measured
-   * against. A moon's own elements can be unbounded and still be no use when
-   * nobody will say where its planet is.
+   * The body whose horizon ran out: this body, or one it orbits. A moon is
+   * withdrawn when its planet is, even if the moon's own orbit holds.
    */
   bodyIndex: number;
   /** The last UT that body's provider vouched for. */
@@ -310,20 +304,24 @@ export interface BodyWithdrawal {
 }
 
 /**
- * Every body's root-centred state at one instant, plus the lookups the frame maths needs.
+ * Every body's position and velocity relative to the root body at one
+ * instant, as {@link systemInstantAt} returns it, in metres and m/s.
  *
  * @category Frames of reference
  */
 export interface SystemInstant {
+  /** The instant, as a UT. */
   ut: number;
+  /** Each body's position, by body index. A body missing here has none at this instant. */
   positionByIndex: ReadonlyMap<number, Vector3>;
+  /** Each body's velocity, by body index. */
   velocityByIndex: ReadonlyMap<number, Vector3>;
-  /** Standard gravitational parameter per body, for the point-mass sum. */
+  /** Each body's gravitational parameter, m³/s², by body index. */
   muByIndex: ReadonlyMap<number, number>;
   /**
-   * Bodies deliberately absent above because this instant is past the horizon
-   * their provider stated, and what stated it. Empty under a stock install,
-   * where every body is unbounded.
+   * The bodies left out of `positionByIndex` because this instant is past their
+   * horizon, with which body's horizon ran out. Always empty in stock KSP.
+   * Check it before showing a missing body as missing data.
    */
   withdrawnByIndex: ReadonlyMap<number, BodyWithdrawal>;
 }
@@ -357,31 +355,15 @@ function horizonUt(body: CelestialBody): number | null {
 }
 
 /**
- * Every body's position and velocity about the root, solved at `ut`.
+ * Returns every body's position and velocity relative to the root body at
+ * `ut`, computed for that instant from the catalogue's orbits. Call it for
+ * the instant you are drawing; nothing needs advancing each frame.
  *
- * **On demand at the instant asked for, never propagated.** Under stock a body
- * rides a fixed conic about a fixed parent, so its place at a UT is a published
- * fact the catalogue's own elements already contain: evaluating it when a caller
- * names an instant costs one Kepler solve per body and needs no horizon, which
- * is why `system.bodies` carries no forward model and is on the
- * `NEVER_RECKONABLE` list. Advancing the catalogue every frame instead would buy
- * nothing and could only drift.
- *
- * **Under an n-body install that stops being true, and the provider says so.**
- * There the elements on the wire are the conic tangent to an integrated path at
- * the sample instant, and they part company with it. A body whose elected
- * provider bounded them is WITHDRAWN past that bound rather than extrapolated,
- * and {@link SystemInstant.withdrawnByIndex} says which body ran out. Same
- * horizon, same words and same absolute-UT rule as a craft's elements carry.
- *
- * Computed for the whole system in one pass rather than per body on demand,
- * because the point-mass sum needs all of them anyway and solving one body's
- * chain twice is the commonest way this gets slow.
- *
- * A body whose chain cannot be solved is OMITTED rather than placed at the
- * origin, and so is a withdrawn one. A body at a wrong position pulls the
- * frame's origin to a wrong place and says nothing about it; a body that is
- * absent is one term missing from a sum of thirty-four.
+ * In stock KSP every body is on a fixed orbit, so every body is returned for
+ * any UT. In an n-body game a body past the horizon its provider states is
+ * left out and listed in `withdrawnByIndex`, and so is any body orbiting it.
+ * A body whose parent chain cannot be solved is left out too, never placed at
+ * the origin.
  *
  * @category Frames of reference
  */
@@ -645,12 +627,11 @@ function barycentreOf(
 }
 
 /**
- * The frame's own state at `ut`, or null when the catalogue cannot form it.
- *
- * Null covers a body the catalogue has not carried yet, a root body asked for a
- * frame that needs a parent, and a pair whose separation is degenerate. All
- * three are states a widget shows as "cannot draw in this frame" rather than
- * drawing something plausible.
+ * Returns a frame's state at `ut`, or `null` when the catalogue cannot form
+ * it: the body is not in the catalogue, the frame needs a parent the body does
+ * not have, or the two bodies are in the same place. Show `null` as "cannot
+ * draw in this frame". Pass a `system` from {@link systemInstantAt} when you
+ * already have one for this instant.
  *
  * @category Frames of reference
  */
@@ -753,12 +734,8 @@ export function frameInstantAt(
 }
 
 /**
- * An inertial position, and optionally its velocity, in a frame's coordinates.
- *
- * The velocity is the part that needs the frame's angular velocity, which is
- * the part that needs the accelerations: a position can be put into a rotating
- * frame with no force model at all, and only the velocity cannot. A caller with
- * no velocity to convert therefore pays for none of that.
+ * Returns a position relative to the root body, and optionally a velocity, in
+ * a frame's coordinates. Converting only a position is cheaper.
  *
  * @category Frames of reference
  */
@@ -799,18 +776,10 @@ export function toFrame(
 }
 
 /**
- * A frame choice with `follow-control-frame` replaced by whatever the control
- * frame turned out to be.
- *
- * The control frame arrives as an already-concrete choice rather than as any
- * particular mod's frame descriptor, because that descriptor is the mod's
- * business and translating it belongs in that mod's own client. What this owns
- * is the rule: a widget pinned to the control frame follows it wherever it
- * goes, and follows nothing when there is nothing to follow.
- *
- * Null means "no frame to move to", and a caller then draws the curve in the
- * frame it arrived in rather than refusing. A stream with no such mod on it has
- * no control frame, and that is the ordinary case rather than a fault.
+ * Returns a frame choice with `follow-control-frame` replaced by the frame
+ * the player has selected, or `null` when there is none to follow, which is
+ * usual: draw in the frame the data arrived in then. Any other choice is
+ * returned as it is.
  *
  * @category Frames of reference
  */
@@ -827,19 +796,10 @@ export function resolveReadFrame(
 }
 
 /**
- * The inverse of {@link toFrame} for a position: a point given in a frame's own
- * coordinates, put back into root-centred inertial metres.
- *
- * A frame's fixed points are the reason this exists. A libration point is
- * stated as a constant in its pair's rotating-pulsating frame, and every
- * question about it that is not "where is it in this frame" needs it back in
- * metres: how far a craft is from it, how far it is from either body, and where
- * to draw it on a diagram that is not in this frame.
- *
- * Position only. The velocity inverse would need the same angular-velocity and
- * dilatation-rate terms in reverse and nothing asks for it, and an untravelled
- * branch of a coordinate transform is the kind of code that is wrong for a year
- * without anyone finding out.
+ * Returns a position given in a frame's coordinates as a position relative to
+ * the root body, in metres: the reverse of {@link toFrame}, for positions
+ * only. Use it for a point fixed in a frame, such as a libration point, to
+ * measure distances to it or draw it in another frame.
  *
  * @category Frames of reference
  */

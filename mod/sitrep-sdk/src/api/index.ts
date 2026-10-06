@@ -731,19 +731,16 @@ export function modSettingDep<
 }
 
 /**
- * Reactively read a Processor's current, frame-memoised value. Pass the handle
- * `defineUplinkClient(...).registerProcessor` returned: `Result` is inferred from
- * its brand, so `useProcessor(SHIP_SYSTEMS)` is typed as the processor's own
- * result. One evaluation per Sitrep frame is shared across every widget reading
- * the same handle (and any contribution that lists it in `deps`). Returns
- * `undefined` with no provider mounted, or before the first frame lands.
+ * Returns a processor's value for the current frame, and re-renders when it
+ * changes. Pass the handle `registerProcessor` returned on your Uplink's
+ * client, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
+ * result is typed from the handle. The processor runs once per frame however
+ * many widgets read it. Returns `undefined` with no telemetry stream mounted,
+ * or before the first frame.
  *
- * A processor whose own deps include a reading returns a `Reading<Result>`,
- * because its inputs carried currency and so its result is datable. One
- * depending only on raw topic ids returns the bare `Result`: there is nothing
- * to date it by, and inventing an instant would be a claim nothing supports.
- * The handle's own brand decides which, so the two cannot be confused at a call
- * site.
+ * A processor with a reading among its dependencies returns a
+ * `Reading<Result>`, dated by its inputs. One that depends only on Topic ids
+ * returns the bare `Result`.
  *
  * @category Processors
  */
@@ -772,23 +769,27 @@ export function useViewClock(): unknown {
 }
 
 /**
- * Bind a widget's declared actions to handlers, so a mapped serial input can
- * fire them. Keyed by action id off the `actions` array the widget registered:
+ * Connects a widget's declared actions to handlers, so an input the player
+ * has bound, such as a key or a joystick button, fires them. Keys are the
+ * action ids from the widget's `actions`. What a handler returns is sent back
+ * to the device, so a display on the hardware can follow the widget.
  *
- *     const actions = [
- *       { id: "toggle", label: "Toggle", accepts: ["button"] },
- *     ] as const satisfies readonly ActionDefinition[];
+ * Pass a new handler object on every render if you like: the latest handlers
+ * are always the ones called, and nothing is registered again.
  *
- *     useActionInput<typeof actions>({
- *       toggle: () => { handleToggle(); return { on: isOn }; },
- *     });
+ * @example
+ * ```tsx
+ * const actions = [
+ *   { id: "toggle", label: "Toggle", accepts: ["button"] },
+ * ] as const satisfies readonly ActionDefinition[];
  *
- * The instance id comes from the enclosing dashboard item, so no call site
- * passes it. An inline handler object is the expected shape: the latest one is
- * held in a ref behind stable proxies registered once on mount, so a handler
- * closing over fresh state needs no memoisation and re-registers nothing. A
- * handler's return value is fed back to the device's render style, which is how
- * a display on the hardware follows the widget.
+ * function LightSwitch() {
+ *   useActionInput<typeof actions>({
+ *     toggle: (input) => ({ pressed: input.value }),
+ *   });
+ *   return <Text>Light</Text>;
+ * }
+ * ```
  *
  * @category Actions
  */

@@ -26,22 +26,17 @@ import type { TopicId } from "./topics";
 export type { GeneratedReckonableInput, GeneratedReckonableValue };
 
 /**
- * A Topic the contract declares at least one reckonable value on.
- *
- * The set is small and it is meant to be: a mark is a promise that the wire
- * carries a model's inputs, so the majority of Topics are correctly absent.
+ * A Topic whose contract declares a forward model on at least one of its
+ * values, such as `vessel.flight`. Reading one with {@link useTelemetry}
+ * returns a {@link ReckonableReading}.
  *
  * @category Reckoners
  */
 export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
 
 /**
- * The declared field names for one Topic, as a key union, or `never` for a Topic
- * with no marks.
- *
- * `never` rather than an error because this is applied inside a conditional
- * type: `useTelemetry` asks it of every `TopicId` and only reaches
- * `ReckonableReading` for the ones that are marked.
+ * The fields of `Topic` that have a declared forward model, as a union of
+ * field names, or `never` for a Topic with none.
  *
  * @category Reckoners
  */
@@ -51,7 +46,7 @@ export type ReckonableFields<Topic extends TopicId> =
     : never;
 
 /**
- * Whether the contract declares any value on `topic` reckonable.
+ * Returns whether `topic` has a declared forward model on any of its values.
  *
  * @category Reckoners
  */
@@ -66,18 +61,10 @@ const BY_TOPIC: ReadonlyMap<string, readonly GeneratedReckonableValue[]> =
   }, new Map<string, GeneratedReckonableValue[]>());
 
 /**
- * Every declared MODEL on `topic`, in the generated order (ordinal by field,
- * then by basis), or an empty array for an undeclared Topic.
- *
- * One row per (field, model), so a value served by two models appears TWICE with
- * a different `basis` and a different input list each time. That is the shape
- * the marks have: `vessel.flight.altitudeAsl` is a conic above the atmosphere
- * interface and a rate integration below it, and the two do not run on the same
- * published inputs.
- *
- * Empty rather than `undefined` so a caller iterating never has to branch first:
- * "no declared model" and "a declared model for none of these fields" are the
- * same statement to anyone reading the rows.
+ * Returns every declared model on `topic`, one entry per field and model, or
+ * an empty array for a Topic with none. A field with two models appears twice,
+ * each with its own basis and inputs: `vessel.flight`'s `altitudeAsl` uses an
+ * orbit model above the atmosphere and a rate model below it.
  *
  * @category Reckoners
  */
@@ -88,19 +75,10 @@ export function reckonableValuesOf(
 }
 
 /**
- * Every input any declared model of one value needs, or `undefined` when that
- * value carries no mark.
- *
- * `undefined` here, unlike {@link reckonableValuesOf}'s empty array, because a
- * mark's input list is NEVER empty (the gate rejects one that is), so an empty
- * result could only mean the value is unmarked and saying so with a different
- * shape costs nothing.
- *
- * The UNION across a value's models, deduped, and it has to be a union rather
- * than one model's list: a value with two models has no single "the inputs",
- * and it is what a consumer needs: everything it may have to subscribe to in
- * order to carry the value forward at all. A caller that needs to know which
- * inputs buy which model reaches {@link reckonableValuesOf} and reads the rows.
+ * Returns every input any declared model of one field needs, without
+ * repeats, or `undefined` when the field has no declared model. Subscribe to
+ * all of them to be able to carry the field forward. For which inputs each
+ * model needs, read {@link reckonableValuesOf}.
  *
  * @category Reckoners
  */
@@ -122,12 +100,10 @@ export function reckonableInputsOf(
 }
 
 /**
- * How the contract spells one declared input, rebuilt from its two halves.
- *
- * The generated rows carry the topic and the path separately so a consumer
- * resolves a dep without parsing, but a decline names the input to an OPERATOR,
- * and the string they see should be the string the contract carries:
- * `relativeVelocity`, `@system.bodies`, `@vessel.orbit#mu`.
+ * Returns a declared input written as the contract writes it, which is also
+ * how a decline names it: `relativeVelocity` for a field of the same Topic,
+ * `@system.bodies` for another Topic, `@vessel.orbit#mu` for a field of
+ * another Topic.
  *
  * @category Reckoners
  */

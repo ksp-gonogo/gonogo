@@ -63,21 +63,22 @@ function orNaN(q: Quantityish | null | undefined): number {
  */
 
 /**
- * The slice of `vessel.propulsion` a burn needs: what the cold-engine check
- * reads, plus the mass and the rate it falls at.
+ * The fields of `vessel.propulsion` the powered-flight model reads: those
+ * {@link ConicThrustInput} has, plus the craft's mass and how fast it falls.
  *
  * @category Reckoners
  */
 export interface PoweredThrustInput extends ConicThrustInput {
+  /** The craft's total mass. */
   totalMass: Quantityish;
+  /** How fast the mass falls while the engines fire. */
   massFlow?: Quantityish | null;
 }
 
 /**
- * What a burn needs beyond the craft's own elements.
- *
- * Build one with {@link poweredFlightEvidence} from the Readings a model
- * declared, so every model of a burn reads them the same way.
+ * What the powered-flight model needs beyond the craft's orbit: the engines'
+ * state, the fuel left in the firing stage, and the commands on their way.
+ * Build it with {@link poweredFlightEvidence}.
  *
  * @category Reckoners
  */
@@ -108,11 +109,9 @@ function heldOrObserved<Payload>(
 }
 
 /**
- * {@link PoweredFlightEvidence} from the `vessel.propulsion`, `dv.stages`,
- * `vessel.structure` and `system.uplink.pending` Readings.
- *
- * The firing stage is the `dv.stages` row whose `stage` is the structure's
- * `currentStage`, the same join the delta-v budget makes.
+ * Returns a {@link PoweredFlightEvidence} from the `vessel.propulsion`,
+ * `dv.stages`, `vessel.structure` and `system.uplink.pending` readings. The
+ * firing stage is the `dv.stages` entry for the structure's `currentStage`.
  *
  * @category Reckoners
  */
@@ -146,15 +145,11 @@ export function poweredFlightEvidence(
 }
 
 /**
- * Two-body elements from a body-centred inertial state, in the frame and
- * conventions `kepler.solve` uses, so `solve(elementsFromState(s, mu, t), t)`
- * returns `s`. Radians throughout, as `OrbitElements` is.
- *
- * Elliptical and hyperbolic alike: a burn crosses `ecc = 1` on the way to an
- * escape, and the mean anomaly is the one each regime defines. A node or an
- * apsis that does not exist (an equatorial or a circular orbit) is measured
- * from the reference direction instead, the same substitution `buildElements`
- * makes for a `null` `lan` or `argPe`.
+ * Returns the orbital elements for a position and velocity relative to the
+ * body, the reverse of {@link solve}: `solve(elementsFromState(s, mu, t), t)`
+ * gives `s` back. Angles are in radians. Works for escape orbits as well as
+ * elliptical ones. On an equatorial or circular orbit, where the ascending node
+ * or periapsis does not exist, that angle is 0.
  *
  * @category Reckoners
  */
@@ -443,7 +438,8 @@ const MAGNITUDE_FLOOR = 0.01;
 const SPREAD_FRACTION = 0.01;
 
 /**
- * The elements a burn moves, as `vessel.orbit` carries them on the wire.
+ * The orbital elements the powered-flight model moves, in the units
+ * `vessel.orbit` uses.
  *
  * @category Reckoners
  */
@@ -469,31 +465,34 @@ const POWERED_PATHS = [
 ] as const;
 
 /**
- * `vessel.flight`'s two burn-moved fields.
+ * The two `vessel.flight` fields the powered-flight model moves.
  *
  * @category Reckoners
  */
 export interface PoweredFlightFields {
+  /** Height above sea level. */
   altitudeAsl: Value<"m">;
+  /** Speed relative to the body's centre. */
   orbitalSpeed: Value<"m/s">;
 }
 
 /**
- * A burn carried forward: the state at any instant inside its horizon, and how
- * well that state is known.
+ * A burn carried forward: the craft's state at any instant up to the model's
+ * horizon, and how well it is known. {@link poweredFlight} returns one.
  *
  * @category Reckoners
  */
 export interface PoweredFlight {
+  /** The paths the model moves. */
   readonly modelled: readonly ModelledField[];
   /** Position and velocity at `ut`, body-centred inertial. */
   stateAt(ut: number): StateVector;
   /**
-   * The nominal burn's state at `ut` first, then each perturbed burn's, so a
-   * caller deriving its own quantity can band it the way the elements are.
+   * The state at `ut` of the expected burn first, then of each burn varied by
+   * its uncertainty, so a caller can put a band on a quantity of its own.
    */
   spreadAt(ut: number): readonly StateVector[];
-  /** The orbit the craft is on at `ut`, in wire units. */
+  /** The orbit the craft is on at `ut`, in the units `vessel.orbit` uses. */
   elementsAt(ut: number): PoweredOrbitProjection;
   /** One-sigma bands over every moved path, at `ut`. */
   bandsAt(ut: number): ReckonedBands;
@@ -502,22 +501,15 @@ export interface PoweredFlight {
    * speed at `ut`, as `vessel.flight` carries them.
    */
   flightAt(ut: number, seaLevel: number): PoweredFlightFields;
-  /** One-sigma bands over `altitudeAsl` and `orbitalSpeed`, from the same perturbed burns that band the elements. */
+  /** One-sigma bands over `altitudeAsl` and `orbitalSpeed`, from the same varied burns as `bandsAt`. */
   flightBandsAt(ut: number, seaLevel: number): ReckonedBands;
 }
 
 /**
- * The powered model for one frame, or the reason it cannot carry the craft to
- * `reckonUt`.
- *
- * Asked only after the conic has refused the craft as under thrust, so the
- * authority and the cold-engine questions are already answered. `history` is
- * `vessel.orbit`'s own recent record, oldest first, the last entry being
+ * Returns a {@link PoweredFlight} carrying a craft under thrust forward to
+ * `reckonUt`, or a decline with reason `"under-physics"` saying why it cannot.
+ * `history` is `vessel.orbit`'s recent samples, oldest first, ending with
  * `point`.
- *
- * Every refusal is `"under-physics"`: the craft is loaded and the orbit
- * exists, and what is withheld is carrying it forward. A consumer solving a
- * current reading at its own epoch keeps doing so.
  *
  * @category Reckoners
  */

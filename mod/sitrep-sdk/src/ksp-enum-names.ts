@@ -114,7 +114,7 @@ export const KSP_SPACE_CENTER_FACILITY_NAMES = namesByValue(
 export type KspSpaceCenterFacilityName = keyof typeof KspSpaceCenterFacility;
 
 /**
- * KSP's `ResourceFlowMode`, behind Kerbalism's resource definitions.
+ * KSP's `ResourceFlowMode`, as resource definitions carry it.
  *
  * @category Enum names
  */
@@ -127,16 +127,11 @@ export const KSP_RESOURCE_FLOW_MODE_NAMES = namesByValue(KspResourceFlowMode);
 export type KspResourceFlowModeName = keyof typeof KspResourceFlowMode;
 
 /**
- * Every table above, paired with the enum it must cover.
- *
- * Read by `enum-name-tables.test.ts`, which checks two things: that each table
- * still matches its enum, and that this registry covers every `Ksp*` enum the
- * generated contract exports. The second is the one that catches the mistake
- * this file invites, which is declaring an eighth mirror in C# and never giving
- * the client a table for it.
+ * Every KSP enum name table in this group, each with the enum it names.
  *
  * @category Enum names
  */
+// enum-name-tables.test.ts checks each table matches its enum and that every generated Ksp* enum has one.
 export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
   label: string;
   members: object;
@@ -180,15 +175,9 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
 ];
 
 /**
- * The named groups a `KSPActionGroup` bitmask decodes to, in the order KSP
- * declares them.
- *
- * `None` (0) and `REPLACEWITHDEFAULT` (-1) are excluded: 0 matches every mask
- * under `&` and -1 matches any bit set at all, so including either would report
- * a group on every action. Everything else is included by DERIVATION rather
- * than by a list, which is the point: intersecting the mask against a
- * hand-written table of the groups somebody thought of drops a group KSP added
- * before it ever reaches the wire.
+ * Returns the names of the action groups set in a `KSPActionGroup` bitmask, in
+ * KSP's order. `None` and `REPLACEWITHDEFAULT` are never included. Returns an
+ * empty array for no mask.
  *
  * @category Enum names
  */

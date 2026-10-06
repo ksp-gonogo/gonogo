@@ -23,13 +23,9 @@
  */
 
 /**
- * The WebCodecs constructors the radio pipeline needs, named once so the
- * runtime detect and the Playwright probe cannot drift apart.
- *
- * `AudioData` and `EncodedAudioChunk` are present even on an insecure
- * origin in all three engines, so they never discriminate; the encoder and
- * decoder are the two that do. All four are listed because all four are
- * used.
+ * The WebCodecs constructors the radio needs: `AudioEncoder`, `AudioDecoder`,
+ * `AudioData` and `EncodedAudioChunk`. {@link radioSupportStatus} checks for
+ * them.
  *
  * @category Radio
  */
@@ -42,9 +38,9 @@ export const RADIO_REQUIRED_GLOBALS = [
 
 /**
  * The encoder configuration the radio transmits at, and the one the probe
- * measures. 20 ms of mono 48 kHz per chunk at a voice-radio bitrate;
- * `bitrate` is a hint that firefox overshoots, so size buffers and budgets
- * against the measured rate rather than this number.
+ * measures: 20 ms chunks of mono 48 kHz audio at a voice-radio bitrate.
+ * `bitrate` is a target that some browsers exceed, so size buffers by the
+ * measured rate rather than this number.
  *
  * @category Radio
  */
@@ -67,15 +63,14 @@ export const RADIO_DECODER_CONFIG = {
 } as const;
 
 /** Samples per encoded chunk at {@link RADIO_ENCODER_CONFIG}'s sample
- *  rate: 20 ms, the grid Opus and the design's wire frame both use.
+ *  rate: 20 ms, as Opus and the radio's wire frames both use.
  *
  * @category Radio
  */
 export const RADIO_CHUNK_FRAMES = 960;
 
-/** Why the radio cannot run here. `insecure-context` is recoverable by the
- *  operator (reach the page over https or via localhost); `no-codec` is
- *  not.
+/** Why the radio cannot run here. `insecure-context` the player can fix
+ *  by opening the page over https or on localhost; `no-codec` they cannot.
  *
  * @category Radio
  */
@@ -98,9 +93,9 @@ export type RadioSupport =
     };
 
 /**
- * The full verdict, with the reason attached. Prefer this over
- * {@link isRadioSupported} anywhere the result is shown to an operator: a
- * page served over plain http wants "not a secure origin", not "no codec".
+ * Returns whether this browser can run the radio, and why not when it
+ * cannot. Use it rather than {@link isRadioSupported} wherever the result is
+ * shown, so a page served over plain http says so.
  *
  * @category Radio
  */
@@ -126,10 +121,9 @@ export function radioSupportStatus(): RadioSupport {
   return { supported: true };
 }
 
-/** True when this page can run the radio's encode/decode path at all: a
- *  secure context exposing every WebCodecs constructor it needs. The
- *  boolean twin of {@link radioSupportStatus}, for callers that only branch
- *  on it.
+/** Returns whether this page can run the radio: a secure page with every
+ *  WebCodecs constructor it needs. {@link radioSupportStatus} also says why
+ *  not.
  *
  * @category Radio
  */

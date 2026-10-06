@@ -926,20 +926,18 @@ export function hydrate<Candidate>(candidate: Candidate): Candidate {
 }
 
 /**
- * A three-component vector whose components all share one unit.
- *
- * Structural, and deliberately so: this is the shape that comes off the wire.
- * `wrapTopicPayload` replaces the x/y/z leaves with `Value`s and leaves the
- * parent a plain object, so a vector has no prototype and cannot carry
- * methods. That is why {@link vectorMagnitude} is a free function rather than
- * `v.magnitude()`, and it is the honest shape rather than a limitation: the
- * alternative is hydrating every vector on every sample to attach one method.
+ * A vector whose three components are `Value`s in one unit, as a position or
+ * velocity arrives in a payload. It has no methods; {@link vectorMagnitude}
+ * returns its length.
  *
  * @category Orbits and trajectories
  */
 export interface Vector3<Unit extends string = string> {
+  /** The x component. */
   readonly x: Value<Unit>;
+  /** The y component. */
   readonly y: Value<Unit>;
+  /** The z component. */
   readonly z: Value<Unit>;
 }
 

@@ -17,8 +17,14 @@ import type { TopicReading } from "./client-reading";
 // ---------------------------------------------------------------------------
 
 /**
- * Opaque, branded handle returned by defineProcessor. Never constructed by
- * hand: carries the `Result` type through inference for downstream consumers.
+ * A handle to a processor, as `registerProcessor` or
+ * {@link defineProcessorContract} returns it. Pass it to {@link useProcessor},
+ * or list it in a contribution's `deps`. Its type carries the processor's
+ * result type.
+ *
+ * @typeParam Result - What the processor computes.
+ * @typeParam ProcessorId - Its id.
+ * @typeParam Carried - Whether it returns a `Reading` (see {@link useProcessor}).
  *
  * @category Processors
  */
@@ -27,28 +33,11 @@ export interface ProcessorHandle<
   ProcessorId extends string = string,
   Carried extends boolean = boolean,
 > {
-  /**
-   * The owner-stamped id this processor registered under.
-   *
-   * <p>Carried as a type parameter, not as a bare `string`, so a CONTRIBUTION
-   * that deps on this handle can be handed its result under this exact key:
-   * `topics[HANDLE.id]` is only typeable when `HANDLE.id` is more specific than
-   * `string`. The client id is not known statically, so what survives is ``
-   * `${string}:${ProcessorId}` ``, which is enough to key the record and still
-   * narrow enough that a Topic id cannot be read through it.</p>
-   */
+  /** The processor's id, `"<uplink id>:<name>"`. A contribution depending on the handle receives its result under this key. */
   readonly id: ProcessorId;
   /** Type-only brand: never present at runtime, carries `Result` through inference. */
   readonly __resultType?: Result;
-  /**
-   * Type-only brand: whether this processor returns a reading with currency.
-   *
-   * True when its own deps include a reading, which is what makes its result
-   * datable. Carried on the handle because every consumer, a hook and a nested
-   * dep alike, has to know which of the two shapes it is receiving; a processor
-   * that gained or lost a reading dep would otherwise change what it hands back
-   * with nothing to notice.
-   */
+  /** Type-only, never present at runtime: whether the processor returns a `Reading`, which it does when a reading is among its dependencies. */
   readonly __carriesCurrency?: Carried;
 }
 
@@ -281,57 +270,27 @@ export function defineProcessor<
 }
 
 /**
- * Declare the CONTRACT of a Processor without declaring the processor: its
- * owner-stamped id and its result type, published from here, for an
- * implementation that registers somewhere else.
+ * Returns a handle to a processor that another Uplink implements, so any
+ * Uplink can read it with {@link useProcessor} without depending on the one
+ * that implements it. The handle and its result type are published in the
+ * SDK; the implementing Uplink registers a processor under the same id and
+ * types its `compute` with the same result type.
  *
- * ## The problem it solves, and the one it does not
+ * When nothing registers the processor, as when its mod is not installed,
+ * `useProcessor` returns `undefined`.
  *
- * An Uplink consumes a Processor by handle, because `useProcessor` reads `Result`
- * off the handle's phantom brand. Handing it a bare `{ id }` gets `unknown`,
- * and `getProcessor(id)` is no better: an `AnyProcessorDefinition`'s result is
- * `unknown` by construction, so there is no route from an id back to a type.
- *
- * That is fine for a processor the SDK declares (`CELESTIAL_FACTS` and
- * `DELTA_V_BUDGET` both ship their handle and their result type from the root
- * barrel, and an Uplink test proves an Uplink can consume them). It is NOT fine
- * for one an Uplink declares, and no registry keyed by id can fix that: a
- * declaration merge is scoped to a TypeScript PROGRAM, and Uplink B's program
- * can never include Uplink A's declaration file, because A is unpublished and B
- * cannot depend on it. `TopicPayloadMap` has exactly the same limit for exactly
- * the same reason, and one Uplink cannot type another's Topic either.
- *
- * So the only place a declaration can sit that two Uplinks both compile against
- * is this package, and this is the shape that makes that a route rather than a
- * dead end: the CONTRACT here, the IMPLEMENTATION in whichever Uplink owns the
- * mod it derives from.
+ * Throws when `id` is not `"<owner>:<name>"`.
  *
  * ```ts
- * // in the SDK, next to the result type it names
- * export interface HabSummary { ... }
- * export const HAB_SUMMARY = defineProcessorContract<HabSummary>("<owner>:hab-summary");
+ * // In the SDK, beside its result type:
+ * export const HAB_SUMMARY = defineProcessorContract<HabSummary>("habitat:summary");
  *
- * // in the owning Uplink, which imports the type it must satisfy
- * OWNER.registerProcessor({ id: "hab-summary", deps, compute });
+ * // In the Uplink "habitat", which implements it:
+ * HABITAT.registerProcessor({ id: "summary", deps, compute });
  *
- * // in any OTHER Uplink, which imports neither that Uplink nor its types
- * const hab = useProcessor(HAB_SUMMARY);   // HabSummary | undefined
+ * // In any other Uplink:
+ * const summary = useProcessor(HAB_SUMMARY); // HabSummary | undefined
  * ```
- *
- * ## Absence is a value, not a crash
- *
- * A contract whose implementation never registers (the mod is not installed,
- * the Uplink did not load) evaluates to nothing and `useProcessor` returns
- * `undefined`, which every consumer already handles because it also returns
- * `undefined` with no provider mounted. No separate presence check is needed.
- *
- * ## What it cannot check
- *
- * That the registered `compute` returns what the contract promises. The two
- * sides are in different packages and the brand is type-only, so the guarantee
- * comes from the implementing Uplink importing `Result` from here and
- * annotating its `compute` with it. Declaring the type twice, once each side,
- * is the failure this exists to prevent, so do not.
  *
  * @category Processors
  */

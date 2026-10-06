@@ -40,17 +40,17 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 /**
- * The sidecar's name. Fixed: the loader derives its URL from the bundle's.
+ * The manifest's file name, which sits beside the Uplink's bundle. Gonogo
+ * finds it from the bundle's own URL, so the name is fixed.
  *
  * @category Manifest
  */
 export const UPLINK_MANIFEST_FILE = "gonogo-uplink.json";
 
 /**
- * The Uplink as a DISTRIBUTION, from the `uplink.json` an author writes.
- *
- * Distinct from what the code declares: an id and a name appear in both, and
- * `buildUplinkManifest` refuses rather than picking when the two disagree.
+ * What an author writes in `uplink.json` about the Uplink as a distribution.
+ * The id and name also appear in the code, and {@link buildUplinkManifest}
+ * throws when the two disagree.
  *
  * @category Manifest
  */
@@ -186,12 +186,9 @@ function readJsonFile(path: string, what: string): Record<string, unknown> {
 }
 
 /**
- * The `uplink.json` beside both halves of the Uplink, or nothing.
- *
- * Searched upwards rather than required at a fixed path: the template is flat
- * and the operator's monorepo is not, so it is one level above a flat layout's
- * client and two above a monorepo's. Absent is normal for an Uplink that ships
- * inside the app's own repo and has no separate declaration.
+ * Returns the Uplink's `uplink.json` and its path, found by searching up from
+ * `clientDir`, or `undefined` when there is none, which is normal for an Uplink
+ * with no separate declaration.
  *
  * @category Manifest
  */
@@ -341,12 +338,9 @@ export function serialiseUplinkManifest(manifest: UplinkManifest): string {
 }
 
 /**
- * What a writer says when it stamps an empty `integrity`.
- *
- * Here rather than at the one place that prints it, because it describes a FIELD
- * of this manifest: `bundle` hashes the file it just built and never needs it,
- * `docs` prints it whenever no `--bundle` was named, and a second writer of this
- * file should say the same sentence rather than invent its own.
+ * The warning to print when a manifest is written with an empty `integrity`
+ * because no bundle was named. Gonogo will refuse to load such an Uplink until
+ * the manifest is written again from the bundle you distribute.
  *
  * @category Manifest
  */

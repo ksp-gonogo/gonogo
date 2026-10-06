@@ -23,37 +23,25 @@ import type { Value } from "./unit-system/value";
  */
 
 /**
- * Which model produced a reckoning.
+ * Which kind of forward model produced a reckoning, and so when it stops
+ * holding:
  *
- * A closed union rather than a string, so adding a basis is a DECLARATION
- * rather than a spelling. An operator calibrates their trust in a propagated
- * number against what produced it, and a free-form string lets two providers
- * describe the same model differently (or misdescribe it) with nothing to
- * notice. Add a member here, with a line saying what it assumes and therefore
- * where it stops being true.
- *
- * - `kepler-propagation`: a two-body propagation of an orbital state. Honest
- *   for as long as the conic holds, which is until a burn, an SOI change or a
- *   perturbation the propagator does not model
- * - `linear-dead-reckoning`: position advanced by its last observed velocity.
- *   First-order only, so it is honest for seconds where the true motion is
- *   curved (any orbiting pair) and longer where it is not
- * - `powered-integration`: a craft under thrust integrated forward under
- *   point-mass gravity and a steady burn (the observed thrust along its last
- *   measured direction, the mass falling at the published mass flow). Honest
- *   until a command reaches the craft, the firing stage runs dry, or the burn's
- *   own uncertainty outgrows it
- * - `rate-integration`: a quantity advanced by its last observed rate of
- *   change. Honest while the rate holds, which for a consumable means until
+ * - `kepler-propagation`: an orbit carried forward under two-body gravity.
+ *   Holds until a burn, a change of sphere of influence, or a force the model
+ *   leaves out
+ * - `linear-dead-reckoning`: a position carried forward at its last observed
+ *   velocity. Holds for seconds where the motion curves, such as two craft in
+ *   orbit, and longer where it does not
+ * - `powered-integration`: a craft under thrust, carried forward under gravity
+ *   and its observed thrust along its last observed direction, its mass falling
+ *   at its published mass flow. Holds until a command reaches the craft, the
+ *   stage runs dry, or the model's uncertainty grows too large
+ * - `rate-integration`: a quantity carried forward at its last observed rate of
+ *   change. Holds while the rate does, which for a resource means until
  *   something switches a converter, a light or a crew member
- * - `combination`: arithmetic over several readings resolved against ONE view
- *   time. The odd member: it carries nothing forward. The others say "how
- *   did this number get from its observation to now"; this one says "how did
- *   this number come to exist at all", and the forward step, where there was
- *   one, happened inside each input under its own basis. So it is honest
- *   exactly as far as its inputs are, and no further: read
- *   {@link combineReadings} for the currency rule, and the inputs themselves for what
- *   actually propagated
+ * - `combination`: arithmetic over several readings at one view time, as
+ *   {@link combineReadings} does. Nothing is carried forward by this step
+ *   itself, so it holds exactly as far as each input's own model does
  *
  * @category Reckoners
  */
@@ -65,70 +53,46 @@ export type ReckoningBasis =
   | "rate-integration";
 
 /**
- * A forward-modelled value: what a provider's model says the quantity is at the
- * craft's present (SCET), given the last real observation and however long ago
- * it was.
+ * A forward model's value for a whole Topic: what the model says the payload is
+ * at the craft's present, carried forward from the last real observation.
  *
- * `atUt` is the UT the reckoning is FOR, the frame's SCET, not the UT the
- * observation behind it was made at (`Reading`'s `asOfUt` carries that). Both
- * are needed: an operator reads a modelled figure against how far it has been
- * carried.
+ * `atUt` is the instant the value is for. The reading's own `atUt` or `asOfUt`
+ * is when the observation behind it was made.
+ *
+ * @typeParam Payload - The Topic's payload type.
  *
  * @category Reckoners
  */
 export interface TopicReckoningAvailable<Payload> {
-  /**
-   * The discriminant, spelled the same way {@link Reckoning}'s is so a caller
-   * asks one question of a topic and of a field.
-   */
+  /** Always `"available"`, as on a field's {@link Reckoning}. */
   readonly status: "available";
+  /** The modelled payload. Only the paths in `modelled` were moved; the rest is the last observation. */
   value: Payload;
+  /** The instant `value` is for: the craft's present, under signal delay. */
   atUt: Value<"ut">;
   /**
-   * Whether `atUt` is past the edge the observation was received at by a gap an
-   * operator could see: true under signal delay, where the model carries a
-   * current reading across the light-time, and false on a LAN session. A figure
-   * drawn from a reckoning that reaches beyond the received edge is modelled
-   * rather than fresh, whatever the reading's state.
+   * Whether `atUt` is noticeably later than the newest data received: `true`
+   * under signal delay, where the model carries a current reading across the
+   * delay, and `false` on a local session. A figure drawn from a reckoning
+   * where this is `true` is modelled, not observed, whatever the reading's
+   * state.
    */
   beyondReceived: boolean;
+  /** The model that produced the payload root. Each moved path has its own in `modelled`. */
   basis: ReckoningBasis;
   /**
-   * Which paths inside `value` the model actually MOVED, dotted from the
-   * payload root. Everything not named here is a verbatim copy of the last
-   * observation, carried along because `value` is the whole payload.
-   *
-   * It exists because a payload is not one reckoning class. `vessel.target`
-   * flattens to forty-seven field paths: relative geometry that propagates,
-   * identity fields only a command changes, two absolute UTs, and metadata.
-   * A model that dead-reckons the relative position and copies the rest would
-   * otherwise stamp `basis: "linear-dead-reckoning"` on the vessel's NAME,
-   * which is a modelled label over a held observation.
-   *
-   * `basis` above stays, and is the basis of the entry covering the root. A
-   * whole-topic read only reaches `reckoning: "available"` when the model covers
-   * the root (see `TopicModel`), so it is always well defined on a reckoning a
-   * caller can hold.
+   * The paths inside `value` the model moved, each with the model that moved
+   * it, dotted from the payload root. Everything else in `value` is the last
+   * observation, unchanged: a model of a target's relative position leaves the
+   * target's name as it was.
    */
   modelled: readonly ModelledField[];
-  /**
-   * Which registered owner's model produced this. `"core"` for the vanilla
-   * every installed client ships.
-   *
-   * Reckonability is STATIC (the contract declares it), so the question at
-   * runtime is not whether a value can be carried forward but WHICH model
-   * carried it. That is the same question `vessel.maneuver.planner` already
-   * settles by naming its winner, and naming it is what lets an operator tell
-   * core's conic from an Uplink's without reading the numbers and guessing.
-   */
+  /** Who registered the model: `"core"` for Gonogo's own, otherwise the Uplink's id. */
   owner: string;
   /**
-   * How well the model knows what it just said, per path, where it is prepared
-   * to say. Absent from most reckonings and that is the honest majority.
-   *
-   * Keyed the same way `modelled` names paths, so the two line up without a
-   * join: `modelled` says a path moved and by which model, `bands` says how
-   * far that model would defend the number. See {@link ReckonedBands}.
+   * How well the model knows each moved value, keyed by the same paths as
+   * `modelled`, where the model gives a band at all. Absent from most
+   * reckonings. See {@link ReckonedBands}.
    */
   readonly bands?: ReckonedBands;
 }
@@ -151,13 +115,10 @@ export type TopicReckoning<Payload> =
   | { readonly status: "declined"; readonly declined: ReckoningDecline };
 
 /**
- * The reckoning states a DECLARED value's topic reading may carry: the model
- * ran, or it said why it could not. Never the silent `"none"`.
+ * The reckoning of a Topic whose contract declares a forward model: the model
+ * produced a value, or declined and said why. Never `"none"`.
  *
- * The declaration is a promise that the wire carries the model's inputs, so on
- * a value-bearing reading there is no such thing as nothing-to-say. Dropping
- * `"none"` here is what makes that promise a compile-time fact rather than a
- * convention.
+ * @typeParam Payload - The Topic's payload type.
  *
  * @category Reckoners
  */
@@ -167,7 +128,7 @@ export type DeclaredTopicReckoning<Payload> = Exclude<
 >;
 
 /**
- * One path a model moved, and what moved it. See
+ * One path a model moved, and which model moved it. See
  * {@link TopicReckoningAvailable.modelled}.
  *
  * @category Reckoners
@@ -175,88 +136,58 @@ export type DeclaredTopicReckoning<Payload> = Exclude<
 export interface ModelledField {
   /** Dotted from the payload root. `""` is the whole payload. */
   readonly path: string;
+  /** The model that moved it. */
   readonly basis: ReckoningBasis;
 }
 
 /**
- * What an {@link UncertaintyBand}'s two ends CLAIM.
+ * What an {@link UncertaintyBand}'s two ends mean:
  *
- * A hard bound and a one-sigma estimate are different statements about the same
- * two numbers, and without this field two producers would mean different things
- * by an identical interval with nothing able to notice. A consumer comparing a
- * band against a threshold is entitled to a different result for each: crossing
- * a hard bound is impossible, crossing one sigma happens about a third of the
- * time.
- *
- * - `bound`: the model asserts the true value is INSIDE `[lo, hi]`. Only
- *   honest where the model's error is genuinely capped (a quantisation, an
- *   interval arithmetic, an integrator with a proven residual)
+ * - `bound`: the true value is certainly between `lo` and `hi`
  * - `sigma1`: one standard deviation either side of `value`. The true value is
- *   outside it roughly a third of the time, and a widget must not draw or
- *   phrase it as a limit
+ *   outside it about a third of the time, so do not draw or describe it as a
+ *   limit
  *
  * @category Reckoners
  */
 export type BandKind = "bound" | "sigma1";
 
 /**
- * How well a model knows the number it just produced: an ASYMMETRIC interval
- * in the value's own unit.
+ * How well a model knows a value it produced: a low end and a high end, in the
+ * value's own unit, either side of the model's estimate.
  *
- * ## In the unit, never a percentage
+ * The two ends are given separately because the error is often larger on one
+ * side, such as an altitude near periapsis. They are in the unit, never a
+ * percentage, so a band around a value crossing zero, such as a vertical speed
+ * at apoapsis, keeps its width.
  *
- * A percentage dies at a zero crossing, and reckoned quantities cross zero
- * constantly: vertical speed at apoapsis, relative position at closest
- * approach, a rendezvous drift rate as it nulls. "±5%" of zero is zero, so the
- * band would collapse to nothing at exactly the instant an operator most needs
- * it. Absolute bounds also compose with the unit algebra, so `hi.minus(lo)` is
- * a width in the same unit, and a band over a derived unit divides and
- * multiplies exactly as the value it describes does.
+ * `value` is the same number as the reckoning's modelled value at that path, so
+ * a band can be passed alone to a threshold check or a chart. Use
+ * {@link bandIn} to read a band in a known unit, and {@link bandSide} to
+ * compare one with a threshold.
  *
- * ## Asymmetric, because the real error is
- *
- * `lo` and `hi` are given separately rather than as one `±`. A Kepler altitude
- * near periapsis is wrong in one direction far more than the other, and a burn
- * being late is not as recoverable as it being early. A single half-width
- * would have to take the worse side and would then overstate the better one,
- * which for a decision-shaped consumer is the difference between "cannot yet
- * say" and a usable verdict.
- *
- * ## `value` is here as well as on the reckoning, deliberately
- *
- * It duplicates {@link Reckoning.value} at the same path. Asymmetry is why:
- * `lo` and `hi` alone do not say where the estimate sits between them, so
- * every consumer needs all three at once and a band without its own value is
- * never usable alone. Carrying it makes a band the single argument to a
- * threshold comparison, a marker sizer or a chart, with no path walk at the
- * call site. A producer must keep it equal to the value it reckoned for that
- * path; `bandIsWellFormed` is the check, and the store's own suite asserts it.
+ * @typeParam Unit - The unit of all three values.
  *
  * @category Reckoners
  */
 export interface UncertaintyBand<Unit extends string = string> {
-  /** The model's point estimate: the same number `reckon` produced here. */
+  /** The model's estimate: the same value the reckoning carries at this path. */
   readonly value: Value<Unit>;
   /** The low end. Never above `value`. */
   readonly lo: Value<Unit>;
   /** The high end. Never below `value`. */
   readonly hi: Value<Unit>;
+  /** Whether the ends are a hard bound or one standard deviation. */
   readonly kind: BandKind;
 }
 
 /**
- * The bands a model offers for one frame, keyed by the same dotted paths
- * {@link ModelledField.path} uses. `""` is the payload root.
+ * The bands a model gives for one frame, keyed by the same dotted paths as
+ * {@link ModelledField.path}, with `""` for the payload root.
  *
- * Sparse on purpose, and a model that bands nothing returns `undefined` rather
- * than an empty map. Most models cannot produce a band honestly, and a
- * fabricated one is worse than none: it is a claim about how well a number is
- * known, made by something that does not know.
- *
- * A path here that no {@link ModelledField} names is a producer bug rather
- * than a second way to claim coverage. Nothing rejects it, because the
- * consumer reads bands BY path and never enumerates them, so an orphan is
- * simply never asked for.
+ * Most models give no band, and return `undefined` rather than an empty
+ * object. A missing band means the model does not say how well it knows the
+ * value, not that it knows it well.
  *
  * @category Reckoners
  */
@@ -265,92 +196,51 @@ export type ReckonedBands = {
 };
 
 /**
- * What a reckoner offers: the coverage it claims, and the pull that produces
- * the modelled payload.
+ * A forward model a reckoner offers: the paths it moves, and the functions
+ * that compute the modelled value and its bands for a given instant. The model
+ * runs only when a reading actually needs its value.
  *
- * Coverage sits OUTSIDE the thunk because the store has to know what a model
- * covers before deciding which reading to build, and running the model to find
- * out would defeat the pull. A model that does not cover the payload root
- * cannot cover a whole-topic read, so that read stays `held`.
+ * A model that does not move the payload root does not count for a read of the
+ * whole Topic, so that read stays `"held"`.
  *
- * `Projection` is what the pull RETURNS, and it defaults to the whole payload
- * because that is what a whole-topic model produces. A model declared per VALUE
- * returns the projection of the fields it moves instead, so `Projection` is
- * `Pick<Payload, ReckonableKey>` there. Two parameters rather than one because
- * the coverage claim is still about paths on `Payload` whichever shape the
- * result takes.
+ * @typeParam Payload - The Topic's payload type.
+ * @typeParam Projection - What `reckon` returns: the whole payload, or for a
+ * Topic declaring a model on some fields only, just those fields.
  *
  * @category Reckoners
  */
+// Coverage sits outside the thunk so the store can choose a reading without running the model.
 export interface TopicModel<Payload, Projection = Payload> {
   /** Paths this model moves. Empty claims nothing and is never offered. */
   readonly modelled: readonly ModelledField[];
   /** Run the model for `viewUt`. Pure: same inputs, same result. */
   reckon(viewUt: number): Projection;
   /**
-   * How well the model knows its result for `viewUt`, per path. Optional, and
-   * `undefined` is the right result for a model that cannot bound its own
-   * error: see {@link ReckonedBands}.
-   *
-   * ## Why this is a second PULL and not a field on `modelled`
-   *
-   * `{ path, basis, band? }` on {@link ModelledField} reads better and cannot
-   * work. Coverage sits outside the thunk precisely so the store can choose a
-   * reading without running the model, and a band is a function of how far the
-   * value has been carried, so it is not knowable until `viewUt` is. Putting
-   * one on the coverage claim would either force the model to run before the
-   * reading was chosen, or freeze one frame's interval and report it forever.
-   *
-   * Called at the same `viewUt` as `reckon`, immediately after it and only
-   * when the model was actually used, so a model that shares work between the
-   * two can cache on the argument. Pure on the same terms `reckon` is.
+   * Returns how well the model knows its result for `viewUt`, by path, or
+   * `undefined` for a model that cannot bound its own error. Called only after
+   * `reckon`, with the same `viewUt`, so the two may share work. The same
+   * inputs must give the same result.
    */
   bandAt?(viewUt: number): ReckonedBands | undefined;
 }
 
 /**
- * Why a model could not run for this frame, on a topic whose contract
- * DECLARES a value reckonable.
+ * Why a declared forward model produced no value this frame, by `reason`:
  *
- * On a plain {@link Reading}, `reckoning: { status: "none" }` is the usual case
- * and needs no explanation: most topics have no model and never will. On a
- * declared value it is a specific refusal, because the declaration is a promise
- * that the wire carries the model's inputs, so the only ways to reach `"none"`
- * are that an input did not arrive, that the model was asked past where it
- * holds, or that the model does not apply to this frame at all. A refusal a
- * widget can render ("no conic past the SOI transition") beats a silent
- * absence, which is why it is REQUIRED on the value-bearing `"none"` reckonings
- * rather than optional. It sits on the reckoning and NOT inside `reckoned`,
- * which is the rule {@link Reading}'s own doc states under "No horizon field":
- * a caller holding a reckoning must never discover at call time that the
- * capability has gone bad. A model still withdraws by not being offered on the
- * next frame. All that has changed is that a declared value says WHY it
- * withdrew.
+ * - `input-absent`: an input the model needs has not arrived. `input` names it
+ * - `beyond-horizon`: the model would have to reach past where it holds, its
+ *   own or an input's. `input` names the input that ran out, where one did
+ * - `model-inapplicable`: the model does not apply to this frame, such as an
+ *   orbit model past a change of sphere of influence
+ * - `under-physics`: the craft is being moved by the game's full physics, such
+ *   as under thrust, so a closed-form model of its motion does not apply. The
+ *   orbit exists and the craft is loaded
+ * - `contested`: more than one Uplink registered a model for the Topic and
+ *   Gonogo has none of its own to fall back on, so none is used
+ * - `insufficient-history`: the model needs more past samples of its own Topic
+ *   than its {@link ReckonerWindow} holds. `note` says how many were found
  *
- * `input` names the declared input that was missing or that ruled the model out,
- * spelled exactly as the contract declares it (`relativeVelocity`,
- * `@vessel.orbit`, `@vessel.orbit#mu`), so the string a widget shows and the
- * string the contract carries are the same string.
- *
- * `"under-physics"` means the subject is being stepped by the full simulation
- * rather than coasting, so a closed-form model of its motion does not apply:
- * a craft whose elements are osculating because something is pushing it. It is
- * its own member rather than a kind of `"model-inapplicable"` because a
- * consumer has a different thing to say about it (the orbit exists and the
- * craft is loaded) and must not have to infer that from `input` or `note`.
- *
- * **Every condition a consumer can branch on is a `reason`.** `input` names the
- * responsible input and several conditions share one; `note` is prose. Neither
- * says which condition fired, so a consumer that needs to know gets a member
- * here rather than a pattern to match.
- *
- * `"insufficient-history"` is the one the STORE raises on the reckoner's behalf
- * without consulting it, and the only rejection {@link ReckonerWindow} has: the
- * declared window held fewer than `minSamples` points of the reckoner's own
- * topic, so a model that needs a trend has nothing to take one from. It carries
- * no `input`, because the topic being read is not one of its own declared
- * inputs; the `note` says how many samples were found and whether a gap is what
- * cut them down.
+ * Branch on `reason`, never on `input` or `note`.
  *
  * @category Reckoners
  */
@@ -362,23 +252,19 @@ export interface ReckoningDecline {
     | "under-physics"
     | "contested"
     | "insufficient-history";
-  /** The declared input responsible, where the reason has one. */
+  /** The input responsible, spelled as the contract declares it, such as `"@vessel.orbit"`. Absent where the reason has none. */
   readonly input?: string;
-  /**
-   * One sentence for an operator. Never a stack, never a code, and never read
-   * by a program: a branch on its text is a branch on wording that can change.
-   */
+  /** One sentence to show the player. Its wording can change, so never branch on it. */
   readonly note?: string;
 }
 
 /**
- * What a reckoner returns: a model, or a refusal that says which input failed
- * it, so an input that never arrived is told apart from a horizon that has been
- * passed.
+ * What a reckoner's `reckon` returns: a {@link TopicModel}, or `{ declined }`
+ * with the {@link ReckoningDecline} saying why there is none.
  *
- * `Projection` is the projection the model produces, which for a declared value
- * is `Pick<Payload, ReckonableKey>` rather than the whole payload. See
- * {@link ReckonableReading}.
+ * @typeParam Payload - The Topic's payload type.
+ * @typeParam Projection - What the model's `reckon` returns. See
+ * {@link TopicModel}.
  *
  * @category Reckoners
  */
@@ -850,22 +736,17 @@ export function readingOf<Payload, Selected>(
 }
 
 /**
- * A figure a widget derives from a topic, as a {@link Reading} of its own: the
- * figure as observed, and the same figure as the topic's model has it at the
- * instant the model ran for.
+ * Returns a figure computed from a Topic reading as a {@link Reading} of its
+ * own, keeping the Topic's forward model.
  *
- * `observed` runs on the observation. `reckoned` runs on the observation
- * overlaid by what the model moved, and is handed the reckoning's own instant,
- * so a figure at the craft's present can only come from a model that ran and
- * always arrives marked as that model's. Where the model declined, the
- * derived reading carries the decline; where it had nothing to say, nothing.
- *
- * Unlike {@link readingOf}, the model survives, because the caller writes the
- * modelled branch itself rather than handing one selector to both.
+ * `observed` computes the figure from the observed payload. `reckoned` computes
+ * it from the modelled payload, and is given the instant the model is for. When
+ * the model declined, the result carries the decline; when it had nothing to
+ * say, the result has no model. Unlike {@link readingOf}, which drops the
+ * model, the caller writes the modelled computation itself.
  *
  * @category Reckoners
  */
-// The ReckonableReading overload comes FIRST, for the same reason `withoutReckoning`'s does.
 export function deriveReading<
   Payload,
   ReckonableKey extends keyof Payload,
@@ -1236,19 +1117,11 @@ const CURRENCY_MEMBERS = {
 } satisfies Record<ReservedReadingKey, true>;
 
 /**
- * A band narrowed to the unit a caller expects, or `undefined` where it is in
- * some other unit or is malformed.
- *
- * {@link ReckonedBands} is keyed by a runtime path string, so nothing in the
- * type system knows what unit the band at `"verticalSpeed"` is in and every
- * consumer would otherwise reach its typed band through a cast. This CHECKS
- * instead: the narrowing is real, and a producer that banded a field in the
- * wrong unit hands the consumer nothing rather than a number it will read as
- * metres per second.
- *
- * Returning `undefined` rather than throwing is the same judgement the rest of
- * this file makes about a bad band: the reckoned value is still good, and a
- * consumer with no band behaves exactly as one whose model offered none.
+ * Returns `band` as a band in `unit`, or `undefined` when it is in another
+ * unit or not well formed (see {@link bandIsWellFormed}). Use it to read a band
+ * from {@link ReckonedBands}, whose type cannot say what unit each path is in,
+ * without a cast. A missing band and a rejected one are the same to the
+ * caller: the modelled value still stands.
  *
  * @category Reckoners
  */
@@ -1280,19 +1153,12 @@ export function bandIn<Unit extends string, SourceUnit extends string = string>(
 }
 
 /**
- * Whether a band says something coherent: the ends bracket the value, all
- * three are finite, and all three are in one unit.
+ * Returns whether a band is consistent: all three values finite and in one
+ * unit, with `lo` at or below `value` and `hi` at or above it. A band whose
+ * three values are equal passes.
  *
- * A producer-facing check rather than a gate. Nothing rejects a malformed band
- * at runtime, because the store cannot tell a model's bug from a model's
- * opinion and refusing the whole reckoning over a bad interval would lose the
- * value too. What this is for is the producer's OWN test: a model that offers
- * a band asserts this over its output, and the store's suite asserts it over
- * every band a built-in model mints.
- *
- * `lo === value === hi` passes. A model claiming it knows a value exactly is
- * making a strong claim, not an ill-formed one, and a quantised or
- * integer-valued quantity is the honest case for it.
+ * Nothing rejects a malformed band at runtime. Assert this over your own
+ * model's bands in its tests.
  *
  * @category Reckoners
  */
@@ -1306,23 +1172,13 @@ export function bandIsWellFormed<Unit extends string>(
 }
 
 /**
- * Where a band sits relative to a threshold: wholly under it, wholly over it,
- * or across it.
+ * Returns where a band lies against a threshold: `"below"`, `"above"`, or
+ * `"straddles"` when the threshold is inside it. `"straddles"` means the model
+ * cannot yet say which side the value is on, and a widget should say so rather
+ * than pick one.
  *
- * The DECISION primitive, and the reason a band is worth carrying at all for a
- * consumer that renders no picture. A widget comparing a bare reckoned number
- * against a limit gets a verdict on every frame and has no way to say the one
- * true thing, which is that the model does not yet know. `"straddles"` is that
- * third result, and a widget that acts on it says so rather than guessing.
- *
- * The boundary is INCLUSIVE at both ends: a band whose `hi` lands exactly on
- * the threshold reads `"below"`, not `"straddles"`. An interval touching a
- * limit has not crossed it, and treating equality as unresolved would make
- * every band that happens to close on a round number unresolvable.
- *
- * Both arguments share `Unit`, so the two units are the same string and compare
- * directly. That is why there is no conversion here and no cast: a mismatch is
- * not representable in the signature.
+ * The ends count as outside: a band whose `hi` equals the threshold is
+ * `"below"`.
  *
  * @category Reckoners
  */
@@ -1396,27 +1252,18 @@ export function observedAt<Payload>(
 }
 
 /**
- * A provider of forward models, consulted once per reading. Returning
- * `undefined` is the usual case and leaves the reading `reckoning: { status:
- * "none" }`; returning a model makes it `"available"`.
+ * The function Gonogo calls on a registered reckoner for each reading, once
+ * its inputs are resolved. You write a {@link ReckonerDefinition}, not one of
+ * these.
  *
- * `TopicModel.reckon` is what makes the reckoning a pull. This function itself
- * must stay cheap: it is asked whether a model EXISTS and what it covers,
- * which are questions about the basis, not requests to run it.
+ * It returns `undefined` when there is no model, which leaves the reading's
+ * `reckoning` `{ status: "none" }`, or a {@link TopicModel}. It must be cheap: it
+ * says whether a model exists and what it covers, and `TopicModel.reckon` does
+ * the work.
  *
- * `grade` is `undefined` when the reading is LIVE, and a reckoner is asked on
- * live readings deliberately. A model whose basis is a CAUSE (a conic, a rate)
- * is as true of a value that arrived on time as of one that stopped arriving.
- * A reckoner that genuinely integrates FROM the last
- * observation declines where {@link currentAtReckonTime} holds, and says why.
- *
- * `reckonUt` is the third argument because declining is the ONLY way a model has
- * to express a horizon, and a horizon is a statement about how far a value is
- * being carried. Given the point and the grade alone, a reckoner knows when
- * the observation was made and not what it is being asked to reach, so it
- * could not decline at the one moment declining matters. Everything
- * `Reading`'s doc says about `"available"` being the statement of trust rests
- * on this argument existing.
+ * `grade` is `undefined` while the reading is live: a model may be offered for
+ * a live reading too. `reckonUt` is the instant the model is asked to reach, so
+ * a reckoner can decline past its horizon.
  *
  * @category Reckoners
  */
@@ -1462,95 +1309,60 @@ type ResolvedReckonerDep<Dependency extends Dep> =
           : never;
 
 /**
- * How much of its OWN topic's record a reckoner is handed, bounded both ways.
+ * How many past samples of its own Topic a reckoner is given, for a model that
+ * needs a trend such as a rate of change.
  *
- * A model that wants a trend (a rate, a drift, a slope) declares how much of
- * the record it needs.
+ * `spanUt` and `maxSamples` limit the cost: a window with more samples than
+ * `maxSamples` is thinned to that many, keeping the first and last, and the
+ * model still runs. `minSamples` is the only limit that stops the model: with
+ * fewer samples, the reading declines with `"insufficient-history"`.
  *
- * ## The two bounds do different jobs, and only one of them refuses
+ * The Topic only gets a new sample when its value changes, so a span of 60
+ * seconds may hold one sample or hundreds.
  *
- * `spanUt` and `maxSamples` are a COST CAP. A window that catches more points
- * than `maxSamples` is thinned to that many and the model runs anyway: the
- * reckoner asked for a lookback, not for every sample inside it, and dropping
- * points from a dense stretch costs a rate estimate nothing.
- *
- * `minSamples` is the SUFFICIENCY FLOOR and the only rejection here. Below it
- * the model never runs and the store returns `declined: { reason:
- * "insufficient-history" }` on its behalf, because a slope taken from one point
- * is not a slope, and a model given one anyway would invent the very confidence
- * {@link Reading} exists to withhold.
- *
- * ## It applies to the reckoner's OWN topic, and to nothing else
- *
- * There is no `minSamples` on {@link DepWindow}, and that is the whole reason
- * the two are separate types rather than one with a flag. A floor applied to
- * dependencies would refuse to model anything whose input is a slow-moving
- * constant, which is most of them: `system.bodies` changes once a session, so a
- * two-sample floor on it would decline forever on a fact that was never
- * missing.
- *
- * ## What a span does NOT mean
- *
- * `spanUt` is game seconds of LOOKBACK from the newest observation, never a
- * count of expected samples. The stream is change-gated, so a topic only
- * carries a point when its value actually changed: "changes every twenty
- * seconds" and "is sampled every twenty seconds" are the same thing in the
- * buffer and different things in the world. Nothing here divides a span by an
- * interval, and nothing written against it should.
+ * Dependencies take a {@link DepWindow} instead, which has no `minSamples`.
  *
  * @category Reckoners
  */
 export interface ReckonerWindow {
   /**
-   * Lookback in game seconds, measured back from the newest observation the
-   * reckoner can see, NOT from the frame's view time. A model carrying a value
-   * across a blackout still wants the last minute of contact, and a window
-   * anchored on the view time would empty out exactly when the model was
-   * needed.
+   * How far back to look, in game seconds, from the newest sample received
+   * rather than from the view time, so a model carrying a value across a loss
+   * of signal still gets the samples from before it.
    */
   readonly spanUt: number;
-  /** Cost cap: a fuller window is thinned to this many points, ends kept. */
+  /** The most samples to pass; more are thinned to this many, keeping the first and last. */
   readonly maxSamples: number;
-  /** Sufficiency floor. Below it the model does not run. Defaults to 1. */
+  /** The fewest samples the model can run with. Defaults to 1. */
   readonly minSamples?: number;
 }
 
 /**
- * A window one DEPENDENCY opts into, turning its resolution from a single point
- * into an array.
+ * A window of past samples for one of a reckoner's dependencies, which is then
+ * resolved to an array of samples rather than the latest one.
  *
- * By default a dep still resolves to one point by hold-last, and that is
- * correct rather than a shortcut: a change-gated timeline only carries a point
- * when the value changed, so a dep that last changed an hour ago has not gone
- * missing, its value now IS that value. `sampleDerivedRange` already leans on
- * exactly this to replay a derived channel over its inputs' change points.
+ * Without one, a dependency resolves to its latest sample, however old: a
+ * Topic only gets a new sample when its value changes, so an old sample is
+ * still the current value.
  *
- * No `minSamples`: see {@link ReckonerWindow}.
+ * There is no `minSamples`: a slow-changing dependency would otherwise never
+ * have enough. See {@link ReckonerWindow}.
  *
  * @category Reckoners
  */
 export interface DepWindow {
-  /** As {@link ReckonerWindow.spanUt}, measured back from this dep's own newest point. */
+  /** How far back to look, in game seconds, from this dependency's newest sample. */
   readonly spanUt: number;
-  /** As {@link ReckonerWindow.maxSamples}. */
+  /** The most samples to pass. See {@link ReckonerWindow.maxSamples}. */
   readonly maxSamples: number;
-  /**
-   * Declared as `never` rather than left out, so writing one is an error the
-   * compiler gives rather than a key that is quietly ignored. `depWindows` is
-   * inferred as a whole object before its constraint is checked, and a
-   * constraint check does no excess-property check, so an omitted field would
-   * have been accepted here and dropped.
-   */
+  /** Not allowed on a dependency; setting it does not compile. */
   readonly minSamples?: never;
 }
 
 /**
- * The deps a window can be declared for: the Topic ids among them.
- *
- * A `ReadingDep` and a `ProcessorHandle` are excluded because neither is a
- * stored timeline to range over. A reading is one topic's currency AT a view
- * time, and a processor is recomputed per frame and never buffered, so there is
- * no history to hand back for either.
+ * The dependencies a {@link DepWindow} can be given: the Topic ids among a
+ * reckoner's `deps`. A reading dependency and a processor have no stored
+ * history, so they cannot have one.
  *
  * @category Reckoners
  */
@@ -1560,11 +1372,8 @@ export type WindowableDep<Deps extends readonly Dep[]> = Extract<
 >;
 
 /**
- * The opt-in map, keyed by the reckoner's OWN declared deps.
- *
- * Keyed by `WindowableDep<Deps>` rather than by `string` so a window declared
- * for a topic this reckoner does not depend on is a compile error rather than a
- * silently ignored key.
+ * The windows a reckoner gives its dependencies, keyed by Topic id. A key that
+ * is not one of the reckoner's own `deps` does not compile.
  *
  * @category Reckoners
  */
@@ -1573,14 +1382,13 @@ export type DepWindows<Deps extends readonly Dep[]> = {
 };
 
 /**
- * What one declared dependency resolves to, given which deps opted into a
- * window.
+ * The resolved values of a reckoner's `deps`, in order, as `reckon` receives
+ * them: a Topic id resolves to its latest sample, or to an array of samples if
+ * it has a {@link DepWindow}; a reading dependency to its {@link Reading}; a
+ * processor to its result.
  *
- * `Windowed` is the set of dep ids carrying a {@link DepWindow}, and it is a
- * type parameter rather than a runtime flag so the difference shows up where it
- * matters: a dep that opted in destructures as an ARRAY and one that did not as
- * a single point, with no cast at either call site and no `Array.isArray` check
- * inside a model to find out which it got.
+ * @typeParam Deps - The reckoner's `deps`.
+ * @typeParam Windowed - The Topic ids among them that have a window.
  *
  * @category Reckoners
  */
@@ -1596,36 +1404,26 @@ export type ResolvedReckonerDeps<
 };
 
 /**
- * What a reckoner is told about the frame it is running for, beyond its inputs.
+ * What a reckoner's `reckon` is told about the frame it is running for,
+ * beyond its inputs.
  *
  * @category Reckoners
  */
 export interface ReckonerFrame<Payload = unknown> {
-  /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
+  /** Why the reading is held, or `undefined` while it is live. */
   readonly grade: HeldGrade | undefined;
-  /** The instant the model is being asked to reach: the frame's SCET. */
+  /** The instant the model is asked to reach: the craft's present. */
   readonly reckonUt: number;
-  /**
-   * The received edge the observation was sampled at. Behind {@link reckonUt}
-   * by the light-time, and equal to it when the light-time is too short to see.
-   */
+  /** The latest instant data has been received for: `reckonUt` minus the signal delay, or equal to it with no noticeable delay. */
   readonly viewUt: number;
   /**
-   * The reckoner's own topic across its declared {@link ReckonerWindow},
-   * oldest first, the last entry being the same point `reckon` is handed
-   * separately.
+   * The reckoner's own Topic across its {@link ReckonerWindow}, oldest first,
+   * ending with the same sample `reckon` is given. Never empty, and just that
+   * sample when no window is declared.
    *
-   * Never empty, and exactly `[point]` when no window is declared: a reckoner
-   * that asked for no history is one whose window is a single sample, which is
-   * the old behaviour stated as a window rather than a second code path.
-   *
-   * It stops at the newest break in the record and never spans one. Two things
-   * count as a break and both are POSITIVE claims rather than an interval
-   * anyone guessed at: a point carrying `meta.gapSinceUt` (the producer saying
-   * data existed before it and is gone) and a tombstone (`payload === null`,
-   * the value confirmed absent and later back). Samples either side of a
-   * blackout are not the same regime, and a model handed both would draw a
-   * trend through an outage it has no readings for.
+   * It never reaches back past a break in the record: a sample marked with
+   * `meta.gapSinceUt`, or a value that was confirmed absent. So a trend is
+   * never drawn across a loss of signal.
    */
   readonly history: readonly TimelinePoint<Payload>[];
 }
@@ -1643,63 +1441,32 @@ export function currentAtReckonTime(frame: ReckonerFrame): boolean {
 }
 
 /**
- * A rule about a model's declared INPUTS that the store applies to every
- * registration, whether or not the model's author knew it existed.
+ * A rule Gonogo applies to every forward model's inputs, unless the model
+ * declares an exemption in {@link ReckonerExemptions}:
  *
- * Both come from the same statement: a forward model is a claim about the
- * future made out of other people's numbers, and it cannot honestly claim more
- * than those numbers support. A model author writing neither of these gets both,
- * which is the point; a model that genuinely needs to exceed one says so in
- * {@link ReckonerExemptions} and gives the reason.
+ * - `horizon`: the model is not offered on a frame where one of its inputs is
+ *   past its own model's horizon. The reading declines with
+ *   `"beyond-horizon"`, naming that input
+ * - `band`: the model's {@link UncertaintyBand}s may not claim more than its
+ *   inputs' bands. An input band of kind `sigma1` limits the output to
+ *   `sigma1`, and an input band with width forbids an output band of zero
+ *   width. A band that breaks the rule is dropped, not widened
  *
- * - `horizon`: the model is not offered on a frame where one of its declared
- *   inputs is past ITS OWN model's horizon. There is no horizon FIELD to clamp
- *   (see {@link ReckoningDecline}, and {@link Reading}'s "No horizon field"),
- *   so the rule is spelled the only way a horizon is ever spelled here: the
- *   model withdraws for that frame, declining `"beyond-horizon"` and naming the
- *   input that ran out
- * - `band`: the model's {@link UncertaintyBand}s never claim to know more than
- *   the bands on its inputs do. A `sigma1` input caps the output's kind at
- *   `sigma1`, because a hard bound cannot be derived from an error that was
- *   never bounded; and an input band with width forbids a zero-width output
- *   band, because exactness cannot be derived from uncertainty. A band the rule
- *   rejects is DROPPED rather than widened to an invented number, which is the
- *   same result {@link ReckonedBands} already gives for a model that cannot
- *   bound its own error
- *
- * ## What the band rule deliberately does NOT do
- *
- * It does not compare WIDTHS. A width comparison across an input path and an
- * output path is not sound without knowing the model's sensitivity to that
- * input: an altitude taken from a precise conic and an imprecise body radius is
- * legitimately tighter in metres than either, and averaging independent samples
- * legitimately narrows. So the rule polices the two claims that are wrong
- * whatever the mathematics (a bound out of a sigma, an exact result out of an
- * inexact input) and leaves the arithmetic to the model.
+ * The band rule does not compare widths: a model may legitimately produce a
+ * narrower band than its inputs.
  *
  * @category Reckoners
  */
 export type ReckonerInputRule = "horizon" | "band";
 
 /**
- * A model's declared opt-out from an input rule, one key per rule, whose VALUE
- * is the reason its mathematics justifies going beyond.
+ * The {@link ReckonerInputRule}s a model does not follow, each with the reason
+ * its mathematics allows it. The reason is required and may not be blank. For
+ * example, a model that uses an input only to start an integration is not
+ * bound by that input's horizon.
  *
- * The reason is the value rather than a sibling flag so an opt-out cannot be
- * taken without stating one: there is no spelling of "exempt from the horizon
- * rule" that does not also say why. `registerReckoner` rejects a blank reason
- * for the same purpose, because an empty string is a flag wearing the shape of
- * a sentence.
- *
- * A sound example is the one the rule cannot see from outside: a propagator
- * whose output genuinely outlives an input because that input only SEEDS the
- * integration and is never read again. The seed's own model running out says
- * nothing about how far the integration reaches.
- *
- * Every exemption in the running program is enumerable through
- * `getReckonerExemptions`, so an opt-out is reviewable rather than merely
- * possible: an Uplink's generated page lists its own, and a ledger suite pins
- * the whole set.
+ * Every exemption registered can be listed with `getReckonerExemptions`, and an
+ * Uplink's generated page shows its own.
  *
  * @category Reckoners
  */
@@ -1709,41 +1476,12 @@ export interface ReckonerExemptions {
   /** Why this model's band may claim more than its inputs' bands do. */
   readonly band?: string;
   /**
-   * The same opt-outs, but only for the models this registration produces on
-   * the named {@link ReckoningBasis}.
-   *
-   * ## Why a registration may need more than one set
-   *
-   * A registration is not always one model. `vessel.flight` returns a CONIC
-   * above the atmosphere interface and an INTEGRATOR of the observed descent
-   * rate below it, chosen by the model itself per sample, and the two have
-   * genuinely different reaches: the conic cannot outlive the elements it came
-   * from, while the integrator carries a measured rate that already includes
-   * whatever the installed aerodynamics did and is precisely the model that
-   * takes over where the conic stopped.
-   *
-   * A registration-wide `horizon` opt-out cannot say that: taking one would
-   * unbind the conic too.
-   *
-   * ## Why by BASIS rather than on the returned model
-   *
-   * An opt-out attached to the model object would be invisible until the model
-   * ran, and `getReckonerExemptions` could not enumerate it: the whole
-   * set would stop being reviewable, which is the property the rest of this doc
-   * is about. A basis is DECLARED, so the set stays a list somebody can diff.
-   *
-   * ## Why the reason hangs off an INPUT
-   *
-   * "The horizon rule does not apply to me" is never a claim a model can
-   * honestly make. What it can say is "I do not derive from THIS input", and
-   * the two differ exactly where it matters: the air model above is not bounded
-   * by `vessel.orbit`, and IS bounded by `system.bodies`, because the
-   * atmosphere depth is what tells it which regime it is in. A wholesale
-   * opt-out would free it from both and let it run past the point its own
-   * boundary is known.
-   *
-   * Same argument as the reason-string one level up, at the level where it is
-   * true: a rule-wide opt-out is a flag wearing the shape of a sentence.
+   * Exemptions that apply only to the models this reckoner produces with one
+   * {@link ReckoningBasis}, each from named inputs only. Use it when one
+   * reckoner offers different models: `vessel.flight` uses an orbit model above
+   * the atmosphere and integrates the observed descent rate below it, and only
+   * the second may outlive `vessel.orbit`, while both stay bound by
+   * `system.bodies`.
    */
   readonly perBasis?: {
     readonly [basis: string]: {
@@ -1756,33 +1494,20 @@ export interface ReckonerExemptions {
 }
 
 /**
- * A registered forward model, and the published inputs it needs.
+ * A forward model to register with `registerReckoner`, or through an Uplink's
+ * client handle: the inputs it needs, and the function that offers a model for
+ * each reading.
  *
- * This is the registration surface: `registerReckoner` takes one of these, and
- * an Uplink reaches it through its client handle. `ReckonerFor` is the shape
- * the store calls internally once the inputs are resolved, and an author never
- * writes one.
+ * Gonogo resolves every input in `deps` before `reckon` runs. When an input the
+ * Topic's contract declares has not arrived, the reading declines with
+ * `"input-absent"`, naming it, and `reckon` is not called. An input in `deps`
+ * that the contract does not declare resolves to `undefined` instead, and the
+ * model decides what that means.
  *
- * ## Why the inputs are DECLARED rather than reached for
- *
- * A reckoner that reaches for whatever it likes cannot be told from one whose
- * inputs never arrived: both return nothing, and the caller sees a silent
- * `undefined` on a value the contract PROMISED was carriable. Declaring them
- * buys the honest decline that promise is worth: the store resolves each
- * declared input before the model runs, and an input the contract declared and
- * the frame did not carry produces `declined: { reason: "input-absent", input:
- * "@vessel.orbit" }` naming the contract's own spelling, without the model
- * being run on inputs it does not have.
- *
- * ## What the store enforces, and what it leaves to the model
- *
- * The store declines on behalf of a reckoner for the inputs the CONTRACT
- * declares, because that is exactly the promise a mark makes. A dep declared
- * HERE and not in the contract is the model's own refinement: it resolves to
- * `undefined` and the model decides, which is what lets a conic treat an absent
- * body roster as no evidence of an atmosphere rather than as a reason to blank
- * the reading. Withdrawal takes positive evidence; an absent optional input is
- * not evidence.
+ * @typeParam Payload - The Topic's payload type.
+ * @typeParam Projection - What the model returns. See {@link TopicModel}.
+ * @typeParam Deps - The declared inputs.
+ * @typeParam Windows - The {@link DepWindows} given to them.
  *
  * @category Reckoners
  */
@@ -1792,28 +1517,18 @@ export interface ReckonerDefinition<
   Deps extends readonly Dep[] = readonly Dep[],
   Windows extends DepWindows<Deps> = Record<never, never>,
 > {
-  /** Declared inputs, in the same notation a Processor's `deps` uses. */
+  /** The inputs the model needs, written as a Processor's `deps` are. */
   readonly deps: Deps;
-  /**
-   * How much of this topic's own record to hand the model, and the floor below
-   * which it should not run at all. Omitted means one point: see
-   * {@link ReckonerWindow} for why the bounds are shaped the way they are.
-   */
+  /** How many past samples of this Topic the model is given. Omitted, it gets the latest only. */
   readonly window?: ReckonerWindow;
-  /**
-   * The deps that want their own history rather than one hold-last point,
-   * each with its own span and cap. Keyed by the ids in `deps`.
-   */
+  /** Windows of past samples for some of `deps`, keyed by their Topic ids. */
   readonly depWindows?: Windows;
-  /**
-   * The {@link ReckonerInputRule}s this model does not obey, each with the
-   * reason its mathematics justifies it. Omitted, which is the normal case,
-   * means the store applies both.
-   */
+  /** The input rules this model is exempt from, each with its reason. Usually omitted, so both rules apply. */
   readonly exempt?: ReckonerExemptions;
   /**
-   * Offer a model for `point` at `frame.viewUt`, or decline and say why. Cheap:
-   * it is asked whether a model exists and what it covers.
+   * Returns a {@link TopicModel} for `point`, the latest sample of the Topic,
+   * or declines and says why. Keep it cheap: the model's own `reckon` does the
+   * computing.
    */
   reckon(
     point: TimelinePoint<Payload>,
@@ -1823,28 +1538,17 @@ export interface ReckonerDefinition<
 }
 
 /**
- * A reckoner definition as the registry holds one, with its type parameters
- * erased to what a caller holding only a topic string can still say.
- *
- * Written out rather than spelled `ReckonerDefinition<unknown, unknown, ...>`
- * because the erasure IS the point: `reckon` is declared here with the argument
- * types the store passes and the result type it reads back, so a definition
- * written against a concrete Topic reaches this shape by method bivariance and
- * the store calls it without an assertion in either direction.
+ * A {@link ReckonerDefinition} with its types erased, as the registry holds
+ * it. Any definition can be passed where this is expected.
  *
  * @category Reckoners
  */
 export interface AnyReckonerDefinition {
-  /** Declared inputs, in the same notation a Processor's `deps` uses. */
+  /** See {@link ReckonerDefinition.deps}. */
   readonly deps: readonly Dep[];
   /** See {@link ReckonerDefinition.window}. */
   readonly window?: ReckonerWindow;
-  /**
-   * See {@link ReckonerDefinition.depWindows}. Erased to a string key here
-   * for the same reason the rest of this interface is: the store looks a
-   * window up by the dep it is already iterating, and holds no `Deps` to key
-   * against.
-   */
+  /** See {@link ReckonerDefinition.depWindows}. */
   readonly depWindows?: { readonly [dep: string]: DepWindow | undefined };
   /** See {@link ReckonerDefinition.exempt}. */
   readonly exempt?: ReckonerExemptions;

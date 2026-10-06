@@ -12,11 +12,8 @@ export type TransportStatus =
   | "error";
 
 /**
- * One command-request a transport accepted and can now never deliver.
- *
- * The `reason` is the transport's own words, kept out of the wire's `error`
- * frame vocabulary deliberately: this never reached a server, so no server
- * code applies to it.
+ * A command a transport accepted and will now never send, with the
+ * transport's own reason. It never reached the mod.
  *
  * @category Stream messages
  */
@@ -28,12 +25,9 @@ export interface UndeliveredCommand {
 }
 
 /**
- * One command-request that whoever this transport relays for has given up
- * waiting on, and said so.
- *
- * Structurally the same as {@link UndeliveredCommand} and deliberately not the
- * same type, because the two make opposite claims about the same command.
- * Undelivered says it never left; this says nobody knows whether it did.
+ * A command that the machine a transport relays for, such as the main screen
+ * for a station, has stopped waiting for. Nobody knows whether it ran, unlike
+ * an {@link UndeliveredCommand}, which certainly did not.
  *
  * @category Stream messages
  */
@@ -45,12 +39,9 @@ export interface LostCommand {
 }
 
 /**
- * A dumb typed message pipe between the app and a telemetry source.
- *
- * Transports know nothing about topics, subscriptions, or commands beyond
- * routing the SDK's wire messages; all of that semantics lives above this
- * boundary. Real implementations (WebSocket, PeerJS) are added over time,
- * this interface is what they (and `StubTransport`) implement.
+ * A typed message pipe between the app and a telemetry source, such as a
+ * WebSocket to the mod. It carries the SDK's messages and knows nothing about
+ * Topics, subscriptions or commands beyond that.
  *
  * @category Stream messages
  */
@@ -68,124 +59,40 @@ export interface Transport {
   onStatusChange(listener: (status: TransportStatus) => void): () => void;
 
   /**
-   * OPTIONAL: report a command-request this transport took and will now never
-   * put on a wire, because it has permanently stopped trying.
-   *
-   * A channel of its own, and NOT a synthetic `error` frame through
-   * `onMessage`, which is the shape that looks cheaper and is wrong. An `error`
-   * correlated to a requestId the client has already called `lost` is read as
-   * proof the mod RECEIVED the command: `TelemetryClient.handleCommandError`
-   * moves it to `found`. Answering a stranded command that way would claim a
-   * command that never left the browser had reached the game.
-   *
-   * What the client does with it is the opposite claim, and a stronger one than
-   * `lost`: the command is settled `undelivered`, which says it did not run.
-   * Only report a command that genuinely never went out; a transport that
-   * cannot tell simply does not implement this, and its commands stay `lost`,
-   * which is the honest answer for "we do not know".
-   *
-   * Omitted by every transport that has no queue to strand anything in
-   * (`StubTransport`, `ReplayTransport`, `CourierTransport`). `PeerTransport`
-   * strands nothing of its own, refusing a command at the press rather than
-   * holding it, and implements this anyway to relay the HOST's stranded queue.
+   * Optional: reports each command this transport accepted and has stopped
+   * trying to send, which the client then marks `undelivered`: it did not run.
+   * Report only commands that certainly never went out. A transport that cannot
+   * tell leaves this out, and its commands stay `lost`.
    */
+  // A separate channel, not an `error` frame: an error correlated to a request id is read as proof the mod received it.
   onUndelivered?(listener: (command: UndeliveredCommand) => void): () => void;
 
   /**
-   * OPTIONAL: report a command-request that the machine this transport relays
-   * for has stopped waiting for and called lost.
-   *
-   * A channel of its own for the same reason `onUndelivered` is one, and this
-   * is the case that shows why that rule cannot be a list of reserved codes on
-   * the error channel: an `error` correlated to a requestId IS the proof that
-   * the mod received the command, so a relayed loss arriving that way turns
-   * "we do not know" into "it ran". Making "the mod answered" mean "unless the
-   * code is one of these" leaves the next reader an invariant that is no longer
-   * true anywhere it is stated.
-   *
-   * What the client does with it is settle `lost`, the phase whose whole
-   * content is that nothing was decided: the command may have reached the game,
-   * and a re-send may double it. Weaker than `undelivered` on purpose, so a
-   * transport that knows a command never left must use that channel and not
-   * this one. Reporting a loss for a command whose fate you actually know
-   * throws away the answer.
-   *
-   * Implemented only by `PeerTransport`, the one transport carrying a verdict
-   * it did not reach itself: a station's command is dispatched to the mod by
-   * the host, so the host's loss timer is the only one measuring that leg. The
-   * station arms its own off the relayed `comms.delay`, which times a different
-   * leg, so the two can fire in either order and both orders land here.
+   * Optional: reports each command the machine this transport relays for has
+   * stopped waiting for, which the client then marks `lost`: it may or may not
+   * have run. For a command that certainly never left, use `onUndelivered`.
    */
   onLost?(listener: (command: LostCommand) => void): () => void;
 
   /**
-   * OPTIONAL: if a command were dispatched right now, the absolute UT this
-   * transport expects its confirmation to arrive by, or `undefined` if the
-   * transport doesn't model network delay at all.
-   *
-   * This is a *prediction*, not a commitment: the client never computes
-   * delay itself, it only consumes whatever the transport hands back here
-   * to size its own loss-inference timeout (see `TelemetryClient.dispatch`).
-   * `StubTransport` (zero simulated latency) omits this method entirely,
-   * `eta` comes back `undefined` and the client never starts a loss timer
-   * for it. `CourierTransport` implements it using the courier's own
-   * round-trip model.
-   */
-  /**
-   * Predict when a just-dispatched command's confirmation is due, in the `Clock`'s UT
-   * domain. **Only for a transport that OWNS its delay model.**
-   *
-   * `CourierTransport` is that case: it drives the courier's own delay engine and runs
-   * without a `TelemetryProvider`, so nothing else can know the round trip.
-   *
-   * A transport riding the mod's SERVER-ENFORCED delay must NOT implement this.
-   * `comms.delay` already carries that number and `DelayAuthority` already holds it
-   * live, so `TelemetryClient` falls back to the authority (`setDelaySource`) whenever
-   * this is absent. Implementing it here as well would re-derive a value another layer
-   * owns, and two estimates of one delay is how they start disagreeing.
-   *
-   * Note the client prefers THIS over the authority when both are available, because a
-   * transport that owns its delay model knows better than a generic authority whose
-   * fail-safe is zero. So implementing it on a server-delayed transport would not merely
-   * duplicate the authority, it would OVERRIDE it. The stream transport the app
-   * dials the mod with deliberately does not implement it, and that is not an
-   * omission to fix.
+   * Optional: the UT by which a command sent now is expected to be confirmed,
+   * for a transport that runs its own delay model. A transport carrying the
+   * mod's delay must leave this out: the client then takes the delay from
+   * `comms.delay`, and this would override it.
    */
   predictConfirmEta?(): number | undefined;
 
   /**
-   * OPTIONAL: whether this transport can carry a vantage selection at all.
-   * Absent means yes, which is right for every transport that owns its own
+   * Optional: `false` when this transport cannot choose which command centre
+   * it observes from, so the client refuses a change of vantage. Absent means
+   * it can. A station's transport cannot, since it shares the main screen's
    * session with the mod.
-   *
-   * `PeerTransport` is the one that cannot. The mod keeps `SelectedVantage` on
-   * the `ClientSession` and a host has exactly one session, so a station
-   * selecting a vantage would move every other station's observation with it.
-   * Declaring `false` here makes `TelemetryClient.setVantage` refuse rather
-   * than change its own selection and re-subscribe every topic against a
-   * request the wire will never carry, which would leave the client claiming a
-   * vantage its data is not from.
    */
   readonly carriesVantage?: boolean;
   /**
-   * OPTIONAL: whether this transport relays the mod's `subscribed` acks, so a
-   * missing one is real evidence that nothing will ever publish the topic.
-   *
-   * **Absent means NO**, which is the opposite default to `carriesVantage` and
-   * deliberately so. Every other transport in the tree is silent about acks:
-   * `StubTransport` emits whatever a test scripts and never acks,
-   * `ReplayTransport` replays a fixture's frames, `CourierTransport` drives the
-   * courier directly. Defaulting to yes would mature every topic in every one
-   * of those into `unowned` the moment the window elapsed, which is precisely
-   * the false-unowned this whole mechanism is built to avoid. Opting in is a
-   * claim a transport has to make about itself.
-   *
-   * `PeerTransport` is the interesting no. A station's subscribe does reach the
-   * mod, but only when the HOST's own refcount makes a 0 -> 1 transition, so a
-   * topic the host already holds is never re-acked; the station also missed
-   * every ack minted before it connected. Silence there is not evidence of
-   * anything. A station therefore stays `pending`, and relaying the host's
-   * verdict to it is separate work.
+   * Optional: `true` when this transport passes on the mod's acknowledgement
+   * of each subscription, so a Topic that is never acknowledged can be shown as
+   * `"unowned"`. Absent means no, and such Topics stay `"pending"`.
    */
   readonly decidesTopicOwnership?: boolean;
 }

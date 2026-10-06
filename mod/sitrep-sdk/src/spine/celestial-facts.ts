@@ -64,22 +64,13 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 
 /**
- * How far a body's elements may be carried forward, as the elected provider
- * stated it.
+ * How far a body's orbital elements may be carried forward, as the
+ * propagation provider states it: the same horizon a craft's orbit carries,
+ * as plain numbers. `untilUt` is an instant, not a duration.
  *
- * **The same question a craft's elements carry, in the same words.** This is
- * `PropagationHorizon` off the wire with its units stripped, which is what every
- * quantity in this model is; the two enums are the contract's own, not a second
- * copy. A body is not a vessel, but "how far do these elements reach" is one
- * question and it gets one spelling: `untilUt` is an absolute UT here exactly as
- * it is there, never a duration, and `Unbounded` is a claim a provider makes
- * rather than a large number it picks.
- *
- * Under stock every body carries {@link ANALYTIC_BODY_HORIZON}: a fixed conic
- * about a fixed parent is a published fact at any UT, and the client evaluates
- * it when a caller asks for an instant rather than advancing it each frame.
- * Under an n-body install the bodies are integrated too, their osculating
- * elements part company with the path, and the provider says where.
+ * In stock KSP every body has {@link ANALYTIC_BODY_HORIZON}: its orbit is
+ * fixed, so its position at any UT is known. In an n-body game the provider
+ * says how far each body's elements hold.
  *
  * @category Solar system and fleet
  */
@@ -91,14 +82,8 @@ export interface BodyHorizon {
 }
 
 /**
- * Unbounded and closed-form: what a stock install's bodies are, and what a
- * payload carrying no horizon at all is read as.
- *
- * A missing field is a host older than the field, and a host older than the
- * field has no seam for a provider to bound a body through, which is a stock
- * install. That keeps `Unspecified` meaning what
- * the contract says it means: a producer that HAS the field and could not fill
- * it.
+ * The horizon of a body on a fixed orbit, as in stock KSP: `Unbounded` and
+ * `Analytic`. A body whose payload carries no horizon is given this one.
  *
  * @category Solar system and fleet
  */
@@ -123,9 +108,9 @@ export interface BodyAtmosphere {
 }
 
 /**
- * A body's catalogue figures as the wire delivered them: the same `Value`s,
- * so a readout of one keeps the static stamp the contract gives it. Each is
- * null when the game did not report it.
+ * A body's figures as `Value`s, as the payload carried them, for showing in a
+ * readout: they keep their units and their static mark. Each is `null` when
+ * the game did not report it.
  *
  * @category Solar system and fleet
  */
@@ -139,95 +124,105 @@ export interface BodyFigures {
 }
 
 /**
- * One body of the solar system as `CelestialFacts` holds it.
+ * One body of the solar system, as {@link CelestialFacts} holds it. Numbers
+ * here are plain, for drawing and arithmetic: lengths in metres, angles in
+ * degrees except the mean anomaly in radians, times in seconds. To show one
+ * with its unit, use `figures`. A field is `null` when the game did not report
+ * it, and the orbit fields are `null` for the root star.
  *
  * @category Solar system and fleet
  */
 export interface CelestialBody {
+  /** The body's index in the game. */
   index: number;
+  /** The body's name. */
   name: string | null;
+  /** The name of the body it orbits. */
   referenceBody: string | null;
+  /** Mean radius, metres. */
   radius: number | null;
   /** Sphere-of-influence radius, metres. */
   soi: number | null;
-  /** Standard gravitational parameter μ = G·M, m³/s², the compute primitive. */
+  /** Gravitational parameter (G times mass), m³/s². */
   gravParameter: number | null;
   // ── Orbit (null for the root star) ──────────────────────────────────────
+  /** Semi-major axis, metres. */
   semiMajorAxis: number | null;
+  /** Eccentricity. */
   eccentricity: number | null;
+  /** Inclination, degrees. */
   inclination: number | null;
+  /** Longitude of the ascending node, degrees. */
   lan: number | null;
+  /** Argument of periapsis, degrees. */
   argumentOfPeriapsis: number | null;
+  /** Mean anomaly at `epoch`, radians. */
   meanAnomalyAtEpoch: number | null;
+  /** The UT the mean anomaly is for. */
   epoch: number | null;
-  /** What the elected provider vouches these elements for; see {@link BodyHorizon}. */
+  /** How far these elements may be carried forward; see {@link BodyHorizon}. */
   horizon: BodyHorizon;
   /**
-   * Whether this body's place at any instant is exact: its elements arrived
-   * stamped deterministic, which the contract grants only while
-   * {@link CelestialBody.horizon} is Unbounded and Analytic. The root star has
-   * no elements to drift and is exact too. A figure computed only from exact
-   * bodies and the clock is not a guess; under an n-body install this is false
-   * and such a figure is as old as the catalogue it came from.
+   * Whether this body's position at any instant is exact: `true` while its
+   * horizon is `Unbounded` and `Analytic`, and for the root star. In an n-body
+   * game it is `false`, and a figure computed from the body is as old as the
+   * catalogue it came from.
    */
   deterministic: boolean;
-  /** Orbital period, seconds: derived `2π√(a³/μ_parent)`. OURS, and see below. */
+  /** Orbital period, seconds, computed from the semi-major axis and the parent's gravitational parameter. */
   period: number | null;
-  /** True anomaly, degrees in [0, 360), solved for the frame's view time. OURS. */
+  /** True anomaly at the view time, degrees from 0 to 360, computed from the elements. */
   trueAnomaly: number | null;
-  /** Mass, kg (`CelestialBody.Mass` on the wire). */
+  /** Mass, kilograms. */
   mass: number | null;
-  /** Surface gravity in g (`CelestialBody.GeeASL` on the wire, verbatim). */
+  /** Surface gravity, in g. */
   geeASL: number | null;
-  /** Escape velocity, m/s: derived `√(2μ/r)`. The game has no such member. OURS. */
+  /** Escape velocity at the surface, m/s, computed from the gravitational parameter and radius. */
   escapeVelocity: number | null;
-  /** Hill-sphere radius, metres (`CelestialBody.hillSphere` on the wire); null for the root star. */
+  /** Hill-sphere radius, metres; `null` for the root star. */
   hillSphere: number | null;
   // ── Almanac (on the wire) ───────────────────────────────────────────────
+  /** Time for one rotation, seconds. */
   rotationPeriod: number | null;
   /**
-   * The body's rotation angle at UT 0, degrees. The PHASE the period's rate is
-   * measured from, so the pair places a body-fixed coordinate in the frame the
-   * elements above are measured in.
+   * The body's rotation angle at UT 0, degrees. With `rotationPeriod` it
+   * places a point on the surface in the frame the orbit is measured in.
    */
   initialRotation: number | null;
+  /** Whether the body always shows the same face to its parent. */
   tidallyLocked: boolean | null;
-  /** Whether the body rotates: derived (rotationPeriod finite and non-zero). */
+  /** Whether the body rotates: its rotation period is finite and not zero. */
   rotates: boolean | null;
+  /** Whether the body has an ocean. */
   hasOcean: boolean | null;
+  /** The game's description of the body. */
   description: string | null;
   /** Atmosphere descriptor; null when the body is airless. */
   atmosphere: BodyAtmosphere | null;
   // ── Atmosphere convenience mirrors (kept for existing consumers) ────────
-  /** `atmosphere !== null`. */
+  /** Whether the body has an atmosphere. */
   hasAtmosphere: boolean | null;
-  /** `atmosphere?.depth`. */
+  /** How high the atmosphere reaches, metres; the same as `atmosphere.depth`. */
   maxAtmosphere: number | null;
-  /** `atmosphere?.hasOxygen`. */
+  /** Whether the atmosphere has oxygen; the same as `atmosphere.hasOxygen`. */
   hasOxygen: boolean | null;
-  /** The figures a readout draws, as delivered; see {@link BodyFigures}. */
+  /** The body's figures with their units, for showing; see {@link BodyFigures}. */
   figures: BodyFigures;
 }
 
 /**
- * What the catalogue knows, this frame.
+ * Every body in the solar system as the latest `system.bodies` describes it,
+ * computed once per frame. Read it with `useProcessor(CELESTIAL_FACTS)`.
  *
  * @category Solar system and fleet
  */
 export interface CelestialFacts {
-  /** Every body the system carries, in wire order, enriched. */
+  /** Every body, in the order `system.bodies` lists them. */
   bodies: CelestialBody[];
-  /**
-   * Body index to name, and back.
-   *
-   * Plain records of primitives rather than `Map`s, and that matters: the
-   * evaluator gates its fan-out on a structural comparison of the RESULT that
-   * walks plain objects, arrays, primitives and `Value`s, and compares anything
-   * else by identity. A `Map` in here would compare unequal on every frame and
-   * wake every consumer of the catalogue, which is the exact churn the
-   * notification budget exists to catch.
-   */
+  /** Each body's name by its index. */
+  // Plain records, not Maps: the processor compares results structurally, and a Map would differ every frame.
   nameByIndex: Record<number, string>;
+  /** Each body's index by its name. */
   indexByName: Record<string, number>;
 }
 
@@ -381,9 +376,10 @@ const NOTHING_KNOWN: CelestialFacts = {
 };
 
 /**
- * The whole derivation, pure. Exported so a test can exercise it directly
- * without a live evaluator, the way every processor in the tree exposes its
- * derivation beside its handle.
+ * Returns {@link CelestialFacts} from a `system.bodies` payload's `bodies`,
+ * with true anomalies solved at `ut`. The same computation
+ * {@link CELESTIAL_FACTS} runs each frame, for use without a running
+ * telemetry stream, such as in a test.
  *
  * @category Solar system and fleet
  */
@@ -406,9 +402,9 @@ export function deriveCelestialFacts(
 }
 
 /**
- * `core:celestial-facts`. The owner-stamped Processor handle. Import it to
- * consume the catalogue, never re-declare it: a second registration under the
- * same id with a different compute throws (processors.ts).
+ * The processor that computes {@link CelestialFacts} once per frame. Read it
+ * with `useProcessor(CELESTIAL_FACTS)`, or list it in a contribution's `deps`.
+ * Do not register a processor with the same id.
  *
  * @category Solar system and fleet
  */
@@ -433,10 +429,7 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
 });
 
 /**
- * The enriched entry for one body index, or `null` when the catalogue does not
- * carry it. A linear scan over a system-sized list, deliberately: an index-keyed
- * copy of every body would double the evaluator's structural comparison for a
- * lookup that costs nothing at seventeen bodies.
+ * Returns the body with this index, or `null` when the catalogue has none.
  *
  * @category Solar system and fleet
  */
@@ -449,8 +442,7 @@ export function bodyAtIndex(
 }
 
 /**
- * The enriched entry for one body name, or `null` when the catalogue does not
- * carry it.
+ * Returns the body with this name, or `null` when the catalogue has none.
  *
  * @category Solar system and fleet
  */

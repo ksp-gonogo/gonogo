@@ -13,9 +13,9 @@
 import { registerBody } from "./bodies";
 
 /**
- * Base URL for body texture images. Textures are served from the app's
- * public/bodies/ directory. Pass import.meta.env.BASE_URL from the app
- * entrypoint to handle sub-path deployments (e.g. /gonogo/bodies/).
+ * Registers every stock KSP body with {@link registerBody}, keyed by the name
+ * the telemetry stream uses, so {@link getBody} finds a body by name.
+ * `baseUrl` is where the body texture images are served from.
  *
  * @category Solar system and fleet
  */

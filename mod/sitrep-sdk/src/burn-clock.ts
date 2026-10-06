@@ -3,42 +3,28 @@ import { value } from "./unit-system/value";
 import type { Value } from "./value";
 
 /**
- * An instant as an operator enters it: year, day, hour, minute, second.
- *
- * <p>Five fields rather than one seconds box, because a burn is scheduled
- * against a date and nudged against a minute, and a single field makes both
- * awkward: reading a nine-digit UT to find the hour is arithmetic an operator
- * should not be doing, and changing the hour in it means recomputing the whole
- * number by hand.</p>
- *
- * <p>Year and day count from ONE, the way the game's clock reads them. Hour,
- * minute and second count from zero, because they are offsets within a day
- * rather than names of days. Mixing those up puts everything a day out and does
- * it invisibly.</p>
+ * An instant as the game's clock shows it: year, day, hour, minute and
+ * second. Year and day count from 1, as the game shows them; hour, minute and
+ * second count from 0.
  *
  * @category Orbits and trajectories
  */
 export interface BurnInstantParts {
+  /** The year, from 1. */
   year: number;
+  /** The day of the year, from 1. */
   day: number;
+  /** The hour of the day, from 0. */
   hour: number;
+  /** The minute of the hour, from 0. */
   minute: number;
+  /** The second of the minute, from 0, whole. */
   second: number;
 }
 
 /**
- * A UT split into calendar parts.
- *
- * <p><b>Every conversion goes through the unit system.</b> `Value` is what
- * knows how long a day is on the running game's calendar, so a file carrying
- * its own ratios would be a second clock beside the one the app renders
- * through, free to disagree the moment an install says its day is 86,400
- * seconds. The year is the one boundary the catalogue has no symbol for, so it
- * comes from <see cref="kspYearDays"/> rather than from a number here.</p>
- *
- * <p>Whole seconds. A burn scheduled to the microsecond is one nobody can
- * enter, and the fraction would reappear as a rounding difference the next time
- * the operator touched any other field.</p>
+ * Returns a UT as {@link BurnInstantParts}, on the calendar of the game being
+ * watched (see {@link kspCalendar}). Seconds are rounded to whole seconds.
  *
  * @category Orbits and trajectories
  */
@@ -67,16 +53,11 @@ export function decomposeUt(at: Value<"ut">): BurnInstantParts {
 }
 
 /**
- * Calendar parts back to a UT.
+ * Returns the UT that {@link BurnInstantParts} name: the reverse of
+ * {@link decomposeUt}, so parts read from a UT give that UT back.
  *
- * <p>The exact inverse of <see cref="decomposeUt"/> for any instant either can
- * express, which is what makes an editor safe to type in: a field the operator
- * did not touch must come back the number it went in as, or every edit drifts
- * the burn by the rounding of the fields beside it.</p>
- *
- * <p>Out-of-range parts are NOT clamped, they carry. Entering minute 90 means
- * an hour and a half, which is what somebody typing it meant, and refusing it
- * would make the obvious way to say "half an hour later" an error.</p>
+ * A part beyond its range carries into the next: minute 90 is an hour and a
+ * half.
  *
  * @category Orbits and trajectories
  */
@@ -96,23 +77,11 @@ export function composeUt(parts: BurnInstantParts): Value<"ut"> {
 }
 
 /**
- * How long until the burn LIGHTS, which is not how long until the node.
+ * Returns the time until a burn starts: until `ignitionUt` where the plan has
+ * one, otherwise until the node's `ut`. For a burn that takes time, the node is
+ * the burn's midpoint, so counting down to it would start the burn late.
  *
- * <p>The convention an integrating planner sets, and the reason it matters is
- * that a finite burn's node instant is the half-delta-v point: counting to it
- * puts ignition half a burn in the past by the time the countdown reaches zero.
- * An operator watching that number and lighting on it is late every single
- * time, by an amount that grows with the burn.</p>
- *
- * <p>Falls back to the node instant only when nothing modelled an ignition,
- * which is the stock case: an instantaneous burn lights when it happens, so
- * there the two ARE the same instant rather than one standing in for the
- * other.</p>
- *
- * <p>An interval, so it carries `s` rather than `ut` and cannot be handed to
- * anything expecting an instant. Negative once the burn has started, which is a
- * real state worth showing: a burn in progress is exactly when an operator most
- * wants to know how far into it they are.</p>
+ * Negative once the burn has started.
  *
  * @category Orbits and trajectories
  */
@@ -128,11 +97,8 @@ export function timeToIgnition(
 }
 
 /**
- * Whether the burn is lit at `nowUt`.
- *
- * <p>Between ignition and cutoff. A burn with no modelled duration is never
- * "in progress": it is instantaneous, so there is no interval to be inside, and
- * reporting one would invent a state the plan does not have.</p>
+ * Returns whether `nowUt` is between the burn's ignition and cutoff. Always
+ * `false` for a burn with no duration in the plan.
  *
  * @category Orbits and trajectories
  */

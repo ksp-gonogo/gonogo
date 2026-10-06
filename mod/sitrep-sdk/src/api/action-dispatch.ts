@@ -79,9 +79,9 @@ export function unregisterActionHandler(
 }
 
 /**
- * Fires the handler registered for `instanceId`/`actionId` if one exists and
- * returns its value (for the render-output path). Unknown actions are a no-op
- * and return `undefined`.
+ * Calls the handler registered for this widget instance and action, and
+ * returns what it returns, which is sent back to the device. Returns
+ * `undefined` when no handler is registered.
  *
  * @category Actions
  */
@@ -96,7 +96,7 @@ export function dispatchAction(
 }
 
 /**
- * Test-only: wipe all registered handlers.
+ * Removes every registered handler. For tests.
  *
  * @category Actions
  */

@@ -126,31 +126,27 @@ const MIN_HISTORY_SAMPLES = 2;
 const FLOAT_RESIDUE_ULPS = 8;
 
 /**
- * The slice of `vessel.flight` this model reads.
- *
- * Declared structurally for the same reason `ConicOrbitInput` is: every field is
- * one `VesselFlight` already publishes, so a payload passes without a cast, and
- * the module stays below the channel record built on top of it. Every field is
- * OPTIONAL because the wire's is: a partial frame carries some of them, and
- * `magnitudeOr` plus a finiteness check is what turns an absence into a decline
- * rather than into arithmetic on nothing.
+ * The fields of `vessel.flight` the atmospheric descent model reads. A
+ * `vessel.flight` payload can be passed as it is. Every field is optional, as
+ * a payload may carry only some of them; a missing one makes the model
+ * decline.
  *
  * @category Reckoners
  */
 export interface AtmosphericFlightInput {
+  /** Height above sea level, metres. */
   altitudeAsl?: Quantityish;
+  /** Vertical speed, m/s, negative when descending. */
   verticalSpeed?: Quantityish;
-  /** Multiples of standard gravity: the SENSED, non-gravitational acceleration. */
+  /** The acceleration the craft feels apart from gravity, in multiples of standard gravity. */
   gForce?: Quantityish;
 }
 
 /**
- * A fitted descent: the anchor's state, the rate of change of that rate taken
- * from the record, and how far the pair may be carried.
- *
- * Held as data rather than as a closure because both halves are worth reporting:
- * a test asserts the fitted acceleration directly, and a decline can say what
- * the horizon was without re-deriving it.
+ * A descent fitted by {@link atmosphericAdmissibility}: the craft's height and
+ * vertical speed at the latest observation, its vertical acceleration measured
+ * over recent samples, and how far forward the fit may be used. Evaluate it
+ * with {@link atmosphericAltitudeAt}.
  *
  * @category Reckoners
  */
@@ -161,19 +157,11 @@ export interface AtmosphericDescentFit {
   readonly altitudeAsl: number;
   /** Metres per second at {@link anchorUt}, signed: negative is descending. */
   readonly verticalSpeed: number;
-  /**
-   * Metres per second squared, from the window. The TOTAL vertical
-   * acceleration, gravity included, because that is what a measured rate of
-   * change of a measured rate is.
-   */
+  /** The vertical acceleration measured over the recent samples, m/s², gravity included. */
   readonly verticalAcceleration: number;
   /**
-   * The standard error of {@link verticalAcceleration}, in metres per second
-   * squared, or `undefined` where the window gives no evidence of one.
-   *
-   * See {@link SlopeFit.stdError} for the three ways it is absent.
-   * {@link atmosphericAltitudeBandAt} is what turns it into an interval around
-   * an altitude.
+   * The standard error of `verticalAcceleration`, m/s², or `undefined` when
+   * the samples give no measure of it. See {@link SlopeFit.stdError}.
    */
   readonly accelerationStdError: number | undefined;
   /** How far past {@link anchorUt} this fit may be asked, in seconds. */
@@ -183,32 +171,10 @@ export interface AtmosphericDescentFit {
 }
 
 /**
- * How long a mean rate stays true, given how violent the regime is.
- *
- * `gForce` is the only published read on that violence, and it is a good one:
- * it sits at about 1 in every steady state a craft can be in (on the pad, at
- * terminal velocity under a chute, in level flight) and rises with the force
- * being applied, so peak entry deceleration reads 5 to 10 and closes the
- * horizon to seconds. Dividing rather than subtracting keeps the ceiling
- * meaningful at the top of the atmosphere, where drag has not yet bitten and a
- * measured acceleration is very nearly just gravity.
- *
- * **`gForce` is used as a MAGNITUDE and nothing here needs its direction.** The
- * wire publishes `Vessel.geeForce`, a scalar, so a direction could only come
- * from the velocity vector: the flight-path angle `verticalSpeed / surfaceSpeed`
- * under the assumption that the sensed force acts along the velocity, which lift
- * and thrust both break and which FAR breaks hardest on the bodies most worth
- * modelling. This model never makes that assumption, because the window's own
- * slope already carries the vertical component with its sign. Both uses of
- * `gForce` here (this, and the envelope in {@link atmosphericAdmissibility}) are
- * bounds on a magnitude, and sound whatever the aerodynamics did.
- *
- * It takes a NUMBER, so an absent `gForce` cannot reach it. Defaulting the
- * divisor to 1 here would read "no evidence of violence" as "evidence of calm",
- * which is the absence-substitution that hides a missing field: the ceiling would
- * silently open back up to its widest on exactly the frames where nothing is
- * known about the regime. `gForce` is a DECLARED input of the mark instead, and
- * {@link atmosphericAdmissibility} declines naming it.
+ * Returns how many seconds a descent fit may be carried forward, given the
+ * sensed `gForce` in g: the harder the craft is being decelerated, the
+ * shorter. At about 1 g (on the pad, under a parachute, in level flight) it is
+ * longest; at the 5 to 10 g of peak entry, seconds.
  *
  * @category Reckoners
  */
@@ -217,68 +183,28 @@ export function horizonSecondsFor(gForce: number): number {
 }
 
 /**
- * How much of `vessel.flight`'s own record the descent fit is taken over.
+ * The window of `vessel.flight` samples the descent fit is taken over: the last
+ * 8 seconds, at most 8 samples. The Topic only gets a sample when its value
+ * changes, so the window may hold anywhere from one sample to eight.
  *
- * A COST CAP and a lookback, never a sample count: the stream is change-gated,
- * so eight seconds of a plummeting capsule holds many points and eight seconds
- * of a craft parked on the pad holds one, and nothing here divides the span by
- * an interval to guess which.
- *
- * Eight seconds because the fitted slope is a MEAN over the lookback and the
- * regime it is fitting changes under it, so a longer window buys more samples
- * at the cost of describing the wrong instant. Eight samples because a
- * least-squares slope is not improved by the ninth, and the store keeps both
- * ends when it thins, so the baseline survives the cap.
- *
- * **No `minSamples`, deliberately.** The store settles that floor for the whole
- * TOPIC before any model runs, and `vessel.flight`'s other model is a conic that
- * needs exactly one point: declaring a floor of two here would refuse the conic
- * on every frame where the record was short. The floor is asserted inside
- * {@link atmosphericAdmissibility} instead, which returns the same
- * `insufficient-history` shape the store would have.
+ * It has no `minSamples`, since `vessel.flight`'s orbit model needs only one
+ * sample; {@link atmosphericAdmissibility} requires two for the descent fit
+ * itself.
  *
  * @category Reckoners
  */
 export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
 
 /**
- * Whether the span from the last observation to the view time puts the craft
- * inside the parent body's air at EITHER end.
+ * Returns whether the craft is inside the parent body's atmosphere at either
+ * the latest observation or the view time: the test that chooses between the
+ * two models of `vessel.flight`'s altitude. `true` hands the frame to the
+ * atmospheric descent model, `false` to the orbit model.
  *
- * THE HANDOVER, as one named predicate, so the two models of one altitude are
- * selected by a single test rather than by each guessing at the other's reach.
- * `true` and the rate integration owns the frame; `false` and the conic does.
- * There is no third case and no band where both apply.
- *
- * ## Why both ends, and why the far one is a RADIUS
- *
- * A reading covers an interval: an observation at one instant, read at another.
- * The observation end is the one this model integrates from, so it is an
- * altitude ASL compared against the published depth. The view end is the instant
- * the CONIC would be asked about, and the conic's admissibility withdraws there
- * on `entryInterfaceRadius` against the radius it solves for. So the far end is
- * asked in exactly those terms, against exactly that floor, rather than being
- * converted into an altitude and compared against the depth again: the two would
- * then be two spellings of one boundary, free to disagree by a rounding, and the
- * whole point of a single predicate is that they cannot.
- *
- * Asking the observation alone is what left the crossing band. A craft observed
- * above the interface and falling is below it by the time the frame is read, so
- * the selector handed it to the conic and the conic withdrew on its floor, with
- * the air never asked. `conicRadiusAtViewTime` closes that by letting the
- * selector see the same instant the floor does.
- *
- * `undefined` for that radius when no conic solves (hyperbolic elements, absent
- * inputs), and then the observation end decides alone, which is the behaviour
- * this had before the far end existed.
- *
- * `false` when nothing published resolves, and that is the honest default rather
- * than a coin toss: with no atmosphere depth there is no interface to be inside
- * of, and with no observed altitude there is nothing for a rate integration to
- * advance, while a conic needs neither. The depth is asked FIRST for that
- * reason: `entryInterfaceRadius` falls back to the bare surface on an airless
- * body, and a far end tested against that floor would hand a craft skimming the
- * Minmus flats to a model named for atmospheric drag.
+ * `altitudeAsl` is the observed height. `conicRadiusAtViewTime` is the
+ * distance from the body's centre the orbit model gives at the view time; when
+ * it is absent, the observation decides alone. Returns `false` when the body
+ * has no atmosphere or nothing says how deep it is.
  *
  * @category Reckoners
  */
@@ -302,73 +228,30 @@ export function withinAtmosphere(
 }
 
 /**
- * A least-squares slope over irregularly spaced samples, and how many there were.
+ * A least-squares slope over unevenly spaced samples, as
+ * {@link verticalAccelerationOver} returns it.
  *
  * @category Reckoners
  */
 export interface SlopeFit {
+  /** How many samples were fitted. */
   readonly samples: number;
   /** `undefined` when every sample carries the same instant. */
   readonly slope: number | undefined;
   /**
-   * The standard error of {@link slope}, in the slope's own units, or
-   * `undefined` where the window gives no evidence of one.
-   *
-   * THE ONLY QUANTITY IN THIS MODULE THAT HAS AN ERROR, which is why it is kept
-   * rather than discarded with the residuals it comes from. The anchor's
-   * altitude and descent rate are measurements the wire carried once; a single
-   * reading of a number has no spread, so nothing here can say how well it is
-   * known. A slope taken over a window does: the samples disagree with the line
-   * through them, and the disagreement is measurable.
-   *
-   * `undefined` on three facts, each a different kind of nothing rather than a
-   * small number:
-   * - **two samples.** Two points determine a line exactly, so there is no
-   *   residual degree of freedom (`n - 2` of them) to estimate a spread from.
-   *   This is the commonest case in a change-gated stream and it must return no
-   *   band rather than a fabricated one
-   * - **no spread in time.** Handled where {@link slope} is, since without it
-   *   there is no fit at all
-   * - **residuals no larger than the arithmetic's own rounding.** Every sample
-   *   on one line is a DEGENERATE estimate, not evidence that an extrapolation
-   *   is exact, and a zero-width band is read downstream as the second thing.
-   *   `ReckonedBands` would rather have none. The test is against
-   *   {@link FLOAT_RESIDUE_ULPS} rather than against zero because a perfect fit
-   *   reaches zero exactly only when its numbers are representable in base two:
-   *   asking `> 0` withheld from a descent at -5 m/s² and offered a 3e-14 m
-   *   interval on the same descent at -5.2
+   * The standard error of `slope`, in the slope's units, or `undefined` when
+   * the samples give no measure of it: with only two samples, when all samples
+   * share one instant, or when every sample lies on the line to within
+   * rounding. None of those means the slope is known exactly.
    */
   readonly stdError: number | undefined;
 }
 
 /**
- * The rate of change of the observed `verticalSpeed` across the window.
- *
- * **Least squares, because the samples are NOT evenly spaced.** The stream is
- * change-gated: a topic carries a point when its value actually changed, so
- * "changes every second" and "is sampled every second" are the same shape in
- * the buffer and different facts about the world. A difference of consecutive
- * samples divided by a nominal interval would be wrong by whatever the real
- * spacing was, and the store's own thinning (`maxSamples` keeps the ends and
- * spreads the rest by INDEX) widens the gaps in the middle on purpose. A fit
- * over `(validAt, verticalSpeed)` pairs takes the spacing from the pairs.
- *
- * The slope is therefore a MEAN over the lookback rather than the acceleration
- * at the anchor instant, which is the reason the window is short and the reason
- * the horizon shortens further as the regime gets violent. A window that
- * straddles a change of regime is what {@link atmosphericAdmissibility}'s
- * envelope is looking for.
- *
- * The window never spans a break in the record, so there is no gap to detect
- * here: the store truncates at a `gapSinceUt` claim or a tombstone before this
- * sees it, and what arrives is a contiguous run or too little of one.
- *
- * It can still span a change of SUBJECT, which the store does not cut at, so
- * `subject` is required and every sample from another craft is dropped. Two
- * vessels' descent rates are not one craft's trend, and a switch between them
- * is a step the fit would read as an enormous acceleration. Whatever survives
- * the filter meets the same floor as any other short window, so this needs no
- * rejection of its own.
+ * Returns the vertical acceleration over a window of `vessel.flight` samples:
+ * a least-squares slope of `verticalSpeed` against time, so uneven spacing is
+ * accounted for. It is an average over the window, not the acceleration at its
+ * end. Samples from any craft other than `subject` are ignored.
  *
  * @category Reckoners
  */
@@ -455,65 +338,22 @@ export function verticalAccelerationOver(
 }
 
 /**
- * Whether this frame's altitude may be carried forward by its observed rates,
- * and the fit to carry it with.
+ * Returns a {@link AtmosphericDescentFit} for carrying the craft's altitude
+ * forward through the atmosphere, or a decline saying why not. It declines,
+ * in this order, when:
  *
- * The counterpart of `keplerAdmissibility`, and the withdrawal conditions are
- * ordered the way that function orders its own: cheapest and most informative
- * first, so an operator hears about the thing that is actually missing rather
- * than about the last check to fail.
+ * - the observation is live, so there is nothing to carry forward
+ * - the observation has no altitude
+ * - the craft is not in the atmosphere (see {@link withinAtmosphere})
+ * - the observation has no vertical speed, or no g-force
+ * - the view time is past {@link horizonSecondsFor}
+ * - fewer than two samples from this craft are in the window
+ *   (`"insufficient-history"`)
+ * - the measured acceleration is more than gravity plus the sensed g-force
+ *   allow, as across a change of regime, a rewind or a scene change
  *
- * - **the observation is current.** A rate integration starts FROM the last
- *   observation, so on a live reading it has nothing to add and would replace a
- *   measured altitude with arithmetic about the same instant. `ReckonerFor`'s
- *   own doc names this case, and `core-reckoners.ts`'s `elapsedOrDecline` takes
- *   the identical posture for the dead-reckoned pair. A conic, being a CAUSE
- *   rather than an integration, correctly does not
- * - **nothing to advance.** No observed altitude at the anchor, so there is no
- *   value for a rate to be applied to
- * - **there is no air here.** {@link withinAtmosphere} says neither end of the
- *   span is inside the parent body's atmosphere, or that nothing published says
- *   otherwise, and the conic owns the regime. This is the handover, and it takes
- *   `conicRadiusAtViewTime` for the same reason the selector does: a frame whose
- *   observation is above the interface and whose view time is below it belongs
- *   here, and a guard asking only the observation would refuse the very frames
- *   the selector now sends. A caller that already branched on the same predicate
- *   cannot reach it, and it is here so that a direct caller does
- * - **no rate to advance it by.** The anchor's `verticalSpeed`, which is the
- *   quantity this model integrates
- * - **nothing to bound it with.** The anchor's `gForce`. Both of these are
- *   DECLARED inputs of the mark, so the decline names them the way the contract
- *   spells them
- * - **past the horizon.** {@link horizonSecondsFor}, which the sensed `gForce`
- *   closes as the regime gets violent. Declining is the point of it; a confident
- *   altitude ten seconds into a peak-deceleration entry is exactly the failure a
- *   `Reading` exists to withhold
- * - **too little of the record.** Fewer than two usable samples of the rate
- *   FROM THIS CRAFT, returned in the store's own `insufficient-history` shape.
- *   The note below says why that floor is asserted here rather than declared as
- *   `window.minSamples`
- * - **the fitted slope is not an acceleration.** The envelope: whatever the
- *   craft is feeling, its total vertical acceleration cannot exceed local
- *   gravity plus the sensed non-gravitational magnitude. A slope outside that
- *   is a window straddling a change of regime, a rewind, or a scene change, and
- *   the model declines because this is not a trend
- *
- * ## The window's floor is asserted HERE rather than declared
- *
- * `ReckonerWindow.minSamples` would be the natural home for "two samples or
- * nothing", and it cannot be used: the store settles it for the whole TOPIC
- * before `reckon` runs, and `vessel.flight`'s other model is a conic that needs
- * exactly one point. Declaring the floor would refuse the conic on every frame
- * where the record was short. So the branch asserts its own floor and returns
- * the same `insufficient-history` shape the store would have.
- *
- * The note says how many samples were found and does NOT say why there were not
- * more. Only the store can tell "the record is short" from "the rest of the
- * window is on the far side of a blackout", and it does not pass that on.
- *
- * `gravity` is the local `mu / r²`, or `undefined` where the roster or the
- * elements did not carry enough to compute it. Absent, the envelope is not
- * checked: a withdrawal is asserted on evidence, never on the lack of it.
+ * `gravity` is the local gravity in m/s², from {@link localGravity}. When it is
+ * `undefined` the last check is skipped.
  *
  * @category Reckoners
  */
@@ -638,19 +478,8 @@ export function atmosphericAdmissibility(
 }
 
 /**
- * The fit, evaluated at `at`: one constant-acceleration step, which is the whole
- * of `rate-integration` for a descent.
- *
- * Second order rather than first because the first derivative of an altitude in
- * air is the thing being changed: a capsule at the interface and the same
- * capsule a few seconds later are hundreds of metres per second apart, so
- * carrying the altitude by its vertical speed alone would be a straight line
- * through the only part of the descent that is not one. Third order is not
- * available and would not help, because the jerk would have to come from the
- * same short window the acceleration came from.
- *
- * Pure, and asked per instant, so a plotted tail re-asking at every step gets
- * one curve rather than a chain of re-anchored guesses.
+ * Returns the fit's altitude above sea level at the UT `at`, in metres,
+ * carried forward with constant acceleration from the latest observation.
  *
  * @category Reckoners
  */
@@ -667,38 +496,10 @@ export function atmosphericAltitudeAt(
 }
 
 /**
- * How well the fit knows the altitude it just carried, as an interval around
- * that altitude, or `undefined` where it cannot say.
- *
- * ## One term, because only one input to the arithmetic has an error
- *
- * `atmosphericAltitudeAt` composes three things, and two of them are
- * measurements: the anchor's altitude and its vertical speed each arrived on
- * the wire once, so there are no residuals to take a spread from and nothing
- * here may invent one. The acceleration is the exception, and the only one: it
- * is FITTED across a window whose samples disagree with the line through them,
- * and that disagreement is `SlopeFit.stdError`.
- *
- * So the interval is `0.5 x sigma_a x dt²` and nothing else. It is zero at the
- * anchor and grows with the SQUARE of the carry, which is the honest shape: the
- * acceleration enters the altitude twice-integrated, so an error in it costs
- * four times as much at six seconds as at three. An operator watching the marks
- * pull away from the bar is watching the model stop being worth much, which is
- * the thing the horizon alone cannot tell them because it is a cliff rather than
- * a slope.
- *
- * ## `sigma1`, never `bound`
- *
- * One standard deviation of the fitted slope, so the true altitude sits outside
- * this interval about a third of the time. Nothing here bounds anything: the
- * window could straddle a change of regime the envelope did not catch, and the
- * constant-acceleration model is itself an approximation of an atmosphere whose
- * density is climbing under the craft. Claiming a `bound` would be claiming
- * knowledge of the aero model this module exists to avoid needing.
- *
- * Pure and asked per instant, the same terms `atmosphericAltitudeAt` is on, so
- * a plotted tail asking at every step gets one widening interval rather than a
- * chain of re-anchored ones.
+ * Returns how well the fit knows its altitude at the UT `at`, as a band of
+ * kind `sigma1`, or `undefined` when the fit has no measure of its error. The
+ * band comes from the uncertainty of the measured acceleration alone, so it is
+ * zero at the observation and widens with the square of the time since.
  *
  * @category Reckoners
  */
@@ -721,18 +522,9 @@ export function atmosphericAltitudeBandAt(
 }
 
 /**
- * Local gravitational acceleration, or `undefined` when the inputs for it did
- * not arrive.
- *
- * `mu` off `@vessel.orbit` and the radius off `@system.bodies`. Only the second
- * is an input of the rate-integration MARK; `mu` is deliberately not, because
- * the envelope it feeds is a refinement the model runs WITHOUT rather than a
- * thing it needs, and a declared input a model can do without costs the marked
- * value's siblings for nothing. It reaches this function as a registered
- * reckoner's dep, which the conic on the same topic already declares.
- *
- * A magnitude, with no sign convention to get wrong: the one place that uses it
- * compares magnitudes.
+ * Returns gravity at a distance `radius` in metres from the body's centre,
+ * in m/s², from the body's gravitational parameter `mu`, or `undefined` when
+ * either is missing or not usable.
  *
  * @category Reckoners
  */

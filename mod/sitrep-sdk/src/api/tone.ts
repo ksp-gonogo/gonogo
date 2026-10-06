@@ -1,13 +1,10 @@
 /**
- * The one tone scale every surface speaks: a badge, a meter's fill, a figure,
- * a plot layer, a button. The tone says what state a thing is in; how it is
- * coloured depends on what the colour is doing (text, a mark standing alone,
- * a fill carrying its own text, a quiet ground), and ui-kit's role maps decide
- * that, so a contribution names a tone and never a colour.
+ * The state a badge, meter, figure, plot layer or button shows: a contribution
+ * names a tone, never a colour, and ui-kit chooses the colour for where it is
+ * drawn.
  *
- * `neutral` carries no state at all. `caution` is the milder rung of `warn`.
- * `offline` means the data behind the thing is gone, which is not the same as
- * a neutral reading.
+ * `neutral` carries no state. `caution` is a milder `warn`. `offline` means the
+ * data behind the thing is gone, which is not the same as a neutral reading.
  *
  * @category Tone
  */
@@ -36,9 +33,8 @@ export const TONES: readonly Tone[] = [
 ];
 
 /**
- * The tones a contribution names to say how alarming a thing is, with no
- * rung for "all is well": an entry with nothing to report is left out rather
- * than contributed. The host decides what each looks like.
+ * The tones a contribution uses to say how alarming something is. There is no
+ * "all is well" tone: leave out an entry with nothing to report.
  *
  * @category Tone
  */

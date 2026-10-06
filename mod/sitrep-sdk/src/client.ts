@@ -32,19 +32,9 @@ const SERVER_TYPES = new Set<string>(
 );
 
 /**
- * Decode one server frame, and give its quantities their units back.
- *
- * The wrap belongs HERE rather than a layer up, because this is the seam every
- * consumer of the stream goes through: a headless script reading the socket
- * gets the same `Value`s a mounted widget does, without also having to want
- * React. It is the runtime half of what the codegen does to the types, and
- * without it every field the contract types as `Value<"m">` would arrive as a
- * bare number and render as nothing.
- *
- * Only `stream-data` is wrapped. An `event` carries no declared quantities, a
- * `command-response` is a result rather than telemetry, and a command's ARGS
- * travel the other way entirely (see `generated.test.ts` on why those stay
- * bare).
+ * Returns one frame from the mod, parsed from its JSON text, with every
+ * quantity in a `stream-data` payload turned into a `Value` in its declared
+ * unit. Other message types are returned as parsed.
  *
  * @category Stream messages
  */

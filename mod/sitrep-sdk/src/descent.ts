@@ -1,78 +1,72 @@
-/**
- * Atmospheric descent against a terminal-velocity model.
- *
- * Published rather than kept in the widget that first needed it, because it is
- * the one thing a contributor to a velocity-height plot cannot reconstruct from
- * the wire: every other input it wants is already carried (`vessel.landing`
- * has both terminal anchors, `vessel.flight` the speed and height,
- * `system.bodies` the surface gravity), but a second, independently written
- * integrator would put two answers on one plot and blame the physics for the
- * disagreement.
+/*
+ * Published so a contributor to a velocity-height plot uses the same integrator as the host:
+ * two independent integrators would put two answers on one plot.
  */
 
 /**
- * One integrated descent, in a velocity-height plot's own axes.
+ * A projected descent to the ground, as {@link projectDescent} returns it, in
+ * the axes of a velocity-height plot.
  *
  * @category Orbits and trajectories
  */
 export interface DescentProjection {
-  /** Sampled (speed, height-above-ground) pairs, vessel first, ground last. */
+  /** Speed in m/s and height above the ground in metres, from the craft's current state to the ground. */
   points: readonly { speed: number; altitude: number }[];
   /**
-   * Height the descent settles onto the terminal curve at, when it does so
-   * before the ground. Null means it never settles, which is the honest read of
-   * an entry that is still slowing when it arrives.
+   * The height in metres at which the descent reaches terminal velocity, or
+   * `null` when it does not before the ground, or was already there at the
+   * start.
    */
   settleAltitude: number | null;
-  /** Speed the projection reaches the ground at. */
+  /** The speed at the ground, in m/s. */
   touchdownSpeed: number;
 }
 
-/** How many altitude steps the descent is integrated in by default. The
- *  per-step solution is exact for a constant terminal velocity, so this only
- *  has to be fine enough that the curve's own shape is followed.
+/**
+ * How many height steps {@link projectDescent} uses unless told otherwise.
  *
  * @category Orbits and trajectories
  */
 export const DESCENT_TRACE_STEPS = 48;
 
-/** Within this fraction of the terminal curve the descent has settled: drag and
- *  weight are in balance to the eye and the remaining fall is the curve.
+/**
+ * How close to terminal velocity, as a fraction of it, a descent must come to
+ * count as having reached it.
  *
  * @category Orbits and trajectories
  */
 export const DESCENT_SETTLE_TOLERANCE = 0.12;
 
 /**
- * The starting state and atmosphere `projectDescent` integrates over. Speeds are
- * m/s, altitudes metres above the ground, and gravity m/s².
+ * The starting state and atmosphere for {@link projectDescent}.
  *
  * @category Orbits and trajectories
  */
 export interface ProjectDescentOptions {
+  /** The craft's speed now, in m/s. */
   startSpeed: number;
+  /** The craft's height above the ground now, in metres. */
   startAltitude: number;
+  /** The body's surface gravity, in m/s². */
   surfaceGravity: number;
+  /** Terminal velocity in m/s at a height in metres, such as from {@link terminalVelocityCurve}. */
   terminalVelocityAt: (altitudeM: number) => number;
+  /** How many height steps to use. Defaults to {@link DESCENT_TRACE_STEPS}. */
   steps?: number;
 }
 
 /**
- * Integrate a descent from a starting speed down to the ground.
+ * Returns the descent from the craft's current speed and height down to the
+ * ground, under gravity and drag, with drag given as terminal velocity by
+ * height. It stays accurate however far above terminal velocity the craft
+ * starts.
  *
- * The step is the exact solution of the equation rather than an Euler step, and
- * that is what makes it usable: writing the motion in terms of u = v² turns
- * `dv/dh = -g(1 - (v/v_t)²)/v` into `du/dh = -2g(1 - u/v_t²)`, which is linear,
- * so over a step with v_t held constant `u' = v_t² + (u - v_t²)·e^(2g·Δh/v_t²)`.
- * A plain forward step is violently unstable at the top of an entry, where the
- * vessel is many times terminal velocity and the derivative is enormous; this
- * form relaxes toward the curve however large the step or the excess is, which
- * is also the physical behaviour.
- *
- * Not a reckoner: the atmosphere arrives as the caller's `terminalVelocityAt`, so there is no drag model, ballistic coefficient or density assumption in here, and the speeds are solved from the start state at the view time. The result describes a touchdown that has not happened and belongs to no Topic.
+ * Not a reckoner: it projects something that has not happened, so it
+ * carries no state or forward model of its own.
  *
  * @category Orbits and trajectories
  */
+// Each step solves du/dh = -2g(1 - u/v_t²), with u = v², exactly for constant v_t: a forward Euler step is unstable high in an entry.
 export function projectDescent(
   opts: Readonly<ProjectDescentOptions>,
 ): DescentProjection {
@@ -116,17 +110,10 @@ export function projectDescent(
 }
 
 /**
- * The terminal-velocity curve a velocity-height plot draws, from the two
- * anchors the wire already carries.
- *
- * `v_t ∝ 1/√ρ` and `ρ ∝ e^(−alt/H)`, so terminal velocity is log-linear in
- * altitude: the curve through `groundSpeed` at zero and `speedNow` at
- * `altitudeNow` IS the exponential-atmosphere shape, exactly, with no third
- * anchor and no extra wire data.
- *
- * Published alongside the integrator for the same reason: a contributor that
- * re-derives the density column from its own assumptions draws a curve that
- * disagrees with the host's for reasons no operator can see.
+ * Returns terminal velocity as a function of height, through two known points:
+ * `groundSpeed` at the ground and `speedNow` at `altitudeNow`. It assumes air
+ * density falls exponentially with height, which makes the curve exponential
+ * too. `vessel.landing` and `vessel.flight` carry the values it needs.
  *
  * @category Orbits and trajectories
  */
@@ -142,9 +129,9 @@ export function terminalVelocityCurve(opts: {
 }
 
 /**
- * Air density relative to the ground, from the SAME model as
- * {@link terminalVelocityCurve}, so a haze and a curve drawn from one plot's
- * anchors can never disagree. 1 at the surface, decaying with altitude.
+ * Returns air density as a fraction of the density at the ground, as a
+ * function of height, from the same model as {@link terminalVelocityCurve}, so
+ * the two drawn on one plot agree. It is 1 at the ground and falls with height.
  *
  * @category Orbits and trajectories
  */

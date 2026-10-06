@@ -2,14 +2,9 @@ import type { CommsDegrade } from "./__generated__/contract";
 import type { TopicCurrency } from "./reading";
 
 /**
- * A link grading a consumer can act on: how degraded the link is, plus which
- * rule said so.
- *
- * `level` is 0..1, 0 meaning nothing is wrong and 1 meaning nothing usable is
- * getting through. The two model fields are not decoration: the shipped comms
- * backends grade a link by genuinely different physics, so a feed that dropped a
- * bitrate can say which grading told it to, and two installs that rate the same
- * orbit differently can be told apart rather than argued about.
+ * How degraded the link to a craft is, from 0 (nothing wrong) to 1 (nothing
+ * usable getting through), and which grading rule said so. Comms mods grade a
+ * link differently, so the rule is named.
  *
  * @category Comms
  */
@@ -23,30 +18,17 @@ export interface DegradeRating {
 }
 
 /**
- * The link grading carried by one `comms.degrade` payload, or `undefined` when
- * nobody graded the link.
+ * Returns the link grading in one `comms.degrade` payload, or `undefined` when
+ * nothing graded the link. `undefined` is not a good rating: it means nobody
+ * rated the link, so keep doing what you were doing rather than sending
+ * everything.
  *
- * `undefined` is a third result and not a low rating. A backend that will not
- * grade the link publishes no level, and "nobody rated this" is the opposite
- * instruction to "this link is perfect": one says keep doing what you were
- * doing, the other says send everything. Returning `undefined` is what forces
- * the caller to write that branch, because TypeScript will not let the value be
- * read without it.
+ * Build a quality decision on this, not on `1 - signalStrength`: what
+ * `comms.signal` measures differs between comms mods, and nothing on the wire
+ * says which.
  *
- * **This is the read to build a quality decision on, not `1 -
- * signalStrength`.** That expression is what a camera feed does today, and
- * `comms.signal` is a range fraction against an antenna curve on a stock
- * install and spare room on a data-rate ladder on a RealAntennas one, with
- * nothing on the wire distinguishing them. The same arithmetic therefore
- * produces two different quality curves on two saves, and no consumer can tell
- * which one it got. A rating arrives with its rule named.
- *
- * The 0..1 promise is kept mod-side, but it is kept again here: a client can be
- * talking to an older or third-party build, and a rating that arrived out of
- * range or non-finite must not reach a caller that was promised it could not.
- * A finite overshoot clamps to the end it overshot; anything non-finite is
- * treated as ungraded, because it is arithmetic that did not run rather than a
- * rating that went too far.
+ * A level slightly outside 0 to 1 is clamped; one that is not finite is
+ * treated as no grading.
  *
  * @category Comms
  */
@@ -66,18 +48,10 @@ export function degradeRatingOf(
 }
 
 /**
- * The link grading behind a `useTelemetry("comms.degrade")` read, or `undefined`
- * when there is nothing to act on: nothing has arrived yet, the producer has
- * nothing to say, or the backend declined to grade.
- *
- * A held rating is still returned. Every reading on this channel
- * describes the link as it was one light-time ago, because that is what a link
- * observation is; a grading held through an outage is the last thing anyone
- * actually knows about the link, and dropping it would leave a feed with no
- * quality at exactly the moment quality matters. What tells a consumer the link
- * is DOWN is `comms.link`, which is exempt from the freeze that holds this one
- * precisely so it can report that edge, and a consumer choosing a quality should
- * read both.
+ * Returns the link grading from a `useTelemetry("comms.degrade")` reading, or
+ * `undefined` when nothing has arrived or nothing graded the link. A held
+ * reading still returns its last grading, which is the last thing known about
+ * the link. To know whether the link is down, read `comms.link` as well.
  *
  * @category Comms
  */
