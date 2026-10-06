@@ -206,12 +206,41 @@ describe("CommcastLog, one vantage's own record", () => {
     it("is ONE message at the recipient even when both copies arrive", () => {
       const first = fromWire({ to: [KSC] });
       expect(log.receiveTransmission(first)).toBe(true);
-      // The resent copy: same id, later stamp. The caller still acknowledges
-      // it, which is what makes a resend a re-ask.
       expect(
         log.receiveTransmission({ ...first, lastSentUt: 2000, attempts: 2 }),
       ).toBe(false);
       expect(log.snapshot().pending).toHaveLength(1);
+    });
+
+    it("answers a resent copy of a message already read with its acknowledgement again", () => {
+      const first = fromWire({ to: [KSC] });
+      log.receiveTransmission(first);
+      log.release("m1", {
+        from: KSC,
+        stationKey: "screen-a",
+        seat: "mission-control",
+      });
+      // The first acknowledgement is lost on the way back: the author resends.
+      wire.acked.length = 0;
+      expect(
+        log.receiveTransmission({ ...first, lastSentUt: 2000, attempts: 2 }),
+      ).toBe(false);
+      expect(wire.acked).toEqual([
+        {
+          messageId: "m1",
+          from: KSC,
+          stationKey: "screen-a",
+          seat: "mission-control",
+        },
+      ]);
+      expect(log.snapshot().inbox).toHaveLength(1);
+    });
+
+    it("leaves a resent copy of a message not yet read to the acknowledgement its release will send", () => {
+      const first = fromWire({ to: [KSC] });
+      log.receiveTransmission(first);
+      log.receiveTransmission({ ...first, lastSentUt: 2000, attempts: 2 });
+      expect(wire.acked).toEqual([]);
     });
 
     it("does not confirm a message twice when both copies are answered", () => {

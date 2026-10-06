@@ -88,6 +88,8 @@ export class CommcastLog {
    * genuinely on its way.
    */
   private pending: CommsMessage[] = [];
+  /** Who answered the last release, so a resent copy can be answered the same way. */
+  private ackIdentity: Omit<OutgoingAck, "messageId"> | undefined;
   private droppedCount = 0;
   private vantageId: string | undefined;
   private readonly listeners = new Set<Listener>();
@@ -291,12 +293,17 @@ export class CommcastLog {
    * Kept only if it NAMES this vantage, and deduped on the message id across
    * everything this log already holds, which is what makes the resend
    * idempotent: a resend whose original also arrived is ONE message here.
-   * `false` says it was a duplicate or not addressed here.
+   * `false` says it was a duplicate or not addressed here. A duplicate of a
+   * message already read is answered with its acknowledgement again, since a
+   * resend exists because the first one never reached the author.
    */
   receiveTransmission(msg: CommsMessage): boolean {
     if (this.vantageId === undefined) return false;
     if (!msg.to.includes(this.vantageId)) return false;
-    if (this.holds(msg.id)) return false;
+    if (this.holds(msg.id)) {
+      this.reacknowledge(msg.id);
+      return false;
+    }
     this.pending = [...this.pending, msg];
     this.persistAndEmit();
     return true;
@@ -317,8 +324,23 @@ export class CommcastLog {
     this.inbox = capped([...this.inbox, msg], (n) => {
       this.droppedCount += n;
     });
+    this.ackIdentity = ack;
     if (ack.from !== msg.from) this.acknowledge({ ...ack, messageId: id });
     this.persistAndEmit();
+  }
+
+  /**
+   * Say again that a message already read landed here.
+   *
+   * Needs who is answering, which only a release carries, so a log restored
+   * from storage stays silent until its first release of the session.
+   */
+  private reacknowledge(id: string): void {
+    const ack = this.ackIdentity;
+    if (!ack) return;
+    const msg = this.inbox.find((m) => m.id === id);
+    if (!msg || ack.from === msg.from) return;
+    this.acknowledge({ ...ack, messageId: id });
   }
 
   /** Tell the author of a message that it landed here. */
