@@ -86,11 +86,80 @@ namespace Sitrep.Host.Comms
             return said[0].State;
         }
 
+        /// <summary>When the state <see cref="AsOf"/> answers with for <paramref name="ut"/> was noted, or null where it answers with none.</summary>
+        public double? NotedAt(string id, double ut)
+        {
+            if (!_said.TryGetValue(id, out var said))
+            {
+                return null;
+            }
+            double? noted = null;
+            for (var i = 0; i < said.Count && said[i].Ut <= ut; i++)
+            {
+                noted = said[i].Ut;
+            }
+            return noted;
+        }
+
         public void Clear()
         {
             _said.Clear();
             _noted.Clear();
         }
+    }
+
+    /// <summary>
+    /// Whether each craft's link was up, by when that was known, so that what
+    /// was known by an earlier instant can be asked for. A command centre's
+    /// belief about a craft's link reaches a craft at the end of its control
+    /// route one light-time of that route later, as everything else the centre
+    /// knows does. Asking for an instant forgets what was known before the
+    /// answer. Courier thread only.
+    /// </summary>
+    public sealed class LinkByWhen
+    {
+        private readonly Dictionary<string, List<(double Ut, bool Up)>> _known =
+            new Dictionary<string, List<(double, bool)>>(StringComparer.Ordinal);
+
+        /// <summary>Notes that the craft's link was known to be up, or down, at <paramref name="ut"/>. Knowing the same thing again is not noted.</summary>
+        public void Note(string id, double ut, bool up)
+        {
+            if (!_known.TryGetValue(id, out var known))
+            {
+                known = new List<(double, bool)>();
+                _known[id] = known;
+            }
+            if (known.Count > 0 && known[known.Count - 1].Up == up)
+            {
+                return;
+            }
+            known.Add((ut, up));
+        }
+
+        /// <summary>Whether the craft's link was known to be up by <paramref name="ut"/>, or null where nothing of it was known by then.</summary>
+        public bool? AsOf(string id, double ut)
+        {
+            if (!_known.TryGetValue(id, out var known))
+            {
+                return null;
+            }
+            var newest = -1;
+            for (var i = 0; i < known.Count && known[i].Ut <= ut; i++)
+            {
+                newest = i;
+            }
+            if (newest < 0)
+            {
+                return null;
+            }
+            if (newest > 0)
+            {
+                known.RemoveRange(0, newest);
+            }
+            return known[0].Up;
+        }
+
+        public void Clear() => _known.Clear();
     }
 
     /// <summary>
@@ -131,17 +200,19 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Takes in that a live radio link to a craft has brought nothing newer
-        /// than what it said at <paramref name="saidUt"/>, as late as
-        /// <paramref name="toUt"/>, which is now less the link's light-time. A
-        /// craft says so when its state changes, so silence on a link that is
-        /// up is word that it has not. It counts only while what is held is
-        /// that same word, heard over that link.
+        /// Takes in that a link held as up has brought nothing newer than what
+        /// the craft said at <paramref name="saidUt"/>, as late as
+        /// <paramref name="toUt"/>: the last instant a word could have left the
+        /// craft and already be in. A craft says so when its state changes, so
+        /// silence on a link that is up is word that it has not. It counts only
+        /// while what is held is that same word, learned <paramref name="over"/>
+        /// the same way: the craft's own live link, or its command centre's
+        /// hearing as the craft has been told of it.
         /// </summary>
-        public void HeardNothingNewTo(string id, double saidUt, double toUt)
+        public void HeardNothingNewTo(string id, double saidUt, double toUt, TargetKnowledge over = TargetKnowledge.DirectLink)
         {
             if (!_known.TryGetValue(id, out var held)
-                || held.Source != TargetKnowledge.DirectLink
+                || held.Source != over
                 || held.AsOfUt != saidUt
                 || toUt <= held.AsOfUt
                 || toUt <= held.UnchangedToUt)

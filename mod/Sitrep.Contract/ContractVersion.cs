@@ -2438,8 +2438,15 @@ namespace Sitrep.Contract
         /// that delivers everything on a topic. A client could not tell a reading
         /// held by a load from a current one. Additive: a client that knows no
         /// <c>game-state</c> frame drops it.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 19 -&gt; 20: silence at the command centre
+        /// is word of no change too.</b> <see cref="TargetListEntry.UnchangedToUt"/>
+        /// is now also set for a vessel known through the command centre, as far
+        /// as the centre could say and the active vessel could have been told. No
+        /// field moves; the bump is for what the field means, since a client built
+        /// before it words every such age as a direct radio link's.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 19;
+        public const int Minor = 20;
     }
 }

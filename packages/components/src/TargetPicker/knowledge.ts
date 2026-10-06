@@ -38,9 +38,15 @@ export function knowledgeCaption(
 ): string | null {
   if (seenAsItIs(entry)) return null;
   if (unchangedSinceHeard(entry) && entry.unchangedToUt != null) {
+    const how =
+      entry.source === TargetKnowledge.DirectLink
+        ? "over a direct radio link that is up"
+        : entry.via
+          ? `at ${entry.via}, which holds its link as up`
+          : "at its command centre, which holds its link as up";
     return viewUt === undefined
-      ? "No change heard over a direct radio link that is up"
-      : `No change heard as of ${speakQuantity(viewUt.minus(entry.unchangedToUt))} ago, over a direct radio link that is up`;
+      ? `No change heard ${how}`
+      : `No change heard as of ${speakQuantity(viewUt.minus(entry.unchangedToUt))} ago, ${how}`;
   }
   const when =
     entry.asOfUt == null || viewUt === undefined

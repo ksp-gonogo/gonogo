@@ -115,13 +115,38 @@ public class TargetListEntry
 
     /// <summary>
     /// The universal time up to which the vessel is taken not to have changed
-    /// since <see cref="AsOfUt"/>, for a vessel known over a direct radio link
-    /// that is up: now less that link's light-time. A vessel says so when its
-    /// state changes, so a link that is up and silent is word that it has
-    /// not. This is worked out from silence and not heard, so an age counted
-    /// from it is shown as modelled. It stops advancing when the link drops
-    /// and is null again once newer word arrives. Null for a vessel known any
-    /// other way, a part and a body.
+    /// since <see cref="AsOfUt"/>. A vessel says so when its state changes, so
+    /// a link that is up and silent is word that it has not. This is worked
+    /// out from silence and not heard, so an age counted from it is shown as
+    /// modelled.
+    ///
+    /// <para>For a vessel known over a direct radio link
+    /// (<see cref="TargetKnowledge.DirectLink"/>) that is up, it is now less
+    /// that link's light-time.</para>
+    ///
+    /// <para>For a vessel known through the command centre
+    /// (<see cref="TargetKnowledge.CommandCentre"/>), it is what the centre
+    /// knew one control-route light-time ago, which is what the active vessel
+    /// has been told. Where the centre then held the vessel's link as up, it
+    /// is the latest moment a word could have left the vessel and, by the
+    /// centre's own plan of the route at that moment, relays and waits for a
+    /// window included, already have reached the centre. It is never later
+    /// than the centre's moment less the time the vessel's last word was
+    /// measured to take. Where the centre had planned no route for the vessel
+    /// yet, the larger of that measured time and the plan's straight line
+    /// stands in for the route.</para>
+    ///
+    /// <para>It does not claim the vessel is unchanged now, or that its link
+    /// is up now: it is the centre's belief, as old as the control route is
+    /// long, resting on the centre's plan and on the link as the centre last
+    /// heard it. A word the plan has still on its way is not counted, so the
+    /// figure can stand well short of the centre's moment less the light-time,
+    /// and it is null until some word sent after <see cref="AsOfUt"/> would
+    /// have arrived.</para>
+    ///
+    /// <para>It stops advancing once the link it rests on is held as down, or
+    /// the control route drops, and is null again once newer word arrives. Null
+    /// for a vessel in range, a part and a body.</para>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? UnchangedToUt { get; set; }

@@ -77,6 +77,7 @@ namespace Sitrep.Host.Tests.Comms
             knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.CommandCentre, "KSC");
             knowledge.Learn(Craft("c", 300.0, 700_000.0), 300.0, TargetKnowledge.DirectLink, null);
 
+            // b is known through the command centre and no direct link has said anything of it.
             knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
             // The link's newest word of c is older than what is held, and a time before what is held says nothing.
             knowledge.HeardNothingNewTo("vessel:c", 200.0, 690.0);
@@ -153,6 +154,52 @@ namespace Sitrep.Host.Tests.Comms
 
             Assert.Single(knowledge.Known);
             Assert.Empty(knowledge.Entries(null, new[] { "junk" }));
+        }
+
+        [Fact]
+        public void WhetherALinkWasUpCanBeAskedForAsItWasKnownByAnEarlierInstant()
+        {
+            var links = new LinkByWhen();
+            Assert.Null(links.AsOf("vessel:b", 50.0));
+            links.Note("vessel:b", 100.0, true);
+            links.Note("vessel:b", 150.0, true);
+            links.Note("vessel:b", 400.0, false);
+            links.Note("vessel:b", 900.0, true);
+
+            Assert.Null(links.AsOf("vessel:b", 99.0));
+            Assert.True(links.AsOf("vessel:b", 100.0));
+            Assert.True(links.AsOf("vessel:b", 399.0));
+            Assert.False(links.AsOf("vessel:b", 400.0));
+            Assert.False(links.AsOf("vessel:b", 899.0));
+            Assert.True(links.AsOf("vessel:b", 5000.0));
+            Assert.Null(links.AsOf("vessel:c", 5000.0));
+        }
+
+        [Fact]
+        public void WhenAStateWasNotedCanBeAskedForWithIt()
+        {
+            var said = new SaidByWhen();
+            said.Note("vessel:b", 400.0, Craft("b", 100.0, 700_000.0));
+            said.Note("vessel:b", 1300.0, Craft("b", 1000.0, 800_000.0));
+
+            Assert.Null(said.NotedAt("vessel:b", 399.0));
+            Assert.Equal(400.0, said.NotedAt("vessel:b", 1299.0));
+            Assert.Equal(1300.0, said.NotedAt("vessel:b", 1300.0));
+            Assert.Equal(1000.0, said.AsOf("vessel:b", 1300.0)!.CapturedUt);
+        }
+
+        [Fact]
+        public void SilenceThroughTheCommandCentreCountsForACraftKnownThroughItAndNotForOneKnownDirectly()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.CommandCentre, "KSC");
+            knowledge.Learn(Craft("c", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0, TargetKnowledge.CommandCentre);
+            knowledge.HeardNothingNewTo("vessel:c", 100.0, 690.0, TargetKnowledge.CommandCentre);
+
+            Assert.Equal(690.0, Entry(knowledge, "b")["unchangedToUt"]);
+            Assert.Null(Entry(knowledge, "c")["unchangedToUt"]);
         }
 
         [Fact]

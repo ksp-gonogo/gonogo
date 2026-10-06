@@ -165,6 +165,42 @@ namespace Sitrep.Host.IntegrationTests
             Reckoned.True(after <= T0 + 6 - 50.0, "silence on a link that had gone was taken as word that nothing changed: " + after);
         }
 
+        /// <summary>
+        /// The relay is coasting, its word five minutes on its way to the
+        /// craft's command centre, whose own word takes a light-second up the
+        /// control route. The centre holds the relay's link as up and hears
+        /// nothing new, so it knows the relay unchanged as late as the last
+        /// word its own plan has arrived, and the craft knows that a second
+        /// later. Once the centre holds the link as down its silence is word
+        /// of nothing, and the craft's figure stops where the centre's did.
+        /// </summary>
+        [Fact]
+        public async Task ACraftKnowsAnotherUnchangedAsLateAsItsCommandCentreCouldAndNoLaterOnceThatCentreHoldsTheLinkDown()
+        {
+            var game = new ScriptedContactGame();
+            await using var seated = await WatchingAsync(game);
+            // The centre is looked at as the relay's first word reaches it, at 301, so the time that word took is measured as it was.
+            await seated.TickAsync(1, 2, 300, 301, 302, 700, 702, 704, 706, 708, T0, T0 + 2, T0 + 4, T0 + 6, T0 + 8);
+            Assert.Equal(TargetKnowledge.CommandCentre, Source(seated.View));
+            var early = RelayEntry(seated.View)!.Value;
+            Assert.Equal(700.0, early.GetProperty("asOfUt").GetDouble());
+            // The centre's own plan has a word that left the relay at 700 still on its way, some 557 s of waiting and flight, so its silence says nothing yet.
+            Assert.Equal(System.Text.Json.JsonValueKind.Null, early.GetProperty("unchangedToUt").ValueKind);
+
+            // The relay's link drops at 1010, which the centre learns 300 s later.
+            game.RelayConnected = false;
+            await seated.TickAsync(T0 + 10, T0 + 12, T0 + 260, T0 + 262, T0 + 264, T0 + 266, T0 + 268, T0 + 270);
+            var unchangedTo = RelayEntry(seated.View)!.Value.GetProperty("unchangedToUt").GetDouble();
+            // The centre still holds the link as up, and by its plan the words sent as late as 708 are in and none sent since.
+            Reckoned.True(unchangedTo > 700.0 && unchangedTo <= 708.0, "the craft did not know the relay unchanged as late as its command centre did: " + unchangedTo);
+
+            // By 1600 the plan would have the words sent to 1012 arrived, were the link still held as up.
+            await seated.TickAsync(T0 + 308, T0 + 310, T0 + 312, T0 + 314, T0 + 600, T0 + 602, T0 + 604, T0 + 606, T0 + 608, T0 + 610);
+            var after = RelayEntry(seated.View)!.Value;
+            Assert.Equal(700.0, after.GetProperty("asOfUt").GetDouble());
+            Assert.Equal(708.0, after.GetProperty("unchangedToUt").GetDouble());
+        }
+
         [Fact]
         public async Task ACraftSeesAnotherWithinPhysicsRangeAsItIs()
         {

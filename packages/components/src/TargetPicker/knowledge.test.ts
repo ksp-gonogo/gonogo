@@ -78,6 +78,22 @@ describe("what the active craft knows of a target", () => {
     );
   });
 
+  it("names the command centre whose silence it is, where the craft is known through one", () => {
+    const told = entry({
+      source: TargetKnowledge.CommandCentre,
+      via: "KSC",
+      asOfUt: value("ut", 1000),
+      unchangedToUt: value("ut", 1280),
+    });
+    expect(unchangedSinceHeard(told)).toBe(true);
+    expect(knowledgeCaption(told, value("ut", 1600))).toMatch(
+      /^No change heard as of .+ ago, at KSC, which holds its link as up$/,
+    );
+    expect(knowledgeCaption({ ...told, via: null }, undefined)).toBe(
+      "No change heard at its command centre, which holds its link as up",
+    );
+  });
+
   it("goes by when it was last heard where silence says nothing later", () => {
     const heard = entry({
       source: TargetKnowledge.DirectLink,

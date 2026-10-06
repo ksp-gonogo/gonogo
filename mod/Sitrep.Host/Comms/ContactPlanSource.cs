@@ -730,6 +730,8 @@ namespace Sitrep.Host.Comms
                 _rosterSent.Clear();
                 _said.Clear();
                 _homeKnew.Clear();
+                _homeLinkKnew.Clear();
+                _homeRouteKnew.Clear();
                 _seenNow.Clear();
                 _knowledge.Clear();
                 _rosterMemory.Clear();
@@ -785,6 +787,12 @@ namespace Sitrep.Host.Comms
         /// <summary>What the home centre knew of each craft, by when it came to know it.</summary>
         private readonly SaidByWhen _homeKnew = new SaidByWhen();
 
+        /// <summary>Whether the home centre held each craft's link as up, by when it held it so.</summary>
+        private readonly LinkByWhen _homeLinkKnew = new LinkByWhen();
+
+        /// <summary>How long the home centre believed each craft's word would take to reach it, by when it believed so.</summary>
+        private readonly RouteDelayByWhen _homeRouteKnew = new RouteDelayByWhen();
+
         /// <summary>The newest sighting of each object, as it stands in the game.</summary>
         private readonly Dictionary<string, CraftSighting> _seenNow = new Dictionary<string, CraftSighting>(StringComparer.Ordinal);
 
@@ -815,7 +823,13 @@ namespace Sitrep.Host.Comms
                 foreach (var state in _hearing!.HeardAt(home))
                 {
                     _homeKnew.Note(state.Id, looked.Ut, state);
+                    var up = _hearing.LinkAt(home, state.Id);
+                    if (up != null)
+                    {
+                        _homeLinkKnew.Note(state.Id, looked.Ut, up.Value);
+                    }
                 }
+                NoteHomeRoutes(looked, home);
             }
             var active = looked.ActiveCraft;
             if (active == null)
@@ -858,9 +872,21 @@ namespace Sitrep.Host.Comms
                     // The link is up and that is still the newest it has carried: nothing has changed as late as its light-time ago.
                     knowledge.HeardNothingNewTo(id, said.CapturedUt, looked.Ut - link.Value);
                 }
-                if (route != null && _homeKnew.AsOf(id, looked.Ut - route.Value) is CraftState told)
+                if (route != null && home != null && _homeKnew.AsOf(id, looked.Ut - route.Value) is CraftState told)
                 {
                     knowledge.Learn(told, told.CapturedUt, TargetKnowledge.CommandCentre, via);
+                    // What home knew a control route's light-time ago is what the craft knows now, of the link as of everything else.
+                    var homeKnewAt = looked.Ut - route.Value;
+                    if (_homeLinkKnew.AsOf(id, homeKnewAt) == true)
+                    {
+                        // Home's silence from a craft whose link it held as up is word of no change, as late as a word could have left the craft and reached home by then.
+                        var lastWord = Math.Max(0.0, (_homeKnew.NotedAt(id, homeKnewAt) ?? told.CapturedUt) - told.CapturedUt);
+                        var unchangedTo = _homeRouteKnew.UnchangedTo(id, homeKnewAt, lastWord, CrossingSeconds(home, id, told, homeKnewAt));
+                        if (unchangedTo != null)
+                        {
+                            knowledge.HeardNothingNewTo(id, told.CapturedUt, unchangedTo.Value, TargetKnowledge.CommandCentre);
+                        }
+                    }
                 }
             }
 
@@ -902,6 +928,72 @@ namespace Sitrep.Host.Comms
             NoteGround(looked);
             PublishVessels(looked, planning);
             PublishRosters(looked, listening);
+        }
+
+        /// <summary>
+        /// Notes, each time routes are due, how long the home centre's own plan
+        /// says a word leaving each craft it knows of now would take to reach
+        /// the ground, or that the plan gives it no route.
+        /// </summary>
+        private void NoteHomeRoutes(Looked looked, string home)
+        {
+            if (!looked.RoutesDue || !_plans.TryGetValue(home, out var plan) || looked.Ut < plan.FromUt)
+            {
+                return;
+            }
+            var stations = StationIds();
+            var lightFactor = _audience!.LightFactor();
+            foreach (var state in _hearing!.HeardAt(home))
+            {
+                if (!state.Exists || !state.Plannable)
+                {
+                    continue;
+                }
+                var route = ContactRouter.EarliestArrivalAtAny(plan, state.Id, stations, looked.Ut, null, lightFactor);
+                _homeRouteKnew.Note(state.Id, looked.Ut, route == null ? (double?)null : route.ArrivalUt - looked.Ut);
+            }
+        }
+
+        /// <summary>
+        /// The delay to go by for a craft's word to the home centre where that
+        /// centre had believed nothing of the craft's route yet, in seconds:
+        /// the larger of what home measured for the last word it had from the
+        /// craft (when that word arrived, less when it was read) and the
+        /// straight line home's own plan gives for the moment asked about.
+        ///
+        /// <para>Each falls short in one case the other covers. The measured
+        /// time is as old as the word, so it is short for a craft that has
+        /// moved away since; the planned line is short for a craft whose word
+        /// reaches home through a relay. The larger of the two can only make
+        /// the craft known unchanged to an earlier moment. The plan is used
+        /// only while it was made of the same word the craft holds: one made of
+        /// newer word is of an orbit the craft has not been told yet.</para>
+        /// </summary>
+        private double CrossingSeconds(string home, string id, CraftState told, double homeKnewAt)
+        {
+            var measured = Math.Max(0.0, (_homeKnew.NotedAt(id, homeKnewAt) ?? told.CapturedUt) - told.CapturedUt);
+            if (!_plans.TryGetValue(home, out var plan))
+            {
+                return measured;
+            }
+            foreach (var state in _hearing!.HeardAt(home))
+            {
+                if (state.Id == id && state.CapturedUt != told.CapturedUt)
+                {
+                    return measured;
+                }
+            }
+            foreach (var pair in plan.Pairs)
+            {
+                if ((pair.A == home && pair.B == id) || (pair.A == id && pair.B == home))
+                {
+                    var metres = pair.SeparationAt(homeKnewAt);
+                    return metres == null
+                        ? measured
+                        : Math.Max(measured, metres.Value / PairPlan.SpeedOfLight * _audience!.LightFactor());
+                }
+            }
+            return measured;
         }
 
         /// <summary>The roster each centre was last sent.</summary>
