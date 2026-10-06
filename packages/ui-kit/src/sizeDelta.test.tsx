@@ -165,7 +165,7 @@ describe("useSizeDeltaFor", () => {
       read = useSizeDeltaFor();
       return null;
     }
-    render(
+    const { unmount } = render(
       <DomainAvailabilityContext.Provider value={store}>
         <Probe />
       </DomainAvailabilityContext.Provider>,
@@ -182,6 +182,7 @@ describe("useSizeDeltaFor", () => {
     expect(read?.(HOST)).toEqual({ w: 0, h: 0 });
     act(() => store.setAvailable("mod", true));
     expect(read?.(HOST)).toEqual({ w: 1, h: 0 });
+    unmount();
   });
 });
 
