@@ -2,6 +2,7 @@ import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommcastLog } from "./CommcastLog";
 import { attachCommcastModLink, type CommcastWire } from "./CommcastModLink";
+import { outboundItems } from "./outboundItems";
 import type {
   HeardRadioFrame,
   RadioFrame,
@@ -275,6 +276,73 @@ describe("attachCommcastModLink", () => {
 
     expect(wire.sent.map((s) => s.command)).toEqual(["commcast.message.send"]);
     expect(log.snapshot().outbox[0]?.deliveries).toHaveLength(63);
+  });
+
+  it("settles a membership change at once for its author, ahead of the message that follows it", () => {
+    const author = {
+      stationKey: "screen-a",
+      name: "Flight",
+      seat: "mission-control" as const,
+      vantageId: KSC,
+    };
+    const everyone = [KSC, ARES, "vessel:b"];
+    log.send(author, {
+      kind: "members",
+      groupId: "g1",
+      to: everyone,
+      members: everyone,
+      added: ["vessel:b"],
+      sentUt: 10,
+      separations: separationsTo(KSC, everyone, 500),
+    });
+    log.send(author, {
+      kind: "text",
+      body: "welcome",
+      groupId: "g1",
+      to: everyone,
+      sentUt: 10,
+      separations: separationsTo(KSC, everyone, 500),
+    });
+
+    expect(wire.sent.map((s) => s.command)).toEqual([
+      "commcast.group.add",
+      "commcast.message.send",
+    ]);
+    const [change, said] = log.snapshot().outbox;
+    expect(change?.deliveries).toEqual([]);
+    const rail = outboundItems(log.snapshot().outbox, 11).map((i) => i.id);
+    expect(rail.every((id) => id.startsWith(`${said?.msg.id}/`))).toBe(true);
+    expect(rail).toHaveLength(2);
+  });
+
+  it("does not acknowledge a membership change, new or heard again", () => {
+    const change = {
+      id: "g1@100",
+      groupId: "g1",
+      to: [KSC, ARES],
+      from: ARES,
+      authorStationKey: "screen-b",
+      authorName: "Pilot",
+      authorSeat: "pilot" as const,
+      sentUt: 100,
+      lastSentUt: 100,
+      attempts: 1,
+      separationSeconds: 5,
+      kind: "members" as const,
+      members: [KSC, ARES],
+      added: [KSC],
+    };
+    const ack = {
+      from: KSC,
+      stationKey: "screen-a",
+      seat: "mission-control" as const,
+    };
+    log.receiveTransmission(change);
+    log.release(change.id, ack);
+    log.receiveTransmission(change);
+
+    expect(log.snapshot().inbox).toHaveLength(1);
+    expect(wire.sent).toEqual([]);
   });
 
   it("batches radio into 200 ms per command, and flushes what is left at key-up", () => {

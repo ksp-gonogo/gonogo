@@ -67,6 +67,7 @@ interface Held {
   separations?: Record<string, number | null>;
   acks?: { from: string; stationKey: string; at: number }[];
   neverLeft?: boolean;
+  unreached?: string[];
   group?: string;
   members?: string[];
   added?: string[];
@@ -291,6 +292,84 @@ const SCENES: Scene[] = [
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
     settleOn: "Burn in two minutes",
+    pxW: 520,
+    pxH: 520,
+  },
+  {
+    name: "group-resend-subset-unreached",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: [
+          {
+            from: KSC,
+            to: [KSC, ARES, WOOMERA],
+            authorName: "Kennedy Flight",
+            authorSeat: "mission-control",
+            body: "Ares, Woomera, Kennedy. Handover complete.",
+            sentAt: -1500,
+            lastSentAt: -600,
+            attempts: 2,
+            separationSeconds: LIGHT_TIME,
+            separations: { [WOOMERA]: 12 },
+            acks: [{ from: ARES, stationKey: "pilot-1", at: -1260 }],
+            unreached: [WOOMERA],
+            group: GROUP,
+          },
+        ],
+        openThread: "Ares 4, Woomera Range",
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Handover complete",
+    hover: "Unconfirmed",
+    pxW: 520,
+    pxH: 520,
+  },
+  {
+    name: "group-change-just-made",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: [
+          {
+            from: KSC,
+            to: [KSC, ARES, WOOMERA],
+            authorName: "Kennedy Flight",
+            authorSeat: "mission-control",
+            body: "",
+            sentAt: -120,
+            separationSeconds: LIGHT_TIME,
+            separations: { [WOOMERA]: 12 },
+            group: GROUP,
+            members: [KSC, ARES, WOOMERA],
+            added: [WOOMERA],
+          },
+          {
+            from: KSC,
+            to: [KSC, ARES, WOOMERA],
+            authorName: "Kennedy Flight",
+            authorSeat: "mission-control",
+            body: "Woomera, Kennedy. Welcome to the loop.",
+            sentAt: -100,
+            separationSeconds: LIGHT_TIME,
+            separations: { [WOOMERA]: 12 },
+            group: GROUP,
+          },
+        ],
+        openThread: "Ares 4, Woomera Range",
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Woomera Range",
     pxW: 520,
     pxH: 520,
   },

@@ -48,7 +48,11 @@ export function CommcastMessageRow({
     <Commcast__Message>
       <Commcast__Meta>
         <Author $pilot={msg.authorSeat === "pilot"}>{msg.authorName}</Author>
-        {out ? (
+        {out && msg.kind === "members" ? (
+          <Text size="xs" level="faint">
+            <MissionDate value={msg.sentUt} />
+          </Text>
+        ) : out ? (
           <SentVerdict out={out} utNow={utNow} nameFor={nameFor} />
         ) : (
           <HeardVerdict msg={msg} />

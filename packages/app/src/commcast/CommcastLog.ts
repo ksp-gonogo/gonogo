@@ -190,15 +190,19 @@ export class CommcastLog {
     },
     input: CommsSendInput,
   ): CommsMessage {
-    const deliveries = [...input.separations].map(
-      ([to, separationSeconds]): Delivery => ({
-        to,
-        separationSeconds,
-        lastSentUt: input.sentUt,
-        attempts: 1,
-        neverLeft: separationSeconds === null,
-      }),
-    );
+    // A membership change asks nothing of anyone: it is settled for its author the moment it is made.
+    const deliveries =
+      input.kind === "members"
+        ? []
+        : [...input.separations].map(
+            ([to, separationSeconds]): Delivery => ({
+              to,
+              separationSeconds,
+              lastSentUt: input.sentUt,
+              attempts: 1,
+              neverLeft: separationSeconds === null,
+            }),
+          );
     const msg: CommsMessage = {
       id: safeRandomUuid(),
       groupId: input.groupId,
@@ -359,7 +363,9 @@ export class CommcastLog {
       this.droppedCount += n;
     });
     this.ackIdentity = ack;
-    if (ack.from !== msg.from) this.acknowledge({ ...ack, messageId: id });
+    if (ack.from !== msg.from && msg.kind !== "members") {
+      this.acknowledge({ ...ack, messageId: id });
+    }
     this.persistAndEmit();
   }
 
@@ -373,7 +379,7 @@ export class CommcastLog {
     const ack = this.ackIdentity;
     if (!ack) return;
     const msg = this.inbox.find((m) => m.id === id);
-    if (!msg || ack.from === msg.from) return;
+    if (!msg || msg.kind === "members" || ack.from === msg.from) return;
     this.acknowledge({ ...ack, messageId: id });
   }
 

@@ -77,6 +77,8 @@ export interface Held {
   acks?: { from: string; stationKey: string; at: number }[];
   /** Set on an outbound message that was never transmitted. */
   neverLeft?: boolean;
+  /** The recipients the mod said it could not reach, each never left whatever the rest did. */
+  unreached?: string[];
   /** The group it is addressed to. Defaults to one group per set of ends, so a two-way exchange is one thread. */
   group?: string;
   /** A membership change rather than words: the group's members after it, and who it brought in. */
@@ -503,14 +505,16 @@ function paneTree(pane: Pane, index: number) {
           atUt: VIEW_UT + a.at,
           arrivedUt: VIEW_UT + a.at + (separationTo(a.from) ?? 0),
         }));
-        const deliveries = msg.to
+        // A membership change is settled for its author the moment it is made, as the log has it.
+        const deliveries = (msg.kind === "members" ? [] : msg.to)
           .filter((id) => id !== msg.from)
           .map((to) => ({
             to,
             separationSeconds: separationTo(to) ?? null,
             lastSentUt: msg.lastSentUt,
             attempts: msg.attempts,
-            neverLeft: held.neverLeft === true,
+            neverLeft:
+              held.neverLeft === true || held.unreached?.includes(to) === true,
           }));
         return { msg, acks, deliveries };
       }),
