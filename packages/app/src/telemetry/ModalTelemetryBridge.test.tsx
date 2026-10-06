@@ -97,3 +97,44 @@ describe("ModalTelemetryBridge: recovers once the client connects after the moda
     client.dispose();
   });
 });
+
+describe("ModalTelemetryBridge: a modal opened after a topic has already arrived", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("reads the value the app's own provider already holds", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    const { rerender } = render(
+      <TelemetryProvider client={client}>
+        <AltitudeReader />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      transport.emit("v.alt", 777);
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("altitude")).toHaveTextContent("777"),
+    );
+
+    rerender(
+      <>
+        <TelemetryProvider client={client}>
+          <AltitudeReader />
+        </TelemetryProvider>
+        <ModalTelemetryBridge>
+          <div data-testid="modal">
+            <AltitudeReader />
+          </div>
+        </ModalTelemetryBridge>
+      </>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("modal")).toHaveTextContent("777"),
+    );
+    client.dispose();
+  });
+});

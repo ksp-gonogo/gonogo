@@ -231,6 +231,18 @@ export class TelemetryClient {
   private readonly lastValues = new Map<string, unknown>();
 
   /**
+   * The newest point each subscribed topic has delivered, kept so a store
+   * attached after it arrived can be handed it. The wire sends a topic once per
+   * subscription, and subscribing is ref-counted, so a second store reading a
+   * topic another store already holds would otherwise wait for a change that
+   * may never come.
+   */
+  private readonly lastPoints = new Map<
+    string,
+    { validAt: number; payload: unknown; meta: Meta; epoch: number }
+  >();
+
+  /**
    * The newest sample each topic has handed to `lastValues` and raw
    * subscribers, per timeline epoch and vantage. A sample older than it still
    * reaches the timelines, which put it in order, but never becomes the
@@ -559,6 +571,7 @@ export class TelemetryClient {
       if (current.size === 0) {
         this.subscribers.delete(topic);
         this.lastValues.delete(topic);
+        this.lastPoints.delete(topic);
         this.newestRaw.delete(topic);
         this.transport.send({ type: "unsubscribe", topic });
         this.ownership?.noteReleased(topic);
@@ -594,6 +607,8 @@ export class TelemetryClient {
    */
   attachStore(store: TimelineStore): () => void {
     this.stores.add(store);
+    // Only each topic's newest point is replayed, never the history behind it.
+    for (const [topic, point] of this.lastPoints) store.ingest(topic, point);
     // Unlike sample history, ownership verdicts DO backfill. There are a
     // handful of them, they are facts about the mod rather than about a moment,
     // and a store attached after one was reached would otherwise render a topic
@@ -845,6 +860,7 @@ export class TelemetryClient {
 
     this.subscribers.clear();
     this.lastValues.clear();
+    this.lastPoints.clear();
     this.newestRaw.clear();
     this.storeListeners.clear();
     this.unownedListeners.clear();
@@ -968,20 +984,22 @@ export class TelemetryClient {
     meta: Meta,
   ): void {
     this.noteObservedVantage(meta.vantage);
+    const point = {
+      validAt: meta.validAt,
+      payload,
+      meta,
+      epoch: meta.timelineEpoch,
+    };
     if (this.isNewestRaw(topic, meta)) {
       this.lastValues.set(topic, payload);
+      if (this.subscribers.has(topic)) this.lastPoints.set(topic, point);
       const subs = this.subscribers.get(topic);
       if (subs) {
         for (const sub of subs) this.invokeCallback(sub.cb, payload);
       }
     }
     for (const store of this.stores) {
-      store.ingest(topic, {
-        validAt: meta.validAt,
-        payload,
-        meta,
-        epoch: meta.timelineEpoch,
-      });
+      store.ingest(topic, point);
     }
     this.notifyStore();
   }
