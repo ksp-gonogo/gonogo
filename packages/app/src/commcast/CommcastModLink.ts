@@ -76,13 +76,20 @@ export function attachCommcastModLink(
   const batches = new Map<string, PendingBatch>();
   const keyings = new Map<string, Keying>();
 
-  const send = (command: string, args: unknown) => {
+  const send = (
+    command: string,
+    args: unknown,
+    onResult?: (result: unknown) => void,
+  ) => {
     COMMCAST_COMMAND_BUDGET.record();
     wire
       .dispatch(command, args)
       .result.then((result) => {
         const reason = refusalOf(result);
-        if (reason === null) return;
+        if (reason === null) {
+          onResult?.(result);
+          return;
+        }
         logger.warn("[commcast] the mod refused a command", {
           command,
           reason,
@@ -121,7 +128,7 @@ export function attachCommcastModLink(
   };
 
   const transmitter: CommcastTransmitter = {
-    transmit(msg: CommsMessage) {
+    transmit(msg: CommsMessage, to?: readonly string[]) {
       const author = authorOf(
         msg.authorName,
         msg.authorStationKey,
@@ -143,12 +150,22 @@ export function attachCommcastModLink(
         });
         return;
       }
-      send("commcast.message.send", {
-        id: msg.id,
-        groupId: msg.groupId,
-        body: msg.body ?? "",
-        author,
-      });
+      send(
+        "commcast.message.send",
+        {
+          id: msg.id,
+          groupId: msg.groupId,
+          body: msg.body ?? "",
+          ...(to === undefined ? {} : { to }),
+          author,
+        },
+        (result) => {
+          const receipt = receiptOf(result);
+          if (receipt) {
+            log.recordReceipt(msg.id, receipt.addressed, receipt.unreached);
+          }
+        },
+      );
     },
     acknowledge(ack: OutgoingAck) {
       send("commcast.message.ack", {
@@ -448,6 +465,15 @@ function seatOf(seat: string): Seat {
 }
 
 /** Why the mod refused a command, or `null` when it did not. */
+function receiptOf(
+  result: unknown,
+): { addressed: string[]; unreached: string[] } | null {
+  if (!isRecord(result) || !isRecord(result.payload)) return null;
+  const addressed = texts(result.payload, "addressed");
+  const unreached = texts(result.payload, "unreached");
+  return addressed && unreached ? { addressed, unreached } : null;
+}
+
 function refusalOf(result: unknown): string | null {
   if (!isRecord(result) || result.success !== false) return null;
   return text(result, "reason") ?? "no reason given";

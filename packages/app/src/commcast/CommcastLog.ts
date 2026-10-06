@@ -42,7 +42,11 @@ export type OutgoingAck = Omit<CommsAck, "atUt" | "arrivedUt">;
 
 /** What the log hands its words to. Delivery is somebody else's problem. */
 export interface CommcastTransmitter {
-  transmit(msg: CommsMessage): void;
+  /**
+   * `to` names who a resend is for when it is not the whole group; absent
+   * means everyone the speaker knows.
+   */
+  transmit(msg: CommsMessage, to?: readonly RecipientId[]): void;
   acknowledge(ack: OutgoingAck): void;
   /** Live radio. Optional so a transmitter double with nothing to do with audio stays two methods long. */
   radio?(frame: RadioFrame): void;
@@ -268,9 +272,39 @@ export class CommcastLog {
     this.outbox = this.outbox.map((o) =>
       o.msg.id === messageId ? { ...o, msg, deliveries } : o,
     );
-    if (deliveries.some((d) => recipients.includes(d.to) && !d.neverLeft)) {
-      this.dispatch(msg);
+    const leaving = deliveries
+      .filter((d) => recipients.includes(d.to) && !d.neverLeft)
+      .map((d) => d.to);
+    if (leaving.length > 0) this.dispatch(msg, leaving);
+    this.persistAndEmit();
+  }
+
+  /**
+   * What the mod says a send did: who it left for and who it could not reach.
+   *
+   * The mod knows whether a route existed, which this screen only estimates,
+   * so a member it names unreached is never-left whatever the estimate said.
+   * An addressed member is left as it was: arrival is for its own
+   * acknowledgement to say.
+   */
+  recordReceipt(
+    messageId: string,
+    _addressed: readonly RecipientId[],
+    unreached: readonly RecipientId[],
+  ): void {
+    const found = this.outbox.find((o) => o.msg.id === messageId);
+    if (!found) return;
+    if (
+      !found.deliveries.some((d) => unreached.includes(d.to) && !d.neverLeft)
+    ) {
+      return;
     }
+    const deliveries = found.deliveries.map((d) =>
+      unreached.includes(d.to) ? { ...d, neverLeft: true } : d,
+    );
+    this.outbox = this.outbox.map((o) =>
+      o.msg.id === messageId ? { ...o, deliveries } : o,
+    );
     this.persistAndEmit();
   }
 
@@ -385,9 +419,9 @@ export class CommcastLog {
     this.persistAndEmit();
   }
 
-  private dispatch(msg: CommsMessage): void {
+  private dispatch(msg: CommsMessage, to?: readonly RecipientId[]): void {
     COMMCAST_TRANSMIT_BUDGET.record();
-    this.transmitter?.transmit(msg);
+    this.transmitter?.transmit(msg, to);
   }
 
   private pushOutbound(entry: OutboundMessage): void {

@@ -38,14 +38,19 @@ function chunksOf(args: Record<string, unknown> | undefined): string[] {
     : [];
 }
 
-function fakeWire() {
+function fakeWire(
+  reply: (command: string, args: Record<string, unknown>) => unknown = () => ({
+    success: true,
+  }),
+) {
   const sent: { command: string; args: Record<string, unknown> }[] = [];
   const subscribed: string[] = [];
   const listeners = new Set<(m: ServerMessage) => void>();
   const wire: CommcastWire = {
     dispatch(command, args) {
-      sent.push({ command, args: isRecord(args) ? args : {} });
-      return { result: Promise.resolve({ success: true }) };
+      const sentArgs = isRecord(args) ? args : {};
+      sent.push({ command, args: sentArgs });
+      return { result: Promise.resolve(reply(command, sentArgs)) };
     },
     subscribe(topic) {
       subscribed.push(topic);
@@ -184,6 +189,65 @@ describe("attachCommcastModLink", () => {
     expect(wire.sent.map((s) => [s.command, s.args.id])).toEqual([
       ["commcast.message.send", msg.id],
       ["commcast.message.send", msg.id],
+    ]);
+  });
+
+  it("names the recipients on a resend to some of the group, and on nothing else", () => {
+    const msg = log.send(
+      {
+        stationKey: "screen-a",
+        name: "Flight",
+        seat: "mission-control",
+        vantageId: KSC,
+      },
+      {
+        kind: "text",
+        body: "go",
+        groupId: "g1",
+        to: [KSC, ARES, "vessel:b"],
+        sentUt: 10,
+        separations: separationsTo(KSC, [KSC, ARES, "vessel:b"], 5),
+      },
+    );
+    log.resend(msg.id, ["vessel:b"], 20, new Map([["vessel:b", 5]]));
+
+    expect(wire.sent.map((s) => s.args.to)).toEqual([undefined, ["vessel:b"]]);
+  });
+
+  it("marks a member the receipt says was unreached as never left, and leaves the other in transit", async () => {
+    const reply = fakeWire((command) =>
+      command === "commcast.message.send"
+        ? {
+            success: true,
+            payload: { addressed: [KSC, ARES], unreached: ["vessel:b"] },
+          }
+        : { success: true },
+    );
+    detach();
+    detach = attachCommcastModLink(log, reply.wire);
+
+    log.send(
+      {
+        stationKey: "screen-a",
+        name: "Flight",
+        seat: "mission-control",
+        vantageId: KSC,
+      },
+      {
+        kind: "text",
+        body: "go",
+        groupId: "g1",
+        to: [KSC, ARES, "vessel:b"],
+        sentUt: 10,
+        separations: separationsTo(KSC, [KSC, ARES, "vessel:b"], 5),
+      },
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    const deliveries = log.snapshot().outbox[0]?.deliveries ?? [];
+    expect(deliveries.map((d) => [d.to, d.neverLeft])).toEqual([
+      [ARES, false],
+      ["vessel:b", true],
     ]);
   });
 
