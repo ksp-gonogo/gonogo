@@ -251,6 +251,32 @@ describe("attachCommcastModLink", () => {
     ]);
   });
 
+  it("sends one command for a send to sixty-four members, within the command budget", () => {
+    const members = [
+      KSC,
+      ...Array.from({ length: 63 }, (_, i) => `vessel:m${i}`),
+    ];
+    log.send(
+      {
+        stationKey: "screen-a",
+        name: "Flight",
+        seat: "mission-control",
+        vantageId: KSC,
+      },
+      {
+        kind: "text",
+        body: "all stations",
+        groupId: "g1",
+        to: members,
+        sentUt: 10,
+        separations: separationsTo(KSC, members, 5),
+      },
+    );
+
+    expect(wire.sent.map((s) => s.command)).toEqual(["commcast.message.send"]);
+    expect(log.snapshot().outbox[0]?.deliveries).toHaveLength(63);
+  });
+
   it("batches radio into 200 ms per command, and flushes what is left at key-up", () => {
     for (let seq = 0; seq < 12; seq++) log.sendRadio(chunk(seq));
     log.sendRadio({
