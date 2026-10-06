@@ -27,6 +27,8 @@
  * solver.
  */
 
+import type { Value } from "../unit-system/value";
+
 const MAX_NEWTON_ITERATIONS = 50;
 const NEWTON_TOLERANCE = 1e-12;
 
@@ -318,6 +320,97 @@ export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
   const trueAnomaly = trueAnomalyFromEccentric(eccentricAnomaly, orbit.ecc);
 
   return { meanAnomaly, eccentricAnomaly, trueAnomaly, meanMotion };
+}
+
+/**
+ * The mean anomaly, in radians, `ut` reaches from `meanAnomalyAtEpoch` at
+ * `meanMotion`: `M0 + n·(ut − epoch)`.
+ *
+ * Every term is a quantity up to the sum, and the sum is where the algebra
+ * stops: what reads it is the Kepler solve, which is trigonometry on a number.
+ * A propagation that advances a conic in time goes through here rather than
+ * subtracting instants of its own, so the instant, the interval and the rate
+ * keep their units right up to the solve.
+ */
+export function meanAnomalyAt(
+  meanAnomalyAtEpoch: Value<"rad">,
+  meanMotion: Value<"rad·s⁻¹">,
+  epoch: Value<"ut">,
+  ut: Value<"ut">,
+): number {
+  return meanAnomalyAtEpoch.plus(meanMotion.times(ut.minus(epoch))).magnitude;
+}
+
+/**
+ * The shape and phase of a bound conic, as quantities.
+ *
+ * @category Orbits and trajectories
+ */
+export interface ConicShape {
+  /** Semi-major axis. */
+  sma: Value<"m">;
+  /** Eccentricity, `0 <= ecc < 1`. */
+  ecc: Value<"1">;
+  /** Mean anomaly at `epoch`. */
+  meanAnomalyAtEpoch: Value<"rad">;
+  /** The instant `meanAnomalyAtEpoch` holds at. */
+  epoch: Value<"ut">;
+}
+
+/**
+ * Where a craft is along its conic, in the orbital plane: the anomalies and
+ * the distance from the body's centre. Angles in radians, `radius` in metres.
+ *
+ * @category Orbits and trajectories
+ */
+export interface ConicSolution {
+  /** Mean anomaly at the solved instant, wrapped to `[0, 2π)`. */
+  meanAnomaly: number;
+  eccentricAnomaly: number;
+  trueAnomaly: number;
+  /** Distance from the body's centre, `sma·(1 − ecc·cos E)`. */
+  radius: number;
+}
+
+/**
+ * Advances a conic to `ut` and returns where it is along the orbit: the one
+ * place the mean anomaly is stepped, Kepler's equation solved and the radius
+ * taken, whatever the caller does next with them.
+ *
+ * The mean motion is an input, not derived here, because the right figure
+ * depends on where the orbit came from. A patch off the wire carries the
+ * game's own period, so pass `2π / period` and the track keeps the game's
+ * numbers; a bare element set has only the body's `mu`, so pass
+ * `√(mu / sma³)`. Deriving one from the other here would shift the first by
+ * the last digits of the period the game rounded.
+ *
+ * Elliptical only: throws a `RangeError` for `ecc` outside `[0, 1)`, as
+ * `solve` does. Rotating the result out of the orbital plane is
+ * `rotatePerifocalToInertial`'s job.
+ *
+ * @category Orbits and trajectories
+ * @intent an Uplink drawing its own patch chain or manoeuvre preview advances a conic the same way the built-in widgets do, with the figure for the mean motion that suits its source
+ */
+export function solveConic(
+  conic: ConicShape,
+  meanMotion: Value<"rad·s⁻¹">,
+  ut: Value<"ut">,
+): ConicSolution {
+  const ecc = conic.ecc.magnitude;
+  const sma = conic.sma.magnitude;
+  const advanced = meanAnomalyAt(
+    conic.meanAnomalyAtEpoch,
+    meanMotion,
+    conic.epoch,
+    ut,
+  );
+  const eccentricAnomaly = solveEccentricAnomaly(advanced, ecc);
+  return {
+    meanAnomaly: wrapTwoPi(advanced),
+    eccentricAnomaly,
+    trueAnomaly: trueAnomalyFromEccentric(eccentricAnomaly, ecc),
+    radius: sma * (1 - ecc * Math.cos(eccentricAnomaly)),
+  };
 }
 
 /**

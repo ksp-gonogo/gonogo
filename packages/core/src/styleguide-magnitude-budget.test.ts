@@ -326,10 +326,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // latched onto the alarm, or onto another screen's roster row for display,
   // and never computed with here.
   "packages/app/src/alarms/ScetAlarmBridge.ts": 1,
-  // `canPropagate` accepts a horizon UT either wrapped (as the wire delivers it)
-  // or already unwrapped, so one read normalises the two. Not arithmetic: the
-  // number is compared against a window and never computed with.
-  "mod/sitrep-sdk/src/spine/kepler.ts": 1,
+  /*
+   * 4: `canPropagate` accepts a horizon UT either wrapped (as the wire delivers
+   * it) or already unwrapped, so one read normalises the two (not arithmetic:
+   * the number is compared against a window and never computed with). The
+   * other three are `solveConic` handing numbers to Kepler's equation: the
+   * mean anomaly `meanAnomalyAt` sums, the eccentricity and the semi-major
+   * axis. The solve is trigonometry on plain numbers, and these are the same
+   * three reads the patch walk made before it went through here.
+   */
+  "mod/sitrep-sdk/src/spine/kepler.ts": 4,
   /*
    * 8: each patch's shape and window, read as numbers once and only here, and
    * the one mean anomaly `meanAnomalyAt` hands the Kepler solve. The instant,
@@ -339,7 +345,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * and the manoeuvre planner's propagation go through this file rather than
    * unwrapping on their own.
    */
-  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 8,
+  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 7,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
   /*

@@ -355,12 +355,15 @@ export {
 } from "./spine/delta-v-budget";
 export {
   type Anomalies,
+  type ConicShape,
+  type ConicSolution,
   canPropagate,
   type OrbitElements,
   type PropagationHorizonLike,
   type StateVector,
   solve,
   solveAnomalies,
+  solveConic,
 } from "./spine/kepler";
 // ---------------------------------------------------------------------------
 // THE CONIC: the one two-body propagator in this repo, and the guard that says where it stops holding.

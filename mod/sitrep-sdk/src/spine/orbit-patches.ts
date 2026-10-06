@@ -7,6 +7,7 @@
 import type { OrbitPatch } from "../__generated__/contract";
 import { type Value, value } from "../unit-system/value";
 import {
+  meanAnomalyAt,
   rotatePerifocalToInertial,
   solveEccentricAnomaly,
   trueAnomalyFromEccentric,
@@ -86,25 +87,6 @@ function windowOf(patch: PatchSpan): { start: number; end: number } {
 }
 
 const FULL_TURN = value("rad", 2 * Math.PI);
-
-/**
- * The mean anomaly, in radians, `ut` reaches from `meanAnomalyAtEpoch` at
- * `meanMotion`: `M0 + n·(ut − epoch)`.
- *
- * Every term is a quantity up to the sum, and the sum is where the algebra
- * stops: what reads it is the Kepler solve, which is trigonometry on a number.
- * A propagation that advances a conic in time goes through here rather than
- * subtracting instants of its own, so the instant, the interval and the rate
- * keep their units right up to the solve.
- */
-export function meanAnomalyAt(
-  meanAnomalyAtEpoch: Value<"rad">,
-  meanMotion: Value<"rad·s⁻¹">,
-  epoch: Value<"ut">,
-  ut: Value<"ut">,
-): number {
-  return meanAnomalyAtEpoch.plus(meanMotion.times(ut.minus(epoch))).magnitude;
-}
 
 /**
  * The craft's inertial state at `ut` on `patch`. The UT should lie inside the
