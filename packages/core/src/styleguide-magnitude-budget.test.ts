@@ -308,7 +308,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "mod/sitrep-sdk/src/spine/delta-v-budget.ts": 2,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
-  "packages/sitrep-client/src/fleet-position.ts": 1,
   // The one decode of a `fleet.` payload's quantities. Whether a quantity
   // arrives wrapped depends on the TOPIC, not the type: `wrapTopicPayload` keys
   // on the exact topic string, so `fleet.silence` delivers a Value where its

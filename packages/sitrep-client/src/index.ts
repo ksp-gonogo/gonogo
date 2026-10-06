@@ -216,10 +216,6 @@ export {
   useFleetVesselLink,
 } from "./fleet-link";
 export {
-  propagateVesselOrbit,
-  useFleetVesselPosition,
-} from "./fleet-position";
-export {
   type FleetVesselResource,
   fleetVesselResourceList,
   useFleetVesselResources,
