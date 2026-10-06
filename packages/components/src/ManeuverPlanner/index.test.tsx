@@ -180,6 +180,7 @@ describe("ManeuverPlannerComponent", () => {
     );
     act(() => {
       emitFullOrbit();
+      emitManeuverNode([]);
     });
     await flushViewUt();
     expect(screen.queryByText(/Waiting for telemetry/i)).toBeNull();

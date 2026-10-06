@@ -8,6 +8,8 @@ import { type NodeEditPatch, NodeRow } from "./NodeRow";
 
 interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
+  /** True until the plan has arrived, so an empty list is not read as an empty plan. */
+  awaiting: boolean;
   completedNodes: ReadonlyMap<number, CompletedEntry>;
   currentUT: Value<"ut"> | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
@@ -28,6 +30,7 @@ interface DisplayedNode {
 
 export function ManeuverNodeList({
   nodes,
+  awaiting,
   completedNodes,
   currentUT,
   availableDv,
@@ -58,7 +61,9 @@ export function ManeuverNodeList({
   return (
     <>
       {displayedNodes.length === 0 ? (
-        <EmptyState>No maneuver nodes planned</EmptyState>
+        <EmptyState>
+          {awaiting ? "Awaiting maneuver plan" : "No maneuver nodes planned"}
+        </EmptyState>
       ) : (
         <Stack as="ul" style={NODE_LIST_STYLE}>
           {displayedNodes.map((d) => (

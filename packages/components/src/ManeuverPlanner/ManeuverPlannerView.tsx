@@ -55,9 +55,10 @@ export function ManeuverPlannerComponent({
   } = telemetry;
   const nodes = useManeuverNodes();
   // The plan stands until changed, but a change made while the link is down is missed, so its figures take the plan reading's currency.
-  const planCurrency = [
-    currencyOf(useStream<VesselManeuver>("vessel.maneuver")),
-  ];
+  const planReading = useStream<VesselManeuver>("vessel.maneuver");
+  const planCurrency = [currencyOf(planReading)];
+  const planAwaited =
+    planReading.state !== "observed" && planReading.state !== "held";
   const {
     plan,
     requiredDeltaV,
@@ -198,6 +199,7 @@ export function ManeuverPlannerComponent({
             <SectionTitle as="h4">Planned nodes</SectionTitle>
             <ManeuverNodeList
               nodes={nodes}
+              awaiting={planAwaited}
               completedNodes={completedNodes}
               currentUT={currentUT}
               availableDv={availableDeltaV}
@@ -219,6 +221,7 @@ export function ManeuverPlannerComponent({
                 content: (
                   <ConformanceSection
                     nodes={nodes}
+                    awaiting={planAwaited}
                     maxDvByUt={maxDvByUt}
                     telemetry={telemetry}
                   />

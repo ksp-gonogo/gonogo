@@ -95,7 +95,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
 
     expect(screen.getByText("Planned nodes")).toBeInTheDocument();
     expect(screen.getByText("New maneuver")).toBeInTheDocument();
-    expect(screen.getByText("No maneuver nodes planned")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting maneuver plan")).toBeInTheDocument();
 
     // An absent ecc does not take the hyperbolic branch.
     expect(screen.queryByText("Hyperbolic trajectory")).not.toBeInTheDocument();

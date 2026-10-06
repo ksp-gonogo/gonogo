@@ -11,6 +11,8 @@ import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
 interface ConformanceSectionProps {
   nodes: readonly ParsedManeuverNode[];
+  /** True until the plan has arrived, so an empty list is not read as an empty plan. */
+  awaiting: boolean;
   maxDvByUt: ReadonlyMap<number, number>;
   telemetry: PlannerTelemetry;
 }
@@ -41,6 +43,7 @@ export function plannedConic(
  */
 export function ConformanceSection({
   nodes,
+  awaiting,
   maxDvByUt,
   telemetry,
 }: ConformanceSectionProps) {
@@ -60,7 +63,9 @@ export function ConformanceSection({
   if (nodes.length === 0) {
     return (
       <PaddedSection>
-        <EmptyState>No planned burns to compare</EmptyState>
+        <EmptyState>
+          {awaiting ? "Awaiting maneuver plan" : "No planned burns to compare"}
+        </EmptyState>
       </PaddedSection>
     );
   }
