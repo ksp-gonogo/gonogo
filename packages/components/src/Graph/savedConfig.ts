@@ -54,7 +54,9 @@ export function graphThresholdsOf(
     return {
       id: line.id,
       value: value(unit, line.value),
-      kind: line.kind ?? "limit",
+      ...(line.kind === "target"
+        ? { kind: "target" as const }
+        : { kind: "limit" as const, bad: line.bad ?? "above" }),
       label: line.label || undefined,
       axis: line.axis,
     };

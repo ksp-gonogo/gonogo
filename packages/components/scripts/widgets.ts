@@ -1377,7 +1377,7 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         },
 
-        // ── thresholds (a limit the trace passes, a target it reaches) ───
+        // ── thresholds (a limit the trace stays under, one it goes past, a target it reaches) ───
         {
           name: "thresholds-10x8",
           w: 10,
@@ -1400,6 +1400,7 @@ const WIDGETS: WidgetRenderConfig[] = [
                 axis: "primary",
                 label: "Atmosphere top",
                 kind: "limit",
+                bad: "above",
               },
               {
                 id: "tower",
@@ -1407,6 +1408,14 @@ const WIDGETS: WidgetRenderConfig[] = [
                 axis: "primary",
                 label: "Tower clear",
                 kind: "target",
+              },
+              {
+                id: "ceiling",
+                value: 50000,
+                axis: "primary",
+                label: "Planned ceiling",
+                kind: "limit",
+                bad: "above",
               },
             ],
           },

@@ -14,6 +14,8 @@ import {
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import React, { useId, useMemo } from "react";
+import { LimitCrossingMark } from "./LimitCrossingMark";
+import { isPast, type LimitSide, limitCrossings } from "./limitCrossings";
 import {
   buildBandPath,
   buildPath,
@@ -84,18 +86,18 @@ export interface ChartSeries {
 /**
  * What a threshold line is for, which decides how it is drawn.
  *
- * - `limit`: a figure not to pass. Dashed and quiet until a trace on its axis has passed it, then in the warning tone
+ * - `limit`: a figure not to pass, with the side that is past it declared. Dashed and quiet until a trace on its axis stands at or past it, then in the warning tone, and each place a trace went past it carries a warning mark
  * - `target`: a figure to reach. Dashed and quiet until a trace on its axis has reached it, then in the go tone
  * - `marker`: where something is now. Solid, and never changes tone
  */
 export type ThresholdKind = "limit" | "target" | "marker";
 
-/** Horizontal reference line at a constant Y, with an optional right-anchored label. Its tone comes from `kind` and the plotted data, never from the caller. */
-export interface ThresholdRule {
+export type { LimitSide } from "./limitCrossings";
+
+interface ThresholdRuleBase {
   id: string;
   /** Where the line stands, in the axis's unit. */
   value: number;
-  kind: ThresholdKind;
   /** `"primary"` when omitted. */
   axis?: "primary" | "secondary";
   label?: string;
@@ -103,8 +105,15 @@ export interface ThresholdRule {
   reading?: UnitValue;
 }
 
-/** A trace has passed a line when its newest figure is on it, or on the other side of it from its oldest. */
-function hasPassed(ys: readonly number[], at: number): boolean {
+/** Horizontal reference line at a constant Y, with an optional right-anchored label. Its tone comes from `kind` and the plotted data, never from the caller. */
+export type ThresholdRule = ThresholdRuleBase &
+  (
+    | { kind: "limit"; bad: LimitSide }
+    | { kind: Exclude<ThresholdKind, "limit"> }
+  );
+
+/** A trace has reached a line when its newest figure is on it, or on the other side of it from its oldest. */
+function hasReached(ys: readonly number[], at: number): boolean {
   if (ys.length === 0) return false;
   const newest = ys[ys.length - 1] - at;
   if (newest === 0) return true;
@@ -220,6 +229,10 @@ const CAPTION_MIN_PLOT_H = 90;
 const PX_PER_X_TICK = 70;
 const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
+/** The limit mark's width, which is also how close two spells may start and still be one mark. */
+const LIMIT_MARK_SIZE = 14;
+/** How far the mark's centre stands from the crossing, on each axis. */
+const LIMIT_MARK_OFFSET = 10;
 const DEFAULT_BAND_OPACITY = 0.2;
 /** A reckoned run is muted and dashed, never recoloured; 0.6 keeps series colours above 3:1 against the surface. */
 const RECKONED_STROKE_OPACITY = 0.6;
@@ -544,15 +557,21 @@ export function LineChart({
     return thresholds.map((t) => {
       const axis = t.axis ?? "primary";
       // A marker has nothing to pass, and a dashed series is a reference curve, not a trace of the craft.
+      const traces = series.filter(
+        (s) => s.axis === axis && s.type !== "band" && !s.dashed,
+      );
       const passed =
-        t.kind !== "marker" &&
-        series.some(
-          (s) =>
-            s.axis === axis &&
-            s.type !== "band" &&
-            !s.dashed &&
-            hasPassed(s.data.y, t.value),
-        );
+        t.kind === "limit"
+          ? // Where the figure stands now decides it, so one that has been past the limit for the whole window is past it.
+            traces.some((s) => {
+              const finite = s.data.y.filter((y) => Number.isFinite(y));
+              return (
+                finite.length > 0 &&
+                isPast(finite[finite.length - 1], t.value, t.bad)
+              );
+            })
+          : t.kind === "target" &&
+            traces.some((s) => hasReached(s.data.y, t.value));
       return {
         id: t.id,
         label: t.label,
@@ -569,6 +588,76 @@ export function LineChart({
       };
     });
   }, [thresholds, series, scaleYPrimary, scaleYSecondary]);
+
+  // One mark per spell a trace spent past a limit, at the spell's start, set off to the bad side and back from the crossing so it covers neither the trace nor the line.
+  const crossingMarks = useMemo(() => {
+    const clamp = (lo: number, v: number, hi: number) =>
+      Math.max(lo, Math.min(hi, v));
+    return (thresholds ?? []).flatMap((t) => {
+      if (t.kind !== "limit" || !Number.isFinite(t.value)) return [];
+      const axis = t.axis ?? "primary";
+      const scaleY = axis === "primary" ? scaleYPrimary : scaleYSecondary;
+      const limitY = scaleY(t.value);
+      const away = t.bad === "above" ? -1 : 1;
+      const limitName = t.label || `the limit at ${yTickFormat(t.value)}`;
+      return series
+        .filter(
+          (s) =>
+            s.axis === axis &&
+            s.data.x.length > 0 &&
+            (s.type ?? "line") !== "band" &&
+            !s.dashed,
+        )
+        .flatMap((s) =>
+          limitCrossings({
+            y: s.data.y,
+            cx: s.data.x.map(scaleX),
+            cy: s.data.y.map(scaleY),
+            limit: t.value,
+            limitY,
+            bad: t.bad,
+            breaks: s.data.breaks,
+            step: s.type === "step" || s.type === "scatter",
+            minGapPx: LIMIT_MARK_SIZE,
+          }).map((crossing) => {
+            const reading = yTickFormat(s.data.y[crossing.index]);
+            const when = xTickFormat(s.data.x[crossing.index], xDomain);
+            return {
+              key: `${t.id}-${s.id}-${crossing.index}`,
+              color: s.color,
+              x: clamp(
+                plotX0 + LIMIT_MARK_SIZE / 2 + 1,
+                crossing.x - LIMIT_MARK_OFFSET * (crossing.entered ? 1 : -1),
+                plotX1 - LIMIT_MARK_SIZE / 2 - 1,
+              ),
+              y: clamp(
+                plotY0 + LIMIT_MARK_SIZE / 2 + 1,
+                crossing.y + away * LIMIT_MARK_OFFSET,
+                plotY1 - LIMIT_MARK_SIZE / 2 - 1,
+              ),
+              text: crossing.entered
+                ? crossing.spells > 1
+                  ? `${s.label} went past ${limitName} ${crossing.spells} times from ${when}, first reading ${reading}`
+                  : `${s.label} went past ${limitName} at ${when}, reading ${reading}`
+                : `${s.label} was already past ${limitName} when this window began at ${when}, reading ${reading}`,
+            };
+          }),
+        );
+    });
+  }, [
+    thresholds,
+    series,
+    scaleX,
+    scaleYPrimary,
+    scaleYSecondary,
+    xTickFormat,
+    yTickFormat,
+    xDomain,
+    plotX0,
+    plotX1,
+    plotY0,
+    plotY1,
+  ]);
 
   /*
    * Shape and dash are not channels a screen reader has, so each layer and each reckoned run adds a
@@ -646,7 +735,8 @@ export function LineChart({
     <svg
       width={w}
       height={h}
-      role="img"
+      // An image has no parts a reader can reach, so a chart carrying marks that each say something is a group.
+      role={crossingMarks.length > 0 ? "group" : "img"}
       aria-label={chartLabel}
       // display: block stops the inline baseline gap feeding the ResizeObserver a growing height.
       style={{
@@ -981,6 +1071,17 @@ export function LineChart({
             </text>
           )}
         </React.Fragment>
+      ))}
+
+      {crossingMarks.map((mark) => (
+        <LimitCrossingMark
+          key={mark.key}
+          x={mark.x}
+          y={mark.y}
+          size={LIMIT_MARK_SIZE}
+          color={mark.color}
+          text={mark.text}
+        />
       ))}
 
       {legend !== "none" &&

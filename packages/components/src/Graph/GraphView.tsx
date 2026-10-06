@@ -84,7 +84,9 @@ function thresholdRuleOf(
   return {
     id: line.id ?? `threshold-${index}`,
     value: at,
-    kind: line.kind,
+    ...(line.kind === "limit"
+      ? { kind: line.kind, bad: line.bad }
+      : { kind: line.kind }),
     axis: line.axis,
     // The unit's word rather than its symbol: a chart annotation is read aloud.
     label: [line.label, speakQuantity(shown)].filter(Boolean).join(": "),

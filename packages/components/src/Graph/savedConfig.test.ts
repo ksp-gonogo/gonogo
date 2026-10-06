@@ -57,9 +57,35 @@ describe("the Graph widget's saved configuration, as the view it asks for", () =
       },
       [{ key: "vessel.flight.altitudeAsl", label: "Altitude", unit: "m" }],
     );
-    expect(line.kind).toBe("limit");
+    // A line saved before limits had sides is a ceiling.
+    expect(line).toMatchObject({ kind: "limit", bad: "above" });
     expect(line.label).toBeUndefined();
     expect(line.value).toMatchObject({ magnitude: 70_000, unit: "m" });
+  });
+
+  it("keeps the side a saved limit declares, and gives a target none", () => {
+    const [floor, goal] = graphThresholdsOf(
+      {
+        windowSec: 60,
+        series: [
+          { id: "alt", key: "vessel.flight.altitudeAsl", axis: "primary" },
+        ],
+        thresholds: [
+          {
+            id: "f",
+            value: 1_000,
+            axis: "primary",
+            kind: "limit",
+            bad: "below",
+          },
+          { id: "g", value: 9_000, axis: "primary", kind: "target" },
+        ],
+      },
+      [{ key: "vessel.flight.altitudeAsl", label: "Altitude", unit: "m" }],
+    );
+    expect(floor).toMatchObject({ kind: "limit", bad: "below" });
+    expect(goal).toMatchObject({ kind: "target" });
+    expect(goal).not.toHaveProperty("bad");
   });
 
   it("reads a line on an axis with no known unit as a plain number", () => {

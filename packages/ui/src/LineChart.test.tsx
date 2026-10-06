@@ -1,5 +1,5 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/test-utils";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { unannouncedHeldMarks } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import type { ChartSeries } from "./LineChart";
@@ -156,7 +156,7 @@ describe("LineChart", () => {
 // A replayed sample draws as live data, a break as a hole, and only a reckoned run is muted and dashed.
 
 const chartName = (container: HTMLElement): string =>
-  container.querySelector("svg[role='img']")?.getAttribute("aria-label") ?? "";
+  container.querySelector("svg")?.getAttribute("aria-label") ?? "";
 
 const strokedPaths = (
   container: HTMLElement,
@@ -622,7 +622,9 @@ describe("LineChart threshold currency", () => {
 
 /** A threshold's tone comes from its kind and the trace on its axis, never from the caller. */
 describe("LineChart threshold tone", () => {
-  function lineFor(kind: "limit" | "target" | "marker", ys: number[]) {
+  type Kind = "target" | "marker" | { limit: "above" | "below" };
+
+  function lineFor(kind: Kind, ys: number[]) {
     const { container } = render(
       <LineChart
         series={[
@@ -636,30 +638,117 @@ describe("LineChart threshold tone", () => {
         ]}
         xDomain={[0, 3000]}
         yDomainPrimary={[0, 100]}
-        thresholds={[{ id: "t", value: 50, kind, label: "Fifty" }]}
+        thresholds={[
+          typeof kind === "string"
+            ? { id: "t", value: 50, kind, label: "Fifty" }
+            : {
+                id: "t",
+                value: 50,
+                kind: "limit",
+                bad: kind.limit,
+                label: "Fifty",
+              },
+        ]}
         width={400}
         height={200}
       />,
     );
     const line = container.querySelector("[data-threshold-kind]");
     if (!line) throw new Error("no threshold line drawn");
-    return { line, name: chartName(container) };
+    return {
+      line,
+      name: chartName(container),
+      marks: [...container.querySelectorAll("[data-limit-crossing]")],
+      container,
+    };
   }
 
-  it("draws a limit quietly until the trace passes it, then says so in tone and in words", () => {
-    const below = lineFor("limit", [10, 20, 30]);
-    expect(below.line.getAttribute("stroke")).toBe("var(--color-text-faint)");
-    expect(below.name).not.toMatch(/limit passed/);
+  it("draws a ceiling quietly while the trace is under it, then says it is passed in tone and in words", () => {
+    const under = lineFor({ limit: "above" }, [10, 20, 30]);
+    expect(under.line.getAttribute("stroke")).toBe("var(--color-text-faint)");
+    expect(under.name).not.toMatch(/limit passed/);
 
-    const passed = lineFor("limit", [10, 40, 60]);
+    const passed = lineFor({ limit: "above" }, [10, 40, 60]);
     expect(passed.line.getAttribute("stroke")).toBe("var(--color-warn-mark)");
     expect(passed.name).toMatch(/Fifty: limit passed/);
   });
 
-  it("reads a limit approached from above the same way", () => {
-    expect(lineFor("limit", [90, 60, 40]).line.getAttribute("stroke")).toBe(
-      "var(--color-warn-mark)",
+  it("reads a floor the other way up: under it is passed, over it is not", () => {
+    expect(
+      lineFor({ limit: "below" }, [90, 60, 40]).line.getAttribute("stroke"),
+    ).toBe("var(--color-warn-mark)");
+    expect(
+      lineFor({ limit: "below" }, [10, 40, 60]).line.getAttribute("stroke"),
+    ).toBe("var(--color-text-faint)");
+  });
+
+  it("counts a figure standing exactly on the limit as past it, on either side", () => {
+    for (const bad of ["above", "below"] as const) {
+      expect(
+        lineFor({ limit: bad }, [20, 80, 50]).line.getAttribute("stroke"),
+      ).toBe("var(--color-warn-mark)");
+    }
+  });
+
+  it("reads a figure that has been past the limit for the whole window as past it", () => {
+    const always = lineFor({ limit: "above" }, [60, 70, 80]);
+    expect(always.line.getAttribute("stroke")).toBe("var(--color-warn-mark)");
+    expect(always.name).toMatch(/Fifty: limit passed/);
+  });
+
+  it("goes quiet again once the figure has come back inside the limit", () => {
+    const back = lineFor({ limit: "above" }, [10, 60, 30]);
+    expect(back.line.getAttribute("stroke")).toBe("var(--color-text-faint)");
+    expect(back.name).not.toMatch(/limit passed/);
+  });
+
+  it("sets a warning mark where the trace went past a limit, and keeps it once the figure is back inside", () => {
+    const { marks, container, line } = lineFor(
+      { limit: "above" },
+      [10, 60, 30],
     );
+    expect(line.getAttribute("stroke")).toBe("var(--color-text-faint)");
+    expect(marks).toHaveLength(1);
+    // Which trace, which limit, the reading and when, in the mark's own name; and the mark is a tab stop.
+    expect(marks[0].getAttribute("aria-label")).toBe(
+      "Trace went past Fifty at 0:01, reading 60",
+    );
+    expect(marks[0].getAttribute("tabindex")).toBe("0");
+    // The trace is one stroke in its own colour, end to end.
+    expect(
+      container.querySelectorAll('svg > path[stroke="#fff"]'),
+    ).toHaveLength(1);
+    // A chart with parts a reader can reach is a group, not one image.
+    expect(container.querySelector("svg")?.getAttribute("role")).toBe("group");
+  });
+
+  it("opens the mark's tip on keyboard focus, saying what its name says", async () => {
+    const { marks } = lineFor({ limit: "above" }, [10, 60, 30]);
+    fireEvent.focus(marks[0]);
+    expect(
+      await screen.findByText(/Trace went past Fifty at 0:01/),
+    ).toBeTruthy();
+  });
+
+  it("marks a trace that was past the limit when the window began, and says so", () => {
+    const { marks } = lineFor({ limit: "above" }, [60, 70, 80]);
+    expect(marks).toHaveLength(1);
+    expect(marks[0].getAttribute("aria-label")).toBe(
+      "Trace was already past Fifty when this window began at 0:00, reading 60",
+    );
+  });
+
+  it("sets no mark on a target or a marker, and leaves the chart one image", () => {
+    for (const drawn of [
+      lineFor("target", [10, 60, 30]),
+      lineFor("marker", [10, 60, 30]),
+      lineFor({ limit: "above" }, [10, 20, 30]),
+    ]) {
+      expect(drawn.marks).toHaveLength(0);
+      expect(drawn.container.querySelector("svg")?.getAttribute("role")).toBe(
+        "img",
+      );
+    }
   });
 
   it("draws a target in the go tone once the trace reaches it", () => {

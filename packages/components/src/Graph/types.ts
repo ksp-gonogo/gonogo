@@ -1,11 +1,21 @@
-export type { AxisScale, SeriesType, ThresholdKind } from "@ksp-gonogo/ui";
+export type {
+  AxisScale,
+  LimitSide,
+  SeriesType,
+  ThresholdKind,
+} from "@ksp-gonogo/ui";
 
 import type {
   DataKeyMeta,
   ReadingSeriesRange,
   TopicFieldHandle,
 } from "@ksp-gonogo/data";
-import type { AxisScale, SeriesType, ThresholdKind } from "@ksp-gonogo/ui";
+import type {
+  AxisScale,
+  LimitSide,
+  SeriesType,
+  ThresholdKind,
+} from "@ksp-gonogo/ui";
 import type { UnitValue } from "@ksp-gonogo/ui-kit";
 
 /** Sentinel `xKey` value meaning "plot against wall-clock time". */
@@ -56,15 +66,21 @@ export interface ComputedSeries {
  * came from one: the line then stands at the model's figure where a model
  * carried it, and its label is marked held or modelled as the reading is.
  */
-export interface GraphThreshold {
+export type GraphThreshold = {
   /** Defaults to the line's position in the list. */
   id?: string;
   value: UnitValue;
-  kind: ThresholdKind;
   label?: string;
   /** `"primary"` when omitted. */
   axis?: "primary" | "secondary";
-}
+} & (
+  | {
+      kind: "limit";
+      /** The side a figure must not be on: `above` for a ceiling, `below` for a floor. */
+      bad: LimitSide;
+    }
+  | { kind: Exclude<ThresholdKind, "limit"> }
+);
 
 /** A threshold line as the Graph widget saves it: a bare number, read in the unit of the axis it is drawn against. */
 export interface GraphThresholdConfig {
@@ -74,6 +90,8 @@ export interface GraphThresholdConfig {
   label?: string;
   /** `"limit"` when omitted, which is what every line saved before kinds existed was. */
   kind?: Exclude<ThresholdKind, "marker">;
+  /** A limit's bad side. `"above"` when omitted: a line saved before limits had sides is read as a ceiling. */
+  bad?: LimitSide;
 }
 
 /**

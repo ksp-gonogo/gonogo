@@ -9,6 +9,13 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
+/** What each choice in the kind picker saves: a limit is saved with the side that is past it. */
+const KINDS: Record<string, Pick<GraphThresholdConfig, "kind" | "bad">> = {
+  "limit-above": { kind: "limit", bad: "above" },
+  "limit-below": { kind: "limit", bad: "below" },
+  target: { kind: "target", bad: undefined },
+};
+
 /** One threshold line: its label, value, which Y axis it draws against and what kind of line it is. */
 export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
   return (
@@ -40,14 +47,15 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
       </Select>
       <Select
         aria-label="Kind"
-        value={threshold.kind ?? "limit"}
-        onChange={(e) =>
-          onUpdate(threshold.id, {
-            kind: e.target.value as GraphThresholdConfig["kind"],
-          })
+        value={
+          threshold.kind === "target"
+            ? "target"
+            : `limit-${threshold.bad ?? "above"}`
         }
+        onChange={(e) => onUpdate(threshold.id, KINDS[e.target.value])}
       >
-        <option value="limit">Limit</option>
+        <option value="limit-above">Upper limit</option>
+        <option value="limit-below">Lower limit</option>
         <option value="target">Target</option>
       </Select>
       <IconButton

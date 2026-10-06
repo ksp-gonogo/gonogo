@@ -91,6 +91,7 @@ export function GraphConfigComponent({
         axis: "primary",
         label: "",
         kind: "limit",
+        bad: "above",
       },
     ]);
   };
