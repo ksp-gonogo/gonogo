@@ -13,7 +13,7 @@ import { sizeDeltaFor, useSizeDeltaFor, withSizeDelta } from "./sizeDelta";
 
 const HOST = {
   id: "host-widget",
-  augmentSlots: ["host-widget.sections"],
+  augmentSlots: ["host-widget.sections"] as never,
   contributionSlots: [],
 };
 

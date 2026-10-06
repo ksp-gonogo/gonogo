@@ -164,7 +164,7 @@ describe("applyMinSizes", () => {
         dataRequirements: [],
         defaultSize: { w: 6, h: 6 },
         minSize: { w: 4, h: 5 },
-        augmentSlots: ["host.sections"],
+        augmentSlots: ["host.sections"] as never,
         ...(tiny ? { tiny: { title: "host", useEssentials: () => [] } } : {}),
       });
       registerAugment({

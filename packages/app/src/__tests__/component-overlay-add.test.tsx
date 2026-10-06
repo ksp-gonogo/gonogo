@@ -164,7 +164,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
       dataRequirements: [],
       defaultSize: { w: 5, h: 6 },
       minSize: { w: 3, h: 3 },
-      augmentSlots: ["roomy.sections"],
+      augmentSlots: ["roomy.sections"] as never,
     });
     registerAugment({
       id: "roomy-extra",

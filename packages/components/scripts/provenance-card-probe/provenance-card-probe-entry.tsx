@@ -44,7 +44,7 @@ function seedRegistry(): ComponentDefinition[] {
     description: "The vessel's crew, roles, and status.",
     tags: ["telemetry", "crew"],
     component: () => null,
-    augmentSlots: ["crew-manifest.rows"],
+    augmentSlots: ["crew-manifest.rows"] as never,
   };
   const plain: ComponentDefinition = {
     id: "altitude-gauge",

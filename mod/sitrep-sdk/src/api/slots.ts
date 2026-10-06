@@ -537,6 +537,8 @@ export interface MapOverlayContext {
 /**
  * What the Map View is showing, read with `useWidgetScope("map-view")` from
  * `@ksp-gonogo/ui-kit`.
+ *
+ * @category Widget slots
  */
 export interface MapViewScope {
   /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
@@ -768,6 +770,8 @@ export interface DeployedExperimentContext {
 /**
  * What the Power Systems widget is showing, read with
  * `useWidgetScope("power-systems")` from `@ksp-gonogo/ui-kit`.
+ *
+ * @category Widget slots
  */
 export interface PowerSystemsScope {
   /**

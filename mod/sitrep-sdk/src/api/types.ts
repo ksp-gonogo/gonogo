@@ -340,8 +340,11 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * or both.
    */
   seats?: readonly Seat[];
-  /** The augment slots this widget draws, by full slot id. */
-  augmentSlots?: string[];
+  /**
+   * The augment slots this widget draws, by full slot id, each declared in
+   * {@link SlotRegistry}. A slot id nothing declares does not compile.
+   */
+  augmentSlots?: readonly SlotId[];
   /**
    * The contribution slots this widget draws, by full slot id. A slot id is
    * either an augment slot or a contribution slot, never both.

@@ -2,6 +2,7 @@
 
 import type {
   Seat,
+  SlotId,
   TinyMode,
   WidgetChannelId,
   WidgetFieldPath,
@@ -326,7 +327,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * and are discoverable/version-able like any contract surface. Not a
    * core-widget privilege: an Uplink-owned widget can expose slots too.
    */
-  augmentSlots?: string[];
+  augmentSlots?: readonly SlotId[];
   /**
    * Addressable CONTRIBUTION slots this widget owns, the pure-data sibling of
    * `augmentSlots`. Declared once so

@@ -62,13 +62,13 @@ describe("effectiveSearchTags", () => {
   it("adds a live augment's `requires` token for each augmented slot", () => {
     registerAugment({
       id: "mod-beta-badge",
-      augments: "widget.badges",
+      augments: "fuel-status.sections",
       requires: "mod-beta",
       component: () => null,
     });
     const def = baseDef({
       tags: ["telemetry"],
-      augmentSlots: ["widget.badges"],
+      augmentSlots: ["fuel-status.sections"],
     });
 
     expect(effectiveSearchTags(def)).toEqual(["telemetry", "mod-beta"]);
@@ -77,7 +77,7 @@ describe("effectiveSearchTags", () => {
   it("contributes nothing for an augment slot with no registered augments", () => {
     const def = baseDef({
       tags: ["telemetry"],
-      augmentSlots: ["widget.badges"],
+      augmentSlots: ["fuel-status.sections"],
     });
 
     expect(effectiveSearchTags(def)).toEqual(["telemetry"]);
@@ -91,14 +91,14 @@ describe("effectiveSearchTags", () => {
     });
     registerAugment({
       id: "mod-beta-badge",
-      augments: "widget.badges",
+      augments: "fuel-status.sections",
       requires: "mod-beta",
       component: () => null,
     });
     const def = baseDef({
       tags: ["telemetry"],
       owner: MOD_ALPHA,
-      augmentSlots: ["widget.badges"],
+      augmentSlots: ["fuel-status.sections"],
     });
 
     expect(effectiveSearchTags(def)).toEqual([
@@ -118,13 +118,13 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
     });
     registerAugment({
       id: "gamma-badge",
-      augments: "widget.badges",
+      augments: "fuel-status.sections",
       owner: MOD_GAMMA,
       component: () => null,
     });
     const def = baseDef({
       tags: ["telemetry"],
-      augmentSlots: ["widget.badges"],
+      augmentSlots: ["fuel-status.sections"],
     });
 
     expect(effectiveSearchTags(def)).toContain("mod-gamma");
@@ -176,14 +176,14 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
     });
     registerAugment({
       id: "alpha-badge",
-      augments: "widget.badges",
+      augments: "fuel-status.sections",
       owner: MOD_ALPHA,
       component: () => null,
     });
     const def = baseDef({
       tags: ["telemetry"],
       owner: MOD_ALPHA,
-      augmentSlots: ["widget.badges"],
+      augmentSlots: ["fuel-status.sections"],
     });
 
     expect(
@@ -210,7 +210,7 @@ describe("uplinkAdditions", () => {
     });
     registerAugment({
       id: "gamma-badge",
-      augments: "widget.badges",
+      augments: "fuel-status.sections",
       owner: MOD_GAMMA,
       component: () => null,
     });
@@ -220,7 +220,7 @@ describe("uplinkAdditions", () => {
       owner: MOD_EPSILON,
       compute: () => [],
     });
-    const def = baseDef({ augmentSlots: ["widget.badges"] });
+    const def = baseDef({ augmentSlots: ["fuel-status.sections"] });
 
     expect(uplinkAdditions(def)).toEqual([
       { id: "mod-gamma", name: "Mod Gamma" },
