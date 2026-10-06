@@ -12,14 +12,19 @@ import type {
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { Badge, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState, useSyncExternalStore } from "react";
 import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
   type UplinkLoadOutcome,
 } from "../uplinks/loaderState";
+import {
+  type LocalUplinkStatus,
+  useLocalUplinks,
+} from "../uplinks/localUplinks";
 import { CORE_OWNER, GonogoSettings } from "./GonogoSettings";
+import { LocalBuilds, localStatusLine } from "./LocalBuilds";
 import { ModSettingsSection } from "./ModSettingsSection";
 import { getSettingsForScreen, type SettingDefinition } from "./registry";
 import { CategoryRows } from "./SettingRows";
@@ -48,6 +53,8 @@ export interface UplinkPage {
   rosterKnown: boolean;
   /** What the runtime loader made of its client, when it tried. */
   client?: UplinkLoadOutcome;
+  /** Set when the dev server was started with this Uplink named in `--uplink`. */
+  local?: LocalUplinkStatus;
   /** Its health or its client asks for the operator's attention. */
   attention: boolean;
   /** Rows its client registered for this screen. */
@@ -65,6 +72,7 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
   const gonogo = useTelemetry("settings.gonogo");
   const rosterKnown = health.state === "observed" || health.state === "held";
   const roster = rosterKnown ? health.value.uplinks : [];
+  const localUplinks = useLocalUplinks();
   const outcomes = useSyncExternalStore(
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
@@ -90,23 +98,29 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
   for (const def of rows) add(def.uplink);
   for (const tab of panels) add(tab.uplink);
   for (const outcome of outcomes) add(outcome.id);
+  for (const local of localUplinks) add(local.id);
 
   const pages: UplinkPage[] = [];
   for (const id of ids) {
     const entry = roster.find((e) => e.id === id);
     const client = outcomes.find((o) => o.id === id);
+    const local = localUplinks.find((l) => l.id === id);
     const undeclared =
       model?.undeclared.some((f) => f.uplinkId === id) ?? false;
     pages.push({
       id,
-      name: entry?.name ?? client?.name ?? id,
+      name: entry?.name ?? local?.name ?? client?.name ?? id,
       gonogo: undeclared || (model?.rows.some((r) => r.owner === id) ?? false),
       undeclared,
       modSettings: entry?.modSettings ?? false,
       health: entry,
       rosterKnown,
       client,
-      attention: undeclared || statusNeedsAttention(entry, client),
+      local,
+      attention:
+        undeclared ||
+        local?.state === "failed" ||
+        statusNeedsAttention(entry, client),
       rows: rows.filter((def) => def.uplink === id),
       panels: panels.filter((tab) => tab.uplink === id),
     });
@@ -120,17 +134,36 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
  * Gonogo's own file, its host mod's own settings, and what its client keeps
  * on this screen.
  */
-export function UplinksSettings({ pages }: { pages: UplinkPage[] }) {
+export function UplinksSettings({
+  pages,
+  reload,
+}: {
+  pages: UplinkPage[];
+  reload?: () => void;
+}) {
   // Until the operator picks a page, the pick follows the roster as it arrives.
   const [chosen, setChosen] = useState<string | null>(null);
-  const activeId =
-    chosen ?? pages.find((p) => p.attention)?.id ?? pages[0]?.id ?? "";
+  const localPages = pages.filter((page) => page.local);
   const tabs: TabDescriptor[] = pages.map((page) => ({
     id: page.id,
-    label: page.name,
+    label: page.local ? `${page.name} (local)` : page.name,
     content: <UplinkPageView page={page} />,
     indicator: page.attention,
   }));
+  if (localPages.length > 0) {
+    tabs.unshift({
+      id: LOCAL_BUILDS_TAB,
+      label: "Local builds",
+      content: <LocalBuilds pages={localPages} reload={reload} />,
+      indicator: localPages.some((page) => page.attention),
+    });
+  }
+  const activeId =
+    chosen ??
+    (localPages.length > 0 ? LOCAL_BUILDS_TAB : undefined) ??
+    pages.find((p) => p.attention)?.id ??
+    pages[0]?.id ??
+    "";
   return (
     <Tabs
       tabs={tabs}
@@ -140,6 +173,9 @@ export function UplinksSettings({ pages }: { pages: UplinkPage[] }) {
     />
   );
 }
+
+/** The leading tab that lists every Uplink named with `--uplink`. */
+const LOCAL_BUILDS_TAB = "local-builds";
 
 function UplinkPageView({ page }: { page: UplinkPage }) {
   return (
@@ -199,6 +235,14 @@ function UplinkStatusSection({ page }: { page: UplinkPage }) {
         </li>
       )}
       {page.client && <UplinkClientStatus outcome={page.client} />}
+      {page.local && (
+        <li>
+          <Badge tone="warn" size="sm">
+            Local
+          </Badge>{" "}
+          {localStatusLine(page)}
+        </li>
+      )}
     </StatusList>
   );
 }

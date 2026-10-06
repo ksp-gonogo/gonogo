@@ -133,8 +133,9 @@ export async function fetchRegistry(
       throw new Error(
         `no Uplink index at ${source.url}: the server answered with the app ` +
           "shell, which is what a dev server does for a path that does not " +
-          "exist. `pnpm dev` does not build Uplink client bundles; run `pnpm " +
-          "--filter @ksp-gonogo/app build` and serve it with `vite preview`.",
+          "exist. Serve the app with `vite dev`, which builds the bundled clients " +
+          "itself, or run `pnpm --filter @ksp-gonogo/app build` and serve it " +
+          "with `vite preview`.",
       );
     }
     throw new Error(

@@ -4,6 +4,10 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { readUplinkDeclaration } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
 import type { PluginOption } from "vite";
+import type {
+  LocalUplinkState,
+  LocalUplinkStatus,
+} from "./src/uplinks/localUplinks";
 import { buildUplinkClientBundle } from "./uplink-bundle";
 import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 
@@ -14,20 +18,7 @@ const SIDECAR_FILE = "gonogo-uplink.json";
 /** How many superseded builds of one Uplink stay servable by hash. */
 const SNAPSHOTS_KEPT = 8;
 
-export type LocalUplinkState = "waiting" | "built" | "failed";
-
-/** What Settings reads about one `--uplink`, over `/__gonogo/local-uplinks.json`. */
-export interface LocalUplinkStatus {
-  id: string;
-  name: string;
-  path: string;
-  state: LocalUplinkState;
-  error: string | null;
-  builtAt: string | null;
-  version: string | null;
-  apiVersion: string | null;
-  uiKitVersion: string | null;
-}
+export type { LocalUplinkState, LocalUplinkStatus };
 
 interface IndexVersion {
   version: string;
@@ -381,7 +372,12 @@ export function localUplinks(options: LocalUplinksOptions): PluginOption {
       }
 
       server.httpServer?.once("listening", () => {
-        if (local.uplinks.length === 0) return;
+        if (local.uplinks.length === 0) {
+          server.config.logger.info(
+            `[uplinks] ${bundled.length} bundled client(s) built for this dev server. Serve one you are building with \`pnpm dev --uplink <path>\``,
+          );
+          return;
+        }
         const lines = local.statuses().map((s) => {
           const detail =
             s.state === "built"
