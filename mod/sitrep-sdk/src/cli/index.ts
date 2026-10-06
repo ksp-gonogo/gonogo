@@ -34,7 +34,13 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { UPLINK_BUNDLE_EXTERNALS } from "../uplink-externals.js";
@@ -49,6 +55,9 @@ import {
 // in both modes. This CLI is the first thing here RUN from `dist` rather than
 // typechecked, which is why it is the first to care.
 import { NEW_USAGE, newUplink } from "./new.js";
+
+/** Beside the bundle: what a watch last did, for the app's dev server to read. */
+const WATCH_STATUS_FILE = "watch-status.json";
 
 const USAGE = `gonogo-uplink <command>
 
@@ -110,7 +119,11 @@ const BUNDLE_USAGE = `gonogo-uplink bundle [options]
   --client <dir>   the Uplink client package (default: cwd)
   --entry <file>   the module to bundle (default: src/index.ts)
   --out <dir>      output root (default: <client>/dist); the bundle lands in
-                   <out>/<id>/<id>.client.js so each Uplink owns its sidecar`;
+                   <out>/<id>/<id>.client.js so each Uplink owns its sidecar
+  --watch          keep running: rebuild on every source change, and report
+                   waiting, built or failed in <out>/<id>/watch-status.json.
+                   A failed rebuild leaves the last good bundle in place.
+                   Stop it with Ctrl-C`;
 
 const BAKE_HASH_USAGE = `gonogo-uplink bake-hash --bundle <file> --out <file> --namespace <ns>
 
@@ -154,8 +167,11 @@ async function bundle(argv: readonly string[]): Promise<number> {
    * particular esbuild gets the one they pinned.
    */
   let build: typeof import("esbuild").build;
+  let context: typeof import("esbuild").context;
   try {
-    ({ build } = (await import("esbuild")) as typeof import("esbuild"));
+    ({ build, context } = (await import(
+      "esbuild"
+    )) as typeof import("esbuild"));
   } catch {
     throw new Error(
       "esbuild is not installed. It is the bundler this uses and it is your dependency, not the " +
@@ -166,82 +182,156 @@ async function bundle(argv: readonly string[]): Promise<number> {
   const bundleDir = join(outDir, id);
   mkdirSync(bundleDir, { recursive: true });
   const outFile = join(bundleDir, `${id}.client.js`);
+  const watching = argv.includes("--watch");
 
-  await build({
+  /*
+   * Output is held in memory and written only after the emitted bytes pass the
+   * import-map check below, so a bundle that would fail in the browser never
+   * replaces the last good one. In a watch that is the difference between a
+   * broken save and a broken page.
+   */
+  const options = {
     entryPoints: [entry],
     outfile: outFile,
     bundle: true,
-    format: "esm",
-    platform: "browser",
+    write: false,
+    format: "esm" as const,
+    platform: "browser" as const,
     target: "es2022",
-    jsx: "automatic",
+    jsx: "automatic" as const,
     external: [...UPLINK_BUNDLE_EXTERNALS],
+    logLevel: "warning" as const,
+  };
+  const cssInject = {
+    // Every CSS import folded into the one JS bundle as a self-injecting
+    // <style>. The loader fetches only the JS, so a sibling .css esbuild
+    // emitted would never be applied and the widget would render unstyled
+    // with nothing failing. It also keeps the whole client under ONE hash.
+    name: "gonogo-css-inject",
+    setup(pluginBuild: import("esbuild").PluginBuild) {
+      pluginBuild.onLoad({ filter: /\.css$/ }, (args) => ({
+        loader: "js" as const,
+        contents:
+          'if (typeof document !== "undefined") {' +
+          "const s = document.createElement('style');" +
+          `s.textContent = ${JSON.stringify(readFileSync(args.path, "utf8"))};` +
+          "document.head.appendChild(s);}",
+      }));
+    },
+  };
+
+  const emit = async (bytes: Uint8Array): Promise<string> => {
+    const integrity = `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
+
+    /*
+     * A `@ksp-gonogo` specifier esbuild kept that the import map does not carry
+     * resolves nowhere, and it fails in the browser at `import(bundleUrl)` rather
+     * than here. Checked on the EMITTED bytes, since that is the only place a
+     * surviving specifier is visible: reading the source would miss one that
+     * arrived through a dependency.
+     */
+    const kept = [
+      ...new Set(
+        [
+          ...Buffer.from(bytes)
+            .toString("utf8")
+            .matchAll(/from\s*"(@ksp-gonogo\/[^"]+)"/g),
+        ].map((match) => match[1]),
+      ),
+    ].filter((spec) => !UPLINK_BUNDLE_EXTERNALS.includes(spec));
+    if (kept.length > 0) {
+      throw new Error(
+        `the bundle imports ${kept.join(", ")}, which the app's import map does not resolve. It ` +
+          "would load in a bundler and throw at import(bundleUrl) in the app.",
+      );
+    }
+
+    const compatVersions = await import("../compat-versions.js");
+    writeFileSync(outFile, bytes);
+    writeFileSync(
+      join(bundleDir, UPLINK_MANIFEST_FILE),
+      serialiseUplinkManifest(
+        buildUplinkManifest({
+          clientDir,
+          compat: {
+            apiVersion: compatVersions.EXTENSION_API_VERSION,
+            uiKitVersion: installedVersion(clientDir, "@ksp-gonogo/ui-kit"),
+            contractMajor: compatVersions.CONTRACT_MAJOR,
+            contractMinor: compatVersions.CONTRACT_MINOR,
+          },
+          integrity,
+        }),
+      ),
+    );
+    writeFileSync(`${outFile}.sha256`, `${integrity}\n`);
+    console.log(`${id}: ${(bytes.length / 1024).toFixed(1)} KB -> ${outFile}`);
+    console.log(`  integrity  ${integrity}`);
+    return integrity;
+  };
+
+  if (!watching) {
+    const result = await build({ ...options, plugins: [cssInject] });
+    await emit(result.outputFiles?.[0]?.contents ?? new Uint8Array());
+    return 0;
+  }
+
+  const statusFile = join(bundleDir, WATCH_STATUS_FILE);
+  let last: { builtAt: string | null; integrity: string | null } = {
+    builtAt: null,
+    integrity: null,
+  };
+  const report = (
+    state: "waiting" | "built" | "failed",
+    error: string | null,
+  ) => {
+    // Renamed into place so a reader polling the file never sees half of it.
+    const temp = `${statusFile}.tmp`;
+    writeFileSync(temp, `${JSON.stringify({ state, ...last, error })}\n`);
+    renameSync(temp, statusFile);
+  };
+  report("waiting", null);
+
+  const ctx = await context({
+    ...options,
     plugins: [
+      cssInject,
       {
-        // Every CSS import folded into the one JS bundle as a self-injecting
-        // <style>. The loader fetches only the JS, so a sibling .css esbuild
-        // emitted would never be applied and the widget would render unstyled
-        // with nothing failing. It also keeps the whole client under ONE hash.
-        name: "gonogo-css-inject",
+        name: "gonogo-watch-report",
         setup(pluginBuild) {
-          pluginBuild.onLoad({ filter: /\.css$/ }, (args) => ({
-            loader: "js" as const,
-            contents:
-              'if (typeof document !== "undefined") {' +
-              "const s = document.createElement('style');" +
-              `s.textContent = ${JSON.stringify(readFileSync(args.path, "utf8"))};` +
-              "document.head.appendChild(s);}",
-          }));
+          pluginBuild.onEnd(async (result) => {
+            try {
+              if (result.errors.length > 0) {
+                const first = result.errors[0];
+                const where = first.location
+                  ? ` (${first.location.file}:${first.location.line})`
+                  : "";
+                throw new Error(`${first.text}${where}`);
+              }
+              const integrity = await emit(
+                result.outputFiles?.[0].contents ?? new Uint8Array(),
+              );
+              last = { builtAt: new Date().toISOString(), integrity };
+              report("built", null);
+            } catch (err) {
+              const message = (
+                err instanceof Error ? err.message : String(err)
+              ).split("\n")[0];
+              console.error(`${id}: build failed: ${message}`);
+              report("failed", message);
+            }
+          });
         },
       },
     ],
-    logLevel: "warning",
   });
-
-  const bytes = readFileSync(outFile);
-  const integrity = `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
-
-  /*
-   * A `@ksp-gonogo` specifier esbuild kept that the import map does not carry
-   * resolves nowhere, and it fails in the browser at `import(bundleUrl)` rather
-   * than here. Checked on the EMITTED bytes, since that is the only place a
-   * surviving specifier is visible: reading the source would miss one that
-   * arrived through a dependency.
-   */
-  const kept = [
-    ...new Set(
-      [
-        ...bytes.toString("utf8").matchAll(/from\s*"(@ksp-gonogo\/[^"]+)"/g),
-      ].map((match) => match[1]),
-    ),
-  ].filter((spec) => !UPLINK_BUNDLE_EXTERNALS.includes(spec));
-  if (kept.length > 0) {
-    throw new Error(
-      `the bundle imports ${kept.join(", ")}, which the app's import map does not resolve. It ` +
-        "would load in a bundler and throw at import(bundleUrl) in the app.",
-    );
-  }
-
-  const compatVersions = await import("../compat-versions.js");
-  writeFileSync(
-    join(bundleDir, UPLINK_MANIFEST_FILE),
-    serialiseUplinkManifest(
-      buildUplinkManifest({
-        clientDir,
-        compat: {
-          apiVersion: compatVersions.EXTENSION_API_VERSION,
-          uiKitVersion: installedVersion(clientDir, "@ksp-gonogo/ui-kit"),
-          contractMajor: compatVersions.CONTRACT_MAJOR,
-          contractMinor: compatVersions.CONTRACT_MINOR,
-        },
-        integrity,
-      }),
-    ),
-  );
-  writeFileSync(`${outFile}.sha256`, `${integrity}\n`);
-
-  console.log(`${id}: ${(bytes.length / 1024).toFixed(1)} KB -> ${outFile}`);
-  console.log(`  integrity  ${integrity}`);
+  await ctx.watch();
+  console.log(`  watching ${join(clientDir, "src")} ...`);
+  await new Promise<void>((done) => {
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+      process.once(signal, () => done());
+    }
+  });
+  await ctx.dispose();
   return 0;
 }
 

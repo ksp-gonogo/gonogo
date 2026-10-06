@@ -1,5 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -196,4 +197,144 @@ describe("gonogo-uplink forwards a browser verb to the AUTHOR's tools", () => {
     expect(combined).toContain("@ksp-gonogo/uplink-tools");
     expect(combined).toContain("npm i -D @ksp-gonogo/uplink-tools playwright");
   });
+});
+
+/**
+ * `bundle --watch` keeps one esbuild context alive and reports each outcome in
+ * `watch-status.json` beside the bundle, which is what the app's dev server
+ * reads to say "waiting", "built" or "failed" without parsing a log.
+ */
+describe("gonogo-uplink bundle --watch", () => {
+  const children: Array<ReturnType<typeof spawn>> = [];
+  afterEach(() => {
+    for (const child of children.splice(0)) child.kill("SIGKILL");
+  });
+
+  const client = (source: string) => {
+    const dir = workdir();
+    writeFileSync(
+      join(dir, "uplink.json"),
+      JSON.stringify({
+        id: "fixture",
+        name: "Fixture",
+        author: "someone",
+        repo: "https://example.invalid/fixture",
+        minAppVersion: "0.0.0",
+      }),
+    );
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "fixture-client", version: "1.2.3" }),
+    );
+    mkdirSync(join(dir, "src"));
+    writeFileSync(join(dir, "src", "index.ts"), source);
+    return dir;
+  };
+
+  const statusPath = (dir: string) =>
+    join(dir, "dist", "fixture", "watch-status.json");
+  const bundlePath = (dir: string) =>
+    join(dir, "dist", "fixture", "fixture.client.js");
+  const stringField = (record: object, key: string): string | null => {
+    const value: unknown = Reflect.get(record, key);
+    return typeof value === "string" ? value : null;
+  };
+  const readStatus = (dir: string) => {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(statusPath(dir), "utf8"));
+      if (typeof parsed !== "object" || parsed === null) return undefined;
+      return {
+        state: stringField(parsed, "state") ?? "",
+        builtAt: stringField(parsed, "builtAt"),
+        integrity: stringField(parsed, "integrity"),
+        error: stringField(parsed, "error"),
+      };
+    } catch {
+      return undefined;
+    }
+  };
+  const until = async <Reading>(
+    read: () => Reading | undefined,
+  ): Promise<Reading> => {
+    const deadline = Date.now() + 15_000;
+    for (;;) {
+      const value = read();
+      if (value !== undefined) return value;
+      if (Date.now() > deadline) throw new Error("timed out waiting");
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  };
+
+  const watch = (dir: string) => {
+    const child = spawn(
+      process.execPath,
+      [BIN, "bundle", "--watch", "--client", dir],
+      {
+        stdio: "pipe",
+      },
+    );
+    children.push(child);
+    return child;
+  };
+
+  it("rebuilds on an edit, and says failed with the old bundle intact when the source breaks", async () => {
+    const dir = client("export const marker = 'one';\n");
+    const child = watch(dir);
+
+    const first = await until(() => {
+      const status = readStatus(dir);
+      return status?.state === "built" ? status : undefined;
+    });
+    expect(first.integrity).toMatch(/^sha256-[0-9a-f]{64}$/);
+    const firstBytes = readFileSync(bundlePath(dir), "utf8");
+    expect(firstBytes).toContain("one");
+
+    writeFileSync(
+      join(dir, "src", "index.ts"),
+      "export const marker = 'two';\n",
+    );
+    const second = await until(() => {
+      const status = readStatus(dir);
+      return status?.state === "built" && status.integrity !== first.integrity
+        ? status
+        : undefined;
+    });
+    const secondBytes = readFileSync(bundlePath(dir), "utf8");
+    expect(secondBytes).toContain("two");
+    expect(readFileSync(`${bundlePath(dir)}.sha256`, "utf8").trim()).toBe(
+      second.integrity,
+    );
+    expect(
+      JSON.parse(
+        readFileSync(
+          join(dir, "dist", "fixture", "gonogo-uplink.json"),
+          "utf8",
+        ),
+      ).integrity,
+    ).toBe(second.integrity);
+
+    writeFileSync(join(dir, "src", "index.ts"), "export const marker = ;\n");
+    const failed = await until(() => {
+      const status = readStatus(dir);
+      return status?.state === "failed" ? status : undefined;
+    });
+    expect(failed.error).toBeTruthy();
+    expect(failed.error).not.toContain("\n");
+    expect(readFileSync(bundlePath(dir), "utf8")).toBe(secondBytes);
+
+    const exited = new Promise<number | null>((resolveExit) =>
+      child.once("exit", (code) => resolveExit(code)),
+    );
+    child.kill("SIGINT");
+    expect(await exited).toBe(0);
+  }, 30_000);
+
+  it("reads waiting before the first build has finished", async () => {
+    const dir = client("export const marker = 'one';\n");
+    mkdirSync(join(dir, "dist", "fixture"), { recursive: true });
+    watch(dir);
+    const status = await until(() => readStatus(dir));
+    expect(["waiting", "built"]).toContain(status.state);
+    expect(existsSync(statusPath(dir))).toBe(true);
+  }, 30_000);
 });
