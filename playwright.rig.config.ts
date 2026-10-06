@@ -21,6 +21,10 @@ import { defineConfig, devices } from "@playwright/test";
 const RIG_HOST = process.env.RIG_HOST ?? "192.168.86.33";
 const RIG_SITREP_PORT = process.env.RIG_SITREP_PORT ?? "8090";
 const APP_PORT = 5273;
+// Newline-separated Uplink directories, the same list `pnpm dev --uplink` takes.
+// `RIG_LOCAL_UPLINKS="$HOME/gonogo-uplinks/uplinks/rp1" pnpm rig` serves that
+// build to the rig's app.
+const RIG_LOCAL_UPLINKS = process.env.RIG_LOCAL_UPLINKS ?? "";
 
 export default defineConfig({
   testDir: "./tests/rig",
@@ -56,6 +60,7 @@ export default defineConfig({
       VITE_SITREP_PORT: RIG_SITREP_PORT,
       // The app's dev port, which the webServer block above waits on.
       PORT: String(APP_PORT),
+      GONOGO_LOCAL_UPLINKS: RIG_LOCAL_UPLINKS,
     },
   },
 });

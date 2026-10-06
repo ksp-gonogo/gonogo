@@ -1,6 +1,18 @@
 #!/bin/sh
 set -e
 
+# Parse the flags first, so a mistyped one stops here rather than after the
+# relay has started. Status 10 is --help: print it and stop without error.
+set +e
+dev_env=$(node scripts/dev-args.mjs "$@")
+dev_status=$?
+set -e
+case "$dev_status" in
+  0) eval "$dev_env" ;;
+  10) printf '%s\n' "$dev_env"; exit 0 ;;
+  *) exit "$dev_status" ;;
+esac
+
 # `pnpm dev:logs` sets ENABLE_AXIOM=1 to turn on Axiom log shipping for
 # this run. The tokens live in the project's existing root `.env` (which
 # podman compose auto-reads anyway). When the toggle is on we source it
