@@ -168,7 +168,7 @@ namespace Sitrep.Host.Tests
         public void AStoppedClockIsSampledOnceARealSecondFromTheMomentItStops()
         {
             const double tickRealSec = 0.02;
-            var gate = new SampleGate();
+            var gate = new SampleGate(StandingIn("SPACECENTER"));
             var editorSampleRealSecs = new List<double>();
 
             for (var tick = 0; tick < 50 * 20; tick++)
@@ -193,17 +193,45 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void AStoppedClockIsNotSampledWhileASceneLoadsAndIsOnceItIsReady()
         {
-            var gate = new SampleGate();
+            var load = StandingIn("SPACECENTER");
+            var gate = new SampleGate(load);
             Assert.True(gate.Admit(ut: 100.0, warpRate: 1.0, realSec: 0.0));
 
-            gate.SceneLoadRequested();
+            load.LoadRequested("EDITOR");
             for (var realSec = 0.02; realSec < 5.0; realSec += 0.02)
             {
                 Assert.False(gate.Admit(ut: 100.5, warpRate: 1.0, realSec), $"sampled a loading scene at {realSec} s");
             }
 
-            gate.SceneReady();
+            load.SceneStood("EDITOR");
             Assert.True(gate.Admit(ut: 100.5, warpRate: 1.0, realSec: 5.02));
+        }
+
+        /// <summary>
+        /// A flight's scene stands seconds before its vessels are built, and the
+        /// clock is still stopped across that stretch under the flight's name
+        /// with the craft half made.
+        /// </summary>
+        [Fact]
+        public void AStoppedClockIsNotSampledInAFlightUntilItsVesselsAreBuilt()
+        {
+            var load = StandingIn("SPACECENTER");
+            var gate = new SampleGate(load);
+            Assert.True(gate.Admit(ut: 100.0, warpRate: 1.0, realSec: 0.0));
+
+            load.LoadRequested("FLIGHT");
+            load.SceneStood("FLIGHT");
+            Assert.False(gate.Admit(ut: 100.5, warpRate: 1.0, realSec: 3.0));
+
+            load.FlightReady();
+            Assert.True(gate.Admit(ut: 100.5, warpRate: 1.0, realSec: 3.02));
+        }
+
+        private static LoadState StandingIn(string scene)
+        {
+            var load = new LoadState();
+            load.Seed(scene);
+            return load;
         }
 
         [Fact]

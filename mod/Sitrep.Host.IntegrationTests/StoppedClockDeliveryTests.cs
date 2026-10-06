@@ -93,8 +93,15 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class PhysicsLoop
         {
             private readonly ChannelEngine _engine;
-            private readonly SampleGate _gate = new SampleGate();
+            private readonly SampleGate _gate = new SampleGate(StandingInSpaceCentre());
             private double _realSec;
+
+            private static LoadState StandingInSpaceCentre()
+            {
+                var load = new LoadState();
+                load.Seed("SPACECENTER");
+                return load;
+            }
 
             public PhysicsLoop(ChannelEngine engine)
             {

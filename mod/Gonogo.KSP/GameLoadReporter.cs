@@ -16,6 +16,9 @@ namespace Gonogo.KSP
 
         private readonly ChannelEngine _engine;
         private readonly LoadState _state = new LoadState();
+
+        /// <summary>What the game is loading, for whoever must hold off while it does.</summary>
+        public LoadState State => _state;
         private object? _rootAtRequest;
 
         public GameLoadReporter(ChannelEngine engine)

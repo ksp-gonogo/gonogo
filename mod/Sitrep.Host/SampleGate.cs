@@ -11,21 +11,18 @@ namespace Sitrep.Host
     /// scene it is going to at the load request and destroys the old scene's
     /// Planetarium during the load, so UT stands still under the new scene's
     /// name while half of that scene exists. The stopped-clock rule is held off
-    /// from <see cref="SceneLoadRequested"/> until <see cref="SceneReady"/>; the
-    /// UT gate is not, so a backward jump is still sampled at once.</para>
+    /// while <see cref="LoadState"/> says a scene is loading, which for a flight
+    /// runs until the vessels are built and not only until the scene stands; the
+    /// UT gate is not held, so a backward jump is still sampled at once.</para>
     /// </summary>
     public sealed class SampleGate
     {
         private double? _lastSampledUt;
         private double? _previousTickUt;
         private double _lastSampledRealSec;
-        private bool _sceneLoading;
+        private readonly LoadState _load;
 
-        /// <summary>A scene change was requested; the scene it names is not built yet.</summary>
-        public void SceneLoadRequested() => _sceneLoading = true;
-
-        /// <summary>The requested scene has finished loading.</summary>
-        public void SceneReady() => _sceneLoading = false;
+        public SampleGate(LoadState load) => _load = load;
 
         /// <summary>
         /// Called once per physics tick with the game's UT, the warp rate and
@@ -37,7 +34,7 @@ namespace Sitrep.Host
             var previousTickUt = _previousTickUt;
             _previousTickUt = ut;
             if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleCadence.IntervalUtAt(warpRate))
-                && (_sceneLoading || !SampleCadence.ShouldSampleStoppedClock(ut, previousTickUt, realSec - _lastSampledRealSec)))
+                && (_load.Phase == GamePhase.Loading || !SampleCadence.ShouldSampleStoppedClock(ut, previousTickUt, realSec - _lastSampledRealSec)))
             {
                 return false;
             }
