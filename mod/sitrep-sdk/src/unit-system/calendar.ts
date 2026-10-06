@@ -1,42 +1,12 @@
-/**
- * How long a day is, and a year, in the game currently being watched.
- *
- * **This is not a constant, and treating it as one was a real bug.** Stock KSP
- * on Kerbin time runs a 6-hour day and a 426-day year, and those two numbers
- * were compiled into the unit catalogue. They are wrong in three situations,
- * one of which needs no mods at all:
- *
- * - **`GameSettings.KERBIN_TIME` is a stock setting.** A player can turn it
- *   off, and KSP's own UI switches to 24-hour days and 365-day years.
- * - **A planet pack.** RSS and anything else on Kopernicus replaces
- *   `KSPUtil.dateTimeFormatter` outright.
- * - **Anything else.** The formatter is an interface a mod can implement, so
- *   reading the numbers off it is the only approach that does not need a list
- *   of which mods to know about.
- *
- * The mod publishes what the running game uses on `time.calendar`, and the app
- * calls {@link setKspCalendar} when that arrives. Until it does, the stock
- * Kerbin figures stand in, because they are right far more often than not.
- * That is the important distinction: they are the FALLBACK, not the
- * assumption.
- *
- * The same channel carries an optional EPOCH, and it says something different:
- * not how long a day is but which day it is. A game whose date formatter models
- * a real calendar has one; stock does not, and the absence is correct for stock
- * rather than a gap to fill.
- *
- * The calendar belongs to the unit model, because it decides the ratio of `d`
- * to `s`. Putting it here puts it below both consumers: the kit
- * re-exports these functions, so there is one calendar and one place to set
- * it, and display and arithmetic cannot disagree.
- *
- * Deliberately module state rather than a React context, same as the quantity
- * locale: the formatters it feeds are plain functions called from SVG labels,
- * `title` attributes and template literals, where a hook cannot reach.
+/*
+ * The calendar of the game being watched, which decides the ratio of `d` to `s`. Stock Kerbin time is only the fallback:
+ * KERBIN_TIME off, a planet pack or any mod implementing KSPUtil.dateTimeFormatter changes it, and the mod publishes
+ * the running game's on `time.calendar`. Module state rather than a React context, because its readers include plain
+ * formatters called from SVG labels and template literals.
  */
-
 /**
- * The calendar the game is running: four lengths in seconds, and an anchor.
+ * The lengths of a minute, hour, day and year in the game being watched, in
+ * seconds, and the real-world date of UT 0 where the game has one.
  *
  * @category Units and values
  */
@@ -50,28 +20,17 @@ export interface KspCalendar {
   /** Seconds in a year: 9,201,600 stock, 31,536,000 for 365 Earth days. */
   year: number;
   /**
-   * The real-world instant UT 0 is, in milliseconds since the Unix epoch, or
-   * absent when the game has no such instant.
-   *
-   * The four lengths above say how long a day is; this says WHICH day it is,
-   * and without it a UT can only ever render as an offset (`Y3 D122`). An RSS
-   * career anchored at 1951 renders `14 Mar 1957` instead, and every
-   * deadline, expiry and window on the wire renders with it, because they are
-   * all the same kind of number.
-   *
-   * **Absent is the normal case and is not zero.** Stock KSP has no real
-   * calendar, its own UI prints Year 1 Day 1, and so should this. The mod
-   * publishes an epoch only when the running game's date formatter carries
-   * one; see `time.calendar`'s `epoch` on the wire. Milliseconds rather than
-   * seconds because that is what `Date` takes, and this is the one field here
-   * that is a real-world instant rather than a game-time length.
+   * The real-world date and time of UT 0, in milliseconds since the Unix
+   * epoch, as `Date` takes it. Absent in stock KSP, whose dates count from
+   * Year 1 Day 1. Where it is set, a UT is shown as a calendar date, such as
+   * `14 Mar 1957` in a career that starts in 1951.
    */
   epochMs?: number;
 }
 
 /**
- * Stock KSP on Kerbin time. The fallback when nothing has said otherwise, and
- * what every test pins unless it is specifically about another calendar.
+ * Stock KSP's calendar on Kerbin time: a 6-hour day and a 426-day year. Used
+ * until the game reports its own.
  *
  * @category Units and values
  */
@@ -85,11 +44,9 @@ export const STOCK_KERBIN_CALENDAR: KspCalendar = {
 let current: KspCalendar = STOCK_KERBIN_CALENDAR;
 
 /**
- * The calendar in force.
- *
- * Call it per use, rather than destructuring at module load: anything that
- * captures the value once captures the stock fallback, before the game has had
- * a chance to say what it is actually running.
+ * Returns the calendar of the game being watched, or
+ * {@link STOCK_KERBIN_CALENDAR} until the game has reported one. Call it each
+ * time you need it rather than keeping the result, which can change.
  *
  * @category Units and values
  */
@@ -98,19 +55,13 @@ export function kspCalendar(): KspCalendar {
 }
 
 /**
- * Adopt the calendar the game reported, or pass nothing to go back to stock.
+ * Sets the calendar every duration, date and unit conversion uses, or
+ * restores {@link STOCK_KERBIN_CALENDAR} when called with nothing. Gonogo calls
+ * it when the game reports its calendar.
  *
- * One call changes every duration and date the app renders AND every unit
- * conversion it computes, which is what having one calendar buys. A day or year
- * that is not a positive finite number is refused outright and the stock
- * fallback kept: dividing by it would render every duration as infinity, which
- * is worse than the figures already on screen.
- *
- * The epoch is refused separately and more gently. A non-finite one is dropped
- * and the four lengths still adopted, because an anchor and a day length are
- * independent facts and losing the calendar over a bad anchor would misreport
- * every duration to fix a date. Omitting `epochMs` clears any anchor already
- * set, which is what a game that stopped reporting one means.
+ * A calendar with a length that is not a positive finite number is refused,
+ * and the stock calendar used instead. An `epochMs` that is not finite is
+ * dropped and the lengths kept. Leaving out `epochMs` clears it.
  *
  * @category Units and values
  */
@@ -134,11 +85,8 @@ export function setKspCalendar(next?: Partial<KspCalendar>): void {
 }
 
 /**
- * Days in a year, derived rather than carried.
- *
- * The wire publishes seconds-per-day and seconds-per-year and nothing else, so
- * there is no second field to fall out of step with the first. 426 on stock,
- * 365 on an Earth calendar.
+ * Returns the number of days in a year: 426 in stock KSP, 365 on an Earth
+ * calendar.
  *
  * @category Units and values
  */
@@ -174,12 +122,9 @@ const CALENDAR_RATIO: Record<string, (calendar: KspCalendar) => number> = {
 };
 
 /**
- * The live ratio for a calendar-dependent symbol, or `undefined` for the
- * overwhelming majority of units, which are physical constants.
- *
- * `undefined` rather than a fallback to the baked number on purpose: the caller
- * already has the declared definition in hand and this only says whether to
- * override it.
+ * Returns a calendar unit's ratio to its base unit in the game being watched,
+ * such as 21,600 seconds for `"d"` in stock KSP, or `undefined` for a unit
+ * whose size does not depend on the calendar.
  *
  * @category Units and values
  */
@@ -189,7 +134,9 @@ export function calendarRatio(symbol: string): number | undefined {
 }
 
 /**
- * Whether a symbol's size is decided by the game rather than by physics.
+ * Returns whether a unit's size depends on the game's calendar: `y`, `d`,
+ * `h` and `min` as durations, and `science/day`. A speed in `km/h` does not,
+ * and neither do the real-world `irl:` units.
  *
  * @category Units and values
  */

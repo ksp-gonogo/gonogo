@@ -128,10 +128,16 @@ const registeredTopicStatics = new Map<string, readonly string[]>();
 const registeredTopicEnums = new Map<string, EnumsByField>();
 
 /**
- * Self-register a relocated Uplink Topic's unit (and optional nested-shape)
- * map. Called at module load by the owning Uplink's client package. Last
- * write wins for a given topic; a double import of the same Uplink client
- * registers the same data twice, harmlessly.
+ * Registers the units of an Uplink Topic's fields, so its payload's numbers
+ * arrive as `Value`s and its fields can be listed. Call it when the Uplink's
+ * client package loads, with the maps from the Uplink's own generated
+ * `units.ts`, beside {@link registerBarePrimitiveTopic}.
+ *
+ * `shapes` names the fields that hold another payload type, `statics` the
+ * fields whose values never change, and `enums` how each enum field reads as a
+ * word. Registering a Topic again replaces what it registered before.
+ *
+ * Gonogo's own Topics are already known, and registering one changes nothing.
  *
  * @category Units and values
  */
@@ -190,11 +196,15 @@ const registeredEnumMembers = new Map<
 >();
 
 /**
- * Self-register a relocated Uplink payload TYPE's unit (and optional
- * nested-shape) map, keyed by its generated interface name. Called at module
- * load by the owning Uplink's client package, normally by looping over its own
- * generated `GENERATED_TYPE_UNITS`/`GENERATED_TYPE_SHAPES`, so a type added to
- * that Uplink's contract later needs no new call site.
+ * Registers the units of one of an Uplink's payload types, by its generated
+ * type name. Needed for every type nested inside an Uplink Topic's payload,
+ * whose numbers otherwise arrive as plain numbers. Call it when the Uplink's
+ * client package loads, usually for every type in its generated
+ * `GENERATED_TYPE_UNITS`. Registering a type again replaces what it registered
+ * before.
+ *
+ * Type names are shared by every Uplink, so give your types a name unlikely to
+ * clash, such as one starting with your Uplink's name.
  *
  * @category Units and values
  */
@@ -214,12 +224,10 @@ export function registerTypeUnits(
 }
 
 /**
- * Self-register an Uplink enum's wire value to member name table, keyed by the
- * enum's name as the `enums` argument of {@link registerTopicUnits} and
- * {@link registerTypeUnits} refers to it. Called at module load by the owning
- * Uplink's client package, normally by looping over the enum member tables its own
- * codegen emits. Enum names share one flat namespace with the
- * generated table, which wins on a clash.
+ * Registers the member names of one of an Uplink's enums, by the enum name
+ * that the `enums` of {@link registerTopicUnits} and {@link registerTypeUnits}
+ * refer to. Call it when the Uplink's client package loads. Gonogo's own enum
+ * of the same name takes precedence.
  *
  * @category Units and values
  */
@@ -261,15 +269,16 @@ export function registerEnumMembers(
 const registeredExtensionShapes = new Map<string, Map<string, string>>();
 
 /**
- * Self-register the generated type held by one provider's namespace of one
- * payload's extension bag. Called at module load by the provider's own client
- * package, alongside its `registerTypeUnits` loop (that loop is what makes the
- * named type resolvable; this is what points the bag at it).
+ * Registers the payload type that one provider puts under its own id in a
+ * payload's `extensions` field, so the quantities in it arrive as `Value`s.
+ * Call it when the provider's client package loads, after
+ * {@link registerTypeUnits} has registered `typeName`.
  *
- * @param owner Topic id (`"isru.drills"`) or generated type name.
- * @param providerId The Kernel provider id keying the namespace, the same string
- *   the provider registers with the Kernel and tags its payloads with.
- * @param typeName The provider's own generated interface name for that namespace.
+ * @param owner - The Topic id, such as `"isru.drills"`, or the type name of a
+ * nested payload that carries the `extensions` field.
+ * @param providerId - The provider id the payload's `extensions` entry is keyed by.
+ * @param typeName - The provider's generated type name for that entry.
+ *
  * @category Units and values
  */
 export function registerProviderExtensionShape(
@@ -293,12 +302,12 @@ export function providerExtensionShapes(
 }
 
 /**
- * Every field on `topic` that has a declared unit. Fields with no annotation are
- * absent from the returned object; a Topic with no annotated fields at all returns an
- * empty object rather than `undefined`, so a caller can index it unconditionally.
+ * Returns the declared unit of every field of `topic`, keyed by field name.
+ * Fields with no unit are left out, and a Topic with none returns an empty
+ * object. For a Topic whose payload is an array, the fields are those of one
+ * element.
  *
- * For an array Topic the entry describes the ELEMENT's fields, which is what a consumer
- * indexes into.
+ * Includes Topics an Uplink registered with {@link registerTopicUnits}.
  *
  * @category Units and values
  */
@@ -312,9 +321,11 @@ export function unitsForTopic(topic: TopicId): UnitsByField {
 }
 
 /**
- * The declared unit of one field on one Topic, or `undefined` when that field has no
- * annotation yet. See this module's header for why `undefined` is not the same as
- * dimensionless.
+ * Returns the declared unit of one field of `topic`, or `undefined` when it
+ * declares none. A field holding another payload declares no unit of its own.
+ * `undefined` never means dimensionless: a dimensionless number declares
+ * `"1"`, a fraction from 0 to 1 `"ratio"`, and a field with no unit at all
+ * `"n/a"`.
  *
  * @category Units and values
  */
@@ -323,9 +334,9 @@ export function unitOf(topic: TopicId, field: string): SitrepUnit | undefined {
 }
 
 /**
- * The type-keyed view, for NESTED payload shapes that no Topic names directly (e.g.
- * `ThermalHottestPart`, which hangs off `vessel.thermal` rather than being a Topic of
- * its own). `typeName` is the generated interface name in `./__generated__/contract`.
+ * {@link unitsForTopic} for a payload type named by its generated type name,
+ * such as `"ThermalHottestPart"`. Use it for a type that is only ever nested
+ * inside a Topic's payload.
  *
  * @category Units and values
  */
@@ -336,12 +347,9 @@ export function unitsForType(typeName: string): UnitsByField {
 }
 
 /**
- * Which of `topic`'s fields hold ANOTHER payload shape, and which one.
- *
- * The unit maps are flat, so a nested shape's declared units are unreachable
- * from the parent's entry; this is what lets the runtime wrap follow the field
- * down. See `GENERATED_TOPIC_SHAPES` in mod/sitrep-sdk's generated unit map for
- * the case that forced it, and for the plural markers an entry can carry.
+ * Returns which fields of `topic` hold another payload type, and its type
+ * name. A name starting with `*` is a map of that type keyed by name, and one
+ * ending in `[]` is a list of it.
  *
  * @category Units and values
  */
@@ -355,7 +363,7 @@ export function shapesForTopic(topic: TopicId): ShapesByField {
 }
 
 /**
- * The same, keyed by generated interface name instead of Topic id.
+ * {@link shapesForTopic} for a payload type named by its generated type name.
  *
  * @category Units and values
  */
@@ -366,7 +374,7 @@ export function shapesForType(typeName: string): ShapesByField {
 }
 
 /**
- * As {@link unitOf}, but keyed by generated interface name instead of Topic id.
+ * {@link unitOf} for a payload type named by its generated type name.
  *
  * @category Units and values
  */
@@ -411,9 +419,9 @@ export function enumMembersOf(
 }
 
 /**
- * The fields of `topic` the contract declares static: facts about their subject
- * that do not change with time, so a value decoded from one is stamped
- * `Value.static`. Empty for a Topic that declares none.
+ * Returns the fields of `topic` declared static: facts that do not change
+ * over time, such as a kerbal's courage. Their values arrive marked
+ * `Value.static`. Empty when the Topic declares none.
  *
  * @category Units and values
  */
@@ -429,10 +437,10 @@ export function staticsForTopic(topic: TopicId): readonly string[] {
 const NO_GATES: Readonly<Record<string, string>> = Object.freeze({});
 
 /**
- * The fields of `typeName` the contract declares deterministic while a sibling
- * horizon says so, each against that horizon's field name. A value decoded
- * under one is stamped `Value.deterministic` only when the horizon it arrived
- * with is Unbounded and Analytic. Empty for a type that declares none.
+ * Returns the fields of `typeName` that are exact at any instant while the
+ * payload's own horizon field says its orbit is fully known, each mapped to
+ * the name of that horizon field. Their values then arrive marked
+ * `Value.deterministic`. Empty when the type declares none.
  *
  * @category Units and values
  */
@@ -443,7 +451,7 @@ export function deterministicWhileForType(
 }
 
 /**
- * The same, keyed by generated interface name instead of Topic id.
+ * {@link staticsForTopic} for a payload type named by its generated type name.
  *
  * @category Units and values
  */

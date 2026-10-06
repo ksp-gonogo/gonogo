@@ -42,43 +42,48 @@ import type { CommandResultOf } from "./__generated__/contract";
 import type { CommandRail } from "./rail-tags";
 
 /**
- * The command → args-type map. Keys are the wire command strings; values are the
- * object a `command-request` on that command carries as its `args`. The generated
- * entries come from `Sitrep.Contract`'s `[SitrepCommand]` tags; an Uplink's own
- * commands augment this interface from its client package (see the file header).
+ * Every command id mapped to the type of the arguments it takes.
+ * {@link CommandId} and {@link CommandArgs} are read from it.
  *
- * The AUGMENTABLE surface. `SdkOwnedCommandArgsMap` below is the fixed SDK-owned
- * subset the compile invariants pin `COMMAND_IDS` against, exactly as `topics.ts`
- * splits the two.
+ * An Uplink adds its own commands by augmenting this interface and
+ * {@link CommandReplyMap} from its client package, and registers each id at
+ * load with {@link registerUplinkCommand}:
+ *
+ * ```ts
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface CommandArgsMap {
+ *     "myuplink.probe.deploy": { probeId: string };
+ *   }
+ *   interface CommandReplyMap {
+ *     "myuplink.probe.deploy": CommandResult;
+ *   }
+ * }
+ * ```
  *
  * @category Commands
  */
 export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
 
 /**
- * The command → reply-type map: what `send()` RESOLVES with, which is not the
- * same question as what the handler returns.
+ * Every command id mapped to the type its `send` resolves with.
  *
- * A refusal never arrives here. The mod replies `CommandResult.Fail(code)` when
- * the game says no, and the client turns that into a rejection carrying the
- * `CommandErrorCode`, so a resolved value is always a command that ran. Most
- * commands resolve a bare `CommandResult`; the few that have something to say
- * resolve `CommandResultOf<Payload>` with the value on `payload`.
+ * A refusal is never a reply: when the game says no, `send` rejects with a
+ * `CommandErrorCode` instead, so a reply always means the command ran. Most
+ * commands reply with a bare `CommandResult`; those with a value to return
+ * reply with `CommandResultOf<Payload>`, the value on `payload`.
  *
  * @category Commands
  */
 export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
 
 /**
- * What a reply is known to be BEFORE the command id is known: the result
- * envelope, with the command's own value on `payload`.
+ * The reply type of a command handle whose command is not known: the result
+ * envelope every command replies with, its own value on `payload`. It is the
+ * default `Reply` of {@link useCommand} and {@link UseCommandResult}.
  *
- * The default reply type of `useCommand` and `UseCommandResult`. Read the
- * command's own value from `payload`, never from the envelope itself.
- *
- * True of every command but `system.bodies.statesAt`, which replies with a
- * `BodyStatesReply` rather than an envelope. Its handle is therefore not
- * assignable to a bare `UseCommandResult`.
+ * `system.bodies.statesAt` is the one exception: it replies with a
+ * `BodyStatesReply` rather than an envelope, so its handle cannot be passed
+ * where a bare `UseCommandResult` is expected.
  *
  * @category Commands
  */
@@ -97,24 +102,23 @@ interface SdkOwnedCommandArgsMap extends GeneratedCommandArgsMap {}
 interface SdkOwnedCommandReplyMap extends GeneratedCommandReplyMap {}
 
 /**
- * Every command the mod declares statically, as a string-literal union.
+ * Every command id with known argument and reply types, as a string-literal
+ * union, including those an Uplink added to {@link CommandArgsMap}.
  *
  * @category Commands
  */
 export type CommandId = keyof CommandArgsMap;
 
 /**
- * The arguments `Command` takes. An empty interface (`NoCommandArgs`, or an
- * Uplink's own marker) means the command takes none, and `useCommand(...).send()`
- * accepts no argument for it.
+ * The arguments `Command` takes. A command whose arguments type is empty takes
+ * none, and its `send()` is called with no argument.
  *
  * @category Commands
  */
 export type CommandArgs<Command extends CommandId> = CommandArgsMap[Command];
 
 /**
- * What dispatching `Command` resolves with. See {@link CommandReplyMap} for why a
- * refusal is not one of these.
+ * What `send` resolves with for `Command`. See {@link CommandReplyMap}.
  *
  * @category Commands
  */
@@ -122,11 +126,10 @@ export type CommandReply<Command extends CommandId> =
   Command extends keyof CommandReplyMap ? CommandReplyMap[Command] : unknown;
 
 /**
- * Runtime list of the SDK's OWN `CommandId`s. Kept in lock-step with
- * `CommandArgsMap`'s SDK-owned keys by the compile-time assertions below. An
- * Uplink's own commands register at load into `uplinkCommandIds` and are NOT in
- * this array; use `getAllKnownCommandIds()` / `isCommandId` for the live full
- * set.
+ * Every command id the SDK itself declares, as an array.
+ *
+ * Commands an Uplink registers at load are not in it;
+ * {@link getAllKnownCommandIds} and {@link isCommandId} include them.
  *
  * @category Commands
  */
@@ -158,23 +161,15 @@ const uplinkCommandIds = new Set<string>();
 const uplinkCommandRails = new Map<string, CommandRail>();
 
 /**
- * Self-register an Uplink-owned command id absent from this SDK's own generated
- * registry. Called at module load by the owning Uplink's client package
- * alongside its `declare module` augmentation of `CommandArgsMap` /
- * `CommandReplyMap`. Idempotent (a `Set`), so a double import is harmless.
+ * Registers a command id that an Uplink adds, so {@link isCommandId} and
+ * {@link getAllKnownCommandIds} include it. Call it when the Uplink's client
+ * package loads, beside its augmentation of {@link CommandArgsMap}: the
+ * augmentation types `send`, and this call makes the id known at runtime.
+ * Registering an id twice does nothing.
  *
- * The registration is the RUNTIME half and the augmentation is the TYPE half;
- * they are separate because each is needed on its own. Without the augmentation
- * an author's `send` stays untyped; without this call the command is missing
- * from `getAllKnownCommandIds()` and `isCommandId` says no about a command that
- * works.
- *
- * `rail` is that command's row out of the Uplink's own generated command map,
- * and it is how an Uplink command that sends no reply gets a rail with no
- * return leg. Omitted, the command reads as whatever the contract guarantees
- * about any command (`UNDECLARED_COMMAND_RAIL_TAGS`): discrete, acked. An
- * Uplink that drives the registration off its generated map, as every bundled
- * one does, passes it without writing a line per command.
+ * `rail` is the command's row from the Uplink's generated command map, and
+ * says how the command travels, such as whether a reply comes back. Without
+ * it the command is drawn as a single command that gets a reply.
  *
  * @category Commands
  */
@@ -184,12 +179,10 @@ export function registerUplinkCommand(id: string, rail?: CommandRail): void {
 }
 
 /**
- * One command's declared rail row, or `null` when nothing has declared it: the
- * SDK's own generated table first, then whatever an Uplink registered at load.
- *
- * `null` is a real result and not a failure. A dynamic dispatch and an Uplink
- * whose client has not loaded both land here, so the caller decides what an
- * undeclared command reads as. `railTagsForCommand` is that decision.
+ * Returns how a command travels, as declared by the SDK or by the Uplink that
+ * registered it, or `null` when nothing has declared it. That covers a command
+ * whose id is built at runtime and one from an Uplink whose client has not
+ * loaded. {@link railTagsForCommand} turns either result into tags to draw.
  *
  * @category Commands
  */
@@ -199,10 +192,9 @@ export function commandRail(id: string): CommandRail | null {
 }
 
 /**
- * Every command id currently known at runtime: the SDK's own `COMMAND_IDS` plus
- * every Uplink command registered so far. Reflects only Uplinks whose client
- * package has loaded, so it lists what this session can dispatch rather than
- * "what could some session dispatch".
+ * Every command id known now: {@link COMMAND_IDS} and every id an Uplink has
+ * registered so far. An Uplink's commands appear once its client package has
+ * loaded.
  *
  * @category Commands
  */
@@ -211,8 +203,8 @@ export function getAllKnownCommandIds(): readonly string[] {
 }
 
 /**
- * Runtime narrowing guard: is `value` a known command? True for an SDK-owned
- * command OR an Uplink command whose owning client package has registered it.
+ * Returns whether `value` is a known {@link CommandId}: one the SDK declares,
+ * or one an Uplink has registered with {@link registerUplinkCommand}.
  *
  * @category Commands
  */

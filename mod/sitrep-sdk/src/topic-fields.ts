@@ -15,18 +15,16 @@ import {
 } from "./units";
 
 /**
- * What a reader actually gets back from a field, derived from its declared
- * unit token rather than guessed from the field's name.
+ * What kind of value a field holds, worked out from its declared unit.
  *
- * `quantity` is anything the unit system dimensions, `count` and the
- * dimensionless `1` included. The other four are the contract's non-quantity
- * tokens: they annotate a field that carries no dimension, so a threshold
- * comparison cannot use them.
+ * - `quantity`: a measured or counted number, including dimensionless ones
+ * - `flag`: a true or false
+ * - `text`: a string
+ * - `enum`: one of a fixed set of members; see {@link EnumEncoding}
+ * - `collection`: an array, or a map keyed by an id such as a vessel id. Its
+ *   path is a field, but the entries inside it are not listed
  *
- * `collection` is an array or a dynamic-key map. The path as far as the
- * collection is a real field; what sits inside it is keyed by something the
- * contract never names (a facility id, a vessel id), so enumeration stops
- * there rather than guessing.
+ * Only a `quantity` can be compared against a threshold.
  *
  * @category Reading telemetry
  */
@@ -39,7 +37,7 @@ export type TopicFieldKind =
 
 /**
  * How an `enum` field's value reads as a word: by looking its ordinal up in
- * `names`, or as-is when the wire already carries the member's name.
+ * `names`, or as it is when the payload already carries the member's name.
  *
  * @category Reading telemetry
  */
@@ -48,7 +46,7 @@ export type EnumEncoding =
   | { by: "name" };
 
 /**
- * One enumerated field of one Topic, as a picker offers it.
+ * One field of a Topic, as {@link enumerateTopicFields} lists it.
  *
  * @category Reading telemetry
  */
@@ -58,7 +56,7 @@ export interface TopicField {
   /** The declared unit token. Absent on a `collection`, which has no unit. */
   unit?: SitrepUnit;
   kind: TopicFieldKind;
-  /** Set on an `enum` field whose schema says how it reads as a word; absent, its ordinal names nothing. */
+  /** How an `enum` field reads as a word. Absent when the contract gives its members no names. */
   enumEncoding?: EnumEncoding;
 }
 
@@ -167,21 +165,13 @@ function walk(
 }
 
 /**
- * Every field the contract declares under `topic`, as dotted paths relative to
- * the Topic root, sorted by path.
+ * Returns every field declared under `topic`, as paths dotted from the Topic
+ * root and sorted by path. Nested types are listed field by field, and a
+ * `collection` field is listed but not entered.
  *
- * Reads the same two halves of the contract's generated metadata that judging a
- * single path reads, in enumeration order rather than one path at a time: a
- * field with a declared UNIT is a leaf, a field declared as a nested contract
- * TYPE is descended into, and a plural field ends the walk. Goes through
- * `unitsForTopic`/`shapesForTopic` rather than the generated maps directly, so a
- * Topic an Uplink registered at module load enumerates alongside a first-party
- * one.
- *
- * A Topic with no declared metadata returns an empty array. That is not the
- * same as a Topic with no fields: it means nothing has annotated it, and a
- * caller building a picker from this should treat an empty result as an
- * absence to surface rather than a Topic with nothing to offer.
+ * Includes the fields of Topics an Uplink has registered. A Topic with no
+ * declared units or shapes returns an empty array, which means the Topic is
+ * not described rather than that it has no fields.
  *
  * @category Reading telemetry
  */

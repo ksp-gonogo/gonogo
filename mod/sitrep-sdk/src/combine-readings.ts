@@ -2,80 +2,37 @@ import type { HeldGrade, Reading, ReadingState, Reckoning } from "./reading";
 import type { Value } from "./unit-system/value";
 
 /**
- * Compute one value from several readings, and give the result an honest
- * currency of its own.
+ * Computes one value from several readings, and returns it as a
+ * {@link Reading} with a state of its own.
  *
- * A widget that divides, adds or takes a magnitude of published numbers has
- * always had a third number with no currency at all. The range to a target,
- * worked out from a relative-position vector, is a distance nobody observed:
- * nothing on it says how current it is or whether a model stands behind it.
- * This is where such a number gets both.
- *
+ * @example
  * ```ts
- * const range = combineReadings([relativePosition], (p) =>
- *   value("m", Math.hypot(p.x, p.y, p.z)),
+ * const target = useTelemetry("vessel.target");
+ * const range = combineReadings([target.relativePosition], (position) =>
+ *   vectorMagnitude(position),
  * );
  * ```
  *
- * ## The rule: as current as its least current input
+ * ## State
  *
- * Readings in one frame are resolved against ONE view time, so they are
- * contemporaneous by construction rather than by luck. That is what licenses
- * combining them at all, and it is worth being precise about what it licenses:
- * it says the inputs are about the same instant, NOT that their errors are
- * independent. Only the second would justify combining their intervals, which
- * is why this carries no band (see below).
+ * The result is as current as its least current input:
  *
- * - every input `observed` gives `observed`, stamped at the **oldest** `atUt`.
- *   A result cannot be more current than the least current thing it was
- *   computed from
- * - any input `held` gives `held`, as of the **oldest instant any input
- *   speaks for**
- * - any input `absent`, `pending` or `unowned` gives that state with no value,
- *   taking the **first such input in argument order**. There is no meaningful
- *   ranking between those three, so the rule is positional and written down
- *   rather than invented per call
- * - an input carrying **no value** gives its own state with no value, by the
- *   same positional rule, even where that state is `observed` or `held`. A
- *   field reading projected off an OPTIONAL payload field the wire did not
- *   carry is `observed` with no value: the topic WAS observed and the field was
- *   simply not in it, so the state is right and there is still nothing to
- *   compute from. Passing the state through says exactly that, and avoids
- *   inventing the `atUt` an `absent` state would need. It is the one shape the
- *   states alone get wrong, and it is the common one: a career reporting an
- *   upkeep and no subsidy crashed this function before the check existed,
- *   because the guard trusted `state` and handed `compute` an `undefined`
- * - **`null` counts as no value too**, because that is how the wire spells an
- *   absent field. `Sitrep.Contract` nulls a field whenever the raw value is
- *   absent or non-finite, so a projected field reading of one is `observed`
- *   with `null`, and a guard that only tested `undefined` let it through to
- *   `compute`: `vessel.target.relativePosition` is null off a target with no
- *   relative geometry, and that reached `bare()` and threw on `.x`
+ * - every input `"observed"` gives `"observed"`, at the oldest input's `atUt`
+ * - any input `"held"` gives `"held"`, as of the oldest instant among the
+ *   inputs
+ * - an input in any other state, or carrying no value (`undefined` or `null`),
+ *   gives that input's state with no value, and `compute` does not run. Where
+ *   several inputs qualify, the first in argument order decides
  *
- * ## The two axes stay separate, exactly as they do on a `Reading`
+ * The forward model is combined separately from the state: two observed inputs
+ * whose models both declined give an observed result with a declined
+ * reckoning. The result never carries a band.
  *
- * State is decided by the inputs' states; the model is decided by the inputs'
- * models. A combination of two `observed` readings whose models both declined
- * is `observed` with a declined reckoning, and that is the same orthogonality
- * a `Reading` already has rather than a special case here.
+ * ## No result
  *
- * ## It carries NO band, deliberately
- *
- * Propagating an interval through arbitrary arithmetic is width arithmetic over
- * inputs whose errors this cannot know to be independent. A combination that
- * deserves a band deserves a model: publish one, and the band comes from the
- * mathematics that knows it.
- *
- * ## `compute` may return `undefined`, and that is not the same as an absence
- *
- * Arithmetic has domains. A range rate needs a line of sight to project onto
- * and has none at zero separation; a unit vector of a zero vector does not
- * exist; an arccos outside [-1, 1] is not a number. Those cases have no result
- * rather than a wrong one, and the result says so by carrying no value while
- * keeping the state and the instant its inputs earned: the inputs DID arrive,
- * so reporting `absent` would be a claim about the wire instead of about the
- * mathematics. `Reading`'s value is optional in every state, which is what
- * makes this expressible without a cast, and `Unit` draws it as the null token.
+ * `compute` may return `undefined` where the arithmetic has no answer, such as
+ * the direction of a zero vector. The result then keeps the state and instant
+ * its inputs gave it and carries no value.
  *
  * @category Reading telemetry
  */
@@ -113,7 +70,8 @@ export function combineReadings<
 }
 
 /**
- * One input's currency, already read off it by the caller.
+ * One input to {@link datedFrom}: its state, when it was observed, and why it
+ * is held where it is.
  *
  * @category Reading telemetry
  */
@@ -125,43 +83,20 @@ export interface CarriedCurrency {
 }
 
 /**
- * A value that has ALREADY been computed, dated by the inputs it came from.
+ * Returns a value you have already computed as a {@link Reading}, dated by
+ * the inputs it came from.
  *
- * The difference from {@link combineReadings} is the whole point: that function
- * GATES, refusing to run `compute` when an input carries no value, which is
- * right for arithmetic where a missing operand means no result. A derivation
- * that was handed the readings themselves has already decided what a missing
- * one means, and gating it a second time would throw away a result it
- * deliberately produced from what it did have.
+ * Unlike {@link combineReadings}, it never withholds the value: use it when
+ * your own code has already decided what a missing input means.
  *
- * ## It takes the currency, not the readings
+ * Each input is passed as a {@link CarriedCurrency}. Read its `instant` with
+ * {@link observedAt}, which covers a held reading's `asOfUt` as well as an
+ * observed one's `atUt`.
  *
- * Deliberately, and it is not ergonomics. A whole-topic reading maps member
- * access into FIELD readings, so reaching `.atUt` through one returns a reading
- * of the instant rather than the instant. The caller holds the reading and
- * knows which kind it has, so it reads the currency off with the accessors that
- * handle both and hands the result here.
- *
- * ## What the state means, and what it does NOT
- *
- * It says "how current is what this was derived from", not "did everything
- * arrive". `held` when any value-bearing input is `held`, `observed`
- * otherwise, and the instant is the oldest one spoken, so the result is never
- * dated newer than the oldest thing behind it.
- *
- * An input that never arrived is therefore invisible here. That is deliberate
- * and narrower than it reads: with one input present and another missing, the
- * state describes the one that is present, which is honest. The case it cannot
- * describe is a derivation whose inputs are ALL absent, which is a derivation
- * returning a DEFAULT. A default is a fact rather than a reading, and it comes
- * back `observed` with no instant, because there is no observation to date it
- * by.
- *
- * ## No band
- *
- * A derived figure's uncertainty is not its inputs' uncertainty, and
- * propagating an interval through arbitrary arithmetic would claim otherwise
- * over errors nothing here knows to be independent.
+ * The result is `"held"` when any input that carries a value is held, and
+ * `"observed"` otherwise, dated by the oldest instant among the inputs. Inputs
+ * that carry no value are ignored. When none carries a value, the result is
+ * `"observed"` with no instant. It never carries a forward model or a band.
  *
  * @category Reading telemetry
  */

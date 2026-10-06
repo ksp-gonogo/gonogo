@@ -1,9 +1,10 @@
 import type { LockedValue } from "./__generated__/contract";
 
 /**
- * Whether a field a requirement gates arrived as the `LockedValue` naming
- * what this save is missing, rather than its value. A field drawn to an
- * operator branches on this, so the lock is shown instead of read as nothing.
+ * Returns whether a field arrived as a {@link LockedValue} instead of its
+ * value: the save has not yet unlocked what the field needs, a tech node or a
+ * building level. A widget that shows the field checks this first, so it
+ * can show what is missing rather than an empty value.
  *
  * @category Readings
  */
@@ -16,9 +17,10 @@ export function isLocked(value: unknown): value is LockedValue {
 }
 
 /**
- * A gated field's value, or `null` while it is locked. For logic that has
- * nothing to work with either way, such as a model that stops at an
- * encounter; a field an operator reads uses {@link isLocked} instead.
+ * Returns a field's value, or `null` while it is a {@link LockedValue}. Use it
+ * in calculations, where a locked field and a missing one both mean there is
+ * nothing to work with. To show the field, use {@link isLocked} instead, so
+ * the player sees why it is empty.
  *
  * @category Readings
  */

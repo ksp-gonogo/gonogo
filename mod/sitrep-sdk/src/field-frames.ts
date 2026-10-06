@@ -16,17 +16,17 @@ import { shapesForTopic, shapesForType, shapeTypeName } from "./units";
 export type { GeneratedFrameDeclaration };
 
 /**
- * The reference frame a field's value is expressed in.
- *
- * `frame` is the token the field is in by default. A field whose axes switch per
- * tick also carries `whenSet` (the frame it is in instead) and `selectedBy` (the
- * camelCased `bool` field on the same payload that picks between the two).
+ * The reference frame a vector field is expressed in, as {@link frameOf}
+ * returns it.
  *
  * @category Units and values
  */
 export interface FieldFrame {
+  /** The frame the field is in, such as `"part-local"`. */
   readonly frame: string;
+  /** For a field whose frame can switch, the frame it is in while `selectedBy` is `true`. */
   readonly whenSet?: string;
+  /** For a field whose frame can switch, the boolean field on the same payload that switches it. */
   readonly selectedBy?: string;
 }
 
@@ -38,18 +38,15 @@ const TYPE_FRAMES: Readonly<
 > = GENERATED_TYPE_FRAMES;
 
 /**
- * The frame the contract declares for `path` under `topic`, or `undefined` when
- * the field declares none.
+ * Returns the reference frame of the field at `path` under `topic`, or
+ * `undefined` when the field declares none. Every vector in Gonogo's own
+ * Topics declares one.
  *
- * `path` is a dotted field path from the Topic's payload (for an array Topic,
- * from its element). It descends through nested payload shapes and through the
- * elements of a list, so `frameOf("vessel.parts", "parts.bounds.center")` is
- * `part-local`. A path that reaches a framed vector and continues into its
- * components (`position.x`) resolves to that vector's frame. A dictionary
- * collection ends the walk, because the key that follows is not a field.
- *
- * `undefined` means no frame is declared, which is not the same as a frame that
- * is unknown: every Vec3 in the core contract declares one.
+ * `path` is dotted from the payload root, or from one element for a Topic
+ * whose payload is an array. It may pass through nested objects and lists, so
+ * `frameOf("vessel.parts", "parts.bounds.center")` is `"part-local"`. A path
+ * into a vector's components, such as `position.x`, returns the vector's
+ * frame. A path into a map stops at the map and returns `undefined`.
  *
  * @category Units and values
  */

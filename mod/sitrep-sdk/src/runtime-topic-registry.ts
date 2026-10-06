@@ -64,11 +64,11 @@ export function noteRuntimeTopicMetadata(): void {
 }
 
 /**
- * Every Topic a client package has registered at runtime, in registration
- * order.
+ * Every Topic id a client package has registered with
+ * {@link registerBarePrimitiveTopic}, in registration order.
  *
- * Identity-stable between registrations, so it can be a `useSyncExternalStore`
- * snapshot and a `useMemo` dependency directly. Pair with
+ * The array is the same object until the next registration, so it can be a
+ * `useSyncExternalStore` snapshot or a `useMemo` dependency. Pair it with
  * {@link subscribeRuntimeTopicRegistry}.
  *
  * @category Reading telemetry
@@ -78,7 +78,9 @@ export function getRuntimeRegisteredTopicIds(): readonly string[] {
 }
 
 /**
- * Fires whenever a registration changes the snapshot. Returns the unsubscribe.
+ * Calls `listener` whenever a registration changes
+ * {@link getRuntimeRegisteredTopicIds}, including a registration of units for
+ * a Topic already listed. Returns a function that unsubscribes.
  *
  * @category Reading telemetry
  */
@@ -92,14 +94,14 @@ export function subscribeRuntimeTopicRegistry(
 }
 
 /**
- * Namespace PREFIXES (each ends in `.`) whose member Topics are keyed by
- * something no contract names up front: a vessel guid, a part's flight id, a
- * body, a figure. A Topic under one is its own whole wire Topic, never a
- * `<domain.channel>.<fieldPath>` split into a parent nobody publishes.
+ * The prefixes, each ending in `.`, under which Topic ids are built at runtime
+ * from something such as a vessel id or a part's flight id:
+ * `fleet.<vessel id>.orbit`. A key under one of them is read as a Topic of its
+ * own, never as a field of a shorter Topic.
  *
- * Live: core's own namespaces are listed here, and an Uplink adds its own with
- * {@link registerDynamicTopicPrefix} when its client package loads, so a reader
- * that holds this array sees every prefix registered since.
+ * Gonogo's own prefixes are listed here, and an Uplink adds its own with
+ * {@link registerDynamicTopicPrefix} when its client package loads. The array
+ * always holds every prefix registered so far.
  *
  * @category Reading telemetry
  */
@@ -143,14 +145,15 @@ export function dynamicPrefixOf(topic: string): string | undefined {
 }
 
 /**
- * Declare a dynamic namespace this client package reads: every Topic under
- * `prefix` is a whole wire Topic, subscribed and sampled as itself. Call it at
- * module load, beside the package's other Topic registrations, with the same
- * prefix the mod passes to `IUplinkHost.RegisterDynamicNamespace`.
+ * Registers a prefix under which an Uplink builds Topic ids at runtime, so
+ * every key under it is read as a Topic of its own. Call it when the client
+ * package loads, with the same prefix the Uplink's mod passes to
+ * `IUplinkHost.RegisterDynamicNamespace`. Registering a prefix twice does
+ * nothing.
  *
- * Without it a Topic such as `myuplink.forecast.250000` is read as field
- * `250000` of a `myuplink.forecast` nobody publishes, and its reading never
- * arrives. Idempotent.
+ * Without it, a Topic such as `myuplink.forecast.250000` is read as the field
+ * `250000` of a Topic `myuplink.forecast` that nothing publishes, and its
+ * reading never arrives.
  *
  * Throws for a prefix that does not end in `.`, has an empty segment, or has
  * fewer than two segments before the trailing dot (which would swallow a whole

@@ -25,66 +25,15 @@ import {
   unitsForType,
 } from "./units";
 
-/**
- * Wraps a decoded payload's declared quantities into `Value`s.
- *
- * This is where a bare wire number becomes something that knows what it is.
- * The contract declares a unit per field, the codegen turns that into the
- * field's TYPE, and this is the runtime half: after it, `flight.altitude` is a
- * `Value<"m">` at runtime as well as in the type system, and `<Unit>` can
- * render it without anyone naming the unit again.
- *
- * ## Why it lives in the SDK
- *
- * Decoding a payload is the SDK's job. A headless consumer reading the stream
- * without the app's telemetry spine should get wrapped values too, and putting
- * this in `sitrep-client` would have meant the wrapping only happened for
- * consumers who also wanted React.
- *
- * ## Mutates in place, deliberately
- *
- * The input is the object `JSON.parse` just produced and nobody else holds a
- * reference to it. Copying would double the allocation on the hottest path in
- * the app for no observable difference. Pass a shared object and you will see
- * it change; do not.
- *
- * ## What is NOT wrapped
- *
- * A token the model has no unit for is a non-quantity: `text`, `flag`, `enum`,
- * `id`, `n/a`. That falls out of the registry lookup rather than needing a
- * list, because those tokens have no dimension and so were never units. A
- * vessel name has no magnitude to carry.
- *
- * ## It follows nested shapes
- *
- * A payload can hold another payload: `vessel.target.orbit` is a whole
- * `VesselOrbit`, `system.bodies.bodies[].orbit` an `OrbitEntry`. The unit maps
- * are flat per shape, so those nested units were unreachable from the parent
- * entry and eighty-five fields' worth of declared quantities arrived bare
- * while the contract typed them as `Value`. `GENERATED_TOPIC_SHAPES` says
- * which fields hold which shape, and this walks them.
- *
- * ## It follows provider extension bags too
- *
- * A payload carrying a `[ProviderExtensionBag]` field holds sub-trees core cannot
- * type, one per provider id. Their quantities are still `Value<unit>` in the
- * PROVIDER's own generated type, so the walk follows them the same way it follows
- * any nested shape, routed by `providerExtensionShapes` instead of by a generated
- * map. See `registerProviderExtensionShape` (units.ts) for why that routing needs
- * a registry of its own.
+/*
+ * The runtime half of the declared units: after the wrap a field typed `Value<"m">` is one at runtime too.
+ * It mutates in place because the input is a freshly parsed frame nobody else holds, on the hottest path in the app.
+ * It follows nested shapes and provider extension bags, which the flat per-shape unit maps cannot reach on their own.
  */
 /**
- * A payload type restated as the mod SENDS it: every `Value<Unit>` back down to
- * the plain number that actually crosses the wire, recursively, structure
- * otherwise untouched.
- *
- * It lives here rather than beside the test helper it was written for, because
- * it is the input type of the two functions below and a production module
- * cannot import from `testing/`. `testing/stub-transport` re-exports it, so
- * every existing import site is unchanged.
- *
- * `Value` is matched by its `magnitude`/`unit` pair rather than by name, so a
- * `Vec3Of<Unit>`'s three leaves collapse the same way its parent does.
+ * A payload type as the mod sends it: every `Value` replaced by the plain
+ * number that crosses the wire, at any depth, with the structure otherwise
+ * the same. A `Vec3Of` becomes three numbers.
  *
  * @category Units and values
  */
@@ -102,9 +51,13 @@ export type WireOf<Shape> = Shape extends {
         : Shape;
 
 /**
- * Turns a payload as the mod sends it into the typed payload a reader sees:
- * every number with a declared unit becomes a `Value` in that unit. Mutates and
- * returns `payload`.
+ * Turns a payload as the mod sends it into the payload a reader sees: every
+ * number whose field declares a unit becomes a `Value` in that unit, including
+ * inside nested objects, lists and maps. Fields with no unit, such as names
+ * and flags, are left as they are.
+ *
+ * Changes `payload` in place and returns it, so pass a payload nothing else
+ * holds. Wrapping a payload twice changes nothing.
  *
  * @category Units and values
  */
@@ -122,9 +75,9 @@ export function wrapTopicPayload<Payload>(
 }
 
 /**
- * The same, for a payload named by its generated interface rather than by a
- * Topic. Nested shapes (`ThermalHottestPart`) are reachable this way and no
- * Topic names them.
+ * {@link wrapTopicPayload} for a payload named by its type, such as
+ * `"ThermalHottestPart"`, rather than by a Topic. Use it for a type that is
+ * only ever nested inside a Topic's payload.
  *
  * @category Units and values
  */
@@ -337,59 +290,12 @@ function wrapScalarOrList(
 }
 
 /**
- * Gives every quantity in a payload its prototype back after a structured
- * clone.
+ * Returns command arguments as the mod expects them: every `Value` replaced by
+ * its number, at any depth. The mod refuses an argument sent as a `Value`
+ * object where it expects a number.
  *
- * The mirror of {@link wrapTopicPayload}, for the hop the wrap cannot cover.
- * A `Value` is two fields plus a prototype, and only the two fields survive
- * PeerJS's serialisation, so a station screen receives `{magnitude, unit}`
- * objects that render perfectly and throw the moment anything calls a method
- * on one. `signalStrength.lessThanOrEqual is not a function`, inside a
- * component body, taking the whole dashboard down through the error boundary
- * on the screen that has no other way to see the mission.
- *
- * `hydrate` has always existed for this and its own doc names the PeerJS hop
- * by name. It was never called, which is the same failure as the wrap itself
- * being dead: a mechanism that is documented, exported, and not wired to
- * anything.
- *
- * Walks the payload rather than taking a field list, because there is no unit
- * map to consult here: the values arrive already SHAPED, and the only
- * question is whether each one has its prototype. `hydrate` is a pass-through
- * for anything that is not a value and for anything already hydrated, so the
- * walk is idempotent and safe on a payload of any shape.
- *
- * Mutates in place, same as the wrap and for the same reason: the object came
- * off the transport and nobody else holds it.
- */
-/**
- * Takes every quantity in a payload back down to the bare number the wire
- * carries: the WRITE-side mirror of {@link wrapTopicPayload}.
- *
- * Command args travel the opposite way to telemetry. The generated args types
- * declare quantities the same way a channel payload does
- * (`BodyStatesRequest.uts: Value<"ut">[]`), so a typed caller builds a `Value`,
- * `JSON.stringify` reaches `Value.toJSON`, and `{"magnitude":80,"unit":"ut"}`
- * arrives at a host binding a `double`. That is not a field the mod ignores:
- * `ChannelEngine.BindCommandArgs` rejects an object bag for a numeric slot by
- * design, and the command replies `null` having never run.
- *
- * ## Why it needs no unit map
- *
- * The wrap consults the generated field→unit map because a wire number says
- * nothing about what it is. Going the other way, the value already knows: a
- * `Value<"ut">` is the only thing assignable to a field declared `Value<"ut">`,
- * so its magnitude IS the declared unit's magnitude and there is nothing to
- * convert. That makes this a plain structural walk, like
- * {@link hydratePayload} and unlike the wrap.
- *
- * ## COPIES, where the other two mutate
- *
- * The wrap and the hydrate own what they are given: it came off the transport
- * and nobody else holds a reference. These args are the CALLER's object, very
- * often a widget's own state, and rewriting a `Value` in it to a number would
- * corrupt the state of whatever dispatched. So every container that contains a
- * quantity is rebuilt, and one that contains none is passed through untouched.
+ * It copies rather than changing `args`, since they are often a widget's own
+ * state. Objects and arrays holding no `Value` are returned as they are.
  *
  * @category Units and values
  */
@@ -428,8 +334,9 @@ function dehydrate(args: unknown): unknown {
 
 /**
  * Restores every `Value` in a payload that lost its methods crossing JSON or a
- * structured clone, such as on the hop to a station screen. Mutates and returns
- * `payload`; anything that is not a value passes through.
+ * structured clone, such as on the way to a station screen. Changes `payload`
+ * in place and returns it; anything that is not a `Value` is left as it is,
+ * and restoring a payload twice changes nothing.
  *
  * @category Units and values
  */

@@ -36,8 +36,9 @@
 export const PROVIDER_EXTENSIONS_FIELD = "extensions";
 
 /**
- * One provider's namespace: opaque at the core layer. Narrowed by the provider's
- * own typed accessor, never by a cast at a consuming call site.
+ * What one provider puts under its own id in a payload's `extensions` field.
+ * Its type is unknown to Gonogo: read it with the reader the provider's own
+ * package exports, rather than casting it yourself.
  *
  * @category Reading telemetry
  */

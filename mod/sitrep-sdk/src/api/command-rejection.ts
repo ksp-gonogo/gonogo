@@ -17,18 +17,18 @@ export const COMMAND_REFUSED = "E_REFUSED";
 export const COMMAND_LOST = "E_LOST";
 
 /**
- * Why a dispatch promise rejected, in the same three words the command's
- * `CommandStatus` phase uses, because they are the same three outcomes:
+ * Why a command's `send` rejected, as {@link classifyCommandRejection} returns
+ * it. The three kinds match the {@link CommandStatus} phases of the same
+ * names:
  *
- * - `refused`: the handler ran, the game evaluated it, and said no. Carries the
- *   mod's root `CommandErrorCode`, and the refinement's id as `reason` when the
- *   refusal was more specific. A retry changes nothing until the situation
- *   does, so show a reason, not a try-again
- * - `lost`: no reply arrived by the predicted deadline. Nothing was decided
- *   and the command may well have executed anyway, so re-sending can double it
- * - `failed`: the machinery broke (a handler threw, a result would not
- *   serialize, the link went down mid-flight), named by a `FaultCode`. A retry
- *   may genuinely work
+ * - `refused`: the game received the command and said no. `errorCode` is the
+ *   reason, and `reason` a more specific one where the mod gave it. Sending it
+ *   again is refused again until something in the game changes, so show the
+ *   reason
+ * - `lost`: no reply arrived in time. The command may still have run, so
+ *   sending it again may run it twice
+ * - `failed`: something broke on the way, named by `code`, such as the link
+ *   dropping or the mod's handler throwing. Sending it again may work
  *
  * @category Commands
  */
@@ -37,43 +37,50 @@ export type CommandRejection =
       kind: "refused";
       errorCode: CommandErrorCode;
       /**
-       * The refinement's id, when the refusal was more specific than its root:
-       * `describeErrorCode` reads its sentence. An id no client knows is still a
-       * refusal of kind `errorCode`.
+       * A more specific reason than `errorCode`, where the mod gave one.
+       * `describeErrorCode` turns it into a sentence. An id this client does
+       * not know is still a refusal of kind `errorCode`.
        */
       reason?: string;
       message: string;
       /**
-       * What was dispatched, so the outcome can be SAID rather than only
-       * classified: "Upgrade Launch Pad refused: ..." instead of
-       * "command refused: ModeUnavailable". Optional because a rejection
-       * rehydrated across a peer hop, or thrown by something other than this
-       * spine, may not carry them, and the classification is still true
-       * without them.
+       * The command id that was sent. With `args` and `label` it names what was
+       * refused, as {@link commandRefusalSubject} does. All three may be
+       * missing, such as on a refusal passed on from another screen.
        */
       command?: string;
       args?: unknown;
       label?: string;
-      /** The limit and the actual behind the reason, when the mod sent one. */
+      /** The limit and the actual value behind the refusal, when the mod sent them. */
       breach?: LimitBreach;
-      /** The refusal in the GAME's own words, when the game had any to give. */
+      /** The refusal in the game's own words, when the game gave any. */
       detail?: string;
     }
   | { kind: "lost"; message: string }
   | { kind: "failed"; code: FaultCode | (string & {}); message: string };
 
 /**
- * Sort a caught dispatch rejection into one of the three outcomes above.
+ * Sorts the error a command's `send` rejected with into a
+ * {@link CommandRejection}. Anything it does not recognise, including an
+ * error thrown by your own code, is `failed`.
  *
- * Structural on purpose: it reads the `code` an ordinary `Error` carries rather
- * than requiring `instanceof` against a class from an unpublished namespace, so
- * it keeps working across a bundled copy, a peer-relayed rejection rehydrated
- * on a station, and a foreign throw from inside a handler. Anything it cannot
- * place is `failed`, which is the safe default: it is the outcome that says
- * "something broke, a retry may work" rather than inventing a game reason.
+ * @example
+ * ```ts
+ * async function fullThrottle(
+ *   setThrottle: UseCommandResultFor<"vessel.control.setThrottle">,
+ * ) {
+ *   try {
+ *     await setThrottle.send({ value: 1 });
+ *   } catch (err) {
+ *     const rejection = classifyCommandRejection(err);
+ *     if (rejection.kind === "refused") console.warn(rejection.errorCode);
+ *   }
+ * }
+ * ```
  *
  * @category Commands
  */
+// Structural rather than instanceof, so it reads a bundled copy's error or one passed on from another screen.
 export function classifyCommandRejection(err: unknown): CommandRejection {
   const carrier = (err ?? {}) as {
     code?: unknown;
@@ -154,23 +161,15 @@ function firstStringArg(args: unknown): string | undefined {
 }
 
 /**
- * What a refused command is CALLED, for the front of the sentence an operator
+ * Returns a name for a refused command, to start the sentence the player
  * reads: `"Hire Valentina Kerman"`, `"Upgrade Launch Pad"`.
  *
- * A dispatch's own `label` wins outright when it has one, since that is a
- * human saying what they meant. Otherwise the name is derived from what was
- * dispatched, and the derivation is general rather than a table of commands:
- * the id's LAST segment is the verb (this contract's ids are
- * `domain.noun.verb`), and the object is the one thing the args address.
+ * The dispatch's own `label` is used when it has one. Otherwise the name is
+ * the last segment of the command id, title-cased, followed by the first
+ * string argument. A building is named as the game names it, where the
+ * refusal's `breach` gives that name.
  *
- * A facility id is the exception worth handling, because
- * `"LaunchPad"` is not what the building is called. When the breach names the
- * same facility the args do, its game-supplied display name is used instead.
- * That mapping lives on the wire precisely so no client has to keep an English
- * table of KSP's enum, which would be wrong in every other language.
- *
- * Returns `""` when there is nothing to go on, and a caller that gets one
- * should say the general thing rather than print an empty subject.
+ * Returns `""` when there is nothing to name it by.
  *
  * @category Commands
  */

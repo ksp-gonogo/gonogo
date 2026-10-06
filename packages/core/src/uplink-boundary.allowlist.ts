@@ -400,13 +400,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // pending-uplink contract: its Command field doc-comment gives `kos.run` as the example wire command name, doc-mention only.
       "mod/Sitrep.Contract/UplinkPending.cs",
       /*
-       * topics.test-d.ts / topics.test.ts / topics.ts each name a kos.* dynamic
-       * namespace or a Kos-prefixed contract type (`kos.compute.*`,
-       * `kos.processors`, `KosProcessorInfo`) as a generic example.
+       * topics.test-d.ts / topics.test.ts each name a kos.* dynamic namespace
+       * or a Kos-prefixed contract type (`kos.compute.*`, `kos.processors`,
+       * `KosProcessorInfo`) as a generic example.
        */
       "mod/sitrep-sdk/src/topics.test-d.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
-      "mod/sitrep-sdk/src/topics.ts",
       /*
        * topic-cs-sync.test.ts: the C#↔runtime-registry sync gate imports the
        * Uplink clients so registration fires, then asserts the registry union
@@ -1137,7 +1136,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * its value and a map of bare scalars had no case. Prose in a mod-agnostic
        * file explaining a general mechanism.
        */
-      "mod/sitrep-sdk/src/unit-system/guards.ts",
       "mod/sitrep-sdk/src/wrap-units.ts",
 
       // -- app / core --

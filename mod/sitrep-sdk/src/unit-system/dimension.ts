@@ -1,20 +1,13 @@
 /**
- * Physical dimension as an exponent map over base symbols.
- *
- * `m/s` is `{ m: 1, s: -1 }`; dividing by seconds again subtracts an exponent
- * and yields `{ m: 1, s: -2 }`, which renders `m/s²`. Doing this with strings
- * would have produced `m/s/s`, and doing it with a fixed list of named
- * dimensions would have needed an entry for every combination anyone might
- * compute. Exponent maps also flatten parenthesisation for free: `(kg·m/s²)/m²`
- * and `Pa` are the same map, so they compare equal without anyone declaring
- * that they should.
- *
- * A base symbol is an internal key, never a rendered glyph. `irlS` is how real
- * seconds stay a different dimension from game seconds; nobody sees it.
+ * A physical dimension, as base units and their powers: a speed is
+ * `{ m: 1, s: -1 }`. Two dimensions are equal when their powers are, so a
+ * pascal and a kilogram-metre per second squared per square metre are the
+ * same dimension. Base names are never shown; `irlS`, for real-world seconds,
+ * keeps them apart from game seconds.
  */
 export type Dimension = Readonly<Record<string, number>>;
 
-/** The dimensionless dimension. A ratio, a Mach number, a percentage. */
+/** The dimension of a pure number, such as a ratio, a Mach number or a percentage. */
 export const DIMENSIONLESS: Dimension = Object.freeze({});
 
 /**
@@ -34,6 +27,7 @@ function normalise(exponents: Record<string, number>): Dimension {
   return Object.freeze(out);
 }
 
+/** Returns the dimension of a product: the powers added. */
 export function multiply(a: Dimension, b: Dimension): Dimension {
   const out: Record<string, number> = { ...a };
   for (const [base, exponent] of Object.entries(b)) {
@@ -42,6 +36,7 @@ export function multiply(a: Dimension, b: Dimension): Dimension {
   return normalise(out);
 }
 
+/** Returns the dimension of a quotient: the powers subtracted. */
 export function divide(a: Dimension, b: Dimension): Dimension {
   const out: Record<string, number> = { ...a };
   for (const [base, exponent] of Object.entries(b)) {
@@ -50,6 +45,7 @@ export function divide(a: Dimension, b: Dimension): Dimension {
   return normalise(out);
 }
 
+/** Returns whether two dimensions are the same. */
 export function equal(a: Dimension, b: Dimension): boolean {
   const aKeys = Object.keys(a);
   if (aKeys.length !== Object.keys(b).length) {
@@ -59,8 +55,8 @@ export function equal(a: Dimension, b: Dimension): boolean {
 }
 
 /**
- * A stable string form, for use as a Map key. Not for display: see
- * {@link formatDimension}.
+ * Returns a string that is the same for equal dimensions, for use as a `Map`
+ * key. To show a dimension, use {@link formatDimension}.
  */
 export function key(dimension: Dimension): string {
   return Object.keys(dimension)
@@ -83,13 +79,10 @@ function withExponent(base: string, exponent: number): string {
 }
 
 /**
- * The symbol a dimension renders as when no unit has been declared for it:
- * `{ m: 1, s: -2 }` reads `m/s²`, `{ kg: 1, m: -1, s: -2 }` reads `kg/(m·s²)`.
- *
- * This is the fallback, not the preferred form. A DECLARED name wins: register
- * `W` for the J/s dimension and a computed power renders as `W`, because that
- * is what people write. This exists so a value can never fail to render at all,
- * which matters most for the units nobody anticipated.
+ * Returns a dimension written out in base units, as a value is shown when no
+ * unit is declared for its dimension: `{ m: 1, s: -2 }` is `m/s²`, and
+ * `{ kg: 1, m: -1, s: -2 }` is `kg/(m·s²)`. Where a unit is declared, such as
+ * `W`, that is shown instead.
  */
 export function formatDimension(dimension: Dimension): string {
   const bases = Object.keys(dimension).sort();

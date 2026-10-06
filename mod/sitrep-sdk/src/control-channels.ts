@@ -23,36 +23,34 @@ import {
 import { isTopicId, type TopicId } from "./topics";
 
 /**
- * The id of a declared bidirectional control channel.
+ * The id of a control channel: a control such as the throttle or SAS, which is
+ * set with a command and read back from a Topic.
  *
  * @category Commands
  */
 export type ControlChannelId = GeneratedControlChannelId;
 
 /**
- * ONE handle unifying a control channel's two wire keys. `readTopic`/`readField`
- * carry the confirmed readback (the echo); `writeCommand`/`toArgs` are the delayed
- * uplink half.
+ * One control channel's two halves: the command that sets the control, and the
+ * Topic field that reports what the craft has actually set it to. Send with
+ * {@link useCommand} on `writeCommand`, and read the craft's value with
+ * {@link useTelemetry} on `readTopic`.
  *
  * @category Commands
  */
 export interface ControlChannelHandle {
   /** The channel id, e.g. `"vessel.control.throttle"`. */
   readonly id: string;
-  /** The read topic whose field carries the confirmed readback. */
+  /** The Topic that reports the value the craft has set. */
   readonly readTopic: TopicId;
-  /** The field on `readTopic`'s payload carrying the confirmed value. */
+  /** The field of `readTopic`'s payload holding that value. */
   readonly readField: string;
-  /** The command a value is dispatched on (the delayed uplink). */
+  /** The command that sets the control, sent at the signal delay. */
   readonly writeCommand: string;
   /**
-   * Wrap a value into the write command's wire args.
-   *
-   * `boolean` alongside `number` because half the declared channels are
-   * discrete: SAS, RCS, gear, brakes, lights and abort are switches, and an
-   * enum mode is an ordinal. Numeric-only was a fact about which channels
-   * happened to be declared first (the throttle and the six fly-by-wire axes),
-   * never about what a control channel is.
+   * Returns the arguments for `writeCommand` that set the control to `value`.
+   * A number for a control such as the throttle; a boolean for a switch such
+   * as SAS or the landing gear. A mode is set by its member's number.
    */
   toArgs(value: number | boolean): Record<string, number | boolean>;
 }
@@ -62,9 +60,7 @@ const BY_ID: ReadonlyMap<string, GeneratedControlChannel> = new Map(
 );
 
 /**
- * The handle for `id`, or `undefined` when no channel with that id is declared (or,
- * defensively, when its read topic is not a known `TopicId`, which a passing
- * control-channels-cs-sync test rules out for every first-party channel).
+ * Returns the control channel with this id, or `undefined` when there is none.
  *
  * @category Commands
  */
@@ -87,7 +83,7 @@ export function getControlChannel(
 }
 
 /**
- * Every declared control-channel id.
+ * Returns the id of every control channel.
  *
  * @category Commands
  */

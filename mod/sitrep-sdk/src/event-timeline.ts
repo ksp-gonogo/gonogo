@@ -1,24 +1,10 @@
 /**
- * One discrete occurrence on an `event` topic.
+ * One thing that happened at a moment, such as a part failing or a storm
+ * arriving, as an {@link EventTimeline} holds it. Unlike a Topic's value, an
+ * occurrence does not stay true afterwards: it happens once.
  *
- * An `event` topic is the discrete-occurrence sibling of `ClientTimeline` /
- * `TimelinePoint`: where a value channel is a keyframed timeline that a value
- * *holds* across (read with `at(ut)`), an event topic is a timeline of things
- * that *happened* at a UT (part-failed, storm-arrived, camera-added). Each
- * occurrence is an edge, not a level, it never "holds", it fires once.
- *
- * Delivered discretely (`Delivery.ReliableOrdered` on the wire, the same lane
- * as `flight.started` / `crash.lastCrash`) and reveal-gated: an occurrence at
- * `ut` becomes visible only once `now >= ut + delay` AND the comms link was up
- * at `ut`. Reveal here is DERIVED for legibility, enforcement stays
- * server-side in the mod's reveal gate (see `project_streaming_delay_model`).
- * The gonogo Uplink layer that owns reveal/delay semantics synthesises this
- * primitive from a producer's raw discrete edges.
- *
- * `epoch` is the client-side timeline-reset generation this occurrence was
- * ingested under (mirrors `TimelinePoint.epoch`): a quickload rewind bumps the
- * epoch and drops superseded occurrences so a pre-rewind event can never be
- * re-revealed after the rewind.
+ * @typeParam Kind - The names of what can happen, such as `"part-failed"`.
+ * @typeParam Payload - The detail each occurrence carries.
  *
  * @category Delay and vantage
  */
@@ -26,61 +12,54 @@ export interface EventOccurrence<
   Kind extends string = string,
   Payload = unknown,
 > {
-  /** Universal Time the occurrence happened at: the reveal-gate key. */
+  /** The UT it happened at. */
   ut: number;
-  /** Discriminant naming what happened, e.g. `"part-failed"`, `"storm-arrived"`. */
+  /** What happened, such as `"part-failed"` or `"storm-arrived"`. */
   kind: Kind;
-  /** Occurrence detail. */
+  /** The detail of what happened. */
   payload: Payload;
-  /** Client-side timeline-reset generation (mirrors `TimelinePoint.epoch`). */
+  /**
+   * The timeline generation it was received in. Loading a save moves the
+   * timeline to a new generation, and occurrences from an older one are
+   * discarded.
+   */
   epoch: number;
 }
 
 /**
- * Was the comms link up at a given UT? Mirrors the server reveal gate's
- * `ConnectivityAt(ut)`: an occurrence whose `ut` fell during a blackout is
- * dropped forever, never revealed late once the link returns.
+ * Returns whether the link to the craft was up at `ut`. An occurrence that
+ * happened while the link was down is never revealed, even after the link
+ * returns.
  *
  * @category Delay and vantage
  */
 export type ConnectivityAt = (ut: number) => boolean;
 
 /**
- * When an `EventTimeline` reveals an occurrence: once the view time has passed
- * its time plus the signal delay, and only if the link was up when it happened.
+ * When {@link EventTimeline.revealed} shows an occurrence: once the view time
+ * has passed its UT plus the signal delay, and only if the link was up when it
+ * happened.
  *
  * @category Delay and vantage
  */
 export interface EventRevealOptions {
-  /**
-   * Current view UT. An occurrence reveals only once `now >= ut + delaySeconds`,
-   * the delayed-horizon check.
-   */
+  /** The view UT. An occurrence is revealed once `now` reaches its UT plus `delaySeconds`. */
   now: number;
-  /**
-   * One-way signal delay applied before an occurrence reveals, seconds.
-   * Default 0 (LAN / `DelayRole.TrueNow`).
-   */
+  /** The one-way signal delay, in seconds. Defaults to 0. */
   delaySeconds?: number;
-  /**
-   * Connectivity oracle. An occurrence at a `ut` the link was DOWN for is
-   * dropped forever, matching the server gate `now >= ut + delay &&
-   * ConnectivityAt(ut)`. Default: always connected.
-   */
+  /** Whether the link was up at a given UT. Defaults to a link that is always up. */
   connectivityAt?: ConnectivityAt;
 }
 
 /**
- * Options for a new `EventTimeline`.
+ * Options for a new {@link EventTimeline}.
  *
  * @category Delay and vantage
  */
 export interface EventTimelineOptions {
   /**
-   * How far behind the latest ingested occurrence `ut` older occurrences are
-   * retained before automatic eviction. Mirrors `ClientTimelineOptions`;
-   * default 5 minutes of UT: bounds memory without surprising a low-rate
-   * event topic.
+   * How many seconds of UT behind the newest occurrence to keep. Older ones are
+   * removed as new ones arrive. Defaults to 300.
    */
   retentionSeconds?: number;
 }
@@ -88,15 +67,16 @@ export interface EventTimelineOptions {
 const DEFAULT_RETENTION_SECONDS = 300;
 
 /**
- * Per-topic buffer of discrete occurrences, insert-sorted by `ut` (occurrences
- * can arrive out of order, same allowance as `ClientTimeline`). This is the
- * event sibling of `ClientTimeline`: it stores edges and exposes a reveal-gated
- * read (`revealed`) rather than a hold-last value read (`at`).
+ * The occurrences received on one event Topic, sorted by UT, with
+ * {@link EventTimeline.revealed} returning those the player may see yet under
+ * the signal delay. Occurrences may be appended out of order.
  *
- * Epoch-aware, identically to `ClientTimeline`: a lower-epoch occurrence is a
- * straggler from before a rewind and is discarded; a higher-epoch occurrence is
- * a rewind that drops every buffered occurrence atomically before adopting the
- * new epoch.
+ * Appending an occurrence from a newer generation (`epoch`) clears everything
+ * held first, and one from an older generation is ignored, so nothing from
+ * before a save was loaded comes back.
+ *
+ * @typeParam Kind - The names of what can happen.
+ * @typeParam Payload - The detail each occurrence carries.
  *
  * @category Delay and vantage
  */
@@ -105,7 +85,7 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   private currentEpoch = 0;
   private readonly retentionSeconds: number;
 
-  /** Bumped on every append that changes the buffer (insert or epoch-reset). */
+  /** Increases whenever the occurrences held change. */
   revision = 0;
 
   constructor(options: EventTimelineOptions = {}) {
@@ -113,12 +93,12 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
       options.retentionSeconds ?? DEFAULT_RETENTION_SECONDS;
   }
 
-  /** The epoch this timeline currently holds occurrences for. */
+  /** The generation of the occurrences held now. */
   get epoch(): number {
     return this.currentEpoch;
   }
 
-  /** Insert a delivered occurrence, sorted by `ut` (ties keep arrival order). */
+  /** Adds an occurrence in UT order. Occurrences at the same UT keep the order they were appended in. */
   append(occurrence: EventOccurrence<Kind, Payload>): void {
     if (occurrence.epoch < this.currentEpoch) {
       // Stale-epoch straggler (queued behind a rewind): never let a pre-rewind occurrence re-enter a post-rewind timeline.
@@ -139,11 +119,9 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   }
 
   /**
-   * The occurrences visible at `now` under the reveal gate, those matured
-   * past the delay horizon (`now >= ut + delay`) whose `ut` fell while the
-   * link was up. Ascending by `ut`. This is the DERIVED reveal a consumer
-   * (e.g. the alarm `event` trigger) reads; the server enforces the same gate
-   * authoritatively upstream.
+   * Returns the occurrences the player may see at `now`, oldest first: those
+   * whose UT plus the delay has passed, and which happened while the link was
+   * up.
    */
   revealed(options: EventRevealOptions): EventOccurrence<Kind, Payload>[] {
     const { now } = options;
@@ -157,35 +135,31 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   }
 
   /**
-   * Every buffered occurrence, ascending by `ut`, WITHOUT reveal-gating,
-   * i.e. what has been received, not what is visible. Consumers that care
-   * about legibility want `revealed`; this is the raw view for producers and
-   * tests.
+   * Returns every occurrence received, oldest first, whether or not it may be
+   * seen yet. To show occurrences, use `revealed`.
    */
   all(): EventOccurrence<Kind, Payload>[] {
     return [...this.occurrences];
   }
 
-  /** All occurrences with `ut` in `[fromUt, toUt]`, inclusive, ascending. */
+  /** Returns the occurrences from `fromUt` to `toUt` inclusive, oldest first, without the delay. */
   range(fromUt: number, toUt: number): EventOccurrence<Kind, Payload>[] {
     return this.occurrences.filter((o) => o.ut >= fromUt && o.ut <= toUt);
   }
 
-  /** All occurrences strictly after `ut`, ascending. */
+  /** Returns the occurrences after `ut`, oldest first, without the delay. */
   since(ut: number): EventOccurrence<Kind, Payload>[] {
     return this.occurrences.filter((o) => o.ut > ut);
   }
 
-  /** The most recently occurring buffered occurrence. */
+  /** Returns the occurrence with the latest UT, without the delay. */
   latest(): EventOccurrence<Kind, Payload> | undefined {
     return this.occurrences[this.occurrences.length - 1];
   }
 
   /**
-   * Proactively adopt a higher epoch with no incoming occurrence, a no-op if
-   * `epoch` isn't higher than the one currently held. The cross-topic rewind
-   * sweep analog of `ClientTimeline.adoptEpoch`: a rewind confirmed by one
-   * topic's ingest tells every other topic's timeline to drop immediately.
+   * Moves to a newer generation, clearing every occurrence held. Does nothing
+   * when `epoch` is not newer than the one held.
    */
   adoptEpoch(epoch: number): void {
     if (epoch <= this.currentEpoch) return;
@@ -194,7 +168,7 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
     this.revision++;
   }
 
-  /** Drop every occurrence with `ut < ut`. Enforces an external retention bound. */
+  /** Removes every occurrence before `ut`. */
   evictBelow(ut: number): void {
     const next = this.occurrences.filter((o) => o.ut >= ut);
     if (next.length === this.occurrences.length) return;

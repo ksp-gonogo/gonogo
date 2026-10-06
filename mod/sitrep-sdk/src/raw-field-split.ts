@@ -12,43 +12,33 @@ const isKnownTopicId = (id: string) =>
   KNOWN_TOPIC_IDS.has(id) || isRuntimeRegisteredTopic(id);
 
 /**
- * What a dotted key resolves to: the wire Topic, and the path within its payload.
+ * A dotted key split into the Topic it belongs to and the path of the field
+ * within that Topic's payload. {@link splitRawFieldSubtopic} returns one.
  *
  * @category Reading telemetry
  */
 export interface RawFieldSubtopic {
+  /** The Topic id, such as `"vessel.flight"`. */
   rawTopic: string;
+  /** The field path inside the payload, one segment per entry, such as `["altitudeAsl"]`. */
   fieldPath: string[];
 }
 
 /**
- * Splits a dotted key into the REAL raw wire Topic and a nested field path into
- * that record's payload, at the LONGEST KNOWN Topic id the key starts with: the
- * SDK's own ids and every id a client package has registered. `undefined` when
- * the key IS a whole Topic and hangs no field off anything: it is itself a known
- * Topic id, it sits under a registered dynamic prefix and no known id, or it has
- * fewer than three segments (a raw channel is `domain.channel`, so `"vessel.orbit"` is the
- * Topic rather than a field of some `"vessel"` record).
+ * Splits a dotted key into a Topic and the field path under it, or returns
+ * `undefined` when the key is a whole Topic.
  *
- * Longest-match rather than "always after the second segment", which is what
- * this did until the three genuinely-3-segment Topics in the contract
- * (`alarm.scet.fired`, `vessel.orbit.truth`, `vessel.physics.mode`) showed the
- * cost of: each resolved to a 2-segment parent no channel publishes, so reading
- * one sampled nothing and subscribing to one starved the subscription, and a
- * field path under one could not be addressed at all. `alarm.scet.fired` is the
- * sharp case: the contract annotates both its fields, and
- * `alarm.scet.fired.firedAtUt` still split into `alarm.scet` (an ARRAY) plus a
- * `fired.firedAtUt` path no record has.
+ * The Topic is the longest known Topic id the key starts with, counting ids
+ * an Uplink has registered, so `"alarm.scet.fired.firedAtUt"` splits into
+ * `alarm.scet.fired` and `["firedAtUt"]`. A key under no known id splits after
+ * its second segment.
  *
- * A key under no known Topic falls back to the historical
- * `<domain>.<channel>.<field...>` split, which is what a legacy flat key and
- * every synthetic test topic rely on, and which is also the right split for a
- * Topic this build has never heard of.
+ * It returns `undefined` for a key that is itself a known Topic id, one under
+ * a prefix registered with {@link registerDynamicTopicPrefix}, and one of
+ * fewer than three segments.
  *
- * A key read before its client package registered the Topic or prefix it sits
- * under is split the fallback way, and the registration that arrives later is
- * refused loudly (see `registerDynamicTopicPrefix`) rather than left to resolve
- * the same key two ways in one session.
+ * A Topic or prefix registered after a key under it has been split throws, so
+ * register them when the client package loads.
  *
  * @category Reading telemetry
  */

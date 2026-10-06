@@ -35,57 +35,57 @@ import {
 } from "./__generated__/delay-roles";
 
 /**
- * Which view time a read of a topic is entitled to.
+ * Which instant a Topic is read at:
  *
- * `"delayed"` is `now - light-time`, the default every channel takes unless it
- * declares otherwise. `"true-now"` subtracts nothing: it is the live estimate,
- * held to the newest sample actually delivered. That is the whole of a TrueNow
- * fact, and it is also the right read for a fact held at the home command and
- * for an addressed sample, whose light-time the mod has already spent before
- * delivering either.
+ * - `"delayed"`: the view time minus the signal delay to the active craft. The
+ *   default for every Topic that declares nothing else
+ * - `"true-now"`: the newest value received, with no delay subtracted. For a
+ *   Topic that is true at the command centre rather than out at a craft, such
+ *   as the warp state, and for one whose delay the mod has already applied
+ *   before sending it
  *
  * @category Delay and vantage
  */
 export type DelayLane = "delayed" | "true-now";
 
 /**
- * A core topic the mod declares `DelayRole.TrueNow`.
- *
- * The set is deliberately small: uplink health, the body catalogue, the alarm
- * roster, the warp state and the comms geometry, none of which describe a craft
- * across the gap or a record held anywhere.
+ * A Gonogo Topic that is read with no signal delay, because it does not
+ * describe a craft across the gap: uplink health, the celestial bodies, the
+ * alarms, the warp state and the comms network's layout.
  *
  * @category Delay and vantage
  */
 export type TrueNowTopic = GeneratedTrueNowTopic;
 
 /**
- * A core topic the mod declares held at the home command: the career ledger and
- * the space centre's records. Delayed, but to each vantage by its own delay to
- * home rather than by the active craft's light-time.
+ * A Gonogo Topic held at the home command centre, such as the career's
+ * finances and the space centre's records. Each command centre reads it at its
+ * own delay from home rather than at the active craft's delay.
  *
  * @category Delay and vantage
  */
 export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
 
 /**
- * The roles a running mod stated for every channel it registered, as carried on
- * `system.uplinks.delayRoles`.
- *
- * Complete for that mod: a static topic in no set is delayed, and so is a
- * dynamic topic under no prefix in `trueNowPrefixes`. No prefix list for held at
- * home, because a dynamic namespace cannot be held there.
- *
- * `addressed` is the topics whose samples are each sent to a named audience,
- * such as a command centre's own contact plan: the mod delivers one to each
- * listener after that sample's own journey, and to nobody else.
+ * How the running mod says each Topic is delayed, as carried on the
+ * `delayRoles` field of `system.uplinks`. It covers Uplink Topics as well as
+ * Gonogo's own. A Topic in none of the sets, and not under a prefix in
+ * `trueNowPrefixes`, is delayed.
  *
  * @category Delay and vantage
  */
 export interface DeclaredDelayRoles {
+  /** Topics read with no signal delay. See {@link TrueNowTopic}. */
   readonly trueNow: ReadonlySet<string>;
+  /** Topics held at the home command centre. See {@link HeldAtHomeTopic}. */
   readonly heldAtHome: ReadonlySet<string>;
+  /** Prefixes under which every Topic is read with no signal delay. */
   readonly trueNowPrefixes: readonly string[];
+  /**
+   * Topics whose values are each sent to a particular command centre, such as
+   * that centre's own contact plan. The mod delivers each value after its own
+   * delay, so it is read as received.
+   */
   readonly addressed: ReadonlySet<string>;
 }
 
@@ -102,18 +102,14 @@ function stringsOf(value: unknown): string[] | undefined {
 }
 
 /**
- * Decode the `delayRoles` block off a `system.uplinks` payload.
- *
- * `undefined` when the payload carries no block, which is a mod built before
- * contract 16.13 and not a mod declaring every channel delayed. A block missing
- * one of its lists is malformed rather than empty, and reads as absent for the
- * same reason: taking it at its word would move every core TrueNow channel into
- * the delayed lane on the strength of a field nobody sent. `addressed` is the
- * exception: a mod before contract 28.6 has no such list and addressed nothing
- * a reader waits on, so its absence is an empty list.
+ * Returns the {@link DeclaredDelayRoles} carried on a `system.uplinks`
+ * payload, or `undefined` when it carries none or is missing one of the
+ * `trueNow`, `heldAtHome` and `trueNowPrefixes` lists. A missing `addressed`
+ * list reads as empty.
  *
  * @category Delay and vantage
  */
+// A partial block reads as absent: trusting it would move every core true-now channel to the delayed lane.
 export function readDeclaredDelayRoles(
   rosterPayload: unknown,
 ): DeclaredDelayRoles | undefined {
@@ -136,7 +132,9 @@ export function readDeclaredDelayRoles(
 }
 
 /**
- * Whether the generated core table declares `topic` `DelayRole.TrueNow`.
+ * Returns whether `topic` is a {@link TrueNowTopic}. Uplink Topics are not
+ * covered; use {@link delayLaneOf} with the mod's {@link DeclaredDelayRoles}
+ * for those.
  *
  * @category Delay and vantage
  */
@@ -145,7 +143,8 @@ export function isTrueNowTopic(topic: string): topic is TrueNowTopic {
 }
 
 /**
- * Whether the generated core table declares `topic` held at the home command.
+ * Returns whether `topic` is a {@link HeldAtHomeTopic}. Uplink Topics are not
+ * covered.
  *
  * @category Delay and vantage
  */
@@ -154,26 +153,18 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
 }
 
 /**
- * Which lane `topic` is read in.
+ * Returns the {@link DelayLane} `topic` is read in.
  *
- * Reads `roles` when given, which is what the running mod stated and the only
- * source that covers an Uplink channel. Without it, reads the generated core
- * table, so a caller outside `TimelineStore` asking about an Uplink topic gets
- * `"delayed"` whatever the Uplink declared.
+ * Pass the mod's `roles`, from {@link readDeclaredDelayRoles}, to cover Uplink
+ * Topics. Without them only Gonogo's own Topics are known, and every Uplink
+ * Topic reads `"delayed"`.
  *
- * A held-at-home topic takes the true-now lane. The delayed lane subtracts the
- * ACTIVE craft's light-time, which is not how far the reader is from the ledger:
- * a ground centre is no distance from it, and a crewed vessel is its own path
- * home, which the mod has already waited out before the frame arrived. An
- * addressed topic takes it for the same reason: each sample reached this reader
- * after its own journey, which has nothing to do with the active craft.
+ * A Topic held at the home command centre, and an addressed Topic, are read
+ * `"true-now"`: the mod has already applied their delay before sending them.
  *
- * Takes the WHOLE topic only. A field subtopic (`time.warp.warpRate`) is not a
- * declared channel and returns `"delayed"` here, so a caller that resolves
- * subtopics has to resolve first and ask second; `TimelineStore` does exactly
- * that, and asking the other way round would silently delay every field read of
- * a true-now channel while the whole-record read of the same channel was
- * current.
+ * Pass a whole Topic id. A field path such as `time.warp.warpRate` is not a
+ * Topic and reads `"delayed"`; split it first with
+ * {@link splitRawFieldSubtopic}.
  *
  * @category Delay and vantage
  */

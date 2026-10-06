@@ -2,38 +2,27 @@ import { lookupUnit } from "./registry";
 import type { Value } from "./value";
 
 /**
- * Narrowing a value whose unit the build could not see, by asking the runtime.
+ * Returns a type guard that checks whether a {@link Value} is in exactly
+ * `symbol`, and narrows it to `Value<symbol>` when it is. Use it to compute
+ * with a value whose unit is an {@link UnknownUnit}, such as a resource an
+ * Uplink registers at runtime.
  *
- * `Value<UnknownUnit>` refuses all arithmetic, which is correct and is also a
- * dead end on its own: an Uplink that wants to compute anything needs a way
- * back to a concrete unit. This is that way, and the only one, deliberately.
+ * The check is on the symbol alone, so a guard for `"kg"` does not match a
+ * value in tonnes. After narrowing, the value combines with every unit of its
+ * dimension as usual.
  *
- * ## Why this is not the thing we refused to build
+ * Narrow each value separately: two values must both pass before they can be
+ * combined.
  *
- * Generating types from a mod's resource list was rejected because it claims
- * knowledge nobody has: a player switches Kerbalism profile and the generated
- * union is a lie that still compiles. This looks superficially similar, since
- * a literal symbol is written down, and it is the opposite:
+ * @example
+ * ```ts
+ * const isOxygen = unitGuard("Oxygen:u");
  *
- * - A generated catalogue ASSERTS "these units exist" at build time.
- * - `unitGuard("Oxygen:u")` ASKS "is this one oxygen?" at runtime.
- *
- * If the profile has no oxygen, the guard returns false, the branch does not
- * run, and nothing is wrong. The assertion is verified rather than assumed,
- * which is what makes writing the literal honest. The widget declares an
- * interest and gets checked for it.
- *
- * ## Identity, not compatibility
- *
- * The check is on the TOKEN, so `unitGuard("kg")` does not match a value in
- * tonnes even though the two are addable. That is the right test for what this
- * is for, and it costs nothing: after narrowing to `Value<"kg">`,
- * `CombinableWith<"kg">` still admits `"t"`, so kilograms and tonnes go on
- * combining.
- *
- * Each operand needs its own proof. `isOxygen(a) && isOxygen(b)` is the
- * pattern, and the asymmetry is the point: narrowing one side and not the
- * other leaves them different types, so it still will not compile.
+ * function freeOxygen(stored: Value, capacity: Value) {
+ *   if (!isOxygen(stored) || !isOxygen(capacity)) return undefined;
+ *   return capacity.minus(stored);
+ * }
+ * ```
  *
  * @category Units and values
  */
@@ -43,40 +32,12 @@ export function unitGuard<const Unit extends string>(symbol: Unit) {
 }
 
 /**
- * Whether a value is in exactly `unit`, narrowing it where it is.
+ * Returns whether `candidate` is in exactly `unit`, and narrows it to
+ * `Value<unit>` when it is. The same check as {@link unitGuard}, for a unit
+ * passed in as a parameter rather than written in the code.
  *
- * The direct form of {@link unitGuard}, for the case currying cannot reach: a
- * unit that arrives as a PARAMETER rather than as a literal. `unitGuard` takes
- * `const S extends string` and hands back a predicate, which is the right
- * shape for a module-scope `const isOxygen = unitGuard("Oxygen:u")` and the
- * wrong one for `bandIn(band, unit)`, where the symbol to check against is
- * whatever the caller passed.
- *
- * ## Why a predicate rather than a cast or a rebuild
- *
- * Code holding a `Value<SourceUnit>` and a runtime `Unit` had two ways across before this,
- * and both are worse:
- *
- * - **Assert.** `Value<SourceUnit>` to `Value<Unit>` for two unrelated parameters has to go
- *   through `unknown`, which the compiler cannot check and which SURVIVES
- *   someone later deleting the runtime check above it. `.in(unit)` is not the
- *   escape either: `in<Target extends CombinableWith<Unit>>` refuses an unrelated
- *   parameter outright, because nothing knows the two share a dimension
- * - **Rebuild.** Mint fresh values off the magnitudes the check just proved.
- *   Sound, and it costs an unwrap and an allocation per component, which is how
- *   `bandIn` came to spend three
- *
- * This is the third way: the check the code already performs becomes the one
- * the type system reads, so there is nothing left to keep in step.
- *
- * ## Identity, not compatibility
- *
- * On the TOKEN, exactly as {@link unitGuard} is, and see its note for why that
- * is the right test. `isUnit(v, "kg")` is false for a value in tonnes.
- *
- * Each value needs its own proof. Narrowing one component of a compound and
- * not its siblings leaves them different types, so a caller that wants the
- * whole thing narrowed asks about each part.
+ * The check is on the symbol alone, so `isUnit(v, "kg")` is `false` for a
+ * value in tonnes.
  *
  * @category Units and values
  */
@@ -88,31 +49,18 @@ export function isUnit<Unit extends string>(
 }
 
 /**
- * Catches the one way {@link unitGuard} fails silently: a typo.
+ * Throws when any of `symbols` is not a registered unit. A guard from
+ * {@link unitGuard} for a misspelt symbol is always `false` and raises no
+ * error, so call this when your client package loads, after registering your
+ * units, with every symbol your guards check.
  *
- * A guard for a symbol that does not exist is always false. The branch never
- * runs, the widget renders nothing, and not one thing errors anywhere, which
- * is the worst shape a bug can take. `unitGuard("Oxgyen:u")` costs an
- * afternoon.
+ * Gonogo cannot check this for you: an unregistered symbol looks the same as a
+ * resource the player's game legitimately lacks.
  *
- * **The SDK cannot check this for you, and that is not an oversight.** An
- * unregistered symbol is indistinguishable from a resource the player's
- * profile legitimately lacks. Warning on it would fire on correct code every
- * time somebody flies a profile without oxygen, and a warning that cries wolf
- * is worse than none.
- *
- * An UPLINK can tell the difference, because it knows what it registered.
- * Call this at module load, after registration, with the symbols your guards
- * use:
- *
+ * @example
  * ```ts
- * registerResourceUnits(discovered);
  * assertGuardsRegistered(["Oxygen:u", "Food:u"]);
  * ```
- *
- * Throws rather than warns: this can only fire on a symbol the caller both
- * guards on AND believes it registered, so it is a bug in the Uplink every
- * time, and a warning in a console nobody reads is how it survives to ship.
  *
  * @category Units and values
  */

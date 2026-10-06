@@ -9,7 +9,7 @@ import type { TopicId, TopicPayload } from "./topics";
 import { isUnit } from "./unit-system/guards";
 import type { Value } from "./unit-system/value";
 
-/**
+/*
  * What a telemetry read returns, and how a widget may use it.
  *
  * This lives in the SDK because `useTelemetry` returns a `Reading`, and the
@@ -395,14 +395,13 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  * `state` says what the reading holds, and the payload can only be reached
  * after checking it:
  *
- * | `state` | Meaning | Carries | | --- | --- | --- | | `"pending"` | Nothing
- * has arrived yet: a Topic just subscribed, or a resync after a rewind |
- * nothing | | `"unowned"` | Nothing will ever publish this Topic: no installed
- * Uplink declares it | nothing | | `"absent"` | The game confirmed there is no
- * value, such as no target set | `atUt` | | `"observed"` | The newest value
- * that could have reached us | `value`, `atUt` | | `"held"` | Updates
- * stopped arriving, so this is the last value received | `value`, `asOfUt`,
- * `grade` |
+ * | `state` | Meaning | Carries |
+ * | --- | --- | --- |
+ * | `"pending"` | Nothing has arrived yet: a Topic just subscribed, or a resync after a rewind | nothing |
+ * | `"unowned"` | Nothing will ever publish this Topic: no installed Uplink declares it | nothing |
+ * | `"absent"` | The game confirmed there is no value, such as no target set | `atUt` |
+ * | `"observed"` | The newest value that could have reached us | `value`, `atUt` |
+ * | `"held"` | Updates stopped arriving, so this is the last value received | `value`, `asOfUt`, `grade` |
  *
  * A held value is shown as held, never as current. {@link HeldGrade} says why
  * updates stopped. There is no zero standing in for a missing value: the
@@ -792,33 +791,16 @@ export function stillTrue<Payload, Fallback>(
 }
 
 /**
- * One PART of a payload, still carrying the whole reading's currency: the
- * narrowing to write when a primitive draws a single field and has to know
- * whether that field is current.
+ * Returns a reading of one part of a payload, in the same state as the reading
+ * it came from: `readingOf(orbit, (o) => o.apoapsis)` is a held reading
+ * when `orbit` is held.
  *
- * `<Unit>` takes a `Reading<Value<Unit>>`, and a widget holds a
- * `Reading<VesselOrbit>`. This reaches the first from the second without a
- * switch over the states at every call site, and keeps the `held` state
- * that a hand-written switch most often drops.
+ * `select` runs only in the states that carry a value. A `"pending"`,
+ * `"unowned"` or `"absent"` reading comes back in the same state.
  *
- * `select` runs only on the states that HAVE a payload. The other three carry
- * nothing to select from and come through unchanged, so a field of a pending
- * reading is a pending reading rather than an observation of `undefined`.
- *
- * ## It drops the model
- *
- * A {@link Reckoning} is a projection of the declared fields, keyed by their
- * own paths. A selector is an arbitrary function: it may pick a field no model
- * moves, or compute a magnitude out of three that it does. There is no general
- * way to carry a reckoning through one, and carrying it through unchanged would
- * be worse than dropping it, because the result would claim a model for a
- * quantity the model never spoke about.
- *
- * So the return type is an {@link UnmodelledReading}, exactly as
- * {@link withoutReckoning} produces, and for the same reason: a widget that
- * wants the modelled figure branches on `reckoning` itself and hands the
- * projection over as its own `Value`, which is a written choice and shows up in
- * review.
+ * The result has no forward model (`reckoning` is `{ status: "none" }`), since
+ * `select` can compute something the model never moved. To show a modelled
+ * figure, read `reckoning` on the source reading, or use {@link deriveReading}.
  *
  * @category Reading telemetry
  */
@@ -981,9 +963,9 @@ function derivedReckoning<Payload, Derived>(
 }
 
 /**
- * One figure of a derived {@link Reading}, with its model carried through:
- * `pick` runs on the observation and on the modelled value alike, which is
- * sound only because both are the same type.
+ * Returns one figure of a {@link Reading}, with its forward model kept: `pick`
+ * runs on the observed value and on the modelled value alike. Where `pick`
+ * returns `undefined` for the modelled value, the result has no model.
  *
  * @category Reading telemetry
  */
@@ -1051,15 +1033,14 @@ function walkField(payload: unknown, path: string): unknown {
 }
 
 /**
- * One path's {@link Reckoning}, projected out of the topic's own model.
+ * Returns the {@link Reckoning} of one field of a Topic, taken from the Topic's
+ * own model: the modelled value at `path`, the basis that moved it, and the
+ * band the model gives at exactly that path.
  *
- * Projected rather than read from the subtopic of the same name, so the field
- * keeps the band the topic's own model produced: it is read out of
- * {@link TopicReckoningAvailable.bands} at this path.
- *
- * A path no {@link ModelledField} covers reckons `"none"`: the value sitting at
- * that path in the modelled payload is a copy of the last observation, carried
- * along because the model returns the whole payload.
+ * `path` is dotted from the payload root, such as `"verticalSpeed"`. A path the
+ * model does not move returns `{ status: "none" }`, since the value there is
+ * the last observation copied unchanged. A Topic reckoning that is `"none"` or
+ * `"declined"` is returned as it is.
  *
  * @category Reading telemetry
  */
@@ -1125,17 +1106,16 @@ function projectField(
  * The reading of the first element of a list that satisfies `predicate`, or
  * `undefined` where the list holds no value or no element matches.
  *
- * An element picked by a test has no index of its own, and a figure drawn from
- * it still needs its currency and its band. This finds the position in the
- * observed list and hands back the reading at that position, so
- * `findReading(career.tech.nodes, (n) => n.id === picked)?.scienceCost` is a
- * reading like any other field. The not-found case is handled here, once, so a
- * caller never holds an index of `-1`.
+ * Use it to find one element by a test and still read its fields as readings,
+ * in the list's state and with their forward model.
  *
  * @example
- * ```ts
- * const node = findReading(career.tech.nodes, (n) => n.id === picked);
- * if (node !== undefined) return <Unit value={node.scienceCost} />;
+ * ```tsx
+ * function NodeCost({ nodeId }: { nodeId: string }) {
+ *   const career = useTelemetry("career.status");
+ *   const node = findReading(career.tech.nodes, (n) => n.id === nodeId);
+ *   return node === undefined ? null : <Unit value={node.scienceCost} />;
+ * }
  * ```
  *
  * @typeParam Element - The list's element type.
@@ -1154,27 +1134,19 @@ export function findReading<Element>(
 }
 
 /**
- * The currency half plus its per-field readings: what a whole-topic read hands
- * a widget.
+ * Builds a {@link TopicReading} from a {@link TopicCurrency}, adding a field
+ * reading for every payload field.
  *
- * LAZY, through a proxy, because a topic has as many fields as the contract
- * gives it and a widget reads two of them. `vessel.target` flattens to
- * forty-seven, so fields are built on first read. Each is cached on first read,
- * so two reads of one field are one projection and the reading a caller holds
- * keeps its identity.
+ * Field readings exist in every state, so `flight.altitudeAsl.state` is
+ * `"pending"` before anything has arrived. Each is built when first read and
+ * the same object is returned on every later read.
  *
- * A proxy rather than `Object.defineProperty` over the payload's own keys,
- * because the field half has to be there on `pending`, `unowned` and `absent`
- * too, where there is no payload to enumerate. A widget that reaches
- * `flight.altitudeAsl.state` before the first packet lands must get `"pending"`,
- * not a crash.
- *
- * Spreading one copies the currency and NOT the field readings: `ownKeys` is
- * the currency's, so `{ ...reading }` is what it has always been. Reach a field
- * off the reading itself.
+ * Spreading the result (`{ ...reading }`) copies only the currency, not the
+ * field readings. Read a field off the reading itself.
  *
  * @category Reading telemetry
  */
+// A proxy rather than defineProperty over the payload's keys: pending, unowned and absent have no payload to enumerate.
 export function topicReading<Payload>(
   currency: TopicCurrency<Payload, { readonly status: "none" }>,
 ): UnmodelledReading<Payload>;
@@ -1364,26 +1336,20 @@ export function bandSide<Unit extends string>(
 }
 
 /**
- * Whether the producer has spoken about this topic at all, whatever it said.
+ * Returns whether anything has published this Topic yet: `true` for
+ * `"absent"`, `"observed"` and `"held"`, `false` for `"pending"` and
+ * `"unowned"`.
  *
- * The question a presence gate asks. Use it rather than
- * `reading.state !== "pending"`, which reads `unowned` as the producer having
- * reported when it is the strongest evidence that no producer exists.
+ * Use it to decide whether to show a section at all, such as one that depends
+ * on a mod being installed. `"absent"` counts, because the game said there is
+ * no value. Checking `state !== "pending"` instead would count `"unowned"`,
+ * which means nothing will ever publish the Topic.
  *
- * `absent` is deliberately TRUE: a producer saying "there is no value" is still
- * a producer, and a tombstone is data. `held` likewise, since a domain that
- * reported and went quiet is still installed.
+ * To decide what to draw, branch on `state`: `"pending"` can change on the next
+ * frame and `"unowned"` never will.
  *
- * The two falses are NOT interchangeable even though this collapses them, and a
- * caller that renders something for the user should branch on `state` rather
- * than on this: `pending` may become true on the next frame and `unowned` never
- * will. This says whether the gate should be open, not what to show.
- *
- * Takes the discriminant rather than `Reading<Payload>`, because it reads
- * nothing else and because the callers that need it most cannot supply a
- * `Reading<Payload>`: a presence gate reads `` `${domain}.available` `` through
- * a runtime `as TopicId` cast, so its reading is the union over EVERY topic and
- * unifies with no single `Payload`.
+ * It takes any object with a `state`, so a reading of a Topic whose id is
+ * built at runtime can be passed.
  *
  * @category Reading telemetry
  */
@@ -1665,10 +1631,10 @@ export interface ReckonerFrame<Payload = unknown> {
 }
 
 /**
- * Whether the observation is live AND asked for the instant it was received at,
- * so there is no gap for a model integrating from the last observation to carry
- * it across. Under signal delay a live observation is still a light-time behind
- * the craft's present, and that is a gap.
+ * Returns whether a reckoner is asked for the same instant its observation was
+ * received at, with the observation still live, so there is no gap to carry
+ * the value across. Under signal delay it is `false`: a live observation is
+ * still the signal delay behind the craft.
  *
  * @category Reading telemetry
  */

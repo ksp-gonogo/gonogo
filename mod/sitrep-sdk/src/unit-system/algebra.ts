@@ -271,7 +271,8 @@ type Def<Unit extends StaticUnit> = (typeof UNIT_DEFINITIONS)[Unit];
 type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
 
 /**
- * A consumer that knows its RESOURCE names at compile time declares them here.
+ * The resource names an Uplink knows when it is built, each declared by
+ * augmenting this interface:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -281,7 +282,10 @@ type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
  * }
  * ```
  *
- * See {@link ResourceDim} for the token grammar this unlocks.
+ * A declared resource's units then have dimensions of their own:
+ * `"Food:u"` is an amount of Food, `"Food:u/s"` a rate of it, `"Food:kg/u"` its
+ * mass per unit and `"Food:f/u"` its price per unit. Food and Oxygen are both
+ * shown as `u`, but adding one to the other does not compile.
  *
  * @category Units and values
  */

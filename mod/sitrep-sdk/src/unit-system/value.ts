@@ -34,39 +34,23 @@ type DimensionOf<Unit> = Unit extends DeclaredUnit ? DimOf<Unit> : never;
 declare const UnknownUnitBrand: unique symbol;
 
 /**
- * A unit token the wire named but this build cannot see: an Uplink's custom
- * symbol decoded off a payload with no local `declare module` augmentation for
- * it, as opposed to `string`, which means "any unit, including ones this build
- * knows perfectly well." The distinction is the same one TypeScript's own
- * `unknown` draws against `any`: `Value<string>` is a value whose unit this
- * code has chosen not to track; `Value<UnknownUnit>` is a value whose unit
- * genuinely cannot be known here, and the type has to keep saying so at every
- * step or the branding is decorative.
+ * A unit this build does not know: one an Uplink declared, read without that
+ * Uplink's type declarations in scope.
  *
- * Branded rather than a bare alias for `string`, because a bare alias would be
- * indistinguishable from `string` and every degradation in this module already
- * targets `string`. The brand is what lets `CombinableWith` (below) and the
- * multiply/divide result types in `algebra.ts` tell "unit not in the catalog,
- * but at least it is a literal we can compare" apart from "unit not in the
- * catalog because there is nothing here to compare," and block only the latter.
- *
- * `.magnitude` and `.unit` stay readable on a `Value<UnknownUnit>` with no
- * narrowing: the SHAPE is guaranteed even though the CONTENT is not, exactly
- * as `Array<unknown>` still has a `.length`. Arithmetic is what the brand
- * blocks, not field access.
+ * A `Value<UnknownUnit>` still has its `magnitude` and `unit`, but none of its
+ * arithmetic or comparisons compile, even against another `UnknownUnit`, since
+ * nothing says the two are the same unit. `Value<string>` is different: a value
+ * in any unit, which combines with an exact match of itself.
  *
  * @category Units and values
  */
 export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
 
 /**
- * Every declared unit sharing `Unit`'s dimension, first-party or merged into
- * `UnitDeclarations` by an Uplink.
- *
- * This is what makes `Value<"W">.plus(Value<"J/s">)` compile and
- * `Value<"m">.plus(Value<"s">)` not. For a unit nothing declares the union
- * collapses to `never`, and `plus` then accepts only an exact match, which is
- * the safe reading when we know nothing about a symbol.
+ * Every declared unit with the same dimension as `Unit`, including units an
+ * Uplink declared. `SameDimensionAs<"W">` includes `"J/s"`, so
+ * `Value<"W">.plus(Value<"J/s">)` compiles, and `Value<"m">.plus(Value<"s">)`
+ * does not. `never` for a unit nothing declares.
  *
  * @category Units and values
  */
@@ -81,7 +65,7 @@ export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
         : never;
     }[DeclaredUnit];
 
-/**
+/*
  * What `U` can be paired with in `plus`, `minus`, `in`, a comparison, or
  * `min`/`max`: itself, plus anything sharing its dimension.
  *
@@ -108,7 +92,7 @@ export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
  * everything, including itself, the same way TypeScript's own `unknown`
  * blocks `x + x`.
  */
-/**
+/*
  * The affine layer: point-like units and the vector units they pair with.
  *
  * All four types read the `affineVector` declaration off `UNIT_DEFINITIONS`, so the
@@ -118,13 +102,10 @@ export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
  */
 
 /**
- * Units whose kind names an INSTANT rather than an amount.
- *
- * <p>Exported because the distinction decides more than arithmetic. An input
- * control cannot offer a slider over an instant: a UT is legitimately years out,
- * so no range bounds it usefully, where an interval bounded by a range slides
- * fine. Derived from the registry's own `affineVector` rather than from a list,
- * so a unit added as point-like is point-like everywhere at once.</p>
+ * The units that name an instant rather than an amount, such as `"ut"`. An
+ * instant can be moved by a duration and two instants subtracted, but two
+ * instants cannot be added and an instant cannot be multiplied. A UT may be
+ * years away, so no slider range suits one.
  *
  * @category Units and values
  */
@@ -286,119 +267,95 @@ type CombinableWith<Unit extends string> = [Unit] extends [UnknownUnit]
     : Exclude<SameDimensionAs<Unit>, CoincidentWith<Unit>>;
 
 /**
- * A quantity that carries its own unit.
+ * A number with its unit, such as `Value<"m">`. Every quantity in a payload
+ * arrives as one. Show it with `<Unit value={altitude} />`.
  *
- * A PLAIN OBJECT, not a `class Value extends Number`. The Number subclass is
- * tempting because it keeps `.toFixed()`, but `JSON.stringify` of a Number
- * object yields the bare primitive and `unit` vanishes. This app serialises
- * snapshots over PeerJS to station screens, so stations would have silently
- * received unitless numbers.
+ * Arithmetic and comparison are methods, and they convert between units of
+ * the same dimension: `value("h", 1).greaterThan(value("min", 90))` is
+ * `false`. Units of different dimensions do not combine: adding a length to a
+ * duration does not compile. JavaScript's operators (`a + b`, `a > b`) do not
+ * compile on a `Value`, and a `Value` cannot be rendered directly as JSX.
  *
- * The methods live on a shared prototype, so they do not serialise and one
- * value costs two fields. See {@link hydrate} for the other side of that trade.
+ * Where a method takes a plain number for a quantity, the number is in the
+ * dimension's base unit: metres for a length, seconds for a duration. So
+ * `value("km", 5).minus(3)` is 4.997 km. Instants such as `"ut"` take no plain
+ * number. The plain number given to `times`, `dividedBy`, `per` and `scaled`
+ * is a factor, not a quantity.
  *
- * What this deliberately BREAKS:
+ * A `Value` sent as JSON becomes `{ magnitude, unit }` and loses its methods;
+ * {@link hydrate} restores them.
  *
- * - `{value}` in JSX. A plain object is not a `ReactNode`, so it is a compile
- *   error pointing at the exact line. Stronger than a lint rule.
- * - `a + b`, `a - b`, `a > b`. TypeScript rejects arithmetic and relational
- *   operators on object types regardless of `valueOf`, and that is the point:
- *   `timeToLaunch + timeToRendezvous` across a `Value<"s">` and a `Value<"h">`
- *   would otherwise give `120 + 2 = 122` and look fine.
+ * @example
+ * ```ts
+ * const flight = observedValue(useTelemetry("vessel.flight"));
+ * const descending = flight !== undefined && flight.verticalSpeed.isNegative();
+ * const altitudeKm = flight?.altitudeAsl.in("km");
+ * ```
+ *
+ * @typeParam Unit - The unit symbol, such as `"m"` or `"m/s"`.
  *
  * @category Units and values
  */
+// A plain object rather than a Number subclass: JSON.stringify of a Number object drops the unit, and values cross PeerJS to stations.
 export interface Value<Unit extends string = string> {
+  /** The number, in `unit`. To show a value, pass the whole value to `<Unit>` instead. */
   readonly magnitude: number;
+  /** The unit symbol, such as `"m"`. */
   readonly unit: Unit;
 
   /**
-   * Present, and `true`, on a value the contract declares static: a fact about
-   * its subject that does not change with time, such as a body's radius. A copy
-   * of one is never old, so a figure drawn from it is never marked as held.
-   * Absent on everything else, including anything computed FROM a static value:
-   * arithmetic mints a new value, and whether a result is still a fact is not
-   * something the algebra can know.
+   * `true` on a value that never changes, such as a body's radius, so a figure
+   * drawn from it is never shown as held. Absent on every other value,
+   * including one computed from a static value.
    */
   readonly static?: true;
 
   /**
-   * Present, and `true`, on a value that is exact at any instant: computed
-   * from fixed inputs and the clock, with no model error to carry. A body's
-   * orbital elements on a fixed conic are the case, and the contract stamps
-   * them only while the body's own horizon says the conic is the whole truth.
-   * A figure drawn from one is not a guess, so it takes no held or modelled
-   * mark. Unlike {@link Value.static} it describes a value that moves, and it
-   * survives derivation: see {@link carryDeterminism}.
+   * `true` on a value that is exact at any instant, because it is computed
+   * from fixed inputs and the clock, such as a planet's position on its fixed
+   * orbit. A figure drawn from it is shown as neither held nor modelled. Unlike
+   * `static`, the value changes over time. Use {@link carryDeterminism} to keep
+   * the mark on a result computed from such values.
    */
   readonly deterministic?: true;
 
   /**
-   * Present so a value still works where a number is genuinely wanted:
-   * `Math.max`, a `<progress value>`, a chart's y-axis. It does NOT rescue the
-   * operators above, which TypeScript rejects on object types no matter what
-   * `valueOf` says.
+   * Returns `magnitude`, for an API that takes a number, such as a chart's
+   * axis. It does not make `a + b` or `a > b` compile, and `Math.max` over two
+   * values in different units gives the wrong one: use `max` instead.
    */
   valueOf(): number;
+  /** Returns the value as JSON sends it: `{ magnitude, unit }`, with `static` and `deterministic` where set. */
   toJSON(): {
     magnitude: number;
     unit: Unit;
     static?: true;
     deterministic?: true;
   };
+  /** Returns the magnitude and unit as text, for debugging. To show a value, use `<Unit>`. */
   toString(): string;
 
   /**
-   * The magnitude, where a quantity is being WRITTEN INTO a numeric slot that
-   * cannot hold a unit: a declared `number` field of a serialisable shape, a
-   * typed sample buffer, a wire payload someone else's code will read.
-   *
-   * Identical to `.magnitude` at runtime. What it changes is the reading, and
-   * the reading is the reason it exists. The magnitude budget counts unwraps
-   * because unwrapping is how the arithmetic surface came to have no callers,
-   * and it could not tell two different acts apart: DISCARDING dimension to
-   * compute on bare numbers, which is that defect, and SERIALISING at a
-   * boundary, which is unavoidable and is not. One spelling for both meant the
-   * only way out of the type system looked exactly like the mistake, so a real
-   * boundary and a lazy one cost the same and were argued about the same way.
-   * This is the second act, named, so the budget can price it separately.
-   *
-   * ## It is not a way around the budget
-   *
-   * `a.toWire() - b.toWire()` is the same defect in a better-sounding
-   * spelling, and a name does not stop anybody writing it. Two things do.
-   * Occurrences are BUDGETED per file exactly as `.magnitude` is, so a new one
-   * has to be written down and explained; and a separate scan arm with NO debt
-   * list at all fails on this result appearing as an operand of `+ - * / %`.
-   * Both live in `styleguide-magnitude-budget.test.ts`.
-   *
-   * So: if the number is about to be computed with, this is the wrong method
-   * and the algebra is what you want. If it is about to be ASSIGNED to a
-   * numeric field and never touched again, this is the honest spelling.
-   *
-   * Showing the value is neither. That is `<Unit>`, and reaching for a bare
-   * number to build a string is how one readout ends up in kilometres under a
-   * metres label. See `magnitudeOf` for the same warning on the same subject.
+   * Returns `magnitude`, for storing the value where only a number fits: a
+   * numeric field of a serialised object, a typed array, a payload another
+   * program reads. Do not compute with the result; use the methods instead.
    */
+  // Budgeted per file like `.magnitude`, and styleguide-magnitude-budget.test.ts fails on its result used as an arithmetic operand.
   toWire(): number;
 
   /**
-   * Same dimension only. Operands are converted to base before combining, so
-   * seconds and hours add correctly with no manual conversion, and the result
-   * carries the LEFT operand's unit: it reads as "a, but more", the type needs
-   * no base lookup, and display re-picks the rung anyway.
-   *
-   * A bare number is accepted and is IN BASE UNITS. See {@link BareOperand}.
+   * Returns the sum, in this value's unit. `other` must have the same
+   * dimension and is converted first, so seconds and hours add correctly. A
+   * plain number is in the base unit. A duration may be added to an instant,
+   * but not an instant to anything.
    */
   plus(other: Value<Addend<Unit>> | BareOperand<Unit>): Value<Unit>;
   /**
-   * Two shapes, and the order matters: the point-minus-point arm is first so a
-   * `ut.minus(ut)` resolves there and lands in the companion vector.
-   *
-   * `PointCounterpart<Unit>` is `never` for anything not point-like, which makes the
-   * first arm unselectable rather than merely unused, so every other unit in the
-   * catalogue keeps exactly the one signature it had.
+   * Returns the difference. Between two instants it is a duration:
+   * `ut.minus(ut)` is a `Value<"s">`. Otherwise it is in this value's unit, with
+   * the same rules for `other` as `plus`.
    */
+  // The instant-minus-instant overload is first so `ut.minus(ut)` resolves there; it is unselectable for any other unit.
   minus(other: Value<PointCounterpart<Unit>>): Value<VectorResult<Unit>>;
   minus(other: Value<Addend<Unit>> | BareOperand<Unit>): Value<Unit>;
   /*
@@ -414,24 +371,14 @@ export interface Value<Unit extends string = string> {
   ): Value<Unit extends PointUnit ? VectorResult<Unit> : Unit>;
 
   /**
-   * Total. Any dimension over any dimension; `rep/f` is coherent.
-   *
-   * Three overloads, and the order matters:
-   *
-   * 1. **`number` first.** A `Value` is an object type and is not assignable to
-   *    `number` despite `valueOf`, so it cannot be captured here by mistake.
-   *    It is what keeps `value("kW",3).times(2)` a `Value<"kW">` rather than
-   *    collapsing it to `Value<string>`.
-   * 2. **The generic arm** does the dimensional algebra, so `m.per(s)` is
-   *    `Value<"m/s">` and `force.times(distance)` is `Value<"J">`.
-   * 3. **The wide arm last, and it is what keeps this non-breaking.** Without
-   *    it a UNION-typed argument (`Value | number`, which is what `per`'s own
-   *    implementation passes) matches no overload at all and fails with
-   *    TS2769. With it, a union resolves here and yields `Value<string>`,
-   *    which is exactly the answer every call site got before.
-   *
-   * A dimension the catalogue cannot name comes back as `Value<string>`. See
-   * `algebra.ts` for why that gap is where it is.
+   * Returns the product. A plain number scales the value and keeps its unit.
+   * Another value multiplies the dimensions: a force times a distance is a
+   * `Value<"J">`. A product with no declared unit is a `Value<string>`.
+   * Instants cannot be multiplied.
+   */
+  /*
+   * Overload order matters: `number` first keeps `times(2)` in the same unit, the generic arm does the algebra,
+   * and the wide arm last accepts a `Value | number` union, which matches neither of the others.
    */
   times(other: ScalarFor<Unit>): Value<Unit>;
   times<OtherUnit extends string>(
@@ -439,63 +386,44 @@ export interface Value<Unit extends string = string> {
   ): Value<Product<Unit, OtherUnit>>;
   times(other: Value | ScalarFor<Unit>): Value;
 
+  /**
+   * Returns the quotient. A plain number scales the value and keeps its unit.
+   * Another value divides the dimensions: a distance divided by a duration is
+   * a speed. A quotient with no declared unit is a `Value<string>`.
+   */
   dividedBy(other: ScalarFor<Unit>): Value<Unit>;
   dividedBy<OtherUnit extends string>(
     other: Value<OtherUnit>,
   ): Value<Quotient<Unit, OtherUnit>>;
   dividedBy(other: Value | ScalarFor<Unit>): Value;
 
-  /** `dividedBy`, spelled for the reading `distance.per(time)`. */
+  /** The same as `dividedBy`, for code that reads better as `distance.per(time)`. */
   per(other: ScalarFor<Unit>): Value<Unit>;
   per<OtherUnit extends string>(
     other: Value<OtherUnit>,
   ): Value<Quotient<Unit, OtherUnit>>;
   per(other: Value | ScalarFor<Unit>): Value;
 
-  /** Scales the magnitude, leaving the unit alone. */
+  /** Returns the value multiplied by `factor`, in the same unit. */
   scaled(factor: number): Value<Unit>;
-  /** Re-expressed in another unit of the same dimension. */
+  /** Returns the same quantity in another unit of the same dimension: `value("m", 1500).in("km")` is 1.5 km. */
   in<Target extends CombinableWith<Unit>>(unit: Target): Value<Target>;
 
   /**
-   * Equality across units, and a bare number is IN BASE UNITS like every other
-   * bare operand: `value("kW", 3).equals(3)` is false, because 3 kW is not 3 W.
+   * Returns whether the two are the same quantity, converting between units.
+   * A plain number is in the base unit, so `value("kW", 3).equals(3)` is
+   * `false`: 3 kW is not 3 W.
    */
   equals(other: Value | number): boolean;
 
   /**
-   * Ordering. Same dimension only, and converted before comparing, so 1 h is
-   * correctly greater than 90 min.
-   *
-   * These exist because `a > b` cannot: TypeScript rejects relational
-   * operators on object types, which is the same property that makes the
-   * migration findable. Named the long way, matching `dividedBy` rather than
-   * `div`, and matching what UnitMath and decimal.js settled on.
-   *
-   * Reach for these rather than comparing `.magnitude` directly. That
-   * compiles, and it is wrong across units: 2 h has a smaller magnitude than
-   * 120 s and is thirty times the duration. It is the one hole the object type
-   * does not close on its own.
-   *
-   * A bare number is accepted and is IN BASE UNITS, so `ecc.lessThan(1)` reads
-   * as written and `altitude.lessThan(1000)` is a thousand METRES whatever rung
-   * `altitude` happens to be on. See {@link BareOperand}.
-   *
-   * `Value<Unit>` sits in the union beside `Value<Comparand<Unit>>` so that a GENERIC
-   * `Unit` can be compared against itself. It admits nothing new for a concrete
-   * unit, because `Unit` is already a member of `Comparand<Unit>` for every one of
-   * them: `Comparand<"ut">` is `"ut"`, and `Comparand<"m">` contains `"m"`.
-   * What it unblocks is `<Unit extends string>(a: Value<Unit>, b: Value<Unit>)`, where
-   * the conditional cannot resolve and `Value<Unit>` is therefore not assignable
-   * to `Value<Comparand<Unit>>` even though the two units are the same string by
-   * construction. Code holding a band and a threshold in one unbound unit had
-   * to unwrap both to compare them, which is the shape `bandSide` and
-   * `bandIsWellFormed` carried until this was added.
-   *
-   * It widens what may be compared, never what a comparison MEANS: the
-   * cross-dimension and point-versus-vector refusals are `Comparand`'s and are
-   * untouched, each pinned as a `@ts-expect-error` in `value.test-d.ts`.
+   * Compare with a value of the same dimension, converting first, so 1 h is
+   * greater than 90 min. Comparing `magnitude`s directly compiles but is wrong
+   * across units. A plain number is in the base unit, so
+   * `altitude.lessThan(1000)` means 1,000 metres whatever unit `altitude` is
+   * in. An instant compares only with an instant.
    */
+  // `Value<Unit>` sits beside `Value<Comparand<Unit>>` so a generic Unit compares with itself, which the deferred conditional otherwise refuses.
   lessThan(
     other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;
@@ -510,74 +438,43 @@ export interface Value<Unit extends string = string> {
   ): boolean;
 
   /**
-   * Negative, zero or positive. For `Array.prototype.sort`, which wants that
-   * shape; for a yes-or-no question use the predicates above.
+   * Returns a negative number, zero or a positive number, for
+   * `Array.prototype.sort`. To ask a yes-or-no question, use `lessThan` and the
+   * others.
    */
   compare(other: Value<CombinableWith<Unit>> | BareOperand<Unit>): number;
 
-  /**
-   * Sign, which needs no operand.
-   *
-   * Zero is the one quantity that needs no unit: every unit of a dimension is
-   * a pure multiple of its base, so zero is zero in all of them. That is why
-   * these take nothing, and it matters because comparing against zero is by
-   * some distance the most common comparison in this codebase: a resource rate
-   * being negative is what makes it a drain, a vertical speed being positive is
-   * what makes it a descent. `greaterThan(value("m/s", 0))` would be noise on
-   * every one of them.
-   */
+  /** Returns whether the value is zero, which is zero in every unit. */
   isZero(): boolean;
+  /** Returns whether the value is above zero. */
   isPositive(): boolean;
+  /** Returns whether the value is below zero. */
   isNegative(): boolean;
 
   /**
-   * Whether this is a real quantity at all: not a NaN, not an infinity.
-   *
-   * Needs no operand and no unit for the same reason the sign predicates do
-   * not. Conversion multiplies by a ratio, and NaN times anything is NaN while
-   * Infinity times anything is Infinity, so validity is the one property no
-   * choice of unit can change.
-   *
-   * It exists because a quantity arriving over the wire is not always one: a
-   * hyperbolic orbit has no semi-major axis, a vessel with no atmosphere around
-   * it has no density, and the mod sends what KSP computed rather than
-   * inventing a substitute. Before this, every such check had to unwrap to
-   * `Number.isFinite(x.magnitude)`, which is the one `.magnitude` escape the
-   * algebra genuinely had no answer for.
+   * Returns whether the value is a real number, neither NaN nor infinite. The
+   * game sends what it computed, so a value can be either: a hyperbolic orbit
+   * has no finite semi-major axis.
    */
   isFinite(): boolean;
 
-  /** Magnitude without its sign, unit unchanged. */
+  /** Returns the value without its sign, in the same unit. */
   abs(): Value<Unit>;
 
   /**
-   * The smaller or larger of the two, keeping ITS unit.
-   *
-   * Not ergonomics: `Math.max(a.valueOf(), b.valueOf())` is wrong across units
-   * in exactly the way comparing `.magnitude` is. `Math.max` of 1 h and 90 min
-   * compares 1 against 90 and returns the 90 minutes, which is the shorter
-   * duration. These convert first.
-   *
-   * A bare number is accepted and is IN BASE UNITS, like every other bare
-   * operand. The bare arm returns `Value<Unit>` rather than the union, because a
-   * bare number has no unit of its own to survive: `elapsed.max(0)` is the clamp
-   * that `Math.max(0, elapsed.magnitude)` was written as five times, and it
-   * keeps its type on the way out instead of shedding it. See {@link BareOperand}.
+   * Returns the smaller of the two, converting between units, in the unit of
+   * whichever is smaller. A plain number is in the base unit, so
+   * `elapsed.max(0)` clamps a duration at zero and keeps its unit. Use these
+   * rather than `Math.min` and `Math.max`, which compare magnitudes and so get
+   * 1 h against 90 min wrong.
    */
-  /*
-   * The SAME-unit arm, first so it wins the overload resolution it is about.
-   * `CombinableWith<Unit>` is deferred while `Unit` is still a type parameter, so a
-   * component generic over its own unit cannot show `Value<Unit>` satisfies it,
-   * and `q.max(min)` fails to compile for two operands that are plainly one
-   * kind. A value is always combinable with its own unit, so this arm asserts
-   * nothing the wider one would not have allowed, and it returns the narrow
-   * `Value<Unit>` rather than the union because both operands are already it.
-   */
+  // The same-unit overload is first: CombinableWith is deferred while Unit is generic, so a generic `q.max(min)` needs it.
   min(other: Value<Unit>): Value<Unit>;
   min(other: BareOperand<Unit>): Value<Unit>;
   min(
     other: Value<CombinableWith<Unit>>,
   ): Value<Unit> | Value<CombinableWith<Unit>>;
+  /** Returns the larger of the two. See `min`. */
   max(other: Value<Unit>): Value<Unit>;
   max(other: BareOperand<Unit>): Value<Unit>;
   max(
@@ -865,19 +762,11 @@ const prototype = {
 };
 
 /**
- * Wraps a magnitude and its unit.
+ * Returns a {@link Value} of `magnitude` in `unit`: `value("m/s", 12)`.
  *
- * `Object.create` rather than a class so the result is a plain data object with
- * a shared prototype: two own properties per value, and `JSON.stringify` yields
- * exactly `{magnitude, unit}`.
- *
- * The unit parameter is `KnownUnit | (string & {})`, the same open union the
- * generated `SitrepUnit` uses: every declared symbol autocompletes, and an
- * arbitrary string is still legal because an Uplink's unit has to be. So a
- * typo is not REJECTED, and cannot be without shutting third parties out. What
- * happens instead is that the typo becomes its own base dimension and refuses
- * to combine with anything: `value("Klevin", 300).plus(value("K", 1))` throws
- * "Cannot add Klevin and K". Wrong, but loudly, rather than quietly wrong.
+ * Any string is accepted as a unit, since an Uplink may declare its own, and
+ * declared units autocomplete. A misspelt unit is a unit of its own that
+ * combines with nothing, so `value("Klevin", 300).plus(value("K", 1))` throws.
  *
  * @category Units and values
  */
@@ -893,7 +782,8 @@ export function value<Unit extends string>(
 }
 
 /**
- * A {@link value} the contract declares static. See {@link Value.static}.
+ * Returns a {@link Value} marked static, a fact that never changes. See
+ * {@link Value.static}.
  *
  * @category Units and values
  */
@@ -907,9 +797,9 @@ export function staticValue<Unit extends string>(
 }
 
 /**
- * `figure` stamped static, for a value computed from a static one by an
- * operation that keeps it a fact (dropping a sign, converting its unit).
- * Arithmetic never does this on its own; the caller is the one who knows.
+ * Returns `figure` marked static. Use it on a value computed from a static
+ * one where the result is still a fact, such as its absolute value or the same
+ * value in another unit. Arithmetic never marks a result static by itself.
  *
  * @category Units and values
  */
@@ -920,9 +810,9 @@ export function asStatic<Unit extends string>(
 }
 
 /**
- * `figure` stamped deterministic: exact at any instant. The decoder mints
- * these where the contract says so; a caller reaches for it only through
- * {@link carryDeterminism}, which checks the inputs.
+ * Returns `figure` marked deterministic, exact at any instant. See
+ * {@link Value.deterministic}. To mark a computed value, use
+ * {@link carryDeterminism}, which checks the inputs first.
  *
  * @category Units and values
  */
@@ -939,7 +829,7 @@ export function asDeterministic<Unit extends string>(
 }
 
 /**
- * Whether `candidate` is a value stamped deterministic.
+ * Returns whether `candidate` is a {@link Value} marked deterministic.
  *
  * @category Units and values
  */
@@ -948,8 +838,8 @@ export function isDeterministicValue(candidate: unknown): boolean {
 }
 
 /**
- * Whether a figure drawn from `candidate` is exact with no observation of now:
- * a static value (constant) or a deterministic one (exact at any instant).
+ * Returns whether `candidate` is a {@link Value} known exactly without a new
+ * reading: one marked static or deterministic.
  *
  * @category Units and values
  */
@@ -961,17 +851,17 @@ export function isExactValue(candidate: unknown): boolean {
 }
 
 /**
- * `figure` stamped deterministic when every one of `inputs` is static or
- * deterministic, and returned as it came otherwise. The clock is the one input
- * that needs no entry: a figure computed from exact values at an instant is
- * exact at that instant.
+ * Returns `figure` marked deterministic when every one of `inputs` is static
+ * or deterministic, and unchanged otherwise. Pass the values `figure` was
+ * computed from; the current time needs no entry. An empty `inputs` marks
+ * nothing.
  *
- * This is how the stamp survives derivation, which arithmetic alone never
- * grants: the algebra mints a bare value, and the caller, who knows everything
- * the figure was computed from, states it here. One input that is neither (a
- * craft's orbit, a budget) leaves the result unstamped, and it takes that
- * input's mark as before. An empty `inputs` stamps nothing: a figure computed
- * from nothing declared has made no claim.
+ * @example
+ * ```ts
+ * const radius = staticValue("m", 600_000);
+ * const orbitHeight = staticValue("m", 80_000);
+ * const fromCentre = carryDeterminism(radius.plus(orbitHeight), [radius, orbitHeight]);
+ * ```
  *
  * @category Units and values
  */
@@ -985,7 +875,7 @@ export function carryDeterminism<Unit extends string>(
 }
 
 /**
- * Whether `candidate` is a value the contract declares static.
+ * Returns whether `candidate` is a {@link Value} marked static.
  *
  * @category Units and values
  */
@@ -994,7 +884,9 @@ export function isStaticValue(candidate: unknown): boolean {
 }
 
 /**
- * True for something this module produced, or something `hydrate` restored.
+ * Returns whether `candidate` is a {@link Value}: an object with a numeric
+ * `magnitude` and a string `unit`. A value that has lost its methods crossing
+ * JSON counts; restore them with {@link hydrate}.
  *
  * @category Units and values
  */
@@ -1008,17 +900,10 @@ export function isValue(candidate: unknown): candidate is Value {
 }
 
 /**
- * Restores the prototype on a value that crossed a serialisation boundary.
- *
- * The methods live on the prototype so they do not serialise, which is what
- * keeps a value two fields on the wire. The cost is that anything arriving via
- * `JSON.parse` or a structured clone (the PeerJS hop to a station screen) is
- * `{magnitude, unit}` and nothing else. Reading it still works, and so does
- * rendering, since `<Unit>` reads only those two fields. Arithmetic does not,
- * and this is how a station gets it back.
- *
- * Idempotent, and a pass-through for anything that is not a value, so it is
- * safe to map over a decoded payload without knowing which fields are wrapped.
+ * Returns a {@link Value} with its methods restored, after it crossed JSON or
+ * a structured clone and arrived as a plain `{ magnitude, unit }`. Anything
+ * that is not a value, or already has its methods, is returned as it is.
+ * {@link hydratePayload} does this for a whole payload.
  *
  * @category Units and values
  */
@@ -1059,17 +944,8 @@ export interface Vector3<Unit extends string = string> {
 }
 
 /**
- * The length of a vector, in the unit its components share.
- *
- * Named for the vector rather than as `magnitude`, because `Value.magnitude`
- * is a different thing one letter away: a scalar's bare number. This returns a
- * `Value`, so `vectorMagnitude(relativePosition)` is a distance in metres and
- * renders like any other.
- *
- * Reading the components' `.magnitude` here is safe in a way it is not in
- * general: a `Vector3<Unit>` has all three leaves in the same unit BY TYPE, so
- * there is nothing to mix. That is the whole reason this can be one line
- * rather than two conversions.
+ * Returns the length of a vector, in the unit its components share:
+ * `vectorMagnitude(target.relativePosition)` is a distance in metres.
  *
  * @category Units and values
  */

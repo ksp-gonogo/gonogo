@@ -1,43 +1,19 @@
 /**
- * Taking a quantity's magnitude, at the places where a caller genuinely has to.
+ * Anything {@link magnitudeOf} accepts: a quantity such as a `Value`, a plain
+ * number, `null` or `undefined`.
  *
- * ## When this is right
- *
- * Code that draws or computes. SVG attributes take numbers; a Kepler solver, a
- * median filter and a rolling window all take numbers; a model that predates
- * the unit system and is shared with code that does the above takes numbers.
- * Those boundaries are real, and one funnel through them is better than
- * `.magnitude` sprinkled at every use.
- *
- * ## When this is WRONG
- *
- * Showing the value. `<Unit value={x} />` is how a quantity is displayed, and
- * reaching for a magnitude to build a string is how a dashboard ends up with
- * six spellings of "m/s" and one readout quietly showing kilometres under a
- * metres label. If the number is going on screen, this is not the function you
- * want.
- *
- * The narrow `{ magnitude: number }` parameter rather than `Value<Unit>` is
- * deliberate: it accepts a plain number too, which is what the app's own
- * derived models still carry, so a caller does not have to know which side of
- * the migration a given field is on. It is REQUIRED rather than optional for a
- * reason worth keeping: with `magnitude?: number` any object at all satisfies
- * the parameter, and a diverged copy that made it optional is how a test came
- * to hand a widget a `Reading` where a payload belonged and typecheck.
- *
- * ## Why it lives HERE
- *
- * With `Value`, which is what it unwraps, so there is one unwrap and one rule
- * for absence.
- *
- * `@ksp-gonogo/ui-kit` re-exports all three names.
+ * Take a magnitude only to compute or draw with a number, such as an SVG
+ * coordinate or an orbit calculation. To show a quantity, pass it whole to
+ * `<Unit>`, which formats it in its own unit.
  *
  * @category Units and values
  */
+// `magnitude` is required, not optional: an optional one lets any object at all through, a Reading included.
 export type Quantityish = { magnitude: number } | number | null | undefined;
 
 /**
- * The magnitude, or `null` for anything absent or non-finite.
+ * Returns the number inside a quantity, or `null` when it is absent or not
+ * finite. A plain number is returned as it is.
  *
  * @category Units and values
  */
@@ -47,7 +23,9 @@ export function magnitudeOf(v: Quantityish): number | null {
 }
 
 /**
- * The magnitude, or `fallback` when there is nothing usable to take.
+ * Returns the number inside a quantity, or `fallback` when it is absent or
+ * not finite. Only for a calculation that needs a number either way: to show a
+ * missing value, show it as missing rather than as `fallback`.
  *
  * @category Units and values
  */
@@ -56,13 +34,9 @@ export function magnitudeOr(v: Quantityish, fallback: number): number {
 }
 
 /**
- * A value read off an untyped wire bag AS a quantity, and `undefined` for
- * anything that is not one.
- *
- * A flattened payload can hold a string where a magnitude was expected, and
- * naming the field back as a `Quantityish` tells `magnitudeOf` a shape the
- * value never had. This checks instead, so a renamed or retyped field reads as
- * absent rather than as a number nobody sent.
+ * Returns `value` as a {@link Quantityish} when it is one, and `undefined` when
+ * it is not, such as a string where a number was expected. Use it on data
+ * whose type is not known before passing it to {@link magnitudeOf}.
  *
  * @category Units and values
  */

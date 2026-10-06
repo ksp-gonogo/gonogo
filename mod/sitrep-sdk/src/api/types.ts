@@ -1427,9 +1427,13 @@ export type {
 // `TimelineStore`.
 
 /**
- * The connection to the telemetry stream: subscribe to a Topic, read its latest
- * value, and send a command. Reach it with `getActiveTelemetryClient` or
- * `useTelemetryClientOptional`.
+ * The connection to the telemetry stream, for code outside a React component:
+ * subscribe to a Topic, read its latest value, and send a command. Get one
+ * with {@link getActiveTelemetryClient} or {@link useTelemetryClientOptional}.
+ *
+ * Values here are the latest received, with no state and no delay applied. A
+ * widget reads with {@link useTelemetry} and sends with {@link useCommand}
+ * instead.
  *
  * @category Reading telemetry
  */
@@ -1455,20 +1459,24 @@ export interface TelemetryClient {
 // `packages/core/src/sdk-facade.conformance.test-d.ts`.
 
 /**
- * The minimal delay-clock surface a media delay pipeline depends on, a
- * subset of `ViewClock`'s `ViewClockView` (`confirmedEdgeUt` + `onFrame`).
- * Kept structural (not `ViewClock` itself) so a camera Uplink never needs to
- * import sitrep-client just to type the clock it's handed.
+ * The two clock methods a delayed media player needs: the latest instant that
+ * may be shown, and a per-frame callback. The view clock from
+ * {@link useViewClock} satisfies it.
  *
  * @category Delay and vantage
  */
 export interface DelayClockLike {
-  /** The certainty horizon: a frame stamped at-or-before this UT is
-   *  releasable. THE one delay authority: never delay-subtracted here. */
+  /**
+   * The latest UT, in seconds, that may be shown: a frame stamped at or before
+   * it can be released. The signal delay is already applied, so do not
+   * subtract it again.
+   */
   confirmedEdgeUt(): number;
-  /** Best-effort per-frame notification (real-time driven). Not required
-   *  for correctness: a deterministic caller can drive releases some other
-   *  way instead. */
+  /**
+   * Calls `cb` with the view UT on each frame, and returns a function that
+   * unsubscribes. Optional to use: a caller may instead release media on its
+   * own schedule by reading `confirmedEdgeUt`.
+   */
   onFrame(cb: (viewUt: number) => void): () => void;
 }
 
@@ -1552,100 +1560,140 @@ export interface InFlightCommand {
 }
 
 /**
- * The per-call options `useCommand` takes.
+ * Options for {@link useCommand}.
  *
  * @category Commands
  */
 export interface UseCommandOptions {
   /**
-   * Per-call vantage override (delay-UX): the command centre this command
-   * dispatches from. Omit to use the connection's session vantage (the
-   * default); pass `"meta"` for a program-meta command (tech/strategy/contract)
-   * so it stays instant regardless of the selected centre.
+   * The command centre this command is sent from, which sets its signal delay.
+   * Omit it to send from the screen's selected centre. Pass `"meta"` for a
+   * command about the space program rather than a craft (research, strategies,
+   * contracts), which arrives at once from any centre.
    */
   vantage?: string;
   /**
-   * `false` keeps this handle off the panel's delay rail, for a hook that
-   * draws the command's outcome itself. Every other handle registers with the
-   * nearest rail, and a dev build throws when one dispatches with none mounted.
+   * `false` keeps this command off the panel's delay rail, for a widget that
+   * shows the command's progress itself. Otherwise the handle joins the
+   * nearest rail, and a development build throws when it sends with no rail
+   * mounted.
    */
   rail?: false;
 }
 
 /**
- * Mirrors the spine's `UseCommandResult`: same leaf constraint as every other
- * type in this file. `Args`/`Reply` come from the generated command map when
- * the hook was given a known `CommandId`, and `Reply` falls back to
- * {@link AnyCommandReply} rather than to `unknown`, for the reason that type
- * gives.
+ * The handle {@link useCommand} returns: `send` to dispatch the command, and
+ * what is known about it while it travels and after it ends.
  *
- * `send` is a method rather than a property holding a function for the reason
- * the spine's copy gives: as a property, `strictFunctionTypes` checks the
- * parameter contravariantly and a typed handle stops being assignable to the
- * bare `UseCommandResult` that `<CommandDelay handle>` takes.
+ * `Args` and `Reply` are the command's own argument and reply types when the
+ * hook was given a {@link CommandId}. Otherwise `Args` is `unknown` and `Reply`
+ * is {@link AnyCommandReply}. Pass the whole handle to `<CommandDelay>` to show
+ * its delay and outcomes.
+ *
+ * The lists `refusals`, `losses`, `founds` and `undelivered` each hold a
+ * dispatch until it is dismissed with `dismiss`, and a dispatch is in at most
+ * one of them at a time.
  *
  * @category Commands
  */
+// `send` is a method, not a function-valued property, so a typed handle stays assignable to the bare UseCommandResult under strictFunctionTypes.
 export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
+  /**
+   * Sends the command. Resolves with the reply once the command has run.
+   * Rejects when the game refuses it, with a `CommandErrorCode` to branch on
+   * (see {@link classifyCommandRejection}), and when no reply arrives by the
+   * expected time. A refusal or loss from a `send` whose promise nobody awaits
+   * is still recorded in `refusals` or `losses`.
+   *
+   * `opts.label` is a description of this dispatch to show the player.
+   * `opts.topic` addresses the command to one part or route on the craft.
+   */
   send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
+  /** The state of the latest dispatch. See {@link CommandStatus}. */
   status: CommandStatus;
+  /**
+   * Every dispatch from this handle still travelling or awaiting its reply. An
+   * entry that is overdue or lost stays until dismissed.
+   */
   inFlight: InFlightCommand[];
-  /** What this command IS on the rail's three axes, as its owning assembly
-   *  declared them; hand straight to `<CommandDelay>`, which picks a renderer
-   *  from them. See the spine's `UseCommandResult.tags`. */
+  /**
+   * How the command travels, as its Uplink declared it. `<CommandDelay>`
+   * chooses how to draw the command from these.
+   */
   tags: RailTags;
-  /** Effective one-way delay under this command's vantage (0 = instant by
-   *  construction, `null` = no measurable one, never 0 for that). See the
-   *  spine's `UseCommandResult.effectiveDelaySeconds`. */
+  /**
+   * The one-way signal delay this command will take, in seconds. `0` for a
+   * command that arrives at once: one about the game clock, such as time warp,
+   * or one sent with the `"meta"` vantage. `null` when no delay can be measured, such as when
+   * there is no path to the craft or no `comms.delay` reading yet: never `0`
+   * for those. {@link UseCommandResult.delayMode} says which.
+   */
   effectiveDelaySeconds: number | null;
-  /** The one-way delay as the reading it arrived in, so a delay figure drawn
-   *  through `<Unit>` draws held while `comms.delay` is quiet; `null` for an
-   *  instant command. See the spine's `UseCommandResult.delayReading`. */
+  /**
+   * The same one-way delay as a reading, so a figure drawn from it shows as
+   * held when `comms.delay` stops updating. `null` for a command that arrives
+   * at once, and wherever `effectiveDelaySeconds` is `null`.
+   */
   delayReading: Reading<Value<"s">> | null;
-  /** What `comms.delay` says the link is doing; `null` when no reading has
-   *  arrived, which is not the same as `"no-path"`. See the spine's
-   *  `UseCommandResult.delayMode`. */
+  /**
+   * What the link to the craft is doing, from `comms.delay`. `null` until a
+   * `comms.delay` reading arrives, which is not the same as `"no-path"`. It
+   * does not stop `send`: a command sent with no path is reported in `losses`.
+   */
   delayMode: DelayMode | null;
-  /** Clear a dead (`overdue`/`lost`) command from `inFlight`, or a refusal from
-   *  `refusals`; the manual out for anything that would otherwise sit forever.
-   *  See the spine's own doc. */
+  /**
+   * Removes the dispatch with this id from `inFlight`, `refusals`, `losses`,
+   * `founds` or `undelivered`. Dismissing it anywhere, such as from the
+   * panel's delay rail, removes it here too.
+   */
   dismiss: (id: string) => void;
-  /** Dispatches from this hook the game REFUSED, until dismissed. See the
-   *  spine's `UseCommandResult.refusals`. */
+  /** Dispatches the game refused, newest last, each with its reason. */
   refusals: CommandRefusal[];
-  /** Dispatches from this hook that got NO ANSWER, until dismissed. See the
-   *  spine's `UseCommandResult.losses`. */
+  /**
+   * Dispatches that got no reply, newest last. The command may still have
+   * run, so sending it again may run it twice.
+   */
   losses: CommandLoss[];
-  /** Dispatches from this hook that were called lost and then ANSWERED after
-   *  all, until dismissed. An entry here has left `losses`. See the spine's
-   *  `UseCommandResult.founds`. */
+  /**
+   * Dispatches that were listed in `losses` and then got a reply after all,
+   * newest last, with what the reply said.
+   */
   founds: CommandFound[];
-  /** Dispatches from this hook that NEVER LEFT this machine, until dismissed.
-   *  An entry here has left `losses` too, and unlike a loss it is safe to send
-   *  again. See the spine's `UseCommandResult.undelivered`. */
+  /**
+   * Dispatches that never left this machine because the link did not come
+   * back, newest last. None of them ran, so each is safe to send again.
+   */
   undelivered: CommandUndelivered[];
-  /** What the mod says about this command in ADVANCE, off `system.uplink.gates`;
-   *  `undefined` when nothing is known. See the spine's `CommandGateStatus`. */
+  /**
+   * Whether the command can be sent right now, as the mod reports it before
+   * anything is pressed, with the reason when it cannot. While it is blocked,
+   * `send` refuses at once with that reason. `undefined` when nothing is
+   * known in advance.
+   */
   gate?: CommandGateStatus;
-  /** The advance verdict for a call with these arguments: the one published for
-   *  the item they name, when the gate depends on which item that is, else
-   *  `gate`. See the spine's `UseCommandResult.gateFor`. */
+  /**
+   * The same as `gate`, for a call with these arguments: where the mod
+   * reports per item (one building, one tech node), the report for the item
+   * `args` names.
+   */
   gateFor(args: Args): CommandGateStatus | undefined;
 }
 
 /**
- * The handle for a NAMED command, with both its argument type and its reply type
- * resolved out of the generated command map.
+ * The handle {@link useCommand} returns for a named command, with its argument
+ * and reply types. Use it to type a prop or a parameter that passes a handle
+ * on, so the handle keeps its types.
  *
- * What to write on a prop, a field, or a helper that passes a dispatch handle
- * around: `useCommand("...")` already returns this, and the place a handle
- * loses its types is the annotation it travels through. It takes a union of ids
- * as readily as one, so a family of commands that reply alike can be declared
- * once, and an Uplink's own augmented `CommandArgsMap` keys work here with
- * nothing extra registered.
+ * It accepts a union of ids, for commands that take the same arguments, and
+ * works for an Uplink's own commands once it has augmented
+ * {@link CommandArgsMap}.
  *
- * See the spine's copy for why it is named off `UseCommandResult` rather than
- * `CommandHandle`.
+ * @example
+ * ```tsx
+ * function SasOn({ handle }: { handle: UseCommandResultFor<"vessel.control.setSas"> }) {
+ *   return <Button onClick={() => void handle.send({ enabled: true })}>SAS on</Button>;
+ * }
+ * ```
  *
  * @category Commands
  */
@@ -1716,13 +1764,14 @@ export interface StationBroker {
 export type StationBrokerAttach = (broker: StationBroker) => void;
 
 /**
- * What {@link useRouteCommands} returns: the queue for one topic, and the delay
- * mode it is under.
+ * What {@link useRouteCommands} returns.
  *
  * @category Commands
  */
 export interface UseRouteCommandsResult {
+  /** Every command travelling to the topic, from any command centre. */
   items: InFlightCommand[];
+  /** What the link the commands travel on is doing. */
   mode: DelayMode;
 }
 
@@ -1768,12 +1817,13 @@ export type StreamStatusValue =
 // return position is written out as `() => void` directly instead.
 
 /**
- * The imperative subscribe function `useLateTelemetrySubscribe` returns: a
- * `TopicId` argument infers the payload type from `TopicPayloadMap` (the
- * same canonical typing `useTelemetry(topic)` gives a static topic); a
- * plain `string` argument (a runtime-templated topic, e.g. a per-body coverage
- * mask) falls back to an explicit `Payload` type argument at the call site. Each
- * overload returns an unsubscribe function, safe to call more than once.
+ * The subscribe function {@link useLateTelemetrySubscribe} returns. Call it
+ * with a Topic and a callback; it returns a function that unsubscribes and is
+ * safe to call more than once.
+ *
+ * A {@link TopicId} gives the callback that Topic's payload type. For a Topic
+ * id built at runtime, pass the payload type yourself:
+ * `subscribe<MyPayload>(topic, onValue)`.
  *
  * @category Reading telemetry
  */

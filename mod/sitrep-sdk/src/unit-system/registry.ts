@@ -3,33 +3,32 @@ import { UNIT_DEFINITIONS, type UnitDefinition } from "./definitions";
 import * as Dim from "./dimension";
 
 /**
- * One rung of a scaling ladder: a threshold in base units and its symbol.
+ * One step of a unit ladder: the unit a value is shown in once it reaches a
+ * size, such as `km` from 1,000 metres.
  *
  * @category Units and values
  */
 export interface UnitRung {
-  /** Values at or above this magnitude (in base units) use this rung. */
+  /** Values at or above this size, in the base unit, are shown on this rung. */
   readonly from: number;
+  /** The symbol shown, such as `"km"`. */
   readonly symbol: string;
-  /** Divide the base value by this to get the rung's value. */
+  /** The value in the base unit is divided by this to show it on this rung. */
   readonly per: number;
 }
 
 /**
- * How a unit READS, which the model ignores and the kit applies. Every field is
- * optional, and a unit that sets none of them renders with its kind's defaults.
+ * How a unit is shown. Every field is optional, and a unit that sets none is
+ * shown the way its kind is by default. Arithmetic ignores all of it.
  *
  * @category Units and values
  */
 export interface UnitPresentation {
-  /** Decimal places on the scaled value, for every unit of this kind. */
+  /** Decimal places to show, for every unit of this kind. */
   readonly decimals?: number;
-  /** Render this kind in scientific notation by default, as `gravParameter` does. */
+  /** Show this kind in scientific notation, as a gravitational parameter is. */
   readonly scientific?: true;
-  /**
-   * What to show beside the number for this kind, when it is not the symbol.
-   * `""` for a token naming a category rather than a symbol, as `count` does.
-   */
+  /** What to show beside the number, when it is not the symbol. `""` shows nothing, as for `count`. */
   readonly display?: string;
   /** What a screen reader says for the symbol: `megabytes` for `MB`. */
   readonly word?: string;
@@ -38,16 +37,13 @@ export interface UnitPresentation {
 type DeclarationOf<Unit extends DeclaredUnit> = UnitDeclarations[Unit];
 
 /**
- * The runtime half of a declared unit, typed from its declaration.
+ * The argument to {@link registerUnit}: the unit's symbol, kind, dimension and
+ * ratio, which must match its entry in {@link UnitDeclarations}, and how it is
+ * shown. A symbol with no declaration, or a field that differs from it, does
+ * not compile.
  *
- * Every field the declaration states is required here and must agree with it:
- * a `kind`, `dimension`, `ratio` or `ladder` different from the declared one is
- * a compile error, and so is a symbol nobody declared. The runtime cannot read a
- * type, so this is how the two are kept saying one thing.
- *
- * `rungs` is the only ladder fact the declaration does not carry, because a
- * rung is a display threshold rather than a unit. A registration naming a
- * ladder may supply them, and every unit on that ladder then climbs them.
+ * `rungs` sets the steps of the unit's ladder, which the declaration does not
+ * carry. Every unit on that ladder is then shown on those steps.
  *
  * @category Units and values
  */
@@ -60,7 +56,7 @@ export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
     ? Dimension
     : never;
   readonly ratio: DeclarationOf<Unit>["ratio"];
-  /** Logarithmic, so never prefix-scaled. */
+  /** Set for a logarithmic unit, which is never shown on a ladder. */
   readonly log?: true;
 } & (DeclarationOf<Unit> extends { ladder: infer Ladder extends string }
   ? { readonly ladder: Ladder; readonly rungs?: readonly UnitRung[] }
@@ -68,8 +64,8 @@ export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
   UnitPresentation;
 
 /**
- * A registration as the runtime holds it, with its types erased: what a
- * {@link onUnitRegistered} listener receives.
+ * A unit as {@link registerUnit} accepted it, without its declared types: what
+ * an {@link onUnitRegistered} listener receives.
  *
  * @category Units and values
  */
@@ -104,13 +100,9 @@ const RESERVED: ReadonlyArray<{
 ];
 
 /**
- * Splits `snacks:g` into its namespace and the glyph an operator reads.
- *
- * A unit TOKEN may be namespaced; the SYMBOL it displays as never is. This is
- * how two mods can both call something `g` without either having to give the
- * name up, and it is not a new idea here: `irl:s` is the first-party instance
- * of the same problem, where real seconds and game seconds share a glyph and
- * must not share a dimension.
+ * Returns the symbol a unit is shown with: `"g"` for the unit `"snacks:g"`.
+ * A unit may carry a namespace before a colon, so two mods can each have a
+ * `g` that means different things; the namespace is never shown.
  *
  * @category Units and values
  */
@@ -120,7 +112,8 @@ export function displaySymbol(token: string): string {
 }
 
 /**
- * The declaring namespace, or `undefined` for a first-party token.
+ * Returns a unit's namespace, `"snacks"` for `"snacks:g"`, or `undefined` for
+ * a unit with none.
  *
  * @category Units and values
  */
@@ -154,7 +147,8 @@ function index(symbol: string, definition: UnitDefinition): void {
 }
 
 /**
- * Restores the first-party catalog and drops everything registered on top.
+ * Removes every unit registered with {@link registerUnit}, leaving Gonogo's
+ * own. For tests.
  *
  * @category Units and values
  */
@@ -207,9 +201,9 @@ function composeToken(
 }
 
 /**
- * The definition of a unit symbol, built-in or registered. A compound such as
- * `kg/s` is built from its parts when both are known. `undefined` for a symbol
- * nothing defines.
+ * Returns the definition of a unit, Gonogo's own or registered, or
+ * `undefined` for a unit nothing defines. A rate such as `"kg/s"` is built
+ * from its two parts when both are defined.
  *
  * @category Units and values
  */
@@ -231,15 +225,13 @@ export function lookupUnit(symbol: string): UnitDefinition | undefined {
 }
 
 /**
- * The declared unit a computed dimension should render as, or `undefined` when
- * nothing has been declared for it.
+ * Returns the unit a computed value of this dimension is shown in, or
+ * `undefined` when none is declared. A force times a distance over a time is
+ * shown as `W` rather than `kg·m²/s³`. Only a base unit is returned, never a
+ * scaled one such as `kW`; where several share a dimension, the first
+ * registered is used.
  *
- * A DECLARED name beats a natural composition: `force.times(distance).per(time)`
- * lands on `{kg:1, m:2, s:-3}` and renders `W`, not `kg·m²/s³`. Only ratio-1
- * units are eligible, because a computed value is in base units by
- * construction and rendering it as `kW` would be off by a thousand. First
- * registration wins, so a later `J/s` is an alias that parses but never
- * renders.
+ * @param dimensionKey - The dimension, as a key.
  *
  * @category Units and values
  */
@@ -250,13 +242,9 @@ export function declaredUnitFor(dimensionKey: string): string | undefined {
 }
 
 /**
- * The base unit a point-like unit's differences land in, or `undefined` when the
- * unit is not point-like.
- *
- * Reads the same `affineVector` declaration the type layer reads, through the
- * registry rather than the static table so a unit registered at runtime by an
- * Uplink gets the same result. Ratio-1 only, for the reason `declaredUnitFor`
- * gives: a computed value is in base units by construction.
+ * Returns the unit the difference of two values in an instant unit is in,
+ * such as `"s"` for `"ut"`, or `undefined` for a unit that is not an instant.
+ * See {@link PointUnit}.
  *
  * @category Units and values
  */
@@ -282,12 +270,9 @@ function sameDefinition(a: UnitDefinition, b: UnitDefinition): boolean {
 }
 
 /**
- * Hears every unit {@link registerUnit} accepts, starting with the ones already
- * accepted.
- *
- * This is how the kit learns a unit's presentation from the one registration
- * call rather than from a second registry of its own. An Uplink has no reason
- * to call it.
+ * Calls `listener` for every unit {@link registerUnit} accepts, starting with
+ * those already accepted, and returns a function that unsubscribes. The kit
+ * reads how to show each unit this way; an Uplink does not need it.
  *
  * @category Units and values
  */
@@ -300,39 +285,22 @@ export function onUnitRegistered(listener: UnitListener): () => void {
 }
 
 /**
- * Teaches the runtime a unit the type system already knows.
+ * Registers a unit an Uplink declared, so values in it convert, combine and
+ * show correctly. Declare the unit in {@link UnitDeclarations} first: the
+ * registration is checked against that declaration, and a unit with none does
+ * not compile.
  *
- * The declaration in `UnitDeclarations` is what the compiler checks against; this
- * is what the running app reads, and its argument is typed from that declaration
- * so the two cannot say different things. A symbol nobody declared is a compile
- * error here, which is the point: a unit the runtime knows and the types do not
- * would render, and fall out of every check `<Unit>` makes.
+ * When two mods register the same symbol:
  *
- * One call carries both halves. The model half (dimension, ratio) is what makes
- * values add up and what the payload decoder uses to recognise a quantity; the
- * presentation half (ladder rungs, decimals, the display symbol, the spoken word)
- * is forwarded to the kit through {@link onUnitRegistered}.
+ * - the same registration twice changes nothing
+ * - the same dimension and ratio with a different kind or ladder throws, since
+ *   which one is shown would depend on load order
+ * - anything else keeps the first registration and logs a warning. To avoid
+ *   the clash, give your unit a namespace, such as `"mymod:g"`; see
+ *   {@link displaySymbol}
  *
- * ## Overlap
- *
- * Two mods will sooner or later declare the same glyph, and what happens
- * depends on whether they disagree about anything that MATTERS:
- *
- * - **Identical declaration** is idempotent and silent. Two Uplinks declaring
- *   `u` as resource units are declaring the same thing.
- * - **Same dimension and ratio, different kind or ladder** is allowed by the
- *   model, which never gates arithmetic on either. The kit refuses it, because
- *   which one renders would depend on module load order: that throws.
- * - **Anything else keeps the FIRST registration and warns.** It does not
- *   throw: a disagreement between two mods about what a symbol measures is not a
- *   reason to break someone's install.
- *
- * A `Value` carries a bare symbol and nothing else, so if one `g` were grams and
- * another `g` were g-force, there would be no way to tell whether two `g` values
- * can be added. One of them has to win.
- *
- * Our own ladder sidesteps the `g` case anyway (mass starts at `kg`), which is
- * why this is a policy for Uplinks rather than a live first-party concern.
+ * The symbol `m` is reserved for metres and throws for any other dimension;
+ * minutes are `min`.
  *
  * @category Units and values
  */

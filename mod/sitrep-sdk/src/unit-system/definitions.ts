@@ -1,141 +1,60 @@
 import type { Dimension } from "./dimension";
 
 /**
- * What a declared unit knows about itself.
- *
- * `ratio` converts to the dimension's BASE, which is what makes
- * `Value("h", 2).plus(Value("s", 120))` correct without anyone writing a
- * conversion. It is not a display decision: which rung a value renders at is
- * ui-kit's business, and lives there.
+ * What the runtime knows about one unit, as {@link lookupUnit} returns it.
  *
  * @category Units and values
  */
 export interface UnitDefinition {
-  /** Exponent map over base symbols. Never carries a zero exponent. */
+  /** The dimension, as base units and their powers. Never holds a power of zero. */
   readonly dim: Dimension;
-  /** Multiplier onto the dimension's base unit. `t` is 1000 (kilograms). */
+  /** How many of the dimension's base unit one of this unit is. `t` is 1000, since the base of mass is the kilogram. */
   readonly ratio: number;
   /**
-   * What the value MEANS, as opposed to what it measures. Torque and energy
-   * share a dimension; `count` and `ratio` are both dimensionless. Kind never
-   * gates arithmetic, it only drives display.
+   * What the value means, which the dimension alone may not say: torque and
+   * energy share a dimension. It decides how the value is shown, never what
+   * arithmetic is allowed.
    */
   readonly kind: string;
-  /**
-   * Logarithmic, so it must never be prefix-scaled. "3.2 kdB" is not a thing,
-   * and a ladder applied to a log scale is wrong rather than merely ugly.
-   */
+  /** Set for a logarithmic unit, such as decibels, which is never shown on a ladder. */
   readonly log?: true;
-  /**
-   * The ladder this unit climbs, by name. The rungs themselves are ui-kit's,
-   * because which rung a value renders at is a display decision; which units
-   * settle one rung together is a fact about the unit, and it is declared here
-   * so the type system can see it (see `UnitDeclarations`).
-   *
-   * Every first-party ladder is named for the kind it scales.
-   */
+  /** The ladder the unit belongs to; see {@link UnitDeclaration.ladder}. */
   readonly ladder?: string;
   /**
-   * A second spelling of a dimension somebody else already owns: it parses and
-   * converts, but a COMPUTED value never renders as it.
-   *
-   * Three dimensions in this table have two ratio-1 units each, and something
-   * has to break the tie when `force.times(distance)` asks what to call
-   * `{kg:1,m:2,s:-2}`. At runtime `declaredUnitFor` breaks it by REGISTRATION
-   * ORDER, first wins. The type layer cannot use that rule, because the order
-   * of a union produced by a mapped-type lookup is not specified by
-   * TypeScript. In practice it followed declaration order every time it was
-   * checked, which is exactly the kind of undocumented agreement that holds
-   * until it does not.
-   *
-   * So the tie is written down instead of inferred, and it lives on the DATA
-   * rather than in a type-only list so a runtime test can assert the flag and
-   * `declaredUnitFor` still agree. See `algebra.ts`'s `CanonicalUnit`.
+   * Set for a second name of a dimension another unit already names. It
+   * converts like any unit, but a computed value is never shown in it.
    */
   readonly alias?: true;
   /**
-   * This kind is POINT-LIKE, and the named kind is what a difference of two of
-   * them produces.
-   *
-   * An instant and a duration share a dimension and are not the same thing. The
-   * algebra between them is affine: a point minus a point is a vector, a point
-   * plus a vector is a point, and point plus point, point times a scalar, and
-   * ordering a point against a vector are all meaningless. Before this,
-   * `ut.minus(ut)` answered `Value<"ut">`, which says the gap between two
-   * instants is itself an instant.
-   *
-   * Opt-in by declaration, so nothing else in the table changes. Two other
-   * dimensions carry more than one kind and neither wants this: `energy` and
-   * `torque` are unrelated quantities that coincide, and `percent` and `ratio`
-   * are the SAME quantity at two scales, where arithmetic between them is not
-   * merely legal but already relied on by `.in("%")`.
-   *
-   * `universalTime` is the only member. Do not add speculative ones: the rules
-   * are general, the data is meant to stay small.
+   * Set on a kind that names an instant, to the kind a difference of two of
+   * them is: an instant minus an instant is a duration. See {@link PointUnit}.
    */
   readonly affineVector?: string;
 
   /**
-   * The kind this one merely COINCIDES with: same dimension, unrelated
-   * quantity. Adding, subtracting, ordering or converting between the two is
-   * never meaningful, and declaring it here is what refuses all four.
-   *
-   * The mirror of {@link affineVector}. That one opts a pair IN to interaction
-   * rules; this one opts a pair IN to refusal. Both are declarations rather
-   * than inferences, because the three dimensions carrying more than one kind
-   * want three different answers and nothing about a shared dimension says
-   * which:
-   *
-   *  - `{s:1}` time/universalTime: AFFINE, an instant and a duration interact
-   *    under rules, see {@link affineVector}
-   *  - `{kg:1,m:2,s:-2}` energy/torque: COINCIDENTAL, declared here
-   *  - `{}` dimensionless/ratio/percent: the SAME quantity at two scales, where
-   *    `.in("%")` is a correct conversion. Declaring these would break it
-   *
-   * Scoped to the ADDITIVE surface on purpose (`CombinableWith` governs `plus`,
-   * `minus`, `in`, the orderings and `min`/`max`). It does NOT reach `times` or
-   * `dividedBy`, because a torque times an angle IS work and an energy divided
-   * by a torque IS the angle swept: those are real physics and refusing them
-   * would be the bug.
-   *
-   * Declared on BOTH sides of a pair. Symmetry could be inferred, but two
-   * entries read the same forwards and backwards and neither side can be
-   * changed without the other being visible.
+   * The kind this one shares a dimension with but measures something
+   * unrelated, such as energy and torque. Values of the two cannot be added,
+   * subtracted, compared or converted into each other. They can still be
+   * multiplied and divided, since a torque times an angle is work.
    */
   readonly coincidentWith?: string;
 }
 
-/**
- * Every unit the SDK knows, wire token or not.
- *
- * The C# contract declares only what crosses the wire. This table is wider on
- * purpose: `W`, `J`, `N` and `Pa` never appear in a payload, but `kW ÷ 1000` has
- * to land somewhere and a computed power has to have a name. Base units belong
- * to the model, not to the wire.
- *
- * `as const` is load-bearing. The type layer reads dimensions straight out of
- * this object to decide whether `plus` is allowed, so widening any of it to
- * `Record<string, UnitDefinition>` would silently turn the compile-time gate
- * off while leaving the runtime one in place. `satisfies` gets the checking
- * without the widening.
+/*
+ * Wider than the contract on purpose: W, J, N and Pa never cross the wire, but a computed power needs a name.
+ * `as const` is load-bearing: the type layer reads dimensions from it, and widening it turns the compile-time gate off.
  */
 /**
- * Standard gravity in m/s², the number KSP's own TWR / dV / geeForce readouts
- * use.
- *
- * Named here, once, because it had three homes: the `g` ratio just below,
- * `spine/propagation.ts`'s own `STANDARD_GRAVITY`, and a third in
- * `@ksp-gonogo/ui-kit`'s unit conversions. All three happened to say 9.80665, so
- * nothing was wrong yet, which is the only reason three copies of a physical
- * constant survived this long.
+ * Standard gravity, 9.80665 m/s²: the value KSP uses for thrust-to-weight,
+ * delta-v and g-force.
  *
  * @category Units and values
  */
 export const STANDARD_GRAVITY = 9.80665;
 
 /**
- * Every built-in unit, keyed by its symbol: its dimension, its ratio to the base
- * unit, and the ladder it steps along when a value is scaled for display.
+ * Every unit Gonogo itself defines, keyed by symbol. Units an Uplink
+ * registers are not here; {@link lookupUnit} covers both.
  *
  * @category Units and values
  */
@@ -459,7 +378,7 @@ export const UNIT_DEFINITIONS = {
 } as const satisfies Record<string, UnitDefinition>;
 
 /**
- * The symbol of a built-in unit.
+ * The symbol of a unit Gonogo itself defines.
  *
  * @category Units and values
  */

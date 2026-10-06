@@ -2,29 +2,30 @@ import type { KnownSitrepUnit } from "../__generated__/units";
 import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 
 /**
- * What the type system knows about one unit: what it measures, its dimension,
- * its multiplier onto that dimension's base, and the ladder it climbs.
+ * One unit's entry in {@link UnitDeclarations}.
  *
- * - `kind` is what `format` and `as` check against, so `km/h` is a legal format
- *   for a speed and a type error on a length
- * - `dim` is the exponent map arithmetic checks against, written `readonly` the
- *   way a literal read off an `as const` table is
- * - `ratio` is a numeric literal where the ratio is one (`8e6`), or `number`
- *   where it is computed (`1 / 3.6`)
- * - `ladder` names the set of rungs the unit climbs within. Every unit naming
- *   one ladder settles one rung together, and a pin addresses them by that name.
- *   A unit with no ladder never climbs and is a pin group of its own
- *
- * The non-quantity tokens (`text`, `flag`, `id`) carry a kind and no dimension,
- * because they are declared so a formatter knows what they are, not so they can
- * take part in arithmetic.
+ * Units with no dimension, such as `text`, `flag` and `id`, are declared so a
+ * formatter knows what they are; they take no part in arithmetic.
  *
  * @category Units and values
  */
 export interface UnitDeclaration {
+  /**
+   * What the unit measures, such as `"speed"`. A unit can be shown only as
+   * another of the same kind, so `km/h` is a valid format for a speed and not
+   * for a length.
+   */
   readonly kind: string;
+  /** The dimension, as base units and their powers: `{ m: 1, s: -1 }` for a speed. Absent for a unit with no dimension. */
   readonly dim?: { readonly [base: string]: number };
+  /** How many of the dimension's base unit one of this unit is: 1000 for `km`. */
   readonly ratio: number;
+  /**
+   * The ladder the unit belongs to, such as metres and kilometres. A value is
+   * shown on whichever step of its ladder suits its size, and every unit on
+   * one ladder moves between steps together. A unit with no ladder is always
+   * shown in itself.
+   */
   readonly ladder?: string;
 }
 
@@ -55,13 +56,10 @@ type FirstPartyNonQuantities = {
 };
 
 /**
- * Every unit the type system knows, and the one place a unit is declared to it.
- *
- * First-party units arrive here from the SDK's own table. An Uplink adds its
- * own by merging into this interface through the published package name, in
- * the same shape, and from then on its unit is checked everywhere a first-party
- * one is: `<Unit format>` and `as`, a `<UnitSharedFormat>` pin key, a `<Band>`
- * or a `<Meter>`, and `registerUnit` itself.
+ * Every unit the type system knows. An Uplink declares its own units by
+ * augmenting this interface, and from then on they are checked everywhere
+ * Gonogo's are: `<Unit format>`, `<UnitSharedFormat>`, `<Band>`, `<Meter>`
+ * and {@link registerUnit}.
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -72,9 +70,8 @@ type FirstPartyNonQuantities = {
  * }
  * ```
  *
- * A declaration is a claim to the compiler only. The runtime learns the same
- * unit from `registerUnit`, whose argument is typed from the declaration, so
- * the two cannot say different things about it.
+ * A declaration is for the compiler only. Register the same unit at runtime
+ * with {@link registerUnit}, which is checked against the declaration.
  *
  * @category Units and values
  */

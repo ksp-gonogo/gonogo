@@ -1,38 +1,28 @@
 import type { EventOccurrence } from "../event-timeline";
 
 /**
- * Mod-agnostic registry for the event occurrences an alarm's `event` trigger
- * fires on.
+ * A source of the occurrences an alarm with an `event` trigger fires on, for
+ * one Topic. The Uplink that owns the Topic registers it with
+ * {@link registerRevealedEventSource}.
  *
- * <p>The occurrences behind an `event` trigger are produced by whichever Uplink
- * owns the Topic, so each Uplink registers its own source here.</p>
- *
- * <p><b>Why a registry and not an augment slot.</b> A source contributes DATA,
- * not a renderable component, so it is a registry parallel to the augment one,
- * exactly as `./coverage-source.ts` is for coverage bytes.</p>
- *
- * <p><b>The view UT is a parameter, and that is the delay model.</b> Sources
- * are asked what has been revealed AS OF the operator's delayed view clock,
- * not what has happened. An occurrence stamped at its live capture UT reveals
- * only once the view catches up past it, so the signal delay is realised by
- * the read itself rather than by anything the source has to remember to do.</p>
+ * A source returns what the player may see at the view UT it is given, not
+ * everything that has happened, so the signal delay applies without the source
+ * tracking it.
  *
  * @category Delay and vantage
  */
 export interface RevealedEventSourceDefinition {
-  /** Stable id, auto-namespaced to the Uplink when registered through its handle. */
+  /** A stable id. Registered through an Uplink's client handle, it is prefixed with the Uplink's id. */
   id: string;
   /** The Topic whose occurrences this source produces. */
   topic: string;
   /**
-   * The occurrences revealed at `viewUt`, oldest first.
+   * Returns the occurrences the player may see at `viewUt`, oldest first, for
+   * example from {@link EventTimeline.revealed}. Alarms call it often, so
+   * return what the source already holds rather than computing anything.
    *
-   * <p>Called on the alarm host's evaluation path, so it must be a cheap read
-   * of state the source already holds rather than anything that computes.</p>
-   *
-   * <p>`viewUt` is null when no stream is mounted and the operator's clock has
-   * no value yet. Return nothing in that case: there is no instant to be
-   * revealed as of, so anything returned would be revealed early.</p>
+   * `viewUt` is `null` or `undefined` when the screen has no view time yet.
+   * Return an empty array then, since anything returned would show early.
    */
   revealedEvents(viewUt: number | null | undefined): readonly EventOccurrence[];
 }
@@ -69,7 +59,7 @@ export function registerRevealedEventSource(
 }
 
 /**
- * Every registered revealed-event source.
+ * Returns every registered {@link RevealedEventSourceDefinition}.
  *
  * @category Delay and vantage
  */
@@ -78,7 +68,8 @@ export function getRevealedEventSources(): RevealedEventSourceDefinition[] {
 }
 
 /**
- * Tests only: resets the registry so one file's registrations cannot leak.
+ * Removes every registered source. For tests, so one test file's
+ * registrations do not reach another.
  *
  * @category Delay and vantage
  */
@@ -87,11 +78,9 @@ export function clearRevealedEventSources(): void {
 }
 
 /**
- * Every source's occurrences for one Topic, concatenated in registration order.
- *
- * <p>Two Uplinks may both feed one Topic, so this concatenates rather than
- * picking a winner: an alarm fires on an occurrence, and dropping one because
- * something else also produces that Topic would silently lose an alarm.</p>
+ * Returns the occurrences every source for `topic` reveals at `viewUt`, in
+ * the order the sources were registered. Where two Uplinks feed one Topic,
+ * both are included.
  *
  * @category Delay and vantage
  */

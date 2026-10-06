@@ -48,33 +48,43 @@
 import { commandRail } from "./commands";
 
 /**
- * Who is talking to whom. Drives the entry's flow direction and its tone.
+ * Which way an entry on the delay rail travels: a `"command"` goes out to the
+ * craft, `"telemetry"` comes back from it. Sets the direction of the mark and
+ * its colour.
  *
  * @category Commands
  */
 export type RailDirection = "command" | "telemetry";
 
 /**
- * Whether the entry is a point in time or a span of it. Drives the MARK: a
- * discrete entry is a dot travelling the rail, a continuous one is a ribbon
- * lying along it.
+ * Whether an entry on the delay rail is a single moment or a span of time. A
+ * `"discrete"` entry is drawn as a dot travelling the rail, a `"continuous"`
+ * one as a ribbon along it.
  *
  * @category Commands
  */
 export type RailContinuity = "discrete" | "continuous";
 
 /**
- * Whether anything replies. Drives whether a RETURN LEG is drawn at all: a
- * fire-and-forget entry reaches the far end and simply ends, and drawing it a
- * return leg would be the lie this vocabulary exists to remove.
+ * Whether anything replies to an entry on the delay rail. An `"acked"` entry is
+ * drawn with a return leg for its reply; a `"fire-and-forget"` one ends when it
+ * reaches the far end.
  *
  * @category Commands
  */
 export type RailDelivery = "acked" | "fire-and-forget";
 
 /**
- * How a command or Topic travels: which way, whether it flows continuously or as
- * single messages, and whether anything replies.
+ * How a command or Topic travels on the delay rail: which way, as single
+ * messages or continuously, and whether anything replies. `<CommandDelay>`
+ * chooses how to draw an entry from these.
+ *
+ * | direction | continuity | delivery | example |
+ * | --- | --- | --- | --- |
+ * | command | discrete | acked | staging, an action group |
+ * | command | continuous | acked | fly-by-wire, acknowledged by the craft's readback |
+ * | telemetry | continuous | fire-and-forget | radio voice |
+ * | telemetry | discrete | fire-and-forget | a science result sent home |
  *
  * @category Commands
  */
@@ -85,30 +95,26 @@ export interface RailTags {
 }
 
 /**
- * The one rail fact about one command that is not structural, as the generated
- * command map emits it. Declared structurally here rather than imported from
- * that map so an Uplink can hand over a row out of its OWN generated one, which
- * is a different declaration of the same shape.
+ * How one command travels, as an Uplink's generated command map declares it.
+ * Pass an entry from that map to {@link registerUplinkCommand}.
  *
  * @category Commands
  */
 export interface CommandRail {
+  /** Whether the command sends a reply. */
   readonly replies: boolean;
 
   /**
-   * Whether the host holds this command for the signal delay before running it.
-   *
-   * The mod's own statement, not a client-side reading of it: codegen copies it
-   * from the `[SitrepCommand]` the host dispatches by. `commandDelayed` is the
-   * one caller, and it is what keeps a countdown off a command that runs the
-   * instant it arrives.
+   * Whether the mod holds this command for the signal delay before running
+   * it. A command that is not delayed runs as soon as it arrives, and no
+   * countdown is shown for it.
    */
   readonly delayed: boolean;
 
   /**
-   * The args field holding the UT this command acts at, when it has one. The
-   * command's own deadline: `send` refuses it locally, before anything leaves,
-   * once it would reach the craft at or after that UT.
+   * The name of the argument holding the UT this command acts at, when it has
+   * one. `send` refuses the command before it leaves when it would reach the
+   * craft at or after that UT.
    */
   readonly arriveBefore?: string;
 }
@@ -146,20 +152,9 @@ function railTags(
 }
 
 /**
- * What the contract guarantees about a command NOBODY declared: an id reaching
- * `useCommand`'s untyped overload, a dynamic dispatch, an Uplink whose client
- * has not loaded yet.
- *
- * Discrete because one dispatch of any command is a point, and ACKED because
- * `Sitrep.Contract/CommandResult.cs` rules that results are always delivered,
- * never a fire-and-forget void, and that holds for a command this package has
- * never heard of just as much as for one it has. Reading an absent row as
- * `replies: false` instead would drop the return leg for every ordinary command
- * dispatched by name, which is the opposite of the truth.
- *
- * So this is what EVERY declared command reads as too, unless something other
- * than the command says otherwise. It stays its own name because the two
- * statements are different: this one is about an id nothing has declared.
+ * The tags of a command nothing has declared: a command whose id is built at
+ * runtime, or one from an Uplink whose client has not loaded. It is a single
+ * command that gets a reply, since every command replies.
  *
  * @category Commands
  */
@@ -170,13 +165,8 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
 );
 
 /**
- * One command's declared rail row turned into the three axes.
- *
- * Split from {@link railTagsForCommand} so the derivation can be exercised on a
- * row that does not exist yet: every command the contract declares today
- * replies, so `replies: false` is unreachable through the lookup, and a
- * derivation whose other branch nothing can reach is a derivation nobody has
- * checked.
+ * Returns the tags for a command from its {@link CommandRail}: a single
+ * command, acked when it replies.
  *
  * @category Commands
  */
@@ -189,9 +179,9 @@ export function railTagsFromCommandRail(rail: CommandRail): RailTags {
 }
 
 /**
- * The three axes for a command, from what its owning assembly declared. Falls
- * back to {@link UNDECLARED_COMMAND_RAIL_TAGS} for a command no generated map
- * carries.
+ * Returns the tags for one press of a command, from what its mod or Uplink
+ * declared, or {@link UNDECLARED_COMMAND_RAIL_TAGS} when nothing has declared
+ * it.
  *
  * @category Commands
  */
@@ -203,23 +193,13 @@ export function railTagsForCommand(command: string): RailTags {
 }
 
 /**
- * The three axes for a HELD CONTROL AXIS: a value the operator keeps their hand
- * on, dispatched as a coalesced stream of absolute sets and echoed back by the
- * craft.
+ * Returns the tags for a control the player holds, such as pitch or
+ * throttle, sent as a stream of settings and echoed back by the craft.
+ * `writeCommand` is the command that sets it.
  *
- * CONTINUITY is `continuous` here and nowhere else on the command side, because
- * what crosses the gap is the axis, not one press of it. One dispatch of the
- * write command is a point whichever axis it drives, `vessel.control.setAxes`
- * included: the Navball presses that same id to send a trim and gets a queue
- * row, and holds it to fly and gets a strip. Those are two entries about one
- * command, which is why the command cannot be the thing that says.
- *
- * This is the same argument {@link railTagsForTelemetry} makes for a microphone,
- * and it is the reason continuity is declared at the producer at all: the thing
- * that knows whether a value is being held is whatever is holding it.
- *
- * DELIVERY still comes off the command, because whether an ack comes back is
- * the command's business either way.
+ * The result is continuous, unlike {@link railTagsForCommand}, because what
+ * crosses the delay is the held control rather than one press. Whether it is
+ * acked comes from the command.
  *
  * @category Commands
  */
@@ -229,16 +209,10 @@ export function railTagsForControlAxis(writeCommand: string): RailTags {
 }
 
 /**
- * The three axes for something arriving rather than being ordered: a
- * transmission, a science result, a downlinked frame.
- *
- * Two of the three are intrinsic. DIRECTION is telemetry by construction, and
- * DELIVERY is fire-and-forget because a topic has no reply type: the contract
- * gives a command a reply and gives a push none, so an ack is not a thing that
- * could arrive. CONTINUITY is the one the producer has to state, and it is the
- * same argument the command side makes: an open microphone is a span, a science
- * result is an event, and the difference is a property of what is producing the
- * data rather than of the rail.
+ * Returns the tags for data coming back from a craft, such as a radio
+ * transmission or a science result. It is always fire-and-forget, since nothing
+ * replies to telemetry. Pass `"continuous"` for a stream such as an open
+ * microphone, and `"discrete"` for a single result.
  *
  * @category Commands
  */

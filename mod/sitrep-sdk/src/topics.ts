@@ -251,17 +251,20 @@ interface SdkOwnedTopicPayloadMap
     SystemChannelsTopicPayloadMap {}
 
 /**
- * The Topic → payload-type map. Keys are the wire Topic strings; values are the
- * payload a `stream-data` message on that Topic carries. The generated entries
- * come from `Sitrep.Contract`'s `[SitrepTopic]` tags; the
- * `system.uplinks`/`system.uplink.pending` entries are the engine-owned
- * hand-declared tail (see the file header). Bare-primitive Uplink Topics are
- * NOT here, each owning Uplink's client package augments this interface via
- * `declare module "@ksp-gonogo/sitrep-sdk"` (see the file header). `TopicId`
- * and `TopicPayload` are both derived from this map, so a client that
- * statically imports its Uplink's augmenting module sees the augmented Topic in
- * the union. This is the AUGMENTABLE surface; `SdkOwnedTopicPayloadMap` above
- * is the fixed SDK-owned subset the compile invariants pin `TOPIC_IDS` against.
+ * Every Topic id mapped to the type of its payload. {@link TopicId} and
+ * {@link TopicPayload} are read from it.
+ *
+ * An Uplink whose Topics are not in the Gonogo contract adds them by
+ * augmenting this interface from its client package, and registers each id
+ * at load with {@link registerBarePrimitiveTopic}:
+ *
+ * ```ts
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface TopicPayloadMap {
+ *     "myuplink.armed": boolean;
+ *   }
+ * }
+ * ```
  *
  * @category Reading telemetry
  */
@@ -282,16 +285,11 @@ export type TopicId = keyof TopicPayloadMap;
 export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
 
 /**
- * Runtime list of the SDK's OWN `TopicId`s, the generated ids plus the
- * engine-owned hand-declared tail (`system.uplinks`, `system.uplink.pending`).
- * Kept in lock-step with `TopicPayloadMap`'s SDK-owned keys by the compile-time
- * assertions below (within this package's program the Uplink augmentations are
- * not reachable, so `keyof TopicPayloadMap` is exactly this set).
- * Bare-primitive Uplink Topics register at load into `barePrimitiveTopicIds`
- * and are NOT in this array; use `getAllKnownTopicIds()` / `isTopicId` for the
- * live full set. Dynamic namespaces (e.g. the per-CPU `kos.compute.*` prefix)
- * are intentionally NOT enumerated here, a runtime-computed sub-topic has no
- * fixed member in the union.
+ * Every Topic id the SDK itself declares, as an array.
+ *
+ * Topics an Uplink adds at load are not in it; {@link getAllKnownTopicIds}
+ * and {@link isTopicId} include them. Topics whose id is built at runtime,
+ * such as one per celestial body, are in neither.
  *
  * @category Reading telemetry
  */
@@ -341,17 +339,14 @@ for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
 }
 
 /**
- * Self-register an Uplink-owned Topic id absent from this SDK's own generated
- * registry. Called at module load by the owning Uplink's client package
- * alongside its `declare module` augmentation of `TopicPayloadMap`.
- * Idempotent (a `Set`), so a double import is harmless.
+ * Registers a Topic id that an Uplink adds and the SDK does not declare, so
+ * {@link isTopicId} and {@link getAllKnownTopicIds} include it. Call it when
+ * the Uplink's client package loads, beside its augmentation of
+ * {@link TopicPayloadMap}. Registering an id twice does nothing.
  *
- * Named for the commonest case (a bare boolean with no C# payload type to
- * reflect), but the runtime registry itself does not care about payload shape:
- * an Uplink's own STRUCTURED Topic, whose type lives in its contract slice
- * rather than in `Sitrep.Contract`, registers here too. Such a Topic pairs this
- * call with `registerTopicUnits` (`units.ts`) for the numeric half of the same
- * problem.
+ * Named for the commonest case, a Topic whose payload is a bare boolean, but
+ * any payload shape may be registered. A Topic with numeric fields also needs
+ * {@link registerTopicUnits}.
  *
  * @category Reading telemetry
  */
@@ -368,12 +363,9 @@ export function registerBarePrimitiveTopic(id: string): void {
 const BINARY_TOPIC_IDS: readonly string[] = ["commcast.radio"];
 
 /**
- * Every Topic id currently known at runtime, the SDK's own `TOPIC_IDS`, the
- * binary-lane Topics, and every bare-primitive Uplink Topic registered so far.
- * The completeness-oriented counterpart to `TOPIC_IDS`: consumers that want
- * "subscribe to / iterate over EVERYTHING" (e.g. the replay recorder's
- * full-archive mode) read this, since a bare-primitive Topic is not a static
- * member of `TOPIC_IDS`. Reflects only Uplinks whose client package has loaded.
+ * Every Topic id known now: {@link TOPIC_IDS}, the Topics carried as binary
+ * data, and every id an Uplink has registered so far. An Uplink's Topics
+ * appear once its client package has loaded.
  *
  * @category Reading telemetry
  */
@@ -382,9 +374,8 @@ export function getAllKnownTopicIds(): readonly string[] {
 }
 
 /**
- * Runtime narrowing guard: is `value` a known `TopicId`? True for an SDK-owned
- * Topic OR a bare-primitive Uplink Topic whose owning client package has
- * registered it.
+ * Returns whether `value` is a known {@link TopicId}: one the SDK declares, or
+ * one an Uplink has registered with {@link registerBarePrimitiveTopic}.
  *
  * @category Reading telemetry
  */
@@ -395,14 +386,12 @@ export function isTopicId(value: string): value is TopicId {
 const collectionTopicIds = new Set<string>(GENERATED_COLLECTION_TOPIC_IDS);
 
 /**
- * Self-register an Uplink-owned Topic whose payload is a bare JSON array of an
- * element type. Called at module load by the owning Uplink's client package,
- * normally by looping over the collection list its own codegen emits beside
- * its Topic map. Idempotent, so a double import is harmless.
+ * Registers an Uplink Topic whose payload is an array, so
+ * {@link isCollectionTopic} reports it. Call it when the Uplink's client
+ * package loads. Registering an id twice does nothing.
  *
- * The unit and shape maps registered for such a Topic describe one ELEMENT, so
- * without this a field path like `<topic>.name` looks like a field of the Topic
- * when it is a field of every row and of none of them.
+ * The units and shapes registered for such a Topic describe one element, so
+ * `<topic>.name` is a field of each element rather than of the Topic.
  *
  * @category Reading telemetry
  */
@@ -427,23 +416,13 @@ export function isCollectionTopic(id: string): boolean {
 }
 
 /**
- * The client-side DERIVED channels, which a widget may declare and read exactly
- * as it declares and reads a wire Topic, and which are not `TopicId`s.
- *
- * A derived channel is computed in the browser over the `TimelineStore` at the
- * VIEW instant, so it is not in-game value and has no `[SitrepTopic]` type for
- * codegen to reflect. It is nonetheless a real thing a widget consumes.
- *
- * Listed here by hand because the literal cannot be recovered from
- * `PRODUCTION_DERIVED_CHANNELS`: that array is typed
- * `DerivedChannelDefinition<unknown>[]` through an `as` cast, and
- * `DerivedChannelDefinition.topic` is a plain `string`, so the ids are erased
- * before any type could read them. `derived-channel-ids.test.ts` asserts set
- * equality against that array in both directions, so a channel registered
- * without being listed here, or listed here without being registered, fails.
+ * The derived channels: values Gonogo computes in the browser from other
+ * Topics, rather than ones the game publishes. A widget declares and reads one
+ * exactly as it does a Topic, but it is not a {@link TopicId}.
  *
  * @category Reading telemetry
  */
+// derived-channel-ids.test.ts holds this list equal to PRODUCTION_DERIVED_CHANNELS, whose ids the `as` cast there erases.
 export const DERIVED_CHANNEL_IDS = [
   "system.state",
   "system.uplinkHealth",
@@ -464,7 +443,7 @@ const DERIVED_CHANNEL_ID_SET: ReadonlySet<string> = new Set(
 );
 
 /**
- * Runtime narrowing guard: is `value` a known {@link DerivedChannelId}?
+ * Returns whether `value` is a {@link DerivedChannelId}.
  *
  * @category Reading telemetry
  */
@@ -473,19 +452,17 @@ export function isDerivedChannelId(value: string): value is DerivedChannelId {
 }
 
 /**
- * What a widget may name in `channels` / `optionalChannels`: a wire Topic or a
- * derived channel, and nothing else.
- *
- * The union is closed, so a string that names no Topic or derived channel does
- * not typecheck. A field path is not a member either: it collapses to the channel
- * that carries it, which is what the read hook keys on.
+ * What a widget may list in `channels` and `optionalChannels`: a
+ * {@link TopicId} or a {@link DerivedChannelId}. Any other string does not
+ * compile, and neither does a field path; list the channel that carries the
+ * field.
  *
  * @category Reading telemetry
  */
 export type WidgetChannelId = TopicId | DerivedChannelId;
 
 /**
- * Runtime narrowing guard: is `value` a {@link WidgetChannelId}?
+ * Returns whether `value` is a {@link WidgetChannelId}.
  *
  * @category Reading telemetry
  */
@@ -494,17 +471,13 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
 }
 
 /**
- * One thing a widget DRAWS: a whole channel, or a field path inside one.
+ * One thing a widget draws: a whole channel, or a field inside one, such as
+ * `"vessel.flight.altitudeAsl"`, as listed in {@link ComponentDefinition.fields}.
  *
- * Distinct from {@link WidgetChannelId}, which says what a widget MOUNTS on,
- * because the two lists differ. A widget mounts on `vessel.flight` and draws
- * three of its fields; saying only the first makes it claim all of them, which
- * points other widgets' alarms at a panel that does not render them.
- *
- * A bare channel is a legal entry and means what it says: everything on it.
- *
- * Still closed: both forms are anchored to a real channel id, so a string that
- * names no channel does not typecheck.
+ * It is separate from {@link WidgetChannelId}, which says what a widget mounts
+ * on: a widget can mount on `vessel.flight` and draw three of its fields. A
+ * bare channel means every field on it. A string that does not start with a
+ * real channel id does not compile.
  *
  * @category Reading telemetry
  */

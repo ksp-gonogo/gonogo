@@ -551,8 +551,13 @@ export function useTelemetry<Topic extends TopicId>(
 }
 
 /**
- * The frame's view instant. See `GonogoHost.useViewUt` for why an Uplink needs
- * it and why it returns `undefined` rather than guessing.
+ * Returns the instant the screen is showing, as a UT. Under signal delay, or
+ * while a recording is scrubbed, this is not the game's present. Subtract it
+ * from an absolute UT to get a duration to show, such as the time to an
+ * event.
+ *
+ * `undefined` when no telemetry stream is mounted. It never falls back to the
+ * browser's clock.
  *
  * @category Delay and vantage
  */
@@ -561,34 +566,32 @@ export function useViewUt(): Value<"ut"> | undefined {
 }
 
 /**
- * Canonical overload: keyed by `CommandId`, returns a handle whose `send` takes
- * that command's arguments and resolves that command's reply.
+ * Returns a handle for sending one command: `send` takes the command's
+ * arguments and resolves with its reply. See {@link UseCommandResult}.
  *
+ * `send` resolves only when the command has run. When the game refuses it,
+ * `send` rejects with a `CommandErrorCode` you can branch on; when no reply
+ * arrives in time, it rejects too. Both are also recorded on the handle, in
+ * `refusals` and `losses`, so a `send` you do not await loses nothing.
+ *
+ * Every command except those about the game clock travels at the signal
+ * delay of the command centre it is sent from, so a sent command has not yet
+ * happened. Pass the handle to `<CommandDelay>` to show its delay and what
+ * became of it. In a development build, sending a command with no delay rail
+ * mounted throws.
+ *
+ * Every command id is listed in {@link COMMAND_IDS}.
+ *
+ * @param command - The command to send, such as `"vessel.control.setSas"`.
+ * @param options - See {@link UseCommandOptions}.
+ *
+ * @example
+ * ```tsx
+ * function SasOn() {
  *   const setSas = useCommand("vessel.control.setSas");
- *   const result = await setSas.send({ enabled: true });
- *   // result: CommandResult
- *
- * `send` RESOLVES only when the command ran. The game refusing is a REJECTION,
- * carrying a `CommandErrorCode` a caller can switch on, so a resolved reply is
- * never a polite no. A dispatch the mod never replied to rejects too, once the
- * loss deadline passes; a `void`ed `send` is safe, the hook marks its own
- * rejection handled and surfaces refusals on `refusals` instead.
- *
- *   try {
- *     await setThrottle.send({ value: 1.2 });
- *   } catch (err) {
- *     // CommandErrorCode.Range: validated at admission, never clamped
- *   }
- *
- * Every command is DELAYED unless it is sim-meta, so a dispatch is not an event
- * that has happened, it is one that is travelling. The handle carries the whole
- * delay surface for that (`inFlight`, `effectiveDelaySeconds`, `delayMode`,
- * `gate`, `refusals`), and `<CommandDelay handle={cmd}>` renders it; in
- * development the hook throws on a dispatch made without one, so a delayed
- * command cannot ship with no delay UX.
- *
- * The full command vocabulary is `COMMAND_IDS`, generated from the mod's own
- * `[SitrepCommand]` declarations.
+ *   return <Button onClick={() => void setSas.send({ enabled: true })}>SAS on</Button>;
+ * }
+ * ```
  *
  * @category Commands
  */
@@ -597,18 +600,21 @@ export function useCommand<Command extends CommandId>(
   options?: UseCommandOptions,
 ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
 /**
- * Escape-hatch overload, for a command id this SDK's map does not carry: an
- * Uplink's own before its client package has augmented `CommandArgsMap`, or a
- * DYNAMIC command whose id is computed per subject and so can have no static
- * member. Args stay `unknown` unless the caller names them; the reply falls back
- * to `AnyCommandReply`, the result envelope every command replies with, so even
- * a command nobody could name is not readable as though it were its own payload.
+ * Returns a handle for a command whose id is not in {@link CommandArgsMap},
+ * such as one whose id is built at runtime. Name the argument and reply types
+ * yourself, or the arguments are `unknown` and the reply is
+ * {@link AnyCommandReply}.
  *
- *   const reset = useCommand<{ id: string }>(`my-uplink.probe.${probeId}.reset`);
+ * An Uplink's own commands do not need this form: augment
+ * {@link CommandArgsMap} and {@link CommandReplyMap} from its client package,
+ * call {@link registerUplinkCommand}, and use the first form.
  *
- * An Uplink declaring its OWN commands should not live here. Augment
- * `CommandArgsMap`/`CommandReplyMap` from the client package and call
- * `registerUplinkCommand`, and the first overload covers them like any other.
+ * @example
+ * ```ts
+ * function useProbeReset(probeId: string) {
+ *   return useCommand<{ hard: boolean }>(`myuplink.probe.${probeId}.reset`);
+ * }
+ * ```
  */
 export function useCommand<Args = unknown, Reply = AnyCommandReply>(
   command: string,
@@ -669,10 +675,9 @@ export function useHostIceServers() {
 }
 
 /**
- * Cross-origin route reader: every currently-pending command addressed to
- * `topic`, regardless of which command centre dispatched it, the
- * companion to `useCommand`'s own-dispatch `inFlight`. See
- * `@ksp-gonogo/sitrep-client`'s `useRouteCommands` for the full contract.
+ * Returns every command travelling to `topic`, whichever command centre sent
+ * it, and the state of the link. A handle from {@link useCommand} lists only
+ * the commands that handle sent.
  *
  * @category Commands
  */
@@ -681,24 +686,14 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
 }
 
 /**
- * Reactively read `topic`, raw wire Topic or client-side derived channel alike,
- * as a {@link TopicReading} sampled at the current view instant: the latest
- * payload and how current it is. `pending` with no stream mounted and before
- * the first sample, `unowned` for a topic nothing publishes, and `held` once a
- * topic that was arriving stops, carrying the last real observation.
+ * Reads a Topic by a string id and returns its {@link TopicReading}, in the
+ * same states as {@link useTelemetry}.
  *
- * `topic` is a `string` rather than a {@link TopicId} because the ids this
- * resolves are a superset of the generated union in two directions: a derived
- * channel (`"system.state"`, `"system.uplinkHealth"`) is computed in the
- * browser and has no `[SitrepTopic]` type for codegen to reflect, and a
- * third-party Uplink's own topics are declared at runtime and appear in no
- * union at all. {@link WidgetChannelId} is the closed union of the two
- * first-party halves, and is the type to annotate a first-party read with.
- *
- * Unlike {@link useTelemetry}, `Payload` is whatever the caller supplies with
- * nothing checking it was right. Reach for it when the topic has no
- * {@link TopicId} entry (a derived channel, or your own Uplink's), and for a wire
- * Topic prefer `useTelemetry`, whose payload type comes from the contract.
+ * Use it for a Topic that has no {@link TopicId}: a derived channel such as
+ * `"system.state"`, an Uplink's own Topic, or a Topic whose id is built at
+ * runtime such as `vessel.partActions.<flightId>`. `Payload` is whatever you
+ * pass and nothing checks it, so prefer {@link useTelemetry} wherever the
+ * Topic has a `TopicId`.
  *
  * @category Reading telemetry
  */
@@ -707,11 +702,11 @@ export function useStream<Payload>(topic: string): TopicReading<Payload> {
 }
 
 /**
- * One Uplink's host mod settings, as the Uplink read them off the mod: the
- * typed read over `settings.<uplinkId>`, which is declared per Uplink at
- * runtime and so has no `TopicId`. Change a writable one with the
- * `settings.mod.write` command, and read whether it landed here rather than
- * from the reply.
+ * Reads the settings of one Uplink's mod, as that mod reports them. Change a
+ * writable setting with the `settings.mod.write` command, then read the
+ * change here rather than from the command's reply.
+ *
+ * @param uplinkId - The Uplink whose settings to read.
  *
  * @category Reading telemetry
  */
@@ -762,15 +757,14 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
 }
 
 /**
- * The shared view clock the whole dashboard renders against, for a widget that
- * needs the clock OBJECT rather than a reactive time: to schedule against a
- * frame tick, or to read the confirmed edge separately from a scrub target.
- * THROWS when no stream is mounted, so a widget that renders on a disconnected
- * dashboard wants {@link useViewClockOptional} instead, and one that just needs
- * the current time wants {@link useViewUt}, which is reactive per frame.
+ * Returns the view clock every widget on the screen renders against, for code
+ * that needs the clock itself rather than the current time: to run on each
+ * frame, or to read the latest instant that may be shown. For the current
+ * time, use {@link useViewUt}.
  *
- * Opaque here for the same reason as {@link useTelemetryStoreOptional}'s
- * return: narrow or cast at the call site.
+ * Throws when no telemetry stream is mounted; {@link useViewClockOptional}
+ * returns `undefined` instead. The return is typed `unknown`: narrow it to the
+ * shape you use, such as {@link DelayClockLike}.
  *
  * @category Delay and vantage
  */
@@ -822,11 +816,13 @@ export function useDataSources(): unknown {
 }
 
 /**
- * Real-time (non-delayed) read of `topic`, bypassing the certainty-gated
- * `TimelineStore` frame `useStream` samples through: for command-centre
- * bookkeeping topics (dispatch timestamps, link facts), never delayed craft
- * telemetry. See `GonogoHost.useLatestValue`'s doc for the raw-vs-derived
- * distinction.
+ * Returns the latest value received on `topic`, without the signal delay and
+ * without a state: `undefined` until something arrives.
+ *
+ * Only for values about the command centre itself, such as when a command was
+ * sent or the state of a link. A value about a craft must be read with
+ * {@link useTelemetry} or {@link useStream}, which hold it back by the signal
+ * delay.
  *
  * @category Reading telemetry
  */
@@ -837,9 +833,9 @@ export function useLatestValue<Payload = unknown>(
 }
 
 /**
- * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
- * channel topic: the event-consumption counterpart to `useStream`'s
- * sticky-latest-value read.
+ * Calls `handler` once for each event delivered on `topic`, such as a crash.
+ * For a Topic that carries events rather than a value that changes; a value is
+ * read with {@link useStream}.
  *
  * @category Reading telemetry
  */
@@ -851,9 +847,9 @@ export function useStreamEvent<Payload = unknown>(
 }
 
 /**
- * Returns a stable, imperative subscribe function for topics only known
- * after some async setup resolves, in a count decided at runtime. See
- * `LateTelemetrySubscribe`'s own doc for the full contract.
+ * Returns a function that subscribes to Topics from code, for Topics you only
+ * know after some setup finishes, or whose number changes at runtime. See
+ * {@link LateTelemetrySubscribe}. The function is the same on every render.
  *
  * @category Reading telemetry
  */
@@ -862,7 +858,9 @@ export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
 }
 
 /**
- * The current view time (UT seconds), reactive per-frame.
+ * Returns the instant the screen is showing, in UT seconds as a plain number,
+ * and re-renders on each frame. `undefined` when no telemetry stream is
+ * mounted. {@link useViewUt} returns the same instant as a `Value<"ut">`.
  *
  * @category Delay and vantage
  */
@@ -871,9 +869,9 @@ export function useUtNow(): number | undefined {
 }
 
 /**
- * The nearest `TelemetryProvider`'s `TimelineStore`, or `undefined` with none
- * mounted. Opaque (`unknown`), same reasoning as `useViewClock`, narrow/cast
- * at the call site if the concrete shape is needed.
+ * Returns the store that holds the received history of every Topic, or
+ * `undefined` when no telemetry stream is mounted. The return is typed
+ * `unknown`; narrow it to the members you use.
  *
  * @category Reading telemetry
  */
@@ -882,7 +880,8 @@ export function useTelemetryStoreOptional(): unknown {
 }
 
 /**
- * Non-throwing variant of `useViewClock`: `undefined` with no provider mounted.
+ * Returns the same clock as {@link useViewClock}, or `undefined` when no
+ * telemetry stream is mounted.
  *
  * @category Delay and vantage
  */
@@ -891,9 +890,9 @@ export function useViewClockOptional(): unknown {
 }
 
 /**
- * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
- * `undefined` when none is mounted, for imperative use outside a hook
- * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
+ * Returns the {@link TelemetryClient} of the most recently mounted telemetry
+ * stream, or `undefined` when none is mounted. For code outside a React
+ * component; a component uses {@link useTelemetryClientOptional}.
  *
  * @category Reading telemetry
  */
@@ -902,8 +901,8 @@ export function getActiveTelemetryClient(): TelemetryClient | undefined {
 }
 
 /**
- * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
- * `TelemetryClient`: `undefined` with no provider mounted.
+ * Returns the {@link TelemetryClient} of the telemetry stream this component
+ * is mounted under, or `undefined` when there is none.
  *
  * @category Reading telemetry
  */
@@ -912,7 +911,8 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 }
 
 /**
- * Whether a recorded-flight replay session is currently active.
+ * Returns whether the screen is playing back a recorded flight rather than
+ * showing the live game.
  *
  * @category Delay and vantage
  */

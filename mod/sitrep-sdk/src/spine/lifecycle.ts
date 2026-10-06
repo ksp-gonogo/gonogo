@@ -145,58 +145,28 @@ export type CommandFoundOutcome =
   | { outcome: "errored"; error: { code: string; message: string } };
 
 /**
- * Lifecycle state for a single dispatched command, keyed by `requestId`.
+ * Where the latest dispatch of a command is, as the `status` of a
+ * {@link useCommand} handle reports it, by `phase`:
  *
- * With zero delay a command moves `idle -> in-flight -> confirmed|failed`
- * synchronously once the stub responds, but the async contract (a Promise)
- * always holds, real network latency doesn't change this shape.
+ * - `idle`: nothing has been sent
+ * - `in-flight`: sent, with `etaConfirm` the UT a reply is expected by
+ * - `confirmed`: the command ran, and `result` is its reply
+ * - `refused`: the game received it and said no, with `errorCode` as the
+ *   reason. Sending it again is refused again until something in the game
+ *   changes
+ * - `failed`: something broke on the way, such as the mod's handler throwing,
+ *   described by `error`. Sending it again may work
+ * - `lost`: no reply arrived by `etaConfirm`. The command may still have run
+ * - `found`: a lost command whose reply arrived late, with what it said
+ * - `undelivered`: it never left this machine, because the link did not come
+ *   back. It did not run, so it is safe to send again
  *
- * The in-flight phase carries a predicted `etaConfirm` (the
- * absolute UT the client expects a response by, supplied by the transport,
- * never computed by the client itself), and there's a terminal `lost` phase:
- * silence past `etaConfirm` (plus a small margin) is inferred as loss rather
- * than left in-flight forever. A command that DOES settle before that
- * deadline goes straight to `confirmed`/`failed` as before and never
- * transitions to `lost`.
- *
- * There are three ways for a dispatch to end badly and they are NOT
- * interchangeable, so each has its own terminal phase:
- *
- * - `lost`: no reply arrived by the predicted deadline. Nothing was decided,
- *   and the command may well have executed anyway
- * - `undelivered`: it never left this machine. The transport held it for a link
- *   that never came back and has stopped retrying, so nothing over there ever
- *   saw it. Distinct from `lost` because it settles the question `lost` leaves
- *   open, and distinct from `failed` because nothing broke: the link went and
- *   did not return
- * - `failed`: the machinery broke. A handler threw, a result would not
- *   serialize, the client was disposed mid-flight. Carries a free-text
- *   `message` because the cause is not an enumerable game state, and a retry
- *   may genuinely succeed
- * - `refused`: the handler RAN, the game evaluated it, and said no (crew cap
- *   reached, facility already max tier, funds short). Carries the mod's typed
- *   `CommandErrorCode` and no free text, because the reason IS an enumerable
- *   game state. A retry changes nothing until the world does
- *
- * The mod separates the last two on the wire: a `CommandResult.Fail(...)` rides
- * the normal `command-response` message, while the `"error"` message type is kept
- * for the machinery-broke class.
- *
- * `lost` is the one terminal phase that is not the end. It says WE DO NOT KNOW,
- * never IT DID NOT HAPPEN, and a reply can still turn up long after it: the
- * correlation entry is retained, and the transport re-sends what it queued
- * while the socket was down. A late reply moves the command to `found`, the
- * only backwards transition in this type.
- *
- * `undelivered` is the other way that doubt ends. It comes off
- * `Transport.onUndelivered`, a channel no server writes to, and it is terminal:
- * nothing can reply to a command that was never sent.
- *
- * A loss reported by someone else, such as the host relaying its own `lost`
- * verdict to a station, arrives on `Transport.onLost` and reaches `lost`.
+ * A lost command can still become `found`; every other phase after
+ * `in-flight` is final.
  *
  * @category Commands
  */
+// On the wire a refusal is a CommandResult.Fail on command-response; the "error" message type is the failed class.
 export type CommandStatus =
   | { phase: "idle" }
   | {
