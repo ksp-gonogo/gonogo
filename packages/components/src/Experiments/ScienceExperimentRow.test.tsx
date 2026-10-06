@@ -204,4 +204,30 @@ describe("ScienceExperimentRow", () => {
     );
     await expectNoA11yViolations(container);
   });
+
+  it("draws the same slots whatever the instrument has: the experiment's title, a data line and a reserved action row", () => {
+    const { container } = renderRow(
+      <>
+        <ScienceExperimentRow
+          instrument={{ ...instrument(), expTitle: "Mystery Goo Observation" }}
+        />
+        <ScienceExperimentRow
+          instrument={instrument({
+            partId: "2",
+            expId: "",
+            inoperable: true,
+            hasData: false,
+          })}
+        />
+      </>,
+    );
+    const cards = container.querySelectorAll("li");
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toHaveTextContent("Mystery Goo Observation · No data");
+    // An absent experiment keeps its slot and says so; it is not a made-up id.
+    expect(cards[1]).toHaveTextContent("Unknown experiment · No data");
+    for (const card of cards) {
+      expect(card.querySelector('[style*="min-height"]')).not.toBeNull();
+    }
+  });
 });

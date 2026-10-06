@@ -18,6 +18,15 @@ export interface Instrument {
 }
 
 /**
+ * An {@link Instrument} with the experiment's display title where the wire
+ * carries one. A separate type because `Instrument` is mirrored in the SDK's
+ * published slot types; the card falls back to `expId` without a title.
+ */
+export interface TitledInstrument extends Instrument {
+  expTitle?: string;
+}
+
+/**
  * An instrument contributed to `experiments.instruments`, with the reading its
  * flags were read from so the row can be marked held.
  */

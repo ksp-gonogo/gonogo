@@ -7,9 +7,10 @@ import {
   type CommandButtonHandle,
   HeldBadge,
   Inline,
+  Text,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
-import type { Instrument } from "./instrument";
+import type { TitledInstrument } from "./instrument";
 
 /** What each state badge on an instrument row means, shown on hover and focus. */
 const BADGE_MEANING = {
@@ -21,7 +22,7 @@ const BADGE_MEANING = {
 
 export interface ScienceExperimentRowProps {
   /** The instrument this row renders. */
-  instrument: Instrument;
+  instrument: TitledInstrument;
   /** The deploy command. Omit for a read-only listing: the control is then not rendered at all, never rendered inert. */
   deployCmd?: CommandButtonHandle;
   /** The transmit command. Omit for a read-only listing. */
@@ -38,9 +39,21 @@ export interface ScienceExperimentRowProps {
   heldGrade?: HeldGrade;
 }
 
+/** The experiment a card is for, by its title where the wire has one. */
+function experimentName(instrument: TitledInstrument): string {
+  return instrument.expTitle || instrument.expId || "Unknown experiment";
+}
+
+/** Holds a badge's height whether or not the instrument has any state to badge. */
+const BADGE_SLOT = { minHeight: "var(--control-height)" } as const;
+
+/** Holds the controls' height whether or not this instrument offers any, so every card is the same height. */
+const ACTION_SLOT = { minHeight: "var(--control-height)" } as const;
+
 /**
- * A single science-instrument row: name, state badges and the Deploy/Transmit
- * controls. Reads no telemetry, so the same row draws a stock instrument and a
+ * A single science-instrument card. Every card has the same four slots in the
+ * same places: the part's name, state badges, a data line (the experiment and
+ * whether it holds data) and the Deploy/Transmit controls. Reads no telemetry, so the same row draws a stock instrument and a
  * contributed one.
  */
 export function ScienceExperimentRow({
@@ -50,19 +63,22 @@ export function ScienceExperimentRow({
   onTransmitted,
   heldGrade,
 }: Readonly<ScienceExperimentRowProps>) {
-  const actions = !instrument.inoperable && (
-    <Inline inset>
-      {!instrument.deployed && !instrument.hasData && deployCmd && (
-        <CommandButton
-          size="sm"
-          handle={deployCmd}
-          args={{ partId: instrument.partId }}
-          commandLabel={`Deploy ${instrument.partTitle}`}
-          label="Deploy"
-          pendingLabel="Deploying..."
-        />
-      )}
-      {instrument.hasData && transmitCmd && (
+  const actions = (
+    <Inline inset style={ACTION_SLOT}>
+      {!instrument.inoperable &&
+        !instrument.deployed &&
+        !instrument.hasData &&
+        deployCmd && (
+          <CommandButton
+            size="sm"
+            handle={deployCmd}
+            args={{ partId: instrument.partId }}
+            commandLabel={`Deploy ${instrument.partTitle}`}
+            label="Deploy"
+            pendingLabel="Deploying..."
+          />
+        )}
+      {!instrument.inoperable && instrument.hasData && transmitCmd && (
         <CommandButton
           size="sm"
           handle={transmitCmd}
@@ -85,34 +101,37 @@ export function ScienceExperimentRow({
       tone={
         instrument.inoperable ? "nogo" : instrument.hasData ? "go" : undefined
       }
-      titleRight={
-        <Inline wrap>
-          {instrument.hasData && (
-            <Tooltip text={BADGE_MEANING.data}>
-              <Badge tone="go">DATA</Badge>
-            </Tooltip>
-          )}
-          {instrument.deployed && (
-            <Tooltip text={BADGE_MEANING.deployed}>
-              <Badge>DEPLOYED</Badge>
-            </Tooltip>
-          )}
-          {!instrument.rerunnable && (
-            <Tooltip text={BADGE_MEANING.oneShot}>
-              <Badge>ONE-SHOT</Badge>
-            </Tooltip>
-          )}
-          {instrument.inoperable && (
-            <Tooltip text={BADGE_MEANING.inoperable}>
-              <Badge tone="nogo">INOPERABLE</Badge>
-            </Tooltip>
-          )}
-          {heldGrade !== undefined && (
-            <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
-          )}
-        </Inline>
-      }
-      footer={actions || undefined}
-    />
+      footer={actions}
+    >
+      <Inline wrap style={BADGE_SLOT}>
+        {instrument.hasData && (
+          <Tooltip text={BADGE_MEANING.data}>
+            <Badge tone="go">DATA</Badge>
+          </Tooltip>
+        )}
+        {instrument.deployed && (
+          <Tooltip text={BADGE_MEANING.deployed}>
+            <Badge>DEPLOYED</Badge>
+          </Tooltip>
+        )}
+        {!instrument.rerunnable && (
+          <Tooltip text={BADGE_MEANING.oneShot}>
+            <Badge>ONE-SHOT</Badge>
+          </Tooltip>
+        )}
+        {instrument.inoperable && (
+          <Tooltip text={BADGE_MEANING.inoperable}>
+            <Badge tone="nogo">INOPERABLE</Badge>
+          </Tooltip>
+        )}
+        {heldGrade !== undefined && (
+          <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
+        )}
+      </Inline>
+      <Text level="muted" size="xs">
+        {experimentName(instrument)} ·{" "}
+        {instrument.hasData ? "Holds data" : "No data"}
+      </Text>
+    </Card>
   );
 }

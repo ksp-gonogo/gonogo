@@ -1,5 +1,5 @@
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
-import type { Instrument } from "./instrument";
+import type { TitledInstrument } from "./instrument";
 
 /** Confirmed-none values for the science reads: present, and empty. */
 export const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
@@ -28,10 +28,10 @@ function partIdOf(raw: unknown): string | null {
  * `partName`/`experimentId`/`dataIsCollectable` or `partTitle`/`expId`/`hasData`.
  * `partId` normalises to a string.
  */
-export function parseInstruments(raw: unknown): Instrument[] | null {
+export function parseInstruments(raw: unknown): TitledInstrument[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
-  const out: Instrument[] = [];
+  const out: TitledInstrument[] = [];
   const entries: unknown[] = raw;
   for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
@@ -42,6 +42,7 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
       partId,
       partTitle: firstString(e, ["partName", "partTitle"]) ?? "Unknown part",
       expId: firstString(e, ["experimentId", "expId"]) ?? "",
+      expTitle: firstString(e, ["title", "expTitle"]) || undefined,
       deployed: e.deployed === true,
       hasData:
         typeof e.dataIsCollectable === "boolean"

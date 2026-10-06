@@ -78,7 +78,7 @@ describe("Experiments: genuinely runs off the stream", () => {
     expect(screen.queryByText("PROCESSING")).not.toBeInTheDocument();
 
     expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();
-    expect(screen.getByText("mysteryGoo")).toBeTruthy();
+    expect(screen.getByText(/^Mystery Goo Observation · /)).toBeTruthy();
     expect(screen.getByText("DATA")).toBeTruthy();
   });
 });

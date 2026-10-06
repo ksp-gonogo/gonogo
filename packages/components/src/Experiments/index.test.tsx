@@ -74,7 +74,7 @@ describe("ExperimentsComponent", () => {
     );
   });
 
-  it("groups instruments by expId and shows badges", async () => {
+  it("names each instrument's experiment on its card, under no heading, and shows badges", async () => {
     const fixture = newFixture();
     renderOfficer(fixture);
     act(() => {
@@ -110,9 +110,10 @@ describe("ExperimentsComponent", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText("mysteryGoo")).toBeInTheDocument(),
+      expect(screen.getAllByText(/^mysteryGoo · /)).toHaveLength(2),
     );
-    expect(screen.getByText("temperatureScan")).toBeInTheDocument();
+    expect(screen.getByText(/^temperatureScan · /)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "mysteryGoo" })).toBeNull();
 
     expect(screen.getByText("DATA")).toBeInTheDocument();
     expect(screen.getByText("INOPERABLE")).toBeInTheDocument();

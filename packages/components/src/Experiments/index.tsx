@@ -19,7 +19,6 @@ import {
   EmptyState,
   Panel,
   Section,
-  SectionTitle,
   Stack,
   Text,
   Tooltip,
@@ -30,7 +29,7 @@ import {
 import { Fragment } from "react";
 import { heldGrade } from "../shared/heldGrade";
 import {
-  groupByExpId,
+  byExperiment,
   groupContributed,
   ownContributed,
   summarise,
@@ -152,59 +151,54 @@ function ExperimentsComponent({
   const matchesFilter = (inst: Instrument) =>
     filter.matches(`${inst.expId} ${inst.partTitle}`);
 
-  // Filtered before grouping so a group that loses every instrument loses its heading too.
-  const grouped = groupByExpId((instruments ?? []).filter(matchesFilter));
+  // Each card names its experiment: a heading per experiment held one card apiece on a typical vessel.
+  const listed = byExperiment((instruments ?? []).filter(matchesFilter));
   const contributedGroups = groupContributed(contributed.filter(matchesFilter));
 
   // The vessel's totals, not the filter's, contributed instruments included.
   const totals = summarise([...(instruments ?? []), ...contributed]);
 
-  const sectionNodes = grouped.map(({ expId, items }) => (
-    <Section key={expId}>
-      <SectionTitle>{expId || "(unknown)"}</SectionTitle>
-      {/* A real list, because the row renders an `<li>`; an augment in the slot below must be a list item too. */}
-      <Stack as="ul" style={INSTRUMENT_LIST}>
-        {items.map((inst) => (
-          <Fragment key={inst.partId}>
-            <ScienceExperimentRow
-              instrument={inst}
-              deployCmd={deployCmd}
-              transmitCmd={transmitCmd}
-              onTransmitted={onTransmitted}
-              heldGrade={instrumentsHeld}
-            />
-            <AugmentSlot
-              name="experiments.instrument"
-              props={{ instrument: inst }}
-            />
-          </Fragment>
-        ))}
-      </Stack>
-    </Section>
-  ));
+  const sectionNodes =
+    listed.length === 0 ? null : (
+      <Section key="instruments" full>
+        {/* A real list, because the row renders an `<li>`; an augment in the slot below must be a list item too. */}
+        <Stack as="ul" style={INSTRUMENT_LIST}>
+          {listed.map((inst) => (
+            <Fragment key={inst.partId}>
+              <ScienceExperimentRow
+                instrument={inst}
+                deployCmd={deployCmd}
+                transmitCmd={transmitCmd}
+                onTransmitted={onTransmitted}
+                heldGrade={instrumentsHeld}
+              />
+              <AugmentSlot
+                name="experiments.instrument"
+                props={{ instrument: inst }}
+              />
+            </Fragment>
+          ))}
+        </Stack>
+      </Section>
+    );
 
   // Contributed rows sit in sections headed by their supplier, which is why they carry no stock commands.
-  const contributedNodes = contributedGroups.map(({ ownerLabel, groups }) => (
+  const contributedNodes = contributedGroups.map(({ ownerLabel, items }) => (
     <Section
       key={`contributed-${ownerLabel}`}
       full
       gap="related-dense"
       title={ownerLabel}
     >
-      {groups.map(({ expId, items }) => (
-        <Stack key={expId}>
-          <SectionTitle as="h5">{expId || "(unknown)"}</SectionTitle>
-          <Stack as="ul" style={INSTRUMENT_LIST}>
-            {items.map((inst) => (
-              <ScienceExperimentRow
-                key={inst.partId}
-                instrument={inst}
-                heldGrade={heldGrade(inst.reading)}
-              />
-            ))}
-          </Stack>
-        </Stack>
-      ))}
+      <Stack as="ul" style={INSTRUMENT_LIST}>
+        {items.map((inst) => (
+          <ScienceExperimentRow
+            key={inst.partId}
+            instrument={inst}
+            heldGrade={heldGrade(inst.reading)}
+          />
+        ))}
+      </Stack>
     </Section>
   ));
 
@@ -243,7 +237,7 @@ function ExperimentsComponent({
             <LabSection labs={labs} heldGrade={labHeld} />
           </Section>
         ),
-        sectionNodes.length === 0 && contributedNodes.length === 0 ? (
+        sectionNodes === null && contributedNodes.length === 0 ? (
           <Section key="unmatched" full>
             <EmptyState>No instrument matches the filter</EmptyState>
           </Section>

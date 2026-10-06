@@ -58,6 +58,6 @@ describe("Experiments: stream render golden (delay=0)", () => {
     expect(scope.getByText("OPERATIONAL")).toBeTruthy();
     expect(scope.getByText("2 scientists")).toBeTruthy();
     expect(scope.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();
-    expect(scope.getByText("mysteryGoo")).toBeTruthy();
+    expect(scope.getByText(/^mysteryGoo · /)).toBeTruthy();
   });
 });

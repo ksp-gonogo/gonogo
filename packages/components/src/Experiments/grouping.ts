@@ -1,21 +1,20 @@
 import type { Contributed } from "@ksp-gonogo/core";
-import type { ContributedInstrument, Instrument } from "./instrument";
+import type {
+  ContributedInstrument,
+  Instrument,
+  TitledInstrument,
+} from "./instrument";
 
-export interface InstrumentGroup<Item extends Instrument = Instrument> {
-  expId: string;
-  items: Item[];
-}
-
-export function groupByExpId<Item extends Instrument>(
-  instruments: Item[],
-): InstrumentGroup<Item>[] {
-  const map = new Map<string, Item[]>();
-  for (const inst of instruments) {
-    const list = map.get(inst.expId);
-    if (list) list.push(inst);
-    else map.set(inst.expId, [inst]);
-  }
-  return Array.from(map.entries()).map(([expId, items]) => ({ expId, items }));
+/**
+ * Instruments in one list, ordered by experiment so the cards for one kind of
+ * experiment sit together. The sort is stable: instruments of one experiment
+ * keep the order the vessel reported them in.
+ */
+export function byExperiment<Item extends TitledInstrument>(
+  instruments: readonly Item[],
+): Item[] {
+  const name = (inst: TitledInstrument) => inst.expTitle || inst.expId;
+  return [...instruments].sort((a, b) => name(a).localeCompare(name(b)));
 }
 
 /**
@@ -39,12 +38,12 @@ export function ownContributed(
 export interface ContributedInstrumentGroup {
   /** Who supplied these, for the section heading. */
   ownerLabel: string;
-  groups: InstrumentGroup<Contributed<ContributedInstrument>>[];
+  items: Contributed<ContributedInstrument>[];
 }
 
 /**
- * Contributed instruments by supplier, then by experiment, in first-seen order so
- * sections do not reshuffle. An ownerless contribution is labelled by its id.
+ * Contributed instruments by supplier, in first-seen order so sections do not
+ * reshuffle. An ownerless contribution is labelled by its id.
  */
 export function groupContributed(
   entries: readonly Contributed<ContributedInstrument>[],
@@ -58,7 +57,7 @@ export function groupContributed(
   }
   return Array.from(byOwner.entries()).map(([ownerLabel, items]) => ({
     ownerLabel,
-    groups: groupByExpId(items),
+    items: byExperiment(items),
   }));
 }
 
