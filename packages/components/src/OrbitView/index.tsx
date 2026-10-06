@@ -7,6 +7,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  conicApsides,
   type OrbitTrajectory,
   useOrbitTrajectory,
 } from "@ksp-gonogo/sitrep-client";
@@ -87,18 +88,26 @@ function OrbitViewComponent({
     orbitReading.reckoning.status === "declined"
       ? orbitReading.reckoning.declined
       : undefined;
-  // `periapsisRadius` is real on any solved orbit; `apoapsisRadius` is `null` on a hyperbolic one.
+  // Resolved from the stream rather than the stock table, so a planet pack keeps its radius, atmosphere and oxygen.
+  const body = useStreamBody(bodyName);
+  // A held orbit no model carries is still the last orbit there was: it is drawn held, with the craft at its last place, where nothing ever heard draws nothing.
+  const orbitHeld =
+    orbitReading.state === "held" &&
+    orbitReading.reckoning.status !== "available";
+  // `periapsisRadius` is real on any solved orbit; `apoapsisRadius` is `null` on a hyperbolic one. The apsides are the conic's shape, so a held orbit has them with no solve.
   const solve = useOrbitSolve();
+  const apsisShape =
+    orbitHeld && orbitObserved !== undefined
+      ? conicApsides(orbitObserved, body?.radius)
+      : solve;
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
-  const apoapsisR = solve?.apoapsisRadius;
-  const periapsisR = solve?.periapsisRadius;
+  const apoapsisR = apsisShape?.apoapsisRadius;
+  const periapsisR = apsisShape?.periapsisRadius;
 
   // The trajectory shape comes from the propagation seam, never from `sma` and `ecc` here, so an integrating provider changes what is drawn.
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
 
-  // Resolved from the stream rather than the stock table, so a planet pack keeps its radius, atmosphere and oxygen.
-  const body = useStreamBody(bodyName);
-  const { isOrbiting } = useIsOrbiting();
+  const { isOrbiting } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
   // Single-body subscription, avoiding the all-bodies fanout of useCelestialBodies.
   const { angleDeg: rotationAngleDeg, rotates } = useBodyRotation(
     typeof bodyName === "string" ? bodyName : null,
@@ -144,6 +153,7 @@ function OrbitViewComponent({
       bodyColor={body?.color}
       bodyRadius={body?.radius}
       isOrbiting={isOrbiting}
+      held={orbitHeld}
       rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
       atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}
       atmosphereHasOxygen={body?.hasOxygen ?? false}
@@ -170,6 +180,7 @@ function OrbitViewComponent({
       pill={pill}
       layout={{ isLandscape, showDiagram, showSubtitle }}
       hasOrbit={hasOrbit}
+      held={orbitHeld && hasOrbit}
       trajectory={trajectory}
       withheld={withheld}
       declined={declined}

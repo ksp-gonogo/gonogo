@@ -74,6 +74,12 @@ export interface OrbitDiagramProps {
   argPe: number;
   /** Whether the vessel is in a stable orbit, drives trajectory colour. Defaults to true. */
   isOrbiting?: boolean;
+  /**
+   * The orbit is the last one observed and nothing carries it to now. Its line
+   * is drawn in the held hue as a row of squares, the held mark laid along the
+   * path, so the curve reads as held and not as the craft's present orbit.
+   */
+  held?: boolean;
   /** Body physical radius in same units as apoapsis/periapsis. */
   bodyRadius?: number;
   /** Body disc fill colour. Falls back to a neutral blue. */
@@ -199,6 +205,7 @@ export function OrbitDiagram({
   craft,
   argPe,
   isOrbiting = true,
+  held = false,
   bodyRadius,
   bodyColor,
   variant = "full",
@@ -351,9 +358,13 @@ export function OrbitDiagram({
       : fitToAspect(framedBox, containerAspect),
   );
 
-  const orbitStroke = isOrbiting
-    ? "rgba(0,255,136,0.55)"
-    : "rgba(255,80,0,0.55)";
+  const orbitStroke = held
+    ? "var(--color-warn-mark)"
+    : isOrbiting
+      ? "rgba(0,255,136,0.55)"
+      : "rgba(255,80,0,0.55)";
+  // Squares the width of the line with two widths between them: the held mark, repeated along the path.
+  const orbitDash = held ? `${strokeW} ${strokeW * 2}` : undefined;
 
   // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned and the vessel mark stays upright.
   const argPeRad = (argPe * Math.PI) / 180;
@@ -410,6 +421,7 @@ export function OrbitDiagram({
         aria-label="Orbital diagram"
         /* The orbiting verdict is otherwise drawn only as the trace colour. */
         data-orbiting={isOrbiting ? "yes" : "no"}
+        data-orbit-line={held ? "held" : "current"}
       >
         <Rotated
           transform={
@@ -506,6 +518,7 @@ export function OrbitDiagram({
                   fill="none"
                   stroke={orbitStroke}
                   strokeWidth={strokeW}
+                  strokeDasharray={orbitDash}
                 />
                 <HorizonMark
                   points={trajectoryPath}
@@ -521,6 +534,7 @@ export function OrbitDiagram({
                 fill="none"
                 stroke={orbitStroke}
                 strokeWidth={strokeW}
+                strokeDasharray={orbitDash}
               />
             ) : (
               <ellipse
@@ -531,6 +545,7 @@ export function OrbitDiagram({
                 fill="none"
                 stroke={orbitStroke}
                 strokeWidth={strokeW}
+                strokeDasharray={orbitDash}
               />
             )}
           </g>

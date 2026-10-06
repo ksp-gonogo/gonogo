@@ -27,6 +27,8 @@ export interface OrbitViewPanelProps {
   withheld: WithheldTrajectory | null;
   declined: ReckoningDecline | undefined;
   centreBodyIndex: number | undefined;
+  /** The orbit drawn is the last one observed, held with nothing carrying it to now: the panel says so. */
+  held: boolean;
   /** The drawn orbit, or `null` when there is no trajectory to draw. */
   diagram: ReactNode;
   overlay: OrbitOverlayContext | null;
@@ -38,6 +40,7 @@ export function OrbitViewPanel({
   pill,
   layout: { isLandscape, showDiagram, showSubtitle },
   hasOrbit,
+  held,
   trajectory,
   withheld,
   declined,
@@ -76,6 +79,7 @@ export function OrbitViewPanel({
     return (
       <Panel
         panelTitle={panelTitle}
+        panelStatus={held ? "held" : undefined}
         panelSidebar={
           <LandscapeChrome>
             {bodyName !== undefined && (
@@ -123,6 +127,7 @@ export function OrbitViewPanel({
   return (
     <Panel
       panelTitle={panelTitle}
+      panelStatus={held ? "held" : undefined}
       panelAside={
         showBodyNameInAside ? (
           <Text level="muted" size="xs">

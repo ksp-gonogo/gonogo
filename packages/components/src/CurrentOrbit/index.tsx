@@ -264,6 +264,7 @@ function CurrentOrbitComponent({
                     bodyColor={body?.color}
                     bodyRadius={body?.radius}
                     isOrbiting={isOrbiting}
+                    held={orbitHeld}
                   />
                 )
               )}
