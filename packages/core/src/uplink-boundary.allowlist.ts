@@ -347,7 +347,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Doc mentions + boilerplate config only, nothing imports from the
        * scansat Uplink.
        */
-      "mod/Gonogo.KSP/BreakingGroundUplink.cs",
       "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts",
     ],
   },
