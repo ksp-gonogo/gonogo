@@ -5,13 +5,8 @@
  * point are both this walk; they differ only in where they stop.
  */
 import type { OrbitPatch } from "../__generated__/contract";
-import { type Value, value } from "../unit-system/value";
-import {
-  meanAnomalyAt,
-  rotatePerifocalToInertial,
-  solveEccentricAnomaly,
-  trueAnomalyFromEccentric,
-} from "./kepler";
+import { value } from "../unit-system/value";
+import { rotatePerifocalToInertial, solveConic } from "./kepler";
 
 /** The elements of a patch a propagation reads. */
 export type PatchConic = Pick<
@@ -94,27 +89,22 @@ const FULL_TURN = value("rad", 2 * Math.PI);
  * Mean motion comes from the patch's own period.
  */
 export function patchStateAt(patch: PatchConic, ut: number): InertialState {
-  const M = meanAnomalyAt(
-    patch.meanAnomalyAtEpoch,
+  const { trueAnomaly, radius } = solveConic(
+    patch,
     FULL_TURN.dividedBy(patch.period),
-    patch.epoch,
     value("ut", ut),
   );
-  const e = patch.ecc.magnitude;
-  const E = solveEccentricAnomaly(M, e);
-  const nu = trueAnomalyFromEccentric(E, e);
-  const r = patch.sma.magnitude * (1 - e * Math.cos(E));
 
   // Perifocal frame: periapsis along +x, angular momentum along +z.
   const [x, y, z] = rotatePerifocalToInertial(
-    r * Math.cos(nu),
-    r * Math.sin(nu),
+    radius * Math.cos(trueAnomaly),
+    radius * Math.sin(trueAnomaly),
     degToRad(patch.inc.magnitude),
     degToRad(patch.lan.magnitude),
     degToRad(patch.argPe.magnitude),
   );
 
-  return { x, y, z, radius: r };
+  return { x, y, z, radius };
 }
 
 /** Latitude, inertial longitude and altitude of an inertial state over a body of `bodyRadius`. */
