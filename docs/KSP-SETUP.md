@@ -43,10 +43,11 @@ The steps below are that build from source.
 
 The mod compiles against KSP's own assemblies, which are not redistributable, so you point the build at the copy inside your own install. In your KSP folder, find the directory holding `Assembly-CSharp.dll`:
 
-- **Windows / Linux**: `KSP_x64_Data/Managed`
+- **Windows**: `KSP_x64_Data/Managed`
+- **Linux** (including the Steam Deck): `KSP_Data/Managed`
 - **macOS**: `KSP.app/Contents/Resources/Data/Managed`
 
-Note that path; the next step needs it.
+Note that path; the commands below write it as `<your KSP managed folder>`.
 
 ### 2. Build
 
@@ -54,7 +55,7 @@ Note that path; the next step needs it.
 git clone https://github.com/ksp-gonogo/gonogo.git
 cd gonogo
 dotnet build mod/Gonogo.KSP/Gonogo.KSP.csproj -c Release \
-  -p:KspManaged="/path/to/KSP_x64_Data/Managed"
+  -p:KspManaged="<your KSP managed folder>"
 ```
 
 It prints a lot of nullable-reference warnings and should finish with `0 Error(s)`.
@@ -92,7 +93,7 @@ Both Uplinks live in the [gonogo-uplinks](https://github.com/ksp-gonogo/gonogo-u
 
 ```bash
 dotnet build uplinks/kos/mod/GonogoKosUplink.csproj -c Release \
-  -p:KspManaged="/path/to/KSP_x64_Data/Managed" \
+  -p:KspManaged="<your KSP managed folder>" \
   -p:KspGameData="/path/to/Kerbal Space Program/GameData"
 ```
 

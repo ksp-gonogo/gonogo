@@ -68,7 +68,7 @@ Work down this list. The first three cover nearly every same-WiFi failure, and n
 
 A station on the same WiFi as the main screen connects directly, peer-to-peer, and never needs TURN or any port-forwarding. Everything below only applies when a station is on a different network, a phone on cellular, someone joining from their own home.
 
-Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. The link and QR in Add Station already point at the public build (`ksp-gonogo.github.io/gonogo/station`) whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
+Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. The link and QR in Add Station already point at the public build (`ksp-gonogo.github.io/app/station`) whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
 
 For a cross-internet station to reach the main screen, two things must be in place:
 

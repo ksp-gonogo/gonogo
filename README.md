@@ -34,7 +34,7 @@ To host, you need:
 
 ## How to run it
 
-gonogo runs on your own computer, locally, to avoid the headache of setting up certificates. Start it with one command, which pulls the image and runs the main screen and the relay together:
+gonogo runs on your own computer, locally, to avoid the headache of setting up certificates. Start it with one command, which pulls the image and runs the main screen and the relay together. The image is published with the first release; until it is, the pull is refused and the only way to run the app is from a checkout (see [CONTRIBUTING.md](CONTRIBUTING.md)):
 
 ```bash
 docker run -d --name gonogo --restart unless-stopped \
@@ -59,7 +59,7 @@ Once the main screen is up (mod setup walked through in [docs/KSP-SETUP.md](docs
 A station is any other browser: a tablet, a second laptop, a phone.
 
 1. On the main screen, hover the **+** button (bottom-right) to reveal the expanded menu, and press the **Add station** button (the broadcast symbol) to get a share code
-2. On the other device, open the station page at [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station)
+2. On the other device, open the station page: [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station), or `http://<main screen computer's address>:8080/station` if the device is on the same network as your container (on the main screen's own computer that is [localhost:8080/station](http://localhost:8080/station))
 3. Enter the share code and connect
 
 ---
