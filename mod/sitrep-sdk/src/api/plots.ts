@@ -150,6 +150,14 @@ export interface PlotEntry {
 
 declare module "./types" {
   interface ContributionRegistry {
+    /**
+     * Whole plots, each with its own axes and marks, drawn by every widget
+     * that hosts the slot. Landing Status hosts it, beside its descent
+     * readouts. Return `null` from `compute` while your plot has nothing to
+     * show. Two entries with the same `subject` draw as one plot, so you can
+     * add layers to a plot another contribution draws. Returns
+     * {@link PlotEntry} entries.
+     */
     plots: {
       entry: PlotEntry;
     };

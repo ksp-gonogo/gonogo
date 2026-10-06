@@ -294,7 +294,7 @@ export interface CrewAvatarContext {
  * `astronaut-complex.crew-badge` augment, once for each kerbal card in the
  * Astronaut Complex's Applicants and Active lists.
  *
- * `astronaut-complex.crew` draws under the kerbal's name, for detail your
+ * `astronaut-complex.crew` draws at the foot of the card, for detail your
  * Uplink holds about that kerbal, such as a date. `astronaut-complex.crew-badge`
  * draws in the card's top-right corner, for a short mark read with the name,
  * such as a state of your own that KSP's roster does not know.
@@ -822,13 +822,39 @@ declare module "./types" {
 
     "target-picker.sections": Record<string, never>;
 
+    /**
+     * A space in Warp Control's controls column, below the warp buttons, for a
+     * control of your own such as a warp-to button for an event your Uplink
+     * knows about. Drawn at every size. Passes no props; read the warp state
+     * with `useTelemetry`.
+     */
     "warp-control.stepper": Record<string, never>;
 
+    /**
+     * The video backdrop behind the reticle box in the Targeting widget's
+     * docking view. Fill the frame with a camera picture, such as a docking
+     * port camera, and pass its aspect to `reportPictureAspect` so the
+     * reticle's scale follows the picture. Drawn only while the docking view
+     * is shown at a size with room for the frame, and not when the operator
+     * picks the view without a camera. Passes a {@link TargetingHudContext}.
+     */
     "targeting.camera": TargetingHudContext;
+    /**
+     * A layer over the reticle box in the Targeting widget's docking view, for
+     * marks of your own placed in the reticle's space with `reticleOffset` and
+     * `reticleTravelPx`. Drawn only while the docking view is shown at a size
+     * with room for the frame. Passes a {@link TargetingHudContext}.
+     */
     "targeting.overlay": TargetingHudContext;
 
     "comm-signal.sections": Record<string, never>;
 
+    /**
+     * A layer over the Ship Map's part diagram, the same size as it, for marks
+     * placed on parts. The layer passes pointer events through to the
+     * diagram, so an element that needs clicks turns them back on itself.
+     * Drawn once the vessel has parts. Passes a {@link ShipMapOverlayContext}.
+     */
     "ship-map.overlay": ShipMapOverlayContext;
 
     /**
@@ -848,22 +874,84 @@ declare module "./types" {
      */
     "crew-status.summary": Record<string, never>;
 
+    /**
+     * A block at the foot of each kerbal's card in the Astronaut Complex,
+     * under its stats, in both the Applicants and the Active lists. Use it for
+     * detail your Uplink holds about that kerbal, such as a retirement date or
+     * a training course. Passes an {@link AstronautComplexCrewContext}.
+     */
     "astronaut-complex.crew": AstronautComplexCrewContext;
+    /**
+     * The top-right corner of each kerbal's card in the Astronaut Complex,
+     * beside the name, for a short mark read while scanning the list, such as
+     * a `Badge` for a state KSP's roster does not know. Passes an
+     * {@link AstronautComplexCrewContext}.
+     */
     "astronaut-complex.crew-badge": AstronautComplexCrewContext;
-    // A whole tab, which passes nothing: the augment that binds it supplies its own label.
+    /**
+     * A whole tab beside Applicants and Active in the Astronaut Complex. The
+     * tab appears only while an augment fills the slot; the augment's `label`
+     * is the tab's name and what it renders is the tab's content. Passes no
+     * props.
+     */
     "astronaut-complex.tab": Record<string, never>;
 
+    /**
+     * A block below the Launch Director's list of pads, for checks to make
+     * before a launch, such as whether the picked crew is rested. Drawn while
+     * the pad list is shown, which is neither in flight nor in the Tracking
+     * Station. Passes a {@link LaunchDirectorSlotContext}.
+     */
     "launch-director.preflight": LaunchDirectorSlotContext;
+    /**
+     * A line under each pad in the Launch Director's pad list, for something
+     * your Uplink knows about that pad, such as that its launch complex is
+     * still being built. It takes no room when the augment draws nothing.
+     * Passes a {@link LaunchDirectorPadContext}.
+     */
     "launch-director.pad": LaunchDirectorPadContext;
 
+    /**
+     * A source of objectives for the Objectives widget, such as a mission
+     * planner's goals. Render the `Section` it passes with your objectives as
+     * `items`; the widget draws every source's rows the same way, and shows
+     * its empty state while no source has any. Passes an
+     * {@link ObjectiveSourceContext}.
+     */
     "objectives.source": ObjectiveSourceContext;
 
+    /**
+     * A section below the Action Group widget's toggle, for the state of what
+     * the group drives, such as how many lights it switches are on. Passes an
+     * {@link ActionGroupSlotContext}.
+     */
     "action-group.subsystem": ActionGroupSlotContext;
 
     "system-view.actions": Record<string, never>;
+    /**
+     * A layer over the System View diagram, the same size as it, for marks
+     * drawn in the diagram's own space that a `system-view.entities` entry
+     * cannot express. The layer passes pointer events through to the
+     * diagram. Drawn while the diagram is shown, not in the compact view.
+     * Passes a {@link SystemOverlayContext}.
+     */
     "system-view.overlay": SystemOverlayContext;
 
+    /**
+     * A layer over every canvas of the Map View, the same size as the map
+     * area, for marks placed by latitude and longitude with `project`. The
+     * layer passes pointer events through to the map, so an element that
+     * needs clicks turns them back on itself. Passes a
+     * {@link MapOverlayContext}.
+     */
     "map-view.overlay": MapOverlayContext;
+    /**
+     * The Map View's base surface, under every other layer, for a picture of
+     * the whole body such as a scanned terrain map. The augment draws nothing
+     * itself: it paints a canvas and hands it to the map with `onLayer`, and
+     * returns `null`. Set `suppressesVanillaBase` on the augment to remove the
+     * stock texture. Passes a {@link MapBaseLayerContext}.
+     */
     "map-view.base": MapBaseLayerContext;
     // Mounted by `Panel`'s universal segments, not by the widget. Declared so a
     // binder types against the propless contract, not the loose fallback.
@@ -878,18 +966,42 @@ declare module "./types" {
     // gets the propless contract rather than the loose fallback.
     "tech-tree.sections": Record<string, never>;
 
+    /**
+     * A line under each science subject on the Science Data widget's Aboard
+     * tab, for controls or detail of your own about that subject, such as
+     * transmitting it or moving it to a lab. The line exists only while an
+     * augment fills the slot. Passes a {@link ScienceDataAboardRowContext}.
+     */
     "science-data.aboard-row": ScienceDataAboardRowContext;
 
+    /**
+     * A layer over the Orbit View diagram, the same size as it, for marks
+     * drawn against the vessel's orbit. The layer passes pointer events
+     * through to the diagram. Drawn while there is an orbit. Passes an
+     * {@link OrbitOverlayContext}.
+     */
     "orbit-view.overlay": OrbitOverlayContext;
 
     // Mounted by `Panel`'s universal segments, not by the widget.
     "landing-status.sections": Record<string, never>;
     "landing-status.actions": Record<string, never>;
 
+    /**
+     * A row after each stock instrument in the Experiments widget's list, for
+     * detail of your own about that instrument. It sits inside the list, so
+     * render a list item. Instruments from the `experiments.instruments`
+     * contribution slot get none. Passes an
+     * {@link ExperimentsInstrumentSlotContext}.
+     */
     "experiments.instrument": ExperimentsInstrumentSlotContext;
     // Mounted by `Panel`'s universal `actions` segment, not by the widget.
     "experiments.actions": Record<string, never>;
 
+    /**
+     * A block at the foot of each experiment card in the Deployed Science
+     * widget, under its progress meter, for detail of your own about that
+     * experiment. Passes a {@link DeployedExperimentContext}.
+     */
     "deployed-science.experiment": DeployedExperimentContext;
 
     "fuel-status.sections": Record<string, never>;
@@ -897,8 +1009,21 @@ declare module "./types" {
     // Mounted by `Panel`'s universal `sections` segment; the resource in focus reaches an augment through `WidgetScopeRegistry` below instead.
     "power-systems.sections": Record<string, never>;
 
+    /**
+     * A line under each craft's name in the Fleet Roster, for a note about
+     * that craft such as a health warning or an alarm. The line takes no room
+     * when the augment draws nothing; draw only a `Badge` while `compact` is
+     * true. Passes a {@link FleetRosterUpdatesContext}.
+     */
     "fleet-roster.updates": FleetRosterUpdatesContext;
 
+    /**
+     * The body of an Administration Building screen in the Strategies widget,
+     * below the strategy cards the screen lists, for content of your own such
+     * as a Programs screen with its own controls. Screens come from the
+     * `strategies.screens` contribution slot; the body is drawn only on a
+     * screen that is open for use. Passes a {@link StrategiesScreenBodyContext}.
+     */
     "strategies.screen-body": StrategiesScreenBodyContext;
   }
 

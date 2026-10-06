@@ -540,18 +540,48 @@ declare module "./types" {
      * data they read. A contribution asks for Topics through its own `deps`, any
      * Topic is valid there, and `deps` is the only thing that feeds `compute`.
      */
+    /**
+     * Resource meters on the Ship Map's parts, such as a life-support supply
+     * the stock resource list does not carry. Each entry draws as a fill bar
+     * on the part and as a meter in the part's tooltip. Returns
+     * {@link ShipMapPartMeterEntry} entries.
+     */
     "ship-map.part-meters": {
       entry: ShipMapPartMeterEntry;
     };
+    /**
+     * Status rows in a Ship Map part's tooltip, after its resource meters, for
+     * something that is not a stored resource, such as a converter's
+     * efficiency. Returns {@link ShipMapPartMetaEntry} entries.
+     */
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;
     };
+    /**
+     * Things drawn on the System View diagram, such as a relay's orbit, a
+     * link between two craft or a front crossing the system. The widget
+     * places each entry at its own pan and zoom, and draws only those around
+     * the body the diagram is centred on. Returns {@link SystemEntity}
+     * entries.
+     */
     "system-view.entities": {
       entry: SystemEntity;
     };
+    /**
+     * A contact status for the vessel the System View plots, such as that it
+     * has gone silent for too long. The widget restyles the vessel's marker
+     * and captions the diagram from the first entry whose `target` is that
+     * vessel. Returns {@link SystemViewVesselStatusEntry} entries.
+     */
     "system-view.vessel-status": {
       entry: SystemViewVesselStatusEntry;
     };
+    /**
+     * Reference frames the System View can draw its whole picture in, offered
+     * to the operator in the frame picker for the body the diagram is centred
+     * on, such as a frame that rotates with a moon. Returns
+     * {@link SystemViewProjection} entries.
+     */
     "system-view.projection": {
       entry: SystemViewProjection;
     };
@@ -569,12 +599,33 @@ declare module "./types" {
     "crew-status.meters": {
       entry: MeterEntry;
     };
+    /**
+     * The data rate of each hop on the comms route Comm Signal draws, for a
+     * comms mod that models bitrate. Each rate is shown beside its hop, and
+     * the slowest hop is marked. The route, and so the rates, appear only
+     * when the widget is large enough to draw the full path. Returns
+     * {@link CommSignalHopRateEntry} entries.
+     */
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;
     };
+    /**
+     * Screens of the Administration Building in the Strategies widget, each
+     * drawn as a tab listing some strategy departments. With no entries the
+     * widget draws every strategy in one list. What a screen holds beyond its
+     * strategy cards comes from the `strategies.screen-body` augment slot.
+     * Returns {@link StrategiesScreenEntry} entries.
+     */
     "strategies.screens": {
       entry: StrategiesScreenEntry;
     };
+    /**
+     * Science instruments the Experiments widget cannot find on the stock
+     * list, for a mod whose parts run their own science module. The widget
+     * lists them, read-only, under a heading naming your Uplink and counts
+     * them in the vessel's totals. Returns {@link ExperimentsInstrumentEntry}
+     * entries.
+     */
     "experiments.instruments": {
       entry: ExperimentsInstrumentEntry;
     };
