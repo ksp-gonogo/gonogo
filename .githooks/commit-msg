@@ -49,9 +49,12 @@ esac
 #   1. The SUBJECT carries the change. Imperative, specific, and about what
 #      changed rather than what was done to the repository. `feat(x):`/`fix(x):`
 #      prefixes are fine and are what the release tooling reads.
+#      The subject is at most 100 characters: one line a reader can take in at
+#      a glance. Past that it is carrying detail that is not the change.
 #   2. DEFAULT TO NO BODY. On a changelog commit a body is usually superfluous.
-#      If the subject cannot carry it, the subject is wrong. Where something
-#      genuinely must be said, say it flatly in ONE line.
+#      If the change does not fit a 100-character subject, the subject is
+#      carrying too much: keep the change in the subject and move the one
+#      detail worth having into the ONE-LINE body.
 #   3. NO HISTORY-TELLING. Why the repo was in an odd state, what was tried
 #      first, which agent did what, how long it took, what the measurement was:
 #      all noise in a changelog. Cut it.
@@ -63,6 +66,11 @@ esac
 #
 # Long, verbose, working-scaffolding commits are fine on a FEATURE BRANCH; they
 # are discarded at the squash-fold. This hook guards what reaches staging.
+#
+# The length cap is not applied to a subject git is carrying over unchanged:
+# `git commit --amend` that keeps the subject, and `git cherry-pick --continue`
+# after a conflict, both run this hook with a subject written before the cap.
+# `git rebase` (reword included) does not run commit-msg at all.
 #
 # Footers are exempt (BREAKING CHANGE:, Refs:, Fixes:) because the release
 # tooling reads them. A git-generated revert body is exempt for the same reason
@@ -134,6 +142,42 @@ them. Start with one of:
   feat fix docs style refactor perf test build ci chore revert
 optionally scoped, e.g. fix(rail): or test(space centre):, then ": " and the
 change in the imperative.
+MSG
+      exit 1
+    fi
+    ;;
+esac
+
+# A subject is ONE changelog line: 100 characters is what a reader takes in at a
+# glance.
+max_subject=100
+case "$subject" in
+  "Revert "*|"Merge "*) ;;
+  *)
+    carried=0
+    for rev in HEAD CHERRY_PICK_HEAD; do
+      if existing=$(git log -1 --format=%s "$rev" 2>/dev/null) && [ "$existing" = "$subject" ]; then
+        carried=1
+      fi
+    done
+    if [ "${#subject}" -gt "$max_subject" ] && [ "$carried" -eq 0 ]; then
+      cat >&2 <<MSG
+commit-msg: refusing a subject of ${#subject} characters (the limit is $max_subject).
+
+  $subject
+
+staging history becomes release notes, and the subject is the line a reader who
+was not here has to take in at a glance. Keep the change in the subject and put
+the one detail worth having in the one-line body the hook allows. For example,
+instead of:
+
+  fix(mod): the stopped-clock rule holds until a flight's vessels are built, where it let go when the flight's scene stood
+
+write:
+
+  fix(mod): hold the stopped clock until a flight's vessels are built
+
+  The rule used to let go as soon as the flight scene stood.
 MSG
       exit 1
     fi

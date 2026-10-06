@@ -74,6 +74,9 @@ If a Claude Code session opens with an auto-assigned working branch (e.g. `claud
 
 Do not add a `Co-Authored-By: Claude ...` (or any other Claude/Anthropic attribution) trailer to commit messages in this repo. Write the commit message as if a human authored it.
 
+A commit subject is at most 100 characters, enforced by `.githooks/commit-msg`: it is one changelog line a reader who was not here can take in at a glance.
+The detail that does not fit goes in the one-line body the hook allows, never into a longer subject.
+
 ## Commands
 
 ```bash
