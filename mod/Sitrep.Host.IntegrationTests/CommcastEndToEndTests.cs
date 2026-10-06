@@ -221,6 +221,49 @@ namespace Sitrep.Host.IntegrationTests
             await scene.C.AssertNoMessageArrivesAsync(Quiet);
         }
 
+        /// <summary>
+        /// Sixty messages in one second is a screen that has run away, and is
+        /// over the limit for things said. The acknowledgements they draw are
+        /// counted apart, and sixty of those in a second is a group answering.
+        /// </summary>
+        [Fact]
+        public async Task ThingsSaidAndAcknowledgementsAreCountedApartEachAgainstItsOwnLimit()
+        {
+            await using var scene = await Scene.StartAsync();
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m0", "g1", "hello"));
+            scene.Tick(100);
+            var saidOver = CommcastUplink.SaidBudget.ExceedanceCount;
+            var acknowledgedOver = CommcastUplink.AcknowledgedBudget.ExceedanceCount;
+
+            for (var i = 0; i < 60; i++)
+            {
+                Assert.True((await scene.CommandAsync(scene.B, CommcastUplink.AckCommand, new Dictionary<string, object?> { ["messageId"] = "m0" })).Success);
+            }
+
+            Assert.Equal(saidOver, CommcastUplink.SaidBudget.ExceedanceCount);
+            Assert.Equal(acknowledgedOver, CommcastUplink.AcknowledgedBudget.ExceedanceCount);
+
+            scene.Tick(200);
+            for (var i = 0; i < 60; i++)
+            {
+                await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("flood" + i, "g1", "again"));
+            }
+
+            Assert.True(CommcastUplink.SaidBudget.ExceedanceCount > saidOver, "sixty messages in one second stayed within the limit for things said");
+            Assert.Equal(acknowledgedOver, CommcastUplink.AcknowledgedBudget.ExceedanceCount);
+        }
+
+        [Fact]
+        public void TheTwoLimitsAreNamedForWhatTheyCountAndSizedForIt()
+        {
+            Assert.NotSame(CommcastUplink.SaidBudget, CommcastUplink.AcknowledgedBudget);
+            Assert.Equal(50, CommcastUplink.SaidBudget.Threshold);
+            Assert.Equal(150, CommcastUplink.AcknowledgedBudget.Threshold);
+            Assert.Contains("messages and membership changes", CommcastUplink.SaidBudget.Name);
+            Assert.Contains("acknowledgements", CommcastUplink.AcknowledgedBudget.Name);
+        }
+
         /// <summary>The speaker is told at once who the message could not leave for, where it had only silence to go on.</summary>
         [Fact]
         public async Task ASendSaysWhoItLeftForAndWhoItCouldNotReach()

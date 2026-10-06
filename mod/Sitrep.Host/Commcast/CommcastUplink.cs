@@ -48,12 +48,23 @@ namespace Sitrep.Host.Commcast
             "Commcast radio chunks in/sec", threshold: 250, windowSec: 1.0, unit: "chunks");
 
         /// <summary>
-        /// Messages, acknowledgements and membership changes accepted per second.
-        /// One message to a full group is answered by an acknowledgement from each
-        /// of its other 63 members, which can all land in one second.
+        /// Messages and membership changes accepted per second, across every
+        /// speaker. A message to a whole group is one, however many it is
+        /// addressed to, so fifty in a second is a screen that has run away
+        /// and not a busy net.
         /// </summary>
-        private static readonly PerfBudget TrafficBudget = new PerfBudget(
-            "Commcast traffic items in/sec", threshold: 150, windowSec: 1.0, unit: "items");
+        internal static readonly PerfBudget SaidBudget = new PerfBudget(
+            "Commcast messages and membership changes in/sec", threshold: 50, windowSec: 1.0, unit: "items");
+
+        /// <summary>
+        /// Acknowledgements accepted per second. Every screen at every centre
+        /// a message reached acknowledges it when it is released there, each
+        /// with a command of its own, and members at like distances do so
+        /// together. A full group of 64 answering in one second with two
+        /// screens at every centre is 126; this covers that and no more.
+        /// </summary>
+        internal static readonly PerfBudget AcknowledgedBudget = new PerfBudget(
+            "Commcast acknowledgements in/sec", threshold: 150, windowSec: 1.0, unit: "acknowledgements");
 
         /// <summary>A batch longer than a second is a client that stopped batching to the grid.</summary>
         private const int MaxChunksPerBatch = 50;
@@ -299,7 +310,7 @@ namespace Sitrep.Host.Commcast
             }
             else
             {
-                TrafficBudget.Record(1, now);
+                SaidBudget.Record(1, now);
                 _streams!.PublishAddressedTo(TrafficTopic, ToWire(text), now, held);
             }
             return CommandResult<CommcastSendReceipt>.Ok(new CommcastSendReceipt { Addressed = to, Unreached = unreached });
@@ -602,7 +613,7 @@ namespace Sitrep.Host.Commcast
 
         private void PublishTraffic(CommcastTraffic item)
         {
-            TrafficBudget.Record(1, item.SentUt);
+            (item.Kind == "ack" ? AcknowledgedBudget : SaidBudget).Record(1, item.SentUt);
             _streams!.PublishAddressed(TrafficTopic, ToWire(item), item.SentUt, item.From, item.To);
         }
 
