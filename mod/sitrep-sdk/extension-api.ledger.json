@@ -8115,6 +8115,10 @@
         "note": "The constant follows the contract from 14 to 15 (the hello, ping and pong envelopes). Its type is the literal number, so every contract Minor reads as a retype. A caller compares it or prints it, and is unaffected."
       },
       {
+        "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
+        "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
+      },
+      {
         "key": "ui-kit . VESSEL_MARK",
         "note": "The mark's spec gains the lost state, its keyline is described as two rings (light and dark) where it was one inverted stroke, and reach is computed from the shapes (1.47 r, was 1.4). A caller reading radius, the shapes of current, held and modelled, or reach is unaffected; one that read the old single keyline's fields must read the rings"
       },
@@ -8127,6 +8131,99 @@
         "note": "Removed. It painted the keyline on a separate blended canvas; the keyline is now plain paint drawn with the mark, by passing keyline: true to paintVesselMark or paintVesselPositions. It was added on 2026-10-05 and its one caller was MapView"
       }
     ],
-    "additions": []
+    "additions": [
+      {
+        "key": "sitrep-sdk . ConicShape",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk . ConicShape#ecc",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk . ConicShape#epoch",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk . ConicShape#meanAnomalyAtEpoch",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk . ConicShape#sma",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk . ConicSolution",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk . ConicSolution#eccentricAnomaly",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk . ConicSolution#meanAnomaly",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk . ConicSolution#radius",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk . ConicSolution#trueAnomaly",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk . solveConic",
+        "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicShape",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicShape#ecc",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicShape#epoch",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicShape#meanAnomalyAtEpoch",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicShape#sma",
+        "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicSolution",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicSolution#eccentricAnomaly",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicSolution#meanAnomaly",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicSolution#radius",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicSolution#trueAnomaly",
+        "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk ./spine solveConic",
+        "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
+      },
+      {
+        "key": "sitrep-sdk ./spine wrap180",
+        "note": "Wraps a degree value to (-180, 180]; the one copy, moved out of the impact point and core calc, which now re-export it"
+      }
+    ]
   }
 }
