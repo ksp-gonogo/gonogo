@@ -38,6 +38,11 @@
  * Usage:
  *   node scripts/nuget-contract-package-gate.mjs            # packs, then gates
  *   node scripts/nuget-contract-package-gate.mjs <file.nupkg>
+ *   node scripts/nuget-contract-package-gate.mjs <file.nupkg> --rc <version>
+ *
+ * `--rc` gates a release candidate packed with `-p:PackageVersion=<version>`:
+ * the package must carry exactly that version, and it must be an `-rc.<n>`
+ * prerelease on the contract's own Major.Minor at or above the tree's patch.
  */
 
 import { execFileSync } from "node:child_process";
@@ -448,13 +453,34 @@ function listMembersOfDir(dir) {
     .filter(Boolean);
 }
 
-const given = process.argv[2];
+const [given, rcFlag, rcVersion] = process.argv.slice(2);
 if (given && !existsSync(given)) {
   console.error(`no such .nupkg: ${given}`);
   process.exit(2);
 }
 
-const expectedVersion = contractVersion();
+/** The version an RC must carry: the one asked for, refused unless it is a prerelease the contract allows. */
+function releaseCandidateVersion(tree, rc) {
+  const [major, minor, patch] = tree.split(".");
+  const match = /^(\d+)\.(\d+)\.(\d+)-rc\.\d+$/.exec(rc ?? "");
+  if (
+    !match ||
+    match[1] !== major ||
+    match[2] !== minor ||
+    Number(match[3]) < Number(patch)
+  ) {
+    console.error(
+      `--rc ${rc} is not an -rc.<n> prerelease of contract ${major}.${minor} at or above ${tree}`,
+    );
+    process.exit(2);
+  }
+  return rc;
+}
+
+const expectedVersion =
+  rcFlag === "--rc"
+    ? releaseCandidateVersion(contractVersion(), rcVersion)
+    : contractVersion();
 const nupkg = given ?? pack();
 const pkg = describePackage(nupkg);
 

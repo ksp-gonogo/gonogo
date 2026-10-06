@@ -93,8 +93,8 @@ Everything user-facing moves only when a release is cut. A separate release-cand
 | Bundle image | `ghcr.io/ksp-gonogo/gonogo:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo:rc` |
 | Relay image | `ghcr.io/ksp-gonogo/gonogo-relay:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo-relay:rc` |
 | Mod GameData zips | attached to the GitHub Release, and pushed to SpaceDock | built and kept as a CI artifact only (`rc-<shortsha>`) |
-| npm packages | `ui-kit` / `sitrep-sdk`, each only if its own version moved | never published |
-| NuGet package | `KspGonogo.Sitrep.Contract`, only if the contract version moved | never published (CI packs, gates and probes it) |
+| npm packages | `sitrep-sdk` / `ui-kit` / `uplink-tools`, each only if its own version moved | not by `rc.yml`; an opt-in package RC (below) publishes `X.Y.Z-rc.<run>` under the `rc` dist-tag |
+| NuGet package | `KspGonogo.Sitrep.Contract`, only if the contract version moved | not by `rc.yml` (CI packs, gates and probes it); the opt-in package RC publishes a prerelease |
 | App version | `X.Y.Z` | `X.Y.Z-rc.<shortsha>` |
 
 Both images also carry a `sha-<commit>` tag in both channels. `gonogo` and `gonogo-relay` are the only two images; there is no third service image. The earlier dev channel (`/gonogo/dev/`, `:dev`) is gone, while old `:dev` image tags linger on GHCR.
@@ -129,8 +129,26 @@ The `bump` input accepts `auto` (the default), `patch`, `minor` or `major`; forc
 - dispatches `publish-images.yml` with `channel=release`, tagging `gonogo` and `gonogo-relay` `:<version>` + `:latest`,
 - dispatches `publish-mods.yml` with `channel=release`, attaching each mod GameData zip in that workflow's matrix to the Release and pushing it to SpaceDock (a mod whose `vars.SPACEDOCK_MOD_ID_*` repo variable is unset warns and skips the SpaceDock half instead of failing),
 - dispatches `deploy.yml` with `channel=release`, which publishes that asset at `/app/` along with the landing page and the old-URL redirects,
-- publishes `@ksp-gonogo/ui-kit` and `@ksp-gonogo/sitrep-sdk` to npm, each only if its own `package.json` version has moved. An unchanged version is skipped, but the skip is checked against the published tarball, so a package whose version stopped moving while its code kept moving fails the release instead of going quiet.
+- publishes `@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/ui-kit` and `@ksp-gonogo/uplink-tools` to npm, each only if its own `package.json` version has moved. An unchanged version is skipped, but the skip is checked against the published tarball, so a package whose version stopped moving while its code kept moving fails the release instead of going quiet.
 - publishes `KspGonogo.Sitrep.Contract` to nuget.org when its version is not there yet. The version is `Major.Minor.PackagePatch`: `Major.Minor` is the contract's own, read from `ContractVersion.cs`; `PackagePatch` is the package's own (Sitrep.Contract.Package.csproj), for a change to `Sitrep.Contract.TestSupport` or `Sitrep.Core` (both ship inside the package) with no contract move. The `publish-nuget` job packs once with both determinism flags set, gates that file, builds `GonogoProbeUplink` (`scripts/nuget-probe-uplink/`, kept here only to be probed) against it outside the repo (plus a planted gap that must fail), and pushes the same file. When the version IS already on nuget.org, it downloads that published copy and compares it against the fresh pack with the build-identity regions (PE timestamp, debug-directory timestamps, PDB id, PDB checksum, module MVID) normalised out; a real difference fails the release asking for a `PackagePatch` bump rather than skipping silently. It authenticates through nuget.org trusted publishing, bound to `release.yml` with no environment, and needs the `NUGET_USER` secret: the nuget.org profile name that owns the policy. There is no API key.
+
+**Package release candidates.** Packages get RCs only on demand, from `staging`, through the same `release.yml` that publishes them for real (npm's trusted publishers and nuget.org's policy name that file):
+
+```bash
+gh workflow run release.yml --ref staging -f rc=true -f dry_run=true   # everything but the login and the push
+gh workflow run release.yml --ref staging -f rc=true                   # publish the RCs
+```
+
+`rc=true` skips the app release (no tag, no GitHub Release, no images, no Pages) and refuses any ref but `refs/heads/staging`. It commits nothing, bumps nothing in the repo and never freezes a surface ledger. Its `rc-plan` job works out each package's RC with `scripts/rc-packages.mjs` and proves the set:
+
+- the version is a prerelease of the NEXT release, never of one already out: what a release of this tree would carry (the package's own version, or for `uplink-tools` the version its ledger's freeze plans), bumped past the registry when that version is already published, by the ledgers' pending changes for that package (0.x rule: a break moves the minor, an addition the patch) or by a patch when nothing is pending. The suffix is `-rc.<workflow run number>`, unique per run and increasing, so every package in one run shares it
+- each RC's manifest pins every `@ksp-gonogo` sibling to that sibling's RC from the same run, exactly. `ui-kit` and `uplink-tools` import the sdk without declaring it (a workspace peer breaks the workspace's own resolution), so an RC declares that edge as an exact peer
+- a package that has never been published gets no RC: npm makes a package's first version `latest` whatever the tag
+- `published-packages-probe.mjs --rc-plan` installs the three stamped tarballs together outside the workspace, so a pin that does not resolve fails before anything publishes
+
+Then `publish-packages` packs each package exactly as a release does, stamps the RC manifest onto the tarball, runs `verify-package-artifact.mjs` and `rc-packages.mjs check` on that file, publishes it with `--tag rc` and fails if npm's `latest` moved. `publish-nuget` packs with `-p:PackageVersion=<RC>` (the assemblies keep the contract version), runs the package gate with `--rc`, the extraction probe and its planted gap, and pushes only an `-rc.` version. A re-run attempt keeps its run number, so a package an earlier attempt published is skipped, and the fossil check compares that copy as it does for a release. The matrix does not fail fast, so a run where one package failed leaves its siblings' exact pins unresolvable until that job is re-run.
+
+An outside author installs them with `npm install @ksp-gonogo/sitrep-sdk@rc @ksp-gonogo/ui-kit@rc`, or a NuGet `PackageReference` with the exact `-rc.<n>` version.
 
 The version in `packages/app/package.json` only ever changes through this flow. Never hand-edit it in either direction: `release.yml` refuses a tag that disagrees with it, so an edit breaks the next release rather than undoing the last one.
 

@@ -47,8 +47,12 @@
  * hand-written tsconfig because tsc's default target cannot even parse the sdk's
  * generated declarations, which would satisfy the planted check with noise.
  *
- * Usage: node scripts/published-packages-probe.mjs
+ * Usage: node scripts/published-packages-probe.mjs [--rc-plan <plan.json>]
  * Needs every published package's `dist` built first.
+ *
+ * `--rc-plan` probes the release candidates a plan from `rc-packages.mjs` names
+ * instead: each tarball is stamped with its RC version and exact sibling pins
+ * before the install, so the install itself proves the pins resolve together.
  */
 
 import { spawnSync } from "node:child_process";
@@ -61,6 +65,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stampTarball } from "./rc-packages.mjs";
 import { makeTempDir } from "./temp-dir.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -523,8 +528,19 @@ function runtimeImports(specs, work) {
   }
 }
 
+const rcPlanAt = process.argv.indexOf("--rc-plan");
+const rcPlan =
+  rcPlanAt === -1
+    ? null
+    : JSON.parse(readFileSync(process.argv[rcPlanAt + 1], "utf8"));
+
 const workRoot = makeTempDir("gonogo-published-probe-");
 const tarballs = packPublishedPackages(join(workRoot, "tarballs"));
+if (rcPlan) {
+  for (const [name, tarball] of Object.entries(tarballs)) {
+    tarballs[name] = stampTarball(tarball, rcPlan, join(workRoot, "rc"));
+  }
+}
 console.log(
   `packed: ${Object.keys(tarballs).length} published package(s): ${Object.keys(tarballs).join(", ")}`,
 );

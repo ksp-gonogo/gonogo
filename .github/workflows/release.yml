@@ -39,6 +39,18 @@ name: release
 # version still comes from its own package.json, on its own SemVer line. Every
 # release is an opportunity for a package release: unchanged version, nothing
 # happens; bumped version, it goes out.
+#
+# RELEASE CANDIDATES
+#
+# `gh workflow run release.yml --ref staging -f rc=true` publishes a release
+# candidate of every published package instead, and nothing else: no app
+# release, no tag, no commit, no ledger freeze. Each RC is a prerelease of the
+# version the next release would carry (`scripts/rc-packages.mjs` says how that
+# is worked out), suffixed `-rc.<run number>`, applied to the packed tarball
+# only. npm gets it under the `rc` dist-tag, never `latest`; NuGet gets it as a
+# SemVer prerelease. Every gate the release runs before a publish runs on the
+# RC's own artifact. It runs only on refs/heads/staging, and only on dispatch.
+# Add `-f dry_run=true` to do everything but the login and the push.
 
 on:
   push:
@@ -57,6 +69,12 @@ on:
           npm and NuGet packages: build, pack and verify, but do not publish.
         type: boolean
         default: false
+      rc:
+        description: >-
+          Publish a release candidate of every package (npm dist-tag `rc`, NuGet
+          prerelease) instead of a release. staging only; skips the app release.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -71,7 +89,7 @@ jobs:
     # A packages_only dispatch skips the app release outright, so the escape
     # hatch for an out-of-band package publish can't be mistaken for, or
     # accidentally become, a release of the app.
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.packages_only) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.packages_only || inputs.rc)) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -162,6 +180,68 @@ jobs:
             --ref main \
             -f channel=release
 
+  # The RC versions for every published package, worked out once so each RC can
+  # pin its siblings exactly, then proved together outside the workspace: the
+  # probe installs the stamped tarballs side by side, so an exact pin that does
+  # not resolve fails the install before anything is published.
+  rc-plan:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.rc }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+    steps:
+      - name: Release candidates are cut from staging only
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/staging ]; then
+            echo "::error::rc=true runs on refs/heads/staging only, got $GITHUB_REF: gh workflow run release.yml --ref staging -f rc=true"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Plan the RC versions
+        id: plan
+        run: |
+          set -euo pipefail
+          node scripts/rc-packages.mjs plan --run "$GITHUB_RUN_NUMBER" \
+            > "$RUNNER_TEMP/rc-plan.json" 2> "$RUNNER_TEMP/rc-plan.txt"
+          cat "$RUNNER_TEMP/rc-plan.txt"
+          echo "plan=$(cat "$RUNNER_TEMP/rc-plan.json")" >> "$GITHUB_OUTPUT"
+          {
+            echo '```'
+            cat "$RUNNER_TEMP/rc-plan.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the published packages
+        run: pnpm exec turbo build --filter=@ksp-gonogo/sitrep-sdk --filter=@ksp-gonogo/ui-kit --filter=@ksp-gonogo/uplink-tools
+
+      - name: The RCs install and load together outside the workspace
+        run: node scripts/published-packages-probe.mjs --rc-plan "$RUNNER_TEMP/rc-plan.json"
+
   # Publishes each package whose own version has moved, via npm OIDC trusted
   # publishing: no NPM_TOKEN, nothing to rotate, provenance on every publish.
   # See local_docs/oidc-publishing-guide.md.
@@ -171,12 +251,17 @@ jobs:
   # notice rather than failing the release: npm rejects a republish outright,
   # so "no change, no publish" needs no extra bookkeeping here.
   publish-packages:
-    needs: release
+    needs: [release, rc-plan]
     # `needs` alone would skip this whenever `release` is skipped, which is
     # exactly the packages_only case. Naming the results keeps a *failed*
     # release from publishing while letting a deliberately skipped one through.
-    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    # An RC additionally needs its plan, which is where the staging-only refusal
+    # lives.
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
     runs-on: ubuntu-latest
+    env:
+      RC: ${{ inputs.rc && 'true' || 'false' }}
+      RC_PLAN: ${{ needs.rc-plan.outputs.plan }}
     # Scoped to this job on purpose: `release` above keeps the workflow-level
     # contents/actions write it needs, and never gets an OIDC identity. This
     # job trades those for id-token and nothing more.
@@ -216,9 +301,16 @@ jobs:
             echo "::error::$DIR is $NAME, expected ${{ matrix.package }}, the matrix and the tree disagree."
             exit 1
           fi
+          REFUSED=""
+          if [ "$RC" = true ]; then
+            printf '%s' "$RC_PLAN" > "$RUNNER_TEMP/rc-plan.json"
+            VERSION="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].version' "$NAME")"
+            REFUSED="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].refused ?? ""' "$NAME")"
+          fi
           {
             echo "name=$NAME"
             echo "version=$VERSION"
+            echo "refused=$REFUSED"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v6
@@ -247,6 +339,15 @@ jobs:
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           VERSION='${{ steps.pkg.outputs.version }}'
+          REFUSED='${{ steps.pkg.outputs.refused }}'
+          if [ -n "$REFUSED" ]; then
+            echo "::notice::$NAME: no RC, $REFUSED."
+            echo "skip=refused" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$RC" = true ]; then
+            echo "latest=$(npm view "$NAME" dist-tags.latest)" >> "$GITHUB_OUTPUT"
+          fi
           # A non-zero exit is an E404 (not published) or a registry blip.
           # Both fall through to a publish attempt, and npm refuses to
           # overwrite an existing version anyway: the registry stays the
@@ -308,18 +409,33 @@ jobs:
       #
       # `verify-package-artifact.mjs` below fails on exactly this manifest, so
       # the two are belt and braces rather than one doing the other's job.
+      #
+      # An RC is packed the same way into a side directory, then stamped with
+      # its RC version and exact sibling pins into the one tarball the steps
+      # below gate and publish.
       - name: Pack
         if: steps.published.outputs.skip == 'false'
-        run: node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP"
+        run: |
+          set -euo pipefail
+          if [ "$RC" = true ]; then
+            PACKED="$(node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP/packed")"
+            node scripts/rc-packages.mjs stamp "$PACKED" "$RUNNER_TEMP/rc-plan.json" "$RUNNER_TEMP"
+          else
+            node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP"
+          fi
 
       # Gate the tarball, then publish that same file, what was checked is
       # exactly what ships, rather than a re-pack that could differ.
       - name: Verify the packed artifact
         if: steps.published.outputs.skip == 'false'
         run: |
+          set -euo pipefail
           TARBALL="$(ls "$RUNNER_TEMP"/*.tgz)"
           echo "Verifying $TARBALL"
           node scripts/verify-package-artifact.mjs "$TARBALL"
+          if [ "$RC" = true ]; then
+            node scripts/rc-packages.mjs check "$TARBALL" "$RUNNER_TEMP/rc-plan.json"
+          fi
           echo "tarball=$TARBALL" >> "$GITHUB_ENV"
 
       # Deliberately after `pnpm install`: `registry-url` writes an .npmrc
@@ -342,22 +458,47 @@ jobs:
         if: steps.published.outputs.skip == 'false' && !inputs.dry_run
         # No NODE_AUTH_TOKEN / NPM_TOKEN: npm detects OIDC from the
         # `id-token: write` permission and exchanges it with the registry.
-        run: npm publish "$tarball" --access public --provenance
+        run: |
+          if [ "$RC" = true ]; then
+            npm publish "$tarball" --access public --provenance --tag rc
+          else
+            npm publish "$tarball" --access public --provenance
+          fi
 
       - name: Publish (dry run)
         if: steps.published.outputs.skip == 'false' && inputs.dry_run
-        run: npm publish "$tarball" --access public --provenance --dry-run
+        run: |
+          if [ "$RC" = true ]; then
+            npm publish "$tarball" --access public --provenance --tag rc --dry-run
+          else
+            npm publish "$tarball" --access public --provenance --dry-run
+          fi
+
+      # Cannot be undone from here, but a moved `latest` must not pass as green.
+      - name: The RC left npm's latest where it was
+        if: env.RC == 'true' && steps.published.outputs.skip == 'false' && !inputs.dry_run
+        run: |
+          NAME='${{ steps.pkg.outputs.name }}'
+          BEFORE='${{ steps.published.outputs.latest }}'
+          AFTER="$(npm view "$NAME" dist-tags.latest)"
+          if [ "$AFTER" != "$BEFORE" ]; then
+            echo "::error::$NAME's latest moved from $BEFORE to $AFTER. Restore it: npm dist-tag add $NAME@$BEFORE latest"
+            exit 1
+          fi
+          echo "$NAME latest is still $BEFORE; the RC is under the rc dist-tag."
 
       - name: Summary
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           VERSION='${{ steps.pkg.outputs.version }}'
-          if [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
+          if [ '${{ steps.published.outputs.skip }}' = 'refused' ]; then
+            echo "⛔ $NAME: no RC, ${{ steps.pkg.outputs.refused }}." >> "$GITHUB_STEP_SUMMARY"
+          elif [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
             echo "⏭ $NAME@$VERSION: already on npm, no version change." >> "$GITHUB_STEP_SUMMARY"
           elif [ '${{ inputs.dry_run }}' = 'true' ]; then
             echo "🧪 $NAME@$VERSION: packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "📦 Published $NAME@$VERSION with provenance." >> "$GITHUB_STEP_SUMMARY"
+            echo "📦 Published $NAME@$VERSION with provenance$([ "$RC" = true ] && echo ' under the rc dist-tag')." >> "$GITHUB_STEP_SUMMARY"
             echo "https://www.npmjs.com/package/$NAME/v/$VERSION" >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -371,13 +512,14 @@ jobs:
   # the plant proving the probe could have failed. The push sends that same file,
   # never a re-pack, so what shipped is what was tested.
   publish-nuget:
-    needs: release
-    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    needs: [release, rc-plan]
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     env:
+      RC: ${{ inputs.rc && 'true' || 'false' }}
       PACKAGE_ID: KspGonogo.Sitrep.Contract
       KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
       KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
@@ -407,13 +549,25 @@ jobs:
       # are not even byte-comparable after normalisation. Deliberately NOT
       # `SourceLink=false`: dropping SourceLink for raw determinism would cost
       # every consumer's debugging for a check that does not need it.
+      #
+      # An RC overrides only PackageVersion, so the assemblies inside keep the
+      # contract's own version and only the package is a prerelease.
       - name: Pack
         id: pack
         run: |
           set -euo pipefail
-          dotnet pack mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj \
+          PROJECT=mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj
+          RC_ARGS=()
+          if [ "$RC" = true ]; then
+            TREE="$(dotnet msbuild "$PROJECT" -getProperty:Version)"
+            RC_VERSION="$(node scripts/rc-packages.mjs nuget --tree "$TREE" --run "$GITHUB_RUN_NUMBER")"
+            echo "$PACKAGE_ID: tree $TREE, RC $RC_VERSION"
+            RC_ARGS=("-p:PackageVersion=$RC_VERSION")
+          fi
+          dotnet pack "$PROJECT" \
             -c Release -o "$RUNNER_TEMP/nuget" --nologo \
-            -p:ContinuousIntegrationBuild=true -p:IncludeSourceRevisionInInformationalVersion=false
+            -p:ContinuousIntegrationBuild=true -p:IncludeSourceRevisionInInformationalVersion=false \
+            "${RC_ARGS[@]}"
           NUPKG="$(ls "$RUNNER_TEMP"/nuget/"$PACKAGE_ID".*.nupkg)"
           VERSION="$(basename "$NUPKG" .nupkg)"
           VERSION="${VERSION#"$PACKAGE_ID".}"
@@ -423,7 +577,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Gate the packed file
-        run: node scripts/nuget-contract-package-gate.mjs '${{ steps.pack.outputs.nupkg }}'
+        run: |
+          if [ "$RC" = true ]; then
+            node scripts/nuget-contract-package-gate.mjs '${{ steps.pack.outputs.nupkg }}' --rc '${{ steps.pack.outputs.version }}'
+          else
+            node scripts/nuget-contract-package-gate.mjs '${{ steps.pack.outputs.nupkg }}'
+          fi
 
       - name: An Uplink builds against the packed file, and the probe can see a gap
         run: |
@@ -505,6 +664,10 @@ jobs:
       - name: Publish to nuget.org
         if: steps.published.outputs.skip == 'false' && !inputs.dry_run
         run: |
+          case '${{ steps.pack.outputs.version }}' in
+            *-rc.*) ;;
+            *) if [ "$RC" = true ]; then echo "::error::an RC run refuses to push the release version ${{ steps.pack.outputs.version }}"; exit 1; fi ;;
+          esac
           dotnet nuget push '${{ steps.pack.outputs.nupkg }}' \
             --api-key '${{ steps.login.outputs.NUGET_API_KEY }}' \
             --source https://api.nuget.org/v3/index.json

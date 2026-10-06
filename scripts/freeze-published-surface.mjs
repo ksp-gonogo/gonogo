@@ -42,6 +42,8 @@ export const LEDGERS = [
     currentVersion: (root) => readPackageVersion(root),
     setVersion: (root, version) => setPackageVersion(root, version),
     versionName: "@ksp-gonogo/uplink-tools version",
+    /** The package whose own version this ledger moves at a freeze. */
+    package: "@ksp-gonogo/uplink-tools",
   },
 ];
 
