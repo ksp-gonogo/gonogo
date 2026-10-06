@@ -251,6 +251,44 @@ describe("Panel header aside expand box", () => {
     expect(expandBox().open).toBe(true);
   });
 
+  it("goes back inline when a row that was still growing as the aside arrived reaches a fit", () => {
+    observers = installDrivableResizeObserver();
+    // The aside needs 240 and the row, still settling to its tile's width, has 239: collapsed.
+    withHeaderMeasurements(239, 120);
+    render(
+      <Panel panelTitle="CREW" panelAside={<Badge>1/1 aboard</Badge>}>
+        body
+      </Panel>,
+    );
+    expect(expandBox().open).toBe(false);
+
+    // The row has only grown since, so there is no boundary to flip across and no margin is asked.
+    withHeaderMeasurements(241, 120);
+    act(() => observers?.resize(header(), { width: 241, height: 20 }));
+    expect(expandBox().open).toBe(true);
+  });
+
+  it("keeps the re-expand margin once the row has narrowed under a collapsed aside", () => {
+    observers = installDrivableResizeObserver();
+    withHeaderMeasurements(239, 120);
+    render(
+      <Panel panelTitle="CREW" panelAside={<Badge>1/1 aboard</Badge>}>
+        body
+      </Panel>,
+    );
+    expect(expandBox().open).toBe(false);
+
+    withHeaderMeasurements(230, 120);
+    act(() => observers?.resize(header(), { width: 230, height: 20 }));
+    withHeaderMeasurements(250, 120);
+    act(() => observers?.resize(header(), { width: 250, height: 20 }));
+    expect(expandBox().open).toBe(false);
+
+    withHeaderMeasurements(270, 120);
+    act(() => observers?.resize(header(), { width: 270, height: 20 }));
+    expect(expandBox().open).toBe(true);
+  });
+
   it("does not re-measure the header when the panel re-renders with the same title and aside", () => {
     const panel = (body: string, badge = "HELD") => (
       <Panel panelTitle="MAP" panelAside={<Badge>{badge}</Badge>}>

@@ -36,19 +36,27 @@ const REEXPAND_MARGIN_PX = 24;
  * dead band guards against the room moving under unchanged content; once the
  * content itself changes width it is a new question, answered with no margin,
  * so an aside that collapsed for a badge that has since gone re-expands.
+ *
+ * `roomHasNarrowed` says whether the row has been narrower than it was at any
+ * point since the aside collapsed. A boundary can only be flipped across by
+ * room that moves both ways, so a row that has only grown is also answered
+ * with no margin: a tile still easing out to its width as its aside arrives
+ * collapses a hair short of a fit, and would otherwise stay collapsed at rest
+ * with room for it.
  */
 export function nextAsideCollapsed(
   prevCollapsed: boolean,
   availableWidth: number,
   neededWidth: number,
   previousNeededWidth?: number,
+  roomHasNarrowed = true,
 ): boolean {
   if (availableWidth <= 0 || neededWidth <= 0) return prevCollapsed;
   const contentChanged =
     previousNeededWidth !== undefined &&
     previousNeededWidth > 0 &&
     previousNeededWidth !== neededWidth;
-  return prevCollapsed && !contentChanged
+  return prevCollapsed && !contentChanged && roomHasNarrowed
     ? !(availableWidth > neededWidth + REEXPAND_MARGIN_PX)
     : neededWidth > availableWidth;
 }
@@ -150,6 +158,8 @@ export function useHeaderAsideFit(
   const collapsedRef = useRef(collapsed);
   collapsedRef.current = collapsed;
   const neededRef = useRef<number | undefined>(undefined);
+  const availableRef = useRef<number | undefined>(undefined);
+  const narrowedRef = useRef(false);
   const fullTitleRef = useRef(fullTitle);
   fullTitleRef.current = fullTitle;
 
@@ -179,12 +189,20 @@ export function useHeaderAsideFit(
           px(asideBoxStyle?.paddingLeft ?? "") +
           px(asideBoxStyle?.paddingRight ?? "") +
           aside;
+    const was = collapsedRef.current;
+    const narrowed =
+      availableRef.current !== undefined && available < availableRef.current;
+    if (was && narrowed) narrowedRef.current = true;
     const next = nextAsideCollapsed(
-      collapsedRef.current,
+      was,
       available,
       needed,
       neededRef.current,
+      narrowedRef.current,
     );
+    // A collapse the narrowing row caused starts out with the margin, and any other starts without it.
+    if (next !== was) narrowedRef.current = next && narrowed;
+    if (available > 0) availableRef.current = available;
     if (needed > 0) neededRef.current = needed;
     if (next !== collapsedRef.current) {
       collapsedRef.current = next;

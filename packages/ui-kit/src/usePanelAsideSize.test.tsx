@@ -33,6 +33,12 @@ describe("nextAsideCollapsed", () => {
     expect(nextAsideCollapsed(true, 310, 300, 300)).toBe(true);
   });
 
+  it("re-decides with no margin while the room has only grown since the collapse", () => {
+    expect(nextAsideCollapsed(true, 301, 300, 300, false)).toBe(false);
+    expect(nextAsideCollapsed(true, 299, 300, 300, false)).toBe(true);
+    expect(nextAsideCollapsed(true, 301, 300, 300, true)).toBe(true);
+  });
+
   it("still collapses new content that does not fit", () => {
     expect(nextAsideCollapsed(false, 310, 400, 300)).toBe(true);
     expect(nextAsideCollapsed(true, 310, 320, 360)).toBe(true);
