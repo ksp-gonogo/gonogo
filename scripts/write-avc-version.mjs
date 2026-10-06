@@ -17,7 +17,7 @@ import { writeFileSync } from "node:fs";
  * out of the written file. The only place a game version is written down.
  */
 export const GAME_VERSIONS = {
-  KSP_VERSION: "1.12.3",
+  KSP_VERSION: "1.12.5",
   KSP_VERSION_MIN: "1.12.0",
   KSP_VERSION_MAX: "1.12.99",
 };
