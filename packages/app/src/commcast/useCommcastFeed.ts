@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "./CommcastLog";
 import { groupsAt } from "./groups";
 import {
+  deliveryPhaseFor,
   heardUtOf,
   isSettled,
   sentArrivalUtFor,
-  sentPhaseFor,
   type Vantage,
 } from "./reveal";
 import type {
@@ -226,7 +226,6 @@ export function useCommcastFeed(
 
   return useMemo(() => {
     if (!log) return EMPTY_FEED;
-    const landedIds = new Set(landed.map((e) => e.msg.id));
     /*
      * Redrawn from the CURRENT outbox rather than from the entry the buffer
      * released, because an acknowledgement can arrive after the message
@@ -237,10 +236,10 @@ export function useCommcastFeed(
     const entries = landed.map((e) =>
       e.out ? { msg: e.msg, out: byId.get(e.msg.id) ?? e.out } : e,
     );
-    const outbound = snapshot.outbox.filter(
-      (o) =>
-        !landedIds.has(o.msg.id) &&
-        !isSettled(sentPhaseFor(o, utNow ?? Number.NEGATIVE_INFINITY)),
+    const now = utNow ?? Number.NEGATIVE_INFINITY;
+    // Kept while any recipient is still on its round trip, landed in the log or not: its line is one, its rows are one per recipient.
+    const outbound = snapshot.outbox.filter((o) =>
+      o.deliveries.some((d) => !isSettled(deliveryPhaseFor(o, d, now))),
     );
     return {
       log: entries,

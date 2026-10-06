@@ -7,6 +7,7 @@ import type {
   RadioFrame,
   RadioTransmission,
 } from "./radio/wire";
+import { separationsTo } from "./reveal";
 
 const KSC = "ground:ksc";
 const ARES = "vessel:ares";
@@ -141,7 +142,7 @@ describe("attachCommcastModLink", () => {
       members: [KSC, ARES],
       added: [ARES],
       sentUt: 10,
-      separationSeconds: 5,
+      separations: separationsTo(KSC, [KSC, ARES], 5),
     });
     log.send(author, {
       kind: "members",
@@ -150,7 +151,7 @@ describe("attachCommcastModLink", () => {
       members: [KSC, ARES, "vessel:b"],
       added: ["vessel:b"],
       sentUt: 11,
-      separationSeconds: 5,
+      separations: separationsTo(KSC, [KSC, ARES, "vessel:b"], 5),
     });
 
     expect(wire.sent.map((s) => s.command)).toEqual([
@@ -175,10 +176,10 @@ describe("attachCommcastModLink", () => {
         groupId: "g1",
         to: [KSC, ARES],
         sentUt: 10,
-        separationSeconds: 5,
+        separations: separationsTo(KSC, [KSC, ARES], 5),
       },
     );
-    log.resend(msg.id, 20, 5);
+    log.resend(msg.id, [ARES], 20, new Map([[ARES, 5]]));
 
     expect(wire.sent.map((s) => [s.command, s.args.id])).toEqual([
       ["commcast.message.send", msg.id],

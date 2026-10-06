@@ -123,6 +123,8 @@ export function threadsOf(
       counterpartiesOf({ msg: out.msg, out }, me),
     );
     thread.outbound.push(out);
+    // Already in the thread as a line when it has landed, so it is not a second event.
+    if (thread.entries.some((e) => e.msg.id === out.msg.id)) continue;
     rank += 1;
     thread.rank = rank;
     thread.preview = messageText(out.msg, nameFor);

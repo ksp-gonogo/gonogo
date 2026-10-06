@@ -16,7 +16,7 @@ import {
   type CommcastWire,
 } from "../commcast/CommcastModLink";
 import type { HeardRadioFrame, RadioFrame } from "../commcast/radio/wire";
-import { sentPhaseFor } from "../commcast/reveal";
+import { deliveryPhaseFor, separationsTo } from "../commcast/reveal";
 import { EMPTY_COMMCAST_LOG } from "../commcast/types";
 
 const KSC = "ksc";
@@ -234,7 +234,7 @@ function scene() {
     members: [KSC, ARES],
     added: [ARES],
     sentUt: 1000,
-    separationSeconds: LIGHT_TIME,
+    separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
   });
   return { mod, ground, aboard, range };
 }
@@ -248,7 +248,7 @@ describe("Commcast through the mod", () => {
       body: "Go for the burn.",
       to: [KSC, ARES],
       sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
+      separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
     });
 
     mod.advanceTo(1239);
@@ -267,7 +267,7 @@ describe("Commcast through the mod", () => {
       body: "hi",
       to: [KSC, ARES],
       sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
+      separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
     });
     mod.advanceTo(2000);
     expect(ground.log.snapshot().pending).toHaveLength(0);
@@ -282,7 +282,7 @@ describe("Commcast through the mod", () => {
       body: "copy?",
       to: [KSC, ARES],
       sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
+      separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
     });
     mod.advanceTo(1240);
     aboard.log.release(msg.id, {
@@ -295,7 +295,9 @@ describe("Commcast through the mod", () => {
       mod.advanceTo(ut);
       const out = ground.log.snapshot().outbox.find((o) => o.msg.id === msg.id);
       if (!out) throw new Error("the author's log lost its own message");
-      return sentPhaseFor(out, ut);
+      const [delivery] = out.deliveries;
+      if (!delivery) throw new Error("the message has no recipient");
+      return deliveryPhaseFor(out, delivery, ut);
     };
     expect(phaseAt(1479)).toBe("awaiting-reply");
     expect(phaseAt(1480)).toBe("confirmed");

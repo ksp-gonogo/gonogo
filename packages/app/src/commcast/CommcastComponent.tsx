@@ -26,7 +26,7 @@ import { Commcast__Frame, Commcast__Identity } from "./commcastStyles";
 import { groupWith } from "./groups";
 import { RadioIndicator } from "./radio/RadioIndicator";
 import { useRadio } from "./radio/useRadio";
-import { groupSeparation, type Separation } from "./reveal";
+import { groupSeparation, type Separation, separationsTo } from "./reveal";
 import { threadFor, threadsOf } from "./threads";
 import type { RecipientId } from "./types";
 import { useCommcastFeed } from "./useCommcastFeed";
@@ -80,6 +80,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
     : [];
   const separation = groupSeparation(me.vantageId, members, pathHome, pairs);
   const separationSeconds = secondsOf(separation);
+  const separations = separationsTo(me.vantageId, members, pathHome, pairs);
   // On the widget, not in a thread, so it hears every group; the group and separation are only for transmitting.
   const radio = useRadio({
     log,
@@ -125,9 +126,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
         members: everyone,
         added,
         sentUt: utNow,
-        separationSeconds: secondsOf(
-          groupSeparation(me.vantageId, everyone, pathHome, pairs),
-        ),
+        separations: separationsTo(me.vantageId, everyone, pathHome, pairs),
       },
     );
   };
@@ -235,6 +234,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             indicator={indicator}
             separation={separation}
             separationSeconds={separationSeconds}
+            separations={separations}
             members={members}
             onAdd={
               recipients.some((r) => !members.includes(r.id))

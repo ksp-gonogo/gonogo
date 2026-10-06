@@ -45,6 +45,7 @@ export function CommcastThreadView({
   indicator,
   separation,
   separationSeconds,
+  separations,
   members,
   onAdd,
   onBack,
@@ -61,6 +62,8 @@ export function CommcastThreadView({
   indicator: ReactNode;
   separation: Separation;
   separationSeconds: number | null;
+  /** One-way seconds to each member, each frozen into its own delivery when sent. */
+  separations: ReadonlyMap<RecipientId, number | null>;
   /** Everyone the group's words go to, as this vantage can see them now, its own included. */
   members: readonly RecipientId[];
   /** Choose somebody to add; absent when there is nobody left on the roster to add. */
@@ -134,7 +137,7 @@ export function CommcastThreadView({
             noPath={noPath}
             unreachable={unreachable}
             backInSeconds={backInSeconds}
-            separationSeconds={separationSeconds}
+            separations={separations}
           />
         }
       >
@@ -150,7 +153,7 @@ export function CommcastThreadView({
                 utNow={utNow}
                 log={log}
                 nameFor={nameFor}
-                separationSeconds={separationSeconds}
+                separations={separations}
               />
             ))}
             {/* A rule at the tail: past it there may be words this vantage has not heard, which is not a message in transit. */}

@@ -38,7 +38,7 @@ function msg(over: Partial<CommsMessage> = {}): CommsMessage {
 }
 
 function out(over: Partial<CommsMessage> = {}): OutboundMessage {
-  return { msg: msg(over), acks: [], neverLeft: false };
+  return { msg: msg(over), acks: [], deliveries: [] };
 }
 
 function feed(over: Partial<CommcastFeed> = {}): CommcastFeed {

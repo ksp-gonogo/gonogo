@@ -136,11 +136,30 @@ export interface OutboundMessage {
   msg: CommsMessage;
   /** Acknowledgements as they reached this screen. */
   acks: readonly CommsAck[];
+  /** One record per recipient, each timed and settled on its own. */
+  deliveries: readonly Delivery[];
+}
+
+/**
+ * What one recipient of a sent message owes the author: its own separation,
+ * its own attempts and its own acknowledgement window.
+ *
+ * Per recipient because a group spans distances: the near member's answer says
+ * nothing about whether the far member has the words yet.
+ */
+export interface Delivery {
+  to: RecipientId;
+  /** One-way seconds to this recipient, frozen at its latest attempt, or `null` when there was no path. */
+  separationSeconds: number | null;
+  /** The author's present at this recipient's latest attempt. */
+  lastSentUt: number;
+  /** How many times this recipient has been sent it. */
+  attempts: number;
   /**
-   * Set when the author had no path to the recipient at the latest attempt, so
-   * nothing was transmitted at all. Distinct from an unanswered message: this
-   * one never left, and the operator is told so rather than watching a
-   * countdown for something that is not travelling.
+   * Set when the author had no path to this recipient at its latest attempt.
+   * Distinct from an unanswered delivery: this one never left, and the
+   * operator is told so rather than watching a countdown for something that is
+   * not travelling.
    */
   neverLeft: boolean;
 }
@@ -179,7 +198,8 @@ export interface CommsSendInput {
   members?: readonly RecipientId[];
   added?: readonly RecipientId[];
   sentUt: number;
-  separationSeconds: number | null;
+  /** One-way seconds to each recipient, `null` for one with no path; the author's own vantage is not a recipient. */
+  separations: ReadonlyMap<RecipientId, number | null>;
   authorVesselId?: string;
 }
 

@@ -15,7 +15,7 @@ import {
   StubTransport,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -25,7 +25,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CommcastWidget } from "./CommcastComponent";
 import { CommcastLog } from "./CommcastLog";
 import { CommcastLogProvider } from "./CommcastLogContext";
-import type { CommsAck, CommsMessage } from "./types";
+import type { CommsAck, CommsMessage, OutboundMessage } from "./types";
 
 /**
  * The vantage a bare `StubTransport` gives a screen: none. `useObservedVantage`
@@ -142,6 +142,23 @@ function sent(over: Partial<CommsMessage> = {}): CommsMessage {
   };
 }
 
+/** `msg` as this screen's outbox holds it: one delivery per recipient, timed as the message was. */
+function outbound(msg: CommsMessage, acks: CommsAck[] = []): OutboundMessage {
+  return {
+    msg,
+    acks,
+    deliveries: msg.to
+      .filter((id) => id !== msg.from)
+      .map((to) => ({
+        to,
+        separationSeconds: msg.separationSeconds,
+        lastSentUt: msg.lastSentUt,
+        attempts: msg.attempts,
+        neverLeft: msg.separationSeconds === null,
+      })),
+  };
+}
+
 /** An acknowledgement, reaching this screen one 240 s crossing after it was made unless told otherwise. */
 function ack(over: Partial<CommsAck> = {}): CommsAck {
   const atUt = over.atUt ?? -240;
@@ -185,7 +202,7 @@ describe("Commcast, rendered", () => {
           body: "Kennedy, Woomera. Tracking is locked.",
         }),
       ],
-      outbox: [{ msg: sent(), acks: [], neverLeft: false }],
+      outbox: [outbound(sent(), [])],
     });
     renderWidget(log);
     const rows = await screen.findAllByRole("button", {
@@ -358,7 +375,7 @@ describe("Commcast, rendered", () => {
      * asserting the absence of both readings and calling it the switch.
      */
     log.replaceForTesting({
-      outbox: [{ msg: sent(), acks: [], neverLeft: false }],
+      outbox: [outbound(sent(), [])],
     });
     renderOnStream(log, [
       { id: "vessel:ares", displayName: "Ares 4", active: true },
@@ -448,13 +465,7 @@ describe("Commcast, rendered", () => {
      */
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [
-        {
-          msg: sent({ separationSeconds: null }),
-          acks: [],
-          neverLeft: true,
-        },
-      ],
+      outbox: [outbound(sent({ separationSeconds: null }), [])],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
@@ -647,7 +658,7 @@ describe("Commcast, rendered", () => {
      */
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [{ msg: sent(), acks: [], neverLeft: false }],
+      outbox: [outbound(sent(), [])],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
@@ -658,7 +669,7 @@ describe("Commcast, rendered", () => {
      * either way, because nothing has come back to say anything yet.
      */
     expect(screen.queryByText("Kennedy Flight")).toBeNull();
-    expect(screen.queryByText("unconfirmed")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Unconfirmed" })).toBeNull();
   });
 
   it("lands them the instant the acknowledgement gets back, stamped with when", async () => {
@@ -667,11 +678,9 @@ describe("Commcast, rendered", () => {
     // it arrived: the acknowledgement has had exactly the return leg to cross.
     log.replaceForTesting({
       outbox: [
-        {
-          msg: sent({ sentUt: -480, lastSentUt: -480 }),
-          acks: [ack({ atUt: -240 })],
-          neverLeft: false,
-        },
+        outbound(sent({ sentUt: -480, lastSentUt: -480 }), [
+          ack({ atUt: -240 }),
+        ]),
       ],
     });
     renderWidget(log);
@@ -690,18 +699,14 @@ describe("Commcast, rendered", () => {
     // marked, with the one action attached: send it again.
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [
-        {
-          msg: sent({ sentUt: -600, lastSentUt: -600 }),
-          acks: [],
-          neverLeft: false,
-        },
-      ],
+      outbox: [outbound(sent({ sentUt: -600, lastSentUt: -600 }), [])],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
     expect(screen.getByText("Ares, Kennedy, do you copy")).toBeInTheDocument();
-    expect(screen.getByText("unconfirmed")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Unconfirmed" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /No path to resend|Send again/ }),
     ).toBeInTheDocument();
@@ -711,47 +716,194 @@ describe("Commcast, rendered", () => {
     const log = makeLog();
     log.replaceForTesting({
       outbox: [
-        {
-          msg: sent({ sentUt: -600, lastSentUt: -600 }),
+        outbound(
+          sent({ sentUt: -600, lastSentUt: -600 }),
           // Read at the far end 1 s ago, so the news is still 239 s away.
-          acks: [ack({ atUt: -1 })],
-          neverLeft: false,
-        },
+          [ack({ atUt: -1 })],
+        ),
       ],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
-    expect(screen.getByText("unconfirmed")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Unconfirmed" }),
+    ).toBeInTheDocument();
   });
 
   it("says a message that never left is unconfirmed for a DIFFERENT reason", async () => {
     // "Nothing came back" and "nothing went out" call for different judgements, so they must not read the same.
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [
-        {
-          msg: sent({ separationSeconds: null }),
-          acks: [],
-          neverLeft: true,
-        },
-      ],
+      outbox: [outbound(sent({ separationSeconds: null }), [])],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
-    expect(screen.getByText("never left, no path")).toBeInTheDocument();
-    expect(screen.queryByText("unconfirmed")).toBeNull();
+    await userEvent.hover(screen.getByRole("button", { name: "Unconfirmed" }));
+    const card = await screen.findByRole("tooltip");
+    expect(within(card).getByText(/never left, no path/)).toBeInTheDocument();
+    expect(within(card).queryByText(/not received/)).toBeNull();
+    await act(async () => {});
+  });
+
+  describe("one send to a group", () => {
+    const ARES = "vessel:ares";
+    const WOOMERA = "ground:woomera";
+
+    /** A message to two recipients, 240 s and 12 s out, sent `at` seconds from now. */
+    function toGroup(at: number, acks: CommsAck[] = []): OutboundMessage {
+      const msg = sent({
+        to: ["ksc", ARES, WOOMERA],
+        sentUt: at,
+        lastSentUt: at,
+        separationSeconds: 240,
+      });
+      return {
+        msg,
+        acks,
+        deliveries: [
+          {
+            to: ARES,
+            separationSeconds: 240,
+            lastSentUt: at,
+            attempts: 1,
+            neverLeft: false,
+          },
+          {
+            to: WOOMERA,
+            separationSeconds: 12,
+            lastSentUt: at,
+            attempts: 1,
+            neverLeft: false,
+          },
+        ],
+      };
+    }
+
+    const woomeraAck = (atUt: number) =>
+      ack({
+        from: WOOMERA,
+        stationKey: "woomera-1",
+        atUt,
+        arrivedUt: atUt + 12,
+      });
+    const aresAck = (atUt: number) =>
+      ack({ from: ARES, stationKey: "pilot-1", atUt, arrivedUt: atUt + 240 });
+
+    it("is one line with one icon, however many answered, and the near answer does not confirm it", async () => {
+      const log = makeLog();
+      log.replaceForTesting({ outbox: [toGroup(-100, [woomeraAck(-88)])] });
+      renderWidget(log);
+      await openConversation(/do you copy/);
+      expect(screen.getAllByText("Ares, Kennedy, do you copy")).toHaveLength(1);
+      expect(
+        screen.getByRole("button", { name: "In transit" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Received by everyone" }),
+      ).toBeNull();
+      await act(async () => {});
+    });
+
+    it("keeps one rail row per recipient still on its way, and drops the one that answered", async () => {
+      const log = makeLog();
+      log.replaceForTesting({ outbox: [toGroup(-100, [woomeraAck(-88)])] });
+      renderWidget(log);
+      await openConversation(/do you copy/);
+      const queue = screen.getByLabelText(/Uplink queue/);
+      expect(
+        within(queue).getByText(/, to Unknown vessel/),
+      ).toBeInTheDocument();
+      expect(within(queue).queryByText(/, to Unknown station/)).toBeNull();
+      await act(async () => {});
+    });
+
+    it("lists every recipient on hover, the one still on its way carrying the modelled mark", async () => {
+      const log = makeLog();
+      log.replaceForTesting({ outbox: [toGroup(-100, [woomeraAck(-88)])] });
+      renderWidget(log);
+      await openConversation(/do you copy/);
+      await userEvent.hover(screen.getByRole("button", { name: "In transit" }));
+      const card = await screen.findByRole("tooltip");
+      expect(
+        within(card).getByText(/Unknown station\s+received/),
+      ).toBeInTheDocument();
+      const onTheWay = within(card).getByText("on the way");
+      expect(
+        onTheWay.closest("[data-reckoning-mark], span")?.parentElement,
+      ).not.toBeNull();
+      expect(
+        card.querySelector('[data-reckoning-mark="modelled"]'),
+      ).not.toBeNull();
+      expect(card.querySelectorAll("[data-reckoning-mark]")).toHaveLength(1);
+      await act(async () => {});
+    });
+
+    it("reads received once every recipient has answered", async () => {
+      const log = makeLog();
+      log.replaceForTesting({
+        outbox: [toGroup(-300, [woomeraAck(-288), aresAck(-240)])],
+      });
+      renderWidget(log);
+      await openConversation(/do you copy/);
+      expect(
+        screen.getByRole("button", { name: "Received by everyone" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Send again/ })).toBeNull();
+      await act(async () => {});
+    });
+
+    it("reads unconfirmed once every wait is over, and offers Send again only for who has not received", async () => {
+      const log = makeLog();
+      log.setVantage("ksc");
+      log.replaceForTesting({ outbox: [toGroup(-600, [woomeraAck(-588)])] });
+      renderOnStream(
+        log,
+        [
+          { id: ARES, displayName: "Ares 4", active: true },
+          { id: WOOMERA, displayName: "Woomera Range", active: true },
+        ],
+        [
+          { from: "ksc", to: ARES, oneWaySeconds: 240 },
+          { from: "ksc", to: WOOMERA, oneWaySeconds: 12 },
+        ],
+      );
+      await openConversation(/do you copy/);
+      expect(
+        screen.getByRole("button", { name: "Unconfirmed" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Send again to Ares 4" }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole("button", { name: /Send again to Woomera/ }),
+      ).toBeNull();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Send again to Ares 4" }),
+      );
+      const [out] = log.snapshot().outbox;
+      expect(out?.deliveries.map((d) => [d.to, d.attempts])).toEqual([
+        [ARES, 2],
+        [WOOMERA, 1],
+      ]);
+      await act(async () => {});
+    });
+
+    it("has no accessibility violations with the hover list open", async () => {
+      const log = makeLog();
+      log.replaceForTesting({ outbox: [toGroup(-100, [woomeraAck(-88)])] });
+      const { container } = renderWidget(log);
+      await openConversation(/do you copy/);
+      await userEvent.hover(screen.getByRole("button", { name: "In transit" }));
+      await screen.findByRole("tooltip");
+      await expectNoA11yViolations(container);
+      await act(async () => {});
+    });
   });
 
   it("terminates the log with a no-signal marker on a CONFIRMED link loss", async () => {
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [
-        {
-          msg: sent({ sentUt: -600, lastSentUt: -600 }),
-          acks: [],
-          neverLeft: false,
-        },
-      ],
+      outbox: [outbound(sent({ sentUt: -600, lastSentUt: -600 }), [])],
     });
     const { transport } = renderWidget(log);
     await openConversation(/do you copy/);
@@ -772,16 +924,17 @@ describe("Commcast, rendered", () => {
      */
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [-3000, -2400, -1800, -1200].map((at, i) => ({
-        msg: sent({
-          id: `m${i}`,
-          sentUt: at,
-          lastSentUt: at,
-          body: `line ${i}`,
-        }),
-        acks: [],
-        neverLeft: false,
-      })),
+      outbox: [-3000, -2400, -1800, -1200].map((at, i) =>
+        outbound(
+          sent({
+            id: `m${i}`,
+            sentUt: at,
+            lastSentUt: at,
+            body: `line ${i}`,
+          }),
+          [],
+        ),
+      ),
     });
     const { transport } = renderWidget(log);
     // The vantage arriving is what rebuilds the buffer, so this is the edge the defect lived on.
@@ -797,13 +950,7 @@ describe("Commcast, rendered", () => {
   it("has no accessibility violations, in the inbox and in a conversation", async () => {
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [
-        {
-          msg: sent({ sentUt: -600, lastSentUt: -600 }),
-          acks: [],
-          neverLeft: false,
-        },
-      ],
+      outbox: [outbound(sent({ sentUt: -600, lastSentUt: -600 }), [])],
     });
     const { container } = renderWidget(log);
     await expectNoA11yViolations(container);

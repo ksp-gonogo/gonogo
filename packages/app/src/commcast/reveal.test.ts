@@ -1,17 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  deliveryPhaseFor,
   firstAckUtFor,
   groupSeparation,
   heardUtOf,
   isSettled,
   legOf,
+  messageStatusFor,
   revealedAcks,
   roundTripFor,
   sentArrivalUtFor,
-  sentPhaseFor,
   separationBetween,
 } from "./reveal";
-import type { CommsAck, CommsMessage, OutboundMessage } from "./types";
+import type {
+  CommsAck,
+  CommsMessage,
+  Delivery,
+  OutboundMessage,
+} from "./types";
 
 const KSC = "ksc";
 const ARES = "vessel:ares";
@@ -36,8 +42,50 @@ function msg(over: Partial<CommsMessage> = {}): CommsMessage {
   };
 }
 
+function delivery(to: string, over: Partial<Delivery> = {}): Delivery {
+  return {
+    to,
+    separationSeconds: 240,
+    lastSentUt: 1000,
+    attempts: 1,
+    neverLeft: false,
+    ...over,
+  };
+}
+
 function outbound(over: Partial<OutboundMessage> = {}): OutboundMessage {
-  return { msg: msg(), acks: [], neverLeft: false, ...over };
+  return { msg: msg(), acks: [], deliveries: [delivery(ARES)], ...over };
+}
+
+const NEAR = "ground:near";
+const FAR = "vessel:far";
+
+/** A group of two recipients, 2 s and 600 s out, sent at 1000. */
+function twoRecipients(acks: CommsAck[] = []): OutboundMessage {
+  return {
+    msg: msg({ to: [KSC, NEAR, FAR], separationSeconds: 600 }),
+    acks,
+    deliveries: [
+      delivery(NEAR, { separationSeconds: 2 }),
+      delivery(FAR, { separationSeconds: 600 }),
+    ],
+  };
+}
+
+function ackFrom(from: string, arrivedUt: number): CommsAck {
+  return ack({
+    from,
+    stationKey: `key-${from}`,
+    atUt: arrivedUt - 2,
+    arrivedUt,
+  });
+}
+
+/** The first delivery's phase, for the single-recipient cases. */
+function sentPhaseFor(out: OutboundMessage, utNow: number) {
+  const first = out.deliveries[0];
+  if (!first) throw new Error("fixture has no delivery");
+  return deliveryPhaseFor(out, first, utNow);
 }
 
 function ack(over: Partial<CommsAck> = {}): CommsAck {
@@ -245,7 +293,9 @@ describe("sentPhaseFor", () => {
   it("calls a message that never left lost, not a long wait", () => {
     const out = outbound({
       msg: msg({ separationSeconds: null }),
-      neverLeft: true,
+      deliveries: [
+        delivery(ARES, { separationSeconds: null, neverLeft: true }),
+      ],
     });
     expect(sentPhaseFor(out, 1000)).toBe("lost");
   });
@@ -284,7 +334,9 @@ describe("sentArrivalUtFor", () => {
   it("shows words that never left at once, because the author is next to them", () => {
     const out = outbound({
       msg: msg({ separationSeconds: null }),
-      neverLeft: true,
+      deliveries: [
+        delivery(ARES, { separationSeconds: null, neverLeft: true }),
+      ],
     });
     expect(sentArrivalUtFor(out, 1000)).toBe(1000);
   });
@@ -300,5 +352,56 @@ describe("firstAckUtFor", () => {
 
   it("is undefined while nobody has answered", () => {
     expect(firstAckUtFor(outbound())).toBeUndefined();
+  });
+});
+
+describe("one send to a group of two", () => {
+  it("is not received because the near recipient answered (D1)", () => {
+    const out = twoRecipients([ackFrom(NEAR, 1004)]);
+    const [near, far] = out.deliveries;
+    expect(deliveryPhaseFor(out, near, 1005)).toBe("confirmed");
+    expect(["in-transit", "awaiting-reply"]).toContain(
+      deliveryPhaseFor(out, far, 1005),
+    );
+    expect(messageStatusFor(out, 1005)).toBe("in-transit");
+  });
+
+  it("is received once both have answered", () => {
+    const out = twoRecipients([ackFrom(NEAR, 1004), ackFrom(FAR, 1500)]);
+    expect(messageStatusFor(out, 1004)).toBe("in-transit");
+    expect(messageStatusFor(out, 1500)).toBe("received");
+  });
+
+  it("is unconfirmed when every wait is over and one never answered", () => {
+    const out = twoRecipients([ackFrom(NEAR, 1004)]);
+    // The far recipient's wait ends at 1000 + 2 * 600 + 3.
+    expect(messageStatusFor(out, 2203)).toBe("unconfirmed");
+    expect(messageStatusFor(out, 2202)).toBe("in-transit");
+  });
+
+  it("is not confirmed for a recipient by an ack from somebody else", () => {
+    const out = twoRecipients([ackFrom("ground:stranger", 1004)]);
+    const [near] = out.deliveries;
+    expect(deliveryPhaseFor(out, near, 1005)).not.toBe("confirmed");
+  });
+
+  it("reads a recipient that never left as settled, and the rest still travelling", () => {
+    const out: OutboundMessage = {
+      ...twoRecipients(),
+      deliveries: [
+        delivery(NEAR, { separationSeconds: null, neverLeft: true }),
+        delivery(FAR, { separationSeconds: 600 }),
+      ],
+    };
+    expect(messageStatusFor(out, 1100)).toBe("in-transit");
+    expect(messageStatusFor(out, 2203)).toBe("unconfirmed");
+  });
+
+  it("lands the author's line at the first answer, or when the last wait ends", () => {
+    expect(sentArrivalUtFor(twoRecipients(), 1100)).toBeUndefined();
+    expect(sentArrivalUtFor(twoRecipients([ackFrom(NEAR, 1004)]), 1100)).toBe(
+      1004,
+    );
+    expect(sentArrivalUtFor(twoRecipients(), 2203)).toBe(2203);
   });
 });

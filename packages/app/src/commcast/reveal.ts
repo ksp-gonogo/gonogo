@@ -14,6 +14,7 @@ import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type {
   CommsAck,
   CommsMessage,
+  Delivery,
   OutboundMessage,
   RecipientId,
 } from "./types";
@@ -150,21 +151,40 @@ export interface RoundTrip {
 }
 
 /**
- * `msg`'s round trip to its group, or `null` when it never left.
- *
- * Measured off the LONGEST separation to a member, which the author froze
- * into the envelope: the words reach the farthest member last and that
- * member's answer is the last that could come back, so the wait for an
- * acknowledgement is not over until that one is due.
+ * The round trip of one recipient's delivery, or of a message's longest
+ * separation, or `null` when it never left.
  */
-export function roundTripFor(msg: CommsMessage): RoundTrip | null {
-  const s = msg.separationSeconds;
+export function roundTripFor(
+  sent: Pick<Delivery, "lastSentUt" | "separationSeconds">,
+): RoundTrip | null {
+  const s = sent.separationSeconds;
   if (s === null || !Number.isFinite(s) || s < 0) return null;
   return {
-    reachUt: msg.lastSentUt + s,
-    replyUt: msg.lastSentUt + 2 * s,
-    overdueUt: msg.lastSentUt + 2 * s + LOSS_MARGIN,
+    reachUt: sent.lastSentUt + s,
+    replyUt: sent.lastSentUt + 2 * s,
+    overdueUt: sent.lastSentUt + 2 * s + LOSS_MARGIN,
   };
+}
+
+/**
+ * One-way seconds from `me` to each member other than itself, `null` for a
+ * member with no path. Each is frozen into its own delivery at send.
+ */
+export function separationsTo(
+  me: RecipientId | undefined,
+  members: readonly RecipientId[],
+  fallbackSeconds: number | null | undefined,
+  pairs?: SeparationMatrix,
+): ReadonlyMap<RecipientId, number | null> {
+  const out = new Map<RecipientId, number | null>();
+  for (const member of members) {
+    if (member === me) continue;
+    out.set(
+      member,
+      transitSecondsOf(separationBetween(me, member, fallbackSeconds, pairs)),
+    );
+  }
+  return out;
 }
 
 /**
@@ -231,6 +251,20 @@ export function firstAckUtFor(out: OutboundMessage): number | undefined {
   return soonest;
 }
 
+/** The instant `delivery`'s recipient's acknowledgement reached the author, or `undefined` while none has. */
+export function deliveryAckUtFor(
+  out: OutboundMessage,
+  delivery: Delivery,
+): number | undefined {
+  let soonest: number | undefined;
+  for (const ack of out.acks) {
+    if (ack.from !== delivery.to) continue;
+    if (soonest === undefined || ack.arrivedUt < soonest)
+      soonest = ack.arrivedUt;
+  }
+  return soonest;
+}
+
 /**
  * How a sent message stands at its author, in the phase vocabulary
  * `classifyRetained` already uses for a delayed command. The two are the same
@@ -265,26 +299,51 @@ export function legOf(phase: SentPhase): "outbound" | "return" | null {
 }
 
 /**
- * `msg`'s standing at its author as of `utNow`.
+ * One recipient's standing at the author as of `utNow`.
  *
- * The gate on `confirmed` is an acknowledgement that has REACHED here, never
- * one merely recorded: `revealedAcks` is what enforces that, and it is why
- * `firstAckUtFor` is compared against `utNow` rather than simply tested for
- * existence.
+ * The gate on `confirmed` is that recipient's own acknowledgement having
+ * REACHED here, never one merely recorded and never anybody else's, which is
+ * why the group's first answer cannot speak for the rest.
  */
-export function sentPhaseFor(out: OutboundMessage, utNow: number): SentPhase {
-  const firstAck = firstAckUtFor(out);
-  if (firstAck !== undefined && utNow >= firstAck) return "confirmed";
+export function deliveryPhaseFor(
+  out: OutboundMessage,
+  delivery: Delivery,
+  utNow: number,
+): SentPhase {
+  const ackUt = deliveryAckUtFor(out, delivery);
+  if (ackUt !== undefined && utNow >= ackUt) return "confirmed";
   // Nothing left, so nothing is travelling and nothing will answer. Not a long
   // wait: the operator is told, and can resend, rather than watching a
   // countdown for a journey that never started.
-  if (out.neverLeft) return "lost";
-  const trip = roundTripFor(out.msg);
+  if (delivery.neverLeft) return "lost";
+  const trip = roundTripFor(delivery);
   if (trip === null) return "lost";
   if (utNow < trip.reachUt) return "in-transit";
   if (utNow < trip.replyUt) return "awaiting-reply";
   if (utNow < trip.overdueUt) return "due";
   return "overdue";
+}
+
+/** How a whole send reads at its author: one verdict across every recipient. */
+export type MessageStatus = "received" | "in-transit" | "unconfirmed";
+
+/**
+ * `received` when every recipient has answered, `in-transit` while any
+ * recipient's wait is still running, `unconfirmed` once every wait is over and
+ * somebody has not answered.
+ */
+export function messageStatusFor(
+  out: OutboundMessage,
+  utNow: number,
+): MessageStatus {
+  let unanswered = false;
+  for (const delivery of out.deliveries) {
+    const phase = deliveryPhaseFor(out, delivery, utNow);
+    if (phase === "confirmed") continue;
+    if (!isSettled(phase)) return "in-transit";
+    unanswered = true;
+  }
+  return unanswered ? "unconfirmed" : "received";
 }
 
 /**
@@ -303,7 +362,8 @@ export function isSettled(phase: SentPhase): boolean {
 
 /**
  * The instant a sent message enters its own author's log, or `undefined` while
- * it is still travelling.
+ * it is still travelling. For a group that is the first answer from anyone, or
+ * the end of the last recipient's wait.
  *
  * This is the line that makes Commcast read like the terminal widget in line
  * mode: there, a composed line is echoed into the buffer only after the full
@@ -324,10 +384,16 @@ export function sentArrivalUtFor(
   out: OutboundMessage,
   utNow: number,
 ): number | undefined {
-  if (out.neverLeft) return out.msg.lastSentUt;
-  const trip = roundTripFor(out.msg);
-  if (trip === null) return out.msg.lastSentUt;
+  let giveUpUt: number | undefined;
+  for (const delivery of out.deliveries) {
+    if (delivery.neverLeft) continue;
+    const trip = roundTripFor(delivery);
+    if (trip === null) continue;
+    if (giveUpUt === undefined || trip.overdueUt > giveUpUt)
+      giveUpUt = trip.overdueUt;
+  }
+  if (giveUpUt === undefined) return out.msg.lastSentUt;
   const firstAck = firstAckUtFor(out);
-  if (firstAck !== undefined && firstAck <= trip.overdueUt) return firstAck;
-  return utNow >= trip.overdueUt ? trip.overdueUt : undefined;
+  if (firstAck !== undefined && firstAck <= giveUpUt) return firstAck;
+  return utNow >= giveUpUt ? giveUpUt : undefined;
 }

@@ -38,7 +38,7 @@ function held(over: Partial<CommcastLogSnapshot>): CommcastLogSnapshot {
 describe("groupsAt", () => {
   it("knows a group its own vantage opened from the instant it was opened", () => {
     const snap = held({
-      outbox: [{ msg: change(), acks: [], neverLeft: false }],
+      outbox: [{ msg: change(), acks: [], deliveries: [] }],
     });
     expect(groupsAt(snap, 100).get("g1")).toEqual([KSC, NEAR]);
   });

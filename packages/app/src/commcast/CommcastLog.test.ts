@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { OutgoingAck } from "./CommcastLog";
 import { CommcastLog, type CommcastTransmitter } from "./CommcastLog";
+import { separationsTo } from "./reveal";
 import type { CommsAck, CommsMessage } from "./types";
 
 const KSC = "ksc";
 const ARES = "vessel:ares";
+const WOOMERA = "ground:woomera";
 
 const AUTHOR = {
   stationKey: "ksc-1",
@@ -72,11 +74,11 @@ describe("CommcastLog, one vantage's own record", () => {
       body: "go for the burn",
       to: [ARES],
       sentUt: 1000,
-      separationSeconds: 240,
+      separations: separationsTo(KSC, [ARES], 240),
     });
     expect(wire.sent).toEqual([msg]);
     expect(log.snapshot().outbox).toHaveLength(1);
-    expect(log.snapshot().outbox[0].neverLeft).toBe(false);
+    expect(log.snapshot().outbox[0].deliveries[0]?.neverLeft).toBe(false);
   });
 
   it("transmits NOTHING when there was no path, and says so", () => {
@@ -92,10 +94,10 @@ describe("CommcastLog, one vantage's own record", () => {
       body: "do you copy",
       to: [ARES],
       sentUt: 1000,
-      separationSeconds: null,
+      separations: separationsTo(KSC, [ARES], null),
     });
     expect(wire.sent).toHaveLength(0);
-    expect(log.snapshot().outbox[0].neverLeft).toBe(true);
+    expect(log.snapshot().outbox[0].deliveries[0]?.neverLeft).toBe(true);
   });
 
   it("keeps only what NAMES this vantage", () => {
@@ -158,7 +160,7 @@ describe("CommcastLog, one vantage's own record", () => {
       members: [ARES, KSC],
       added: [ARES],
       sentUt: 1000,
-      separationSeconds: 240,
+      separations: separationsTo(KSC, [ARES, KSC], 240),
     });
     expect(wire.sent).toEqual([msg]);
     expect(msg).toMatchObject({
@@ -177,9 +179,9 @@ describe("CommcastLog, one vantage's own record", () => {
         body: "do you copy",
         to: [ARES],
         sentUt: 1000,
-        separationSeconds: 240,
+        separations: separationsTo(KSC, [ARES], 240),
       });
-      log.resend(msg.id, 2000, 240);
+      log.resend(msg.id, [ARES], 2000, new Map([[ARES, 240]]));
       expect(wire.sent).toHaveLength(2);
       expect(wire.sent[1].id).toBe(msg.id);
     });
@@ -191,9 +193,9 @@ describe("CommcastLog, one vantage's own record", () => {
         body: "do you copy",
         to: [ARES],
         sentUt: 1000,
-        separationSeconds: 240,
+        separations: separationsTo(KSC, [ARES], 240),
       });
-      log.resend(msg.id, 2000, 300);
+      log.resend(msg.id, [ARES], 2000, new Map([[ARES, 300]]));
       const [out] = log.snapshot().outbox;
       expect(out.msg.sentUt).toBe(1000);
       expect(out.msg.lastSentUt).toBe(2000);
@@ -219,7 +221,7 @@ describe("CommcastLog, one vantage's own record", () => {
         body: "do you copy",
         to: [ARES],
         sentUt: 1000,
-        separationSeconds: 240,
+        separations: separationsTo(KSC, [ARES], 240),
       });
       const ack: CommsAck = {
         messageId: msg.id,
@@ -234,8 +236,68 @@ describe("CommcastLog, one vantage's own record", () => {
       expect(log.snapshot().outbox[0].acks).toHaveLength(1);
     });
 
+    it("re-stamps only the recipients it is told to, each on its own separation", () => {
+      const msg = log.send(AUTHOR, {
+        kind: "text",
+        groupId: "g1",
+        body: "do you copy",
+        to: [KSC, ARES, WOOMERA],
+        sentUt: 1000,
+        separations: new Map([
+          [ARES, 240],
+          [WOOMERA, 12],
+        ]),
+      });
+      log.resend(
+        msg.id,
+        [ARES],
+        2000,
+        new Map([
+          [ARES, 300],
+          [WOOMERA, 14],
+        ]),
+      );
+      const [out] = log.snapshot().outbox;
+      expect(out.deliveries).toEqual([
+        {
+          to: ARES,
+          separationSeconds: 300,
+          lastSentUt: 2000,
+          attempts: 2,
+          neverLeft: false,
+        },
+        {
+          to: WOOMERA,
+          separationSeconds: 12,
+          lastSentUt: 1000,
+          attempts: 1,
+          neverLeft: false,
+        },
+      ]);
+    });
+
+    it("ignores an acknowledgement from a vantage the message was not addressed to", () => {
+      const msg = log.send(AUTHOR, {
+        kind: "text",
+        groupId: "g1",
+        body: "do you copy",
+        to: [KSC, ARES],
+        sentUt: 1000,
+        separations: new Map([[ARES, 240]]),
+      });
+      log.receiveAck({
+        messageId: msg.id,
+        from: WOOMERA,
+        stationKey: "stranger",
+        seat: "mission-control",
+        atUt: 1010,
+        arrivedUt: 1020,
+      });
+      expect(log.snapshot().outbox[0].acks).toHaveLength(0);
+    });
+
     it("does nothing at all for an id this log never sent", () => {
-      log.resend("never-sent", 2000, 240);
+      log.resend("never-sent", [ARES], 2000, new Map([[ARES, 240]]));
       expect(wire.sent).toHaveLength(0);
     });
   });

@@ -6,11 +6,13 @@ import type {
   CommsAck,
   CommsMessage,
   CommsSendInput,
+  Delivery,
   OutboundMessage,
+  RecipientId,
 } from "./types";
 import { EMPTY_COMMCAST_LOG } from "./types";
 
-const STORAGE_PREFIX = "gonogo.commcast.v3.";
+const STORAGE_PREFIX = "gonogo.commcast.v4.";
 
 /**
  * How many messages one vantage keeps in each direction. Its own log, so the
@@ -168,10 +170,10 @@ export class CommcastLog {
   /**
    * Say something to whoever `input.to` names.
    *
-   * A `separationSeconds` of `null` is NO PATH, and nothing is transmitted:
-   * the message is kept, marked as never having left, and the operator can
-   * resend when a path exists, rather than watching a countdown for words the
-   * mod would address to nobody.
+   * A separation of `null` is NO PATH to that recipient: it is marked as
+   * never having left, and the operator can resend when a path exists, rather
+   * than watching a countdown for words the mod would address to nobody. The
+   * message is transmitted once, when it can reach at least one recipient.
    */
   send(
     author: {
@@ -182,6 +184,15 @@ export class CommcastLog {
     },
     input: CommsSendInput,
   ): CommsMessage {
+    const deliveries = [...input.separations].map(
+      ([to, separationSeconds]): Delivery => ({
+        to,
+        separationSeconds,
+        lastSentUt: input.sentUt,
+        attempts: 1,
+        neverLeft: separationSeconds === null,
+      }),
+    );
     const msg: CommsMessage = {
       id: safeRandomUuid(),
       groupId: input.groupId,
@@ -193,7 +204,7 @@ export class CommcastLog {
       sentUt: input.sentUt,
       lastSentUt: input.sentUt,
       attempts: 1,
-      separationSeconds: input.separationSeconds,
+      separationSeconds: longestOf(deliveries),
       kind: input.kind,
       ...(input.body === undefined ? {} : { body: input.body }),
       ...(input.members === undefined ? {} : { members: [...input.members] }),
@@ -202,15 +213,17 @@ export class CommcastLog {
         ? {}
         : { authorVesselId: input.authorVesselId }),
     };
-    const neverLeft = input.separationSeconds === null;
-    this.pushOutbound({ msg, acks: [], neverLeft });
-    if (!neverLeft) this.dispatch(msg);
+    this.pushOutbound({ msg, acks: [], deliveries });
+    if (deliveries.length === 0 || deliveries.some((d) => !d.neverLeft)) {
+      this.dispatch(msg);
+    }
     this.persistAndEmit();
     return msg;
   }
 
   /**
-   * Transmit an already-sent message again, keeping its identity.
+   * Transmit an already-sent message again to `recipients`, keeping its
+   * identity.
    *
    * ONE action, and it is a re-ask as much as a resend: the recipient dedupes
    * on the id, so either it already holds the message and acknowledges again,
@@ -219,30 +232,43 @@ export class CommcastLog {
    * a recorded body would change that arithmetic, since re-sending audio is
    * genuinely expensive where a bare query is not. Text does not.)
    *
-   * `sentUt` and the separation are re-stamped because the new attempt is a
-   * new journey with its own acknowledgement window; the id, the first
-   * `sentUt` and any acknowledgement already received are not, so a late reply
-   * to the FIRST attempt still confirms the message and can never flip a
-   * confirmed one back.
+   * Only the named recipients' deliveries are re-stamped, each with its own
+   * fresh separation and acknowledgement window; the id, the first `sentUt`
+   * and any acknowledgement already received are not, so a late reply to the
+   * FIRST attempt still confirms its recipient and can never flip a confirmed
+   * one back.
    */
   resend(
     messageId: string,
+    recipients: readonly RecipientId[],
     atUt: number,
-    separationSeconds: number | null,
+    separations: ReadonlyMap<RecipientId, number | null>,
   ): void {
     const found = this.outbox.find((o) => o.msg.id === messageId);
     if (!found) return;
+    const deliveries = found.deliveries.map((d): Delivery => {
+      if (!recipients.includes(d.to)) return d;
+      const separationSeconds = separations.get(d.to) ?? null;
+      return {
+        ...d,
+        separationSeconds,
+        lastSentUt: atUt,
+        attempts: d.attempts + 1,
+        neverLeft: separationSeconds === null,
+      };
+    });
     const msg: CommsMessage = {
       ...found.msg,
       lastSentUt: atUt,
       attempts: found.msg.attempts + 1,
-      separationSeconds,
+      separationSeconds: longestOf(deliveries),
     };
-    const neverLeft = separationSeconds === null;
     this.outbox = this.outbox.map((o) =>
-      o.msg.id === messageId ? { ...o, msg, neverLeft } : o,
+      o.msg.id === messageId ? { ...o, msg, deliveries } : o,
     );
-    if (!neverLeft) this.dispatch(msg);
+    if (deliveries.some((d) => recipients.includes(d.to) && !d.neverLeft)) {
+      this.dispatch(msg);
+    }
     this.persistAndEmit();
   }
 
@@ -304,15 +330,16 @@ export class CommcastLog {
   /**
    * An acknowledgement of something this screen sent.
    *
-   * Recorded once per acknowledging station. A second one for the same station
-   * (a duplicate frame, or an acknowledgement of a resent copy) is dropped
-   * rather than appended, so a resend can never produce two confirmations of
-   * one message.
+   * Recorded once per acknowledging station, and only from a vantage the
+   * message was addressed to. A second one for the same station (a duplicate
+   * frame, or an acknowledgement of a resent copy) is dropped rather than
+   * appended, so a resend can never produce two confirmations of one message.
    */
   receiveAck(ack: CommsAck): void {
     let changed = false;
     this.outbox = this.outbox.map((out) => {
       if (out.msg.id !== ack.messageId) return out;
+      if (!out.deliveries.some((d) => d.to === ack.from)) return out;
       if (out.acks.some((a) => a.stationKey === ack.stationKey)) return out;
       changed = true;
       return { ...out, acks: [...out.acks, ack] };
@@ -393,6 +420,17 @@ export class CommcastLog {
   }
 }
 
+/** The longest separation among the deliveries that have a path, or `null` when none does. */
+function longestOf(deliveries: readonly Delivery[]): number | null {
+  let longest: number | null = null;
+  for (const d of deliveries) {
+    if (d.separationSeconds === null) continue;
+    if (longest === null || d.separationSeconds > longest)
+      longest = d.separationSeconds;
+  }
+  return longest;
+}
+
 /** Drop-oldest at the cap, and COUNT it, so the log can say it forgot. */
 function capped<Entry>(items: Entry[], onDrop: (n: number) => void): Entry[] {
   if (items.length <= MAX_MESSAGES) return items;
@@ -425,6 +463,6 @@ function isOutbound(value: unknown): value is OutboundMessage {
   return (
     isCommsMessage(o.msg) &&
     Array.isArray(o.acks) &&
-    typeof o.neverLeft === "boolean"
+    Array.isArray(o.deliveries)
   );
 }

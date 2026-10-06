@@ -18,7 +18,7 @@ export function CommcastComposer({
   noPath,
   unreachable,
   backInSeconds,
-  separationSeconds,
+  separations,
 }: {
   log: CommcastLog;
   me: Vantage;
@@ -34,7 +34,7 @@ export function CommcastComposer({
   unreachable: readonly string[];
   /** How long until the contact plan has every unreachable member back; undefined when unknown. */
   backInSeconds: Value<"s"> | undefined;
-  separationSeconds: number | null;
+  separations: ReadonlyMap<RecipientId, number | null>;
 }) {
   const [draft, setDraft] = useState("");
   const status = sendStatusFor(unreachable, backInSeconds);
@@ -60,7 +60,7 @@ export function CommcastComposer({
         // The sender's own present, not the confirmed edge, which is already a light-time behind.
         sentUt: utNow,
         // Frozen here and never re-read: a changing separation must not un-deliver something already promised.
-        separationSeconds,
+        separations,
       },
     );
     setDraft("");
