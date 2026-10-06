@@ -1,0 +1,7 @@
+{
+  "id": "localfixture",
+  "name": "Local Fixture",
+  "author": "gonogo",
+  "repo": "https://example.invalid/local-fixture",
+  "minAppVersion": "0.0.0"
+}

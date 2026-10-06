@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -52,6 +54,11 @@ const RELAY_PORT = 13002;
 // runs against a production `vite preview` on this dedicated port, separate from
 // the dev server on APP_PORT that every other spec uses. See uplink-loader.spec.ts.
 const PREVIEW_PORT = 15273;
+// A dev server of its own because the Uplinks it serves are named in its
+// environment, which every other spec's dev server must not have. The fixture
+// Uplink is laid out and built in this directory before it starts.
+const LOCAL_UPLINK_PORT = 15373;
+const LOCAL_UPLINK_DIR = join(tmpdir(), "gonogo-e2e-local-uplink");
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -204,8 +211,27 @@ export default defineConfig({
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
+    {
+      command: `node ./tests/fixtures/local-uplink/prepare.mjs ${LOCAL_UPLINK_DIR} && pnpm --filter @ksp-gonogo/app exec vite --port ${LOCAL_UPLINK_PORT} --strictPort`,
+      port: LOCAL_UPLINK_PORT,
+      reuseExistingServer: false,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 120_000,
+      env: {
+        GONOGO_LOCAL_UPLINKS: LOCAL_UPLINK_DIR,
+        VITE_PEER_HOST: "localhost",
+        VITE_PEER_PORT: String(BROKER_PORT),
+        VITE_PEER_PATH: "/myapp",
+        VITE_PEER_SECURE: "false",
+        VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
+      },
+    },
   ],
 });
+
+/** The dev server that has the fixture Uplink named on it. */
+export const LOCAL_UPLINK_URL = `http://localhost:${LOCAL_UPLINK_PORT}`;
 
 /** Exported so specs can reference them without re-defining ports. */
 export const PORTS = {
