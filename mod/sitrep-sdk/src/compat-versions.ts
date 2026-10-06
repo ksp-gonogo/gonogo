@@ -47,6 +47,10 @@ export const CONTRACT_MAJOR = 29;
  * against a NEWER minor than the host is refused; an older one loads, since a
  * minor is additive.
  *
+ * Typed `number`, not its literal: a minor moves without breaking anyone, so the
+ * published surface must not read each bump as a retype. `CONTRACT_MAJOR` stays
+ * literal because a major move is a break.
+ *
  * @category Host and runtime
  */
-export const CONTRACT_MINOR = 18;
+export const CONTRACT_MINOR: number = 18;

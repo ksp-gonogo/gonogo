@@ -215,6 +215,16 @@ describe("the published surface is derived, and read whole", () => {
     }
   });
 
+  it("types a contract Minor as a number and a contract Major as its literal", () => {
+    const lines = currentOf(LEDGERS[0]);
+    const typeOf = (name: string) =>
+      lines.find((line) => line.startsWith(`sitrep-sdk . ${name} :: `));
+    expect(typeOf("CONTRACT_MINOR")).toBe(
+      "sitrep-sdk . CONTRACT_MINOR :: number",
+    );
+    expect(typeOf("CONTRACT_MAJOR")).toMatch(/:: \d+$/);
+  });
+
   it("reads the export map's subpaths, none left out by judgement", () => {
     const subpaths = (pkg: string) =>
       shapes.get(pkg)?.entries.map((entry) => entry.subpath) ?? [];

@@ -43,9 +43,9 @@ function readExportedStringConst(filePath: string, exportName: string): string {
 /** The same trick for an integer constant. */
 function readExportedNumberConst(filePath: string, exportName: string): number {
   const src = readFileSync(filePath, "utf-8");
-  const match = new RegExp(`export const ${exportName}\\s*=\\s*(-?\\d+)`).exec(
-    src,
-  );
+  const match = new RegExp(
+    `export const ${exportName}(?::\\s*number)?\\s*=\\s*(-?\\d+)`,
+  ).exec(src);
   if (!match) {
     throw new Error(
       `readExportedNumberConst: could not find "export const ${exportName}" in ${filePath}`,

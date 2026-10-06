@@ -8112,7 +8112,7 @@
     "breaks": [
       {
         "key": "sitrep-sdk . CONTRACT_MINOR",
-        "note": "The constant follows the contract from 14 to 18 (the hello, ping and pong envelopes, the departure envelope on the orbit horizon, the Commcast send receipt, then the target list\u0027s unchanged-to time). Its type is the literal number, so every contract Minor reads as a retype. A caller compares it or prints it, and is unaffected."
+        "note": "The constant follows the contract from 14 to 18 (the hello, ping and pong envelopes, the departure envelope on the orbit horizon, the Commcast send receipt, then the target list\\u0027s unchanged-to time). Its type is now `number` rather than the literal, so this is the last Minor bump that reads as a retype; a caller compares it or prints it, and is unaffected."
       },
       {
         "key": "sitrep-sdk . TinyMode#bodyMinSize?",

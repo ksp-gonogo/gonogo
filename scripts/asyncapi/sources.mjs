@@ -415,7 +415,9 @@ export function readUnitMap(root) {
 export function readContractVersion(root) {
   const source = readFileSync(join(root, SOURCES.compatVersions), "utf8");
   const read = (name) => {
-    const match = new RegExp(`export const ${name} = (\\d+);`).exec(source);
+    const match = new RegExp(
+      `export const ${name}(?:: number)? = (\\d+);`,
+    ).exec(source);
     if (!match) {
       throw new Error(
         `asyncapi: ${name} not found in ${SOURCES.compatVersions}`,
