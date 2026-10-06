@@ -18,6 +18,7 @@ import {
 import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
+import { vantageLabels } from "./vantageLabels";
 
 interface VantageOption extends ComboboxOption {
   isHome: boolean;
@@ -109,7 +110,9 @@ function VantageReadout() {
         </Text>
       ) : (
         <>
-          <Text size="xs">{entry?.displayName ?? observed}</Text>
+          <Text size="xs">
+            {entry ? vantageLabels(active).get(entry.id) : observed}
+          </Text>
           {observed === homeId && <HomeBadge />}
         </>
       )}
@@ -160,9 +163,10 @@ function VantagePicker() {
   const optionIdPrefix = useId();
   const optionId = (key: string) => `${optionIdPrefix}-${key}`;
 
+  const labels = vantageLabels(active);
   const options: VantageOption[] = active.map((c) => ({
     key: c.id,
-    label: c.displayName ?? c.id,
+    label: labels.get(c.id) ?? c.id,
     isHome: c.id === homeId,
   }));
 
