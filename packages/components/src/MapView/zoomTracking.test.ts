@@ -7,7 +7,11 @@ import {
   WORLD_W,
   worldToScreen,
 } from "./camera";
-import { paintPrediction } from "./canvasPaint";
+import { MAP_MARK, paintPrediction } from "./canvasPaint";
+
+/** The map's projection in the order the painters call it. */
+const project = (w: number, h: number, lat: number, lon: number) =>
+  latLonToMap(lat, lon, w, h);
 
 const W = 800;
 const H = 400;
@@ -70,7 +74,7 @@ function drawnTrack(camera: Camera) {
       ],
     ],
     maneuverSegments: [],
-    adjustedMap: latLonToMap,
+    adjustedMap: project,
     encounterKind: null,
     impactLat: undefined,
     impactLon: undefined,
@@ -80,13 +84,13 @@ function drawnTrack(camera: Camera) {
 
 /** Where that map point is on screen at `camera`: where the marker is drawn, and where the map's own pixel for it lands. */
 function mapPointOnScreen(camera: Camera) {
-  const world = latLonToMap(WORLD_W, WORLD_H, POINT.lat, POINT.lon);
+  const world = project(WORLD_W, WORLD_H, POINT.lat, POINT.lon);
   return worldToScreen(world.x, world.y, camera, W, H);
 }
 
 describe("MapView on zoom", () => {
   const fit = fitCamera(W, H);
-  const world = latLonToMap(WORLD_W, WORLD_H, POINT.lat, POINT.lon);
+  const world = project(WORLD_W, WORLD_H, POINT.lat, POINT.lon);
   // Zoomed four times, and panned so the point is off centre: both terms of the transform are in play.
   const zoomed: Camera = {
     zoom: fit.zoom * 4,
@@ -116,6 +120,7 @@ describe("MapView on zoom", () => {
     const atZoom = drawnTrack(zoomed);
     expect(atZoom.widths[0]).toBeCloseTo(atFit.widths[0], 6);
     expect(atZoom.dashes[0][0]).toBeCloseTo(atFit.dashes[0][0], 6);
-    expect(atFit.widths[0]).toBeCloseTo(1.5, 6);
+    expect(atFit.widths[0]).toBeCloseTo(MAP_MARK.trackWidth, 6);
+    expect(atFit.dashes[0][0]).toBeCloseTo(MAP_MARK.trackDash, 6);
   });
 });

@@ -127,12 +127,15 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
       // Zoomed in on the craft, twice and four times: the track, the trail and the marker have to stay on the ground they cross while the map grows under them.
       ...[
-        { name: "zoom-2x-12x18", steps: 5 },
-        { name: "zoom-4x-12x18", steps: 10 },
-      ].map(({ name, steps }) => ({
+        { name: "zoom-2x-12x18", steps: 5, w: 12, h: 18 },
+        { name: "zoom-4x-12x18", steps: 10, w: 12, h: 18 },
+        // The smallest tile that draws a map, where a mark has the least room.
+        { name: "zoom-2x-6x6", steps: 5, w: 6, h: 6 },
+        { name: "zoom-4x-6x6", steps: 10, w: 6, h: 6 },
+      ].map(({ name, steps, w, h }) => ({
         name,
-        w: 12,
-        h: 18,
+        w,
+        h,
         zooms: [
           {
             selector: '[data-testid="map-view-base-canvas"]',

@@ -4,24 +4,22 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { paintVesselKeyline, paintVesselPositions } from "@ksp-gonogo/ui-kit";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";
+import { type Camera, WORLD_H, WORLD_W, worldToScreen } from "./camera";
 import {
-  type Camera,
-  cameraTransform,
-  WORLD_H,
-  WORLD_W,
-  worldToScreen,
-} from "./camera";
-import {
+  MAP_MARK,
   type MapProjection,
   paintCrosshair,
   paintMapBase,
   paintPrediction,
+  paintTrail,
   paintVesselMarker,
   sizedContext,
+  trailPoints,
 } from "./canvasPaint";
 import { groupBaseLayersByUplink } from "./orderBaseLayers";
 import type { BaseSurfaceLayer } from "./paintBaseSurface";
 import type { useBaseLayers } from "./useBaseLayers";
+import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 
 interface MapPaintingInputs {
@@ -30,8 +28,13 @@ interface MapPaintingInputs {
   bodyTexture: string | undefined;
   bodyColor: string | undefined;
   baseLayers: ReturnType<typeof useBaseLayers>;
-  worldCanvasRef: RefObject<HTMLCanvasElement | null>;
+  /** The flown trail's buffer, newest last, and how many points it has ever taken. */
+  trajectoryRef: RefObject<TrajectoryPoint[]>;
   trajectoryCount: number;
+  /** The body mapped, whose change starts the trail afresh. */
+  bodyName: string | undefined;
+  hasAtmosphere: boolean | undefined;
+  maxAtmosphere: number | undefined;
   vesselOnThisBody: boolean;
   predictionSegments: TrackSample[][];
   maneuverSegments: TrackSample[][][];
@@ -58,8 +61,11 @@ export function useMapPainting({
   bodyTexture,
   bodyColor,
   baseLayers,
-  worldCanvasRef,
+  trajectoryRef,
   trajectoryCount,
+  bodyName,
+  hasAtmosphere,
+  maxAtmosphere,
   vesselOnThisBody,
   predictionSegments,
   maneuverSegments,
@@ -142,23 +148,49 @@ export function useMapPainting({
     ctx.clearRect(0, 0, w, h);
   }, [containerSize]);
 
-  // trajectoryCount drives the redraw: the world canvas ref is stable but its content is not.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: trajectoryCount triggers redraw when world canvas content changes
+  // The buffer outlives a change of body, and the points flown over the last one are not this map's.
+  const trailStartedAt = useRef(0);
+  const trajectoryCountRef = useRef(trajectoryCount);
+  trajectoryCountRef.current = trajectoryCount;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: bodyName is the change trigger, not consumed in the body
+  useEffect(() => {
+    trailStartedAt.current = trajectoryCountRef.current;
+  }, [bodyName]);
+
+  // trajectoryCount drives the redraw: the buffer's ref is stable but its content is not.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: trajectoryCount and bodyName trigger the redraw when the buffer's content or its start changes
   useEffect(() => {
     const canvas = persistentDataRef.current;
-    const worldCanvas = worldCanvasRef.current;
-    if (!canvas || !containerSize || !worldCanvas) return;
+    if (!canvas || !containerSize) return;
     const { w, h } = containerSize;
     const ctx = sizedContext(canvas, w, h);
     if (!ctx) return;
-
-    ctx.clearRect(0, 0, w, h);
-    // The trail is the vessel's track, meaningless projected through another body's frame.
-    if (!vesselOnThisBody) return;
-    ctx.setTransform(...cameraTransform(camera, w, h));
-    ctx.drawImage(worldCanvas, 0, 0);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [containerSize, camera, trajectoryCount, vesselOnThisBody]);
+    paintTrail(ctx, {
+      w,
+      h,
+      camera,
+      // The trail is the vessel's track, meaningless projected through another body's frame.
+      points: vesselOnThisBody
+        ? trailPoints(
+            trajectoryRef.current ?? [],
+            trajectoryCount,
+            trailStartedAt.current,
+          )
+        : [],
+      adjustedMap,
+      hasAtmosphere,
+      maxAtmosphere,
+    });
+  }, [
+    containerSize,
+    camera,
+    trajectoryCount,
+    bodyName,
+    vesselOnThisBody,
+    adjustedMap,
+    hasAtmosphere,
+    maxAtmosphere,
+  ]);
 
   useEffect(() => {
     const canvas = predictionRef.current;
@@ -219,7 +251,9 @@ export function useMapPainting({
     );
     const { x, y } = worldToScreen(wx, wy, camera, w, h);
     if (modelledPosition === null && !positionHeld) {
-      if (keylines) paintVesselKeyline(keylines, "current", x, y);
+      if (keylines) {
+        paintVesselKeyline(keylines, "current", x, y, MAP_MARK.radius);
+      }
       paintVesselMarker(canvas, ctx, x, y);
       return;
     }
@@ -239,12 +273,23 @@ export function useMapPainting({
         ? undefined
         : worldToScreen(modelled.x, modelled.y, camera, w, h);
     if (keylines) {
-      paintVesselKeyline(keylines, "held", x, y);
+      paintVesselKeyline(keylines, "held", x, y, MAP_MARK.radius);
       if (modelledAt) {
-        paintVesselKeyline(keylines, "modelled", modelledAt.x, modelledAt.y);
+        paintVesselKeyline(
+          keylines,
+          "modelled",
+          modelledAt.x,
+          modelledAt.y,
+          MAP_MARK.radius,
+        );
       }
     }
-    paintVesselPositions(canvas, ctx, { held: { x, y }, modelled: modelledAt });
+    paintVesselPositions(
+      canvas,
+      ctx,
+      { held: { x, y }, modelled: modelledAt },
+      MAP_MARK.radius,
+    );
   }, [
     containerSize,
     camera,

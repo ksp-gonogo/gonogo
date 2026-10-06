@@ -55,7 +55,6 @@ import { useMapPainting } from "./useMapPainting";
 import { useMapResize } from "./useMapResize";
 import { useMapTelemetry } from "./useMapTelemetry";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
-import { useWorldCanvas } from "./useWorldCanvas";
 import { VanillaSuppressionProbe } from "./VanillaSuppressionProbe";
 // Side-effect only: registers the vanilla POI provider MapPoiLayer renders.
 import "./vanillaPoiProvider";
@@ -167,15 +166,6 @@ function MapViewComponent({
     [body?.latitudeOffset, body?.longitudeOffset],
   );
 
-  const worldCanvasRef = useWorldCanvas({
-    trajectoryRef,
-    trajectoryCount,
-    adjustedMap,
-    hasAtmosphere: body?.hasAtmosphere,
-    maxAtmosphere: body?.maxAtmosphere,
-    bodyName: targetBodyId,
-  });
-
   useEffect(() => {
     if (viewMode !== "follow" || lat === undefined || lon === undefined) return;
     const { x: wx, y: wy } = adjustedMap(
@@ -217,8 +207,11 @@ function MapViewComponent({
     bodyTexture: body?.texture,
     bodyColor: body?.color,
     baseLayers,
-    worldCanvasRef,
+    trajectoryRef,
     trajectoryCount,
+    bodyName: targetBodyId,
+    hasAtmosphere: body?.hasAtmosphere,
+    maxAtmosphere: body?.maxAtmosphere,
     vesselOnThisBody,
     predictionSegments,
     maneuverSegments,

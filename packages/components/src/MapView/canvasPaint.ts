@@ -8,6 +8,26 @@ import {
   baseSurfacePainted,
   paintBaseSurface,
 } from "./paintBaseSurface";
+import { clamp01, getTrajectoryStyle, lerp } from "./trajectoryStyle";
+import type { TrajectoryPoint } from "./useTrajectoryBuffer";
+
+/**
+ * The sizes of the map's marks and tracks, in screen pixels. A map is a busy
+ * ground and is read from across a room, so everything on it is half as large
+ * again as the kit's own mark: the vessel, its crosshair, the forward tracks
+ * and the markers at their ends. None of them scales with the zoom.
+ */
+export const MAP_MARK = {
+  /** The vessel mark's radius: the kit's 4 px, half as large again. */
+  radius: 6,
+  crosshair: 12,
+  crosshairWidth: 1.5,
+  trackWidth: 2.25,
+  trackDash: 6,
+  /** The SOI ring's radius and the impact cross's half-size. */
+  endMarker: 9,
+  endMarkerDot: 2.25,
+} as const;
 
 /** Projects lat/lon (degrees) onto a canvas of the given size, per-body offset included. */
 export type MapProjection = (
@@ -202,10 +222,11 @@ export function paintPrediction(
 
   ctx.setTransform(...cameraTransform(camera, w, h));
   // Compensate stroke + dash for camera zoom so they stay visually consistent at any scale.
-  const screenLineWidth = 1.5;
-  const screenDash = 4;
-  ctx.lineWidth = screenLineWidth / camera.zoom;
-  ctx.setLineDash([screenDash / camera.zoom, screenDash / camera.zoom]);
+  ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
+  ctx.setLineDash([
+    MAP_MARK.trackDash / camera.zoom,
+    MAP_MARK.trackDash / camera.zoom,
+  ]);
 
   // Current-orbit prediction: amber, faded proportional to time from now.
   drawFadedSegments(ctx, predictionSegments, adjustedMap, [255, 180, 64]);
@@ -221,19 +242,19 @@ export function paintPrediction(
   const last = encounterKind === null ? null : lastSample(predictionSegments);
   if (last !== null && Number.isFinite(last.lat) && Number.isFinite(last.lon)) {
     const { x: ex, y: ey } = adjustedMap(WORLD_W, WORLD_H, last.lat, last.lon);
-    const r = 6 / camera.zoom;
+    const r = MAP_MARK.endMarker / camera.zoom;
     ctx.strokeStyle =
       encounterKind === "encounter"
         ? "rgba(64, 200, 255, 0.9)"
         : "rgba(255, 180, 64, 0.9)";
-    ctx.lineWidth = 1.5 / camera.zoom;
+    ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
     ctx.beginPath();
     ctx.arc(ex, ey, r, 0, Math.PI * 2);
     ctx.stroke();
     // Inner dot so the ring is legible even at low zoom.
     ctx.fillStyle = ctx.strokeStyle;
     ctx.beginPath();
-    ctx.arc(ex, ey, 1.5 / camera.zoom, 0, Math.PI * 2);
+    ctx.arc(ex, ey, MAP_MARK.endMarkerDot / camera.zoom, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -244,9 +265,9 @@ export function paintPrediction(
       impactLat,
       impactLon,
     );
-    const crossSize = 6 / camera.zoom;
+    const crossSize = MAP_MARK.endMarker / camera.zoom;
     ctx.strokeStyle = "rgba(255, 64, 64, 0.9)";
-    ctx.lineWidth = 1.5 / camera.zoom;
+    ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
     ctx.beginPath();
     ctx.moveTo(ix - crossSize, iy - crossSize);
     ctx.lineTo(ix + crossSize, iy + crossSize);
@@ -256,6 +277,86 @@ export function paintPrediction(
   }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/**
+ * How wide a stretch of the flown trail is on screen, from the width its style
+ * gives it (1 in vacuum, up to about 8 deep in the air at speed). Between two
+ * thirds of the forward track's width and twice it, so the trail sits in
+ * proportion with the dashed track beside it at every zoom.
+ */
+export function trailScreenWidth(styleWidth: number): number {
+  return MAP_MARK.trackWidth * lerp(2 / 3, 2, clamp01((styleWidth - 1) / 7));
+}
+
+/**
+ * The flown trail, drawn from its points in world space so it pans and zooms
+ * with the map, each stretch in the colour and weight its flight regime gives
+ * it. The weight is a width on screen: the stroke is divided by the zoom, as
+ * the forward track's is, so the trail's shape grows with the map and its line
+ * does not.
+ */
+export function paintTrail(
+  ctx: CanvasRenderingContext2D,
+  {
+    w,
+    h,
+    camera,
+    points,
+    adjustedMap,
+    hasAtmosphere,
+    maxAtmosphere,
+  }: Readonly<{
+    w: number;
+    h: number;
+    camera: Camera;
+    points: readonly TrajectoryPoint[];
+    adjustedMap: MapProjection;
+    hasAtmosphere: boolean | undefined;
+    maxAtmosphere: number | undefined;
+  }>,
+): void {
+  ctx.clearRect(0, 0, w, h);
+  if (points.length < 2) return;
+  ctx.setTransform(...cameraTransform(camera, w, h));
+  for (let i = 1; i < points.length; i++) {
+    const from = points[i - 1];
+    const to = points[i];
+    const start = adjustedMap(WORLD_W, WORLD_H, from.lat, from.lon);
+    const end = adjustedMap(WORLD_W, WORLD_H, to.lat, to.lon);
+    const style = getTrajectoryStyle({
+      alt: to.alt,
+      maxAtmosphere: maxAtmosphere ?? 100_000,
+      hasAtmosphere: hasAtmosphere ?? false,
+      q: to.q,
+      mach: to.mach,
+      speed: to.speed,
+      vSpeed: to.vSpeed,
+    });
+    const [r, g, b] = style.color;
+    ctx.strokeStyle = `rgba(${r},${g},${b},${style.alpha})`;
+    ctx.lineWidth = trailScreenWidth(style.width) / camera.zoom;
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/**
+ * The points of the trail that belong to the body now mapped: the newest
+ * `total - startedAt` of the buffer, which holds the newest points whichever
+ * body they were flown over. `startedAt` is the count of points taken when the
+ * map last changed body.
+ */
+export function trailPoints(
+  buffer: readonly TrajectoryPoint[],
+  total: number,
+  startedAt: number,
+): readonly TrajectoryPoint[] {
+  const fresh = Math.max(0, total - startedAt);
+  return fresh >= buffer.length ? buffer : buffer.slice(buffer.length - fresh);
 }
 
 /**
@@ -270,7 +371,7 @@ export function paintVesselMarker(
   y: number,
 ): void {
   paintCrosshair(ctx, x, y, false);
-  paintVesselMark(canvas, ctx, "current", x, y);
+  paintVesselMark(canvas, ctx, "current", x, y, MAP_MARK.radius);
 }
 
 /** The crosshair through a position: solid for a current one, dashed where it is held. */
@@ -281,9 +382,9 @@ export function paintCrosshair(
   held: boolean,
 ): void {
   ctx.strokeStyle = "rgba(0,255,136,0.6)";
-  ctx.lineWidth = 1;
-  ctx.setLineDash(held ? [2, 2] : []);
-  const cross = 8;
+  ctx.lineWidth = MAP_MARK.crosshairWidth;
+  ctx.setLineDash(held ? [3, 3] : []);
+  const cross = MAP_MARK.crosshair;
   ctx.beginPath();
   ctx.moveTo(x - cross, y);
   ctx.lineTo(x + cross, y);
