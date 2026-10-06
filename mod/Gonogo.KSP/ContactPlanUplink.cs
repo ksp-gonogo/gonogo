@@ -165,7 +165,8 @@ namespace Gonogo.KSP
             }
             if (!stands)
             {
-                return null;
+                // Not read as empty: a look with the centres the game can still name and no craft.
+                vessels = NoVessels;
             }
 
             var active = _centres.EnumerateActive();
@@ -241,12 +242,15 @@ namespace Gonogo.KSP
                     ? KspVisibilityGeometryFactory.OccludingRadiusOf(occlusion, bodies[index])
                     : 0.0)
             {
-                Radio = RadioOfActive(),
+                Radio = stands ? RadioOfActive() : null,
                 Roster = roster,
-                Sight = SightOf(vessels, active, roster),
-                Vessels = listed,
+                Sight = stands ? SightOf(vessels, active, roster) : null,
+                Vessels = stands ? listed : null,
+                VesselsUnread = !stands,
             };
         }
+
+        private static readonly List<Vessel> NoVessels = new List<Vessel>();
 
         /// <summary>
         /// MAIN THREAD: the straight-line light-time from every object the game

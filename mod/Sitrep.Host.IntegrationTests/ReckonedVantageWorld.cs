@@ -379,7 +379,20 @@ namespace Sitrep.Host.IntegrationTests
         {
             if (ListNotStanding)
             {
-                return null;
+                // What the game can still name with no vessel list to read: its ground stations.
+                return new ContactGameLook(
+                    new List<ContactGameNode>
+                    {
+                        ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), null, HomeName),
+                        ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0), null),
+                    },
+                    Bodies,
+                    Kerbin,
+                    (_, index) => index == Kerbin ? KerbinRadius : 0.0)
+                {
+                    Roster = new List<CommandCentreEntry> { Station(Home), Station(Far) },
+                    VesselsUnread = true,
+                };
             }
             // A node's radio is its own id where a backend is elected, so the backend can tell the pair it is asked about.
             object? Antenna(string id) => LinkStrengths == null ? null : id;

@@ -111,6 +111,15 @@ namespace Sitrep.Host.Comms
         /// which leaves nothing judged to have gone by it.
         /// </summary>
         public IReadOnlyCollection<string>? Vessels { get; set; }
+
+        /// <summary>
+        /// Whether the game's vessel list could not be read on this look: it
+        /// was still being filled, or the scene does not fill it. The look then
+        /// holds the ground stations and the centres the game can still name,
+        /// and no craft. That is not the craft having gone, so none is read,
+        /// none is taken as gone and nothing is planned from such a look.
+        /// </summary>
+        public bool VesselsUnread { get; set; }
     }
 
     /// <summary>The game a contact plan is made of. Asked on the main thread only.</summary>
@@ -318,6 +327,9 @@ namespace Sitrep.Host.Comms
 
             /// <summary>Every vessel the game lists, by bare guid, or null where the game cannot say.</summary>
             public IReadOnlyCollection<string>? VesselsInGame { get; set; }
+
+            /// <summary>Whether the game's vessel list could not be read on this look: see <see cref="ContactGameLook.VesselsUnread"/>.</summary>
+            public bool VesselsUnread { get; set; }
 
             /// <summary>What the active craft's radio said on this look, or null.</summary>
             public ContactRadio? Radio { get; }
@@ -629,6 +641,27 @@ namespace Sitrep.Host.Comms
             var ground = new PlanGround(
                 stationNodes, look.Bodies, look.FrameBodyIndex, index => index >= 0 && index < radii.Length ? radii[index] : 0.0);
 
+            if (look.VesselsUnread)
+            {
+                // No craft is read, so none can be recorded, missed or measured to.
+                var none = new string[0];
+                return new Looked(
+                    snapshot.Ut,
+                    new CraftStateRecorder.Batch(snapshot.Ut, none, new CraftState[0], none),
+                    ground,
+                    stations,
+                    new List<string>(_game.Centres()),
+                    null,
+                    false,
+                    null,
+                    look.Roster,
+                    null,
+                    none)
+                {
+                    VesselsUnread = true,
+                };
+            }
+
             var routesDue = wall - _routedAt >= RouteIntervalSeconds;
             if (routesDue)
             {
@@ -667,7 +700,13 @@ namespace Sitrep.Host.Comms
             {
                 return;
             }
-            if (_timelineReset)
+            var reset = _timelineReset;
+            if (looked.VesselsUnread && !reset && !_unreadSinceReset)
+            {
+                // A scene that is loading, on the same timeline: every centre knows what it knew, and nothing is said until the craft can be read.
+                return;
+            }
+            if (reset)
             {
                 _timelineReset = false;
                 _hearing.Reset();
@@ -702,12 +741,18 @@ namespace Sitrep.Host.Comms
                 // taken and dropped when it finishes, by the FromUt check below.
             }
 
-            CraftStateRecorder.Record(looked.Craft, _craftHost);
-            SayRadio(looked);
-
             var planning = _audience.PlanningCentres();
             var listening = new HashSet<string>(looked.Centres, StringComparer.Ordinal);
             listening.UnionWith(planning);
+            if (looked.VesselsUnread)
+            {
+                SayWhatIsKnown(looked, planning, listening);
+                return;
+            }
+            _unreadSinceReset = false;
+
+            CraftStateRecorder.Record(looked.Craft, _craftHost);
+            SayRadio(looked);
             _hearing.Listen(listening, looked.Craft.Known);
             if (looked.VesselsInGame != null && _hearing.ForgetGone(looked.VesselsInGame) > 0)
             {
@@ -825,6 +870,38 @@ namespace Sitrep.Host.Comms
             }
             _targets ??= _host.Publisher(TargetsTopic);
             _targets.Publish(new Dictionary<string, object?> { ["entries"] = knowledge.Entries(looked.Targets, looked.InRange) }, looked.Ut);
+        }
+
+        /// <summary>
+        /// Whether a load has been finished on a look that could read no craft,
+        /// with no look that could since. While it is so, each centre is told
+        /// its lists whenever a screen asks, from what it was given back.
+        /// </summary>
+        private bool _unreadSinceReset;
+
+        /// <summary>
+        /// COURIER THREAD: finishes a load into a scene whose vessel list cannot
+        /// be read. Each centre has been given back what the loaded game
+        /// carried, and is told its roster and its craft from that, as true as
+        /// the save. No craft is recorded or missed, no radio is said, and no
+        /// plan is made or kept: all of that waits for a look that can read
+        /// the craft.
+        ///
+        /// <para>Without it a game loaded into such a scene, as an editor
+        /// entered by reverting a flight is, left every centre told nothing for
+        /// as long as the player stayed there, though each still knew what it
+        /// knew.</para>
+        /// </summary>
+        private void SayWhatIsKnown(Looked looked, IReadOnlyCollection<string> planning, HashSet<string> listening)
+        {
+            _unreadSinceReset = true;
+            _hearing!.Listen(listening, new string[0]);
+            KeepHeardForSave(listening);
+            // What is kept for a save is now what the centres were given back.
+            System.Threading.Volatile.Write(ref _restore, null);
+            NoteGround(looked);
+            PublishVessels(looked, planning);
+            PublishRosters(looked, listening);
         }
 
         /// <summary>The roster each centre was last sent.</summary>
