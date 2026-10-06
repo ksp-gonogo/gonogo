@@ -10,8 +10,9 @@ interface NamedCentre {
  * name, and a picker listing "Sally-Hut 1" three times leaves no way to choose
  * between them, so centres of one name each take the start of their own id in
  * brackets: enough of it to differ, and never fewer than four characters. The
- * id is the craft's own and does not change, so the same craft is the same
- * entry on every screen and after every load.
+ * id is the craft's own and does not change. How much of it is shown depends
+ * on which centres share the name just now, so a craft's label lengthens when
+ * a namesake arrives whose id begins the same way.
  */
 export function vantageLabels(
   centres: readonly NamedCentre[],

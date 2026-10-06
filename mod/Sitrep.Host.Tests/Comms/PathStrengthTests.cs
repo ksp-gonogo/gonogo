@@ -165,7 +165,17 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(0.9, told!.Value.Strength);
             Assert.False(told.Value.Modelled);
             Assert.True(told.Value.OtherPath);
-            Assert.True(CentreSignal.For(Believed(), null, Heard(0.9, true, ("probe", "KSC")))!.Value.OtherPath);
+        }
+
+        /// <summary>A centre that believes in no path yet has none for the radio's to differ from: the radio's figure is the craft's own word and is told plainly.</summary>
+        [Fact]
+        public void ACentreThatBelievesInNoPathYetIsToldTheRadiosFigureAsMeasured()
+        {
+            var told = CentreSignal.For(Believed(), null, Heard(0.9, true, ("probe", "KSC")));
+
+            Assert.Equal(0.9, told!.Value.Strength);
+            Assert.False(told.Value.Modelled);
+            Assert.False(told.Value.OtherPath);
         }
 
         [Fact]

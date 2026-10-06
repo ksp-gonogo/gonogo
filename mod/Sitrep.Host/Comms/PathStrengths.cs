@@ -165,16 +165,17 @@ namespace Sitrep.Host.Comms
         /// <returns>What to tell the centre, or null when nothing has been heard and nothing can be worked out.</returns>
         public static Told? For(CommsPath believed, double? believedStrength, ContactRadio? heard)
         {
-            if (heard != null && (!heard.Connected || SamePath(believed, heard)))
+            if (heard != null && (!heard.Connected || believed.Hops.Count == 0 || SamePath(believed, heard)))
             {
-                // The craft's own word: of the path the centre believes in, or that there is no link at all.
+                // The craft's own word: of the path the centre believes in, or that there is no link at all,
+                // or all the centre has while it believes in no path for the radio's to differ from.
                 return new Told(heard.Strength, false, heard.Degrade);
             }
             if (believedStrength != null)
             {
                 return new Told(believedStrength.Value, true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
             }
-            // The radio reported on another path, or the centre believes in none, and nothing can be worked out.
+            // The radio reported on a path other than the believed one and nothing can be worked out.
             // A figure for another path is not this path's figure, so it is told as what it is.
             return heard == null ? (Told?)null : new Told(heard.Strength, false, heard.Degrade, otherPath: true);
         }

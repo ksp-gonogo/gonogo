@@ -154,7 +154,8 @@ public class CommsSignal
     /// not the centre's believed path and the comms backend can work nothing
     /// out for the believed one, the reported strength is still sent, with
     /// this set, so it is never read as the believed path's own. False
-    /// whenever <see cref="Modelled"/> is true.
+    /// whenever <see cref="Modelled"/> is true, and false for a centre that
+    /// believes in no path yet, which is sent the reported strength as it is.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool OtherPath { get; set; }
