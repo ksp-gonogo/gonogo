@@ -104,18 +104,18 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
 
     // `null` is the store's confirmed-absence tombstone, distinct from
     // `undefined`. `roster ?? []` collapses the two, so the control reverts to
-    // the never-arrived render, naming the stamped vantage by its raw id: no
+    // the never-arrived render, reading unknown rather than a raw id: no
     // distinction is implemented here at all.
     fixture.emitRoster(null);
     // The probe is what proves the tombstone genuinely reached the read: the control below renders no trace of which of the two it got.
     expect(screen.getByText("roster:absent")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: `Command centre vantage: ${KSC}` }),
+      screen.getByRole("button", { name: "Command centre vantage: Unknown" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Home")).toBeNull();
 
     fireEvent.click(
-      screen.getByRole("button", { name: `Command centre vantage: ${KSC}` }),
+      screen.getByRole("button", { name: "Command centre vantage: Unknown" }),
     );
     expect(screen.getByRole("status")).toHaveTextContent(
       "No command centres available",
@@ -158,7 +158,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     ]);
 
     const trigger = screen.getByRole("button", {
-      name: `Command centre vantage: ${KSC}`,
+      name: "Command centre vantage: Unknown",
     });
     fireEvent.click(trigger);
     expect(screen.getByRole("status")).toHaveTextContent(

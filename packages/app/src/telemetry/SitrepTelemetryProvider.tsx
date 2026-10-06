@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   type ReactNode,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -21,6 +22,7 @@ import {
   subscribeSitrepHostConfig,
   subscribeSitrepReconnectNonce,
 } from "./sitrepRuntime";
+import { VantageRestore } from "./VantageRestore";
 
 /**
  * Soft cap on `stream-data` frames delivered off the live Sitrep WebSocket
@@ -203,6 +205,9 @@ export function SitrepTelemetryProvider({
   const [generation, setGeneration] = useState(0);
   // The screen's own choice of command centre outlives the client that recorded it: a rebuilt client starts with none, and a game that has just started puts every connection at its default.
   const chosenVantage = useRef<string | undefined>(undefined);
+  // The mod refused the vantage on this connection as no active command centre: see `VantageRestore`.
+  const [vantageRefused, setVantageRefused] = useState(false);
+  const clearVantageRefused = useCallback(() => setVantageRefused(false), []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reconnectNonce has no direct use in the body, bumping it (the panel's Reconnect action, once the transport has given up) must force this effect to tear down and rebuild even when host/port are unchanged.
   useEffect(() => {
@@ -230,6 +235,7 @@ export function SitrepTelemetryProvider({
     let dropped = false;
     const unsubStatus = ownedTransport?.onStatusChange((status) => {
       reportSitrepTransportStatus(status);
+      if (status === "connected") setVantageRefused(false);
       if (status === "reconnecting") dropped = true;
       if (status === "connected" && dropped) {
         dropped = false;
@@ -249,6 +255,15 @@ export function SitrepTelemetryProvider({
       setTransport(null);
     };
   }, [enabled, resolvedHost, resolvedPort, injectedTransport, reconnectNonce]);
+
+  useEffect(() => {
+    if (!transport) return;
+    return transport.onMessage((message) => {
+      if (message.type === "error" && message.code === "unknownVantage") {
+        setVantageRefused(true);
+      }
+    });
+  }, [transport]);
 
   // A transport the host drives (a station's or a relayed pilot's) never drops when the game restarts, so the host says so and the store is rebuilt on its word.
   useEffect(() => {
@@ -285,6 +300,7 @@ export function SitrepTelemetryProvider({
           so the calendar is adopted before anything formats a duration with
           it. Renders nothing. */}
       <KspCalendarObserver />
+      <VantageRestore refused={vantageRefused} onRetry={clearVantageRefused} />
       {children}
     </TelemetryProvider>
   );

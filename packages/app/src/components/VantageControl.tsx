@@ -111,7 +111,7 @@ function VantageReadout() {
       ) : (
         <>
           <Text size="xs">
-            {entry ? vantageLabels(active).get(entry.id) : observed}
+            {entry ? vantageLabels(active).get(entry.id) : "Unknown"}
           </Text>
           {observed === homeId && <HomeBadge />}
         </>
@@ -171,8 +171,8 @@ function VantagePicker() {
   }));
 
   const selectedOption = options.find((o) => o.key === selected);
-  // Never empty: for a vantage the roster doesn't carry fall back to the raw id, and before any frame has said where this screen is, say so.
-  const selectedLabel = selectedOption?.label ?? selected ?? "Unknown";
+  // Never empty and never a raw id: a vantage the roster does not carry (a centre not seated yet) and a screen no frame has placed both read as unknown.
+  const selectedLabel = selectedOption?.label ?? "Unknown";
   const selectedIsHome = selected !== undefined && selected === homeId;
 
   const closeMenu = useCallback(() => {
