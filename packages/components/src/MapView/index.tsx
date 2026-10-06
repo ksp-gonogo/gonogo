@@ -29,7 +29,6 @@ import {
   CanvasContainer,
   DataCanvas,
   ImagingChip,
-  KeylineCanvas,
   MapBody,
   MapFrame,
   MapOuter,
@@ -197,7 +196,6 @@ function MapViewComponent({
     baseRef,
     overlayRef,
     dataRef,
-    keylineRef,
     persistentDataRef,
     predictionRef,
     vesselMarked,
@@ -394,7 +392,6 @@ function MapViewComponent({
                         impactLat !== undefined ? "" : undefined
                       }
                     />
-                    <KeylineCanvas ref={keylineRef} data-vessel-keyline="" />
                     <DataCanvas
                       ref={dataRef}
                       data-vessel-marker={vesselMarked ? "" : undefined}

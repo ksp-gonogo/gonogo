@@ -703,7 +703,6 @@ export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
 export {
   type PaintVesselMarkOptions,
-  paintVesselKeyline,
   paintVesselMark,
   paintVesselPositions,
   VESSEL_MARK,

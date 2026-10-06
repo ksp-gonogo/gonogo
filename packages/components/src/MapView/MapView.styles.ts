@@ -99,8 +99,6 @@ export const CanvasContainer = styled.div`
   flex-shrink: 0;
   border-radius: var(--radius-regular);
   overflow: hidden;
-  /* The keyline layer blends with the canvases under it and with nothing outside this box. */
-  isolation: isolate;
   cursor: grab;
   touch-action: none;
 
@@ -120,15 +118,6 @@ const CanvasBase = styled.canvas`
 export const BaseCanvas = CanvasBase;
 export const OverlayCanvas = CanvasBase;
 export const DataCanvas = CanvasBase;
-/**
- * The vessel marks' keylines, painted white under the marks' own layer and
- * blended by difference, so each keyline is the inverse of the map beneath it.
- * A layer of its own because a canvas cannot blend with the canvases under it
- * from inside its own pixels.
- */
-export const KeylineCanvas = styled(CanvasBase)`
-  mix-blend-mode: difference;
-`;
 export const PersistentDataCanvas = CanvasBase;
 export const PredictionCanvas = CanvasBase;
 

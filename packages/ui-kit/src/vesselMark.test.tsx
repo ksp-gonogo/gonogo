@@ -111,35 +111,70 @@ describe("the vessel mark's keyline", () => {
         <VesselMarkSvg x={0} y={0} r={10} state={state} keyline={keyline} />
       </svg>,
     );
-    return container.querySelector("[data-vessel-keyline]");
+    return Array.from(container.querySelectorAll("[data-vessel-keyline]"));
+  }
+
+  /** How far a ring's stroke shows beyond the mark's edge, outline included. */
+  function beyond(ring: Element, state: "current" | "held" | "modelled") {
+    const outline = state === "current" ? 0 : 10 * VESSEL_MARK.outlineWidth;
+    return (Number(ring.getAttribute("stroke-width")) - outline) / 2;
   }
 
   it("draws none unless asked, so a mark on a flat ground is what it was", () => {
     for (const state of ["current", "held", "modelled"] as const) {
-      expect(keylined(state, false)).toBeNull();
+      expect(keylined(state, false)).toHaveLength(0);
     }
   });
 
-  it("draws a white outline blended by difference under the mark, so it is the inverse of the ground", () => {
+  it("draws a light ring and a dark ring under the mark, the dark one against the mark's edge", () => {
     for (const state of ["current", "held", "modelled"] as const) {
-      const keyline = keylined(state, true);
-      expect(keyline).toHaveAttribute("stroke", "rgb(255 255 255)");
-      expect(keyline).toHaveAttribute("fill", "none");
-      expect(keyline).toHaveStyle({ mixBlendMode: "difference" });
-      // Under the mark: the first thing drawn in the group.
-      expect(keyline?.parentElement?.firstElementChild).toBe(keyline);
+      const [light, dark] = keylined(state, true);
+      expect(light).toHaveAttribute("data-vessel-keyline", "light");
+      expect(dark).toHaveAttribute("data-vessel-keyline", "dark");
+      // Under the mark, the light ring first so the dark one covers its inside.
+      expect(light.parentElement?.firstElementChild).toBe(light);
+      expect(light.nextElementSibling).toBe(dark);
+      expect(beyond(dark, state)).toBeCloseTo(10 * VESSEL_MARK.keylineWidth, 6);
+      expect(beyond(light, state)).toBeCloseTo(
+        20 * VESSEL_MARK.keylineWidth,
+        6,
+      );
+      // Plain paint: nothing here leans on a blend an engine might not honour.
+      expect(light).not.toHaveAttribute("style");
+      expect(dark).not.toHaveAttribute("style");
     }
   });
 
-  it("shows the same width of keyline beyond a current circle as beyond an outlined shape", () => {
-    const beyond = (state: "current" | "held") => {
-      const stroke = Number(
-        keylined(state, true)?.getAttribute("stroke-width"),
-      );
-      const outline = state === "current" ? 0 : 10 * VESSEL_MARK.outlineWidth;
-      return (stroke - outline) / 2;
+  it("gives the mark's edge three to one against the dark ring, and one ring three to one against any ground", () => {
+    const luminance = (rgb: number[]) => {
+      const [r, g, b] = rgb.map((v) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
     };
-    expect(beyond("current")).toBeCloseTo(10 * VESSEL_MARK.keylineWidth, 6);
-    expect(beyond("held")).toBeCloseTo(10 * VESSEL_MARK.keylineWidth, 6);
+    const contrast = (a: number[], b: number[]) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((p, q) => q - p);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    const rgb = (ring: Element) =>
+      (ring.getAttribute("stroke") ?? "").match(/\d+/g)?.map(Number) ?? [];
+    const [light, dark] = keylined("current", true).map(rgb);
+    // The vessel's green, the held amber, the modelled blue and the lost red, as the tokens resolve them.
+    for (const fill of [
+      [0, 255, 136],
+      [255, 140, 0],
+      [119, 204, 255],
+      [255, 77, 77],
+    ]) {
+      expect(contrast(fill, dark)).toBeGreaterThanOrEqual(3);
+    }
+    // Every grey from black to white stands for every ground's lightness.
+    for (let v = 0; v <= 255; v += 5) {
+      const ground = [v, v, v];
+      expect(
+        Math.max(contrast(light, ground), contrast(dark, ground)),
+      ).toBeGreaterThanOrEqual(3);
+    }
   });
 });

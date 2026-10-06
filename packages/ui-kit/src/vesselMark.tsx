@@ -52,11 +52,12 @@ export const VESSEL_MARK = {
   triangle: TRIANGLE,
   outlineWidth: OUTLINE_WIDTH,
   /**
-   * How far a keyline shows beyond the mark's own edge. Drawn in white and
-   * blended by difference, white inverts whatever is beneath it, so the mark
-   * has a border on a picture where no one hue stands clear of every ground.
+   * The width of each of the keyline's two rings. A dark ring hugs the mark and
+   * a light ring hugs the dark one, so the mark's edge always meets the dark
+   * ring, whatever it is drawn on, and one ring or the other stands clear of
+   * any ground: the light one on a dark ground, the dark one on a light ground.
    */
-  keylineWidth: 0.25,
+  keylineWidth: 0.2,
   /**
    * How far from its centre the largest shape reaches, outline included: its
    * farthest corner and half the outline round it. Two marks nearer than twice
@@ -93,16 +94,20 @@ function cornersOf(
   return unit.map(([px, py]) => [x + px * r, y + py * r]);
 }
 
-/**
- * White, and it has to be: difference against white is the inverse of the
- * ground, and against any other colour it is not.
- */
-const KEYLINE = "rgb(255 255 255)";
+/** The keyline's two rings, outermost first, which is the order they are drawn in: each later one covers the inside of the one before. */
+const KEYLINE_RINGS = [
+  { ring: "light", color: "rgb(250 250 250)", widths: 2 },
+  { ring: "dark", color: "rgb(5 5 5)", widths: 1 },
+] as const;
 
-/** The stroke that shows `keylineWidth` of keyline beyond a mark's edge, half of any stroke lying inside the shape and under the mark. */
-function keylineStroke(state: VesselMarkState, r: number): number {
+/** The stroke that reaches `widths` ring widths beyond a mark's edge, half of any stroke lying inside the shape and under what is drawn over it. */
+function keylineStroke(
+  state: VesselMarkState,
+  r: number,
+  widths: number,
+): number {
   const outline = state === "current" ? 0 : VESSEL_MARK.outlineWidth;
-  return r * (outline + 2 * VESSEL_MARK.keylineWidth);
+  return r * (outline + 2 * widths * VESSEL_MARK.keylineWidth);
 }
 
 /**
@@ -117,9 +122,10 @@ export interface VesselMarkSvgProps {
   r: number;
   state?: VesselMarkState;
   /**
-   * Draw a thin keyline round the mark in the inverse of whatever is beneath
-   * it. For a mark that sits on a picture (a map, an image) rather than a flat
-   * ground; on a flat ground the mark's own hues already stand clear.
+   * Draw the keyline round the mark: a dark ring and a light ring, so the mark
+   * has an edge on any ground. For a mark that sits on a picture (a map, an
+   * image) rather than a flat ground; on a flat ground the mark's own hues
+   * already stand clear.
    */
   keyline?: boolean;
 }
@@ -138,14 +144,6 @@ export function VesselMarkSvg({
   state = "current",
   keyline = false,
 }: Readonly<VesselMarkSvgProps>) {
-  const border = {
-    "data-vessel-keyline": "",
-    fill: "none",
-    stroke: KEYLINE,
-    strokeWidth: keylineStroke(state, r),
-    strokeLinejoin: "round" as const,
-    style: { mixBlendMode: "difference" as const },
-  };
   const corners =
     state === "current"
       ? ""
@@ -155,11 +153,20 @@ export function VesselMarkSvg({
   return (
     <g data-vessel-mark={state} transform={`translate(${x} ${y})`} {...HIDDEN}>
       {keyline &&
-        (state === "current" ? (
-          <circle r={r} {...border} />
-        ) : (
-          <polygon points={corners} {...border} />
-        ))}
+        KEYLINE_RINGS.map(({ ring, color, widths }) => {
+          const border = {
+            "data-vessel-keyline": ring,
+            fill: "none",
+            stroke: color,
+            strokeWidth: keylineStroke(state, r, widths),
+            strokeLinejoin: "round" as const,
+          };
+          return state === "current" ? (
+            <circle key={ring} r={r} {...border} />
+          ) : (
+            <polygon key={ring} points={corners} {...border} />
+          );
+        })}
       {state === "current" ? (
         <circle r={r} fill={VESSEL_MARK.color} />
       ) : (
@@ -205,28 +212,22 @@ function traceMark(
   ctx.closePath();
 }
 
-/**
- * Paints a mark's keyline alone, in white, on whatever compositing the context
- * or its canvas is set to. A canvas stacked over the picture it marks cannot
- * blend with it from inside its own pixels, so such a stack paints its
- * keylines on a layer of their own that carries `mix-blend-mode: difference`,
- * under the layer the marks are painted on.
- *
- * @category Unit
- */
-export function paintVesselKeyline(
+/** Paints the keyline's two rings under where the mark is about to be painted. */
+function paintKeyline(
   ctx: CanvasRenderingContext2D,
   state: VesselMarkState,
   x: number,
   y: number,
-  radius = 4,
+  radius: number,
 ): void {
   ctx.save();
-  traceMark(ctx, state, x, y, radius);
-  ctx.strokeStyle = KEYLINE;
-  ctx.lineWidth = keylineStroke(state, radius);
   ctx.lineJoin = "round";
-  ctx.stroke();
+  for (const { color, widths } of KEYLINE_RINGS) {
+    traceMark(ctx, state, x, y, radius);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = keylineStroke(state, radius, widths);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -236,11 +237,7 @@ export function paintVesselKeyline(
  * @category Unit
  */
 export interface PaintVesselMarkOptions {
-  /**
-   * Draw a thin keyline round the mark in the inverse of what this same canvas
-   * already holds beneath it. For a mark painted onto its own picture; a mark
-   * on a layer above its picture takes {@link paintVesselKeyline} instead.
-   */
+  /** Draw the keyline round the mark, a dark ring and a light ring, so it has an edge on any ground: see `VesselMarkSvgProps.keyline`. */
   keyline?: boolean;
 }
 
@@ -260,12 +257,7 @@ export function paintVesselMark(
   radius = 4,
   { keyline = false }: PaintVesselMarkOptions = {},
 ): void {
-  if (keyline) {
-    ctx.save();
-    ctx.globalCompositeOperation = "difference";
-    paintVesselKeyline(ctx, state, x, y, radius);
-    ctx.restore();
-  }
+  if (keyline) paintKeyline(ctx, state, x, y, radius);
   const green = resolvedColor(canvas, VESSEL_MARK.cssVar, VESSEL_MARK.fallback);
   ctx.save();
   traceMark(ctx, state, x, y, radius);

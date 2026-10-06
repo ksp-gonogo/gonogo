@@ -1,7 +1,7 @@
 import { getAugmentsForSlot } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { paintVesselKeyline, paintVesselPositions } from "@ksp-gonogo/ui-kit";
+import { paintVesselPositions } from "@ksp-gonogo/ui-kit";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";
 import { type Camera, WORLD_H, WORLD_W, worldToScreen } from "./camera";
@@ -51,8 +51,8 @@ interface MapPaintingInputs {
 }
 
 /**
- * Keeps the six stacked map canvases painted: base surface, overlay, the
- * flown trail, the forward tracks, the vessel marker's keyline and the marker. Returns the refs to
+ * Keeps the five stacked map canvases painted: base surface, overlay, the
+ * flown trail, the forward tracks and the vessel marker. Returns the refs to
  * mount them on, and whether the vessel marker is drawn.
  */
 export function useMapPainting({
@@ -81,7 +81,6 @@ export function useMapPainting({
   const baseRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const dataRef = useRef<HTMLCanvasElement>(null);
-  const keylineRef = useRef<HTMLCanvasElement>(null);
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
@@ -236,11 +235,6 @@ export function useMapPainting({
     if (!ctx) return;
 
     ctx.clearRect(0, 0, w, h);
-    // The map under a mark is ocean, land, desert or ice, so each mark takes a keyline on the layer that inverts what is beneath it.
-    const keylines = keylineRef.current
-      ? sizedContext(keylineRef.current, w, h)
-      : null;
-    keylines?.clearRect(0, 0, w, h);
 
     if (!vesselMarked || lat === undefined || lon === undefined) return;
     const { x: wx, y: wy } = adjustedMap(
@@ -251,9 +245,6 @@ export function useMapPainting({
     );
     const { x, y } = worldToScreen(wx, wy, camera, w, h);
     if (modelledPosition === null && !positionHeld) {
-      if (keylines) {
-        paintVesselKeyline(keylines, "current", x, y, MAP_MARK.radius);
-      }
       paintVesselMarker(canvas, ctx, x, y);
       return;
     }
@@ -272,23 +263,12 @@ export function useMapPainting({
       modelled === undefined
         ? undefined
         : worldToScreen(modelled.x, modelled.y, camera, w, h);
-    if (keylines) {
-      paintVesselKeyline(keylines, "held", x, y, MAP_MARK.radius);
-      if (modelledAt) {
-        paintVesselKeyline(
-          keylines,
-          "modelled",
-          modelledAt.x,
-          modelledAt.y,
-          MAP_MARK.radius,
-        );
-      }
-    }
     paintVesselPositions(
       canvas,
       ctx,
       { held: { x, y }, modelled: modelledAt },
       MAP_MARK.radius,
+      { keyline: true },
     );
   }, [
     containerSize,
@@ -305,7 +285,6 @@ export function useMapPainting({
     baseRef,
     overlayRef,
     dataRef,
-    keylineRef,
     persistentDataRef,
     predictionRef,
     vesselMarked,

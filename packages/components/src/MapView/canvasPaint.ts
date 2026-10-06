@@ -371,7 +371,10 @@ export function paintVesselMarker(
   y: number,
 ): void {
   paintCrosshair(ctx, x, y, false);
-  paintVesselMark(canvas, ctx, "current", x, y, MAP_MARK.radius);
+  // A map is ocean, land, desert and ice, so the mark takes its keyline here.
+  paintVesselMark(canvas, ctx, "current", x, y, MAP_MARK.radius, {
+    keyline: true,
+  });
 }
 
 /** The crosshair through a position: solid for a current one, dashed where it is held. */
