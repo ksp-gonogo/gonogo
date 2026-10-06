@@ -217,6 +217,55 @@ export const GroupThread: Story = {
   },
 };
 
+/** One group send per status: everyone has it, the craft is still on the way, the craft's wait ran out, and nothing left at all. */
+const STATUS_SEND = (body: string, sentAt: number): Held => ({
+  from: KSC,
+  to: [KSC, ARES, WOOMERA],
+  authorName: "Kennedy Flight",
+  authorSeat: "mission-control",
+  body,
+  sentAt,
+  separationSeconds: LIGHT_TIME,
+  separations: { [WOOMERA]: 12 },
+  group: "kennedy-ares-woomera-status",
+});
+
+/**
+ * A group's sends at each status. The range is 12 s out and answers each; the
+ * craft is 240 s out, so the second is still crossing to it and the third is
+ * past its wait without an answer. The last never left: there was no path.
+ */
+export const GroupSendStatus: Story = {
+  name: "Group sends, each status",
+  args: {
+    ...KENNEDY,
+    sent: [
+      {
+        ...STATUS_SEND("Ares, Woomera, Kennedy. Handover complete.", -1500),
+        acks: [
+          { from: WOOMERA, stationKey: "woomera-1", at: -1488 },
+          { from: ARES, stationKey: "pilot-1", at: -1260 },
+        ],
+      },
+      {
+        ...STATUS_SEND("Ares, Woomera, Kennedy. Stand by for the burn.", -900),
+        acks: [{ from: WOOMERA, stationKey: "woomera-1", at: -888 }],
+      },
+      {
+        ...STATUS_SEND("Ares, Woomera, Kennedy. Burn in two minutes.", -120),
+        acks: [{ from: WOOMERA, stationKey: "woomera-1", at: -108 }],
+      },
+      {
+        ...STATUS_SEND("Ares, Woomera, Kennedy. Say again.", -60),
+        separationSeconds: null,
+        separations: {},
+        neverLeft: true,
+      },
+    ],
+    presses: [{ text: "Ares 4, Woomera Range", selector: ROW }],
+  },
+};
+
 /** The link is confirmed lost: the log ends at a marker saying where knowledge stops. */
 export const NoSignal: Story = {
   name: "No signal",

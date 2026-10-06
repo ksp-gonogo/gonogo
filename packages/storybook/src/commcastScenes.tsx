@@ -58,9 +58,11 @@ export interface Held {
   attempts?: number;
   /** The author-to-recipient separation frozen at send. `null` is no path. */
   separationSeconds: number | null;
+  /** Per-recipient separations when they differ; a recipient not named takes `separationSeconds`. */
+  separations?: Record<string, number | null>;
   /** Acknowledgements this log has received, each at the recipient's own instant. */
   acks?: { from: string; stationKey: string; at: number }[];
-  /** An outbound message that was never transmitted. */
+  /** An outbound message that was never transmitted to anyone. */
   neverLeft?: boolean;
   /** The group it is addressed to. Defaults to one group per set of ends. */
   group?: string;
@@ -154,15 +156,28 @@ function seededLog(props: CommcastSceneProps): CommcastLog {
   log.replaceForTesting({
     outbox: (props.sent ?? []).map((held) => {
       const msg = toMessage(held);
+      const separationTo = (id: string) =>
+        held.separations?.[id] !== undefined
+          ? held.separations[id]
+          : held.separationSeconds;
       const acks: CommsAck[] = (held.acks ?? []).map((a) => ({
         messageId: msg.id,
         from: a.from,
         stationKey: a.stationKey,
         seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
         atUt: VIEW_UT + a.at,
-        arrivedUt: VIEW_UT + a.at + (held.separationSeconds ?? 0),
+        arrivedUt: VIEW_UT + a.at + (separationTo(a.from) ?? 0),
       }));
-      return { msg, acks, neverLeft: held.neverLeft === true };
+      const deliveries = msg.to
+        .filter((id) => id !== msg.from)
+        .map((to) => ({
+          to,
+          separationSeconds: separationTo(to) ?? null,
+          lastSentUt: msg.lastSentUt,
+          attempts: msg.attempts,
+          neverLeft: held.neverLeft === true,
+        }));
+      return { msg, acks, deliveries };
     }),
     inbox: (props.received ?? []).map(toMessage),
     pending: (props.crossing ?? []).map(toMessage),
