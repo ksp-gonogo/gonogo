@@ -229,14 +229,6 @@ namespace Sitrep.Host
                 TrajectoryKind = TrajectoryKind.Unspecified,
             };
 
-        private static Dictionary<string, object?> ToWire(PropagationHorizon horizon) =>
-            new Dictionary<string, object?>
-            {
-                ["kind"] = (int)horizon.Kind,
-                ["trajectoryKind"] = (int)horizon.TrajectoryKind,
-                ["untilUt"] = horizon.UntilUt,
-            };
-
         private static Dictionary<string, object?> BuildBody(
             IDictionary<string, object?> raw, int fallbackIndex, double sampleUt)
         {
@@ -257,7 +249,7 @@ namespace Sitrep.Host
                 // root star has no orbit and gets the horizon anyway: a payload where
                 // the field appears on some bodies and not others reads as a producer
                 // that forgot on the rest.
-                ["horizon"] = ToWire(BodyHorizon(index, sampleUt)),
+                ["horizon"] = VesselViewProvider.ToWire(BodyHorizon(index, sampleUt)),
                 // Almanac enrichment field set.
                 // The four the GAME is the authority for ride the wire, because
                 // the client rebuilding them off gravParameter cost more than

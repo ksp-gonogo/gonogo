@@ -216,6 +216,53 @@ public class PropagationHorizon
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? UntilUt { get; set; }
+
+    /// <summary>
+    /// How far the published conic may be from the path, at most, ahead of the
+    /// sample instant: a step function of knots in ascending
+    /// <see cref="PropagationDepartureKnot.UntilUt"/>. A reader at some UT takes
+    /// the first knot whose <c>UntilUt</c> is at or after it.
+    ///
+    /// <para>Null when the provider stated no error, in which case no interval is
+    /// drawn about the conic. It is never an empty list and never zeros standing in
+    /// for "not stated". Set only when <see cref="Kind"/> is
+    /// <see cref="PropagationHorizonKind.Until"/>, and the last knot's
+    /// <c>UntilUt</c> then equals <see cref="UntilUt"/>.</para>
+    /// <internal>
+    /// Filled by the elected provider through <see cref="IPropagationDeparture"/>,
+    /// from the same integration that sets the reach, so the figure and the refusal
+    /// share one source. Written by hand in VesselViewProvider.ToWire: a field not
+    /// added there never reaches a client.
+    /// </internal>
+    /// </summary>
+    public List<PropagationDepartureKnot>? Departure { get; set; }
+}
+
+/// <summary>
+/// The largest distance the published conic may be from the path anywhere between
+/// the sample instant and <see cref="UntilUt"/>.
+///
+/// <para>Each knot is a running maximum, so reading the list as a step function is
+/// a cap at every instant even though the drift itself is not monotonic.</para>
+/// </summary>
+/// <category>Orbits and trajectories</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PropagationDepartureKnot
+{
+    /// <summary>The last UT this knot covers.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double UntilUt { get; set; }
+
+    /// <summary>The largest position drift up to <see cref="UntilUt"/>.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double Metres { get; set; }
+
+    /// <summary>The largest velocity drift up to <see cref="UntilUt"/>.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double MetresPerSecond { get; set; }
 }
 
 /// <summary>

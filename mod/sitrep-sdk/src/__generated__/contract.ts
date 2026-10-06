@@ -9874,6 +9874,37 @@ export interface PropagationHorizon
 	* never a sentinel standing in for "forever".
 	*/
 	untilUt?: Value<"ut"> | null;
+	/**
+	* How far the published conic may be from the path, at most, ahead of the
+	* sample instant: a step function of knots in ascending
+	* `PropagationDepartureKnot.untilUt`. A reader at some UT takes the first knot
+	* whose `UntilUt` is at or after it.
+	*
+	* Null when the provider stated no error, in which case no interval is drawn
+	* about the conic. It is never an empty list and never zeros standing in for
+	* "not stated". Set only when `PropagationHorizon.kind` is
+	* `PropagationHorizonKind.Until`, and the last knot's `UntilUt` then equals
+	* `PropagationHorizon.untilUt`.
+	*/
+	departure?: PropagationDepartureKnot[] | null;
+}
+/**
+* The largest distance the published conic may be from the path anywhere
+* between the sample instant and `PropagationDepartureKnot.untilUt`.
+*
+* Each knot is a running maximum, so reading the list as a step function is a
+* cap at every instant even though the drift itself is not monotonic.
+*
+* @category Orbits and trajectories
+*/
+export interface PropagationDepartureKnot
+{
+	/** The last UT this knot covers. */
+	untilUt: Value<"ut">;
+	/** The largest position drift up to `PropagationDepartureKnot.untilUt`. */
+	metres: Value<"m">;
+	/** The largest velocity drift up to `PropagationDepartureKnot.untilUt`. */
+	metresPerSecond: Value<"m/s">;
 }
 /**
 * How far an element set may be carried forward.

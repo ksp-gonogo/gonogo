@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.15.0
+  version: 29.16.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -16370,6 +16370,31 @@ components:
             them. What an OPERATIONAL prediction wants: a reacquisition sweep quoting a
             UT read off arc nobody stands behind is a confident figure with nothing
             under it.
+    PropagationDepartureKnot:
+      type: object
+      description: |-
+        The largest distance the published conic may be from the path anywhere
+        between the sample instant and `PropagationDepartureKnot.untilUt`.
+
+        Each knot is a running maximum, so reading the list as a step function is a
+        cap at every instant even though the drift itself is not monotonic.
+      required:
+        - untilUt
+        - metres
+        - metresPerSecond
+      properties:
+        untilUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The last UT this knot covers.
+        metres:
+          type: number
+          x-sitrep-unit: m
+          description: The largest position drift up to `PropagationDepartureKnot.untilUt`.
+        metresPerSecond:
+          type: number
+          x-sitrep-unit: m/s
+          description: The largest velocity drift up to `PropagationDepartureKnot.untilUt`.
     PropagationHorizon:
       type: object
       description: |-
@@ -16418,6 +16443,23 @@ components:
             The last UT these elements are authoritative for. Set if and only if
             `PropagationHorizon.kind` is `PropagationHorizonKind.Until`; null otherwise,
             never a sentinel standing in for "forever".
+        departure:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/PropagationDepartureKnot"
+          description: |-
+            How far the published conic may be from the path, at most, ahead of the
+            sample instant: a step function of knots in ascending
+            `PropagationDepartureKnot.untilUt`. A reader at some UT takes the first knot
+            whose `UntilUt` is at or after it.
+
+            Null when the provider stated no error, in which case no interval is drawn
+            about the conic. It is never an empty list and never zeros standing in for
+            "not stated". Set only when `PropagationHorizon.kind` is
+            `PropagationHorizonKind.Until`, and the last knot's `UntilUt` then equals
+            `PropagationHorizon.untilUt`.
     PropagationHorizonKind:
       type: integer
       description: |-

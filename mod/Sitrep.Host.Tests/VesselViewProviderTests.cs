@@ -320,6 +320,64 @@ namespace Sitrep.Host.Tests
             Assert.Contains("\"sma\":700000", json);
         }
 
+        /// <summary>
+        /// The horizon reaches a client through a hand-written dictionary, so a field
+        /// added to the contract class and not to that dictionary is dropped without
+        /// a sound and the client sees null for ever.
+        /// </summary>
+        [Fact]
+        public void TheOrbitWireCarriesTheHorizonsDepartureKnots()
+        {
+            VesselViewProvider.SetHorizonSource((_, _) => new PropagationHorizon
+            {
+                Kind = PropagationHorizonKind.Until,
+                TrajectoryKind = TrajectoryKind.Integrated,
+                UntilUt = 500.0,
+                Departure = new List<PropagationDepartureKnot>
+                {
+                    new PropagationDepartureKnot { UntilUt = 300.0, Metres = 12.5, MetresPerSecond = 0.25 },
+                    new PropagationDepartureKnot { UntilUt = 500.0, Metres = 40.0, MetresPerSecond = 0.5 },
+                },
+            });
+            try
+            {
+                var snapshot = SnapshotWith(
+                    identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                    orbit: RawOrbit(0.01, null, null),
+                    physics: new Dictionary<string, object?> { ["mode"] = "OnRails" },
+                    bodies: KerbinAndMun());
+
+                var wire = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildOrbitWire(snapshot));
+                var horizon = Assert.IsType<Dictionary<string, object?>>(wire["horizon"]);
+                var knots = Assert.IsType<List<Dictionary<string, object?>>>(horizon["departure"]);
+
+                Assert.Equal(2, knots.Count);
+                Assert.Equal(300.0, knots[0]["untilUt"]);
+                Assert.Equal(12.5, knots[0]["metres"]);
+                Assert.Equal(0.5, knots[1]["metresPerSecond"]);
+            }
+            finally
+            {
+                VesselViewProvider.SetHorizonSource(null);
+            }
+        }
+
+        [Fact]
+        public void TheOrbitWireWritesNullDepartureWhenNoneIsStated()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: RawOrbit(0.01, null, null),
+                physics: new Dictionary<string, object?> { ["mode"] = "OnRails" },
+                bodies: KerbinAndMun());
+
+            var wire = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildOrbitWire(snapshot));
+            var horizon = Assert.IsType<Dictionary<string, object?>>(wire["horizon"]);
+
+            Assert.True(horizon.ContainsKey("departure"));
+            Assert.Null(horizon["departure"]);
+        }
+
         [Fact]
         public void BuildOrbitMapsThePatchChainWithBodyNameStringsAndTranslatesImpactToCollision()
         {

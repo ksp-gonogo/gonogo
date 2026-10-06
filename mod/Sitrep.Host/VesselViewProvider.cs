@@ -1648,11 +1648,19 @@ namespace Sitrep.Host
             ["bodyIndex"] = encounter.BodyIndex,
         };
 
-        private static Dictionary<string, object?> ToWire(PropagationHorizon horizon) => new Dictionary<string, object?>
+        internal static Dictionary<string, object?> ToWire(PropagationHorizon horizon) => new Dictionary<string, object?>
         {
             ["kind"] = (int)horizon.Kind,
             ["trajectoryKind"] = (int)horizon.TrajectoryKind,
             ["untilUt"] = horizon.UntilUt,
+            ["departure"] = horizon.Departure?.Select(k => ToWire(k)).ToList(),
+        };
+
+        private static Dictionary<string, object?> ToWire(PropagationDepartureKnot knot) => new Dictionary<string, object?>
+        {
+            ["untilUt"] = knot.UntilUt,
+            ["metres"] = knot.Metres,
+            ["metresPerSecond"] = knot.MetresPerSecond,
         };
 
         private static Dictionary<string, object?> ToWire(OrbitPatch patch) => new Dictionary<string, object?>

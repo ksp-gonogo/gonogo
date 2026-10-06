@@ -182,7 +182,29 @@ namespace Sitrep.Host.Propagation
                     ? PropagationHorizonKind.Unspecified
                     : PropagationHorizonKind.Until,
                 UntilUt = untilUt,
+                Departure = untilUt != null && provider is IPropagationDeparture departure
+                    ? DepartureOf(departure, target, sampleUt, untilUt.Value)
+                    : null,
             };
+        }
+
+        /// <summary>
+        /// The provider's envelope as a list the horizon can carry, or null when it
+        /// states none. A fault in the provider costs the figure and nothing else, so
+        /// the reach it already stated still goes out.
+        /// </summary>
+        private static List<PropagationDepartureKnot>? DepartureOf(
+            IPropagationDeparture provider, PropagationTarget target, double sampleUt, double untilUt)
+        {
+            try
+            {
+                var knots = provider.DepartureFor(target, sampleUt, untilUt);
+                return knots == null || knots.Count == 0 ? null : new List<PropagationDepartureKnot>(knots);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>

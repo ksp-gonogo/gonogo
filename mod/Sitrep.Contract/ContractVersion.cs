@@ -2407,8 +2407,15 @@ namespace Sitrep.Contract
         /// process, and had no request the protocol promised to answer. Additive:
         /// a client that knows none of the three drops a frame type it does not
         /// know, and never sends a ping.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 15 -&gt; 16:</b> <see cref="PropagationHorizon"/>
+        /// gains <see cref="PropagationHorizon.Departure"/>, a list of
+        /// <see cref="PropagationDepartureKnot"/>, and the
+        /// <see cref="IPropagationDeparture"/> companion a provider implements to fill
+        /// it. Nullable and opt-in: a provider that does not implement the companion
+        /// states no error. Additive on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 15;
+        public const int Minor = 16;
     }
 }

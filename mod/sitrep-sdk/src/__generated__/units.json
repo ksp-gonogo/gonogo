@@ -965,6 +965,11 @@
       "nonce": "id",
       "type": "id"
     },
+    "PropagationDepartureKnot": {
+      "metres": "m",
+      "metresPerSecond": "m/s",
+      "untilUt": "ut"
+    },
     "PropagationHorizon": {
       "kind": "enum",
       "trajectoryKind": "enum",
@@ -2390,6 +2395,9 @@
     },
     "PendingUplinkQueue": {
       "pending": "PendingUplink[]"
+    },
+    "PropagationHorizon": {
+      "departure": "PropagationDepartureKnot[]"
     },
     "PropagationTarget": {
       "osculating": "OrbitElements"

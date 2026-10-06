@@ -126,6 +126,11 @@
     "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
     "verdict": "coincidence"
   },
+  "PropagationDepartureKnot.metres": {
+    "rates": ["metresPerSecond"],
+    "reason": "Not a position and its rate. Both fields are running maxima of drift between the conic and the integrated path, stated by the provider as a pair of caps; the second is not the derivative of the first, and neither is carried forward from the other.",
+    "verdict": "coincidence"
+  },
   "ServoEntry.currentAngle": {
     "rates": ["currentRPM", "rpmLimit"],
     "reason": "An RPM is an angular rate and this angle is what it turns, so the pairing is real. It is also a COMMANDED quantity: a servo travels toward `targetAngle` and stops, so integrating `currentAngle` past its target invents motion that ended.",

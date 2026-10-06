@@ -118,6 +118,7 @@ public static class RtConfig
                 // nested payload records
                 typeof(OrbitEncounter),
                 typeof(PropagationHorizon),
+                typeof(PropagationDepartureKnot),
                 typeof(OrbitPatch),
                 typeof(ManeuverNode),
                 typeof(ControlFrame),

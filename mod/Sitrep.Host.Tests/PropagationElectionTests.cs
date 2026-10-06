@@ -231,6 +231,133 @@ namespace Sitrep.Host.Tests
                 double toUt) => null;
         }
 
+        private sealed class DepartingProvider : IPropagationProvider, IIntegratedTrajectorySource, IPropagationDeparture
+        {
+            public IReadOnlyList<PropagationDepartureKnot>? Knots { get; set; }
+
+            public bool Throws { get; set; }
+
+            public string ProviderId => "a-departing-backend";
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut) =>
+                new StateVector(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+
+            public void SolveMany(
+                PropagationTarget target, PropagationFrame frame, IReadOnlyList<double> uts, StateVector[] into)
+            {
+            }
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) => 1000.0;
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) =>
+                toUt - fromUt <= 600.0;
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => null;
+
+            public IReadOnlyList<PropagationDepartureKnot>? DepartureFor(
+                PropagationTarget target, double fromUt, double untilUt) =>
+                Throws ? throw new InvalidOperationException("no run") : Knots;
+        }
+
+        private static readonly PropagationTarget DepartingCraft = PropagationTarget.Vessel(
+            "vessel:a", 1, new OrbitElements(700_000.0, 0.01, 0.1, 1.0, 2.0, 3.0, 100.0, 3.5316e12));
+
+        private static Kernel ElectingDeparting(DepartingProvider provider) =>
+            Resolved(k => k.RegisterProvider(new ProviderRegistration
+            {
+                Capability = PropagationElection.CapabilityId,
+                Id = provider.ProviderId,
+                Priority = 100.0,
+                Factory = _ => provider,
+            }));
+
+        [Fact]
+        public void AnIntegratingProviderThatStatesItsDepartureHasItOnTheHorizon()
+        {
+            var knots = new[]
+            {
+                new PropagationDepartureKnot { UntilUt = 400.0, Metres = 10.0, MetresPerSecond = 0.1 },
+                new PropagationDepartureKnot { UntilUt = 700.0, Metres = 40.0, MetresPerSecond = 0.4 },
+            };
+            var kernel = ElectingDeparting(new DepartingProvider { Knots = knots });
+
+            var horizon = PropagationElection.HorizonFor(kernel, DepartingCraft, 100.0);
+
+            Assert.Equal(PropagationHorizonKind.Until, horizon.Kind);
+            Assert.NotNull(horizon.Departure);
+            Assert.Equal(2, horizon.Departure!.Count);
+            Assert.Equal(40.0, horizon.Departure[1].Metres);
+        }
+
+        [Fact]
+        public void AWellFormedEnvelopePassesTheConformanceAssertion()
+        {
+            var provider = new DepartingProvider
+            {
+                Knots = new[]
+                {
+                    new PropagationDepartureKnot { UntilUt = 400.0, Metres = 10.0, MetresPerSecond = 0.1 },
+                    new PropagationDepartureKnot { UntilUt = 700.0, Metres = 40.0, MetresPerSecond = 0.4 },
+                },
+            };
+
+            Sitrep.Contract.TestSupport.PropagationDepartureConformance
+                .AssertPropagationDepartureContract(provider, DepartingCraft, 100.0, 700.0);
+        }
+
+        [Fact]
+        public void AProviderThatStatesNoDepartureLeavesItNullNeverEmpty()
+        {
+            Assert.Null(PropagationElection.HorizonFor(
+                ElectingDeparting(new DepartingProvider { Knots = null }), DepartingCraft, 100.0).Departure);
+            Assert.Null(PropagationElection.HorizonFor(
+                ElectingDeparting(new DepartingProvider { Knots = new PropagationDepartureKnot[0] }),
+                DepartingCraft,
+                100.0).Departure);
+        }
+
+        [Fact]
+        public void AProviderWithoutTheCompanionStatesNone()
+        {
+            var kernel = Resolved(k => k.RegisterProvider(new ProviderRegistration
+            {
+                Capability = PropagationElection.CapabilityId,
+                Id = "an-nbody-backend",
+                Priority = 100.0,
+                Factory = _ => new IntegratingProvider(),
+            }));
+
+            Assert.Null(PropagationElection.HorizonFor(kernel, DepartingCraft, 100.0).Departure);
+        }
+
+        [Fact]
+        public void TheStockSolverStatesNoDeparture()
+        {
+            var horizon = PropagationElection.HorizonFor(Resolved(), DepartingCraft, 100.0);
+
+            Assert.Equal(PropagationHorizonKind.Unbounded, horizon.Kind);
+            Assert.Null(horizon.Departure);
+        }
+
+        [Fact]
+        public void AProviderThatFaultsOnTheDepartureStillSendsItsReach()
+        {
+            var kernel = ElectingDeparting(new DepartingProvider { Throws = true });
+
+            var horizon = PropagationElection.HorizonFor(kernel, DepartingCraft, 100.0);
+
+            Assert.Equal(PropagationHorizonKind.Until, horizon.Kind);
+            Assert.Null(horizon.Departure);
+        }
+
         [Fact]
         public void PropagationIsNotSpineCriticalBecauseAnEngineWithoutItStillFlies()
         {

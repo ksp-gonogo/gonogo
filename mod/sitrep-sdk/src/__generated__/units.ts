@@ -1005,6 +1005,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     nonce: "id",
     type: "id",
   },
+  "PropagationDepartureKnot": {
+    metres: "m",
+    metresPerSecond: "m/s",
+    untilUt: "ut",
+  },
   "PropagationHorizon": {
     kind: "enum",
     trajectoryKind: "enum",
@@ -2464,6 +2469,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "PendingUplinkQueue": {
     pending: "PendingUplink[]",
+  },
+  "PropagationHorizon": {
+    departure: "PropagationDepartureKnot[]",
   },
   "PropagationTarget": {
     osculating: "OrbitElements",
