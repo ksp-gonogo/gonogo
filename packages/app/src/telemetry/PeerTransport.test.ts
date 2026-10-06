@@ -225,6 +225,22 @@ describe("PeerTransport", () => {
     expect(received).toEqual([frame]);
   });
 
+  it("fans out a relayed game-state frame, so a station learns the game is loading", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    transport.onMessage((m) => received.push(m));
+
+    const frame: ServerMessage = {
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+    };
+    client.emitFrame(frame);
+
+    expect(received).toEqual([frame]);
+  });
+
   it("synthesizes a bare command-response ServerMessage from onSitrepCommandResponse", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));

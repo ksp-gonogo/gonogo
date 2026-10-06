@@ -38,6 +38,8 @@ function makeFakeHost() {
   const connectListeners = new Set<(id: string) => void>();
   const disconnectListeners = new Set<(id: string) => void>();
   const broadcasts: PeerMessage[] = [];
+  /** What went to every peer whatever its vantage, which is what a frame carrying no vantage must do. */
+  const allBroadcasts: PeerMessage[] = [];
   const sentToPeer: Array<{ peerId: string; msg: PeerMessage }> = [];
   const claims = new Map<string, { refCount: number; unsub: () => void }>();
   let sink: SitrepSubscriptionSink | null = null;
@@ -54,6 +56,7 @@ function makeFakeHost() {
     },
     broadcast: (msg: PeerMessage) => {
       broadcasts.push(msg);
+      allBroadcasts.push(msg);
     },
     // Sitrep frames go out per vantage, so the relay reaches the host through
     // this rather than `broadcast`. Every connection in these tests reads from
@@ -102,6 +105,7 @@ function makeFakeHost() {
       return sink?.cachedFrame(topic);
     },
     broadcasts,
+    allBroadcasts,
     sentToPeer,
   };
 }
@@ -361,5 +365,90 @@ describe("SitrepPeerRelay", () => {
     ).toBe(true);
 
     view.unmount();
+  });
+
+  describe("the game's own state", () => {
+    const loading: ServerMessage = {
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+    };
+
+    it("goes to every connected station, whatever vantage it reads from", async () => {
+      const peerHost = makeFakeHost();
+      const { transport, view } = renderRelay(peerHost);
+      act(() => peerHost.connectPeer("station-a"));
+
+      act(() => transport.emitRaw(loading));
+
+      expect(peerHost.allBroadcasts).toContainEqual({
+        type: "sitrep-frame",
+        message: loading,
+      });
+      view.unmount();
+    });
+
+    it("is told to a station that connects after it, from the cache and to that station alone", async () => {
+      const peerHost = makeFakeHost();
+      const { transport, view } = renderRelay(peerHost);
+      act(() => transport.emitRaw(loading));
+
+      act(() => peerHost.connectPeer("station-late"));
+
+      expect(peerHost.sentToPeer).toContainEqual({
+        peerId: "station-late",
+        msg: { type: "sitrep-frame", message: loading },
+      });
+      view.unmount();
+    });
+
+    it("tells a late station the latest state and not the one before it", async () => {
+      const peerHost = makeFakeHost();
+      const { transport, view } = renderRelay(peerHost);
+      const ready: ServerMessage = {
+        type: "game-state",
+        state: "ready",
+        scene: "FLIGHT",
+      };
+      act(() => transport.emitRaw(loading));
+      act(() => transport.emitRaw(ready));
+
+      act(() => peerHost.connectPeer("station-late"));
+
+      const told = peerHost.sentToPeer
+        .map((sent) => sent.msg)
+        .filter(
+          (msg) =>
+            msg.type === "sitrep-frame" && msg.message.type === "game-state",
+        );
+      expect(told).toEqual([{ type: "sitrep-frame", message: ready }]);
+      view.unmount();
+    });
+
+    it("is not held over into a rebuilt client, whose game is a new process", async () => {
+      const peerHost = makeFakeHost();
+      const first = renderRelay(peerHost);
+      act(() => first.transport.emitRaw(loading));
+      const sentBefore = peerHost.sentToPeer.length;
+
+      const transport = new StubTransport();
+      first.view.rerender(
+        <TelemetryProvider client={new TelemetryClient(transport)}>
+          <SitrepPeerRelay peerHost={asHostService(peerHost)} />
+        </TelemetryProvider>,
+      );
+      act(() => peerHost.connectPeer("station-late"));
+
+      expect(
+        peerHost.sentToPeer
+          .slice(sentBefore)
+          .some(
+            (sent) =>
+              sent.msg.type === "sitrep-frame" &&
+              sent.msg.message.type === "game-state",
+          ),
+      ).toBe(false);
+      first.view.unmount();
+    });
   });
 });

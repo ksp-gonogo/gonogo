@@ -47,6 +47,18 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
   unit: "subscribes",
 });
 
+/**
+ * The game saying it is loading, at its menu, or ready. A fact about the game
+ * on the machine and not about any command centre's view of it, so it carries
+ * no vantage and goes to every peer, not only those reading from the host's own
+ * session.
+ */
+function isGameState(
+  message: ServerMessage,
+): message is Extract<ServerMessage, { type: "game-state" }> {
+  return message.type === "game-state";
+}
+
 function isCarriedFrame(message: ServerMessage): boolean {
   return (
     message.type === "stream-data" ||
@@ -59,7 +71,7 @@ function isCarriedFrame(message: ServerMessage): boolean {
  * Host-side stream forwarding: taps the host's own live `TelemetryClient`
  * (via `useTelemetryClientOptional()`: the SAME client instance
  * `SitrepTelemetryProvider` mounted, never a second connection to the mod)
- * and relays every `stream-data`/`stream-binary`/`event` frame it receives VERBATIM to every
+ * and relays every `stream-data`/`stream-binary`/`event`/`game-state` frame it receives VERBATIM to every
  * connected station, wrapped in a `sitrep-frame` envelope. Architecturally a
  * live sibling of `StreamRecorder` (`@ksp-gonogo/sitrep-client`): instead of
  * pushing frames into an array for later replay, it pushes them onto the
@@ -102,6 +114,8 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // (cleared only when the client is rebuilt) so a station reconnecting after a gap
   // still gets the last-known value immediately.
   const cacheRef = useRef(new Map<string, StreamData<unknown>>());
+  // The newest word on what the game is doing. Held apart from the frame cache because it is keyed by no topic, and kept for the same reason: a station arriving mid-load must hold at once, and no later frame is coming to tell it.
+  const gameStateRef = useRef<ServerMessage | undefined>(undefined);
 
   useEffect(() => {
     const update = () =>
@@ -127,6 +141,12 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
           message: frame,
         } satisfies PeerMessage);
       }
+      if (gameStateRef.current) {
+        peerHost.sendToPeer(peerId, {
+          type: "sitrep-frame",
+          message: gameStateRef.current,
+        } satisfies PeerMessage);
+      }
     });
   }, [peerHost]);
 
@@ -145,6 +165,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     // A rebuilt client is a new game process, whose frames carry a lower epoch than anything cached from the last: replaying those would make a station's fresh store refuse the new game.
     if (previousClient.current && previousClient.current !== client) {
       cacheRef.current.clear();
+      gameStateRef.current = undefined;
       peerHost.broadcast({ type: "sitrep-reset" } satisfies PeerMessage);
     }
     previousClient.current = client;
@@ -152,6 +173,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       if (message.type === "stream-data" && !isTransmission(message)) {
         cacheRef.current.set(message.topic, message);
       }
+      if (isGameState(message)) gameStateRef.current = message;
     });
   }, [client, peerHost]);
 
@@ -192,6 +214,13 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     const unsubBootstrap = client.subscribe(BOOTSTRAP_TOPIC, () => {});
 
     const detachRaw = client.onRawMessage((message) => {
+      if (isGameState(message)) {
+        peerHost.broadcast({
+          type: "sitrep-frame",
+          message,
+        } satisfies PeerMessage);
+        return;
+      }
       if (!isCarriedFrame(message)) return;
       SITREP_PEER_RELAY_BUDGET.record();
       // To the connections reading from the HOST's session only. A peer that
