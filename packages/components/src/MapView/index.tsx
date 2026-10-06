@@ -80,6 +80,7 @@ const topics = defineTopicManifest({
     "vessel.flight.altitudeTerrain",
     "vessel.flight.verticalSpeed",
     "vessel.identity.parentBodyIndex",
+    "vessel.identity.situation",
     "vessel.orbit.patches",
     "vessel.orbit.encounter",
     "vessel.orbit.mu",

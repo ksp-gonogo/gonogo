@@ -28,6 +28,8 @@ if (!config) throw new Error("map-view missing from widgets.ts");
 describe("MapView DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {
     for (const mode of config.modes) {
+      // The zoom modes target scenes of their own, and a DOM snapshot dispatches no wheel: here they would be the unzoomed render under a zoom's name.
+      if (mode.forFixtures && !mode.forFixtures.includes(name)) continue;
       it(`${name} @ ${mode.name}`, async () => {
         const html = await snapshotWidgetMode({
           Widget: MapViewComponent,
