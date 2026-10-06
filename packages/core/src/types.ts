@@ -198,10 +198,12 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   /** Default grid size when placed from the overlay. Falls back to { w: 3, h: 3 }. */
   defaultSize?: { w: number; h: number };
   /**
-   * Minimum grid size: RGL prevents the user dragging below these dimensions
-   * and saved layouts smaller than this are clamped on load. Use to gate sizes
-   * where the widget becomes unreadable. Falls back to { w: 1, h: 1 } (no
-   * floor) when omitted, but most widgets should set this.
+   * The smallest tile, in grid units, the widget's own body fits. A widget with
+   * no tiny mode cannot be resized below it. One with a tiny mode shows the
+   * tiny form in any tile narrower or shorter than it, and can be resized down
+   * to the kit-wide `TINY_SIZE`, so it must exceed `TINY_SIZE` on at least one
+   * axis. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
+   * declared. There is no maximum: nothing limits how large a tile may grow.
    */
   minSize?: { w: number; h: number };
   /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */

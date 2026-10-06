@@ -20,7 +20,7 @@ import { Tooltip } from "./Tooltip";
 import { TONE_MARK, TONE_TEXT } from "./tone";
 import { Unit } from "./Unit";
 import { VisuallyHidden } from "./VisuallyHidden";
-import { TINY_BELOW } from "./widgetSize";
+import { TINY_BELOW, TINY_SIZE } from "./widgetSize";
 
 /**
  * Props for {@link TinyEssentials}: a widget's tiny heading and its essentials.
@@ -312,7 +312,7 @@ export function WidgetBody({
   def,
   ...props
 }: ComponentProps & { def: ComponentDefinition }) {
-  if (def.tiny !== undefined && showsTiny(def.tiny, props.w, props.h)) {
+  if (def.tiny !== undefined && showsTiny(def, props.w, props.h)) {
     return <TinyBody tiny={def.tiny} props={props} />;
   }
   const Widget = def.component;
@@ -320,39 +320,37 @@ export function WidgetBody({
 }
 
 /**
- * Whether a widget with this tiny mode shows it in a `w` by `h` tile (in grid
- * units): true when the tile is narrower or shorter than the mode's
- * `bodyMinSize`, or {@link TINY_BELOW} when it sets none. False while either
+ * Whether a widget shows its tiny form in a `w` by `h` tile (in grid units):
+ * true for a widget with a tiny mode when the tile is narrower or shorter than
+ * its `minSize`, where its own body stops fitting, or than {@link TINY_BELOW}
+ * when it sets none. False for a widget without a tiny mode, and while either
  * dimension is unmeasured, so the widget's own body shows.
  *
  * @category TinyEssentials
  */
 export function showsTiny(
-  tiny: TinyMode,
+  def: Pick<ComponentDefinition, "tiny" | "minSize">,
   w: number | undefined,
   h: number | undefined,
 ): boolean {
-  if (w === undefined || h === undefined) return false;
-  const floor = tiny.bodyMinSize ?? TINY_BELOW;
+  if (def.tiny === undefined || w === undefined || h === undefined) {
+    return false;
+  }
+  const floor = def.minSize ?? TINY_BELOW;
   return w < floor.w || h < floor.h;
 }
 
 /**
- * The smallest tile, in grid units, in which a widget with this tiny mode
- * shows its own body rather than the tiny form: the mode's `bodyMinSize` (or
- * {@link TINY_BELOW}), raised to the widget's `minSize` where that is larger.
+ * The smallest tile, in grid units, the dashboard lets a widget be resized to:
+ * the kit-wide {@link TINY_SIZE} for a widget with a tiny mode, its `minSize`
+ * for one without, and `undefined` when that sets none.
  *
  * @category TinyEssentials
  */
-export function smallestBodyTile(
-  tiny: TinyMode,
-  minSize: { w: number; h: number } | undefined,
-): { w: number; h: number } {
-  const floor = tiny.bodyMinSize ?? TINY_BELOW;
-  return {
-    w: Math.max(floor.w, minSize?.w ?? 1),
-    h: Math.max(floor.h, minSize?.h ?? 1),
-  };
+export function gridFloor(
+  def: Pick<ComponentDefinition, "tiny" | "minSize">,
+): { w: number; h: number } | undefined {
+  return def.tiny !== undefined ? TINY_SIZE : def.minSize;
 }
 
 function TinyBody({ tiny, props }: { tiny: TinyMode; props: ComponentProps }) {

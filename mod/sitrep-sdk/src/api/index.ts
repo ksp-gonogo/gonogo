@@ -149,6 +149,7 @@ export type {
   SystemOverlayContext,
   TargetingHudContext,
 } from "./slots";
+export { TINY_SIZE } from "./tiny-size";
 export { type AlertTone, TONES, type Tone } from "./tone";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living

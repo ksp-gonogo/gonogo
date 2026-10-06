@@ -9,18 +9,23 @@
  * are worst at this, since the widgets that ellipsise their own title at their
  * own minimum are disproportionately Uplink-authored.
  */
-import { getComponents, registerComponent } from "@ksp-gonogo/core";
+import {
+  type ComponentDefinition,
+  getComponents,
+  registerComponent,
+} from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import {
   Badge,
   Field,
   FieldLabel,
+  gridFloor,
   Input,
   Panel,
   Select,
   Stack,
-  smallestBodyTile,
   Textarea,
+  TINY_BELOW,
 } from "@ksp-gonogo/ui-kit";
 import { defineRenderSetup } from "@ksp-gonogo/uplink-tools/render-probe";
 import { NotesHostProvider } from "../src/notes/NotesHostContext";
@@ -310,10 +315,9 @@ registerComponent({
   ),
   dataRequirements: [],
   defaultSize: { w: 8, h: 8 },
-  minSize: { w: 2, h: 2 },
+  minSize: { w: 6, h: 6 },
   tiny: {
     title: "TINY CANARY TITLE",
-    bodyMinSize: { w: 6, h: 6 },
     useEssentials: () => [
       { label: "TC", word: "TINY CANARY WORD NO TWO COLUMN TILE COULD HOLD" },
     ],
@@ -323,9 +327,10 @@ registerComponent({
 export interface MinSizeWidget {
   id: string;
   name: string;
+  /** The smallest tile the grid lets the widget be: the tiny size for a widget with a tiny mode. */
   minSize?: { w: number; h: number };
   defaultSize?: { w: number; h: number };
-  /** For a widget with a tiny mode, the smallest tile that shows its own body. */
+  /** For a widget with a tiny mode, the smallest tile that shows its own body: its registered minSize. */
   bodyTile?: { w: number; h: number };
   /** Every topic the widget's registration declares. */
   declaredTopics: string[];
@@ -345,13 +350,20 @@ globalThis.__minsizeFitsId = FITS_ID;
 globalThis.__minsizeMaskedId = MASKED_ID;
 globalThis.__minsizeScrollsId = SCROLLS_ID;
 globalThis.__minsizeTinyId = TINY_ID;
+function floorOf(
+  def: ComponentDefinition,
+): { w: number; h: number } | undefined {
+  const floor = gridFloor(def);
+  return floor ? { w: floor.w, h: floor.h } : undefined;
+}
+
 globalThis.__minsizeWidgets = () =>
   getComponents().map((def) => ({
     id: def.id,
     name: def.name,
-    minSize: def.minSize ? { ...def.minSize } : undefined,
+    minSize: floorOf(def),
     defaultSize: def.defaultSize ? { ...def.defaultSize } : undefined,
-    bodyTile: def.tiny ? smallestBodyTile(def.tiny, def.minSize) : undefined,
+    bodyTile: def.tiny ? { ...(def.minSize ?? TINY_BELOW) } : undefined,
     declaredTopics: [
       ...new Set([
         ...(def.channels ?? []),

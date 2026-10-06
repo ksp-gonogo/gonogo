@@ -168,12 +168,11 @@ registerComponent<FuelStatusConfig>({
     "Resource bars for LF/Ox/RCS/Xe/Power, total ΔV + burn time, and a per-stage stack with ΔV, burn time, and TWR. ΔV reference is configurable (vac / ASL / current atmosphere).",
   tags: ["telemetry", "fuel", "delta-v"],
   defaultSize: { w: 8, h: 14 },
-  minSize: { w: 3, h: 3 },
+  // The totals row needs four rows; below it the two figures stand alone.
+  minSize: { w: 3, h: 4 },
   component: FuelStatusComponent,
   tiny: {
     title: "FUEL",
-    // The totals row needs four rows; below it the two figures stand alone.
-    bodyMinSize: { w: 3, h: 4 },
     useEssentials: useFuelEssentials,
   },
   configComponent: FuelStatusConfigForm,

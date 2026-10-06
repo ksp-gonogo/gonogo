@@ -1,4 +1,5 @@
 import { getComponent } from "@ksp-gonogo/core";
+import { gridFloor } from "@ksp-gonogo/ui-kit";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "./index";
 
@@ -67,7 +68,9 @@ export function filterLayouts(layouts: Layouts): Layouts {
  * Inject `minW`/`minH` from each item's registered component definition into
  * its layout entries (RGL uses these to gate resize/drag). Also clamps `w`/`h`
  * up to the floor: covers persisted layouts saved before a widget gained a
- * minSize (or when a user shrank one below the new floor).
+ * minSize (or when a user shrank one below the new floor). The floor is the
+ * widget's `minSize`, or the kit-wide tiny size for a widget with a tiny mode,
+ * so a tile that now shows the tiny form where it showed the body is left alone.
  */
 export function applyMinSizes(
   layouts: Layouts,
@@ -82,7 +85,7 @@ export function applyMinSizes(
       const componentId = idToComponentId.get(entry.i);
       if (!componentId) return entry;
       const def = getComponent(componentId);
-      const min = def?.minSize;
+      const min = def ? gridFloor(def) : undefined;
       if (!min) return entry;
       const w = Math.max(entry.w, min.w);
       const h = Math.max(entry.h, min.h);

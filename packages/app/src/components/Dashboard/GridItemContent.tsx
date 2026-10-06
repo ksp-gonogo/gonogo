@@ -197,7 +197,7 @@ export const GridItemContent = memo(function GridItemContent({
                         channels={def.channels}
                         title={def.name}
                         compact={
-                          def.tiny !== undefined && showsTiny(def.tiny, w, h)
+                          def.tiny !== undefined && showsTiny(def, w, h)
                             ? { title: def.tiny.title }
                             : undefined
                         }

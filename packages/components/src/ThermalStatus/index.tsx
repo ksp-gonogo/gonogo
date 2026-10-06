@@ -49,12 +49,11 @@ registerComponent<ThermalStatusConfig>({
     "Aggregate thermal readouts: hottest part, hottest engine, heat shield temperature and flux. Alerts when any part or engine approaches its limit.",
   tags: ["telemetry", "thermal"],
   defaultSize: { w: 8, h: 7 },
-  minSize: { w: 3, h: 4 },
+  // Below four columns and five rows the body is the band pill alone, or its hottest part clipped.
+  minSize: { w: 4, h: 5 },
   component: ThermalStatusComponent,
   tiny: {
     title: "THERMAL",
-    // Below four columns and five rows the body is the band pill alone, or its hottest part clipped.
-    bodyMinSize: { w: 4, h: 5 },
     useEssentials: useThermalEssentials,
   },
   channels: thermalTopics.channels,

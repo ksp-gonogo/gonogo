@@ -10,11 +10,12 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import {
+  gridFloor,
   showsTiny,
-  smallestBodyTile,
   TinyEssentials,
   WidgetBody,
 } from "./TinyEssentials";
+import { TINY_SIZE } from "./widgetSize";
 
 const held: Reading<Value<"m">> = {
   state: "held",
@@ -68,25 +69,39 @@ describe("WidgetBody", () => {
     expect(screen.getByText("the body")).toBeInTheDocument();
   });
 
-  it("switches at the body's own floor where one is declared", () => {
-    const floored = { ...tiny, bodyMinSize: { w: 7, h: 9 } };
-    expect(showsTiny(floored, 6, 20)).toBe(true);
-    expect(showsTiny(floored, 12, 8)).toBe(true);
-    expect(showsTiny(floored, 7, 9)).toBe(false);
+  it("switches at the widget's minSize, where its own body stops fitting", () => {
+    const sized = widget(tiny);
+    sized.minSize = { w: 4, h: 5 };
+    expect(showsTiny(sized, 3, 3)).toBe(true);
+    expect(showsTiny(sized, 3, 5)).toBe(true);
+    expect(showsTiny(sized, 6, 4)).toBe(true);
+    expect(showsTiny(sized, 4, 5)).toBe(false);
+    render(<WidgetBody def={sized} id="t" w={3} h={3} />);
+    expect(screen.getByText("TEST")).toBeInTheDocument();
+    expect(screen.queryByText("the body")).toBeNull();
+  });
+
+  it("switches at the tiny bucket's edge when the widget sets no minSize", () => {
+    expect(showsTiny(widget(tiny), 4, 6)).toBe(true);
+    expect(showsTiny(widget(tiny), 5, 4)).toBe(false);
+  });
+
+  it("never switches for a widget without a tiny mode", () => {
+    expect(showsTiny(widget(), 1, 1)).toBe(false);
   });
 });
 
-describe("smallestBodyTile", () => {
-  it("is the body's floor, or the tiny bucket's edge, never below minSize", () => {
-    const tiny = { title: "T", useEssentials: () => [] };
-    expect(smallestBodyTile(tiny, { w: 3, h: 3 })).toEqual({ w: 5, h: 4 });
-    expect(smallestBodyTile(tiny, { w: 6, h: 2 })).toEqual({ w: 6, h: 4 });
-    expect(
-      smallestBodyTile(
-        { ...tiny, bodyMinSize: { w: 7, h: 9 } },
-        { w: 3, h: 4 },
-      ),
-    ).toEqual({ w: 7, h: 9 });
+describe("gridFloor", () => {
+  const tiny = { title: "T", useEssentials: () => [] };
+
+  it("is the one kit-wide tiny size for a widget with a tiny mode, whatever its minSize", () => {
+    expect(gridFloor({ tiny, minSize: { w: 7, h: 9 } })).toEqual(TINY_SIZE);
+    expect(gridFloor({ tiny })).toEqual(TINY_SIZE);
+  });
+
+  it("is the minSize for a widget without one, and undefined when it sets none", () => {
+    expect(gridFloor({ minSize: { w: 4, h: 5 } })).toEqual({ w: 4, h: 5 });
+    expect(gridFloor({})).toBeUndefined();
   });
 });
 

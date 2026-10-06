@@ -162,12 +162,11 @@ registerComponent<TargetingConfig>({
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
-  minSize: { w: 3, h: 3 },
+  // Five rows: at four the overflow glow painted out the waiting hint's last word.
+  minSize: { w: 3, h: 5 },
   component: TargetingComponent,
   tiny: {
     title: "TARGET",
-    // Five rows: at four the overflow glow painted out the waiting hint's last word.
-    bodyMinSize: { w: 3, h: 5 },
     useEssentials: useTargetingEssentials,
   },
   configComponent: TargetingConfigForm,

@@ -1835,7 +1835,7 @@ async function proveTinyFitAuditWorks(page: Page): Promise<void> {
       probePayload({
         widgetId: PLANTED_TINY_MISFIT_ID,
         fixture,
-        size: { w: 2, h: 3 },
+        size: { w: 3, h: 3 },
       }),
     );
     return page.evaluate(() => window.__auditTinyFit?.() ?? null);
@@ -1860,7 +1860,7 @@ async function proveTinyFitAuditWorks(page: Page): Promise<void> {
   if (unfed === null || fed === null) {
     throw new Error(
       "The tiny fit audit is BLIND: the planted tiny widget did not draw the " +
-        "kit's tiny form at 2x3, so no render in this run can be recognised as " +
+        "kit's tiny form at 3x3, so no render in this run can be recognised as " +
         "one and every tiny form goes unaudited.",
     );
   }

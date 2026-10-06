@@ -26,12 +26,11 @@ registerComponent<ManeuverPlannerConfig>({
     "Plan maneuver nodes: circularise / custom ΔV at next apsis, with live preview + feasibility check against vessel ΔV.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 10, h: 18 },
-  minSize: { w: 3, h: 4 },
+  // Seven columns so the preset picker shows its longest label in full.
+  minSize: { w: 7, h: 9 },
   component: ManeuverPlannerComponent,
   tiny: {
     title: "MANEUVER",
-    // Seven columns so the preset picker shows its longest label in full.
-    bodyMinSize: { w: 7, h: 9 },
     useEssentials: useManeuverEssentials,
   },
   augmentSlots: ["maneuver-planner.sections"],

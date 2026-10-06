@@ -593,8 +593,8 @@ export {
 } from "./Text";
 export { TextField, type TextFieldProps } from "./TextField";
 export {
+  gridFloor,
   showsTiny,
-  smallestBodyTile,
   TinyEssentials,
   type TinyEssentialsProps,
   WidgetBody,

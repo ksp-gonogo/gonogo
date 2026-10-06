@@ -229,13 +229,6 @@ export interface TinyMode<Config = Record<string, unknown>> {
   /** The heading at the tiny size, short enough for a two-column tile. */
   title: string;
   /**
-   * The smallest tile the widget's own body fits: a tile narrower or shorter
-   * than this shows the tiny form. Absent, the tiny form is shown in the kit's
-   * `tiny` size bucket. With it, `minSize` may go as low as the tiny form fits,
-   * since no tile between the two ever shows the body.
-   */
-  bodyMinSize?: { w: number; h: number };
-  /**
    * A hook returning the essential values, most important first: the first is
    * drawn largest, and a tile too short for them all drops the rest from the
    * end. Called in place of the widget's component, with its props.
@@ -265,6 +258,14 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   configComponent?: ComponentType<ConfigComponentProps<Config>>;
   openConfigOnAdd?: boolean;
   defaultSize?: { w: number; h: number };
+  /**
+   * The smallest tile, in grid units, the widget's own body fits. A widget with
+   * no tiny mode cannot be resized below it. One with a tiny mode shows the
+   * tiny form in any tile narrower or shorter than it, and can be resized down
+   * to the kit-wide `TINY_SIZE`, so it must exceed `TINY_SIZE` on at least one
+   * axis. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
+   * declared. There is no maximum: nothing limits how large a tile may grow.
+   */
   minSize?: { w: number; h: number };
   /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */
   tiny?: TinyMode<Config>;

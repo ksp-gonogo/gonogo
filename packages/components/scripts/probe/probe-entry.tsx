@@ -39,6 +39,7 @@ import {
   DelayRailProvider,
   DomainAvailabilityProvider,
   defaultDarkTheme,
+  gridFloor,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
   showsTiny,
@@ -452,13 +453,13 @@ async function mountInto(
   if (!def) {
     throw new Error(`Probe: widget "${payload.widgetId}" not registered`);
   }
-  /* The dashboard never gives a widget less than its minSize, so a render
+  /* The dashboard never gives a widget less than its grid floor, so a render
      there pictures a screen no operator can reach, and anything it finds is a
      finding about nothing. */
-  const min = def.minSize;
+  const min = gridFloor(def);
   if (min && (payload.w < min.w || payload.h < min.h)) {
     throw new Error(
-      `Probe: "${payload.widgetId}" at ${payload.w}x${payload.h} is below its minSize ${min.w}x${min.h}, a size the dashboard never gives it`,
+      `Probe: "${payload.widgetId}" at ${payload.w}x${payload.h} is below its grid floor ${min.w}x${min.h}, a size the dashboard never gives it`,
     );
   }
   root.style.width = `${payload.pxW}px`;
@@ -810,7 +811,7 @@ function guarded(
       channels={def.channels}
       title={def.name}
       compact={
-        def.tiny !== undefined && showsTiny(def.tiny, payload.w, payload.h)
+        def.tiny !== undefined && showsTiny(def, payload.w, payload.h)
           ? { title: def.tiny.title }
           : undefined
       }

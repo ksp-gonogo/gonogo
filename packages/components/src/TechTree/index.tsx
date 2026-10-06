@@ -100,7 +100,7 @@ registerComponent<TechTreeConfig>({
   tags: ["career", "tech"],
   defaultSize: { w: 6, h: 9 },
   // Three columns and rows hold the two essentials the tiny form draws.
-  minSize: { w: 3, h: 3 },
+  minSize: { w: 5, h: 4 },
   component: TechTreeComponent,
   tiny: { title: "TECH", useEssentials: useTechTreeEssentials },
   channels: topics.channels,

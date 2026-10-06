@@ -13,10 +13,11 @@
  *
  * ## What it renders, and why unfed
  *
- * Every registered widget, mounted at `gridToPixels(minSize)` through the
- * published render probe, with no data fed. A widget with a tiny mode is also
- * mounted at the smallest tile that shows its own body, since at minSize the
- * kit draws its tiny form instead. That is deliberate and it is a
+ * Every registered widget, mounted at `gridToPixels` of its grid floor through
+ * the published render probe, with no data fed. The floor is the widget's
+ * `minSize`, or the kit-wide tiny size for a widget with a tiny mode, where the
+ * kit draws the tiny form. Such a widget is also mounted at its `minSize`, the
+ * smallest tile that shows its own body. That is deliberate and it is a
  * FLOOR rather than a compromise: an unfed widget shows its empty state, which
  * is the least content it will ever carry. A title that ellipsises, or content
  * clipped with nothing to scroll, when the widget is showing the least it can,
@@ -476,7 +477,7 @@ async function main(): Promise<void> {
       const min = widget.minSize as { w: number; h: number };
       const findings = await mountAndAudit(tab, widget, min.w, min.h);
       await shoot(tab, args.shots, `${widget.id}--min.png`);
-      // A tiny mode draws the kit's form at minSize, so the body's own promise is kept at the smallest tile that shows it.
+      // A tiny mode draws the kit's form at the grid floor, so the body's own promise is kept at its registered minSize.
       if (widget.bodyTile) {
         const { w, h } = widget.bodyTile;
         const atBody = await mountAndAudit(tab, widget, w, h);

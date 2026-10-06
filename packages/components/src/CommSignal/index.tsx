@@ -13,12 +13,11 @@ registerComponent<CommSignalConfig>({
     "Signal bars, percentage, probe control state (full / partial / none), and signal delay from KSP's CommNet.",
   tags: ["telemetry", "comms"],
   defaultSize: { w: 6, h: 5 },
-  minSize: { w: 3, h: 3 },
+  // The body fits from three rows up; below it the bars crowd the figure.
+  minSize: { w: 3, h: 4 },
   component: CommSignalComponent,
   tiny: {
     title: "COMMNET",
-    // The body fits from three rows up; below it the bars crowd the figure.
-    bodyMinSize: { w: 3, h: 4 },
     useEssentials: useCommSignalEssentials,
   },
   augmentSlots: ["comm-signal.sections"],

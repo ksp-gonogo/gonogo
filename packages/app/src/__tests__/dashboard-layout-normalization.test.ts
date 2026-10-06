@@ -44,7 +44,11 @@ describe("applyMinSizes", () => {
     clearRegistry();
   });
 
-  function registerWithMin(id: string, min?: { w: number; h: number }) {
+  function registerWithMin(
+    id: string,
+    min?: { w: number; h: number },
+    tiny = false,
+  ) {
     registerComponent({
       id,
       name: id,
@@ -54,6 +58,7 @@ describe("applyMinSizes", () => {
       dataRequirements: [],
       defaultSize: { w: 3, h: 3 },
       ...(min ? { minSize: min } : {}),
+      ...(tiny ? { tiny: { title: id, useEssentials: () => [] } } : {}),
     });
   }
 
@@ -111,5 +116,33 @@ describe("applyMinSizes", () => {
     expect(out.md[0].h).toBe(8);
     expect(out.md[0].minW).toBe(5);
     expect(out.md[0].minH).toBe(5);
+  });
+
+  it("does not clamp a tiny widget's tile to its minSize, which is where its body stops fitting", () => {
+    registerWithMin("tiny-widget", { w: 4, h: 5 }, true);
+    const items: DashboardItem[] = [{ i: "a", componentId: "tiny-widget" }];
+    const entry = { i: "a", x: 0, y: 0, w: 3, h: 3, minW: 3, minH: 3 };
+    const out = applyMinSizes({ lg: [entry] }, items);
+    expect(out.lg[0]).toBe(entry);
+  });
+
+  it("floors a tiny widget's minW and minH at the tiny size", () => {
+    registerWithMin("tiny-widget", { w: 4, h: 5 }, true);
+    const items: DashboardItem[] = [{ i: "a", componentId: "tiny-widget" }];
+    const out = applyMinSizes(
+      { lg: [{ i: "a", x: 0, y: 0, w: 5, h: 6 }] },
+      items,
+    );
+    expect(out.lg[0]).toMatchObject({ w: 5, h: 6, minW: 3, minH: 3 });
+  });
+
+  it("clamps a tiny widget's tile smaller than the tiny size up to it", () => {
+    registerWithMin("tiny-widget", { w: 4, h: 5 }, true);
+    const items: DashboardItem[] = [{ i: "a", componentId: "tiny-widget" }];
+    const out = applyMinSizes(
+      { lg: [{ i: "a", x: 0, y: 0, w: 2, h: 2 }] },
+      items,
+    );
+    expect(out.lg[0]).toMatchObject({ w: 3, h: 3, minW: 3, minH: 3 });
   });
 });

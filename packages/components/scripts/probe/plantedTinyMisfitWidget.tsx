@@ -14,9 +14,9 @@ function usePlantedEssentials(): readonly TinyEssential[] {
 }
 
 /**
- * A widget whose tiny form fits its 2x3 floor while it has nothing to show and
- * overflows it once a real balance arrives, the way the Admin Building's did at
- * 2x2.
+ * A widget whose tiny form fits the kit-wide tiny size while it has nothing to
+ * show and overflows it once a real balance arrives, the way the Admin
+ * Building's did at 2x2.
  * The render harness mounts it both ways to prove the tiny fit audit sees the
  * difference: an audit run only on empty states passes it.
  *
@@ -29,7 +29,7 @@ registerComponent({
   description: "A render harness plant: a tiny figure too wide for its tile.",
   tags: [],
   component: () => null,
-  minSize: { w: 2, h: 3 },
+  minSize: { w: 6, h: 6 },
   tiny: { title: "BAL", useEssentials: usePlantedEssentials },
   channels: ["career.status"],
 });

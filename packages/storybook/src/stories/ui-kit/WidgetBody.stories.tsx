@@ -62,7 +62,7 @@ const DESCENT: ComponentDefinition = {
 const DESCENT_ROOMY: ComponentDefinition = {
   ...DESCENT,
   id: "storybook-widgetbody-descent-roomy",
-  tiny: { ...DESCENT_TINY, bodyMinSize: { w: 10, h: 8 } },
+  minSize: { w: 10, h: 8 },
 };
 
 /** The dashboard grid's column width, row height and margin, in pixels. */
@@ -117,7 +117,7 @@ export const Tiny: Story = {
   args: { w: 4, h: 5 },
 };
 
-/** With `bodyMinSize`, a tile that would be normal-sized still shows the tiny form until it reaches that floor. */
+/** With a `minSize`, a tile that would be normal-sized still shows the tiny form until it reaches that size. */
 export const BelowBodyMinSize: Story = {
   args: { def: DESCENT_ROOMY, w: 8, h: 6 },
 };

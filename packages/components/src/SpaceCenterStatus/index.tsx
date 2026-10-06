@@ -136,12 +136,11 @@ registerComponent<SpaceCenterStatusConfig>({
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   // A real balance does not fit two columns, and the pad word needs a fourth row under it.
-  minSize: { w: 3, h: 4 },
+  // At four rows the facility grid's empty state sits under the scroll edge's fade.
+  minSize: { w: 5, h: 5 },
   component: SpaceCenterStatusComponent,
   tiny: {
     title: "KSC",
-    // At four rows the facility grid's empty state sits under the scroll edge's fade.
-    bodyMinSize: { w: 5, h: 5 },
     useEssentials: useSpaceCenterEssentials,
   },
   channels: topics.channels,

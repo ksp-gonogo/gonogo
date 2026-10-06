@@ -156,6 +156,35 @@ describe("registerComponent with a tiny mode", () => {
       registerComponent({ ...mockComponent, tiny, actions: [] }),
     ).not.toThrow();
   });
+
+  it("refuses one whose minSize does not exceed the tiny size on either axis, since its tiny form would never show", () => {
+    expect(() =>
+      registerComponent({
+        ...mockComponent,
+        tiny,
+        minSize: { w: 3, h: 3 },
+      }),
+    ).toThrow(/test-component.*minSize 3x3.*tiny size 3x3/s);
+    expect(getComponent("test-component")).toBeUndefined();
+  });
+
+  it("refuses one whose minSize is below the tiny size on an axis", () => {
+    expect(() =>
+      registerComponent({ ...mockComponent, tiny, minSize: { w: 2, h: 6 } }),
+    ).toThrow(/below the tiny size/);
+  });
+
+  it("accepts one whose minSize exceeds the tiny size on one axis", () => {
+    expect(() =>
+      registerComponent({ ...mockComponent, tiny, minSize: { w: 3, h: 4 } }),
+    ).not.toThrow();
+  });
+
+  it("accepts a widget with no tiny mode at a minSize of 3x3 or below", () => {
+    expect(() =>
+      registerComponent({ ...mockComponent, minSize: { w: 2, h: 2 } }),
+    ).not.toThrow();
+  });
 });
 
 describe("registerDataSource / getDataSources", () => {

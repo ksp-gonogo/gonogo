@@ -217,16 +217,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Twr/__fixtures__",
     outPath: "renders/twr-widget",
     modes: [
-      // The kit's tiny form: the ratio over its compact gauge.
-      { name: "tiny-2x2", w: 2, h: 2 },
-      // Focus reveals the tiny tile's title pill over the same content.
-      {
-        name: "tiny-2x2-focused",
-        w: 2,
-        h: 2,
-        focuses: [{ selector: "[data-tiny-panel]" }],
-      },
-      // Small: the figure alone in the frame, no trend strip.
+      // Documented minimum: the figure alone in the frame, no trend strip.
       { name: "small-3x3", w: 3, h: 3 },
       // Default: the gauge over its trend strip, in one frame.
       { name: "default-4x5", w: 4, h: 5 },
@@ -384,6 +375,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "SpaceCenterStatus/__fixtures__",
     outPath: "renders/space-center-status-widget",
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // minSize: the kit's tiny form, the balance over the pad word.
       { name: "tiny-3x4", w: 3, h: 4 },
       // Four columns is still the tiny form, however tall: the facility grid needs five.
@@ -571,6 +563,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ThermalStatus/__fixtures__",
     outPath: "renders/thermal-status-widget",
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // minSize: the kit's tiny form, the worst band's word over the hottest part.
       { name: "tiny-3x4", w: 3, h: 4 },
       // One row taller, the hottest engine joins them.
@@ -591,6 +584,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ContractManager/__fixtures__",
     outPath: "renders/contract-manager-widget",
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // minSize: the kit's tiny form, the active count and the nearest deadline.
       { name: "tiny-3x4", w: 3, h: 4 },
       // One row taller, the offered count joins them.
@@ -921,9 +915,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ActionGroup/__fixtures__",
     outPath: "renders/action-group-widget",
     modes: [
-      // Smallest tiny sizes: the kit's tiny form, the group's name over its toggle button.
-      // 2×3 is the minimum: at height 2 the name's caption is cut off.
-      { name: "tiny-2x3", w: 2, h: 3 },
+      // The smallest tiny size: the kit's tiny form, the group's name over its toggle button.
       { name: "tiny-3x3", w: 3, h: 3 },
       // 3×4: still tiny bucket (w<5), so the same tiny form.
       { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
@@ -1000,6 +992,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // Activate spends career funds, so the balance (or the statement standing in for it) has to be readable at every size the widget is rendered at.
     mustBeVisible: { selector: "[data-balance-row]" },
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // minSize: the kit's tiny form, the balance over the tally and the standing rate.
       { name: "tiny-3x4", w: 3, h: 4 },
       // The short form at the smallest tile that shows the widget's own body: one line per strategy.
@@ -1067,6 +1060,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "TechTree/__fixtures__",
     outPath: "renders/tech-tree-widget",
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // The kit's tiny form: researchable count over the science balance.
       { name: "tiny-3x4", w: 3, h: 4 },
       // defaultSize 6×9: the common operator view.
@@ -1744,6 +1738,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       mayScroll: ["landscape-18x9", "mobile-9x9", "min-7x9"],
     },
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // minSize: the kit's tiny form, the next burn against the budget.
       { name: "tiny-3x4", w: 3, h: 4 },
       // The body's own floor: node editor at its tightest.
@@ -1996,6 +1991,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "FleetRoster/__fixtures__",
     outPath: "renders/fleet-roster-widget",
     modes: [
+      { name: "tiny-3x3", w: 3, h: 3 },
       // Registered default: full table incl. Body column + the
       // fleet-roster.updates augment slot (empty until an uplink binds).
       { name: "default-8x10", w: 8, h: 10 },

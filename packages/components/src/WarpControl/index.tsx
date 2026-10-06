@@ -231,12 +231,11 @@ registerComponent<WarpControlConfig>({
     "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level.",
   tags: ["control", "time"],
   defaultSize: { w: 6, h: 5 },
-  minSize: { w: 3, h: 3 },
+  // Below it the ladder has no room.
+  minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
   tiny: {
     title: "WARP",
-    // The body's own floor: below it the ladder has no room.
-    bodyMinSize: { w: 4, h: 4 },
     bindsActions: true,
     useEssentials: useWarpEssentials,
   },

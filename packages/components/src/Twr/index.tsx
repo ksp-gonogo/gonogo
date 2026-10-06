@@ -1,11 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { plotColumnsOf } from "@ksp-gonogo/data";
-import {
-  combineReadings,
-  type TinyEssential,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { combineReadings, value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Dial,
@@ -19,15 +15,7 @@ import {
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
-import {
-  essentialToneFor,
-  GAUGE_MAX,
-  GAUGE_MIN,
-  TINY_GAUGE,
-  toneColorFor,
-  twrOf,
-  ZONES,
-} from "./scale";
+import { GAUGE_MAX, GAUGE_MIN, toneColorFor, twrOf, ZONES } from "./scale";
 
 type TwrConfig = Record<string, never>;
 
@@ -55,20 +43,6 @@ function useTwrReading() {
         : value("1", ratio);
     },
   );
-}
-
-function useTwrEssentials(): readonly TinyEssential[] {
-  const twrReading = useTwrReading();
-  const twr = twrReading.value;
-  return [
-    {
-      label: "TWR",
-      value: twrReading,
-      decimals: 1,
-      tone: twr === undefined ? "neutral" : essentialToneFor(twr),
-      gauge: TINY_GAUGE,
-    },
-  ];
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
@@ -214,14 +188,8 @@ registerComponent<TwrConfig>({
     "Thrust-to-weight ratio of the active stage as a dial. Red below 1 (can't lift off), amber 1–1.5, green above. Sparkline shows the last minute.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
-  minSize: { w: 2, h: 2 },
+  minSize: { w: 3, h: 3 },
   component: TwrComponent,
-  tiny: {
-    title: "TWR",
-    // The dial needs three columns and rows; below that the figure stands alone.
-    bodyMinSize: { w: 3, h: 3 },
-    useEssentials: useTwrEssentials,
-  },
   dataRequirements: [
     "vessel.propulsion.currentThrust",
     "vessel.propulsion.totalMass",

@@ -9,6 +9,7 @@
 // installs its host: an unguarded call would turn every early registration into
 // the "no host installed" throw.
 import { getHost, hasHost } from "./host";
+import { TINY_SIZE } from "./tiny-size";
 import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 
 /**
@@ -123,6 +124,24 @@ export function registerComponent<Config = Record<string, unknown>>(
         `is not mounted while it is tiny, so its action handlers would stop at that size. ` +
         `Bind them in the tiny mode's useEssentials and set bindsActions: true.`,
     );
+  }
+  const min = def.minSize;
+  if (def.tiny !== undefined && min !== undefined) {
+    const size = `minSize ${min.w}x${min.h}`;
+    const tinySize = `tiny size ${TINY_SIZE.w}x${TINY_SIZE.h}`;
+    if (min.w < TINY_SIZE.w || min.h < TINY_SIZE.h) {
+      throw new Error(
+        `Component "${def.id}" has ${size}, below the ${tinySize}. A widget with a tiny mode ` +
+          `shrinks to the tiny size, so its minSize (where its own body stops fitting) ` +
+          `cannot be smaller than that on either axis.`,
+      );
+    }
+    if (min.w === TINY_SIZE.w && min.h === TINY_SIZE.h) {
+      throw new Error(
+        `Component "${def.id}" has ${size}, the same as the ${tinySize}, so its tiny form ` +
+          `would never show. Give it a minSize larger than the tiny size on one axis, or drop its tiny mode.`,
+      );
+    }
   }
   if (hasHost()) getHost().logger.info(`REGISTERED ${def.name}`);
   components.set(def.id, def as AnyDef);

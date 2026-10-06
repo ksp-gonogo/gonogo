@@ -14,6 +14,8 @@
  */
 export type SizeBucket = "tiny" | "small" | "normal";
 
+export { TINY_SIZE } from "@ksp-gonogo/sitrep-sdk";
+
 /**
  * A tile narrower or shorter than this is `tiny`.
  *
