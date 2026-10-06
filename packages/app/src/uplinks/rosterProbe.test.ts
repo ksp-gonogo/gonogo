@@ -60,6 +60,7 @@ describe("probeUplinkRoster", () => {
         expectedClientHash: "sha256-abc",
         // D5: the client-source declaration is carried through to RosterEntry.
         clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
+        health: { state: "healthy", detail: null },
       },
       {
         id: "beta",
@@ -133,6 +134,7 @@ describe("decodeRosterPayload", () => {
         repo: null,
         expectedClientHash: null,
         clientSource: null,
+        health: { state: "unavailable", detail: "not ready" },
       },
     ]);
   });

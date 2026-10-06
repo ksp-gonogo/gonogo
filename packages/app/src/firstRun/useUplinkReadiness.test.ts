@@ -69,6 +69,28 @@ describe("computeUplinkReadiness: the resolved states", () => {
     expect(entries[0]).toMatchObject({ state: "quarantined", outcome });
   });
 
+  it("unavailable: a roster row that says available but whose health is unavailable reads unavailable with the health detail", () => {
+    const entries = computeUplinkReadiness(
+      roster([
+        {
+          id: "widget-a",
+          available: true,
+          health: {
+            state: "unavailable",
+            detail: "Widget A is not installed",
+            facts: [],
+          },
+        },
+      ]),
+      [],
+    );
+    expect(entries[0]).toMatchObject({
+      state: "unavailable",
+      modAvailable: false,
+      modReason: "Widget A is not installed",
+    });
+  });
+
   it("no-client: installed and available, but nothing was ever attempted", () => {
     const entries = computeUplinkReadiness(roster([{ id: "widget-a" }]), []);
     expect(entries[0]).toMatchObject({

@@ -23,6 +23,7 @@ import {
   parseUplinkManifest,
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
+import type { UplinkHealthStateName } from "@ksp-gonogo/sitrep-sdk";
 import { type ConsentInfo, ensureConsent } from "./consent";
 import type { HostCompat } from "./hostCompat";
 import {
@@ -47,6 +48,12 @@ export interface RosterEntry {
   version: string;
   available: boolean;
   reason: string | null;
+  /**
+   * The Uplink's own health self-report. An expansion-gated Uplink stays
+   * `available` on the roster and reports `unavailable` here while its
+   * expansion is absent. Absent for a roster decoded from a mod that predates it.
+   */
+  health?: { state: UplinkHealthStateName; detail: string | null };
   /**
    * Provenance the mod declares, for the consent dialog. Absent for a mod that
    * predates the fields, which is why every arm below falls back rather than

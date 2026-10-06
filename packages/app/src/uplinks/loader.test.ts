@@ -270,6 +270,27 @@ describe("loadEnabledUplinks", () => {
     expect(outcomes[0].reason).toMatch(/unavailable/);
   });
 
+  it("refuses when the roster says available but the Uplink's own health is unavailable", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const roster: RosterEntry[] = [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health: { state: "unavailable", detail: "SCANsat is not installed" },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), roster, importBundle }),
+    );
+    expect(importBundle).not.toHaveBeenCalled();
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/SCANsat is not installed/);
+  });
+
   it("enforces the three-way check when the mod emits expectedClientHash", async () => {
     const importBundle = vi.fn<
       (bytes: ArrayBuffer, url: string) => Promise<unknown>
