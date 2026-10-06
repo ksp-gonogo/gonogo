@@ -11,6 +11,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Balance } from "./BalanceRail";
 import { inferCap, partition } from "./partition";
 import { ScreenSections } from "./ScreenSections";
+import { SHORT_BELOW_ROWS } from "./ShortForm";
 import type { ResolvedScreen } from "./screens";
 import { BalanceRow, Empty, LockedScreen, Sep, Tally } from "./styles";
 import type { Strategy } from "./types";
@@ -87,6 +88,7 @@ export function StrategiesView({
   const overCap = inferredCap !== null && active.length > inferredCap;
 
   const sectionProps = {
+    short: (h ?? SHORT_BELOW_ROWS) < SHORT_BELOW_ROWS,
     checkedOnConfirm,
     funds,
     reputation,

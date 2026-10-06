@@ -1,4 +1,9 @@
-import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CarriedCurrency,
+  datedFrom,
+  staticValue,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   CommandButton,
@@ -7,6 +12,8 @@ import {
   Grid,
   ScrollArea,
   Section,
+  Slider,
+  Stack,
   Unit,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
@@ -15,13 +22,17 @@ import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AvailableRow, StrategyDescription } from "./AvailableRow";
 import { parseEffectLines } from "./parsing";
 import { partition, sharedReason } from "./partition";
+import { ShortRow, type ShortState } from "./ShortForm";
 import {
   BlockedNote,
   CardDept,
   EffectLine,
   EffectList,
   Empty,
+  FactorLabel,
+  FactorRow,
   FactorTag,
+  FactorValue,
   SCREEN_COLUMNS,
   ScreenInset,
   StrategyCard,
@@ -43,6 +54,8 @@ export interface ScreenSectionsProps {
   listsStrategies?: boolean;
   /** True when the screen's own body carries the activate/deactivate verbs, so the host draws no Activate/Deactivate button on its cards. */
   drawsOwnActions?: boolean;
+  /** Draw one line per strategy instead of the Active / Available / Locked cards, for a tile too short for them. */
+  short?: boolean;
   /** The career's activation is the game's own, so a strategy with no verdict is checked in full when it is confirmed. */
   checkedOnConfirm: boolean;
   funds: Quantityish | undefined;
@@ -68,6 +81,7 @@ export function ScreenSections({
   showDepartment = true,
   listsStrategies = true,
   drawsOwnActions = false,
+  short = false,
   checkedOnConfirm,
   funds,
   reputation,
@@ -83,6 +97,9 @@ export function ScreenSections({
   const { active, available, softBlocked, ineligible, unknown } =
     partition(strategies);
   const unknownReason = sharedReason(unknown);
+  const fundsNow = magnitudeOf(funds);
+  const reputationNow = magnitudeOf(reputation);
+  const scienceNow = magnitudeOf(science);
   const bodyBound = useSlotBound("strategies.screen-body");
   // The available card and the unanswered one are the same card; only the note differs.
   const strategyRow = (s: Strategy, note?: string) => (
@@ -90,9 +107,9 @@ export function ScreenSections({
       key={s.id}
       strategy={s}
       showDepartment={showDepartment}
-      funds={magnitudeOf(funds)}
-      reputation={magnitudeOf(reputation)}
-      science={magnitudeOf(science)}
+      funds={fundsNow}
+      reputation={reputationNow}
+      science={scienceNow}
       rosterFrom={rosterFrom}
       factor={factorById[s.id] ?? s.factorSliderDefault}
       onFactorChange={(v) => setFactorById((prev) => ({ ...prev, [s.id]: v }))}
@@ -103,6 +120,115 @@ export function ScreenSections({
       note={note}
     />
   );
+  const shortRow = (s: Strategy, state: ShortState) => (
+    <ShortRow
+      key={s.id}
+      strategy={s}
+      state={state}
+      expanded={expandedId === s.id}
+      onToggleExpanded={() => setExpandedId(expandedId === s.id ? null : s.id)}
+      funds={fundsNow}
+      reputation={reputationNow}
+      science={scienceNow}
+      rosterFrom={rosterFrom}
+      factor={factorById[s.id] ?? s.factorSliderDefault}
+      activateCmd={activateCmd}
+      deactivateCmd={deactivateCmd}
+      drawsOwnActions={drawsOwnActions}
+      details={
+        <>
+          <StrategyDescription of={s} />
+          <EffectList>
+            {parseEffectLines(s.effect).map((line, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+              <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+            ))}
+          </EffectList>
+          {(state.kind === "available" || state.kind === "unchecked") &&
+            !drawsOwnActions &&
+            s.hasFactorSlider && (
+              <FactorRow>
+                <FactorLabel>Factor</FactorLabel>
+                <Slider
+                  min={s.factorSliderDefault}
+                  max={1}
+                  step={
+                    (1 - s.factorSliderDefault) /
+                    Math.max(s.factorSliderSteps, 1)
+                  }
+                  value={factorById[s.id] ?? s.factorSliderDefault}
+                  onChange={(e) =>
+                    setFactorById((prev) => ({
+                      ...prev,
+                      [s.id]: Number.parseFloat(e.target.value),
+                    }))
+                  }
+                  aria-label={`Commitment factor for ${s.title}`}
+                />
+                <FactorValue>
+                  <Unit
+                    value={staticValue(
+                      "%",
+                      (factorById[s.id] ?? s.factorSliderDefault) * 100,
+                    )}
+                    decimals={0}
+                  />
+                </FactorValue>
+              </FactorRow>
+            )}
+        </>
+      }
+    />
+  );
+  if (short && listsStrategies) {
+    const none =
+      active.length +
+        available.length +
+        softBlocked.length +
+        ineligible.length +
+        unknown.length ===
+      0;
+    return (
+      <ScrollArea>
+        <ScreenInset data-strategies-screen-inset="">
+          {none ? (
+            <Empty>No strategies</Empty>
+          ) : (
+            <Stack
+              as="ul"
+              gap="related-dense"
+              style={{ margin: 0, padding: 0 }}
+            >
+              {active.map((s) => shortRow(s, { kind: "active" }))}
+              {available.map((s) => shortRow(s, { kind: "available" }))}
+              {unknown.map((s) =>
+                shortRow(s, {
+                  kind: "unchecked",
+                  reason: unknownReason ?? s.activateBlockedReason,
+                }),
+              )}
+              {softBlocked.map((s) =>
+                shortRow(s, {
+                  kind: "locked",
+                  reason:
+                    "Deactivate the running strategy first to enable this one.",
+                }),
+              )}
+              {ineligible.map((s) =>
+                shortRow(s, {
+                  kind: "locked",
+                  reason: s.activateBlockedReason,
+                }),
+              )}
+            </Stack>
+          )}
+          {screenId !== undefined && (
+            <AugmentSlot name="strategies.screen-body" props={{ screenId }} />
+          )}
+        </ScreenInset>
+      </ScrollArea>
+    );
+  }
   return (
     <ScrollArea>
       {/* One box owns the whole screen's inset, the augment included. */}

@@ -41,43 +41,22 @@ export function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
   );
 }
 
-export function AvailableRow({
+/** What activating this strategy costs, in each currency it charges, drawn against the career's balances; the factor scales the price. */
+export function StrategyCost({
   strategy: s,
-  showDepartment,
   funds,
   reputation,
   science,
   rosterFrom,
   factor,
-  onFactorChange,
-  activateCmd,
-  drawsOwnActions = false,
-  expanded,
-  onToggleExpanded,
-  note,
-}: {
+}: Readonly<{
   strategy: Strategy;
-  showDepartment: boolean;
   funds: number | null;
   reputation: number | null;
   science: number | null;
   rosterFrom: readonly CarriedCurrency[];
   factor: number;
-  onFactorChange: (v: number) => void;
-  /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
-  activateCmd: CommandButtonHandle;
-  /**
-   * True when the screen's own body carries the activate verb, so this card
-   * draws no Activate button and none of what only that button spends: the
-   * price, the no-cost note and the factor slider. The figures on the record
-   * are stock's activation cost, which the body's own verb need not charge.
-   */
-  drawsOwnActions?: boolean;
-  expanded: boolean;
-  onToggleExpanded: () => void;
-  /** A standing account of this card's own state, on screen above the price. */
-  note?: string;
-}) {
+}>) {
   // KSP costs scale linearly with the commitment factor; a zero default falls back to unscaled rather than divide by zero.
   const factorScale =
     s.factorSliderDefault > 0 ? factor / s.factorSliderDefault : 1;
@@ -106,44 +85,8 @@ export function AvailableRow({
     afford === "no" ? ("nogo" as const) : undefined;
 
   return (
-    <StrategyCard
-      title={
-        <Button
-          type="button"
-          variant="text"
-          onClick={onToggleExpanded}
-          aria-expanded={expanded}
-        >
-          {s.title}
-        </Button>
-      }
-      titleRight={
-        showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
-      }
-      footer={
-        drawsOwnActions ? undefined : (
-          <CommandButton
-            handle={activateCmd}
-            args={{ strategyId: s.id, factor }}
-            commandLabel={`Activate ${s.title}`}
-            label="Activate"
-            confirmLabel="Confirm activate"
-            pendingLabel="Activating..."
-          />
-        )
-      }
-    >
-      <StrategyDescription of={s} />
-      {expanded && (
-        <EffectList>
-          {parseEffectLines(s.effect).map((line, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
-            <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
-          ))}
-        </EffectList>
-      )}
-      {note && <BlockedNote>{note}</BlockedNote>}
-      {!drawsOwnActions && !noListedCost && (
+    <>
+      {!noListedCost && (
         <CostRow>
           {s.initialCostFunds > 0 && (
             <CostChip
@@ -183,11 +126,100 @@ export function AvailableRow({
           )}
         </CostRow>
       )}
-      {!drawsOwnActions && noListedCost && (
+      {noListedCost && (
         // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency. A plain note, so a list of them is not announced.
         <Notice tone="neutral" role="note">
           No funds, science or rep cost on this record
         </Notice>
+      )}
+    </>
+  );
+}
+
+export function AvailableRow({
+  strategy: s,
+  showDepartment,
+  funds,
+  reputation,
+  science,
+  rosterFrom,
+  factor,
+  onFactorChange,
+  activateCmd,
+  drawsOwnActions = false,
+  expanded,
+  onToggleExpanded,
+  note,
+}: {
+  strategy: Strategy;
+  showDepartment: boolean;
+  funds: number | null;
+  reputation: number | null;
+  science: number | null;
+  rosterFrom: readonly CarriedCurrency[];
+  factor: number;
+  onFactorChange: (v: number) => void;
+  /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
+  activateCmd: CommandButtonHandle;
+  /**
+   * True when the screen's own body carries the activate verb, so this card
+   * draws no Activate button and none of what only that button spends: the
+   * price, the no-cost note and the factor slider. The figures on the record
+   * are stock's activation cost, which the body's own verb need not charge.
+   */
+  drawsOwnActions?: boolean;
+  expanded: boolean;
+  onToggleExpanded: () => void;
+  /** A standing account of this card's own state, on screen above the price. */
+  note?: string;
+}) {
+  return (
+    <StrategyCard
+      title={
+        <Button
+          type="button"
+          variant="text"
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+        >
+          {s.title}
+        </Button>
+      }
+      titleRight={
+        showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
+      }
+      footer={
+        drawsOwnActions ? undefined : (
+          <CommandButton
+            handle={activateCmd}
+            args={{ strategyId: s.id, factor }}
+            commandLabel={`Activate ${s.title}`}
+            label="Activate"
+            confirmLabel="Confirm activate"
+            pendingLabel="Activating..."
+          />
+        )
+      }
+    >
+      <StrategyDescription of={s} />
+      {expanded && (
+        <EffectList>
+          {parseEffectLines(s.effect).map((line, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+            <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+          ))}
+        </EffectList>
+      )}
+      {note && <BlockedNote>{note}</BlockedNote>}
+      {!drawsOwnActions && (
+        <StrategyCost
+          strategy={s}
+          funds={funds}
+          reputation={reputation}
+          science={science}
+          rosterFrom={rosterFrom}
+          factor={factor}
+        />
       )}
       {!drawsOwnActions && s.hasFactorSlider && (
         <FactorRow>

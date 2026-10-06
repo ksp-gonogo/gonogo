@@ -999,6 +999,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // minSize: the kit's tiny form, the balance over the tally and the standing rate.
       { name: "tiny-3x4", w: 3, h: 4 },
+      // The short form at the smallest tile that shows the widget's own body: one line per strategy.
+      { name: "short-5x4", w: 5, h: 4 },
+      // The short form with room for a few lines beneath the balance.
+      { name: "short-5x6", w: 5, h: 6 },
       // compact normal: full panel with tight vertical room; tests ScrollArea overflow when Active + Available sections both have entries.
       { name: "compact-5x7", w: 5, h: 7 },
       // default registered size: the most common operator view.
