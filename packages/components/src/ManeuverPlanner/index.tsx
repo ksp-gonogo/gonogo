@@ -17,7 +17,7 @@ registerComponent<ManeuverPlannerConfig>({
   id: "maneuver-planner",
   name: "Maneuver Planner",
   description:
-    "Plan maneuver nodes: circularise / custom ΔV at next apsis, with live preview + feasibility check against vessel ΔV.",
+    "Plan a maneuver node at the next apoapsis or periapsis, to circularise or with a burn of your own, with a preview of the new orbit and a check that your vessel has the Δv for it.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 10, h: 18 },
   // Seven columns so the preset picker shows its longest label in full.

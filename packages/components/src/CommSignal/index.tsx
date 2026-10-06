@@ -9,7 +9,7 @@ registerComponent<CommSignalConfig>({
   id: "comm-signal",
   name: "CommNet Signal",
   description:
-    "Signal bars, percentage, probe control state (full / partial / none), and signal delay from KSP's CommNet.",
+    "Your vessel's CommNet connection: signal strength, how much control you have over a probe, and the signal delay. At larger sizes it shows each relay on the route home.",
   tags: ["telemetry", "comms"],
   defaultSize: { w: 6, h: 5 },
   // The body fits from three rows up; below it the bars crowd the figure.

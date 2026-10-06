@@ -46,7 +46,7 @@ registerComponent<ThermalStatusConfig>({
   id: "thermal-status",
   name: "Thermal",
   description:
-    "Aggregate thermal readouts: hottest part, hottest engine, heat shield temperature and flux. Alerts when any part or engine approaches its limit.",
+    "Your vessel's temperatures: the hottest part, the hottest engine, and the heat shield's temperature and heat flux. Warns when a part or engine nears its limit.",
   tags: ["telemetry", "thermal"],
   defaultSize: { w: 8, h: 7 },
   // Below four columns and five rows the body is the band pill alone, or its hottest part clipped.

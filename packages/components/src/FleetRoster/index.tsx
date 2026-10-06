@@ -67,7 +67,7 @@ registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
   name: "Fleet Roster",
   description:
-    "Fleet-wide roster table: one row per known craft (debris, asteroids, comets, flags, EVA kerbals and deployed science hardware are left out) with name, body, crew and comms link tier (direct, relay, no link), plus a fleet-wide comms-coverage summary. Each row carries a fleet-roster.updates slot where an Uplink can add per-vessel health or alarm lines.",
+    "Every craft you have out there, with the body it is at, its crew and its comms link (direct, relay or none), plus how much of your fleet is in contact. Debris, asteroids, comets, flags and kerbals on EVA are left out.",
   tags: ["telemetry"],
   /* Declared, not merely rendered: the picker and search tags find extending Uplinks by walking this list. */
   augmentSlots: ["fleet-roster.updates"],

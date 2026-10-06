@@ -164,7 +164,7 @@ registerComponent<FuelStatusConfig>({
   id: "fuel-status",
   name: "Fuel & ΔV",
   description:
-    "Resource bars for LF/Ox/RCS/Xe/Power, total ΔV + burn time, and a per-stage stack with ΔV, burn time, and TWR. ΔV reference is configurable (vac / ASL / current atmosphere).",
+    "Liquid fuel, oxidiser, monopropellant, xenon and electric charge, with your total Δv and burn time and a stage by stage list of Δv, burn time and TWR. Δv can be shown for vacuum, sea level or the air you are in now.",
   tags: ["telemetry", "fuel", "delta-v"],
   defaultSize: { w: 8, h: 14 },
   // The totals row needs four rows; below it the two figures stand alone.

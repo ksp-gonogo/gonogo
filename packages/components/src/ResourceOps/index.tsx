@@ -209,7 +209,7 @@ registerComponent<ResourceOpsConfig>({
   id: "resource-ops",
   name: "Resource Ops",
   description:
-    "Every drill and chemical converter on the active vessel, grouped into cards: resource, live abundance and extraction rate, deploy and run state, and each converter's recipe as an aligned input/output table. A summary header shows process count, active count, and net EC draw. Renders identically whichever ISRU backend the mod elected.",
+    "Every drill and converter on your vessel: what it mines or makes, how much is there and how fast it comes out, whether it is deployed and running, and each converter's inputs and outputs. A summary shows how many are running and how much electric charge they draw.",
   tags: ["telemetry", "resources"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },

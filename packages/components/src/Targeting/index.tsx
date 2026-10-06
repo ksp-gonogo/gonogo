@@ -159,7 +159,7 @@ registerComponent<TargetingConfig>({
   id: "targeting",
   name: "Targeting",
   description:
-    "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
+    "Your target's name and distance. Closing on a vessel or docking port, it switches to a docking view with an alignment reticle, over a camera picture when one is available.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
   // Five rows: at four the overflow glow painted out the waiting hint's last word.

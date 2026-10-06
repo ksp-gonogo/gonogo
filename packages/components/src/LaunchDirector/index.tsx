@@ -26,7 +26,7 @@ registerComponent<LaunchDirectorConfig>({
   id: "launch-director",
   name: "Launch & Recovery",
   description:
-    "Every launch pad across the space centre, the ones with something standing on them first, and what you can do from the one you open: launch a craft and crew from it, or recover and revert what is already there. Greyed-out craft are blocked by funds or missing tech; a kerbal who cannot fly is greyed out and says why, or reads as no reading where the roster carried no availability. From the flight scene or the Tracking Station it also leaves for the Space Center, and from the Space Center or the Tracking Station it flies a vessel you pick. Buttons that fire a launch or recovery always confirm before sending the action.",
+    "Launch from any pad or runway: pick a craft and crew and launch, or recover or revert what is already there. It also takes you between flight, the Space Center and the Tracking Station, and switches to another vessel. Launches and recoveries always ask you to confirm.",
   tags: ["career", "launch"],
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },

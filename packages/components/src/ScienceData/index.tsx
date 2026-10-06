@@ -175,7 +175,7 @@ registerComponent<ScienceDataConfig>({
   id: "science-data",
   name: "Science Data",
   description:
-    "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only on its own; an installed Uplink can enrich each Aboard row with File Manager controls (drive capacity, transmit/delete/flag/analyze/move-to-lab) through the science-data.aboard-row augment slot.",
+    "Your science in two tabs. Aboard lists what your vessel has collected for each subject and what is left to gain where you are; Archive lists everything your career has ever returned, by body, experiment and biome, and works at the Space Center with nothing in flight.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
   // Below five columns the Archive tab falls off the end of the strip.

@@ -160,7 +160,7 @@ registerComponent<OrbitalAscentConfig>({
   id: "orbital-ascent",
   name: "Orbital Ascent",
   description:
-    "Phase-space plot: horizontal velocity vs altitude with a circular-orbit reference curve. When the live trace touches the curve, the ship is in orbit at that altitude.",
+    "Your horizontal speed plotted against altitude, beside the speed of a circular orbit. When your trace reaches the curve, you are in orbit at that altitude.",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

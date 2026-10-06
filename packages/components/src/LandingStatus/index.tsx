@@ -276,7 +276,7 @@ registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
   description:
-    "Composed descent instrument for landing under signal delay: a full-height altitude rail, two altimetry plots (top-down touchdown reticle + side-on terrain cross-section with the velocity vector), and delay-native commit/uncommandable clocks with the suicide-burn cue. An instrument, not a command surface (fly gear/brakes from action-group widgets; TWR is its own widget, place it alongside this one).",
+    "Everything for a powered landing: altitude, time to impact, the suicide burn with the Δv and fuel it needs, a top-down view of where you will touch down and a side view of the terrain on the way. Under signal delay it shows what was last seen beside what is predicted now.",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 4, h: 6 },

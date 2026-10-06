@@ -11,7 +11,7 @@ registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target from a single Suggested + categorised list (Bodies / Vessels / Parts) driven by the `target.available` channel, or inspect the current target's name / type / distance / Δv and clear it.",
+    "Pick a target from a suggested list or browse bodies, vessels and parts, or see your current target's type, distance and Δv and clear it.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },

@@ -468,7 +468,7 @@ registerComponent<MapViewConfig>({
   id: "map-view",
   name: "Map View",
   description:
-    "Equirectangular map of the current body with vessel position and trajectory trail. Pin any body, and extend with registered map-view augments (base surfaces, overlays, sections, POIs).",
+    "A flat map of the current body with your vessel's position and ground track. You can show another body instead, and Uplinks can add surface maps and markers.",
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
   minSize: { w: 3, h: 4 },

@@ -413,7 +413,7 @@ registerComponent<TransferWindowConfig>({
   id: "transfer-window",
   name: "Transfer Window",
   description:
-    "Interplanetary/interlunar departure planner: a live phase dial, a list of upcoming transfer windows, and a linked departure/arrival Δv map. Client-derived from streamed body orbits.",
+    "Plan transfers to other planets and moons: a live phase angle dial, a list of upcoming transfer windows, and a map of the Δv each pair of departure and arrival dates costs.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },

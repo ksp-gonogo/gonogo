@@ -223,7 +223,7 @@ registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Ship Map",
   description:
-    "Part diagram of the active vessel. Renders the assembled-space vessel graph as a 2D side-view: prefab-bounds size, per-part heat tint, fuel-fill bars on tanks and boosters, hottest part highlighted.",
+    "A side view of your vessel part by part, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },

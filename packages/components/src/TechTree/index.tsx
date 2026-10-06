@@ -96,7 +96,7 @@ registerComponent<TechTreeConfig>({
   id: "tech-tree",
   name: "Tech Tree",
   description:
-    "Browse and unlock career-mode tech nodes. At wide sizes it renders the in-game-style tiered dependency graph (columns by longest-path depth, connectors from each parent to its children, colour-coded owned / researchable / locked); at narrow sizes it falls back to a filterable, searchable list with the full part manifest per node.",
+    "Browse and research career tech. Wide, it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; narrow, it becomes a searchable list with every part each node unlocks.",
   tags: ["career", "tech"],
   defaultSize: { w: 6, h: 9 },
   // Three columns and rows hold the two essentials the tiny form draws.

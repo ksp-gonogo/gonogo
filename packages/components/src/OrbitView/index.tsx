@@ -195,7 +195,7 @@ registerComponent<OrbitViewConfig>({
   id: "orbit-view",
   name: "Orbit View",
   description:
-    "SVG diagram of the current orbit ellipse with vessel position, apoapsis, and periapsis markers.",
+    "A diagram of your current orbit, with your vessel's position, apoapsis and periapsis marked.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
   // Four rows, not three: at 3x3 the empty-state sentence overflows the body.

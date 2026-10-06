@@ -177,7 +177,7 @@ registerComponent<AtmosphereProfileConfig>({
   id: "atmosphere-profile",
   name: "Atmosphere Profile",
   description:
-    "Atmospheric pressure as a function of altitude (log Y) for the current body. A horizontal marker stands at the pressure of the vessel's current altitude.",
+    "How air pressure falls with altitude on the current body, with a marker at your vessel's altitude.",
   tags: ["telemetry", "graph", "atmosphere"],
   defaultSize: { w: 8, h: 8 },
   minSize: { w: 5, h: 4 },

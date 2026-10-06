@@ -131,7 +131,7 @@ registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",
   name: "Space Center Status",
   description:
-    "KSC overview: facility levels (VAB, SPH, R&D, ...), launch-pad state, and arm-then-confirm upgrade buttons per facility.",
+    "The level of each space centre building, with the price of its next upgrade and a button to buy it that asks you to confirm.",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   // A real balance does not fit two columns, and the pad word needs a fourth row under it.

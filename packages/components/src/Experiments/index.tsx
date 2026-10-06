@@ -238,7 +238,7 @@ registerComponent<ExperimentsConfig>({
   id: "experiments",
   name: "Experiments",
   description:
-    "All science instruments on the current vessel grouped by experiment, plus Mobile Processing Lab status. Shows which instruments have stored data, which have already been deployed, which are one-shot, and which are inoperable.",
+    "Every science instrument on your vessel, grouped by experiment, and the status of any Mobile Processing Lab. Shows which instruments hold data, which have run, which work only once and which are broken, and lets you run them and transmit their results.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },

@@ -35,7 +35,6 @@ export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
   "packages/components/src/LandingStatus/carried-altitude.test.tsx": 1,
   "packages/components/src/Targeting/__fixtures__/approach-closing-stopped-arriving.json": 1,
   "packages/components/src/Targeting/__fixtures__/approach-closing.json": 1,
-  "packages/components/src/Twr/index.tsx": 1,
   "packages/data/src/FlightsManager/ChaptersEditor.tsx": 1,
   "packages/logger/src/index.ts": 1,
   "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 1,

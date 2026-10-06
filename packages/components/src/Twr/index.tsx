@@ -185,7 +185,7 @@ registerComponent<TwrConfig>({
   id: "twr",
   name: "TWR",
   description:
-    "Thrust-to-weight ratio of the active stage as a dial. Red below 1 (can't lift off), amber 1–1.5, green above. Sparkline shows the last minute.",
+    "Thrust-to-weight ratio of the active stage as a dial: red below 1 (cannot lift off), amber from 1 to 1.5, green above, with a line showing the last minute.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 3, h: 3 },

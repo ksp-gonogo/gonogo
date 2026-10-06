@@ -130,7 +130,7 @@ registerComponent<StrategiesConfig>({
   id: "strategies",
   name: "Admin Building",
   description:
-    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. With that building open KSP answers eligibility itself; with it shut the same rules are asked one at a time, which is enough to name what the career refuses but never enough to say yes. A strategy left unanswered can still be committed from here when no other mod has changed how activation works: the remaining checks are made when you confirm.",
+    "Career strategies from the Administration Building: the ones you have running and their effects, and the ones you could start, with what each costs at the commitment you choose. Start and stop strategies from here.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
   // Three columns and four rows hold a full balance over the tally.

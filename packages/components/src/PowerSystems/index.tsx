@@ -10,7 +10,7 @@ registerComponent<PowerSystemsConfig>({
   id: "power-systems",
   name: "Power Systems",
   description:
-    "Producers vs consumers per resource. Aggregates live per-part resource flow across every part on the vessel, solar panels, RTGs, generators, ISRU, drills, engines. Default resource is ElectricCharge; the picker switches to any other resource with live flow contributions. Net rate, total produced, total consumed, plus per-part efficiency where the module exposes a nominal cap.",
+    "What makes and uses electric charge on your vessel, part by part: solar panels, RTGs, generators, drills, engines and more. Shows the net rate and the totals, and can switch to any other resource that is flowing.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 12 },
   minSize: { w: 3, h: 3 },

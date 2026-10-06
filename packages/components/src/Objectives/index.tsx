@@ -51,7 +51,7 @@ registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",
   description:
-    "Read-only unified list of what you're currently trying to achieve: active-contract parameters, each tagged with its source contract. Manage contracts in the Contract Manager widget.",
+    "Everything you are working towards right now, such as the goals of each active contract, with an alarm for when one is met. Accept and manage contracts in Contract Manager.",
   tags: ["contracts", "career"],
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 3 },

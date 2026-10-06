@@ -165,7 +165,7 @@ registerComponent<KeplerPeriodConfig>({
   id: "kepler-period",
   name: "Kepler Period",
   description:
-    "Orbital period as a function of semi-major axis (Kepler's third law) with the current orbit marked. Useful for resonant orbit setups (sat constellations, rescue rendezvous).",
+    "Orbital period against orbit size (semi-major axis), with your current orbit marked. Useful for setting up resonant orbits, such as for satellite constellations or a rescue rendezvous.",
   tags: ["telemetry", "graph", "orbit"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

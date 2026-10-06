@@ -143,7 +143,7 @@ registerComponent<SemiMajorAxisConfig>({
   id: "semi-major-axis",
   name: "Semi-major axis",
   description:
-    "Semi-major axis of the current orbit (distance from the body centre, averaged across the ellipse). Determines orbital period and total energy.",
+    "The semi-major axis of your current orbit: half its longest width, measured through the body's centre. It sets the orbital period.",
   tags: ["telemetry", "orbit"],
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },

@@ -299,7 +299,7 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Attitude indicator + control surface. Reads heading/pitch/roll and exposes a deep action surface (every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim) so a hardware stick mapped via the Inputs tab can fly the vessel.",
+    "Your vessel's heading, pitch and roll, with controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick to them in the Inputs tab to fly the vessel from it.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
   // 4x5 is where the stacked readout stops clipping vertically.
