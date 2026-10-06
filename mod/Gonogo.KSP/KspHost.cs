@@ -49,9 +49,8 @@ namespace Gonogo.KSP
     /// <c>null</c> (it's a lazy <c>FindObjectOfType</c> singleton) before any
     /// scene has spawned it, e.g. very early at the main menu -
     /// <c>FlightGlobals.Bodies</c> would NRE on that <c>fetch.bodies</c>
-    /// dereference. Guarded below with <c>FlightGlobals.ready &amp;&amp;
-    /// FlightGlobals.fetch != null</c> before ever touching
-    /// <c>FlightGlobals.Bodies</c>.</description></item>
+    /// dereference. Guarded below, through <see cref="SystemCapture"/>,
+    /// before ever touching <c>FlightGlobals.Bodies</c>.</description></item>
     /// </list>
     /// </summary>
     public sealed class KspHost : IKspHost
@@ -233,7 +232,19 @@ namespace Gonogo.KSP
 
             try
             {
-                if (FlightGlobals.ready && FlightGlobals.fetch != null)
+                var globals = FlightGlobals.fetch != null;
+                var scene = HighLogic.LoadedScene;
+                var inAGame = HighLogic.CurrentGame != null
+                    && (scene == GameScenes.FLIGHT || scene == GameScenes.SPACECENTER || scene == GameScenes.TRACKSTATION || scene == GameScenes.EDITOR);
+                // The bodies and the roster are there in every scene of a loaded game; the active vessel in flight alone.
+                var readsTheSystem = SystemCapture.ReadsTheSystem(
+                    globals,
+                    inAGame,
+                    HighLogic.LoadedSceneIsFlight,
+                    FlightGlobals.ready,
+                    globals && FlightGlobals.Vessels != null ? FlightGlobals.Vessels.Count : 0,
+                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count);
+                if (readsTheSystem)
                 {
                     var bodies = FlightGlobals.Bodies;
                     if (bodies != null && bodies.Count > 0)
@@ -255,7 +266,7 @@ namespace Gonogo.KSP
                     // roster. Omitted entirely (no "vessel" key at all) at
                     // the main menu / between-flights rather than a null
                     // sentinel, matching the "bodies" convention above.
-                    var activeVessel = ActiveVesselScope.Current;
+                    var activeVessel = SystemCapture.ReadsTheActiveVessel(globals, FlightGlobals.ready) ? ActiveVesselScope.Current : null;
                     if (activeVessel != null)
                     {
                         // Closest approach comes from the elected propagation
@@ -328,23 +339,27 @@ namespace Gonogo.KSP
                      * distinguishes it from a recording made before the channel
                      * existed, which has no key at all.
                      */
-                    var eva = new List<object?>();
-                    if (allVessels != null)
+                    if (FlightGlobals.ready)
                     {
-                        foreach (var candidate in allVessels)
+                        // A suit's state is read off a loaded kerbal, and none is loaded outside a flight.
+                        var eva = new List<object?>();
+                        if (allVessels != null)
                         {
-                            if (candidate == null || candidate.vesselType != VesselType.EVA)
+                            foreach (var candidate in allVessels)
                             {
-                                continue;
-                            }
-                            var entry = BuildEvaKerbalEntry(candidate);
-                            if (entry != null)
-                            {
-                                eva.Add(entry);
+                                if (candidate == null || candidate.vesselType != VesselType.EVA)
+                                {
+                                    continue;
+                                }
+                                var entry = BuildEvaKerbalEntry(candidate);
+                                if (entry != null)
+                                {
+                                    eva.Add(entry);
+                                }
                             }
                         }
+                        values["evaCrew"] = eva;
                     }
-                    values["evaCrew"] = eva;
                 }
 
                 // Time-warp/pause (G-5) is global game state, not tied to a
