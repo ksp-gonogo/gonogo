@@ -36,6 +36,7 @@ import {
   plotLayerDescriptions,
   plotLayerExtent,
 } from "./plotLayers";
+import { placeThresholdLabels } from "./thresholdLabels";
 
 /**
  * Parallel `x` and `y` arrays to plot; `x` is unix ms on a time chart. `y2` is the upper bound of a
@@ -231,6 +232,9 @@ const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
 /** The limit mark's width, which is also how close two spells may start and still be one mark. */
 const LIMIT_MARK_SIZE = 14;
+/** A threshold label's width per character and for a held or modelled mark after it, at its 10 px type. */
+const LABEL_CHAR_PX = 6;
+const LABEL_MARK_PX = 12;
 /** How far the mark's centre stands from the crossing, on each axis. */
 const LIMIT_MARK_OFFSET = 10;
 const DEFAULT_BAND_OPACITY = 0.2;
@@ -619,29 +623,32 @@ export function LineChart({
             breaks: s.data.breaks,
             step: s.type === "step" || s.type === "scatter",
             minGapPx: LIMIT_MARK_SIZE,
-          }).map((crossing) => {
-            const reading = yTickFormat(s.data.y[crossing.index]);
-            const when = xTickFormat(s.data.x[crossing.index], xDomain);
-            return {
-              key: `${t.id}-${s.id}-${crossing.index}`,
-              color: s.color,
-              x: clamp(
-                plotX0 + LIMIT_MARK_SIZE / 2 + 1,
-                crossing.x - LIMIT_MARK_OFFSET * (crossing.entered ? 1 : -1),
-                plotX1 - LIMIT_MARK_SIZE / 2 - 1,
-              ),
-              y: clamp(
-                plotY0 + LIMIT_MARK_SIZE / 2 + 1,
-                crossing.y + away * LIMIT_MARK_OFFSET,
-                plotY1 - LIMIT_MARK_SIZE / 2 - 1,
-              ),
-              text: crossing.entered
-                ? crossing.spells > 1
-                  ? `${s.label} went past ${limitName} ${crossing.spells} times from ${when}, first reading ${reading}`
-                  : `${s.label} went past ${limitName} at ${when}, reading ${reading}`
-                : `${s.label} was already past ${limitName} when this window began at ${when}, reading ${reading}`,
-            };
-          }),
+          })
+            // A plot too small for captions has room for one mark a trace: where its newest spell began.
+            .slice(captionsFit ? 0 : -1)
+            .map((crossing) => {
+              const reading = yTickFormat(s.data.y[crossing.index]);
+              const when = xTickFormat(s.data.x[crossing.index], xDomain);
+              return {
+                key: `${t.id}-${s.id}-${crossing.index}`,
+                color: s.color,
+                x: clamp(
+                  plotX0 + LIMIT_MARK_SIZE / 2 + 1,
+                  crossing.x - LIMIT_MARK_OFFSET * (crossing.entered ? 1 : -1),
+                  plotX1 - LIMIT_MARK_SIZE / 2 - 1,
+                ),
+                y: clamp(
+                  plotY0 + LIMIT_MARK_SIZE / 2 + 1,
+                  crossing.y + away * LIMIT_MARK_OFFSET,
+                  plotY1 - LIMIT_MARK_SIZE / 2 - 1,
+                ),
+                text: crossing.entered
+                  ? crossing.spells > 1
+                    ? `${s.label} went past ${limitName} ${crossing.spells} times from ${when}, first reading ${reading}`
+                    : `${s.label} went past ${limitName} at ${when}, reading ${reading}`
+                  : `${s.label} was already past ${limitName} when this window began at ${when}, reading ${reading}`,
+              };
+            }),
         );
     });
   }, [
@@ -657,6 +664,63 @@ export function LineChart({
     plotX1,
     plotY0,
     plotY1,
+    captionsFit,
+  ]);
+
+  // A label yields to another label always, and to a mark, the legend and a trace where it can. A plot too small for captions draws none: the lines and the marks stand alone.
+  const labelPlaces = useMemo(() => {
+    if (!captionsFit) return new Map<string, null>();
+    const half = LIMIT_MARK_SIZE / 2;
+    return placeThresholdLabels({
+      labels: thresholdLines
+        .filter((t) => t.label)
+        .map((t) => ({
+          id: t.id,
+          width:
+            (t.label?.length ?? 0) * LABEL_CHAR_PX +
+            (t.currency.held ? LABEL_MARK_PX : 0),
+          lineY: t.y,
+        })),
+      plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+      obstacles: [
+        ...crossingMarks.map((m) => ({
+          x0: m.x - half,
+          y0: m.y - half,
+          x1: m.x + half,
+          y1: m.y + half,
+        })),
+        ...(legend === "none"
+          ? []
+          : series.map((s, i) => ({
+              x0: plotX0 + 3,
+              y0: plotY0 + 6 + i * 16,
+              x1: plotX0 + 3 + Math.min(s.label.length * 6 + 8, plotW - 6),
+              y1: plotY0 + 6 + i * 16 + 13,
+            }))),
+      ],
+      traces: series
+        .filter((s) => (s.type ?? "line") !== "band")
+        .map((s) => ({
+          cx: s.data.x.map(scaleX),
+          cy: s.data.y.map(
+            s.axis === "primary" ? scaleYPrimary : scaleYSecondary,
+          ),
+        })),
+    });
+  }, [
+    captionsFit,
+    thresholdLines,
+    crossingMarks,
+    legend,
+    series,
+    scaleX,
+    scaleYPrimary,
+    scaleYSecondary,
+    plotX0,
+    plotX1,
+    plotY0,
+    plotY1,
+    plotW,
   ]);
 
   /*
@@ -693,6 +757,9 @@ export function LineChart({
     if (t.passed && t.kind === "target")
       clauses.push(`${name}: target reached`);
     if (t.currency.held) clauses.push(sayHeld(name, t.currency.caption));
+    // A label with no room to be drawn is still said.
+    if (t.label && !labelPlaces.get(t.id) && clauses.length === 0)
+      clauses.push(t.label);
     return clauses;
   });
 
@@ -1053,11 +1120,11 @@ export function LineChart({
             data-threshold-kind={t.kind}
             data-threshold-passed={t.passed || undefined}
           />
-          {t.label && (
+          {t.label && labelPlaces.get(t.id) && (
             <text
-              x={plotX1 - 4}
-              y={t.y - 3}
-              textAnchor="end"
+              x={labelPlaces.get(t.id)?.x}
+              y={labelPlaces.get(t.id)?.y}
+              textAnchor={labelPlaces.get(t.id)?.anchor}
               fill={t.tone.label}
               fontSize={10}
             >

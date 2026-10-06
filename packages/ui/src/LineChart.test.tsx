@@ -751,6 +751,68 @@ describe("LineChart threshold tone", () => {
     }
   });
 
+  it("never prints two labels on top of each other: a marker on the limit hangs its label under the line", () => {
+    const { container } = render(
+      <LineChart
+        series={[
+          {
+            id: "s",
+            label: "Trace",
+            axis: "primary",
+            color: "#fff",
+            data: { x: [0, 1000, 2000], y: [10, 20, 30] },
+          },
+        ]}
+        xDomain={[0, 3000]}
+        yDomainPrimary={[0, 100]}
+        thresholds={[
+          { id: "l", value: 50, kind: "limit", bad: "above", label: "Limit" },
+          { id: "m", value: 50, kind: "marker", label: "Now" },
+        ]}
+        width={400}
+        height={200}
+      />,
+    );
+    const ys = [...container.querySelectorAll("text")]
+      .filter((t) => ["Limit", "Now"].includes(t.textContent ?? ""))
+      .map((t) => Number(t.getAttribute("y")));
+    expect(ys).toHaveLength(2);
+    expect(Math.abs(ys[0] - ys[1])).toBeGreaterThanOrEqual(11);
+  });
+
+  it("draws no limit label and one mark a trace on a plot too small for captions, and still says the label", () => {
+    const ys = Array.from({ length: 60 }, (_, i) =>
+      Math.floor(i / 10) % 2 ? 70 : 30,
+    );
+    const { container } = render(
+      <LineChart
+        series={[
+          {
+            id: "s",
+            label: "Trace",
+            axis: "primary",
+            color: "#fff",
+            data: { x: ys.map((_, i) => i * 50), y: ys },
+          },
+        ]}
+        xDomain={[0, 3000]}
+        yDomainPrimary={[0, 100]}
+        thresholds={[
+          { id: "l", value: 50, kind: "limit", bad: "above", label: "Fifty" },
+        ]}
+        width={150}
+        height={90}
+      />,
+    );
+    expect(
+      [...container.querySelectorAll("text")].some(
+        (t) => t.textContent === "Fifty",
+      ),
+    ).toBe(false);
+    expect(container.querySelectorAll("[data-limit-crossing]")).toHaveLength(1);
+    expect(chartName(container)).toMatch(/Fifty/);
+  });
+
   it("draws a target in the go tone once the trace reaches it", () => {
     const short = lineFor("target", [10, 20, 30]);
     expect(short.line.getAttribute("stroke")).toBe("var(--color-text-faint)");
