@@ -4,17 +4,13 @@
  * initial-add path.
  */
 
-import {
-  type ComponentDefinition,
-  clearRegistry,
-  registerComponent,
-} from "@ksp-gonogo/core";
+import { type ComponentDefinition, registerComponent } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { clearAugments, registerAugment } from "@ksp-gonogo/ui-kit";
+import { registerAugment } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -75,11 +71,6 @@ function registerTrivial() {
 }
 
 describe("ComponentOverlay: add → configure → persist", () => {
-  afterEach(() => {
-    clearRegistry();
-    clearAugments();
-  });
-
   it("persists the config entered in the on-add modal via updateItemConfig", async () => {
     // registerComponent before render, ComponentOverlay reads the registry on every render via getComponents().
     registerTrivial();
