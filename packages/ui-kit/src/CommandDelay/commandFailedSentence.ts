@@ -6,7 +6,7 @@ import type {
 } from "./commandLossSentence";
 
 /**
- * One dispatch whose machinery broke: it carries no verdict, so it takes the loss's shape.
+ * One dispatch that failed with an error rather than an answer. It has the same fields as {@link CommandLossLike}.
  *
  * @category CommandDelay
  */
@@ -30,8 +30,8 @@ export type RailFailed = RailLoss;
  * What the operator is told about a command whose machinery broke: an error
  * came back in place of an answer, or the client went away while it waited.
  * Never "refused", which is the game's verdict, and never "never sent" or "may
- * have run", which each claim to know where the command got to. The error's own
- * message is not quoted: it is the machinery's prose, not the operator's.
+ * have run", which each claim to know where the command got to. It does not
+ * quote the error's own message.
  *
  * @category CommandDelay
  */

@@ -5,7 +5,6 @@
  * - `undefined` and a missing key are treated the same
  * - object key order is ignored
  * - arrays compare by index
- *
  * - `Date` values compare by time, `Set` by membership (primitives and
  *   deep-equal members) and `Map` by entries
  *

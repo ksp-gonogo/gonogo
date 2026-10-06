@@ -115,8 +115,8 @@ export interface CommandDelayProps {
   /** A single command handle. Sugar for `handles={[handle]}`. */
   handle?: CommandDelayHandle;
   /**
-   * Several command handles rendered as one merged list, for a widget whose
-   * controls fire more than one command (e.g. a maneuver planner's
+   * Several command handles drawn as one merged list, for a widget whose
+   * controls send more than one command (e.g. a maneuver planner's
    * add/update/remove). Their discrete in-flight rows are concatenated into a
    * single `InFlightList`.
    */

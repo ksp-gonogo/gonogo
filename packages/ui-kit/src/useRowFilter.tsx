@@ -19,7 +19,7 @@ import { Stack } from "./Stack";
  * @category FilterList
  */
 export interface RowFilter {
-  /** True when the row's searchable text passes every active needle. */
+  /** True when the row's search text contains every selected term and the typed text. */
   matches: (searchText: string) => boolean;
   /** Whether anything is narrowing the list right now, for empty-state copy. */
   active: boolean;

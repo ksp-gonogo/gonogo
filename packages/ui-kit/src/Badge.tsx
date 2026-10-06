@@ -20,9 +20,10 @@ export type BadgeSize = "sm" | "md";
  */
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   /**
-   * The state the badge shows. Drives colour and, when it contributes, its
-   * rank. Omit it, or pass `neutral`, for a purely decorative badge (a kind
-   * tag, a count), which renders a grey chip and never moves a panel summary.
+   * The state the badge shows. Sets its colour and, with `report`, where it
+   * ranks in the panel's summary. Omit it, or pass `neutral`, for a purely
+   * decorative badge (a kind tag, a count), which renders a grey chip and never
+   * moves a panel summary.
    */
   tone?: Tone;
   size?: BadgeSize;
@@ -38,8 +39,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * {@link PanelStatusStore} as a contribution `{ id, severity, label }`, so the panel
    * can summarise it. `id` must be stable for the badge's lifetime. `label`
    * defaults to the badge's text content when `children` is a plain string; pass
-   * it explicitly otherwise. A floor (`go`) badge with `report` still
-   * registers but never wins a merge that has anything above the floor.
+   * it explicitly otherwise. A `go` badge with `report` still registers, but
+   * any worse state in the panel wins the summary over it.
    */
   report?: { id: string; label?: string };
   children: ReactNode;

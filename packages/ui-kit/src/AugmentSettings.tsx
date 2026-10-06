@@ -67,9 +67,11 @@ export function AugmentSettingsProvider({
  *
  * @example
  * ```tsx
- * const { values, set } = useAugmentSettings("example-cadence-section");
- * const compact = values.compact === true;
- * <Switch checked={compact} onChange={(v) => set("compact", v)} label="Compact" />
+ * function CompactToggle() {
+ *   const { values, set } = useAugmentSettings("example-cadence-section");
+ *   const compact = values.compact === true;
+ *   return <Switch checked={compact} onChange={(v) => set("compact", v)} label="Compact" />;
+ * }
  * ```
  *
  * @category Extensions

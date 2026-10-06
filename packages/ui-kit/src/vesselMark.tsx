@@ -33,7 +33,7 @@ const OUTLINE_WIDTH = 0.3;
  * modelled hue, each outlined in the vessel's green, so the shape is never the
  * only thing that says which craft it is and the hue never the only thing that
  * says how it is known. A lost one is the held square emptied: the outline
- * alone, in the no-go hue, for a last place nothing vouches for any more. All
+ * alone, in the no-go hue, for a last place no longer known to be right. All
  * of them fill the same footprint.
  *
  * @category Unit

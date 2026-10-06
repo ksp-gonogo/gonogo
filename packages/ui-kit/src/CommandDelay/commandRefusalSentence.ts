@@ -8,7 +8,7 @@ import { writeQuantity } from "../units";
 import type { RailTags } from "./railTags";
 
 /**
- * One refused dispatch, as much of it as this text needs. Structurally the spine's `CommandRefusal`, so a hand-built refusal works too.
+ * One refused dispatch, as much of it as the sentence needs. The entries in `useCommand`'s `refusals` satisfy it, and so does one built by hand.
  *
  * @category CommandDelay
  */
@@ -25,19 +25,16 @@ export interface CommandRefusalLike {
   /** The limit and the actual behind the reason, when the mod sent them. */
   breach?: LimitBreach;
   /**
-   * The refusal in the GAME's own words, when the game had any to give: the
-   * `ClearToSaveStatus` value it came back with, a strategy's own `CanBeActivated`
-   * reason, a pre-flight test's warning title, a `[Description]`-tagged state
-   * member's name. Preferred over every sentence written here: it stays right
-   * when KSP changes and arrives localised.
+   * The refusal in the game's own words, when the game gave any: a
+   * strategy's own reason, a pre-flight check's warning title. Used in place
+   * of the kit's own clause, since it arrives localised and follows the game.
    */
   detail?: string;
 }
 
 /**
  * A refusal a surface can render: the text's inputs plus the dispatch's own
- * `requestId`, which keys the box and is what `dismiss` takes. The spine's
- * `CommandRefusal` satisfies it structurally.
+ * `requestId`, which keys the box and is what `dismiss` takes.
  *
  * @category CommandDelay
  */
@@ -123,7 +120,7 @@ function said(detail: string | undefined): string | null {
  *
  * The command and args name the SUBJECT, the code picks the clause (the
  * refinement's own sentence ahead of its root's), and the `LimitBreach`
- * supplies the NUMBERS, written by `units.ts`.
+ * supplies the NUMBERS, written as {@link Unit} writes them.
  *
  * Names are user-supplied and unbounded, so whatever renders this must WRAP:
  * truncation eats the numbers off the end.

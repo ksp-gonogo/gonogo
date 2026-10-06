@@ -48,7 +48,7 @@ export interface BandProps<UnitSymbol extends string = string>
  *   token, since one end alone would read as a scalar
  * - The precision follows the width: digits widen until the ends read
  *   differently, so 6 700 km to 6 710 km never prints as `6.7 Mm` twice
- * - Both ends are one {@link UnitSharedFormat} group, which settles the rung
+ * - Both ends are one {@link UnitSharedFormat} group, which settles the unit
  *   and digit count across the pair, so an interval is never written in two
  *   units (`999 m` to `1.0 km`)
  * - With `wrapsAt`, a band spanning half the turn or more renders as

@@ -67,8 +67,8 @@ export function ReadOnlyField({
 }
 
 /**
- * The value half on its own, for a caller that already owns its label, so the
- * three cases and the placeholder are decided in one place.
+ * The value half on its own, for a caller that already draws its own label,
+ * drawn exactly as {@link ReadOnlyField} draws it.
  *
  * @category Form
  */

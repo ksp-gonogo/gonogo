@@ -50,9 +50,9 @@ export interface CommandGateLike extends CommandRefusalLike {
   /** The game EVALUATED this and said no. */
   blocked: boolean;
   /**
-   * The mod could not evaluate this command's gates at all. NOT a reason to
-   * darken the control (a sandbox save has no facility authority by design):
-   * it renders as ordinary and reports itself through `data-gate`.
+   * The mod could not evaluate this command's gates at all, as in a sandbox
+   * save. The control is drawn as ordinary, not darkened, and carries
+   * `data-gate` to say so.
    */
   undetermined?: boolean;
 }
@@ -244,9 +244,9 @@ export interface CommandButtonState {
 
 /**
  * The {@link CommandButton} lifecycle with no rendering attached, for a control
- * whose chrome differs. The caller draws each phase and wires its own click to
- * `press`; it writes no state, no arm timeout and no reply handling.
- * `CommandButton` is this hook plus the default rendering.
+ * that looks different. The hook keeps the phase, the arm timeout and the
+ * reply handling; the caller draws each phase and wires its own click to
+ * `press`. `CommandButton` is this hook plus the default rendering.
  *
  * @example
  * ```tsx
@@ -605,8 +605,8 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
 /**
  * A button that dispatches a command and shows what became of it: at rest,
  * armed (with a `confirmLabel`), in flight, refused, lost, found, or blocked by
- * the mod's standing gate. The panel delay rail says something is in flight;
- * this says which control committed it.
+ * the mod's standing gate. The panel's delay rail shows that a command is in
+ * flight; this shows which control sent it.
  *
  * Pending clears on `send()`'s own promise, so it settles even for a command
  * with no observable telemetry consequence. Pending is per RENDERED CONTROL, not

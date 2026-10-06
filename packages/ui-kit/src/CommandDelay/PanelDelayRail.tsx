@@ -38,15 +38,13 @@ function handleHasContent(handle: CommandHandle): boolean {
 }
 
 /**
- * The Panel-owned signal-delay rail. Reads the active command handles from the
- * nearest `DelayRailContext` and renders each one's delay UI through
- * `CommandDelay`.
+ * The panel's signal-delay rail: a strip along the top edge that shows each
+ * command the widget has sent, through {@link CommandDelay}, reading them
+ * from the nearest {@link DelayRailContext}.
  *
- * **The band is RESERVED, not taken.** Every panel stands the same strip up at
- * its top edge whether or not it has a command to show, so a command going up
- * costs the widget nothing. In a `Panel` the rail is the first row of
- * `PanelStickyTop`; in a hand-composed panel it is the container's first
- * child, pulled up into the inset `PanelContainer` reserves.
+ * Every panel reserves the strip whether or not it has a command to show, so
+ * a command going out never moves the widget. `Panel` draws it itself; in a
+ * hand-composed panel, make it the container's first child.
  *
  * Collapsed, the rail sits in normal flow inside the band and moves nothing.
  * It is a disclosure: a native `<button>` laid over the strip controls the
@@ -58,15 +56,11 @@ function handleHasContent(handle: CommandHandle): boolean {
  * tech. Pinned, the detail takes its own clicks and only the collapse hint
  * toggles.
  *
- * The band stays EMPTY when nothing has anything to draw. "Anything" is five
- * things: in flight, refused, unanswered, found and never sent. The last four
- * are terminal, with nothing in flight, so they are asked for separately.
+ * The strip is empty unless a command is in flight, refused, unanswered,
+ * found or never sent.
  *
- * `tiny`: the band's own reserved-but-empty backing would otherwise paint a
- * full-width bar over the tiny panel's own focus ring, which has nothing else
- * to sit behind it (no header). Reserving height still costs nothing, so only
- * the paint is skipped, and only while the rail is genuinely empty; real
- * content still gets its opaque backing, tiny panel or not.
+ * `tiny` is for a tiny panel with no header: the empty strip draws no
+ * background, so it does not cover the panel's focus ring.
  */
 export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
   const handles = useActiveHandles();

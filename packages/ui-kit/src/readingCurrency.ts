@@ -104,22 +104,26 @@ export interface CurrencyOptions {
    * The consumer draws the reading's reckoning, where one is on offer, rather
    * than its observation: a countdown, or a figure a widget solves forward.
    * The modelled figure is then marked wherever it is not a reading of now,
-   * which under signal delay includes a current reading carried to SCET.
+   * which under signal delay includes a current reading carried forward to the
+   * craft's own present (SCET, spacecraft event time).
    */
   readonly drawsReckoning?: boolean;
 }
 
 /**
- * The mark's words for a current reading whose figure the model carried across the light-time.
+ * The mark's words for a current reading whose figure the model carried
+ * forward by the signal delay, to the craft's own present: SCET, spacecraft
+ * event time.
  *
  * @category Unit
  */
 export const MODELLED_TO_SCET = "modelled to SCET";
 
 /**
- * What the model says a current reading's figure is at the instant it reckoned
- * to, where that is past the received edge: the figure a widget draws beside
- * the observation with {@link ModelledAlongside}. `undefined` everywhere else.
+ * What the model says a current reading's figure is at the instant it was
+ * carried to, where that is later than the newest data received: the figure a
+ * widget draws beside the observation with {@link ModelledAlongside}.
+ * `undefined` everywhere else.
  *
  * @category Unit
  */
@@ -297,7 +301,7 @@ export interface ReckoningMarking {
 /**
  * How a figure derived from this reading should be marked, or null where the reading is a current observation of now.
  *
- * A current reading a model carried past the received edge marks `modelled`; a held one marks `held`, or `modelled` where a model
+ * A current reading a model carried past the newest data received marks `modelled`; a held one marks `held`, or `modelled` where a model
  * carries it. Use it for every displayed figure computed from a reading's payload, a plan's included.
  *
  * @category Unit

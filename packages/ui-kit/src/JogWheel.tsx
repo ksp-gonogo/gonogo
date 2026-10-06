@@ -82,8 +82,8 @@ const RATE_TICK_MS = 60;
 const DEFAULT_STEPS_PER_SECOND = 30;
 
 /**
- * The floor either axis is clamped up to: WCAG 2.2 SC 2.5.8 (Target Size,
- * Minimum) at AA. Drag range is unaffected by the box, since the wheel captures
+ * The smallest either side of the wheel's box can be, in CSS px: WCAG 2.2 SC
+ * 2.5.8 (Target Size, Minimum) at AA. Drag range is unaffected by the box, since the wheel captures
  * the pointer.
  *
  * @category Form
@@ -104,10 +104,8 @@ const DEFAULT_SHORT_PX = JOG_WHEEL_MIN_TARGET_PX;
  * deltaSteps welcome, for pointer drag), clamp to `[min,max]`, and snap to the
  * step grid.
  *
- * The grid is anchored at `min`, so an unbounded control moves by exactly the
- * delta asked for and snaps to nothing: a grid measured from negative infinity
- * is NaN, and one from a substituted zero would make one press move by other
- * than one step.
+ * The grid is anchored at `min`. With an infinite `min` (an unbounded control),
+ * the value moves by exactly the delta asked for and snaps to nothing.
  *
  * @category Form
  */

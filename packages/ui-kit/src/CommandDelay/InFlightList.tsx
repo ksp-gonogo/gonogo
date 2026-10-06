@@ -63,7 +63,7 @@ export function signalDelayPresentation({
 }
 
 /**
- * Display shape for one delayed command, declared locally. `etaSeconds` is the
+ * Display shape for one delayed command. `etaSeconds` is the
  * caller's choice of clock (reach or reply); `null` renders as "no ETA" (an
  * `overdue` or `lost` entry, or `no-path` mode).
  *
@@ -94,10 +94,9 @@ export interface InFlightListItem {
  * What the link is doing, as `useCommand`'s `delayMode` reports it: `live`
  * under the staged threshold, `staged` above it, `no-path` when nothing is
  * measurable.
- * {@link InFlightList} writes it to its root's `data-mode` attribute and draws
- * nothing different for it: a staged command already shows its own phase and
- * countdown, and `no-path` already shows "no ETA", so a mode-level treatment
- * would say the same thing twice. The attribute is a styling and test hook.
+ * {@link InFlightList} writes it to its root's `data-mode` attribute, for
+ * styling, and draws nothing different for it: each command already shows its
+ * own phase and countdown, and under `no-path` it shows "no ETA".
  *
  * @category CommandDelay
  */

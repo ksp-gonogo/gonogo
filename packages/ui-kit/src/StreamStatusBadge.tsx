@@ -10,19 +10,19 @@ import { formatStreamStatus } from "./status/streamStatusWord";
  * @category Badge
  */
 export interface StreamStatusBadgeProps {
-  /** Current stream/connectivity status for the widget's representative key. */
+  /** The stream status to show. */
   status: StreamStatusValue;
 }
 
 /**
- * A small `sm` {@link Badge} for a stream status: the status's word (HELD,
- * OFFLINE, BLACKOUT, RECORDED, SYNCING, NO DATA) in its severity, or nothing
- * while the status is `live`. It sits inside a polite live region that stays
+ * A small `sm` {@link Badge} for a stream status: the status's word, as
+ * {@link formatStreamStatus} writes it, in its severity, or nothing while the
+ * status is `live`. It sits inside a polite live region that stays
  * mounted while empty, so the first change away from `live` is announced.
  *
- * The dashboard already derives `recorded` and `last-before-blackout` across
- * a widget's declared channels and shows the badge in the panel header, so a
- * widget does not draw this for those. Use it for a status that is not the
+ * The dashboard sets `recorded` and `last-before-blackout` itself from a
+ * widget's declared channels and shows them in the panel header, so a widget
+ * does not draw this for those. Use it for a status that is not the
  * panel's own (a sub-region reading a different Topic), or pass a status to
  * {@link Panel}'s `panelStatus` prop.
  *

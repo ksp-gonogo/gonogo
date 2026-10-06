@@ -12,9 +12,8 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * the telemetry showing it reaches a command centre, one light-time later.
  *
  * The qualifier belongs to each reading, not to the screen, since two vessels
- * have different light-times. Labels are `SCET` and `AT <vantage>`, never "RT",
- * which reads as the opposite of the delayed clock. A space-centre channel
- * describes no craft, so it takes no context.
+ * have different light-times. It is drawn as `SCET` or `AT <vantage>`. A
+ * space-centre channel describes no craft, so it takes no context.
  *
  * @category MissionDate
  */

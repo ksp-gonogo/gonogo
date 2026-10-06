@@ -15,7 +15,7 @@ export interface ButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
    * Turn it off for a group whose members are meant to size to their own content.
    */
   equalWidth?: boolean;
-  /** Gap between buttons, as a gap job. Omit it for `--gap-related`. */
+  /** Gap between buttons, one of the {@link GapToken} names. Omitted, it is the container's `related` gap. */
   gap?: GapToken;
   children?: ReactNode;
 }

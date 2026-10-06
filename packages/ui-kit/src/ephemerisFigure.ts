@@ -32,8 +32,8 @@ export type EphemerisFigure = <Unit extends string>(
  * catalogue hands it over as held.
  *
  * A figure that also rests on the craft does not come through here: give it
- * the craft's mark with `derivedMarking`, since one inexact input makes the
- * result inexact.
+ * the craft's mark with {@link derivedMarking}, since one inexact input makes
+ * the result inexact.
  *
  * @category Unit
  */

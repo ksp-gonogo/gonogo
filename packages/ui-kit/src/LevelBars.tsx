@@ -8,7 +8,7 @@ import { TONE_MARK } from "./tone";
  * @category Meter
  */
 export interface LevelBarsProps {
-  /** How many bars are lit, or null when there is nothing to judge by. Zero is a verdict and draws every bar unlit. */
+  /** How many bars are lit, or null when there is nothing to judge by. Zero is a reading, and draws every bar unlit. */
   lit: number | null;
   /** How many bars the glyph has. */
   of: number;

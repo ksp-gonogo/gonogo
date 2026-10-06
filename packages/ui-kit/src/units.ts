@@ -203,7 +203,9 @@ export type KnownQuantityKind =
 export type QuantityKind = KnownQuantityKind | (string & {});
 
 /**
- * One rung of a scaling ladder: a threshold in base units and its symbol.
+ * One step of a unit's scale: a symbol (`m`, `km`, `Mm`) and the size, in the
+ * base unit, from which a value is written in it. A kind's steps in order are
+ * its ladder, and choosing a unit for a value is choosing its rung.
  *
  * @category Unit
  */
@@ -298,8 +300,8 @@ export const LADDERS = {
 const laddersByName: Record<string, readonly Rung[]> = { ...LADDERS };
 
 /**
- * Every ladder a declared unit names, and therefore every group that settles
- * one rung together. A unit on none of them is a group of its own: `m`, `km`
+ * Every ladder (a kind's {@link Rung}s in order) a declared unit names, and
+ * therefore every group that settles one unit together. A unit on none of them is a group of its own: `m`, `km`
  * and `Mm` are one group and `s` and `min` are two.
  *
  * @category Unit

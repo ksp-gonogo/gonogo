@@ -33,8 +33,8 @@ export interface DivergingBarProps<Unit extends string = string> {
  * as much as its size (a ledger term that produces or consumes). Decorative
  * and `aria-hidden`: pair it with the number, which carries the reading.
  *
- * A figure that is held fades the bar and nothing more; the
- * number beside it states the currency.
+ * A held figure fades the bar and nothing more; the number beside it says how
+ * current it is.
  *
  * Hides itself when the nearest `inline-size` container (such as `Panel`) is
  * narrower than 300px, where the number alone is the reading that matters.

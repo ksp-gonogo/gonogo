@@ -59,8 +59,8 @@ export interface MissionDateParts {
  * Splits a UT (seconds since the game's epoch) into calendar components, with years and days ONE-BASED to match
  * every other date this kit renders: UT zero is Year 1 Day 1, not Year 0 Day 0.
  *
- * A non-finite or negative UT lands on the epoch, as a floor under arithmetic;
- * it is never a way to render an absent instant, which never reaches here.
+ * A non-finite or negative UT gives the epoch. Check for an absent instant
+ * before calling this rather than showing it as the epoch.
  *
  * @category Form
  */

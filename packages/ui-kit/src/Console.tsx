@@ -48,10 +48,10 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
    */
   inFlight?: InFlightListItem[];
   /**
-   * The entries carry their OWN separation, frozen when sent, so the queue
-   * outlives the live reading: words sent at four light-minutes are still out
-   * there after the path drops. The chip and the queue are still never drawn
-   * together.
+   * Set when each `inFlight` entry carries the delay it was sent under, so the
+   * queue stays after the live delay reading is gone: words sent at four
+   * light-minutes are still crossing after the path drops. The chip and the
+   * queue are still never drawn together.
    */
   inFlightFrozenAtDispatch?: boolean;
   /**

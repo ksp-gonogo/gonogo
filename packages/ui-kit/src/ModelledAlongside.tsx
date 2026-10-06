@@ -89,8 +89,8 @@ function ModelledMark({ children }: { children: ReactNode }) {
 
 /**
  * A reading's observation through {@link Unit}, followed by the model's figure
- * with the modelled mark where the model reaches past the received edge to a
- * figure that reads apart from it. Shorthand for a {@link Unit} followed by a
+ * with the modelled mark where the model reaches past the newest data
+ * received to a figure that reads apart from it. Shorthand for a {@link Unit} followed by a
  * {@link ModelledAlongside} fed from {@link modelledBeyondReceived}.
  *
  * @category Unit

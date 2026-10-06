@@ -6,7 +6,7 @@ import type {
 } from "./commandLossSentence";
 
 /**
- * One dispatch that never left this machine: the same dispatch as a loss, at a later moment, so aliased onto the loss shape.
+ * One dispatch that never left this machine. It has the same fields as {@link CommandLossLike}.
  *
  * @category CommandDelay
  */
@@ -27,14 +27,9 @@ export type CommandUndeliveredEntry = CommandLossEntry;
 export type RailUndelivered = RailLoss;
 
 /**
- * What the operator is told about a command that never went out. It never left,
- * so pressing again repeats nothing: the inverse of the loss sentence, in a
- * different shape ("may have run" against "safe to re-send") so polarity is not
- * the only difference. "Safe to re-send" is a fact, not advice.
- *
- * The transport's `reason` is not quoted: the phase has one cause, and which
- * connection gave up changes nothing the operator does. Never "lost", which
- * carries the opposite advice.
+ * What the operator is told about a command that never went out: it did not
+ * run, so it is safe to re-send. It never says "lost", which means the
+ * opposite ("may have run"), and does not quote the connection's own error.
  *
  * @category CommandDelay
  */

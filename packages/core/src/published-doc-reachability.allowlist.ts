@@ -500,16 +500,20 @@ export const GLOBAL_IDENTIFIERS: readonly string[] = [
  * from the sdk barrel today, so the bug cannot be observed live and the
  * instrument has to be validated against a rebuilt instance of it.
  *
- * `Countdown.tsx`'s doc for `CountdownProps.value` says to "Subtract the
- * received edge first (`useViewUt`)". With `useViewUt` deleted from the
- * computed barrels, that sentence is the T1b violation the whole gate exists to
- * catch, and the check that plants it fails LOUDLY if the scan cannot see it.
- * A scan that finds nothing reports a clean repo, and a broken path, a renamed
- * entry point or a regex that stopped matching all look exactly like success.
+ * The test plants a source of its own at `file`: the published `host`
+ * interface, with `symbol` referenced in the doc of one of its MEMBERS, never
+ * the interface's own doc. With `symbol` deleted from the computed barrels,
+ * that reference is the T1b violation the whole gate exists to catch, and the
+ * check fails LOUDLY if the scan cannot see it. A scan that finds nothing
+ * reports a clean repo, and a broken path, a renamed entry point, a member walk
+ * that stopped descending or a regex that stopped matching all look exactly
+ * like success. Planted rather than read from a real file, so rewording a
+ * real comment can never blind it.
  */
 export const RECONSTRUCTION = {
   symbol: "useViewUt",
   declaredIn: "@ksp-gonogo/sitrep-sdk",
-  file: "packages/ui-kit/src/Countdown.tsx",
+  host: { pkg: "@ksp-gonogo/ui-kit", exported: "CountdownProps" },
+  file: "packages/ui-kit/src/planted-reconstruction.ts",
   tier: "T1b",
 } as const;

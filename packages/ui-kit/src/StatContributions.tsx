@@ -11,8 +11,8 @@ import { Unit } from "./Unit";
  */
 export interface StatContributionsProps {
   /**
-   * The widget-led slot the host declared, in full
-   * (`"astronaut-complex.readouts"`), not a bare segment.
+   * The full slot id the host widget declared (`"astronaut-complex.readouts"`),
+   * not a bare segment.
    */
   slot: string;
 }
@@ -20,8 +20,8 @@ export interface StatContributionsProps {
 /**
  * Every stat contributed to `slot`, drawn through the kit's own {@link Stat}.
  *
- * A fragment, not a wrapper: the cells land in the host's own
- * a `Grid` of stats as siblings of its built-in ones. Renders nothing when
+ * A fragment, not a wrapper: the cells land in the host's own `Grid` of stats
+ * as siblings of its built-in ones. Renders nothing when
  * nothing is contributed, so a host can place it unconditionally. An entry's
  * quantity is drawn through {@link Unit}, else its text, else the null token.
  *

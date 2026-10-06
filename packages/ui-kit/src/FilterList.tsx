@@ -22,7 +22,7 @@ import { FilterRegion, type TermSegment, useRowFilter } from "./useRowFilter";
 export interface FilterRow {
   /** Stable React key for the row. */
   id: string;
-  /** The text this row is matched against, baked by the widget from its own fields. */
+  /** The text this row is matched against, built by the widget from its own fields. */
   searchText: string;
   /** The already-rendered row. */
   node: ReactNode;

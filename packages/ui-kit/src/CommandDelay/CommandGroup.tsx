@@ -9,9 +9,9 @@ interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
   value: GroupValue;
   /** Fired exactly once, with the group's current `value`, on an explicit commit; never on a child input's own change. */
   onCommit: (v: GroupValue) => void;
-  /** `no-path`: marks the commit control unavailable and switches it to an error tone. It stays focusable and says why; `onCommit` never fires while gated. */
+  /** Marks the commit control unavailable, in an error tone, for example while there is no path to the craft. It stays focusable and says why (`gatedReason`); `onCommit` never fires while gated. */
   gated?: boolean;
-  /** The group's own inputs (wheels/sliders/etc.): this component owns none of their rendering. */
+  /** The group's inputs (wheels, sliders and so on), drawn as given. */
   children: ReactNode;
   /**
    * What the commit button draws. Defaults to "Commit". A string names the

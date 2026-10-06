@@ -44,7 +44,7 @@ export interface ControlStreamDatum {
   id: string;
   /** The axis's name, e.g. "Throttle". */
   label: string;
-  /** One-way delay seconds; the strip spans 3x this. null / near-zero => render nothing. */
+  /** One-way delay in seconds; the strip spans three times this. Below {@link STREAM_MIN_DELAY_SECONDS}, or `null`, nothing is drawn. */
   oneWaySeconds: number | null;
   /** Commanded values still on their way to the craft. */
   inTransit: ControlStreamSample[];
@@ -76,9 +76,9 @@ export interface ControlRibbonDatum {
   /** One-way delay seconds, read the same way a stream datum's is. */
   oneWaySeconds: number | null;
   /**
-   * The amplitude history, one scalar per sample in 0..1, NEWEST LAST. `x` is
-   * AGE, so a history shorter than the gap draws a trace that stops short; the
-   * fix is a longer ring at the caller, never a wider drawing.
+   * The amplitude history, one value per sample in 0..1, newest last. Each
+   * sample is drawn at its age, so a history shorter than the trip draws a
+   * trace that stops short; keep a longer history to fill it.
    */
   amplitudes: readonly number[];
   /**
@@ -131,9 +131,7 @@ export interface ControlDelayStreamProps {
 
 /**
  * The one-way delay, in seconds, under which {@link ControlDelayStream} draws no
- * command streams. Ribbons are exempt: a continuous voice has no value to
- * misread at a short gap, and the wave is only visible in low orbit if the
- * strip draws there.
+ * command streams. Ribbons draw at any positive delay.
  *
  * @category CommandDelay
  */
@@ -564,7 +562,7 @@ function RibbonMark({
  * plus the actual path in the warning token; zone and delay labels on hover.
  * Renders `null` when the one-way delay is zero or unknown, and draws no command
  * streams under {@link STREAM_MIN_DELAY_SECONDS}; a ribbon draws at any
- * positive delay. Props-only.
+ * positive delay. It reads nothing itself: everything comes in through props.
  *
  * A continuous entry with no readback (the operator's voice) is drawn as a
  * ribbon in the outgoing zone of the same graph. Delivery only decides whether anything is drawn past the first

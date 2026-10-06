@@ -8,8 +8,8 @@ import type { RailTags } from "./railTags";
 
 /**
  * One dispatch that was called lost and then replied after all, as much of it
- * as this text needs. Structurally the spine's `CommandFound`, so a hand-built
- * found can be rendered too. `outcome` is required: every sentence turns on it.
+ * as the sentence needs. The entries in `useCommand`'s `founds` satisfy it,
+ * and so does one built by hand. `outcome` is required: every sentence turns on it.
  *
  * @category CommandDelay
  */

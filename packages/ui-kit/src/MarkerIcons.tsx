@@ -374,8 +374,10 @@ export const BinormalIcon = NormalIcon;
  *
  * @example
  * ```tsx
- * const Marker = MARKER_ICONS[id];
- * return <Marker label={name} size={16} />;
+ * function MarkerFor({ id, name }: { id: MarkerId; name: string }) {
+ *   const Marker = MARKER_ICONS[id];
+ *   return <Marker label={name} size={16} />;
+ * }
  * ```
  *
  * @category Icons

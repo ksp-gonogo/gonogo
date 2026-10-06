@@ -69,10 +69,9 @@ function waveformSteps(
  * pitch so the period stays visible. Silence is a flat line down the middle:
  * the key is open and nobody is speaking.
  *
- * **`x` IS AGE.** A sample is drawn where that audio physically is in the gap,
- * so a short history draws a trace that stops short of the boundary. The fix
- * for a short trace is a longer ring at the caller, never spreading what was
- * kept.
+ * Each sample is drawn at its age, where that audio is on its way across the
+ * gap, so a short history draws a trace that stops short of the boundary.
+ * Keep a longer history to fill it.
  *
  * @category CommandDelay
  */

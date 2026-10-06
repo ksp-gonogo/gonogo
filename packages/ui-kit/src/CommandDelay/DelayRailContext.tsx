@@ -5,9 +5,8 @@ import { createStore } from "../store/createStore";
 import type { CommandDelayHandle } from "./CommandDelay";
 
 /**
- * One command's delay-output registration into the Panel-scoped rail: the
- * handle plus a stable `id` minted by its registrant, so the registry never
- * relies on object identity (a handle is a fresh literal on most renders).
+ * One entry registered on a panel's delay rail: the handle plus an `id` that
+ * stays the same for as long as the registering component is mounted.
  *
  * @category CommandDelay
  */

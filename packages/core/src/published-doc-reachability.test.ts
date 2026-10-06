@@ -428,17 +428,11 @@ interface ScanResult {
   referencesConsidered: number;
 }
 
-/**
- * `omit` deletes a name from every computed barrel before tiering, which is how
- * the reconstruction check rebuilds the pre-fix world. It must come out of the
- * OTHER package's set as well as its own, or a cross-package reference stays
- * reachable and the plant silently fails to plant anything.
- */
+/** Every published package's doc blocks, scanned against the barrels. */
 function scanTypeScript(
   barrels: Map<string, Set<string>>,
   declarations: Map<string, Set<string>>,
   csharpTypes: Map<string, Set<string>>,
-  omit?: string,
 ): ScanResult {
   const findings: Finding[] = [];
   let filesScanned = 0;
@@ -451,62 +445,86 @@ function scanTypeScript(
     for (const [name, names] of barrels) {
       if (name !== pkg.name) for (const n of names) elsewhere.add(n);
     }
-    if (omit) {
-      own.delete(omit);
-      elsewhere.delete(omit);
-    }
-
     for (const file of gitFiles(`${pkg.dir}/src`).filter(
       (f) => isTs(f) && !isTestFile(f),
     )) {
       filesScanned++;
-      const text = read(file);
-      const ranges = publishedDocRanges(file, text, own);
-      for (const m of text.matchAll(/\/\*\*[\s\S]*?\*\//g)) {
-        if (!ranges.some(([a, b]) => m.index >= a && m.index < b)) continue;
-        publishedDocBlocks++;
-        const block = m[0]
-          .replace(/^[ \t]*\*[ \t]?/gm, "")
-          .replace(/\s*\n\s*/g, " ");
-        const line = text.slice(0, m.index).split("\n").length;
-        const seen = new Set<string>();
-        const refs = codeFormRefs(block);
-        for (const ref of refs) {
-          const { name } = ref;
-          referencesConsidered++;
-          // Predicate 3: reachable, a builtin, or resolving to nothing.
-          if (GLOBALS.has(name) || own.has(name) || elsewhere.has(name))
-            continue;
-          const owners = declarations.get(name);
-          const csOwners = csharpTypes.get(name);
-          if (!owners && !csOwners) continue;
-          if (seen.has(`${name}@${line}`)) continue;
-          seen.add(`${name}@${line}`);
-
-          // Predicate 4.
-          const ownerNames = owners ? [...owners] : [];
-          const tier: Tier | "T3" = ownerNames.includes(pkg.name)
-            ? "T1a"
-            : ownerNames.some((n) => PUBLISHED_NAMES.has(n))
-              ? "T1b"
-              : ownerNames.some((n) => PRIVATE_NPM.has(n))
-                ? "T2"
-                : "T3";
-
-          findings.push({
-            pkg: pkg.name,
-            file,
-            line,
-            name,
-            tier,
-            // Predicate 5.
-            qualified: attachedQualifier(block, refs, ref, TS_QUALIFIERS),
-          });
-        }
-      }
+      const counts = scanSource(
+        pkg.name,
+        file,
+        read(file),
+        { own, elsewhere },
+        declarations,
+        csharpTypes,
+        findings,
+      );
+      publishedDocBlocks += counts.publishedDocBlocks;
+      referencesConsidered += counts.referencesConsidered;
     }
   }
   return { findings, filesScanned, publishedDocBlocks, referencesConsidered };
+}
+
+/**
+ * One source file's published doc blocks, scanned against the barrels, its
+ * findings pushed onto `findings`. Taking the text rather than reading it is
+ * what lets the reconstruction check plant a source of its own.
+ */
+function scanSource(
+  pkgName: string,
+  file: string,
+  text: string,
+  barrels: { own: Set<string>; elsewhere: Set<string> },
+  declarations: Map<string, Set<string>>,
+  csharpTypes: Map<string, Set<string>>,
+  findings: Finding[],
+): { publishedDocBlocks: number; referencesConsidered: number } {
+  const { own, elsewhere } = barrels;
+  let publishedDocBlocks = 0;
+  let referencesConsidered = 0;
+  const ranges = publishedDocRanges(file, text, own);
+  for (const m of text.matchAll(/\/\*\*[\s\S]*?\*\//g)) {
+    if (!ranges.some(([a, b]) => m.index >= a && m.index < b)) continue;
+    publishedDocBlocks++;
+    const block = m[0]
+      .replace(/^[ \t]*\*[ \t]?/gm, "")
+      .replace(/\s*\n\s*/g, " ");
+    const line = text.slice(0, m.index).split("\n").length;
+    const seen = new Set<string>();
+    const refs = codeFormRefs(block);
+    for (const ref of refs) {
+      const { name } = ref;
+      referencesConsidered++;
+      // Predicate 3: reachable, a builtin, or resolving to nothing.
+      if (GLOBALS.has(name) || own.has(name) || elsewhere.has(name)) continue;
+      const owners = declarations.get(name);
+      const csOwners = csharpTypes.get(name);
+      if (!owners && !csOwners) continue;
+      if (seen.has(`${name}@${line}`)) continue;
+      seen.add(`${name}@${line}`);
+
+      // Predicate 4.
+      const ownerNames = owners ? [...owners] : [];
+      const tier: Tier | "T3" = ownerNames.includes(pkgName)
+        ? "T1a"
+        : ownerNames.some((n) => PUBLISHED_NAMES.has(n))
+          ? "T1b"
+          : ownerNames.some((n) => PRIVATE_NPM.has(n))
+            ? "T2"
+            : "T3";
+
+      findings.push({
+        pkg: pkgName,
+        file,
+        line,
+        name,
+        tier,
+        // Predicate 5.
+        qualified: attachedQualifier(block, refs, ref, TS_QUALIFIERS),
+      });
+    }
+  }
+  return { publishedDocBlocks, referencesConsidered };
 }
 
 /** T1a/T1b/T2 and unqualified: the gated set. */
@@ -738,9 +756,9 @@ describe("published doc reachability", () => {
     /**
      * THE WARRANTY. `useViewUt` is exported today, so the motivating bug cannot
      * be observed live; the instrument is validated against a rebuilt instance
-     * of it instead. Delete the symbol from both computed barrels and
-     * `Countdown.tsx`'s "Subtract the frame's view time first (`useViewUt`)"
-     * must come back as an unqualified T1b violation.
+     * of it instead. Delete the symbol from both computed barrels, and a
+     * published interface whose MEMBER doc names it must come back as an
+     * unqualified T1b violation.
      *
      * This is the check that stops the gate going green for the wrong reason. A
      * broken path, a renamed entry point, a doc-range walk that stops
@@ -748,34 +766,63 @@ describe("published doc reachability", () => {
      * produce zero findings, and zero findings reads as a clean repo.
      */
     it("sees the reconstructed useViewUt violation", () => {
-      const live = gated(TS_SCAN.findings).filter(
-        (f) => f.name === RECONSTRUCTION.symbol,
-      );
+      const { symbol, host } = RECONSTRUCTION;
+      const live = gated(TS_SCAN.findings).filter((f) => f.name === symbol);
       expect(
         live,
         [
-          `${RECONSTRUCTION.symbol} is exported from ${RECONSTRUCTION.declaredIn}`,
+          `${symbol} is exported from ${RECONSTRUCTION.declaredIn}`,
           "today, so the live scan must NOT flag it. If this fails, the symbol",
           "left the barrel and the finding above is real.",
         ].join("\n"),
       ).toEqual([]);
 
-      const planted = gated(
-        scanTypeScript(
-          BARRELS,
+      const own = new Set(BARRELS.get(host.pkg) ?? []);
+      expect(
+        own.has(host.exported),
+        `${host.exported} must be exported from ${host.pkg}, or the plant is not published and plants nothing`,
+      ).toBe(true);
+      const elsewhere = new Set<string>();
+      for (const [name, names] of BARRELS) {
+        if (name !== host.pkg) for (const n of names) elsewhere.add(n);
+      }
+      // Out of BOTH sets: left in the other package's, a cross-package reference stays reachable.
+      own.delete(symbol);
+      elsewhere.delete(symbol);
+
+      const plant = (memberDoc: string, interfaceDoc: string) => {
+        const findings: Parameters<typeof gated>[0] = [];
+        scanSource(
+          host.pkg,
+          RECONSTRUCTION.file,
+          [
+            `/** ${interfaceDoc} */`,
+            `export interface ${host.exported} {`,
+            `  /** ${memberDoc} */`,
+            "  value: number;",
+            "}",
+            "",
+          ].join("\n"),
+          { own, elsewhere },
           DECLARATIONS,
           CSHARP_TYPES,
-          RECONSTRUCTION.symbol,
-        ).findings,
-      ).filter((f) => f.name === RECONSTRUCTION.symbol);
+          findings,
+        );
+        return gated(findings)
+          .filter((f) => f.name === symbol)
+          .map((f) => `${f.file} [${f.tier}]`);
+      };
 
       expect(
-        planted.map((f) => `${f.file} [${f.tier}]`),
+        plant(
+          `Subtract the instant from \`${symbol}\` first.`,
+          "A duration to count down.",
+        ),
         [
           "BLIND: the planted violation was not seen.",
           "",
-          `With ${RECONSTRUCTION.symbol} removed from both computed barrels,`,
-          `${RECONSTRUCTION.file} documents an operation an author cannot`,
+          `With ${symbol} removed from both computed barrels, a member of the`,
+          `published ${host.exported} documents an operation an author cannot`,
           "perform, which is the exact bug this gate exists to catch. Not seeing",
           "it means the scan is broken, not that the repo is clean.",
           "",
@@ -783,7 +830,10 @@ describe("published doc reachability", () => {
           "walk descending into MEMBERS (the reference is on a property, not the",
           "interface), and the code-form regexes.",
         ].join("\n"),
-      ).toContain(`${RECONSTRUCTION.file} [${RECONSTRUCTION.tier}]`);
+      ).toEqual([`${RECONSTRUCTION.file} [${RECONSTRUCTION.tier}]`]);
+
+      // The control: the same source with no reference anywhere is clean, so the finding above came from the member's doc.
+      expect(plant("Subtract the instant first.", "A duration.")).toEqual([]);
     });
 
     /**

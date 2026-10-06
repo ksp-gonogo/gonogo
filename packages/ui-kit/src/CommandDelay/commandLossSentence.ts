@@ -2,7 +2,7 @@ import { commandRefusalSubject } from "@ksp-gonogo/sitrep-sdk";
 import type { RailTags } from "./railTags";
 
 /**
- * One dispatch that got no reply, as much of it as this text needs. Structurally the spine's `CommandLoss`.
+ * One dispatch that got no reply, as much of it as the sentence needs. The entries in `useCommand`'s `losses` satisfy it.
  *
  * @category CommandDelay
  */

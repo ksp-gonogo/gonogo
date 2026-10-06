@@ -10,10 +10,9 @@ export interface AudioInputDevice {
   /** The browser's id for the device, what {@link AudioInputControls.select} takes. */
   deviceId: string;
   /**
-   * The browser's name for the device. EMPTY until capture access is granted:
-   * a label is fingerprinting surface, so every engine withholds it from an
-   * unpermitted page. An empty label is the browser behaving correctly and
-   * never a device without a name.
+   * The browser's name for the device. Empty until capture access is granted,
+   * since browsers withhold device names from a page without access; an empty
+   * label does not mean the device has no name.
    */
   label: string;
 }
@@ -208,10 +207,12 @@ function initialState(): AudioInputState {
  *
  * @example
  * ```tsx
- * const mic = useAudioInput({ onStream: setStream });
- *
- * if (mic.status === "unasked") {
- *   return <Button onClick={() => void mic.request()}>Enable microphone</Button>;
+ * function MicGate({ onStream }: { onStream: (stream: MediaStream | null) => void }) {
+ *   const mic = useAudioInput({ onStream });
+ *   if (mic.status === "unasked") {
+ *     return <Button onClick={() => void mic.request()}>Enable microphone</Button>;
+ *   }
+ *   return <Text>{mic.status}</Text>;
  * }
  * ```
  *

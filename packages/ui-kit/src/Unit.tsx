@@ -183,9 +183,9 @@ export interface UnitProps<UnitSymbol extends string = string>
    */
   value?: UnitValue<UnitSymbol> | null;
   /**
-   * Pin the unit rather than letting the ladder choose, for the cases where
-   * convention beats magnitude: km/h on a launch broadcast, km/s in a
-   * technical readout.
+   * Pin the unit rather than letting the value's size choose it, where
+   * convention calls for one: km/h on a launch broadcast, km/s in a technical
+   * readout.
    *
    * Validated against the value's kind: it checks on a speed and is a type error on a length.
    */
@@ -202,7 +202,7 @@ export interface UnitProps<UnitSymbol extends string = string>
    * Draw the number without its symbol, for a member of a group that prints the
    * symbol once at the end: `1234/2000 rpm` rather than `1234 rpm/2000 rpm`.
    *
-   * Honoured only inside a `<UnitSharedFormat>`; on a lone `<Unit>` it does nothing, since a number with no unit near it is not a readout. The member still reports, so its magnitude keeps its vote on the group's rung. The symbol is hidden from the accessibility tree as well as the screen.
+   * Honoured only inside a `<UnitSharedFormat>`; on a lone `<Unit>` it does nothing, since a number with no unit near it is not a readout. The value still counts toward the unit the group settles on. The symbol is hidden from the accessibility tree as well as the screen.
    */
   hideUnitInGroup?: boolean;
   /**
@@ -286,9 +286,9 @@ function UnitSymbol({
  *
  * A held reading whose model publishes an {@link UncertaintyBand} also shows the interval (`1 km ± 0.025 km`, `1 km (0.97 to 1.03 km)`, `1 km (~1.2 km)`). A current reading shows none, and a band in another unit draws nothing.
  *
- * The symbol is sized relative to the text around it (floored at 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
+ * The symbol is sized relative to the text around it (never below 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
  *
- * `<Unit>` is the one way to put a quantity on screen. Hand it the value as it came off the wire (canonical SI, never pre-scaled) and let it pick the rung; pin one with `format` or convert with `as` only where convention calls for it.
+ * `<Unit>` is the one way to put a quantity on screen. Hand it the value as it arrived (SI, never pre-scaled) and let it choose the unit; pin one with `format` or convert with `as` only where convention calls for it.
  *
  * @example
  * ```tsx

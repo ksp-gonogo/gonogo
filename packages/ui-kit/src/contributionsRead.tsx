@@ -136,12 +136,14 @@ export function useContributionsBySlotId(slot: string): readonly unknown[] {
  *
  * @example
  * ```tsx
- * const badges = useContributions("badges");
- * return badges.map((b) => (
- *   <Badge key={b.id} tone={b.tone}>
- *     {b.label}
- *   </Badge>
- * ));
+ * function ContributedBadges() {
+ *   const badges = useContributions("badges");
+ *   return badges.map((b) => (
+ *     <Badge key={b.id} tone={b.tone}>
+ *       {b.label}
+ *     </Badge>
+ *   ));
+ * }
  * ```
  *
  * @category Extensions

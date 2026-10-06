@@ -30,7 +30,7 @@ interface DataTableColumnBase {
    */
   width?: string;
   /**
-   * Floor for the column's width, so a text column in a narrow panel scrolls
+   * Minimum width for the column, so a text column in a narrow panel scrolls
    * instead of wrapping to single words.
    */
   minWidth?: string;

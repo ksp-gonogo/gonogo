@@ -46,7 +46,7 @@ export function reservesMark(kind: ReckoningKind) {
  * The square itself. Absolutely positioned in the room its host reserves at the
  * end of the figure (see {@link reservesHeldMark}), at superscript height, so
  * the square is inside the host's box and the line never grows. Sized in `em`
- * with a pixel floor, so it stays a square in small text.
+ * with a minimum size in pixels, so it stays a square in small text.
  *
  * It needs a positioned container that reserves that room: use
  * {@link HeldHost}, or give a container of your own `position: relative`,

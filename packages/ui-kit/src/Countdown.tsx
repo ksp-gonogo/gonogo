@@ -19,8 +19,9 @@ export interface CountdownProps {
    * A DURATION in seconds: how long until, or how long since. A bare number is
    * accepted for client-computed durations.
    *
-   * NOT `Value<"ut">`: an instant is a type error here. Subtract the received
-   * edge first (`useViewUt`) to turn an instant into a duration.
+   * NOT `Value<"ut">`: an instant is a type error here. Subtract the instant
+   * the screen is showing, from `useViewUt`, to turn an instant into a
+   * duration.
    */
   value: Value<"s"> | Reading<Value<"s">> | number | null | undefined;
   /**
@@ -47,10 +48,10 @@ export interface CountdownProps {
  *
  * Handed a `Reading`, a countdown draws the model's reckoning where there is
  * one, so it keeps advancing while a model carries it, and freezes on the last
- * observation, with the held mark, otherwise. This differs from {@link Unit},
- * which never substitutes a modelled figure. A current reading whose model
- * reaches past the received edge draws its observation, and the model's figure
- * beside it with the modelled mark. An absent value renders
+ * observation, with the held mark, otherwise. {@link Unit} does this only when
+ * given `reckoned`. A current reading whose model reaches past the newest data
+ * received draws its observation, and the model's figure beside it with the
+ * modelled mark. An absent value renders
  * {@link NULL_DISPLAY}.
  *
  * @category MissionDate

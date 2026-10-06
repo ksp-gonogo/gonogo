@@ -91,8 +91,7 @@ export function InstrumentBound({
 }
 
 /**
- * The accessible name, with the currency said after it.
- *
+ * The accessible name with the held or modelled mark's words after it.
  * Nothing is appended when the figure is current.
  *
  * @category Unit
@@ -102,9 +101,8 @@ export function sayHeld(name: string, caption: string | null): string {
 }
 
 /**
- * The attribute that says the element's accessible name ends with a
- * {@link sayHeld} caption, which is how a render check tells an instrument that
- * announces its held mark from one that draws the mark silently.
+ * The attribute that marks an element whose accessible name ends with a
+ * {@link sayHeld} caption. Spread it on the element that carries that name.
  *
  * @category Unit
  */

@@ -302,9 +302,8 @@ function urgentWords(essentials: readonly TinyEssential[]): string[] {
 /**
  * A registered widget's content at its current size: the kit's tiny form where
  * the widget declares one and the tile is tiny, its own component otherwise.
- * The grid, a test and a render harness all mount through this, so they agree
- * on what a tiny tile shows. The phone column does not: its tiles are the
- * phone's width whatever grid units it reports.
+ * Mount a widget through this to see what the dashboard grid shows at a given
+ * size. The phone layout decides by the phone's width instead of grid units.
  *
  * @category TinyEssentials
  */

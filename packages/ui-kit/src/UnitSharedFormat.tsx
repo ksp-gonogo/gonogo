@@ -380,14 +380,14 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
 /**
  * A group of quantities that settles one format per kind, so the whole group reads as one instrument. It renders nothing of its own, so it can wrap a row, a cell, a table or a widget body.
  *
- * Every `<Unit>` inside reports its reading and is given back the settled format; outside a scope each value formats itself. The caller names no rung, unit or digit count.
+ * Every `<Unit>` inside reports its value and is given back the settled format; outside a scope each value formats itself. The caller names no unit or digit count.
  *
- * - The rung is the largest member's, since a group reads at the size of the thing it describes: `999 m` beside `1000 m` reads `1.0 km`, and a group that must tell its members apart says `separate`
+ * - The unit is the one the largest member would choose (its {@link Rung}), since a group reads at the size of the thing it describes: `999 m` beside `1000 m` reads `1.0 km`, and a group that must tell its members apart says `separate`
  * - Grouping is per kind (per ladder family, else per unit), so metres settle with metres and kilograms with kilograms in one scope
  * - `format`, `as` and `decimals` pin what a group would otherwise settle. `of` addresses them to one group (`of="m" as="km"`), `pins` to several (`pins={{ length: { as: "km" }, mass: { as: "t" } }}`), and a pin that names no unit reaches every group unchecked
- * - Nested scopes compose: the rung comes from the outermost, the digit count from the nearest scope that asked for one. Two scopes side by side are two groups
+ * - Nested scopes compose: the unit comes from the outermost, the digit count from the nearest scope that asked for one. Two scopes side by side are two groups
  *
- * The first pass draws each member at its own ladder; reports land in layout effects and the settled format re-renders before paint, so the reader never sees the unsettled pass.
+ * The settled format is applied before the first paint, so a reader never sees the members drawn apart.
  *
  * @example
  * ```tsx
