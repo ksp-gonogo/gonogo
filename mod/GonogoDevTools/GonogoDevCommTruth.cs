@@ -21,8 +21,8 @@ namespace Gonogo.DevTools
     /// Each line of <c>PluginData/commtruth-pairs.cfg</c> names two vessels by
     /// the start of their ids, and for each such pair one more line is written
     /// per second: whether the network holds a link between the two at all,
-    /// and if so its strength both as a whole and for each way it can be
-    /// used, beside how far apart the two are. That tells a link the game
+    /// and if so its strength for each way it can be used, beside how far
+    /// apart the two are. That tells a link the game
     /// never made from one it made and routed round.</para>
     ///
     /// With no enable file nothing here does anything.
@@ -124,8 +124,8 @@ namespace Gonogo.DevTools
         /// One line for each pair the pairs file names: the UT, the word
         /// <c>pair</c>, the two ids as written, then <c>link</c> or
         /// <c>nolink</c> (or <c>unknown</c> where either id matches no vessel
-        /// with a radio), the link's strength, its strength with both ends
-        /// relaying, with only the first relaying and with only the second,
+        /// with a radio), the link's strength with both ends relaying, with
+        /// only the first relaying and with only the second,
         /// which ends can relay, and the distance between the two in metres.
         /// </summary>
         private static string Pairs(string pairsPath)
@@ -155,13 +155,12 @@ namespace Gonogo.DevTools
                 var distance = (a.position - b.position).magnitude.ToString("F0", inv);
                 if (!a.TryGetValue(b, out var link) || link == null)
                 {
-                    text.Append("nolink\t\t\t\t\t\t").Append(distance).Append('\n');
+                    text.Append("nolink\t\t\t\t\t").Append(distance).Append('\n');
                     continue;
                 }
                 // The link's own two ends may be the other way round from the pair as written.
                 var swapped = link.a != a;
                 text.Append("link\t")
-                    .Append(link.signalStrength.ToString("F3", inv)).Append('\t')
                     .Append(link.strengthRR.ToString("F3", inv)).Append('\t')
                     .Append((swapped ? link.strengthBR : link.strengthAR).ToString("F3", inv)).Append('\t')
                     .Append((swapped ? link.strengthAR : link.strengthBR).ToString("F3", inv)).Append('\t')
