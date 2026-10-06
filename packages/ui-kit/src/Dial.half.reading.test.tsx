@@ -110,6 +110,41 @@ describe("Gauge, handed a Reading", () => {
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
+  it("raises the held mark to the top of the figure's digits, at either readout size", () => {
+    const raise = (readout: "regular" | "large") => {
+      const { container } = render(
+        <Dial
+          startAngle={-90}
+          sweep={180}
+          readout={readout}
+          {...SIZE}
+          value={{
+            state: "held",
+            reckoning: { status: "none" },
+            value: value("1", 1.84),
+            asOfUt: AT,
+            grade: "held",
+          }}
+          min={value("1", 0)}
+          max={value("1", 3)}
+        />,
+      );
+      const mark = container.querySelector("[data-held-mark]");
+      const figure = mark?.closest("text");
+      return {
+        dy: -Number(mark?.getAttribute("dy")),
+        figure: Number(figure?.getAttribute("font-size")),
+        mark: Number(mark?.getAttribute("font-size")),
+      };
+    };
+    for (const readout of ["regular", "large"] as const) {
+      const { dy, figure, mark } = raise(readout);
+      // The mark's top (its raise plus its own height) is within a pixel and a half of the digits' top, 0.72 of the figure's size. A fixed raise of half the mark left it on the baseline of a large figure.
+      expect(Math.abs(dy + mark * 0.76 - figure * 0.72)).toBeLessThan(1.5);
+      expect(dy).toBeGreaterThan(figure * 0.35);
+    }
+  });
+
   it("says the currency in words, because the mark has none to say", () => {
     render(
       <Dial

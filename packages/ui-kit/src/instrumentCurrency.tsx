@@ -9,6 +9,10 @@
 import type { ReactNode } from "react";
 import { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
 
+/** How tall a lining digit stands above its baseline, and how far the mark's glyph does, each as a share of its own font size. */
+const DIGIT_HEIGHT_EM = 0.72;
+const GLYPH_TOP_EM = 0.76;
+
 /**
  * The held mark, as an instrument can draw it.
  *
@@ -16,19 +20,30 @@ import { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
  * absent, so nothing rests on telling amber from grey. Silent to a screen
  * reader: the instrument says it through {@link sayHeld}.
  *
+ * Give `figureSize`, the font size of the figure it follows, wherever the
+ * figure is much larger than the mark: the mark is then raised until its top
+ * meets the top of the figure's digits. Without it the mark is raised by half
+ * its own height, which is superscript only beside text of about its own size.
+ *
  * @category Unit
  */
 export function InstrumentHeldMark({
   size,
   kind = "held",
+  figureSize,
 }: {
   size: number;
   kind?: ReckoningKind;
+  figureSize?: number;
 }) {
   return (
     <tspan
       // Raised, so it reads as a mark on the figure rather than another figure.
-      dy={-size * 0.55}
+      dy={
+        figureSize === undefined
+          ? -size * 0.55
+          : -(figureSize * DIGIT_HEIGHT_EM - size * GLYPH_TOP_EM)
+      }
       fontSize={size}
       fill={RECKONING_MARK[kind].color}
       data-held-mark=""

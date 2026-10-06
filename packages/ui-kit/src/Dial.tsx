@@ -451,7 +451,10 @@ export function Dial<Unit extends string = string>({
         >
           {centreLabel ?? NULL_DISPLAY}
           {held && centreLabel !== null && (
-            <InstrumentHeldMark size={raised ? 7 : 6} />
+            <InstrumentHeldMark
+              size={raised ? 7 : 6}
+              figureSize={raised && figure !== null ? figure.size : 13}
+            />
           )}
         </text>
       </svg>

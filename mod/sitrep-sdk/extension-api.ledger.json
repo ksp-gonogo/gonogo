@@ -8191,6 +8191,10 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "ui-kit . InstrumentHeldMark",
+        "note": "Gains an optional figureSize, the font size of the figure the mark follows, which raises the mark to the top of that figure's digits. Existing callers pass none and draw exactly as before"
+      },
+      {
         "key": "ui-kit . VESSEL_MARK",
         "note": "The mark's spec gains the lost state, its keyline is described as two rings (light and dark) where it was one inverted stroke, and reach is computed from the shapes (1.47 r, was 1.4). A caller reading radius, the shapes of current, held and modelled, or reach is unaffected; one that read the old single keyline's fields must read the rings"
       },
