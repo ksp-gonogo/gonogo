@@ -19,11 +19,10 @@
 
 import {
   eccentricFromTrueAnomaly,
-  meanAnomalyAt,
+  solveConic,
 } from "@ksp-gonogo/sitrep-client";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { degToRad, radToDeg } from "../utils/math";
-import { eccentricToTrueAnomaly, solveKepler } from "./trajectory";
 
 /** Orbit snapshot of the live vessel's elements. All distances in metres. */
 export interface CurrentOrbit {
@@ -215,17 +214,17 @@ export function stateAtUT(
   const nu0 = degToRad(currentTrueAnomalyDeg);
   const E0 = eccentricFromTrueAnomaly(nu0, e);
   const M0 = E0 - e * Math.sin(E0);
-  const M = meanAnomalyAt(
-    value("rad", M0),
+  const { radius: r, trueAnomaly: nu } = solveConic(
+    {
+      sma: value("m", a),
+      ecc: value("1", e),
+      meanAnomalyAtEpoch: value("rad", M0),
+      epoch: currentUT,
+    },
     meanMotionOf(mu, a),
-    currentUT,
     targetUT,
   );
 
-  const E = solveKepler(M, e);
-  const nu = eccentricToTrueAnomaly(E, e);
-
-  const r = a * (1 - e * Math.cos(E));
   const speed = Math.sqrt(mu * (2 / r - 1 / a));
   // γ from local horizontal: tan(γ) = e·sin(ν) / (1 + e·cos(ν)).
   const flightPathAngle = Math.atan2(e * Math.sin(nu), 1 + e * Math.cos(nu));
