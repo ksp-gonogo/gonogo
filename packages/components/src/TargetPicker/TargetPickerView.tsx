@@ -18,6 +18,7 @@ import {
   targetKindLabel,
   vecMagnitude,
 } from "../shared/dockAngles";
+import { heldGrade } from "../shared/heldGrade";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { rosterDistance } from "../shared/rosterDistance";
 import { CategorySection } from "./CategorySection";
@@ -177,6 +178,7 @@ export function TargetPickerComponent({
       key={`${keyPrefix}:${entryId(entry)}`}
       entry={entry}
       distance={distanceOf(entry)}
+      listHeld={heldGrade(availableReading)}
       isPending={pendingTarget?.id === entryId(entry)}
       onPick={dispatchTarget}
     />

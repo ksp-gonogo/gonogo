@@ -1,7 +1,8 @@
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { type HeldGrade, useViewUt } from "@ksp-gonogo/sitrep-client";
 import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   HeldFigure,
+  heldWord,
   NULL_DISPLAY,
   Row,
   Spinner,
@@ -15,12 +16,15 @@ import { EntryName, RowDistance, RowMain, RowSubtitle, RowTag } from "./styles";
 export function TargetRow({
   entry,
   distance,
+  listHeld,
   isPending,
   onPick,
 }: Readonly<{
   entry: TargetListEntry;
   /** The entry's range as a reading of the roster, so a held roster marks it. */
   distance: Reading<Value<"m">> | undefined;
+  /** The grade the roster is held at while it has stopped arriving, so a row with no range of its own still says so. */
+  listHeld?: HeldGrade;
   isPending: boolean;
   onPick: (entry: TargetListEntry) => void;
 }>) {
@@ -41,7 +45,7 @@ export function TargetRow({
         {seenAsItIs(entry) ? (
           <SeenRange entry={entry} distance={distance} />
         ) : (
-          <KnownOnly entry={entry} distance={distance} />
+          <KnownOnly entry={entry} distance={distance} listHeld={listHeld} />
         )}
       </RowDistance>
       {isPending && <Spinner ariaLabel="Setting target" />}
@@ -71,18 +75,26 @@ function SeenRange({
  * sighted on can be carried to now, the range that orbit gives stands in its
  * place under the modelled mark; where it cannot, the held mark stands alone.
  * Either way the words on hover and in the spoken name say how old the
- * knowledge is and how it came. The clock is read here and not in the list,
- * so only these rows follow it.
+ * knowledge is and how it came, and open with the list's own grade where the
+ * list itself has stopped arriving: what the craft knew is then as old as the
+ * list. The clock is read here and not in the list, so only these rows follow
+ * it.
  */
 function KnownOnly({
   entry,
   distance,
+  listHeld,
 }: Readonly<{
   entry: TargetListEntry;
   distance: Reading<Value<"m">> | undefined;
+  listHeld: HeldGrade | undefined;
 }>) {
   const viewUt = useViewUt();
-  const caption = knowledgeCaption(entry, viewUt);
+  const known = knowledgeCaption(entry, viewUt);
+  const caption =
+    listHeld !== undefined && known !== null
+      ? `${heldWord(listHeld)}. ${known}`
+      : known;
   const reckoned =
     distance?.reckoning.status === "available"
       ? distance.reckoning.modelled
@@ -90,7 +102,11 @@ function KnownOnly({
   if (reckoned == null || !reckoned.isFinite()) {
     return (
       <HeldFigure
-        kind={unchangedSinceHeard(entry) ? "modelled" : "held"}
+        kind={
+          unchangedSinceHeard(entry) && listHeld === undefined
+            ? "modelled"
+            : "held"
+        }
         caption={caption}
       >
         {NULL_DISPLAY}
