@@ -63,6 +63,8 @@ interface Held {
   lastSentAt?: number;
   attempts?: number;
   separationSeconds: number | null;
+  /** Per-recipient separations when they differ. */
+  separations?: Record<string, number | null>;
   acks?: { from: string; stationKey: string; at: number }[];
   neverLeft?: boolean;
   group?: string;
@@ -100,6 +102,8 @@ interface Scene {
   oneWaySeconds?: number;
   linkLost?: boolean;
   settleOn?: string | readonly string[];
+  /** The name of a button to hover before the shot, if it is on screen. */
+  hover?: string;
   caption?: string;
   /** Force the radio's capability verdict, so the two refusals can be
    *  photographed on a machine that supports the radio perfectly well. */
@@ -224,7 +228,91 @@ const GROUP_RECEIVED: Held[] = [
   },
 ];
 
+/**
+ * One send to the group, three times over, at three stages: everyone has it,
+ * the craft is still on the way, and the craft's wait ran out. The range is
+ * 12 s out and answered each; the craft is 240 s out.
+ */
+const STATUS_SENT: Held[] = [
+  {
+    from: KSC,
+    to: [KSC, ARES, WOOMERA],
+    authorName: "Kennedy Flight",
+    authorSeat: "mission-control",
+    body: "Ares, Woomera, Kennedy. Handover complete.",
+    sentAt: -1500,
+    separationSeconds: LIGHT_TIME,
+    separations: { [WOOMERA]: 12 },
+    acks: [
+      { from: WOOMERA, stationKey: "woomera-1", at: -1488 },
+      { from: ARES, stationKey: "pilot-1", at: -1260 },
+    ],
+    group: GROUP,
+  },
+  {
+    from: KSC,
+    to: [KSC, ARES, WOOMERA],
+    authorName: "Kennedy Flight",
+    authorSeat: "mission-control",
+    body: "Ares, Woomera, Kennedy. Stand by for the burn.",
+    sentAt: -900,
+    separationSeconds: LIGHT_TIME,
+    separations: { [WOOMERA]: 12 },
+    acks: [{ from: WOOMERA, stationKey: "woomera-1", at: -888 }],
+    group: GROUP,
+  },
+  {
+    from: KSC,
+    to: [KSC, ARES, WOOMERA],
+    authorName: "Kennedy Flight",
+    authorSeat: "mission-control",
+    body: "Ares, Woomera, Kennedy. Burn in two minutes.",
+    sentAt: -120,
+    separationSeconds: LIGHT_TIME,
+    separations: { [WOOMERA]: 12 },
+    acks: [{ from: WOOMERA, stationKey: "woomera-1", at: -108 }],
+    group: GROUP,
+  },
+];
+
 const SCENES: Scene[] = [
+  {
+    name: "group-send-status",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: STATUS_SENT,
+        openThread: "Ares 4, Woomera Range",
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Burn in two minutes",
+    pxW: 520,
+    pxH: 520,
+  },
+  {
+    name: "group-send-status-hover",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: STATUS_SENT,
+        openThread: "Ares 4, Woomera Range",
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Burn in two minutes",
+    hover: "In transit",
+    pxW: 520,
+    pxH: 520,
+  },
   {
     /*
      * THE DIVERGENCE WINDOW, for the `inFlightFrozenAtDispatch` evidence pass.
@@ -1048,6 +1136,10 @@ async function main(): Promise<void> {
           ).__renderCommcast(s),
         scene,
       );
+      if (scene.hover !== undefined) {
+        const target = page.getByRole("button", { name: scene.hover });
+        if ((await target.count()) > 0) await target.first().hover();
+      }
       await page.waitForTimeout(200);
       const root = await page.$("#root");
       if (!root) throw new Error("#root missing after render");

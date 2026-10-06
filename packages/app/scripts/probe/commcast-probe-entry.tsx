@@ -71,6 +71,8 @@ export interface Held {
   attempts?: number;
   /** The author-to-recipient separation frozen at send. `null` is NO PATH. */
   separationSeconds: number | null;
+  /** Per-recipient separations when they differ; a recipient not named takes `separationSeconds`. */
+  separations?: Record<string, number | null>;
   /** Acknowledgements this log has RECEIVED, each at the recipient's own UT. */
   acks?: { from: string; stationKey: string; at: number }[];
   /** Set on an outbound message that was never transmitted. */
@@ -489,15 +491,28 @@ function paneTree(pane: Pane, index: number) {
     log.replaceForTesting({
       outbox: (pane.sent ?? []).map((held) => {
         const msg = toMessage(held);
+        const separationTo = (id: string) =>
+          held.separations?.[id] !== undefined
+            ? held.separations[id]
+            : held.separationSeconds;
         const acks: CommsAck[] = (held.acks ?? []).map((a) => ({
           messageId: msg.id,
           from: a.from,
           stationKey: a.stationKey,
           seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
           atUt: VIEW_UT + a.at,
-          arrivedUt: VIEW_UT + a.at + (held.separationSeconds ?? 0),
+          arrivedUt: VIEW_UT + a.at + (separationTo(a.from) ?? 0),
         }));
-        return { msg, acks, neverLeft: held.neverLeft === true };
+        const deliveries = msg.to
+          .filter((id) => id !== msg.from)
+          .map((to) => ({
+            to,
+            separationSeconds: separationTo(to) ?? null,
+            lastSentUt: msg.lastSentUt,
+            attempts: msg.attempts,
+            neverLeft: held.neverLeft === true,
+          }));
+        return { msg, acks, deliveries };
       }),
       inbox: (pane.received ?? []).map(toReceived),
       pending: (pane.crossing ?? []).map(toReceived),
