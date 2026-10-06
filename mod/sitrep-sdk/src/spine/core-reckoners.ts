@@ -6,9 +6,10 @@ import {
   type ReckonerAnswer,
   type ReckonerFrame,
   type ReckoningDecline,
+  type UncertaintyBand,
 } from "../reading";
 import type { TimelinePoint } from "../timeline";
-import type { Vector3 } from "../unit-system";
+import type { Value, Vector3 } from "../unit-system";
 import { value } from "../unit-system/value";
 import type { Vec3Of } from "../value";
 import {
@@ -26,6 +27,7 @@ import {
   firstHopPeer,
   locateCommsPeer,
 } from "./comms-path-geometry";
+import { departureAt, meanAnomalySpread } from "./departure-reckoning";
 import {
   advanceByVelocity,
   buildElements,
@@ -507,6 +509,29 @@ function registerFlightReckoner(): void {
           "altitudeAsl",
           "orbitalSpeed",
         ),
+        /*
+         * The radial error never exceeds the total error, so the stated drift
+         * caps the altitude as it stands and needs no frame algebra.
+         */
+        bandAt: (at) => {
+          const drift = departureAt(
+            orbit.horizon?.departure,
+            orbitPoint.validAt,
+            at,
+          );
+          const state = propagateVesselOrbit(orbit, at);
+          if (drift === undefined || state == null) return undefined;
+          return {
+            altitudeAsl: boundAround(
+              value("m", magnitude(state.position) - seaLevel),
+              drift.metres,
+            ),
+            orbitalSpeed: boundAround(
+              value("m/s", magnitude(state.velocity)),
+              drift.metresPerSecond,
+            ),
+          };
+        },
         reckon: (at) => {
           const state = propagateVesselOrbit(orbit, at);
           const r = state == null ? Number.NaN : magnitude(state.position);
@@ -1007,6 +1032,31 @@ function registerOrbitReckoner(): void {
           "meanAnomalyAtEpoch",
           "epoch",
         ),
+        bandAt: (at) => {
+          const drift = departureAt(
+            orbit.horizon?.departure,
+            point.validAt,
+            at,
+          );
+          const anomalies = trySolveAnomalies(elements, at);
+          const state = propagateVesselOrbit(orbit, at);
+          if (drift === undefined || anomalies == null || state == null) {
+            return undefined;
+          }
+          const spread = meanAnomalySpread(
+            drift.metres,
+            elements,
+            magnitude(state.position),
+          );
+          return spread === undefined
+            ? undefined
+            : {
+                meanAnomalyAtEpoch: boundAround(
+                  value("rad", anomalies.meanAnomaly),
+                  spread,
+                ),
+              };
+        },
         reckon: (at) => {
           const anomalies = trySolveAnomalies(elements, at);
           return {
@@ -1021,6 +1071,32 @@ function registerOrbitReckoner(): void {
       };
     },
   });
+}
+
+/**
+ * A `bound` band of plus or minus `half` about `centre`. A cap and not a
+ * spread: the provider integrates the drift against the same force model as
+ * the path and states the most it reaches.
+ */
+function boundAround(
+  centre: Value<"m">,
+  half: Value<"m">,
+): UncertaintyBand<"m">;
+function boundAround(
+  centre: Value<"m/s">,
+  half: Value<"m/s">,
+): UncertaintyBand<"m/s">;
+function boundAround(
+  centre: Value<"rad">,
+  half: Value<"rad">,
+): UncertaintyBand<"rad">;
+function boundAround(centre: Value, half: Value): UncertaintyBand {
+  return {
+    value: centre,
+    lo: centre.minus(half),
+    hi: centre.plus(half),
+    kind: "bound",
+  };
 }
 
 export function registerCoreReckoners(): void {

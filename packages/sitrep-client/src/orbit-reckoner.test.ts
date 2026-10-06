@@ -2,6 +2,7 @@ import {
   type ConicBodiesInput,
   elementsFromState,
   Quality,
+  solve,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -29,20 +30,46 @@ const PLANET_MU = 3.5316e12;
 const SMA = 2_000_000;
 const PERIOD = 2 * Math.PI * Math.sqrt(SMA ** 3 / PLANET_MU);
 
-function orbitPayload() {
+function orbitPayload(
+  overrides: { ecc?: number; horizon?: Record<string, unknown> } = {},
+) {
   return {
     referenceBodyIndex: 1,
     sma: value("m", SMA),
-    ecc: value("1", 0),
+    ecc: value("1", overrides.ecc ?? 0),
     inc: value("°", 0),
     lan: value("°", 0),
     argPe: value("°", 0),
     meanAnomalyAtEpoch: value("rad", 0),
     epoch: value("ut", 0),
     mu: value("m³/s²", PLANET_MU),
-    horizon: { kind: 1, trajectoryKind: 1 },
+    horizon: overrides.horizon ?? { kind: 1, trajectoryKind: 1 },
   };
 }
+
+/**
+ * The horizon an integrating provider publishes: a reach to one period, and an
+ * envelope of two knots that grows, each the largest drift up to its own
+ * instant.
+ */
+function integratedHorizon(departure: unknown) {
+  return {
+    kind: 2,
+    trajectoryKind: 2,
+    untilUt: value("ut", PERIOD),
+    departure,
+  };
+}
+
+function knot(untilUt: number, metres: number, metresPerSecond: number) {
+  return {
+    untilUt: value("ut", untilUt),
+    metres: value("m", metres),
+    metresPerSecond: value("m/s", metresPerSecond),
+  };
+}
+
+const ENVELOPE = [knot(PERIOD / 2, 10, 0.01), knot(PERIOD, 40, 0.04)];
 
 function point<Payload>(validAt: number, payload: Payload, quality: Quality) {
   return {
@@ -107,6 +134,7 @@ function scene(
   loaded: {
     thrustKn?: number;
     pending?: ReturnType<typeof inFlight>;
+    orbit?: ReturnType<typeof orbitPayload>;
   } = {},
 ) {
   let wall = LIGHT_TIME_SECONDS;
@@ -120,7 +148,21 @@ function scene(
   if (roster !== null) {
     store.ingest("system.bodies", point(0, roster, Quality.OnRails));
   }
-  store.ingest("vessel.orbit", point(0, orbitPayload(), quality));
+  store.ingest(
+    "vessel.orbit",
+    point(0, loaded.orbit ?? orbitPayload(), quality),
+  );
+  store.ingest(
+    "vessel.flight",
+    point(
+      0,
+      {
+        altitudeAsl: value("m", SMA - 1_000_000),
+        orbitalSpeed: value("m/s", 1),
+      },
+      quality,
+    ),
+  );
   if (loaded.thrustKn !== undefined) {
     store.ingest(
       "vessel.propulsion",
@@ -135,6 +177,14 @@ function scene(
       wall = scetUt;
       store.beginFrame();
       return store.sampleReading("vessel.orbit");
+    },
+    flightAt(scetUt: number) {
+      wall = scetUt;
+      store.beginFrame();
+      return store.sampleReading<{
+        altitudeAsl: ReturnType<typeof value>;
+        orbitalSpeed: ReturnType<typeof value>;
+      }>("vessel.flight");
     },
   };
 }
@@ -450,5 +500,102 @@ describe("the vessel.orbit reckoner", () => {
     );
     expect(reading.reckoning.bands?.orbitalSpeed?.kind).toBe("sigma1");
     expect(reading.reckoning.bands?.altitudeAsl?.kind).toBe("sigma1");
+  });
+});
+
+describe("the conic's bands, from the departure the provider states", () => {
+  const withEnvelope = (departure: unknown, ecc = 0) =>
+    scene(Quality.OnRails, AIRLESS, {
+      orbit: orbitPayload({ ecc, horizon: integratedHorizon(departure) }),
+    });
+
+  it("bands the mean anomaly by the stated drift, as a bound centred on the reckoned phase", () => {
+    const reading = withEnvelope(ENVELOPE).at(PERIOD / 4);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    const band = reading.reckoning.bands?.meanAnomalyAtEpoch;
+    expect(band?.kind).toBe("bound");
+    expect(band?.value.magnitude).toBeCloseTo(Math.PI / 2, 6);
+    // Circular: r is a, so ten metres along the track is 10 / a radians of phase.
+    expect(band?.hi.magnitude).toBeCloseTo(Math.PI / 2 + 10 / SMA, 9);
+    expect(band?.lo.magnitude).toBeCloseTo(Math.PI / 2 - 10 / SMA, 9);
+  });
+
+  it("reads the envelope as a step: just past a knot the next knot's figure applies, never an interpolation down", () => {
+    const reading = withEnvelope(ENVELOPE).at(PERIOD / 2 + 1);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    const band = reading.reckoning.bands?.meanAnomalyAtEpoch;
+    expect(
+      (band?.hi.magnitude ?? 0) - (band?.value.magnitude ?? 0),
+    ).toBeCloseTo(40 / SMA, 9);
+  });
+
+  it("widens by the eccentric form of the conversion, dM = d r / (a^2 sqrt(1 - e^2))", () => {
+    const ecc = 0.9;
+    const reading = withEnvelope(ENVELOPE, ecc).at(PERIOD / 4);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    const band = reading.reckoning.bands?.meanAnomalyAtEpoch;
+    const state = solve(
+      {
+        sma: SMA,
+        ecc,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 0,
+        mu: PLANET_MU,
+      },
+      PERIOD / 4,
+    );
+    const r = Math.hypot(...state.position);
+    const half = (10 * r) / (SMA ** 2 * Math.sqrt(1 - ecc ** 2));
+    expect(
+      (band?.hi.magnitude ?? 0) - (band?.value.magnitude ?? 0),
+    ).toBeCloseTo(half, 12);
+    expect(half).toBeGreaterThan(10 / SMA);
+  });
+
+  it("offers no bands at all when the provider stated no departure", () => {
+    const reading = withEnvelope(null).at(PERIOD / 4);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.bands).toBeUndefined();
+  });
+
+  it("offers no bands under the stock horizon", () => {
+    const reading = scene(Quality.OnRails).at(PERIOD / 4);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.bands).toBeUndefined();
+  });
+
+  it("bands vessel.flight's altitude and speed by the stated drift", () => {
+    const reading = withEnvelope(ENVELOPE).flightAt(PERIOD / 4);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.basis).toBe("kepler-propagation");
+    const altitude = reading.reckoning.bands?.altitudeAsl;
+    const speed = reading.reckoning.bands?.orbitalSpeed;
+    expect(altitude?.kind).toBe("bound");
+    expect(altitude?.hi.minus(altitude.value).magnitude).toBeCloseTo(10, 6);
+    expect(altitude?.value.minus(altitude.lo).magnitude).toBeCloseTo(10, 6);
+    expect(speed?.hi.minus(speed.value).magnitude).toBeCloseTo(0.01, 9);
+  });
+
+  it("offers vessel.flight no bands when the provider stated no departure", () => {
+    const reading = withEnvelope(null).flightAt(PERIOD / 4);
+
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.bands).toBeUndefined();
   });
 });

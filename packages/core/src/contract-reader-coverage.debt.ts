@@ -292,13 +292,9 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.landing.terrainElevationUnderVessel":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.orbit.horizon.kind":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.orbit.horizon.untilUt":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.structure.partCount":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.target.orbit.horizon.kind":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.target.orbit.horizon.trajectoryKind":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
