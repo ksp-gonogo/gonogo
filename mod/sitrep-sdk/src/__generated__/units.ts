@@ -352,6 +352,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     body: "text",
     groupId: "id",
     id: "id",
+    to: "id",
   },
   "CommcastRadioBatch": {
     end: "flag",
@@ -368,6 +369,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     groupId: "id",
     seq: "count",
     transmissionId: "id",
+  },
+  "CommcastSendReceipt": {
+    addressed: "id",
+    unreached: "id",
   },
   "CommcastTraffic": {
     added: "id",

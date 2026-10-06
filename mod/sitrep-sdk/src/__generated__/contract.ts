@@ -1487,8 +1487,36 @@ export interface CommcastMessageSendArgs
 	groupId: string;
 	/** The words. */
 	body: string;
+	/**
+	* The members to say it to, as `commandCentre.roster` ids: for saying a
+	* message again to those who did not receive it, and to nobody else. Empty or
+	* absent means every member the speaker knows of. Refused if it names a centre
+	* that is not a member as the speaker's vantage knows the group.
+	*/
+	to: string[];
 	/** How the speaker describes itself, for display only. */
 	author: CommcastAuthor;
+}
+/**
+* What `commcast.message.send` did with a message: who it left for, and who it
+* could not leave for. It says nothing of arrival, which only each listener's
+* acknowledgement does.
+*
+* @category Command results
+*/
+export interface CommcastSendReceipt
+{
+	/**
+	* Every centre the message left for, the speaker's own included, in ordinal id
+	* order. The same list its listeners read as the message's `to`.
+	*/
+	addressed: string[];
+	/**
+	* Every member it was meant for that no signal from the speaker could reach
+	* when it was said, in ordinal id order. The message never left for these, so
+	* no wait will bring an acknowledgement from them.
+	*/
+	unreached: string[];
 }
 /**
 * `commcast.message.ack`'s args: tell a message's author it arrived. The

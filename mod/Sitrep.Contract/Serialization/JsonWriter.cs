@@ -274,6 +274,18 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.UplinkActionReply uplinkActionReply:
                     AppendUplinkActionReply(sb, uplinkActionReply);
                     break;
+                case Sitrep.Contract.CommcastSendReceipt sendReceipt:
+                    // commcast.message.send's reply payload, inside CommandResult<CommcastSendReceipt>.Payload.
+                    sb.Append('{');
+                    AppendString(sb, "addressed");
+                    sb.Append(':');
+                    AppendValue(sb, sendReceipt.Addressed);
+                    sb.Append(',');
+                    AppendString(sb, "unreached");
+                    sb.Append(':');
+                    AppendValue(sb, sendReceipt.Unreached);
+                    sb.Append('}');
+                    break;
                 case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
                     AppendCommandCentreActiveVesselDelay(sb, activeVesselDelay);
                     break;

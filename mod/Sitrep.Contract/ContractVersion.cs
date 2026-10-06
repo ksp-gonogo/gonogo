@@ -2414,8 +2414,17 @@ namespace Sitrep.Contract
         /// <see cref="IPropagationDeparture"/> companion a provider implements to fill
         /// it. Nullable and opt-in: a provider that does not implement the companion
         /// states no error. Additive on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 16 -&gt; 17: a group message says who it
+        /// left for.</b> <see cref="CommcastMessageSendArgs.To"/> lets a message be
+        /// said again to named members only, and <c>commcast.message.send</c> now
+        /// returns a <see cref="CommcastSendReceipt"/> naming who it left for and
+        /// who no signal could reach. A sender had only silence to tell a member
+        /// who was never sent it from one who had not answered yet. Additive: an
+        /// absent <c>to</c> means everyone, as before, and a client that reads no
+        /// payload loses nothing.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 16;
+        public const int Minor = 17;
     }
 }

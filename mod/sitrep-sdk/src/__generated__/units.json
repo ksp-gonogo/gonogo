@@ -311,7 +311,8 @@
     "CommcastMessageSendArgs": {
       "body": "text",
       "groupId": "id",
-      "id": "id"
+      "id": "id",
+      "to": "id"
     },
     "CommcastRadioBatch": {
       "end": "flag",
@@ -328,6 +329,10 @@
       "groupId": "id",
       "seq": "count",
       "transmissionId": "id"
+    },
+    "CommcastSendReceipt": {
+      "addressed": "id",
+      "unreached": "id"
     },
     "CommcastTraffic": {
       "added": "id",

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.16.0
+  version: 29.17.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -6793,7 +6793,7 @@ components:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
               result:
-                $ref: "#/components/schemas/CommandResult"
+                $ref: "#/components/schemas/CommcastSendReceipt"
     commandResponse.commcast.radio.transmit:
       name: command-response
       title: Reply to commcast.radio.transmit
@@ -10891,6 +10891,7 @@ components:
         - id
         - groupId
         - body
+        - to
         - author
       properties:
         id:
@@ -10907,6 +10908,16 @@ components:
           type: string
           x-sitrep-unit: text
           description: The words.
+        to:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            The members to say it to, as `commandCentre.roster` ids: for saying a
+            message again to those who did not receive it, and to nobody else. Empty or
+            absent means every member the speaker knows of. Refused if it names a centre
+            that is not a member as the speaker's vantage knows the group.
         author:
           description: How the speaker describes itself, for display only.
           allOf:
@@ -10958,6 +10969,33 @@ components:
           description: How the speaker describes itself, for display only.
           allOf:
             - $ref: "#/components/schemas/CommcastAuthor"
+    CommcastSendReceipt:
+      type: object
+      description: |-
+        What `commcast.message.send` did with a message: who it left for, and who it
+        could not leave for. It says nothing of arrival, which only each listener's
+        acknowledgement does.
+      required:
+        - addressed
+        - unreached
+      properties:
+        addressed:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            Every centre the message left for, the speaker's own included, in ordinal id
+            order. The same list its listeners read as the message's `to`.
+        unreached:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            Every member it was meant for that no signal from the speaker could reach
+            when it was said, in ordinal id order. The message never left for these, so
+            no wait will bring an acknowledgement from them.
     CommcastTraffic:
       type: object
       description: |-

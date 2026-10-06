@@ -403,6 +403,7 @@ public static class RtConfig
                 // commcast.traffic, and the descriptor that opens every
                 // commcast.radio frame on the binary lane
                 typeof(CommcastTraffic),
+                typeof(CommcastSendReceipt),
                 typeof(CommcastAuthor),
                 typeof(CommcastRadioBatch),
                 // commcast.transmissions: what a vantage can detect

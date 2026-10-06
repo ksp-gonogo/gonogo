@@ -221,19 +221,148 @@ namespace Sitrep.Host.IntegrationTests
             await scene.C.AssertNoMessageArrivesAsync(Quiet);
         }
 
-        /// <summary>
-        /// Nothing is replayed to a connection that subscribes after a transmission
-        /// reached it; something still crossing when it subscribes still lands.
-        /// </summary>
+        /// <summary>The speaker is told at once who the message could not leave for, where it had only silence to go on.</summary>
         [Fact]
-        public async Task ALateSubscriberGetsWhatIsStillCrossingAndNothingThatAlreadyArrived()
+        public async Task ASendSaysWhoItLeftForAndWhoItCouldNotReach()
+        {
+            await using var scene = await Scene.StartAsync(unrouted: (A, C));
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B, C));
+
+            var receipt = await scene.ReceiptAsync(scene.A, Send("m1", "g1", "anyone?"));
+
+            Assert.Equal(new[] { A, B }, Strings(receipt["addressed"]));
+            Assert.Equal(new[] { C }, Strings(receipt["unreached"]));
+        }
+
+        [Fact]
+        public async Task AMessageSaidAgainToOneMemberReachesThatMemberAlone()
+        {
+            await using var scene = await Scene.StartAsync();
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B, C));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m1", "g1", "first"));
+            scene.Tick(100);
+            await DrainAllStreamDataAsync(scene.B, Quiet);
+            await DrainAllStreamDataAsync(scene.C, Quiet);
+
+            var again = Send("m1", "g1", "first");
+            again["to"] = new List<object?> { C };
+            var receipt = await scene.ReceiptAsync(scene.A, again);
+
+            Assert.Equal(new[] { A, C }, Strings(receipt["addressed"]));
+            Assert.Empty(Strings(receipt["unreached"]));
+            scene.Tick(200);
+            var text = await NextTrafficAsync(scene.C);
+            Assert.Equal("m1", text["id"]);
+            Assert.Equal(new[] { A, C }, Strings(text["to"]));
+            await scene.B.AssertNoMessageArrivesAsync(Quiet);
+        }
+
+        [Fact]
+        public async Task AMessageCannotBeSaidAgainToACentreThatIsNotAMember()
+        {
+            await using var scene = await Scene.StartAsync();
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            var toOutsider = Send("m1", "g1", "psst");
+            toOutsider["to"] = new List<object?> { C };
+
+            Assert.False((await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, toOutsider)).Success);
+
+            scene.Tick(100);
+            await scene.C.AssertNoMessageArrivesAsync(Quiet);
+        }
+
+        /// <summary>Saying it again to one member does not un-address the others: one who had it from the first send can still acknowledge it.</summary>
+        [Fact]
+        public async Task AMemberOfTheFirstSendCanStillAcknowledgeAfterItWasSaidAgainToAnother()
+        {
+            await using var scene = await Scene.StartAsync();
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B, C));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m1", "g1", "first"));
+            scene.Tick(100);
+            var again = Send("m1", "g1", "first");
+            again["to"] = new List<object?> { C };
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, again);
+
+            var ack = await scene.CommandAsync(scene.B, CommcastUplink.AckCommand, new Dictionary<string, object?> { ["messageId"] = "m1" });
+
+            Assert.True(ack.Success);
+        }
+
+        /// <summary>A screen opened after word of a group landed at its centre is told the group, as that centre knows it, and nothing its centre has not heard.</summary>
+        [Fact]
+        public async Task AScreenOpenedAfterAGroupReachedItsCentreIsToldTheGroupAsItsCentreKnowsIt()
         {
             await using var scene = await Scene.StartAsync(subscribeB: false);
             await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
             scene.Tick(5);
+            await scene.CommandAsync(scene.A, CommcastUplink.AddCommand, new Dictionary<string, object?> { ["groupId"] = "g1", ["added"] = new List<object?> { C } });
+            scene.Tick(6);
+
+            Assert.Equal("subscribed", (await SubscribeAsync(scene.B, CommcastUplink.TrafficTopic, Timeout)).Name);
+            scene.Tick(6);
+
+            var told = await NextTrafficAsync(scene.B);
+            Assert.Equal("members", told["kind"]);
+            Assert.Equal("g1", told["groupId"]);
+            Assert.Equal(A, told["from"]);
+            // The add was said a second ago and is four seconds short of B.
+            Assert.Equal(new[] { A, B }, Strings(told["members"]));
+            await scene.B.AssertNoMessageArrivesAsync(Quiet);
+        }
+
+        [Fact]
+        public async Task AScreenOpenedBeforeAGroupReachedItsCentreIsToldNothingOfItEarly()
+        {
+            await using var scene = await Scene.StartAsync(subscribeB: false);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            scene.Tick(4);
+
+            Assert.Equal("subscribed", (await SubscribeAsync(scene.B, CommcastUplink.TrafficTopic, Timeout)).Name);
+
+            await scene.B.AssertNoMessageArrivesAsync(Quiet);
+            await scene.C.AssertNoMessageArrivesAsync(Quiet);
+        }
+
+        /// <summary>
+        /// The path from A to B shortens from five seconds to one just after A
+        /// opens the group. A message said then would overtake the news of the
+        /// group it was said in, and B would hold a message for a group it has
+        /// never heard of. It is held back to land behind that news.
+        /// </summary>
+        [Fact]
+        public async Task AMessageNeverLandsBeforeWordOfTheGroupItWasSaidInEvenDownAPathThatHasShortened()
+        {
+            await using var scene = await Scene.StartAsync();
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            scene.Shorten(A, B, 1);
+            scene.Tick(1);
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m1", "g1", "hello"));
+
+            scene.Tick(4);
+            await scene.B.AssertNoMessageArrivesAsync(Quiet);
+
+            scene.Tick(5);
+            Assert.Equal("members", (await NextTrafficAsync(scene.B))["kind"]);
+            Assert.Equal("text", (await NextTrafficAsync(scene.B))["kind"]);
+        }
+
+        /// <summary>
+        /// Nothing said is replayed to a connection that subscribes after it
+        /// reached that centre; something still crossing when it subscribes still lands.
+        /// </summary>
+        [Fact]
+        public async Task ALateSubscriberGetsWhatIsStillCrossingAndNothingSaidThatAlreadyArrived()
+        {
+            await using var scene = await Scene.StartAsync(subscribeB: false);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m0", "g1", "landed and gone"));
+            scene.Tick(5);
             await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m1", "g1", "in flight"));
 
             Assert.Equal("subscribed", (await SubscribeAsync(scene.B, CommcastUplink.TrafficTopic, Timeout)).Name);
+            scene.Tick(5);
+            // Who is in the group is state, and is said again; what was said in it is not.
+            Assert.Equal("members", (await NextTrafficAsync(scene.B))["kind"]);
             await scene.B.AssertNoMessageArrivesAsync(Quiet);
 
             scene.Tick(10);
@@ -371,6 +500,7 @@ namespace Sitrep.Host.IntegrationTests
             private readonly ChannelEngine _engine;
             private int _request;
             private bool _discovery;
+            private LedgerUplink _ledger = null!;
 
             public TestClient A { get; private set; } = null!;
             public TestClient B { get; private set; } = null!;
@@ -385,10 +515,11 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     engine.RegisterCommandCentreSource(new StaticSource(id));
                 }
-                engine.RegisterUplink(new LedgerUplink(unrouted));
+                var ledger = new LedgerUplink(unrouted);
+                engine.RegisterUplink(ledger);
                 engine.RegisterUplink(new CommcastUplink());
                 engine.Start();
-                var scene = new Scene(engine) { _discovery = discovery };
+                var scene = new Scene(engine) { _discovery = discovery, _ledger = ledger };
                 scene.Tick(0);
                 scene.A = await scene.ConnectAtAsync(CommcastEndToEndTests.A, subscribe: true);
                 scene.B = await scene.ConnectAtAsync(CommcastEndToEndTests.B, subscribe: subscribeB);
@@ -398,7 +529,22 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Tick(double ut) => _engine.TickAndWait(ut, null, Timeout);
 
-            public async Task<CommandResult> CommandAsync(TestClient client, string command, Dictionary<string, object?> args, string? vantage = null)
+            /// <summary>Changes how far apart two centres are, from the next tick.</summary>
+            public void Shorten(string a, string b, double seconds) => _ledger.Override(a, b, seconds);
+
+            /// <summary>Sends a message and returns what the mod said it did with it.</summary>
+            public async Task<Dictionary<string, object?>> ReceiptAsync(TestClient client, Dictionary<string, object?> send)
+            {
+                var result = await ResultAsync(client, CommcastUplink.SendCommand, send, null);
+                Assert.True((bool)result["success"]!);
+                Assert.True(result.ContainsKey("payload"), "the send returned no receipt");
+                return (Dictionary<string, object?>)result["payload"]!;
+            }
+
+            public async Task<CommandResult> CommandAsync(TestClient client, string command, Dictionary<string, object?> args, string? vantage = null) =>
+                new CommandResult { Success = (bool)(await ResultAsync(client, command, args, vantage))["success"]! };
+
+            private async Task<Dictionary<string, object?>> ResultAsync(TestClient client, string command, Dictionary<string, object?> args, string? vantage)
             {
                 var requestId = "r" + (++_request);
                 await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
@@ -417,8 +563,7 @@ namespace Sitrep.Host.IntegrationTests
                     {
                         continue;
                     }
-                    var result = (Dictionary<string, object?>)response.Result!;
-                    return new CommandResult { Success = (bool)result["success"]! };
+                    return (Dictionary<string, object?>)response.Result!;
                 }
             }
 
@@ -452,7 +597,17 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class LedgerUplink : ISitrepUplink
         {
             private readonly (string, string)? _unrouted;
+            private readonly Dictionary<(string, string), double> _overridden = new();
             private IUplinkHost? _host;
+
+            public void Override(string a, string b, double seconds)
+            {
+                lock (_overridden)
+                {
+                    _overridden[(a, b)] = seconds;
+                    _overridden[(b, a)] = seconds;
+                }
+            }
 
             public LedgerUplink((string, string)? unrouted) => _unrouted = unrouted;
 
@@ -485,6 +640,13 @@ namespace Sitrep.Host.IntegrationTests
                             continue;
                         }
                         var seconds = Separations.TryGetValue((from, to), out var s) ? s : Separations[(to, from)];
+                        lock (_overridden)
+                        {
+                            if (_overridden.TryGetValue((from, to), out var changed))
+                            {
+                                seconds = changed;
+                            }
+                        }
                         _host!.SetCentreDelay(from, to, seconds);
                         reached.Add(to);
                     }

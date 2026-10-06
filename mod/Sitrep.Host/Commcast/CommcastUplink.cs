@@ -47,9 +47,13 @@ namespace Sitrep.Host.Commcast
         private static readonly PerfBudget RadioChunksBudget = new PerfBudget(
             "Commcast radio chunks in/sec", threshold: 250, windowSec: 1.0, unit: "chunks");
 
-        /// <summary>Messages, acknowledgements and membership changes accepted per second.</summary>
+        /// <summary>
+        /// Messages, acknowledgements and membership changes accepted per second.
+        /// One message to a full group is answered by an acknowledgement from each
+        /// of its other 63 members, which can all land in one second.
+        /// </summary>
         private static readonly PerfBudget TrafficBudget = new PerfBudget(
-            "Commcast traffic items in/sec", threshold: 50, windowSec: 1.0, unit: "items");
+            "Commcast traffic items in/sec", threshold: 150, windowSec: 1.0, unit: "items");
 
         /// <summary>A batch longer than a second is a client that stopped batching to the grid.</summary>
         private const int MaxChunksPerBatch = 50;
@@ -75,6 +79,12 @@ namespace Sitrep.Host.Commcast
             public Sitrep.Core.DelayStamp Stamp = null!;
             public HashSet<string> Reached = null!;
             public List<string> Added = null!;
+
+            /// <summary>Everyone in the group as its author knew it when this was said, which is what it told everyone it reached.</summary>
+            public List<string> Members = null!;
+
+            /// <summary>How the author described itself.</summary>
+            public CommcastAuthor Said = new CommcastAuthor();
         }
 
         private sealed class SentMessage
@@ -162,6 +172,8 @@ namespace Sitrep.Host.Commcast
             _streams.DeclareAddressedTopic(RadioTopic);
             _streams.DeclareAddressedTopic(TransmissionsTopic);
 
+            _streams.OnAddressedSubscribed(TrafficTopic, SayGroupsKnownAt);
+
             host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, HandleOpen);
             host.AddVantageCommandHandler<CommcastGroupAddArgs, CommandResult>(AddCommand, HandleAdd);
             host.AddVantageCommandHandler<CommcastMessageSendArgs, CommandResult>(SendCommand, HandleSend);
@@ -199,9 +211,9 @@ namespace Sitrep.Host.Commcast
             }
 
             var now = Now();
-            var change = Change(now, from, members, members);
+            var change = Change(now, from, args.Author, members, members);
             _groups[args.GroupId] = new List<MembershipChange> { change };
-            PublishMembers(args.GroupId, from, args.Author, now, change, members);
+            PublishTraffic(MembersItem(args.GroupId, change, members));
             return CommandResult.Ok();
         }
 
@@ -233,9 +245,9 @@ namespace Sitrep.Host.Commcast
                 return CommandResult.Fail(CommandErrorCode.Range, "a group holds at most " + MaxMembers + " centres");
             }
 
-            var change = Change(now, from, members, added);
+            var change = Change(now, from, args.Author, members, added);
             _groups[args.GroupId].Add(change);
-            PublishMembers(args.GroupId, from, args.Author, now, change, members);
+            PublishTraffic(MembersItem(args.GroupId, change, members));
             return CommandResult.Ok();
         }
 
@@ -257,9 +269,19 @@ namespace Sitrep.Host.Commcast
                 return refusal;
             }
 
-            var to = Addressed(from, known);
-            Remember(args.Id, new SentMessage { Author = from, To = new HashSet<string>(to, StringComparer.Ordinal) });
-            PublishTraffic(new CommcastTraffic
+            var named = Distinct(args.To);
+            foreach (var id in named)
+            {
+                if (!known.Contains(id))
+                {
+                    return CommandResult.Fail(CommandErrorCode.WrongState, "'" + id + "' is not a member of that group as far as this centre knows");
+                }
+            }
+            var meant = named.Count == 0 ? known : named;
+            var to = Addressed(from, meant);
+            var unreached = meant.Where(id => !to.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
+            Remember(args.Id, from, to);
+            var text = new CommcastTraffic
             {
                 Kind = "text",
                 Id = args.Id,
@@ -269,8 +291,18 @@ namespace Sitrep.Host.Commcast
                 SentUt = now,
                 To = to,
                 Body = args.Body,
-            });
-            return CommandResult.Ok();
+            };
+            var held = HeldBehindMembership(_groups[args.GroupId], from, to, now);
+            if (held == null)
+            {
+                PublishTraffic(text);
+            }
+            else
+            {
+                TrafficBudget.Record(1, now);
+                _streams!.PublishAddressedTo(TrafficTopic, ToWire(text), now, held);
+            }
+            return CommandResult<CommcastSendReceipt>.Ok(new CommcastSendReceipt { Addressed = to, Unreached = unreached });
         }
 
         private CommandResult HandleAck(CommcastMessageAckArgs? args, string from)
@@ -424,8 +456,7 @@ namespace Sitrep.Host.Commcast
             var members = new List<string>();
             foreach (var change in changes)
             {
-                if (change.Author != vantage
-                    && !(change.Reached.Contains(vantage) && change.Ut + change.Stamp.For(vantage) <= ut))
+                if (!KnownAt(change, vantage, ut))
                 {
                     continue;
                 }
@@ -439,6 +470,93 @@ namespace Sitrep.Host.Commcast
             }
             return members;
         }
+
+        /// <summary>
+        /// When a message said now lands at each listener, in seconds from now,
+        /// where it has to be held back so as not to land before word of the
+        /// group it was said in; null where none has to be.
+        ///
+        /// <para>Word of a membership change crosses under the delay of the
+        /// moment it was said. A path that has shortened since would carry a
+        /// later message there first, to a listener that has never heard of
+        /// the group. Holding a message only ever makes it later, so nothing
+        /// reaches anyone sooner than light would carry it.</para>
+        /// </summary>
+        private Dictionary<string, double>? HeldBehindMembership(
+            List<MembershipChange> changes, string speaker, List<string> to, double now)
+        {
+            var stamp = _streams!.StampFrom(speaker);
+            var arrives = new Dictionary<string, double>(StringComparer.Ordinal);
+            var any = false;
+            foreach (var listener in to)
+            {
+                var seconds = listener == speaker ? 0.0 : stamp.For(listener);
+                foreach (var change in changes)
+                {
+                    if (change.Author == listener || !change.Reached.Contains(listener))
+                    {
+                        continue;
+                    }
+                    var wordLands = change.Ut + change.Stamp.For(listener) - now;
+                    if (wordLands > seconds)
+                    {
+                        seconds = wordLands;
+                        any = true;
+                    }
+                }
+                arrives[listener] = seconds;
+            }
+            return any ? arrives : null;
+        }
+
+        /// <summary>
+        /// Says each group again to a vantage a screen has just opened at, as that
+        /// vantage knows it now: the newest change to have reached it, with
+        /// everyone the changes that have reached it named. Who is in a group is
+        /// state, where a message is not, and without this a screen opened after
+        /// word of a group landed would never learn of it. It is all word that
+        /// has already arrived there, so it arrives again at once.
+        /// </summary>
+        private void SayGroupsKnownAt(string vantage)
+        {
+            if (string.IsNullOrEmpty(vantage))
+            {
+                return;
+            }
+            var now = Now();
+            foreach (var group in _groups)
+            {
+                MembershipChange? newest = null;
+                var members = new List<string>();
+                foreach (var change in group.Value)
+                {
+                    if (!KnownAt(change, vantage, now))
+                    {
+                        continue;
+                    }
+                    newest = change;
+                    foreach (var id in change.Members)
+                    {
+                        if (!members.Contains(id))
+                        {
+                            members.Add(id);
+                        }
+                    }
+                }
+                if (newest == null || !members.Contains(vantage))
+                {
+                    continue;
+                }
+                _streams!.PublishAddressedTo(
+                    TrafficTopic,
+                    ToWire(MembersItem(group.Key, newest, members)),
+                    newest.Ut,
+                    new Dictionary<string, double>(StringComparer.Ordinal) { [vantage] = Math.Max(0.0, now - newest.Ut) });
+            }
+        }
+
+        private static bool KnownAt(MembershipChange change, string vantage, double ut) =>
+            change.Author == vantage || (change.Reached.Contains(vantage) && change.Ut + change.Stamp.For(vantage) <= ut);
 
         /// <summary>The speaker, and every member it knows of that a signal from it can reach.</summary>
         private List<string> Addressed(string speaker, IEnumerable<string> members)
@@ -455,33 +573,32 @@ namespace Sitrep.Host.Commcast
             return to;
         }
 
-        private MembershipChange Change(double now, string author, List<string> members, List<string> added) =>
+        private MembershipChange Change(double now, string author, CommcastAuthor said, List<string> members, List<string> added) =>
             new MembershipChange
             {
                 Ut = now,
                 Author = author,
+                Said = said ?? new CommcastAuthor(),
+                Members = members,
                 Stamp = _streams!.StampFrom(author),
                 Reached = new HashSet<string>(Addressed(author, members), StringComparer.Ordinal),
                 Added = added,
             };
 
-        private void PublishMembers(
-            string groupId, string from, CommcastAuthor author, double now, MembershipChange change, List<string> members)
-        {
-            var to = change.Reached.OrderBy(id => id, StringComparer.Ordinal).ToList();
-            PublishTraffic(new CommcastTraffic
+        /// <summary>A membership change as its listeners read it. Its id is the same however often it is said, so a listener told twice holds it once.</summary>
+        private static CommcastTraffic MembersItem(string groupId, MembershipChange change, List<string> members) =>
+            new CommcastTraffic
             {
                 Kind = "members",
-                Id = groupId + "@" + now.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                Id = groupId + "@" + change.Ut.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
                 GroupId = groupId,
-                From = from,
-                Author = author,
-                SentUt = now,
-                To = to,
+                From = change.Author,
+                Author = change.Said,
+                SentUt = change.Ut,
+                To = change.Reached.OrderBy(id => id, StringComparer.Ordinal).ToList(),
                 Members = members.OrderBy(id => id, StringComparer.Ordinal).ToList(),
                 Added = change.Added.OrderBy(id => id, StringComparer.Ordinal).ToList(),
-            });
-        }
+            };
 
         private void PublishTraffic(CommcastTraffic item)
         {
@@ -489,13 +606,23 @@ namespace Sitrep.Host.Commcast
             _streams!.PublishAddressed(TrafficTopic, ToWire(item), item.SentUt, item.From, item.To);
         }
 
-        private void Remember(string id, SentMessage message)
+        /// <summary>
+        /// Keeps who a message was addressed to, for acknowledging. Said again by
+        /// its author, to anyone, it stays addressed to everyone it ever left for:
+        /// a member who had it from the first send can still acknowledge it.
+        /// </summary>
+        private void Remember(string id, string author, List<string> to)
         {
-            if (!_messages.ContainsKey(id))
+            if (_messages.TryGetValue(id, out var sent) && sent.Author == author)
+            {
+                sent.To.UnionWith(to);
+                return;
+            }
+            if (sent == null)
             {
                 _messageOrder.Enqueue(id);
             }
-            _messages[id] = message;
+            _messages[id] = new SentMessage { Author = author, To = new HashSet<string>(to, StringComparer.Ordinal) };
             while (_messageOrder.Count > MessageMemory)
             {
                 _messages.Remove(_messageOrder.Dequeue());

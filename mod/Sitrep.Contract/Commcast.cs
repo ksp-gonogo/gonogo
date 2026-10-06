@@ -94,7 +94,7 @@ public class CommcastGroupAddArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("commcast.message.send", Delay = DelayRole.TrueNow)]
+[SitrepCommand("commcast.message.send", Result = typeof(CommcastSendReceipt), Delay = DelayRole.TrueNow)]
 public class CommcastMessageSendArgs
 {
     /// <summary>Minted by the client and kept across a resend, so a listener holding both copies holds one message.</summary>
@@ -109,8 +109,42 @@ public class CommcastMessageSendArgs
     [SitrepUnit(Units.Text)]
     public string Body { get; set; } = "";
 
+    /// <summary>
+    /// The members to say it to, as <c>commandCentre.roster</c> ids: for saying a
+    /// message again to those who did not receive it, and to nobody else. Empty
+    /// or absent means every member the speaker knows of. Refused if it names a
+    /// centre that is not a member as the speaker's vantage knows the group.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string> To { get; set; } = new();
+
     /// <summary>How the speaker describes itself, for display only.</summary>
     public CommcastAuthor Author { get; set; } = new();
+}
+
+/// <summary>
+/// What <c>commcast.message.send</c> did with a message: who it left for, and
+/// who it could not leave for. It says nothing of arrival, which only each
+/// listener's acknowledgement does.
+/// </summary>
+/// <category>Command results</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommcastSendReceipt
+{
+    /// <summary>Every centre the message left for, the speaker's own included, in ordinal id order. The same list its listeners read as the message's <c>to</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public List<string> Addressed { get; set; } = new();
+
+    /// <summary>
+    /// Every member it was meant for that no signal from the speaker could
+    /// reach when it was said, in ordinal id order. The message never left for
+    /// these, so no wait will bring an acknowledgement from them.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string> Unreached { get; set; } = new();
 }
 
 /// <summary>

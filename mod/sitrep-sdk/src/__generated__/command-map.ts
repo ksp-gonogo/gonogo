@@ -62,6 +62,7 @@ import type {
   CommcastMessageAckArgs,
   CommcastMessageSendArgs,
   CommcastRadioTransmitArgs,
+  CommcastSendReceipt,
   ContractActionArgs,
   DeactivateStrategyArgs,
   ExperimentActionArgs,
@@ -178,7 +179,7 @@ export interface GeneratedCommandReplyMap {
   "commcast.group.add": CommandResult;
   "commcast.group.open": CommandResult;
   "commcast.message.ack": CommandResult;
-  "commcast.message.send": CommandResult;
+  "commcast.message.send": CommcastSendReceipt;
   "commcast.radio.transmit": CommandResult;
   "ksp.launch": CommandResult;
   "ksp.recover": CommandResult;
@@ -251,7 +252,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.group.add": "CommandResult",
   "commcast.group.open": "CommandResult",
   "commcast.message.ack": "CommandResult",
-  "commcast.message.send": "CommandResult",
+  "commcast.message.send": "CommcastSendReceipt",
   "commcast.radio.transmit": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
