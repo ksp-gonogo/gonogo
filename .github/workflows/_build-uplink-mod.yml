@@ -272,7 +272,7 @@ jobs:
           path: ${{ env.ZIP_NAME }}
           if-no-files-found: error
 
-      # Mirrors kerbcam release.yml's "Publish to SpaceDock" step: cookie-based
+      # Mirrors kerbcam release.yml's "Publish to SpaceDock": cookie-based
       # login (SpaceDock has no API tokens), multipart upload to
       # /api/mod/<id>/update. Per-mod listing id is passed in as
       # spacedock_mod_id: see OUTSTANDING PREREQS §2 in publish-mods.yml.
@@ -280,7 +280,11 @@ jobs:
       # that CKAN reads for compatibility; SpaceDock takes its game-version
       # from the form field below instead. Uses the zip just built above, no
       # artifact download.
-      - name: Publish ${{ inputs.id }} to SpaceDock
+      #
+      # Three steps: decide, write the player changelog, upload. A run that
+      # should have uploaded and did not says so in the job summary.
+      - name: Decide whether ${{ inputs.id }} needs a SpaceDock upload
+        id: sd
         if: ${{ inputs.channel == 'release' }}
         env:
           SPACEDOCK_USERNAME: ${{ secrets.SPACEDOCK_USERNAME }}
@@ -288,17 +292,54 @@ jobs:
           SPACEDOCK_MOD_ID: ${{ inputs.spacedock_mod_id }}
         run: |
           set -euo pipefail
+          VERSION="$(node scripts/spacedock-release.mjs bare-version "${{ inputs.version }}")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
           if [ -z "${SPACEDOCK_USERNAME:-}" ] || [ -z "${SPACEDOCK_PASSWORD:-}" ] || [ -z "${SPACEDOCK_MOD_ID:-}" ]; then
+            echo "upload=false" >> "$GITHUB_OUTPUT"
             echo "::warning::SpaceDock not configured for ${{ inputs.id }} (need secrets SPACEDOCK_USERNAME, SPACEDOCK_PASSWORD and a spacedock_mod_id input); skipping upload"
+            {
+              echo "### SpaceDock was NOT updated: ${{ inputs.id }} ${VERSION}"
+              echo ""
+              echo "The upload was skipped because SpaceDock is not configured for this mod: the secrets SPACEDOCK_USERNAME and SPACEDOCK_PASSWORD and the listing id must all be set. Players on SpaceDock and CKAN still see the previous version."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
+          # Public read, no login: the listing names every version it holds.
+          curl -fsS "https://spacedock.info/api/mod/${SPACEDOCK_MOD_ID}" -o sd-listing.json
+          if [ "$(node scripts/spacedock-release.mjs holds sd-listing.json "$VERSION")" = "held" ]; then
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SpaceDock mod ${SPACEDOCK_MOD_ID} already holds ${VERSION}; not uploading it again"
+            {
+              echo "### SpaceDock already holds ${{ inputs.id }} ${VERSION}"
+              echo ""
+              echo "Nothing was uploaded: this version is on the listing already, so a second upload would duplicate it."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          fi
+          rm -f sd-listing.json
+
+      # What players read on the SpaceDock version. Its own step so the source
+      # of the text is one place to change.
+      - name: Write the SpaceDock player changelog
+        if: ${{ steps.sd.outputs.upload == 'true' }}
+        run: git log --oneline -20 > sd-changelog.md
+
+      - name: Publish ${{ inputs.id }} to SpaceDock
+        if: ${{ steps.sd.outputs.upload == 'true' }}
+        env:
+          SPACEDOCK_USERNAME: ${{ secrets.SPACEDOCK_USERNAME }}
+          SPACEDOCK_PASSWORD: ${{ secrets.SPACEDOCK_PASSWORD }}
+          SPACEDOCK_MOD_ID: ${{ inputs.spacedock_mod_id }}
+          VERSION: ${{ steps.sd.outputs.version }}
+        run: |
+          set -euo pipefail
           ZIP="${{ env.ZIP_NAME }}"
-          VERSION="${{ inputs.version }}"
           # Read back out of the written `.version`, so the field SpaceDock
           # shows and the file CKAN reads share one constant.
           GAME_VERSION="$(jq -r '.KSP_VERSION | "\(.MAJOR).\(.MINOR).\(.PATCH)"' "GameData/${{ inputs.gamedata }}/${{ inputs.gamedata }}.version")"
-          git log --oneline -20 > sd-changelog.md
 
           login="$(curl -sS -F username="$SPACEDOCK_USERNAME" -F password="$SPACEDOCK_PASSWORD" -c ./sd-cookies https://spacedock.info/api/login)"
           if printf '%s' "$login" | grep -q '"error"[[:space:]]*:[[:space:]]*true'; then
@@ -316,3 +357,4 @@ jobs:
           fi
           rm -f ./sd-cookies sd-changelog.md
           echo "SpaceDock mod ${SPACEDOCK_MOD_ID} (${{ inputs.id }}) updated to ${VERSION} (KSP ${GAME_VERSION})"
+          echo "### SpaceDock updated: ${{ inputs.id }} ${VERSION} (KSP ${GAME_VERSION})" >> "$GITHUB_STEP_SUMMARY"

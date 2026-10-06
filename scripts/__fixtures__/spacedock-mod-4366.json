@@ -1,0 +1,203 @@
+{
+  "name": "Kerbcast",
+  "id": 4366,
+  "game": "Kerbal Space Program",
+  "game_id": 3102,
+  "short_description": "A HullcamVDS camera streaming mod, with an emphasis on performance and embedability.",
+  "downloads": 819,
+  "followers": 2,
+  "author": "jpeps",
+  "default_version_id": 24642,
+  "shared_authors": [],
+  "background": "https://spacedock.info/content/jpeps_187577/Kerbcast/Kerbcast-1782694336.png",
+  "bg_offset_y": 0,
+  "license": "CC-BY-NC-SA",
+  "website": "https://github.com/ksp-gonogo/kerbcast",
+  "donations": "",
+  "source_code": "https://github.com/ksp-gonogo/kerbcast",
+  "url": "/mod/4366/Kerbcast",
+  "versions": [
+    {
+      "friendly_version": "1.9.1",
+      "game_version": "1.12.5",
+      "id": 24642,
+      "created": "2026-08-06T11:33:27.240876+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.9.1",
+      "changelog": "Other changes: CI, Chores, Other\n",
+      "downloads": 295
+    },
+    {
+      "friendly_version": "1.9.0",
+      "game_version": "1.12.5",
+      "id": 24630,
+      "created": "2026-08-05T23:24:44.244858+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.9.0",
+      "changelog": "**Bug Fixes**\n- Keep the Hullcam Linux shader swap alive past the loading screen (4764fa5)\n- Encode VBR, not CBR \u2014 CBR filler padding was quantising motion away (493d4e6)\n- Cap the VAAPI quantiser so slow motion is not skipped (ce2e9c1)\n- Disable B-frames \u2014 reordered frames were the judder (980db98)\n\n**CI**\n- Unblock the orientation proof past the Unity Hub 3.20 layout change (7384f0b)\n- Install Unity Hub before the setup action and satisfy its probe path (26ffa44)\n- Link the Unity Hub executable, not the package directory (be702c3)\n- Let the Unity Hub postinst complete (8bb229b)\n- Make the release re-runnable (2c0f9d7)\n- Point the Unity setup action at where Hub 3.20 actually installs (5883998)\n- Pin a pre-3.20 Unity Hub, which installs where the setup action requires (a80afaa)\n- Pin unityhub with apt preferences, not apt-mark hold (6c47ba7)\n- Alias unity-hub to the installed unityhub binary (ba18c3f)\n- Fetch the Unity Editor directly instead of driving Unity Hub (4328376)\n- Unpack the Mac support module from Unity's .pkg (07aaec3)\n- Activate the licence the 2019 way, and always hand it back (40b0e1f)\n- Hub for licensing only, direct download for the editor (a8bacde)\n- Restore the Linux build and orientation-proof steps (c503c57)\n- Restore the Windows job's Hub-based licence activation (89809a0)\n- Fetch the Unity Editor directly in the GameData job (fa4851d)\n\n**Chores**\n- Pin v1.8.1 (2d91373)\n\n**Features**\n- Expose sidecar liveness on the control facade (ef86006)\n- Add disableManualControls to CameraFeed (057f638)\n- Background capture \"hum\" for undisplayed cameras (37b03c4)\n- Instrument the consume loop; resolve remote mDNS candidates (23366fa)\n\n**Other**\n- Cargo fmt (8e76c3d)\n- Log slot mid/direction and negotiated H264 fmtp (1be9fb8)\n- Probe capture-RT luminance either side of the filter blit (f14d36e)\n- Computed orientation ground truth per camera (a0959d1)\n- V1.9.0 (9ecf3f9)\n\n**Refactoring**\n- Background capture, not \"hum\", throughout (f6fe6b7)\n\n**Tests**\n- Prove the SHIPPED capture chain's orientation, not just the blit (a51da89)\n- Per-camera orientation proof through the shipped chain (f0c56e2)\n- Drop the shipped-chain branches; they measured a pipeline that does not exist (563ff06)\n\n",
+      "downloads": 10
+    },
+    {
+      "friendly_version": "1.8.1",
+      "game_version": "1.12.5",
+      "id": 24530,
+      "created": "2026-07-28T02:46:29.722681+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.8.1",
+      "changelog": "**Chores**\n- Pin v1.8.0 (5c10a3e)\n\n**Documentation**\n- Title the 1.8.0 changelog sections and correct the protocol-change note (93213a0)\n\n**Other**\n- V1.8.1 (f2f1815)\n\n",
+      "downloads": 50
+    },
+    {
+      "friendly_version": "1.8.0",
+      "game_version": "1.12.5",
+      "id": 24528,
+      "created": "2026-07-28T02:29:26.182168+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.8.0",
+      "changelog": "**Bug Fixes**\n- Place the REC badge under the source dropdown instead of shifting it (3f7365c)\n- Resolve full-res arm stall and clear force pin on unsubscribe (36184d0)\n\n**Chores**\n- Pin v1.7.0 (53c79bd)\n\n**Features**\n- Client-side camera recording UI (a8a88a9)\n- Full-resolution recordings (b2851e1)\n\n**Other**\n- Rebuild embedded page against the recording fixes (ca633b7)\n- V1.8.0 (39fb9af)\n\n",
+      "downloads": 6
+    },
+    {
+      "friendly_version": "1.7.0",
+      "game_version": "1.12.5",
+      "id": 24493,
+      "created": "2026-07-24T08:10:31.572752+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.7.0",
+      "changelog": "**CI**\n- Assert capture-blit camera orientation on glcore + d3d11 (899dc4e)\n\n**Chores**\n- Pin v1.6.3 (cd2ccea)\n- Regenerate typeshare bindings [skip ci] (e237447)\n\n**Features**\n- Add CameraKind + CrewLocation + kerbal fields for face cameras (d81c7d9)\n- Report seated crew as kerbal cameras (kerbal-cameras Stage 3) (937cabb)\n- Stream seated crew IVA faces as kerbal cameras (kerbal-cameras Stage 4) (f1f31cc)\n- Kerbal EVA face cameras \u2014 one continuous feed across seat<->EVA (kerbal-cameras Stage 5) (278b011)\n- Auto-resolution \u2014 cameras track consumer display size (facecam Stage 6 slice 1) (cd95d3e)\n- Crew face cameras, auto-resolution, camera targeting, and kOS camera control (960b636)\n\n**Other**\n- V1.7.0 (a4c3bbb)\n\n**Refactoring**\n- Decouple KerbcastCamera from Hullcam behind capability + provider seams (309390c)\n\n",
+      "downloads": 48
+    },
+    {
+      "friendly_version": "1.6.3",
+      "game_version": "1.12.5",
+      "id": 24458,
+      "created": "2026-07-19T20:34:56.300308+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.6.3",
+      "changelog": "**Bug Fixes**\n- Request keyframes while a feed is stalled to recover a wedged decoder (9c0fd12)\n- Periodic IDR on the software encoder (80ed525)\n- Forget degrade for live bindings on reap, not the stale subscribe list (47841a2)\n- Make degrade a single per-camera scalar (last-writer-wins) (d46f8c2)\n- Restore the pan/zoom deadman on peer reap (e5b337e)\n\n**Chores**\n- Pin v1.6.2 (9d6c433)\n\n**Features**\n- Log effective degrade when a reaped peer is forgotten (67fae78)\n\n**Other**\n- V1.6.3 (a2ab4cb)\n\n",
+      "downloads": 51
+    },
+    {
+      "friendly_version": "1.6.2",
+      "game_version": "1.12.5",
+      "id": 24445,
+      "created": "2026-07-19T06:26:24.483375+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.6.2",
+      "changelog": "**Bug Fixes**\n- Resolve pnpm workspace protocol before npm publish (0775d4f)\n\n**Chores**\n- Pin v1.6.1 (fae6dd7)\n\n**Other**\n- V1.6.2 (5c295c6)\n\n",
+      "downloads": 13
+    },
+    {
+      "friendly_version": "1.6.1",
+      "game_version": "1.12.5",
+      "id": 24427,
+      "created": "2026-07-18T00:50:42.093590+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.6.1",
+      "changelog": "**Chores**\n- Pin v1.6.0 (636f9c9)\n\n**Documentation**\n- Trim overshare, em-dashes, and trailing bullet periods from addon + README (8be4c6f)\n- Cut CKAN dependency filler from addon README (0a13f43)\n\n**Other**\n- V1.6.1 (4b2a4e6)\n\n",
+      "downloads": 21
+    },
+    {
+      "friendly_version": "1.6.0",
+      "game_version": "1.12.5",
+      "id": 24425,
+      "created": "2026-07-18T00:20:29.637725+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.6.0",
+      "changelog": "**CI**\n- Ship KerbcastKos in lockstep with kerbcast (e485167)\n\n**Chores**\n- Pin v1.5.1 (5fe7252)\n- Relicense client SDKs to MIT (1f7ecf8)\n\n**Documentation**\n- Correct stale \"pan unsupported\" comments (8574bc4)\n- Live-test script + deploy steps for the Deck run (57cdbd9)\n\n**Features**\n- Unity-free PanAim yaw/pitch math + test harness (6abb39f)\n- KerbcastCamera SetPanTarget/AimAt + KerbcastCore.Instance (9e74424)\n- KerbcastControl in-process facade (b1437b7)\n- KerbcastKos addon assembly, seam, registration, CAMERAS (2f758ec)\n- Per-camera suffixes + headless kerboscript integration test (39efe6e)\n- AIM recalculating source, LOOKAT, and update pump (367daf8)\n- KerbcastKos v1 kerboscript camera control (1770e30)\n\n**Other**\n- V1.6.0 (88954ca)\n\n",
+      "downloads": 6
+    },
+    {
+      "friendly_version": "1.5.1",
+      "game_version": "1.12.5",
+      "id": 24378,
+      "created": "2026-07-14T22:46:23.127998+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.5.1",
+      "changelog": "**Bug Fixes**\n- Stop the camera step buttons colliding with the action bar (2c632a1)\n\n**Chores**\n- Pin v1.5.0 (4d3822b)\n\n**Other**\n- Rebuild embedded page against the step-button fix (6b365eb)\n- V1.5.1 (62621cf)\n\n",
+      "downloads": 37
+    },
+    {
+      "friendly_version": "1.5.0",
+      "game_version": "1.12.5",
+      "id": 24377,
+      "created": "2026-07-14T22:07:49.694689+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.5.0",
+      "changelog": "**Chores**\n- Pin v1.4.0 (9290b9c)\n- Regenerate typeshare bindings for scene-state-changed (b920ddf)\n\n**Documentation**\n- Correct pan support claim, cross-link and flesh out package READMEs (3a2a1e4)\n- Hoist hook call out of the if in the StandbyOverlay example (580f4f9)\n\n**Features**\n- Add scene-state-changed message with in_flight flag (93009d3)\n- Poll global.inflight and broadcast scene-state-changed (7d1c1be)\n- Write global.inflight from the session-persistent host (83e5e19)\n- Track inFlight and blank sourceless feeds when out of flight (1420ca0)\n- UseKerbcastInFlight hook and shared HardHatIcon (618d79f)\n- CameraFeed shows a dimmed standby icon when out of flight (164db2a)\n- Dashboard standby overlay when KSP is out of flight (947e500)\n- Rocket-on-pad standby icon; suppress per-feed icon under a container overlay (dc09139)\n\n**Other**\n- Rebuild embedded page against the captureUt SDK (6e4518d)\n- Re-scope npm packages to @ksp-gonogo, publish via OIDC trusted publishing (14208a9)\n- Rebuild embedded page with the out-of-flight standby (488f0a5)\n- Rebuild embedded page with the rocket standby icon and single overlay (0f58562)\n- V1.5.0 (6f14a73)\n\n",
+      "downloads": 10
+    },
+    {
+      "friendly_version": "1.4.0",
+      "game_version": "1.12.5",
+      "id": 24321,
+      "created": "2026-07-09T15:48:37.450850+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.4.0",
+      "changelog": "**Chores**\n- Pin v1.3.0 (5828886)\n\n**Features**\n- Expose mission-time capture clock on SettingsState (88e3855)\n\n**Other**\n- V1.3.1 (7b968bb)\n- V1.4.0 (cdc3b0b)\n\n",
+      "downloads": 38
+    },
+    {
+      "friendly_version": "1.3.0",
+      "game_version": "1.12.5",
+      "id": 24315,
+      "created": "2026-07-08T23:10:51.452901+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.3.0",
+      "changelog": "**Chores**\n- Pin v1.2.3 (f4898ff)\n\n**Documentation**\n- Note useStream takes over the camera subscription slot (96dcd13)\n\n**Features**\n- Add useStream seam to CameraFeed for consumer-injected stream sourcing (133888f)\n\n**Other**\n- V1.3.0 (763a840)\n\n",
+      "downloads": 19
+    },
+    {
+      "friendly_version": "1.2.3",
+      "game_version": "1.12.5",
+      "id": 24294,
+      "created": "2026-07-08T00:31:07.384149+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.2.3",
+      "changelog": "**Bug Fixes**\n- Pin encoder to software after repeated hardware init failure (c0e5208)\n\n**Chores**\n- Pin v1.2.2 (63cf7ec)\n\n**Other**\n- V1.2.3 (0f19cec)\n\n",
+      "downloads": 16
+    },
+    {
+      "friendly_version": "1.2.2",
+      "game_version": "1.12.5",
+      "id": 24293,
+      "created": "2026-07-07T23:59:42.940652+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.2.2",
+      "changelog": "**Bug Fixes**\n- Release auto-latch from a destroyed camera once a live one exists (88af0d7)\n\n**Chores**\n- Pin v1.2.1 (8fae522)\n\n**Documentation**\n- Tighten troubleshooting log-collection wording (46a7253)\n\n**Other**\n- V1.2.2 (511aea1)\n\n",
+      "downloads": 9
+    },
+    {
+      "friendly_version": "1.2.1",
+      "game_version": "1.12.5",
+      "id": 24289,
+      "created": "2026-07-07T16:49:56.912752+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.2.1",
+      "changelog": "**Bug Fixes**\n- Reattach a live camera ring recreated without a destroyed tombstone (b84a407)\n- Use a stable identity check on non-unix platforms (c849a14)\n- Pick up docking-partner cameras without waiting for a vessel switch (4fd2e70)\n\n**Chores**\n- Pin v1.2.0 (2b4b416)\n\n**Other**\n- V1.2.1 (0eab2fe)\n\n**Tests**\n- Scope the ring-recreate regression test to unix (d454fe7)\n\n",
+      "downloads": 19
+    },
+    {
+      "friendly_version": "1.2.0",
+      "game_version": "1.12.5",
+      "id": 24267,
+      "created": "2026-07-03T18:39:14.331879+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.2.0",
+      "changelog": "**Chores**\n- Pin v1.1.1 (e7db774)\n\n**Documentation**\n- Document visual-mod support and the Parallax scatter limitation (68a9d52)\n\n**Features**\n- Pluggable visual-mod integration framework (f32b3bf)\n- Show Scatterer atmosphere and sunflare on the camera feeds (1eae6ae)\n- Show EVE clouds on the camera feeds (307fd7c)\n- Apply the player's TUFX post-processing to the camera feeds (27374ce)\n- Support the Deferred rendering mod on the camera feeds (80b5bce)\n- Show Firefly reentry effects on the camera feeds (720970a)\n- Show Parallax terrain scatters on the camera feeds (8241ef3)\n- Per-mod visual toggles in the feed grid (f36dfcc)\n\n**Other**\n- V1.2.0 (b8d56f2)\n\n**Tests**\n- Live-test cards and mod-swap harness for the visual mods (19a8edc)\n\n",
+      "downloads": 66
+    },
+    {
+      "friendly_version": "1.1.1",
+      "game_version": "1.12.5",
+      "id": 24251,
+      "created": "2026-07-01T06:12:26.150049+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.1.1",
+      "changelog": "**Bug Fixes**\n- Rebind tiles by stable camera identity after KSP revert/recover (3dd3c82)\n- Throttle warning as corner overlay with settings toggle (ee172f4)\n- Correct camera feed orientation on OpenGL (71d883f)\n- Resurrect a destroyed camera when its ring reappears (9a1cf1c)\n- Rebind tiles off destroyed camera ids after revert (6e78dfe)\n- Re-source a resurrected camera without a page refresh (11b23a8)\n- Correct TurretCam pan direction for the un-mirrored feed (3ee321b)\n\n**Chores**\n- Pin v1.1.0 (a225369)\n- Rebuild dist after camera-ghost fix (30f96fb)\n- Rebuild dist for throttle-warning overlay change (2d7acdb)\n- Rebuild dist for the reconcile destroyed-filter fix (69648de)\n- Rebuild dist for the camera re-source fix (e2a1a21)\n\n**Documentation**\n- Add Harmony2 and CKAN/SpaceDock install paths, plus a macOS first-run note (a201ab5)\n- Close out todo items in readme (fa26a0a)\n\n**Other**\n- Tidy punctuation in KerbcastSettings doc comments (6cb7d61)\n- V1.1.1 (5fc75bb)\n\n",
+      "downloads": 59
+    },
+    {
+      "friendly_version": "1.1.0",
+      "game_version": "1.12.5",
+      "id": 24246,
+      "created": "2026-06-29T14:56:25.384239+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.1.0",
+      "changelog": "**Bug Fixes**\n- Reorder RenderPhase enum to match render sequence (281b539)\n\n**CI**\n- Publish to SpaceDock on tag (fc1f8f3)\n\n**Chores**\n- Pin v1.0.0 (1a240c0)\n\n**Documentation**\n- Update screenshot for kerbcast rename (9c8bb2a)\n\n**Features**\n- Make the far-local camera a gated CameraLayer (95135f0)\n- Far layer shed slot, phase timing, status + settings tokens (7cb18d8)\n- Add FAR layer to the wire mask and bindings (9830fbd)\n- Expose the far terrain layer toggle (55c28b1)\n- Far-local camera layer (Camera 01) to fix the takeoff black hole (5300162)\n\n**Other**\n- Clone far-local camera into capture stack (f83a608)\n- Drop em-dashes from new far-layer comments and log (0bfdc8d)\n- V1.1.0 (fd53929)\n\n**Refactoring**\n- Rewrite TUFX integration and clarify camera-layer comments (fcaf169)\n\n",
+      "downloads": 28
+    },
+    {
+      "friendly_version": "1.0.0",
+      "game_version": "1.12.5",
+      "id": 24235,
+      "created": "2026-06-29T00:52:04.102203+00:00",
+      "download_path": "/mod/4366/Kerbcast/download/1.0.0",
+      "changelog": null,
+      "downloads": 18
+    }
+  ],
+  "description": "# kerbcast\n\nA from-scratch, high-performance oriented successor to OCISLY for streaming camera feeds to a browser. Hardware-accelerated H.264 over WebRTC, with full Hullcam VDS camera-type fidelity. Designed with Linux in mind, Windows and MacOS support is a little experimental.\n\n<p align=\"center\">\n  <img src=\"https://raw.githubusercontent.com/jonpepler/kerbcast/refs/heads/main/docs/screenshots/main-screen-example.png\" alt=\"kerbcast's web UI: a grid of live Hullcam camera feeds in a browser\" width=\"720\">\n</p>\n\n## What it does\n\n- Streams HullcamVDS camera sources to a browser via the bundled kerbcast web UI or through [@jonpepler/kerbcast](https://github.com/jonpepler/kerbcast/pkgs/npm/kerbcast), a TypeScript SDK\n- Supports performance tweak options to keep fps reasonable through degrading resolution, framerate, and shedding render layers. By default, performance should feel vastly improved over the original OCISLY mod\n- Introduces optional shaders for wind and re-entry FX\n- Supports popular visual mods so their effects show on the camera feeds: Scatterer, EVE, TUFX, Deferred, Firefly, and Parallax\n- HullcamVDS implementation enhancements:\n  - Honours each camera's `cameraMode` so B&W / CRT / night-vision variants look like they do in the in-game Hullcam GUI\n  - Introduces planned but never fully implemented panning options for turret cam and launch cam\n  - Supports a data channel for sending control data from clients (eg pan/zoom)\n  - Fixes and patches long term issues on Linux\n  \n### How it does it\n\n- Captures KSP Hullcam VDS camera feeds inside the game via `AsyncGPUReadback`, with zero stall on the game's main thread\n- Encodes them in an out-of-process 'sidecar': software H.264 (OpenH264) as the fallback, with hardware H.264 on Linux / Steam Deck (libva), and NVENC (Windows). VideoToolbox (macOS) is stubbed pending implementation\n- Streams them out as WebRTC media tracks, with adaptive bitrate, congestion control, and packet loss recovery for free\n- Renders cameras only when a peer is subscribed, so no idle CPU work and no in-game UI required\n\n## Status: Initial Release - expect bugs\n\nKerbcast is just becoming ready for general consumption. It supports Linux, with limited testing on Windows and MacOS.\n\nIssues and PRs are welcome, particularly if you'd like to 'adopt' macOS or Windows support.\n\n# Installing kerbcast\n\n> Each GitHub Release also carries these steps in its notes, which outrank these steps.\n\n## Requirements\n\n- Kerbal Space Program 1.12.x\n- [Hullcam VDS Continued](https://github.com/linuxgurugamer/HullcamVDSContinued)\n  (required - kerbcast streams Hullcam camera parts)\n- [Harmony 2](https://github.com/KSPModdingLibs/HarmonyKSP)\n  (required - kerbcast uses Harmony to patch into KSP at runtime)\n- A WebRTC-capable browser on the viewing device (any current Firefox, Chrome,\n  Safari, or Edge)\n\n## Steps\n\n1. Use CKAN and skip to step 4, or: Download `kerbcast-vX.Y.Z.zip` from the\n   [releases page](https://github.com/jonpepler/kerbcast/releases) or from SpaceDock.\n2. Extract it into your KSP install so that `GameData/Kerbcast/` exists\n   (the zip already contains the `GameData/` folder - extract at the KSP root).\n3. Install Hullcam VDS Continued if you haven't already.\n4. Start KSP and launch a flight with one or more Hullcam camera parts on the\n   vessel.\n5. On the same machine, open `http://127.0.0.1:8088` in a browser. The bundled\n   web page lists the vessel's cameras and starts streams when you click them.\n\n> **Windows:** the first time the sidecar launches, Windows may warn about\n> running it. It's safe to approve; you'll only see this on first run.\n\nTo watch from **another device**, create `GameData/Kerbcast/PluginData/settings.cfg` containing:\n\n```\nSettings\n{\n  BindAddress = 0.0.0.0   // or your LAN IP\n}\n```\n\nthen browse to `http://<ksp-machine-ip>:8088` from the other device.\n\n> **There is no authentication.** Anyone who can reach that address can watch\n> the camera feeds. Only bind beyond localhost on a network you trust.\n\n## Configuration\n\nEdit `GameData/Kerbcast/settings.cfg` like any other KSP mod config. Every\nfield is commented inline: bind address/port, capture resolution, stream\nbitrate, adaptive-performance ceilings, Hullcam filter and atmospheric-FX\ntoggles, and per-camera overrides.\n\nUpdates re-extract `GameData/Kerbcast/`, so direct edits to that file are lost\non the next version. To keep changes across updates, put only the keys you're\nchanging in `GameData/Kerbcast/PluginData/settings.cfg` instead.\n\n## kOS addon (optional)\nKerbcastKos lets a kOS script running on a vessel enumerate that vessel's kerbcast cameras and control them from kerboscript: set field of view, pan steerable mounts, and target-track a moving point (`SET cam:AIM TO { RETURN TARGET:POSITION. }.`). It ships as a separate optional download (KerbcastKos-*.zip on the releases page) and needs both kerbcast and kOS installed.\n\n[Full API and examples](https://github.com/ksp-gonogo/kerbcast/blob/main/GameData/KerbcastKos/README.md)",
+  "description_html": "<h1>kerbcast</h1>\n<p>A from-scratch, high-performance oriented successor to OCISLY for streaming camera feeds to a browser. Hardware-accelerated H.264 over WebRTC, with full Hullcam VDS camera-type fidelity. Designed with Linux in mind, Windows and MacOS support is a little experimental.</p>\n<p align=\"center\">\n  <img src=\"https://raw.githubusercontent.com/jonpepler/kerbcast/refs/heads/main/docs/screenshots/main-screen-example.png\" alt=\"kerbcast's web UI: a grid of live Hullcam camera feeds in a browser\" width=\"720\">\n</p>\n\n<h2>What it does</h2>\n<ul>\n<li>Streams HullcamVDS camera sources to a browser via the bundled kerbcast web UI or through <a href=\"https://github.com/jonpepler/kerbcast/pkgs/npm/kerbcast\">@jonpepler/kerbcast</a>, a TypeScript SDK</li>\n<li>Supports performance tweak options to keep fps reasonable through degrading resolution, framerate, and shedding render layers. By default, performance should feel vastly improved over the original OCISLY mod</li>\n<li>Introduces optional shaders for wind and re-entry FX</li>\n<li>Supports popular visual mods so their effects show on the camera feeds: Scatterer, EVE, TUFX, Deferred, Firefly, and Parallax</li>\n<li>HullcamVDS implementation enhancements:</li>\n<li>Honours each camera's <code>cameraMode</code> so B&amp;W / CRT / night-vision variants look like they do in the in-game Hullcam GUI</li>\n<li>Introduces planned but never fully implemented panning options for turret cam and launch cam</li>\n<li>Supports a data channel for sending control data from clients (eg pan/zoom)</li>\n<li>Fixes and patches long term issues on Linux</li>\n</ul>\n<h3>How it does it</h3>\n<ul>\n<li>Captures KSP Hullcam VDS camera feeds inside the game via <code>AsyncGPUReadback</code>, with zero stall on the game's main thread</li>\n<li>Encodes them in an out-of-process 'sidecar': software H.264 (OpenH264) as the fallback, with hardware H.264 on Linux / Steam Deck (libva), and NVENC (Windows). VideoToolbox (macOS) is stubbed pending implementation</li>\n<li>Streams them out as WebRTC media tracks, with adaptive bitrate, congestion control, and packet loss recovery for free</li>\n<li>Renders cameras only when a peer is subscribed, so no idle CPU work and no in-game UI required</li>\n</ul>\n<h2>Status: Initial Release - expect bugs</h2>\n<p>Kerbcast is just becoming ready for general consumption. It supports Linux, with limited testing on Windows and MacOS.</p>\n<p>Issues and PRs are welcome, particularly if you'd like to 'adopt' macOS or Windows support.</p>\n<h1>Installing kerbcast</h1>\n<blockquote>\n<p>Each GitHub Release also carries these steps in its notes, which outrank these steps.</p>\n</blockquote>\n<h2>Requirements</h2>\n<ul>\n<li>Kerbal Space Program 1.12.x</li>\n<li><a href=\"https://github.com/linuxgurugamer/HullcamVDSContinued\">Hullcam VDS Continued</a>\n  (required - kerbcast streams Hullcam camera parts)</li>\n<li><a href=\"https://github.com/KSPModdingLibs/HarmonyKSP\">Harmony 2</a>\n  (required - kerbcast uses Harmony to patch into KSP at runtime)</li>\n<li>A WebRTC-capable browser on the viewing device (any current Firefox, Chrome,\n  Safari, or Edge)</li>\n</ul>\n<h2>Steps</h2>\n<ol>\n<li>Use CKAN and skip to step 4, or: Download <code>kerbcast-vX.Y.Z.zip</code> from the\n   <a href=\"https://github.com/jonpepler/kerbcast/releases\">releases page</a> or from SpaceDock.</li>\n<li>Extract it into your KSP install so that <code>GameData/Kerbcast/</code> exists\n   (the zip already contains the <code>GameData/</code> folder - extract at the KSP root).</li>\n<li>Install Hullcam VDS Continued if you haven't already.</li>\n<li>Start KSP and launch a flight with one or more Hullcam camera parts on the\n   vessel.</li>\n<li>On the same machine, open <code>http://127.0.0.1:8088</code> in a browser. The bundled\n   web page lists the vessel's cameras and starts streams when you click them.</li>\n</ol>\n<blockquote>\n<p><strong>Windows:</strong> the first time the sidecar launches, Windows may warn about\nrunning it. It's safe to approve; you'll only see this on first run.</p>\n</blockquote>\n<p>To watch from <strong>another device</strong>, create <code>GameData/Kerbcast/PluginData/settings.cfg</code> containing:</p>\n<pre><code>Settings\n{\n  BindAddress = 0.0.0.0   // or your LAN IP\n}\n</code></pre>\n<p>then browse to <code>http://&lt;ksp-machine-ip&gt;:8088</code> from the other device.</p>\n<blockquote>\n<p><strong>There is no authentication.</strong> Anyone who can reach that address can watch\nthe camera feeds. Only bind beyond localhost on a network you trust.</p>\n</blockquote>\n<h2>Configuration</h2>\n<p>Edit <code>GameData/Kerbcast/settings.cfg</code> like any other KSP mod config. Every\nfield is commented inline: bind address/port, capture resolution, stream\nbitrate, adaptive-performance ceilings, Hullcam filter and atmospheric-FX\ntoggles, and per-camera overrides.</p>\n<p>Updates re-extract <code>GameData/Kerbcast/</code>, so direct edits to that file are lost\non the next version. To keep changes across updates, put only the keys you're\nchanging in <code>GameData/Kerbcast/PluginData/settings.cfg</code> instead.</p>\n<h2>kOS addon (optional)</h2>\n<p>KerbcastKos lets a kOS script running on a vessel enumerate that vessel's kerbcast cameras and control them from kerboscript: set field of view, pan steerable mounts, and target-track a moving point (<code>SET cam:AIM TO { RETURN TARGET:POSITION. }.</code>). It ships as a separate optional download (KerbcastKos-*.zip on the releases page) and needs both kerbcast and kOS installed.</p>\n<p><a href=\"https://github.com/ksp-gonogo/kerbcast/blob/main/GameData/KerbcastKos/README.md\">Full API and examples</a></p>"
+}
