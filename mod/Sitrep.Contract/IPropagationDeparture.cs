@@ -7,11 +7,13 @@ namespace Sitrep.Contract
     /// from the path the craft actually flies, so a client can draw an interval about
     /// what it carries forward.
     ///
-    /// <para><b>A companion to <see cref="IPropagationProvider"/>, not a second
-    /// return value on <see cref="IPropagationProvider.CanPropagate"/>.</b> That
-    /// predicate is on every hot path, and changing its signature would break every
-    /// provider. A provider that does not implement this states no error, which is
-    /// the stock answer.</para>
+    /// <para>Implement it alongside <see cref="IPropagationProvider"/>. A provider
+    /// that does not implement it states no error, as stock does.</para>
+    /// <internal>
+    /// A separate interface rather than a second return value on
+    /// IPropagationProvider.CanPropagate: that predicate is on every hot path, and
+    /// changing its signature would break every provider.
+    /// </internal>
     /// </summary>
     /// <category>Propagation and models</category>
     public interface IPropagationDeparture

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The occlusion geometry one comms backend applies: a pure, KSP-free rule
+/// The occlusion geometry one comms backend applies: a pure rule
 /// mapping a body to the radius that actually blocks a radio path through it.
 /// This is visibility geometry, not delay: it decides whether a body sits
 /// between two endpoints.
@@ -15,27 +15,27 @@ namespace Sitrep.Contract;
 /// testing, by <c>CommNetParams.occlusionMultiplierVac</c> (0.9) for an
 /// airless body and <c>occlusionMultiplierAtm</c> (0.75) for one with an
 /// atmosphere, so Kerbin occludes at 450 km against a 600 km rock.
-/// RealAntennas tests against the BARE radius. For one low Kerbin orbit that
+/// RealAntennas tests against the bare radius. For one low Kerbin orbit that
 /// is about 11 minutes of predicted blackout, so a consumer reads the elected
 /// backend's model (<see cref="ICommsBackend.OcclusionModel"/>) rather than
 /// guessing which mod is installed.</para>
 ///
-/// <para>Deliberately a RESOLVED RADIUS rather than the multipliers behind
-/// it. Multipliers on the wire would push the rule out to every consumer,
-/// and each would have to know which of the two to apply (the vac/atm choice
-/// is stock's, not a universal one) and what to do when a backend has no
-/// multipliers at all. A radius is the value actually asked for, and it is
-/// the same shape whatever the backend's internal rule is: a backend whose
-/// occluder is not a scaled sphere still has a number to give here.</para>
-///
-/// <para><see cref="ModelId"/>/<see cref="ModelName"/> travel WITH the
-/// radius so the assumption stays inspectable: a predictor that says
-/// "reacquire in 11 minutes" can also say which geometry it believed.</para>
+/// <para>A backend returns a resolved radius, whatever its own rule is: one
+/// whose occluder is not a scaled sphere still has a number to give.
+/// <see cref="ModelId"/> and <see cref="ModelName"/> travel with the radius,
+/// so a predictor that says "reacquire in 11 minutes" can also say which
+/// geometry it used.</para>
 ///
 /// <para>Pure: implementations must not read live KSP state. A backend that
 /// needs a live read (stock's multipliers come from the game's difficulty
-/// settings) does it when BUILDING the model, during capture, and hands back a
-/// model that is thereafter just arithmetic.</para>
+/// settings) does it when building the model, on the main thread, and hands
+/// back a model that is thereafter just arithmetic.</para>
+/// <internal>
+/// A resolved radius rather than the multipliers behind it: multipliers on the
+/// wire would push the rule out to every consumer, and each would have to know
+/// which of the two to apply (the vac/atm choice is stock's, not a universal
+/// one) and what to do when a backend has no multipliers at all.
+/// </internal>
 /// </summary>
 /// <category>Propagation and models</category>
 public interface ICommsOcclusionModel
@@ -64,9 +64,9 @@ public interface ICommsOcclusionModel
 /// (1.0 / 1.0, i.e. the bare radius) are instances of it, differing only in
 /// the two numbers and in what they call themselves.
 ///
-/// <para>General rather than per-backend on purpose: a third comms mod with
-/// its own multipliers needs no new type, and one whose rule is NOT a scaled
-/// sphere implements <see cref="ICommsOcclusionModel"/> directly instead.</para>
+/// <para>A comms mod with its own multipliers uses this type too. One whose
+/// rule is not a scaled sphere implements <see cref="ICommsOcclusionModel"/>
+/// directly instead.</para>
 /// </summary>
 /// <category>Propagation and models</category>
 public sealed class ScaledRadiusOcclusionModel : ICommsOcclusionModel
@@ -134,7 +134,7 @@ public sealed class ScaledRadiusOcclusionModel : ICommsOcclusionModel
             : multiplier;
 }
 
-/// <summary>The occlusion models core itself declares.</summary>
+/// <summary>The built-in occlusion models.</summary>
 /// <category>Propagation and models</category>
 public static class CommsOcclusionModels
 {
@@ -142,9 +142,9 @@ public static class CommsOcclusionModels
     public const string UnknownModelId = "unknown";
 
     /// <summary>
-    /// The model a consumer gets when no backend is elected (pre-resolution, or
-    /// a pathological install with no comms capability at all). Occludes at the
-    /// BARE radius, the same conservative choice a bad multiplier falls back to:
+    /// The model a consumer gets when no backend is elected: before one is
+    /// chosen, or on an install with no comms capability at all. Occludes at the
+    /// bare radius, the same conservative choice a bad multiplier falls back to:
     /// the largest occluder any real backend uses, so a predictor built on it
     /// under-promises contact rather than over-promising it.
     /// </summary>
@@ -207,11 +207,9 @@ public class CommsOcclusionBody
 /// comms backend. The declared occlusion model, named, with its rule already
 /// applied to every celestial body the game knows about.
 ///
-/// <para>TRUE-NOW like the rest of the comms family, and for a stronger reason
-/// than most: this is not an observation of the vessel at all, it is a
-/// statement about the universe's geometry and the rule the elected backend
-/// applies to it. Delaying it would mean a predictor computing tomorrow's
-/// blackout from yesterday's model.</para>
+/// <para>Not delayed by light time: it is not an observation of the vessel
+/// but the solar system's geometry and the rule the elected backend applies to
+/// it.</para>
 ///
 /// <para>Effectively static within a session: the body set does not change and
 /// the multipliers change only if the player edits the difficulty settings. An
@@ -220,7 +218,8 @@ public class CommsOcclusionBody
 /// <internal>
 /// Built by <c>Sitrep.Host.Comms.CommsOcclusionBuilder</c>, which republishes
 /// the same instance while the declaration holds so the emitter's
-/// reference-equality change-gate suppresses it.
+/// reference-equality change-gate suppresses it. True-now because delaying it
+/// would have a predictor compute tomorrow's blackout from yesterday's model.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>

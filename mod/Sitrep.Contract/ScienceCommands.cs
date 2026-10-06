@@ -6,14 +6,12 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// Args shared by every science-experiment actuation command
-/// (<c>science.experiment.deploy</c>/<c>science.experiment.transmit</c>): the
-/// experiment is addressed by <see cref="PartId"/>, the part's
-/// <c>flightID.ToString()</c>, the SAME opaque id the read side emits in
-/// <c>science.instruments</c> (one entry per <c>ModuleScienceExperiment</c>,
-/// keyed by <c>flightID</c>). The host resolves it against the active vessel's
-/// live parts; a client never supplies a live array index. An empty
-/// <see cref="PartId"/> resolves to nothing and yields
-/// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.NotFound"/>.
+/// (<c>science.experiment.deploy</c> and <c>science.experiment.transmit</c>):
+/// the experiment is named by <see cref="PartId"/>, the part's
+/// <c>flightID.ToString()</c>, the same id <c>science.instruments</c> carries
+/// on each experiment entry. It is looked up among the active vessel's parts,
+/// never by array index. An empty or unknown <see cref="PartId"/> fails with
+/// <see cref="CommandErrorCode.NotFound"/>.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

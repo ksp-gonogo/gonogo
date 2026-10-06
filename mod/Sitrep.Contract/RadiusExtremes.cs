@@ -6,9 +6,8 @@ namespace Sitrep.Contract
     /// A propagation provider returns it from <c>RadiusExtremesOf</c>.
     ///
     /// <para>For a two-body ellipse these are the periapsis and apoapsis radii,
-    /// <c>sma * (1 -/+ ecc)</c>. They are named closest and furthest because a
-    /// craft under any physics has both, while only a two-body one has them at
-    /// fixed apsides.</para>
+    /// <c>sma * (1 -/+ ecc)</c>. Under other physics they are still the closest
+    /// and furthest distances, but no longer at fixed apsides.</para>
     /// </summary>
     /// <category>Propagation and models</category>
     public readonly struct RadiusExtremes

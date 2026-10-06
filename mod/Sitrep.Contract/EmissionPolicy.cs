@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Why the engine decided to put a channel's sample on the wire.
+    /// Why Gonogo put a channel's sample on the wire.
     /// <see cref="None"/> is only ever seen on a skipped decision (see
     /// <see cref="EmissionDecision.ShouldEmit"/>), never on an emitted one.
     /// <internal>
@@ -95,7 +95,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// When the engine puts a channel's sample on the wire: its keyframe
+    /// When Gonogo puts a channel's sample on the wire: its keyframe
     /// cadence, its deadband, and two optional rate gates. Every interval is in
     /// UT seconds, never wall-clock, so emission cost scales with how fast the
     /// value changes in game time rather than with how often the host samples
@@ -174,11 +174,11 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The engine's decision for one sample of one channel: whether to emit it
-    /// and why. A value type because it is returned at up to physics-tick rate
-    /// per channel.
+    /// Gonogo's decision for one sample of one channel: whether to emit it and
+    /// why.
     /// <internal>
-    /// Returned by Sitrep.Core.ChannelEmitter.Decide.
+    /// Returned by Sitrep.Core.ChannelEmitter.Decide. A value type because it
+    /// is returned at up to physics-tick rate per channel.
     /// </internal>
     /// </summary>
     /// <category>Channels and emission</category>

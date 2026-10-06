@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// Who is speaking, as the speaking client describes itself. Shown to listeners
-/// and trusted for nothing else: the vantage a thing was said FROM is always the
+/// and trusted for nothing else: the vantage a thing was said from is always the
 /// one the mod resolved for the connection that said it, never a field here.
 /// </summary>
 /// <category>Comms</category>
@@ -288,8 +288,8 @@ public class CommcastTraffic
 /// The first segment of every <c>commcast.radio</c> frame, as UTF-8 JSON. The
 /// segments after it are that batch's raw Opus packets, 20 ms each, in order.
 ///
-/// <para><c>commcast.radio</c> rides the binary lane (see the binary-frames
-/// reference) and is addressed exactly as <see cref="CommcastTraffic"/> is: a
+/// <para><c>commcast.radio</c> is carried in <see cref="BinaryLane"/> frames
+/// and is addressed exactly as <see cref="CommcastTraffic"/> is: a
 /// connection hears only transmissions to groups its vantage belongs to, one
 /// light-time after each batch was spoken. Every frame carries this whole
 /// description, so a listener that starts hearing partway through a keying

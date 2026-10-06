@@ -137,13 +137,16 @@ public class HireApplicantArgs
 
 /// <summary> <c>career.crew.fire</c>'s args: a hired kerbal's
 /// <c>ProtoCrewMember.name</c>, the same id <c>spaceCenter.crewRoster</c>
-/// publishes for each roster entry. Firing (<c>KerbalRoster.SackAvailable</c>)
-/// costs nothing and returns the kerbal to the applicant pool, so it is
-/// reversible: a re-hire brings them back with the same stats. Valid only on a
-/// kerbal whose roster status is Available; a name not on the hired-crew
-/// roster fails with <see cref="CommandErrorCode.NotFound"/>, and one that is
-/// but is not Available (Assigned, Dead or Missing) with <see
-/// cref="CommandErrorCode.ModeUnavailable"/>.
+/// publishes for each roster entry. Firing costs nothing and returns the
+/// kerbal to the applicant pool, so it is reversible: a re-hire brings them
+/// back with the same stats. Valid only on a kerbal whose roster status is
+/// Available; a name not on the hired-crew roster fails with
+/// <see cref="CommandErrorCode.NotFound"/>, and one that is but is not
+/// Available (Assigned, Dead or Missing) with
+/// <see cref="CommandErrorCode.ModeUnavailable"/>.
+/// <internal>
+/// Firing is KSP's <c>KerbalRoster.SackAvailable</c>.
+/// </internal>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

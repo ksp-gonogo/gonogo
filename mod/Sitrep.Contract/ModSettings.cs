@@ -342,8 +342,8 @@ namespace Sitrep.Contract
     /// Arguments to <c>settings.mod.write</c>: change one of a host mod's own
     /// settings through its Uplink, at once.
     ///
-    /// <para><b>Safe to send again.</b> It sets the value named, so repeating one
-    /// that already landed changes nothing.</para>
+    /// <para>Safe to send again: it sets the value named, so repeating one that
+    /// already landed changes nothing.</para>
     ///
     /// <para>Refused, with nothing changed, when the Uplink lists no such
     /// setting, when the setting is not writable, when the value is not one its

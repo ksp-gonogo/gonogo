@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Declares that THIS VALUE is deterministic for as long as a sibling
+    /// Declares that a value is deterministic for as long as a sibling
     /// horizon says so: its place at any instant is exact, computed from fixed
     /// inputs and the clock, so a figure drawn from it is never a guess and
     /// carries no held or modelled mark.
@@ -15,27 +15,27 @@ namespace Sitrep.Contract
     /// second. What holds is weaker and still exact, that the value at an
     /// instant nobody observed can be computed with no error.</para>
     ///
-    /// <para><b>Conditional, where static is not.</b> The guarantee is the
-    /// physics model's, and an n-body install withdraws it: the elements are
-    /// then the conic osculating an integrated ephemeris and drift like a
-    /// craft's. So the attribute names the sibling
+    /// <para>Unlike static, it is conditional. The guarantee is the physics
+    /// model's, and an n-body install withdraws it: the elements are then the
+    /// conic osculating an integrated ephemeris and drift like a craft's. So the
+    /// attribute names the sibling
     /// <see cref="PropagationHorizon"/> that carries the elected provider's own
     /// statement, and the value is deterministic only while that horizon is
     /// <see cref="PropagationHorizonKind.Unbounded"/> and
     /// <see cref="TrajectoryKind.Analytic"/>. A payload with no horizon at all
-    /// is a host older than the field, which is a stock install, and reads as
-    /// deterministic.</para>
+    /// reads as deterministic.</para>
     ///
-    /// <para><b>On the property that holds the value, or the shape of
-    /// values.</b> Placed on a nested shape (a body's <c>Orbit</c>), every
-    /// quantity inside it takes the stamp. The same shape under another parent
-    /// (a vessel's orbit in the roster) is untouched, which is why the
-    /// declaration sits on the use site and not on the shape.</para>
+    /// <para>It goes on the property that holds the value or a shape of values.
+    /// Placed on a nested shape (a body's <c>Orbit</c>), every quantity inside it
+    /// takes the stamp, and the same shape under another parent (a vessel's orbit
+    /// in the roster) is untouched.</para>
     ///
-    /// <para><b>Unlike a static stamp, this one survives derivation.</b> A
-    /// figure computed only from static and deterministic values, and the
-    /// clock, is itself deterministic; one input that is neither makes the
-    /// result neither.</para>
+    /// <para>Unlike a static stamp, this one survives derivation: a figure
+    /// computed only from static and deterministic values and the clock is itself
+    /// deterministic, and one input that is neither makes the result
+    /// neither.</para>
+    /// <internal>A payload with no horizon comes from a host older than the
+    /// field, which is a stock install.</internal>
     /// </summary>
     /// <category>Propagation and models</category>
     [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]

@@ -12,7 +12,7 @@ namespace Sitrep.Contract
     /// dishes implements this so a dish aimed elsewhere is never planned as a
     /// contact.</para>
     ///
-    /// <para><b>Asked on the main thread, answered anywhere.</b>
+    /// <para><b>Called on the main thread, evaluated on any thread.</b>
     /// <see cref="LinkModel"/> reads live game state, so it is asked where every
     /// other backend read is. The <see cref="IContactLinkModel"/> it returns holds
     /// everything it needs as captured data, aims included, and is evaluated by the
@@ -87,7 +87,7 @@ namespace Sitrep.Contract
         Vector3d? NodeAt(string nodeId, double ut);
 
         /// <summary>A body's predicted centre at <paramref name="ut"/>, in metres.</summary>
-        /// <param name="bodyIndex">The body, in the propagation seam's own vocabulary.</param>
+        /// <param name="bodyIndex">The body, by the index <see cref="PropagationTarget.BodyIndex"/> uses.</param>
         /// <param name="ut">The universal time.</param>
         /// <returns>The position in metres.</returns>
         Vector3d BodyAt(int bodyIndex, double ut);

@@ -65,9 +65,8 @@ public class SetThrottleArgs
 
 /// <summary>
 /// <c>vessel.control.setActionGroup</c>'s args: set a numbered custom action
-/// group on or off. Gear, brakes, lights and abort are their own commands
-/// (<see cref="SetEnabledArgs"/>), so a client never string-matches a group
-/// name to lower the landing gear.
+/// group on or off. Gear, brakes, lights and abort are not set through this:
+/// each has its own command (<see cref="SetEnabledArgs"/>).
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -94,15 +93,18 @@ public class SetActionGroupArgs
 /// <summary>
 /// <c>vessel.maneuver.add</c>'s args: a new manoeuvre node's time and its
 /// delta-v as named components in the node's own prograde, normal and
-/// radial-out frame, the same shape as <see cref="ManeuverNode"/>. Raw KSP
-/// <c>ManeuverNode.DeltaV</c> orders them <c>x = radialOut, y = normal,
-/// z = prograde</c>; the names here remove that ordering from the wire.
+/// radial-out frame, the same shape as <see cref="ManeuverNode"/>.
 ///
 /// <para>The result is a <c>CommandResult&lt;string&gt;</c> whose
 /// <c>Payload</c> is the new node's opaque id, the same id
 /// <see cref="ManeuverNode.Id"/> carries on <c>vessel.maneuver</c>. A client
 /// will not send the command if it would arrive at the craft at or after
 /// <see cref="Ut"/>.</para>
+/// <internal>
+/// KSP's own <c>ManeuverNode.DeltaV</c> orders the components
+/// <c>x = radialOut, y = normal, z = prograde</c>; the named fields keep that
+/// ordering off the wire.
+/// </internal>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

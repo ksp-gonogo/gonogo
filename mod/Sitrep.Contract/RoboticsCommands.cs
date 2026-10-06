@@ -5,9 +5,9 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Args for the servo target commands (<c>robotics.servo.setTarget</c>),
-/// the ABSOLUTE angle (hinge) or extension (piston) to drive to, keyed by
-/// the part's <see cref="PartId"/>. <see cref="PartId"/> is the same
+/// Args for <c>robotics.servo.setTarget</c>: the absolute angle (hinge) or
+/// extension (piston) to drive to, keyed by the part's
+/// <see cref="PartId"/>. <see cref="PartId"/> is the same
 /// <c>flightID</c> string <c>parts.robotics</c> publishes on each servo
 /// entry, so a widget sends back the exact id it displays. A rotor has no
 /// target (it spins continuously); a <c>setTarget</c> aimed at one fails with
@@ -60,11 +60,10 @@ public class ServoSetEnabledArgs
 
 /// <summary>
 /// Args for the rotor scalar-limit commands
-/// (<c>robotics.rotor.setRpmLimit</c>/<c>setTorqueLimit</c>/<c>setBrake</c>),
-/// the ABSOLUTE value to apply, keyed by <see cref="PartId"/>. The bounded
-/// ones (torque 0 to 100, brake 0 to 200) are range-checked before they are
-/// sent; out of range fails with <see cref="CommandResult.ErrorCode"/>
-/// <see cref="CommandErrorCode.Range"/>.
+/// (<c>robotics.rotor.setRpmLimit</c>/<c>setTorqueLimit</c>/<c>setBrake</c>):
+/// the absolute value to apply, keyed by <see cref="PartId"/>. The bounded
+/// ones (torque 0 to 100, brake 0 to 200) are range-checked; a value out of
+/// range fails with <see cref="CommandErrorCode.Range"/>.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -87,10 +86,9 @@ public class RotorSetValueArgs
 
 /// <summary>
 /// Args for <c>robotics.rotor.reverse</c>: flips the rotor's spin direction.
-/// This is the one robotics command that is genuinely a toggle (the widget's
-/// intent is "spin the other way" relative to whatever the rotor is doing
-/// now), so it carries no state field, only the <see cref="PartId"/> to act
-/// on.
+/// It is the one robotics command that is a toggle, reversing whichever way
+/// the rotor spins now, so it carries no state field, only the
+/// <see cref="PartId"/> to act on.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

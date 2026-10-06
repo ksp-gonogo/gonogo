@@ -30,10 +30,9 @@ public class RevertToEditorArgs
 }
 
 /// <summary>
-/// <c>ksp.switchVessel</c>'s args: the STABLE opaque vessel id
+/// <c>ksp.switchVessel</c>'s args: the stable vessel id
 /// (<c>vessel.id.ToString()</c>, the same id <see cref="SetTargetArgs.VesselId"/>
-/// uses), resolved server-side against <c>FlightGlobals.Vessels</c>, never a
-/// roster array index. An empty id fails with
+/// uses), never a roster array index. An empty id fails with
 /// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.
 /// Works from the flight scene, where it changes the active vessel, and from
 /// the Space Center and the Tracking Station, where it saves and then loads the
@@ -59,9 +58,9 @@ public class SwitchVesselArgs
 /// <summary>
 /// <c>ksp.launch</c>'s args: load a saved craft onto a launch site. The craft
 /// is identified by <see cref="ShipName"/> plus the <see cref="Facility"/> it
-/// was saved from (<c>"VAB"</c> or <c>"SPH"</c>, case-insensitive); the mod
-/// rebuilds the <c>.craft</c> path itself, so the wire never carries a native
-/// KSP type or an absolute path. An empty ship name fails with
+/// was saved from (<c>"VAB"</c> or <c>"SPH"</c>, case-insensitive); Gonogo
+/// finds the <c>.craft</c> file itself, so a client never sends a file path.
+/// An empty ship name fails with
 /// <see cref="CommandErrorCode.NotFound"/> and an unrecognised facility with
 /// <see cref="CommandErrorCode.Range"/>, before the game is ever touched.
 ///

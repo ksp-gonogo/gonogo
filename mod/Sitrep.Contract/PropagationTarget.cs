@@ -12,15 +12,13 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// WHAT to propagate, as an identity a provider can resolve, rather than as a
-    /// description a provider is obliged to believe.
+    /// What to propagate: the object itself, named so a provider can resolve it
+    /// against its own model.
     ///
-    /// <para>A provider handed only <see cref="OrbitElements"/> has been handed a
-    /// conic, so whatever it does internally it can only return conics. A target
-    /// instead names the object, and carries <see cref="Osculating"/> as the
-    /// payload the default two-body provider needs. A provider backed by a
+    /// <para>A target names the object and carries <see cref="Osculating"/>, the
+    /// elements the default two-body provider needs. A provider backed by
     /// different physics resolves <see cref="Id"/> or <see cref="BodyIndex"/>
-    /// against its own model and ignores the elements entirely.</para>
+    /// against its own model and may ignore the elements entirely.</para>
     ///
     /// <para><see cref="Osculating"/> is nullable so that "I have no conic for
     /// this" is expressible. The default two-body provider declines such a
@@ -57,12 +55,11 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Index of the body this target orbits, or -1 when the caller does not know
-        /// it (and, for a body, always, because which body a body orbits is the
-        /// provider's to know rather than the caller's to assert). A frame centred on
-        /// any other body requires walking the body hierarchy, which is why a provider
-        /// must be asked
-        /// (<see cref="IPropagationProvider.CanPropagate(PropagationTarget, PropagationFrame, double, double)"/>)
-        /// rather than assumed capable.
+        /// it. Always -1 for a body, whose parent is the provider's to know. A frame
+        /// centred on any other body needs the provider to walk the body hierarchy,
+        /// so ask
+        /// <see cref="IPropagationProvider.CanPropagate(PropagationTarget, PropagationFrame, double, double)"/>
+        /// first.
         /// </summary>
         public int ParentBodyIndex { get; }
 
@@ -73,10 +70,9 @@ namespace Sitrep.Contract
         public OrbitElements? Osculating { get; }
 
         /// <summary>
-        /// A vessel, DESCRIBED. A vessel comes with its elements because no provider
-        /// has a registry to resolve a vessel id against: whatever physics a provider
-        /// runs, the craft it is asked about is one the caller is holding a sample
-        /// of. Contrast <see cref="Body"/>.
+        /// A vessel target, with its elements. A vessel carries them because a
+        /// provider has no registry of vessels to look an id up in: the caller is
+        /// the one holding a sample of the craft. Compare <see cref="Body"/>.
         /// </summary>
         /// <param name="id">The vessel's stable id.</param>
         /// <param name="parentBodyIndex">The body it orbits, or -1 when not known.</param>
@@ -86,12 +82,9 @@ namespace Sitrep.Contract
             new PropagationTarget(PropagationTargetKind.Vessel, id, -1, parentBodyIndex, osculating);
 
         /// <summary>
-        /// A body, NAMED. No elements and no parent: a provider knows where the
-        /// bodies are, so a caller's own copy would only be a second opinion the
-        /// provider would have to choose between.
-        ///
-        /// <para>This asymmetry with <see cref="Vessel"/> lets a caller ask where a
-        /// body is without holding a conic for it.</para>
+        /// A body target, by index alone. It carries no elements and no parent,
+        /// because a provider knows where the bodies are, so a caller can ask where
+        /// a body is without holding a conic for it.
         /// </summary>
         /// <param name="bodyIndex">The body's index in the provider's body table.</param>
         /// <returns>A <see cref="PropagationTargetKind.Body"/> target.</returns>
@@ -103,12 +96,10 @@ namespace Sitrep.Contract
     /// The frame a result must be expressed in: centred on one body, non-rotating,
     /// in the same Z-up inertial convention the default two-body provider emits.
     ///
-    /// <para>Making the frame an argument keeps hierarchy-walking inside a
-    /// provider instead of in every caller. A caller that needs a vessel's
-    /// position relative to a body other than the one it orbits asks for that
-    /// frame directly; how the result is reached (summing conics up and down a
-    /// body chain, or reading it out of an n-body integrator) is the provider's
-    /// business.</para>
+    /// <para>A caller that needs a vessel's position relative to a body other than
+    /// the one it orbits asks for that frame directly. How the result is reached
+    /// (summing conics up and down a body chain, or reading it out of an n-body
+    /// integrator) is up to the provider.</para>
     /// <internal>
     /// The default two-body provider is <c>KeplerProvider</c>.
     /// </internal>

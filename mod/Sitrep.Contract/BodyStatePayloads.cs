@@ -7,38 +7,33 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// Args for <c>system.bodies.statesAt</c>: where one body is at each of a
-    /// list of instants, from the propagation provider elected on this install.
+    /// list of instants, from the propagation provider in use on this install.
+    /// The instants are the caller's own, such as the departure and arrival
+    /// times a transfer search tries.
     ///
-    /// <para>A command rather than a channel because the instants are the
-    /// caller's: a transfer search asks about departure and arrival times
-    /// nobody has reached, and nothing publishes a position for an instant
-    /// nobody asked about.</para>
+    /// <para>The command centre is the sender's, taken from the connection the
+    /// command arrives on; there is no field to name another.</para>
     ///
-    /// <para>There is no vantage field: the vantage is resolved from the
-    /// connection the command arrives on, so a client cannot name somebody
-    /// else's.</para>
+    /// <para>A centre body is required, with no default: the reply is
+    /// expressed relative to it. For a transfer search, name the parent both
+    /// endpoints orbit; the same request works for a moon system.</para>
     ///
-    /// <para><b>A centre body must be named.</b> The reply is expressed
-    /// relative to whatever body you name, and there is no default: a
-    /// transfer search wants both endpoints about the parent they share, and
-    /// saying which body that is also lets one request serve a moon system as
-    /// readily as a solar one.
+    /// <para><see cref="Certification"/> is required too: the caller states
+    /// whether it accepts results past the span the provider vouches for, and a
+    /// request that does not say is refused.</para>
+    ///
+    /// <para>The result is a conic (two-body) solve, so no ephemeris horizon
+    /// applies to it.</para>
     /// <internal>
-    /// There is nothing to default TO. A provider replies by walking the body
-    /// hierarchy between target and frame centre, and
-    /// <see cref="PropagationTarget.Body"/> leaves <c>ParentBodyIndex</c> at -1,
-    /// so a convenience overload would have no parent on the target to resolve.
-    /// </internal></para>
-    ///
-    /// <para><b>The bound is asked for, never inherited.</b> Every provider
-    /// computes a body from the same analytical model, so the caller states
-    /// whether it will read that model past the span anyone vouches for, in
-    /// <see cref="Certification"/>. A request that does not name one is
-    /// refused.</para>
-    ///
-    /// <para>No ephemeris horizon applies to the result: a horizon bounds how
-    /// long osculating elements stand in for an integrated path, and this is a
-    /// conic (two-body) solve, not a claim to be that path.</para>
+    /// A command rather than a channel because nothing publishes a position for
+    /// an instant nobody asked about. There is nothing to default the centre
+    /// body to: a provider replies by walking the body hierarchy between target
+    /// and frame centre, and <see cref="PropagationTarget.Body"/> leaves
+    /// <c>ParentBodyIndex</c> at -1, so a convenience overload would have no
+    /// parent on the target to resolve. A horizon bounds how long osculating
+    /// elements stand in for an integrated path, which a conic solve does not
+    /// claim to be.
+    /// </internal>
     /// </summary>
     /// <category>Command arguments</category>
     [SitrepContract]
@@ -73,9 +68,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// Whether this caller accepts a result past the span the provider
         /// vouches for. Only <see cref="PropagationCertification.Unbounded"/>
-        /// is accepted: a transfer search is a two-body question about instants
-        /// nobody has reached, and a bound on how long osculating elements stand
-        /// in for an integrated path says nothing about it.
+        /// is accepted.
         ///
         /// <para><see cref="PropagationCertification.Unspecified"/> is refused
         /// rather than defaulted, and so is

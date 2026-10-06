@@ -121,7 +121,7 @@ public class CommandRequest<TArgs>
     /// connection's own vantage (see <see cref="SetVantage"/>). A program-level
     /// command (tech, strategy, contract) sends <c>"meta"</c>, which carries no
     /// delay whichever centre the operator has selected. A centre that is not
-    /// active is refused with an <c>unknown-vantage</c> error.
+    /// active is refused with an <c>unknownVantage</c> error.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Vantage { get; set; }
@@ -135,7 +135,7 @@ public class CommandRequest<TArgs>
     /// base as <see cref="Meta.ValidAt"/>. A bare number in the TypeScript type,
     /// like every envelope field; its unit is declared in the SDK's units map.
     ///
-    /// <para><b>The shipped clients send 0.</b> The server stamps the response's
+    /// <para>Gonogo's own clients send 0. The server stamps the response's
     /// <see cref="Meta.DeliveredAt"/> off its own clock, so a caller wanting a
     /// round-trip measures against its own view time rather than reading this
     /// back. The field is carried onto the response's
@@ -182,22 +182,21 @@ public class CommandResponse<TResult>
 }
 
 /// <summary>
-/// Sent the moment the engine takes a dispatch onto the delayed path, carrying
-/// the one-way light-time it will actually travel. It says THE COMMAND IS ON
-/// ITS WAY AND HERE IS WHEN TO EXPECT A REPLY, never that anything executed.
+/// Sent the moment a command starts its delayed journey, carrying the one-way
+/// light-time it will actually travel. It says the command is on its way and
+/// when to expect a reply, never that anything executed.
 ///
 /// <para>A client cannot work this out for itself. The delay depends on the
-/// node the command is addressed to, which the engine resolves from the
-/// command's declared subject, and on the vantage it was sent from: a client
-/// sizing a loss deadline from the delay it can see (the active craft's) grades
-/// a command to a different node against the wrong path entirely.</para>
+/// node the command is addressed to, which Gonogo resolves from the command's
+/// declared subject, and on the command centre it was sent from. A loss
+/// deadline sized from the delay a client can see (the active craft's) is
+/// wrong for a command addressed to any other node.</para>
 ///
-/// <para>Correlated by <see cref="RequestId"/>, the client's own id off its
-/// <c>command-request</c>. That is safe here and is NOT safe on
-/// <c>system.uplink.pending</c>, whose entries carry an engine-minted id
-/// instead: two clients can choose the same request id, so a broadcast channel
-/// cannot pair them, whereas this frame travels back down the one socket that
-/// sent the request.</para>
+/// <para>Matched to its request by <see cref="RequestId"/>, the client's own
+/// id from its <c>command-request</c>, because this frame comes back on the
+/// connection that sent the request. Entries on
+/// <c>system.uplink.pending</c> carry an id Gonogo assigns instead, since two
+/// clients can choose the same request id.</para>
 ///
 /// <para>Absent for a dispatch that never rides light-time (a
 /// <c>TrueNow</c> command, or a live delay resolving to zero), because there is
@@ -226,9 +225,8 @@ public class CommandAccepted
 
     /// <summary>
     /// One-way light-time from the sending vantage to the node this command is
-    /// addressed to, as the engine's ledger has it AT DISPATCH. Frozen: a route
-    /// change afterwards is discrete and the sender may never learn of it, so
-    /// this is not re-sent.
+    /// addressed to, as Gonogo knows it at dispatch. It is never re-sent: the
+    /// sender may never learn of a route change after dispatch.
     ///
     /// <para>For a command held and forwarded on a lane it is how long the
     /// sending centre's own plan expects it to take to reach the craft, waits
@@ -241,7 +239,7 @@ public class CommandAccepted
     public double? OneWaySeconds { get; set; }
 
     /// <summary>
-    /// When the engine predicts the reply will come back, from the routes at
+    /// When Gonogo predicts the reply will come back, from the routes at
     /// dispatch, waits included. A client times its loss deadline from this when
     /// present, since a command held for a window replies long after twice the
     /// one-way time. Absent when no route was predicted.
@@ -302,7 +300,7 @@ public class ErrorMsg
     /// <summary>The Topic this error is about, or null.</summary>
     [SitrepUnit(Units.Id)]
     public string? Topic { get; set; }
-    /// <summary>Which fault: always a fault, never a refusal, since a command the game refused answers with a <c>command-response</c> instead.</summary>
+    /// <summary>Which fault: always a fault, never a refusal, since a command the game refused gets a <c>command-response</c> instead.</summary>
 #if SITREP_CODEGEN
     [TsProperty(Type = "FaultCode")]
 #endif
@@ -358,8 +356,8 @@ public class Unsubscribe
 
 /// <summary>
 /// Client-to-server: select the command centre this connection commands from and
-/// observes at. Governs both the downlink cursor read
-/// and the command-dispatch vantage. The id must name a currently-active command
+/// observes at. It sets both where the connection's telemetry is observed from
+/// and where its commands are sent from. The id must name a currently-active command
 /// centre, or the request is refused with an <c>unknownVantage</c> error and the
 /// connection keeps the vantage it had.
 ///
@@ -431,13 +429,15 @@ public class Hello
 /// any topic. Sent straight after <see cref="Hello"/> on every connection that
 /// has anything to learn, and again at every change.
 ///
-/// <para>It is a frame of its own, and not a value on a topic, because a game
-/// that is loading a scene has no clock that moves, and everything on a topic
-/// is delivered by that clock. A topic could say a load had started only after
-/// it had ended. It is also not delayed by light time at any command centre: a
-/// load is a fact about the game on the machine, there is no game time to count
-/// light time in while it runs, and nothing else reaches any centre during it
-/// anyway.</para>
+/// <para>It is not delayed by light time at any command centre: a load is a
+/// fact about the game on the machine, not about anything in flight.</para>
+/// <internal>
+/// A frame of its own, and not a value on a topic, because a game that is
+/// loading a scene has no clock that moves, and everything on a topic is
+/// delivered by that clock: a topic could say a load had started only after it
+/// had ended. There is no game time to count light time in while a load runs,
+/// and nothing else reaches any centre during it anyway.
+/// </internal>
 ///
 /// <para>While <see cref="State"/> is <c>"loading"</c> or
 /// <c>"no-game"</c>, nothing the stream last said is current. Readings
@@ -493,7 +493,7 @@ public class GameState
 /// Client-to-server: asks for a <see cref="Pong"/>, to tell a connection that
 /// is quiet from one that is dead. A subscribed connection can be silent for
 /// as long as nothing it subscribed to changes, so silence alone says nothing;
-/// a ping that goes unanswered does. It is answered at once and in every
+/// a ping that goes unanswered does. It is replied to at once and in every
 /// scene, changes nothing, and needs no subscription.
 /// </summary>
 /// <category>Stream messages</category>
@@ -511,9 +511,9 @@ public class Ping
     public string Type { get; set; } = "ping";
 
     /// <summary>
-    /// Anything the client likes, returned unchanged in the answering
+    /// Anything the client likes, returned unchanged in the reply
     /// <see cref="Pong"/> so it can tell which ping was answered. May be
-    /// omitted, in which case the answer carries an empty one.
+    /// omitted, in which case the reply carries an empty one.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Nonce { get; set; } = "";
@@ -534,7 +534,7 @@ public class Pong
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "pong";
 
-    /// <summary>The <see cref="Ping.Nonce"/> of the ping this answers.</summary>
+    /// <summary>The <see cref="Ping.Nonce"/> of the ping this replies to.</summary>
     [SitrepUnit(Units.Id)]
     public string Nonce { get; set; } = "";
 }

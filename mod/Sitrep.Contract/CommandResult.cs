@@ -313,7 +313,7 @@ public class CommandResult
     public bool Success { get; set; } = true;
 
     /// <summary>
-    /// Why it was refused, null on success. On the wire this is the ROOT's id,
+    /// Why it was refused, null on success. On the wire this is the root's id,
     /// so every client can classify it; a refinement's own id travels beside it
     /// as <see cref="Reason"/>.
     /// </summary>
@@ -351,13 +351,14 @@ public class CommandResult
     public LimitBreach? Breach { get; set; }
 
     /// <summary>
-    /// The refusal in the GAME's own words, when the game had any: the member of
+    /// The refusal in the game's own words, when the game had any: the member of
     /// <c>ClearToSaveStatus</c> it came back with,
     /// <c>Strategies.Strategy.CanBeActivated(out string reason)</c>'s reason,
     /// <c>GameVariables.GetEVALockedReason</c>'s sentence, a
     /// <c>PreFlightTests.IPreFlightTest</c>'s <c>GetWarningTitle()</c>, a
-    /// <c>[Description]</c>-tagged state member's name. Empty when the refusal
-    /// had nothing to quote: omitted from the wire, never an empty string.
+    /// <c>[Description]</c>-tagged state member's name. Null when the refusal
+    /// had nothing to quote, and then omitted from the wire, never sent as an
+    /// empty string.
     ///
     /// <para>The text is the game's own, so it is in the game's language.</para>
     ///

@@ -10,18 +10,16 @@ import { CommandErrorCode, FaultCode } from './error-codes';
 * The JSON header of a BinaryLane frame: everything about the delivery except
 * the bytes themselves.
 *
-* A sibling of `StreamData`, carrying the SAME `StreamBinary.meta` unchanged,
-* so a binary delivery is subject to the signal-delay reveal, the vantage and
-* the timeline epoch exactly as a JSON channel is, and nothing here lets a
-* producer opt out of the delay. Where it differs is that the payload is not
-* in the document. `StreamBinary.segments` is the length table for the bytes
-* that follow the header.
+* It carries the same `StreamBinary.meta` as `StreamData`, so a binary
+* delivery is subject to the signal delay, the vantage and the timeline epoch
+* exactly as a JSON channel is, and cannot opt out of the delay. The
+* difference is that the payload is not in the JSON. `StreamBinary.segments`
+* is the length table for the bytes that follow the header.
 *
-* **Absence discipline.** A frame whose segment lengths do not sum to exactly
-* the bytes remaining after the header is UNREAD: a truncated or over-long
-* frame is dropped with a named reason and never substituted by an empty
-* payload, because a listener that is handed zero segments cannot tell "nobody
-* transmitted" from "the frame arrived broken".
+* A frame whose segment lengths do not sum to exactly the bytes remaining
+* after the header is not read: a truncated or over-long frame is dropped with
+* a named reason and never replaced by an empty payload, since zero segments
+* would read as "nothing was transmitted".
 *
 * @category Stream messages
 */
@@ -33,9 +31,8 @@ export interface StreamBinary
 	topic: string;
 	/**
 	* Byte length of each segment, in the order they appear after the header. An
-	* EMPTY table is legal and means a delivery with no segments, which is a
-	* producer saying "nothing this frame" rather than a broken frame; it is
-	* distinguishable from a broken one precisely because the sum still matches.
+	* empty table is valid and means "nothing this frame"; it is told apart from a
+	* broken frame because the sum still matches.
 	*/
 	segments: number[];
 	/**
@@ -46,29 +43,23 @@ export interface StreamBinary
 }
 /**
 * Args for `system.bodies.statesAt`: where one body is at each of a list of
-* instants, from the propagation provider elected on this install.
+* instants, from the propagation provider in use on this install. The instants
+* are the caller's own, such as the departure and arrival times a transfer
+* search tries.
 *
-* A command rather than a channel because the instants are the caller's: a
-* transfer search asks about departure and arrival times nobody has reached,
-* and nothing publishes a position for an instant nobody asked about.
+* The command centre is the sender's, taken from the connection the command
+* arrives on; there is no field to name another.
 *
-* There is no vantage field: the vantage is resolved from the connection the
-* command arrives on, so a client cannot name somebody else's.
+* A centre body is required, with no default: the reply is expressed relative
+* to it. For a transfer search, name the parent both endpoints orbit; the same
+* request works for a moon system.
 *
-* **A centre body must be named.** The reply is expressed relative to whatever
-* body you name, and there is no default: a transfer search wants both
-* endpoints about the parent they share, and saying which body that is also
-* lets one request serve a moon system as readily as a solar one.
+* `BodyStatesRequest.certification` is required too: the caller states whether
+* it accepts results past the span the provider vouches for, and a request
+* that does not say is refused.
 *
-* **The bound is asked for, never inherited.** Every provider computes a body
-* from the same analytical model, so the caller states whether it will read
-* that model past the span anyone vouches for, in
-* `BodyStatesRequest.certification`. A request that does not name one is
-* refused.
-*
-* No ephemeris horizon applies to the result: a horizon bounds how long
-* osculating elements stand in for an integrated path, and this is a conic
-* (two-body) solve, not a claim to be that path.
+* The result is a conic (two-body) solve, so no ephemeris horizon applies to
+* it.
 *
 * @category Command arguments
 */
@@ -89,10 +80,7 @@ export interface BodyStatesRequest
 	uts: Value<"ut">[];
 	/**
 	* Whether this caller accepts a result past the span the provider vouches for.
-	* Only `PropagationCertification.Unbounded` is accepted: a transfer search is
-	* a two-body question about instants nobody has reached, and a bound on how
-	* long osculating elements stand in for an integrated path says nothing about
-	* it.
+	* Only `PropagationCertification.Unbounded` is accepted.
 	*
 	* `PropagationCertification.Unspecified` is refused rather than defaulted, and
 	* so is `PropagationCertification.CertifiedOnly`, because the request carries
@@ -273,13 +261,12 @@ export interface HireApplicantArgs
 }
 /**
 * `career.crew.fire`'s args: a hired kerbal's `ProtoCrewMember.name`, the same
-* id `spaceCenter.crewRoster` publishes for each roster entry. Firing
-* (`KerbalRoster.SackAvailable`) costs nothing and returns the kerbal to the
-* applicant pool, so it is reversible: a re-hire brings them back with the
-* same stats. Valid only on a kerbal whose roster status is Available; a name
-* not on the hired-crew roster fails with `CommandErrorCode.NotFound`, and one
-* that is but is not Available (Assigned, Dead or Missing) with
-* `CommandErrorCode.ModeUnavailable`.
+* id `spaceCenter.crewRoster` publishes for each roster entry. Firing costs
+* nothing and returns the kerbal to the applicant pool, so it is reversible: a
+* re-hire brings them back with the same stats. Valid only on a kerbal whose
+* roster status is Available; a name not on the hired-crew roster fails with
+* `CommandErrorCode.NotFound`, and one that is but is not Available (Assigned,
+* Dead or Missing) with `CommandErrorCode.ModeUnavailable`.
 *
 * @category Command arguments
 */
@@ -938,23 +925,24 @@ export interface ChannelEmissionReport
 * The channel payload is a bare array of these entries, like
 * `SpaceCenterPoiEntry`, one per centre, keyed by `CommandCentreEntry.id`.
 *
-* ADDRESSED: each command centre is sent its own roster, the centres it knows
-* of. A ground station is on every centre's. A vessel that is a command centre
-* joins a centre's roster when the vessel's own word that it is one has
-* reached that centre, and stays on it until its word that it no longer is, or
-* that it is gone, has: a crew boarding a vessel far away does not put a new
-* centre on your roster before the light of it could arrive. A centre always
-* lists itself.
+* Each command centre is sent its own roster, the centres it knows of. A
+* ground station is on every centre's. A vessel that is a command centre joins
+* a centre's roster when the vessel's own word that it is one has reached that
+* centre, and stays on it until its word that it no longer is, or that it is
+* gone, has: a crew boarding a vessel far away does not put a new centre on
+* your roster before the light of it could arrive. A centre always lists
+* itself.
 *
 * @category Comms
 */
 export interface CommandCentreEntry
 {
 	/**
-	* Stable authority/vantage key: `"ground:<name>"` | `"vessel:<guid>"`. Every
-	* ground station is `"ground:<name>"`, the home one included: which centre is
-	* home is `CommandCentreEntry.isHome`, never a special id. Ground stations
-	* that share a name are told apart as `"ground:<name>#2"`, `"#3"` and so on.
+	* Stable centre id, the one `SetVantage.centreId` takes: `"ground:<name>"` or
+	* `"vessel:<guid>"`. Every ground station is `"ground:<name>"`, the home one
+	* included: which centre is home is `CommandCentreEntry.isHome`, never a
+	* special id. Ground stations that share a name are told apart as
+	* `"ground:<name>#2"`, `"#3"` and so on.
 	*/
 	id?: string | null;
 	/** Human-facing name. */
@@ -970,15 +958,15 @@ export interface CommandCentreEntry
 	* Body-fixed surface latitude of the centre in degrees, when surface-anchored;
 	* null for a moving vessel centre.
 	*
-	* **Null is "not applicable", not "not computed".** A `GroundStation` always
+	* Null means "not applicable", not "not computed". A `GroundStation` always
 	* reports coordinates. A `CrewedVessel` reports them only while landed,
-	* splashed or pre-launch: off the ground the only thing derivable is a
-	* sub-vessel ground point that sweeps at orbital rate, which is not a place
-	* the centre occupies. So null says the centre is airborne or in space, and a
-	* client may act on that rather than treating it as missing data. The one case
-	* where an anchored centre reports null is a body that could not be read at
-	* all, and then `CommandCentreEntry.bodyIndex` is null too: the two travel
-	* together, so a null coordinate never appears beside a known body.
+	* splashed or pre-launch, since a point under a craft in flight sweeps at
+	* orbital rate and is not a place the centre occupies. So null says the centre
+	* is airborne or in space, and a client may act on that rather than treating
+	* it as missing data. The one case where an anchored centre reports null is a
+	* body that could not be read at all, and then `CommandCentreEntry.bodyIndex`
+	* is null too: the two travel together, so a null coordinate never appears
+	* beside a known body.
 	*
 	* Always null or non-null together with `CommandCentreEntry.longitude`.
 	*/
@@ -1000,8 +988,8 @@ export interface CommandCentreEntry
 	* home, as on an install whose ground stations all look alike to it, the first
 	* active ground station in ordinal id order carries it in home's place, with
 	* `CommandCentreEntry.isHomeFallback` set: the same centre a connection that
-	* has not chosen a vantage starts at. No entry carries it only when the roster
-	* holds no ground station at all.
+	* has not chosen a command centre starts at. No entry carries it only when the
+	* roster holds no ground station at all.
 	*
 	* Not the same fact as `CommsHop.fromIsHome`, which is true of every ground
 	* station and so cannot say which one is home.
@@ -1019,9 +1007,9 @@ export interface CommandCentreEntry
 	/**
 	* Whether this centre can be routed to: `"routed"` (it has a CommNet node, so
 	* a control path can be found, occlusion-aware) or `"unroutable"` (no CommNet
-	* node, so no command path and no delay). There is no position-only
-	* approximation: commands ride the relay network, and a centre with no route
-	* has no delay to quote.
+	* node, so no command path and no delay). No delay is estimated from position
+	* alone: commands travel over the relay network, so a centre with no route has
+	* no delay to quote.
 	*/
 	delayQuality?: string | null;
 }
@@ -1038,11 +1026,11 @@ export interface CommandCentreEntry
 * the mod started is not listed at all: an absent id is a fact about what is
 * unknown, not about what is reachable.
 *
-* ADDRESSED: each command centre is sent its own, the centres that have left
-* its own `commandCentre.roster`. A vessel centre that is destroyed or loses
-* its crew is listed here when its own word of that, or its silence, has
-* reached the receiving centre, and `UnreachableCentreEntry.lastReachableUt`
-* is when it was last on that centre's roster.
+* Each command centre is sent its own: the centres that have left its own
+* `commandCentre.roster`. A vessel centre that is destroyed or loses its crew
+* is listed here when its own word of that, or its silence, has reached the
+* receiving centre, and `UnreachableCentreEntry.lastReachableUt` is when it
+* was last on that centre's roster.
 *
 * @category Comms
 */
@@ -1073,43 +1061,40 @@ export interface UnreachableCentreEntry
 *
 * Both ends are command-centre ids from `commandCentre.roster`, so a pair is a
 * ground station against another ground station, a crewed craft against a
-* ground station, or two crewed craft: a crewed control-source vessel IS a
-* centre, so no separate vocabulary is needed for it.
+* ground station, or two crewed craft: a crewed control-source vessel is a
+* centre like any other.
 *
 * @category Comms
 */
 export interface CentreSeparationEntry
 {
-	/** The centre the separation is measured FROM, as a roster `Id`. */
+	/** The centre the separation is measured from, as a roster `Id`. */
 	from: string;
-	/** The centre the separation is measured TO, as a roster `Id`. */
+	/** The centre the separation is measured to, as a roster `Id`. */
 	to: string;
 	/** One-way signal time along the routed path between the two. */
 	oneWaySeconds: Value<"s">;
 }
 /**
 * How far every active command centre is from every other, one-way, along the
-* routed CommNet path. The number a human at one vantage needs to know how
-* long their words take to reach a human at another.
+* routed CommNet path: how long a message from someone at one centre takes to
+* reach someone at another.
 *
-* **Sparse, and that is the contract.** A pair with no route has NO entry
-* rather than a zero or a sentinel: commands and messages ride the relay
-* network, so an unroutable pair has no separation to quote, and inventing one
-* would make an unreachable correspondent look merely distant. A reader that
-* finds no entry for a pair knows the separation is unavailable, which is a
-* different fact from it being large.
+* **Sparse.** A pair with no route has no entry, rather than a zero or a
+* sentinel: messages travel over the relay network, so an unroutable pair has
+* no separation to quote. No entry for a pair means the separation is
+* unavailable, which is a different fact from it being large.
 *
-* Each centre against ITSELF is always present as an explicit zero: a node is
-* exactly no distance from itself, and without the row a reader would fall
-* through to "unavailable" for the one pair it is most certain about.
+* Each centre is always paired with itself at an explicit zero, so the one
+* pair that is certain never reads as unavailable.
 *
-* ADDRESSED: each command centre is sent its own. The pairs are between the
-* centres on the receiving centre's own `commandCentre.roster`, and each
-* figure is the light-time of the route that centre's own contact plan has
-* open now, so a centre is quoted no separation from a vessel it has not heard
-* is a command centre, and a figure moves when the news that moves it has
-* arrived. Every ground station is the home centre's own antenna, so home is
-* as far from a vessel as its nearest station is.
+* Each command centre is sent its own. The pairs are between the centres on
+* the receiving centre's own `commandCentre.roster`, and each figure is the
+* light-time of the route that centre's own contact plan has open now, so a
+* centre is quoted no separation from a vessel it has not heard is a command
+* centre, and a figure moves when the news that moves it has arrived. Every
+* ground station is the home centre's own antenna, so home is as far from a
+* vessel as its nearest station is.
 *
 * @category Comms
 */
@@ -1136,20 +1121,19 @@ export interface CentreDelayEntry
 * routed path: the delay every ordinary channel reaches that centre at, and
 * the delay a command from it takes to arrive.
 *
-* **Sparse, and that is the contract.** A centre is listed only when it has a
-* delay of its own. The home centre is never listed: its delay is
-* `comms.delay`, which also carries the hold through a loss of signal. A
-* centre other than home that is not listed has no route to the craft. Neither
-* absence is a zero, and a reader that finds a centre missing must not quote
-* one for it.
+* **Sparse.** A centre is listed only when it has a delay of its own. The home
+* centre is never listed: its delay is `comms.delay`, which also carries the
+* hold through a loss of signal. A centre other than home that is not listed
+* has no route to the craft. Neither absence is a zero, and a reader that
+* finds a centre missing must not quote one for it.
 *
-* The crewed centre that IS the active craft is listed at an explicit zero: a
+* A crewed centre that is the active craft is listed at an explicit zero: a
 * craft is no distance from itself.
 *
-* ADDRESSED: each command centre is sent its own. The centres listed are those
-* on the receiving centre's own `commandCentre.roster`, and each figure is
-* worked out from that centre's own contact plan, as `comms.delay` is: the
-* receiving centre's own entry and its `comms.delay` are the same path.
+* Each command centre is sent its own. The centres listed are those on the
+* receiving centre's own `commandCentre.roster`, and each figure is worked out
+* from that centre's own contact plan, as `comms.delay` is: the receiving
+* centre's own entry and its `comms.delay` are the same path.
 *
 * @category Comms
 */
@@ -1350,7 +1334,7 @@ export interface CommandResult
 	/** Whether the command ran. False means the game refused it. */
 	success: boolean;
 	/**
-	* Why it was refused, null on success. On the wire this is the ROOT's id, so
+	* Why it was refused, null on success. On the wire this is the root's id, so
 	* every client can classify it; a refinement's own id travels beside it as
 	* `CommandResult.reason`.
 	*/
@@ -1376,13 +1360,14 @@ export interface CommandResult
 	*/
 	breach?: LimitBreach;
 	/**
-	* The refusal in the GAME's own words, when the game had any: the member of
+	* The refusal in the game's own words, when the game had any: the member of
 	* `ClearToSaveStatus` it came back with,
 	* `Strategies.Strategy.CanBeActivated(out string reason)`'s reason,
 	* `GameVariables.GetEVALockedReason`'s sentence, a
 	* `PreFlightTests.IPreFlightTest`'s `GetWarningTitle()`, a
-	* `[Description]`-tagged state member's name. Empty when the refusal had
-	* nothing to quote: omitted from the wire, never an empty string.
+	* `[Description]`-tagged state member's name. Null when the refusal had
+	* nothing to quote, and then omitted from the wire, never sent as an empty
+	* string.
 	*
 	* The text is the game's own, so it is in the game's language.
 	*
@@ -1407,7 +1392,7 @@ export interface CommandResultOf<Payload> extends CommandResult
 }
 /**
 * Who is speaking, as the speaking client describes itself. Shown to listeners
-* and trusted for nothing else: the vantage a thing was said FROM is always
+* and trusted for nothing else: the vantage a thing was said from is always
 * the one the mod resolved for the connection that said it, never a field
 * here.
 *
@@ -1622,12 +1607,11 @@ export interface CommcastTraffic
 * The first segment of every `commcast.radio` frame, as UTF-8 JSON. The
 * segments after it are that batch's raw Opus packets, 20 ms each, in order.
 *
-* `commcast.radio` rides the binary lane (see the binary-frames reference) and
-* is addressed exactly as `CommcastTraffic` is: a connection hears only
-* transmissions to groups its vantage belongs to, one light-time after each
-* batch was spoken. Every frame carries this whole description, so a listener
-* that starts hearing partway through a keying places it from the first frame
-* it gets.
+* `commcast.radio` is carried in BinaryLane frames and is addressed exactly as
+* `CommcastTraffic` is: a connection hears only transmissions to groups its
+* vantage belongs to, one light-time after each batch was spoken. Every frame
+* carries this whole description, so a listener that starts hearing partway
+* through a keying places it from the first frame it gets.
 *
 * @category Comms
 */
@@ -1711,7 +1695,10 @@ export interface CommcastTransmissionRow
 * @category Comms
 */
 export enum CommsControlSource {
-	/** A measurement: the craft has no control source. */
+	/**
+	* The craft has no control source. A reading, unlike
+	* `CommsControlSource.Unknown`.
+	*/
 	None = 0,
 	/**
 	* Partial control, crewed or uncrewed: stock's `PARTIAL_MANNED` or
@@ -1722,9 +1709,9 @@ export enum CommsControlSource {
 	Full = 2,
 	/**
 	* The game reported a control level this build does not name. Not
-	* `CommsControlSource.None`: nothing was measured to be absent, the level
-	* simply has no tier here yet. `CommsConnectivity.hasLocalControl` is false
-	* alongside it and says nothing.
+	* `CommsControlSource.None`: the craft may well have control, but its level
+	* has no tier here. `CommsConnectivity.hasLocalControl` is false alongside it
+	* and says nothing.
 	*/
 	Unknown = 3
 }
@@ -1756,23 +1743,24 @@ export interface CommsConnectivity
 }
 /**
 * The `comms.signal` payload: the active vessel's own reading of its link,
-* sourced from the elected comms backend. A strength from 0 to 1 whose meaning
-* depends on the backend: stock CommNet reports a coarse range fraction,
-* RealAntennas a link-budget-derived value.
+* from the elected comms backend. A strength from 0 to 1 whose meaning depends
+* on the backend: stock CommNet reports a coarse fraction of the link's range,
+* RealAntennas how much headroom the link has over its data rate. Nothing on
+* the wire says which, so compare values only within one install.
 *
-* ADDRESSED: each command centre is sent its own, the newest reading to have
-* reached it. A reading is of the vessel's whole path at one instant, so it
-* reaches a centre no sooner than light leaving the farthest node on that path
-* at that instant could: it never tells a centre what a relay's link is doing
-* before the relay's own light has. Absent until the first reading arrives.
-* The path it was measured over is the game's, which is not always the path
-* the centre believes in on `comms.path`.
+* Each command centre is sent its own, the newest reading to have reached it.
+* A reading is of the vessel's whole path at one instant, so it reaches a
+* centre no sooner than light leaving the farthest node on that path at that
+* instant could: it never tells a centre what a relay's link is doing before
+* the relay's own light has. Absent until the first reading arrives. The path
+* it was measured over is the game's, which is not always the path the centre
+* believes in on `comms.path`.
 *
 * A save with the stock CommNet difficulty option off models no link budget at
-* all and reports 1 here: nothing attenuates a link that is not modelled. A
-* reader that needs to know this is not a grading has
-* `CommsDelaySource.NoCommsModel` on `comms.delay`, which is the one
-* discriminator for the whole family rather than a second one per field.
+* all and reports 1 here: nothing weakens a link that is not modelled. To tell
+* that case from a real full-strength link, read
+* `CommsDelaySource.NoCommsModel` on `comms.delay`, which marks it for every
+* `comms.*` channel.
 *
 * @category Comms
 */
@@ -1814,7 +1802,10 @@ export interface CommsSignal
 * @category Comms
 */
 export enum CommsControlStateKind {
-	/** A measurement: the craft cannot be commanded. */
+	/**
+	* The craft cannot be commanded. A reading, unlike
+	* `CommsControlStateKind.Unknown`.
+	*/
 	None = 0,
 	/**
 	* Partial control, crewed or uncrewed: stock's `PARTIAL_MANNED` or
@@ -1875,11 +1866,11 @@ export enum CommsHopKind {
 * client-side), and the other RealAntennas per-hop facts ride
 * `CommsHop.extensions` under `"realantennas"`.
 *
-* Ground stations carry their OWN name in `CommsHop.from` and `CommsHop.to`
-* (RSS/RealAntennas fly a dozen of them), not a single shared "home" label:
-* two consecutive samples both showing a one-hop direct link, one to Kourou
-* and one to Canberra, are a STATION HANDOFF, not one station whose range
-* changed.
+* A ground station carries its own name in `CommsHop.from` and `CommsHop.to`,
+* not a shared "home" label, and an install with RealAntennas can have a dozen
+* of them. Two consecutive samples that each show a one-hop direct link, one
+* to Kourou and one to Canberra, are a handoff between stations, not one
+* station whose range changed.
 *
 * @category Comms
 */
@@ -1948,16 +1939,16 @@ export interface CommsHop
 * would have the signal wait at a relay (`comms.route` says where it would
 * wait).
 *
-* ADDRESSED: each command centre is sent its own, and no other centre's. It is
-* worked out from that centre's contact plan, which is made of what the centre
-* has heard of each craft, so a hop changes here only once the news of it has
-* reached the centre: a relay that drops out is still on the path until its
-* silence has crossed to you. Nothing is sent until the centre has a contact
-* plan, so the topic is absent, not empty, for the first moments of a session.
+* Each command centre is sent its own, and no other centre's. It is worked out
+* from that centre's contact plan, which is made of what the centre has heard
+* of each craft, so a hop changes here only once the news of it has reached
+* the centre: a relay that drops out is still on the path until its silence
+* has crossed to you. Nothing is sent until the centre has a contact plan, so
+* the topic is absent, not empty, for the first moments of a session.
 *
-* NEVER RECKONABLE. A route changes DISCRETELY (a relay drops below the
-* horizon and the whole chain re-solves to different hops), and every
-* reckoning basis moves a continuous quantity.
+* Not reckonable: a route changes in steps (a relay drops below the horizon
+* and the whole chain re-solves to different hops), and every reckoning basis
+* moves a continuous quantity.
 *
 * @category Comms
 */
@@ -2019,8 +2010,8 @@ export interface CommsNetworkEdge
 * `comms.path` in graph form with each node named. The graph is empty when the
 * centre knows of no open path.
 *
-* ADDRESSED, on the same terms as `comms.path`: each command centre is sent
-* its own, made from what that centre has heard.
+* As with `comms.path`, each command centre is sent its own, made from what
+* that centre has heard.
 *
 * @category Comms
 */
@@ -2047,26 +2038,22 @@ export enum CommsDelaySource {
 	/** A light-time computed over the route's hop geometry. */
 	SignalDelay = 1,
 	/**
-	* Zero, because this save models no comms network AT ALL: the stock CommNet
+	* Zero, because this save models no comms network at all: the stock CommNet
 	* difficulty option is off, so there are no ground stations, no relay graph
 	* and no path to measure a light-time over. Control reaches a craft directly,
 	* from anywhere, instantly.
 	*
-	* A POSITIVE FACT, and the reason it is a member here rather than a null
-	* `CommsDelay.oneWaySeconds`: null means "there is a comms model and it can
-	* measure nothing right now", which is a permanent blackout and the exact
-	* opposite prognosis. This is what distinguishes the two ON THE WIRE. A save
-	* with no comms model reports this alongside `connected:true`, so the channel
-	* keeps arriving with nothing held back, where a real blackout reports null
-	* and stops.
+	* Not the same as a null `CommsDelay.oneWaySeconds`, which means there is a
+	* comms model and it can measure nothing right now: a blackout. A save with no
+	* comms model reports this alongside `connected:true`, and its channels keep
+	* arriving with nothing held back; a blackout reports null and they stop.
 	*/
 	NoCommsModel = 2
 }
 /**
 * The `comms.delay` payload: the one-way signal delay to the active vessel,
 * gated by the `comms.signalDelay.enabled` setting. `CommsDelay.oneWaySeconds`
-* distinguishes two DIFFERENT "no delay" cases by value, never by one
-* overloaded sentinel:
+* tells two different "no delay" cases apart by value:
 *
 * - **null**: no measurable `CommsPath` (no path home, or incomplete hop
 *   geometry). There is nothing to measure, so nothing is reported.
@@ -2086,48 +2073,42 @@ export enum CommsDelaySource {
 * here and `connected:false` on `CommsLink`, and this reports `0` and
 * `connected:true`.
 *
-* ADDRESSED: each command centre is sent its own, and no other centre's. It is
-* the light-time of the active vessel's path as the receiving centre believes
-* it to stand, which is the path that centre is sent on `comms.path`, so the
-* two always agree. The path is worked out from what the centre has heard of
-* each craft, so the figure moves only once the news that moves it has reached
-* the centre: a relay that drops out goes on counting towards the delay until
-* its silence has crossed to you. A zero that is a setting (delay switched
-* off, or a save with no comms network) is sent at once.
+* Each command centre is sent its own, and no other centre's. It is the
+* light-time of the active vessel's path as the receiving centre believes it
+* to stand, which is the path that centre is sent on `comms.path`, so the two
+* always agree. The path is worked out from what the centre has heard of each
+* craft, so the figure moves only once the news that moves it has reached the
+* centre: a relay that drops out goes on counting towards the delay until its
+* silence has crossed to you. A zero that is a setting (delay switched off, or
+* a save with no comms network) is sent at once.
 *
 * @category Comms
 */
 export interface CommsDelay
 {
 	/**
-	* The one-way light-time to the command centre, seconds. See this type's own
-	* summary for the null/zero split, which is the whole discriminator: null is
-	* "nothing measurable", 0 is a measured or applied zero.
+	* The one-way light-time to the command centre, in seconds. Null when nothing
+	* is measurable, 0 for a measured or applied zero; this type's summary says
+	* which case is which.
 	*
-	* **Carried forward by re-measuring ONE leg of the route.** A delay is the
-	* whole route's length over the speed light travels at, and almost none of
-	* that route changes between the instant the light left and the instant it is
-	* read: every hop except the first joins two ground stations, or a station and
-	* a relay, or two relays, none of which move appreciably against each other on
-	* a telemetry timescale. So their measured lengths carry forward as the sum
-	* they already were, and only the FIRST hop, the one with the craft on one
-	* end, is re-derived: `(route - firstHop + |craft - peer|) / c`, the craft
-	* propagated on `@vessel.orbit` and its peer placed from
-	* `@commandCentre.roster`, whose latitude and longitude are body-fixed and so
-	* need the rotation phase on `@system.bodies`.
+	* **Reckoning.** Between samples the value is carried forward by re-measuring
+	* only the route's first hop, the one with the craft on one end: `(route -
+	* firstHop + |craft - peer|) / c`. The other hops join ground stations and
+	* relays that barely move against each other in that time, so their lengths
+	* are kept as measured. The craft is propagated on `@vessel.orbit`, and its
+	* peer is placed from `@commandCentre.roster`, whose body-fixed latitude and
+	* longitude need the rotation phase on `@system.bodies`.
 	*
-	* Declared for a route whose first hop ends at a GROUND STATION, which is the
-	* direct link and the common case. A first hop ending at a RELAY needs that
-	* relay's own elements, which ride the per-vessel `fleet.<guid>.orbit` channel
-	* under a guid not known until the route arrives; an input here is a Topic id
-	* resolved against the declared set, so there is no way to name it and no
-	* promise made about it. A client reading a relayed route gets an honest
-	* refusal naming that channel rather than a modelled number.
+	* This covers a route whose first hop ends at a ground station, the direct
+	* link and the common case. A first hop that ends at a relay needs that
+	* relay's orbit, on `fleet.<guid>.orbit` under a guid only the route names, so
+	* it cannot be declared as an input. A client reckoning a relayed route gets a
+	* refusal that names that channel rather than a modelled number.
 	*
-	* The `CommsDelay.source` is an input because two of its three members are a
-	* zero that means something other than "no distance": delay is switched off,
-	* or the save models no comms network. Neither stops being true as the craft
-	* moves, so only `CommsDelaySource.SignalDelay` is carried forward.
+	* `CommsDelay.source` is an input because two of its members are a zero that
+	* does not mean "no distance": delay switched off, or a save with no comms
+	* network. Neither changes as the craft moves, so only
+	* `CommsDelaySource.SignalDelay` is carried forward.
 	*/
 	oneWaySeconds?: Value<"s"> | null;
 	/** Why `CommsDelay.oneWaySeconds` has the value it has; see `CommsDelaySource`. */
@@ -2141,13 +2122,12 @@ export interface CommsDelay
 * question rather than any raw `comms.*` observation such as
 * `CommsConnectivity`.
 *
-* **Delayed, and exempt from the freeze.** The link state is what reports a
-* signal-loss freeze, so it cannot be frozen by it. It reveals a disconnect at
-* `T+delay` (you learn of the outage one light-time after it happens) and
-* keeps reporting `connected:false` through the blackout, so a "no signal"
-* indicator flips at the correct delayed instant. The `VesselComms`
-* observations (signal strength, control state) are Delayed and DO freeze:
-* they hold their last value through the outage.
+* **Delayed, and never frozen.** This channel is what reports a signal-loss
+* freeze, so it keeps arriving through one. It reports a disconnect one
+* light-time after it happens and goes on reporting `connected:false` through
+* the blackout, so a "no signal" indicator changes at the right delayed
+* instant. The `VesselComms` readings (signal strength, control state) are
+* delayed too, but do freeze: they hold their last value through the outage.
 *
 * @category Comms
 */
@@ -2162,7 +2142,7 @@ export interface CommsLink
 	meta: PayloadMeta;
 }
 /**
-* The `comms.commandCentre` payload: WHICH command centre the active vessel's
+* The `comms.commandCentre` payload: which command centre the active vessel's
 * path ends at, as the receiving command centre believes it to stand now, so a
 * client can show its own stats against the right name instead of assuming
 * KSC. It is where `comms.path`'s last hop ends: the receiving centre itself,
@@ -2170,8 +2150,8 @@ export interface CommsLink
 * Shares its id and kind scheme with `CommandCentreEntry` (the
 * `commandCentre.roster` entries).
 *
-* ADDRESSED, on the same terms as `comms.path`: each command centre is sent
-* its own, made from what that centre has heard.
+* As with `comms.path`, each command centre is sent its own, made from what
+* that centre has heard.
 *
 * Every field is null when the centre knows of no open path.
 *
@@ -2278,20 +2258,20 @@ export interface CommsContactWindow
 * perfect" are opposite instructions to anything choosing a quality, so branch
 * on the absence rather than defaulting it to a number.
 *
-* **Read this rather than deriving a quality from `comms.signal`.** That field
-* is 0..1 too, and it is a different quantity on a stock install than on a
+* Read this rather than deriving a quality from `comms.signal`. That field is
+* 0..1 too, and it is a different quantity on a stock install than on a
 * RealAntennas one: a range fraction against an antenna curve versus spare
 * room on a data-rate ladder. Nothing on the wire distinguishes them, so `1 -
 * strength` is two different quality curves on two saves. This channel names
 * its rule, so a consumer acting on the number can see which grading produced
 * it.
 *
-* ADDRESSED: each command centre is sent its own, with `comms.signal` and from
-* the same reading of the vessel's radio. A rating is of the vessel's whole
-* path at one instant, so it reaches a centre no sooner than light leaving the
-* farthest node on that path could. Absent until the first reading arrives.
-* Through a blackout it keeps its last value; the disconnect itself reaches a
-* client on `comms.link`.
+* Each command centre is sent its own, with `comms.signal` and from the same
+* reading of the vessel's radio. A rating is of the vessel's whole path at one
+* instant, so it reaches a centre no sooner than light leaving the farthest
+* node on that path could. Absent until the first reading arrives. Through a
+* blackout it keeps its last value; the disconnect itself reaches a client on
+* `comms.link`.
 *
 * @category Comms
 */
@@ -2549,11 +2529,8 @@ export interface CommsOcclusionBody
 * comms backend. The declared occlusion model, named, with its rule already
 * applied to every celestial body the game knows about.
 *
-* TRUE-NOW like the rest of the comms family, and for a stronger reason than
-* most: this is not an observation of the vessel at all, it is a statement
-* about the universe's geometry and the rule the elected backend applies to
-* it. Delaying it would mean a predictor computing tomorrow's blackout from
-* yesterday's model.
+* Not delayed by light time: it is not an observation of the vessel but the
+* solar system's geometry and the rule the elected backend applies to it.
 *
 * Effectively static within a session: the body set does not change and the
 * multipliers change only if the player edits the difficulty settings. An
@@ -2758,10 +2735,9 @@ export interface ControlFrameOption
 /**
 * `system.frame.set`'s args: the frame to put the view in.
 *
-* A caller names the pair, not the sets. Unlike `ControlFrame`, which reports
-* `PrimaryBodies` and `SecondaryBodies`, this carries only the two heads: the
-* producer decides which bodies fall on each side of a pulsating frame from
-* its own body tree.
+* It names the two head bodies, not the sets: where `ControlFrame` reports
+* `PrimaryBodies` and `SecondaryBodies`, the mod that owns the view works out
+* which bodies fall on each side of a pulsating frame.
 *
 * Refusal is normal: stock KSP's frame follows the active vessel's reference
 * body and cannot be set, so the command fails with `ModeUnavailable`.
@@ -3169,7 +3145,7 @@ export interface CommandRequest<Args>
 	* connection's own vantage (see `SetVantage`). A program-level command (tech,
 	* strategy, contract) sends `"meta"`, which carries no delay whichever centre
 	* the operator has selected. A centre that is not active is refused with an
-	* `unknown-vantage` error.
+	* `unknownVantage` error.
 	*/
 	vantage?: string;
 	/** The command's arguments, in the command's own argument type. */
@@ -3179,7 +3155,7 @@ export interface CommandRequest<Args>
 	* base as `Meta.validAt`. A bare number in the TypeScript type, like every
 	* envelope field; its unit is declared in the SDK's units map.
 	*
-	* **The shipped clients send 0.** The server stamps the response's
+	* Gonogo's own clients send 0. The server stamps the response's
 	* `Meta.deliveredAt` off its own clock, so a caller wanting a round-trip
 	* measures against its own view time rather than reading this back. The field
 	* is carried onto the response's `Meta.validAt`, which therefore reads 0 on a
@@ -3208,22 +3184,20 @@ export interface CommandResponse<Result>
 	meta: Meta;
 }
 /**
-* Sent the moment the engine takes a dispatch onto the delayed path, carrying
-* the one-way light-time it will actually travel. It says THE COMMAND IS ON
-* ITS WAY AND HERE IS WHEN TO EXPECT A REPLY, never that anything executed.
+* Sent the moment a command starts its delayed journey, carrying the one-way
+* light-time it will actually travel. It says the command is on its way and
+* when to expect a reply, never that anything executed.
 *
 * A client cannot work this out for itself. The delay depends on the node the
-* command is addressed to, which the engine resolves from the command's
-* declared subject, and on the vantage it was sent from: a client sizing a
-* loss deadline from the delay it can see (the active craft's) grades a
-* command to a different node against the wrong path entirely.
+* command is addressed to, which Gonogo resolves from the command's declared
+* subject, and on the command centre it was sent from. A loss deadline sized
+* from the delay a client can see (the active craft's) is wrong for a command
+* addressed to any other node.
 *
-* Correlated by `CommandAccepted.requestId`, the client's own id off its
-* `command-request`. That is safe here and is NOT safe on
-* `system.uplink.pending`, whose entries carry an engine-minted id instead:
-* two clients can choose the same request id, so a broadcast channel cannot
-* pair them, whereas this frame travels back down the one socket that sent the
-* request.
+* Matched to its request by `CommandAccepted.requestId`, the client's own id
+* from its `command-request`, because this frame comes back on the connection
+* that sent the request. Entries on `system.uplink.pending` carry an id Gonogo
+* assigns instead, since two clients can choose the same request id.
 *
 * Absent for a dispatch that never rides light-time (a `TrueNow` command, or a
 * live delay resolving to zero), because there is no flight to wait out.
@@ -3240,9 +3214,8 @@ export interface CommandAccepted
 	requestId: string;
 	/**
 	* One-way light-time from the sending vantage to the node this command is
-	* addressed to, as the engine's ledger has it AT DISPATCH. Frozen: a route
-	* change afterwards is discrete and the sender may never learn of it, so this
-	* is not re-sent.
+	* addressed to, as Gonogo knows it at dispatch. It is never re-sent: the
+	* sender may never learn of a route change after dispatch.
 	*
 	* For a command held and forwarded on a lane it is how long the sending
 	* centre's own plan expects it to take to reach the craft, waits included, and
@@ -3252,10 +3225,10 @@ export interface CommandAccepted
 	*/
 	oneWaySeconds?: number;
 	/**
-	* When the engine predicts the reply will come back, from the routes at
-	* dispatch, waits included. A client times its loss deadline from this when
-	* present, since a command held for a window replies long after twice the
-	* one-way time. Absent when no route was predicted.
+	* When Gonogo predicts the reply will come back, from the routes at dispatch,
+	* waits included. A client times its loss deadline from this when present,
+	* since a command held for a window replies long after twice the one-way time.
+	* Absent when no route was predicted.
 	*/
 	predictedReplyUt?: number;
 	/**
@@ -3301,7 +3274,7 @@ export interface ErrorMsg
 	topic?: string;
 	/**
 	* Which fault: always a fault, never a refusal, since a command the game
-	* refused answers with a `command-response` instead.
+	* refused gets a `command-response` instead.
 	*/
 	code: FaultCode;
 	/**
@@ -3336,10 +3309,10 @@ export interface Unsubscribe
 }
 /**
 * Client-to-server: select the command centre this connection commands from
-* and observes at. Governs both the downlink cursor read and the
-* command-dispatch vantage. The id must name a currently-active command
-* centre, or the request is refused with an `unknownVantage` error and the
-* connection keeps the vantage it had.
+* and observes at. It sets both where the connection's telemetry is observed
+* from and where its commands are sent from. The id must name a
+* currently-active command centre, or the request is refused with an
+* `unknownVantage` error and the connection keeps the vantage it had.
 *
 * A connection that has never sent one observes at the home command (the
 * roster entry whose `isHome` is true), and follows it if home moves. When no
@@ -3387,13 +3360,8 @@ export interface Hello
 * any topic. Sent straight after `Hello` on every connection that has anything
 * to learn, and again at every change.
 *
-* It is a frame of its own, and not a value on a topic, because a game that is
-* loading a scene has no clock that moves, and everything on a topic is
-* delivered by that clock. A topic could say a load had started only after it
-* had ended. It is also not delayed by light time at any command centre: a
-* load is a fact about the game on the machine, there is no game time to count
-* light time in while it runs, and nothing else reaches any centre during it
-* anyway.
+* It is not delayed by light time at any command centre: a load is a fact
+* about the game on the machine, not about anything in flight.
 *
 * While `GameState.state` is `"loading"` or `"no-game"`, nothing the stream
 * last said is current. Readings received before the frame are still the
@@ -3427,7 +3395,7 @@ export interface GameState
 * Client-to-server: asks for a `Pong`, to tell a connection that is quiet from
 * one that is dead. A subscribed connection can be silent for as long as
 * nothing it subscribed to changes, so silence alone says nothing; a ping that
-* goes unanswered does. It is answered at once and in every scene, changes
+* goes unanswered does. It is replied to at once and in every scene, changes
 * nothing, and needs no subscription.
 *
 * @category Stream messages
@@ -3437,8 +3405,8 @@ export interface Ping
 	/** The frame type, always `"ping"`. */
 	type: "ping";
 	/**
-	* Anything the client likes, returned unchanged in the answering `Pong` so it
-	* can tell which ping was answered. May be omitted, in which case the answer
+	* Anything the client likes, returned unchanged in the reply `Pong` so it can
+	* tell which ping was answered. May be omitted, in which case the reply
 	* carries an empty one.
 	*/
 	nonce: string;
@@ -3452,7 +3420,7 @@ export interface Pong
 {
 	/** The frame type, always `"pong"`. */
 	type: "pong";
-	/** The `Ping.nonce` of the ping this answers. */
+	/** The `Ping.nonce` of the ping this replies to. */
 	nonce: string;
 }
 /**
@@ -3935,17 +3903,15 @@ export interface RevertToEditorArgs
 	editor: string;
 }
 /**
-* `ksp.switchVessel`'s args: the STABLE opaque vessel id
-* (`vessel.id.ToString()`, the same id `SetTargetArgs.vesselId` uses),
-* resolved server-side against `FlightGlobals.Vessels`, never a roster array
-* index. An empty id fails with `CommandErrorCode.NotFound` before the game is
-* ever touched. Works from the flight scene, where it changes the active
-* vessel, and from the Space Center and the Tracking Station, where it saves
-* and then loads the vessel's flight. Refused with
-* `CommandErrorCode.WrongScene` from the editors and wherever there is no game
-* to switch in (the main menu, the loading screens), and with
-* `CommandErrorCode.NotClearToProceed` for a vessel that is not tracked as
-* ours.
+* `ksp.switchVessel`'s args: the stable vessel id (`vessel.id.ToString()`, the
+* same id `SetTargetArgs.vesselId` uses), never a roster array index. An empty
+* id fails with `CommandErrorCode.NotFound` before the game is ever touched.
+* Works from the flight scene, where it changes the active vessel, and from
+* the Space Center and the Tracking Station, where it saves and then loads the
+* vessel's flight. Refused with `CommandErrorCode.WrongScene` from the editors
+* and wherever there is no game to switch in (the main menu, the loading
+* screens), and with `CommandErrorCode.NotClearToProceed` for a vessel that is
+* not tracked as ours.
 *
 * @category Command arguments
 */
@@ -3960,11 +3926,10 @@ export interface SwitchVesselArgs
 /**
 * `ksp.launch`'s args: load a saved craft onto a launch site. The craft is
 * identified by `LaunchArgs.shipName` plus the `LaunchArgs.facility` it was
-* saved from (`"VAB"` or `"SPH"`, case-insensitive); the mod rebuilds the
-* `.craft` path itself, so the wire never carries a native KSP type or an
-* absolute path. An empty ship name fails with `CommandErrorCode.NotFound` and
-* an unrecognised facility with `CommandErrorCode.Range`, before the game is
-* ever touched.
+* saved from (`"VAB"` or `"SPH"`, case-insensitive); Gonogo finds the `.craft`
+* file itself, so a client never sends a file path. An empty ship name fails
+* with `CommandErrorCode.NotFound` and an unrecognised facility with
+* `CommandErrorCode.Range`, before the game is ever touched.
 *
 * `LaunchArgs.crew` is an array of kerbal names (empty to launch unmanned),
 * each assigned to a free craft seat.
@@ -4518,11 +4483,10 @@ export interface Meta
 	vantage: string;
 	/**
 	* Whether the payload's subject is under physics: `Quality.Loaded` while KSP
-	* simulates the craft, when its orbital elements are osculating rather than a
-	* coast a conic may advance, and `Quality.OnRails` while it coasts. Carried
-	* from the payload's own `meta.quality`, which only `vessel.orbit` states, and
-	* omitted from the wire on every other Topic rather than defaulted to a claim
-	* nothing made.
+	* simulates the craft, when its orbital elements are osculating and a conic
+	* cannot be advanced from them, and `Quality.OnRails` while it coasts. Copied
+	* from the payload's own `meta.quality`, which only `vessel.orbit` states;
+	* absent from the wire on every other Topic.
 	*/
 	quality?: Quality;
 	/** Always true on a frame the mod sends. */
@@ -4539,7 +4503,7 @@ export interface Meta
 	*/
 	timelineEpoch: number;
 	/**
-	* The `Meta.validAt` of the last sample on this topic that precedes a KNOWN
+	* The `Meta.validAt` of the last sample on this topic that precedes a known
 	* break in the record, set only on the first sample delivered after that break
 	* and `null` on every other sample.
 	*
@@ -4758,8 +4722,8 @@ export interface ModSettingRow
 * Arguments to `settings.mod.write`: change one of a host mod's own settings
 * through its Uplink, at once.
 *
-* **Safe to send again.** It sets the value named, so repeating one that
-* already landed changes nothing.
+* Safe to send again: it sets the value named, so repeating one that already
+* landed changes nothing.
 *
 * Refused, with nothing changed, when the Uplink lists no such setting, when
 * the setting is not writable, when the value is not one its kind can hold, or
@@ -4923,38 +4887,32 @@ export interface OrbitPatch
 * right-click Part Action Window, the remote-control equivalent of the player
 * clicking it in-game.
 *
-* This is an actuation of a part ON the craft, so the command rides light-time
-* (DelayRole.Delayed) exactly like `vessel.control.*` and the robotics
-* commands.
+* It acts on a part aboard the craft, so it is delayed by light time
+* (DelayRole.Delayed), like `vessel.control.*` and the robotics commands.
 *
-* **No state field, unlike every other actuation command.** The contract's
-* usual discipline is "absolute set, never toggle" (see
-* `ServoSetEnabledArgs`), but a `BaseEvent` has no settable value: KSP models
-* these as fire-this-button, and the button's own label is what changes
-* ("Deploy" becomes "Retract"). So this command is a pure invoke, like
-* `robotics.rotor.reverse`, for a reason that comes from KSP. The operator's
-* read-back is the `vessel.partActions.<flightId>` channel re-reporting the
-* new button set one light-time later.
+* It has no state field, unlike the other actuation commands (see
+* `ServoSetEnabledArgs`). KSP models these as buttons with no settable value,
+* and the button's own label is what changes ("Deploy" becomes "Retract").
+* Read the result back from `vessel.partActions.<flightId>`, which reports the
+* new set of buttons one light time later.
 *
 * @category Command arguments
 */
 export interface InvokePartActionArgs
 {
 	/**
-	* The part's `flightID.ToString()`: the same id the read side stamps on
-	* `PartActions.partId` and `VesselPart.id`, so a widget round-trips the exact
-	* id it already holds with no correlation step. An id that no longer resolves
-	* (the part was staged away, undocked, or the vessel unloaded) comes back
-	* `CommandResult.errorCode` `CommandErrorCode.NotFound` rather than silently
-	* doing nothing.
+	* The part's `flightID.ToString()`: the same id `PartActions.partId` and
+	* `VesselPart.id` carry, so a widget sends back the id it already holds. An id
+	* that no longer resolves (the part was staged away or undocked, or the vessel
+	* unloaded) fails with `CommandErrorCode.NotFound` rather than doing nothing.
 	*/
 	partId: string;
 	/**
 	* The `PartActionEntry.name` of the button to fire (`BaseEvent.name`, the
-	* stable code id, NEVER the localized `PartActionEntry.label`). An event name
-	* the resolved part no longer exposes comes back
-	* `CommandErrorCode.ModeUnavailable`: the part is there but that button is
-	* not, which is a genuinely different failure from an unresolvable part.
+	* stable code id, never the localized `PartActionEntry.label`). An event name
+	* the part no longer offers fails with `CommandErrorCode.ModeUnavailable`: the
+	* part is there but that button is not, where a missing part fails with
+	* `CommandErrorCode.NotFound`.
 	*/
 	eventName: string;
 }
@@ -5573,13 +5531,13 @@ export interface RevertAvailability
 	canRevertToLaunch: boolean;
 }
 /**
-* Args for the servo target commands (`robotics.servo.setTarget`), the
-* ABSOLUTE angle (hinge) or extension (piston) to drive to, keyed by the
-* part's `ServoSetTargetArgs.partId`. `ServoSetTargetArgs.partId` is the same
-* `flightID` string `parts.robotics` publishes on each servo entry, so a
-* widget sends back the exact id it displays. A rotor has no target (it spins
-* continuously); a `setTarget` aimed at one fails with
-* `CommandResult.errorCode` `CommandErrorCode.ModeUnavailable`.
+* Args for `robotics.servo.setTarget`: the absolute angle (hinge) or extension
+* (piston) to drive to, keyed by the part's `ServoSetTargetArgs.partId`.
+* `ServoSetTargetArgs.partId` is the same `flightID` string `parts.robotics`
+* publishes on each servo entry, so a widget sends back the exact id it
+* displays. A rotor has no target (it spins continuously); a `setTarget` aimed
+* at one fails with `CommandResult.errorCode`
+* `CommandErrorCode.ModeUnavailable`.
 *
 * @category Command arguments
 */
@@ -5620,10 +5578,10 @@ export interface ServoSetEnabledArgs
 }
 /**
 * Args for the rotor scalar-limit commands
-* (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`), the ABSOLUTE
+* (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`): the absolute
 * value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
-* (torque 0 to 100, brake 0 to 200) are range-checked before they are sent;
-* out of range fails with `CommandResult.errorCode` `CommandErrorCode.Range`.
+* (torque 0 to 100, brake 0 to 200) are range-checked; a value out of range
+* fails with `CommandErrorCode.Range`.
 *
 * @category Command arguments
 */
@@ -5641,10 +5599,10 @@ export interface RotorSetValueArgs
 	value: number;
 }
 /**
-* Args for `robotics.rotor.reverse`: flips the rotor's spin direction. This is
-* the one robotics command that is genuinely a toggle (the widget's intent is
-* "spin the other way" relative to whatever the rotor is doing now), so it
-* carries no state field, only the `RotorReverseArgs.partId` to act on.
+* Args for `robotics.rotor.reverse`: flips the rotor's spin direction. It is
+* the one robotics command that is a toggle, reversing whichever way the rotor
+* spins now, so it carries no state field, only the `RotorReverseArgs.partId`
+* to act on.
 *
 * @category Command arguments
 */
@@ -6101,13 +6059,10 @@ export interface ScetAlarmFired
 * `alarm.scet.arm`'s args: register an alarm with the simulation host, or
 * replace one already registered under the same `ScetAlarmArmArgs.id`.
 *
-* Never delayed. Setting an alarm changes nothing aboard the craft, so there
-* is no light-time fiction to honour, and the same reasoning as
-* `time.setWarpIndex` applies: this is a control on the simulation, not a
-* signal to a spacecraft. Delayed it would also be unusable, because an alarm
-* for an event less than one light-time away could never be set in time, and a
-* delayed command is dropped outright during a blackout, which is exactly when
-* a SCET alarm earns its keep.
+* Never delayed by light time: setting an alarm changes nothing aboard the
+* craft, so like `time.setWarpIndex` it is a control on the simulation, not a
+* signal to a spacecraft. An alarm can therefore be set for an event less than
+* one light time away, and during a blackout.
 *
 * @category Command arguments
 */
@@ -6149,8 +6104,8 @@ export interface ScetAlarmArmArgs
 * for an id the host does not hold, so a client reconciling its list against
 * the roster never has to ask first.
 *
-* Never delayed, for the reason its opposite is not: the inverse of an instant
-* act must not be slower than the act.
+* Never delayed, like `alarm.scet.arm`, so removing an alarm is never slower
+* than setting one.
 *
 * @category Command arguments
 */
@@ -6182,14 +6137,12 @@ export interface ScetAddressableTopic
 }
 /**
 * Args shared by every science-experiment actuation command
-* (`science.experiment.deploy`/`science.experiment.transmit`): the experiment
-* is addressed by `ExperimentActionArgs.partId`, the part's
-* `flightID.ToString()`, the SAME opaque id the read side emits in
-* `science.instruments` (one entry per `ModuleScienceExperiment`, keyed by
-* `flightID`). The host resolves it against the active vessel's live parts; a
-* client never supplies a live array index. An empty
-* `ExperimentActionArgs.partId` resolves to nothing and yields
-* `CommandResult.errorCode` `CommandErrorCode.NotFound`.
+* (`science.experiment.deploy` and `science.experiment.transmit`): the
+* experiment is named by `ExperimentActionArgs.partId`, the part's
+* `flightID.ToString()`, the same id `science.instruments` carries on each
+* experiment entry. It is looked up among the active vessel's parts, never by
+* array index. An empty or unknown `ExperimentActionArgs.partId` fails with
+* `CommandErrorCode.NotFound`.
 *
 * @category Command arguments
 */
@@ -8326,33 +8279,31 @@ export interface GateVerdict
 	missing?: MissingUnlock[];
 }
 /**
-* One entry in the ground-side pending-uplink queue, backing
+* One command sent and believed still in flight, an entry on
 * `system.uplink.pending`.
 *
-* **Prediction-only, hard invariant:** this type carries ONLY dispatch-time
-* facts: what the centre sent and when. It never carries an execution, result
-* or vessel-derived field (e.g. whether the craft actually received or ran the
-* command, any onboard state). That is what keeps the queue "predicted, not
-* confirmed": render these entries as in flight until they age out, never as
-* an acknowledgement of a vessel-side effect.
+* An entry carries only what the sending centre knew when it sent the command:
+* what it sent, when, and what it predicted. It never says whether the craft
+* received or ran the command, or anything about the craft's state. Show
+* entries as in flight until they leave the queue, never as confirmation that
+* something happened aboard.
 *
 * @category Comms
 */
 export interface PendingUplink
 {
 	/**
-	* The ENGINE's own id for this dispatch, unique within this queue.
+	* Gonogo's own id for this dispatch, unique within this queue.
 	*
-	* NOT the `requestId` a client put on its `command-request`, and not relatable
-	* to it: the engine mints this separately and the two counters can collide. A
-	* client looking for its OWN dispatch here matches on
-	* `PendingUplink.clientRequestId`, which is that `requestId` carried through
-	* verbatim.
+	* Not the `requestId` a client put on its `command-request`, and unrelated to
+	* it: the two are counted separately and can hold the same value. A client
+	* looking for its own dispatch matches on `PendingUplink.clientRequestId`
+	* instead.
 	*/
 	id: string;
 	/**
 	* The `requestId` the dispatching client put on its `command-request`, carried
-	* through verbatim, so that client can find its OWN entry in this queue. Empty
+	* through verbatim, so that client can find its own entry in this queue. Empty
 	* when the dispatch did not come over a client connection.
 	*
 	* Only the dispatching client's own choice, so two clients can pick the same
@@ -8368,53 +8319,39 @@ export interface PendingUplink
 	*/
 	label: string;
 	/**
-	* Dispatch-time addressing, which part/route the command was sent to (an
-	* opaque MQTT-style route, e.g. `kos/7`), known at the command centre at send
-	* time. NOT vessel state and NOT an execution result, so it stays inside the
-	* prediction-only invariant; it lets a renderer scope entries to one
-	* part/terminal. Empty when unscoped.
+	* Which part or terminal the command was addressed to, as an opaque
+	* slash-separated route such as `kos/7`, so a widget can show only the entries
+	* for one part. Empty when the command was not addressed to one.
 	*/
 	topic: string;
 	/**
-	* Which command centre / ground station dispatched this command: dispatch-time
-	* command-centre bookkeeping, not vessel state, so it stays inside the
-	* prediction-only invariant.
+	* The id of the command centre that sent this command, as on
+	* `commandCentre.roster`.
 	*/
 	vantage: string;
-	/** UT the engine dispatched the command. */
+	/** When the command was sent, in UT. */
 	dispatchedAt: Value<"ut">;
 	/**
-	* One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay
-	* changes. For a command on a lane it is how long the sending centre's own
-	* plan expects it to take to reach the craft, waits included, and `null` when
-	* that plan knows no route: the centre has no figure to give, which is not a
-	* figure of zero.
+	* One-way signal delay in seconds as it stood when the command was sent, not
+	* updated as the delay changes. For a command on a lane it is how long the
+	* sending centre's own plan expects it to take to reach the craft, waits
+	* included, and `null` when that plan knows no route: the centre has no figure
+	* to give, which is not a figure of zero.
 	*/
 	oneWaySeconds?: Value<"s"> | null;
 	/**
 	* The scalar this command asked for, when its command is one half of a
 	* declared SitrepControlChannelAttribute channel: a throttle setting, a switch
-	* as 1 or 0, an SAS mode as its ordinal. ABSENT (the key is omitted, never
+	* as 1 or 0, an SAS mode as its ordinal. Absent (the key is left out, never
 	* written as null) for every other command, and for a channel command whose
-	* args did not carry the value key, so a zero throttle and an unknown value
-	* never look the same.
+	* args did not carry the value, so a zero throttle and an unknown value never
+	* look the same.
 	*
-	* **Inside the prediction-only invariant, not an exception to it.** The
-	* invariant on this class forbids an execution/result/ vessel-derived field:
-	* whether the craft received or ran the command, any onboard state. A
-	* commanded value is none of those. It is the most on-point example of "what
-	* the centre sent", which is what the invariant says this type carries, and
-	* the system already knows it because it dispatched it: carrying it is not new
-	* information and not an inference about the craft.
-	*
-	* With it, a renderer can show WHICH SAS mode is in flight rather than only
-	* that something is, and mark one control in a group out from its siblings. It
-	* is also the only path a SECOND command centre or a station screen has to the
-	* value: own-dispatch memory is per-client.
-	*
-	* ONE numeric field rather than a variant because the channel's own declared
-	* args type already says how to read the number back. See
-	* ControlChannelDescriptor for the reflected lookup.
+	* It is what the centre sent, not anything the craft did. Use it to show which
+	* SAS mode is in flight rather than only that something is, or to mark one
+	* control in a group apart from the rest. A second command centre or a station
+	* screen has no other way to learn the value. The channel's declared args type
+	* says how to read the number back; see ControlChannelDescriptor.
 	*/
 	commandedValue?: number;
 	/**
@@ -8464,14 +8401,14 @@ export interface PendingUplink
 	*/
 	attempts: Value<"count">;
 	/**
-	* The engine ids of every command sent together with this one, itself
-	* included; one entry until command groups exist.
+	* The `PendingUplink.id` of every command sent together with this one, itself
+	* included. Currently always one entry, its own.
 	*/
 	members: string[];
 }
 /**
-* Wire wrapper for `system.uplink.pending`: the whole queue, resampled every
-* emission.
+* The `system.uplink.pending` payload: the whole queue, sent in full each
+* time.
 *
 * @category Comms
 */
@@ -8479,8 +8416,9 @@ export interface PendingUplinkQueue
 {
 	/**
 	* Every command still believed in flight that this session may know of, in no
-	* guaranteed order: the ones dispatched at its own vantage, and the ones it
-	* dispatched itself under another. Empty, never null, when nothing is pending.
+	* guaranteed order: the ones sent from this connection's command centre, and
+	* the ones this connection sent from another. Empty, never null, when nothing
+	* is pending.
 	*/
 	pending: PendingUplink[];
 }
@@ -8603,9 +8541,8 @@ export interface SetThrottleArgs
 }
 /**
 * `vessel.control.setActionGroup`'s args: set a numbered custom action group
-* on or off. Gear, brakes, lights and abort are their own commands
-* (`SetEnabledArgs`), so a client never string-matches a group name to lower
-* the landing gear.
+* on or off. Gear, brakes, lights and abort are not set through this: each has
+* its own command (`SetEnabledArgs`).
 *
 * @category Command arguments
 */
@@ -8624,9 +8561,7 @@ export interface SetActionGroupArgs
 /**
 * `vessel.maneuver.add`'s args: a new manoeuvre node's time and its delta-v as
 * named components in the node's own prograde, normal and radial-out frame,
-* the same shape as `ManeuverNode`. Raw KSP `ManeuverNode.DeltaV` orders them
-* `x = radialOut, y = normal, z = prograde`; the names here remove that
-* ordering from the wire.
+* the same shape as `ManeuverNode`.
 *
 * The result is a `CommandResult<string>` whose `Payload` is the new node's
 * opaque id, the same id `ManeuverNode.id` carries on `vessel.maneuver`. A

@@ -11,8 +11,8 @@ namespace Sitrep.Contract
     /// <para>While the requirement fails, the field arrives as a
     /// <see cref="LockedValue"/> naming the missing unlock instead of the null
     /// that would read as "there is none". A client's type for the field
-    /// carries that third arm, so a reader branches on it as it branches on a
-    /// reading's currency.</para>
+    /// includes that third case, so a reader checks for it before using the
+    /// value.</para>
     ///
     /// <para>The same descriptor a command or channel requirement carries, and
     /// resolved by the same evaluators. Evaluated with no arguments, so it

@@ -13,25 +13,23 @@ namespace Sitrep.Contract;
 ///
 /// <para>The channel payload is a bare array of these entries, like
 /// <see cref="SpaceCenterPoiEntry"/>, one per centre, keyed by
-/// <see cref="Id"/>.
-/// <internal>
-/// Published RAW: the producer builds this POCO and the publisher hands the list
-/// straight over, so each element is written by JsonWriter's own
-/// AppendCommandCentreEntry.
-/// </internal></para>
+/// <see cref="Id"/>.</para>
 ///
-/// <para>ADDRESSED: each command centre is sent its own roster, the centres it
-/// knows of. A ground station is on every centre's. A vessel that is a command
-/// centre joins a centre's roster when the vessel's own word that it is one
-/// has reached that centre, and stays on it until its word that it no longer
-/// is, or that it is gone, has: a crew boarding a vessel far away does not put
-/// a new centre on your roster before the light of it could arrive. A centre
-/// always lists itself.
+/// <para>Each command centre is sent its own roster, the centres it knows of.
+/// A ground station is on every centre's. A vessel that is a command centre
+/// joins a centre's roster when the vessel's own word that it is one has
+/// reached that centre, and stays on it until its word that it no longer is,
+/// or that it is gone, has: a crew boarding a vessel far away does not put a
+/// new centre on your roster before the light of it could arrive. A centre
+/// always lists itself.</para>
 /// <internal>
-/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreRoster. It was
-/// one list held at home, which told every ground centre of a new vessel centre
-/// the instant the game had one (Saga 782 subtask 100).
-/// </internal></para>
+/// Published raw: the producer builds this POCO and the publisher hands the
+/// list straight over, so each element is written by JsonWriter's own
+/// AppendCommandCentreEntry. Published by Sitrep.Host.Comms.ContactPlanSource
+/// through CentreRoster. It was one list held at home, which told every ground
+/// centre of a new vessel centre the instant the game had one (Saga 782
+/// subtask 100).
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -42,7 +40,8 @@ namespace Sitrep.Contract;
 public class CommandCentreEntry
 {
     /// <summary>
-    /// Stable authority/vantage key: <c>"ground:&lt;name&gt;"</c> | <c>"vessel:&lt;guid&gt;"</c>.
+    /// Stable centre id, the one <see cref="SetVantage.CentreId"/> takes:
+    /// <c>"ground:&lt;name&gt;"</c> or <c>"vessel:&lt;guid&gt;"</c>.
     /// Every ground station is <c>"ground:&lt;name&gt;"</c>, the home one included:
     /// which centre is home is <see cref="IsHome"/>, never a special id.
     /// Ground stations that share a name are told apart as
@@ -67,12 +66,12 @@ public class CommandCentreEntry
     /// Body-fixed surface latitude of the centre in degrees, when surface-anchored;
     /// null for a moving vessel centre.
     ///
-    /// <para><b>Null is "not applicable", not "not computed".</b> A
-    /// <c>GroundStation</c> always reports coordinates. A <c>CrewedVessel</c> reports
-    /// them only while landed, splashed or pre-launch: off the ground the only thing
-    /// derivable is a sub-vessel ground point that sweeps at orbital rate, which is
-    /// not a place the centre occupies. So null says the centre is airborne or in
-    /// space, and a client may act on that rather than treating it as missing data.
+    /// <para>Null means "not applicable", not "not computed". A
+    /// <c>GroundStation</c> always reports coordinates. A <c>CrewedVessel</c>
+    /// reports them only while landed, splashed or pre-launch, since a point
+    /// under a craft in flight sweeps at orbital rate and is not a place the
+    /// centre occupies. So null says the centre is airborne or in space, and a
+    /// client may act on that rather than treating it as missing data.
     /// The one case where an anchored centre reports null is a body that could not be
     /// read at all, and then <see cref="BodyIndex"/> is null too: the two travel
     /// together, so a null coordinate never appears beside a known body.</para>
@@ -98,7 +97,7 @@ public class CommandCentreEntry
     /// centre is home, as on an install whose ground stations all look alike to
     /// it, the first active ground station in ordinal id order carries it in
     /// home's place, with <see cref="IsHomeFallback"/> set: the same centre a
-    /// connection that has not chosen a vantage starts at. No entry carries it only
+    /// connection that has not chosen a command centre starts at. No entry carries it only
     /// when the roster holds no ground station at all.</para>
     ///
     /// <para>Not the same fact as <see cref="CommsHop.FromIsHome"/>, which is true of
@@ -122,8 +121,8 @@ public class CommandCentreEntry
     /// Whether this centre can be routed to: <c>"routed"</c> (it has a CommNet
     /// node, so a control path can be found, occlusion-aware) or
     /// <c>"unroutable"</c> (no CommNet node, so no command path and no delay).
-    /// There is no position-only approximation: commands ride the relay network,
-    /// and a centre with no route has no delay to quote.
+    /// No delay is estimated from position alone: commands travel over the
+    /// relay network, so a centre with no route has no delay to quote.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? DelayQuality { get; set; }
@@ -142,13 +141,13 @@ public class CommandCentreEntry
 /// listed at all: an absent id is a fact about what is unknown, not about what
 /// is reachable.</para>
 ///
-/// <para>ADDRESSED: each command centre is sent its own, the centres that have
-/// left its own <c>commandCentre.roster</c>. A vessel centre that is destroyed
+/// <para>Each command centre is sent its own: the centres that have left its
+/// own <c>commandCentre.roster</c>. A vessel centre that is destroyed
 /// or loses its crew is listed here when its own word of that, or its silence,
 /// has reached the receiving centre, and <see cref="LastReachableUt"/> is when
 /// it was last on that centre's roster.</para>
 /// <internal>
-/// Published RAW, like the roster: each element is written by JsonWriter's own
+/// Published raw, like the roster: each element is written by JsonWriter's own
 /// AppendUnreachableCentreEntry.
 /// </internal>
 /// </summary>
@@ -184,8 +183,8 @@ public class UnreachableCentreEntry
 ///
 /// <para>Both ends are command-centre ids from <c>commandCentre.roster</c>, so a
 /// pair is a ground station against another ground station, a crewed craft
-/// against a ground station, or two crewed craft: a crewed control-source vessel
-/// IS a centre, so no separate vocabulary is needed for it.</para>
+/// against a ground station, or two crewed craft: a crewed control-source
+/// vessel is a centre like any other.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -194,11 +193,11 @@ public class UnreachableCentreEntry
 #endif
 public class CentreSeparationEntry
 {
-    /// <summary>The centre the separation is measured FROM, as a roster <c>Id</c>.</summary>
+    /// <summary>The centre the separation is measured from, as a roster <c>Id</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string From { get; set; } = "";
 
-    /// <summary>The centre the separation is measured TO, as a roster <c>Id</c>.</summary>
+    /// <summary>The centre the separation is measured to, as a roster <c>Id</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string To { get; set; } = "";
 
@@ -209,34 +208,32 @@ public class CentreSeparationEntry
 
 /// <summary>
 /// How far every active command centre is from every other, one-way, along the
-/// routed CommNet path. The number a human at one vantage needs to know how long
-/// their words take to reach a human at another.
+/// routed CommNet path: how long a message from someone at one centre takes
+/// to reach someone at another.
 ///
-/// <para><b>Sparse, and that is the contract.</b> A pair with no route has NO
-/// entry rather than a zero or a sentinel: commands and messages ride the relay
-/// network, so an unroutable pair has no separation to quote, and inventing one
-/// would make an unreachable correspondent look merely distant. A reader that
-/// finds no entry for a pair knows the separation is unavailable, which is a
-/// different fact from it being large.</para>
+/// <para><b>Sparse.</b> A pair with no route has no entry, rather than a
+/// zero or a sentinel: messages travel over the relay network, so an
+/// unroutable pair has no separation to quote. No entry for a pair means the
+/// separation is unavailable, which is a different fact from it being
+/// large.</para>
 ///
-/// <para>Each centre against ITSELF is always present as an explicit zero: a
-/// node is exactly no distance from itself, and without the row a reader would
-/// fall through to "unavailable" for the one pair it is most certain about.</para>
+/// <para>Each centre is always paired with itself at an explicit zero, so
+/// the one pair that is certain never reads as unavailable.</para>
 ///
-/// <para>ADDRESSED: each command centre is sent its own. The pairs are between
-/// the centres on the receiving centre's own <c>commandCentre.roster</c>, and
-/// each figure is the light-time of the route that centre's own contact plan
-/// has open now, so a centre is quoted no separation from a vessel it has not
+/// <para>Each command centre is sent its own. The pairs are between the
+/// centres on the receiving centre's own <c>commandCentre.roster</c>, and each
+/// figure is the light-time of the route that centre's own contact plan has
+/// open now, so a centre is quoted no separation from a vessel it has not
 /// heard is a command centre, and a figure moves when the news that moves it
 /// has arrived. Every ground station is the home centre's own antenna, so home
-/// is as far from a vessel as its nearest station is.
+/// is as far from a vessel as its nearest station is.</para>
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentreFigures. What
 /// schedules traffic between vantages is the engine's delay LEDGER, written by
 /// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> from the game's
 /// own links, and is not this. One list held at home named a new vessel centre
 /// to every ground centre at once (Saga 782 subtask 103).
-/// </internal></para>
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -275,26 +272,26 @@ public class CentreDelayEntry
 /// routed path: the delay every ordinary channel reaches that centre at, and
 /// the delay a command from it takes to arrive.
 ///
-/// <para><b>Sparse, and that is the contract.</b> A centre is listed only when
-/// it has a delay of its own. The home centre is never listed: its delay is
+/// <para><b>Sparse.</b> A centre is listed only when it has a delay of its
+/// own. The home centre is never listed: its delay is
 /// <c>comms.delay</c>, which also carries the hold through a loss of signal. A
 /// centre other than home that is not listed has no route to the craft. Neither
 /// absence is a zero, and a reader that finds a centre missing must not quote
 /// one for it.</para>
 ///
-/// <para>The crewed centre that IS the active craft is listed at an explicit
+/// <para>A crewed centre that is the active craft is listed at an explicit
 /// zero: a craft is no distance from itself.</para>
 ///
-/// <para>ADDRESSED: each command centre is sent its own. The centres listed are
-/// those on the receiving centre's own <c>commandCentre.roster</c>, and each
-/// figure is worked out from that centre's own contact plan, as
-/// <c>comms.delay</c> is: the receiving centre's own entry and its
-/// <c>comms.delay</c> are the same path.
+/// <para>Each command centre is sent its own. The centres listed are those
+/// on the receiving centre's own <c>commandCentre.roster</c>, and each figure
+/// is worked out from that centre's own contact plan, as <c>comms.delay</c>
+/// is: the receiving centre's own entry and its <c>comms.delay</c> are the
+/// same path.</para>
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentreFigures. The
 /// rows <c>IUplinkHost.SetActiveVesselDelays</c> writes into the ledger are the
 /// game's own and are not these.
-/// </internal></para>
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]

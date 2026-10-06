@@ -2,7 +2,7 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// A plain (x, y, z) double-precision vector, independent of Unity's and
-    /// KSP's own vector types so the contract stays headless. The components
+    /// KSP's own vector types. The components
     /// carry whatever unit and frame the value holding the vector states.
     /// </summary>
     /// <category>Propagation and models</category>
@@ -74,7 +74,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Position + velocity at a single instant, both expressed in whichever
+    /// Position and velocity at a single instant, both expressed in whichever
     /// <see cref="PropagationFrame"/> the solve was asked for.
     /// </summary>
     /// <category>Propagation and models</category>

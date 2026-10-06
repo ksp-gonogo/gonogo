@@ -103,20 +103,18 @@ namespace Sitrep.Contract
     /// The JSON header of a <see cref="BinaryLane"/> frame: everything about
     /// the delivery except the bytes themselves.
     ///
-    /// <para>A sibling of <see cref="StreamData{T}"/>, carrying the SAME
-    /// <see cref="Meta"/> unchanged, so a binary delivery is subject to the
-    /// signal-delay reveal, the vantage and the timeline epoch exactly as a JSON
-    /// channel is, and nothing here lets a producer opt out of the delay. Where
-    /// it differs is that the payload is not in the document.
+    /// <para>It carries the same <see cref="Meta"/> as
+    /// <see cref="StreamData{T}"/>, so a binary delivery is subject to the
+    /// signal delay, the vantage and the timeline epoch exactly as a JSON
+    /// channel is, and cannot opt out of the delay. The difference is that the
+    /// payload is not in the JSON.
     /// <see cref="Segments"/> is the length table for the bytes that follow the
     /// header.</para>
     ///
-    /// <para><b>Absence discipline.</b> A frame whose segment lengths do not
-    /// sum to exactly the bytes remaining after the header is UNREAD: a
-    /// truncated or over-long frame is dropped with a named reason and never
-    /// substituted by an empty payload, because a listener that is handed zero
-    /// segments cannot tell "nobody transmitted" from "the frame arrived
-    /// broken".</para>
+    /// <para>A frame whose segment lengths do not sum to exactly the bytes
+    /// remaining after the header is not read: a truncated or over-long frame
+    /// is dropped with a named reason and never replaced by an empty payload,
+    /// since zero segments would read as "nothing was transmitted".</para>
     /// </summary>
     /// <category>Stream messages</category>
     [SitrepContract]
@@ -138,10 +136,8 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Byte length of each segment, in the order they appear after the
-        /// header. An EMPTY table is legal and means a delivery with no
-        /// segments, which is a producer saying "nothing this frame" rather
-        /// than a broken frame; it is distinguishable from a broken one
-        /// precisely because the sum still matches.
+        /// header. An empty table is valid and means "nothing this frame"; it
+        /// is told apart from a broken frame because the sum still matches.
         /// </summary>
         [SitrepUnit(Units.Count)]
         public int[] Segments { get; set; } = Array.Empty<int>();

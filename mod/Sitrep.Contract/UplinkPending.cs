@@ -6,15 +6,14 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One entry in the ground-side pending-uplink queue, backing
+/// One command sent and believed still in flight, an entry on
 /// <c>system.uplink.pending</c>.
 ///
-/// <para><b>Prediction-only, hard invariant:</b> this type carries ONLY
-/// dispatch-time facts: what the centre sent and when. It never carries an
-/// execution, result or vessel-derived field (e.g. whether the craft actually
-/// received or ran the command, any onboard state). That is what keeps the
-/// queue "predicted, not confirmed": render these entries as in flight until
-/// they age out, never as an acknowledgement of a vessel-side effect.</para>
+/// <para>An entry carries only what the sending centre knew when it sent the
+/// command: what it sent, when, and what it predicted. It never says whether
+/// the craft received or ran the command, or anything about the craft's
+/// state. Show entries as in flight until they leave the queue, never as
+/// confirmation that something happened aboard.</para>
 /// <internal>
 /// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> pins the field set, with
 /// no additive carve-out (unlike <c>ContractShapeGateTests</c>). The topic
@@ -29,13 +28,12 @@ namespace Sitrep.Contract;
 public class PendingUplink
 {
     /// <summary>
-    /// The ENGINE's own id for this dispatch, unique within this queue.
+    /// Gonogo's own id for this dispatch, unique within this queue.
     ///
-    /// <para>NOT the <c>requestId</c> a client put on its <c>command-request</c>,
-    /// and not relatable to it: the engine mints this separately and the two
-    /// counters can collide. A client looking for its OWN dispatch here matches on
-    /// <see cref="ClientRequestId"/>, which is that <c>requestId</c> carried
-    /// through verbatim.</para>
+    /// <para>Not the <c>requestId</c> a client put on its
+    /// <c>command-request</c>, and unrelated to it: the two are counted
+    /// separately and can hold the same value. A client looking for its own
+    /// dispatch matches on <see cref="ClientRequestId"/> instead.</para>
     /// <internal>
     /// ChannelEngine.NextRequestId(), minted in ProcessDispatchCommand and passed
     /// to Courier.DispatchCommand; the socket handler's req.RequestId reaches the
@@ -47,7 +45,7 @@ public class PendingUplink
 
     /// <summary>
     /// The <c>requestId</c> the dispatching client put on its <c>command-request</c>,
-    /// carried through verbatim, so that client can find its OWN entry in this queue.
+    /// carried through verbatim, so that client can find its own entry in this queue.
     /// Empty when the dispatch did not come over a client connection.
     ///
     /// <para>Only the dispatching client's own choice, so two clients can pick the
@@ -66,19 +64,17 @@ public class PendingUplink
     public string Label { get; set; } = "";
 
     /// <summary>
-    /// Dispatch-time addressing, which part/route the command was sent to
-    /// (an opaque MQTT-style route, e.g. <c>kos/7</c>), known at the command
-    /// centre at send time. NOT vessel state and NOT an execution result, so
-    /// it stays inside the prediction-only invariant; it lets a renderer
-    /// scope entries to one part/terminal. Empty when unscoped.
+    /// Which part or terminal the command was addressed to, as an opaque
+    /// slash-separated route such as <c>kos/7</c>, so a widget can show only
+    /// the entries for one part. Empty when the command was not addressed to
+    /// one.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 
     /// <summary>
-    /// Which command centre / ground station dispatched this command:
-    /// dispatch-time command-centre bookkeeping, not vessel state, so it stays inside the prediction-only
-    /// invariant.
+    /// The id of the command centre that sent this command, as on
+    /// <c>commandCentre.roster</c>.
     /// <internal>
     /// Read from <c>job.Vantage</c> at dispatch.
     /// </internal>
@@ -86,13 +82,13 @@ public class PendingUplink
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
 
-    /// <summary>UT the engine dispatched the command.</summary>
+    /// <summary>When the command was sent, in UT.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double DispatchedAt { get; set; }
 
     /// <summary>
-    /// One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the
-    /// delay changes. For a command on a lane it is how long the sending centre's
+    /// One-way signal delay in seconds as it stood when the command was sent,
+    /// not updated as the delay changes. For a command on a lane it is how long the sending centre's
     /// own plan expects it to take to reach the craft, waits included, and
     /// <c>null</c> when that plan knows no route: the centre has no figure to
     /// give, which is not a figure of zero.
@@ -103,31 +99,23 @@ public class PendingUplink
     /// <summary>
     /// The scalar this command asked for, when its command is one half of a
     /// declared <see cref="SitrepControlChannelAttribute"/> channel: a throttle
-    /// setting, a switch as 1 or 0, an SAS mode as its ordinal. ABSENT (the key
-    /// is omitted, never written as null) for every other command, and for a
-    /// channel command whose args did not carry the value key, so a zero
-    /// throttle and an unknown value never look the same.
+    /// setting, a switch as 1 or 0, an SAS mode as its ordinal. Absent (the key
+    /// is left out, never written as null) for every other command, and for a
+    /// channel command whose args did not carry the value, so a zero throttle
+    /// and an unknown value never look the same.
+    ///
+    /// <para>It is what the centre sent, not anything the craft did. Use it to
+    /// show which SAS mode is in flight rather than only that something is, or
+    /// to mark one control in a group apart from the rest. A second command
+    /// centre or a station screen has no other way to learn the value. The
+    /// channel's declared args type says how to read the number back; see
+    /// <see cref="ControlChannelDescriptor"/>.</para>
+    /// <internal>
+    /// One numeric field rather than a variant, because the channel's args
+    /// type already carries how to read it. A commanded value is dispatch-time
+    /// knowledge, so it does not break the class's no-vessel-state rule.
+    /// </internal>
     /// </summary>
-    ///
-    /// <remarks>
-    /// <para><b>Inside the prediction-only invariant, not an exception to
-    /// it.</b> The invariant on this class forbids an execution/result/
-    /// vessel-derived field: whether the craft received or ran the command, any
-    /// onboard state. A commanded value is none of those. It is the most
-    /// on-point example of "what the centre sent", which is what the invariant
-    /// says this type carries, and the system already knows it because it
-    /// dispatched it: carrying it is not new information and not an inference
-    /// about the craft.</para>
-    ///
-    /// <para>With it, a renderer can show WHICH SAS mode is in flight rather than
-    /// only that something is, and mark one control in a group out from its
-    /// siblings. It is also the only path a SECOND command centre or a station
-    /// screen has to the value: own-dispatch memory is per-client.</para>
-    ///
-    /// <para>ONE numeric field rather than a variant because the channel's own
-    /// declared args type already says how to read the number back. See
-    /// <see cref="ControlChannelDescriptor"/> for the reflected lookup.</para>
-    /// </remarks>
     // JsonWriter.AppendPendingUplink omits the key on !HasValue, so a zero throttle and an unknown value never arrive looking the same.
     [SitrepUnit(Units.NotApplicable)]
     [SitrepOmittedWhenNull]
@@ -178,12 +166,12 @@ public class PendingUplink
     [SitrepUnit(Units.Count)]
     public int Attempts { get; set; } = 1;
 
-    /// <summary>The engine ids of every command sent together with this one, itself included; one entry until command groups exist.</summary>
+    /// <summary>The <see cref="Id"/> of every command sent together with this one, itself included. Currently always one entry, its own.</summary>
     [SitrepUnit(Units.Id)]
     public List<string> Members { get; set; } = new List<string>();
 }
 
-/// <summary>Wire wrapper for <c>system.uplink.pending</c>: the whole queue, resampled every emission.</summary>
+/// <summary>The <c>system.uplink.pending</c> payload: the whole queue, sent in full each time.</summary>
 /// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -193,8 +181,8 @@ public class PendingUplinkQueue
 {
     /// <summary>
     /// Every command still believed in flight that this session may know of, in
-    /// no guaranteed order: the ones dispatched at its own vantage, and the ones
-    /// it dispatched itself under another. Empty, never null, when nothing is
+    /// no guaranteed order: the ones sent from this connection's command centre,
+    /// and the ones this connection sent from another. Empty, never null, when nothing is
     /// pending.
     /// </summary>
     public List<PendingUplink> Pending { get; set; } = new List<PendingUplink>();

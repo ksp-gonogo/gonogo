@@ -38,7 +38,7 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum CommsControlSource
 {
-    /// <summary>A measurement: the craft has no control source.</summary>
+    /// <summary>The craft has no control source. A reading, unlike <see cref="Unknown"/>.</summary>
     None,
     /// <summary>Partial control, crewed or uncrewed: stock's <c>PARTIAL_MANNED</c> or <c>PARTIAL_UNMANNED</c> level.</summary>
     Partial,
@@ -46,8 +46,8 @@ public enum CommsControlSource
     Full,
     /// <summary>
     /// The game reported a control level this build does not name. Not
-    /// <see cref="None"/>: nothing was measured to be absent, the level simply
-    /// has no tier here yet. <see cref="CommsConnectivity.HasLocalControl"/> is
+    /// <see cref="None"/>: the craft may well have control, but its level has
+    /// no tier here. <see cref="CommsConnectivity.HasLocalControl"/> is
     /// false alongside it and says nothing.
     /// </summary>
     Unknown,
@@ -90,12 +90,14 @@ public class CommsConnectivity
 
 /// <summary>
 /// The <c>comms.signal</c> payload: the active vessel's own reading of its
-/// link, sourced from the elected comms backend. A strength from 0 to 1 whose
-/// meaning depends on the backend: stock CommNet reports a coarse range
-/// fraction, RealAntennas a link-budget-derived value.
+/// link, from the elected comms backend. A strength from 0 to 1 whose meaning
+/// depends on the backend: stock CommNet reports a coarse fraction of the
+/// link's range, RealAntennas how much headroom the link has over its data
+/// rate. Nothing on the wire says which, so compare values only within one
+/// install.
 ///
-/// <para>ADDRESSED: each command centre is sent its own, the newest reading to
-/// have reached it. A reading is of the vessel's whole path at one instant, so
+/// <para>Each command centre is sent its own, the newest reading to have
+/// reached it. A reading is of the vessel's whole path at one instant, so
 /// it reaches a centre no sooner than light leaving the farthest node on that
 /// path at that instant could: it never tells a centre what a relay's link is
 /// doing before the relay's own light has. Absent until the first reading
@@ -103,20 +105,19 @@ public class CommsConnectivity
 /// the path the centre believes in on <c>comms.path</c>.</para>
 ///
 /// <para>A save with the stock CommNet difficulty option off models no link
-/// budget at all and reports 1 here: nothing attenuates a link that is not
-/// modelled. A reader that needs to know this is not a grading has
-/// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>, which is
-/// the one discriminator for the whole family rather than a second one per
-/// field.</para>
+/// budget at all and reports 1 here: nothing weakens a link that is not
+/// modelled. To tell that case from a real full-strength link, read
+/// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>, which
+/// marks it for every <c>comms.*</c> channel.</para>
 /// <internal>
-/// The honest value in that case is an ABSENCE, and this field cannot carry
+/// The accurate value in that case is an absence, and this field cannot carry
 /// one: nullable would be a retype, which the contract shape gate refuses
 /// without a Major bump. Of the two things a non-nullable double can say, 1 is
-/// the one that does not lie, because 0 is what the app's own
+/// the one that does not mislead, because 0 is what the app's own
 /// SignalLossIndicator keys its "Lost" verdict on.
 /// <para>RealAntennas' value is a headroom fraction on its data-rate ladder
 /// (<c>CommsLinkState.SignalStrength</c>), so the two backends put different
-/// curves behind one field.</para>
+/// curves behind one field, and no field says which curve a value is on.</para>
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -173,7 +174,7 @@ public class CommsSignal
 [SitrepContract]
 public enum CommsControlStateKind
 {
-    /// <summary>A measurement: the craft cannot be commanded.</summary>
+    /// <summary>The craft cannot be commanded. A reading, unlike <see cref="Unknown"/>.</summary>
     None,
     /// <summary>Partial control, crewed or uncrewed: stock's <c>PARTIAL_MANNED</c> or <c>PARTIAL_UNMANNED</c> level.</summary>
     PartialManoeuvre,
@@ -240,11 +241,11 @@ public enum CommsHopKind
 /// client-side), and the other RealAntennas per-hop facts ride
 /// <see cref="Extensions"/> under <c>"realantennas"</c>.
 ///
-/// <para>Ground stations carry their OWN name in <see cref="From"/> and
-/// <see cref="To"/> (RSS/RealAntennas fly a dozen of them), not a single
-/// shared "home" label: two consecutive samples both showing a one-hop direct
-/// link, one to Kourou and one to Canberra, are a STATION HANDOFF, not one
-/// station whose range changed.</para>
+/// <para>A ground station carries its own name in <see cref="From"/> and
+/// <see cref="To"/>, not a shared "home" label, and an install with
+/// RealAntennas can have a dozen of them. Two consecutive samples that each
+/// show a one-hop direct link, one to Kourou and one to Canberra, are a
+/// handoff between stations, not one station whose range changed.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -328,16 +329,16 @@ public class CommsHop
 /// way now, which includes a path that would have the signal wait at a relay
 /// (<c>comms.route</c> says where it would wait).
 ///
-/// <para>ADDRESSED: each command centre is sent its own, and no other
-/// centre's. It is worked out from that centre's contact plan, which is made
-/// of what the centre has heard of each craft, so a hop changes here only once
-/// the news of it has reached the centre: a relay that drops out is still on
-/// the path until its silence has crossed to you. Nothing is sent until the
-/// centre has a contact plan, so the topic is absent, not empty, for the first
-/// moments of a session.</para>
+/// <para>Each command centre is sent its own, and no other centre's. It is
+/// worked out from that centre's contact plan, which is made of what the
+/// centre has heard of each craft, so a hop changes here only once the news of
+/// it has reached the centre: a relay that drops out is still on the path
+/// until its silence has crossed to you. Nothing is sent until the centre has
+/// a contact plan, so the topic is absent, not empty, for the first moments of
+/// a session.</para>
 ///
-/// <para>NEVER RECKONABLE. A route changes DISCRETELY (a relay drops below
-/// the horizon and the whole chain re-solves to different hops), and every
+/// <para>Not reckonable: a route changes in steps (a relay drops below the
+/// horizon and the whole chain re-solves to different hops), and every
 /// reckoning basis moves a continuous quantity.</para>
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentrePath, with
@@ -416,8 +417,8 @@ public class CommsNetworkEdge
 /// which is <c>comms.path</c> in graph form with each node named. The graph
 /// is empty when the centre knows of no open path.
 ///
-/// <para>ADDRESSED, on the same terms as <c>comms.path</c>: each command
-/// centre is sent its own, made from what that centre has heard.</para>
+/// <para>As with <c>comms.path</c>, each command centre is sent its own,
+/// made from what that centre has heard.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -449,18 +450,16 @@ public enum CommsDelaySource
     SignalDelay,
 
     /// <summary>
-    /// Zero, because this save models no comms network AT ALL: the stock
+    /// Zero, because this save models no comms network at all: the stock
     /// CommNet difficulty option is off, so there are no ground stations, no
     /// relay graph and no path to measure a light-time over. Control reaches a
     /// craft directly, from anywhere, instantly.
     ///
-    /// <para>A POSITIVE FACT, and the reason it is a member here rather than a
-    /// null <see cref="CommsDelay.OneWaySeconds"/>: null means "there is a
-    /// comms model and it can measure nothing right now", which is a permanent
-    /// blackout and the exact opposite prognosis. This is what distinguishes
-    /// the two ON THE WIRE. A save with no comms model reports this alongside
-    /// <c>connected:true</c>, so the channel keeps arriving with nothing held
-    /// back, where a real blackout reports null and stops.</para>
+    /// <para>Not the same as a null <see cref="CommsDelay.OneWaySeconds"/>,
+    /// which means there is a comms model and it can measure nothing right now:
+    /// a blackout. A save with no comms model reports this alongside
+    /// <c>connected:true</c>, and its channels keep arriving with nothing held
+    /// back; a blackout reports null and they stop.</para>
     /// </summary>
     NoCommsModel,
 }
@@ -468,8 +467,8 @@ public enum CommsDelaySource
 /// <summary>
 /// The <c>comms.delay</c> payload: the one-way signal delay to the active
 /// vessel, gated by the <c>comms.signalDelay.enabled</c> setting.
-/// <see cref="OneWaySeconds"/> distinguishes two DIFFERENT "no delay" cases
-/// by value, never by one overloaded sentinel:
+/// <see cref="OneWaySeconds"/> tells two different "no delay" cases apart by
+/// value:
 /// <list type="bullet">
 /// <item><description><b>null</b>: no measurable <see cref="CommsPath"/>
 /// (no path home, or incomplete hop geometry). There is nothing to measure,
@@ -494,15 +493,14 @@ public enum CommsDelaySource
 /// <see cref="CommsLink"/>, and this reports <c>0</c> and
 /// <c>connected:true</c>.
 ///
-/// <para>ADDRESSED: each command centre is sent its own, and no other
-/// centre's. It is the light-time of the active vessel's path as the receiving
-/// centre believes it to stand, which is the path that centre is sent on
-/// <c>comms.path</c>, so the two always agree. The path is worked out from
-/// what the centre has heard of each craft, so the figure moves only once the
-/// news that moves it has reached the centre: a relay that drops out goes on
-/// counting towards the delay until its silence has crossed to you. A zero
-/// that is a setting (delay switched off, or a save with no comms network) is
-/// sent at once.
+/// <para>Each command centre is sent its own, and no other centre's. It is
+/// the light-time of the active vessel's path as the receiving centre believes
+/// it to stand, which is the path that centre is sent on <c>comms.path</c>, so
+/// the two always agree. The path is worked out from what the centre has heard
+/// of each craft, so the figure moves only once the news that moves it has
+/// reached the centre: a relay that drops out goes on counting towards the
+/// delay until its silence has crossed to you. A zero that is a setting (delay
+/// switched off, or a save with no comms network) is sent at once.</para>
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentreDelay. It is
 /// not what the engine times deliveries by. That is the delay LEDGER
@@ -511,7 +509,7 @@ public enum CommsDelaySource
 /// when light that was really sent really lands. The elected backend's whole
 /// solved path was published here until Saga 782 subtask 95; a far hop
 /// re-routing then reached a centre after only its light-time to the craft.
-/// </internal></para>
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -522,36 +520,29 @@ public enum CommsDelaySource
 public class CommsDelay
 {
     /// <summary>
-    /// The one-way light-time to the command centre, seconds. See this type's
-    /// own summary for the null/zero split, which is the whole discriminator:
-    /// null is "nothing measurable", 0 is a measured or applied zero.
+    /// The one-way light-time to the command centre, in seconds. Null when
+    /// nothing is measurable, 0 for a measured or applied zero; this type's
+    /// summary says which case is which.
     ///
-    /// <para><b>Carried forward by re-measuring ONE leg of the route.</b> A
-    /// delay is the whole route's length over the speed light travels at, and
-    /// almost none of that route changes between the instant the light left and
-    /// the instant it is read: every hop except the first joins two ground
-    /// stations, or a station and a relay, or two relays, none of which move
-    /// appreciably against each other on a telemetry timescale. So their
-    /// measured lengths carry forward as the sum they already were, and only
-    /// the FIRST hop, the one with the craft on one end, is re-derived:
-    /// <c>(route - firstHop + |craft - peer|) / c</c>, the craft propagated on
-    /// <c>@vessel.orbit</c> and its peer placed from
-    /// <c>@commandCentre.roster</c>, whose latitude and longitude are
-    /// body-fixed and so need the rotation phase on <c>@system.bodies</c>.</para>
+    /// <para><b>Reckoning.</b> Between samples the value is carried forward
+    /// by re-measuring only the route's first hop, the one with the craft on
+    /// one end: <c>(route - firstHop + |craft - peer|) / c</c>. The other hops
+    /// join ground stations and relays that barely move against each other in
+    /// that time, so their lengths are kept as measured. The craft is
+    /// propagated on <c>@vessel.orbit</c>, and its peer is placed from
+    /// <c>@commandCentre.roster</c>, whose body-fixed latitude and longitude
+    /// need the rotation phase on <c>@system.bodies</c>.</para>
     ///
-    /// <para>Declared for a route whose first hop ends at a GROUND STATION,
-    /// which is the direct link and the common case. A first hop ending at a
-    /// RELAY needs that relay's own elements, which ride the per-vessel
-    /// <c>fleet.&lt;guid&gt;.orbit</c> channel under a guid not known until the
-    /// route arrives; an input here is a Topic id resolved against the declared
-    /// set, so there is no way to name it and no promise made about it. A
-    /// client reading a relayed route gets an honest refusal naming that
-    /// channel rather than a modelled number.</para>
+    /// <para>This covers a route whose first hop ends at a ground station,
+    /// the direct link and the common case. A first hop that ends at a relay
+    /// needs that relay's orbit, on <c>fleet.&lt;guid&gt;.orbit</c> under a
+    /// guid only the route names, so it cannot be declared as an input. A
+    /// client reckoning a relayed route gets a refusal that names that channel
+    /// rather than a modelled number.</para>
     ///
-    /// <para>The <see cref="Source"/> is an input because two of its three
-    /// members are a zero that means something other than "no distance": delay
-    /// is switched off, or the save models no comms network. Neither stops
-    /// being true as the craft moves, so only
+    /// <para><see cref="Source"/> is an input because two of its members are a
+    /// zero that does not mean "no distance": delay switched off, or a save
+    /// with no comms network. Neither changes as the craft moves, so only
     /// <see cref="CommsDelaySource.SignalDelay"/> is carried forward.</para>
     /// <internal>
     /// The client divides the OBSERVED delay by the OBSERVED route rather than
@@ -585,14 +576,13 @@ public class CommsDelay
 /// for that question rather than any raw <c>comms.*</c> observation such as
 /// <see cref="CommsConnectivity"/>.
 ///
-/// <para><b>Delayed, and exempt from the freeze.</b> The link state is what
-/// reports a signal-loss freeze, so it cannot be frozen by it. It reveals a
-/// disconnect at <c>T+delay</c> (you learn of the outage one light-time after
-/// it happens) and keeps reporting <c>connected:false</c> through the
-/// blackout, so a "no signal" indicator flips at the correct delayed instant.
-/// The <see cref="VesselComms"/> observations (signal strength, control
-/// state) are Delayed and DO freeze: they hold their last value through the
-/// outage.</para>
+/// <para><b>Delayed, and never frozen.</b> This channel is what reports a
+/// signal-loss freeze, so it keeps arriving through one. It reports a
+/// disconnect one light-time after it happens and goes on reporting
+/// <c>connected:false</c> through the blackout, so a "no signal" indicator
+/// changes at the right delayed instant. The <see cref="VesselComms"/>
+/// readings (signal strength, control state) are delayed too, but do freeze:
+/// they hold their last value through the outage.</para>
 /// <internal>
 /// Published by <c>ChannelEngine.ConnectivityMetaTopic</c>. Its readers include
 /// the app's SignalLossIndicator and CameraFeed and the kOS terminal's
@@ -615,7 +605,7 @@ public class CommsLink
 }
 
 /// <summary>
-/// The <c>comms.commandCentre</c> payload: WHICH command centre the active
+/// The <c>comms.commandCentre</c> payload: which command centre the active
 /// vessel's path ends at, as the receiving command centre believes it to
 /// stand now, so a client can show its own stats against the right name
 /// instead of assuming KSC. It is where <c>comms.path</c>'s last hop ends: the
@@ -624,8 +614,8 @@ public class CommsLink
 /// <see cref="CommandCentreEntry"/> (the <c>commandCentre.roster</c>
 /// entries).
 ///
-/// <para>ADDRESSED, on the same terms as <c>comms.path</c>: each command
-/// centre is sent its own, made from what that centre has heard.</para>
+/// <para>As with <c>comms.path</c>, each command centre is sent its own,
+/// made from what that centre has heard.</para>
 ///
 /// <para>Every field is null when the centre knows of no open path.</para>
 /// </summary>

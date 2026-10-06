@@ -6,7 +6,7 @@ namespace Sitrep.Contract
     /// orbit forward (or backward) in time.
     ///
     /// <para>Unit convention: all angles (<see cref="Inc"/>, <see cref="Lan"/>,
-    /// <see cref="ArgPe"/>, <see cref="MeanAnomalyAtEpoch"/>) are in RADIANS,
+    /// <see cref="ArgPe"/>, <see cref="MeanAnomalyAtEpoch"/>) are in radians,
     /// not degrees, unlike KSP's own <c>Orbit</c>; build from KSP values with
     /// <see cref="FromKspDegrees"/>. <see cref="Epoch"/> and any UT passed to
     /// <see cref="IPropagationProvider.Solve"/> are universal time in seconds,
@@ -74,12 +74,12 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Elements from KSP's own units: <c>Orbit.inclination</c>,
-        /// <c>Orbit.LAN</c> and <c>Orbit.argumentOfPeriapsis</c> are DEGREES,
+        /// <c>Orbit.LAN</c> and <c>Orbit.argumentOfPeriapsis</c> are degrees,
         /// while <c>Orbit.meanAnomalyAtEpoch</c> is already radians.
         ///
-        /// <para>Every caller holding KSP values must come through here. Passing
-        /// the degree values to the normal constructor compiles and runs and
-        /// yields a rotated orbit, a plausible number in the wrong place.</para>
+        /// <para>Build from KSP values through here. Passing the degree values to
+        /// the normal constructor compiles and runs, and yields a rotated orbit:
+        /// plausible numbers in the wrong place.</para>
         /// </summary>
         /// <returns>The element set with every angle in radians.</returns>
         public static OrbitElements FromKspDegrees(

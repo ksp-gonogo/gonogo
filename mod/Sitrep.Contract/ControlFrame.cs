@@ -168,11 +168,10 @@ namespace Sitrep.Contract
     /// <summary>
     /// <c>system.frame.set</c>'s args: the frame to put the view in.
     ///
-    /// <para>A caller names the pair, not the sets. Unlike
-    /// <see cref="ControlFrame"/>, which reports <c>PrimaryBodies</c> and
-    /// <c>SecondaryBodies</c>, this carries only the two heads: the producer
-    /// decides which bodies fall on each side of a pulsating frame from its own
-    /// body tree.</para>
+    /// <para>It names the two head bodies, not the sets: where
+    /// <see cref="ControlFrame"/> reports <c>PrimaryBodies</c> and
+    /// <c>SecondaryBodies</c>, the mod that owns the view works out which bodies
+    /// fall on each side of a pulsating frame.</para>
     ///
     /// <para>Refusal is normal: stock KSP's frame follows the active vessel's
     /// reference body and cannot be set, so the command fails with

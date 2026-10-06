@@ -60,7 +60,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// The command centre the session observes from, as a
         /// <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
-        /// <c>"vessel:&lt;guid&gt;"</c>): the one it chose, or the engine's
+        /// <c>"vessel:&lt;guid&gt;"</c>): the one it chose, or Gonogo's
         /// default for a connection that has not chosen.
         /// </summary>
         public string Vantage { get; }
@@ -108,7 +108,7 @@ namespace Sitrep.Contract
         public Delivery Delivery { get; set; } = Delivery.LossyLatest;
 
         /// <summary>
-        /// When the engine puts a sample for this channel on the wire: its
+        /// When Gonogo puts a sample for this channel on the wire: its
         /// cadence, deadband and keyframe rules. Required: there is no default,
         /// so every declaration must set one.
         /// </summary>
@@ -167,10 +167,10 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The opposite reading of the same null, for a channel whose subject
-        /// keeps existing while the game stops being able to REPORT it: a null
-        /// mapper result means "no reading available", never "confirmed
-        /// nothing", so the engine emits neither a value nor a tombstone and the
-        /// channel simply goes quiet.
+        /// keeps existing while the game stops being able to report it: a null
+        /// from the channel's source means "no reading available", never
+        /// "confirmed nothing", so Gonogo sends neither a value nor an empty
+        /// sample and the channel goes quiet.
         ///
         /// <para>The client reads that silence as a held value: missed
         /// keyframes move the topic's <c>Reading</c> to the state that carries
@@ -189,21 +189,20 @@ namespace Sitrep.Contract
         public bool NullIsUnreadable { get; set; } = false;
 
         /// <summary>
-        /// Opt in to the BINARY LANE (<see cref="BinaryLane"/>): this channel's
-        /// payload is opaque bytes, and the engine puts it on the wire as a
+        /// Opt in to the binary lane (<see cref="BinaryLane"/>): this channel's
+        /// payload is opaque bytes, and Gonogo sends it as a
         /// <see cref="StreamBinary"/> frame instead of JSON-encoding it into a
         /// <c>stream-data</c> envelope.
         ///
-        /// <para>The mapper must then return either a single <c>byte[]</c> or an
+        /// <para>The source must then return either a single <c>byte[]</c> or an
         /// ordered collection of them (the batch form, and the one to prefer:
         /// the per-frame envelope is what costs, not the bytes). Anything else
         /// disables the owning Uplink the same way an unserializable JSON
         /// payload does.</para>
         ///
-        /// <para><b>Declared, never inferred.</b> Nothing inspects the
-        /// payload's CLR type to decide this, and nothing reads the topic name:
-        /// a <c>byte[]</c> is an ordinary thing for a JSON channel to publish as
-        /// a number array. The binary lane is used only when this is set.</para>
+        /// <para>The binary lane is used only when this is set. Neither the
+        /// payload's type nor the topic name is inspected, so a <c>byte[]</c>
+        /// from a channel without it is published as a JSON number array.</para>
         ///
         /// <para>Defaults to <c>false</c>, the JSON envelope.</para>
         /// </summary>
@@ -331,10 +330,8 @@ namespace Sitrep.Contract
         ///
         /// <para>Requires <see cref="Delay"/> to be <see
         /// cref="DelayRole.Delayed"/>. A <see cref="DelayRole.TrueNow"/>
-        /// channel reaches every vantage at once, which is the claim this flag
-        /// exists to retract, so declaring both is a contradiction and the
-        /// engine refuses the owning Uplink rather than guessing which was
-        /// meant. Ignored on a dynamic namespace template: a per-vessel
+        /// channel reaches every command centre at once, which contradicts
+        /// this flag, so Gonogo refuses an Uplink that declares both. Ignored on a dynamic namespace template: a per-vessel
         /// namespace is by definition not held at home.</para>
         ///
         /// <para>Never frozen by a blackout. The home command cannot lose
@@ -351,10 +348,13 @@ namespace Sitrep.Contract
         /// and no other centre's, each stamped as it is made. A client reads
         /// such a channel as it is delivered, taking no light-time off it: what
         /// a centre is sent is already what that centre knows.
+        ///
+        /// <para>Only Gonogo's own sources can publish an addressed sample, so
+        /// a channel an Uplink declares with this set is never sent to any
+        /// centre. Leave it <c>false</c>.</para>
         /// <internal>
         /// Declarative. Only core's own sources can publish an addressed sample
-        /// (Sitrep.Host's IAddressedStreamHost), so an Uplink that sets this
-        /// declares a channel nobody is sent. It is here so the generated
+        /// (Sitrep.Host's IAddressedStreamHost). It is here so the generated
         /// fallback table of delay roles can list these channels, which the
         /// running mod otherwise states only on <c>system.uplinks</c>.
         /// </internal>
@@ -995,7 +995,7 @@ namespace Sitrep.Contract
         /// place, once per tick, before any channel source reads it.
         ///
         /// <para>Called on the main thread, so it may touch the game. It must
-        /// not REMOVE or overwrite a key another sampler put there: samplers
+        /// not remove or overwrite a key another sampler put there: samplers
         /// run in an order nobody controls, so a sampler that takes something
         /// away produces a snapshot whose contents depend on registration
         /// order.</para>
@@ -1004,9 +1004,9 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Push-style publisher for an event-driven channel source (kOS callbacks,
-    /// KSP <c>GameEvents</c>): the counterpart to the pull-style
-    /// <see cref="IUplinkHost.AddChannelSource"/> mapper. Obtained from
+    /// Publishes a channel's value when an event fires (kOS callbacks, KSP
+    /// <c>GameEvents</c>), where a map passed to
+    /// <see cref="IUplinkHost.AddChannelSource"/> is read every tick. Obtained from
     /// <see cref="IUplinkHost.Publisher"/> or
     /// <see cref="IDynamicChannelSource.Publisher"/>.
     /// </summary>
@@ -1037,7 +1037,7 @@ namespace Sitrep.Contract
     ///
     /// <para>Each concrete topic behaves exactly as though it had been
     /// declared as an ordinary <see cref="ChannelDeclaration"/> cloned from the
-    /// namespace's template, with its own change-gating and keyframe state,
+    /// namespace's template, with its own change detection and keyframes,
     /// from the first time it is published or subscribed. A client subscribes
     /// to a concrete dynamic topic exactly as it would to a fixed one.</para>
     /// </summary>

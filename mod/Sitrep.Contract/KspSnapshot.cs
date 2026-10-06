@@ -4,13 +4,14 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// One tick's primitives-only sample of game state, handed to every
-    /// <see cref="ISnapshotSampler"/> and channel mapper an Uplink registers.
+    /// <see cref="ISnapshotSampler"/> and every map passed to
+    /// <see cref="IUplinkHost.AddChannelSource"/>.
     /// Raw and schema-free: a sampler adds keys to <see cref="Values"/> without
     /// any change to this type, and a recording stays valid across such
     /// changes because replay only carries the keys.
     ///
     /// <para>Treat a snapshot as immutable. The same instance goes to every
-    /// sampler and mapper for the tick, and is read on another thread after
+    /// sampler and map for the tick, and is read on another thread after
     /// the tick returns, so mutating <see cref="Values"/> corrupts what the
     /// others see and races with that read.</para>
     /// <internal>Returned by <c>Sitrep.Host.IKspHost.Sample</c>. Declared here

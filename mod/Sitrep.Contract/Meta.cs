@@ -128,10 +128,10 @@ public class Meta
     /// <summary>
     /// Whether the payload's subject is under physics: <see cref="Quality.Loaded"/>
     /// while KSP simulates the craft, when its orbital elements are osculating
-    /// rather than a coast a conic may advance, and <see cref="Quality.OnRails"/>
-    /// while it coasts. Carried from the payload's own <c>meta.quality</c>, which
-    /// only <c>vessel.orbit</c> states, and omitted from the wire on every
-    /// other Topic rather than defaulted to a claim nothing made.
+    /// and a conic cannot be advanced from them, and <see cref="Quality.OnRails"/>
+    /// while it coasts. Copied from the payload's own <c>meta.quality</c>, which
+    /// only <c>vessel.orbit</c> states; absent from the wire on every other
+    /// Topic.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     [SitrepOmittedWhenNull]
@@ -159,7 +159,7 @@ public class Meta
 
     /// <summary>
     /// The <see cref="ValidAt"/> of the last sample on this topic that precedes
-    /// a KNOWN break in the record, set only on the first sample delivered after
+    /// a known break in the record, set only on the first sample delivered after
     /// that break and <c>null</c> on every other sample.
     ///
     /// <para>Non-null is a positive claim, not an absence: data existed between

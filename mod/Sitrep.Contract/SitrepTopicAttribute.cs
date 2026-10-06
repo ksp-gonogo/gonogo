@@ -7,7 +7,7 @@ namespace Sitrep.Contract
     /// TypeScript SDK can map each <c>TopicId</c> to its typed payload. A Topic
     /// with no tagged type reads as <c>unknown</c> in the SDK.
     ///
-    /// <para>This marks typing only and does not change the wire.
+    /// <para>It affects typing only and does not change the wire.
     /// <see cref="IsArray"/> marks a payload that is a bare JSON array of the
     /// tagged element type rather than a single object: the <c>science.*</c>
     /// channels emit <c>ExperimentEntry[]</c>, <c>LabEntry[]</c> or

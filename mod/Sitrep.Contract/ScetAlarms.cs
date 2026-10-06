@@ -584,13 +584,10 @@ public class ScetAlarmFired
 /// <c>alarm.scet.arm</c>'s args: register an alarm with the simulation host, or
 /// replace one already registered under the same <see cref="Id"/>.
 ///
-/// <para>Never delayed. Setting an alarm changes nothing aboard the craft, so
-/// there is no light-time fiction to honour, and the same reasoning as
-/// <c>time.setWarpIndex</c> applies: this is a control on the simulation, not a
-/// signal to a spacecraft. Delayed it would also be unusable, because an alarm
-/// for an event less than one light-time away could never be set in time, and
-/// a delayed command is dropped outright during a blackout, which is exactly
-/// when a SCET alarm earns its keep.</para>
+/// <para>Never delayed by light time: setting an alarm changes nothing aboard
+/// the craft, so like <c>time.setWarpIndex</c> it is a control on the
+/// simulation, not a signal to a spacecraft. An alarm can therefore be set for
+/// an event less than one light time away, and during a blackout.</para>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -649,8 +646,8 @@ public class ScetAlarmArmArgs
 /// succeeds for an id the host does not hold, so a client reconciling its list
 /// against the roster never has to ask first.
 ///
-/// <para>Never delayed, for the reason its opposite is not: the inverse of an
-/// instant act must not be slower than the act.</para>
+/// <para>Never delayed, like <c>alarm.scet.arm</c>, so removing an alarm is
+/// never slower than setting one.</para>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

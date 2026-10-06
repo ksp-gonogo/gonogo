@@ -28,39 +28,31 @@ namespace Sitrep.Contract;
  */
 
 /// <summary>
-/// The reach rule one comms backend applies to ONE PAIR of endpoints: a pure,
-/// KSP-free statement of how far apart they can be and still carry a link.
+/// How far apart one pair of endpoints can be under a comms backend's rules and
+/// still carry a link, as a single maximum separation.
 ///
-/// <para>Deliberately a RESOLVED MAXIMUM SEPARATION rather than the antenna
-/// properties behind it, for the same reason
-/// <see cref="ICommsOcclusionModel"/> carries a radius rather than the
-/// multipliers: powers on the wire would push the rule out to every consumer,
-/// and each would have to know which of stock's three power pairings to apply,
-/// what to do with a backend that has no power concept at all, and how to turn
-/// a dB budget into a distance. A maximum separation is what a consumer
-/// actually needs, and it is the same shape whatever the
-/// backend's internal rule is.</para>
+/// <para>A backend builds one per pair, since reach depends on which two things
+/// are talking: a dish and a whip do not reach the same distance. Whatever the
+/// backend's own rule (antenna power against a range curve, or a link budget in
+/// dB), it is resolved to a distance here.</para>
 ///
-/// <para><b>Built PER PAIR, not per install.</b> Unlike an occlusion model,
-/// which is one rule for the whole universe, reach depends on which two things
-/// are talking: a dish and a whip do not reach the same distance, and RSS/RA
-/// fly a dozen ground stations that do not share an antenna. So a backend is
-/// handed the two endpoints and returns a model for THEM.</para>
+/// <para>Read any live game state, such as the endpoints' antennas, while
+/// building the model, on the main thread during capture. Once built it must
+/// not read the game: it is evaluated at thousands of future instants off the
+/// main thread.</para>
 ///
-/// <para>Pure once built: implementations must not read live KSP state. A
-/// backend that needs a live read (both shipped ones do, they read the
-/// endpoints' antennas) does it when BUILDING the model, on the main thread
-/// during capture, and hands back a model that is thereafter just a number. That is what lets
-/// a sweep evaluate it at thousands of future instants off the main
-/// thread.</para>
-///
-/// <para><b>A rule that is not a distance threshold.</b> Both shipped backends'
-/// rules are monotone in separation, so a threshold is exact for them. A future
-/// backend whose reach genuinely is not (one that gates on pointing direction,
-/// say) has the same escape hatch every other model here has: give the
-/// threshold that is honest for the pair, or declare
-/// <see cref="MaxRangeMeters"/> absent and let the prediction fall back to
-/// geometry rather than assert a limit it does not believe.</para>
+/// <para>If the backend's reach is not a distance threshold (it gates on
+/// pointing direction, say), give the threshold that holds for the pair, or
+/// leave <see cref="MaxRangeMeters"/> null so the prediction falls back to
+/// geometry alone.</para>
+/// <internal>
+/// A resolved separation rather than the antenna properties behind it, for the
+/// reason ICommsOcclusionModel carries a radius: powers on the wire would push
+/// the rule out to every consumer, each having to know which of stock's three
+/// power pairings to apply and how to turn a dB budget into a distance. Both
+/// shipped backends' rules are monotone in separation, so a threshold is exact
+/// for them.
+/// </internal>
 /// </summary>
 /// <category>Propagation and models</category>
 public interface ICommsReachModel
@@ -73,17 +65,15 @@ public interface ICommsReachModel
 
     /// <summary>
     /// The greatest separation, metres, at which this backend carries the pair
-    /// this model was built for. Three values, three meanings, and they must
-    /// not be collapsed:
+    /// this model was built for. The three kinds of value mean different things:
     /// <list type="bullet">
-    /// <item><description><b>null</b>: ABSENT. This backend does not gate this
-    /// pair on range, or cannot say. A consumer applies no reach term and falls
-    /// back to whatever else it models, which for a contact predictor is
-    /// geometry alone. It is NOT "unlimited range as measured"; it is "nobody
-    /// measured".</description></item>
-    /// <item><description><b>0</b>: nothing reaches. A real state, and not the
-    /// same as absent: an endpoint with no antenna at all, or a budget that
-    /// cannot close at any distance, genuinely has a maximum of zero.</description></item>
+    /// <item><description><b>null</b>: the backend does not limit this pair by
+    /// range, or cannot say. A consumer applies no reach limit and relies on
+    /// whatever else it models, which for a contact prediction is geometry
+    /// alone. It does not mean unlimited range.</description></item>
+    /// <item><description><b>0</b>: nothing reaches, which is not the same as
+    /// null: an endpoint with no antenna, or a link budget that cannot close at
+    /// any distance.</description></item>
     /// <item><description>a positive number: the rule, resolved.</description></item>
     /// </list>
     /// </summary>
@@ -91,10 +81,9 @@ public interface ICommsReachModel
 }
 
 /// <summary>
-/// The reach rule shape both shipped backends fit: one resolved maximum
-/// separation, named. General rather than per-backend, like
-/// <see cref="ScaledRadiusOcclusionModel"/>: another comms mod whose rule also
-/// resolves to a distance needs no new type.
+/// A ready-made <see cref="ICommsReachModel"/>: one named maximum separation.
+/// A comms backend whose rule resolves to a distance can return one of these
+/// rather than implement the interface.
 /// </summary>
 /// <category>Propagation and models</category>
 public sealed class MaxRangeReachModel : ICommsReachModel
@@ -150,7 +139,7 @@ public sealed class MaxRangeReachModel : ICommsReachModel
     }
 }
 
-/// <summary>The reach models core itself declares, and the one comparison every consumer shares.</summary>
+/// <summary>The fallback reach model, and the reach comparison.</summary>
 /// <category>Propagation and models</category>
 public static class CommsReachModels
 {
@@ -161,34 +150,26 @@ public static class CommsReachModels
     /// The model a consumer gets when no backend is elected, or when the
     /// elected one will not rate the pair it was handed.
     ///
-    /// <para>Its maximum is ABSENT, and that asymmetry with
-    /// <see cref="CommsOcclusionModels.Unknown"/> is deliberate. The unknown
-    /// OCCLUDER can be conservative and still be usable, because the largest
-    /// radius any real backend applies is only 33% larger than the smallest.
-    /// There is no such conservative reach: a guessed-small maximum predicts
-    /// permanent silence for every craft in the game and destroys the
-    /// prediction outright, while a guessed-large one over-promises contact.
-    /// So an unelected backend asserts nothing and the consumer models what it
-    /// can, which leaves the prediction exactly as honest as one that models no
-    /// reach at all.</para>
-    ///
-    /// <para>The state is still DECLARED rather than assumed: the id says
-    /// "unknown", so a predictor built on it can report that it modelled
-    /// geometry only. That is the difference between an untested assumption and
-    /// a stated one, and it is the same distinction the occlusion model already
-    /// draws.</para>
+    /// <para>Its maximum is null, so a consumer applies no reach limit. Its id is
+    /// <see cref="UnknownModelId"/>, so a prediction built on it can report that
+    /// it modelled geometry only.</para>
+    /// <internal>
+    /// Null rather than a conservative guess, unlike CommsOcclusionModels.Unknown:
+    /// the unknown occluder can be conservative because real radii differ by only
+    /// 33%, but a guessed-small reach predicts permanent silence for every craft
+    /// and a guessed-large one over-promises contact.
+    /// </internal>
     /// </summary>
     public static readonly ICommsReachModel Unknown =
         new MaxRangeReachModel(UnknownModelId, "Unknown (no comms backend elected)", null);
 
     /// <summary>
     /// Whether a pair separated by <paramref name="separationMeters"/> reaches,
-    /// under <paramref name="model"/>. Null when the model asserts no maximum,
-    /// which is a THIRD result and not a false: "this rule does not say" must
-    /// not be readable as "out of range".
+    /// under <paramref name="model"/>. Null when the model sets no maximum, which
+    /// is not the same as out of range.
     ///
-    /// <para>Reaching AT the maximum counts as reaching, matching stock's own
-    /// <c>InRange</c>, which admits the boundary.</para>
+    /// <para>A separation exactly at the maximum counts as reaching, as in
+    /// stock.</para>
     /// <internal>
     /// The comparison lives here, alone, for the reason
     /// <c>ChordOcclusion.Unobstructed</c> gives: two copies that disagreed by one

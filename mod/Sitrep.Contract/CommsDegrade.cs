@@ -9,20 +9,21 @@ namespace Sitrep.Contract;
 /// fixed 0..1 scale, with the rule that produced it named alongside. A comms
 /// backend returns one of these for a link, and <c>comms.degrade</c> publishes it.
 ///
-/// <para>A resolved rating rather than the quantities behind it: a margin in
-/// dB, a range fraction and a rate-ladder position cannot be compared, and a
-/// consumer handed any of them would have to know which backend produced it.
-/// The judgement of what degrades a link, and by how much, is the backend's;
-/// the contract fixes only the shape and the scale.</para>
-///
-/// <para><see cref="ModelId"/> and <see cref="ModelName"/> name the rule, because
-/// different backends grade a link by different physics: a feed that drops to
-/// a lower bitrate can say which grading told it to, and an operator comparing
-/// two installs can see why the same orbit rates differently.</para>
+/// <para>What degrades a link, and by how much, is the backend's to judge; the
+/// interface fixes only the scale. <see cref="ModelId"/> and
+/// <see cref="ModelName"/> name the rule, since backends grade a link by
+/// different physics: a feed that drops to a lower bitrate can say which
+/// grading told it to, and an operator comparing two installs can see why the
+/// same orbit rates differently.</para>
 ///
 /// <para>Pure once built: an implementation must not read live game state. A
 /// backend that needs a live read does it while building the model, on the
 /// main thread, and hands back a model that is thereafter just a number.</para>
+/// <internal>
+/// A resolved rating rather than the quantities behind it: a margin in dB, a
+/// range fraction and a rate-ladder position cannot be compared, and a consumer
+/// handed any of them would have to know which backend produced it.
+/// </internal>
 /// </summary>
 /// <category>Propagation and models</category>
 public interface ICommsDegradeModel
@@ -39,16 +40,16 @@ public interface ICommsDegradeModel
     /// How degraded the link is, 0..1, or absent. The three cases mean
     /// different things and must not be collapsed:
     /// <list type="bullet">
-    /// <item><description><b>null</b>: UNRATED. This backend does not grade this
+    /// <item><description><b>null</b>: unrated. This backend does not grade this
     /// link, or could not this tick. A consumer applies no quality term and
-    /// keeps whatever it was already doing. It is NOT a zero: "nobody rated
+    /// keeps whatever it was already doing. It is not a zero: "nobody rated
     /// this" and "this link is perfect" are opposite instructions to a feed
     /// deciding whether to drop a bitrate.</description></item>
-    /// <item><description><b>0</b>: PRISTINE. Nothing is wrong with the link, as
+    /// <item><description><b>0</b>: pristine. Nothing is wrong with the link, as
     /// a real grading. A save that models no comms network at all reports
     /// exactly this, because nothing can attenuate a link that is not
     /// modelled.</description></item>
-    /// <item><description><b>1</b>: UNUSABLE. Nothing worth sending gets
+    /// <item><description><b>1</b>: unusable. Nothing worth sending gets
     /// through. A disconnected craft rates here.</description></item>
     /// <item><description>anything between: worse as it
     /// rises.</description></item>
@@ -154,7 +155,7 @@ public static class CommsDegradeModels
     public static double? LevelOf(ICommsDegradeModel? model) => model?.Level;
 
     /// <summary>
-    /// Whether the link is AT LEAST as degraded as
+    /// Whether the link is at least as degraded as
     /// <paramref name="threshold"/>, under <paramref name="model"/>. Null when
     /// the model declines to grade, or <paramref name="threshold"/> is NaN: null
     /// is not a false, and must not be read as "the link is fine".
@@ -202,15 +203,15 @@ public static class CommsDegradeModels
 /// perfect" are opposite instructions to anything choosing a quality, so branch
 /// on the absence rather than defaulting it to a number.</para>
 ///
-/// <para><b>Read this rather than deriving a quality from
-/// <c>comms.signal</c>.</b> That field is 0..1 too, and it is a
+/// <para>Read this rather than deriving a quality from
+/// <c>comms.signal</c>. That field is 0..1 too, and it is a
 /// different quantity on a stock install than on a RealAntennas one: a range
 /// fraction against an antenna curve versus spare room on a data-rate ladder.
 /// Nothing on the wire distinguishes them, so <c>1 - strength</c> is two
 /// different quality curves on two saves. This channel names its rule, so a
 /// consumer acting on the number can see which grading produced it.</para>
 ///
-/// <para>ADDRESSED: each command centre is sent its own, with
+/// <para>Each command centre is sent its own, with
 /// <c>comms.signal</c> and from the same reading of the vessel's radio. A
 /// rating is of the vessel's whole path at one instant, so it reaches a centre
 /// no sooner than light leaving the farthest node on that path could. Absent

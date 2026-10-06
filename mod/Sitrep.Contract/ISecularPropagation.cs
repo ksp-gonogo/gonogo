@@ -7,21 +7,16 @@ namespace Sitrep.Contract
     /// and days, for predicting comms contacts, as a seed the caller carries
     /// forward itself.
     ///
-    /// <para><b>A companion to <see cref="IPropagationProvider"/>, not a
-    /// replacement.</b> Navigation keeps the provider's own solution. A seed is
-    /// comms-grade: good enough to place the edge of a contact window to within
-    /// seconds, and no better. A provider that cannot say anything useful about
-    /// drift is simply not one of these, and the caller carries the craft on its
-    /// conic.</para>
+    /// <para>Implement it alongside <see cref="IPropagationProvider"/>, which still
+    /// supplies navigation. A seed is good enough to place the edge of a contact
+    /// window to within seconds, and no better. A provider that cannot say
+    /// anything useful about drift does not implement this, and the caller
+    /// carries the craft on its conic.</para>
     ///
-    /// <para><b>Why a seed rather than a position.</b>
-    /// <see cref="IPropagationProvider"/> promises deterministic answers, so
-    /// everything a long-range position depends on is handed back as data
-    /// (the anchor elements, the rates, the span) rather than kept as state
-    /// inside the provider. The caller evaluates
-    /// <see cref="SecularOrbit.ElementsAt"/> wherever and whenever it likes, on
-    /// any thread, and two callers holding the same seed get the same
-    /// orbit.</para>
+    /// <para>The seed is data, not a position: the anchor elements, the rates and
+    /// the span. The caller evaluates <see cref="SecularOrbit.ElementsAt"/>
+    /// whenever it likes, on any thread, and two callers holding the same seed get
+    /// the same orbit.</para>
     /// </summary>
     /// <category>Propagation and models</category>
     public interface ISecularPropagation
@@ -31,10 +26,10 @@ namespace Sitrep.Contract
         /// <paramref name="ut"/>, or <c>null</c> when this provider has no secular
         /// model for it.
         ///
-        /// <para>Null is the REFUSING answer: a body, a craft on an escape or
-        /// unclosed orbit, or a craft whose drift the provider cannot rate all
-        /// return it, and the caller then carries that target on its conic. A seed
-        /// is never returned with rates the provider merely defaulted.</para>
+        /// <para>Return null for a body, a craft on an escape or open orbit, or a
+        /// craft whose drift the provider cannot rate; the caller then carries that
+        /// target on its conic. Never return a seed with rates the provider merely
+        /// defaulted.</para>
         ///
         /// <para>The anchor's <see cref="OrbitElements.Epoch"/> is the instant the
         /// orientation and phase were taken at, normally <paramref name="ut"/>

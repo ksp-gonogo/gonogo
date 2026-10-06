@@ -3,31 +3,29 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The reckoning vocabulary: which forward model carries a value between
-    /// observations. One token per model, and the set is CLOSED: adding one is a
-    /// statement that a new class of arithmetic is honest, which is a decision to
-    /// take deliberately rather than a string to invent at a call site.
+    /// The forward models that can carry a value between observations, one token
+    /// per model. The set is closed: a <see cref="SitrepReckonableAttribute"/>
+    /// names one of these, never a string of its own.
     ///
-    /// <para>The same tokens as the SDK's <c>ReckoningBasis</c> union, whose own
-    /// prose says what each model assumes and where it stops being true; this
-    /// catalogue is the machine-readable half.</para>
+    /// <para>The same tokens as the SDK's <c>ReckoningBasis</c> union, which says
+    /// what each model assumes and where it stops being accurate.</para>
     /// </summary>
     /// <category>Propagation and models</category>
     public static class ReckoningBases
     {
-        /// <summary>Two-body propagation of an orbital state. Honest until a burn, an SOI change or an unmodelled perturbation.</summary>
+        /// <summary>Two-body propagation of an orbital state. Accurate until a burn, an SOI change or an unmodelled perturbation.</summary>
         public const string KeplerPropagation = "kepler-propagation";
 
-        /// <summary>A position advanced by its last observed velocity. First-order, so honest for seconds where the true motion is curved.</summary>
+        /// <summary>A position advanced by its last observed velocity. First-order, so accurate only for seconds where the true motion is curved.</summary>
         public const string LinearDeadReckoning = "linear-dead-reckoning";
 
-        /// <summary>A quantity advanced by its last observed rate of change. Honest while the rate holds.</summary>
+        /// <summary>A quantity advanced by its last observed rate of change. Accurate while the rate holds.</summary>
         public const string RateIntegration = "rate-integration";
 
         /// <summary>
         /// A craft under thrust integrated forward under point-mass gravity and a steady burn: the
         /// observed thrust along its last measured direction, the mass falling at the published mass
-        /// flow. Honest until a command reaches the craft, the firing stage runs dry, or the burn's own
+        /// flow. Accurate until a command reaches the craft, the firing stage runs dry, or the burn's own
         /// uncertainty outgrows it.
         /// </summary>
         public const string PoweredIntegration = "powered-integration";
@@ -35,94 +33,67 @@ namespace Sitrep.Contract
         /// <summary>
         /// Arithmetic over several readings resolved against one view time. Carries
         /// nothing forward itself: the forward step, where there was one, happened
-        /// inside each input under its own basis, so this is honest exactly as far
+        /// inside each input under its own basis, so this is accurate exactly as far
         /// as its inputs are and no further.
         ///
-        /// <para>No contract field ever declares this basis. A combination is
-        /// minted client-side by the SDK's combinator from values the wire already
-        /// carries, so there is no single field for the contract to mark.</para>
+        /// <para>No contract field declares this basis. The SDK produces it on the
+        /// client when it combines values the wire already carries.</para>
         /// </summary>
         public const string Combination = "combination";
     }
 
     /// <summary>
-    /// Declares that THIS VALUE can be carried forward, by which model, from which
-    /// published inputs.
+    /// Declares that a value can be carried forward between observations, by
+    /// which model, from which published inputs.
     ///
-    /// <para>Reckonability is a property of what the CONTRACT PUBLISHES, not of
-    /// what a client happens to have implemented: an API consumer holding only the
-    /// stream must be able to advance the value from the inputs named here. A
-    /// registered reckoner is a convenience over published data, never the
-    /// definition. Do not add a mark because a client can do the arithmetic; add
-    /// it because the wire carries the arithmetic's inputs.</para>
+    /// <para>The inputs named here must all be on the wire: a consumer holding
+    /// only the stream can advance the value from them. Mark a value because the
+    /// wire carries the model's inputs, not because some client can do the
+    /// arithmetic.</para>
     ///
-    /// <para><b>Per value, never per topic.</b> A payload is a bundle of
-    /// heterogeneous fields, and marking the bundle would stamp a model on the
-    /// vessel's NAME. The generated projection is exactly the set of marked
-    /// fields, so the SDK type says which fields a model moves and refuses a read
-    /// of the others.</para>
+    /// <para>It goes on each property, never on a whole topic. The SDK's reckoned
+    /// projection of a payload is exactly its marked fields, so it says which
+    /// fields a model moves and refuses a read of the others.</para>
     ///
-    /// <para><b>One mark PER MODEL, and a value may carry several.</b> A quantity
-    /// is not always served by one kind of arithmetic across its whole range:
+    /// <para><b>Several models.</b> Apply one mark per model; a value may carry several.
     /// <see cref="Sitrep.Contract.VesselFlight.AltitudeAsl"/> is a conic above the
-    /// atmosphere interface and a rate integration below it, and the two do not
-    /// share inputs (the conic wants the elements, the integration wants the
-    /// descent rate and the sensed deceleration). So each model declares itself,
-    /// with its OWN basis and its OWN input list, and the same property carries as
-    /// many marks as it has models, so a consumer can tell which inputs buy which
-    /// model.</para>
+    /// atmosphere and a rate integration below it, and the two need different
+    /// inputs (the elements, against the descent rate and sensed deceleration), so
+    /// each mark lists its own basis and inputs. Two marks with the same basis on
+    /// one property are rejected by the build.</para>
     ///
-    /// <para>Two marks with the SAME basis on one property is a duplicate rather
-    /// than a second model, and the build rejects it.</para>
-    ///
-    /// <para><b>Input spelling.</b> Each entry is one of:</para>
+    /// <para><b>Inputs.</b> Each entry is one of:</para>
     /// <list type="bullet">
     /// <item>a bare path (<c>relativeVelocity</c>, <c>orbit.mu</c>): a camelCased
-    /// property path on the SAME payload, walking nested contract types</item>
+    /// property path on the same payload, walking nested contract types</item>
     /// <item><c>@&lt;topicId&gt;</c> (<c>@system.bodies</c>): the whole payload of
     /// another Topic</item>
     /// <item><c>@&lt;topicId&gt;#&lt;path&gt;</c> (<c>@vessel.orbit#mu</c>): a field
     /// path inside another Topic's payload</item>
     /// </list>
-    /// <para>The <c>@</c> is what lets a reader and the build tell a topic from a
-    /// field without consulting the topic set, so a typo fails as "unknown topic"
-    /// instead of silently re-resolving as a field path. The <c>#</c> is explicit
-    /// rather than inferred because <c>vessel.orbit</c> and <c>vessel.orbit.truth</c>
-    /// are both Topics, and longest-prefix matching over that pair is a coin
-    /// toss.</para>
+    /// <para>The <c>@</c> marks a topic, so a misspelt topic fails as an unknown
+    /// topic rather than being read as a field path. The <c>#</c> is required
+    /// because one topic id can be a prefix of another (<c>vessel.orbit</c> and
+    /// <c>vessel.orbit.truth</c>).</para>
+    /// <para>Do not list the value's own property: every model is anchored on the
+    /// value it advances, and the build rejects a self-reference.</para>
     ///
-    /// <para><b>The value's own property is an IMPLICIT input and must not be
-    /// listed.</b> Every model is anchored on the value it advances, so listing it
-    /// would appear on every mark and inform nobody. The build REJECTS a
-    /// self-reference.</para>
+    /// <para><b>Basis is a minimum.</b> <see cref="Basis"/> names the model the wire always supports for this
+    /// value. A reckoner with more data may report a better basis at run time.</para>
     ///
-    /// <para><b><see cref="Basis"/> is a FLOOR, not a prediction.</b> It names the
-    /// model the wire always supports for this value. A reckoner that has more on a
-    /// given frame may report a better basis at runtime; what the mark promises is
-    /// that at least this model is derivable from published inputs, always.</para>
-    ///
-    /// <para><b>A mark's availability is coupled to its SIBLINGS'.</b> One reading
-    /// carries ONE projection over every marked field of a Topic, so the model
-    /// covers all of them or none of them. A value whose own declared
-    /// inputs all arrived is still withheld while a SIBLING value's input is
-    /// missing, and the decline names the sibling's input:
+    /// <para><b>Siblings.</b> One reading carries one projection over every marked field of a Topic,
+    /// so a model covers all of them or none. A value whose own inputs have all
+    /// arrived is still withheld while a sibling's input is missing:
     /// <see cref="Sitrep.Contract.VesselFlight.OrbitalSpeed"/> declares only
-    /// <c>@vessel.orbit</c> and goes quiet when <c>@system.bodies</c>, which
-    /// <c>AltitudeAsl</c> needs, has not arrived. So declaring an input a model
-    /// does not use costs the marked value's siblings as well as itself, and that
-    /// is the reason an input a model can RUN WITHOUT stays undeclared: the local
-    /// gravity <c>AltitudeAsl</c>'s rate integration uses to sanity-check its own
-    /// fit is a refinement it skips when the elements are absent, so it is a
-    /// registered reckoner's dep and not a mark's input.</para>
+    /// <c>@vessel.orbit</c> and is withheld until <c>@system.bodies</c>, which
+    /// <c>AltitudeAsl</c> needs, has arrived. So list only the inputs a model cannot
+    /// run without; one it merely refines with belongs to a registered reckoner, not
+    /// the mark.</para>
     ///
-    /// <para><b>Composition, and the rule is the NEGATIVE one.</b> A derived value
-    /// can never be reckonable BEYOND what its inputs support. Inputs being
-    /// reckonable is necessary, never sufficient: deriving-then-advancing does not
-    /// generally equal advancing-then-deriving, so "inputs are reckonable therefore
-    /// the output is" is unsound and would manufacture exactly the confident-wrong
-    /// reckoning this whole type exists to prevent. An input that is unmodellable by
-    /// CONSTANCY (a catalogue, an identity) does not cap anything: carrying a
-    /// constant forward is exact.</para>
+    /// <para><b>Derived values.</b> A derived value is never reckonable beyond what its inputs support.
+    /// Reckonable inputs are necessary but not sufficient, because deriving then
+    /// advancing is not in general the same as advancing then deriving. An input
+    /// that never changes (a catalogue, an identity) limits nothing.</para>
     ///
     /// <internal>
     /// Nothing enforces the composition rule mechanically: it needs a machine-readable verdict on
@@ -141,7 +112,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The published inputs the model needs, beyond the value itself, in the
-        /// input spelling above. Never empty.
+        /// spelling the class summary describes. Never empty.
         /// </summary>
         public string[] Inputs { get; }
 
