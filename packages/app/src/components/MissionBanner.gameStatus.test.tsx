@@ -2,20 +2,20 @@ import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { GameLoadingBanner } from "./GameLoadingBanner";
+import { MissionBanner } from "./MissionBanner";
 
 function mount() {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const fixture = setupStreamFixture({ pinnedUt: 10 });
   const view = render(
     <fixture.Provider>
-      <GameLoadingBanner />
+      <MissionBanner />
     </fixture.Provider>,
   );
   return { ...fixture, ...view };
 }
 
-describe("GameLoadingBanner", () => {
+describe("MissionBanner game status", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -36,7 +36,7 @@ describe("GameLoadingBanner", () => {
       vi.advanceTimersByTime(750);
     });
     const banner = screen.getByRole("status");
-    expect(banner.textContent).toContain("KSP is loading Flight");
+    expect(banner.textContent).toContain("Loading Flight");
     vi.useRealTimers();
     await expectNoA11yViolations(container);
   });
@@ -47,7 +47,9 @@ describe("GameLoadingBanner", () => {
     act(() => {
       vi.advanceTimersByTime(750);
     });
-    expect(screen.getByRole("status").textContent).toContain("Space Center");
+    expect(screen.getByRole("status").textContent).toContain(
+      "Loading Space Center",
+    );
 
     act(() => store.setGameState("ready", "SPACECENTER"));
 

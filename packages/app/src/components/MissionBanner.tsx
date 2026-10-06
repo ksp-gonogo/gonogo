@@ -1,5 +1,5 @@
 import { useGameContext } from "@ksp-gonogo/core";
-import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
+import { useGameStatus, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -43,6 +43,7 @@ export function MissionBanner() {
         <VantageControl />
       </BannerField>
       <SignalDelayField />
+      <GameStatusField />
     </Banner>
   );
 }
@@ -107,11 +108,45 @@ function SignalDelayField() {
   );
 }
 
+const SCENE_NAMES: Record<string, string> = {
+  FLIGHT: "Flight",
+  SPACECENTER: "Space Center",
+  TRACKSTATION: "Tracking Station",
+  EDITOR: "Editor",
+  MAINMENU: "Main Menu",
+};
+
+/**
+ * What holds every reading: KSP loading a scene, or no game at all at its main
+ * menu. It is a status, so it is quiet text in a live region that speaks once
+ * per change, and absent while the game is ready. The store decides when a load
+ * has run long enough to be worth saying, and owns every load, so the
+ * scene-change notice has none of its own.
+ */
+function GameStatusField() {
+  const { state, scene } = useGameStatus();
+  if (state === "ready") return null;
+  return (
+    <GameStatus role="status" aria-live="polite">
+      <BannerField label="KSP">
+        {state === "no-game"
+          ? "No game loaded"
+          : `Loading ${SCENE_NAMES[scene] ?? scene}`}
+      </BannerField>
+    </GameStatus>
+  );
+}
+
+const GameStatus = styled.span`
+  display: inline-flex;
+`;
+
 const Banner = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--gap-section);
-  height: 30px;
+  column-gap: var(--gap-section);
+  min-height: 30px;
   flex-shrink: 0;
   margin-bottom: var(--gap-mission-bar);
   padding: var(--inset-mission-bar);

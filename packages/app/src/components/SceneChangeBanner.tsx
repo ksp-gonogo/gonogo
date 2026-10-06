@@ -63,7 +63,7 @@ export function SceneChangeBanner() {
     sceneReading.state === "observed" || sceneReading.state === "held"
       ? sceneReading.value.scene
       : undefined;
-  /* "Other" is the game's own loading screen, which `GameLoadingBanner` owns. */
+  /* "Other" is the game's own loading screen, which the header's game status owns. */
   const scene =
     typeof sceneRaw === "string" && sceneRaw !== "Other" ? sceneRaw : null;
 
