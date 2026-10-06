@@ -23,6 +23,43 @@ const SHAPES: readonly Shape[] = [
   { sma: 4_000_000, ecc: 0.97, inc: 150, lan: 350, argPe: 12, m0: 0.05 },
 ];
 
+const RELATIVE_TOLERANCE = 1e-12;
+const ABSOLUTE_FLOOR = 1e-12;
+
+/**
+ * Compares against the golden numbers to 1e-12 relative, with an absolute
+ * floor for values at or near zero. Exact equality cannot hold across CPU
+ * architectures: fused multiply-add and libm differ in the last bits, so the
+ * same arithmetic lands one ulp apart on arm64 and x64. A real change to the
+ * arithmetic moves the numbers by far more than that.
+ */
+function expectGolden(actual: unknown, golden: unknown, path = "$"): void {
+  if (typeof golden === "number") {
+    if (typeof actual !== "number") {
+      expect.fail(`${path}: expected a number, got ${typeof actual}`);
+    }
+    const allowed =
+      ABSOLUTE_FLOOR +
+      RELATIVE_TOLERANCE * Math.max(Math.abs(actual), Math.abs(golden));
+    expect(
+      Math.abs(actual - golden),
+      `${path}: ${actual} vs ${golden}`,
+    ).toBeLessThanOrEqual(allowed);
+    return;
+  }
+  if (Array.isArray(golden)) {
+    if (!Array.isArray(actual)) {
+      expect.fail(`${path}: expected an array, got ${typeof actual}`);
+    }
+    expect(actual.length, `${path} length`).toBe(golden.length);
+    for (const [i, g] of golden.entries()) {
+      expectGolden(actual[i], g, `${path}[${i}]`);
+    }
+    return;
+  }
+  expect(actual, path).toEqual(golden);
+}
+
 const OFFSETS = [-90_000, -1234.5, 0, 17.25, 2000, 33_333, 5_000_000];
 
 function conicOf(shape: Shape): PatchConic {
@@ -50,7 +87,7 @@ describe("one conic arithmetic path keeps its numbers", () => {
         return [s.x, s.y, s.z, s.radius];
       }),
     );
-    expect(actual).toEqual(GOLDEN.patchStateAt);
+    expectGolden(actual, GOLDEN.patchStateAt);
   });
 
   it("stateAtUT", () => {
@@ -75,6 +112,6 @@ describe("one conic arithmetic path keeps its numbers", () => {
         return s && [s.r, s.speed, s.flightPathAngle, s.trueAnomalyDeg];
       }),
     );
-    expect(actual).toEqual(GOLDEN.stateAtUT);
+    expectGolden(actual, GOLDEN.stateAtUT);
   });
 });
