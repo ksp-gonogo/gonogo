@@ -2132,8 +2132,15 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   defineUplinkClient,
  *   registerAugment,
  *   useTelemetry,
+ *   type Value,
  * } from "@ksp-gonogo/sitrep-sdk";
  * import { Section, Text, Unit } from "@ksp-gonogo/ui-kit";
+ *
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface TopicPayloadMap {
+ *     "example.heartbeat": { ut: Value<"ut"> };
+ *   }
+ * }
  *
  * export const EXAMPLE = defineUplinkClient({
  *   id: "example",
@@ -2169,7 +2176,7 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   requires: "example",
  *   compute: (topics) =>
  *     topics["example.heartbeat"]
- *       ? [{ id: "cadence", label: "Publishing", tone: "info" }]
+ *       ? [{ id: "cadence", label: "Publishing", tone: "info" as const }]
  *       : null,
  * });
  * ```

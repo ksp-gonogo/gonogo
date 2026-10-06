@@ -37,7 +37,7 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  *
  * @example
  * ```tsx
- * <AugmentSlot name="crew-status.row-badges" props={{ crewName: kerbal.name }} />
+ * <AugmentSlot name="crew-status.row-badges" props={{ crewName: kerbal.name, crewIndex: kerbal.index }} />
  * ```
  *
  * @category Extensions
