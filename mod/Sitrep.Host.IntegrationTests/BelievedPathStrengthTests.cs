@@ -16,7 +16,9 @@ namespace Sitrep.Host.IntegrationTests
     /// craft's radio has reported on that very path, the measured strength is
     /// sent, unmarked.
     ///
-    /// <para>The backend here says every link is worth 0.5.</para>
+    /// <para>The backend here gives every link its own strength, and a path
+    /// the least of its links, so the test can tell which hops were weighed
+    /// and that they were not multiplied.</para>
     /// </summary>
     public class BelievedPathStrengthTests
     {
@@ -25,7 +27,18 @@ namespace Sitrep.Host.IntegrationTests
         // The path is one of the topics every seated session already takes.
         private static readonly string[] Topics = { ContactPlanSource.SignalTopic, ContactPlanSource.DegradeTopic };
 
-        private static ScriptedContactGame Game() => new ScriptedContactGame { LinkStrengths = (a, b) => 0.5 };
+        private const double LanderToRelay = 0.9;
+        private const double RelayToFarStation = 0.6;
+
+        private static bool Between(string a, string b, string one, string other) => (a == one && b == other) || (a == other && b == one);
+
+        private static ScriptedContactGame Game() => new ScriptedContactGame
+        {
+            LinkStrengths = (a, b) =>
+                Between(a, b, ScriptedContactGame.Active, ScriptedContactGame.Relay) ? LanderToRelay
+                : Between(a, b, ScriptedContactGame.Relay, ScriptedContactGame.Far) ? RelayToFarStation
+                : 0.3,
+        };
 
         private static (double Strength, bool Modelled)? Signal(CentreView view)
         {
@@ -75,10 +88,11 @@ namespace Sitrep.Host.IntegrationTests
             }
             await ReckonedVantageWorld.SettleAsync(client, view);
 
+            // The lander reaches the far station through the relay: each hop carries its own link's strength.
             var hops = Hops(view);
-            Assert.NotEmpty(hops);
-            Assert.All(hops, hop => Assert.NotNull(hop.Strength));
-            var worth = hops.Min(hop => hop.Strength!.Value);
+            Assert.Equal(new double?[] { LanderToRelay, RelayToFarStation }, hops.Select(hop => hop.Strength).ToArray());
+            // The least of the two, 0.6, where their product would be 0.54.
+            const double worth = RelayToFarStation;
             var signal = Signal(view);
             Assert.NotNull(signal);
             Assert.Equal(worth, signal!.Value.Strength, 6);

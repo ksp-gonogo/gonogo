@@ -34,7 +34,8 @@
         "channel": "comms.signal",
         "value": {
           "strength": 0.87,
-          "modelled": false
+          "modelled": false,
+          "otherPath": false
         }
       },
       {

@@ -141,10 +141,23 @@ public class CommsSignal
     /// the active vessel's radio last reported on that very path, the reported
     /// strength is sent and this is false. Where it reported on another path,
     /// or has not reported, the strength is what the backend works out for the
-    /// believed path from what the centre has heard, and this is true.
+    /// believed path from what the centre has heard, and this is true. Where
+    /// nothing can be worked out either, see <see cref="OtherPath"/>.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Modelled { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="Strength"/> was measured on a path other than the
+    /// one the receiving command centre believes in. The active vessel's radio
+    /// reports the strength of whatever path the game has it on. Where that is
+    /// not the centre's believed path and the comms backend can work nothing
+    /// out for the believed one, the reported strength is still sent, with
+    /// this set, so it is never read as the believed path's own. False
+    /// whenever <see cref="Modelled"/> is true.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool OtherPath { get; set; }
 }
 
 /// <summary>

@@ -7,6 +7,7 @@ export const commSignalTopics = defineTopicManifest({
     "vessel.comms.signalStrength",
     "comms.signal.strength",
     "comms.signal.modelled",
+    "comms.signal.otherPath",
     "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
   ],

@@ -449,6 +449,7 @@
     },
     "CommsSignal": {
       "modelled": "flag",
+      "otherPath": "flag",
       "strength": "ratio"
     },
     "ContractActionArgs": {
@@ -1664,6 +1665,7 @@
     },
     "comms.signal": {
       "modelled": "flag",
+      "otherPath": "flag",
       "strength": "ratio"
     },
     "crash.lastCrash": {

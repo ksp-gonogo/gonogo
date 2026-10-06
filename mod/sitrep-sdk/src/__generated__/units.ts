@@ -489,6 +489,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommsSignal": {
     modelled: "flag",
+    otherPath: "flag",
     strength: "ratio",
   },
   "ContractActionArgs": {
@@ -1709,6 +1710,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "comms.signal": {
     modelled: "flag",
+    otherPath: "flag",
     strength: "ratio",
   },
   "crash.lastCrash": {

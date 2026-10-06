@@ -2152,6 +2152,10 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "modelled");
             sb.Append(':');
             AppendBool(sb, s.Modelled);
+            sb.Append(',');
+            AppendString(sb, "otherPath");
+            sb.Append(':');
+            AppendBool(sb, s.OtherPath);
             sb.Append('}');
         }
 

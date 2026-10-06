@@ -44,7 +44,7 @@ namespace Sitrep.Host.Tests
             // What the hop's link is worth, from 0 to 1. Every backend that
             // states a strength states this one number, through
             // ICommsPathStrength, so it is the shared shape and not a provider
-            // fact. Ruled by the operator on 2026-10-05 (Saga subtask 105).
+            // fact.
             nameof(CommsHop.Strength),
             nameof(CommsHop.Extensions),
         };

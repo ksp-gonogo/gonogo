@@ -145,6 +145,24 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(0.8, view.Strength!.Value, 9);
         }
 
+        /// <summary>Weighing the other stations is one route search each, and none is made where there is nothing to weigh by.</summary>
+        [Fact]
+        public void OneRouteIsSearchedForEachOtherStationAndNoneWithoutStrengths()
+        {
+            var plan = Plan(
+                Pair(Probe, Ksc, 2.0, Always()),
+                Pair(Probe, Forward, 2.001, Always()));
+            var strengths = Heard((Probe, Ksc, 0.3), (Probe, Forward, 0.8));
+
+            CentrePath.For(plan, Probe, Ksc, true, Stations, Name, 10.0, 1.0, strengths);
+            Assert.Equal(Stations.Length - 1, strengths.RoutesWeighed);
+
+            // A centre shown the path to itself has one destination and nothing to choose between.
+            var toItself = Heard((Probe, Ksc, 0.3), (Probe, Forward, 0.8));
+            CentrePath.For(plan, Probe, Ksc, false, Stations, Name, 10.0, 1.0, toItself);
+            Assert.Equal(0, toItself.RoutesWeighed);
+        }
+
         [Fact]
         public void AStrongerPathThatArrivesLaterThanThePlanCanTellApartIsNotPreferred()
         {

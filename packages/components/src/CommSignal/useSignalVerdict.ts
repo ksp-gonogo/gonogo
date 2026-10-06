@@ -38,6 +38,11 @@ export interface SignalVerdict {
    * believes in, where the craft's radio has not reported on that path.
    */
   strengthModelled: boolean;
+  /**
+   * The strength was measured, but on the path the craft was using and not
+   * the one this command centre believes in.
+   */
+  strengthOfOtherPath: boolean;
 }
 
 /** The link verdict the body and the tiny essentials both draw. */
@@ -100,6 +105,7 @@ export function useSignalVerdict(): SignalVerdict {
           ? commsReading.signalStrength
           : signalReading.strength,
     strengthModelled: told?.modelled === true,
+    strengthOfOtherPath: told?.otherPath === true,
   };
 }
 

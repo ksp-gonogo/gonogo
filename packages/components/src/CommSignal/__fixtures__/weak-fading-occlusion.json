@@ -31,6 +31,14 @@
         }
       },
       {
+        "channel": "comms.signal",
+        "value": {
+          "strength": 0.23,
+          "modelled": false,
+          "otherPath": true
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,

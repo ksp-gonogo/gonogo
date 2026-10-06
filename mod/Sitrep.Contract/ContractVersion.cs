@@ -2392,8 +2392,14 @@ namespace Sitrep.Contract
         /// so the altitude and speed an operator watches during a burn are carried by the
         /// same model as the orbit. Additive: the existing marks are unchanged and nothing
         /// moves on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 13 -&gt; 14:</b> <see cref="CommsSignal"/>
+        /// gains <see cref="CommsSignal.OtherPath"/>, set where the strength sent is
+        /// the one the radio measured on a path the centre does not believe in. It
+        /// was sent before with nothing to tell it from a strength measured on the
+        /// believed path. Additive on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 13;
+        public const int Minor = 14;
     }
 }

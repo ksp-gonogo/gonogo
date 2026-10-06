@@ -94,6 +94,16 @@ describe("CommSignalComponent", () => {
     expect(
       document.querySelector('[data-reckoning-mark="modelled"]'),
     ).toBeNull();
+
+    // The same figure, worked out and not measured, is the same widget with the mark on it.
+    act(() => {
+      fixture.emit("comms.signal", { strength: 0.6, modelled: true });
+    });
+    await waitFor(() =>
+      expect(
+        document.querySelector('[data-reckoning-mark="modelled"]'),
+      ).not.toBeNull(),
+    );
     await act(async () => {});
   });
 
@@ -116,6 +126,28 @@ describe("CommSignalComponent", () => {
     ).not.toBeNull();
     expect(document.body.textContent).toMatch(
       /worked out for the path this command centre believes in/i,
+    );
+    await act(async () => {});
+  });
+
+  it("marks a strength measured on another path as held, and says which path it is of", async () => {
+    const fixture = newFixture();
+    renderComm(fixture);
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.signal", {
+        strength: 0.6,
+        modelled: false,
+        otherPath: true,
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("60 %"));
+    expect(
+      document.querySelector('[data-reckoning-mark="held"]'),
+    ).not.toBeNull();
+    expect(document.body.textContent).toMatch(
+      /not the path this command centre believes in/i,
     );
     await act(async () => {});
   });

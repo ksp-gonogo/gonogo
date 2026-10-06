@@ -332,6 +332,44 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(0.7, Strength(seated.HomeView)!.Value, 6);
         }
 
+        /// <summary>
+        /// A craft that has just been put on screen reads no link for the look
+        /// it takes the game to bring its radio up. That one look is not the
+        /// link having gone, and no centre is told the strength fell to
+        /// nothing. A craft that still reads no link on the next look is
+        /// reported as any loss is.
+        /// </summary>
+        [Fact]
+        public async Task TheFirstLookAtACraftJustPutOnScreenIsNotTakenAsItsLinkHavingGone()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            Assert.Equal(0.9, Strength(seated.HomeView)!.Value, 6);
+
+            seated.World.Game.ActiveNow = ScriptedContactGame.RelayGuid;
+            seated.World.Game.Radio = null;
+            await seated.TickAsync(T0, T0 + 1);
+
+            seated.World.Game.ActiveNow = ScriptedContactGame.ActiveGuid;
+            seated.World.Game.Radio = Lost();
+            await seated.TickAsync(T0 + 10);
+            seated.World.Game.Radio = Direct(0.7);
+            await seated.TickAsync(T0 + 11, T0 + 11.5, T0 + 11.9);
+            Assert.True(Strength(seated.HomeView) != 0.0, "one look at a craft just put on screen was sent to a centre as its link having gone");
+
+            await seated.TickAsync(T0 + 13, T0 + 14, T0 + 15);
+            Assert.Equal(0.7, Strength(seated.HomeView)!.Value, 6);
+
+            // Put on screen again and still reading no link a look later: that is a loss, and it is told.
+            seated.World.Game.ActiveNow = ScriptedContactGame.RelayGuid;
+            seated.World.Game.Radio = null;
+            await seated.TickAsync(T0 + 20, T0 + 21);
+            seated.World.Game.ActiveNow = ScriptedContactGame.ActiveGuid;
+            seated.World.Game.Radio = Lost();
+            await seated.TickAsync(T0 + 30, T0 + 31, T0 + 33, T0 + 34, T0 + 35);
+            Assert.Equal(0.0, Strength(seated.HomeView)!.Value, 6);
+        }
+
         [Fact]
         public async Task ACentreThatHasHeardNoReadingIsSentNoSignal()
         {

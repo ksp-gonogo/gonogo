@@ -156,13 +156,43 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(1.0, told.Value.Degrade!.Level!.Value);
         }
 
+        /// <summary>A figure measured on another path is not this path's figure. With nothing to work out it is still told, as what it is.</summary>
         [Fact]
-        public void WithNoStrengthToWorkOutTheCentreIsToldWhatTheRadioLastReported()
+        public void WithNoStrengthToWorkOutAReportOfAnotherPathIsToldAsBeingOfAnotherPath()
         {
             var told = CentreSignal.For(Believed(("probe", "Crater Rim")), null, Heard(0.9, true, ("probe", "KSC")));
 
             Assert.Equal(0.9, told!.Value.Strength);
             Assert.False(told.Value.Modelled);
+            Assert.True(told.Value.OtherPath);
+            Assert.True(CentreSignal.For(Believed(), null, Heard(0.9, true, ("probe", "KSC")))!.Value.OtherPath);
+        }
+
+        [Fact]
+        public void AFigureOfTheCentresOwnPathIsNeverMarkedAsBeingOfAnother()
+        {
+            Assert.False(CentreSignal.For(Believed(("probe", "KSC")), 0.6, Heard(0.9, true, ("probe", "KSC")))!.Value.OtherPath);
+            Assert.False(CentreSignal.For(Believed(("probe", "Crater Rim")), 0.6, Heard(0.9, true, ("probe", "KSC")))!.Value.OtherPath);
+            Assert.False(CentreSignal.For(Believed(("probe", "KSC")), 0.6, Heard(0.0, false))!.Value.OtherPath);
+        }
+
+        [Fact]
+        public void AHopStrengthThatIsNotANumberOrIsInfiniteIsNoStrengthAndOneOutOfRangeIsHeldToIt()
+        {
+            PathStrengths With(double strength) => new PathStrengths(new[] { Craft("vessel:probe", ("ground:ksc", new Fixed(strength))) }, null);
+
+            Assert.Null(With(double.NaN).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0));
+            Assert.Null(With(double.PositiveInfinity).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0));
+            Assert.Null(With(double.NegativeInfinity).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0));
+            Assert.Equal(1.0, With(1.7).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0)!.Value.Strength);
+            Assert.Equal(0.0, With(-0.2).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0)!.Value.Strength);
+        }
+
+        [Fact]
+        public void ABackendThatStatesNoStrengthLeavesNothingToWeighRoutesBy()
+        {
+            Assert.Null(PathStrengths.For(new CraftState[0], null));
+            Assert.NotNull(PathStrengths.For(new CraftState[0], PathStrengths.Weakest));
         }
 
         [Fact]

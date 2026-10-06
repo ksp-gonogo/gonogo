@@ -62,7 +62,8 @@
         "channel": "comms.signal",
         "value": {
           "strength": 0.62,
-          "modelled": true
+          "modelled": true,
+          "otherPath": false
         }
       },
       {

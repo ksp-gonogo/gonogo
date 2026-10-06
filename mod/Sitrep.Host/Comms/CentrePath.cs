@@ -175,6 +175,7 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
+                strengths.RoutesWeighed++;
                 var route = ContactRouter.EarliestArrival(plan, activeCraft, station, ut, null, lightFactor);
                 if (route == null || !route.Live || route.Hops.Count == 0 || route.ArrivalUt > latest)
                 {

@@ -363,9 +363,16 @@ namespace Sitrep.Host.Comms
         /// <summary>The radio reading each centre was last sent its signal and grading from.</summary>
         private readonly Dictionary<string, ContactRadio> _radioSent = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
 
-        /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at.</summary>
-        private readonly Dictionary<string, (long Strength, bool Modelled, string? GradedBy, long? Grade)> _signalSent =
-            new Dictionary<string, (long, bool, string?, long?)>(StringComparer.Ordinal);
+        /// <summary>The craft that was on screen on the last look, and whether the next reading of its radio is the first since it was put there.</summary>
+        private string? _radioCraft;
+        private bool _radioFirstLook;
+
+        /// <summary>The path each centre was last worked out to believe in, for the passes between one plan and the next.</summary>
+        private readonly Dictionary<string, CentrePathView> _believed = new Dictionary<string, CentrePathView>(StringComparer.Ordinal);
+
+        /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at, and which kind of figure it was: measured on its path, worked out, or measured on another.</summary>
+        private readonly Dictionary<string, (long Strength, int Kind, string? GradedBy, long? Grade)> _signalSent =
+            new Dictionary<string, (long, int, string?, long?)>(StringComparer.Ordinal);
         private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
@@ -653,8 +660,10 @@ namespace Sitrep.Host.Comms
                 _unsettled.Clear();
                 _pathShapes.Clear();
                 _radioSaid.Clear();
+                _radioCraft = null;
                 _radioSent.Clear();
                 _signalSent.Clear();
+                _believed.Clear();
                 _rosterSent.Clear();
                 _said.Clear();
                 _homeKnew.Clear();
@@ -1054,6 +1063,7 @@ namespace Sitrep.Host.Comms
                     _pathShapes.Remove(centre);
                     _radioSent.Remove(centre);
                     _signalSent.Remove(centre);
+                    _believed.Remove(centre);
                     System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
             }
@@ -1223,8 +1233,9 @@ namespace Sitrep.Host.Comms
                 }
                 if (plan == null && looked.ActiveCraft != null)
                 {
-                    // No plan, so no believed path to weigh: the centre has only what the radio last said.
-                    frames += PublishSignal(looked, centre, null, radio);
+                    // Between one plan and the next the centre believes what it last believed.
+                    _believed.TryGetValue(centre, out var last);
+                    frames += PublishSignal(looked, centre, last, radio);
                     continue;
                 }
                 var asked = false;
@@ -1247,8 +1258,9 @@ namespace Sitrep.Host.Comms
                     id => NameOf(heard, id),
                     looked.Ut,
                     lightFactor,
-                    new PathStrengths(heard, looked.PathStrength));
+                    PathStrengths.For(heard, looked.PathStrength));
                 WithHeardFacts(view.Path, radio);
+                _believed[centre] = view;
                 frames += PublishSignal(looked, centre, view, radio);
                 var reshaped = !_pathShapes.TryGetValue(centre, out var shape) || shape != view.Shape;
                 _pathShapes[centre] = view.Shape;
@@ -1283,10 +1295,11 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Gives each hop of a centre's path the comms backend's own facts
-        /// about it, where the newest reading of the craft's radio to have
-        /// reached that centre was measured over the same hop. A hop the centre
-        /// believes in and has heard no reading of carries none.
+        /// Gives each hop of a centre's path the facts the craft's radio
+        /// measured of it, where the newest reading to have reached that
+        /// centre was taken over the same hop. A hop the centre believes in
+        /// and has heard no reading of keeps what the backend worked out for
+        /// it, or nothing where the backend states nothing.
         /// </summary>
         internal static void WithHeardFacts(CommsPath path, ContactRadio? radio)
         {
@@ -1320,9 +1333,27 @@ namespace Sitrep.Host.Comms
         /// <summary>Records what the active craft's radio said on this look, when it says something new.</summary>
         private void SayRadio(Looked looked)
         {
+            if (_radioCraft != looked.ActiveCraft)
+            {
+                // Another craft is on screen now, or this is the first look of a timeline.
+                // What was said of it before is of another stay on screen, and the next reading is the first of this one.
+                _radioCraft = looked.ActiveCraft;
+                if (looked.ActiveCraft != null)
+                {
+                    _radioSaid.Remove(looked.ActiveCraft);
+                }
+                _radioFirstLook = true;
+            }
             var radio = looked.Radio;
             if (radio == null)
             {
+                return;
+            }
+            var firstLook = _radioFirstLook;
+            _radioFirstLook = false;
+            if (firstLook && !radio.Connected)
+            {
+                // The game takes a moment to bring a radio up when a craft is put on screen. One look with no link is that, and not a link lost: if the next look still has none, it is said then.
                 return;
             }
             if (_radioSaid.TryGetValue(radio.CraftId, out var said) && radio.SaysTheSameAs(said))
@@ -1338,7 +1369,9 @@ namespace Sitrep.Host.Comms
         /// Sends <paramref name="centre"/> the strength and grading of the
         /// active craft's link as that centre has it: the radio's own report
         /// where it is of the path the centre believes in, and what the
-        /// backend works out for that path where it is not. Sent when either
+        /// backend works out for that path where it is not. Where the report
+        /// is of another path and nothing can be worked out, the report is
+        /// sent marked as being of another path. Sent when either
         /// moves by <see cref="ContactRadio.Quantum"/> or changes kind, and at
         /// once where a session has just sat down. A centre with nothing heard
         /// and nothing to work out is sent nothing. Returns how many frames it
@@ -1360,7 +1393,7 @@ namespace Sitrep.Host.Comms
             var degrade = told.Value.Degrade;
             var said = (
                 Quanta(told.Value.Strength),
-                told.Value.Modelled,
+                told.Value.Modelled ? 1 : told.Value.OtherPath ? 2 : 0,
                 degrade?.ModelId,
                 degrade?.Level == null ? (long?)null : Quanta(degrade.Level.Value));
             var news = !_signalSent.TryGetValue(centre, out var was) || !was.Equals(said);
@@ -1370,7 +1403,10 @@ namespace Sitrep.Host.Comms
             if (_host!.IsAnyTopicSubscribed(SignalTopic) && (news || _pathsAsked[SignalTopic].Contains(centre)))
             {
                 _streams!.PublishAddressedTo(
-                    SignalTopic, new CommsSignal { Strength = told.Value.Strength, Modelled = told.Value.Modelled }, looked.Ut, to);
+                    SignalTopic,
+                    new CommsSignal { Strength = told.Value.Strength, Modelled = told.Value.Modelled, OtherPath = told.Value.OtherPath },
+                    looked.Ut,
+                    to);
                 frames++;
             }
             if (degrade != null && _host.IsAnyTopicSubscribed(DegradeTopic) && (news || _pathsAsked[DegradeTopic].Contains(centre)))

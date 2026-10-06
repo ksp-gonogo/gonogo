@@ -55,8 +55,26 @@ namespace Sitrep.Host.Comms
                 return null;
             }
             var facts = model.FactsAt(ut, separationMeters);
-            return double.IsNaN(facts.Strength) ? (ContactHopFacts?)null : facts;
+            if (double.IsNaN(facts.Strength) || double.IsInfinity(facts.Strength))
+            {
+                // Not a strength at all: the hop has none, where a clamp would call an overflow full strength.
+                return null;
+            }
+            return facts.Strength >= 0.0 && facts.Strength <= 1.0
+                ? facts
+                : new ContactHopFacts(Math.Max(0.0, Math.Min(1.0, facts.Strength)), facts.Extensions);
         }
+
+        /// <summary>How many routes other than the earliest have been weighed against it through this object, for a test to count.</summary>
+        public int RoutesWeighed { get; internal set; }
+
+        /// <summary>
+        /// What a centre can work out about hop strengths, or null when the
+        /// comms backend states no strength at all, in which case there is
+        /// nothing to weigh routes by and none are searched for.
+        /// </summary>
+        public static PathStrengths? For(IEnumerable<CraftState> heard, Func<IReadOnlyList<double>, double>? backendRule) =>
+            backendRule == null ? null : new PathStrengths(heard, backendRule);
 
         /// <summary>The strength of a path from its hops' strengths, or null when it has no hops or any hop has none.</summary>
         public double? Of(IReadOnlyList<double?> hopStrengths)
@@ -113,19 +131,25 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// What a command centre is told of the strength of the active craft's
     /// link: measured where the craft's radio last reported on the very path
-    /// the centre believes in, worked out for that path otherwise.
+    /// the centre believes in, worked out for that path otherwise, and where
+    /// nothing can be worked out, the radio's own figure marked as being of
+    /// another path.
     /// </summary>
     public static class CentreSignal
     {
         /// <summary>One centre's signal and grading, and whether they are worked out.</summary>
         public readonly struct Told
         {
-            public Told(double strength, bool modelled, CommsDegrade? degrade)
+            public Told(double strength, bool modelled, CommsDegrade? degrade, bool otherPath = false)
             {
                 Strength = strength;
                 Modelled = modelled;
                 Degrade = degrade;
+                OtherPath = otherPath;
             }
+
+            /// <summary>The strength is the one the radio measured on a path that is not the centre's believed one.</summary>
+            public bool OtherPath { get; }
 
             public double Strength { get; }
 
@@ -138,7 +162,7 @@ namespace Sitrep.Host.Comms
         /// <param name="believed">The centre's believed path, with each hop's strength where one could be worked out.</param>
         /// <param name="believedStrength">The strength worked out for that whole path, or null when it could not be.</param>
         /// <param name="heard">The newest reading of the craft's radio to have reached the centre, or null.</param>
-        /// <returns>What to tell the centre, or null when there is nothing to tell.</returns>
+        /// <returns>What to tell the centre, or null when nothing has been heard and nothing can be worked out.</returns>
         public static Told? For(CommsPath believed, double? believedStrength, ContactRadio? heard)
         {
             if (heard != null && (!heard.Connected || SamePath(believed, heard)))
@@ -150,7 +174,9 @@ namespace Sitrep.Host.Comms
             {
                 return new Told(believedStrength.Value, true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
             }
-            return heard == null ? (Told?)null : new Told(heard.Strength, false, heard.Degrade);
+            // The radio reported on another path, or the centre believes in none, and nothing can be worked out.
+            // A figure for another path is not this path's figure, so it is told as what it is.
+            return heard == null ? (Told?)null : new Told(heard.Strength, false, heard.Degrade, otherPath: true);
         }
 
         private static bool SamePath(CommsPath believed, ContactRadio heard)
