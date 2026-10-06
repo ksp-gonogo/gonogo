@@ -31,7 +31,12 @@ import {
   type ExtensionScene as ExtensionSceneEntry,
   UNFIXTURED_WIDGETS,
 } from "./coverage";
-import { SLOT_SCENES } from "./slot-scenes";
+import {
+  type SlotHost,
+  STUB_COMPANIONS,
+  slotScenes,
+  standardSlots,
+} from "./slot-scenes";
 import { writeUiKitStories } from "./uikit-stories";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -334,9 +339,6 @@ function firstInstall(fixture: string): string {
 const EXTENSIONS_TITLE = "Extensions";
 const SLOTS_TITLE = "Extensions/Slots";
 
-/** The id prefix of a planted slot stub, whose scene announces the planted-slots Domain. */
-const SLOT_STUB_PREFIX = "planted-slot:";
-
 /**
  * Writes one story per extension scene into `file` under `title`. `registers`
  * are modules the stories load before any scene mounts, beyond what the
@@ -364,19 +366,19 @@ async function writeExtensionScenes(opts: {
     return name;
   };
   const stories = opts.scenes.map((e) => {
-    const name = exportName(e.id, taken);
+    const name = exportName(e.combined && e.name ? e.name : e.id, taken);
     target("extension", e.id, opts.title, name);
-    const fixture = e.id.startsWith(SLOT_STUB_PREFIX)
-      ? `withPlantedSlots(${fixtureVar(e.fixture)})`
+    const fixture = e.lights
+      ? `withPlantedSlots(${fixtureVar(e.fixture)}, ${JSON.stringify(e.lights)})`
       : fixtureVar(e.fixture);
     const mode = {
       ...(e.config ? { config: e.config } : {}),
       ...(e.clicks ? { clicks: e.clicks } : {}),
     };
     return `
-/** \`${e.id}\` switched on in \`${e.widgetId}\`. Untick \`enabled\` to see the host without it. */
+/** ${e.lights ? `The stubs on \`${e.lights.join("` and `")}\`, ${e.combined ? "together" : "alone"},` : `\`${e.id}\` switched on`} in \`${e.widgetId}\`. Untick \`enabled\` to see the host without it. */
 export const ${name}: ExtensionStory = {
-  name: ${JSON.stringify(e.id)},
+  name: ${JSON.stringify(e.name ?? e.id)},
   args: {
     widgetId: ${JSON.stringify(e.widgetId)},
     fixture: ${fixture},
@@ -425,20 +427,122 @@ type ExtensionStory = StoryObj<typeof meta>;
  * alone loads them, because a host that counts what is bound to a slot
  * reserves room for a stub even while its Domain is absent.
  */
-async function writeExtensionsFiles(): Promise<number> {
-  const slots = new Set(SLOT_SCENES);
+async function writeExtensionsFiles(
+  slotStories: readonly ExtensionSceneEntry[],
+): Promise<number> {
   const shown = await writeExtensionScenes({
     file: "extensions.stories.tsx",
     title: EXTENSIONS_TITLE,
-    scenes: EXTENSION_SCENES.filter((e) => !slots.has(e)),
+    scenes: EXTENSION_SCENES,
   });
   const stubs = await writeExtensionScenes({
     file: "slots.stories.tsx",
     title: SLOTS_TITLE,
-    scenes: SLOT_SCENES,
+    scenes: slotStories,
     registers: ["../registrations"],
   });
   return shown + stubs;
+}
+
+/** The widget manifest uplink-tools builds: each widget's declared slots and opening scene. */
+const WIDGET_MANIFEST = resolve(
+  REPO,
+  "packages/uplink-tools/dist/widgets.json",
+);
+
+interface ManifestWidget {
+  id: string;
+  augmentSlots: string[];
+  contributionSlots: string[];
+  scene: {
+    name: string;
+    w: number;
+    h: number;
+    config?: Record<string, unknown>;
+  } | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStrings(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+/** One widget out of the manifest, or a failure naming what it lacks. */
+function manifestWidgetOf(raw: unknown): ManifestWidget {
+  if (
+    !isRecord(raw) ||
+    typeof raw.id !== "string" ||
+    !isStrings(raw.augmentSlots) ||
+    !isStrings(raw.contributionSlots)
+  ) {
+    throw new Error(
+      `${WIDGET_MANIFEST} holds a widget without an id and its slot lists`,
+    );
+  }
+  const scene = raw.scene;
+  if (
+    !isRecord(scene) ||
+    typeof scene.name !== "string" ||
+    typeof scene.w !== "number" ||
+    typeof scene.h !== "number"
+  ) {
+    return {
+      id: raw.id,
+      augmentSlots: raw.augmentSlots,
+      contributionSlots: raw.contributionSlots,
+      scene: null,
+    };
+  }
+  return {
+    id: raw.id,
+    augmentSlots: raw.augmentSlots,
+    contributionSlots: raw.contributionSlots,
+    scene: {
+      name: scene.name,
+      w: scene.w,
+      h: scene.h,
+      ...(isRecord(scene.config) ? { config: scene.config } : {}),
+    },
+  };
+}
+
+/** Each manifest widget with a scene, as the slot stories place its stubs. */
+function slotHosts(configs: readonly WidgetRenderConfig[]): SlotHost[] {
+  if (!existsSync(WIDGET_MANIFEST)) {
+    throw new Error(
+      `${WIDGET_MANIFEST} is missing: build @ksp-gonogo/uplink-tools first`,
+    );
+  }
+  const listed = readJsonObject(WIDGET_MANIFEST).widgets;
+  if (!Array.isArray(listed)) {
+    throw new Error(`${WIDGET_MANIFEST} holds no widgets list`);
+  }
+  const widgets = listed.map(manifestWidgetOf);
+  const hosts: SlotHost[] = [];
+  for (const widget of widgets) {
+    if (!widget.scene) continue;
+    const own = configs.filter((c) => c.widgetId === widget.id);
+    const config =
+      own.find((c) => c.fixturesPath.endsWith("/__fixtures__")) ?? own[0];
+    if (!config) continue;
+    hosts.push({
+      widgetId: widget.id,
+      augmentSlots: widget.augmentSlots,
+      contributionSlots: widget.contributionSlots,
+      scene: {
+        fixture: `packages/components/src/${config.fixturesPath}/${widget.scene.name}.json`,
+        w: widget.scene.w,
+        h: widget.scene.h,
+        ...(widget.scene.config && Object.keys(widget.scene.config).length > 0
+          ? { config: widget.scene.config }
+          : {}),
+      },
+    });
+  }
+  return hosts;
 }
 
 /** A scene's target, read off its `_scene` block. */
@@ -583,8 +687,14 @@ async function main(): Promise<void> {
     TARGETS.widget[widgetId] = [...(TARGETS.widget[widgetId] ?? []), ...ids];
     covered.add(widgetId);
   }
-  const extensions = await writeExtensionsFiles();
-  const extensionIds = new Set(EXTENSION_SCENES.map((e) => e.id));
+  const hosts = slotHosts(configs);
+  const slotStories = slotScenes(hosts);
+  const extensions = await writeExtensionsFiles(slotStories);
+  const extensionIds = new Set([
+    ...EXTENSION_SCENES.map((e) => e.id),
+    ...slotStories.map((e) => e.id),
+    ...STUB_COMPANIONS,
+  ]);
   const uplinkStories = await writeUplinkFiles(covered, extensionIds);
 
   const uiKit = await writeUiKitStories({
@@ -623,6 +733,9 @@ async function main(): Promise<void> {
       ...[...registerModules, ...clients].map(
         (m) => `import ${JSON.stringify(importPath(OUT, m))};`,
       ),
+      `import { plantStandardSlots } from ${JSON.stringify(importPath(OUT, resolve(REPO, "packages/components/scripts/probe/slot-stubs/standard.tsx")))};`,
+      "",
+      `plantStandardSlots(${JSON.stringify(hosts.map((h) => h.widgetId).filter((id) => standardSlots(id).length > 0))});`,
       "",
     ].join("\n"),
   );

@@ -12,6 +12,14 @@ export const SCENES: readonly ExtensionScene[] = [
     h: 10,
   },
   {
+    // Contributed instruments are listed after every stock one.
+    id: "planted-slot:experiments.instruments",
+    widgetId: "experiments",
+    fixture: FIXTURE,
+    w: 10,
+    h: 24,
+  },
+  {
     id: "planted-slot:experiments.actions",
     widgetId: "experiments",
     fixture: FIXTURE,

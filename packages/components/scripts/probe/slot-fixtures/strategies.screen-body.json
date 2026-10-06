@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "strategies.screen-body",
-    "notes": "one-active-room-for-more with the planted Domain announced, so the planted Uplink contributes a screen that lists no department and the strategies.screen-body slot draws on it."
+    "notes": "one-active-room-for-more, the scene the strategies.screen-body and strategies.screens stubs draw on. A story announces each stub's own Domain."
   },
   "strategies.all": [
     {
@@ -182,10 +182,6 @@
           },
           "tech": null
         }
-      },
-      {
-        "channel": "planted.available",
-        "value": true
       }
     ]
   }

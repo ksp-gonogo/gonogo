@@ -1,25 +1,45 @@
 import {
   type AugmentDefinition,
+  type ContributionDefinition,
+  type ContributionDep,
   registerAugment,
   registerBarePrimitiveTopic,
 } from "@ksp-gonogo/sitrep-sdk";
+import { registerContribution } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ComponentType, ReactNode } from "react";
 import { PLANTED_UPLINK } from "../plantedUplink";
 
 /**
- * The Domain every slot stub requires, so a stub renders only in a scene that
- * emits {@link PLANTED_SLOTS_AVAILABLE_TOPIC} and every other render of its host
- * widget stays as it is.
+ * The Domain one extension point's stub requires. Each point has its own, so a
+ * scene lights exactly the stubs whose Domains it announces, and two scenes on
+ * one page light different stubs without touching the shared registries.
  */
-export const PLANTED_SLOTS_DOMAIN = "planted-slots";
+export function plantedSlotDomain(slot: string): string {
+  return `planted-slot-${slot.replace(/\./g, "-")}`;
+}
 
-export const PLANTED_SLOTS_AVAILABLE_TOPIC = `${PLANTED_SLOTS_DOMAIN}.available`;
+/** The Topic a scene emits to light the stub on `slot`. */
+export function plantedSlotAvailableTopic(slot: string): string {
+  return `${plantedSlotDomain(slot)}.available`;
+}
 
-registerBarePrimitiveTopic(PLANTED_SLOTS_AVAILABLE_TOPIC);
-
-/** The augment id a slot's stub registers under. */
+/** The augment or contribution id a slot's stub registers under. */
 export function slotStubId(slot: string): string {
   return `planted-slot:${slot}`;
+}
+
+/** Every extension point that has a stub, in the order they were planted. */
+const planted: string[] = [];
+
+/** The extension points with a stub. */
+export function plantedSlots(): readonly string[] {
+  return planted;
+}
+
+function notePlanted(slot: string): void {
+  if (planted.includes(slot)) return;
+  planted.push(slot);
+  registerBarePrimitiveTopic(plantedSlotAvailableTopic(slot));
 }
 
 /** A dashed, labelled box naming the slot it fills, for a slot drawn in HTML. */
@@ -58,14 +78,37 @@ export function plantSlot<Slot extends string>(
   component?: AugmentDefinition<Slot>["component"],
   label?: string,
 ): void {
+  notePlanted(slot);
   registerAugment({
     id: slotStubId(slot),
     augments: slot,
-    requires: PLANTED_SLOTS_DOMAIN,
+    requires: plantedSlotDomain(slot),
     owner: PLANTED_UPLINK,
     label,
     component:
       component ??
       ((() => <SlotStub slot={slot} />) as unknown as ComponentType<never>),
   } as AugmentDefinition<Slot>);
+}
+
+/**
+ * Registers the stand-in contribution for one contribution slot. `compute`
+ * returns entries of the slot's own type, labelled with the slot's name
+ * wherever the entry carries text.
+ */
+export function plantContribution<
+  Slot extends string,
+  const Deps extends readonly ContributionDep[] = readonly [],
+>(
+  slot: Slot,
+  def: Pick<ContributionDefinition<Slot, Deps>, "deps" | "compute">,
+): void {
+  notePlanted(slot);
+  registerContribution({
+    ...def,
+    id: slotStubId(slot),
+    contributes: slot,
+    requires: plantedSlotDomain(slot),
+    owner: PLANTED_UPLINK,
+  });
 }

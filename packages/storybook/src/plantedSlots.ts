@@ -1,4 +1,4 @@
-import { PLANTED_SLOTS_AVAILABLE_TOPIC } from "../../components/scripts/probe/slot-stubs/stub";
+import { plantedSlotAvailableTopic } from "../../components/scripts/probe/slot-stubs/stub";
 
 interface StreamBlock {
   emits: { channel: string; value: unknown }[];
@@ -14,17 +14,19 @@ function isStreamBlock(value: unknown): value is StreamBlock {
 }
 
 /**
- * A host fixture with the planted-slots Domain announced on its stream, so
- * the slot stubs render in it. The fixture file itself stays as the host's
- * own scenes read it.
+ * A host fixture with the Domain of each named extension point's stub
+ * announced on its stream, so those stubs render in it and no others do. The
+ * fixture file itself stays as the host's own scenes read it.
  */
 export function withPlantedSlots(
   fixture: Record<string, unknown>,
+  slots: readonly string[],
 ): Record<string, unknown> {
-  const stream = fixture._stream;
+  // A fixture fed only by flat keys has no stream block yet; one holding just the Domains leaves those keys as they were.
+  const stream = fixture._stream ?? { emits: [] };
   if (!isStreamBlock(stream)) {
     throw new Error(
-      "A slot stub scene needs a fixture with a _stream block to announce the planted-slots Domain on",
+      "A slot stub scene's fixture has a _stream block with no emits list to announce its stubs' Domains on",
     );
   }
   return {
@@ -33,7 +35,10 @@ export function withPlantedSlots(
       ...stream,
       emits: [
         ...stream.emits,
-        { channel: PLANTED_SLOTS_AVAILABLE_TOPIC, value: true },
+        ...slots.map((slot) => ({
+          channel: plantedSlotAvailableTopic(slot),
+          value: true,
+        })),
       ],
     },
   };

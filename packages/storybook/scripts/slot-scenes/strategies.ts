@@ -5,7 +5,7 @@ const FIXTURE =
 
 export const SCENES: readonly ExtensionScene[] = [
   {
-    id: "planted:planted-slots-strategies-screen",
+    id: "planted-slot:strategies.screens",
     widgetId: "strategies",
     fixture: FIXTURE,
     w: 6,

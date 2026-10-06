@@ -7,8 +7,6 @@
  * check.
  */
 
-import { SLOT_SCENES } from "./slot-scenes";
-
 /** A registered widget with no fixture, mounted unfed at a tile it accepts. */
 export interface UnfixturedWidget {
   widgetId: string;
@@ -49,6 +47,12 @@ export interface ExtensionScene {
   underInstall?: boolean;
   /** Clicks that open the part of the host the extension draws in, as a render mode's `clicks`. */
   clicks?: readonly { selector: string; awaitMs?: number }[];
+  /** The story's name, where it is not the id. */
+  name?: string;
+  /** The extension points whose stubs the scene lights, by announcing each stub's Domain. */
+  lights?: readonly string[];
+  /** It lights several points designed to work together, beside each one's own story. */
+  combined?: boolean;
 }
 
 const COMPONENTS = "packages/components/src";
@@ -190,7 +194,6 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     h: 12,
     clicks: [{ selector: 'button[id$="planted-leads-tab"]' }],
   },
-  ...SLOT_SCENES,
 ];
 
 /**
