@@ -251,6 +251,34 @@ const uplinkImportMap = (): PluginOption => ({
   },
 });
 
+/*
+ * The same import map under `vite dev`, pointing each Uplink-external specifier
+ * at its entry module instead of an emitted chunk. Vite serves those through
+ * the module graph the app itself runs in, so a loaded bundle links to the
+ * app's own registry, React and styled-components rather than a second copy.
+ */
+const uplinkDevImportMap = (): PluginOption => ({
+  name: "gonogo-uplink-dev-importmap",
+  apply: "serve",
+  transformIndexHtml() {
+    const base = process.env.VITE_BASE_PATH ?? "/";
+    const imports = Object.fromEntries(
+      UPLINK_EXTERNALS.map((ext) => [
+        ext.specifier,
+        `${base}src/uplinks/externals/${ext.entryName}.ts`,
+      ]),
+    );
+    return [
+      {
+        tag: "script",
+        attrs: { type: "importmap" },
+        children: JSON.stringify({ imports }),
+        injectTo: "head-prepend",
+      },
+    ];
+  },
+});
+
 // Dev-channel builds append a prerelease suffix (e.g. "-dev.a1b2c3d") so a
 // deployed dev station is distinguishable from the release it forked from,
 // in the hello handshake, the host's station chips, and the page meta tags.
@@ -293,6 +321,7 @@ export default defineConfig({
     versionMeta(),
     uplinkBundles(),
     uplinkImportMap(),
+    uplinkDevImportMap(),
     uplinkDevNotice(),
     localUplinks({
       host: {
