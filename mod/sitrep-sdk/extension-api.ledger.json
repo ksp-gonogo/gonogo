@@ -8115,6 +8115,14 @@
         "note": "The constant follows the contract from 14 to 16 (the hello, ping and pong envelopes, then the departure envelope on the orbit horizon). Its type is the literal number, so every contract Minor reads as a retype. A caller compares it or prints it, and is unaffected."
       },
       {
+        "key": "sitrep-sdk . TinyMode#bodyMinSize?",
+        "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
+        "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
+      },
+      {
         "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
       },
@@ -8129,9 +8137,21 @@
       {
         "key": "ui-kit . paintVesselKeyline",
         "note": "Removed. It painted the keyline on a separate blended canvas; the keyline is now plain paint drawn with the mark, by passing keyline: true to paintVesselMark or paintVesselPositions. It was added on 2026-10-05 and its one caller was MapView"
+      },
+      {
+        "key": "ui-kit . showsTiny",
+        "note": "Now takes the widget definition and switches at its minSize instead of a TinyMode; only the app's grid and the render harness call it, no Uplink does"
+      },
+      {
+        "key": "ui-kit . smallestBodyTile",
+        "note": "Removed with bodyMinSize: a tiny widget's body tile is its registered minSize; only the minsize probe used it"
       }
     ],
     "additions": [
+      {
+        "key": "sitrep-sdk . AugmentDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
       {
         "key": "sitrep-sdk . ConicShape",
         "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
@@ -8173,8 +8193,44 @@
         "note": "What solveConic returns: the anomalies in radians and the radius in metres"
       },
       {
+        "key": "sitrep-sdk . ContributionDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk . SizeDelta",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk . SizeDelta#h?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk . SizeDelta#w?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk . TINY_SIZE",
+        "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
         "key": "sitrep-sdk . solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SizeDelta",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SizeDelta#h?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SizeDelta#w?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
       {
         "key": "sitrep-sdk ./spine ConicShape",
@@ -8217,12 +8273,80 @@
         "note": "What solveConic returns: the anomalies in radians and the radius in metres"
       },
       {
+        "key": "sitrep-sdk ./spine assertSizeDelta",
+        "note": "Registration check for an extension's sizeDelta (whole numbers, zero or more), shared by the augment and contribution registries"
+      },
+      {
         "key": "sitrep-sdk ./spine solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
       },
       {
         "key": "sitrep-sdk ./spine wrap180",
         "note": "Wraps a degree value to (-180, 180]; the one copy, moved out of the impact point and core calc, which now re-export it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SizeDelta",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SizeDelta#h?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SizeDelta#w?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AugmentDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SizeDelta",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SizeDelta#h?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SizeDelta#w?",
+        "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "ui-kit . AugmentDefinition#sizeDelta?",
+        "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "ui-kit . TINY_SIZE",
+        "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "ui-kit . gridFloor",
+        "note": "The smallest tile the dashboard gives a widget: the tiny size for a widget with a tiny mode, else its minSize"
+      },
+      {
+        "key": "ui-kit . sizeDeltaFor",
+        "note": "Sums the sizeDelta of the extensions that render in a widget"
+      },
+      {
+        "key": "ui-kit . useSizeDeltaFor",
+        "note": "Hook returning sizeDeltaFor against live Domain presence, new identity when an augment, contribution or Domain changes"
+      },
+      {
+        "key": "ui-kit . withSizeDelta",
+        "note": "Adds a size delta to a definition's minSize and defaultSize"
+      },
+      {
+        "key": "ui-kit . ~SizedWidget",
+        "note": "Parameter shape of sizeDeltaFor, the slice of a widget definition it reads"
       }
     ]
   }
