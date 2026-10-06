@@ -34,6 +34,12 @@ export interface UplinkLoadOutcome {
    * ask rather than guess. Carries both hashes and which pair disagreed.
    */
   integrity?: UplinkIntegrityFailure;
+  /**
+   * Set when the quarantine was the Uplink's own health report reading
+   * unavailable, which the mod revises: a later roster that says otherwise
+   * makes the refusal stale.
+   */
+  refusedOnHealth?: true;
 }
 
 /**

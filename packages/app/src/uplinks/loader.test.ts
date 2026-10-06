@@ -7,6 +7,7 @@ import {
   loadEnabledUplinks,
   manifestUrlFor,
   type RosterEntry,
+  reloadHealthRefusals,
 } from "./loader";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
@@ -289,6 +290,71 @@ describe("loadEnabledUplinks", () => {
     expect(importBundle).not.toHaveBeenCalled();
     expect(outcomes[0].status).toBe("quarantined");
     expect(outcomes[0].reason).toMatch(/SCANsat is not installed/);
+  });
+
+  it("loads the client once a later roster reports the Uplink healthy, where the first roster refused it", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const rosterWith = (health: RosterEntry["health"]): RosterEntry[] => [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health,
+      },
+    ];
+    const loading = rosterWith({
+      state: "unavailable",
+      detail: "expansions still loading",
+    });
+    await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), roster: loading, importBundle }),
+    );
+    expect(getUplinkOutcomes()[0].status).toBe("quarantined");
+
+    expect(
+      await reloadHealthRefusals(
+        ctx({ index: indexWith(goodHash), roster: loading, importBundle }),
+      ),
+    ).toEqual([]);
+    expect(importBundle).not.toHaveBeenCalled();
+
+    const outcomes = await reloadHealthRefusals(
+      ctx({
+        index: indexWith(goodHash),
+        roster: rosterWith({ state: "healthy", detail: null }),
+        importBundle,
+      }),
+    );
+    expect(outcomes[0].status).toBe("loaded");
+    expect(getUplinkOutcomes()[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not revisit a refusal that was not about health", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const roster: RosterEntry[] = [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: false,
+        reason: "contract mismatch",
+      },
+    ];
+    await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), roster, importBundle }),
+    );
+    const healthy: RosterEntry[] = [{ ...roster[0], available: true }];
+    expect(
+      await reloadHealthRefusals(
+        ctx({ index: indexWith(goodHash), roster: healthy, importBundle }),
+      ),
+    ).toEqual([]);
+    expect(importBundle).not.toHaveBeenCalled();
   });
 
   it("enforces the three-way check when the mod emits expectedClientHash", async () => {

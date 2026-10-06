@@ -94,6 +94,7 @@ import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
+import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { DEMO_CONFIG } from "./demoConfig";
 
@@ -309,6 +310,7 @@ export function MainScreen({
         <HostCommandCentreAnnouncer host={peerHostService} />
       )}
       <AugmentAvailabilityFeeder />
+      {screen !== "pilot" && <UplinkHealthRetry />}
       {/*
        * A pilot is aboard, so their session observes from the craft rather
        * than from KSC. Only this seat: `selectedVantageId` is client-wide, and

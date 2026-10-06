@@ -32,7 +32,11 @@ import {
   type UplinkIdentity,
 } from "./identity";
 import type { UplinkIntegrityFailure, UplinkIntegrityParty } from "./integrity";
-import { setUplinkOutcome, type UplinkLoadOutcome } from "./loaderState";
+import {
+  getUplinkOutcomes,
+  setUplinkOutcome,
+  type UplinkLoadOutcome,
+} from "./loaderState";
 import {
   fetchRegistry,
   type RegistryIndex,
@@ -173,6 +177,12 @@ function refuse(reason: string): never {
 }
 
 /**
+ * A refusal made on the Uplink's own health report. Health is a live status, so
+ * unlike every other refusal it can be undone by the mod's next roster.
+ */
+class HealthRefusal extends LoadRefusal {}
+
+/**
  * A refusal that is a HASH DISAGREEMENT, carrying the machine-readable record
  * alongside the reason string. Both survive: the reason stays the diagnostic
  * line an operator reads in the loaded-clients list, and `failure` is what lets
@@ -308,7 +318,7 @@ function checkCompat(
     );
   }
   if (roster?.health?.state === "unavailable") {
-    refuse(
+    throw new HealthRefusal(
       `mod reports Uplink unavailable${roster.health.detail ? `: ${roster.health.detail}` : ""}`,
     );
   }
@@ -856,6 +866,7 @@ async function loadOne(
       status: "quarantined",
       reason,
       integrity: err instanceof IntegrityRefusal ? err.failure : undefined,
+      refusedOnHealth: err instanceof HealthRefusal ? true : undefined,
     };
     setUplinkOutcome(outcome);
     logger.warn(`[uplink-loader] ${descriptor.id} quarantined: ${reason}`);
@@ -971,4 +982,28 @@ export async function loadEnabledUplinks(
     outcomes.push(outcome);
   }
   return outcomes;
+}
+
+/**
+ * Load again every Uplink whose client was refused on its health report and
+ * whose roster entry no longer reports it unavailable. An expansion-gated
+ * Uplink reads unavailable while KSP is still filling its expansion list and
+ * healthy a moment later, and a page opened in that window would otherwise keep
+ * the refusal for its whole life.
+ *
+ * Returns the outcomes of the loads it made, empty when nothing was waiting.
+ */
+export async function reloadHealthRefusals(
+  ctx: LoaderContext,
+): Promise<UplinkLoadOutcome[]> {
+  const roster = ctx.roster ?? [];
+  const waiting = getUplinkOutcomes()
+    .filter((o) => o.status === "quarantined" && o.refusedOnHealth)
+    .map((o) => o.id)
+    .filter((id) => {
+      const entry = roster.find((r) => r.id === id);
+      return entry?.available && entry.health?.state !== "unavailable";
+    });
+  if (waiting.length === 0) return [];
+  return loadEnabledUplinks({ ...ctx, override: waiting });
 }

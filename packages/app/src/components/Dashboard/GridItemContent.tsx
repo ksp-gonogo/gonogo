@@ -21,10 +21,20 @@ import {
   WidgetBody,
   widgetDrawnFields,
 } from "@ksp-gonogo/ui-kit";
-import { memo, type ReactNode, useCallback, useMemo } from "react";
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import styled from "styled-components";
 import { AlarmStatusBridge } from "../../alarms/AlarmStatusBridge";
 import { TrajectoryCurrencyBridge } from "../../trajectory/TrajectoryCurrencyBridge";
+import {
+  getUplinkOutcomes,
+  subscribeUplinkOutcomes,
+} from "../../uplinks/loaderState";
 import type { DashboardItem } from "./index";
 import {
   ComponentWrapper,
@@ -56,6 +66,12 @@ export const GridItemContent = memo(function GridItemContent({
   updateItemMappings,
   removeItem,
 }: GridItemContentProps) {
+  // The registry does not notify, and an Uplink's client can load after the first render, so a load outcome is what says to look again.
+  useSyncExternalStore(
+    subscribeUplinkOutcomes,
+    getUplinkOutcomes,
+    getUplinkOutcomes,
+  );
   const def = getComponent(item.componentId);
 
   const onSaveConfig = useCallback(
