@@ -33,9 +33,9 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void InFlightAnEmptyListInAGameThatHasVesselsDoesNotStandWhateverTheReadyFlagSays()
+        public void InFlightAnEmptyListStandsOnceFlightIsReadySoALastCraftLostIsSeenToGo()
         {
-            Assert.False(VesselListStanding.Stands(inFlight: true, flightReady: true, listed: 0, inGameState: 3));
+            Assert.True(VesselListStanding.Stands(inFlight: true, flightReady: true, listed: 0, inGameState: 3));
         }
     }
 }

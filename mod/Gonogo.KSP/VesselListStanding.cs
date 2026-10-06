@@ -10,16 +10,17 @@ namespace Gonogo.KSP
     /// of its return a scene-load after that. Not being able to see is not
     /// seeing nothing, so nothing is read from the list until it stands.</para>
     ///
-    /// <para>Two signs it is not standing. In flight the game says so itself
-    /// (<c>FlightGlobals.ready</c> is false from the request to change scene
-    /// until the first physics frame of the next). In every scene, a list
-    /// with no vessels in a game whose own state holds some has not been
-    /// filled yet.</para>
+    /// <para>In flight the game says so itself: <c>FlightGlobals.ready</c> is
+    /// false from the request to change scene until the first physics frame
+    /// that has a craft to fly, so once it is true the list is what exists,
+    /// an empty one included, and a flight whose last craft is lost sees it
+    /// go.</para>
     ///
-    /// <para>The game's own state is as of its last save. A game whose last
-    /// vessel has just been lost therefore reads as not standing until the
-    /// game next saves, which it does on recovery and on every scene change:
-    /// until then the lost craft is not reported as gone.</para>
+    /// <para>Out of flight there is no such flag, and the sign is a list with
+    /// no vessels in a game whose own state holds some. That state is as of
+    /// the last save, and out of flight a craft leaves the list only by being
+    /// recovered or terminated, each of which saves in the same call, so the
+    /// two disagree only while a scene is filling its list.</para>
     /// </summary>
     public static class VesselListStanding
     {
@@ -29,9 +30,9 @@ namespace Gonogo.KSP
         /// <param name="inGameState">How many vessels the current game's own flight state holds, or null when it cannot be read.</param>
         public static bool Stands(bool inFlight, bool flightReady, int listed, int? inGameState)
         {
-            if (inFlight && !flightReady)
+            if (inFlight)
             {
-                return false;
+                return flightReady;
             }
             return listed > 0 || inGameState == null || inGameState.Value == 0;
         }

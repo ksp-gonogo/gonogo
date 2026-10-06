@@ -24,6 +24,7 @@ namespace Gonogo.KSP
         private readonly DeliveryInputs _inputs;
         private readonly System.Func<HomeCommand> _home;
         private KspVisibilityGeometryFactory? _surface;
+        private bool? _listStood;
         private IUplinkHost? _host;
 
         /// <param name="centres">The registry the ground stations' ids come from, so the plan names them as the roster does.</param>
@@ -139,11 +140,17 @@ namespace Gonogo.KSP
                 return null;
             }
             // A scene that is still loading has no vessels to show, which is not the same as none existing.
-            if (!VesselListStanding.Stands(
-                    HighLogic.LoadedSceneIsFlight,
-                    FlightGlobals.ready,
-                    vessels.Count,
-                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count))
+            var inGameState = HighLogic.CurrentGame?.flightState?.protoVessels?.Count;
+            var stands = VesselListStanding.Stands(HighLogic.LoadedSceneIsFlight, FlightGlobals.ready, vessels.Count, inGameState);
+            if (stands != _listStood)
+            {
+                _listStood = stands;
+                // Each change is logged, so a list that stays unread shows in the log with the counts that kept it so.
+                Debug.Log("[Gonogo] vessel list " + (stands ? "stands" : "not standing") + " in " + HighLogic.LoadedScene
+                    + ": lists " + vessels.Count + ", the game's own state holds " + (inGameState?.ToString() ?? "none")
+                    + ", flight ready " + FlightGlobals.ready);
+            }
+            if (!stands)
             {
                 return null;
             }
