@@ -104,6 +104,13 @@ namespace Sitrep.Host.Comms
         /// known by its radio alone.
         /// </summary>
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? Sight { get; set; }
+
+        /// <summary>
+        /// Every vessel the game lists, by bare guid, whether or not it has a
+        /// radio or can be planned for. Null from a game that cannot say,
+        /// which leaves nothing judged to have gone by it.
+        /// </summary>
+        public IReadOnlyCollection<string>? Vessels { get; set; }
     }
 
     /// <summary>The game a contact plan is made of. Asked on the main thread only.</summary>
@@ -308,6 +315,9 @@ namespace Sitrep.Host.Comms
             public IReadOnlyList<string> Centres { get; }
 
             public string? ActiveCraft { get; }
+
+            /// <summary>Every vessel the game lists, by bare guid, or null where the game cannot say.</summary>
+            public IReadOnlyCollection<string>? VesselsInGame { get; set; }
 
             /// <summary>What the active craft's radio said on this look, or null.</summary>
             public ContactRadio? Radio { get; }
@@ -628,6 +638,7 @@ namespace Sitrep.Host.Comms
                 SystemViewProvider.TargetsInRange(snapshot))
             {
                 PathStrength = CommsElection.PathStrength(_host.Kernel),
+                VesselsInGame = look.Vessels,
             };
         }
 
@@ -685,6 +696,11 @@ namespace Sitrep.Host.Comms
             var listening = new HashSet<string>(looked.Centres, StringComparer.Ordinal);
             listening.UnionWith(planning);
             _hearing.Listen(listening, looked.Craft.Known);
+            if (looked.VesselsInGame != null && _hearing.ForgetGone(looked.VesselsInGame) > 0)
+            {
+                // What is kept for the next save no longer holds them.
+                _heardNowNews = -1;
+            }
             KeepHeardForSave(listening);
 
             NoteGround(looked);

@@ -113,6 +113,48 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ACentreThatIsACraftTheGameNoLongerHasIsForgottenAndLeftOutOfTheNextSave()
+        {
+            var hearing = new CentreHearing(new Silent());
+            hearing.Restore(Saved());
+            hearing.Listen(new[] { Home }, new[] { "probe" });
+
+            Assert.Equal(1, hearing.ForgetGone(new[] { "probe" }));
+
+            Assert.Equal(new[] { Home }, hearing.Snapshot().Centres.Select(c => c.Centre));
+            hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
+            Assert.Empty(hearing.HeardAt(Crewed));
+        }
+
+        [Fact]
+        public void ACentreThatIsACraftStillInTheGameKeepsWhatItHeardWhileItIsNotListed()
+        {
+            var hearing = new CentreHearing(new Silent());
+            hearing.Restore(Saved());
+            hearing.Listen(new[] { Home }, new[] { "probe" });
+
+            Assert.Equal(0, hearing.ForgetGone(new[] { "probe", "crewed" }));
+
+            hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
+            Assert.Equal(0.4, StrengthAt(hearing, Crewed));
+        }
+
+        [Fact]
+        public void ACentreThatIsListedOrIsNotACraftIsNeverForgotten()
+        {
+            var hearing = new CentreHearing(new Silent());
+            hearing.Restore(Saved());
+            hearing.Listen(new[] { Crewed }, new[] { "probe" });
+
+            // Home is a ground station that is not listed, and the crewed craft is listed though the game's list does not hold it.
+            Assert.Equal(0, hearing.ForgetGone(new string[0]));
+
+            Assert.Equal(0.4, StrengthAt(hearing, Crewed));
+            hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
+            Assert.Equal(0.7, StrengthAt(hearing, Home));
+        }
+
+        [Fact]
         public void ACentreThatIsNotListedIsNotListenedAt()
         {
             var host = new Silent();

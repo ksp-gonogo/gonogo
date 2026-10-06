@@ -393,7 +393,22 @@ namespace Sitrep.Host.IntegrationTests
                     nodes.Insert(0, relay);
                 }
             }
-            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0) { Radio = Radio, Roster = roster, Sight = Sight() };
+            var vessels = new List<string> { ActiveGuid };
+            lock (_gate)
+            {
+                if (_relayExists)
+                {
+                    vessels.Add(RelayGuid);
+                }
+            }
+            if (DebrisExists)
+            {
+                vessels.Add(DebrisGuid);
+            }
+            return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0)
+            {
+                Radio = Radio, Roster = roster, Sight = Sight(), Vessels = vessels,
+            };
         }
 
         private static RotatingGroundStation Surface(double longitudeDeg) =>

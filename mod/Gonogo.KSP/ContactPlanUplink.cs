@@ -160,8 +160,13 @@ namespace Gonogo.KSP
             }
 
             var nodes = new List<ContactGameNode>();
+            var listed = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var vessel in vessels)
             {
+                if (vessel != null)
+                {
+                    listed.Add(vessel.id.ToString());
+                }
                 var comm = vessel != null && vessel.connection != null ? vessel.connection.Comm : null;
                 if (comm == null || !Plannable(vessel.vesselType) || vessel.mainBody == null)
                 {
@@ -219,6 +224,7 @@ namespace Gonogo.KSP
                 Radio = RadioOfActive(),
                 Roster = roster,
                 Sight = SightOf(vessels, active, roster),
+                Vessels = listed,
             };
         }
 

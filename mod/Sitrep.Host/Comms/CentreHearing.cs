@@ -260,6 +260,35 @@ namespace Sitrep.Host.Comms
             _craft.Clear();
         }
 
+        /// <summary>
+        /// Forgets each centre that is not listed and is a craft the game no
+        /// longer has: recovered, destroyed, or docked into another. It cannot
+        /// be listed again, so what it had heard is of no further use and is
+        /// not carried in another save. A centre that is not a craft is kept,
+        /// since nothing says a ground station has gone for good; there are
+        /// only ever as many of those as the game has had stations.
+        /// </summary>
+        /// <param name="vesselsInGame">Every vessel the game lists, by bare guid, read from a list that stands.</param>
+        /// <returns>How many centres were forgotten.</returns>
+        public int ForgetGone(IReadOnlyCollection<string> vesselsInGame)
+        {
+            var inGame = vesselsInGame as HashSet<string> ?? new HashSet<string>(vesselsInGame, StringComparer.Ordinal);
+            var gone = new List<string>();
+            foreach (var centre in _away.Keys)
+            {
+                if (centre.StartsWith(CraftStateRecorder.VesselPrefix, StringComparison.Ordinal)
+                    && !inGame.Contains(centre.Substring(CraftStateRecorder.VesselPrefix.Length)))
+                {
+                    gone.Add(centre);
+                }
+            }
+            foreach (var centre in gone)
+            {
+                _away.Remove(centre);
+            }
+            return gone.Count;
+        }
+
         /// <summary>Stops listening at a centre the game no longer lists, and keeps what it had heard for when it is listed again.</summary>
         private void Deafen(string centre)
         {

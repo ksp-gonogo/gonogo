@@ -91,6 +91,36 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotEqual(ScriptedContactGame.RelayRadius, Sma(), 3);
         }
 
+        /// <summary>
+        /// A save can carry a centre that was a crewed craft since recovered or
+        /// destroyed. It is in no list the game will ever give again, so it is
+        /// dropped at the first look after the load and the next save is
+        /// written without it.
+        /// </summary>
+        [Fact]
+        public async Task ACentreASaveCarriesThatIsACraftNoLongerInTheGameIsNotCarriedIntoTheNextSave()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+            var saved = SavedAndReadBack(world)!;
+            var atHome = saved.Centres.Single(c => c.Centre == Home);
+            var withGhost = new HeardSnapshot(saved.Centres.Append(
+                new HeardAtCentre("vessel:recovered-long-ago", atHome.States, atHome.Links, atHome.Radios, atHome.Sightings)).ToList());
+
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), withGhost);
+            world.Tick(703.0);
+            world.Tick(704.0);
+            await world.SettleAsync();
+
+            var after = world.Engine.HeardSnapshotNow()!;
+            Assert.DoesNotContain(after.Centres, c => c.Centre == "vessel:recovered-long-ago");
+            Assert.Single(after.Centres.Single(c => c.Centre == Home).States, s => s.Id == Relay);
+        }
+
         [Fact]
         public async Task ALoadThatCarriesNothingLeavesEveryCentreToHearAgain()
         {
