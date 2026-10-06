@@ -309,7 +309,7 @@ namespace Sitrep.Host.Comms
             {
                 return false;
             }
-            ear.Heard[state.Id] = state;
+            ear.Heard[state.Id] = state.ListedAsBefore(held);
             Know(ear, state.Id);
             ear.News++;
             return true;

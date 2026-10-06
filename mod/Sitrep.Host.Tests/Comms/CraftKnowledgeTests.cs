@@ -156,6 +156,19 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void WhatIsSaidWithNoListEntryKeepsTheEntryLastSaid()
+        {
+            var said = new SaidByWhen();
+            said.Note("vessel:b", 100.0, Craft("b", 100.0, 700_000.0));
+            said.Note("vessel:b", 200.0, CraftState.WithoutARadio("vessel:b", 200.0, null));
+
+            var now = said.AsOf("vessel:b", 300.0)!;
+
+            Assert.Equal(200.0, now.CapturedUt);
+            Assert.Equal("B", now.Roster!["name"]);
+        }
+
+        [Fact]
         public void WhatWasSaidByAnEarlierInstantCanBeAskedFor()
         {
             var said = new SaidByWhen();

@@ -121,6 +121,36 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Single(after.Centres.Single(c => c.Centre == Home).States, s => s.Id == Relay);
         }
 
+        /// <summary>
+        /// A game loaded at the space centre lists no craft, and every craft is
+        /// read again after a load. What a centre is then told carries no list
+        /// entry, and the craft stays on its list as it was last listed.
+        /// </summary>
+        [Fact]
+        public async Task ACraftReadAgainAfterALoadOutsideFlightStaysOnACentresList()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            await using var seated = client;
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            Assert.NotNull(view.Vessel(ScriptedContactGame.RelayGuid));
+            var saved = SavedAndReadBack(world);
+
+            world.Game.OutOfFlight = true;
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), saved);
+            foreach (var ut in new[] { 703.0, 704.0, 1400.0, 1402.0, 1404.0 })
+            {
+                world.Tick(ut);
+            }
+            await ReckonedVantageWorld.SettleAsync(client, view);
+
+            Assert.True(view.Vessel(ScriptedContactGame.RelayGuid) != null, "a craft left a centre's list because the game, out of flight, listed nothing for it");
+        }
+
         [Fact]
         public async Task ALoadThatCarriesNothingLeavesEveryCentreToHearAgain()
         {

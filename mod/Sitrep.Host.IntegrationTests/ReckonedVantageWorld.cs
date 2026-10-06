@@ -338,6 +338,9 @@ namespace Sitrep.Host.IntegrationTests
             return new Dictionary<string, object?> { ["entries"] = entries };
         }
 
+        /// <summary>Whether the game is in a scene other than flight, where it lists no craft at all.</summary>
+        public bool OutOfFlight { get; set; }
+
         public List<object?> RosterSnapshot()
         {
             var roster = new List<object?>
@@ -909,9 +912,12 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     ["identity"] = new Dictionary<string, object?> { ["id"] = Game.ActiveNow },
                 },
-                ["vessels"] = Game.RosterSnapshot(),
                 ["targetAvailable"] = Game.TargetsSnapshot(),
             };
+            if (!Game.OutOfFlight)
+            {
+                values["vessels"] = Game.RosterSnapshot();
+            }
             Engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, Timeout);
         }
 

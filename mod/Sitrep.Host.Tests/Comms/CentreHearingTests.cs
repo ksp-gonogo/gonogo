@@ -154,6 +154,30 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(0.7, StrengthAt(hearing, Home));
         }
 
+        /// <summary>The game lists craft only in flight. Word of a craft read outside it has no list entry, and must not cost a centre the one it holds.</summary>
+        [Fact]
+        public void NewerWordOfACraftThatCarriesNoListEntryLeavesTheCentreTheEntryItHad()
+        {
+            var listed = new Dictionary<string, object?> { ["vesselId"] = "probe", ["name"] = "Probe" };
+            var links = new Dictionary<string, CraftLink>();
+            var hearing = new CentreHearing(new Silent());
+            hearing.Restore(new HeardSnapshot(new[]
+            {
+                new HeardAtCentre(Home, new[] { CraftState.Orbiting(Probe, 100.0, Kerbin, Orbit, null, null, true, links).Listed(listed) }, new Dictionary<string, bool>()),
+            }));
+
+            hearing.Restore(new HeardSnapshot(new[]
+            {
+                new HeardAtCentre(Home, new[] { CraftState.Orbiting(Probe, 200.0, Kerbin, Orbit, null, null, true, links) }, new Dictionary<string, bool>()),
+            }));
+
+            hearing.Listen(new[] { Home }, new[] { "probe" });
+
+            var held = Assert.Single(hearing.HeardAt(Home));
+            Assert.Equal(200.0, held.CapturedUt);
+            Assert.Equal("Probe", held.Roster!["name"]);
+        }
+
         [Fact]
         public void ACentreThatIsNotListedIsNotListenedAt()
         {

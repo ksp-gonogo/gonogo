@@ -68,6 +68,22 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ACraftReadAgainWhileTheGameListsNothingIsSaidWithTheEntryItWasLastReadWith()
+        {
+            var recorder = new CraftStateRecorder();
+            var roster = new Dictionary<string, IReadOnlyDictionary<string, object?>>
+            {
+                ["vessel:a"] = new Dictionary<string, object?> { ["vesselId"] = "a", ["name"] = "A", ["situation"] = 3 },
+            };
+            recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null, roster);
+
+            var landed = recorder.Capture(Look(ContactGameNode.LandedCraft("vessel:a", Kerbin, Surface(10.0))), 1.0, null, null);
+
+            Assert.Equal("A", Assert.Single(landed.States).Roster!["name"]);
+            Assert.Empty(landed.Gone);
+        }
+
+        [Fact]
         public void ACraftThatHasNotMovedIsNotReadAgain()
         {
             var recorder = new CraftStateRecorder();

@@ -42,6 +42,9 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, List<(double Ut, CraftState State)>> _said =
             new Dictionary<string, List<(double, CraftState)>>(StringComparer.Ordinal);
 
+        /// <summary>The state last noted of each thing, as it was handed in: what is kept may be a copy of it carrying an older list entry.</summary>
+        private readonly Dictionary<string, CraftState> _noted = new Dictionary<string, CraftState>(StringComparer.Ordinal);
+
         public IEnumerable<string> Ids => _said.Keys;
 
         /// <summary>Notes that <paramref name="state"/> of <paramref name="id"/> was said, or became known, at <paramref name="ut"/>. A state already noted last is not noted twice.</summary>
@@ -52,11 +55,12 @@ namespace Sitrep.Host.Comms
                 said = new List<(double, CraftState)>();
                 _said[id] = said;
             }
-            if (said.Count > 0 && ReferenceEquals(said[said.Count - 1].State, state))
+            if (_noted.TryGetValue(id, out var noted) && ReferenceEquals(noted, state))
             {
                 return;
             }
-            said.Add((ut, state));
+            _noted[id] = state;
+            said.Add((ut, said.Count > 0 ? state.ListedAsBefore(said[said.Count - 1].State) : state));
         }
 
         /// <summary>The newest thing said of <paramref name="id"/> at or before <paramref name="ut"/>, or null when nothing had been.</summary>
@@ -82,7 +86,11 @@ namespace Sitrep.Host.Comms
             return said[0].State;
         }
 
-        public void Clear() => _said.Clear();
+        public void Clear()
+        {
+            _said.Clear();
+            _noted.Clear();
+        }
     }
 
     /// <summary>

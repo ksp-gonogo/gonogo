@@ -241,7 +241,7 @@ namespace Sitrep.Host.Comms
             foreach (var id in new List<string>(_read.Keys))
             {
                 // Still in the game with no radio to read this pass is not gone.
-                if (!seen.Contains(id) && (roster == null || !roster.ContainsKey(id)))
+                if (!seen.Contains(id) && (roster == null || !roster.ContainsKey(id)) && !InTheGame(look, id))
                 {
                     _read.Remove(id);
                     gone.Add(GuidOf(id));
@@ -249,6 +249,24 @@ namespace Sitrep.Host.Comms
             }
             StatesRecordedBudget.Record(states.Count + sightings.Count, ut);
             return new Batch(ut, present, states, gone, sightings, known);
+        }
+
+        /// <summary>Whether the game's own list of vessels, where it gives one, still holds the craft.</summary>
+        private static bool InTheGame(ContactGameLook look, string id)
+        {
+            if (look.Vessels == null)
+            {
+                return false;
+            }
+            var guid = GuidOf(id);
+            foreach (var vessel in look.Vessels)
+            {
+                if (vessel == guid)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>Whether this pass measures to a centre the last one did not, and notes the centres it measures to.</summary>
@@ -336,6 +354,11 @@ namespace Sitrep.Host.Comms
         private CraftState? Due(
             ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel, IReadOnlyDictionary<string, object?>? listed)
         {
+            if (listed == null && _read.TryGetValue(node.Id, out var before))
+            {
+                // The game lists nothing for it this pass, which is the game not saying: it is listed as it last was.
+                listed = before.State.Roster;
+            }
             if (!_read.TryGetValue(node.Id, out var last) || ut < last.State.CapturedUt)
             {
                 var first = StateOf(node, look, ut, kernel).Listed(listed);

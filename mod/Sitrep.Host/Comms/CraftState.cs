@@ -201,6 +201,22 @@ namespace Sitrep.Host.Comms
             return seen;
         }
 
+        /// <summary>
+        /// This state, listed as the craft was <paramref name="before"/> where
+        /// it was read while the game listed nothing for it. The game lists
+        /// craft only while a flight is running, so a state read from the space
+        /// centre, the tracking station or the editor has no entry of its own;
+        /// that is the game not saying, not the craft no longer being listed.
+        /// </summary>
+        public CraftState ListedAsBefore(CraftState? before)
+        {
+            if (!Exists || Roster != null || before?.Roster == null)
+            {
+                return this;
+            }
+            return Listed(before.Roster).AsCentre(Centre);
+        }
+
         /// <summary>Only where this craft is going, as a sighting carries it: no links, no name, no entry and nothing of whether it is a command centre.</summary>
         public CraftState PlaceOnly() =>
             new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, NoLinks, Motion, Settled);
