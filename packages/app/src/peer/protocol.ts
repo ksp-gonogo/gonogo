@@ -327,6 +327,11 @@ export type PeerMessage =
       type: "sitrep-frame";
       message: import("@ksp-gonogo/sitrep-sdk").ServerMessage;
     }
+  // Host -> station: the host's own stream restarted from a new game process,
+  // whose timeline epoch counts from zero. A station's store refuses frames
+  // from an epoch below the one it holds, so the station rebuilds its client
+  // and store and subscribes again.
+  | { type: "sitrep-reset" }
   // Station -> host: what this station's mounted widgets are reading. A
   // station's own widgets are the only thing that knows what a station needs,
   // and they know it at mount time, so the subscribe call a widget already

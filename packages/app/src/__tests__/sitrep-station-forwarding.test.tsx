@@ -166,6 +166,7 @@ import {
   useCertainty,
   useStream,
   useStreamEvent,
+  useTelemetryClientOptional,
   useTelemetryStore,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -176,13 +177,14 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
+import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 
 /**
  * Every `TelemetryProvider` this file mounts builds its own `ViewClock`, whose
@@ -1047,5 +1049,118 @@ describe("host-issued ICE servers, read from a station", () => {
     const seen: RTCIceServer[][] = [];
     render(<IceProbe onServers={(s) => seen.push(s)} />);
     await waitFor(() => expect(seen).toEqual([[]]));
+  });
+});
+
+/** The provider renders its children bare until its client is built, and a probe needs the client. */
+function ProviderReady({ children }: { children: ReactNode }) {
+  return useTelemetryClientOptional() ? children : null;
+}
+
+describe("a game restart seen from a station", () => {
+  const services: Array<{ stop?: () => void; disconnect?: () => void }> = [];
+
+  afterEach(() => {
+    act(() => {
+      for (const svc of services) {
+        svc.disconnect?.();
+        svc.stop?.();
+      }
+    });
+    services.length = 0;
+    localStorage.clear();
+    peerRegistry.clear();
+  });
+
+  function RestartableHost({
+    first,
+    peerHost,
+    restartRef,
+  }: {
+    first: TelemetryClient;
+    peerHost: PeerHostService;
+    restartRef: { current: (next: TelemetryClient) => void };
+  }) {
+    const [client, setClient] = useState(first);
+    restartRef.current = setClient;
+    return <HostApp client={client} peerHost={peerHost} />;
+  }
+
+  function StationThroughProvider({ svc }: { svc: PeerClientService }) {
+    const [transport, setTransport] = useState<PeerTransport | null>(null);
+    useEffect(() => {
+      const t = new PeerTransport(svc);
+      setTransport(t);
+      return () => {
+        t.dispose();
+        setTransport(null);
+      };
+    }, [svc]);
+    if (!transport) return null;
+    return (
+      <SitrepTelemetryProvider transport={transport}>
+        <ProviderReady>
+          <FrameSink />
+          <Probe testId="station-orbit" topic="vessel.orbit" />
+        </ProviderReady>
+      </SitrepTelemetryProvider>
+    );
+  }
+
+  it("shows the new game's values without a reload, though its timeline epoch is lower than the old game's", async () => {
+    const firstTransport = new StubTransport();
+    const restartRef: { current: (next: TelemetryClient) => void } = {
+      current: () => {},
+    };
+    const peerHost = new PeerHostService();
+    services.push(peerHost);
+    render(
+      <RestartableHost
+        first={new TelemetryClient(firstTransport)}
+        peerHost={peerHost}
+        restartRef={restartRef}
+      />,
+    );
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const svc = new PeerClientService();
+    services.push(svc);
+    render(<StationThroughProvider svc={svc} />);
+    act(() => svc.connect(peerHost.shareCode));
+    await waitFor(() => expect(svc.getConnStatus()).toBe("connected"));
+
+    const pastUt = Date.now() / 1000 - 10_000;
+    await emitUntilArrived(
+      () =>
+        firstTransport.emit(
+          "vessel.orbit",
+          { apoapsis: 100_000, periapsis: 80_000 },
+          { validAt: pastUt, deliveredAt: pastUt, timelineEpoch: 5 },
+        ),
+      () =>
+        expect(screen.getByTestId("station-orbit").textContent).toContain(
+          "100000",
+        ),
+      8000,
+    );
+
+    const secondTransport = new StubTransport();
+    act(() => {
+      restartRef.current(new TelemetryClient(secondTransport));
+    });
+    await emitUntilArrived(
+      () =>
+        secondTransport.emit(
+          "vessel.orbit",
+          { apoapsis: 200_000, periapsis: 150_000 },
+          { validAt: pastUt, deliveredAt: pastUt, timelineEpoch: 0 },
+        ),
+      () =>
+        expect(screen.getByTestId("station-orbit").textContent).toContain(
+          "200000",
+        ),
+      8000,
+    );
   });
 });

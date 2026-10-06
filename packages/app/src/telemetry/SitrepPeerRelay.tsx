@@ -84,7 +84,7 @@ function isCarriedFrame(message: ServerMessage): boolean {
  *
  * Backfill: keeps its own `Map<topic, StreamData>` of the last-seen frame
  * per topic, filled from mount rather than from the first station's arrival,
- * and never cleared, so it stays useful across a connect/disconnect gap. It is
+ * and cleared only when the client is rebuilt, so it stays useful across a connect/disconnect gap. It is
  * replayed to a NEWLY connecting peer alone (`sendToPeer`, never `broadcast`)
  * and to a station that subscribes a topic the host was already holding, so
  * neither sits blank on a low-rate topic that has not changed since it asked. `event` frames and
@@ -99,7 +99,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // Ref, not state: this cache is mutated on every relayed frame (up to
   // hundreds/sec) and must never itself trigger a re-render, only
   // `hasConnections` does. Persists across connect/disconnect churn
-  // (deliberately never cleared) so a station reconnecting after a gap
+  // (cleared only when the client is rebuilt) so a station reconnecting after a gap
   // still gets the last-known value immediately.
   const cacheRef = useRef(new Map<string, StreamData<unknown>>());
 
@@ -139,14 +139,21 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // topic already subscribed (it replays the sticky value to the CALLER only),
   // so the mod was never asked either and the station stayed blank forever.
   // Caching from mount is what makes `cachedFrame` able to answer.
+  const previousClient = useRef<typeof client>(undefined);
   useEffect(() => {
     if (!client) return;
+    // A rebuilt client is a new game process, whose frames carry a lower epoch than anything cached from the last: replaying those would make a station's fresh store refuse the new game.
+    if (previousClient.current && previousClient.current !== client) {
+      cacheRef.current.clear();
+      peerHost.broadcast({ type: "sitrep-reset" } satisfies PeerMessage);
+    }
+    previousClient.current = client;
     return client.onRawMessage((message) => {
       if (message.type === "stream-data" && !isTransmission(message)) {
         cacheRef.current.set(message.topic, message);
       }
     });
-  }, [client]);
+  }, [client, peerHost]);
 
   // Demand-driven upstream subscription, independent of `hasConnections`: the
   // host refcounts what stations ask for and this is only the means of acting

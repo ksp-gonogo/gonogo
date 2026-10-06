@@ -299,6 +299,11 @@ export class PeerTransport implements Transport {
     return () => this.lostListeners.delete(listener);
   }
 
+  /** The host's stream restarted from a new game, so whatever consumes this transport should rebuild its store. */
+  onGameRestart(listener: () => void): () => void {
+    return this.client.onSitrepReset(listener);
+  }
+
   /** Detach from `PeerClientService` and drop all listeners. Idempotent-safe (unsubs are themselves idempotent). */
   dispose(): void {
     for (const unsub of this.unsubs) unsub();

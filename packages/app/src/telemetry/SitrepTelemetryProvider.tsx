@@ -102,6 +102,18 @@ const SITREP_BINARY_BYTES_BUDGET = new PerfBudget({
   unit: "bytes",
 });
 
+function hasGameRestartSignal(
+  transport: Transport | null,
+): transport is Transport & {
+  onGameRestart(listener: () => void): () => void;
+} {
+  return (
+    transport !== null &&
+    typeof (transport as { onGameRestart?: unknown }).onGameRestart ===
+      "function"
+  );
+}
+
 export interface SitrepTelemetryProviderProps {
   children: ReactNode;
   /**
@@ -237,6 +249,12 @@ export function SitrepTelemetryProvider({
       setTransport(null);
     };
   }, [enabled, resolvedHost, resolvedPort, injectedTransport, reconnectNonce]);
+
+  // A transport the host drives (a station's or a relayed pilot's) never drops when the game restarts, so the host says so and the store is rebuilt on its word.
+  useEffect(() => {
+    if (!hasGameRestartSignal(transport)) return;
+    return transport.onGameRestart(() => setGeneration((g) => g + 1));
+  }, [transport]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: generation has no direct use in the body, bumping it on a reconnect must rebuild the client (and with it the store) over the same transport.
   useEffect(() => {

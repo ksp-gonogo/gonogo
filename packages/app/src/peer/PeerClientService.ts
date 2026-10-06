@@ -115,6 +115,7 @@ type ClientEventMap = {
   // a `ServerMessage` here) because that synthesis is `PeerTransport`'s job,
   // this service only forwards the wire fields it received.
   sitrepFrame: [message: import("@ksp-gonogo/sitrep-sdk").ServerMessage];
+  sitrepReset: [];
   sitrepCommandResponse: [
     requestId: string,
     result: unknown,
@@ -675,6 +676,11 @@ export class PeerClientService {
     return this.events.on("sitrepFrame", cb);
   }
 
+  /** The host's stream restarted from a new game process. */
+  onSitrepReset(cb: () => void): () => void {
+    return this.events.on("sitrepReset", cb);
+  }
+
   /** A `sitrep-command-response` for a command this station dispatched. */
   onSitrepCommandResponse(
     cb: (
@@ -1098,6 +1104,9 @@ export class PeerClientService {
     },
     "sitrep-frame": (msg) => {
       this.events.emit("sitrepFrame", msg.message);
+    },
+    "sitrep-reset": () => {
+      this.events.emit("sitrepReset");
     },
     "sitrep-command-response": (msg) => {
       this.events.emit(
