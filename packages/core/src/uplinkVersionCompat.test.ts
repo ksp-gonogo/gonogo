@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   type AppCompatIdentity,
   checkUplinkCompat,
-  EXTENSION_API_VERSION,
   type GonogoUplinkManifest,
   isGonogoUplinkManifest,
   parseUplinkManifest,
@@ -34,12 +33,6 @@ function app(overrides: Partial<AppCompatIdentity> = {}): AppCompatIdentity {
     ...overrides,
   };
 }
-
-describe("EXTENSION_API_VERSION", () => {
-  it("is the hand-managed gate, not core's package.json placeholder", () => {
-    expect(EXTENSION_API_VERSION).toBe("6.0.0");
-  });
-});
 
 describe("checkUplinkCompat: apiVersion", () => {
   it("refuses on a major mismatch", () => {

@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // Author-facing type surface.
-// before the first external Uplink is published. Nothing here is a frozen
-// contract yet; the api-shape gate records the CURRENT proposed surface so any
-// change is a conscious one.
+// before the first external Uplink is published. The published surface lock
+// (`extension-api.ledger.json`) records what is exported from here, so any
+// change is a declared one.
 //
 // Why these types live HERE and are not re-exported from `@ksp-gonogo/core`:
 // sitrep-sdk is the dependency-graph LEAF (core → sitrep-client → sitrep-sdk).

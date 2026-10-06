@@ -7,7 +7,7 @@
 // reaches the app, so a packed Uplink never carries a second registry, which is
 // the whole point.
 //
-// The export list is not frozen. `./api-shape.gate.test.ts` records it, so any change to it is a deliberate one.
+// The export list is derived and held by the published surface lock (`extension-api.ledger.json`), so any change to it is declared.
 //
 // EVERY Uplink goes through this barrel, including the ones bundled with the
 // mod. There is no first-party path: bundling changes how an Uplink ships, not
