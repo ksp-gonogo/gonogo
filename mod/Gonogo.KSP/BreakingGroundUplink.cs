@@ -15,10 +15,10 @@ namespace Gonogo.KSP
     /// (robotics) and <see cref="ScienceCoreUplink"/> (deployed science). Shipped
     /// IN the core mod DLL like <see cref="PartsUplink"/>/
     /// <see cref="VesselUplink"/> (auto-discovered, not a separate
-    /// installable package), but goes INERT when Breaking Ground isn't
-    /// installed, gated on <c>ExpansionsLoader.IsExpansionInstalled("Serenity")</c>,
-    /// mirroring <c>Gonogo.ScansatUplink.ScansatUplink</c>'s graceful-absence
-    /// pattern (see its own doc comment).
+    /// installable package). It registers its channels and commands whether or not
+    /// Breaking Ground is installed and reports Unavailable through <see cref="Health"/>
+    /// while the expansion is absent, gated on
+    /// <c>ExpansionsLoader.IsExpansionInstalled("Serenity")</c>.
     ///
     /// <para>The raw KSP-side scan/actuation logic is unchanged by this
     /// extraction: robotics still reads <c>Values["parts"]["robotics"/
