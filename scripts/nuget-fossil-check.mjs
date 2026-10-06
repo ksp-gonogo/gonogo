@@ -3,15 +3,14 @@
  * Is a NuGet version nuget.org already carries a fossil of what this commit
  * would publish?
  *
- * `KspGonogo.Sitrep.Contract`'s version is Major.Minor.PackagePatch, and
- * Major.Minor is the contract's own (see Sitrep.Contract.Package.csproj). A
- * change to Sitrep.Contract.TestSupport or Sitrep.Core with no contract move
- * and no PackagePatch bump packs under the SAME version as what is already
- * published. `publish-nuget` in release.yml reads that as "no version
- * change" and skips the push, which is correct for an unchanged tree and
- * exactly wrong for a changed one: the published copy silently stops
- * matching the source it claims to be built from, and the release step
- * still reads green.
+ * `KspGonogo.Sitrep.Contract`'s version is the release version (see
+ * Sitrep.Contract.Package.csproj). A version nuget.org already carries means a
+ * re-run attempt or a `packages_only` dispatch of a released tree, and the
+ * tree may have moved since. `publish-nuget` in release.yml reads that as "no
+ * version change" and skips the push, which is correct for an unchanged tree
+ * and exactly wrong for a changed one: the published copy silently stops
+ * matching the source it claims to be built from, and the release step still
+ * reads green.
  *
  * The npm publish leg guards the equivalent case with a content diff against
  * the published tarball (`published-version-is-current.mjs`). This is that
@@ -39,9 +38,8 @@
  * `10.0.x` resolved to at release time, which is not necessarily the SDK
  * this run has. A compiler patch that changes emitted IL reads as "content
  * changed" here. That is a correct read of the bytes and an incorrect read
- * of the source; PackagePatch gives it somewhere to go: bump PackagePatch, note why
- * in the commit, done. Silently ignoring it would let the exact silent-skip
- * bug back in through a different door.
+ * of the source, and the way through is the next release. Silently ignoring it
+ * would let the exact silent-skip bug back in through a different door.
  *
  * Usage:
  *   node scripts/nuget-fossil-check.mjs <fresh.nupkg> <published.nupkg>
@@ -359,15 +357,13 @@ if (problems.length > 0) {
     `\nThe version already on nuget.org is a FOSSIL of what this commit would publish:\n` +
       problems.map((p) => `  ✗ ${p}`).join("\n") +
       `\n\nThe published copy no longer matches this source, but the version has not moved, ` +
-      `so the release cannot ship the difference under it. Bump PackagePatch in ` +
-      `mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj (and PackagePatchForContract ` +
-      `if it drifted) and re-run.\n\n` +
+      `so this run cannot ship the difference under it. It ships with the next release, ` +
+      `whose version is new for every package.\n\n` +
       `If nothing in mod/Sitrep.Contract, mod/Sitrep.Contract.TestSupport or mod/Sitrep.Core ` +
       `actually changed, this may be the known false positive: the published copy was built by ` +
       `an earlier SDK than this run's (setup-dotnet floats on 10.0.x), and a compiler patch can ` +
       `change emitted IL with no source change at all. That is still a real content difference ` +
-      `in the bytes, and still needs a PackagePatch bump to ship; note the SDK versions in the ` +
-      `commit that bumps it.\n`,
+      `in the bytes, and still needs the next release to ship.\n`,
   );
   process.exit(1);
 }

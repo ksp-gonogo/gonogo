@@ -138,14 +138,13 @@ kit almost does, that's usually a gap in the kit worth
 
 ## Versioning
 
-The kit is `0.x` and versions on its own line, independent of the Gonogo app's releases:
+The kit carries the Gonogo release version, the same one as `@ksp-gonogo/sitrep-sdk`,
+`@ksp-gonogo/uplink-tools` and the app it shipped with, and names the sdk of that release as an
+exact peer. Install them together at one version, and move them together.
 
-- **Major**: a renamed or removed token, component or prop; anything that breaks an existing
-  consumer or render
-- **Minor**: a new primitive, a new optional prop, a new formatter
-- **Patch**: internal fixes with no API change
-
-Token names are part of the contract, not an implementation detail, renaming one is a major.
+What the kit's surface promises is held by the extension API version, which the app checks
+before it loads an Uplink, not by the package version. Token names are part of that surface,
+not an implementation detail: renaming one is a break.
 
 ## Licence
 

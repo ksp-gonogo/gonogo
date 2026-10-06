@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Freezes the published surface ledgers as part of a release, and sets the
- * versions the freeze prints.
+ * Freezes the published surface ledgers as part of a release, and moves every
+ * version the release carries.
  *
  * Two ledgers collect declared changes in a `pending` entry while their
  * `versionMoves` is `at-release`: `mod/sitrep-sdk/extension-api.ledger.json`
- * (sitrep-sdk and ui-kit, against `EXTENSION_API_VERSION`) and
- * `packages/uplink-tools/api-surface.ledger.json` (against that package's own
- * version). Nothing else moves either version, so the release flow does it here.
+ * (sitrep-sdk and ui-kit, against `EXTENSION_API_VERSION`, which moves by its
+ * own rule) and `packages/uplink-tools/api-surface.ledger.json` (whose entries
+ * are recorded under the release that froze them). Then the app and every
+ * published package move to the release version, pending or not: every package
+ * carries one version, so a release moves them all.
  *
  * Usage:
- *   freeze-published-surface.mjs --note <text> [--dry-run]
+ *   freeze-published-surface.mjs --release <X.Y.Z> --note <text> [--dry-run]
  *
  * `--dry-run` writes nothing and runs no test: it prints, per ledger, what the
  * freeze would record and the version it would set. Both modes fail when a
@@ -21,6 +23,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  compareVersions,
+  publishedPackages,
+  RELEASE_VERSION_FILE,
+} from "./release-packages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -39,11 +46,8 @@ export const LEDGERS = [
   {
     id: "uplink-tools",
     file: "packages/uplink-tools/api-surface.ledger.json",
-    currentVersion: (root) => readPackageVersion(root),
-    setVersion: (root, version) => setPackageVersion(root, version),
-    versionName: "@ksp-gonogo/uplink-tools version",
-    /** The package whose own version this ledger moves at a freeze. */
-    package: "@ksp-gonogo/uplink-tools",
+    currentVersion: (root) => readManifestVersion(root, UPLINK_TOOLS_MANIFEST),
+    versionName: "the uplink-tools surface",
   },
 ];
 
@@ -63,10 +67,11 @@ export function nextVersion(previous, hasBreaks, versioning) {
 }
 
 /**
- * What freezing a ledger would do, from its text and the version the code
- * carries: the pending keys, any with an empty note, and the version it lands on.
+ * What freezing a ledger would do, from its text, the version the code carries
+ * and the release being cut: the pending keys, any with an empty note, the
+ * version it lands on, and whether the code's version is one the ledger allows.
  */
-export function planFreeze(ledgerText, carriedVersion) {
+export function planFreeze(ledgerText, carriedVersion, release) {
   const ledger = JSON.parse(ledgerText);
   const { breaks, additions } = ledger.pending;
   const emptyNotes = [...breaks, ...additions]
@@ -74,6 +79,13 @@ export function planFreeze(ledgerText, carriedVersion) {
     .map((change) => change.key);
   const latest = ledger.entries[ledger.entries.length - 1].version;
   const pending = breaks.length + additions.length > 0;
+  const byRelease = ledger.versioning === "release";
+  let next = null;
+  if (pending) {
+    next = byRelease
+      ? release
+      : nextVersion(latest, breaks.length > 0, ledger.versioning);
+  }
   return {
     pending,
     breaks: breaks.map((change) => change.key),
@@ -81,9 +93,11 @@ export function planFreeze(ledgerText, carriedVersion) {
     emptyNotes,
     latest,
     carriedVersion,
-    next: pending
-      ? nextVersion(latest, breaks.length > 0, ledger.versioning)
-      : null,
+    carriedAllowed: byRelease
+      ? compareVersions(carriedVersion, latest) >= 0
+      : carriedVersion === latest,
+    byRelease,
+    next,
   };
 }
 
@@ -122,17 +136,24 @@ function setExtensionApiVersion(root, version) {
   );
 }
 
-function readPackageVersion(root) {
-  return JSON.parse(readFileSync(join(root, UPLINK_TOOLS_MANIFEST), "utf8"))
-    .version;
+function readManifestVersion(root, file) {
+  return JSON.parse(readFileSync(join(root, file), "utf8")).version;
 }
 
-function setPackageVersion(root, version) {
-  const path = join(root, UPLINK_TOOLS_MANIFEST);
+function setManifestVersion(root, file, version) {
+  const path = join(root, file);
   writeFileSync(
     path,
     replaceManifestVersion(readFileSync(path, "utf8"), version),
   );
+}
+
+/** Every manifest a release moves: the app's, whose version is the release version, and each published package's. */
+export function releaseManifests(root = REPO_ROOT) {
+  return [
+    RELEASE_VERSION_FILE,
+    ...publishedPackages(root).map((pkg) => `${pkg.dir}/package.json`),
+  ];
 }
 
 /**
@@ -140,7 +161,7 @@ function setPackageVersion(root, version) {
  * The version is read back from the ledger's new latest entry, not from the
  * run's output: a passing vitest run does not show its console lines.
  */
-function runFreeze(root, ledger, note) {
+function runFreeze(root, ledger, note, release) {
   execFileSync(
     "pnpm",
     [
@@ -162,6 +183,7 @@ function runFreeze(root, ledger, note) {
         ...process.env,
         GONOGO_SURFACE_FREEZE: ledger.id,
         GONOGO_SURFACE_NOTE: note,
+        GONOGO_SURFACE_RELEASE: release,
       },
     },
   );
@@ -179,12 +201,20 @@ export function main(argv, root = REPO_ROOT) {
   const note = noteAt === -1 ? "" : (argv[noteAt + 1] ?? "").trim();
   if (!note)
     throw new Error("--note <text> is required: it is the entry's note");
+  const releaseAt = argv.indexOf("--release");
+  const release = releaseAt === -1 ? "" : (argv[releaseAt + 1] ?? "");
+  if (!/^\d+\.\d+\.\d+$/.test(release)) {
+    throw new Error(
+      "--release <X.Y.Z> is required: it is the version every package moves to",
+    );
+  }
 
   const plans = LEDGERS.map((ledger) => ({
     ledger,
     plan: planFreeze(
       readFileSync(join(root, ledger.file), "utf8"),
       ledger.currentVersion(root),
+      release,
     ),
   }));
 
@@ -199,14 +229,14 @@ export function main(argv, root = REPO_ROOT) {
 
   const moved = [];
   for (const { ledger, plan } of plans) {
-    if (plan.carriedVersion !== plan.latest) {
+    if (!plan.carriedAllowed) {
       throw new Error(
         `${ledger.id}: the code carries ${plan.carriedVersion} but the ledger's latest entry is ${plan.latest}`,
       );
     }
     if (!plan.pending) {
       console.info(
-        `${ledger.id}: nothing pending, ${ledger.versionName} stays ${plan.latest}`,
+        `${ledger.id}: nothing pending, ${ledger.versionName} stays at ${plan.latest}`,
       );
       continue;
     }
@@ -225,19 +255,25 @@ export function main(argv, root = REPO_ROOT) {
       );
     }
     if (dryRun) continue;
-    const printed = runFreeze(root, ledger, note);
+    const printed = runFreeze(root, ledger, note, release);
     if (printed !== plan.next) {
       throw new Error(
         `${ledger.id}: the freeze printed ${printed} where ${plan.next} was planned`,
       );
     }
-    ledger.setVersion(root, printed);
+    ledger.setVersion?.(root, printed);
     moved.push(ledger.id);
+  }
+
+  const manifests = releaseManifests(root);
+  console.info(`release ${release}: ${manifests.join(", ")}`);
+  if (!dryRun) {
+    for (const file of manifests) setManifestVersion(root, file, release);
   }
   console.info(
     dryRun
       ? "dry run: nothing written"
-      : `froze: ${moved.join(", ") || "none"}`,
+      : `froze: ${moved.join(", ") || "none"}; every manifest above is at ${release}`,
   );
   return moved;
 }

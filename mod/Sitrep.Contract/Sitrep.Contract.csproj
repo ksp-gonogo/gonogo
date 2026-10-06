@@ -95,6 +95,20 @@
        public surface here (EnvelopeCodec, BinaryFrameCodec), the writer behind
        it is not. The grant moved with the serializer out of Sitrep.Core, which
        carried the identical one for the identical reason. -->
+  <Import Project="ContractVersion.props" />
+
+  <!-- The contract version an Uplink built against this assembly speaks, as
+       metadata a reader can find without loading the assembly. The package's
+       own version is the Gonogo release, which says nothing about the wire, so
+       `scripts/nuget-contract-package-gate.mjs` reads this stamp out of the
+       packed assembly instead. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SitrepContractVersion</_Parameter1>
+      <_Parameter2>$(ContractMajor).$(ContractMinor)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Sitrep.Core" />
     <InternalsVisibleTo Include="Sitrep.Host" />

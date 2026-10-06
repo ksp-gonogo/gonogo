@@ -29,59 +29,27 @@
   </PropertyGroup>
 
   <!--
-    MAJOR.MINOR ARE THE CONTRACT'S OWN, read out of the same `public const int`
-    pair every other mirror of it is held to
-    (`packages/core/src/contract-version-parity.test.ts` reads these exact
-    declarations to hold `compat-versions.ts` honest). A PackageReference range
-    says something true about the wire: `[17.0.0, 18.0.0)` is "any additive
-    contract on the Major 17 line", because that is exactly what a Minor bump
-    means (see ContractVersion.cs). A hand-maintained Major or Minor would be a
-    fourth mirror of a number that already has three, and the app advertising
-    contract 5.0 against a contract at 12.22 is how the last unchecked mirror
-    went.
+    THE PACKAGE VERSION IS THE RELEASE VERSION, the one every published package
+    and the app carry, read out of the app's manifest, which only the release
+    commit moves. A release candidate overrides it with `-p:PackageVersion`.
 
-    The regex is nested INSIDE the ReadAllText call deliberately: the file is
-    120KB of doc comments, and storing it in an MSBuild property would hand
-    that text to the property expander. Only the digits ever become a property.
-
-    `scripts/nuget-contract-package-gate.mjs` reads the same declarations out
-    of the C# and this file and fails if the PACKED version disagrees, so the
-    derivation is checked against the package rather than against itself.
-
-    PATCH IS THE PACKAGE'S OWN, not a mirror of anything. The package
-    also carries Sitrep.Contract.TestSupport and Sitrep.Core (see the
-    ItemGroup below): a change to either, with no Major/Minor move, would otherwise
-    pack under the SAME version, which the release step reads as "already
-    published" and skips silently. PackagePatch gives that case somewhere
-    honest to bump to, without claiming the additive-contract meaning a Minor
-    bump carries: an Uplink author's reading is unchanged, Major.Minor is
-    still the contract, Patch is just this package's own build number for a
-    contract line that did not move.
-
-    PackagePatchForContract records which Major.Minor line PackagePatch was
-    last reset for. Reset PackagePatch to 0 and this to the current
-    ContractMajor.ContractMinor in the SAME commit that moves either; the
-    target below fails the pack otherwise, catching a forgotten reset rather
-    than publishing a patch counter that belongs to a different contract line.
+    The contract's own Major.Minor is NOT the package version: it is a
+    compatibility stamp the host checks when it loads an Uplink. It comes from
+    ContractVersion.props, rides in the release notes below, and is stamped into
+    Sitrep.Contract.dll as `SitrepContractVersion` assembly metadata.
+    `scripts/nuget-contract-package-gate.mjs` checks the packed version against
+    the app's manifest and the stamp against ContractVersion.cs.
   -->
+  <Import Project="..\Sitrep.Contract\ContractVersion.props" />
   <PropertyGroup>
-    <_ContractVersionCs>$(MSBuildThisFileDirectory)..\Sitrep.Contract\ContractVersion.cs</_ContractVersionCs>
-    <ContractMajor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Major\s*=\s*)\d+`).Value)</ContractMajor>
-    <ContractMinor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Minor\s*=\s*)\d+`).Value)</ContractMinor>
-    <PackagePatch>0</PackagePatch>
-    <PackagePatchForContract>26.1</PackagePatchForContract>
-    <Version>$(ContractMajor).$(ContractMinor).$(PackagePatch)</Version>
+    <_ReleaseManifest>$(MSBuildThisFileDirectory)..\..\packages\app\package.json</_ReleaseManifest>
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ReleaseManifest))), `(?&lt;="version"\s*:\s*")\d+\.\d+\.\d+(?=")`).Value)</Version>
   </PropertyGroup>
 
-  <!--
-    Enforces the reset rule above: a nonzero PackagePatch left over from an
-    earlier contract line would let a TestSupport/Core change pack under a
-    version that belongs to a different contract line.
-  -->
-  <Target Name="_CheckPackagePatchResetForContract" BeforeTargets="Pack;Build">
+  <Target Name="_CheckReleaseVersionRead" BeforeTargets="Pack;Build">
     <Error
-      Condition="'$(PackagePatch)' != '0' And '$(PackagePatchForContract)' != '$(ContractMajor).$(ContractMinor)'"
-      Text="PackagePatch is $(PackagePatch), left over from contract $(PackagePatchForContract), but the live contract is $(ContractMajor).$(ContractMinor). Reset PackagePatch to 0 and PackagePatchForContract to $(ContractMajor).$(ContractMinor) in the same commit that moved the contract." />
+      Condition="'$(Version)' == ''"
+      Text="Could not read the release version out of $(_ReleaseManifest): its top-level version moved, and this file reads it by shape." />
   </Target>
 
   <PropertyGroup>
@@ -97,9 +65,7 @@
     <RepositoryUrl>https://github.com/ksp-gonogo/gonogo</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Copyright>Copyright (c) ksp-gonogo contributors</Copyright>
-    <!-- Every release is a contract release, so the release note that matters
-         is the contract's own changelog rather than a per-package one. -->
-    <PackageReleaseNotes>Contract version $(ContractMajor).$(ContractMinor). A Major bump is breaking for an Uplink; a Minor bump is additive and an Uplink built against an older Minor of the same Major still loads.</PackageReleaseNotes>
+    <PackageReleaseNotes>Speaks wire contract $(ContractMajor).$(ContractMinor). A contract Major bump is breaking for an Uplink; a Minor bump is additive and an Uplink built against an older Minor of the same Major still loads.</PackageReleaseNotes>
   </PropertyGroup>
 
   <!-- SourceLink. The .NET SDK has carried Microsoft.SourceLink.GitHub since

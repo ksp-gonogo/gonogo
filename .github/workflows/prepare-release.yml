@@ -1,12 +1,15 @@
 name: prepare-release
 
 # Cuts a release: analyzes conventional commits since the last v* tag to
-# determine the bump (or takes an explicit override), bumps
-# packages/app/package.json, commits `release: vX.Y.Z`, tags, pushes, and
-# dispatches release.yml on the new tag: same model as kerbcast's
+# determine the bump (or takes an explicit bump or an exact version), moves
+# every version the release carries, commits `release: vX.Y.Z`, tags, pushes,
+# and dispatches release.yml on the new tag: same model as kerbcast's
 # prepare-release. The version is the single release number for the whole
-# deploy surface: the Pages site, all three GHCR images, and the peer
-# hello handshake.
+# deploy surface: the Pages site, all three GHCR images, the peer hello
+# handshake, the mod zips, and every published package (sitrep-sdk, ui-kit,
+# uplink-tools on npm, KspGonogo.Sitrep.Contract on nuget.org). It is refused
+# unless it sorts above every version any of those packages has published and
+# its tag is unspent (scripts/release-packages.mjs).
 #
 # One manual dispatch does the whole cut, run on `staging` where the work lands:
 #   gh workflow run prepare-release.yml --ref staging
@@ -18,10 +21,11 @@ name: prepare-release
 #
 # The published surface ledgers (mod/sitrep-sdk/extension-api.ledger.json and
 # packages/uplink-tools/api-surface.ledger.json) collect declared changes in a
-# `pending` entry. The cut freezes both in the same commit as the version bump
-# and sets EXTENSION_API_VERSION and the uplink-tools version to what each
-# freeze prints; it fails when a pending entry has an empty note. Run it with
-# `-f dry_run=true` to print what would be frozen and push nothing.
+# `pending` entry. The cut freezes both in the same commit, moves
+# EXTENSION_API_VERSION by its own rule, and moves the app and every published
+# package to the release version; it fails when a pending entry has an empty
+# note. Run it with `-f dry_run=true` to print what would be frozen and moved
+# and push nothing.
 #
 # The bump size states the wire-compatibility promise (see
 # docs/DEPLOYMENT.md): patch = compatible/silent, minor = advisory
@@ -40,6 +44,11 @@ on:
           - patch
           - minor
           - major
+      version:
+        description: 'An exact X.Y.Z instead of the bump, to reset the version line or name a 1.0'
+        required: false
+        default: ''
+        type: string
       dry_run:
         description: 'Print what would be bumped and frozen; commit, tag and push nothing'
         required: false
@@ -80,69 +89,31 @@ jobs:
           echo "::error::main has ${AHEAD} commit(s) that ${INTEGRATION_BRANCH} lacks, so it cannot be fast-forwarded. Merge main into ${INTEGRATION_BRANCH} and land that first."
           exit 1
 
-      - name: Determine bump level
-        id: bump
-        run: |
-          BUMP="${{ inputs.bump }}"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
-          if [ "$BUMP" = "auto" ]; then
-            LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
-            if [ -n "$LAST_TAG" ]; then
-              LOG="$(git log "${LAST_TAG}..HEAD" --format='%s%n%b')"
-            else
-              LOG="$(git log --format='%s%n%b')"
-            fi
-
-            echo "Commits since ${LAST_TAG:-the beginning}:"
-            echo "$LOG"
-
-            # An empty range means the last tag is this exact tree. `auto` would
-            # read no commits, fall through to `patch`, and cut a second release
-            # of an already-released tree.
-            if [ -z "$(echo "$LOG" | tr -d '[:space:]')" ]; then
-              echo "::error::no commits since ${LAST_TAG}: this tree is already released. Nothing to cut."
-              exit 1
-            fi
-
-            # BREAKING CHANGE in body, or ! after type/scope -> major
-            # feat -> minor, everything else -> patch
-            if echo "$LOG" | grep -qE '(^BREAKING CHANGE|^[a-z]+(\([^)]+\))?!:)'; then
-              BUMP=major
-            elif echo "$LOG" | grep -qE '^feat(\([^)]+\))?:'; then
-              BUMP=minor
-            else
-              BUMP=patch
-            fi
-          fi
-
-          echo "Bump level: $BUMP"
-          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
-
-      - name: Bump packages/app/package.json
+      # Refused unless the version sorts above everything any published package
+      # has on npm or nuget.org and its v* tag is unspent. `auto` reads the
+      # conventional commits since the last v* tag: a break moves the major, a
+      # feature the minor, anything else the patch, and an empty range fails.
+      - name: Work out the release version
         id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          NEW="$(node -e "
-            const fs = require('fs');
-            const path = 'packages/app/package.json';
-            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-            const [maj, min, pat] = pkg.version.split('.').map(Number);
-            const bump = '${{ steps.bump.outputs.bump }}';
-            const next =
-              bump === 'major' ? [maj + 1, 0, 0] :
-              bump === 'minor' ? [maj, min + 1, 0] :
-                                 [maj, min, pat + 1];
-            pkg.version = next.join('.');
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            console.log(pkg.version);
-          ")"
+          set -euo pipefail
+          if [ -n "$RELEASE_VERSION" ]; then
+            CHOICE=(--version "$RELEASE_VERSION")
+          else
+            CHOICE=(--bump "$BUMP")
+          fi
+          node scripts/release-packages.mjs plan "${CHOICE[@]}" > "$RUNNER_TEMP/plan.json"
+          NEW="$(node -p 'require(process.argv[1]).release' "$RUNNER_TEMP/plan.json")"
           echo "Releasing ${NEW}"
           echo "new=${NEW}" >> "$GITHUB_OUTPUT"
           echo "tag=v${NEW}" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-node@v6
-        if: ${{ !inputs.dry_run }}
-        with:
-          node-version: '24'
 
       - uses: pnpm/action-setup@v6
         if: ${{ !inputs.dry_run }}
@@ -156,11 +127,11 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build
 
-      - name: Freeze the published surface ledgers
+      - name: Freeze the published surface ledgers and move every version
         run: |
           FLAGS=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then FLAGS="--dry-run"; fi
-          node scripts/freeze-published-surface.mjs --note "Release ${{ steps.version.outputs.tag }}" $FLAGS
+          node scripts/freeze-published-surface.mjs --release "${{ steps.version.outputs.new }}" --note "Release ${{ steps.version.outputs.tag }}" $FLAGS
 
       # The Uplink pages print the EXTENSION_API_VERSION each was built against,
       # and the app refuses a stale manifest.

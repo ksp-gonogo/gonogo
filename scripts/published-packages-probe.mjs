@@ -47,12 +47,13 @@
  * hand-written tsconfig because tsc's default target cannot even parse the sdk's
  * generated declarations, which would satisfy the planted check with noise.
  *
- * Usage: node scripts/published-packages-probe.mjs [--rc-plan <plan.json>]
+ * Usage: node scripts/published-packages-probe.mjs [--version <version>]
  * Needs every published package's `dist` built first.
  *
- * `--rc-plan` probes the release candidates a plan from `rc-packages.mjs` names
- * instead: each tarball is stamped with its RC version and exact sibling pins
- * before the install, so the install itself proves the pins resolve together.
+ * Each tarball is stamped the way a release stamps it (`release-packages.mjs`):
+ * one version for every package and every sibling pinned to it exactly, so the
+ * install itself proves the pins resolve together. The version is the release
+ * the tree carries, or `--version`, which is how an RC run probes its RCs.
  */
 
 import { spawnSync } from "node:child_process";
@@ -65,7 +66,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { stampTarball } from "./rc-packages.mjs";
+import { stampTarball, treeRelease } from "./release-packages.mjs";
 import { makeTempDir } from "./temp-dir.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -528,20 +529,21 @@ function runtimeImports(specs, work) {
   }
 }
 
-const rcPlanAt = process.argv.indexOf("--rc-plan");
-const rcPlan =
-  rcPlanAt === -1
-    ? null
-    : JSON.parse(readFileSync(process.argv[rcPlanAt + 1], "utf8"));
+const versionAt = process.argv.indexOf("--version");
+const version =
+  versionAt === -1 ? treeRelease(ROOT) : process.argv[versionAt + 1];
 
 const workRoot = makeTempDir("gonogo-published-probe-");
 const tarballs = packPublishedPackages(join(workRoot, "tarballs"));
-if (rcPlan) {
-  for (const [name, tarball] of Object.entries(tarballs)) {
-    tarballs[name] = stampTarball(tarball, rcPlan, join(workRoot, "rc"));
-  }
+for (const [name, tarball] of Object.entries(tarballs)) {
+  tarballs[name] = stampTarball(
+    tarball,
+    version,
+    join(workRoot, "stamped"),
+    ROOT,
+  );
 }
 console.log(
-  `packed: ${Object.keys(tarballs).length} published package(s): ${Object.keys(tarballs).join(", ")}`,
+  `packed: ${Object.keys(tarballs).length} published package(s) at ${version}: ${Object.keys(tarballs).join(", ")}`,
 );
 selfTest(tarballs, workRoot);

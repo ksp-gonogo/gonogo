@@ -351,3 +351,63 @@ describe("re-printing a floor under another TypeScript", () => {
     );
   });
 });
+
+describe("a ledger versioned by the release", () => {
+  const WITH_NEW = [...BASE, "p . g :: (): void"];
+  const AFTER_BREAK = BASE.filter((l) => !l.startsWith("p . f"));
+  const released = () => seeded("release", "at-release", "0.1.0");
+  const declare = (current: readonly string[]) => {
+    const out = declarePending(released(), current);
+    const noted = (list: { key: string; note: string }[]) =>
+      list.map((c) => ({ ...c, note: "why" }));
+    return {
+      ...out,
+      pending: {
+        breaks: noted(out.pending.breaks),
+        additions: noted(out.pending.additions),
+      },
+    };
+  };
+
+  it("records a change under the release version it is given, break or addition", () => {
+    const added = freezeEntry(declare(WITH_NEW), WITH_NEW, "n", "0.4.0");
+    expect(added.version).toBe("0.4.0");
+    expect(problems(grade(added.ledger, WITH_NEW, "0.4.0"))).toEqual([]);
+    const broken = freezeEntry(declare(AFTER_BREAK), AFTER_BREAK, "n", "0.4.0");
+    expect(broken.ledger.entries[1].floor).toEqual([...AFTER_BREAK].sort());
+    expect(problems(grade(broken.ledger, AFTER_BREAK, "0.4.0"))).toEqual([]);
+  });
+
+  it("refuses to freeze without a release version, or under one not above the last entry", () => {
+    expect(() => freezeEntry(declare(WITH_NEW), WITH_NEW, "n")).toThrow(
+      /needs the release version/,
+    );
+    expect(() =>
+      freezeEntry(declare(WITH_NEW), WITH_NEW, "n", "0.1.0"),
+    ).toThrow(/does not sort above 0\.1\.0/);
+  });
+
+  it("passes a code version past the latest entry, since a release moves the package whether or not its surface changed", () => {
+    expect(problems(grade(released(), BASE, "0.3.0"))).toEqual([]);
+  });
+
+  it("fails a code version below the latest entry", () => {
+    expect(problems(grade(released(), BASE, "0.0.9"))).toEqual([
+      "CurrentVersionIsRecordedInTheLedger: the code is at 0.0.9, below the ledger's latest entry 0.1.0: the package version moves only through the release freeze",
+    ]);
+  });
+
+  it("fails an entry that does not sort above the one before it", () => {
+    const { ledger } = freezeEntry(declare(WITH_NEW), WITH_NEW, "n", "0.4.0");
+    ledger.entries[1].version = "0.0.5";
+    expect(problems(grade(ledger, WITH_NEW, "0.4.0"))).toContain(
+      "EveryEntryDeclaresExactlyWhatItChanged: 0.0.5: does not sort above 0.1.0, and a release version only rises",
+    );
+  });
+
+  it("has no version of its own to compute", () => {
+    expect(() => nextVersion("0.1.0", true, "release")).toThrow(
+      /given by the release/,
+    );
+  });
+});

@@ -119,4 +119,30 @@ describe("gonogo-uplink new", () => {
       /already exists/,
     );
   });
+  it("pins every published sibling to this sdk's own version when there is no sibling Uplink to inherit from", () => {
+    const uplinks = join(workdir(), "uplinks");
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    newUplink(["fresh", "--dir", uplinks, "--no-generate"]);
+
+    const own = JSON.parse(
+      readFileSync(
+        join(import.meta.dirname, "..", "..", "package.json"),
+        "utf8",
+      ),
+    ).version;
+    const pkg = JSON.parse(
+      readFileSync(join(uplinks, "fresh", "client", "package.json"), "utf8"),
+    );
+    const scoped = Object.fromEntries(
+      Object.entries({ ...pkg.dependencies, ...pkg.devDependencies }).filter(
+        ([name]) => name.startsWith("@ksp-gonogo/"),
+      ),
+    );
+    expect(scoped).toEqual({
+      "@ksp-gonogo/sitrep-sdk": own,
+      "@ksp-gonogo/ui-kit": own,
+      "@ksp-gonogo/uplink-tools": own,
+    });
+  });
 });

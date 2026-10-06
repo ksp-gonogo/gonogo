@@ -19,10 +19,10 @@ import {
 } from "../../../scripts/freeze-published-surface.mjs";
 
 /**
- * The release flow freezes both published surface ledgers and sets the versions
- * the freeze prints. What holds here is the version arithmetic, that an empty
- * note stops the release before anything is written, and that a dry run writes
- * nothing.
+ * The release flow freezes both published surface ledgers and moves the app and
+ * every published package to the release version. What holds here is the
+ * version arithmetic, that an empty note stops the release before anything is
+ * written, and that a dry run writes nothing.
  */
 
 const ledgerText = (
@@ -119,22 +119,62 @@ describe("main", () => {
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), text);
   };
-  const seed = (extension: string, tools: string) => {
+  const manifest = (name: string, version: string, published = true) =>
+    `${JSON.stringify(
+      published
+        ? { name, version, exports: { ".": "./dist/index.js" } }
+        : { name, version, private: true },
+    )}\n`;
+  const MANIFESTS = [
+    "packages/app/package.json",
+    "mod/sitrep-sdk/package.json",
+    "packages/ui-kit/package.json",
+    "packages/uplink-tools/package.json",
+  ];
+  const seed = (extension: string, tools: string, toolsVersion = "0.1.0") => {
     put("mod/sitrep-sdk/extension-api.ledger.json", extension);
     put("packages/uplink-tools/api-surface.ledger.json", tools);
     put(
       "mod/sitrep-sdk/src/compat-versions.ts",
       'export const EXTENSION_API_VERSION = "6.0.0";\n',
     );
-    put("packages/uplink-tools/package.json", '{"version":"0.1.0"}\n');
+    put(
+      "packages/app/package.json",
+      manifest("@ksp-gonogo/app", "1.0.0", false),
+    );
+    put(
+      "mod/sitrep-sdk/package.json",
+      manifest("@ksp-gonogo/sitrep-sdk", "0.0.1"),
+    );
+    put(
+      "packages/ui-kit/package.json",
+      manifest("@ksp-gonogo/ui-kit", "0.1.0"),
+    );
+    put(
+      "packages/uplink-tools/package.json",
+      manifest("@ksp-gonogo/uplink-tools", toolsVersion),
+    );
+    put(
+      "packages/theme/package.json",
+      manifest("@ksp-gonogo/theme", "0.0.0", false),
+    );
   };
+  const versions = () =>
+    MANIFESTS.map(
+      (file) => JSON.parse(readFileSync(join(root, file), "utf8")).version,
+    );
   const snapshot = () =>
     [
       "mod/sitrep-sdk/extension-api.ledger.json",
       "packages/uplink-tools/api-surface.ledger.json",
       "mod/sitrep-sdk/src/compat-versions.ts",
-      "packages/uplink-tools/package.json",
+      "packages/theme/package.json",
+      ...MANIFESTS,
     ].map((file) => readFileSync(join(root, file), "utf8"));
+  const quiet = () => [
+    ledgerText("semver", "6.0.0", { breaks: [], additions: [] }),
+    ledgerText("release", "0.1.0", { breaks: [], additions: [] }),
+  ];
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "freeze-"));
@@ -152,61 +192,79 @@ describe("main", () => {
         breaks: [],
         additions: [change("sdk . X", "")],
       }),
-      ledgerText("zero-major", "0.1.0", { breaks: [], additions: [] }),
+      quiet()[1],
     );
     const before = snapshot();
-    expect(() => main(["--note", "r"], root)).toThrow(
+    expect(() => main(["--note", "r", "--release", "0.2.0"], root)).toThrow(
       /extension-api: sdk \. X/,
     );
     expect(snapshot()).toEqual(before);
   });
 
-  it("refuses without a note for the entry", () => {
-    seed(
-      ledgerText("semver", "6.0.0", { breaks: [], additions: [] }),
-      ledgerText("zero-major", "0.1.0", { breaks: [], additions: [] }),
+  it("refuses without a note for the entry, or without the release version", () => {
+    seed(quiet()[0], quiet()[1]);
+    expect(() => main(["--release", "0.2.0"], root)).toThrow(/--note/);
+    expect(() => main(["--note", "r"], root)).toThrow(/--release/);
+    expect(() => main(["--note", "r", "--release", "0.2"], root)).toThrow(
+      /--release/,
     );
-    expect(() => main([], root)).toThrow(/--note/);
   });
 
   it("refuses when the code carries a version the ledger has not frozen", () => {
     seed(
       ledgerText("semver", "5.0.0", { breaks: [], additions: [] }),
-      ledgerText("zero-major", "0.1.0", { breaks: [], additions: [] }),
+      quiet()[1],
     );
-    expect(() => main(["--note", "r", "--dry-run"], root)).toThrow(
-      /latest entry is 5\.0\.0/,
-    );
+    expect(() =>
+      main(["--note", "r", "--release", "0.2.0", "--dry-run"], root),
+    ).toThrow(/latest entry is 5\.0\.0/);
   });
 
-  it("a dry run reports what would be frozen and writes nothing", () => {
+  it("refuses when uplink-tools carries a version below its ledger's latest entry", () => {
+    seed(quiet()[0], quiet()[1], "0.0.9");
+    expect(() =>
+      main(["--note", "r", "--release", "0.2.0", "--dry-run"], root),
+    ).toThrow(/uplink-tools: the code carries 0\.0\.9/);
+  });
+
+  it("a dry run reports what would be frozen and every version it would set, and writes nothing", () => {
     seed(
       ledgerText("semver", "6.0.0", {
         breaks: [change("sdk . Y", "gone")],
         additions: [],
       }),
-      ledgerText("zero-major", "0.1.0", {
+      ledgerText("release", "0.1.0", {
         breaks: [],
         additions: [change("uplink-tools . Z", "new")],
       }),
     );
     const before = snapshot();
-    expect(main(["--note", "r", "--dry-run"], root)).toEqual([]);
+    expect(
+      main(["--note", "r", "--release", "0.2.0", "--dry-run"], root),
+    ).toEqual([]);
     expect(snapshot()).toEqual(before);
     const printed = vi
       .mocked(console.info)
       .mock.calls.map((call) => String(call[0]))
       .join("\n");
     expect(printed).toContain("extension-api: 6.0.0 -> 7.0.0");
-    expect(printed).toContain("uplink-tools: 0.1.0 -> 0.1.1");
+    expect(printed).toContain("uplink-tools: 0.1.0 -> 0.2.0");
+    expect(printed).toContain(
+      "release 0.2.0: packages/app/package.json, mod/sitrep-sdk/package.json, packages/ui-kit/package.json, packages/uplink-tools/package.json",
+    );
     expect(vi.mocked(console.warn).mock.calls.join("\n")).toContain("re-pins");
   });
 
-  it("does nothing, and says so, when neither ledger has anything pending", () => {
-    seed(
-      ledgerText("semver", "6.0.0", { breaks: [], additions: [] }),
-      ledgerText("zero-major", "0.1.0", { breaks: [], additions: [] }),
+  it("moves the app and every published package to the release version, and nothing private, even with nothing pending", () => {
+    seed(quiet()[0], quiet()[1]);
+    const theme = readFileSync(
+      join(root, "packages/theme/package.json"),
+      "utf8",
     );
-    expect(main(["--note", "r"], root)).toEqual([]);
+    expect(main(["--note", "r", "--release", "0.2.0"], root)).toEqual([]);
+    expect(versions()).toEqual(["0.2.0", "0.2.0", "0.2.0", "0.2.0"]);
+    expect(
+      readFileSync(join(root, "packages/theme/package.json"), "utf8"),
+    ).toBe(theme);
   });
 });

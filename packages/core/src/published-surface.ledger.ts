@@ -16,7 +16,12 @@ import { diffShape, keyOf } from "./published-surface.scan";
  * note. The freeze turns it into an entry and moves the version.
  */
 
-export type Versioning = "semver" | "zero-major";
+/**
+ * How a ledger's entries are numbered. `semver` and `zero-major` compute the
+ * next version from what the entry changed; `release` records each entry under
+ * the release that froze it, which the release flow supplies.
+ */
+export type Versioning = "semver" | "zero-major" | "release";
 
 export interface DeclaredChange {
   key: string;
@@ -93,7 +98,11 @@ export function parseLedger(text: string): Ledger {
   if (!isRecord(raw)) throw new Error("the ledger is not an object");
   const { typescript, versioning, versionMoves, entries, pending } = raw;
   if (typeof typescript !== "string") throw new Error("no typescript version");
-  if (versioning !== "semver" && versioning !== "zero-major") {
+  if (
+    versioning !== "semver" &&
+    versioning !== "zero-major" &&
+    versioning !== "release"
+  ) {
     throw new Error(`unknown versioning ${String(versioning)}`);
   }
   if (versionMoves !== "at-release" && versionMoves !== "every-change") {
@@ -148,6 +157,11 @@ export function nextVersion(
   hasBreaks: boolean,
   versioning: Versioning,
 ): string {
+  if (versioning === "release") {
+    throw new Error(
+      "a release-versioned ledger has no version of its own: it is given by the release",
+    );
+  }
   const parsed = parseVersion(previous);
   if (!parsed) throw new Error(`${previous} is not a version`);
   const [major, minor, patch] = parsed;
@@ -157,6 +171,15 @@ export function nextVersion(
   return hasBreaks
     ? `${major}.${minor + 1}.0`
     : `${major}.${minor}.${patch + 1}`;
+}
+
+/** Negative, zero or positive as plain version `a` sorts below, with or above `b`. */
+function compareVersions(a: string, b: string): number {
+  const [x, y] = [parseVersion(a), parseVersion(b)];
+  if (!x) throw new Error(`${a} is not a version`);
+  if (!y) throw new Error(`${b} is not a version`);
+  for (let i = 0; i < 3; i += 1) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
 }
 
 /** The shape lines frozen as of the entry at `upTo` (inclusive), or null when no floor is kept for it. */
@@ -241,7 +264,16 @@ export function gradeLedger({
   if (!last) {
     results.CurrentVersionIsRecordedInTheLedger.push("the ledger has no entry");
   }
-  if (last && last.version !== version) {
+  if (
+    last &&
+    ledger.versioning === "release" &&
+    compareVersions(version, last.version) < 0
+  ) {
+    results.CurrentVersionIsRecordedInTheLedger.push(
+      `the code is at ${version}, below the ledger's latest entry ${last.version}: the package version moves only through the release freeze`,
+    );
+  }
+  if (last && ledger.versioning !== "release" && last.version !== version) {
     results.CurrentVersionIsRecordedInTheLedger.push(
       `the code is at ${version} and the ledger's latest entry is ${last.version}: a version moves through the freeze at release, never by hand`,
     );
@@ -316,7 +348,14 @@ export function gradeLedger({
   entries.forEach((entry, i) => {
     const before = i > 0 ? frozenAt(ledger, i - 1) : null;
     const hasBreaks = entry.breaks.length > 0;
-    if (i > 0) {
+    if (i > 0 && ledger.versioning === "release") {
+      if (compareVersions(entry.version, entries[i - 1].version) <= 0) {
+        problems.push(
+          `${entry.version}: does not sort above ${entries[i - 1].version}, and a release version only rises`,
+        );
+      }
+    }
+    if (i > 0 && ledger.versioning !== "release") {
       const expected = nextVersion(
         entries[i - 1].version,
         hasBreaks,
@@ -327,11 +366,11 @@ export function gradeLedger({
           `${entry.version}: ${hasBreaks ? "breaks" : "only adds"} after ${entries[i - 1].version}, so it must be ${expected}`,
         );
       }
-      if (!hasBreaks && entry.additions.length === 0) {
-        problems.push(
-          `${entry.version}: records neither a break nor an addition`,
-        );
-      }
+    }
+    if (i > 0 && !hasBreaks && entry.additions.length === 0) {
+      problems.push(
+        `${entry.version}: records neither a break nor an addition`,
+      );
     }
     if (entry.floor && before) {
       const diff = diffShape(before, entry.floor);
@@ -406,15 +445,37 @@ export function declarePending(
   };
 }
 
+function versionOfFreeze(
+  ledger: Ledger,
+  latest: string,
+  diff: { breaks: string[] },
+  release: string | undefined,
+): string {
+  if (ledger.versioning !== "release") {
+    return nextVersion(latest, diff.breaks.length > 0, ledger.versioning);
+  }
+  if (release === undefined) {
+    throw new Error(
+      "a release-versioned ledger needs the release version to freeze under",
+    );
+  }
+  if (compareVersions(release, latest) <= 0) {
+    throw new Error(`${release} does not sort above ${latest}`);
+  }
+  return release;
+}
+
 /**
  * Turns the declared change into the next entry and clears `pending`. Refuses
  * when the declaration does not match the computed diff, when a note is empty,
- * or when there is nothing to freeze.
+ * or when there is nothing to freeze. A `release`-versioned ledger records the
+ * entry under `release`, which must sort above its latest entry.
  */
 export function freezeEntry(
   ledger: Ledger,
   current: readonly string[],
   note: string,
+  release?: string,
 ): { ledger: Ledger; version: string } {
   const last = ledger.entries[ledger.entries.length - 1];
   const frozen = last ? frozenAt(ledger, ledger.entries.length - 1) : null;
@@ -439,11 +500,7 @@ export function freezeEntry(
       `declare the change first (GONOGO_SURFACE_DECLARE), then write each note:\n${refusals.join("\n")}`,
     );
   }
-  const version = nextVersion(
-    last.version,
-    diff.breaks.length > 0,
-    ledger.versioning,
-  );
+  const version = versionOfFreeze(ledger, last.version, diff, release);
   if (ledger.entries.some((e) => e.version === version)) {
     throw new Error(
       `${version} is already recorded and an entry is never rewritten`,

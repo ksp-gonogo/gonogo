@@ -25,7 +25,8 @@ import { keyOf, scanPublishedSurface } from "./published-surface.scan";
  *
  * Two ledgers: the sitrep-sdk and ui-kit share one under
  * `EXTENSION_API_VERSION`, the number the loader refuses an Uplink on; the
- * uplink-tools surface has its own, under its package version.
+ * uplink-tools surface has its own, whose entries are the releases that froze
+ * them (every published package carries the release version).
  *
  * While `versionMoves` is `at-release`, a change is declared in the ledger's
  * `pending` entry, each break and addition by key with a note, and the version
@@ -39,7 +40,8 @@ import { keyOf, scanPublishedSurface } from "./published-surface.scan";
  * - `GONOGO_SURFACE_DECLARE`: writes the computed change into `pending`,
  *   keeping notes already written; fill in each empty `note` afterwards
  * - `GONOGO_SURFACE_FREEZE`: turns a fully declared `pending` into the next
- *   entry; `GONOGO_SURFACE_NOTE` is its note
+ *   entry; `GONOGO_SURFACE_NOTE` is its note, and `GONOGO_SURFACE_RELEASE` the
+ *   release version a `release`-versioned ledger records it under
  * - `GONOGO_SURFACE_REPRINT`: re-prints the floor after TypeScript moved
  *
  * Each prints the `biome check --write` the ledger file then needs.
@@ -88,7 +90,7 @@ const LEDGERS: readonly LedgerSpec[] = [
 
 const VERSIONING = {
   "extension-api": "semver",
-  "uplink-tools": "zero-major",
+  "uplink-tools": "release",
 } as const;
 
 const shapes = scanPublishedSurface(REPO_ROOT);
@@ -170,6 +172,7 @@ describe("the published surface utilities", () => {
           readLedger(spec),
           currentOf(spec),
           note,
+          process.env.GONOGO_SURFACE_RELEASE,
         );
         writeLedger(spec, ledger);
         console.info(

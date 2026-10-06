@@ -716,14 +716,32 @@ namespace ${ns}.Tests
   return files;
 }
 
-const FALLBACK_DEPENDENCIES = {
-  "@ksp-gonogo/ui-kit": "latest",
-  "styled-components": "^6.0.0",
-};
+/**
+ * This sdk's own version, read from its manifest rather than baked in at build:
+ * the published manifest carries the version a release or RC was stamped with,
+ * and every published package carries that same one.
+ */
+function ownVersion(): string {
+  const manifest = asRecord(
+    JSON.parse(
+      readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+    ),
+  );
+  if (typeof manifest.version !== "string") {
+    throw new Error("the sdk's own package.json carries no version");
+  }
+  return manifest.version;
+}
 
-const FALLBACK_DEV_DEPENDENCIES = {
-  "@ksp-gonogo/sitrep-sdk": "latest",
-  "@ksp-gonogo/uplink-tools": "latest",
+/** Every published package moves in lockstep, so a fresh Uplink pins each sibling to exactly the version of the sdk that wrote it. */
+const fallbackDependencies = (version: string) => ({
+  "@ksp-gonogo/ui-kit": version,
+  "styled-components": "^6.0.0",
+});
+
+const fallbackDevDependencies = (version: string) => ({
+  "@ksp-gonogo/sitrep-sdk": version,
+  "@ksp-gonogo/uplink-tools": version,
   "@testing-library/jest-dom": "^6.9.1",
   "@testing-library/react": "^16.3.2",
   "@types/react": "^18.3.28",
@@ -735,7 +753,7 @@ const FALLBACK_DEV_DEPENDENCIES = {
   "react-dom": "^18.0.0",
   typescript: "^5.0.0",
   vitest: "^4.1.4",
-};
+});
 
 const asRecord = (value: unknown): Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -815,8 +833,9 @@ export function newUplink(argv: readonly string[]): number {
     clientUrl:
       inherited?.clientUrl ??
       `https://cdn.jsdelivr.net/gh/you/your-uplinks@releases/uplinks/releases/${id}/0.0.1/${id}.client.js`,
-    dependencies: inherited?.dependencies ?? FALLBACK_DEPENDENCIES,
-    devDependencies: inherited?.devDependencies ?? FALLBACK_DEV_DEPENDENCIES,
+    dependencies: inherited?.dependencies ?? fallbackDependencies(ownVersion()),
+    devDependencies:
+      inherited?.devDependencies ?? fallbackDevDependencies(ownVersion()),
   });
 
   for (const [path, content] of files) {

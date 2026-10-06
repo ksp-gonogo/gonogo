@@ -1,6 +1,6 @@
 # KspGonogo.Sitrep.Contract
 
-The C# half of the [Gonogo](https://ksp-gonogo.github.io/) Uplink surface: the
+The C# half of the [Gonogo](https://github.com/ksp-gonogo/gonogo) Uplink surface: the
 attributes, descriptors and payload types a Kerbal Space Program mod implements to publish
 telemetry into a Gonogo dashboard, plus the version stamp that decides whether the host will
 load your Uplink at all.
@@ -31,22 +31,25 @@ cannot find beside itself, `TestSupport` needs xunit, and `Sitrep.Core` is alrea
 metadata reference to a test framework and never ships its own core.
 
 `Sitrep.Core` is not part of the wire contract and carries no compatibility promise: it moves
-with the app, not with `Major.Minor` below. A core change that breaks your test is showing you
-Uplink work rather than reporting a broken package.
+with the app, not with the contract version below. A core change that breaks your test is
+showing you Uplink work rather than reporting a broken package.
 
 ## Versioning
 
-The package version **is** the wire contract's version, `Major.Minor.0`, taken from
-`ContractVersion.Major` / `ContractVersion.Minor`. There is no separate package number to
-track.
+Two numbers, and they answer different questions.
 
-- a **Major** bump is breaking: a wire-visible type lost or retyped a member, and an Uplink
-  built against the old Major is refused by the host
-- a **Minor** bump is additive: an Uplink built against an older Minor of the same Major still
-  loads
+- **The package version is the Gonogo release** it shipped with. Every published Gonogo package
+  carries the same one: this package, and `@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/ui-kit` and
+  `@ksp-gonogo/uplink-tools` on npm. Reference the release you build against, and move them
+  together. A release candidate is that release's version with an `-rc.<n>` suffix
+- **The wire contract version** is what the host checks when it loads your Uplink. It is
+  `ContractVersion.Major` and `ContractVersion.Minor` in this assembly, and is also stamped on
+  it as the `SitrepContractVersion` assembly metadata. A Major bump is breaking: a wire-visible
+  type lost or retyped a member, and the host refuses an Uplink built against an older Major. A
+  Minor bump is additive: an Uplink built against an older Minor of the same Major still loads
 
-So a `PackageReference` range expresses contract compatibility directly. `[17.0.0, 18.0.0)`
-says "any additive contract on the Major 17 line".
+So a newer Gonogo release does not by itself mean your Uplink stops loading: only a contract
+Major does. The release notes on each version name the contract it speaks.
 
 ## Licence
 

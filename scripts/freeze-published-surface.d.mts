@@ -5,6 +5,8 @@ export interface FreezePlan {
   emptyNotes: string[];
   latest: string;
   carriedVersion: string;
+  carriedAllowed: boolean;
+  byRelease: boolean;
   next: string | null;
 }
 export function nextVersion(
@@ -15,6 +17,7 @@ export function nextVersion(
 export function planFreeze(
   ledgerText: string,
   carriedVersion: string,
+  release?: string,
 ): FreezePlan;
 export function movesMajor(from: string, to: string): boolean;
 export function replaceExtensionApiVersion(
@@ -25,4 +28,5 @@ export function replaceManifestVersion(
   manifestText: string,
   version: string,
 ): string;
+export function releaseManifests(root?: string): string[];
 export function main(argv: string[], root?: string): string[];

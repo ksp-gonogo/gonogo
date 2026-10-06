@@ -21,10 +21,10 @@ name: release
 #      and pushed to SpaceDock,
 #   5. dispatches deploy.yml with channel=release, which writes this release
 #      to /app/ along with the landing page and the old-URL redirects,
-#   6. publishes any @ksp-gonogo package whose own version has moved to
-#      public npm (see the publish-packages job),
-#   7. publishes KspGonogo.Sitrep.Contract to nuget.org when its version has
-#      moved (see the publish-nuget job at the bottom).
+#   6. publishes every @ksp-gonogo package to public npm at the release
+#      version (see the publish-packages job),
+#   7. publishes KspGonogo.Sitrep.Contract to nuget.org at the release
+#      version (see the publish-nuget job at the bottom).
 #
 # WHY PACKAGE PUBLISHING LIVES HERE
 #
@@ -34,20 +34,23 @@ name: release
 # other workflow filename is refused, so this is the only place in the repo
 # that can publish.
 #
-# It also matches the cadence we want. Riding the app's release couples *when*
-# a package may publish, not *what version* it publishes, each package's
-# version still comes from its own package.json, on its own SemVer line. Every
-# release is an opportunity for a package release: unchanged version, nothing
-# happens; bumped version, it goes out.
+# It also matches the cadence we want: every published package carries ONE
+# version, the release version, which is the app's own and the tag's. The
+# release commit moved every manifest to it (freeze-published-surface.mjs), the
+# NuGet package derives it from the app's manifest, and each packed manifest
+# pins its siblings to it exactly (release-packages.mjs). So every release
+# publishes every package. The wire contract's Major.Minor and
+# EXTENSION_API_VERSION are compatibility stamps inside the packages, not their
+# versions.
 #
 # RELEASE CANDIDATES
 #
 # `gh workflow run release.yml --ref staging -f rc=true` publishes a release
 # candidate of every published package instead, and nothing else: no app
-# release, no tag, no commit, no ledger freeze. Each RC is a prerelease of the
-# version the next release would carry (`scripts/rc-packages.mjs` says how that
-# is worked out), suffixed `-rc.<run number>`, applied to the packed tarball
-# only. npm gets it under the `rc` dist-tag and leaves an existing `latest`
+# release, no tag, no commit, no ledger freeze. Every package gets the same RC,
+# `<next release>-rc.<run number>`, applied to the packed tarball only; the next
+# release is what prepare-release.yml would cut (`scripts/release-packages.mjs`
+# says how), or the `version` input. npm gets it under the `rc` dist-tag and leaves an existing `latest`
 # alone (a package with no earlier version may see its first version, the RC,
 # become `latest`, and the job summary says so); NuGet gets it as a SemVer
 # prerelease. Every gate the release runs before a publish runs on the
@@ -77,6 +80,13 @@ on:
           prerelease) instead of a release. staging only; skips the app release.
         type: boolean
         default: false
+      version:
+        description: >-
+          rc only: the release the RC is a candidate for, X.Y.Z, instead of what
+          prepare-release.yml's auto bump would cut. Give prepare-release.yml the
+          same version when it is time to release it.
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -109,6 +119,13 @@ jobs:
             echo "::error::tag ${TAG} does not match packages/app/package.json version ${VERSION}. Cut releases via prepare-release.yml so the two move together."
             exit 1
           fi
+          for MANIFEST in mod/sitrep-sdk/package.json packages/ui-kit/package.json packages/uplink-tools/package.json; do
+            OWN="$(node -p "require('./$MANIFEST').version")"
+            if [ "$OWN" != "$VERSION" ]; then
+              echo "::error::$MANIFEST is at $OWN, not the release version $VERSION. Every published package moves with the release in the release commit; cut releases via prepare-release.yml."
+              exit 1
+            fi
+          done
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
@@ -145,6 +162,9 @@ jobs:
       - name: Pack site asset
         run: tar -czf gonogo-site.tar.gz -C packages/app/dist .
 
+      # `--latest` because deploy.yml serves whichever release GitHub calls latest,
+      # and GitHub's automatic choice prefers the higher version: after a reset of
+      # the version line, an older higher-numbered release would keep /app/.
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,6 +173,7 @@ jobs:
             gonogo-site.tar.gz \
             --repo "${{ github.repository }}" \
             --title "${{ steps.version.outputs.tag }}" \
+            --latest \
             --generate-notes
 
       - name: Publish release images
@@ -182,10 +203,11 @@ jobs:
             --ref main \
             -f channel=release
 
-  # The RC versions for every published package, worked out once so each RC can
-  # pin its siblings exactly, then proved together outside the workspace: the
-  # probe installs the stamped tarballs side by side, so an exact pin that does
-  # not resolve fails the install before anything is published.
+  # The RC version every published package shares, worked out once and refused
+  # unless it sorts above everything any of them has published, then proved
+  # outside the workspace: the probe installs the stamped tarballs side by side,
+  # so an exact pin that does not resolve fails the install before anything is
+  # published.
   rc-plan:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.rc }}
     runs-on: ubuntu-latest
@@ -201,7 +223,11 @@ jobs:
             exit 1
           fi
 
+      # The whole history and its tags: `auto` reads the commits since the last
+      # v* tag, and a spent tag is refused.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v6
         with:
@@ -224,11 +250,18 @@ jobs:
       - name: pnpm install
         run: pnpm install --frozen-lockfile
 
-      - name: Plan the RC versions
+      - name: Plan the RC version
         id: plan
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          node scripts/rc-packages.mjs plan --run "$GITHUB_RUN_NUMBER" \
+          if [ -n "$RELEASE_VERSION" ]; then
+            CHOICE=(--version "$RELEASE_VERSION")
+          else
+            CHOICE=(--bump auto)
+          fi
+          node scripts/release-packages.mjs plan "${CHOICE[@]}" --rc "$GITHUB_RUN_NUMBER" \
             > "$RUNNER_TEMP/rc-plan.json" 2> "$RUNNER_TEMP/rc-plan.txt"
           cat "$RUNNER_TEMP/rc-plan.txt"
           echo "plan=$(cat "$RUNNER_TEMP/rc-plan.json")" >> "$GITHUB_OUTPUT"
@@ -242,16 +275,16 @@ jobs:
         run: pnpm exec turbo build --filter=@ksp-gonogo/sitrep-sdk --filter=@ksp-gonogo/ui-kit --filter=@ksp-gonogo/uplink-tools
 
       - name: The RCs install and load together outside the workspace
-        run: node scripts/published-packages-probe.mjs --rc-plan "$RUNNER_TEMP/rc-plan.json"
+        run: node scripts/published-packages-probe.mjs --version "$(node -p 'require(process.argv[1]).version' "$RUNNER_TEMP/rc-plan.json")"
 
-  # Publishes each package whose own version has moved, via npm OIDC trusted
-  # publishing: no NPM_TOKEN, nothing to rotate, provenance on every publish.
-  # See local_docs/oidc-publishing-guide.md.
+  # Publishes each package at the release version (or the run's RC), via npm
+  # OIDC trusted publishing: no NPM_TOKEN, nothing to rotate, provenance on
+  # every publish. See local_docs/oidc-publishing-guide.md.
   #
   # Runs per package, after `release`, so a failed app release never publishes.
-  # An unchanged version is already on the registry and is skipped with a
-  # notice rather than failing the release: npm rejects a republish outright,
-  # so "no change, no publish" needs no extra bookkeeping here.
+  # A version already on the registry is a re-run attempt (or a packages_only
+  # dispatch of a released tree) and is skipped with a notice, once the fossil
+  # check below has shown the published copy is this content.
   publish-packages:
     needs: [release, rc-plan]
     # `needs` alone would skip this whenever `release` is skipped, which is
@@ -284,7 +317,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Read the package's own version
+      - name: Read the version this run publishes
         id: pkg
         run: |
           DIR='${{ matrix.dir }}'
@@ -298,16 +331,21 @@ jobs:
             exit 1
           fi
           NAME="$(node -p "require('./$DIR/package.json').name")"
-          VERSION="$(node -p "require('./$DIR/package.json').version")"
           if [ "$NAME" != '${{ matrix.package }}' ]; then
             echo "::error::$DIR is $NAME, expected ${{ matrix.package }}, the matrix and the tree disagree."
             exit 1
           fi
           FIRST=false
           if [ "$RC" = true ]; then
-            printf '%s' "$RC_PLAN" > "$RUNNER_TEMP/rc-plan.json"
-            VERSION="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].version' "$NAME")"
+            VERSION="$(node -p 'JSON.parse(process.env.RC_PLAN).version')"
             FIRST="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].firstVersion' "$NAME")"
+          else
+            VERSION="$(node -p "require('./packages/app/package.json').version")"
+            OWN="$(node -p "require('./$DIR/package.json').version")"
+            if [ "$OWN" != "$VERSION" ]; then
+              echo "::error::$DIR is at $OWN, not the release version $VERSION. Every published package moves with the release in the release commit; cut releases via prepare-release.yml."
+              exit 1
+            fi
           fi
           {
             echo "name=$NAME"
@@ -406,19 +444,17 @@ jobs:
       # `verify-package-artifact.mjs` below fails on exactly this manifest, so
       # the two are belt and braces rather than one doing the other's job.
       #
-      # An RC is packed the same way into a side directory, then stamped with
-      # its RC version and exact sibling pins into the one tarball the steps
-      # below gate and publish.
+      # Packed into a side directory, then stamped with the version this run
+      # publishes and every sibling pinned to it exactly, into the one tarball
+      # the steps below gate and publish. A release's version is already the
+      # tree's; the stamp still adds the sdk peer ui-kit and uplink-tools leave
+      # undeclared in the workspace.
       - name: Pack
         if: steps.published.outputs.skip == 'false'
         run: |
           set -euo pipefail
-          if [ "$RC" = true ]; then
-            PACKED="$(node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP/packed")"
-            node scripts/rc-packages.mjs stamp "$PACKED" "$RUNNER_TEMP/rc-plan.json" "$RUNNER_TEMP"
-          else
-            node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP"
-          fi
+          PACKED="$(node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP/packed")"
+          node scripts/release-packages.mjs stamp "$PACKED" '${{ steps.pkg.outputs.version }}' "$RUNNER_TEMP"
 
       # Gate the tarball, then publish that same file, what was checked is
       # exactly what ships, rather than a re-pack that could differ.
@@ -429,9 +465,7 @@ jobs:
           TARBALL="$(ls "$RUNNER_TEMP"/*.tgz)"
           echo "Verifying $TARBALL"
           node scripts/verify-package-artifact.mjs "$TARBALL"
-          if [ "$RC" = true ]; then
-            node scripts/rc-packages.mjs check "$TARBALL" "$RUNNER_TEMP/rc-plan.json"
-          fi
+          node scripts/release-packages.mjs check "$TARBALL" '${{ steps.pkg.outputs.version }}'
           echo "tarball=$TARBALL" >> "$GITHUB_ENV"
 
       # Deliberately after `pnpm install`: `registry-url` writes an .npmrc
@@ -520,6 +554,7 @@ jobs:
       id-token: write
     env:
       RC: ${{ inputs.rc && 'true' || 'false' }}
+      RC_PLAN: ${{ needs.rc-plan.outputs.plan }}
       PACKAGE_ID: KspGonogo.Sitrep.Contract
       KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
       KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
@@ -550,8 +585,9 @@ jobs:
       # `SourceLink=false`: dropping SourceLink for raw determinism would cost
       # every consumer's debugging for a check that does not need it.
       #
-      # An RC overrides only PackageVersion, so the assemblies inside keep the
-      # contract's own version and only the package is a prerelease.
+      # The package version is the release version, which the csproj reads from
+      # the app's manifest; an RC overrides it with the run's RC. Either way the
+      # assemblies carry the contract's own Major.Minor as metadata.
       - name: Pack
         id: pack
         run: |
@@ -559,9 +595,8 @@ jobs:
           PROJECT=mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj
           RC_ARGS=()
           if [ "$RC" = true ]; then
-            TREE="$(dotnet msbuild "$PROJECT" -getProperty:Version)"
-            RC_VERSION="$(node scripts/rc-packages.mjs nuget --tree "$TREE" --run "$GITHUB_RUN_NUMBER")"
-            echo "$PACKAGE_ID: tree $TREE, RC $RC_VERSION"
+            RC_VERSION="$(node -p 'JSON.parse(process.env.RC_PLAN).version')"
+            echo "$PACKAGE_ID: RC $RC_VERSION"
             RC_ARGS=("-p:PackageVersion=$RC_VERSION")
           fi
           dotnet pack "$PROJECT" \
@@ -619,13 +654,12 @@ jobs:
           esac
 
       # "Already published" and "published this content" are different facts,
-      # and the skip above cannot tell them apart: Sitrep.Contract.Package
-      # also carries Sitrep.Contract.TestSupport and Sitrep.Core, so a change to
-      # either with no PackagePatch bump packs under the same version, and would
-      # otherwise be skipped here as if nothing had changed. Compared with the
-      # five build-identity regions normalised out (see the script's header); a
-      # real difference fails asking for a PackagePatch bump rather than shipping
-      # silently unchanged.
+      # and the skip above cannot tell them apart. The version is on nuget.org
+      # already only for a re-run attempt or a packages_only dispatch of a
+      # released tree, and the tree may have moved since. Compared with the five
+      # build-identity regions normalised out (see the script's header); a real
+      # difference fails asking for a new release rather than shipping silently
+      # unchanged.
       - name: Download the published copy
         if: steps.published.outputs.skip == 'true'
         run: |

@@ -1,0 +1,30 @@
+<Project>
+
+  <!--
+    ContractMajor and ContractMinor, read out of the same `public const int`
+    pair every other mirror of the contract version is held to
+    (`packages/core/src/contract-version-parity.test.ts` reads these exact
+    declarations to hold `compat-versions.ts` honest). Imported by
+    Sitrep.Contract.csproj, which stamps them into the assembly, and by
+    Sitrep.Contract.Package.csproj, which names them in the release notes. A
+    hand-maintained copy would be one more mirror of a number that already has
+    several, and an unchecked mirror is how the app once advertised contract 5.0
+    against a contract at 12.22.
+
+    The regex is nested INSIDE the ReadAllText call deliberately: the file is
+    120KB of doc comments, and storing it in an MSBuild property would hand
+    that text to the property expander. Only the digits ever become a property.
+  -->
+  <PropertyGroup>
+    <_ContractVersionCs>$(MSBuildThisFileDirectory)ContractVersion.cs</_ContractVersionCs>
+    <ContractMajor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Major\s*=\s*)\d+`).Value)</ContractMajor>
+    <ContractMinor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Minor\s*=\s*)\d+`).Value)</ContractMinor>
+  </PropertyGroup>
+
+  <Target Name="_CheckContractVersionRead" BeforeTargets="Build;Pack">
+    <Error
+      Condition="'$(ContractMajor)' == '' Or '$(ContractMinor)' == ''"
+      Text="Could not read ContractVersion.Major and ContractVersion.Minor out of $(_ContractVersionCs): the declarations moved, and this file reads them by shape." />
+  </Target>
+
+</Project>

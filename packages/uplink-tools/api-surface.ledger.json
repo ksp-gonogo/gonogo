@@ -1,6 +1,6 @@
 {
   "typescript": "5.9.3",
-  "versioning": "zero-major",
+  "versioning": "release",
   "versionMoves": "at-release",
   "entries": [
     {

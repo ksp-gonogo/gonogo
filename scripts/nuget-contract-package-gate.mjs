@@ -26,6 +26,13 @@
  *      into this package, and a stylesheet that silently stopped matching would
  *      leave no trace but 29 extra paragraphs in a shipped .xml.
  *
+ * And the two numbers a consumer reads: the package version is the Gonogo
+ * release (the app's own, which every published package carries), and the wire
+ * contract's Major.Minor is stamped inside Sitrep.Contract.dll as
+ * `SitrepContractVersion` metadata. The gate checks the stamp in the packed
+ * assembly against ContractVersion.cs, and that the packed README states no
+ * version number at all, since any number written there goes stale.
+ *
  * It reads the .nupkg rather than the project, because the .nupkg is what a
  * consumer gets, and a csproj that looks right can still pack wrong: the lib
  * placement here is done by hand in two MSBuild targets.
@@ -42,7 +49,7 @@
  *
  * `--rc` gates a release candidate packed with `-p:PackageVersion=<version>`:
  * the package must carry exactly that version, and it must be an `-rc.<n>`
- * prerelease on the contract's own Major.Minor at or above the tree's patch.
+ * prerelease.
  */
 
 import { execFileSync } from "node:child_process";
@@ -64,6 +71,8 @@ const CONTRACT_VERSION_CS = join(
   "Sitrep.Contract",
   "ContractVersion.cs",
 );
+const RELEASE_MANIFEST = join(REPO_ROOT, "packages", "app", "package.json");
+const STAMP_KEY = "SitrepContractVersion";
 
 const PACKAGE_ID = "KspGonogo.Sitrep.Contract";
 
@@ -179,10 +188,32 @@ function describePackage(nupkg) {
     ];
   }
 
+  /**
+   * The contract stamp in each packed Sitrep.Contract.dll. An attribute
+   * argument is a length-prefixed UTF-8 string in the metadata blob heap, so
+   * the value is the length byte after the key and that many bytes.
+   */
+  const contractStamps = {};
+  for (const member of members.filter((m) =>
+    m.endsWith("/Sitrep.Contract.dll"),
+  )) {
+    const bytes = unzipBinary(nupkg, member).toString("latin1");
+    const at = bytes.indexOf(STAMP_KEY);
+    const start = at + STAMP_KEY.length + 1;
+    contractStamps[member] =
+      at === -1
+        ? null
+        : bytes.slice(start, start + bytes.charCodeAt(start - 1));
+  }
+
+  const readme = pick("readme");
   return {
     id: pick("id"),
     version: pick("version"),
-    readme: pick("readme"),
+    readme,
+    readmeText:
+      readme && members.includes(readme) ? unzipText(nupkg, readme) : "",
+    contractStamps,
     license: pick("license"),
     projectUrl: pick("projectUrl"),
     hasRepository: /<repository\b/.test(nuspec),
@@ -200,7 +231,7 @@ function describePackage(nupkg) {
  * Pure: a package description in, a list of human failures out. Being pure is
  * what lets the self-check below plant a violation without packing anything.
  */
-export function auditPackage(pkg, expectedVersion) {
+export function auditPackage(pkg, expected) {
   const failures = [];
 
   if (pkg.id !== PACKAGE_ID) {
@@ -211,16 +242,40 @@ export function auditPackage(pkg, expectedVersion) {
     );
   }
 
-  if (pkg.version !== expectedVersion) {
+  if (pkg.version !== expected.version) {
     failures.push(
-      `package version is ${pkg.version}, but ContractVersion.cs + PackagePatch say ` +
-        `${expectedVersion}. Major.Minor IS the contract version; a drift there makes a ` +
-        `PackageReference range say something false about the wire. Patch is the ` +
-        `package's own: see PackagePatch in Sitrep.Contract.Package.csproj.`,
+      `package version is ${pkg.version}, but this run ships ${expected.version}. ` +
+        `Every published package carries the release version, packages/app/package.json's ` +
+        `own, and an RC carries exactly the version it was packed with.`,
     );
   }
 
+  const stamped = Object.entries(pkg.contractStamps);
+  if (stamped.length !== Object.keys(EXPECTED_GROUPS).length) {
+    failures.push(
+      `found ${stamped.length} packed Sitrep.Contract.dll, expected one per framework group`,
+    );
+  }
+  for (const [member, stamp] of stamped) {
+    if (stamp !== expected.contract) {
+      failures.push(
+        `${member} is stamped ${STAMP_KEY} = ${stamp ?? "nothing"}, but ContractVersion.cs ` +
+          `says ${expected.contract}. The stamp is how a consumer reads the wire contract ` +
+          `from the package; see ContractVersion.props and Sitrep.Contract.csproj.`,
+      );
+    }
+  }
+
   if (!pkg.readme) failures.push("no <readme> in the nuspec");
+  const numbers = pkg.readmeText
+    .replace(/\bnet(?:standard)?\d+(?:\.\d+)*\b/g, "")
+    .match(/\b\d+\.\d+(?:\.\d+)?\b/g);
+  if (numbers) {
+    failures.push(
+      `the packed README states ${numbers.join(", ")}. It is the package's public face and ` +
+        `states no version: any number written there is stale by the next release.`,
+    );
+  }
   if (!pkg.license) failures.push("no <license> in the nuspec");
   if (!pkg.projectUrl) failures.push("no <projectUrl> in the nuspec");
   if (!pkg.hasRepository) {
@@ -355,9 +410,27 @@ const PLANTS = [
     },
   },
   {
-    what: "a package version that does not match ContractVersion.cs",
+    what: "a package version that is not the one this run ships",
     mutate: (p) => {
       p.version = "999.0.0";
+    },
+  },
+  {
+    what: "a contract stamp that disagrees with ContractVersion.cs",
+    mutate: (p) => {
+      p.contractStamps["lib/net472/Sitrep.Contract.dll"] = "1.0";
+    },
+  },
+  {
+    what: "a Sitrep.Contract.dll carrying no contract stamp",
+    mutate: (p) => {
+      p.contractStamps["lib/netstandard2.0/Sitrep.Contract.dll"] = null;
+    },
+  },
+  {
+    what: "a version range written into the README",
+    mutate: (p) => {
+      p.readmeText += "\nReference [29.0.0, 30.0.0).\n";
     },
   },
   {
@@ -368,12 +441,12 @@ const PLANTS = [
   },
 ];
 
-function selfCheck(pkg, expectedVersion) {
+function selfCheck(pkg, expected) {
   const blind = [];
   for (const plant of PLANTS) {
     const mutated = clone(pkg);
     plant.mutate(mutated);
-    if (auditPackage(mutated, expectedVersion).length === 0) {
+    if (auditPackage(mutated, expected).length === 0) {
       blind.push(plant.what);
     }
   }
@@ -382,15 +455,7 @@ function selfCheck(pkg, expectedVersion) {
 
 // ── Driver ───────────────────────────────────────────────────────────────────
 
-/**
- * The one source of truth for the package version, read the way MSBuild reads
- * it: Major.Minor off ContractVersion.cs, Patch off the csproj's own
- * PackagePatch (the package's own, not a mirror of the contract).
- *
- * Also mirrors the csproj's own `_CheckPackagePatchResetForContract` target:
- * a nonzero PackagePatch left over from an earlier contract line is caught
- * here too, before a pack is even attempted, rather than only at MSBuild time.
- */
+/** The contract's Major.Minor, read the way ContractVersion.props reads it. */
 function contractVersion() {
   const contractSrc = readFileSync(CONTRACT_VERSION_CS, "utf8");
   const readContract = (name) => {
@@ -400,37 +465,17 @@ function contractVersion() {
     if (!m) {
       throw new Error(
         `no "public const int ${name}" in ${CONTRACT_VERSION_CS}: the declaration ` +
-          `moved, and both this gate and Sitrep.Contract.Package.csproj read it by shape`,
+          `moved, and both this gate and ContractVersion.props read it by shape`,
       );
     }
     return m[1];
   };
-  const major = readContract("Major");
-  const minor = readContract("Minor");
+  return `${readContract("Major")}.${readContract("Minor")}`;
+}
 
-  const packSrc = readFileSync(PACK_PROJECT, "utf8");
-  const readPack = (tag) => {
-    const m = new RegExp(`<${tag}>([^<]+)</${tag}>`).exec(packSrc);
-    if (!m) {
-      throw new Error(
-        `no <${tag}> in ${PACK_PROJECT}: the property moved, and this gate reads it by shape`,
-      );
-    }
-    return m[1];
-  };
-  const patch = readPack("PackagePatch");
-  const patchForContract = readPack("PackagePatchForContract");
-
-  if (patch !== "0" && patchForContract !== `${major}.${minor}`) {
-    throw new Error(
-      `PackagePatch is ${patch}, left over from contract ${patchForContract}, but ` +
-        `ContractVersion.cs now says ${major}.${minor}. Sitrep.Contract.Package.csproj's ` +
-        `own _CheckPackagePatchResetForContract target enforces this at pack time; this ` +
-        `mirror catches it before a pack is even attempted.`,
-    );
-  }
-
-  return `${major}.${minor}.${patch}`;
+/** The release version, which the csproj reads out of the same manifest. */
+function releaseVersion() {
+  return JSON.parse(readFileSync(RELEASE_MANIFEST, "utf8")).version;
 }
 
 function pack() {
@@ -459,32 +504,24 @@ if (given && !existsSync(given)) {
   process.exit(2);
 }
 
-/** The version an RC must carry: the one asked for, refused unless it is a prerelease the contract allows. */
-function releaseCandidateVersion(tree, rc) {
-  const [major, minor, patch] = tree.split(".");
-  const match = /^(\d+)\.(\d+)\.(\d+)-rc\.\d+$/.exec(rc ?? "");
-  if (
-    !match ||
-    match[1] !== major ||
-    match[2] !== minor ||
-    Number(match[3]) < Number(patch)
-  ) {
-    console.error(
-      `--rc ${rc} is not an -rc.<n> prerelease of contract ${major}.${minor} at or above ${tree}`,
-    );
+/** The version an RC must carry: the one asked for, refused unless it is an -rc.<n> prerelease. */
+function releaseCandidateVersion(rc) {
+  if (!/^\d+\.\d+\.\d+-rc\.\d+$/.test(rc ?? "")) {
+    console.error(`--rc ${rc} is not an X.Y.Z-rc.<n> prerelease`);
     process.exit(2);
   }
   return rc;
 }
 
-const expectedVersion =
-  rcFlag === "--rc"
-    ? releaseCandidateVersion(contractVersion(), rcVersion)
-    : contractVersion();
+const expected = {
+  version:
+    rcFlag === "--rc" ? releaseCandidateVersion(rcVersion) : releaseVersion(),
+  contract: contractVersion(),
+};
 const nupkg = given ?? pack();
 const pkg = describePackage(nupkg);
 
-const blind = selfCheck(pkg, expectedVersion);
+const blind = selfCheck(pkg, expected);
 if (blind.length > 0) {
   console.error(
     "\nnuget-contract-package-gate is BLIND: it did not catch a planted\n" +
@@ -494,7 +531,7 @@ if (blind.length > 0) {
   process.exit(1);
 }
 
-const failures = auditPackage(pkg, expectedVersion);
+const failures = auditPackage(pkg, expected);
 if (failures.length > 0) {
   console.error(
     `\n${nupkg} is NOT a publishable ${PACKAGE_ID}:\n` +
@@ -507,6 +544,7 @@ if (failures.length > 0) {
 const snupkg = nupkg.replace(/\.nupkg$/, ".snupkg");
 console.log(
   `${pkg.id} ${pkg.version} is clean: ` +
+    `every Sitrep.Contract.dll is stamped contract ${expected.contract}, the README states no version, ` +
     `net472 and netstandard2.0 carry Sitrep.Contract alone with no dependencies, ` +
     `net10.0 adds Sitrep.Contract.TestSupport, Sitrep.Core and xunit.assert, ` +
     `no Reinforced.Typings ` +
