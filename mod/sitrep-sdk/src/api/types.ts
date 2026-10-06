@@ -1746,6 +1746,8 @@ export type StreamStatusValue =
   | "disconnected"
   | "last-before-blackout"
   | "recorded"
+  | "loading"
+  | "no-game"
   | "absent"
   | "resyncing";
 

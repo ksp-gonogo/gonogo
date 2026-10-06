@@ -9,6 +9,8 @@ const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
   held: "HELD",
   "last-before-blackout": "BLACKOUT",
   recorded: "RECORDED",
+  loading: "LOADING",
+  "no-game": "NO GAME",
   disconnected: "OFFLINE",
   resyncing: "SYNCING",
   absent: "NO DATA",

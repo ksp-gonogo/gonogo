@@ -8115,16 +8115,80 @@
         "note": "The constant follows the contract from 14 to 18 (the hello, ping and pong envelopes, the departure envelope on the orbit horizon, the Commcast send receipt, then the target list\\u0027s unchanged-to time). Its type is now `number` rather than the literal, so this is the last Minor bump that reads as a retype; a caller compares it or prints it, and is unaffected."
       },
       {
+        "key": "sitrep-sdk . HeldGrade",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk . ServerMessage",
+        "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+      },
+      {
+        "key": "sitrep-sdk . StreamStatusValue",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
         "key": "sitrep-sdk . TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~HeldGrade",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
       {
+        "key": "sitrep-sdk ./spine HeldGrade",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamStatusValue",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#gameStatus",
+        "note": "New: what the game is doing as the operator is shown it, after the onset"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#setGameState",
+        "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#subscribeGameStatus",
+        "note": "New: listens for a change in what the game is doing"
+      },
+      {
         "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ServerMessage",
+        "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#gameStatus",
+        "note": "New: what the game is doing as the operator is shown it, after the onset"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#setGameState",
+        "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#subscribeGameStatus",
+        "note": "New: listens for a change in what the game is doing"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~HeldGrade",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ServerMessage",
+        "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StreamStatusValue",
+        "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
         "key": "ui-kit . VESSEL_MARK",
@@ -8273,6 +8337,22 @@
         "note": "What solveConic returns: the anomalies in radians and the radius in metres"
       },
       {
+        "key": "sitrep-sdk ./spine GAME_LOADING_ONSET_MS",
+        "note": "New: how long a load must run before it is shown"
+      },
+      {
+        "key": "sitrep-sdk ./spine GameStatus",
+        "note": "New: what the game is doing and the scene it names"
+      },
+      {
+        "key": "sitrep-sdk ./spine GameStatus#scene",
+        "note": "New: a field of the game status"
+      },
+      {
+        "key": "sitrep-sdk ./spine GameStatus#state",
+        "note": "New: a field of the game status"
+      },
+      {
         "key": "sitrep-sdk ./spine assertSizeDelta",
         "note": "Registration check for an extension's sizeDelta (whole numbers, zero or more), shared by the augment and contribution registries"
       },
@@ -8307,6 +8387,18 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GameStatus",
+        "note": "New: what the game is doing and the scene it names"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GameStatus#scene",
+        "note": "New: a field of the game status"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GameStatus#state",
+        "note": "New: a field of the game status"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",

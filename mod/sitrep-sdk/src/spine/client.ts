@@ -285,6 +285,13 @@ export class TelemetryClient {
   private readonly stores = new Set<TimelineStore>();
 
   /**
+   * What the mod last said the game is doing, replayed to a store attached
+   * afterwards: a load is a fact about the game rather than about a moment, and
+   * a store that missed the frame would read every Topic as current through it.
+   */
+  private gameState: { state: string; scene: string } | undefined;
+
+  /**
    * Whether the mod has acked each subscribed topic, which is what separates
    * "nothing will ever publish this" from "it has not arrived yet".
    *
@@ -609,6 +616,9 @@ export class TelemetryClient {
     this.stores.add(store);
     // Only each topic's newest point is replayed, never the history behind it.
     for (const [topic, point] of this.lastPoints) store.ingest(topic, point);
+    if (this.gameState) {
+      store.setGameState(this.gameState.state, this.gameState.scene);
+    }
     // Unlike sample history, ownership verdicts DO backfill. There are a
     // handful of them, they are facts about the mod rather than about a moment,
     // and a store attached after one was reached would otherwise render a topic
@@ -932,6 +942,13 @@ export class TelemetryClient {
         return;
       }
       this.handleCommandError(message.requestId, message.code, message.message);
+      return;
+    }
+    if (message.type === "game-state") {
+      this.gameState = { state: message.state, scene: message.scene };
+      for (const store of this.stores) {
+        store.setGameState(message.state, message.scene);
+      }
       return;
     }
     // The `subscribed` ack. Every event frame was dropped here until this

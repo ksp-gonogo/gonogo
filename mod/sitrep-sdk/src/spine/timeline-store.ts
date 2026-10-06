@@ -352,6 +352,23 @@ const RECKONED_EDGE_BISECTIONS = 12;
 const UPLINK_ROSTER_TOPIC = "system.uplinks";
 
 /**
+ * How long a load must run before it is shown. A scene change that takes under
+ * this long is never seen, where showing it would flash every reading held and
+ * back. A property of what an operator will tolerate on screen, so it lives
+ * here and not in the contract.
+ */
+export const GAME_LOADING_ONSET_MS = 750;
+
+/**
+ * What the game is doing as the operator is shown it, with the scene being
+ * loaded or the one that stands.
+ */
+export interface GameStatus {
+  readonly state: "ready" | "loading" | "no-game";
+  readonly scene: string;
+}
+
+/**
  * How far apart to sample a reckoned tail: the cadence the observations
  * themselves were arriving at, widened if that would overrun the resolution
  * cap.
@@ -881,6 +898,16 @@ export class TimelineStore {
   private transportConnected = true;
 
   /**
+   * What the game is doing, as the mod last said and as the operator is shown
+   * it: a load is shown only once it has run `GAME_LOADING_ONSET_MS`, so a
+   * scene change that takes no time at all changes nothing on screen. The
+   * state the mod last said is `told`, and the one acted on is `shown`.
+   */
+  private gameShown: GameStatus = { state: "ready", scene: "" };
+  private gameOnset: ReturnType<typeof setTimeout> | undefined;
+  private readonly gameListeners = new Set<() => void>();
+
+  /**
    * The delay roles the mod stated on the newest `system.uplinks` delivered.
    * `undefined` before one arrives and when the newest carried none (a mod older
    * than contract 16.13), which leaves every lane on the generated core table.
@@ -911,6 +938,62 @@ export class TimelineStore {
    */
   setTransportConnected(connected: boolean): void {
     this.transportConnected = connected;
+  }
+
+  /**
+   * Set what the game is doing, from the mod's `game-state` frame.
+   *
+   * A load takes effect after `GAME_LOADING_ONSET_MS`, and a second request
+   * inside that window starts the count again. Everything else takes effect at
+   * once: the end of a load, so a reading is never held a moment longer than
+   * the game is loading, and the main menu, where there is no load to be brief.
+   * A state this build does not know is read as `"ready"`.
+   *
+   * While shown as `"loading"` or `"no-game"`, every Topic that has a value
+   * reads held with that grade, and one that never had a value stays pending.
+   */
+  setGameState(state: string, scene: string): void {
+    if (this.gameOnset !== undefined) {
+      clearTimeout(this.gameOnset);
+      this.gameOnset = undefined;
+    }
+    if (state === "loading") {
+      this.gameOnset = setTimeout(() => {
+        this.gameOnset = undefined;
+        this.showGameStatus({ state: "loading", scene });
+      }, GAME_LOADING_ONSET_MS);
+      return;
+    }
+    this.showGameStatus({
+      state: state === "no-game" ? "no-game" : "ready",
+      scene,
+    });
+  }
+
+  /** What the game is doing as the operator is shown it. */
+  gameStatus(): GameStatus {
+    return this.gameShown;
+  }
+
+  /** Called whenever {@link gameStatus} changes. Returns an unsubscribe function. */
+  subscribeGameStatus(listener: () => void): () => void {
+    this.gameListeners.add(listener);
+    return () => {
+      this.gameListeners.delete(listener);
+    };
+  }
+
+  private showGameStatus(status: GameStatus): void {
+    if (
+      status.state === this.gameShown.state &&
+      status.scene === this.gameShown.scene
+    ) {
+      return;
+    }
+    const readingsMove = status.state !== this.gameShown.state;
+    this.gameShown = status;
+    if (readingsMove) this.beginFrame();
+    for (const listener of this.gameListeners) listener();
   }
 
   /**
@@ -3152,6 +3235,8 @@ export class TimelineStore {
     if (point.meta.staleness === Staleness.Recorded) return "recorded";
     if (point.meta.staleness === Staleness.Held) return "held";
     if (!this.transportConnected) return "disconnected";
+    if (this.gameShown.state === "loading") return "loading";
+    if (this.gameShown.state === "no-game") return "no-game";
     return this.heartbeats.isOverdue(
       topic,
       this.clock.certaintyHorizonUt(),

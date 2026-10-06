@@ -24,6 +24,8 @@ const DEGRADED: StreamStatusValue[] = [
   "held",
   "last-before-blackout",
   "recorded",
+  "loading",
+  "no-game",
   "disconnected",
   "resyncing",
   "absent",

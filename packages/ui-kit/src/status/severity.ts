@@ -46,7 +46,7 @@ export function worstSeverity(severities: readonly Severity[]): Severity {
 /**
  * The {@link Severity} a stream status reads as: `live` is `go`, `resyncing`
  * is `caution`, `recorded` is `info` (the reading is exact, for an earlier
- * instant), `held` and `last-before-blackout` are `warn`, and `disconnected`
+ * instant), `held`, `last-before-blackout`, `loading` and `no-game` are `warn`, and `disconnected`
  * and `absent` are `offline`.
  *
  * @category Panel
@@ -61,6 +61,8 @@ export function severityFromStreamStatus(status: StreamStatusValue): Severity {
       return "info";
     case "held":
     case "last-before-blackout":
+    case "loading":
+    case "no-game":
       return "warn";
     case "disconnected":
     case "absent":

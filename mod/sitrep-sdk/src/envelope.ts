@@ -6,6 +6,7 @@ import type {
   CommandResponse,
   ErrorMsg,
   EventMsg,
+  GameState,
   SetVantage,
   StreamData,
   Subscribe,
@@ -25,6 +26,7 @@ export type ServerMessage =
   | CommandResponse<unknown>
   | CommandAccepted
   | ErrorMsg
+  | GameState
   // The one member that never arrives as text. It comes off the BINARY LANE
   // (`binary-frame.ts`), already decoded, and is in the union so every
   // exhaustive switch over a server frame has to account for it rather than

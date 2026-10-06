@@ -38,10 +38,12 @@ const STATUS_SEVERITY: Record<StreamStatusValue, number> = {
   live: 0,
   recorded: 1,
   held: 2,
-  disconnected: 3,
-  "last-before-blackout": 4,
-  absent: 5,
-  resyncing: 6,
+  loading: 3,
+  "no-game": 4,
+  disconnected: 5,
+  "last-before-blackout": 6,
+  absent: 7,
+  resyncing: 8,
 };
 
 /**

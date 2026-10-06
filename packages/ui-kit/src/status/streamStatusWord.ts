@@ -3,7 +3,7 @@ import type { HeldGrade, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 /**
  * The operator's word for each reason a held reading stopped updating.
  *
- * Blackout and recorded keep words of their own because they ask something
+ * Loading and no game say the game itself is the reason, which no craft or link can answer for. Blackout and recorded keep words of their own because they ask something
  * different of the operator: a blackout is waited out, and a recorded value is
  * exact for the instant it names. Only a Topic that simply went quiet is HELD.
  */
@@ -12,6 +12,8 @@ const HELD_GRADE_WORD: Readonly<Record<HeldGrade, string>> = {
   disconnected: "OFFLINE",
   "last-before-blackout": "BLACKOUT",
   recorded: "RECORDED",
+  loading: "LOADING",
+  "no-game": "NO GAME",
 };
 
 /** Every word a held mark's caption can open with, one per grade. */
@@ -26,7 +28,7 @@ const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
 
 /**
  * The short uppercase word a badge or caption prints for a `StreamStatusValue`
- * (HELD, OFFLINE, BLACKOUT, RECORDED, SYNCING, NO DATA), or `null` for `"live"`,
+ * (HELD, OFFLINE, BLACKOUT, RECORDED, LOADING, NO GAME, SYNCING, NO DATA), or `null` for `"live"`,
  * which shows nothing.
  *
  * @category Badge
@@ -36,7 +38,7 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 }
 
 /**
- * The word for a held reading's grade (HELD, OFFLINE, BLACKOUT or RECORDED), or
+ * The word for a held reading's grade (HELD, OFFLINE, BLACKOUT, RECORDED, LOADING or NO GAME), or
  * HELD when no grade is given, as for a value combined from several readings.
  *
  * @category Badge

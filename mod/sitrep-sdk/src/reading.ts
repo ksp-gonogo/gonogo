@@ -632,6 +632,10 @@ export type ReckonableReading<
  * - `recorded`: recorded by the craft while out of contact and sent on
  *   reacquisition. Exact for its own `asOfUt`, but still not the state of the
  *   craft now
+ * - `loading`: the game is loading a scene, which affects every Topic at once.
+ *   The value is the last one received and nothing says whether it still holds
+ * - `no-game`: the game is at its main menu, so there is nothing to read.
+ *   The value is the last one received, from a game that is no longer running
  *
  * The grade changes the label, not the drawing: a held value is drawn as held
  * whatever its grade.
@@ -642,7 +646,9 @@ export type HeldGrade =
   | "held"
   | "disconnected"
   | "last-before-blackout"
-  | "recorded";
+  | "recorded"
+  | "loading"
+  | "no-game";
 
 /**
  * The values `state` can take on a reading: `"pending"`, `"unowned"`,
