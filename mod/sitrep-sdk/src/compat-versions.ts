@@ -22,6 +22,13 @@
  * the sdk's package version: bump it when the surface an Uplink compiles against
  * changes, not when the package publishes.
  *
+ * The surface is the exports of `@ksp-gonogo/sitrep-sdk` and
+ * `@ksp-gonogo/ui-kit`, every subpath. A removal, a retype or a new required
+ * member of an existing type moves the major, and an addition moves the minor,
+ * because an app refuses an Uplink built against a newer minor than its own.
+ * `extension-api.ledger.json` records the floors and every declared change, and
+ * a change it does not declare fails the build.
+ *
  * @category Host and runtime
  */
 export const EXTENSION_API_VERSION = "6.0.0";
