@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,30 +15,26 @@ import {
   plantedTsHits,
   proseOfMarkdown,
   proseOfXmlDoc,
+  readingList,
   reportTable,
-  scanPublishedWording,
+  scanForReview,
   siblingUplinksRoot,
-  type WordingHit,
   xmlDocUnits,
-} from "./published-wording.scan";
+} from "./published-review-aid.scan";
 
 /**
- * The wording of what the reference site is generated from: doc comments on
- * published exports, widget descriptions and Uplink pages.
+ * The review aid over what the reference site is generated from: doc comments
+ * on published exports, widget descriptions and Uplink pages.
  *
- * Report-only. The counts are printed per corpus and family and nothing here
- * fails on them. `published-wording.debt.json` is the switch: while it is
- * absent the scan reports, and once it is committed the scan holds each
- * `corpus|family|file` at or below its recorded count. Seed it with
- * `GONOGO_WORDING_SEED=1`, and list every hit with `GONOGO_WORDING_LIST=1`.
+ * Nothing here gates. The counts are printed per corpus and family as prompts
+ * to read, and no result fails the build. `GONOGO_REVIEW_LIST=<path>` writes
+ * the reading list, per corpus and file with the sentence and the reason.
+ * What the tests hold is that the aid can find a planted example of each kind
+ * and leaves the legitimate neighbours alone.
  */
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
-const DEBT_PATH = join(
-  REPO_ROOT,
-  "packages/core/src/published-wording.debt.json",
-);
-const RESULT = scanPublishedWording(REPO_ROOT);
+const RESULT = scanForReview(REPO_ROOT);
 
 const unit = (text: string) => ({
   file: "plant.ts",
@@ -46,21 +42,7 @@ const unit = (text: string) => ({
   prose: proseOfMarkdown(text),
 });
 
-/** Hits under the corpora that the gate would hold: doc comments only. */
-function debtKeys(hits: Map<string, WordingHit[]>): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const corpus of RESULT.docs) {
-    for (const hit of hits.get(corpus.name) ?? []) {
-      const key = `${corpus.name}|${hit.family}|${hit.file}`;
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-  }
-  return Object.fromEntries(
-    Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)),
-  );
-}
-
-describe("design-system: published wording", () => {
+describe("review aid: published prose", () => {
   it("sees a planted hit in every family and none in the legitimate wording", () => {
     const blind: string[] = [];
     for (const [family, definition] of Object.entries(FAMILIES)) {
@@ -70,12 +52,12 @@ describe("design-system: published wording", () => {
         (h) => h.family,
       );
       if (legitimate.includes(family as Family)) {
-        blind.push(`${family}: legitimate wording hit`);
+        blind.push(`${family}: picked legitimate wording`);
       }
     }
     expect(
       blind,
-      "BLIND: a family did not see its own plant, or hit wording it must leave alone",
+      "BLIND: a kind of prompt did not find its own plant, or picked wording it should leave alone",
     ).toEqual([]);
   });
 
@@ -157,11 +139,24 @@ describe("design-system: published wording", () => {
     );
   });
 
+  it("narrows the reading list by corpus and by category and groups it by reason", () => {
+    const list = readingList(RESULT, {
+      corpus: "ui-kit",
+      category: "Badge",
+    });
+    expect(list).toContain("# Sentences to re-read");
+    expect(list).not.toContain("sitrep-sdk (");
+    expect(list).not.toContain("Sitrep.Contract (");
+    const all = readingList(RESULT);
+    expect(all.length).toBeGreaterThan(list.length);
+    expect(all).toMatch(/### a word a review called out: /);
+  });
+
   it("reads the corpora", () => {
     const sizes = (corpora: Corpus[]) =>
       Object.fromEntries(corpora.map((c) => [c.name, c.units.length]));
     console.info(
-      `[wording] corpus sizes ${JSON.stringify({
+      `[review-aid] corpus sizes ${JSON.stringify({
         docs: sizes(RESULT.docs),
         widgets: sizes(RESULT.widgets),
         uplinkPages: sizes(RESULT.uplinkPages),
@@ -176,52 +171,20 @@ describe("design-system: published wording", () => {
     expect(sizes(RESULT.widgets)["core widgets"]).toBeGreaterThan(30);
   });
 
-  it("reports the counts per corpus and family", () => {
-    console.info(`[wording] counts, report only\n${reportTable(RESULT)}`);
-    if (process.env.GONOGO_WORDING_LIST) {
-      for (const [name, hits] of RESULT.hits) {
-        for (const hit of hits) {
-          console.info(
-            `[wording] ${name} ${hit.family} ${hit.file}:${hit.line} ${hit.text}`,
-          );
-        }
-      }
-    }
-    const total = [...RESULT.hits.values()].reduce((n, h) => n + h.length, 0);
-    expect(total).toBeGreaterThanOrEqual(0);
-    expect(Object.keys(countsByFamily([]))).toEqual([...FAMILY_KEYS]);
-  });
-
-  it("holds doc comments at the seeded counts once a debt file is committed", () => {
-    const current = debtKeys(RESULT.hits);
-    if (process.env.GONOGO_WORDING_SEED) {
-      const before: Record<string, number> = existsSync(DEBT_PATH)
-        ? JSON.parse(readFileSync(DEBT_PATH, "utf8"))
-        : {};
-      const raised = Object.entries(current).filter(
-        ([key, n]) => key in before && n > before[key],
-      );
-      if (raised.length > 0) {
-        throw new Error(`refusing to raise ${raised.length} recorded count(s)`);
-      }
-      writeFileSync(DEBT_PATH, `${JSON.stringify(current, null, 2)}\n`);
-      console.info(`[wording] seeded ${Object.keys(current).length} entries`);
-      return;
-    }
-    if (!existsSync(DEBT_PATH)) return;
-    const seeded: Record<string, number> = JSON.parse(
-      readFileSync(DEBT_PATH, "utf8"),
+  it("prints how many sentences each corpus holds to re-read", () => {
+    console.info(
+      `[review-aid] sentences to re-read, not faults\n${reportTable(RESULT)}`,
     );
-    const over = Object.entries(current)
-      .filter(([key, n]) => n > (seeded[key] ?? 0))
-      .map(([key, n]) => `  ${key}: ${seeded[key] ?? 0} -> ${n}`);
-    const under = Object.entries(seeded)
-      .filter(([key, n]) => (current[key] ?? 0) < n)
-      .map(([key, n]) => `  ${key}: ${n} -> ${current[key] ?? 0}`);
-    expect(over, `wording hits rose:\n${over.join("\n")}`).toEqual([]);
-    expect(
-      under,
-      `wording hits fell: tighten published-wording.debt.json with GONOGO_WORDING_SEED=1:\n${under.join("\n")}`,
-    ).toEqual([]);
+    const listPath = process.env.GONOGO_REVIEW_LIST;
+    if (listPath) {
+      writeFileSync(
+        listPath,
+        readingList(RESULT, {
+          corpus: process.env.GONOGO_REVIEW_PACKAGE,
+          category: process.env.GONOGO_REVIEW_CATEGORY,
+        }),
+      );
+    }
+    expect(Object.keys(countsByFamily([]))).toEqual([...FAMILY_KEYS]);
   });
 });

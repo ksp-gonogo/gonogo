@@ -8,24 +8,30 @@ import {
 } from "./published-entry-points";
 
 /**
- * The scan behind `styleguide-published-wording.test.ts`: what the reference
- * site is generated from, read for the words an author should not meet.
+ * The scan behind `published-review-aid.test.ts`: a REVIEW AID, not a check.
  *
- * Three corpora, counted apart:
+ * It lists the doc comments, widget descriptions and Uplink pages that a
+ * reviewer should read again, each with the reason it was picked: a word a
+ * review once called out in a sentence, history phrasing, a `##` heading that
+ * reads as a sentence of argument. A hit is a prompt to read the sentence and
+ * judge it. It is not a fault, no word is banned, nothing fails or is counted
+ * against a build because of what it finds, and a legitimate use is expected.
+ * The output is a reading list for rewrite and spot-check reviewers.
+ *
+ * Three corpora, listed apart:
  *
  * - doc comments: the `/** *\/` of every export of a published entry point and
  *   of its members, and the `///` XML docs of Sitrep.Contract's public members
  *   with their `<internal>` subtrees dropped
  * - widget descriptions: the `description` of every `registerComponent` call
- * - Uplink pages: each bundled Uplink's `uplink.md`
+ * - Uplink pages: each `uplink.md`
  *
  * Only prose is read. Inline code, fenced blocks, `{@link}` targets, tag
  * names and `@example` bodies are removed first, so `alarm.scet.arm` and a
- * code sample are never a hit, and a `//` line comment is never a doc comment.
- *
- * A family is a pattern that only matches the wording it names: the verb
+ * code sample are never picked, and a `//` line comment is never a doc
+ * comment. A pattern is kept precise so the list stays worth reading: the verb
  * "answers" and not the noun "an answer", "used to be" and not "used to
- * compare". A pattern is kept precise rather than broad with an allowlist.
+ * compare".
  */
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
@@ -59,7 +65,8 @@ export interface FamilyDefinition {
  */
 export const FAMILIES: Record<Exclude<Family, "heading">, FamilyDefinition> = {
   arm: {
-    summary: "`arm` for a variant of a union, or as a verb",
+    summary:
+      "a word a review called out: `arm`, for a variant of a union or as a verb",
     pattern:
       /\b(?:arms|arming|re-?arms?|(?:the|an?|each|every|that|this|one|other|both|either|neither|two|three|no|its|those|these|to|will|then|can|must|and|or|never|only|value-bearing|reckoning|none) arm)\b/i,
     exclude: /\b(?:disarm\w*|armed|alarms?)\b/i,
@@ -67,39 +74,41 @@ export const FAMILIES: Record<Exclude<Family, "heading">, FamilyDefinition> = {
     legitimate: "An alarm is armed by the host and disarmed by the client",
   },
   answer: {
-    summary: "`answers` or `answered` where `returns` is meant",
+    summary: "a word a review called out: `answers`, where `returns` is meant",
     pattern:
       /\b(?:answered|answering|(?<!\b(?:different|the|two|both|its|their|no|any|these|those|honest|real|wrong|right|few|many|other)\s)answers|(?:to|can|will|must|cannot|never|and|or|it|which|that|should|may) answer)\b/i,
     plant: "a hop that answers exactly\none pair",
     legitimate: "A null value is the honest answer when nothing was measured",
   },
   caveat: {
-    summary: "`caveat`",
+    summary: "a word a review called out: `caveat`",
     pattern: /\bcaveats?\b/i,
     plant: "a caveat drawn beside the value",
     legitimate: "Draws a note beside the value",
   },
   floor: {
-    summary: "`floor` for a minimum, a recorded baseline or a lowest tier",
+    summary:
+      "a word a review called out: `floor`, for a minimum or a recorded baseline",
     pattern: /\bfloor\b/i,
     plant: "the floor of the\nrange",
     legitimate: "Rounds down with `Math.floor`",
   },
   "stale-word": {
-    summary: "`stale`, which is `held`",
+    summary:
+      "a word a review called out: `stale`, which the docs write as `held`",
     pattern: /\bstale\b/i,
     plant: "a value that has gone\nstale",
     legitimate: "A value that has stopped updating is held",
   },
   legacy: {
-    summary: "`legacy`",
+    summary: "a word a review called out: `legacy`",
     pattern: /\blegacy\b/i,
     plant: "the legacy key",
     legitimate: "A key from an earlier version",
   },
   history: {
     summary:
-      "history: `was renamed`, `used to be`, `no longer sends`, `previously`, `since <version>`",
+      "history phrasing: `was renamed`, `used to be`, `no longer sends`, `previously`, `since <version>`",
     pattern:
       /\b(?:no longer (?:sends|emits|returns|exposes|uses|publishes|carries|supports|needs|requires|accepts|reads|writes)|previously|formerly|originally|renamed (?:from|to)|was (?:once|originally|formerly|previously|renamed|removed|deleted|replaced|retired|moved|split|added|introduced|dropped|merged|changed)|used to (?:be|return|emit|send|carry|have|do|live|read|mean|work|call|take|ride|ship)|since (?:v?\d+\.\d+|\d{4}-\d{2}|the \d+\.\d+|release \d|Major \d|contract \d))\b/i,
     plant: "a field that no longer\nreturns the clock",
@@ -118,16 +127,22 @@ export const FAMILY_KEYS: readonly Family[] = [
   "heading",
 ];
 
-export interface WordingHit {
+export interface ReviewPrompt {
   family: Family;
   /** The repo-relative file, or the path inside the sibling repository. */
   file: string;
   line: number;
   /** The matched text, or the whole heading. */
   text: string;
+  /** The sentence the match sits in, for reading it in place. */
+  excerpt: string;
+  /** The `@category` of the comment the sentence is in, when it has one. */
+  category?: string;
 }
 
 export interface ProseUnit {
+  /** The `@category` or `<category>` the comment names, when it has one. */
+  category?: string;
   file: string;
   line: number;
   /** The comment's text with code and tags removed, one paragraph or heading per line. */
@@ -197,8 +212,8 @@ function docBody(comment: string): string {
 }
 
 /** The families that hit in one unit of prose. */
-export function hitsInProse(unit: ProseUnit): WordingHit[] {
-  const hits: WordingHit[] = [];
+export function hitsInProse(unit: ProseUnit): ReviewPrompt[] {
+  const hits: ReviewPrompt[] = [];
   const paragraphs = unit.prose.split(/\n\s*\n/);
   let offset = 0;
   for (const paragraph of paragraphs) {
@@ -211,6 +226,8 @@ export function hitsInProse(unit: ProseUnit): WordingHit[] {
           file: unit.file,
           line: unit.line,
           text: heading.trim(),
+          excerpt: heading.trim(),
+          category: unit.category,
         });
       }
     }
@@ -231,12 +248,22 @@ export function hitsInProse(unit: ProseUnit): WordingHit[] {
           file: unit.file,
           line: unit.line + offset,
           text: match[0],
+          excerpt: sentenceAround(collapsed, match.index ?? 0),
+          category: unit.category,
         });
       }
     }
     offset += lines.length + 1;
   }
   return hits;
+}
+
+/** The sentence of `text` that holds `index`, trimmed to a readable length. */
+function sentenceAround(text: string, index: number): string {
+  const start = text.lastIndexOf(". ", index) + 1;
+  const end = text.indexOf(". ", index);
+  const sentence = text.slice(start, end === -1 ? undefined : end + 1).trim();
+  return sentence.length > 240 ? `${sentence.slice(0, 237)}...` : sentence;
 }
 
 function lineOf(text: string, pos: number): number {
@@ -262,10 +289,12 @@ function docOf(sf: ts.SourceFile, node: ts.Node): ProseUnit | null {
     );
   const range = ranges?.at(-1);
   if (!range) return null;
+  const body = docBody(sf.text.slice(range.pos, range.end));
   return {
+    category: /^@category\s+(.+)$/m.exec(body)?.[1].trim(),
     file: sf.fileName,
     line: lineOf(sf.text, range.pos),
-    prose: proseOfMarkdown(docBody(sf.text.slice(range.pos, range.end))),
+    prose: proseOfMarkdown(body),
   };
 }
 
@@ -329,9 +358,11 @@ export function docUnitsOfEntry(
       }
       const nodes = new Set<ts.Node>();
       documentedNodes(declaration, nodes);
+      const category = docOf(file, declaration)?.category;
       for (const node of nodes) {
         const unit = docOf(file, node);
         if (!unit) continue;
+        unit.category ??= category;
         const key = `${file.fileName}:${unit.line}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -428,10 +459,12 @@ export function xmlDocUnits(source: string, file: string): ProseUnit[] {
       i -= 1;
       continue;
     }
+    const xml = block.join("\n");
     units.push({
+      category: /<category>(.*?)<\/category>/.exec(xml)?.[1].trim(),
       file,
       line: start + 1,
-      prose: proseOfXmlDoc(block.join("\n")),
+      prose: proseOfXmlDoc(xml),
     });
     i -= 1;
   }
@@ -581,7 +614,7 @@ export function siblingUplinksRoot(root = REPO_ROOT): string | null {
   return existsSync(join(path, "uplinks")) ? path : null;
 }
 
-export interface WordingScan {
+export interface ReviewScan {
   /** Doc comments, one corpus per published package and one for the contract. */
   docs: Corpus[];
   /** Widget descriptions. */
@@ -589,11 +622,11 @@ export interface WordingScan {
   /** Uplink pages. */
   uplinkPages: Corpus[];
   /** Hits by corpus name, then family. */
-  hits: Map<string, WordingHit[]>;
+  hits: Map<string, ReviewPrompt[]>;
 }
 
 /** Reads every corpus and grades it. */
-export function scanPublishedWording(root = REPO_ROOT): WordingScan {
+export function scanForReview(root = REPO_ROOT): ReviewScan {
   const docs = [...publishedDocCorpora(root), contractDocCorpus(root)];
   const widgets = [
     widgetDescriptionCorpus("core widgets", root, ["packages/components/src"]),
@@ -630,7 +663,7 @@ export function scanPublishedWording(root = REPO_ROOT): WordingScan {
       ),
     );
   }
-  const hits = new Map<string, WordingHit[]>();
+  const hits = new Map<string, ReviewPrompt[]>();
   for (const corpus of [...docs, ...widgets, ...uplinkPages]) {
     hits.set(
       corpus.name,
@@ -642,7 +675,7 @@ export function scanPublishedWording(root = REPO_ROOT): WordingScan {
 
 /** Counts per family for one corpus. */
 export function countsByFamily(
-  hits: readonly WordingHit[],
+  hits: readonly ReviewPrompt[],
 ): Record<Family, number> {
   const counts = Object.fromEntries(FAMILY_KEYS.map((f) => [f, 0])) as Record<
     Family,
@@ -652,9 +685,9 @@ export function countsByFamily(
   return counts;
 }
 
-/** The report as a Markdown table, one row per corpus. */
-export function reportTable(scan: WordingScan): string {
-  const head = `| corpus | units | ${FAMILY_KEYS.join(" | ")} | total |`;
+/** How many sentences each corpus holds to re-read, as a Markdown table. Not a count of faults. */
+export function reportTable(scan: ReviewScan): string {
+  const head = `| corpus | units read | ${FAMILY_KEYS.join(" | ")} | sentences to re-read |`;
   const rule = `| --- | ---: | ${FAMILY_KEYS.map(() => "---:").join(" | ")} | ---: |`;
   const rows: string[] = [];
   for (const [group, corpora] of [
@@ -673,8 +706,67 @@ export function reportTable(scan: WordingScan): string {
   return [head, rule, ...rows].join("\n");
 }
 
+const HEADING_REASON =
+  "a `##` heading that reads as a sentence of argument rather than a category or a short fact";
+
+function reasonOf(family: Family): string {
+  return family === "heading" ? HEADING_REASON : FAMILIES[family].summary;
+}
+
+export interface ListFilter {
+  /** A substring of the corpus name, such as `ui-kit` or `Contract`. */
+  corpus?: string;
+  /** An exact `@category`, such as `Badge`. */
+  category?: string;
+}
+
+/**
+ * The reading list for review: sentences to read again, grouped by reason,
+ * then by file and line. Narrow it to one corpus or one category. A sentence
+ * here is a prompt to read it and judge it, never a fault.
+ */
+export function readingList(scan: ReviewScan, filter: ListFilter = {}): string {
+  const out = [
+    "# Sentences to re-read",
+    "",
+    "Each sentence below was picked as a prompt to read it and judge it. It is",
+    "not a fault, no word is banned, and a legitimate use is expected among them.",
+  ];
+  for (const [name, hits] of scan.hits) {
+    if (filter.corpus && !name.includes(filter.corpus)) continue;
+    const picked = hits.filter(
+      (h) => !filter.category || h.category === filter.category,
+    );
+    if (picked.length === 0) continue;
+    out.push("", `## ${name} (${picked.length})`);
+    const byReason = new Map<string, ReviewPrompt[]>();
+    for (const hit of picked) {
+      const reason = reasonOf(hit.family);
+      byReason.set(reason, [...(byReason.get(reason) ?? []), hit]);
+    }
+    for (const [reason, all] of [...byReason].sort(([x], [y]) =>
+      x.localeCompare(y),
+    )) {
+      const seen = new Set<string>();
+      const found = all
+        .filter((hit) => {
+          const key = `${hit.file}:${hit.line}:${hit.excerpt}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((x, y) => x.file.localeCompare(y.file) || x.line - y.line);
+      out.push("", `### ${reason} (${found.length})`);
+      for (const hit of found) {
+        out.push(`- ${hit.file}:${hit.line}: ${hit.excerpt}`);
+      }
+    }
+  }
+  return `${out.join("\n")}\n`;
+}
+
 /** A TS source graded by the same collectors, for the plants: its doc comments and its line comments. */
-export function plantedTsHits(source: string): WordingHit[] {
+export function plantedTsHits(source: string): ReviewPrompt[] {
   const file = join(REPO_ROOT, "__wording_plant__.ts");
   const host = ts.createCompilerHost({});
   const getSourceFile = host.getSourceFile.bind(host);
