@@ -16,6 +16,13 @@ name: prepare-release
 # other ref is refused, so a release cannot be cut from a tree that is not the
 # integration branch.
 #
+# The published surface ledgers (mod/sitrep-sdk/extension-api.ledger.json and
+# packages/uplink-tools/api-surface.ledger.json) collect declared changes in a
+# `pending` entry. The cut freezes both in the same commit as the version bump
+# and sets EXTENSION_API_VERSION and the uplink-tools version to what each
+# freeze prints; it fails when a pending entry has an empty note. Run it with
+# `-f dry_run=true` to print what would be frozen and push nothing.
+#
 # The bump size states the wire-compatibility promise (see
 # docs/DEPLOYMENT.md): patch = compatible/silent, minor = advisory
 # mismatch banner on skewed stations, major = peer protocol broke.
@@ -33,6 +40,11 @@ on:
           - patch
           - minor
           - major
+      dry_run:
+        description: 'Print what would be bumped and frozen; commit, tag and push nothing'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -127,14 +139,52 @@ jobs:
           echo "new=${NEW}" >> "$GITHUB_OUTPUT"
           echo "tag=v${NEW}" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/setup-node@v6
+        if: ${{ !inputs.dry_run }}
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        if: ${{ !inputs.dry_run }}
+        with:
+          run_install: false
+
+      # The freeze reads the surface the packages emit, so it needs their dist.
+      - name: Install and build
+        if: ${{ !inputs.dry_run }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Freeze the published surface ledgers
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then FLAGS="--dry-run"; fi
+          node scripts/freeze-published-surface.mjs --note "Release ${{ steps.version.outputs.tag }}" $FLAGS
+
+      # The Uplink pages print the EXTENSION_API_VERSION each was built against,
+      # and the app refuses a stale manifest.
+      - name: Regenerate the Uplink pages when the extension API version moved
+        if: ${{ !inputs.dry_run }}
+        run: |
+          if git diff --quiet -- mod/sitrep-sdk/src/compat-versions.ts; then
+            echo "EXTENSION_API_VERSION did not move."
+          else
+            pnpm uplink-pages
+          fi
+
+      - name: Show what the cut changes
+        run: git status --short
+
       - name: Commit, tag, push
+        if: ${{ !inputs.dry_run }}
         run: |
           NEW="${{ steps.version.outputs.new }}"
           TAG="${{ steps.version.outputs.tag }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/app/package.json
+          git add -u
           git commit -m "release: v${NEW}"
           git tag "${TAG}"
           git push origin HEAD:main "${TAG}"
@@ -145,6 +195,7 @@ jobs:
       # Fail-soft, the release itself is already done and the branch may have
       # moved while this ran.
       - name: Return the release commit to the integration branch
+        if: ${{ !inputs.dry_run }}
         run: |
           if git push origin "HEAD:${INTEGRATION_BRANCH}"; then
             echo "Release commit is on ${INTEGRATION_BRANCH} too."
@@ -161,6 +212,7 @@ jobs:
       # forward stays a fast-forward. Nothing is forced, and either way ci-dev
       # ends as a descendant of staging. Fail-soft for the same reason as above.
       - name: Keep ci-dev a superset of the integration branch
+        if: ${{ !inputs.dry_run }}
         run: |
           RELEASE_SHA="$(git rev-parse HEAD)"
           git fetch --no-tags origin ci-dev
@@ -177,6 +229,7 @@ jobs:
           fi
 
       - name: Trigger release workflow
+        if: ${{ !inputs.dry_run }}
         # GITHUB_TOKEN pushes don't fire push-tag triggers in other
         # workflows. workflow_dispatch does, so dispatch release.yml on
         # the new tag explicitly.
