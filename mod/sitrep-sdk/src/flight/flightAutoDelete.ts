@@ -1,10 +1,8 @@
 import { LocalStorageStore } from "./storage/LocalStorageStore";
 
 /**
- * Default cap when the user enables auto-delete. The setting persists as a
- * number rather than a boolean so we can broaden the UI later (10 / 20 / 50)
- * without a migration. Starred flights and the current flight don't count
- * toward this cap and are never evicted.
+ * How many unstarred flights auto-delete keeps when it is switched on. Starred
+ * flights and the current flight are never deleted and do not count.
  *
  * @category Flight recording
  */
@@ -45,8 +43,8 @@ export function setKeepCount(keepCount: number): void {
 }
 
 /**
- * Calls `cb` whenever the auto-delete setting changes, and returns the
- * unsubscribe function.
+ * Calls `cb` whenever the auto-delete setting changes. Returns the function
+ * that stops it.
  *
  * @category Flight recording
  */

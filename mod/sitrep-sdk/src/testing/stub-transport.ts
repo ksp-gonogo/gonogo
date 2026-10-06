@@ -6,7 +6,7 @@ import type { TopicId } from "../topics";
 import { wrapTopicPayload, wrapTypePayload } from "../wrap-units";
 
 /**
- * Builds a valid, deterministic `Meta` for stubbed/test data.
+ * A valid, repeatable `Meta` for test data, with `overrides` applied.
  *
  * @category Stream fixture
  */
@@ -36,10 +36,8 @@ export type { WireOf } from "../wrap-units";
 import type { WireOf } from "../wrap-units";
 
 /**
- * `wrapTypePayload` under the name the fixtures already call it by.
- *
- * Turns a payload as the mod sends it into the typed payload, with every
- * number that has a declared unit wrapped in a `Value`.
+ * Turns a payload as the mod sends it into the typed payload, with every number
+ * that has a declared unit wrapped in a `Value`.
  *
  * @category Stream fixture
  */
@@ -51,24 +49,9 @@ export function wrapWire<Payload>(
 }
 
 /**
- * The observation a reckoner is always handed.
- *
- * `ReckonerFor` types its point as `TimelinePoint<Payload>`, whose `payload` is
- * `Payload | null`, but `readingFrom` returns the `absent` state on a tombstone
- * before it ever reaches the reckoner, so the null is unreachable. Reckoners
- * written against the plain reading of that type end up adding a fallback for a
- * case the store cannot produce, and a fallback is a value: it would be
- * modelled forward and rendered as though someone had observed it.
- *
- * So this asserts the invariant rather than papering over it. If the store ever
- * does hand a reckoner a tombstone, the throw names it.
- *
- * The parameter is structural rather than `TimelinePoint<Payload>` on purpose,
- * and not for elegance: importing that type into this file put `../timeline`
- * into the `testing` entry point's bundled declarations, and that alone
- * produced 45 `implicitly has an 'any' type` errors across
- * `@ksp-gonogo/components`, on `styled-components` props with nothing to do
- * with either module. The function reads one field, so it asks for one field.
+ * The payload of the point a reckoner is handed. A reckoner is never handed a
+ * null payload, so this returns it without the `null` its type allows, and
+ * throws if one ever arrives.
  *
  * @category Stream fixture
  */
@@ -86,7 +69,7 @@ export function observedPayload<Payload>(point: {
 type CommandHandler = (command: string, args: unknown) => unknown;
 
 /**
- * One recorded `command-request` envelope, verbatim: see
+ * One command a {@link StubTransport} was sent, as it was sent. See
  * `StubTransport.sentCommands`.
  *
  * @category Stream fixture
@@ -102,23 +85,17 @@ export interface SentCommand {
 }
 
 /**
- * In-memory, scriptable `Transport` used to fake a telemetry source in tests.
- *
- * `emit`/`setCommandHandler` are test-only helpers that don't exist on the
- * `Transport` interface itself: they let a test drive the stub as if it
- * were a real server on the other end of the pipe.
+ * A {@link Transport} held in memory, for faking the mod in tests. `emit` and
+ * `setCommandHandler` drive it as the mod would.
  *
  * @category Stream fixture
  */
 export class StubTransport implements Transport {
   readonly status: TransportStatus = "connected";
   /**
-   * Off unless a test asks for it, matching the interface's own default and for
-   * the same reason: a stub never acks unless the test makes it, so opting in by
-   * default would mature every topic in every test into `unowned`.
-   *
-   * A test that opts in is taking on the job of acking, via
-   * {@link StubTransport.ackSubscribe}.
+   * Off unless the test turns it on. A test that turns it on must answer each
+   * subscribe itself, with {@link StubTransport.ackSubscribe}; otherwise every
+   * Topic would be marked unowned.
    */
   readonly decidesTopicOwnership: boolean;
 
@@ -139,15 +116,9 @@ export class StubTransport implements Transport {
   private readonly heldCommands: (() => void)[] = [];
 
   /**
-   * Every `command-request` envelope this transport has been asked to send,
-   * verbatim, in send order: a test-only introspection log independent of
-   * `commandHandler`. Exists so a test can assert on envelope fields
-   * `CommandHandler`'s 2-arg `(command, args)` shape doesn't see (e.g.
-   * `label`) WITHOUT widening `CommandHandler` itself: a prior attempt at
-   * that broke every pre-existing `toHaveBeenCalledWith(command, args)`
-   * exact-arity assertion built on `setCommandHandler(vi.fn())` across the
-   * `components` package. Keep this the ONE place a new envelope field gets
-   * surfaced to tests.
+   * Every command this transport was asked to send, as it was sent, in order.
+   * Use it to check fields of a command, such as `label`, that a command
+   * handler set with `setCommandHandler` does not receive.
    */
   readonly sentCommands: SentCommand[] = [];
 
@@ -227,26 +198,13 @@ export class StubTransport implements Transport {
   }
 
   /**
-   * Test helper: fake an inbound stream-data sample. Only delivered if the
-   * topic is subscribed. `metaOverrides` lets a test control quality/source/
-   * validAt/etc. (e.g. to feed a derived channel's OnRails vs. Loaded basis)
-   * without dropping to `emitRaw`, which bypasses the subscription-gating
-   * this method deliberately keeps (the realistic case for proving
-   * ref-counted subscribe actually happened).
-   */
-  /**
-   * Emit a stream frame, wire-shaped.
-   *
-   * `payload` is written the way the mod sends it: plain numbers, no units.
-   * They are wrapped into `Value`s on the way out, because that is what
-   * `parseServerMessage` does to a real frame, and a fixture that skipped it
-   * would hand widgets a shape production never produces.
-   *
-   * Cloned first. The wrap mutates what it is given, which is right for the
-   * object `JSON.parse` just produced and wrong for a test fixture: a shared
-   * one would be rewritten under the next test, and a frozen one threw. The
-   * clone is what makes `emit` behave like a wire frame from the caller's
-   * side as well as the listener's.
+   * Sends one sample of `topic`, delivered only while something has
+   * subscribed to it, as the mod's are. Write `payload` the way the mod sends
+   * it, with plain numbers: each number with a declared unit arrives wrapped
+   * in a `Value`, as a real frame does. `payload` is copied first, so a
+   * shared or frozen fixture is safe to pass. `metaOverrides` sets fields of
+   * the sample's `Meta`, such as its quality or `validAt`. `emitRaw` delivers
+   * whether or not anything has subscribed.
    */
   emit(
     topic: string,
@@ -268,15 +226,9 @@ export class StubTransport implements Transport {
   }
 
   /**
-   * Test helper: stop answering commands, and hold every request sent from now
-   * on until {@link answerHeldCommands}.
-   *
-   * The in-flight window is what signal delay MAKES OF a command, and it is the
-   * thing a control's pending state exists to show. Without this the stub
-   * answers on the next microtask, which `userEvent.click` flushes before it
-   * returns, so a test can watch a control go from rest to settled and never see
-   * the phase in between: the state it was written to prove is the one it cannot
-   * observe. Holding is what a travelling command actually looks like.
+   * Stops answering commands: every command sent from now on waits until
+   * {@link StubTransport.answerHeldCommands}. Use it to see a control while its
+   * command is on its way, which otherwise passes before a click returns.
    */
   holdCommands(): void {
     this.holdingCommands = true;

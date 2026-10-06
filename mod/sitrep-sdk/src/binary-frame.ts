@@ -31,33 +31,23 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
 export const BINARY_LANE_MAGIC = 0x9e;
 
 /**
- * The one lane this version knows: a `stream-binary` delivery.
+ * The lane byte of a `stream-binary` frame, the one lane there is.
  *
  * @category Binary lane
  */
 export const BINARY_LANE_STREAM_BINARY = 0x01;
 
 /**
- * Magic + lane + the two length bytes.
+ * The length of a binary frame's fixed prefix, in bytes: the magic byte, the
+ * lane byte and the two-byte header length.
  *
  * @category Binary lane
  */
 export const BINARY_LANE_PREFIX_BYTES = 4;
 
 /**
- * One delivery off the binary lane, as a consumer wants it.
- *
- * The generated `StreamBinary` types `segments` as the LENGTH TABLE, which is
- * what travels in the header; by the time a frame is decoded those lengths have
- * been spent and what is left is the bytes, so the field is re-typed rather
- * than duplicated. Derived from the generated type rather than restated, so a
- * field added to the header cannot go missing here.
- *
- * `Uint8Array`, deliberately, and never a bare `ArrayBuffer`. The PeerJS radio
- * path carries a written-down scar from exactly that substitution
- * (`packages/app/src/commcast/radio/wire.ts`): a decoder takes either happily,
- * so the defect is invisible until something INDEXES the bytes, and then every
- * element reads `undefined`.
+ * One binary frame, decoded: the header's fields, with `segments` holding the
+ * segments' bytes in place of their lengths. Each segment is a `Uint8Array`.
  *
  * @category Binary lane
  */
@@ -66,13 +56,10 @@ export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
 };
 
 /**
- * Why a frame could not be read. Never an empty delivery: a caller handed zero
- * segments must be able to read that as "the producer had nothing to say",
- * which is a different fact from "the frame arrived broken".
- *
- * Every case carries a `reason`, `not-binary` included, so a caller can log the
- * failure without first narrowing on `kind`. `kind` is for BEHAVIOUR (fall back
- * to text, or drop and warn); `reason` is for the human either way.
+ * Why a frame could not be decoded. Every case carries a `reason` to log;
+ * branch on `kind` to decide what to do, such as reading the frame as text
+ * instead. A frame with zero segments decodes successfully, as a producer with
+ * nothing to send.
  *
  * @category Binary lane
  */
@@ -95,11 +82,8 @@ export type BinaryFrameResult =
   | ({ ok: false } & BinaryFrameFailure);
 
 /**
- * Whether these bytes lead with the magic. The only question a decode seam asks
- * before it commits to a lane, and the reason a JSON frame never reaches this
- * module's parser: every frame the protocol writes as text opens with `{`
- * (0x7B), and 0x80-0xBF is the UTF-8 continuation range, which cannot lead a
- * UTF-8 document at all.
+ * Whether `bytes` start with the binary frame's magic byte. A text frame never
+ * does, since it starts with `{`.
  *
  * @category Binary lane
  */
@@ -110,13 +94,10 @@ export function isBinaryFrame(bytes: Uint8Array): boolean {
 const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
 
 /**
- * Take one frame apart, or say why it could not be.
+ * Decodes one binary frame, or says why it could not.
  *
- * The segments are VIEWS onto the frame's own buffer (`subarray`, not `slice`),
- * so decoding a batch of ten costs no copies. That is safe here and would not
- * be everywhere: the caller owns the buffer, having just received it, and
- * nothing on this path writes back into it. A consumer that intends to retain a
- * segment past the frame's own lifetime should copy it.
+ * Each segment is a view onto `bytes`, not a copy, so decoding is cheap. Copy a
+ * segment you keep after `bytes` may be reused.
  *
  * @category Binary lane
  */
@@ -254,11 +235,9 @@ export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
 }
 
 /**
- * The bytes of a frame, whatever shape the socket handed them over in.
- *
- * `binaryType = "arraybuffer"` gets an `ArrayBuffer`; a test harness or a
- * relay may hand over a view already. A `Blob` is not handled and must not be:
- * reading one is asynchronous, which reorders the stream.
+ * The bytes of a frame, from an `ArrayBuffer` (a socket with
+ * `binaryType = "arraybuffer"`) or a view. A `Blob` is not accepted: reading
+ * one is asynchronous, which would put frames out of order.
  *
  * @category Binary lane
  */

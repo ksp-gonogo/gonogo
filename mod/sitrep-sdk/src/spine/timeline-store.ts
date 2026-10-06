@@ -714,24 +714,19 @@ function interpolatedRead<Payload>(
 }
 
 /**
- * Ties per-topic `ClientTimeline`s to the one shared `ViewClock` and mints
- * the frozen `FrameToken` every read goes through.
+ * Holds every Topic's recent samples, and answers what each one reads at the
+ * instant the dashboard is showing.
  *
- * Two consumption tiers:
- * - **Reactive**: `subscribeFrame` + `sample` back a `useSyncExternalStore`
- *   hook that reads at whatever `FrameToken`
- *   `currentFrame()` currently holds, it does NOT mint its own token per
- *   render, so two components rendering in the same frame see the same
- *   `viewUt` even if wall time ticks between their renders.
- * - **Imperative**: `sample(topic, token)` for a caller's own rAF loop
- *   (canvas widgets): pass the token from `currentFrame()` (or one you
- *   minted yourself with `beginFrame()`) explicitly.
+ * Reads go through a frame token, so every component reading in the same frame
+ * sees the same instant:
  *
- * This is the foundation derived channels build on, along with staleness
- * consumption and confirmed-vs-predicted reads.
- * Derived-channel registration (`registerDerivedChannel`) is implemented
- * here: see `sample`/`sampleDerived` for how a derived topic is resolved
- * and memoized through the exact same per-frame cache raw topics use.
+ * - In React, `subscribeFrame` and `sample` read at the token `currentFrame()`
+ *   holds
+ * - In a drawing loop of your own, pass `sample(topic, token)` the token from
+ *   `currentFrame()`, or one you made with `beginFrame()`
+ *
+ * Derived Topics, registered with `registerDerivedChannel`, are read through
+ * `sample` the same way.
  *
  * @category Stream fixture
  */

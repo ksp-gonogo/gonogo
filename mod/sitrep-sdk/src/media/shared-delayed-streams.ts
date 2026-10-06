@@ -59,7 +59,7 @@ export interface BuiltDelayedStream<Result> {
 }
 
 /**
- * Build context handed to the caller's build function.
+ * What the build function of a {@link SharedDelayedStreams} entry receives.
  *
  * @category Delayed video
  */
@@ -71,7 +71,7 @@ export interface DelayedStreamBuildContext<Contribution> {
 }
 
 /**
- * Builds the shared delayed stream for a `SharedDelayedStreams` entry.
+ * Builds the delayed stream a {@link SharedDelayedStreams} entry shares.
  *
  * @category Delayed video
  */
@@ -80,7 +80,8 @@ export type DelayedStreamBuild<Result, Contribution> = (
 ) => Promise<BuiltDelayedStream<Result>> | BuiltDelayedStream<Result>;
 
 /**
- * One consumer's handle on a shared entry.
+ * One consumer's hold on a shared delayed stream. Release it when done; the
+ * stream is torn down once its last holder releases.
  *
  * @category Delayed video
  */
@@ -110,16 +111,12 @@ interface Entry<Result, Contribution> {
 }
 
 /**
- * A keyed, refcounted registry of shared delayed pipelines. Keyed by
- * reference identity (a `Map`), so the natural key is the shared
- * `MediaStream`/track object every consumer of one camera already holds,
- * no fragile string id needed, and it works with the opaque stream tokens
- * unit tests stand in for a real `MediaStream`.
+ * Shares one delayed stream between every consumer of the same source, keyed
+ * by the source object itself, such as the `MediaStream` every view of one
+ * camera holds. Each consumer takes a lease, and the stream is built for the
+ * first and torn down after the last.
  *
- * Exported as a class (rather than module functions over a hidden Map) so a
- * test can mint an isolated instance instead of leaking entries through a
- * global: the media hook uses one shared instance; tests of the cache use
- * their own.
+ * Create your own instance in a test, so its entries stay separate.
  *
  * @category Delayed video
  */

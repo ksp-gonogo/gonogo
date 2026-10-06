@@ -30,7 +30,11 @@
  */
 
 /**
- * `[bare specifier, `ext-*` entry basename]`, one per resolvable specifier.
+ * Each specifier the app resolves for a loaded Uplink, paired with the name of
+ * the file the app serves it from. Mark every specifier `external` when
+ * bundling an Uplink's client, so it uses the app's own copy of each package;
+ * a bundled copy brings its own registries, which the dashboard never reads.
+ * A subpath, such as `@ksp-gonogo/sitrep-sdk/media`, is its own entry.
  *
  * @category Bundling
  */
@@ -53,7 +57,8 @@ export const UPLINK_EXTERNAL_ENTRIES = [
 ] as const satisfies readonly (readonly [string, string])[];
 
 /**
- * Just the specifiers, which is what a bundler's `external` takes.
+ * The specifiers an Uplink's bundle leaves to the app, as a bundler's
+ * `external` option takes them.
  *
  * @category Bundling
  */
@@ -61,9 +66,8 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
   UPLINK_EXTERNAL_ENTRIES.map(([specifier]) => specifier);
 
 /**
- * Externalised without an entry chunk of their own, because each is reached only
- * through a specifier that HAS one. A bundler must still leave them alone;
- * nothing needs to resolve them at load.
+ * Specifiers a bundler must also leave out of an Uplink's bundle, which the
+ * app reaches only through another specifier and loads no file for.
  *
  * @category Bundling
  */
@@ -73,7 +77,7 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
 ];
 
 /**
- * Everything a bundler marks `external`, which is both lists together.
+ * Everything an Uplink's bundler marks `external`: both lists together.
  *
  * @category Bundling
  */

@@ -1,10 +1,6 @@
 /**
- * In-memory `Storage` shim for tests that need a localStorage-shaped object
- * without leaking state between cases.
- *
- * Note: `length` is fixed at 0 and `key()` always returns null, matching the
- * existing shims. Tests that rely on `Storage.length` or `Storage.key(i)`
- * will need a more complete fake.
+ * A `Storage` held in memory, for a test that needs a `localStorage` of its own.
+ * `length` is always 0 and `key()` always returns `null`.
  *
  * @category Test doubles
  */

@@ -43,20 +43,18 @@ import type {
 } from "./types";
 
 /**
- * The surface the gonogo app injects at boot. Every member here is stateful,
- * it must resolve to the app's single registry / context instance, never a
- * bundled copy. Stateless helpers (wire types, `parseServerMessage`, `TOPIC_IDS`)
- * are NOT here: they are real, published bytes re-exported directly from the sdk.
+ * The registries and hooks the app installs when it starts, which the sdk's
+ * functions call through. An Uplink never implements or calls it directly. A
+ * test installs one with `installTestHost` or `installRealTestHost` from
+ * `@ksp-gonogo/sitrep-sdk/testing`.
  *
  * @category Host and runtime
  */
 export interface GonogoHost {
+  /** What {@link registerAugment} calls. */
   registerAugment<Slot extends string>(def: AugmentDefinition<Slot>): void;
 
-  /**
-   * Reads a Topic off the mounted TimelineStore and answers with its `Reading`
-   * (`@ksp-gonogo/core`'s `useTelemetry`).
-   */
+  /** What {@link useTelemetry} calls. */
   useTelemetry<Topic extends TopicId>(
     topic: Topic,
   ): Topic extends ReckonableTopic
@@ -65,33 +63,10 @@ export interface GonogoHost {
         ReckonableFields<Topic> & keyof TopicPayload<Topic>
       >
     : TopicReading<TopicPayload<Topic>>;
-  /**
-   * The frame's VIEW instant: the moment the screen is showing, which is not
-   * necessarily now.
-   *
-   * Here because an Uplink cannot render a countdown without it. Every absolute
-   * instant on the wire (`ut`) has to be turned into a duration (`s`) before it
-   * can be shown as one, and `<Countdown>`'s own doc comment instructs an author
-   * to subtract the view time to do it. Until this was on the facade that
-   * instruction named a hook the published packages did not expose, so the
-   * documented operation was one a third-party author could not perform.
-   *
-   * `undefined` when no clock is mounted, rather than falling back to a
-   * wall-clock instant: a mission time guessed from the browser would be a
-   * confident wrong answer on every screen that is delayed, paused or scrubbed,
-   * which is most of them.
-   */
+  /** What {@link useViewUt} calls. */
   useViewUt(): Value<"ut"> | undefined;
-  /**
-   * The write boundary, mirroring `useTelemetry`'s read one. Overloaded on the
-   * same seam the SDK's own `useCommand` uses: a known `CommandId` resolves its
-   * args and its reply out of the generated command map, and a computed id
-   * keeps the untyped handle.
-   *
-   * The host implements the untyped signature and the overloads narrow it, so
-   * an app-side implementation has one function to write however many shapes a
-   * caller sees.
-   */
+  // The app implements the untyped signature; the overloads only narrow it for callers.
+  /** What {@link useCommand} calls. */
   useCommand<Command extends CommandId>(
     command: Command,
     options?: UseCommandOptions,
@@ -100,214 +75,93 @@ export interface GonogoHost {
     command: string,
     options?: UseCommandOptions,
   ): UseCommandResult<Args, Reply>;
-  /**
-   * Call one of `uplinkId`'s own methods, wherever this screen is. On the main
-   * screen the call reaches the registered handle directly; on a station it is
-   * relayed through the host, because a station never talks to anything but the
-   * main screen.
-   *
-   * Same boundary property as `useTelemetry`: an Uplink writes the call once
-   * and the hook decides how it travels, so a control that works on the main
-   * screen works on a station without the Uplink knowing stations exist.
-   *
-   * Rejects rather than hanging when there is no route: an Uplink with no
-   * registered handle, or a station whose link is down.
-   */
+  /** What {@link useUplinkRelay} calls. */
   useUplinkRelay(uplinkId: string): UplinkRelay;
-  /**
-   * The ICE servers the main screen is handing out, for an Uplink opening a
-   * media connection from a station. See {@link HostIceServers}.
-   */
+  /** What {@link useHostIceServers} calls. */
   useHostIceServers(): HostIceServers;
-  /**
-   * Cross-origin route reader: every currently-pending command addressed to
-   * `topic`, regardless of which command centre dispatched it, the
-   * companion to `useCommand`'s own-dispatch `inFlight`. Queue-only, no
-   * memory of its own: see `@ksp-gonogo/sitrep-client`'s
-   * `useRouteCommands` for the full contract.
-   */
+  /** What {@link useRouteCommands} calls. */
   useRouteCommands(topic: string): UseRouteCommandsResult;
+  /** What {@link useStream} calls. */
   useStream<Payload>(topic: string): TopicReading<Payload>;
-  /**
-   * Reactively read a Processor's current, frame-memoised value (mirrors
-   * `@ksp-gonogo/sitrep-client`'s `useProcessor`, the augment-side consumption
-   * form of the same evaluation a contribution's `deps` pulls). The handle is
-   * the branded shape `defineUplinkClient(...).registerProcessor` returns,
-   * named structurally here because the sdk leaf cannot depend on
-   * sitrep-client's `ProcessorHandle` (same constraint as
-   * `useTelemetryStoreOptional`'s opaque return). Degrades to `undefined` with
-   * no provider mounted.
-   *
-   * A processor whose own deps include a reading answers a `Reading<Result>`, one
-   * depending only on raw topic ids answers the bare `Result`. The handle's own
-   * brand decides which, so a consumer cannot be handed the wrong shape.
-   */
+  /** What {@link useProcessor} calls. */
   useProcessor<Result, Carried extends boolean>(handle: {
     readonly id: string;
     readonly __resultType?: Result;
     readonly __carriesCurrency?: Carried;
   }): (Carried extends true ? Reading<Result> : Result) | undefined;
+  /** What {@link useViewClock} calls. */
   useViewClock(): unknown;
-  /**
-   * Returns the function an Uplink calls to ask the app to CREATE an alarm.
-   * See `./alarm-request.ts` for why the request goes this way round rather
-   * than the Uplink arming one for itself.
-   *
-   * A hook rather than a plain member because the alarm surface is mounted in
-   * the screen's React tree, and which one is mounted decides where the
-   * request goes: on the main screen it reaches the host's own alarm list, on
-   * a station it travels to the host the same way a station operator's own add
-   * does. The Uplink writes one call and never learns stations exist, the same
-   * boundary property `useTelemetry` and `useCommand` have.
-   */
+  /** What {@link useAlarmRequest} calls. */
   useAlarmRequest(
     owner: UplinkClientHandle,
   ): (request: UplinkAlarmRequest) => void;
+  /** What {@link useActionInput} calls. */
   useActionInput<Actions extends readonly ActionDefinition[]>(
     handlers: ActionHandlers<Actions>,
   ): void;
+  /** What {@link useDataSources} calls. */
   useDataSources(): unknown;
 
-  /**
-   * Real-time (non-delayed) read of `topic` straight off the `TelemetryClient`,
-   * bypasses the certainty-gated `TimelineStore` frame `useStream` samples
-   * through. For command-centre bookkeeping (dispatch timestamps, link facts),
-   * never delayed craft telemetry: see `useLatestValue`'s own doc in
-   * `@ksp-gonogo/sitrep-client` for the raw-vs-derived distinction.
-   */
+  /** What {@link useLatestValue} calls. */
   useLatestValue<Payload = unknown>(topic: string): Payload | undefined;
-  /**
-   * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
-   * channel topic (e.g. a crash alarm): the consumption side of an event
-   * lane, as opposed to `useStream`'s sticky-latest-value read.
-   */
+  /** What {@link useStreamEvent} calls. */
   useStreamEvent<Payload = unknown>(
     topic: string,
     handler: (payload: Payload) => void,
   ): void;
-  /**
-   * Returns a stable, imperative subscribe function for topics that are only
-   * known after some async setup resolves, in a count decided at runtime,
-   * the case `useTelemetry`/`useStream`'s declarative "name every topic on
-   * every render" shape can't express. See `LateTelemetrySubscribe`'s own
-   * doc for the full contract.
-   */
+  /** What {@link useLateTelemetrySubscribe} calls. */
   useLateTelemetrySubscribe(): LateTelemetrySubscribe;
-  /** The current view time (UT seconds), reactive per-frame. */
+  /** What {@link useUtNow} calls. */
   useUtNow(): number | undefined;
-  /**
-   * The nearest `TelemetryProvider`'s `TimelineStore`, or `undefined` with
-   * none mounted. Opaque here (same reasoning as `useViewClock`'s `unknown`
-   * return): `TimelineStore` is a large, evolving class owned by
-   * `@ksp-gonogo/sitrep-client`, which the sdk leaf cannot depend on to name
-   * its full shape: see `./types.ts`'s DataSource type-mirror comment for the same
-   * constraint applied to a small, mirrorable type. An author needing the
-   * concrete type narrows/casts at the call site, same as `useViewClock`
-   * callers already do today.
-   */
+  /** What {@link useTelemetryStoreOptional} calls. */
   useTelemetryStoreOptional(): unknown;
-  /** Non-throwing variant of `useViewClock`: `undefined` with no provider mounted. Opaque for the same reason as `useViewClock`. */
+  /** What {@link useViewClockOptional} calls. */
   useViewClockOptional(): unknown;
 
-  /** The enriched schema (key + label/unit/group) for a data source's keys. */
-  /** Whether a recorded-flight replay session is currently active. */
+  /** What {@link useReplaySessionActive} calls. */
   useReplaySessionActive(): boolean;
 
-  /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
-  /**
-   * Retired members: `getGameHost` and the data-schema hook.
-   *
-   * `getGameHost` is implemented in `api/index.ts` now: it reads one setting this
-   * package already owns. The schema hook was called by no Uplink, and its default
-   * source's schema comes from a legacy vendor key catalogue that must not become
-   * published API.
-   */
-
+  /** What {@link AugmentSlot} renders. */
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
-  /**
-   * Retired member: `ContributionsProvider`. The aggregation lives in
-   * `@ksp-gonogo/ui-kit` beside the per-widget store it writes into, and ui-kit is
-   * published, so there is exactly one implementation and nothing for the host to
-   * inject. It was here while the aggregation was in `@ksp-gonogo/core` and an
-   * Uplink could not reach it.
-   */
+  /** What {@link createPerfBudget} calls. */
   createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle;
 
-  /**
-   * The app's single logger instance (ring buffer, session id, Axiom
-   * transport installed at boot). Never bundle @ksp-gonogo/logger's
-   * `logger` export directly: a second copy is console-only and never
-   * reaches the shared buffer or Axiom.
-   */
+  /** The app's logger, which {@link logger} reads. */
   logger: Logger;
 
-  /**
-   * Every augment bound into `slot`, ascending `priority`, ties in registration
-   * order: the READ half of `registerAugment`.
-   *
-   * Here for the same reason `registerAugment` is, and it is not a convenience. An
-   * Uplink's test has to be able to observe what its `registerAugment` call did,
-   * and the only other route was `@ksp-gonogo/ui-kit`'s own
-   * `getAugmentsForSlot`. That happens to work today because the shim resolves
-   * through this host into `core`, whose augment registry IS ui-kit's, but it is
-   * an undocumented convergence rather than a contract, and it breaks the moment
-   * anything gets its own copy. Reading and writing through the same host is what
-   * makes "an Uplink reaches the registry through the sdk" true for both halves.
-   */
+  /** What {@link getAugmentsForSlot} calls. */
   getAugmentsForSlot(slot: string): AugmentDefinition<string>[];
-  /** Empty the augment registry. For tests; a running app never calls it. */
+  /** What {@link clearAugments} calls. */
   clearAugments(): void;
-  /** Every contribution that wins a slot: the highest priority band present, in registration order. */
+  /** What {@link getContributionsForSlot} calls. */
   getContributionsForSlot(slot: string): AnyContribution[];
-  /** Subscribe to any change (register/unregister) in the contribution registry. */
+  /** What {@link onContributionsChange} calls. */
   onContributionsChange(cb: () => void): () => void;
-  /** Empty the contribution registry. For tests; a running app never calls it. */
+  /** What {@link clearContributions} calls. */
   clearContributions(): void;
 
-  /**
-   * Declare an Uplink client's identity and record it in the app's client
-   * registry, the membership half (which clients are actually present in
-   * this build). Returns a frozen
-   * handle carrying a bound `registerContribution`; the client stamps the
-   * handle itself as `owner` on every `registerComponent`/`registerAugment`
-   * call it makes. `cfg` is the plain identity triple only, the returned
-   * handle's `registerContribution` isn't (and can't be) supplied by the
-   * caller.
-   */
+  /** What {@link defineUplinkClient} calls. */
   defineUplinkClient(cfg: {
     id: string;
     version: string;
     name: string;
-    /** What the Uplink does, in one or two sentences. See `UplinkClientHandle`. */
     description?: string;
   }): UplinkClientHandle;
 
-  /** Register (or replace) a full custom Settings-modal tab. */
+  /** What {@link registerSettingsTab} calls. */
   registerSettingsTab(def: SettingsTabDefinition): void;
 
-  /**
-   * Register (or replace) a declarative setting the app renders in its Settings
-   * surface: the PREFERRED path over a custom tab. A client-pref setting
-   * persists to localStorage; a stream-backed one shows a value read off a
-   * Topic (see `SettingDefinition`).
-   */
+  /** What {@link registerSetting} calls. */
   registerSetting(def: SettingDefinition): void;
 
-  /**
-   * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
-   * `undefined` when none is mounted, for imperative use outside a hook
-   * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
-   */
+  /** What {@link getActiveTelemetryClient} calls. */
   getActiveTelemetryClient(): TelemetryClient | undefined;
-  /**
-   * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
-   * `TelemetryClient`: `undefined` with no provider mounted.
-   */
+  /** What {@link useTelemetryClientOptional} calls. */
   useTelemetryClientOptional(): TelemetryClient | undefined;
 }
 
 /**
- * The single global slot the app populates at boot.
+ * The `globalThis` key the app installs its {@link GonogoHost} under.
  *
  * @category Host and runtime
  */
@@ -337,7 +191,9 @@ export function getHost(): GonogoHost {
 }
 
 /**
- * True when a host is installed. Lets a shim probe without throwing.
+ * Whether the app, or a test host, is installed. An sdk function that needs the
+ * app throws without one, so check this first where that is expected, such as
+ * at module load.
  *
  * @category Host and runtime
  */

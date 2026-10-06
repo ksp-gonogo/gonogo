@@ -6,18 +6,13 @@ import type {
 } from "../api/types";
 
 /**
- * Base class for DataSource wrappers: sources that delegate the bulk of the
- * `DataSource` surface to an upstream `real` source while layering extra
- * behaviour on top (buffering, peer broadcast, etc.).
+ * A base class for a {@link DataSource} that passes every call on to another
+ * source, `real`, and adds behaviour of its own, such as recording. Override
+ * only what you change. It keeps no listeners of its own; use
+ * {@link ListenerSet} or {@link KeyedListenerSet} for those.
  *
- * Every method here is a plain forward to `this.real`. Subclasses override
- * what they care about. The base does not own any listener state, wrappers
- * that need their own subscriber sets compose `ListenerSet` / `KeyedListenerSet`
- * directly.
- *
- * `id` / `name` are accepted as constructor overrides so subclasses (notably
- * `BufferedDataSource`, which registers under a different id from its wrapped
- * source) can rename themselves without shadowing a getter.
+ * `id` and `name` can be given to the constructor, so a wrapper can register
+ * under its own id.
  *
  * @category Flight recording
  */

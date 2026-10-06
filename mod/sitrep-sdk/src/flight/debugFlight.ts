@@ -2,7 +2,8 @@ import { hasHost } from "../api/host";
 import { logger } from "../api/logger";
 
 /**
- * Flight-detection tracing on the logger's "flight" tag, printed when `LOG_TAGS` enables it.
+ * Logs a flight-recognition trace under the logger's `flight` tag, shown when
+ * that tag is switched on.
  *
  * @category Flight recording
  */

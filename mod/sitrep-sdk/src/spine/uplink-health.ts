@@ -92,17 +92,16 @@ export const HEALTH_STATE_NAMES = [
 ] as const;
 
 /**
- * Decoded, widget-facing form of `UplinkHealthState`.
+ * An Uplink's health, as a widget reads it.
  *
  * @category Host and runtime
  */
 export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
 
 /**
- * One labelled diagnostic an Uplink reports about whatever it depends on: which
- * file, which build, which hash. Both halves are display text the Uplink itself
- * authored, so a client lists them without knowing what the Uplink is or what
- * the fact means.
+ * One labelled detail an Uplink reports about what it depends on: a file, a
+ * build, a hash. The Uplink writes both the label and the value, so a client
+ * lists them as they are.
  *
  * @category Host and runtime
  */
@@ -112,7 +111,7 @@ export interface UplinkHealthFact {
 }
 
 /**
- * A `Sitrep.Contract.ContractVersion` pair, as a Major/Minor the two sides can be compared on.
+ * A contract version, as a major and a minor that can be compared.
  *
  * @category Host and runtime
  */
@@ -122,64 +121,66 @@ export interface ContractVersionReading {
 }
 
 /**
- * Decoded, widget-facing form of one Uplink's health self-report.
+ * One Uplink's report on its own health, as a widget reads it.
  *
  * @category Host and runtime
  */
 export interface UplinkHealthEntry {
+  /** The Uplink's id. */
   id: string;
   /** The name the Uplink gives itself, or `null` when it gave none; `id` is then the name to show. */
   name: string | null;
+  /** The Uplink's version. */
   version: string;
+  /** Whether the Uplink is usable. */
   available: boolean;
+  /** Why the Uplink is unavailable. `null` while it is available. */
   reason: string | null;
   /**
-   * The contract version this Uplink was built against, which the mod reads off
-   * its `[SitrepUplink]` attribute rather than out of its payloads: an Uplink
-   * REFUSED for a major mismatch still says which version it expected, because
-   * the attribute is the one thing about it a differing core can safely read.
-   * Compare it against {@link SystemUplinkHealth.coreContract} to tell a refusal
-   * from any other kind of unavailability. `null` for an Uplink that declared
-   * nothing, and for a mod build predating the field.
+   * The contract version the Uplink was built against. An Uplink refused for a
+   * different major still reports it, so compare it with
+   * {@link SystemUplinkHealth.coreContract} to tell a version refusal from any
+   * other reason it is unavailable. `null` when the Uplink declared none, or
+   * the mod is too old to report it.
    */
   contract: ContractVersionReading | null;
   /**
-   * Every topic/prefix this uplink owns, mod-side source of truth
-   * (`ChannelEngine._channelOwner` / `_dynamicNamespaceOwner`): the client
-   * NEVER re-derives a TOPIC_OWNER map. A widget's declared channels resolve to
-   * their owner by longest-prefix match against this.
-   * Empty array (never absent) for a pre-Phase-1 mod build.
+   * The Topics, and prefixes of Topics, the Uplink serves. A Topic belongs to
+   * the Uplink with the longest prefix that matches it. Empty, never absent,
+   * when the mod is too old to report it.
    */
   ownedPrefixes: string[];
   /**
-   * Whether this Uplink reports its host mod's own settings on
-   * `settings.<id>`, read with `useModSettings`. `false` for a mod build
-   * predating the field.
+   * Whether the Uplink reports its host mod's own settings on `settings.<id>`,
+   * read with {@link useModSettings}. `false` when the mod is too old to
+   * report it.
    */
   modSettings: boolean;
+  /** How the Uplink says it is doing. */
   health: {
+    /** Its state. */
     state: UplinkHealthStateName;
-    /** Uplink-authored "what ready means for me" text, opaque, display-only. */
+    /** What the Uplink says about its state, to show as it is. */
     detail: string | null;
     /**
-     * Uplink-authored diagnostics, in the order the Uplink wants them read.
-     * Empty (never absent) when the Uplink has nothing to add.
+     * Details the Uplink reports, in the order it wants them read. Empty, never
+     * absent, when it has none.
      */
     facts: UplinkHealthFact[];
   };
 }
 
 /**
- * The `system.uplinkHealth` derived-channel payload.
+ * The payload of the `system.uplinkHealth` Topic: every Uplink's health.
  *
  * @category Host and runtime
  */
 export interface SystemUplinkHealth {
+  /** Every Uplink the mod knows of. */
   uplinks: UplinkHealthEntry[];
   /**
-   * The contract version the running mod speaks: the other half of every
-   * contract refusal on the roster, stated once because it is a fact about the
-   * core rather than about any one Uplink. `null` on a mod build predating it.
+   * The contract version the running mod speaks, to compare with each
+   * Uplink's `contract`. `null` when the mod is too old to report it.
    */
   coreContract: ContractVersionReading | null;
 }

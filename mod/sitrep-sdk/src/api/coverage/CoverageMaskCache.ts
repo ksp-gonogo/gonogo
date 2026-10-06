@@ -56,23 +56,24 @@ export class CoverageMaskCache {
     this.height = opts.height ?? DEFAULT_MASK_HEIGHT;
   }
 
-  /** The mask for a (body, layerId) pair, allocated zeroed on first call. */
+  /** The mask for a body and layer, created with every cell hidden on first use. */
   acquire(bodyId: string, layerId: string): BodyMask {
     return this.entry(bodyId, layerId).mask;
   }
 
-  /** The mask if it has been acquired, else undefined. */
+  /** The mask for a body and layer, or `undefined` if it has not been created. */
   get(bodyId: string, layerId: string): BodyMask | undefined {
     return this.entries.get(makeCacheKey(bodyId, layerId))?.mask;
   }
 
-  /** Tell the mask's subscribers its bytes changed. */
+  /** Tells the mask's listeners its bytes changed. Call it after writing into `data`. */
   markDirty(bodyId: string, layerId: string): void {
     const entry = this.entries.get(makeCacheKey(bodyId, layerId));
     if (!entry) return;
     for (const listener of entry.listeners) listener(entry.mask);
   }
 
+  /** Calls `listener` whenever the mask changes. Returns the function that stops it. */
   onChange(
     bodyId: string,
     layerId: string,
@@ -83,7 +84,7 @@ export class CoverageMaskCache {
     return () => entry.listeners.delete(listener);
   }
 
-  /** Zero the mask and tell its subscribers. */
+  /** Hides every cell of the mask and tells its listeners. */
   clear(bodyId: string, layerId: string): void {
     const entry = this.entries.get(makeCacheKey(bodyId, layerId));
     if (!entry) return;

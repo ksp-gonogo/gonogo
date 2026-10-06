@@ -251,12 +251,8 @@ export type {
 } from "./types";
 
 /**
- * The shared settings key for the host every Uplink dials (design:
- * `@ksp-gonogo/core`'s `settings/gameHost.ts`). A stable string literal, not a
- * value that ever changes at runtime, mirrored directly rather than imported
- * (the sdk leaf cannot depend on core; see `./types.ts`'s DataSource
- * type-mirror comment for the full constraint) and kept honest by
- * `packages/core/src/sdk-facade.conformance.test-d.ts`.
+ * The setting that holds the address of the machine running KSP, which every
+ * Uplink connects to. Read it with {@link getGameHost}.
  *
  * @category Host and runtime
  */
@@ -454,17 +450,14 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
   getHost().registerSettingsTab(def);
 
 /**
- * Declare a setting the app renders in its Settings surface, the PREFERRED
- * path over a custom tab (`registerSettingsTab`). A client-pref setting
- * persists to localStorage; a stream-backed one shows a value the mod
- * publishes on a Topic and cannot be written at all. Rows may be `boolean`, `text` or
- * `number`, `readOnly`, and filed into a named `group` inside their category.
- * See `SettingDefinition`.
+ * Adds a setting the app draws in its Settings, in place of a whole custom tab
+ * ({@link registerSettingsTab}). A client setting is saved in the browser; a
+ * setting the mod publishes on a Topic is shown and cannot be changed here. A
+ * row is `boolean`, `text` or `number`, can be `readOnly`, and can be filed in a
+ * named `group` within its category. See {@link SettingDefinition}.
  *
- * Generic so the row's `type` decides what `defaultValue` and `select` are
- * allowed to be: declare `type: "number"` and a `defaultValue` of
- * `true` is a compile error at the call site rather than a `Switch` rendering
- * a tolerance.
+ * The row's `type` decides what `defaultValue` and `select` may be, so a
+ * `"number"` row with a `defaultValue` of `true` does not compile.
  *
  * @category Settings
  */
@@ -627,24 +620,25 @@ export function useCommand(
 }
 
 /**
- * Call one of an Uplink's own methods from a widget, on either screen.
+ * Calls one of an Uplink's own methods from a widget, on any screen.
  *
- * A Topic carries what the game is doing and a command changes it; this is
- * neither. It is for the calls an Uplink's client makes to its own host-side
- * object: a WebRTC offer to answer, an inventory to fetch, anything whose shape
- * only that Uplink knows. Register the object with `registerUplinkHandle`, then
- * call it from anywhere with this.
+ * It is for calls an Uplink's client makes to an object of its own on the main
+ * screen: a WebRTC offer to answer, an inventory to fetch, anything whose shape
+ * only that Uplink knows. A Topic carries what the game is doing and a command
+ * changes it; this is neither. Register the object with
+ * {@link registerUplinkHandle}, then call it from any widget with this.
  *
- * The hook is the screen boundary. On the main screen the call reaches the
- * handle directly. On a station it is relayed through the main screen, which is
- * the only thing a station ever talks to, and the Uplink's code is identical
- * either way.
+ * On the main screen the call reaches the object directly. On a station it is
+ * passed on through the main screen, and the Uplink's code is the same either
+ * way.
  *
- *   const relay = useUplinkRelay("my-uplink");
- *   const cameras = await relay("listCameras", { vesselId });
+ * ```ts
+ * const relay = useUplinkRelay("my-uplink");
+ * const cameras = await relay("listCameras", { vesselId });
+ * ```
  *
- * The returned function is stable for as long as the route is, so it is safe in
- * a dependency array. It rejects, rather than hanging, when no route exists.
+ * The returned function stays the same while the route does, so it is safe in
+ * a dependency array. It rejects, rather than hanging, when there is no route.
  *
  * @category Host and runtime
  */
@@ -653,19 +647,21 @@ export function useUplinkRelay(uplinkId: string) {
 }
 
 /**
- * The ICE servers the main screen is handing out, for an Uplink opening a media
+ * The ICE servers the main screen hands out, for an Uplink opening a media
  * connection from a station.
  *
- * A station has no route to the relay that issues TURN credentials, so the main
- * screen broadcasts them and this is where they are read. Empty on the main
- * screen itself, which reaches the relay directly.
+ * A station cannot reach the relay that issues TURN credentials, so the main
+ * screen broadcasts them and this reads them. Empty on the main screen itself,
+ * which reaches the relay directly.
  *
- *   const ice = useHostIceServers(); const pc = new RTCPeerConnection({
- *   iceServers: ice.current() }); useEffect(() => ice.onChange((servers) =>
- *   reconfigure(pc, servers)), [ice, pc]);
+ * ```ts
+ * const ice = useHostIceServers();
+ * const pc = new RTCPeerConnection({ iceServers: ice.current() });
+ * useEffect(() => ice.onChange((servers) => reconfigure(pc, servers)), [ice, pc]);
+ * ```
  *
- * Credentials rotate, so a long-lived connection has to watch `onChange` rather
- * than read `current()` once.
+ * Credentials rotate, so a long-lived connection watches `onChange` rather than
+ * reading `current()` once.
  *
  * @category Host and runtime
  */
@@ -921,16 +917,9 @@ export function useReplaySessionActive(): boolean {
 }
 
 /**
- * The authoritative host every Uplink dials: `saved ?? build-default`, where
- * the build default is `VITE_SITREP_HOST` or `localhost`. Ports are per-service
- * and NOT part of this, callers append their own.
- *
- * Implemented here rather than forwarded to the host. It was a shim while the
- * implementation lived in `@ksp-gonogo/core`, and the only thing it needed was
- * `getSetting`, which this package has owned since the settings store moved. A
- * host member for a two-line read of a setting this package already holds is
- * indirection with nothing on the other end, so the member retires with the
- * shim.
+ * The address of the machine running KSP, which every Uplink connects to: the
+ * address saved in Settings, or else the build's `VITE_SITREP_HOST`, or else
+ * `localhost`. It carries no port; each service adds its own.
  *
  * @category Host and runtime
  */
@@ -1025,9 +1014,9 @@ export function AugmentSlot<Slot extends string>(props: {
 // have been indirection with one implementation on the other end.
 
 /**
- * Construct a performance budget on the app's single registry (design: every
- * new data source MUST register one). A factory, not a re-exported class, so the
- * budget self-registers into the host's registry rather than a bundled copy.
+ * Creates a performance budget: a rate, such as samples per second, that warns
+ * when it goes over `threshold` and fails a test that pushes it over. Every
+ * data source should record into one.
  *
  * @category Logging and performance
  */

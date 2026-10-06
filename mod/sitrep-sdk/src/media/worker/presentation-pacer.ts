@@ -74,35 +74,31 @@ export interface PacedFrame<Frame> {
  * @category Delayed video
  */
 export interface PresentationPacerOptions<Frame> {
-  /** Called, in order, for each frame the pacer determines is due at the
-   *  `nowWall` passed to `tick()`. The caller does the actual sink write. */
+  /**
+   * Called, in order, for each frame due at the `nowWall` passed to `tick()`.
+   * Writing the frame out is the caller's job.
+   */
   onPresent(frame: PacedFrame<Frame>): void;
-  /** Called for a frame dropped by backlog control (never reaches
-   *  `onPresent`): the caller MUST wire this to release/close the frame's
-   *  resources if `Frame` holds one (e.g. a WebCodecs `VideoFrame`), the same
-   *  memory-safety contract `DelayedPlayoutBuffer.onDrop` has. */
+  /**
+   * Called for each frame skipped to catch up, which never reaches `onPresent`.
+   * Supply it whenever a frame holds something that must be closed, such as a
+   * `VideoFrame`.
+   */
   onSkip?(frame: PacedFrame<Frame>): void;
-  /** Wall-clock seconds of backlog (how far past the oldest queued frame's
-   *  due time `tick()`'s `nowWall` has drifted) beyond which the pacer
-   *  snaps straight to the newest queued frame instead of draining the
-   *  backlog in slow motion: "a live feed must not accrue latency". */
+  /**
+   * How far, in wall-clock seconds, `tick()` may run past the oldest queued
+   * frame's due time before the pacer skips straight to the newest frame, so a
+   * live feed does not fall further and further behind.
+   */
   maxBacklogSeconds: number;
   /**
-   * UT seconds of arrivals that must be on the books before a measured rate is
-   * believed at all. Below it the pacer spaces at 1:1.
-   *
-   * A floor rather than a smoothing constant: one burst of released frames
-   * carries one arrival instant, so a baseline shorter than several bursts
-   * measures the burst rather than the stream.
+   * How many UT seconds of arrivals the pacer measures before it trusts the
+   * measured rate. Until then it spaces frames at 1:1.
    */
   rateBaselineSeconds?: number;
   /**
-   * How far from 1:1 a measured rate may depart, as a fraction. Outside the
-   * band the pacer holds the nearer edge.
-   *
-   * See the class doc: the band exists to separate a separation rate from a
-   * time warp, not to bound doppler, which is thousands of times smaller than
-   * any value worth putting here.
+   * How far from 1:1 the measured rate may be, as a fraction. Outside that, the
+   * pacer uses the nearer limit.
    */
   maxRateDeparture?: number;
 }

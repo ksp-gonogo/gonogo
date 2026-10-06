@@ -47,7 +47,7 @@ export function getDerivedKeys(): readonly DerivedKeyDef[] {
 }
 
 /**
- * Remove all registered derived keys. Only call from tests.
+ * Removes every derived key. For tests; a running app never calls it.
  *
  * @category Flight recording
  */

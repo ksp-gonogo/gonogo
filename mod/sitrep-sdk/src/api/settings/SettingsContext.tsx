@@ -46,10 +46,10 @@ export function useSettingsService(): SettingsService {
 }
 
 /**
- * Reactive accessor for a single client-pref setting. Returns a
- * `[value, setValue]` tuple; mutations persist through the underlying
- * `SettingsService` and broadcast to other subscribers. Client-pref rows
- * only: a stream-backed row's value is on a Topic, not in `SettingsService`.
+ * The value of one client setting and a function that sets it, re-rendering
+ * when it changes. A new value is saved and every other reader of the setting
+ * sees it. For client settings only: a setting the mod publishes is read from
+ * its Topic.
  *
  * @category Settings
  */

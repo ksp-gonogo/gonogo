@@ -1,12 +1,6 @@
 /**
- * Tiny helper for the "Set of callbacks + add returning a cleanup" pattern that
- * shows up in every DataSource wrapper (per-key subscribers, status listeners,
- * sample subscribers, etc.). Owning this in one place removes a fistful of
- * near-identical boilerplate from each call site.
- *
- * Standalone (not tied to DataSourceWrapper) so PeerClientDataSource, which
- * doesn't wrap an upstream `real` source and so doesn't extend the wrapper
- * base: can use it too.
+ * A set of callbacks: `add` returns the function that removes one, and `fire`
+ * calls them all.
  *
  * @category Flight recording
  */
@@ -36,10 +30,8 @@ export class ListenerSet<Args extends readonly unknown[] = []> {
 }
 
 /**
- * Keyed variant: a Map<key, Set<cb>> with the same add/fire ergonomics. Used
- * for the per-key subscriber bookkeeping inside BufferedDataSource and
- * PeerClientDataSource. The bucket Set is created lazily and removed when its
- * last subscriber leaves so an empty Map entry never lingers.
+ * A {@link ListenerSet} per key. A key's set is created when its first callback
+ * is added and removed when its last one goes.
  *
  * @category Flight recording
  */

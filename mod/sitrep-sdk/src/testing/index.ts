@@ -128,12 +128,9 @@ import type { CommandArgs, CommandId } from "../commands";
 export { harnessTheme } from "./theme";
 
 /**
- * A dispatch's args at the type the contract declares for that command.
- *
- * A transport's command handler is typed `(command: string, args: unknown)`,
- * because it carries every Uplink's commands and cannot know whose it holds.
- * This is the one step from there to the declared shape, so a test asserting on
- * an arg field stops compiling when the contract renames it.
+ * A sent command's args, typed as the contract declares them for `command`. A
+ * transport's command handler receives `args` as `unknown`; this types them, so
+ * a test that asserts on a field stops compiling if the contract renames it.
  *
  * @category Stream fixture
  */

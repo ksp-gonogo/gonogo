@@ -29,16 +29,10 @@ const PART_ACTIONS_PREFIX = "vessel.partActions.";
 const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
 
 /**
- * The stream Topic a dynamic-namespace key reads from.
- *
- * Every surviving entry is an IDENTITY map over a DYNAMIC namespace: a family of
- * Topics materialised per subject at runtime, so no `[SitrepTopic]` type names
- * one and nothing generated can enumerate them. The widget-facing key IS the
- * wire topic in each case; what this decides is whether the key belongs to a
- * namespace the mod actually publishes.
- *
- * A dynamic key needs no translation and cannot be enumerated, so a registered
- * prefix is what vouches for it (see `registerDynamicTopicPrefix`).
+ * The Topic a dynamic key is read from, or `undefined` when the key is under
+ * no registered prefix. A dynamic key, such as one per body or per part, is its
+ * own Topic; what this checks is that some code registered its prefix with
+ * `registerDynamicTopicPrefix`.
  *
  * @category Stream fixture
  */

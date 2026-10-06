@@ -36,11 +36,9 @@ import type {
   WorkerToMainMessage,
 } from "./delay-worker";
 
-/** The wider clock capability the worker backend needs beyond
- *  `DelayClockLike`: a serializable snapshot of the formula inputs to
- *  forward at ~60Hz. `ViewClock` (the app's real clock) satisfies this
- *  structurally; a camera Uplink never imports `ViewClock` directly (same
- *  decoupling `delayed-playout-buffer.ts` already follows).
+/**
+ * A {@link DelayClockLike} that can also hand over its state to copy into a
+ * worker about 60 times a second. The app's view clock is one.
  *
  * @category Delayed video
  */
@@ -147,11 +145,9 @@ function startPipelineTicker(
 }
 
 /**
- * Attempt to build the worker-hosted pipeline for `raw`'s first video
- * track. See the module doc for the contract: resolves `null` (never
- * throws) on any failure to build, including the synchronous
- * `postMessage(..., [track])` transfer failure this task's verification
- * found on Chrome/Firefox.
+ * A delayed copy of the first video track of `raw`, with the delay running in
+ * a worker. Resolves `null`, and never throws, when it cannot be built,
+ * including when the browser refuses to move the track to a worker.
  *
  * @category Delayed video
  */
@@ -263,29 +259,16 @@ export interface EncodedFrameDelayHandle {
 }
 
 /**
- * Attach the encoded-transform backend directly to `receiver`. UNLIKE
- * `createWorkerFrameDelayStream`, this is effectively SYNCHRONOUS and
- * produces no new stream: `receiver.transform = new
- * RTCRtpScriptTransform(worker, options)` either succeeds immediately
- * (this function returns a handle) or throws (caught here, reported via
- * `onError`, returns `null`): there's no async "pipelineReady" handshake
- * to await, because attaching a script transform doesn't move any track;
- * `self.onrtctransform` on the worker side has no message to reply with
- * (see `delay-worker.ts`'s `handleRtcTransform` doc). The delay
- * happens transparently, upstream of decode, on the SAME track the caller
- * already has, the caller should keep using its existing `MediaStream`
- * reference (e.g. `raw`, unchanged) once this resolves non-null, not swap
- * to a new one.
+ * Delays the encoded video arriving at `receiver`, in a worker, before it is
+ * decoded. Unlike {@link createWorkerFrameDelayStream} it makes no new stream:
+ * keep showing the stream you already have, which is delayed from then on.
  *
- * Resolves `null` (never throws) whenever the pipeline can't be attached
- * here: no `Worker` support, or the platform's `RTCRtpScriptTransform`
- * constructor itself threw (e.g. the receiver already has a transform, or
- * the engine's `RTCRtpScriptTransform` is absent; check
- * `typeof RTCRtpScriptTransform !== "undefined"` before calling if the
- * caller wants to skip the attempt instead of taking the throw+report
- * round trip). The caller treats a `null` resolution exactly like every
- * other backend's `null`/`unavailable` case (decision 5: never a silent
- * live fallback).
+ * It takes effect at once or not at all. Returns `null`, and reports through
+ * `onError`, when it cannot attach: there is no `Worker`, or the browser's
+ * `RTCRtpScriptTransform` threw, as it does when the receiver already has a
+ * transform. Check `typeof RTCRtpScriptTransform !== "undefined"` first to
+ * skip the attempt on a browser without it. Treat `null` as the delay being
+ * unavailable, never as permission to show the live stream.
  *
  * @category Delayed video
  */

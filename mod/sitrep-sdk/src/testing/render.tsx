@@ -60,17 +60,10 @@ export function renderHook<Result, Props>(
 }
 
 /**
- * What a test PROBE should print for a value that may or may not carry a unit.
- *
- * A probe exists to prove a read path works: that a frame reached a widget, that
- * a subscription fired, that a shim routed to the stream. How the value RENDERS is
- * not what it is testing, and a `Value`'s own `toString` is "0.75 ratio", which
- * turns every such assertion into a question about the unit system instead of
- * about the wiring.
- *
- * So: the magnitude for a quantity, the value itself for anything else. Use
- * `visibleText` from `@ksp-gonogo/ui-kit/testing` when what a reader SEES is the
- * point.
+ * The text a test probe should print for a value: the magnitude of a quantity,
+ * and anything else as it is. For a test of whether a value arrived, not of how
+ * it is drawn; use `visibleText` from `@ksp-gonogo/ui-kit/testing` for what a
+ * reader sees.
  *
  * @category Rendering
  */

@@ -32,10 +32,8 @@ export function ScreenProvider({
 }
 
 /**
- * Returns the current screen. Defaults to "main" outside a provider so
- * tests and one-off renders don't need to set one up for components that
- * don't actually branch. Components that rely on the distinction should
- * still wrap with a ScreenProvider explicitly.
+ * The screen this component is on: `"main"` when the app has not said, as in
+ * a test.
  *
  * @category Host and runtime
  */
@@ -44,10 +42,8 @@ export function useScreen(): Screen {
 }
 
 /**
- * Which seat a screen puts the operator in. A widget declares against the
- * SEAT, never the screen: a future remote pilot (peer-fed, aboard) lands as
- * one more screen mapping to `"pilot"` and every existing declaration stays
- * correct.
+ * The seat a screen puts the operator in. Declare a widget's availability
+ * against the seat, not the screen.
  *
  * @category Host and runtime
  */
@@ -65,7 +61,7 @@ export function useSeat(): Seat {
 }
 
 /**
- * Is the operator aboard the craft rather than at a command centre?
+ * Whether the operator is aboard the craft rather than at mission control.
  *
  * @category Host and runtime
  */

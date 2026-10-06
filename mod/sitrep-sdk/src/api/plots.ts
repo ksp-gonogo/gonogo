@@ -39,16 +39,12 @@
 import type { PlotLayer } from "./plot-layers";
 
 /**
- * Declaration-merging seam for WELL-KNOWN plot subjects.
+ * Plot subjects that already exist, declared by declaration merging so they
+ * complete in an editor and a misspelling does not compile.
  *
- * A subject is an open string, because a plot nobody has drawn before cannot be
- * in a registry. But the subjects that already exist are exactly the ones a
- * contributor most needs to spell correctly, since a typo does not fail: it
- * quietly makes a second plot instead of joining the first. Merging a key in
- * here gives those autocomplete and makes the typo a type error.
- *
- * An Uplink declaring a plot other Uplinks might want to enrich should merge
- * its subject in, the same way it merges a Topic id.
+ * A subject is an open string, so a misspelt one is not an error: it makes a
+ * second plot rather than adding to the first. An Uplink whose plot other
+ * Uplinks might add to should declare its subject here.
  *
  * @category Plots
  */
@@ -56,53 +52,35 @@ import type { PlotLayer } from "./plot-layers";
 export interface PlotSubjectRegistry {}
 
 /**
- * What a plot is of: a known subject, or any string for one nobody has drawn.
- *
- * The `string & {}` tail is what keeps the union open while still offering the
- * known keys as completions; a bare `string` would collapse the whole union and
- * offer nothing.
+ * What a plot is of: a subject from {@link PlotSubjectRegistry}, or any other
+ * string for a plot nobody has drawn before.
  *
  * @category Plots
  */
 export type PlotSubject = keyof PlotSubjectRegistry | (string & {});
 
 /**
- * A plot's coordinate frame: the axes it is drawn against, pinned by the plot
- * itself.
+ * A plot's coordinate frame: the axes it is drawn against. The plot sets it;
+ * the widget arranging plots decides how much room each gets, never its axes.
  *
- * The frame is CONTENT, not arrangement. An arranger that could rescale an axis
- * could turn a correct plot into a lying one, so it cannot: it chooses how much
- * room the plot gets and nothing inside it.
- *
- * Both domains are required. A plot with no frame it can state honestly has no
- * frame to guess at either, and the shape of that is a plot that does not
- * contribute itself this frame, never a plot drawn against invented anchors.
+ * Both domains are required. A plot that cannot state its frame returns `null`
+ * from `compute` rather than drawing against guessed axes.
  *
  * @category Plots
  */
 export interface PlotFrame {
   /**
-   * What KIND of picture this is, which decides whether it gets axes at all.
+   * What kind of picture this is, which decides whether it has axes:
    *
-   *  - `"cartesian"` (default): X and Y are DIFFERENT quantities and the axes
-   *    carry meaning. Tick ladders, gridlines, labelled units. A descent
-   *    envelope is this: speed against height, and the reading is where a curve
-   *    sits between the two.
-   *  - `"spatial"`: X and Y are the SAME quantity and the plot is a view of a
-   *    PLACE. Equal scale on both axes so a circle is a circle and a slope is
-   *    the slope, drawn full-bleed with no tick ladders, and any reading it
-   *    carries goes INSIDE the frame as a caption. A terrain cross-section and
-   *    a touchdown map are this.
+   * - `"cartesian"` (the default): X and Y are different quantities, such as
+   *   speed against height, and the axes carry ticks, gridlines and units
+   * - `"spatial"`: X and Y are the same quantity and the plot is a view of a
+   *   place, such as a terrain cross-section or a map of a landing site. It is
+   *   drawn edge to edge at equal scale on both axes, so a circle stays a circle,
+   *   with no ticks; put any reading in a caption
    *
-   * The distinction is not decoration. A metre ladder down the side of a map is
-   * a scale nobody reads off a map, and reserving the gutter for it squeezes
-   * the picture that IS the reading into the middle of a box. Worse, an axis
-   * box has no reason to keep X and Y at the same scale, so a dispersion circle
-   * comes out an ellipse and a 9 degree slope draws at whatever angle the tile
-   * happens to be shaped.
-   *
-   * Two contributions naming one subject with different kinds is an author
-   * error: the frame-supplier's kind stands and the disagreement is logged.
+   * When two contributions to one subject give different kinds, the kind of the
+   * one that supplied the frame is used, and the difference is logged.
    */
   kind?: "cartesian" | "spatial";
   /** `[min, max]` on the X axis, in `xUnit`'s units. */
@@ -123,105 +101,50 @@ export interface PlotFrame {
   /** Linear (default) or log10 on the primary Y axis. */
   yScale?: "linear" | "log";
   /**
-   * Drop the X tick ladder, for a ONE-DIMENSIONAL plot.
-   *
-   * An altitude scale has a height and nothing across it: the marks sit at a
-   * nominal mid-span and the axis under them measures nothing. Say so, rather
-   * than shipping a ladder reading 0 / 0.50 / 1, which is worse than no ladder
-   * because a reader is entitled to think a scale means something.
-   *
-   * `xDomain` is still required and still used, because layers are placed
-   * against it. Only the reader-facing axis goes.
+   * Leaves out the X axis ticks, for a plot with only one dimension, such as an
+   * altitude scale. `xDomain` is still required, since layers are placed against
+   * it.
    */
   hideXAxis?: boolean;
 }
 
 /**
- * One contributed plot: a whole GraphView, stated as data.
+ * One contributed plot, stated as data.
  *
- * ## Where relevance lives
- *
- * There is no `relevant` predicate on this type, and its absence is a decision
- * rather than an omission. **`compute` returning `null` IS the relevance
- * predicate**, and it is an arbitrary one: it sees every Topic it names in
- * `deps`, so a plot can decline for any reason it likes, not merely because a
- * reading is missing.
- *
- * ```ts
- * compute: (topics) => {
- *   // Relevance. Nothing to do with absent data: the ascent is over, the
- *   // numbers are all still arriving, and this plot has stopped meaning
- *   // anything. An ascent plot that kept drawing through cruise would be a
- *   // true picture of an irrelevant thing.
- *   if (topics["vessel.identity"]?.situation !== Situation.Flying) return null;
- *   ...
- * }
- * ```
- *
- * Sharing the return channel with the data is the point, not a shortcut. A
- * separate predicate is free to disagree with the marks: it can say a plot is
- * relevant in a frame where `compute` produces nothing, and what that renders
- * is an empty instrument with its axes pinned, which an operator reads as
- * "nothing is happening" when it means "nothing is known". One channel makes
- * that state unreachable, because deciding to be relevant and producing the
- * plot are the same act.
- *
- * The same reasoning is why an entry with an EMPTY `layers` is not drawn: it is
- * the second spelling of the state the single channel exists to abolish, and
- * the arranger treats it as the plot not having been contributed. Return `null`
- * rather than a plot with nothing on it.
- *
- * A domain-wide "this Uplink's model is not installed" gate is `requires` on
- * the contribution, which the aggregation applies before `compute` is called at
- * all. Relevance WITHIN an installed domain is this function.
+ * Return `null` from `compute` when the plot has nothing to show, for any
+ * reason, including that it no longer applies, such as an ascent plot once the
+ * craft is in orbit. An entry whose `layers` is empty is not drawn either.
+ * Leave a plot out entirely while its mod is not running with `requires` on the
+ * contribution.
  *
  * @category Plots
  */
 export interface PlotEntry {
   /**
-   * What this plot is OF, and therefore its identity. Two contributions naming
-   * the same subject are drawing the SAME plot: their layers are merged onto
-   * one frame and the arranger shows one plot, not two.
+   * What the plot is of, which is also what identifies it. Contributions naming
+   * the same subject draw one plot: their layers are merged onto one frame. So
+   * to add to a plot another contribution draws, name its subject; you never
+   * name the contribution itself.
    *
-   * A subject rather than an owned id, and this is the whole of the addressing
-   * design. An author who wanted to enrich an existing plot would otherwise
-   * have to NAME the contribution that draws it, which is a guest naming a
-   * host: the asymmetry this slot exists to remove. Naming the SUBJECT is
-   * symmetric. Neither party names the other, both name the thing, and it
-   * stays correct when the host is the one that arrives second.
-   *
-   * Two plots that share axes and are not the same plot (two vessels' descent
-   * envelopes) take two subjects. Merging is declared, never inferred from
-   * matching units, because inferring it would fuse them.
+   * Two plots that share axes but are not the same plot, such as two vessels'
+   * descent envelopes, need two subjects. Plots are merged only by subject,
+   * never by matching axes.
    */
   subject: PlotSubject;
   /**
-   * The axes this plot is drawn against.
-   *
-   * OPTIONAL, and its absence is the second half of the addressing. A
-   * contribution with a subject and NO frame says "layers into the plot of
-   * this subject, whoever draws it": it enriches a plot it does not own and
-   * cannot stand alone. If nothing supplies a frame for that subject, it draws
-   * nothing at all, which is the correct outcome rather than a missing one. A
-   * model that exists to be compared against another has nothing to say when
-   * the other is absent.
-   *
-   * Supply a frame to establish a plot. See {@link PlotEntry.subject} for what
-   * happens when two contributions both do.
+   * The axes the plot is drawn against. Supply one to draw a plot of your own.
+   * Leave it out to add layers to the plot of this subject that another
+   * contribution draws; when nothing draws that plot, your layers are not
+   * shown.
    */
   frame?: PlotFrame;
   /**
-   * The plot's own name, shown by the arranger above it and used as the plot's
-   * accessible name, ahead of whatever clauses its layers add.
-   *
-   * Read only from the contribution whose frame won, because the plot is one
-   * thing and has one name. A merging contributor's provenance rides its owner
-   * stamp and its layers' own descriptions, not a second title.
+   * The plot's name, shown above it and used as its accessible name. Read only
+   * from the contribution whose frame the plot is drawn on; a contribution
+   * that adds layers to it does not rename it.
    */
   title?: string;
-  /**
-   * Everything drawn, in the plot's own data space. The `PlotLayer` vocabulary.
-   */
+  /** Everything drawn, in the plot's own data space. See {@link PlotLayer}. */
   layers: readonly PlotLayer[];
 }
 

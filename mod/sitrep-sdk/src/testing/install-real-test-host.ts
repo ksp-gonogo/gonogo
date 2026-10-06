@@ -34,60 +34,31 @@ import { installTestHost } from "./install-test-host";
 import { recordAlarmRequest } from "./recorded-alarm-requests";
 
 /**
- * The four host members whose implementations belong to `@ksp-gonogo/ui-kit`.
- *
- * The augment registry and the `<AugmentSlot>` composition point live in
- * ui-kit, which imports this package, so this package cannot import them back:
- * the edge would be a `^build` cycle. The caller supplies them, and the caller
- * CAN, because ui-kit is published and an Uplink's `test/setup.ts` already
- * imports it.
- *
- * Four values, one import, and TypeScript names any one a caller forgets. It is
- * the same shape as a sdk function taking an injectable seam for the one thing
- * the leaf cannot see, rather than a partial host: everything else here is the
- * real implementation, reached directly.
- *
- * Deliberately NOT solved by having ui-kit register itself with this package at
- * module load. That would be an ordering contract nothing enforces and nothing
- * can see, which is exactly how `SettingsService` constructing a `PerfBudget`
- * at module scope held by luck until the flight layer imported directly and the
- * suite died with "PerfBudget is not a constructor". An explicit parameter
- * cannot fail that way.
+ * The four parts of a test host that come from `@ksp-gonogo/ui-kit`, which
+ * {@link installRealTestHost} takes because this package cannot import them.
+ * Pass them from your test setup, where ui-kit is already imported.
  *
  * @category Test hosts
  */
 export interface UiKitHostPieces {
-  /**
-   * ui-kit's `<AugmentSlot>` and `registerAugment` are generic over the
-   * declaration-merged slot id, and this leaf cannot name `SlotProps` or
-   * `AugmentSegmentProps`, so their parameters are accepted as `never` here: a
-   * function taking a specific argument IS assignable to one taking `never`
-   * (parameters are contravariant), and the narrowing casts happen below rather
-   * than at the call site. Typing these as the host members directly would have
-   * pushed an `as GonogoHost["AugmentSlot"]` cast into all eight Uplink setup
-   * files, which is a worse trade than four casts in one place.
-   */
+  // Typed `never` so ui-kit's slot-generic functions are assignable without a cast at each call site; the casts happen in installRealTestHost.
+  /** ui-kit's `AugmentSlot`. */
   AugmentSlot: ComponentType<never>;
+  /** ui-kit's `clearAugments`. */
   clearAugments: () => void;
+  /** ui-kit's `getAugmentsForSlot`. */
   getAugmentsForSlot: (slot: string) => unknown[];
+  /** ui-kit's `registerAugment`. */
   registerAugment: (def: never) => void;
 }
 
 /**
- * Install the REAL host for an Uplink's test run.
+ * Installs the app's own host for an Uplink's tests, so widgets that call
+ * {@link useTelemetry}, {@link registerComponent}, {@link useCommand} and the
+ * rest work as they do in the app. Without a host they throw.
  *
- * A widget only ever touches sdk shims (`useTelemetry`, `registerComponent`,
- * `useCommand`, ...), which delegate to whatever host is installed and throw a
- * named error when none is. So a test has to install one, and this installs the
- * whole host: a partial one fails with `getHost().<member> is not a function`
- * the first time a widget reaches a member it left out.
- *
- * `GonogoHost` is a full interface and this returns one, so TypeScript requires
- * every member.
- *
- * Returns the disposer `installTestHost` returns: call it in `afterEach` if a
- * suite needs the host gone between tests. Most do not, since the host is
- * stateless dispatch and the state lives in the registries a test's own reset clears.
+ * Returns a function that removes the host again. Most suites never call it:
+ * the host keeps no state of its own, and the registries a test resets hold it.
  *
  * @category Test hosts
  */

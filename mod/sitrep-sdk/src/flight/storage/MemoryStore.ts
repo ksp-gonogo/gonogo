@@ -7,14 +7,8 @@ interface SampleRow {
 }
 
 /**
- * In-memory implementation of `FlightStore`. Used in tests (where IndexedDB is
- * available via fake-indexeddb but often clearer without) and as a
- * non-persistent fallback if IndexedDB is unavailable.
- *
- * Samples are kept in per-(flight, key) arrays sorted by timestamp.
- * Insertion is O(1) when timestamps arrive monotonically, which is the
- * expected case from a live stream: with a fallback linear-insert path
- * for out-of-order samples (e.g. backfilled history).
+ * A {@link FlightStore} held in memory, for tests and for a browser with no
+ * IndexedDB. Nothing survives a reload.
  *
  * @category Flight recording
  */

@@ -108,33 +108,13 @@ export interface TelemetryProviderProps {
 }
 
 /**
- * Supplies a `TelemetryClient`: and a `TimelineStore` fed from that
- * client's wire: to the component tree via context.
+ * Supplies a {@link TelemetryClient} to the tree below it, and the store every
+ * Topic is read from, fed by that client. Derived Topics are registered on the
+ * store, so they read like any other.
  *
- * **The bridge:** this provider is what constructs a `TimelineStore` and
- * registers the derived channels on it, so a derived topic is reachable
- * through `useStream` at all:
- *
- * - Unless `store` is supplied, it builds ONE `TimelineStore` (backed by a
- *   `ViewClock`) per `client` and registers the production derived channels
- *   (`PRODUCTION_DERIVED_CHANNELS` below) on it.
- * - `client.attachStore(store)` feeds every incoming `stream-data` wire
- *   frame into the store's per-topic timelines.
- * - `client.subscribeStore(...)` schedules a `store.beginFrame()` via
- *   `scheduleFrame`: a `requestAnimationFrame`
- *   (falling back to a microtask off the main thread when rAF isn't
- *   available). Multiple ingests landing before that scheduled callback
- *   fires are coalesced into the ONE `beginFrame()` call it makes, honoring
- *   `TimelineStore.beginFrame`'s own doc ("call once per animation frame /
- *   read cycle... never once per read") instead of re-minting a fresh
- *   `FrameToken` and re-running every derivation on every single message in a
- *   burst. This is what makes `useStream`, and every
- *   other `useSyncExternalStore` subscription keyed off
- *   `store.subscribeFrame`, actually re-render.
- *
- * `useStream` reads through `store.sample(topic, store.currentFrame())`
- * (never `client.getValue` directly) so raw AND derived topics resolve
- * through the exact same surface: see `use-stream.ts`.
+ * Pass `store` to supply the store yourself; otherwise one is built per
+ * `client`. Every message that arrives is applied, and readers re-render at
+ * most once per animation frame.
  *
  * @category Stream fixture
  */
@@ -1261,13 +1241,9 @@ export function setActiveTimelineStoreForTests(
 }
 
 /**
- * Test-only escape hatch: registers `client` as `dispatchActiveCommand`'s
- * source directly, without mounting a `TelemetryProvider`: for a
- * host-service unit test that needs to exercise the ROUTED (stream) branch
- * of a command dispatch (`WarpControl`, `AlarmHostService`'s onFire
- * action-group dispatch, the maneuver-trigger fire path) without a React
- * tree to render. Mirrors `setActiveTimelineStoreForTests`. Pass `undefined`
- * to clear.
+ * Makes `client` the one commands are sent through, without mounting a
+ * {@link TelemetryProvider}, for a test of code that sends commands outside
+ * React. Pass `undefined` to clear it.
  *
  * @category Stream fixture
  */

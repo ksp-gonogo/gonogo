@@ -1027,61 +1027,72 @@ export interface AugmentDefinition<Slot extends string = string> {
 export type { UplinkClientHandle } from "../spine/uplink-clients";
 
 /**
- * Registration descriptor for a coverage source, a data contributor (coverage
- * bytes for a body under some layerId), not a renderable component. See
- * `./coverage-source.ts`'s own header for why this isn't another AugmentSlot
- * kind.
+ * What {@link registerCoverageSource} takes: one layer of map coverage, such as
+ * a scanner's. The source writes its coverage into the
+ * {@link CoverageMaskCache} under its own `id` as the layer id, and the map
+ * reveals each cell as far as the most revealing source allows.
  *
  * @category Maps and coverage
  */
 export interface CoverageSourceDefinition {
+  /** Unique across every source. Also the layer id the source's masks are stored under. */
   id: string;
+  /** A name for the source. */
   label?: string;
+  /** How fully a covered cell is revealed, from 0 to 255. Defaults to 255, fully. */
   weight?: number;
+  /** Settings the source adds to the map's settings panel. A boolean `show` set to `false` hides the source's coverage. */
   settings?: readonly AugmentSettingField[];
 }
 
 /**
- * One action button on a `MapPoi`. Mirrors `packages/core/src/mapPoi.ts`'s
- * `MapPoiAction`: same leaf constraint as every other type in this file (see
- * module header). Named rather than inlined into `MapPoi`, so a provider can
- * build its actions in a helper and give that helper a return type.
+ * One button on a {@link MapPoi}'s card.
  *
  * @category Maps and coverage
  */
 export interface MapPoiAction {
+  /** Unique within the point. */
   id: string;
+  /** The button's text. */
   label: string;
+  /** Called when the button is pressed. */
   run: () => void | Promise<void>;
+  /** Whether the button is disabled. */
   disabled?: boolean;
+  /** Why the button is disabled, shown in place of `label` while it is. */
   disabledReason?: string;
 }
 
 /**
- * One point-of-interest record a `MapPoiProviderDefinition` contributes.
- * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi`: same leaf constraint as
- * every other type in this file (see module header).
+ * One point of interest a {@link MapPoiProviderDefinition} puts on the map.
  *
  * @category Maps and coverage
  */
 export interface MapPoi {
-  /** Unique within the OWNING PROVIDER's namespace. */
+  /** Unique among the provider's points. */
   id: string;
-  /** Body NAME, matches MapView's own bodyName convention. */
+  /** The name of the body the point is on, such as `"Kerbin"`. */
   bodyId: string;
+  /** Latitude, in degrees. */
   lat: number;
+  /** Longitude, in degrees. */
   lon: number;
-  /** Open string, not a closed union: third-party kinds fall back to a generic style. */
+  /** What the point is. The map has its own marker for `"ksc"`, `"launchSite"`, `"anomaly"` and `"contractTarget"`; any other kind gets a plain one. */
   kind: string;
+  /** The point's name, on its marker and card. */
   label: string;
+  /** One more line on the point's card. */
   detail?: string;
+  /** For a `"contractTarget"`, whether the contract is `"active"` or `"available"`. */
   status?: "active" | "available" | "info";
+  /** Extra details, each shown on the point's card as a row of key and value. */
   meta?: Record<string, unknown>;
+  /** Buttons on the point's card. */
   actions?: readonly MapPoiAction[];
 }
 
 /**
- * What a POI provider's hook is told about the surface asking for points.
+ * What a point-of-interest provider is told about the map asking for points.
  *
  * @category Maps and coverage
  */
@@ -1091,7 +1102,8 @@ export interface MapPoiProviderContext {
 }
 
 /**
- * A POI provider's hook: called per render of the mapping surface.
+ * A point-of-interest provider's hook, called on every render of the map. It
+ * may use other hooks.
  *
  * @category Maps and coverage
  */
@@ -1100,28 +1112,28 @@ export type UseMapPois = (
 ) => readonly MapPoi[] | null | undefined;
 
 /**
- * Registration descriptor for a map point-of-interest provider, a data
- * contributor (points for the currently-mapped body), not a renderable
- * component. See packages/core/src/mapPoi.ts's own header for why MapView
- * owns the one shared hover/action/marker-styling surface instead of this
- * being another AugmentSlot kind.
+ * What {@link registerMapPoiProvider} takes: a source of points of interest for
+ * the body the map shows. The map draws, labels and offers the actions of
+ * every provider's points the same way.
  *
  * @category Maps and coverage
  */
 export interface MapPoiProviderDefinition {
-  /** "<uplinkId>:<name>", e.g. "vanilla:spaceCenter", "example-uplink:anomalies". */
+  /** `<uplinkId>:<name>`, such as `"example-uplink:anomalies"`. */
   id: string;
-  /** Domain presence gate, same semantics as AugmentDefinition.requires. */
+  /** A Domain id. The provider's points show only while that Domain is present. */
   requires?: string;
+  /** The hook that returns the points. */
   usePois: UseMapPois;
 }
 
 /**
- * Texture map metadata, required for accurate lat/lon to pixel mapping.
+ * How a body's surface texture maps latitude and longitude to pixels.
  *
  * @category Maps and coverage
  */
 export interface BodyMapConfig {
+  /** The projection: always equirectangular, longitude across and latitude down. */
   type: "equirectangular";
   /** Pixel width of the source texture image. */
   width: number;
@@ -1219,33 +1231,38 @@ export interface BodyDefinition {
  * @category Maps and coverage
  */
 export interface BodyMask {
+  /** The body the mask covers. */
   readonly bodyId: string;
+  /** The coverage layer, a coverage source's id. */
   readonly layerId: string;
+  /** Cells across, spanning 360 degrees of longitude. */
   readonly width: number;
+  /** Cells down, spanning 180 degrees of latitude. */
   readonly height: number;
-  /** Alpha bytes, row-major. Mutable: caller writes directly. */
+  /** One byte per cell, row by row: 0 is hidden and 255 fully revealed. Write into it, then call `markDirty`. */
   data: Uint8Array;
 }
 
 /**
- * The subset of `CoverageMaskCache`'s (`@ksp-gonogo/data`) public surface an
- * author drives from `useCoverageMaskCache()`. Not itself part of the barrel's
- * named export list: every call site so far only ever holds this through
- * the hook's inferred return type (`const cache = useCoverageMaskCache();`),
- * never by importing the type name directly, so there is nothing to add to
- * the export list for it.
+ * The methods of the {@link CoverageMaskCache} an author calls, as
+ * {@link useCoverageMaskCache} returns it.
  *
  * @category Maps and coverage
  */
 export interface CoverageMaskCacheHandle {
+  /** The mask for a body and layer, created with every cell hidden on first use. */
   acquire(bodyId: string, layerId: string): BodyMask;
+  /** The mask for a body and layer, or `undefined` if it has not been created. */
   get(bodyId: string, layerId: string): BodyMask | undefined;
+  /** Tells the mask's listeners its bytes changed. Call it after writing into `data`. */
   markDirty(bodyId: string, layerId: string): void;
+  /** Calls `listener` whenever the mask changes. Returns the function that stops it. */
   onChange(
     bodyId: string,
     layerId: string,
     listener: (mask: BodyMask) => void,
   ): () => void;
+  /** Hides every cell of the mask and tells its listeners. */
   clear(bodyId: string, layerId: string): void;
 }
 
@@ -1352,30 +1369,27 @@ export interface DataSource<
 // on one vocabulary.
 
 /**
- * Which screen a component is mounted on: a DEPLOYMENT CONFIGURATION, not a
- * role. `"main"` is direct-WS and peer-hosting, `"station"` is peer-fed,
- * `"pilot"` is direct-WS aboard the craft without hosting. The same registered
- * component can render different UIs on each when it participates in a
- * multi-role interaction (e.g. GO/NO-GO voting).
+ * Which screen a component is on. `"main"` connects to the game and hosts the
+ * stations; `"station"` is fed by the main screen; `"pilot"` connects to the
+ * game from aboard the craft and hosts nothing. A widget can draw differently
+ * on each, as the GO/NO-GO poll does.
  *
  * @category Host and runtime
  */
 export type Screen = "main" | "station" | "pilot";
 
 /**
- * Where the operator is physically sitting. Derived from the screen by
- * `seatOf`, never declared beside it: a widget's availability and a message's
- * light-time are both questions about the seat, and a peer-fed pilot is a
- * different screen at the same seat.
+ * Where the operator is sitting: at mission control, or aboard as the pilot.
+ * Worked out from the {@link Screen}; a widget's availability and a message's
+ * signal delay both depend on the seat.
  *
  * @category Host and runtime
  */
 export type Seat = "mission-control" | "pilot";
 
 /**
- * Mirrors `packages/core/src/settingsTabs.ts`'s `SettingsTabDefinition`:
- * same leaf constraint. An Uplink co-locates a whole Settings-modal tab's
- * registration with the code that owns it.
+ * What {@link registerSettingsTab} takes: a whole tab of the app's Settings,
+ * drawn by the Uplink itself.
  *
  * @category Settings
  */
@@ -1493,7 +1507,7 @@ export interface DelayClockLike {
 export type { PerfBudgetOptions } from "../perf/PerfBudget";
 
 /**
- * The subset of `PerfBudget` an author touches after construction.
+ * A performance budget, as {@link createPerfBudget} returns it.
  *
  * @category Logging and performance
  */
@@ -1708,32 +1722,26 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
 >;
 
 /**
- * One Uplink's own method call, as `useUplinkRelay` hands it over. `method` and
- * `args` mean whatever the Uplink's registered handle says they mean; nothing
- * between the caller and that handle interprets either.
+ * One call to an Uplink's own method, as {@link useUplinkRelay} returns it.
+ * `method` and `args` mean whatever the Uplink's registered object says they
+ * mean; nothing between the caller and that object reads either.
  *
- * Rejects with an `Error` on no route (no handle registered, or a station with
- * no live link) and on a throw inside the handle, whose own extra Error
- * properties survive the hop so a client can read back what its own host code
- * classified.
+ * Rejects with an `Error` when there is no route (no object registered, or a
+ * station with no link to the main screen) and when the object throws. Extra
+ * properties of a thrown `Error` survive the trip, so a client can read back
+ * what its own code set on it.
  *
  * @category Host and runtime
  */
 export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
 
 /**
- * The ICE servers the main screen is handing out, for an Uplink opening a media
- * connection from a station.
+ * The ICE servers the main screen hands out, as {@link useHostIceServers}
+ * returns them, for an Uplink opening a media connection from a station.
  *
- * A station cannot fetch its own TURN credentials: the relay that issues them is
- * reachable from the main screen, and the loopback address a main screen would
- * use resolves on a station to the station itself. So the main screen broadcasts
- * them and this is where an Uplink reads them.
- *
- * Imperative rather than a plain array because the consumer is an
- * `RTCPeerConnection` config rather than JSX, and because credentials rotate:
- * a connection opened before a rotation has to be able to see the new ones
- * without the Uplink re-rendering anything.
+ * Read through functions rather than as an array because credentials rotate: a
+ * connection opened before a rotation sees the new ones through `onChange`
+ * without re-rendering anything.
  *
  * @category Host and runtime
  */

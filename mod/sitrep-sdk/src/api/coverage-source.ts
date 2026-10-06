@@ -87,7 +87,8 @@ export function registerCoverageSource(def: CoverageSourceDefinition): void {
 }
 
 /**
- * Removes the coverage source registered under `id`.
+ * Removes the coverage source registered under `id`. Does nothing if there is
+ * none.
  *
  * @category Maps and coverage
  */
@@ -107,8 +108,9 @@ export function getCoverageSources(): CoverageSourceDefinition[] {
 }
 
 /**
- * The settings blocks the host panel renders, one per source that declares any.
- * Namespaced by source id so two sources' identically-named fields cannot collide.
+ * The settings each coverage source adds to the map's settings panel, one block
+ * per source that declares any. Each block is keyed by the source's id, so two
+ * sources' settings with the same key never collide.
  *
  * @category Maps and coverage
  */
@@ -123,7 +125,7 @@ export function getCoverageSourceSettings(): NamespacedAugmentSettings[] {
 }
 
 /**
- * Empty the registry. For tests; a running app never calls it.
+ * Removes every coverage source. For tests; a running app never calls it.
  *
  * @category Maps and coverage
  */

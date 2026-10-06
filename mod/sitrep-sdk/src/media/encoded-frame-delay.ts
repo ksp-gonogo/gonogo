@@ -55,15 +55,9 @@ import {
   runFrameDelayPipeline,
 } from "./frame-delay";
 
-/** The minimal shape of a real `RTCEncodedVideoFrame` this module depends
- *  on: narrowed to what the pipeline actually reads. A real
- *  `RTCEncodedVideoFrame` satisfies this directly (no adapter needed,
- *  including the inherited optional `close`: a real encoded frame simply
- *  never defines one), matching `frame-delay.ts`'s own "tests pass a fake"
- *  convention. Extends `FrameLike` explicitly (rather than relying on
- *  structural assignability) because TypeScript's weak-type check rejects
- *  an object type with literally zero overlapping property names, even
- *  when the only declared member is optional.
+/**
+ * The parts of an `RTCEncodedVideoFrame` the delay reads. A real encoded frame
+ * satisfies it as it is.
  *
  * @category Delayed video
  */
@@ -72,10 +66,9 @@ export interface EncodedVideoFrameLike extends FrameLike {
   readonly data: ArrayBuffer;
 }
 
-/** The minimal shape of a real `RTCRtpScriptTransform`'s
- *  `RTCTransformEvent.transformer`: a `{readable, writable}` pair of
- *  encoded frames. Matches what `self.onrtctransform`'s `event.transformer`
- *  provides directly.
+/**
+ * The `transformer` of an `RTCTransformEvent`: a readable and a writable stream
+ * of encoded frames.
  *
  * @category Delayed video
  */
@@ -92,28 +85,30 @@ export interface EncodedTransformerLike {
 export interface EncodedFrameDelayOptions {
   /** THE delay clock: the same instance telemetry reads. */
   view: DelayClockLike;
-  /** Capture-UT to stamp EACH incoming frame with, called once per frame
-   *  read off the transformer's `readable`, at read time (Phase-1 approach
-   *  1: wall-clock interpolation of an out-of-band capture-clock sample,
-   *  evaluated pre-decode: see the encoded-video-delay report). */
+  /**
+   * Returns the UT to stamp a frame with, called once for each frame as it is
+   * read, before it is decoded. {@link interpolateCaptureUt} computes one from
+   * the capture clock.
+   */
   captureUt(): number;
-  /** Real byte cap (NOT a frame count, contrast `frame-delay.ts`'s
-   *  `maxBufferedFrames`). Defaults to `DEFAULT_MAX_BUFFERED_BYTES`, sized
-   *  generously above the spike report's ~0.75-2MB production estimate for
-   *  a 4s buffer at the stream's pinned bitrate, eviction should be
-   *  rare-to-never in practice (encoded buffers are 50-360x smaller than
-   *  the decoded backend's). */
+  /**
+   * The most encoded video, in bytes, to hold before dropping the oldest.
+   * Defaults to {@link DEFAULT_MAX_BUFFERED_BYTES}.
+   */
   maxBufferedBytes?: number;
-  /** Override the presentation pacer's backlog threshold: see
-   *  `frame-delay.ts`'s `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
+  /**
+   * How far behind, in seconds, the pacer may fall before it skips straight to
+   * the newest frame. See {@link PresentationPacerOptions}.
+   */
   maxPacingBacklogSeconds?: number;
   /** Non-fatal pipeline errors (a read/write rejection), reported here,
    *  never thrown across the internal pump loop. */
   onError?(error: unknown): void;
 }
 
-/** ~4x the spike report's ~2MB unpinned-bitrate production estimate for a
- *  4-second buffer: generous headroom without inviting unbounded growth.
+/**
+ * The most encoded video, in bytes, the delay holds before it drops the oldest
+ * frames, a whole keyframe group at a time so decoding never breaks: 8 MiB.
  *
  * @category Delayed video
  */
@@ -123,16 +118,11 @@ export const DEFAULT_MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
 const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
 /**
- * Attach the encoded-domain delay pipeline to an already-obtained
- * `RTCRtpScriptTransform` transformer (or an equivalent fake in tests).
- * Reuses `runFrameDelayPipeline` verbatim: same buffer, same clock seam,
- * same "can't build -> caller decides fallback" contract as
- * `createFrameDelayStream`, just with the encoded-specific classification
- * described in this module's doc.
+ * Delays the encoded frames passing through `transformer`, the same way
+ * {@link runFrameDelayPipeline} delays decoded ones.
  *
- * The caller (worker-side glue, once wired) is responsible for driving
- * `pipeline.tickPacing(nowWall)` on a ~60Hz loop: see
- * `frame-delay.ts`'s `startPacingTicker`, reused as-is.
+ * Call `pipeline.tickPacing(nowWall)` about 60 times a second while it runs;
+ * {@link startPacingTicker} does that.
  *
  * @category Delayed video
  */

@@ -56,7 +56,7 @@ interface PlotLayerBase {
   id: string;
   /** Which Y axis this layer is measured against. Defaults to `"primary"`. */
   axis?: "primary" | "secondary";
-  /** What state the layer shows: the one {@link Tone} scale every surface speaks. */
+  /** What state the layer shows. Layers are coloured by {@link Tone}, never by a colour of their own. */
   tone?: Tone;
   emphasis?: PlotEmphasis;
   /**
@@ -87,11 +87,8 @@ export interface PlotSeriesLayer extends PlotLayerBase {
 }
 
 /**
- * A straight line at a constant value on one axis, with an optional label.
- *
- * The generalisation of the chart's existing threshold rule to both axes, and
- * the one layer kind that needs no geometry at all: "atmosphere ceiling",
- * "max-Q", "stall speed", "the antenna's range limit".
+ * A straight line at a constant value on one axis, with an optional label: an
+ * atmosphere ceiling, max-Q, a stall speed, an antenna's range limit.
  *
  * @category Plots
  */
@@ -108,10 +105,8 @@ export interface PlotRuleLayer extends PlotLayerBase {
 /**
  * A shaded area, either between two boundaries or on one side of a single one.
  *
- * The half-plane forms exist so a region does not have to know the plot's
- * domain to name "everything right of this curve": the host closes the ring
- * along its own edges, in the winding the boundary's own direction implies, so
- * a contributor cannot draw the bow tie that closing it by hand produces.
+ * The one-sided forms shade "everything right of this curve" without knowing
+ * the plot's range: the widget closes the shape along the plot's own edges.
  *
  * @category Plots
  */
@@ -135,8 +130,8 @@ export interface PlotRegionLayer extends PlotLayerBase {
 
 /**
  * A wash whose intensity varies along one axis: an atmosphere's density, a
- * belt's flux, a night side. Context, not a second data channel, so it carries
- * an intensity rather than a value and never gets an axis label.
+ * belt's flux, a night side. It is drawn as background, so it carries an
+ * intensity rather than a value and never gets an axis label.
  *
  * @category Plots
  */
@@ -147,8 +142,8 @@ export interface PlotFieldLayer extends PlotLayerBase {
   /** Sampled intensities (0..1) at data-space positions, in any order. */
   stops: readonly { at: number; intensity: number }[];
   /**
-   * An IDENTITY colour, the one place this vocabulary takes one: a body's own
-   * sky is not a status. Absent, the host tints from `tone`.
+   * A colour belonging to the thing itself, such as a body's sky: the one
+   * layer that takes a colour. Absent, the layer is tinted by `tone`.
    */
   tint?: string;
   /** Peak opacity at intensity 1. Defaults to a host value. */
@@ -158,7 +153,7 @@ export interface PlotFieldLayer extends PlotLayerBase {
 }
 
 /**
- * A point mark at one (x, y): where a thing IS.
+ * A point mark at one `(x, y)`: where a thing is.
  *
  * @category Plots
  */
@@ -170,18 +165,17 @@ export interface PlotMarkerLayer extends PlotLayerBase {
   /** Multiplier on the plot's own marker size. Defaults to 1. */
   scale?: number;
   /**
-   * Pixels along the Y axis to sit the mark off its own point, for a
-   * decoration that belongs BESIDE a mark rather than on it. The one place a
-   * layer speaks in pixels, and only because the offset is a legibility
-   * distance from another mark, not a quantity.
+   * Pixels along the Y axis to move the mark off its point, to sit beside
+   * another mark rather than on it. The one measurement in pixels rather than
+   * in the plot's data space.
    */
   offsetPx?: number;
   label?: string;
 }
 
 /**
- * A short bar through a point, carrying a label at that point: the reading IS
- * the position, so the number belongs at the position rather than in a corner.
+ * A short bar through a point, with a label at that point, for a reading whose
+ * position is the reading.
  *
  * @category Plots
  */
@@ -194,12 +188,8 @@ export interface PlotAnnotationLayer extends PlotLayerBase {
 }
 
 /**
- * Text pinned to a corner or an edge of the plot rather than to a point.
- *
- * The corners and the vertical edge strips are the parts of a plot that are
- * reliably clear of its curves, which is why the readouts an instrument wants
- * always end up there. Naming the anchor rather than a position is what lets
- * the host keep them from colliding as the plot resizes.
+ * Text pinned to a corner or an edge of the plot rather than to a point. The
+ * widget keeps captions from overlapping as the plot resizes.
  *
  * @category Plots
  */
@@ -218,26 +208,16 @@ export interface PlotCaptionLayer extends PlotLayerBase {
 }
 
 /**
- * A 2D scalar field sampled over a rectangle of the plot's own data space: the
- * terrain under a landing site, a scan's coverage over a region, a flux map.
+ * A two-dimensional field sampled over a rectangle of the plot's data space:
+ * the terrain under a landing site, a scan's coverage over a region, a flux
+ * map. {@link PlotFieldLayer} varies along one axis only.
  *
- * The one layer that carries a GRID rather than a curve or a point, and it
- * exists because a top-down plot's subject IS a surface: without it such a plot
- * can draw where things are and not what the ground under them does, which is
- * the reading an operator is actually taking. `PlotFieldLayer` is the
- * one-dimensional cousin (a wash varying along a single axis) and cannot
- * express this: a haze gradient has no shape.
+ * `values` are raw, in the field's own unit; the widget scales them across the
+ * grid's own range and picks the colours. Band edges are drawn as contour
+ * lines, so close bands read as steep.
  *
- * `values` are RAW, in whatever unit the field is measured in, and the renderer
- * normalises across the grid's own range. That is the same tone-not-colour rule
- * a step further: an author states elevations, not a ramp, so the palette and
- * the banding stay the renderer's and one plot's relief reads like every
- * other's. Band edges are drawn as iso-lines, which is what makes slope legible
- * (close bands are steep, a bullseye is a crater or a peak).
- *
- * A grid whose values are all equal is flat, and draws flat. A grid with a
- * non-finite sample in it is not a field and must not be contributed: normalise
- * over a hole and every other cell moves.
+ * A grid whose values are all equal draws flat. Do not contribute a grid with a
+ * non-finite value in it: it would shift the scale of every other cell.
  *
  * @category Plots
  */
@@ -256,6 +236,13 @@ export interface PlotReliefLayer extends PlotLayerBase {
 /**
  * One layer of a plot: a data series, a guide line, a shaded region, a field,
  * markers, labels, a caption or relief.
+ *
+ * Every position is in the plot's own data space, in the units of the
+ * {@link PlotFrame}'s axes, never in pixels (apart from a marker's
+ * `offsetPx`); the widget does the scaling, the
+ * clipping and the drawing order. Every layer is coloured by its `tone`, never
+ * by a colour, except a field's `tint`. A layer's `description` is the only
+ * way it reaches the plot's accessible name.
  *
  * @category Plots
  */

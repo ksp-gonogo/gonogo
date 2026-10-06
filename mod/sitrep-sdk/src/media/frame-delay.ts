@@ -43,15 +43,10 @@ import {
 } from "./delayed-playout-buffer";
 import { PresentationPacer } from "./worker/presentation-pacer";
 
-/** Minimal contract a queued frame payload must satisfy. A WebCodecs
- *  `VideoFrame` (the decoded backend) holds GPU/decoder resources, MUST be
- *  closed exactly once, so `close` is called wherever this interface's contract
- *  is exercised. `close` is OPTIONAL because an encoded-domain frame
- *  (`RTCEncodedVideoFrame`, the encoded-transform backend) holds no such
- *  resource and has no `close()` method at all, it's a plain data object; every
- *  call site here uses `data.close?.()`, a no-op for that case. Kept generic so
- *  tests can drive the pipeline with a lightweight fake instead of a real
- *  browser.
+/**
+ * A frame the delay can hold. A decoded `VideoFrame` holds browser resources
+ * and must be closed exactly once, so the delay calls `close` on every frame it
+ * is done with. An encoded frame has nothing to close, so `close` is optional.
  *
  * @category Delayed video
  */
@@ -59,10 +54,9 @@ export interface FrameLike {
   close?(): void;
 }
 
-/** The pull side: satisfied directly by a real
- *  `ReadableStreamDefaultReader<VideoFrame>` (from
- *  `MediaStreamTrackProcessor.readable.getReader()`); tests pass a fake
- *  implementing just this shape.
+/**
+ * Where the delay reads frames from: a `ReadableStreamDefaultReader`, such as
+ * the one `MediaStreamTrackProcessor.readable.getReader()` returns.
  *
  * @category Delayed video
  */
@@ -71,9 +65,9 @@ export type FrameSource<Frame extends FrameLike> = Pick<
   "read" | "cancel"
 >;
 
-/** The push side: satisfied directly by a real
- *  `WritableStreamDefaultWriter<VideoFrame>` (from
- *  `MediaStreamTrackGenerator.writable.getWriter()`); tests pass a fake.
+/**
+ * Where the delay writes frames to: a `WritableStreamDefaultWriter`, such as
+ * the one `MediaStreamTrackGenerator.writable.getWriter()` returns.
  *
  * @category Delayed video
  */
@@ -88,50 +82,45 @@ export type FrameSink<Frame extends FrameLike> = Pick<
  * @category Delayed video
  */
 export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
-  /** THE delay clock: the same instance telemetry reads. */
+  /**
+   * The app's view clock, the same one telemetry is read by.
+   */
   view: DelayClockLike;
-  /** Capture-UT to stamp EACH incoming frame with, called once per frame
-   *  read off `source`, never once per stream. */
+  /**
+   * Returns the UT to stamp a frame with, called once for each frame as it is
+   * read from `source`.
+   */
   captureUt(): number;
   source: FrameSource<Frame>;
   sink: FrameSink<Frame>;
-  /** Frame-count cap: see module docstring. Defaults to 300. Encoded
-   *  backends should size this as a real byte cap (paired with `frameBytes`
-   *  below) rather than a frame count: see `attachEncodedFrameDelayTransform`'s doc. */
+  /**
+   * The most frames to hold before dropping the oldest. Defaults to 300. With
+   * `frameBytes` supplied, the cap counts bytes instead.
+   */
   maxBufferedFrames?: number;
   /** Non-fatal pipeline errors (a read/write rejection), reported here,
    *  never thrown across the internal pump loop. */
   onError?(error: unknown): void;
-  /** Classify a frame read off `source` as a keyframe, forwarded to
-   *  `DelayedPlayoutBuffer`'s `keyframe` field. Defaults to `() => false`,
-   *  correct for decoded `VideoFrame`s (no GOP dependency, see
-   *  `DelayedPlayoutBuffer.gopSafeEviction`'s doc). Encoded backends should
-   *  supply `(f) => f.type === "key"`. */
+  /**
+   * Whether a frame is a keyframe. Defaults to never, which suits decoded
+   * frames; for encoded video, supply `(f) => f.type === "key"`.
+   */
   isKeyframe?(frame: Frame): boolean;
-  /** Byte-size estimate for cap accounting, forwarded to
-   *  `DelayedPlayoutBuffer`'s `bytes` field. Defaults to `() => 1` (a
-   *  frame-count cap). Encoded backends should supply the real payload
-   *  size, e.g. `(f) => f.data.byteLength`. */
+  /**
+   * A frame's size for the cap. Defaults to 1, so the cap counts frames; for
+   * encoded video, supply `(f) => f.data.byteLength`.
+   */
   frameBytes?(frame: Frame): number;
-  /** Forwarded to `DelayedPlayoutBuffer`: see its own doc. MUST be `true`
-   *  for encoded video (GOP-dependent); leave unset (the default) for
-   *  decoded video. */
+  /**
+   * Passed to {@link DelayedPlayoutBuffer}: `true` for encoded video, unset for
+   * decoded.
+   */
   gopSafeEviction?: boolean;
   /**
-   * Opt into the presentation pacer (see `PresentationPacer`).
-   * Omit (the default) for the original behaviour: each released frame is
-   * written to `sink` immediately, synchronously, on release, exactly
-   * what every pre-existing test in this file and
-   * `frame-delay.block-colour.test.ts` exercises.
-   *
-   * When supplied, released frames are queued into a `PresentationPacer`
-   * instead, spaced by their own UT deltas rather than dumped in a burst.
-   * The caller MUST drive `pipeline.tickPacing(nowWall)` periodically (the
-   * Chrome main-thread backend from `requestAnimationFrame`; the
-   * worker-hosted backend from its own ~60Hz clock-poll loop), this
-   * module deliberately never reads a wall clock itself, matching the
-   * "injected clock, no bench in the engine" testing convention the rest
-   * of this pipeline already follows.
+   * Spaces released frames out by their own UT intervals rather than writing
+   * them at once (see {@link PresentationPacer}). Unset, each frame is written
+   * as it is released. When set, call `pipeline.tickPacing(nowWall)` about 60
+   * times a second, as {@link startPacingTicker} does.
    */
   pacing?: {
     /** See `PresentationPacerOptions.maxBacklogSeconds`. */
@@ -163,11 +152,10 @@ export interface FrameDelayPipeline {
 const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps; see module docstring
 
 /**
- * The per-frame delay engine. See module docstring for the design and the
- * memory-safety invariant: every frame pulled from `source` is closed
- * exactly once: written-then-closed (release), dropped-then-closed
- * (over-cap eviction / `flush()` / leftovers at `dispose()`), or
- * closed-immediately if it arrives after `dispose()` already fired.
+ * Reads frames from `source`, holds each until the clock reaches its UT, and
+ * writes it to `sink`. Every frame read is closed exactly once: after it is
+ * written, when it is dropped (over the buffer's cap, on `flush()`, or still
+ * held at `dispose()`), or at once if it arrives after `dispose()`.
  *
  * @category Delayed video
  */
@@ -258,13 +246,9 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
 }
 
 /**
- * Drives `tickPacing` on a ~60Hz loop until stopped, `requestAnimationFrame`
- * where available (the real main thread), a plain `setTimeout(16)` fallback
- * otherwise (a worker context has no `requestAnimationFrame`; nor does a
- * non-browser test environment). Shared by the main-thread backend
- * (`createFrameDelayStream`, below) and the worker-hosted backend
- * (`worker/`), so there's one implementation of "how often do we drain the
- * pacer": mirrors `ViewClock.onFrame`'s own rAF/setTimeout duality.
+ * Calls `tickPacing` about 60 times a second until the returned function is
+ * called: on each animation frame where there is one, and every 16 ms where
+ * there is not, as in a worker.
  *
  * @category Delayed video
  */
@@ -290,8 +274,10 @@ export function startPacingTicker(
   };
 }
 
-/** True when the browser exposes the WebCodecs track-IO APIs the real
- *  pipeline needs. See module docstring re: browser support.
+/**
+ * Whether this browser has the WebCodecs track APIs
+ * (`MediaStreamTrackProcessor` and `MediaStreamTrackGenerator`) that
+ * {@link createFrameDelayStream} needs.
  *
  * @category Delayed video
  */
@@ -350,14 +336,10 @@ export interface VideoTrackSource {
 }
 
 /**
- * Browser-facing wrapper: builds a real `MediaStreamTrackProcessor` →
- * `runFrameDelayPipeline` → `MediaStreamTrackGenerator` chain for `raw`'s
- * first video track. Returns `null` (never throws) when per-frame delay
- * isn't possible here: unsupported browser, `raw` has no video track, or
- * building the processor/generator pair threw (e.g. a same-track rebuild
- * racing the prior pipeline's un-awaited `cancel()`: see the try/catch
- * below): so the caller can fall back to live passthrough instead of a
- * black feed or an escaped exception.
+ * A delayed copy of the first video track of `raw`. Returns `null`, and never
+ * throws, when that cannot be built here: the browser lacks the APIs, `raw`
+ * has no video track, or building the track pipeline threw. Show the live
+ * stream, or nothing, in that case, rather than a black feed.
  *
  * @category Delayed video
  */

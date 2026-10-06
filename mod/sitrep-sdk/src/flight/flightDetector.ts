@@ -3,18 +3,18 @@ import { debugFlight } from "./debugFlight";
 import type { FlightRecord } from "./types";
 
 /**
- * Inferred heuristically from `v.name` + `v.missionTime`. When an
- * authoritative `vesselUid` is available it takes precedence and the
- * heuristic becomes a fallback.
+ * What {@link FlightDetector} reads from one sample to tell which flight it
+ * belongs to: the vessel's name and mission time, or its id where one is
+ * given, which then decides.
  *
  * @category Flight recording
  */
 export interface DetectorInput {
   vesselName: string;
   missionTime: number;
-  /** Wall-clock at sample time. Defaults to `Date.now()` in the buffered source. */
+  /** The wall-clock time of the sample, in milliseconds. */
   now: number;
-  /** Phase 6: authoritative ship UID. If present, used as the flight key. */
+  /** The vessel's id. When given, it decides which flight the sample belongs to. */
   vesselUid?: string | null;
 }
 
@@ -45,16 +45,14 @@ const RESUME_SLACK_MS = 30_000;
 const REVERT_THRESHOLD_SEC = 5;
 
 /**
- * Pure state machine that classifies each incoming sample into one of:
- *   - `append`: same flight as last sample, update lastMissionTime/sampleCount.
- *   - `resume`: we've seen this vessel before, pick up the existing record.
- *   - `new`: mint a fresh FlightRecord.
+ * Decides which flight each sample belongs to:
  *
- * Caller is responsible for persisting the returned record via the Store.
+ * - `append`: the same flight as the last sample
+ * - `resume`: a vessel seen before, so its existing record is picked up
+ * - `new`: a new flight, with a new record
  *
- * The detector mutates its own internal map but never touches the returned
- * FlightRecord references beyond producing them: callers can safely store
- * them without defensive copies.
+ * Saving the returned record is the caller's job. The detector never changes a
+ * record after returning it, so a caller can keep it without copying.
  *
  * @category Flight recording
  */

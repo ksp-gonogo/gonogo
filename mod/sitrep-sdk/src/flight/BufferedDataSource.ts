@@ -114,11 +114,9 @@ interface Options {
   /** Injectable clock, mostly for tests. Defaults to `Date.now`. */
   now?: Clock;
   /**
-   * Decorates each upstream `DataKey` with a human-facing label, unit and
-   * group for `schema()`. The catalogue that supplies these is specific to
-   * whichever source is being wrapped, so it is injected rather than owned
-   * here: the default labels a key with itself and groups it under "Other",
-   * which is also the per-key fallback of every real catalogue.
+   * Gives each key of the wrapped source a label, unit and group for
+   * `schema()`. Absent, each key is labelled with itself and grouped under
+   * "Other".
    */
   enrichKey?: KeyEnricher;
 }
@@ -138,19 +136,13 @@ interface SampleRow {
 }
 
 /**
- * Wraps a live `DataSource`, persists every sample into a `FlightStore` keyed by
- * inferred flight id, and exposes both live subscriptions (matching the
- * DataSource contract) and columnar range queries (the graph widget's
- * primary read path).
+ * Wraps a live {@link DataSource}, saves every sample into a {@link FlightStore}
+ * under the flight it belongs to, and offers both live subscriptions and range
+ * queries over what it has saved.
  *
- * Subscription semantics mirror the wrapped source: callbacks fire on new
- * samples only, not on subscribe. For historical backfill, callers use
- * `queryRange`.
- *
- * Flight identification runs off `v.name` + `v.missionTime` for now; an
- * authoritative `vesselUid` from the vessel takes precedence once
- * available. The detector is seeded from persisted flights on `connect()`
- * so we resume rather than duplicate after a reload.
+ * A subscription fires on new samples only, not on subscribing; read history
+ * with `queryRange`. After a reload it picks up the flights it saved, rather
+ * than starting them again.
  *
  * @category Flight recording
  */

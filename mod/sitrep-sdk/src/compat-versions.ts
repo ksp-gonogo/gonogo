@@ -17,39 +17,27 @@
  */
 
 /**
- * The `@ksp-gonogo` extension-surface version: the shape of `registerComponent`,
- * `registerAugment`, the hooks and the host. Hand-managed, and deliberately not
- * the sdk's package version: bump it when the surface an Uplink compiles against
- * changes, not when the package publishes.
- *
- * The surface is the exports of `@ksp-gonogo/sitrep-sdk` and
- * `@ksp-gonogo/ui-kit`, every subpath. A removal, a retype or a new required
- * member of an existing type moves the major, and an addition moves the minor,
- * because an app refuses an Uplink built against a newer minor than its own.
- * `extension-api.ledger.json` records the floors and every declared change, and
- * a change it does not declare fails the build.
+ * The version of the surface an Uplink's client compiles against: every export
+ * of `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit`. A removed or changed
+ * export moves the major, and an added one moves the minor. The app refuses an
+ * Uplink built against another major, or a newer minor than its own.
  *
  * @category Host and runtime
  */
 export const EXTENSION_API_VERSION = "6.0.0";
 
 /**
- * The wire contract's major, mirroring `ContractVersion.Major` in
- * `mod/Sitrep.Contract/ContractVersion.cs`. A mismatch REFUSES an Uplink: the
- * payload shapes it was built against are not the ones on the wire.
+ * The major version of the game data contract: the shape of every payload the
+ * mod sends. The app refuses an Uplink built against another major.
  *
  * @category Host and runtime
  */
 export const CONTRACT_MAJOR = 29;
 
 /**
- * The wire contract's minor, mirroring `ContractVersion.Minor`. An Uplink built
- * against a NEWER minor than the host is refused; an older one loads, since a
- * minor is additive.
- *
- * Typed `number`, not its literal: a minor moves without breaking anyone, so the
- * published surface must not read each bump as a retype. `CONTRACT_MAJOR` stays
- * literal because a major move is a break.
+ * The minor version of the game data contract. A minor only adds, so an Uplink
+ * built against an older minor loads, and one built against a newer minor than
+ * the app's is refused.
  *
  * @category Host and runtime
  */

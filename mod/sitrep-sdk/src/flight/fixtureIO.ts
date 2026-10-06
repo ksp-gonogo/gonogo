@@ -3,18 +3,8 @@ import type { FlightStore } from "./storage/Store";
 import type { FlightRecord } from "./types";
 
 /**
- * Portable, versioned representation of a `BufferedDataSource`-recorded
- * flight: the shape `BufferedDataSource.exportFlight()` produces, and what a
- * flight-history download button writes out as JSON.
- *
- * NOT the mission-recording/replay fixture, which is a raw wire-frame capture of
- * the telemetry stream. This type predates that system and stays scoped to
- * `BufferedDataSource`'s own per-sample export/import, which reads a wrapped
- * `DataSource` rather than the stream.
- *
- * `samples` uses `[t, v]` tuples (not `{ t, v }` objects) to roughly halve
- * the on-disk size of long recordings. Sample `t` values are absolute unix
- * milliseconds (matching the in-store shape).
+ * One named stretch of a recorded flight, as a {@link FlightFixture} carries
+ * it.
  *
  * @category Flight recording
  */
@@ -67,9 +57,9 @@ export interface FlightFixture {
 export const FLIGHT_FIXTURE_FORMAT = "gonogo-flight-fixture/v1" as const;
 
 /**
- * Narrow type predicate: useful when loading a JSON file at the boundary.
- * Validates the format tag, the flight metadata shape, and that every
- * sample series is an array of length-2 tuples sorted ascending by `t`.
+ * Whether `value` is a {@link FlightFixture}: the format tag, the flight's
+ * details, and every series an array of `[t, v]` pairs in ascending `t`. For
+ * checking a JSON file as it is loaded.
  *
  * @category Flight recording
  */
@@ -123,7 +113,8 @@ export function isFlightFixture(value: unknown): value is FlightFixture {
 }
 
 /**
- * Total span of the fixture in milliseconds (last sample - first sample).
+ * How long the fixture runs, in milliseconds, from its first sample to its
+ * last.
  *
  * @category Flight recording
  */
@@ -153,10 +144,8 @@ export interface ExportFlightOptions {
 }
 
 /**
- * Read every sample for `keys` belonging to `flightId` from the store and
- * pack them into a portable `FlightFixture`. Empty key series are dropped
- * from `samples` (rather than carried as `[]`) so a fixture round-tripped
- * through this helper stays compact.
+ * Reads every sample of `keys` for `flightId` from the store into a
+ * {@link FlightFixture}. A key with no samples is left out.
  *
  * @category Flight recording
  */
@@ -188,13 +177,9 @@ export async function exportFlightToFixture(
 }
 
 /**
- * Write a fixture's flight metadata + every sample tuple into the store.
- * Mirrors the on-disk shape exactly: round-tripping through `export →
- * import` produces an identical fixture (modulo undefined-vs-missing
- * schema metadata).
- *
- * Calls `store.flush()` at the end so a store that batches its writes has them
- * observable to subsequent reads.
+ * Writes a fixture's flight and every sample into the store, then flushes it,
+ * so the samples can be read straight away. Exporting what was imported gives
+ * back the same fixture.
  *
  * @category Flight recording
  */

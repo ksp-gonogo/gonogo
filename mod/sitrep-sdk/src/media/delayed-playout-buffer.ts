@@ -41,12 +41,9 @@ export interface StampedFrame<Frame = unknown> {
 }
 
 /**
- * The minimal delay-clock surface the buffer depends on, a subset of the
- * sibling `ViewClock`'s `ViewClockView` (`confirmedEdgeUt` + `onFrame`). Kept
- * structural (not `ViewClock` itself) on purpose; see the module doc: it
- * keeps the buffer unit-testable against a clock double and documents the
- * two-method contract media delay needs off the one delay authority. The app
- * passes the real `ViewClock` instance (or any equivalent) at the call site.
+ * The two methods of the app's view clock that delaying video needs:
+ * `confirmedEdgeUt` and `onFrame`. Pass the app's clock, or a stand-in in a
+ * test.
  *
  * @category Delayed video
  */
@@ -66,60 +63,49 @@ export interface DelayClockLike {
  * @category Delayed video
  */
 export interface DelayedPlayoutBufferOptions<Frame = unknown> {
-  /** THE delay clock: the same object instance telemetry reads. */
+  /**
+   * The app's view clock, the same one telemetry is read by.
+   */
   view: DelayClockLike;
-  /** Called synchronously, in UT order, once per frame that becomes
-   *  eligible for display (`confirmedEdgeUt() >= frame.ut`). */
+  /**
+   * Called once for each frame as it becomes due (`confirmedEdgeUt() >= ut`), in
+   * UT order. The frame is the caller's from then on.
+   */
   onRelease(frame: StampedFrame<Frame>): void;
-  /** Called once per `flush()`: the feed UI's resync marker. */
+  /**
+   * Called once on each `flush()`.
+   */
   onResync?(): void;
-  /** Called for every queued frame discarded WITHOUT being released, an
-   *  over-cap eviction (`enforceCap`), a `flush()`, or leftover frames still
-   *  queued at `dispose()`. Never called for a frame that reached
-   *  `onRelease` (that frame's lifecycle is the caller's from that point).
-   *  Optional, generic, not video-specific, but the caller MUST wire it
-   *  when `Frame` holds an external resource (e.g. a WebCodecs `VideoFrame`)
-   *  that needs `.close()`ing, or every discard path leaks it. */
+  /**
+   * Called for each frame discarded without being released: dropped over the
+   * cap, by `flush()`, or still held at `dispose()`. Supply it whenever a frame
+   * holds something that must be closed, such as a `VideoFrame`, or every
+   * discarded frame leaks it.
+   */
   onDrop?(frame: StampedFrame<Frame>): void;
-  /** Over this, evict queued frames until back under cap. Buffered
-   *  size is the sum of each queued frame's `bytes` (default 1 per frame
-   *  when unset). Eviction UNIT depends on `gopSafeEviction`; see that
-   *  option's doc. */
+  /**
+   * The most the buffer holds, summed over each frame's `bytes` (1 for a frame
+   * without one). Over it, the oldest frames are dropped; `gopSafeEviction` says
+   * how many at a time.
+   */
   maxBufferedBytes: number;
   /**
-   * Eviction safety mode, from the encoded-transform video-delay work and its
-   * frame-ordering and GOP-dependency-survival finding.
+   * How frames are dropped over the cap.
    *
-   * Default `false`/unset: **drop-oldest-non-keyframe, one frame at a
-   * time.** Correct for payloads with no inter-frame dependency (a decoded
-   * `VideoFrame`: each is independently displayable, so `frame-delay.ts`
-   * always tags them `keyframe: false` and any single one is a safe
-   * eviction candidate). This is the ORIGINAL, unchanged behaviour, every
-   * pre-existing caller keeps it exactly as before.
+   * Unset or `false`: the oldest frame that is not a keyframe, one at a time.
+   * Right for decoded frames, each of which can be shown alone.
    *
-   * `true`: **drop a complete GOP run at a time, from the oldest end.**
-   * REQUIRED for encoded video: an `RTCEncodedVideoFrame` delta frame is
-   * compressed relative to a prior reference frame via motion compensation,
-   * so evicting a single mid-GOP delta frame breaks the decode chain for
-   * every subsequent delta frame until the next keyframe, silent picture
-   * corruption, not a clean drop. In this mode `enforceCap` always removes
-   * the queue's leading run up to (but not including) the next keyframe,
-   * whether that run starts with a keyframe or is a leftover delta-only
-   * prefix: as one atomic unit. The retained queue therefore always either
-   * starts exactly at a keyframe or is empty: a valid decodable prefix,
-   * never a partial one. Costs coarser-grained eviction (a whole GOP,
-   * rather than one frame, leaves at a time), acceptable because encoded
-   * buffers are tiny relative to decoded ones (see the spike report's
-   * memory finding), so eviction should be rare-to-never in practice.
+   * `true`: everything from the oldest frame up to the next keyframe, at once,
+   * so the buffer always starts at a keyframe. Required for encoded video, where
+   * a frame between keyframes cannot be decoded without the ones before it.
    */
   gopSafeEviction?: boolean;
 }
 
 /**
- * Holds UT-stamped frames and releases each once the injected clock's
- * `confirmedEdgeUt()` reaches its `ut`: never earlier, so it can never
- * show data before the equivalent telemetry sample would confirm at the
- * same UT: the "common-mode" property.
+ * Holds UT-stamped frames and releases each once the clock's
+ * `confirmedEdgeUt()` reaches its `ut`, never earlier. A frame is therefore
+ * never shown before telemetry from the same instant would be.
  *
  * @category Delayed video
  */

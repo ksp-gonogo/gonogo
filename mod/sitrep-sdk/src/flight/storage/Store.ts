@@ -1,9 +1,8 @@
 import type { FlightRecord, SeriesRange } from "../types";
 
 /**
- * Sort comparator for flight listings: most-recently-launched first.
- * Shared by every `FlightStore` implementation so all of them order
- * identically.
+ * Sorts flights most recently launched first, as every {@link FlightStore}
+ * lists them.
  *
  * @category Flight recording
  */
@@ -11,12 +10,8 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
   b.launchedAt - a.launchedAt;
 
 /**
- * Persistence contract for flight metadata + samples. `MemoryStore` implements
- * it for tests and non-browser environments; in the browser it is backed by
- * IndexedDB. Both back the same BufferedDataSource.
- *
- * All methods are async to match IndexedDB's native shape. `MemoryStore`
- * resolves synchronously.
+ * Where flights and their samples are saved. The app uses IndexedDB;
+ * {@link MemoryStore} keeps them in memory. Every method returns a promise.
  *
  * @category Flight recording
  */

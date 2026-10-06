@@ -26,12 +26,10 @@ export interface CaptureClockSample {
 }
 
 /**
- * Interpolate the live capture-UT forward from a ~1Hz sample. The sidecar's
- * mission-time clock only updates ~once a second, so between samples we
- * advance it by wall-clock elapsed × the warp rate (UT runs `warpRate`× faster
- * than wall-clock under timewarp). Returns `null` when there's no clock.
- *
- * Pure + injectable `nowMs` so it unit-tests deterministically.
+ * The UT a video frame is being captured at now, carried forward from the last
+ * sample of the capture clock, which updates about once a second, by the
+ * wall-clock time since multiplied by the warp rate. `null` when there is no
+ * clock sample.
  *
  * @category Delayed video
  */

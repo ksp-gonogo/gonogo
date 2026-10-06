@@ -7,33 +7,28 @@ import { logger } from "../../api/logger";
  * @category Flight recording
  */
 export interface LocalStorageStoreOptions<Stored> {
-  /** localStorage key */
+  /** The `localStorage` key the value is saved under. */
   key: string;
-  /** default value used when key is missing or corrupt */
+  /** The value read when nothing is saved, or what is saved cannot be read. */
   defaults: Stored;
-  /** Optional: if provided, this Storage shim is used instead of
-   *  `globalThis.localStorage`. Useful for tests. */
+  /** A `Storage` to use in place of `localStorage`, such as a test's own. */
   storage?: Storage;
-  /** Optional callback fired when a stored value can't be parsed.
-   *  Receives the offending raw string. Default: logs a warning via
-   *  the central logger under the `storage` tag. Pass an explicit
-   *  callback (e.g. `() => {}`) to silence. */
+  /**
+   * Called with the saved text when it cannot be read. Absent, a warning is
+   * logged under the `storage` tag; pass `() => {}` to stay silent.
+   */
   onCorruption?: (raw: string, error: unknown) => void;
 }
 
 /**
- * A small typed wrapper around `localStorage`. Resilient to:
- *   - missing key  → defaults
- *   - JSON parse error → defaults (and onCorruption called)
- *   - localStorage throwing on get/set (e.g. private mode quota) → swallowed
+ * One typed value saved in `localStorage`. A missing or unreadable value reads
+ * as the defaults (and an unreadable one calls `onCorruption`), and a
+ * `localStorage` that throws, as a private window's can, is ignored.
  *
- * Reads return a fresh value each time (no in-memory cache).
- *
- * For an object `Stored`, `get()` returns `{ ...defaults, ...parsed }` so adding new
- * fields to `Stored` defaults to `defaults[newField]` rather than `undefined`.
- * Non-object stored values (string, number, boolean, array, null) are
- * returned as-is, TypeScript can't enforce that at runtime, so the caller's
- * type parameter is trusted.
+ * Every read parses afresh. For an object value, a read returns the defaults
+ * with the saved fields over them, so a field added later reads as its
+ * default. Any other value is returned as saved, trusted to be the declared
+ * type.
  *
  * @category Flight recording
  */

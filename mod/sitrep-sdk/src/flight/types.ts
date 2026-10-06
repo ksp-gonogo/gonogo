@@ -38,18 +38,15 @@ export type UnitHint =
   | "raw";
 
 /**
- * DataKey enriched with human-facing metadata. A key picker consumes these
- * and groups alphabetically within `group`.
+ * A {@link DataKey} with what a key picker shows: its label, unit and group.
+ * The picker sorts keys alphabetically within each group.
  *
  * @category Flight recording
  */
 export interface DataKeyMeta extends DataKey {
   label: string;
   /**
-   * The contract's own unit token. Open rather than the closed `UnitHint`
-   * union below: a key enumerated from the contract carries whatever token the
-   * contract declares, an Uplink registers tokens of its own, and a closed
-   * union cannot accept either.
+   * The key's unit, as the contract or an Uplink declares it.
    */
   unit?: SitrepUnit;
   group?: string;
@@ -82,32 +79,18 @@ export interface Sample<Payload = unknown> {
 export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
 
 /**
- * A contiguous run of samples that share a stream status other than `"live"`,
- * as INCLUSIVE indices into `t`/`v`.
+ * A run of samples that share a stream status other than `"live"`, as
+ * inclusive indices into `t` and `v`: the part of a trace that came off the
+ * craft's own recorder after a blackout rather than arriving live.
  *
- * What the wire knows and a plain `{t, v}` throws away: which part of a trace
- * came off the craft's own recorder during a blackout, and which part arrived
- * live. `breaks` carries what is GONE; this carries what is merely LATE.
+ * Every sample in it was measured by the craft and is exact; it only arrived
+ * late. So the built-in graph draws it exactly as it draws live data, and a
+ * consumer should use it to name where a sample came from (a readout, a
+ * caption), never to draw it as less certain. {@link SeriesReckonedSpan} is the
+ * one to set apart.
  *
- * **It is a record, not a warning, and a trace should not mark it.** Every
- * sample named here is one the craft MEASURED; the only thing that differs is
- * that the operator did not have it while the blackout was on, and once it is
- * filled in that is history rather than a property of the sample. Setting it
- * apart on a chart says "trust this less" about a reading that is exact, so
- * the built-in graph draws a run named here exactly as it draws a live one.
- * Use this to NAME the provenance (a readout, a caption, a DOM attribute),
- * never to grade it. What a trace has cause to set apart is a value nobody
- * measured at all, which is not this and does not come off the wire.
- *
- * A RANGE rather than a per-sample status array, for the two reasons `breaks`
- * chose indices: a chart draws a SEGMENT, so a per-sample encoding only makes
- * every consumer re-derive these runs before it can draw anything, and the
- * all-live case (very nearly all of them) costs one empty array rather than one
- * string per sample.
- *
- * Only server-stamped grades appear here. `held` and `disconnected`
- * describe the topic now, not a recorded sample, so they have no per-sample
- * extent.
+ * Only statuses the mod stamps on a sample appear here. `held` and
+ * `disconnected` describe a Topic now, not a recorded sample, so they never do.
  *
  * @category Flight recording
  */
@@ -120,21 +103,13 @@ export interface SeriesStatusSpan {
 }
 
 /**
- * A contiguous run of points NOBODY MEASURED, as INCLUSIVE indices into
- * `t`/`v`: a model supplied those instants, and `basis` is the model that
- * supplied them, in the vocabulary `Reckoning` already uses.
+ * A run of points nobody measured, as inclusive indices into `t` and `v`: a
+ * model supplied them, and `basis` names the model, in the vocabulary
+ * `Reckoning` uses.
  *
- * This is the ONLY provenance a trace has cause to mark. A replayed sample is a
- * sample the craft measured and sent late, so it draws as live data draws (see
- * {@link SeriesStatusSpan}); a reckoned one is a claim the CHART is making on
- * its own behalf, and drawing arithmetic in the same stroke as a reading is a
- * lie about where the line came from.
- *
- * It sits beside `SeriesStatusSpan` rather than inside it because the two are
- * not the same kind of fact and must never collapse into one enum: a status
- * span names where an OBSERVATION came from, and a reckoned run says there was
- * no observation. Only the second one comes out of a model, and only the second
- * one carries a basis.
+ * This is the one kind of span a trace should set apart, since the line there
+ * is a model's estimate rather than a reading. A sample in a
+ * {@link SeriesStatusSpan} was measured and only arrived late.
  *
  * @category Flight recording
  */
@@ -145,41 +120,28 @@ export interface SeriesReckonedSpan {
   to: number;
   basis: ReckoningBasis;
   /**
-   * How well the model knew each point of this run, lower and upper bound, in
-   * the same units `v` carries and one entry per point from `from` to `to`.
-   *
-   * On the RUN rather than as two series-length arrays beside `t` and `v`,
-   * because a band only exists where a model supplied the point: two parallel
-   * arrays would be null for every measured point, which on a chart showing a
-   * long observed history and a short tail is nearly all of them. Keeping them
-   * here also keeps them with `bandKind`, which is what says what the two
-   * numbers mean, and makes the reindexing rule fall out for free: a run that
-   * loses points loses exactly the band entries that went with them.
-   *
-   * All three band fields move together. A run with `bandLo` and no `bandHi`,
-   * or with either and no `bandKind`, is malformed and must be read as having
-   * no band rather than half of one.
+   * The lower bound of how well the model knew each point of the run, in the
+   * units of `v`, one entry per point from `from` to `to`. `bandLo`, `bandHi`
+   * and `bandKind` come together: a run missing any of them has no band.
    */
   bandLo?: number[];
+  /** The upper bound, as `bandLo` gives the lower. */
   bandHi?: number[];
-  /** What `bandLo`/`bandHi` claim. See `UncertaintyBand`. */
+  /** What `bandLo` and `bandHi` mean. See `UncertaintyBand`. */
   bandKind?: BandKind;
 }
 
 /**
- * What a value's own model says happened across the part of one gap between
- * two samples that nothing observed: its values at instants strictly inside
- * that span, in the same clock as `t` and the same units as `v`.
+ * What a value's own model says happened inside one gap between two samples:
+ * its values at instants strictly inside the gap, in the clock of `t` and the
+ * units of `v`.
  *
- * `to` is the index of the LATER sample, the currency `breaks` uses. The chord a
- * chart draws from `to - 1` to `to` is a claim about this span, and these are
- * what the model claims instead. Only the chart knows its own scale, so only
- * the chart can tell whether the two part by more than it can draw; where they
- * do, the chord asserts a path the model contradicts, and the chart must break
- * there or draw the model's path in its place. A gap the model could not carry
- * at all is a `breaks` index, not one of these.
+ * `to` is the index of the later sample, as in `breaks`. Where the straight
+ * line from `to - 1` to `to` and the model's path part by more than the chart
+ * can draw, the chart breaks the line there or draws the model's path instead.
+ * A gap the model could not cover at all is a `breaks` index, not a bridge.
  *
- * Presentation-time, like a reckoned run: nothing stores one.
+ * Computed when the series is read; never stored.
  *
  * @category Flight recording
  */
@@ -191,9 +153,8 @@ export interface SeriesBridge {
 }
 
 /**
- * Columnar series slice. `t` and `v` have identical length. Used as the
- * return shape for `queryRange` + `getLatest` because the graph widget
- * consumes parallel arrays and it's cheaper to stream over PeerJS later.
+ * A window of a series as parallel arrays: `t` and `v` have the same length.
+ * `queryRange` and `getLatest` return one.
  *
  * @category Flight recording
  */
@@ -209,22 +170,10 @@ export interface SeriesRange<Payload = unknown> {
   basis?: SeriesTimeBasis;
 
   /**
-   * Indices at which a KNOWN break precedes the point: `breaks: [7]` means
-   * there is no data between `t[6]` and `t[7]`, and it is missing rather than
-   * simply not sampled. Absent or empty means the series is continuous.
-   *
-   * A chart must not join across one. Every consumer of this type before now
-   * assumed `t`/`v` were continuous, which was safe only while nothing could
-   * produce a hole: a stream's samples arrived one at a time and a stored
-   * flight was recorded start to finish. The blackout recorder produces holes
-   * (`Meta.gapSinceUt`), and without this index the store carried the
-   * discontinuity and the series boundary threw it away, so a chart drew a
-   * straight line through an outage it had no readings for. A line the operator
-   * cannot tell from data is worse than a visible break.
-   *
-   * Indices rather than a parallel per-point flag array so the continuous case
-   * (very nearly all of them) costs one empty array rather than one boolean per
-   * sample, and so a consumer that ignores the field behaves exactly as it did.
+   * Indices at which a known gap comes before the point: `breaks: [7]` means
+   * there is no data between `t[6]` and `t[7]`, because it is missing rather
+   * than because nothing was sampled. Absent or empty means the series is
+   * continuous. Never draw a line across a break.
    */
   breaks?: number[];
 
@@ -236,14 +185,12 @@ export interface SeriesRange<Payload = unknown> {
   spans?: SeriesStatusSpan[];
 
   /**
-   * Runs of points a MODEL produced rather than the craft, in ascending order
-   * and non-overlapping. Absent or empty means every point in the slice was
-   * measured. See {@link SeriesReckonedSpan}.
+   * Runs of points a model produced rather than the craft, in ascending order
+   * and not overlapping. Absent or empty means every point was measured. See
+   * {@link SeriesReckonedSpan}.
    *
-   * A reckoned point is a presentation-time projection and it is minted at the
-   * boundary that draws it. Nothing puts one in a store, in a recording or in
-   * an export, so a `SeriesRange` that came out of `queryRange` never carries
-   * this and a later read can never mistake one for an observation.
+   * Modelled points are made when the series is read for drawing; nothing saves
+   * one, so a series read from a saved flight never has any.
    */
   reckoned?: SeriesReckonedSpan[];
 
@@ -255,31 +202,19 @@ export interface SeriesRange<Payload = unknown> {
   bridges?: SeriesBridge[];
 
   /**
-   * The instant the window was asked FOR, in `basis`, when the producer knows
-   * it. Absent from any producer that reads a stored range rather than a live
-   * frame, which is every one that predates this.
+   * The instant the window was asked for, in the series' time basis, when the
+   * reader knows it. A saved flight's range does not carry it.
    *
-   * It exists because a chart's axis is the extent of its data, and that makes
-   * a model's WITHDRAWAL invisible: a tail that declines at its horizon
-   * shortens the series, the axis shrinks with it, and the picture is
-   * indistinguishable from one where the model ran to the edge. The blank
-   * stretch between the last modelled point and the view time IS the
-   * statement, and without this number nothing downstream can tell that the
-   * stretch exists.
-   *
-   * Not a promise that anything was sampled at it: `t` may end well short, and
-   * on a declining tail that shortfall is the whole point.
+   * `t` may end well before it, as when a model stops short of the view time.
+   * Draw the axis out to this instant, so the gap between the last point and
+   * now shows.
    */
   windowEndAt?: number;
 }
 
 /**
- * Names one plotted quantity: a Topic, and the dotted path of one field inside
- * its payload. Omit `field` to plot a Topic whose payload is itself the
- * quantity.
- *
- * A field rather than a whole Topic, because a trace is one number over time
- * and a Topic is a record of many.
+ * One plotted quantity: a Topic, and the dotted path of one field inside its
+ * payload. Leave out `field` for a Topic whose whole payload is the quantity.
  *
  * @category Flight recording
  */
@@ -300,28 +235,24 @@ export function seriesKeyOf(handle: TopicFieldHandle): string {
 }
 
 /**
- * A windowed series in which every sample is a {@link Reading}: the value with
- * its unit still on it, and how it came to be known. `t` and `readings` have
- * identical length and `t` ascends.
+ * A window of a series in which every sample is a {@link Reading}: the value
+ * with its unit, and how it came to be known. `t` and `readings` have the same
+ * length, and `t` ascends.
  *
- * Each sample reads the way a point read at that instant would have:
+ * Each sample reads as a point read at that instant would have:
  *
  * - `"observed"`: the craft measured it and it arrived live
  * - `"held"` with grade `"recorded"` or `"last-before-blackout"`: the craft
- *   measured it and it arrived late. Exact for its own instant, so a trace
+ *   measured it and it arrived late. It is exact for its instant, so a trace
  *   draws it as it draws a live sample
  * - `"held"` with `reckoning.status` `"available"`: nobody measured this
- *   instant. `value` is the last observation before it and
- *   `reckoning.modelled` is what the model says for it, with its `basis` and,
- *   where the model offers one, its `band`. This is the only kind a trace has
- *   cause to set apart
+ *   instant. `value` is the last observation before it, and
+ *   `reckoning.modelled` is the model's value for it, with its `basis` and,
+ *   where the model gives one, its `band`. Only these should be set apart on a
+ *   trace
  *
- * A consumer derives its modelled spans from the samples, so nothing beside
- * them says which part of the trace a model drew.
- *
- * {@link SeriesRange} is the older shape of the same window, with bare
- * magnitudes and the same facts as index runs. Prefer this one for anything
- * drawn live; `SeriesRange` remains what a stored flight is read back as.
+ * {@link SeriesRange} carries the same window as bare numbers. Use this one for
+ * anything drawn live; a saved flight is read back as a `SeriesRange`.
  *
  * @typeParam Payload - What each sample holds: a `Value` for a quantity.
  *
@@ -341,12 +272,9 @@ export interface ReadingSeriesRange<Payload = unknown> {
 }
 
 /**
- * One inferred flight. Created by the flight detector when a launch is
- * observed, updated on every sample that belongs to it. Persisted to
- * IndexedDB so history survives reloads.
- *
- * `vesselUid` is reserved for an authoritative ship id sourced from the
- * vessel. Until then the detector uses `vesselName + missionTime` heuristics.
+ * One flight, recognised when a launch is seen and updated with every sample
+ * that belongs to it. Saved in the browser, so flight history survives a
+ * reload.
  *
  * @category Flight recording
  */
@@ -367,8 +295,8 @@ export interface FlightRecord {
    */
   chapters?: FlightChapterRecord[];
   /**
-   * User-pinned: starred flights are exempt from the "auto-delete after N
-   * days" cleanup. Per-row delete and "Clear all" still remove them.
+   * Whether the operator starred the flight. Starred flights are never
+   * auto-deleted, but can still be deleted by hand.
    */
   starred?: boolean;
   /**
@@ -382,24 +310,18 @@ export interface FlightRecord {
    */
   outcome?: FlightOutcome;
   /**
-   * UT (seconds) of the first/last captured frame, populated only by a
-   * UT-based recorder (`BufferedDataSource`'s own flights have no UT domain
-   * at all and leave these undefined). A graph over such a record needs the
-   * real UT bounds to call `queryRange` correctly,
-   * they can't be reconstructed from `launchedAt`/`lastSampleAt` alone,
-   * since those stay wall-clock-ms-shaped for backward compatibility with
-   * every other `FlightRecord` consumer, duration calculations included.
+   * The UT, in seconds, of the first captured frame, set only by a recorder
+   * that works in UT. A graph of such a record queries its range with these:
+   * `launchedAt` and `lastSampleAt` are wall-clock milliseconds.
    */
   firstFrameUt?: number;
   lastFrameUt?: number;
 }
 
 /**
- * Recovery-side outcome: KSP completed its post-flight tally and
- * surfaced the mission summary dialog. Captures the bits relevant to
- * a flight-record view (vesselName + headline scalars + crew); the
- * full breakdown lives on `recovery.lastSummary` and isn't duplicated
- * onto every flight record.
+ * How a recovered flight ended, from KSP's recovery summary: the vessel's name,
+ * the headline figures and the crew. The full summary is on the
+ * `recovery.lastSummary` Topic.
  *
  * @category Flight recording
  */
@@ -417,8 +339,7 @@ export interface FlightRecoveryOutcome {
 }
 
 /**
- * Crash-side outcome: KSP fired `onCrash` / `onCrashSplashdown`
- * for the vessel. Records the headline cause and any kerbals killed.
+ * How a crashed flight ended: the cause KSP reported, and any kerbals killed.
  *
  * @category Flight recording
  */
@@ -440,9 +361,8 @@ export interface FlightCrashOutcome {
 export type FlightOutcome = FlightRecoveryOutcome | FlightCrashOutcome;
 
 /**
- * One named slice of a flight, persisted on the FlightRecord. Mirrors the
- * shape of `FlightChapter` (used in fixtures): when the flight is exported,
- * its chapters round-trip into the fixture's chapters array.
+ * One named stretch of a flight, saved on its {@link FlightRecord}. An exported
+ * flight carries its chapters as {@link FlightChapter}s.
  *
  * @category Flight recording
  */
@@ -456,10 +376,8 @@ export interface FlightChapterRecord {
 }
 
 /**
- * Small, cheap-to-list metadata for one recorded mission. Kept in its own
- * object store, separate from the (potentially large) `fixture` payload, so
- * populating the FlightsManager list never has to pull every recording's raw
- * wire frames into memory.
+ * A short summary of one recorded mission, stored apart from the recording
+ * itself so a list of missions can be shown without loading every recording.
  *
  * @category Flight recording
  */
@@ -474,10 +392,8 @@ export interface MissionMeta {
   lastFrameUt: number;
   frameCount: number;
   /**
-   * User-pinned: starred missions are exempt from `pruneMissionsKeepLatest`.
-   * Per-row delete and "Clear all" still remove them. Optional/backward
-   * compatible: existing rows read as `undefined` (falsy, same as
-   * unstarred).
+   * Whether the operator starred the mission. Starred missions are never pruned
+   * automatically, but can still be deleted by hand. Absent means not starred.
    */
   starred?: boolean;
   /**

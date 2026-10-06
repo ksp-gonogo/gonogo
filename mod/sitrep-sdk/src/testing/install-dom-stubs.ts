@@ -1,15 +1,7 @@
 /**
- * Shared jsdom shims used by component/widget tests across the monorepo.
- *
- * jsdom omits several browser APIs that our widgets call at mount time. The
- * options are either to crash, to gate every caller behind `typeof`, or to
- * stub here once: stubbing wins. Each shim is idempotent so setup files can
- * call `installDomStubs()` unconditionally.
- *
- * Lives on the sdk rather than in `core` because it names nothing at all: no
- * registry, no React, no import of any kind. An Uplink's `test/setup.ts` needs it
- * before it can render a widget, and `core` is unpublished, so the one file every
- * outside author's first test depends on was the one they could not obtain.
+ * Adds the browser APIs jsdom lacks and widgets call when they mount, so a
+ * widget renders in a jsdom test. Safe to call more than once. Call it from a
+ * test setup file.
  *
  * @category Rendering
  */

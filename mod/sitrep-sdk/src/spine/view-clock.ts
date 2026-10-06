@@ -57,21 +57,13 @@ type FrameTickHandle =
   | { kind: "timer"; id: ReturnType<typeof setTimeout> };
 
 /**
- * One per client: THE single view time. Fits a UT↔wall
- * relationship from delivered-sample observations, but the central
- * invariant holds: **the estimate only schedules; samples confirm**:
+ * The instant the dashboard is showing, one per client. It estimates game time
+ * from the wall clock, but never shows past what has arrived:
+ * `confirmedEdgeUt()` is held at the latest sample instant actually observed,
+ * so a wrong estimate can only make the view lag, never run ahead of the data.
  *
- * `confirmedEdgeUt()` is clamped to the max `validAt` actually observed via
- * `observeSample`. A wrong or fast-running estimate can therefore only ever
- * make `confirmedEdgeUt()` LOWER than the raw estimate (display latency, or
- * a too-early `Held` later on): never higher than what's actually been
- * delivered. That is the one invariant every other feature (staleness,
- * media release, reckoning to SCET) is built to never violate.
- *
- * Epoch-aware exactly like `ClientTimeline`: `observeSample`'s `epoch` argument
- * resets the fit + sample clamp + monotonic view cursor on a rewind, and
- * discards stragglers from before the rewind: the same per-epoch hygiene,
- * applied to the one clock instead of per-topic buffers.
+ * A rewind, seen as a new `epoch` passed to `observeSample`, starts the
+ * estimate afresh and drops samples from before it.
  *
  * @category Stream fixture
  */

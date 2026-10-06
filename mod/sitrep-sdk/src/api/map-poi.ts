@@ -86,7 +86,7 @@ export function getMapPoiProviders(): MapPoiProviderDefinition[] {
 }
 
 /**
- * Empty the registry. For tests; a running app never calls it.
+ * Removes every provider. For tests; a running app never calls it.
  *
  * @category Maps and coverage
  */

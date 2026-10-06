@@ -23,13 +23,8 @@ export interface MockDataSourceOptions {
 }
 
 /**
- * Minimal in-memory `DataSource` for tests: drives arbitrary samples with no MSW
- * or WebSocket setup, and exposes `emit(key, value)` to push a value to every
- * subscriber.
- *
- * Published from here rather than `@ksp-gonogo/core` because 15 Uplink test files
- * construct one and that package is `private: true`. It names four types and no
- * behaviour, so there was nothing holding it up there.
+ * A {@link DataSource} held in memory, for tests. `emit(key, value)` sends a
+ * value to every subscriber of the key.
  *
  * @category Test doubles
  */

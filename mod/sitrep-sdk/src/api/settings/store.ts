@@ -113,7 +113,9 @@ function notify(key: string): void {
 }
 
 /**
- * `saved ?? seed`; `undefined` if neither. The build default is the caller's.
+ * The value of a setting: the one saved in this browser, or else the value
+ * seeded at startup, or `undefined` when there is neither. A default is the
+ * caller's to supply.
  *
  * @category Settings
  */
@@ -124,7 +126,8 @@ export function getSetting(key: string): string | undefined {
 }
 
 /**
- * Persist a user-chosen value (the "saved" layer). Wins forever on this browser.
+ * Saves a value for a setting in this browser. It takes precedence over a
+ * seeded value from then on.
  *
  * @category Settings
  */
@@ -136,7 +139,8 @@ export function setSetting(key: string, value: string): void {
 }
 
 /**
- * Set the in-memory seed layer (NOT persisted). Overridden by a saved value.
+ * Sets a value used for this page load only, while nothing is saved for the
+ * setting. Never saved.
  *
  * @category Settings
  */
@@ -146,7 +150,8 @@ export function seedSetting(key: string, value: string): void {
 }
 
 /**
- * Subscribe to any change (save OR seed) for one key.
+ * Calls `cb` whenever the setting is saved or seeded. Returns the function that
+ * stops it.
  *
  * @category Settings
  */
@@ -162,7 +167,8 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
 }
 
 /**
- * Test-only: clear the persisted blob and the in-memory seed layer.
+ * Removes every saved and seeded setting. For tests; a running app never calls
+ * it.
  *
  * @category Settings
  */

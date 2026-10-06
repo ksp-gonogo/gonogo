@@ -2,14 +2,9 @@ import type { UplinkAlarmRequest } from "../api/alarm-request";
 import type { UplinkClientHandle } from "../api/types";
 
 /**
- * The test double behind `useAlarmRequest`: it records what was asked for
- * instead of creating anything.
- *
- * There is nothing for it to create. The alarm list belongs to the app, and
- * this package sits below it, which is the same reason the augment registry
- * arrives through `UiKitHostPieces` rather than being implemented here. What an
- * Uplink's own test needs is not a real alarm, it is the ability to assert that
- * pressing the button asked for the right one, so that is what this gives.
+ * An alarm a widget asked for through `useAlarmRequest` under a test host,
+ * recorded instead of created, so a test can check the request. Read them with
+ * {@link getRequestedAlarms}.
  *
  * @category Test doubles
  */
@@ -30,7 +25,7 @@ export function getRequestedAlarms(): readonly RecordedAlarmRequest[] {
 }
 
 /**
- * Forget every recorded request. Call it between tests.
+ * Forgets every recorded request. Call it between tests.
  *
  * @category Test doubles
  */

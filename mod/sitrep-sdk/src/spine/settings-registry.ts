@@ -51,12 +51,8 @@ import type { Screen } from "./screen";
 export type SettingType = "boolean" | "text" | "number";
 
 /**
- * The value each {@link SettingType} carries.
- *
- * `number` admits a `Value` as well as a bare number because a quantity in this
- * codebase carries its own unit, and a tolerance in metres shown without "m"
- * beside it is the readout this rule exists to stop. Hand back
- * `value("m", 1)` and the row renders through `Unit`.
+ * The value each {@link SettingType} carries. A `"number"` row may hold a
+ * `Value`, such as `value("m", 1)`, so it is drawn with its unit.
  *
  * @category Settings
  */
@@ -85,15 +81,10 @@ export interface SettingDefinitionBase {
   /** The heading this row files under, e.g. an Uplink's name. */
   category: string;
   /**
-   * A named block inside `category`. Rows with no group render first, directly
-   * under the category heading, so a category that never used groups looks
-   * exactly as it did. Groups then follow in first-registration order, each
-   * under its own sub-heading.
-   *
-   * This exists because a mod's settings are not one list. A trajectory mod's
-   * are a plotting frame, a prediction, an analysis window, a drawing budget
-   * and a diagnostics block, and reading them as forty-one undifferentiated
-   * rows means reading all forty-one to find the one you came for.
+   * A named block within `category`, drawn under its own sub-heading. Rows with
+   * no group come first, directly under the category heading; groups follow in
+   * the order they were first registered. Use groups to break a long list of a
+   * mod's settings into parts a reader can find their way through.
    */
   group?: string;
   /** Which screens this setting is relevant on. Omit for both. */
@@ -105,35 +96,24 @@ export interface SettingDefinitionBase {
    */
   uplink?: string;
   /**
-   * The operator cannot change this row: it renders as a labelled VALUE, never
-   * as a control. Not a disabled control, which some screen readers skip and
-   * which reads as "broken" rather than "informational".
-   *
-   * Declare it whenever the write does not exist or is refused. A plugin's own
-   * configuration read off the wire is the common case, and `stream-backed`
-   * rows are read-only whether or not this is set, because they carry no
-   * writer to call.
+   * The operator cannot change this row: it is drawn as a labelled value, not as
+   * a disabled control. Set it whenever the setting cannot be written. A
+   * setting read from a Topic is read-only whether or not this is set.
    */
   readOnly?: boolean;
   /**
-   * Id of a parent BOOLEAN setting this one is nested under. Purely a
-   * RENDERING/inertness hint for `SettingsModal` (indents the row, disables
-   * its `Switch`, and shows it as off, whenever the parent setting reads
-   * `false`): the registry itself has no hierarchy concept beyond this one
-   * pointer, and does NOT enforce the dependency for consumers reading the
-   * child setting directly via `useSetting`. A consuming hook that wants the
-   * dependency enforced at the DATA level (not just the UI) must AND-combine
-   * both values itself (mirrors `useStationWakeLock`'s own
-   * `active && enabled` pattern): see `useMissionHistorySettings` for the
-   * concrete example this field was added for.
+   * The id of a boolean setting this one is nested under. Settings indents
+   * the row, and disables it and shows it off while the parent is `false`.
+   * That is all it does: {@link useSetting} still returns the row's own
+   * value, so code that should obey the parent reads both and combines them.
    */
   dependsOn?: string;
 }
 
 /**
- * A localStorage-backed preference: pure gonogo-side, no mod round-trip. The
- * `id` doubles as the localStorage key. This is the default backing; `backing`
- * may be omitted, and so may `type`, which means `"boolean"`.
+ * A setting saved in this browser's `localStorage`, under its `id`. This is the
+ * default: `backing` may be left out, and so may `type`, which then means
+ * `"boolean"`.
  *
  * @category Settings
  */
@@ -145,14 +125,12 @@ export interface ClientPrefSettingOf<SettingKind extends SettingType>
 }
 
 /**
- * A stream-backed setting: the value arrives on a telemetry Topic and the row
- * only ever shows it.
+ * A setting whose value arrives on a Topic, which the row only shows: a mod's
+ * own configuration, as its Uplink publishes it.
  *
- * This is the shape a mod's own configuration takes: not a preference the
- * console owns, but values the Uplink already publishes on a channel.
- *
- * Read-only by construction, so `readOnly` is redundant here and the renderer
- * asks {@link isReadOnlySetting} rather than the flag.
+ * It cannot be changed from the row, so `readOnly` adds nothing here; ask
+ * {@link isReadOnlySetting} whether a row can be changed rather than reading
+ * the flag.
  *
  * @category Settings
  */
@@ -165,12 +143,9 @@ export interface StreamBackedSettingOf<
   /** The Topic id whose payload carries this row's value. */
   topic: Topic;
   /**
-   * Pull this row's value out of the Topic payload. Answer `null`/`undefined`
-   * when the payload does not carry it and the row shows a null placeholder,
-   * which is the honest rendering of "the mod has not said".
-   *
-   * The argument is the DECLARED payload of `topic`, so an author reads a
-   * field the contract carries or does not compile.
+   * Returns the row's value from the Topic's payload, or `null` or `undefined`
+   * when the payload does not carry it, which draws the row's null placeholder.
+   * The argument is typed as `topic`'s payload.
    */
   select: (
     payload: TopicPayloadMap[Topic],
@@ -198,12 +173,12 @@ export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
 }
 
 /**
- * One row, at one {@link SettingType}. This is the REGISTRATION type: `SettingKind` is
- * inferred from `type` at the call site, which is what makes `defaultValue`
- * and `select` agree with each other.
+ * One row, of one {@link SettingType}: what {@link registerSetting} takes. The
+ * type is inferred from `type`, so `defaultValue` and `select` must agree with
+ * it.
  *
- * Reading the registry back hands you {@link SettingDefinition}, the union over
- * all three types, because the renderer has to cope with whatever was declared.
+ * Reading the rows back gives a {@link SettingDefinition}, which covers every
+ * type.
  *
  * @category Settings
  */
@@ -243,10 +218,9 @@ export type StreamBackedSetting =
 export type SettingDefinition = ClientPrefSetting | StreamBackedSetting;
 
 /**
- * Whether the operator can change this row. ONE rule, in one place, because
- * there are two ways for a row to be uncontrollable (declared `readOnly`, or a
- * stream backing, which has no writer) and a renderer that checks only the flag would offer
- * a `Switch` on a stream.
+ * Whether the operator can change this row: false when it is declared
+ * `readOnly`, and false for a setting read from a Topic, which has no way to
+ * write it.
  *
  * @category Settings
  */

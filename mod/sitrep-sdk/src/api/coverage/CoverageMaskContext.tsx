@@ -6,7 +6,8 @@ import { CoverageMaskCache } from "./CoverageMaskCache";
 const CoverageMaskCacheContext = createContext<CoverageMaskCache | null>(null);
 
 /**
- * Constructs one CoverageMaskCache for the tree below it.
+ * Gives the tree below it one {@link CoverageMaskCache}, read with
+ * {@link useCoverageMaskCache}.
  *
  * @category Maps and coverage
  */
@@ -24,9 +25,9 @@ export function CoverageMaskCacheProvider({
 }
 
 /**
- * Returns the current coverage mask cache, or null if no provider is mounted
- * above. Coverage is an optional dashboard feature, callers should handle null
- * by skipping the coverage pipeline rather than erroring.
+ * The nearest {@link CoverageMaskCache}, or `null` when no
+ * {@link CoverageMaskCacheProvider} is above. Coverage is optional, so on `null`
+ * skip drawing coverage rather than failing.
  *
  * @category Maps and coverage
  */
@@ -35,13 +36,12 @@ export function useCoverageMaskCache(): CoverageMaskCache | null {
 }
 
 /**
- * Acquire the mask for a single (body, layerId) and re-render on mutation.
- * Returns the mask plus a monotonically-increasing version counter so
- * effects that depend on "mask changed" can key off it without comparing
- * bytes.
+ * The coverage mask for one body and layer, re-rendering whenever it changes.
+ * Returns the mask and a `version` that goes up by one on each change, so an
+ * effect can depend on the version rather than compare bytes.
  *
- * When there is no provider, no body id, or no scan type, `mask` is
- * undefined.
+ * `mask` is `undefined` when there is no {@link CoverageMaskCacheProvider}, no
+ * body id or no layer id.
  *
  * @category Maps and coverage
  */
