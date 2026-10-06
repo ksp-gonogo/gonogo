@@ -26,7 +26,6 @@ import {
 import { WarpControlConfigForm } from "./WarpControlConfigForm";
 import { WarpControlView } from "./WarpControlView";
 import { normalizeWarpMode, TOP_WARP_INDEX, warpLabel } from "./warpLevels";
-import "./slots";
 
 export { delayRequiringAlarm } from "./alarmGate";
 export type { WarpControlActions, WarpControlConfig } from "./config";

@@ -18,7 +18,6 @@ import { magnitudeOf } from "../shared/magnitude";
 import { facilityLevelsFrom } from "./facilities";
 // Imported for its registration side effect too; the age caption is only honest while that contribution is on screen.
 import { STOCK_FACILITY_CONTRIBUTION_ID } from "./facilitiesContribution";
-import "./slots";
 import { SpaceCenterStatusView } from "./SpaceCenterStatusView";
 import { useSpaceCenterEssentials } from "./useSpaceCenterEssentials";
 

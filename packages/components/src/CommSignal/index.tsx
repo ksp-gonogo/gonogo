@@ -4,7 +4,6 @@ import type { CommSignalConfig } from "./config";
 import { commSignalTopics } from "./topics";
 import { useCommSignalEssentials } from "./useSignalVerdict";
 import "./badge";
-import "./slots";
 
 registerComponent<CommSignalConfig>({
   id: "comm-signal",

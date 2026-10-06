@@ -1,25 +1,4 @@
-/**
- * The `astronaut-complex.crew` slot contract: a per-kerbal cell under the name,
- * in both lists, for detail an Uplink holds about that kerbal and stock has
- * none of. Keyed by NAME, the join key on `spaceCenter.crewRoster`.
- */
-export interface AstronautComplexCrewContext {
-  /** `ProtoCrewMember.name`: the join key to the augment's own crew channel. */
-  kerbalName: string;
-  /** `CrewStanding`, or null when the producer sent none. */
-  standing: number | null;
-  /** Whether this row is a hireable candidate rather than owned crew. */
-  isApplicant: boolean;
-}
-
-// Declaration-merge each slot id onto its props type in core's `SlotRegistry`; `astronaut-complex.tab` is a whole tab and passes nothing.
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "astronaut-complex.crew": AstronautComplexCrewContext;
-    "astronaut-complex.crew-badge": AstronautComplexCrewContext;
-    "astronaut-complex.tab": Record<string, never>;
-  }
-}
+export type { AstronautComplexCrewContext } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The `astronaut-complex.crew-badge` slot: the top-right corner of a kerbal's

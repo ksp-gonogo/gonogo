@@ -1,28 +1,6 @@
 import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 
-/**
- * One `comm-signal.hop-rates` entry: a hop's forward bitrate keyed by the same
- * node ids `comms.path` carries, joined onto the route by {@link commsHopId}.
- */
-export interface CommSignalHopRateEntry {
-  fromNodeId: string;
-  toNodeId: string;
-  bitsPerSec: number;
-}
-
-/*
- * Kept member-for-member identical to the sdk leaf's mirror in
- * `contribution-slots.ts`. Any comms Uplink may fill it from whatever channel
- * it owns. Declared here rather than in `index.tsx`
- * so the conformance test-d can load the augmentation through this module.
- */
-declare module "@ksp-gonogo/core" {
-  interface ContributionRegistry {
-    "comm-signal.hop-rates": {
-      entry: CommSignalHopRateEntry;
-    };
-  }
-}
+export type { CommSignalHopRateEntry } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The join key for a hop, shared by the route schedule and every

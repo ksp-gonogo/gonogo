@@ -13,12 +13,6 @@ const maneuverActions = [] as const satisfies readonly ActionDefinition[];
  */
 export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
 
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "maneuver-planner.sections": ManeuverPlannerSectionsSlotProps;
-  }
-}
-
 registerComponent<ManeuverPlannerConfig>({
   id: "maneuver-planner",
   name: "Maneuver Planner",

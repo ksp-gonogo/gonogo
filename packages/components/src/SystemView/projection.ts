@@ -15,6 +15,12 @@ import {
   trajectoryFrameKindFor,
   type Vector3,
 } from "@ksp-gonogo/sitrep-client";
+import type {
+  SystemProjectionExtent,
+  SystemViewProjection,
+} from "@ksp-gonogo/sitrep-sdk";
+
+export type { SystemProjectionExtent, SystemViewProjection };
 
 /**
  * How SystemView's frame is chosen and placed.
@@ -33,38 +39,6 @@ const SYSTEM_PLACEMENT_BUDGET = new PerfBudget({
   windowMs: 1000,
   unit: "placements",
 });
-
-/** How the diagram sizes itself in a projection's own coordinates, a total union so the stock projection states `auto-fit-metres` rather than omitting it. */
-export type SystemProjectionExtent =
-  /** Fit the drawn orbits in metres about the frame body, for a projection whose origin is that body and whose lengths are metres. */
-  | { kind: "auto-fit-metres" }
-  /** A fixed half-extent in the projection's own units, for coordinates that are not metres or an origin elsewhere. */
-  | { kind: "fixed-units"; units: number };
-
-/**
- * One frame SystemView will draw its whole picture in.
- *
- * Plain data and a `ReadFrameChoice`, not a transform closure: the host resolves it through `frameInstantAt` once per picture, every frame it builds is a similarity with an inverse, and plain data keeps the contribution's reference equality meaningful.
- */
-export interface SystemViewProjection {
-  /** Stable id. The operator's pinned choice is stored as this. */
-  id: string;
-  /** What an operator calls it. A picture, not a taxonomy. */
-  label: string;
-  /** The frame, for the host to resolve at the instant it is drawing. */
-  choice: ReadFrameChoice;
-  extent: SystemProjectionExtent;
-  /** The body the diagram must be centred on for this projection to apply, stated by the contributor so the host never branches on frame kind. */
-  frameBodyIndex: number;
-}
-
-declare module "@ksp-gonogo/core" {
-  interface ContributionRegistry {
-    "system-view.projection": {
-      entry: SystemViewProjection;
-    };
-  }
-}
 
 /** The id of the parent-centred inertial frame. */
 export function inertialProjectionId(frameBodyIndex: number): string {

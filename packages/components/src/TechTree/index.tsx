@@ -107,6 +107,7 @@ registerComponent<TechTreeConfig>({
   fields: topics.fields,
   defaultConfig: {},
   actions: [],
+  augmentSlots: ["tech-tree.sections"],
   pushable: true,
   requires: ["career"],
 });

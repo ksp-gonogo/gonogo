@@ -26,7 +26,6 @@ import { ResourceListSection } from "./ResourceListSection";
 import { useResourceRows } from "./resources";
 import { StageStackSection } from "./StageStackSection";
 import { TotalsSection } from "./TotalsSection";
-import "./slots";
 
 /** The craft's ΔV in the configured reference, and how long it burns for. */
 function useFuelEssentials({

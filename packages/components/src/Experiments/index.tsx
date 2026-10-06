@@ -45,6 +45,8 @@ import {
 } from "./parse";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
+export type { ExperimentsInstrumentSlotContext } from "@ksp-gonogo/sitrep-sdk";
+
 type ExperimentsConfig = Record<string, never>;
 
 export type { Instrument } from "./instrument";
@@ -54,24 +56,6 @@ export {
   parseLab,
   sumExperimentDataAmount,
 } from "./parse";
-
-/**
- * Slot context for `experiments.instrument`, the per-instrument-row slot. It
- * passes down the `Instrument` it sits beside so an augment can extend exactly
- * that row. A once-per-widget segment cannot express "once per instrument".
- */
-export interface ExperimentsInstrumentSlotContext {
-  /** The instrument the augmented row is rendering. */
-  instrument: Instrument;
-}
-
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "experiments.instrument": ExperimentsInstrumentSlotContext;
-    // Mounted by `Panel`'s universal `actions` segment, not by this widget.
-    "experiments.actions": Record<string, never>;
-  }
-}
 
 // The sitrep-sdk copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts`.
 

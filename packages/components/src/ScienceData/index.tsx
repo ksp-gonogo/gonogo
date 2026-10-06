@@ -33,6 +33,8 @@ import {
   parseExperiments,
 } from "./parsers";
 
+export type { ScienceDataAboardRowContext } from "@ksp-gonogo/sitrep-sdk";
+
 const topics = defineTopicManifest({
   channels: [
     "vessel.identity",
@@ -167,21 +169,6 @@ function ScienceDataComponent({
       }
     />
   );
-}
-
-/**
- * Props passed to every `science-data.aboard-row` augment, one per subject, rendered below each Aboard breakdown row.
- * The augment reads its own data and joins by `subjectId`.
- */
-export interface ScienceDataAboardRowContext {
-  /** The subject this Aboard row represents; a subject can hold a file and a sample at once. */
-  subjectId: string;
-}
-
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "science-data.aboard-row": ScienceDataAboardRowContext;
-  }
 }
 
 registerComponent<ScienceDataConfig>({

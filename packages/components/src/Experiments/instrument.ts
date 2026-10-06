@@ -36,17 +36,3 @@ export interface ContributedInstrument extends Instrument {
 
 // Asserted against `Instrument` in `instrument.test-d.ts`.
 export type WireInstrument = TopicPayload<"science.instruments">[number];
-
-/**
- * `experiments.instruments`: instruments this widget cannot observe itself, because
- * `science.instruments` is the stock experiment list and a mod running its own
- * science module never appears there. Mirrored in `mod/sitrep-sdk/src/api/contribution-slots.ts` as
- * `ExperimentsInstrumentEntry`.
- */
-declare module "@ksp-gonogo/core" {
-  interface ContributionRegistry {
-    "experiments.instruments": {
-      entry: ContributedInstrument;
-    };
-  }
-}

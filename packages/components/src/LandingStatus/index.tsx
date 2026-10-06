@@ -35,7 +35,6 @@ import { useScrollerHeight } from "./useScrollerHeight";
 import "./descentLayers";
 import "./crossSectionPlot";
 import "./touchdownReticlePlot";
-import "./slots";
 import { useLandingEssentials } from "./useLandingEssentials";
 
 export type { FlightReading } from "./CarriedAltitude";
@@ -301,6 +300,7 @@ registerComponent<LandingStatusConfig>({
     "comms.delay",
   ],
   defaultConfig: {},
+  augmentSlots: ["landing-status.sections", "landing-status.actions"],
   // Declaring the slot is the whole opt-in; the widget's own descent envelope arrives through it too.
   contributionSlots: ["plots"],
   pushable: true,
