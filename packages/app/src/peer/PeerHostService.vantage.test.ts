@@ -121,6 +121,10 @@ const localStorageMock = {
 vi.stubGlobal("localStorage", localStorageMock);
 
 import { setActiveTelemetryClientForTests } from "@ksp-gonogo/sitrep-client";
+import {
+  createTestTelemetryClient,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { PeerHostService } from "./PeerHostService";
 
 const TOPIC = "thirdparty.readout";
@@ -407,6 +411,35 @@ describe("a peer's command address", () => {
     await Promise.resolve();
 
     expect(vantages).toEqual(["meta"]);
+    host.stop();
+  });
+
+  it("dispatches a station's command upstream under the station's own request id", async () => {
+    /*
+     * The mod stamps the id it receives on the pending queue, and a station's
+     * `useCommand` looks for ITS id there. A host that re-mints leaves the
+     * station matching its own `c1` against the host's.
+     */
+    const host = await startedHost();
+    const transport = new StubTransport();
+    const client = createTestTelemetryClient(transport);
+    client.setDelaySource(() => 0);
+    setActiveTelemetryClientForTests(client);
+    const station = await connectStation(host, "station-a");
+
+    client.dispatch("vessel.control.throttle", {});
+    client.dispatch("vessel.control.throttle", {});
+    station.emit("data", {
+      type: "sitrep-command-request",
+      requestId: "station-a-0",
+      command: "vessel.control.throttle",
+      args: {},
+    });
+    await Promise.resolve();
+
+    expect(transport.sentCommands.map((c) => c.requestId)).toContain(
+      "station-a-0",
+    );
     host.stop();
   });
 });

@@ -2030,6 +2030,13 @@ export class PeerHostService {
         msg.label ?? "",
         msg.topic ?? "",
         msg.vantage || (connVantage === HOST_SESSION ? "" : connVantage),
+        /*
+         * The station's own id, not a fresh host one: the mod stamps it on the
+         * pending queue, and the station's `useCommand` looks for its own id
+         * there. Ids carry a per-client random prefix, so two stations do not
+         * collide.
+         */
+        msg.requestId,
       );
       const value = await result;
       conn.send({

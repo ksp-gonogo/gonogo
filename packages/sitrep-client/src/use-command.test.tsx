@@ -135,7 +135,7 @@ describe("useCommand", () => {
   it("fires a command and reflects the lifecycle to confirmed", async () => {
     const t = new StubTransport();
     t.setCommandHandler((c, a) => ({ c, a }));
-    const client = new TelemetryClient(t);
+    const client = new TelemetryClient(t, undefined, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <Deploy />
@@ -151,7 +151,7 @@ describe("useCommand", () => {
   it("surfaces the predicted etaConfirm while in-flight", () => {
     const clock = new FakeClock(0);
     const transport = new EtaTransport(4);
-    const client = new TelemetryClient(transport, clock);
+    const client = new TelemetryClient(transport, clock, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <Deploy />
@@ -164,7 +164,7 @@ describe("useCommand", () => {
   it("surfaces lost after silence past etaConfirm + LOSS_MARGIN", async () => {
     const clock = new FakeClock(0);
     const transport = new EtaTransport(4);
-    const client = new TelemetryClient(transport, clock);
+    const client = new TelemetryClient(transport, clock, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <Deploy />
@@ -201,7 +201,7 @@ describe("useCommand", () => {
 function setupFixture({ suspendFrames = false } = {}) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
-  const client = new TelemetryClient(transport);
+  const client = new TelemetryClient(transport, undefined, { idPrefix: "t" });
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
@@ -559,7 +559,9 @@ function DeployWithLosses() {
 describe("useCommand losses", () => {
   function renderDropped() {
     const clock = new FakeClock(0);
-    const client = new TelemetryClient(new EtaTransport(4), clock);
+    const client = new TelemetryClient(new EtaTransport(4), clock, {
+      idPrefix: "t",
+    });
     render(
       <TelemetryProvider client={client}>
         <DeployWithLosses />
@@ -602,7 +604,7 @@ describe("useCommand losses", () => {
   it("collects nothing from a command that answered", async () => {
     const t = new StubTransport();
     t.setCommandHandler(() => ({ ok: true }));
-    const client = new TelemetryClient(t);
+    const client = new TelemetryClient(t, undefined, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <DeployWithLosses />
@@ -665,7 +667,7 @@ describe("useCommand founds", () => {
   async function renderLost() {
     const clock = new FakeClock(0);
     const transport = new EtaTransport(4);
-    const client = new TelemetryClient(transport, clock);
+    const client = new TelemetryClient(transport, clock, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <DeployWithFounds />
@@ -682,7 +684,7 @@ describe("useCommand founds", () => {
 
   /** The requestId the one dispatch got. Monotonic `c${n}` from a fresh client,
    *  counting from zero. */
-  const ONLY_REQUEST = "c0";
+  const ONLY_REQUEST = "t-0";
 
   it("promotes a loss to a found when the reply finally lands", async () => {
     const { transport } = await renderLost();
@@ -793,12 +795,12 @@ function DeployWithUndelivered() {
 
 describe("useCommand undelivered", () => {
   /** The requestId the one dispatch got, as in the founds suite above. */
-  const ONLY_REQUEST = "c0";
+  const ONLY_REQUEST = "t-0";
 
   function renderQueued() {
     const clock = new FakeClock(0);
     const transport = new EtaTransport(4);
-    const client = new TelemetryClient(transport, clock);
+    const client = new TelemetryClient(transport, clock, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <DeployWithUndelivered />
@@ -836,7 +838,7 @@ describe("useCommand undelivered", () => {
     // silence, so it is still in flight when the link is abandoned. It used to
     // stay that way for the life of the tab.
     const transport = new EtaTransport(undefined);
-    const client = new TelemetryClient(transport, clock);
+    const client = new TelemetryClient(transport, clock, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <DeployWithUndelivered />
@@ -871,7 +873,7 @@ describe("useCommand undelivered", () => {
   it("collects nothing from a command that answered", async () => {
     const t = new StubTransport();
     t.setCommandHandler(() => ({ ok: true }));
-    const client = new TelemetryClient(t);
+    const client = new TelemetryClient(t, undefined, { idPrefix: "t" });
     render(
       <TelemetryProvider client={client}>
         <DeployWithUndelivered />
@@ -899,7 +901,7 @@ describe("useCommand registers every handle with the command rail", () => {
   function makeClient(reply: unknown = { ok: true }) {
     const transport = new StubTransport();
     transport.setCommandHandler(() => reply);
-    return new TelemetryClient(transport);
+    return new TelemetryClient(transport, undefined, { idPrefix: "t" });
   }
 
   function Unlock({ rail }: { rail?: false }) {
@@ -1083,7 +1085,7 @@ describe("useCommand fire-and-forget refusals", () => {
     try {
       const t = new StubTransport();
       t.setCommandHandler(() => ({ success: false, errorCode: "noVessel" }));
-      const client = new TelemetryClient(t);
+      const client = new TelemetryClient(t, undefined, { idPrefix: "t" });
       render(
         <TelemetryProvider client={client}>
           <VoidDeploy />
@@ -1144,7 +1146,7 @@ describe("useCommand refusals", () => {
   ) {
     const t = new StubTransport();
     t.setCommandHandler(handler);
-    const client = new TelemetryClient(t);
+    const client = new TelemetryClient(t, undefined, { idPrefix: "t" });
     return render(
       <TelemetryProvider client={client}>
         <Hire onDismiss={capture} />
@@ -1216,7 +1218,7 @@ describe("useCommand refusals", () => {
     expect(id).toBeTruthy();
     act(() => {
       // The refusal's id is the dispatch's own requestId, the first the stub client mints.
-      dismiss?.("c0");
+      dismiss?.("t-0");
     });
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
   });

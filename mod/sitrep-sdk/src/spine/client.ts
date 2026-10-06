@@ -212,6 +212,18 @@ function refusalOf(result: unknown): {
   };
 }
 
+/** Construction options for {@link TelemetryClient}. */
+export interface TelemetryClientOptions {
+  /** Prefix of every request id this client mints. Random per client unless a test pins it. */
+  idPrefix?: string;
+}
+
+function randomIdPrefix(): string {
+  const bytes = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export class TelemetryClient {
   private readonly transport: Transport;
   private readonly clock: Clock;
@@ -244,6 +256,7 @@ export class TelemetryClient {
   private readonly unsubscribeFromLost: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
+  private readonly idPrefix: string;
   private selectedVantageId: string | undefined;
   private observedVantageId: string | undefined;
   /** Raw-frame tap listeners: see `onRawMessage`. */
@@ -302,7 +315,12 @@ export class TelemetryClient {
    * `etaConfirm - now()` delta can clamp to zero (false near-instant "lost")
    * or never fire (loss never inferred).
    */
-  constructor(transport: Transport, clock: Clock = new RealTimeClock()) {
+  constructor(
+    transport: Transport,
+    clock: Clock = new RealTimeClock(),
+    options: TelemetryClientOptions = {},
+  ) {
+    this.idPrefix = options.idPrefix ?? randomIdPrefix();
     this.transport = transport;
     this.clock = clock;
     this.ownership = transport.decidesTopicOwnership
@@ -599,8 +617,9 @@ export class TelemetryClient {
 
   /**
    * Dispatch a command to the server. Returns immediately with a
-   * `requestId` (a monotonic `c${n}` counter, never random/time-based, so
-   * ordering is deterministic and testable) and a `result` Promise that
+   * `requestId` (`<prefix>-<n>`: a counter that is deterministic within one
+   * client, behind a prefix that is random per client so two page loads or two
+   * screens never mint the same id) and a `result` Promise that
    * resolves/rejects once the correlated `command-response`/`error` arrives.
    *
    * `transport.send` is called synchronously, the client always hands the
@@ -631,6 +650,11 @@ export class TelemetryClient {
    * a terminal-scoped command) carried straight through on the envelope,
    * same rollout shape as `label`, no role in dispatch, correlation, or loss
    * inference. Defaults to `""` (unscoped) when omitted.
+   *
+   * `requestId` lets a caller that already holds a unique id (a peer host
+   * dispatching a station's command) send it under that id, so the pending
+   * queue the mod publishes is keyed by the id the originator knows. An id this
+   * client is already tracking is refused.
    */
   /**
    * The authoritative one-way delay, in UT seconds, or `undefined` when nothing has
@@ -694,7 +718,14 @@ export class TelemetryClient {
     label?: string,
     topic?: string,
     vantage?: string,
+    requestIdOverride?: string,
   ): { requestId: string; result: Promise<unknown> } {
+    if (
+      requestIdOverride !== undefined &&
+      this.commands.has(requestIdOverride)
+    ) {
+      throw new Error(`request id ${requestIdOverride} is already in use`);
+    }
     /* Before anything can fail or be deduplicated downstream: the budget's
        subject is how often this client was ASKED to send, not how many sends
        survived. */
@@ -704,7 +735,8 @@ export class TelemetryClient {
     // a numeric slot outright. Kept for the in-flight record too: a refusal names
     // what was SENT, and the wire form is what was sent.
     const wireArgs = dehydrateArgs(args);
-    const requestId = `c${this.nextRequestId++}`;
+    const requestId =
+      requestIdOverride ?? `${this.idPrefix}-${this.nextRequestId++}`;
     // Where the round trip comes from, and why in THIS order.
     //
     // A transport that OWNS its delay model is asked first: `CourierTransport` drives
