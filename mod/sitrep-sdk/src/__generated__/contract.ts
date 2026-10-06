@@ -7977,6 +7977,17 @@ export interface TargetListEntry
 	*/
 	asOfUt?: Value<"ut"> | null;
 	/**
+	* The universal time up to which the vessel is taken not to have changed since
+	* `TargetListEntry.asOfUt`, for a vessel known over a direct radio link that
+	* is up: now less that link's light-time. A vessel says so when its state
+	* changes, so a link that is up and silent is word that it has not. This is
+	* worked out from silence and not heard, so an age counted from it is shown as
+	* modelled. It stops advancing when the link drops and is null again once
+	* newer word arrives. Null for a vessel known any other way, a part and a
+	* body.
+	*/
+	unchangedToUt?: Value<"ut"> | null;
+	/**
 	* The display name of the command centre that told the active vessel of this
 	* one, for `TargetKnowledge.CommandCentre`. Null otherwise.
 	*/

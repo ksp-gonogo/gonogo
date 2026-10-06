@@ -1316,6 +1316,7 @@
       "partId": "id",
       "situation": "enum",
       "source": "enum",
+      "unchangedToUt": "ut",
       "vesselId": "id",
       "vesselType": "enum",
       "via": "text"

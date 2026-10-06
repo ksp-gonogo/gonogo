@@ -184,6 +184,55 @@ describe("TargetPickerComponent: what the craft knows of a target", () => {
   });
 });
 
+describe("TargetPickerComponent: a craft held unchanged by the silence of a live link", () => {
+  let fixture: StreamFixture;
+
+  beforeEach(() => {
+    fixture = setupStreamFixture({ pinnedUt: 1240, suspendFrames: true });
+  });
+
+  it("marks it modelled and counts its age from the silence, where one only heard of is held", async () => {
+    renderPicker(fixture);
+    emitAvailable(fixture, [
+      KERBIN,
+      {
+        ...RELAY_ONE,
+        distance: null,
+        source: 1, // DirectLink
+        asOfUt: 700,
+        unchangedToUt: 1230,
+      },
+      {
+        ...RELAY_TWO,
+        distance: null,
+        source: 1, // DirectLink
+        asOfUt: 700,
+        unchangedToUt: null,
+      },
+    ]);
+
+    const coasting = (
+      await screen.findAllByRole("button", { name: /Relay One/ })
+    )[0];
+    expect(
+      coasting.querySelector('[data-reckoning-mark="modelled"]'),
+    ).not.toBeNull();
+    expect(coasting.textContent).toMatch(
+      /No change heard as of .+ ago, over a direct radio link that is up/,
+    );
+
+    const heard = (
+      await screen.findAllByRole("button", { name: /Relay Two/ })
+    )[0];
+    expect(heard.querySelector('[data-reckoning-mark="modelled"]')).toBeNull();
+    expect(heard.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(heard.textContent).toMatch(
+      /Last heard .+ ago over a direct radio link/,
+    );
+    await act(async () => {});
+  });
+});
+
 describe("TargetPickerComponent: the range to a craft only known of", () => {
   let fixture: StreamFixture;
 

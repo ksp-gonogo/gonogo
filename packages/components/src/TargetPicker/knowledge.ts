@@ -15,15 +15,33 @@ export function seenAsItIs(entry: TargetListEntry): boolean {
 }
 
 /**
+ * Whether the entry is taken not to have changed since it was last heard,
+ * because its radio link to the active craft is up and has brought nothing
+ * newer. That is worked out from silence, so it is shown as modelled.
+ */
+export function unchangedSinceHeard(entry: TargetListEntry): boolean {
+  return (
+    entry.unchangedToUt != null &&
+    entry.asOfUt != null &&
+    entry.unchangedToUt.valueOf() > entry.asOfUt.valueOf()
+  );
+}
+
+/**
  * How the craft came to know of the entry and how long ago, as the words under
- * a held mark: "Last heard 4 minutes ago via KSC". `null` for an entry the
- * craft sees as it is, which needs no telling.
+ * a held or modelled mark: "Last heard 4 minutes ago via KSC". `null` for an
+ * entry the craft sees as it is, which needs no telling.
  */
 export function knowledgeCaption(
   entry: TargetListEntry,
   viewUt: Value<"ut"> | undefined,
 ): string | null {
   if (seenAsItIs(entry)) return null;
+  if (unchangedSinceHeard(entry) && entry.unchangedToUt != null) {
+    return viewUt === undefined
+      ? "No change heard over a direct radio link that is up"
+      : `No change heard as of ${speakQuantity(viewUt.minus(entry.unchangedToUt))} ago, over a direct radio link that is up`;
+  }
   const when =
     entry.asOfUt == null || viewUt === undefined
       ? "Last heard"

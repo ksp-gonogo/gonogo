@@ -2423,8 +2423,16 @@ namespace Sitrep.Contract
         /// who was never sent it from one who had not answered yet. Additive: an
         /// absent <c>to</c> means everyone, as before, and a client that reads no
         /// payload loses nothing.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 17 -&gt; 18: silence on a live link is
+        /// word of no change.</b> <see cref="TargetListEntry.UnchangedToUt"/> says
+        /// how late a vessel known over a direct link that is up is taken to be
+        /// unchanged. A coasting vessel in continuous contact read as last heard
+        /// up to ten minutes ago, the interval at which an unchanged vessel is
+        /// read again. Additive: <see cref="TargetListEntry.AsOfUt"/> still says
+        /// when the last word was made.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 17;
+        public const int Minor = 18;
     }
 }

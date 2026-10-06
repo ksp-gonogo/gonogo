@@ -1356,6 +1356,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
     situation: "enum",
     source: "enum",
+    unchangedToUt: "ut",
     vesselId: "id",
     vesselType: "enum",
     via: "text",

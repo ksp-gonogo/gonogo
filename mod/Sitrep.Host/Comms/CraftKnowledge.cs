@@ -24,6 +24,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The centre that told of it, by name, for <see cref="TargetKnowledge.CommandCentre"/>.</summary>
         public string? Via { get; }
+
+        /// <summary>How late a live link is known to have brought nothing newer than this, or null where none has: see <see cref="CraftKnowledge.HeardNothingNewTo"/>.</summary>
+        public double? UnchangedToUt { get; set; }
     }
 
     /// <summary>
@@ -119,6 +122,27 @@ namespace Sitrep.Host.Comms
             _known[state.Id] = new KnownCraft(state, asOfUt, source, via);
         }
 
+        /// <summary>
+        /// Takes in that a live radio link to a craft has brought nothing newer
+        /// than what it said at <paramref name="saidUt"/>, as late as
+        /// <paramref name="toUt"/>, which is now less the link's light-time. A
+        /// craft says so when its state changes, so silence on a link that is
+        /// up is word that it has not. It counts only while what is held is
+        /// that same word, heard over that link.
+        /// </summary>
+        public void HeardNothingNewTo(string id, double saidUt, double toUt)
+        {
+            if (!_known.TryGetValue(id, out var held)
+                || held.Source != TargetKnowledge.DirectLink
+                || held.AsOfUt != saidUt
+                || toUt <= held.AsOfUt
+                || toUt <= held.UnchangedToUt)
+            {
+                return;
+            }
+            held.UnchangedToUt = toUt;
+        }
+
         /// <summary>A craft that was in range and is no longer in the game was seen to go.</summary>
         public void ForgetIfLastSeenInRange(string id)
         {
@@ -197,6 +221,7 @@ namespace Sitrep.Host.Comms
                     ["isCurrent"] = asTheGameHasIt != null && asTheGameHasIt.TryGetValue("isCurrent", out var current) && current is bool yes && yes,
                     ["source"] = (int)craft.Source,
                     ["asOfUt"] = craft.AsOfUt,
+                    ["unchangedToUt"] = craft.UnchangedToUt,
                     ["via"] = craft.Via,
                     // Beside it, the orbit is as the game has it this instant. Otherwise it is as the craft was last told.
                     ["orbit"] = near && asTheGameHasIt != null ? Seen(asTheGameHasIt, "orbit") : Orbit(listed),

@@ -492,6 +492,7 @@ namespace Sitrep.Host
                     // A part is on a craft loaded beside this one, seen as it is. A body's place is not something learned.
                     ["source"] = kind == TargetKind.Part ? (int?)(int)TargetKnowledge.InRange : null,
                     ["asOfUt"] = kind == TargetKind.Part ? snapshot.Ut : (double?)null,
+                    ["unchangedToUt"] = null,
                     ["via"] = null,
                     // Written by the capture only for a vessel within physics range, which the active vessel sees as it is.
                     ["orbit"] = raw.ContainsKey("sma") ? BuildOrbit(raw) : null,

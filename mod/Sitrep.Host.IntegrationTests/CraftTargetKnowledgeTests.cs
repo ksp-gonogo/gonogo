@@ -140,6 +140,31 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(JsonValueKind.Null, RelayEntry(seated.View)!.Value.GetProperty("via").ValueKind);
         }
 
+        /// <summary>
+        /// The relay is coasting and says nothing new. While its link to the
+        /// craft is up that silence is itself word, one light-time old, that
+        /// nothing has changed; once the link is gone it is word of nothing.
+        /// </summary>
+        [Fact]
+        public async Task ACraftHoldingALiveLinkToAnotherKnowsItUnchangedToOneLightTimeAgoAndNoLaterOnceTheLinkIsGone()
+        {
+            var game = new ScriptedContactGame { ActiveLinkedToRelaySeconds = 50.0 };
+            await using var seated = await WatchingAsync(game);
+            await seated.TickAsync(1, 2, 700, 702, 704, 706, 708, T0, T0 + 2, T0 + 4);
+            var entry = RelayEntry(seated.View)!.Value;
+            var asOf = entry.GetProperty("asOfUt").GetDouble();
+
+            var unchangedTo = entry.GetProperty("unchangedToUt").GetDouble();
+            Reckoned.True(unchangedTo > asOf, "the relay's last word was as late as the silence since, so this test shows nothing");
+            Reckoned.True(unchangedTo > T0 - 60.0 && unchangedTo <= T0 + 4 - 50.0,
+                "a craft with a live link to a coasting craft did not know it unchanged to one light-time ago: " + unchangedTo);
+
+            game.ActiveLinkedToRelaySeconds = null;
+            await seated.TickAsync(T0 + 500, T0 + 502, T0 + 504, T0 + 506);
+            var after = RelayEntry(seated.View)!.Value.GetProperty("unchangedToUt").GetDouble();
+            Reckoned.True(after <= T0 + 6 - 50.0, "silence on a link that had gone was taken as word that nothing changed: " + after);
+        }
+
         [Fact]
         public async Task ACraftSeesAnotherWithinPhysicsRangeAsItIs()
         {

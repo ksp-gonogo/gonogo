@@ -46,6 +46,58 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ALiveLinkThatBringsNothingNewSaysHowLateTheCraftIsKnownUnchanged()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
+
+            var entry = Entry(knowledge, "b");
+            Assert.Equal(100.0, entry["asOfUt"]);
+            Assert.Equal(690.0, entry["unchangedToUt"]);
+        }
+
+        [Fact]
+        public void NewerWordOfACraftEndsWhatSilenceSaidOfTheOlder()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
+
+            knowledge.Learn(Craft("b", 700.0, 800_000.0), 700.0, TargetKnowledge.DirectLink, null);
+
+            Assert.Null(Entry(knowledge, "b")["unchangedToUt"]);
+        }
+
+        [Fact]
+        public void SilenceSaysNothingOfACraftKnownSomeOtherWayOrByNewerWordThanTheLinkCarried()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.CommandCentre, "KSC");
+            knowledge.Learn(Craft("c", 300.0, 700_000.0), 300.0, TargetKnowledge.DirectLink, null);
+
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
+            // The link's newest word of c is older than what is held, and a time before what is held says nothing.
+            knowledge.HeardNothingNewTo("vessel:c", 200.0, 690.0);
+            knowledge.HeardNothingNewTo("vessel:c", 300.0, 250.0);
+
+            Assert.Null(Entry(knowledge, "b")["unchangedToUt"]);
+            Assert.Null(Entry(knowledge, "c")["unchangedToUt"]);
+        }
+
+        [Fact]
+        public void WhatSilenceSaidStandsWhereItStoodOnceTheLinkIsGone()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 400.0);
+
+            Assert.Equal(690.0, Entry(knowledge, "b")["unchangedToUt"]);
+        }
+
+        [Fact]
         public void ARangeIsQuotedOnlyToACraftBesideThisOne()
         {
             var knowledge = new CraftKnowledge();

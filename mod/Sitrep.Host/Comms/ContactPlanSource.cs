@@ -795,6 +795,8 @@ namespace Sitrep.Host.Comms
                 if (link != null && _said.AsOf(id, looked.Ut - link.Value) is CraftState said)
                 {
                     knowledge.Learn(said, said.CapturedUt, TargetKnowledge.DirectLink, null);
+                    // The link is up and that is still the newest it has carried: nothing has changed as late as its light-time ago.
+                    knowledge.HeardNothingNewTo(id, said.CapturedUt, looked.Ut - link.Value);
                 }
                 if (route != null && _homeKnew.AsOf(id, looked.Ut - route.Value) is CraftState told)
                 {

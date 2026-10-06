@@ -4,7 +4,7 @@
     "vessel": "synthetic (Mk1 pod in LKO, station targeted)",
     "body": "Kerbin",
     "situation": "Orbiting ~120km, targeting Kerbin Station I, Mun encounter ahead",
-    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons. tar.distance and vessel.target.relativePosition both derive from Kerbin Station I's tar.availableVessels[0].position vector (120400, -98300, 64200), magnitude 168168.6356012916m, so the CurrentSummary header distance agrees with the same vessel's row distance in the Vessels list instead of showing two different numbers for one target. The `target.available` entries carry all four kinds of identity the wire declares: three Body rows (`bodyIndex` 1/2/3, matching the b.* body table above), four Vessel rows (`vesselId` + `situation`), and two Part rows (the station's two Clamp-O-Tron Sr. ports, `vesselId` + `partId`). Before those landed every entry was a bare Vessel with a name and a distance, so the BODIES and PARTS sections and the type-dot-situation subtitle had never appeared in a render, and neither had the ids `vessel.target.set` is dispatched with. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons. tar.distance and vessel.target.relativePosition both derive from Kerbin Station I's tar.availableVessels[0].position vector (120400, -98300, 64200), magnitude 168168.6356012916m, so the CurrentSummary header distance agrees with the same vessel's row distance in the Vessels list instead of showing two different numbers for one target. The `target.available` entries carry all four kinds of identity the wire declares: three Body rows (`bodyIndex` 1/2/3, matching the b.* body table above), four Vessel rows (`vesselId` + `situation`), and two Part rows (the station's two Clamp-O-Tron Sr. ports, `vesselId` + `partId`). Before those landed every entry was a bare Vessel with a name and a distance, so the BODIES and PARTS sections and the type-dot-situation subtitle had never appeared in a render, and neither had the ids `vessel.target.set` is dispatched with. The transfer stage is known over a direct radio link that is up and has said nothing new, so it carries `unchangedToUt` and its row is the modelled one. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
     "scenario": "lko-station-target-stopped-arriving"
   },
   "tar.name": "Kerbin Station I",
@@ -469,8 +469,11 @@
               "vesselId": "c47a90b6-5e18-4f2d-b3c9-08de6a417f52",
               "vesselType": 0,
               "situation": 4,
-              "distance": 1551805.4001710394,
-              "isCurrent": false
+              "distance": null,
+              "isCurrent": false,
+              "source": 1,
+              "asOfUt": 0,
+              "unchangedToUt": 0.5
             },
             {
               "kind": 0,

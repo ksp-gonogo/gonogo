@@ -8,7 +8,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { entrySubtitle } from "./entries";
-import { knowledgeCaption, seenAsItIs } from "./knowledge";
+import { knowledgeCaption, seenAsItIs, unchangedSinceHeard } from "./knowledge";
 import { EntryName, RowDistance, RowMain, RowSubtitle, RowTag } from "./styles";
 
 /** One pickable roster row: name and subtitle, range, and a spinner while its set awaits the readback. */
@@ -88,7 +88,14 @@ function KnownOnly({
       ? distance.reckoning.modelled
       : undefined;
   if (reckoned == null || !reckoned.isFinite()) {
-    return <HeldFigure caption={caption}>{NULL_DISPLAY}</HeldFigure>;
+    return (
+      <HeldFigure
+        kind={unchangedSinceHeard(entry) ? "modelled" : "held"}
+        caption={caption}
+      >
+        {NULL_DISPLAY}
+      </HeldFigure>
+    );
   }
   return (
     <HeldFigure

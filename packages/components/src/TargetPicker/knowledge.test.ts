@@ -5,7 +5,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { knowledgeCaption, seenAsItIs } from "./knowledge";
+import { knowledgeCaption, seenAsItIs, unchangedSinceHeard } from "./knowledge";
 
 function entry(overrides: Partial<TargetListEntry>): TargetListEntry {
   return {
@@ -54,6 +54,43 @@ describe("what the active craft knows of a target", () => {
         value("ut", 1240),
       ),
     ).toBeNull();
+  });
+
+  it("counts the age from the silence of a live link, and says that is what it is", () => {
+    const coasting = entry({
+      source: TargetKnowledge.DirectLink,
+      asOfUt: value("ut", 1000),
+      unchangedToUt: value("ut", 1590),
+    });
+    expect(unchangedSinceHeard(coasting)).toBe(true);
+    const caption = knowledgeCaption(coasting, value("ut", 1600));
+    expect(caption).toMatch(
+      /^No change heard as of .+ ago, over a direct radio link that is up$/,
+    );
+    expect(caption).toBe(
+      knowledgeCaption(
+        { ...coasting, asOfUt: value("ut", 400) },
+        value("ut", 1600),
+      ),
+    );
+    expect(knowledgeCaption(coasting, undefined)).toBe(
+      "No change heard over a direct radio link that is up",
+    );
+  });
+
+  it("goes by when it was last heard where silence says nothing later", () => {
+    const heard = entry({
+      source: TargetKnowledge.DirectLink,
+      asOfUt: value("ut", 1000),
+    });
+    expect(unchangedSinceHeard(heard)).toBe(false);
+    expect(
+      unchangedSinceHeard({ ...heard, unchangedToUt: value("ut", 1000) }),
+    ).toBe(false);
+    expect(unchangedSinceHeard({ ...heard, unchangedToUt: null })).toBe(false);
+    expect(
+      knowledgeCaption({ ...heard, unchangedToUt: null }, value("ut", 1050)),
+    ).toMatch(/^Last heard .+ ago over a direct radio link$/);
   });
 
   it("says only that it was heard where the age cannot be worked out", () => {
