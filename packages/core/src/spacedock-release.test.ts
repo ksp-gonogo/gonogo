@@ -114,10 +114,46 @@ describe("the upload workflow", () => {
     expect(BUILD).toMatch(/SpaceDock updated:/);
   });
 
-  it("keeps the player changelog in one named step of its own", () => {
-    const names = BUILD.match(/- name: Write the SpaceDock player changelog/g);
-    expect(names).toHaveLength(1);
-    expect(BUILD.match(/sd-changelog\.md/g)?.length).toBeGreaterThanOrEqual(2);
+  it("builds the player changelog from Features and Bug Fixes, stable tag to stable tag", () => {
+    expect(
+      BUILD.match(/- name: Write the SpaceDock player changelog/g),
+    ).toHaveLength(1);
+    expect(BUILD).toMatch(/orhun\/git-cliff-action@v4/);
+    expect(BUILD).toMatch(/spacedock-changelog\.py > sd-changelog\.md/);
+    expect(BUILD).toContain("grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+$'");
+    expect(BUILD).toMatch(/fetch-depth: 0/);
     expect(BUILD.match(/git log --oneline/g)).toHaveLength(1);
+    const script = readFileSync(
+      join(ROOT, "scripts/spacedock-changelog.py"),
+      "utf8",
+    );
+    expect(script).toContain('KEEP = ("Features", "Bug Fixes")');
+    expect(readFileSync(join(ROOT, "cliff.toml"), "utf8")).toContain(
+      'tag_pattern = "v[0-9].*"',
+    );
+  });
+
+  it("the changelog script keeps only Features and Bug Fixes and acknowledges the rest", () => {
+    const input = [
+      "**Features**",
+      "- Add a thing (abc1234)",
+      "**CI**",
+      "- Tweak a job (def5678)",
+      "**Bug Fixes**",
+      "- Fix a thing (0123456)",
+      "",
+    ].join("\n");
+    const out = execFileSync(
+      "python3",
+      [join(ROOT, "scripts/spacedock-changelog.py")],
+      {
+        input,
+        encoding: "utf8",
+      },
+    );
+    expect(out).toContain("**Features**\n\n- Add a thing (abc1234)");
+    expect(out).toContain("**Bug Fixes**\n\n- Fix a thing (0123456)");
+    expect(out).toContain("Other changes: CI");
+    expect(out).not.toContain("Tweak a job");
   });
 });

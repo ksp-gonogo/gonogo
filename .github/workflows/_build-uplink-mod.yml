@@ -81,11 +81,9 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
-          # fetch-depth 20 (not the default shallow 1) so the SpaceDock
-          # changelog step below has real history to summarize on the
-          # release channel: matches the old publish-spacedock job's
-          # checkout.
-          fetch-depth: 20
+          # Full history: the SpaceDock changelog runs from the previous
+          # stable tag to this one, and git-cliff needs every commit between.
+          fetch-depth: 0
 
       # ksp-managed is a private repo of non-redistributable KSP/Unity
       # (and here, third-party mod) reference assemblies: see the
@@ -344,11 +342,46 @@ jobs:
           fi
           rm -f sd-listing.json
 
-      # What players read on the SpaceDock version. Its own step so the source
-      # of the text is one place to change.
+      # What players read on the SpaceDock version: the Features and Bug Fixes
+      # of the conventional commits, from the previous STABLE tag to this one.
+      # A pre-release tag is never public, so the range that matters is
+      # stable to stable, or fixes that landed in a candidate would vanish.
+      - name: Resolve the SpaceDock changelog range
+        id: clrange
+        if: ${{ steps.sd.outputs.upload == 'true' }}
+        run: |
+          set -eu
+          TAG="${{ inputs.version }}"
+          PREV_STABLE="$(git tag --sort=-creatordate --merged "${TAG}^" \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+          if [ -n "$PREV_STABLE" ]; then
+            echo "range=${PREV_STABLE}..${TAG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No GITHUB_REPO: cliff.toml renders only local commit data, and setting
+      # it makes git-cliff fetch remote metadata it never uses.
+      - name: Generate the SpaceDock changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        if: ${{ steps.sd.outputs.upload == 'true' }}
+        continue-on-error: true
+        with:
+          config: cliff.toml
+          args: ${{ steps.clrange.outputs.range != '' && steps.clrange.outputs.range || '--latest' }} --strip all
+
       - name: Write the SpaceDock player changelog
         if: ${{ steps.sd.outputs.upload == 'true' }}
-        run: git log --oneline -20 > sd-changelog.md
+        env:
+          CLIFF_CHANGELOG: ${{ steps.git-cliff.outputs.content }}
+        run: |
+          set -eu
+          CHANGELOG="${CLIFF_CHANGELOG}"
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="$(git log --oneline -20)"
+          fi
+          printf '%s\n' "$CHANGELOG" | python3 scripts/spacedock-changelog.py > sd-changelog.md
 
       - name: Publish ${{ inputs.id }} to SpaceDock
         if: ${{ steps.sd.outputs.upload == 'true' }}
