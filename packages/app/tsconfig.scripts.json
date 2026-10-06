@@ -9,6 +9,7 @@
     "scripts/**/*.tsx",
     "uplink-bundle.ts",
     "uplink-bundle-targets.ts",
+    "local-uplinks.ts",
     "src/vite-env.d.ts"
   ]
 }

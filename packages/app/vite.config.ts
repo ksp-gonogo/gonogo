@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import browserslistToEsbuild from "browserslist-to-esbuild";
 import { defineConfig, type PluginOption } from "vite";
+import { localUplinks } from "./local-uplinks";
 import { uplinkDevNotices } from "./src/uplinks/devNotice";
 import { UPLINK_EXTERNAL_ENTRIES } from "./src/uplinks/externals/entries";
 import { buildUplinkClientBundle } from "./uplink-bundle";
@@ -293,6 +294,15 @@ export default defineConfig({
     uplinkBundles(),
     uplinkImportMap(),
     uplinkDevNotice(),
+    localUplinks({
+      host: {
+        apiVersion: HOST_API_VERSION,
+        uiKitVersion: HOST_UIKIT_VERSION,
+        contractMajor: HOST_CONTRACT_MAJOR,
+        contractMinor: HOST_CONTRACT_MINOR,
+      },
+      appVersion: pkg.version,
+    }),
     spaFallback(),
   ],
   resolve: { alias: workspaceAlias },
