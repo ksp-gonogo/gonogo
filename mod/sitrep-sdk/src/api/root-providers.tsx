@@ -3,40 +3,24 @@ import { useSyncExternalStore } from "react";
 import type { Screen } from "../spine/screen";
 
 /**
- * Providers an Uplink mounts at the ROOT of a screen's tree.
- *
- * <p><b>Why this exists.</b> An Uplink whose widgets share state needs that
- * state established above them, and until now the only way was for the app to
- * import the Uplink by name and hand-wire its Provider into each screen. That
- * made the app unable to BUILD without that Uplink present, which is the one
- * thing a third-party Uplink can never satisfy: an app that names its Uplinks
- * has no room for one it has never heard of.</p>
- *
- * <p><b>Why the app's own chrome-provider registry is not this.</b> That one
- * solves the opposite direction: re-wrapping a portalled subtree with a value
- * that is ALREADY ambient, so a widget's config modal keeps a context it has
- * escaped. It cannot establish the value in the first place, and it lives in a
- * package an Uplink may not import. The two are complements: this one mints
- * the value at the root, that one carries it across a portal.</p>
- *
- * <p><b>The screen is a parameter, not an assumption.</b> A registry keyed to
- * one screen would silently share state between the main screen and a station
- * on the same machine, which for anything persisted means one screen
- * overwriting the other's. The Provider receives the screen it is being
- * mounted for and is responsible for keying its own state by it.</p>
+ * A React provider the app mounts around a whole screen, for an Uplink whose
+ * widgets share state: the provider sets the state up once, above every
+ * widget. Register one with the `registerRootProvider` of the handle
+ * {@link defineUplinkClient} returns.
  *
  * @category Registering
  */
 export interface RootProviderDefinition {
-  /** Stable id, auto-namespaced to the Uplink when registered through its handle. */
+  /** Stable id. Registered through an Uplink's handle, it is prefixed with the Uplink's id. */
   id: string;
   /**
-   * Mounted once per screen, wrapping everything below it.
+   * The provider, mounted once per screen around everything on it.
    *
-   * <p>It receives the screen id and MUST key any persisted state by it. It is
-   * mounted unconditionally once its Uplink has loaded, so it has to be cheap
-   * and side-effect-free when the Uplink's mod is absent: an Uplink is loaded
-   * because it is installed, not because its mod answered.</p>
+   * It receives the screen it is mounted on and must key any state it saves
+   * by it, or the main screen and a station on one machine overwrite each
+   * other's. It is mounted as soon as its Uplink loads, whether or not the
+   * Uplink's mod is running, so it must be cheap and do nothing while the mod
+   * is absent.
    */
   Provider: ComponentType<{ screen: Screen; children: ReactNode }>;
 }
@@ -80,8 +64,9 @@ function publish(): void {
 }
 
 /**
- * Adds a React provider the app mounts around the whole dashboard, replacing any
- * registered under the same id.
+ * Adds a {@link RootProviderDefinition}, replacing any registered under the
+ * same id. An Uplink registers through its handle's `registerRootProvider`
+ * instead, which prefixes the id.
  *
  * @category Registering
  */
@@ -91,7 +76,8 @@ export function registerRootProvider(def: RootProviderDefinition): void {
 }
 
 /**
- * Registration order, which is mount order outermost-first.
+ * Every registered root provider, in registration order, which is the order
+ * they mount in, outermost first.
  *
  * @category Registering
  */
@@ -100,7 +86,7 @@ export function getRootProviders(): RootProviderDefinition[] {
 }
 
 /**
- * Tests only: resets the registry so one file's registrations cannot leak.
+ * Removes every root provider. For tests; a running app never calls it.
  *
  * @category Registering
  */
@@ -120,18 +106,10 @@ function subscribe(listener: () => void): () => void {
 /**
  * Mounts every registered root provider around `children`, for one screen.
  *
- * <p><b>It subscribes rather than reading once, and that is the whole point.</b>
- * An Uplink's client bundle is fetched at RUNTIME, so it registers after the
- * screen has already mounted. A component that read the registry once during
- * its first render would find it empty, mount no providers, and every widget
- * from every Uplink would then look for a context nobody established. The
- * failure is silent: no error, just a permanently missing value.</p>
- *
- * <p>The cost is one remount of the subtree when the set changes, because
- * adding a provider changes the element type at that position. That is
- * accepted: it happens as the Uplinks finish loading, which is the moment the
- * dashboard is coming up anyway, and the alternative is a value that never
- * arrives. Anything that must survive it belongs above this component.</p>
+ * A provider registered after this has mounted, as an Uplink loaded at runtime
+ * registers one, is mounted when it arrives. Each change to the set remounts
+ * `children` once, so state that must survive it belongs above this
+ * component.
  *
  * @category Registering
  */

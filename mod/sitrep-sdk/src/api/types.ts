@@ -36,21 +36,26 @@ import type { Value } from "../value";
 import type { Tone } from "./tone";
 
 /**
- * A dashboard component's declared data dependency, e.g. `"vessel.altitude"`.
+ * A data key a widget lists in {@link ComponentDefinition.dataRequirements},
+ * such as `"vessel.altitude"`.
  *
  * @category Registering
  */
 export type DataRequirement = string;
 
 /**
- * Behaviours a component can opt into; `gonogo-participant` joins GO/NO-GO.
+ * A behaviour a widget opts into. `"gonogo-participant"` marks a widget as
+ * part of the GO/NO-GO poll.
  *
  * @category Registering
  */
 export type ComponentBehavior = "gonogo-participant";
 
 /**
- * Game-state preconditions the orchestrator dims a widget when unmet.
+ * A game state a widget needs before it can show anything useful.
+ * `"flight"` needs a vessel in flight; `"career"` needs a career or science
+ * save. While one a widget lists is not met, the dashboard draws a notice
+ * naming it in place of the widget's body.
  *
  * @category Registering
  */
@@ -106,20 +111,28 @@ export type ActionHandlers<Actions extends readonly ActionDefinition[]> = {
  * @category Registering
  */
 export interface ComponentProps<Config = Record<string, unknown>> {
+  /** This instance's saved settings. */
   config?: Config;
+  /** This instance's id on the dashboard, unique among its tiles. */
   id: string;
+  /** The tile's width, in grid columns. */
   w?: number;
+  /** The tile's height, in grid rows. */
   h?: number;
+  /** Saves new settings for this instance, as its settings dialog does. */
   onConfigChange?: (config: Config) => void;
 }
 
 /**
- * Props passed to a component's config UI (rendered inside a modal).
+ * Props passed to a widget's settings form, which the app draws inside its
+ * settings dialog.
  *
  * @category Registering
  */
 export interface ConfigComponentProps<Config = Record<string, unknown>> {
+  /** The instance's current settings. */
   config: Config;
+  /** Saves the settings and closes the dialog. */
   onSave: (config: Config) => void;
 }
 
@@ -243,20 +256,27 @@ export interface TinyMode<Config = Record<string, unknown>> {
 }
 
 /**
- * Registration descriptor for a dashboard component.
+ * What {@link registerComponent} takes: a widget and everything the dashboard
+ * needs to know to place it.
  *
  * @category Registering
  */
 export interface ComponentDefinition<Config = Record<string, unknown>> {
+  /** Unique across every package. Prefix it with your Uplink's name. */
   id: string;
+  /** The widget's name in the widget picker and its panel heading. */
   name: string;
+  /** What the widget shows, in a sentence or two, for the widget picker. */
   description: string;
-  /** Free-form tags; UI may style known values (e.g. 'telemetry', 'control'). */
+  /** Free-form tags for the widget picker, such as `"telemetry"` or `"control"`. The picker styles the ones it knows. */
   tags: string[];
+  /** The widget itself. */
   component: ComponentType<ComponentProps<Config>>;
-  /** Config UI rendered inside a modal; shown via the gear icon. */
+  /** The widget's settings form, drawn in a dialog opened from the tile's gear icon. */
   configComponent?: ComponentType<ConfigComponentProps<Config>>;
+  /** Opens the settings form as soon as the widget is added to the dashboard. */
   openConfigOnAdd?: boolean;
+  /** The tile size, in grid units, when the widget is added. */
   defaultSize?: { w: number; h: number };
   /**
    * The smallest tile, in grid units, the widget's own body fits. A widget with
@@ -269,88 +289,82 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   minSize?: { w: number; h: number };
   /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */
   tiny?: TinyMode<Config>;
+  /** On a phone, whether the widget takes the whole width or half of it. Defaults to `"full"`. */
   mobileWidth?: "full" | "half";
+  /** On a phone, the widget's height in pixels. Defaults to the height of its `defaultSize`. */
   mobileHeight?: number;
+  /** Data keys the widget depends on, in the flat-key form. A widget that reads Topics lists them in `channels` instead. */
   dataRequirements?: DataRequirement[];
   /**
-   * Channels this widget REQUIRES. Declaring one is not what creates the
-   * subscription: {@link useTelemetry} subscribes on its own, declared or not.
-   * What it does is gate the mount. The dashboard resolves each required
-   * channel to the Uplink that owns it, and when that Uplink reports itself
-   * degraded or unavailable the widget is replaced by that Uplink's own reason
-   * line instead of rendering empty.
+   * Topics the widget needs. Listing one does not subscribe to it:
+   * {@link useTelemetry} subscribes whether a Topic is listed or not. When the
+   * Uplink that serves a listed Topic reports itself degraded or unavailable,
+   * the dashboard draws that Uplink's reason in place of the widget.
    */
   channels?: readonly WidgetChannelId[];
   /**
-   * Channels this widget OPTIONALLY consumes. Identical to `channels` for
-   * reading: the same `Reading`, not a `| undefined` of it. The whole
-   * behavioural difference is the gate above, and it is that these are never
-   * put through it, so an unhealthy optional channel never blocks the render.
+   * Topics the widget reads but can do without. They are read exactly as
+   * `channels` are; an unhealthy Uplink serving one never replaces the widget.
    */
   optionalChannels?: readonly WidgetChannelId[];
   /**
-   * What this widget DRAWS, when that is narrower than the channels it mounts
-   * on. Absent means it draws everything it mounts on. Read by alarm
-   * attribution and trajectory currency, never by mounting.
+   * The fields the widget draws, when that is fewer than the Topics it lists
+   * carry. Absent means it draws everything they carry. The app reads it to
+   * tell which widget shows a figure; it changes nothing about what the widget
+   * can read.
    */
   fields?: readonly WidgetFieldPath[];
+  /** Behaviours the widget opts into. */
   behaviors?: ComponentBehavior[];
+  /** The settings a new instance starts with. */
   defaultConfig?: Partial<Config>;
-  /** Actions this component exposes to the serial input platform. */
+  /** Actions an operator can bind to a key, button or axis. Handle them with {@link useActionInput}. */
   actions?: readonly ActionDefinition[];
+  /** Lets a station send this widget to the main screen. */
   pushable?: boolean;
-  /** Game-state preconditions for this widget to be "live". */
+  /** Game states the widget needs. While one is not met, the dashboard draws a notice in its place. */
   requires?: readonly ComponentRequirement[];
   /**
-   * Which seats this widget may be placed at. OMIT for the derived default:
-   * available everywhere unless the widget declares a topic in a GROUND
-   * domain (`spaceCenter.*`, `career.*`, `recovery.*`, and `commandCentre.*`
-   * other than its roster and separation), because a topic's domain already
-   * says where the thing it describes physically lives and a pilot four
-   * light-minutes out cannot act on the VAB.
+   * Which seats the widget may be placed at. Absent, the dashboard works it out
+   * from the widget's `channels`: a widget is available everywhere unless it
+   * lists a Topic about something on the ground (`spaceCenter.*`, `career.*`,
+   * `recovery.*`, and `commandCentre.*` other than the command centre roster
+   * and separation), which keeps it at mission control. A Topic in any other
+   * Domain, including one an Uplink adds, is available aboard.
    *
-   * That default fails CLOSED for known ground domains and OPEN for every
-   * other, including every domain an Uplink invents: a third-party widget
-   * reading only `vessel.*` works aboard with no annotation, and one reading
-   * `career.*` is absent aboard without its author having heard of the pilot
-   * seat.
-   *
-   * Declare this only to overrule that. `["mission-control"]` for a widget the
-   * derivation would let aboard and should not; `["pilot"]` for one that only
-   * makes sense aboard, which no derivation can ever infer because no topic
-   * says "aboard only"; both for a mixed widget that belongs in each.
+   * Set it only to change that: `["mission-control"]` for a widget that should
+   * stay off the pilot seat, `["pilot"]` for one that only makes sense aboard,
+   * or both.
    */
   seats?: readonly Seat[];
-  /** Addressable augment slots this widget owns. */
+  /** The augment slots this widget draws, by full slot id. */
   augmentSlots?: string[];
   /**
-   * Addressable CONTRIBUTION slots this widget owns, the pure-data sibling of
-   * `augmentSlots`. Declared once so `useContributions([...] as const)` types its
-   * keyed result off this widget's own list. A slot id is one kind or the other,
-   * never both: do not list a slot here that is also in `augmentSlots`.
+   * The contribution slots this widget draws, by full slot id. A slot id is
+   * either an augment slot or a contribution slot, never both.
    */
   contributionSlots?: readonly ContributionSlotId[];
-  /** Declares this widget REPLACES the widget with the given id. */
-  replaces?: string;
   /**
-   * The Uplink client that registered this widget, stamped via
-   * `defineUplinkClient`'s returned handle: see `UplinkClientHandle`'s own
-   * doc below. Provenance / mod search tags only; never hand-set.
+   * The id of a widget this one replaces. The dashboard shows this one in its
+   * place. When two widgets replace the same one, the original stays until the
+   * operator picks between them.
    */
+  replaces?: string;
+  /** The handle {@link defineUplinkClient} returned, naming the Uplink that registered this widget. */
   owner?: UplinkClientHandle;
 }
 
 /**
- * Theme registration descriptor. `theme` is the design-system token object
- * (a `GonogoTheme` from `@ksp-gonogo/ui-kit`). Typed loosely here because the
- * concrete token shape ships from the separately-published ui-kit package, not
- * this leaf; an author composing ui-kit gets the precise type from there.
+ * What {@link registerTheme} takes: a theme the operator can switch to.
  *
  * @category Registering
  */
 export interface ThemeDefinition {
+  /** Unique across every package. */
   id: string;
+  /** The theme's name in the theme picker. */
   name: string;
+  /** The theme's tokens, a `GonogoTheme` from `@ksp-gonogo/ui-kit`. */
   theme: unknown;
 }
 
@@ -395,18 +409,13 @@ export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
   : never;
 
 /**
- * Declaration-merging seam for what a widget is currently FOCUSED ON, keyed by
- * COMPONENT ID rather than by slot: a resource picker's selection, the body a
- * map is following. The framework's universal augment segments are propless by
- * construction, so a scope key cannot ride their props; the host publishes it
- * once through `WidgetScopeProvider` and any augment of that widget reads it
- * with `useWidgetScope`, both from `@ksp-gonogo/ui-kit`.
+ * What each widget is focused on, keyed by widget id: the resource a picker
+ * has selected, the body a map is showing. An augment of that widget reads it
+ * with `useWidgetScope` from `@ksp-gonogo/ui-kit`, which is how an augment in
+ * a slot that passes no props, such as `sections`, follows the widget.
  *
- * Declared HERE, beside `SlotRegistry`, and not in ui-kit where the provider
- * and hook live, for the reason `slots.ts` exists at all: a widget in
- * `packages/components` merging its scope is invisible to an Uplink that
- * cannot see that package, so the merge has to land somewhere every Uplink
- * already compiles against.
+ * A widget publishes its scope with `WidgetScopeProvider` from
+ * `@ksp-gonogo/ui-kit`, and declares its shape here by declaration merging.
  *
  * @category Registering
  */
@@ -414,9 +423,9 @@ export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
 export interface WidgetScopeRegistry {}
 
 /**
- * The scope a given widget publishes, and `never` for a NAMED widget that
- * publishes none. A `Widget` erased to `string` gets the open record, for the
- * reason {@link ErasedOrNever} gives.
+ * The scope the widget `Widget` publishes, from {@link WidgetScopeRegistry}.
+ * `never` for a widget id that publishes none, and an open record when
+ * `Widget` is a plain `string`.
  *
  * @category Registering
  */
@@ -439,15 +448,7 @@ export type WidgetScope<Widget extends string> =
 export interface ContributionRegistry {}
 
 /**
- * The entry type a `ContributionRegistry` slot's contributions render,
- * mirroring `packages/core/src/contributions.ts`'s own
- * `ContributionEntry<Slot>` (same name, same extraction:
- * `ContributionRegistry[S] extends { entry: infer Entry } ? Entry : ...`), same
- * leaf constraint as `SlotProps<Slot>` above. An Uplink contribution built
- * against `ContributionEntry<"ship-map.part- meters">` gets the real,
- * host-declared entry shape once `./contribution-slots.ts` mirrors that slot; a
- * slot not yet declared here falls back to the loose bag, matching
- * `SlotProps`'s own fallback.
+ * The id of a contribution slot some widget declares.
  *
  * @category Extensions
  */
@@ -471,9 +472,9 @@ export interface BadgeEntry {
    * (`Reading.grade` is unset on every other state), so a producer can pass its
    * whole reading unconditionally and only a held one changes anything.
    *
-   * Held, the panel draws the grade's own word and severity in place of
-   * `label`/`tone`, through the kit's one held vocabulary, so a verdict read off
-   * a Topic that stopped arriving is never shown as though it were current.
+   * Held, the panel draws the grade's own word and tone in place of `label`
+   * and `tone`, as it draws every held figure, so a verdict read from a Topic
+   * that stopped arriving is never shown as though it were current.
    */
   held?: HeldGrade | Reading<unknown>;
 }
@@ -504,21 +505,9 @@ export interface MeterEntry {
 }
 
 /**
- * One cell of a widget's core-stat strip: the label, the figure, and at most one
- * line qualifying it.
- *
- * Contribution data an Uplink writes, so the contract names it. Unlike
- * `MeterEntry` it is the entry of a WIDGET-LED slot rather
- * than a universal segment, because a strip of headline figures is not something
- * every widget has: the sixty that have none aggregate nothing, the same reason
- * `plots` is not a segment either.
- *
- * <internal>
- * A career overhaul's idea of what belongs beside the vanilla figures is the
- * case this was built for: the Astronaut Complex quotes funds, hire price and
- * roster occupancy, and such a career can consider crew-in-training as core as
- * any of them. The alternative was a career-mod branch inside a vanilla widget.
- * </internal>
+ * One cell of a widget's stat strip: a label, a figure, and at most one line
+ * qualifying it. It is the entry of a slot a widget declares for itself, such
+ * as `astronaut-complex.readouts`, rather than of a segment every widget has.
  *
  * @category Extensions
  */
@@ -528,12 +517,11 @@ export interface StatEntry {
   /** The heading over the figure; also the cell's accessible label. */
   label: string;
   /**
-   * The figure, as a value carrying its own unit. Rendered through the host's
-   * `Unit`, so the number is laddered and the symbol drawn the same way as
-   * every other reading on the screen, and a contributor never formats one.
+   * The figure, as a value carrying its own unit. The widget draws it through
+   * `Unit`, scaled and labelled the same way as every other figure on the
+   * screen, so a contributor never formats one.
    *
-   * `null` is a reading that is absent rather than one nobody sent, and draws
-   * the null token. Absent entirely, {@link text} is used instead.
+   * `null` draws the null token. Leave it out to draw {@link text} instead.
    */
   value?: Value | null;
   /**
@@ -574,7 +562,8 @@ export interface ComponentSlotRegistry {
 }
 
 /**
- * Every segment declared as a host-invariant component slot.
+ * The name of a standard contribution segment, a key of
+ * {@link ComponentSlotRegistry}.
  *
  * @category Extensions
  */
@@ -606,34 +595,38 @@ export type ContributionEntry<Slot extends string> =
       : ErasedOrNever<Slot>;
 
 /**
- * The identity an aggregated entry is stamped with, for keys and for blame.
- *
- * The narrow half of an `UplinkClientHandle`: the handle carries `Dep`-shaped
- * registration methods and lives with the registry, and a full handle is
- * structurally one of these, so the aggregation stamps one straight in.
+ * The Uplink client that contributed an entry, as {@link Contributed} carries
+ * it. Every {@link UplinkClientHandle} is one.
  *
  * @category Registering
  */
 export interface UplinkClientIdentity {
+  /** The Uplink's id. */
   id: string;
+  /** The Uplink's version. */
   version: string;
+  /** The Uplink's name, as the app shows it. */
   name: string;
 }
 
 /**
- * One rendered entry, tagged with provenance for keys and blame.
+ * One contributed entry as the widget drawing it receives it: the entry, with
+ * the contribution and the Uplink it came from.
  *
  * @category Extensions
  */
 export type Contributed<Entry> = Entry & {
+  /** The id of the contribution that returned the entry, prefixed with its Uplink's id. A stable key. */
   readonly contributionId: string;
+  /** The Uplink that registered the contribution. */
   readonly owner?: UplinkClientIdentity;
 };
 
 /**
- * One contribution's dependency: a Topic id, a Topic's `Reading` (the value
- * AND how current it is), or a Processor handle. Mirrors core's `Dep`
- * structurally, since the leaf cannot name sitrep-client's `ProcessorHandle`.
+ * One entry of a contribution's `deps`: a Topic id, `{ reading: topicId }`, a
+ * setting of an Uplink's host mod from {@link modSettingDep}, or the handle
+ * `registerProcessor` returned. {@link DepTopics} says what `compute` receives
+ * for each.
  *
  * @category Extensions
  */
@@ -880,16 +873,10 @@ export interface ContributionDefinition<
 }
 
 /**
- * Any contribution, whatever slot it feeds: what the REGISTRY stores once the
- * slot and the dep tuple have been erased.
- *
- * <para>Its `compute` takes an open record, and that is the honest signature for
- * this type rather than a hole in the authoring one. A caller holding an
- * `AnyContribution` has fished it out of a registry keyed by string and knows
- * nothing about what it declared; the aggregation itself builds the record
- * dynamically. The precision lives on `ContributionDefinition`, which is what an
- * author writes and what `registerContribution` infers, and nothing can reach
- * this erased form to read a topic it never declared.</para>
+ * Any contribution, whatever slot it fills, as {@link getContributionsForSlot}
+ * returns it. Its `compute` takes an open record, since the slot and `deps` it
+ * was written against are not known here. Write a contribution as a
+ * {@link ContributionDefinition}.
  *
  * @category Extensions
  */
@@ -908,29 +895,30 @@ export type AnyContribution = Omit<
  * @category Extensions
  */
 export interface AugmentSettingField {
+  /** The setting's key, unique within the augment or contribution. */
   key: string;
+  /** `"boolean"` draws a toggle, `"text"` a text field and `"number"` a number field. */
   type: "boolean" | "text" | "number";
+  /** What the operator reads beside the control. Defaults to the setting's key. */
   label?: string;
+  /** The value before the operator sets one, and again after they clear a number field. */
   default?: boolean | string | number;
 }
 
 /**
- * One contributor's settings block, namespaced for the host panel. `namespace`
- * is the contributor's id; the host stores each field under `<namespace>.<key>`
- * in the widget instance config so two contributors' identically-named settings
- * never collide, and an absent Uplink contributes nothing.
- *
- * Declared here rather than in `@ksp-gonogo/ui-kit`, which re-exports it, for
- * the reason `AugmentSettingField` already moved: it is a shape over that type,
- * and it is the return type of a registry read (`getCoverageSourceSettings`)
- * that lives in this package. ui-kit imports the sdk, so the type can only sit
- * at this end if both are to have it.
+ * One augment's or contribution's settings, as the host widget's settings
+ * panel lists them. Each value is stored under `<namespace>.<key>` in the
+ * widget instance's settings, so two contributors' settings with the same key
+ * never collide. An Uplink that is not installed adds none.
  *
  * @category Extensions
  */
 export interface NamespacedAugmentSettings {
+  /** The id of the augment or contribution the settings belong to. */
   augmentId: string;
+  /** The key its values are stored under: its id. */
   namespace: string;
+  /** The settings, in the order the panel draws them. */
   fields: readonly AugmentSettingField[];
 }
 
@@ -1033,16 +1021,6 @@ export interface AugmentDefinition<Slot extends string = string> {
   owner?: UplinkClientHandle;
 }
 
-/**
- * Re-exported rather than declared: the ONE declaration lives in
- * `../spine/uplink-clients.ts`, beside `defineUplinkClient` which returns it.
- *
- * Emphatically NOT a second, loose copy whose registration methods are `any`
- * "name+arity probes". `ResolvedDeps`, `ReckonerFor`,
- * `DerivedChannelDefinition` and `ProcessorHandle` are all sdk-side, so this
- * leaf can name every one of them, and a handle declared twice with one side
- * unchecked is the divergence shape that cannot fail loudly.
- */
 export type { UplinkClientHandle } from "../spine/uplink-clients";
 
 /**
@@ -1298,7 +1276,9 @@ export type DataSourceStatus =
  * @category Registering
  */
 export interface DataKey {
+  /** The key, as passed to `subscribe`. */
   key: string;
+  /** What the key carries. */
   description?: string;
 }
 
@@ -1309,34 +1289,56 @@ export interface DataKey {
  * @category Registering
  */
 export interface ConfigField {
+  /** The key the value is stored under in the config passed to `configure`. */
   key: string;
+  /** What the operator reads beside the field. */
   label: string;
+  /** Whether the field takes text or a number. */
   type: "text" | "number";
+  /** Shown in the empty field. */
   placeholder?: string;
 }
 
 /**
- * Base interface for all data sources: mirrors core's real `DataSource`
- * shape (see the module-level comment above) for typing an Uplink's own
- * `status: DataSourceStatus` connection field.
+ * A connection to something outside the game's telemetry stream, which the
+ * app lists under Settings, Data Sources, with its status and a settings form
+ * built from {@link DataSource.configSchema}. Register one with
+ * {@link registerDataSource}.
  *
  * @category Registering
  */
 export interface DataSource<
   Config extends Record<string, unknown> = Record<string, unknown>,
 > {
+  /** Unique across every registered source. */
   id: string;
+  /** The source's name in the Data Sources list. */
   name: string;
+  /** Opens the connection. */
   connect(): Promise<void>;
+  /** Closes the connection. */
   disconnect(): void;
+  /** The connection's state now. */
   status: DataSourceStatus;
+  /** The keys the source offers. */
   schema(): DataKey[];
+  /** Calls `cb` with each new value of the key. Returns the function that stops it. */
   subscribe(key: string, cb: (value: unknown) => void): () => void;
+  /** Calls `cb` whenever `status` changes. Returns the function that stops it. */
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
+  /** The fields of the source's settings form. */
   configSchema(): ConfigField[];
+  /** Applies settings from the form, keyed as {@link ConfigField} names them. */
   configure(config: Record<string, unknown>): void;
+  /** The settings the source is using now. */
   getConfig(): Config;
+  /** Text telling the operator how to set the source up, or `null` for none. */
   setupInstructions?(): string | null;
+  /**
+   * When true, the app drops this source's values while the vessel has no
+   * link home. Leave it unset for a source that runs on its own and handles
+   * signal loss itself.
+   */
   affectedBySignalLoss?: boolean;
 }
 

@@ -321,9 +321,8 @@ export {
  */
 
 /**
- * Every augment bound into `slot`, in render order. The read half of
- * {@link registerAugment}: an Uplink's test observes what it registered through
- * the same host it registered into.
+ * Every augment registered to `slot`, in render order. For tests, to check
+ * what an Uplink registered with {@link registerAugment}.
  *
  * @category Extensions
  */
@@ -441,7 +440,7 @@ export const defineUplinkClient = (cfg: {
   id: string;
   version: string;
   name: string;
-  /** What the Uplink does, in one or two sentences. See `UplinkClientHandle`. */
+  /** What the Uplink does, in one or two sentences. See {@link UplinkClientHandle.description}. */
   description?: string;
 }): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
@@ -800,14 +799,14 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
 }
 
 /**
- * Every registered data source with its live connection status, re-rendering on
- * each status change. `DataSourceState[]`, opaque here for the same reason as
- * {@link useViewClock}'s return.
+ * Every registered data source with its connection status, re-rendering when
+ * a status changes. Each element is `{ id, name, status }`, with `status` a
+ * {@link DataSourceStatus}.
  *
  * For a connection banner or a diagnostics panel. It says nothing about the
- * Sitrep stream itself, which is not a registered source: a widget asking
- * whether ITS data is current reads that off the {@link Reading} its
- * {@link useTelemetry} call already returns.
+ * game's telemetry stream, which is not a registered source: a widget reads
+ * how current its own data is from the {@link Reading} {@link useTelemetry}
+ * returns.
  *
  * @category Registering
  */
@@ -962,7 +961,8 @@ export function getContributionsForSlot(slot: string): AnyContribution[] {
 }
 
 /**
- * Subscribe to any change (register/unregister) in the contribution registry.
+ * Calls `cb` whenever a contribution is registered or removed. Returns the
+ * function that stops it.
  *
  * @category Extensions
  */
@@ -989,19 +989,16 @@ export function clearContributions(): void {
 export { logger } from "./logger";
 
 /**
- * The composition point a widget OWNING a slot drops in for other Uplinks'
- * augments to fill. An Uplink that only fills someone else's slot never renders
- * this; it calls {@link registerAugment} and the owning widget renders it.
+ * Renders every augment registered to the slot `name`, where a widget that
+ * owns the slot places it. An Uplink that only fills another widget's slot
+ * never renders this: it calls {@link registerAugment}.
  *
- * Generic over the slot id, so `props` is checked against that slot's declared
- * {@link SlotProps} rather than a loose bag. Resolves to the app's own component
- * at render, which is what applies each augment's presence gating: an augment
- * whose Domain is absent contributes nothing here rather than being filtered at
- * registration.
+ * `props` is checked against the slot's {@link SlotProps}. An augment whose
+ * `requires` Domain is not present renders nothing.
  *
- * `@ksp-gonogo/ui-kit` exports this name too, and that one is the component
- * this resolves to. A widget should take it from there: same registry, and it
- * renders with no host installed, which an Uplink's own test wants.
+ * `@ksp-gonogo/ui-kit` exports the same component, and a widget should import
+ * it from there: it reads the same registry and also renders in a test with
+ * no app around it.
  *
  * @category Extensions
  */

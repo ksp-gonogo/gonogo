@@ -376,14 +376,11 @@ export interface StrategiesScreenEntry {
   /** Why the screen cannot be used, in the operator's terms. `"Not available yet"` when absent. */
   disabledReason?: string;
   /**
-   * True when the screen's own `strategies.screen-body` already carries the
-   * activate/deactivate verbs for its cards (e.g. a Programs screen offering
-   * Accept and Complete), so the host draws that screen's Active and
-   * Available cards with no Activate or Deactivate button of its own, rather
-   * than one that could only ever be refused.
-   * Nor does it draw a price or a commitment factor on them: the costs a
-   * strategy record carries are stock's activation charge, and the body's own
-   * verb decides what it charges, so it is the body that shows the cost.
+   * True when the screen's `strategies.screen-body` augment draws its own
+   * controls for activating and deactivating its strategies, such as a
+   * Programs screen offering Accept and Complete. The widget then draws that
+   * screen's cards with no Activate or Deactivate button, and with no price or
+   * commitment factor: the augment shows what its own controls cost.
    */
   drawsOwnActions?: boolean;
 }
@@ -451,9 +448,9 @@ export interface MissionLogEventEntry {
  * plainly: a scanner that can be neither deployed nor made inoperable says
  * `false` to both and `true` to `rerunnable`.
  *
- * So is `reading`, because a contribution is handed payloads and a payload
- * keeps its last value when samples stop: without it a row whose flags stopped
- * arriving draws exactly like a live one.
+ * `reading` is required too. A contribution receives each Topic's last value
+ * even after samples stop, so the flags alone cannot say whether they are
+ * current; the widget marks the row held from `reading`.
  *
  * @category Widget slots
  */
@@ -582,36 +579,20 @@ declare module "./types" {
       entry: ExperimentsInstrumentEntry;
     };
     /**
-     * The Astronaut Complex's core-stat strip, beside funds, hire price and
-     * roster occupancy: what the career model running the save considers as core
-     * as those three. Drawn by the host's own `Stat`, in the same cell treatment
-     * and the same row, so a contributed figure is indistinguishable from a
-     * vanilla one.
-     *
-     * The strip is where an operator reads the state of the whole complex, and a
-     * career overhaul owns half of that state: how many nauts are in training,
-     * how many qualifications are about to lapse.
+     * Cells in the Astronaut Complex's stat strip, after funds, hire price and
+     * roster occupancy, such as how many kerbals are in training. Drawn in the
+     * same row and the same style as the widget's own cells.
      */
     "astronaut-complex.readouts": {
       entry: StatEntry;
     };
     /**
-     * The tiers SpaceCenterStatus draws in its facility grid.
+     * The facility tiers the Space Center Status widget draws in its grid.
      *
-     * <para>The widget contributes its own reading of `career.status` here at
-     * priority 0, so an ordinary contributor DISPLACES the grid rather than
-     * adding a second copy of it below. That is what the slot is for: away from
-     * the space centre the stock reading has nothing to give, and a career model
-     * that keeps its own tier table does.</para>
-     *
-     * <para>KSP puts the space centre's buildings in the SPACECENTER scene only,
-     * and stock offers no way round it. `ProtoUpgradeable.GetLevel()` does parse
-     * the level persisted in the save when the scene is empty, but its sibling
-     * `GetLevelCount()` returns -1 there, and that level is NORMALISED: without
-     * a tier count it cannot be turned back into a tier. A career overhaul that
-     * carries its own tier counts (one that parses the CustomBarnKit upgrade lists
-     * at load and bills the career off them in all four scenes) can report
-     * tiers wherever the operator is standing.</para>
+     * The widget fills this slot itself, at priority 0, from `career.status`,
+     * which KSP can report only in the Space Center scene. A contribution at
+     * the default priority replaces the widget's own entries, so a career mod
+     * that keeps its own tier table can report tiers in every scene.
      */
     "space-center-status.facilities": {
       entry: SpaceCenterFacilityEntry;

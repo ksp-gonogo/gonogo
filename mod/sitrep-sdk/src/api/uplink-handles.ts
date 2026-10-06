@@ -26,8 +26,10 @@ function handles(): Map<string, unknown> {
 }
 
 /**
- * Register a singleton handle for an Uplink, keyed by its id. Last write wins: a
- * second call for the same id replaces the first.
+ * Stores one object under an Uplink's id, so code elsewhere can find it with
+ * {@link getUplinkHandle} without importing the Uplink's own module: a client
+ * for the Uplink's own server, say. The object can be anything; whoever reads
+ * it knows its shape. A second call for the same id replaces the first.
  *
  * @category Registering
  */
@@ -39,7 +41,8 @@ export function registerUplinkHandle<Handle>(
 }
 
 /**
- * Look up a previously registered handle by Uplink id. `undefined` if none.
+ * The object {@link registerUplinkHandle} stored under `uplinkId`, typed as
+ * `Handle`, or `undefined` if there is none.
  *
  * @category Registering
  */
@@ -50,7 +53,7 @@ export function getUplinkHandle<Handle = unknown>(
 }
 
 /**
- * Remove a previously registered handle. No-op if none was registered.
+ * Removes the object stored under `uplinkId`. Does nothing if there is none.
  *
  * @category Registering
  */

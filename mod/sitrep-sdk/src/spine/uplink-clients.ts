@@ -23,103 +23,83 @@ import { defineProcessor } from "./processors";
 import { registerReckoner } from "./reckoners";
 
 /**
- * Uplink client identity handles.
+ * An Uplink client's identity and its registration methods, returned by
+ * {@link defineUplinkClient}. Declare one per client, in one module, and import
+ * it wherever the client registers something.
  *
- * One handle per client bundle, declared once and imported by every widget/
- * augment the client registers:
+ * Every `register...` method prefixes the id it is given with the Uplink's
+ * own, `my-uplink:<id>`, so two Uplinks can use the same local ids without
+ * colliding.
  *
- *   // <uplink-repo>/client/src/uplink.ts
- *   export const MY_UPLINK = defineUplinkClient({ id: "my-uplink", version: "0.0.0-dev", name: "My Uplink" });
- *   registerComponent({ ...def, owner: MY_UPLINK });
+ * @example
+ * ```tsx
+ * import { defineUplinkClient, registerComponent } from "@ksp-gonogo/sitrep-sdk";
  *
- * `defineUplinkClient` is the explicit-handle model (confirmed with the
- * operator over an ambient "currently importing uplink", fragile under
- * static imports, and doesn't survive the loader's dynamic `import()`
- * case). It both returns the frozen handle a registration stamps onto
- * `owner`, AND records the client in a module-level registry so the app can
- * enumerate which Uplink clients are actually present in this build (the
- * membership half: health/settings UI grows off this same registry).
+ * export const MY_UPLINK = defineUplinkClient({
+ *   id: "my-uplink",
+ *   version: "1.0.0",
+ *   name: "My Uplink",
+ *   description: "Shows the state of my mod's experiments.",
+ * });
  *
- * Mod-agnostic like `api/uplink-handles.ts`: never import a mod-specific type or
- * hardcode a mod name here.
+ * function MyStatus() {
+ *   return <p>All experiments nominal</p>;
+ * }
  *
- * This is the ONE declaration of the handle: `api/types.ts` re-exports it
- * rather than declaring a loose "name+arity probe" copy of its own.
- * `ResolvedDeps`, `ReckonerDefinition`, `DerivedChannelDefinition` and
- * `ProcessorHandle` are all sdk-side, so there is nothing the leaf cannot name
- * and no reason to reach for `any`. Two
- * declarations of a handle whose methods are typed `any` on one side is the
- * divergence shape that cannot fail loudly, which is the same reason the
- * contribution declaration-merge seam was collapsed to one.
+ * registerComponent({
+ *   id: "my-uplink-status",
+ *   name: "My Status",
+ *   description: "The state of every experiment aboard.",
+ *   tags: ["telemetry"],
+ *   component: MyStatus,
+ *   owner: MY_UPLINK,
+ * });
+ * ```
  *
  * @category Registering
  */
 export interface UplinkClientHandle {
-  /** MUST match the mod's `[SitrepUplink("<id>")]` id and its gonogo-uplink.json id. */
+  /** The Uplink's id. It must match the id its mod declares with `[SitrepUplink]` and the id in its `gonogo-uplink.json`. */
   id: string;
-  /** The Uplink's one version line, spanning mod and client. Phase 1: a
-   *  per-client placeholder constant; Phase 2 build-injects it. */
+  /** The Uplink's version, the same for its mod and its client. */
   version: string;
-  /** Human label for management/health surfaces. */
+  /** The Uplink's name, as the app lists it. */
   name: string;
   /**
-   * What this Uplink does, in one or two sentences.
+   * What the Uplink does, in one or two sentences. It opens the Uplink's
+   * generated page and describes it wherever the app lists what is installed.
+   * Each widget's own description belongs on its registration, not here.
    *
-   * A FIELD rather than a prose file, and the distinction is the whole point. It
-   * was a `uplink.md` beside the client, and a markdown file is an invitation to
-   * write markdown: the ten in this repo grew install notes, per-widget
-   * rationale, and restatements of rules true of every Uplink, none of which
-   * belongs on a generated page. A field has a shape and one job.
-   *
-   * Read by `gonogo-uplink docs` as the page's opening line, and by any
-   * management surface listing what is installed. Keep it to what the Uplink
-   * does; each widget's own description is on its registration.
-   *
-   * Optional in the TYPE and required in PRACTICE: `gonogo-uplink docs` refuses
-   * to write a page without one. Optional because this interface ships in a
-   * published package and a new required field is a breaking change for every
-   * consumer already on the old one, and because the enforcement belongs where
-   * the field is consumed rather than where a probe harness happens to construct
-   * a throwaway handle.
+   * `gonogo-uplink docs` will not write a page for an Uplink without one.
    */
   description?: string;
   /**
-   * Register a contribution auto-namespaced to this client: `def.id` is
-   * stamped `${this.id}:${def.id}` before it
-   * reaches the flat ContributionRegistry, so two Uplinks can never collide
-   * on a local id. Throws synchronously at THIS call site (registerContribution's
-   * own collision check) on a genuine id clash within one client's own ids.
-   */
-  /**
-   * Mounts a context Provider at the ROOT of every screen's tree, so an
-   * Uplink whose widgets share state can establish it without the app
-   * importing the Uplink to hand-wire it in.
-   *
-   * <p>Auto-namespaced like `registerContribution`. The Provider is handed the
-   * screen it is mounted for and MUST key any persisted state by it, or a
-   * station and the main screen on one machine overwrite each other.</p>
+   * Mounts a provider around every screen, so widgets that share state can
+   * find it above them. See {@link RootProviderDefinition}.
    */
   registerRootProvider(def: RootProviderDefinition): void;
 
   /**
-   * Feeds this Uplink's event occurrences to the `event` alarm trigger.
-   *
-   * <p>Auto-namespaced like the rest. The reader is handed the operator's
-   * DELAYED view UT, not the live one, so returning everything it holds is
-   * wrong: return what has been revealed by that instant and the signal delay
-   * comes out right for free.</p>
+   * Feeds this Uplink's events to the `event` alarm trigger. The source is
+   * asked for its events with the UT the operator is viewing, which lags the
+   * game under signal delay; return only the events that have happened by
+   * then.
    */
   registerRevealedEventSource(def: RevealedEventSourceDefinition): void;
 
+  /**
+   * Fills another widget's contribution slot. See {@link ContributionDefinition}
+   * for what `def` holds and when `compute` runs. Throws when this Uplink has
+   * already registered a contribution with the same id.
+   */
   registerContribution<
     Slot extends string,
     const Deps extends readonly ContributionDep[] = readonly [],
   >(def: Omit<ContributionDefinition<Slot, Deps>, "owner">): void;
   /**
-   * Register a Processor auto-namespaced to this client (mirrors
-   * registerContribution's owner-stamping). `defineProcessor` takes a plain
-   * string owner rather than a handle, so this method is the bridge that lets a
-   * client call it by handle instead of by hand-typed id.
+   * Registers a Processor, a value computed from Topics once per frame and
+   * shared by every reader. Returns the handle to read it by, with
+   * {@link useProcessor} or as one of a contribution's `deps`.
    */
   registerProcessor<
     const Deps extends readonly Dep[],
@@ -135,20 +115,14 @@ export interface UplinkClientHandle {
     CarriesCurrency<Deps>
   >;
   /**
-   * Register this client's forward model for a Topic (same bridge shape as
-   * registerProcessor: the owner is passed to the registry as a plain id).
+   * Registers this Uplink's forward model for `topic`: how the Topic's value
+   * moves on while no new sample has arrived. Register a model only for a
+   * Topic your Uplink serves. When two Uplinks register one for the same
+   * Topic, neither is used and Gonogo's own model applies.
    *
-   * Which client owns a model is not a matter of style: only the Uplink that
-   * owns a Topic knows the physics behind it, and a topic two clients both claim
-   * withdraws BOTH of them and falls back to core's vanilla rather than serving
-   * whichever loaded last. Going
-   * through the handle is what makes the owner a stamped field the boundary
-   * ratchet and a health surface can read, instead of a hand-typed string.
-   *
-   * The definition DECLARES its inputs (`deps`, in the same notation a
-   * Processor uses), so a model whose inputs are split across Topics is one an
-   * Uplink can write here rather than a reason to reach for a derived channel:
-   * the store resolves them and declines by name when one is absent.
+   * The model lists its inputs in `deps`, in the notation a Processor uses, so
+   * it can read other Topics. When one of them is absent, the model does not
+   * run.
    */
   registerReckoner<
     const Topic extends TopicId,
@@ -165,19 +139,11 @@ export interface UplinkClientHandle {
     >,
   ): void;
   /**
-   * Contribute a derived channel owned by this client.
+   * Adds a derived channel: a Topic whose value is computed from other Topics
+   * in the app rather than sent by the mod.
    *
-   * A derived channel is the only mechanism that can join two Topics, so it is
-   * what a model needs whenever its inputs are split across them: projecting a
-   * consumable wants an amount and a capacity from the generic resource Topic
-   * and a rate from whichever Uplink models the consumption, a split the
-   * contract makes deliberately. A per-Topic reckoner reaches another Topic only
-   * as a declared dep, one point at a time unless it windows it, and its answer
-   * is still that one Topic's.
-   *
-   * Registered after core's own, so an Uplink cannot take over a Topic core
-   * already derives, and per (topic, owner), so two Uplinks claiming one Topic
-   * yields neither.
+   * An Uplink cannot replace a Topic Gonogo already derives, and when two
+   * Uplinks derive the same Topic, neither is used.
    */
   registerDerivedChannel<Payload>(def: DerivedChannelDefinition<Payload>): void;
 }

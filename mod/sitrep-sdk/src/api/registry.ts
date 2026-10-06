@@ -148,7 +148,8 @@ export function registerComponent<Config = Record<string, unknown>>(
 }
 
 /**
- * Adds a data source, replacing any registered under the same id.
+ * Adds a data source to Settings, Data Sources, replacing any registered under
+ * the same id.
  *
  * @category Registering
  */
@@ -159,7 +160,7 @@ export function registerDataSource<
 }
 
 /**
- * Remove the source registered under `id`. No-op if nothing is registered.
+ * Removes the source registered under `id`. Does nothing if none is.
  *
  * @category Registering
  */
@@ -303,23 +304,12 @@ export function getTheme(id: string): ThemeDefinition | undefined {
 }
 
 /**
- * For use in tests only: resets the component / data-source / theme registries to
- * empty.
+ * Removes every registered widget, data source and theme. For tests; a running
+ * app never calls it.
  *
- * Deliberately does NOT clear the augment registry. Augments are
- * module-load registrations that an augment-consuming widget resolves through the
- * registry AT RENDER TIME (`getAugmentsForSlot`), unlike components, which a
- * widget test renders directly, bypassing the registry. `setupMockDataSource`
- * calls this before nearly every widget test to reset per-test data-source state;
- * if that also wiped augments, a widget whose real content arrives via a slot
- * (e.g. Objectives' mission + contract sources) would render an empty slot
- * because nothing re-runs the once-only module-load `registerAugment`. Augment
- * registry tests clear it explicitly with `clearAugments()` instead.
- *
- * Nor does it reach any registry an UPLINK owns. It cannot: this package is the
- * leaf every Uplink depends on, so it can never depend on one back. An Uplink
- * that keeps its own registry publishes its own clear, and a test wanting both
- * calls both.
+ * Augments and contributions stay registered: clear those with
+ * {@link clearAugments} and {@link clearContributions}. A registry an Uplink
+ * keeps for itself is not touched either.
  *
  * @category Registering
  */

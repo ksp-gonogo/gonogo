@@ -26,10 +26,10 @@
 // `wrapTopicPayload` can walk into it. Without that registration the values arrive
 // bare while the provider's own generated type still says `Value<...>`.
 
+// Mirrors Sitrep.Contract.ProviderExtensions.WireField; extensions.test.ts asserts the two agree.
 /**
- * The reserved wire key a bag serialises under, on every payload that carries one.
- * Mirrors `Sitrep.Contract.ProviderExtensions.WireField`; `extensions.test.ts`
- * asserts the two strings agree, the same C#-to-TS pinning every Topic id gets.
+ * The key a payload carries its {@link ProviderExtensions} under:
+ * `"extensions"`.
  *
  * @category Reading telemetry
  */
@@ -45,14 +45,13 @@ export const PROVIDER_EXTENSIONS_FIELD = "extensions";
 export type ProviderExtension = unknown;
 
 /**
- * The bag itself, keyed by PROVIDER ID: the id the provider registers with the
- * Kernel, and the same string its payloads tag themselves with. Keyed that way so two providers
- * never collide: an exclusive capability has one ACTIVE provider at a time, but
- * more than one provider's client can be installed, and a delayed or archived
- * frame can predate an election change.
+ * Values a payload carries beyond its declared fields, keyed by the id of the
+ * provider that wrote them. A mod that serves a Topic and models something the
+ * payload has no field for puts it here, under its own id, so values from two
+ * providers never collide.
  *
- * This is the type `[ProviderExtensionBag]` properties are generated as
- * (`RtConfig.ApplyProviderExtensionTypes`).
+ * Each value is `unknown` here. Read one through the reader the provider's
+ * own package exports, rather than casting it.
  *
  * @category Reading telemetry
  */

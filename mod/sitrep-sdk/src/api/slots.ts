@@ -534,10 +534,12 @@ export interface MapOverlayContext {
   vesselLon: number | undefined;
 }
 
-/** Mirrors `MapViewScope` (MapView/index.tsx): what the widget is currently
- *  looking at, read with `useWidgetScope("map-view")`. */
+/**
+ * What the Map View is showing, read with `useWidgetScope("map-view")` from
+ * `@ksp-gonogo/ui-kit`.
+ */
 export interface MapViewScope {
-  /** The mapped body (may diverge from the active vessel under a pin). */
+  /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
 }
 
@@ -763,13 +765,14 @@ export interface DeployedExperimentContext {
 
 // "fuel-status.sections" / ".badges" carry no props today.
 
-/** Mirrors `PowerSystemsScope` (PowerSystems/index.tsx): what the widget is
- *  currently looking at, read with `useWidgetScope("power-systems")`. */
+/**
+ * What the Power Systems widget is showing, read with
+ * `useWidgetScope("power-systems")` from `@ksp-gonogo/ui-kit`.
+ */
 export interface PowerSystemsScope {
   /**
-   * The resource the widget is currently focused on (the picker/action-cycle
-   * selection). Lets an augment scope its breakdown/badge to the same
-   * resource the operator is viewing rather than assuming ElectricCharge.
+   * The resource the operator has picked, such as `"ElectricCharge"`. Read it
+   * to show an augment's figures for the same resource.
    */
   resource: string;
 }
