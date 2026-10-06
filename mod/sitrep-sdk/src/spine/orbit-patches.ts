@@ -70,7 +70,7 @@ function radToDeg(rad: number): number {
 }
 
 /** Wrap a degree value to (-180, 180], preferring +180 for continuity. */
-function wrap180(deg: number): number {
+export function wrap180(deg: number): number {
   let x = ((((deg + 180) % 360) + 360) % 360) - 180;
   if (x <= -180) x = 180;
   return x;

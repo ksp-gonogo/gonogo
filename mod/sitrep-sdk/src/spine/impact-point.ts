@@ -34,6 +34,7 @@ import {
   groundTrackSamples,
   type PatchSpan,
   type PredictionRef,
+  wrap180,
 } from "./orbit-patches";
 import {
   type OrbitTrajectoryInput,
@@ -46,13 +47,6 @@ import { type BodyRadiusTable, bodyRadiusOf } from "./orbital-solve";
 
 function radToDeg(rad: number): number {
   return (rad * 180) / Math.PI;
-}
-
-/** Wrap a degree value to (-180, 180]. */
-function wrap180(deg: number): number {
-  let x = ((((deg + 180) % 360) + 360) % 360) - 180;
-  if (x <= -180) x = 180;
-  return x;
 }
 
 /**

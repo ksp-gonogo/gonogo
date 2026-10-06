@@ -44,4 +44,15 @@ describe("one conic arithmetic path", () => {
     const hits = codeLines(path).filter((line) => ROTATION_TERM.test(line));
     expect(hits).toEqual([]);
   });
+
+  it("wraps a longitude to (-180, 180] in one function", () => {
+    const defining = [
+      "mod/sitrep-sdk/src/spine/orbit-patches.ts",
+      "mod/sitrep-sdk/src/spine/impact-point.ts",
+      "packages/core/src/calc/trajectory.ts",
+    ].filter((path) =>
+      codeLines(path).some((line) => /function wrap180\b/.test(line)),
+    );
+    expect(defining).toEqual(["mod/sitrep-sdk/src/spine/orbit-patches.ts"]);
+  });
 });

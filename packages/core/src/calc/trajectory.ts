@@ -33,13 +33,8 @@ import { PerfBudget } from "../perf/PerfBudget";
  */
 export const solveKepler = solveEccentricAnomaly;
 
-/** Wrap a degree value to (-180, 180]. */
-export function wrap180(deg: number): number {
-  let x = ((((deg + 180) % 360) + 360) % 360) - 180;
-  // Avoid returning -180 exactly; prefer +180 for continuity.
-  if (x <= -180) x = 180;
-  return x;
-}
+/** Wrap a degree value to (-180, 180]. A re-export so the wrap exists once, beside the patch walk that needs it. */
+export { wrap180 } from "@ksp-gonogo/sitrep-client";
 
 /** Eccentric to true anomaly, radians. A re-export so the half-angle form exists once, in the SDK's Kepler module. */
 export const eccentricToTrueAnomaly = trueAnomalyFromEccentric;

@@ -324,6 +324,7 @@ export {
   patchArc,
   patchHolds,
   patchStateAt,
+  wrap180,
 } from "./orbit-patches";
 export {
   // The uncomparable-result gate lives beside the evaluator (see its own doc
