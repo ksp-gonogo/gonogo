@@ -1,6 +1,8 @@
 /**
- * Writes `dist/widgets.json`: every widget `./widgets` registers, with the
- * scene its reference page draws it on.
+ * Writes `dist/widgets.json`: the record of every widget `./widgets` registers,
+ * through the same `widgetRecordOf` and `widgetRecordsJson` an Uplink's
+ * `docs/widgets.json` is written with, plus the scene its reference page draws
+ * it on.
  *
  * The registrations only run in a bundle. Under bare `node`,
  * `styled-components` resolves to its CJS half and the kit's module-scope
@@ -29,16 +31,9 @@ const ENTRY = `
 import "@ksp-gonogo/components";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import { listWidgets } from "../components/scripts/widgets";
-export const components = getComponents().map((d) => ({
-  id: d.id,
-  name: d.name,
-  description: d.description,
-  tags: d.tags ?? [],
-  augmentSlots: d.augmentSlots ?? [],
-  contributionSlots: d.contributionSlots ?? [],
-  defaultSize: d.defaultSize ?? null,
-  defaultConfig: d.defaultConfig ?? {},
-}));
+import { widgetRecordOf, widgetRecordsJson } from "./src/render/widgetRecord";
+export const records = getComponents().map(widgetRecordOf);
+export { widgetRecordsJson };
 export const renderConfigs = listWidgets();
 `;
 
@@ -117,15 +112,16 @@ export async function writeWidgetManifest() {
       },
       logLevel: "error",
     });
-    const { components, renderConfigs } = await import(
+    const { records, widgetRecordsJson, renderConfigs } = await import(
       pathToFileURL(bundle).href
     );
-    const widgets = components
-      .map((c) => ({ ...c, scene: sceneOf(c.id, renderConfigs) }))
-      .sort((a, b) => a.id.localeCompare(b.id));
+    const widgets = records.map((record) => ({
+      ...record,
+      scene: sceneOf(record.id, renderConfigs),
+    }));
     if (widgets.length === 0) throw new Error("./widgets registered no widget");
     mkdirSync(dirname(OUT), { recursive: true });
-    writeFileSync(OUT, `${JSON.stringify({ widgets }, null, 2)}\n`);
+    writeFileSync(OUT, widgetRecordsJson(widgets));
     return widgets;
   } finally {
     rmSync(scratch, { recursive: true, force: true });

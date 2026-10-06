@@ -1,23 +1,12 @@
 /**
- * `@ksp-gonogo/uplink-tools`: the NODE half of the Uplink render harness.
+ * `@ksp-gonogo/uplink-tools`: the Node half of the Uplink render harness, which
+ * `gonogo-uplink render` and `gonogo-uplink docs` run. It bundles an Uplink with
+ * esbuild, renders its scenes in Playwright, encodes GIFs and writes the
+ * generated page. Never import it from a browser bundle; the browser half is
+ * `./render-probe`.
  *
- * esbuild, Playwright, the filesystem, the GIF encoder and the markdown
- * generator. Never reachable from a browser bundle, exactly as `./testing` is
- * never reachable from a runtime one.
- *
- * It ships from the design system rather than a package of its own for one
- * reason: the generated browser entry, the page it is injected into and the
- * `window` global it installs are a PAIRING, and a copy of a pairing drifting
- * from its original is this repo's most repeated harness bug. Splitting the pair
- * across two published packages with independent version numbers would
- * reintroduce that gap at the worst possible boundary. The obvious alternative,
- * a package above core that could import ui-kit freely, was
- * `@ksp-gonogo/sitrep-testing`, and that package existed and was deleted: the
- * harness was deliberately consolidated onto the two published packages'
- * subpaths, and this follows it.
- *
- * `playwright` and `esbuild` are OPTIONAL peers. A missing one fails with a
- * named message rather than a resolution error.
+ * `playwright` and `esbuild` are optional peers. A missing one fails with a
+ * message naming it rather than a resolution error.
  */
 
 /** The grid geometry a harness needs to size its mount box, re-exported here so
@@ -47,6 +36,7 @@ export {
   buildReadme,
   type DocsInputs,
   type UplinkManifestJson,
+  widgetRecordsOf,
 } from "./render/docs";
 export {
   type Engine,
@@ -76,6 +66,11 @@ export {
   type ShapeRecord,
   type ShapeVerdict,
 } from "./render/shape";
+export {
+  WIDGET_RECORDS_FILE,
+  type WidgetRecord,
+  widgetRecordsJson,
+} from "./render/widgetRecord";
 export {
   readWireSurface,
   type WireChannel,

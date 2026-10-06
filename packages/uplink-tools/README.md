@@ -18,6 +18,12 @@ It is a **devDependency**. Nothing here ships in an Uplink's bundle.
 You will not usually import the first of these: `gonogo-uplink render` and
 `gonogo-uplink docs` forward to it, resolved from your own install.
 
+`gonogo-uplink docs` writes `README.md`, `gonogo-uplink.json` and
+`docs/widgets.json`, the record of each widget you register. The README's widget
+sections are rendered from those records, and `docs --check` and
+`expectUplinkPageCurrent` fail when any of the three no longer matches your
+registrations. Commit all three.
+
 ## What a fixture puts on the stream
 
 A fixture's `_stream` block is the wire its scene is fed from:
@@ -45,8 +51,8 @@ A fixture's `_stream` block is the wire its scene is fed from:
 
 **`delaySeconds`** stages what an operator sees across a light time. Each
 reading sent at `validAt` is delivered `delaySeconds` later, the view time is
-the received edge (the latest `validAt` delivered, where an emit naming none
-counts as `pinnedUt`), and the craft's present runs one light time ahead of it.
+the newest `validAt` delivered (an emit naming none counts as `pinnedUt`), and
+the craft's present runs one light time ahead of it.
 Every reading is reckoned to that present exactly as it is in the app, so a
 scene can show a modelled figure beside the observed one, drawn with the kit's
 modelled mark. Without it, or at `0`, the view time and the craft's present are
@@ -86,16 +92,10 @@ There is nothing to `import` from `/widgets`. It exports no symbols: importing i
 runs the app widgets' own registrations, which is all the harness needs to
 resolve a scene's `hostWidget`.
 
-**`/widgets` is the one entry with a position rule.** It may appear in
-`devDependencies` and in `gonogo.renderWith`, and nowhere else. Putting
-`@ksp-gonogo/uplink-tools` in `dependencies`, or importing `/widgets` anywhere in
-your client, fails `uplink-isolation.test.ts`. From the ruling that created it:
-
-> "typically pulling the widgets into the UI kit is only for the docs page,
-> right? It's not for anything else."
-
-If you want a component from it for real use, that is a request to move that
-component into `@ksp-gonogo/ui-kit`.
+**`/widgets` is for the docs page only.** Name it in `devDependencies` and in
+`gonogo.renderWith`, and nowhere else: never put `@ksp-gonogo/uplink-tools` in
+`dependencies`, and never import `/widgets` from your client. If you want one
+of its components for real use, ask for that component in `@ksp-gonogo/ui-kit`.
 
 ## Why a stand-in is not enough
 
@@ -111,13 +111,8 @@ by a `useContributions(...)` inside the widget. Standing in for those produces a
 blank frame that reports success. A real widget's own body is the only thing that draws
 them.
 
-## Why this is not part of `@ksp-gonogo/ui-kit`
+## Its relation to `@ksp-gonogo/ui-kit`
 
-It was, as four subpaths. A design system has no business shipping a
-Playwright-driven doc harness, and the widgets could not live there at all: they
-need `@ksp-gonogo/components`, which depends on the kit, so carrying them inside
-the kit is a build-graph cycle. Outside it, it is an ordinary one-way
-dependency.
-
-The kit remains a peer, and `gridUnits` is the single module this package takes
-back from it.
+`@ksp-gonogo/ui-kit` is a peer dependency: install the two at matching
+versions. The harness draws with the kit and its `/grid` and `/testing`
+entries, and the app widgets behind `/widgets` are built on it.

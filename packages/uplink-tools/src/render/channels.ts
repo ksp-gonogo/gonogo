@@ -2,32 +2,13 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /**
- * `Delivery` and `DelayRole` per topic, scanned out of the Uplink's own C#.
- *
- * ## Why a scan, and why it is safe to be one
- *
- * Both are properties of `ChannelDeclaration`, set at the declaration site inside
- * the Uplink's PLUGIN assembly. Nothing reaches them from here: the codegen that
- * writes `src/__generated__/` reflects over the CONTRACT assembly, which holds
- * the payload types and not the channel list, and the only other authority is a
- * running mod.
- *
- * A source scan is a fragile instrument, and this one is built so that its
- * fragility is loud rather than silent. `readWireSurface` already knows every
- * statically-declared topic from the generated slice, so the caller cross-checks:
- * a topic the generated slice names and this scan did not find FAILS. That is the
- * whole safety argument. A scanner that quietly returns nothing is the exact shape
- * this project keeps meeting (a regex with no matches reports a clean pass), and
- * the cross-check converts it into a build error naming the topic.
- *
- * ## The factory case is real
- *
- * Most declarations are plain object initialisers with a literal or a `const` in
- * `Topic`. One Uplink declares a `private static ChannelDeclaration TrueNow(string
- * topic) => new ChannelDeclaration { ... }` and calls it five times, so a scanner
- * that only understood initialisers would have found zero channels for it and
- * said nothing. Both forms are handled, and the cross-check is what would have
- * caught it either way.
+ * How one channel is sent, as the Uplink's C# `ChannelDeclaration` sets it: its
+ * `Delivery` and its `DelayRole`. Read from the C# sources by
+ * {@link readChannelDispositions}, which understands both a plain declaration
+ * and a factory method that returns one. When there is C# beside the client
+ * and it declares no channel the generated contract names, page generation
+ * fails naming it. When there is no C# to read, the page lists every channel
+ * without its delivery or delay.
  *
  * @category Uplink page
  */
@@ -79,8 +60,9 @@ function candidateSources(pkgDir: string): string[] {
 
 const CONST_STRING = /\bconst\s+string\s+(\w+)\s*=\s*"([^"]*)"/g;
 const INITIALISER = /new\s+ChannelDeclaration\s*\{/g;
+// `=> new ChannelDeclaration {`, `=> new ChannelDeclaration() {` and the target-typed `=> new() {`.
 const FACTORY =
-  /\bChannelDeclaration\s+(\w+)\s*\([^)]*\)\s*=>\s*new\s+ChannelDeclaration\s*\{/g;
+  /\bChannelDeclaration\s+(\w+)\s*\([^)]*\)\s*=>\s*new\s*(?:ChannelDeclaration\s*)?(?:\(\s*\)\s*)?\{/g;
 
 /** The body of a brace-balanced block whose opening `{` is at `from`. */
 function block(source: string, from: number): string {
@@ -104,6 +86,11 @@ function enumMember(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const member = raw.includes(".") ? raw.slice(raw.lastIndexOf(".") + 1) : raw;
   return kebab(member);
+}
+
+/** Whether there is any C# for {@link readChannelDispositions} to read near `pkgDir`. */
+export function channelSourcesFound(pkgDir: string): boolean {
+  return candidateSources(pkgDir).length > 0;
 }
 
 /**

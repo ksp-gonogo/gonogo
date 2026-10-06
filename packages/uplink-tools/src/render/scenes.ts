@@ -25,24 +25,13 @@ export function buildScenes(
 }
 
 /**
- * Every registered WIDGET must have at least one scene, and the rule stops
- * there.
+ * Throws when a registered widget has no scene, naming each one, since the
+ * page would otherwise leave it out without saying so.
  *
- * A widget with no fixture is a widget the generated page under-describes, and
- * the author does not notice: a page that quietly lists three of four widgets
- * reads exactly like an Uplink with three widgets. A widget is also always
- * renderable, since the harness can mount it in the real dashboard stack.
- *
- * An augment is NOT always renderable, and demanding a fixture for one would be
- * demanding a picture that cannot be honest. An overlay augment draws in its
- * host's projection (a map's coordinate space, an SVG transform), so mounted in
- * a stand-in `Panel` it has nothing to draw against and produces a blank frame,
- * which the starved-render check would then reject as a picture of nothing, and
- * rightly. Those are listed on the page WITHOUT a preview and with the reason,
- * which is the honest form: the page still says the augment exists, so nothing is
- * silently omitted, and it does not print a frame that misrepresents it.
- *
- * Returns the augment and contribution ids with no scene, for the page to name.
+ * Augments and contributions need no scene, because some cannot be pictured
+ * outside their host (an overlay drawn in a map's projection renders blank in a
+ * stand-in). Their ids are returned as `unpreviewed`, and the page lists them
+ * without a picture.
  *
  * @category Rendering scenes
  */

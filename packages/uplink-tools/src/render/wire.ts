@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type ChannelDisposition, readChannelDispositions } from "./channels";
+import {
+  type ChannelDisposition,
+  channelSourcesFound,
+  readChannelDispositions,
+} from "./channels";
 
 /*
  * The wire surface is read from the Uplink's generated contract slice, the only source derived from the C# declaration rather than restated beside it.
@@ -215,6 +219,8 @@ export function readWireSurface(pkgDir: string): WireSurface {
   }
 
   const dispositions = readChannelDispositions(pkgDir);
+  // No C# reachable (a client checked out on its own) is not a scan that missed: there is nothing to read.
+  const sourcesFound = channelSourcesFound(pkgDir);
   const channels: WireChannel[] = [];
   for (const id of Object.keys(units.topics ?? {}).sort()) {
     const entry = mapped.get(id);
@@ -225,8 +231,7 @@ export function readWireSurface(pkgDir: string): WireSurface {
           "Both files come out of the same codegen run, so this is not an " +
           "authoring mistake: either the two are from different runs (re-run " +
           "`mod/codegen.sh`), or the emitted topic-map format has changed and " +
-          "the parse in packages/ui-kit/src/render/wire.ts needs to change " +
-          "with it.\n" +
+          "@ksp-gonogo/uplink-tools needs updating to read it.\n" +
           "It throws rather than printing a row with an empty payload, because " +
           "a channel table quietly missing its types is the kind of drift this " +
           "generator exists to prevent.",
@@ -242,14 +247,14 @@ export function readWireSurface(pkgDir: string): WireSurface {
      * failure this project keeps meeting. So it fails here instead, naming the
      * topic, rather than printing a row with two blank columns.
      */
-    if (dispositions.size > 0 && !dispositions.has(id)) {
+    if (sourcesFound && !dispositions.has(id)) {
       throw new Error(
         `gonogo-uplink docs: the channel "${id}" is declared in the generated ` +
           "contract slice, and no `ChannelDeclaration` for it was found in this " +
           "Uplink's C#.\n" +
           "The scan reads plain object initialisers and single-expression " +
-          "factories (see packages/ui-kit/src/render/channels.ts). A declaration " +
-          "built some other way needs that scan to grow, and this fails rather " +
+          "factories. A declaration built some other way is a shape " +
+          "@ksp-gonogo/uplink-tools does not read yet, and this fails rather " +
           "than printing a row with no delivery and no delay, because a scanner " +
           "that silently finds nothing reports a clean pass.",
       );

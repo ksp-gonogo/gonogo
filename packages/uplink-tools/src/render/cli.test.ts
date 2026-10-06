@@ -46,6 +46,23 @@ describe("docs --no-assets", () => {
   });
 });
 
+describe("a flag the verb does not read", () => {
+  it.each([
+    ["docs", ["--scene", "a-scene"]],
+    ["docs", ["--frames"]],
+    ["docs", ["--out", "elsewhere"]],
+    ["render", ["--bundle", "bundle.js"]],
+    ["render", ["--assets", "elsewhere"]],
+    ["render", ["--check"]],
+  ])("refuses %s %j rather than ignoring it", async (verb, flagArgs) => {
+    expect(await refusal([verb, ...flagArgs])).toMatch(
+      new RegExp(
+        `${flagArgs[0]} only applies to ${verb === "docs" ? "render" : "docs"}`,
+      ),
+    );
+  });
+});
+
 describe("where docs --check compares pictures", () => {
   it("is CI, on GitHub Actions or any CI flag", () => {
     expect(picturesComparedHere({ GITHUB_ACTIONS: "true" })).toBe(true);
@@ -81,6 +98,8 @@ describe("the committed page, with and without pictures", () => {
 
     writeFileSync(join(dir, "README.md"), committed.readme);
     writeFileSync(join(dir, "gonogo-uplink.json"), "{}\n");
+    mkdirSync(join(dir, "docs"), { recursive: true });
+    writeFileSync(join(dir, "docs", "widgets.json"), '{ "widgets": [] }\n');
     for (const name of committed.assets) {
       writeFileSync(join(committedAssets, name), "a picture");
     }
@@ -99,6 +118,8 @@ describe("the committed page, with and without pictures", () => {
       readme: "generated\n",
       manifestPath: join(dir, "gonogo-uplink.json"),
       manifestJson: "{}\n",
+      recordsPath: join(dir, "docs", "widgets.json"),
+      recordsJson: '{ "widgets": [] }\n',
       committedAssets,
       generatedAssets,
       shapes: new Map([["a--default.png", shape("rendered-here")]]),

@@ -101,6 +101,44 @@ describe("readChannelDispositions", () => {
    * `readWireSurface` caught it against the real tree within one run, which is
    * why that cross-check is the safety argument for this whole module.
    */
+  it("follows a factory written with a target-typed new()", () => {
+    const found = readChannelDispositions(
+      uplink(`
+        private const string CrewTopic = "x.crew";
+        private const string RatesTopic = "x.rates";
+
+        private static ChannelDeclaration Delayed(string topic) => new()
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            Delay = DelayRole.Delayed,
+        };
+
+        private static ChannelDeclaration Ordered(string topic) => new ChannelDeclaration()
+        {
+            Topic = topic,
+            Delivery = Delivery.ReliableOrdered,
+            Delay = DelayRole.TrueNow,
+        };
+
+        Channels = new List<ChannelDeclaration>
+        {
+            Delayed(CrewTopic),
+            Ordered(RatesTopic),
+        };
+      `),
+    );
+    expect(found.get("x.crew")).toEqual({
+      delivery: "lossy-latest",
+      delay: "delayed",
+    });
+    expect(found.get("x.rates")).toEqual({
+      delivery: "reliable-ordered",
+      delay: "true-now",
+    });
+  });
+
   it("follows a factory called with further arguments after the topic", () => {
     const found = readChannelDispositions(
       uplink(`

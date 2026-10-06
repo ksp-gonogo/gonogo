@@ -74,11 +74,15 @@ defineUplinkClient({
 describe("writeUplinkPage", () => {
   it("writes a page where there was none, and the check then passes", () => {
     const dir = plantClient();
-    expect(checkUplinkPage({ root: dir }).differences).toHaveLength(2);
+    expect(checkUplinkPage({ root: dir }).differences).toHaveLength(3);
 
     const { written } = writeUplinkPage({ root: dir });
 
-    expect(written.sort()).toEqual(["README.md", "gonogo-uplink.json"]);
+    expect(written.sort()).toEqual([
+      "README.md",
+      "docs/widgets.json",
+      "gonogo-uplink.json",
+    ]);
     expect(checkUplinkPage({ root: dir }).differences).toEqual([]);
   });
 
@@ -153,6 +157,6 @@ describe("expectUplinkPageCurrent", () => {
     expect(() => expectUplinkPageCurrent({ root: dir })).toThrow(
       new RegExp(`${PAGE_UPDATE_ENV}=1 is set in CI`),
     );
-    expect(checkUplinkPage({ root: dir }).differences).toHaveLength(2);
+    expect(checkUplinkPage({ root: dir }).differences).toHaveLength(3);
   });
 });

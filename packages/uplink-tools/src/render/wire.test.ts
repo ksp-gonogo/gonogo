@@ -131,6 +131,25 @@ describe("readWireSurface", () => {
     ).toThrow(/does not say what payload it carries/);
   });
 
+  it("refuses a channel the C# beside the client never declares, even when it declares none", () => {
+    // The scan reads C# one directory up from the client, where an Uplink's mod sits beside its client.
+    const uplink = mkdtempSync(join(tmpdir(), "gonogo-wire-uplink-"));
+    scratch.push(uplink);
+    const client = join(uplink, "client");
+    const gen = join(client, "src", "__generated__");
+    mkdirSync(gen, { recursive: true });
+    writeFileSync(join(gen, "units.json"), UNITS);
+    writeFileSync(join(gen, "topic-map.ts"), TOPIC_MAP);
+    writeFileSync(
+      join(uplink, "Plugin.cs"),
+      "public sealed class Plugin { }\n",
+    );
+
+    expect(() => readWireSurface(client)).toThrow(
+      /no `ChannelDeclaration` for it was found/,
+    );
+  });
+
   it("does not match a topic id that only appears in the generated file's prose", () => {
     // The real emitted header quotes topic ids while explaining what the map
     // excludes. Matching one of those would invent a channel out of a comment.

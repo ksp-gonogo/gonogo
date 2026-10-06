@@ -31,13 +31,13 @@ export interface UplinkPackage {
   dir: string;
   name: string;
   version: string;
-  /** The client entry esbuild bundles, resolved per `resolveEntry`. */
+  /** The client entry esbuild bundles: `--entry`, else `src/index.ts`, `src/index.tsx`, then `package.json`'s `main`. */
   entry: string;
   /** `gonogo-render.setup.ts`, when the author wrote one. */
   setup?: string;
   /** Fixture files, sorted, `<dir>/src/**\/__fixtures__/*.json`. */
   fixtures: string[];
-  /** Resolved `gonogo.renderWith` paths. See `resolveRenderWith`. */
+  /** The `package.json` `gonogo.renderWith` entries, resolved: a relative path made absolute, a package specifier kept as written. */
   renderWith: string[];
 }
 
@@ -292,17 +292,9 @@ export function resolveUplinkPackage(
 }
 
 /**
- * The kit's own published `tokens.css`, whole.
- *
- * Resolved through the package specifier so it works from a third party's
- * node_modules, with the dist sibling as the fallback for the in-repo case where
- * the specifier resolves to a `dist/` that the caller is standing in.
- *
- * The whole file rather than its first `:root` block: the sheet also carries the
- * border-box reset and the form-control `font: inherit` the kit's primitives are
- * drawn against, outside that block, and a probe that injected only the tokens
- * laid every widget out with its paddings added to widths the app resolves them
- * inside of.
+ * The installed ui-kit's `tokens.css`, whole: the design tokens plus the
+ * box-sizing reset and form-control styles the kit's components are drawn
+ * against, as the app loads them.
  *
  * @category Rendering scenes
  */
@@ -342,7 +334,8 @@ export function themeTokensCss(): string {
 }
 
 /**
- * Which font a run is using, so nobody discovers it from a diff.
+ * Which font a run used: `locked` is JetBrains Mono, the app's own font;
+ * `fallback` is the machine's own monospace.
  *
  * @category Rendering scenes
  */
@@ -354,7 +347,9 @@ export type FontMode = "locked" | "fallback";
  * @category Rendering scenes
  */
 export interface FontFace {
+  /** Which font this is. */
   mode: FontMode;
+  /** The `@font-face` rules to inject into the render page. */
   css: string;
   /** Set when the locked font is unavailable, ready to print. */
   advice?: string;
@@ -369,12 +364,10 @@ export interface FontFace {
 export const JETBRAINS_MONO_WEIGHTS = [400, 600, 700] as const;
 
 /**
- * JetBrains Mono inlined as data URIs, matching the app's self-hosted faces.
- *
- * An OPTIONAL peer, and the run reports which mode it is in rather than letting
- * someone find out from a diff: with the face absent a render uses whatever the
- * machine has, which is acceptable for a docs screenshot and disqualifying for a
- * pixel comparison.
+ * JetBrains Mono, the app's font, inlined as data URIs. It is an optional
+ * peer: without it the result is `mode: "fallback"` with `advice` saying what
+ * to install, and renders use the machine's own monospace. That is fine for a
+ * docs picture and not for a pixel comparison.
  *
  * @category Rendering scenes
  */

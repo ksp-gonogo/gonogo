@@ -1,13 +1,19 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { readInventory } from "@ksp-gonogo/uplink-tools/render-probe";
 import {
   display,
   renderModuleUrl,
   resolveUplinkPackage,
 } from "./render/context";
-import { buildManifest, buildReadme, linkedAssets } from "./render/docs";
+import {
+  buildManifest,
+  buildReadme,
+  linkedAssets,
+  widgetRecordsOf,
+} from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
+import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./render/widgetRecord";
 
 /*
  * The browserless half of `gonogo-uplink docs --check`: whether the generated page still matches what the registrations declare.
@@ -55,12 +61,14 @@ function withoutIntegrity(json: string): string {
   return JSON.stringify(manifest, null, 2);
 }
 
-/** The two prose files of a page, and where they belong. */
+/** The generated files of a page, and where they belong. */
 interface GeneratedPage {
   readmePath: string;
   readme: string;
   manifestPath: string;
   manifestJson: string;
+  recordsPath: string;
+  recordsJson: string;
   root: string;
 }
 
@@ -103,6 +111,8 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
     // lets the writer below rewrite a released manifest without blanking the
     // hash the release stamped into it.
     manifestJson: `${JSON.stringify({ ...manifest, integrity: committedIntegrity(manifestPath) }, null, 2)}\n`,
+    recordsPath: join(pkg.dir, WIDGET_RECORDS_FILE),
+    recordsJson: widgetRecordsJson(widgetRecordsOf(inventory)),
     root: pkg.dir,
   };
 }
@@ -126,8 +136,8 @@ function committedIntegrity(manifestPath: string): string {
 }
 
 /**
- * Regenerates the Uplink's page and manifest and compares them with the
- * committed files, without writing anything.
+ * Regenerates the Uplink's README, manifest and `docs/widgets.json` and
+ * compares them with the committed files, without writing anything.
  *
  * @category Page check
  */
@@ -151,23 +161,23 @@ export function checkUplinkPage(
     page.root,
     differences,
   );
+  compare(
+    page.recordsPath,
+    page.recordsJson,
+    (a, b) => a === b,
+    page.root,
+    differences,
+  );
   return { differences };
 }
 
 /**
- * Rewrite the page's prose in place, leaving `docs/assets` untouched.
- *
- * The counterpart to {@link checkUplinkPage}, and the reason it exists is the
- * cost of the alternative. `gonogo-uplink docs` is the only other way to move
- * these two files, and it re-rasterises every picture on the way past: on a
- * developer's machine that produces a diff of 170 PNGs nobody asked for, of the
- * same kind as a locally-rendered visual baseline, for a change that moved one
- * line of markdown. An additive contract bump is exactly that change, and it
- * moves the "Built against" row of every bundled Uplink at once.
- *
- * So the prose has a writer of its own, on the same registry read the check
- * uses. It needs no browser, produces the same bytes on any operating system,
- * and cannot touch an asset because it never renders one.
+ * Rewrites the Uplink's README, manifest and `docs/widgets.json` in place,
+ * leaving `docs/assets` untouched: the counterpart to {@link checkUplinkPage},
+ * for a change that moves the page's text but not its pictures, such as a new
+ * contract version.
+ * It needs no browser and writes the same bytes on any machine, where
+ * `gonogo-uplink docs` would re-render every picture.
  *
  * @category Page check
  */
@@ -179,6 +189,7 @@ export function writeUplinkPage(options: PageCheckOptions = {}): {
   for (const [file, content] of [
     [page.readmePath, page.readme],
     [page.manifestPath, page.manifestJson],
+    [page.recordsPath, page.recordsJson],
   ] as const) {
     let committed: string | undefined;
     try {
@@ -187,6 +198,7 @@ export function writeUplinkPage(options: PageCheckOptions = {}): {
       committed = undefined;
     }
     if (committed === content) continue;
+    mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, content, "utf8");
     written.push(display(page.root, file));
   }
@@ -222,15 +234,9 @@ function compare(
  * Import every module this Uplink's `gonogo.renderWith` names, so the scenes
  * that draw inside a host widget can find it.
  *
- * The renderer bundles that list into its browser entry; a test has no bundler,
- * so it has to import them itself. Through the DECLARATION rather than by
- * writing the path into the test, for the reason the declaration exists: a host
- * widget ships with the app, in a package no Uplink may name, and a relative
- * path climbing out of the client would leave the package unextractable (the
- * extraction probe typechecks `src` outside the workspace, where that path does
- * not exist). A runtime import of a resolved path is invisible to that
- * typecheck and to the isolation ratchet's specifier denylist alike, which is
- * the same latitude `renderWith` already takes.
+ * The renderer bundles that list into its page; a test has no bundler, so it
+ * imports them through this, from the declaration rather than a path written
+ * into the test.
  *
  * Await it before {@link expectUplinkPageCurrent} in an Uplink whose fixtures
  * name `_scene.hostWidget`. It is a no-op for one that declares no hosts.
@@ -254,13 +260,10 @@ export async function loadHostWidgets(
 }
 
 /**
- * The environment variable that turns this gate into its own fix.
- *
- * The same affordance a snapshot assertion has, and for the same reason: the
- * expected value is GENERATED, so the person who broke it is never being asked
- * to write anything, only to re-derive it. The difference from a snapshot is
- * that the derivation is cheap and exact, so there is nothing to review in the
- * result beyond the diff itself.
+ * The environment variable that makes {@link expectUplinkPageCurrent} rewrite
+ * the page and manifest instead of failing, as updating a snapshot does. Set it
+ * to `1`. On CI (with `CI` set) it is refused with an error, so a check run
+ * can never heal itself.
  *
  * @category Page check
  */
@@ -286,11 +289,11 @@ function updateRequested(): boolean {
 }
 
 /**
- * Fails when the Uplink's committed page or manifest no longer matches what its
- * registrations declare, listing each difference. For an Uplink's own test
+ * Fails when the Uplink's committed README, manifest or `docs/widgets.json` no
+ * longer matches what its registrations declare, listing each difference. For an Uplink's own test
  * suite: it needs no browser, and it cannot tell whether the committed images
  * are current, which `gonogo-uplink docs --check` does. With `PAGE_UPDATE_ENV`
- * set to `1`, outside CI, it rewrites the files instead of failing.
+ * set to `1` it rewrites the files instead of failing; on CI that is refused.
  *
  * @example
  * ```ts

@@ -117,7 +117,10 @@ export {
   type Scene,
   sceneFromFixture,
 } from "./render/sceneModel";
-export type { MinFitFinding };
+
+import { type WidgetRecord, widgetRecordOf } from "./render/widgetRecord";
+
+export type { MinFitFinding, WidgetRecord };
 export { auditMinFit };
 
 // The wire between the two halves
@@ -357,25 +360,15 @@ export interface InventoryMode {
 }
 
 /**
- * One widget the Uplink registered, as the render probe reads it.
+ * One widget the Uplink registered, as the render probe reads it: its
+ * {@link WidgetRecord} plus what the harness needs to render it.
  *
  * @category Inventory
  */
-export interface InventoryWidget {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  channels: string[];
-  optionalChannels: string[];
-  dataRequirements: string[];
-  actions: { id: string; label?: string }[];
-  augmentSlots: string[];
-  contributionSlots: string[];
-  requires: string[];
-  replaces?: string;
-  pushable: boolean;
+export interface InventoryWidget extends WidgetRecord {
+  /** The registration's behavior flags. */
   behaviors: string[];
+  /** The sizes the harness renders the widget at, the default size first. */
   modes: InventoryMode[];
 }
 
@@ -550,10 +543,9 @@ function depTopic(dep: unknown): string {
 /**
  * Everything one Uplink client registered, read off the live registries.
  *
- * This is the ONE derivation. The renderer reads it to know which scenes exist
- * and what size to draw them at; the docs generator reads the same object to
- * write the page. Two reads would be two chances for the page to describe a
- * different Uplink from the one that was photographed.
+ * The renderer reads it to know which scenes exist and what size to draw them
+ * at, and the page generator reads the same object, so the page describes the
+ * Uplink that was rendered.
  *
  * @category Inventory
  */
@@ -581,24 +573,7 @@ export function readInventory(uplinkId?: string): UplinkInventory {
   }
   const owned = (owner: { id: string } | undefined) => owner?.id === client.id;
   const widgetInventory = (def: ComponentDefinition): InventoryWidget => ({
-    id: def.id,
-    name: def.name,
-    description: def.description,
-    tags: [...def.tags],
-    channels: [...(def.channels ?? [])],
-    optionalChannels: [...(def.optionalChannels ?? [])],
-    dataRequirements: (def.dataRequirements ?? []).map((r) =>
-      typeof r === "string" ? r : String(r),
-    ),
-    actions: (def.actions ?? []).map((a) => ({
-      id: a.id,
-      label: (a as { label?: string }).label,
-    })),
-    augmentSlots: [...(def.augmentSlots ?? [])],
-    contributionSlots: [...(def.contributionSlots ?? [])],
-    requires: (def.requires ?? []).map((r) => String(r)),
-    replaces: def.replaces,
-    pushable: def.pushable === true,
+    ...widgetRecordOf(def),
     behaviors: (def.behaviors ?? []).map((b) => String(b)),
     modes: modesFor(def),
   });
@@ -675,9 +650,9 @@ export function readInventory(uplinkId?: string): UplinkInventory {
 // The author's optional browser-side glue
 
 /**
- * What `client/gonogo-render.setup.ts` may do, for the two Uplinks in nine that
- * need a fake only they can write: a data source with a bespoke status surface,
- * a live WebRTC session.
+ * What `client/gonogo-render.setup.ts` may do, for an Uplink that needs a fake
+ * only it can write: a data source with its own status surface, a live WebRTC
+ * session.
  *
  * The constraint that makes it safe: `beforeScene` is told whether the scene is
  * STARVED, and a setup that feeds data must honour it. The driver renders every
@@ -1748,12 +1723,10 @@ export interface RenderProbeApi {
 /**
  * Everything a page needs before an Uplink's own module is imported.
  *
- * MUST run before the client bundle loads: the sdk's author surface is
- * host-injected shims, so a widget's module-load `registerComponent` throws with
- * "the gonogo host has not been installed" against an uninstalled host. Static
- * ES imports are hoisted above every statement, which is why the generated entry
- * imports the client DYNAMICALLY and awaits this first. Ordering by import
- * position works until an import sorter moves a line.
+ * Await it before the client bundle loads, and import the client dynamically
+ * after it: a widget's `registerComponent` at module load throws "the gonogo
+ * host has not been installed" until this has run. A static import would be
+ * hoisted above it.
  *
  * @category Probe setup
  */

@@ -1,0 +1,143 @@
+{
+  "widgets": [
+    {
+      "id": "deployed-science",
+      "name": "Deployed Science",
+      "description": "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
+      "tags": [
+        "telemetry",
+        "science"
+      ],
+      "channels": [],
+      "optionalChannels": [],
+      "dataRequirements": [
+        "deployed.bases",
+        "game.dlc.breakingGround"
+      ],
+      "fields": [],
+      "actions": [],
+      "augmentSlots": [
+        "deployed-science.experiment"
+      ],
+      "contributionSlots": [],
+      "requires": [],
+      "replaces": null,
+      "pushable": true,
+      "defaultSize": {
+        "w": 5,
+        "h": 9
+      },
+      "minSize": {
+        "w": 4,
+        "h": 5
+      },
+      "tiny": false
+    },
+    {
+      "id": "robotics-console",
+      "name": "Robotics Console",
+      "description": "Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.",
+      "tags": [
+        "telemetry",
+        "robotics"
+      ],
+      "channels": [],
+      "optionalChannels": [],
+      "dataRequirements": [
+        "robotics.servos",
+        "robotics.available.available",
+        "game.dlc.breakingGround"
+      ],
+      "fields": [],
+      "actions": [
+        {
+          "id": "targetUp",
+          "label": "Target +"
+        },
+        {
+          "id": "targetDown",
+          "label": "Target −"
+        },
+        {
+          "id": "toggleMotor",
+          "label": "Toggle motor"
+        },
+        {
+          "id": "toggleLock",
+          "label": "Toggle lock"
+        }
+      ],
+      "augmentSlots": [],
+      "contributionSlots": [],
+      "requires": [
+        "flight"
+      ],
+      "replaces": null,
+      "pushable": true,
+      "defaultSize": {
+        "w": 5,
+        "h": 8
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      },
+      "tiny": false
+    },
+    {
+      "id": "rotor-tachometer",
+      "name": "Rotor Tachometer",
+      "description": "Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.",
+      "tags": [
+        "telemetry",
+        "robotics"
+      ],
+      "channels": [],
+      "optionalChannels": [],
+      "dataRequirements": [
+        "robotics.servos",
+        "robotics.available.available",
+        "game.dlc.breakingGround"
+      ],
+      "fields": [],
+      "actions": [
+        {
+          "id": "rpmUp",
+          "label": "RPM up"
+        },
+        {
+          "id": "rpmDown",
+          "label": "RPM down"
+        },
+        {
+          "id": "toggleMotor",
+          "label": "Toggle motor"
+        },
+        {
+          "id": "toggleLock",
+          "label": "Toggle lock"
+        },
+        {
+          "id": "reverse",
+          "label": "Reverse"
+        }
+      ],
+      "augmentSlots": [],
+      "contributionSlots": [],
+      "requires": [
+        "flight"
+      ],
+      "replaces": null,
+      "pushable": true,
+      "defaultSize": {
+        "w": 6,
+        "h": 10
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      },
+      "tiny": false
+    }
+  ]
+}

@@ -12,12 +12,12 @@ import type {
   InventoryAugment,
   InventoryContribution,
   InventoryErrorCode,
-  InventoryWidget,
   UplinkInventory,
 } from "../render-probe";
 import type { UplinkPackage } from "./context";
 import type { RenderedAsset } from "./driver";
 import type { Scene } from "./scenes";
+import type { WidgetRecord } from "./widgetRecord";
 import { commandSection, readWireSurface, wireSection } from "./wire";
 
 /**
@@ -328,7 +328,26 @@ export function scenesAssertingNothing(inputs: DocsInputs): string[] {
     .map((scene) => `${scene.target.id} / ${scene.name}`);
 }
 
-function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
+/**
+ * The Uplink's widgets as {@link WidgetRecord}s, without the harness's own
+ * fields. The README's widget sections and `docs/widgets.json` are both made
+ * from this list.
+ *
+ * @category Uplink page
+ */
+export function widgetRecordsOf(inventory: UplinkInventory): WidgetRecord[] {
+  return inventory.widgets.map(
+    ({ behaviors: _b, modes: _m, ...record }) => record,
+  );
+}
+
+/** An action as the README lists it: the label an operator reads, then its id. */
+function actionLine(action: { id: string; label: string }): string {
+  return `${action.label.replaceAll("|", "\\|")} (\`${action.id}\`)`;
+}
+
+// Takes the record, never the inventory entry, so nothing reaches a widget's section that `docs/widgets.json` does not also carry.
+function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
   const out = [`### ${widget.name}`, "", widget.description, ""];
   // `channels` when the widget declares them, `dataRequirements` otherwise: they
   // are two generations of the same declaration and a widget on the older one
@@ -350,7 +369,7 @@ function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
       [
         "Actions",
         widget.actions.length > 0
-          ? list(widget.actions.map((a) => a.id))
+          ? widget.actions.map(actionLine).join(", ")
           : undefined,
       ],
       ["Slots", slots.length > 0 ? list(slots) : undefined],
@@ -359,7 +378,12 @@ function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
         widget.requires.length > 0 ? list(widget.requires) : undefined,
       ],
       ["Replaces", widget.replaces ? `\`${widget.replaces}\`` : undefined],
-      ["Default size", `${widget.modes[0].w} × ${widget.modes[0].h}`],
+      [
+        "Default size",
+        widget.defaultSize
+          ? `${widget.defaultSize.w} × ${widget.defaultSize.h}`
+          : undefined,
+      ],
       // How many STATES somebody thought worth showing, not how many pictures.
       // A widget with three warning states and one scene is the shape that hides
       // a finding, and this is what makes that visible in review.
@@ -556,9 +580,10 @@ export function buildReadme(
     ...commandSection(wire),
   ];
 
-  if (inventory.widgets.length > 0) {
+  const records = widgetRecordsOf(inventory);
+  if (records.length > 0) {
     out.push("## Widgets", "");
-    for (const widget of inventory.widgets) {
+    for (const widget of records) {
       out.push(...widgetSection(inputs, widget), "");
     }
   }

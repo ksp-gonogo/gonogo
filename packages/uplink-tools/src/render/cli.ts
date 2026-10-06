@@ -1,7 +1,14 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   display,
   resolveRenderModule,
@@ -15,6 +22,7 @@ import {
   linkedAssets,
   README_GENERATED_MARKER,
   scenesAssertingNothing,
+  widgetRecordsOf,
 } from "./docs";
 import { type Engine, readUplinkScenes, renderUplink } from "./driver";
 import {
@@ -27,6 +35,7 @@ import {
   type ShapeVerdict,
   writeShapeRecord,
 } from "./shape";
+import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./widgetRecord";
 
 /**
  * What to do about a stale page, and it is not the obvious thing.
@@ -65,6 +74,12 @@ const REGENERATE_REMEDY =
 
 const ENGINES = new Set(["chromium", "firefox", "webkit"]);
 
+/** The flags only one verb reads, so the other refuses them rather than ignoring them. */
+const VERB_ONLY_FLAGS: Readonly<Record<string, readonly string[]>> = {
+  render: ["--scene", "--frames", "--out"],
+  docs: ["--bundle", "--assets", "--check", "--no-assets"],
+};
+
 interface Args {
   verb: string;
   root: string;
@@ -92,8 +107,10 @@ function parseArgs(argv: readonly string[]): Args {
     noAssets: false,
     withModules: [],
   };
+  const given = new Set<string>();
   for (let i = 1; i < argv.length; i++) {
     const flag = argv[i];
+    given.add(flag);
     const value = () => {
       const next = argv[++i];
       if (next === undefined) throw new Error(`${flag} needs a value`);
@@ -152,10 +169,12 @@ function parseArgs(argv: readonly string[]): Args {
         throw new Error(`unknown flag "${flag}"`);
     }
   }
-  if (args.noAssets && args.verb !== "docs") {
-    throw new Error(
-      "--no-assets only applies to docs: render writes only images",
-    );
+  for (const [verb, flags] of Object.entries(VERB_ONLY_FLAGS)) {
+    if (verb === args.verb || !(args.verb in VERB_ONLY_FLAGS)) continue;
+    const misplaced = flags.find((flag) => given.has(flag));
+    if (misplaced) {
+      throw new Error(`${misplaced} only applies to ${verb}\n\n${USAGE}`);
+    }
   }
   if (args.noAssets && args.check) {
     throw new Error(
@@ -170,30 +189,38 @@ function parseArgs(argv: readonly string[]): Args {
 const USAGE = `gonogo-uplink <render|docs> [options]
 
   render                 render every fixture to ./renders/
-  docs                   write README.md, gonogo-uplink.json and docs/assets/
-  docs --check           regenerate in memory and fail on any difference.
-                         The pictures' shapes are compared only on CI
-                         (CI or GITHUB_ACTIONS set); elsewhere the README,
-                         the manifest and the asset names are
-  docs --no-assets       write README.md and gonogo-uplink.json only, and
-                         leave docs/assets/ as it is. For a change that moves
-                         the prose (a scene added or removed) on a machine whose
-                         renders are not the ones committed
+  docs                   write README.md, gonogo-uplink.json, docs/widgets.json
+                         and docs/assets/
 
+Either verb:
   --root <dir>           the Uplink client package (default: cwd)
-  --entry <file>         the client entry to bundle (default: src/index.ts)
+  --entry <file>         the client entry to bundle (default: src/index.ts,
+                         then src/index.tsx, then package.json "main")
   --uplink <id>          which declared client, when the bundle has several
-  --scene <name>         one fixture only
   --engine <e>           chromium | firefox | webkit
-  --out <dir>            render output (default: renders/)
-  --assets <dir>         docs asset output (default: docs/assets)
-  --bundle <file>        the file you distribute, hashed into integrity
-  --frames               keep the numbered PNGs of a motion scene
   --with <module>        also bundle this module's registrations, on top of
                          package.json's "gonogo.renderWith". A path, or an
                          installed package (@ksp-gonogo/uplink-tools/widgets
                          for the app's own widgets). For a one-off run;
                          declare the ones a fixture needs every time. Repeatable
+
+render only:
+  --scene <name>         one fixture only
+  --out <dir>            render output (default: renders/)
+  --frames               keep the numbered PNGs of a motion scene
+
+docs only:
+  --check                regenerate in memory and fail on any difference.
+                         The pictures' shapes are compared only on CI
+                         (CI or GITHUB_ACTIONS set); elsewhere the README,
+                         the manifest, docs/widgets.json and the asset names are
+  --no-assets            write README.md, gonogo-uplink.json and
+                         docs/widgets.json only, and leave docs/assets/ as it
+                         is. For a change that moves the prose (a scene added
+                         or removed) on a machine whose renders are not the ones
+                         committed
+  --assets <dir>         docs asset output (default: docs/assets)
+  --bundle <file>        the file you distribute, hashed into integrity
 `;
 
 async function main(argv: readonly string[]): Promise<void> {
@@ -295,9 +322,11 @@ async function docs(
   if (warning) console.warn(`\n  warning: ${warning}`);
   const readme = buildReadme(inputs, manifest);
   const manifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
+  const recordsJson = widgetRecordsJson(widgetRecordsOf(result.inventory));
 
   const readmePath = join(pkg.dir, "README.md");
   const manifestPath = join(pkg.dir, "gonogo-uplink.json");
+  const recordsPath = join(pkg.dir, WIDGET_RECORDS_FILE);
 
   const shapes = new Map<string, AssetShape>(
     result.assets.map((asset) => [asset.file, asset.shape]),
@@ -307,6 +336,8 @@ async function docs(
     await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
     await writeFile(readmePath, readme, "utf8");
     await writeFile(manifestPath, manifestJson, "utf8");
+    await mkdir(dirname(recordsPath), { recursive: true });
+    await writeFile(recordsPath, recordsJson, "utf8");
     await writeShapeRecord(assetOut, {
       version: SHAPE_RECORD_VERSION,
       engine: args.engine,
@@ -314,6 +345,7 @@ async function docs(
     });
     console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
     console.log(`wrote ${display(pkg.dir, manifestPath)}`);
+    console.log(`wrote ${WIDGET_RECORDS_FILE}`);
     console.log(`wrote ${result.assets.length} asset(s) → ${args.assetDir}/`);
     console.log(`wrote ${args.assetDir}/${SHAPE_RECORD_FILE}`);
     return;
@@ -369,6 +401,8 @@ async function docs(
     readme,
     manifestPath,
     manifestJson,
+    recordsPath,
+    recordsJson,
     committedAssets: resolve(pkg.dir, args.assetDir),
     generatedAssets: assetOut,
     shapes,
@@ -422,8 +456,16 @@ async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
     `${JSON.stringify(manifest, null, 2)}\n`,
     "utf8",
   );
+  const recordsPath = join(pkg.dir, WIDGET_RECORDS_FILE);
+  await mkdir(dirname(recordsPath), { recursive: true });
+  await writeFile(
+    recordsPath,
+    widgetRecordsJson(widgetRecordsOf(read.inventory)),
+    "utf8",
+  );
   console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
   console.log(`wrote ${display(pkg.dir, manifestPath)}`);
+  console.log(`wrote ${WIDGET_RECORDS_FILE}`);
   console.log(`left ${args.assetDir}/ untouched`);
 }
 
@@ -526,13 +568,16 @@ export function picturesComparedHere(env: NodeJS.ProcessEnv): boolean {
 }
 
 export const PICTURES_ARE_CI_NOTE =
-  "docs --check: pictures and their shapes are compared in CI only; this run compared the README, the manifest and the asset names.";
+  "docs --check: pictures and their shapes are compared in CI only; this run compared the README, the manifest, docs/widgets.json and the asset names.";
 
 export interface CommittedPage {
   readmePath: string;
   readme: string;
   manifestPath: string;
   manifestJson: string;
+  /** Where the widget records belong, and what they should hold. */
+  recordsPath: string;
+  recordsJson: string;
   committedAssets: string;
   generatedAssets: string;
   shapes: ReadonlyMap<string, AssetShape>;
@@ -553,6 +598,7 @@ export async function compareCommittedPage(
   const differences: string[] = [];
   await compareText(page.readmePath, page.readme, differences);
   await compareText(page.manifestPath, page.manifestJson, differences);
+  await compareText(page.recordsPath, page.recordsJson, differences);
   await compareAssetNames(
     page.committedAssets,
     page.generatedAssets,

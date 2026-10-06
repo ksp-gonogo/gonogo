@@ -2,20 +2,13 @@ import { applyPalette, GIFEncoder, quantize } from "gifenc";
 import { decodePng } from "./png";
 
 /**
- * Numbered PNG frames, stitched in process.
+ * Stitches PNG frames into a GIF at `fps`, in plain JavaScript with no system
+ * tools needed. With `pingPong` the frames play forward and then back. Throws
+ * on an empty list.
  *
- * In process and pure JS, because the prior art
- * (`packages/components/scripts/render-navball-gif.ts`) shells out to
- * ImageMagick `convert`: an undeclared system dependency a third-party author
- * will not have, and the only system requirement this tool may impose is a
- * Playwright browser, which it already imposes.
- *
- * GIF rather than mp4, and the tension is real rather than resolved by taste:
- * the deliverable is an Uplink's README, read on GitHub or SpaceDock, where GIF
- * embeds and mp4 does not. Playwright's own `recordVideo` writes webm on
- * WALL-CLOCK timing, so it cannot use the pinned clock and would not be
- * reproducible. `--frames` keeps the numbered PNGs, and stitching those to mp4
- * for a review relay stays a convenience outside this tool.
+ * A GIF, because an Uplink's README is read on GitHub and SpaceDock, where a
+ * GIF embeds and a video does not. `--frames` keeps the numbered PNGs for
+ * anything else.
  *
  * @category Rendering scenes
  */

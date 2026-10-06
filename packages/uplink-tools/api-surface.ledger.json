@@ -426,7 +426,277 @@
     }
   ],
   "pending": {
-    "breaks": [],
-    "additions": []
+    "breaks": [
+      {
+        "key": "uplink-tools . ~InventoryWidget",
+        "note": "InventoryWidget now extends WidgetRecord and adds only behaviors and modes"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#actions",
+        "note": "Moved to WidgetRecord; an action's label is now always a string, as the registration requires"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#augmentSlots",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#channels",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#contributionSlots",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#dataRequirements",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#description",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#id",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#name",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#optionalChannels",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#pushable",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#replaces?",
+        "note": "Moved to WidgetRecord as replaces: string | null, null where the registration replaces nothing"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#requires",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#tags",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget",
+        "note": "InventoryWidget now extends WidgetRecord and adds only behaviors and modes"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#actions",
+        "note": "Moved to WidgetRecord; an action's label is now always a string, as the registration requires"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#augmentSlots",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#channels",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#contributionSlots",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#dataRequirements",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#description",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#id",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#name",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#optionalChannels",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#pushable",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#replaces?",
+        "note": "Moved to WidgetRecord as replaces: string | null, null where the registration replaces nothing"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#requires",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#tags",
+        "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      }
+    ],
+    "additions": [
+      {
+        "key": "uplink-tools . WIDGET_RECORDS_FILE",
+        "note": "Where gonogo-uplink docs writes an Uplink's widget records: docs/widgets.json"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord",
+        "note": "A widget's registration facts as data, the one source for its README section and docs page"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#actions",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#augmentSlots",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#channels",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#contributionSlots",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#dataRequirements",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#defaultSize",
+        "note": "New: the registration's defaultSize, null when absent"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#description",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#fields",
+        "note": "New: the fields the widget draws"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#id",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#minSize",
+        "note": "New: the registration's minSize, null when absent"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#name",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#optionalChannels",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#pushable",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#replaces",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#requires",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#tags",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#tiny",
+        "note": "New: whether the widget has a tiny form"
+      },
+      {
+        "key": "uplink-tools . widgetRecordsJson",
+        "note": "The one writer of a widget-records file, an Uplink's and core's widgets.json alike"
+      },
+      {
+        "key": "uplink-tools . widgetRecordsOf",
+        "note": "An inventory's widgets as records, which the README and docs/widgets.json are both made from"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord",
+        "note": "A widget's registration facts as data, the one source for its README section and docs page"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#actions",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#augmentSlots",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#channels",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#contributionSlots",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#dataRequirements",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#defaultSize",
+        "note": "New: the registration's defaultSize, null when absent"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#description",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#fields",
+        "note": "New: the fields the widget draws"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#id",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#minSize",
+        "note": "New: the registration's minSize, null when absent"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#name",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#optionalChannels",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#pushable",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#replaces",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#requires",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#tags",
+        "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#tiny",
+        "note": "New: whether the widget has a tiny form"
+      }
+    ]
   }
 }
