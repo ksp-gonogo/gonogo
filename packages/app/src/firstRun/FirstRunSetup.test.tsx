@@ -489,6 +489,25 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     ).toBeInTheDocument();
   });
 
+  it("an Uplink the roster lists as available but whose own health is unavailable reads unavailable with that reason", async () => {
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [
+      rosterEntry({
+        id: "expansion-gated",
+        health: { state: 2, detail: "The expansion is not installed" },
+      }),
+    ]);
+
+    expect(
+      await screen.findByText(say("uplinks.row.unavailable")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("The expansion is not installed"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(say("uplinks.row.loaded"))).toBeNull();
+  });
+
   it("shows each Uplink's own health report: its state, what it says, and its facts", async () => {
     setUplinkOutcome({ id: "cameras", name: "cameras", status: "loaded" });
     const { wsClients } = renderSetup();
