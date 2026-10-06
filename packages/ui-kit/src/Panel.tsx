@@ -61,9 +61,9 @@ interface PanelContextValue {
 const PanelCtx = createContext<PanelContextValue | null>(null);
 
 /**
- * Coordination between the panel's parts: `Panel.Body` registers the element
- * that scrolls and `Panel.Glow` observes it, so neither depends on nesting
- * order. Keep it to the scroll element.
+ * Links a panel's parts: `Panel.Body` registers the element that scrolls and
+ * `Panel.Glow` draws its edge glow from it, whatever their nesting order. A
+ * hand-composed panel mounts it around both.
  */
 export function PanelContextProvider({ children }: { children?: ReactNode }) {
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
@@ -1095,10 +1095,9 @@ const PanelSidebar__Box = styled.div`
  * Secondary content beside or below the body: an almanac for the diagram, a
  * legend for the plot, a detail pane for the selected row.
  *
- * It carries its own `ScrollArea` and is never inside `Panel.Body`, so
- * scrolling it does not scroll the drawing it annotates. It carries the body's
- * inset too; inside the split grid `panelSidebar` draws, the edge facing the body gives its inset
- * back, since the body already pays one there.
+ * It has its own {@link ScrollArea} and sits outside `Panel.Body`, so
+ * scrolling it does not scroll the drawing it annotates. It is padded like the
+ * body, except on the edge it shares with the body.
  */
 export function PanelSidebar({
   children,
@@ -1195,9 +1194,9 @@ export type { PanelInactiveReason } from "./InactiveNotice";
  */
 export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   /**
-   * Panel heading. Supplying it opts into the composed model: the panel renders
-   * its own title and pads its body. Named so it does not collide with the
-   * div's own `title` tooltip attribute.
+   * The panel's heading. With it set, the panel draws its own header and pads
+   * its body. Named `panelTitle` so it does not clash with the HTML `title`
+   * tooltip attribute.
    */
   panelTitle?: ReactNode;
   /**
@@ -1256,11 +1255,11 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * announced when it changes. `live` shows nothing, and `"none"` suppresses
    * the badge.
    *
-   * The dashboard already derives the blackout grades (`recorded`,
-   * `last-before-blackout`) across the widget's declared channels; every other
-   * grade shows only when set here, since `absent` means different things for
-   * different Topics. Set it for a panel reading one specific Topic. It merges,
-   * worst first, with the dashboard's own status and any `report` badges.
+   * The dashboard sets the blackout grades (`recorded`,
+   * `last-before-blackout`) itself, from the widget's declared channels. Any
+   * other grade shows only when set here, so set it for a panel that reads one
+   * specific Topic. It is merged, worst first, with the dashboard's status and
+   * any badge drawn with `report`.
    */
   panelStatus?: StreamStatusValue | "none";
   /**
@@ -1271,10 +1270,10 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelToolbar?: ReactNode;
   /**
-   * A `useRowFilter` filter over the whole body, its control pinned in the
-   * toolbar row under the header so it stays above the list it narrows while
-   * the body scrolls. A filter over one list among others belongs in a
-   * `FilterRegion` around that list instead.
+   * A filter from {@link useRowFilter} over the whole body. Its control is
+   * pinned in the toolbar row under the header, so it stays above the list it
+   * narrows while the body scrolls. For a filter over one list among others,
+   * wrap that list in a {@link FilterRegion} instead.
    */
   panelFilter?: RowFilter;
   /**
@@ -1313,8 +1312,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * an almanac for a diagram, a legend for a plot, a detail pane for the
    * selected row.
    *
-   * It is a region, not a column of body content: for content whose scrolling
-   * must not move what it annotates. Unset, the panel renders no split at all.
+   * It scrolls on its own, apart from the body, so scrolling it never moves
+   * what it annotates. Unset, the panel has no sidebar.
    */
   panelSidebar?: ReactNode;
   /**
@@ -1347,6 +1346,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
  * @category Panel
  */
 export interface PanelBadge extends BadgeEntry {
+  /** Tooltip text saying why the badge shows. */
   title?: string;
 }
 
@@ -1363,19 +1363,11 @@ function mergeBadges(
 
 /**
  * The standard augment segments {@link Panel} mounts for every widget:
- * `sections` and `actions`. Each completes to the slot id
- * `${componentId}.<segment>` for the widget the panel belongs to, so an Uplink
- * can bind `"<widget-id>.sections"` or `"<widget-id>.actions"` with
- * `registerAugment` for any widget, whether or not the widget declares slots of
- * its own. Neither segment passes props (see {@link AugmentSegmentRegistry}).
- *
- * - `sections`: body content added after everything the widget draws. When the
- *   widget passes `sections`, each bound augment is its own item in the last
- *   section grid, so it flows into a column beside the widget's own sections.
- *   A widget can move it with {@link WidgetSections}
- * - `actions`: controls in the panel header's right-hand aside, after the
- *   widget's own `panelAside` and before its badges. While nothing available
- *   is bound, the header draws no aside for it
+ * `sections` and `actions`. An Uplink binds `"<widget-id>.sections"` or
+ * `"<widget-id>.actions"` with `registerAugment` for any widget, whether or
+ * not the widget declares slots of its own. Neither passes props (see
+ * {@link AugmentSegmentRegistry}). Where each renders is under Standard slots
+ * on {@link Panel}.
  *
  * @category Panel
  */
@@ -1478,9 +1470,9 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: number }>`
 `;
 
 /**
- * The pinned bottom strip `panelFooter` renders into: a flex-column sibling
- * AFTER the glow region, so it never scrolls and never shrinks. Mirrors the
- * body's horizontal inset so footer content lines up with the rows above it.
+ * The strip pinned to the bottom of a panel, which `panelFooter` renders
+ * into. It never scrolls or shrinks, and shares the body's side padding so its
+ * content lines up with the rows above it.
  */
 export const PanelFooter = styled.div`
   flex-shrink: 0;

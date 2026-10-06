@@ -27,9 +27,10 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    */
   cols?: string;
   /**
-   * Responsive columns: `repeat(auto-fill, minmax(min(minColWidth, 100%), 1fr))`.
-   * The `100%` cap stops the floor overflowing a container narrower than it.
-   * Ignored when `cols` is set.
+   * Responsive columns: as many equal columns of at least this width as fit
+   * (`repeat(auto-fill, minmax(min(minColWidth, 100%), 1fr))`). A container
+   * narrower than `minColWidth` gets one column of its own width rather than
+   * overflowing. Ignored when `cols` is set.
    */
   minColWidth?: string;
   /**
@@ -38,7 +39,7 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    * tracks beside them. Only meaningful with `minColWidth`.
    */
   fit?: boolean;
-  /** Gap between cells, as a gap job. Defaults to `related-dense`. */
+  /** Gap between cells, one of the {@link GapToken} names. Defaults to `related-dense`. */
   gap?: GapToken;
   /**
    * Row gap, when it differs from the column gap: a label/value grid usually

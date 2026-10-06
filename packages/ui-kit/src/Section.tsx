@@ -53,9 +53,9 @@ export interface SectionProps
  * `full` spans every column of the section grid and `fill` takes the body's
  * leftover height.
  *
- * A section is a lock scope: when a topic read or a command held anywhere
- * inside it is one this save has not unlocked, the section keeps its title and
- * draws the missing unlock in place of its content.
+ * A section is also a {@link LockScope}: when anything inside it reads a Topic
+ * or uses a command this save has not unlocked, the section keeps its title
+ * and shows what is missing in place of its content.
  *
  * @category Layout
  */

@@ -10,18 +10,18 @@ import type { StaticElement } from "./staticElement";
  */
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /**
-   * Gap between children, as a gap job. Omit it and the gap is
-   * `--gap-related`, inherited from whichever container the stack lands in, so
-   * the same stack is 8px on a panel and 6px inside a card. Pass a job only
-   * from a container deciding the spacing for what it holds.
+   * Gap between children, one of the {@link GapToken} names. Omitted, the
+   * stack takes the `related` gap of whatever container it sits in, so the
+   * same stack is 8px on a panel and 6px inside a card. Set it only where this
+   * stack decides the spacing of what it holds.
    */
   gap?: GapToken;
   /** Rendered tag. Defaults to `div`. */
   as?: StaticElement;
   /**
-   * Take the remaining space in a flex parent, and allow shrinking below the
-   * content's natural height. That pair is what lets a scroller nested inside
-   * actually scroll instead of growing the whole column.
+   * Take the remaining space in a flex parent and allow shrinking below the
+   * content's natural height, so a scrolling region inside the stack scrolls
+   * rather than growing the whole column.
    */
   fill?: boolean;
   children?: ReactNode;

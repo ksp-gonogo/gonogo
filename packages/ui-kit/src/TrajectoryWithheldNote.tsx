@@ -7,8 +7,9 @@ import { Text } from "./Text";
 import { Tooltip } from "./Tooltip";
 
 /**
- * The `withheld` answer of `useOrbitTrajectory`: a path that may not be drawn,
- * and the reason why.
+ * An orbit path that may not be drawn, and the reason: no horizon was stated
+ * for it, the instant on screen is past its horizon, its shape was not stated,
+ * the frame asked for cannot be built, or it could not be sampled.
  *
  * @category EmptyState
  */
@@ -19,9 +20,9 @@ export type WithheldTrajectory = Extract<
 
 /**
  * The heading and sentence for a withheld path, for a widget that lays the
- * words out itself. Each reason has its own wording because each has a
- * different remedy. Use this rather than wording your own, so every widget says
- * the same refusal the same way.
+ * words out itself. Each reason has its own wording, saying what would let the
+ * path be drawn. Use this rather than your own words, so every widget
+ * describes a withheld path the same way.
  *
  * @category EmptyState
  */
@@ -65,10 +66,10 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
 }
 
 /**
- * The refusal standing in for a path's drawing, as a status rather than an
- * alert: a provider declining to vouch for a path that far is the system
- * working. `compact` keeps the heading only, with the sentence on hover, for a
- * strip beside a readout or a caption.
+ * Drawn in place of a path that is withheld: a heading and a sentence saying
+ * why. It is announced as a status, not an alert, since a withheld path is
+ * normal behaviour rather than a fault. `compact` shows the heading only, with
+ * the sentence on hover, for a strip beside a readout or a caption.
  *
  * @category EmptyState
  */

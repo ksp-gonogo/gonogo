@@ -17,8 +17,8 @@ import { toneEdge } from "./tone";
  */
 export interface CardProps extends BlockProps {
   /**
-   * How this record is DOING, drawn as a 2px accent rule down the leading edge.
-   * Status only; identity is `identityColor`.
+   * The record's status, drawn as a 2px rule down the leading edge. For what
+   * the record is, use `identityColor`.
    */
   tone?: Tone;
   /**
@@ -28,12 +28,11 @@ export interface CardProps extends BlockProps {
    */
   dimmed?: boolean;
   /**
-   * WHICH THING this record is about, drawn as a short centred tab on the TOP
-   * edge: a resource's own colour, a category's hue. Never a status, that is
-   * `tone`; the two compose. The tab is short so it reads as a label, not a
-   * gauge.
+   * What the record is, drawn as a short tab centred on the top edge: a
+   * resource's own colour, a category's hue. Not a status, which is `tone`;
+   * a card can have both.
    *
-   * A plain CSS colour, not a resource name: resolve it first, e.g.
+   * A CSS colour, not a resource name: resolve a name first, e.g.
    * `identityColor={resourceColor(name)}`.
    */
   identityColor?: string;
@@ -127,9 +126,9 @@ function CardRoot({
  * padded box. Its parts are `Block`'s own (`Card.Title === Block.Title`); use
  * `Block` for the grouping without the box.
  *
- * A card is a tighter density tier: the `related` and `section` gaps step one
- * rung down inside it, so a {@link Stack} or {@link Cluster} with no `gap` of
- * its own tightens automatically. Insets do not change.
+ * Inside a card the `related` and `section` gaps are one step smaller, so a
+ * {@link Stack} or {@link Cluster} with no `gap` of its own is tighter there
+ * without being told. Padding sizes do not change.
  *
  * @example
  * ```tsx

@@ -8,14 +8,19 @@
  */
 
 /**
- * The gap jobs a layout primitive's `gap`, `rowGap` or `space` prop accepts,
- * each the name of a `--gap-*` token without its prefix.
+ * The spacing names a layout primitive's `gap`, `rowGap` or `space` prop
+ * accepts. Each names what the space is for, and resolves to the `--gap-*`
+ * CSS variable of the same name.
  *
- * `related` and `section` step with the container they sit in. The tier names
- * are those two jobs held at one density whatever the container, and the rest
- * are single jobs: `rows` between stacked rows that carry their own inset,
- * `caption` under the line a caption belongs to, `readout-row` between the rows
- * of a label/value grid, and `label-value` between its columns.
+ * - `related` and `section`: between related items, and between sections.
+ *   Both are smaller inside a {@link Card} than on a panel
+ * - `related-comfortable`, `related-compact`, `related-dense`,
+ *   `related-packed`, `section-comfortable` and `section-compact`: the same
+ *   two spacings at one fixed density, whatever the container
+ * - `rows`: between stacked rows that carry their own padding
+ * - `caption`: under the line a caption belongs to
+ * - `readout-row` and `label-value`: between the rows and between the columns
+ *   of a label/value grid
  *
  * @category Layout
  */
@@ -49,8 +54,8 @@ export const GAP_VAR = {
 } as const satisfies Record<GapToken, string>;
 
 /**
- * The padding names {@link Box}'s `pad` prop accepts, each the name of an
- * `--inset-*` token without its prefix: `chip`, `chip-roomy` and
+ * The padding names {@link Box}'s `pad` prop accepts, each resolving to the
+ * `--inset-*` CSS variable of the same name: `chip`, `chip-roomy` and
  * `chip-readout` for small pills, `pill` for a stadium, `surface` and
  * `surface-standalone` for a block's own padding, `popover` for a floating
  * card.

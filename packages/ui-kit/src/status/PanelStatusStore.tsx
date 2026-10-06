@@ -13,6 +13,7 @@ import { type Severity, severityRank, worstSeverity } from "./severity";
 export interface StatusContribution {
   /** Stable for the contributor's lifetime; a second contribution with the same id replaces the first. */
   id: string;
+  /** How bad the state is. The worst across the panel wins its summary. */
   severity: Severity;
   /** Shown when this contribution wins the summary. */
   label: string;

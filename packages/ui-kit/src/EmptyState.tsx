@@ -31,11 +31,12 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @example
  * ```tsx
- * {vessels.length === 0 ? (
- *   <EmptyState layout="fill">No vessels in flight</EmptyState>
- * ) : (
- *   <VesselList vessels={vessels} />
- * )}
+ * function VesselsBody({ vessels }: { vessels: readonly string[] }) {
+ *   if (vessels.length === 0) {
+ *     return <EmptyState layout="fill">No vessels in flight</EmptyState>;
+ *   }
+ *   return <VesselList vessels={vessels} />;
+ * }
  * ```
  *
  * @category EmptyState

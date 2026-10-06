@@ -30,23 +30,24 @@ export interface LockSummary {
 export interface LockScopeProps {
   children?: ReactNode;
   /**
-   * What draws in place of `children` while a capability used here is one this
-   * save has not unlocked. Defaults to the centred inactive notice; `null`
+   * What draws in place of `children` while something used inside the scope
+   * is not unlocked in this save. Given a function, it is called with the
+   * {@link LockSummary}. Defaults to a centred notice of the reason; `null`
    * draws nothing, for a scope that is an overlay or a badge.
    */
   fallback?: ReactNode | ((lock: LockSummary) => ReactNode);
 }
 
 /**
- * Marks a part of the tree as a lock scope. A topic read or a command held
- * anywhere inside it, through `useTelemetry`, `useStream` or `useCommand`,
- * that this save has not unlocked replaces the whole scope with its
- * `fallback`. The innermost scope wins, so a scope inside a section takes the
- * lock instead of the section.
+ * Marks a part of the tree that stands or falls together. When anything
+ * inside it reads a Topic (with `useTelemetry` or `useStream`) or uses a
+ * command (with `useCommand`) that this save has not unlocked, the whole scope
+ * is replaced by its `fallback`. The innermost scope wins, so a scope inside a
+ * section is replaced while the section stays.
  *
- * Draws no element of its own. `Section`, each augment in an `AugmentSlot` and
- * the dashboard's widget guard are lock scopes already; wrap anything else
- * that should stand or fall on its own.
+ * It draws no element of its own. A {@link Section}, each augment an
+ * {@link AugmentSlot} renders, and every widget as a whole are lock scopes
+ * already; wrap anything else that should be replaced on its own.
  *
  * @category Panel
  */

@@ -16,14 +16,15 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
   /**
    * A small label inlaid over the frame's top-left corner, naming the visual
    * (which frame a drawing is in, what a gauge reads) on the drawing itself.
-   * Prefer it to a caption element beside the frame: a panel whose body is
-   * only this frame keeps its lone-frame inset. The caption sets its own type
-   * (caption size, muted colour), so pass bare text rather than a sized
-   * `Text`. Omitted, nothing is drawn.
+   * Prefer it to a caption element beside the frame: a panel whose body holds
+   * only this frame gives it a thinner inset when narrow, and a caption beside
+   * it would cost that. The caption sets its own type (caption size, muted
+   * colour), so pass bare text rather than a sized `Text`. Omitted, nothing is
+   * drawn.
    */
   caption?: ReactNode;
   /**
-   * A single line inlaid over the frame's bottom-left corner: a caveat or
+   * A single line inlaid over the frame's bottom-left corner: a note or
    * status about what is drawn (an axis warning, a data age). Set on the same
    * opaque backing as `caption`; its colour is the caller's, so a warning can
    * pass a toned `Text`. Omitted, nothing is drawn.
@@ -33,8 +34,8 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    * A band along the frame's bottom edge, inside the same border, for a trend
    * of the figure drawn above it. It is never padded: its content runs to the
    * frame's inner edges, while `padded` insets only the drawing above. Size
-   * the content to the band (it takes a share of the frame's height, within a
-   * floor and a ceiling) rather than giving the band a height. Omitted, the
+   * the content to the band (it takes three tenths of the frame's height,
+   * within a minimum and a maximum) rather than giving the band a height. Omitted, the
    * frame is the one drawing.
    */
   strip?: ReactNode;
@@ -50,10 +51,10 @@ const STRIP_MAX_PX = 96;
  * `canvas` child fills the frame.
  *
  * It does not scroll or size itself: the caller decides how much room the
- * visual gets. Sized with `flex: 1`, a tall flex sibling collapses it, so put
- * a control overlaid on the frame rather than beside it. The visual fills to
- * the rounded edge unless `padded`. A drawing and its trend share one frame
- * through `strip`, never two frames stacked.
+ * visual gets. It grows with `flex: 1`, so a tall flex sibling squeezes it;
+ * overlay a control on the frame rather than placing it beside. The visual
+ * fills to the rounded edge unless `padded`. A drawing and its trend share one
+ * frame through `strip` rather than two frames stacked.
  *
  * @category Layout
  */

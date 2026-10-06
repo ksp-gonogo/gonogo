@@ -24,8 +24,10 @@ export interface ElementSize {
  *
  * @example
  * ```tsx
- * const { ref, size } = useElementSize({ w: 200, h: 120 });
- * return <div ref={ref}>{size.w > 300 ? <Wide /> : <Narrow />}</div>;
+ * function Chart() {
+ *   const { ref, size } = useElementSize<HTMLDivElement>({ w: 200, h: 120 });
+ *   return <div ref={ref}>{size.w > 300 ? <WideChart /> : <NarrowChart />}</div>;
+ * }
  * ```
  *
  * @category Layout

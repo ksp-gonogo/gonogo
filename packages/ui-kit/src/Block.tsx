@@ -5,9 +5,9 @@ import type { StaticElement } from "./staticElement";
 
 /**
  * A record's anatomy, as props: a name, badges on the name's line, a body of
- * figures, asides and a footer of actions. Props are the primary form; the
- * compound parts are the escape hatch for a widget that needs a unique
- * expression and still wants the family's type and spacing.
+ * figures, asides and a footer of actions. Use the props where they fit; the
+ * parts (`Block.Title` and the rest) are for a record that needs its own
+ * arrangement with the same type and spacing.
  */
 export interface BlockAnatomyProps {
   /**
@@ -35,9 +35,9 @@ export interface BlockAnatomyProps {
   left?: ReactNode;
   /** Content beside the title and body, on the right. Reflows BELOW the body when narrow. */
   right?: ReactNode;
-  /** Content across the top, above the title. Already stacked, so it never moves. */
+  /** Content across the top, above the title. It stays there at every width. */
   top?: ReactNode;
-  /** Content across the bottom, below the footer. Already stacked, so it never moves. */
+  /** Content across the bottom, below the footer. It stays there at every width. */
   bottom?: ReactNode;
   /** The actions and tags that close the record, spread across one wrapping row. */
   footer?: ReactNode;

@@ -17,9 +17,12 @@ import {
  *
  * @example
  * ```tsx
- * useStatusContribution(
- *   overheating ? { id: "thermal", severity: "warn", label: "Overheating" } : null,
- * );
+ * function ThermalWatch({ overheating }: { overheating: boolean }) {
+ *   useStatusContribution(
+ *     overheating ? { id: "thermal", severity: "warn", label: "Overheating" } : null,
+ *   );
+ *   return null;
+ * }
  * ```
  *
  * @category Panel

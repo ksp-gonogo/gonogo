@@ -51,13 +51,11 @@ const _everySegmentListed: _EverySegmentListed = true;
 void _everySegmentListed;
 
 /**
- * The standard contribution segments every widget carries: `badges`. It
- * completes to the slot id `${componentId}.badges` for each widget, so an
- * Uplink can fill any widget's header badges with its handle's
- * `registerContribution` without the widget declaring the slot. Each
- * contribution's `compute` returns `BadgeEntry` items; the dashboard supplies
- * them to the widget's {@link Panel}, which draws them after the widget's own
- * `panelBadges` and drops any whose id the widget already uses.
+ * The standard contribution segments every widget carries: `badges`. An
+ * Uplink fills any widget's header badges by contributing to
+ * `"<widget-id>.badges"` with its handle's `registerContribution`, without the
+ * widget declaring the slot. `compute` returns {@link BadgeEntry} items. How
+ * the panel draws them is under Standard slots on {@link Panel}.
  *
  * @example
  * ```ts
@@ -68,7 +66,7 @@ void _everySegmentListed;
  *   requires: "example",
  *   compute: (topics) =>
  *     topics["example.heartbeat"]
- *       ? [{ id: "cadence", label: "Publishing", tone: "info" }]
+ *       ? [{ id: "cadence", label: "Publishing", tone: "info" as const }]
  *       : null,
  * });
  * ```

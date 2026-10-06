@@ -26,26 +26,18 @@ export type {
 
 /**
  * The standard augment segments every widget's {@link Panel} carries, each
- * mapped to the props its augments receive. A segment completes to the slot id
- * `${componentId}.<segment>` for the widget it is mounted in, as
- * `<AugmentSlot segment="...">` does. Both segments pass no props
- * (`Record<string, never>`): an augment reads its own Topics, and reads what
- * the widget is focused on through `useWidgetScope`.
+ * mapped to the props its augments receive. A segment is bound as
+ * `"<widget-id>.<segment>"`. Both pass no props (`Record<string, never>`): an
+ * augment reads its own Topics, and reads what the widget is focused on
+ * through {@link useWidgetScope}. Where each renders is under Standard slots
+ * on {@link Panel}.
  *
  * @category Panel
  */
 export interface AugmentSegmentRegistry {
-  /**
-   * Body content after everything the widget draws, as the slot
-   * `${componentId}.sections`. Inside a panel with `sections`, each augment is
-   * one item of the last section grid, so a returned `Section` takes a column.
-   */
+  /** Body content after everything the widget draws, bound as `"<widget-id>.sections"`. */
   sections: Record<string, never>;
-  /**
-   * Controls in the widget's panel header aside, as the slot
-   * `${componentId}.actions`: after the widget's own `panelAside`, before its
-   * badges.
-   */
+  /** Controls in the widget's panel header, bound as `"<widget-id>.actions"`. */
   actions: Record<string, never>;
 }
 

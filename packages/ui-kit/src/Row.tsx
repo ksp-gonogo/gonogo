@@ -28,16 +28,16 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
   /** Disabled, for `as="button"`. */
   disabled?: boolean;
   /**
-   * Lets the trailing clusters drop to a second line when they cannot share
-   * one with a readable name, and gives `RowName` a minimum readable width so
-   * that they actually do: without the floor the name yields all its width and
-   * the line never wraps. Off by default, so a list never turns ragged silently.
+   * Lets the badges and actions drop to a second line when they cannot share
+   * one with a readable name. The {@link RowName} keeps at least 12 characters
+   * of width (or the whole row, if narrower) and the rest wraps. Off by
+   * default, so a list never turns ragged without asking.
    */
   wrap?: boolean;
   /**
-   * Marks the row subordinate to the one above it (an "of which" line under a
-   * total, a child under a tree node) and insets it on the left only, since the
-   * right side of an indent communicates nothing. One level, one token.
+   * Marks the row as subordinate to the one above it (an "of which" line under
+   * a total, a child under a tree node) by indenting it on the left. There is
+   * one level of nesting.
    */
   nested?: boolean;
   children?: ReactNode;

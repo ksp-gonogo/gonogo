@@ -9,8 +9,8 @@ import { GAP_VAR, type GapToken } from "./scales";
  */
 export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
   /**
-   * Vertical space above and below the rule, as a gap job.
-   * Omit for a flush rule (the caller owns the spacing).
+   * Vertical space above and below the rule, one of the {@link GapToken}
+   * names. Omit it for a flush rule, spaced by its surroundings.
    */
   space?: GapToken;
 }

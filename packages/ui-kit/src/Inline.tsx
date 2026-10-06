@@ -9,23 +9,23 @@ import { GAP_VAR, type GapToken } from "./scales";
  */
 export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
   /**
-   * Gap between children, as a gap job. Omitted, it is `--gap-related`,
-   * inherited from the container, so the cluster takes a panel's or a card's
-   * density. Pass one only from a container deciding its own spacing.
+   * Gap between children, one of the {@link GapToken} names. Omitted, it is
+   * the `related` gap of whatever container the run sits in, so it matches a
+   * panel's or a card's spacing. Set it only where this run decides its own
+   * spacing.
    */
   gap?: GapToken;
   /**
-   * Adds `margin-left: 6px` so this cluster sits apart from a preceding
-   * sibling cluster (e.g. a badge row followed by an action-button row).
+   * Adds `margin-left: 6px` so this run sits apart from a preceding sibling
+   * run (e.g. a badge row followed by an action-button row).
    */
   inset?: boolean;
   /**
-   * Lets the cluster break onto further lines instead of staying one
-   * unbreakable run, and drops the `flex-shrink: 0` that would otherwise stop
-   * it ever being narrow enough to need to.
+   * Lets the run break onto further lines and shrink with its container.
+   * Without it the run stays on one line at its full width.
    *
-   * Turn this on wherever the number of children is data-driven, since an
-   * unbreakable cluster runs on past a narrow column.
+   * Turn this on wherever the number of children comes from data, since a run
+   * that cannot break overflows a narrow column.
    */
   wrap?: boolean;
   children?: ReactNode;

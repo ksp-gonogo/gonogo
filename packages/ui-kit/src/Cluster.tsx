@@ -33,10 +33,10 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
    */
   align?: ClusterAlign;
   /**
-   * Gap between children, as a gap job. Omit it and the gap is
-   * `--gap-related`, inherited from whichever container the row lands in, so
-   * the same row is 8px on a panel and 6px inside a card. Pass a job only
-   * from a container deciding the spacing for what it holds.
+   * Gap between children, one of the {@link GapToken} names. Omitted, the row
+   * takes the `related` gap of whatever container it sits in, so the same row
+   * is 8px on a panel and 6px inside a card. Set it only where this row
+   * decides the spacing of what it holds.
    */
   gap?: GapToken;
   /**
