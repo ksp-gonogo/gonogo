@@ -268,6 +268,26 @@ describe("Panel header aside expand box", () => {
     expect(expandBox().open).toBe(true);
   });
 
+  it("does not take a row that stopped being laid out for one that narrowed", () => {
+    observers = installDrivableResizeObserver();
+    withHeaderMeasurements(239, 120);
+    render(
+      <Panel panelTitle="CREW" panelAside={<Badge>1/1 aboard</Badge>}>
+        body
+      </Panel>,
+    );
+    expect(expandBox().open).toBe(false);
+
+    // Hidden, the row measures nothing: the state holds and no margin starts.
+    withHeaderMeasurements(0, 120);
+    act(() => observers?.resize(header(), { width: 0, height: 0 }));
+    expect(expandBox().open).toBe(false);
+
+    withHeaderMeasurements(241, 120);
+    act(() => observers?.resize(header(), { width: 241, height: 20 }));
+    expect(expandBox().open).toBe(true);
+  });
+
   it("keeps the re-expand margin once the row has narrowed under a collapsed aside", () => {
     observers = installDrivableResizeObserver();
     withHeaderMeasurements(239, 120);

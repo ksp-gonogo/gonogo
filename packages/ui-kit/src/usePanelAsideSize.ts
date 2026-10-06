@@ -190,8 +190,11 @@ export function useHeaderAsideFit(
           px(asideBoxStyle?.paddingRight ?? "") +
           aside;
     const was = collapsedRef.current;
+    // An unmeasured row (a tile not laid out) is not a narrower one.
     const narrowed =
-      availableRef.current !== undefined && available < availableRef.current;
+      available > 0 &&
+      availableRef.current !== undefined &&
+      available < availableRef.current;
     if (was && narrowed) narrowedRef.current = true;
     const next = nextAsideCollapsed(
       was,
