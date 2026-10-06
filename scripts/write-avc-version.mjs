@@ -11,9 +11,22 @@
  */
 import { writeFileSync } from "node:fs";
 
-const KSP_VERSION = "1.12.3";
-const KSP_VERSION_MIN = "1.12.0";
-const KSP_VERSION_MAX = "1.12.99";
+/**
+ * The game versions every mod zip declares: the one `.version` file CKAN reads
+ * and the SpaceDock game-version field, which the publish workflow reads back
+ * out of the written file. The only place a game version is written down.
+ */
+export const GAME_VERSIONS = {
+  KSP_VERSION: "1.12.3",
+  KSP_VERSION_MIN: "1.12.0",
+  KSP_VERSION_MAX: "1.12.99",
+};
+
+/** KSP-AVC's object form of a dotted game version. */
+function versionObject(dotted) {
+  const [MAJOR, MINOR, PATCH] = dotted.split(".").map(Number);
+  return { MAJOR, MINOR, PATCH };
+}
 
 export function avcVersion(name, version) {
   const m = /^[vV]?(\d+)\.(\d+)\.(\d+)/.exec(version);
@@ -21,9 +34,12 @@ export function avcVersion(name, version) {
   return {
     NAME: name,
     VERSION: { MAJOR: major, MINOR: minor, PATCH: patch },
-    KSP_VERSION,
-    KSP_VERSION_MIN,
-    KSP_VERSION_MAX,
+    ...Object.fromEntries(
+      Object.entries(GAME_VERSIONS).map(([key, dotted]) => [
+        key,
+        versionObject(dotted),
+      ]),
+    ),
   };
 }
 

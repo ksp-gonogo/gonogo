@@ -283,8 +283,9 @@ jobs:
 
           ZIP="${{ env.ZIP_NAME }}"
           VERSION="${{ inputs.version }}"
-          # Keep in step with KSP_VERSION in scripts/write-avc-version.mjs.
-          GAME_VERSION="1.12.3"
+          # Read back out of the written `.version`, so the field SpaceDock
+          # shows and the file CKAN reads share one constant.
+          GAME_VERSION="$(jq -r '.KSP_VERSION | "\(.MAJOR).\(.MINOR).\(.PATCH)"' "GameData/${{ inputs.gamedata }}/${{ inputs.gamedata }}.version")"
           git log --oneline -20 > sd-changelog.md
 
           login="$(curl -sS -F username="$SPACEDOCK_USERNAME" -F password="$SPACEDOCK_PASSWORD" -c ./sd-cookies https://spacedock.info/api/login)"
