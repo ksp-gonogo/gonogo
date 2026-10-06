@@ -178,6 +178,7 @@ function rosterEntry(overrides: { id: string } & Record<string, unknown>) {
     version: "1.0.0",
     available: true,
     reason: null,
+    expectedClientHash: "client-hash",
     health: { state: 0, detail: null },
     ...overrides,
   };
@@ -420,6 +421,24 @@ describe("FirstRunSetup: the health check", () => {
 });
 
 describe("FirstRunSetup: the Uplinks reading", () => {
+  it("counts only the Uplinks that ship a client, leaving mod-only capabilities out of the tally", async () => {
+    setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [
+      rosterEntry({ id: "widget-loaded" }),
+      rosterEntry({ id: "capability-a", expectedClientHash: null }),
+      rosterEntry({ id: "capability-b", expectedClientHash: null }),
+    ]);
+
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 1 }),
+    );
+    expect(
+      screen.queryByText(say("uplinks.row.noClient")),
+    ).not.toBeInTheDocument();
+  });
+
   it("says it is waiting until the mod answers, never guessing a state first", async () => {
     const { wsClients } = renderSetup();
     await goToUplinks();

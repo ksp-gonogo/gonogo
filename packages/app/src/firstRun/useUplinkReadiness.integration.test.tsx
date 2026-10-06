@@ -97,6 +97,7 @@ describe("useUplinkReadiness: hook wiring", () => {
             version: "1.0.0",
             available: true,
             reason: null,
+            expectedClientHash: "client-hash",
             health: { state: 0, detail: null },
           },
         ],

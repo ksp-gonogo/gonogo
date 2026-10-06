@@ -124,3 +124,17 @@ describe("uplinksCheck", () => {
     ).toBe(say("uplinks.check.attention", { installed: 1, attention: 1 }));
   });
 });
+
+describe("uplinksCheck: Uplinks that ship no client", () => {
+  it("counts a mod-only Uplink as installed but never as needing attention", () => {
+    const entries = [
+      entry({ id: "a", state: "loaded" }),
+      entry({ id: "b", state: "mod-only" }),
+      entry({ id: "c", state: "mod-only" }),
+    ];
+    expect(uplinksCheck({ entries, waitingForMod: false })).toEqual({
+      state: "pass",
+      text: say("uplinks.check.allWorking", { installed: 3 }),
+    });
+  });
+});

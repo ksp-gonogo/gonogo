@@ -57,7 +57,7 @@ export function connectionCheck(
  * part is not on the active craft.
  */
 export function needsAttention(entry: UplinkReadinessEntry): boolean {
-  if (!entry.installed) return false;
+  if (!entry.installed || entry.state === "mod-only") return false;
   if (entry.rosterEntry?.health.state === "unavailable") return true;
   return entry.state !== "loaded" && entry.state !== "loading";
 }

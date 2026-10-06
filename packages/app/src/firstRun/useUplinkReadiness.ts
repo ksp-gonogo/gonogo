@@ -41,6 +41,7 @@ export type UplinkReadinessState =
   | "quarantined"
   | "contract-mismatch"
   | "no-client"
+  | "mod-only"
   | "unavailable";
 
 export interface UplinkReadinessEntry {
@@ -98,12 +99,14 @@ function stateOf(
   installed: boolean,
   modAvailable: boolean,
   contractRefused: boolean,
+  declaresClient: boolean,
 ): UplinkReadinessState {
   if (installed && contractRefused) return "contract-mismatch";
   if (outcome?.status === "loaded") return "loaded";
   if (outcome?.status === "loading") return "loading";
   if (outcome?.status === "quarantined") return "quarantined";
   if (installed && !modAvailable) return "unavailable";
+  if (installed && !declaresClient) return "mod-only";
   return "no-client";
 }
 
@@ -113,6 +116,11 @@ function stateOf(
  * longer in the roster: an operator's running widget must not vanish from this
  * list because the mod stopped reporting it mid-session.
  *
+ * `clientDeclarations` is the ids whose mod half names a client to load. An
+ * installed Uplink outside it, with no load tried, is `mod-only`: it has no
+ * client to be missing. `undefined` means the mod has not said, which is read as
+ * every Uplink declaring one rather than as none.
+ *
  * `roster` is tri-state. `undefined` means the mod has not answered yet and
  * `null` means it answered with a tombstone; both contribute no roster rows,
  * and only the hook's `loading` flag tells them apart.
@@ -120,6 +128,7 @@ function stateOf(
 export function computeUplinkReadiness(
   roster: SystemUplinkHealth | null | undefined,
   outcomes: readonly UplinkLoadOutcome[],
+  clientDeclarations?: ReadonlySet<string>,
 ): UplinkReadinessEntry[] {
   const rosterById = new Map(
     (roster?.uplinks ?? []).map((entry) => [entry.id, entry]),
@@ -155,9 +164,19 @@ export function computeUplinkReadiness(
         installed,
         modAvailable,
         isContractRefusal(modAvailable, declaredContract, coreContract),
+        clientDeclarations?.has(id) ?? true,
       ),
     };
   });
+}
+
+/** The two fields of a raw `system.uplinks` entry that say whether the Uplink ships a client. */
+interface RawClientDeclarations {
+  uplinks: Array<{
+    id: string;
+    expectedClientHash?: string | null;
+    clientSource?: unknown;
+  }>;
 }
 
 export interface UseUplinkReadinessResult {
@@ -183,9 +202,18 @@ export function useUplinkReadiness(): UseUplinkReadinessResult {
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
   );
+  const declarations = useStream<RawClientDeclarations>("system.uplinks");
+  const clientDeclarations =
+    declarations.state === "observed" || declarations.state === "held"
+      ? new Set(
+          declarations.value.uplinks
+            .filter((u) => u.expectedClientHash != null || u.clientSource)
+            .map((u) => u.id),
+        )
+      : undefined;
 
   return {
-    entries: computeUplinkReadiness(roster, outcomes),
+    entries: computeUplinkReadiness(roster, outcomes, clientDeclarations),
     waitingForMod: roster === undefined,
   };
 }

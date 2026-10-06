@@ -260,3 +260,33 @@ describe("computeUplinkReadiness: join-key edge cases", () => {
     ]);
   });
 });
+
+describe("computeUplinkReadiness: an Uplink that declares no client", () => {
+  const declaring = new Set(["widget-b"]);
+
+  it("reads mod-only when the mod declares no client for it and none was tried", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a" }, { id: "widget-b" }]),
+      [],
+      declaring,
+    );
+    expect(entries.map((e) => [e.id, e.state])).toEqual([
+      ["widget-a", "mod-only"],
+      ["widget-b", "no-client"],
+    ]);
+  });
+
+  it("keeps a recorded client outcome over the absence of a declaration", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a" }]),
+      [{ id: "widget-a", name: "Widget A", status: "loaded" }],
+      declaring,
+    );
+    expect(entries[0]?.state).toBe("loaded");
+  });
+
+  it("does not guess when the mod has not said what it declares", () => {
+    const entries = computeUplinkReadiness(roster([{ id: "widget-a" }]), []);
+    expect(entries[0]?.state).toBe("no-client");
+  });
+});

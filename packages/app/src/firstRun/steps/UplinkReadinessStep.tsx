@@ -22,7 +22,9 @@ import { Hint, Prose, StepCheck } from "./StepParts";
  * nine capabilities that simply did not exist.
  */
 function summarise(entries: readonly UplinkReadinessEntry[]): string {
-  const installed = entries.filter((entry) => entry.installed);
+  const installed = entries.filter(
+    (entry) => entry.installed && entry.state !== "mod-only",
+  );
   const loaded = installed.filter((entry) => entry.state === "loaded");
   const refused = installed.filter(
     (entry) => entry.state === "contract-mismatch",
@@ -70,7 +72,7 @@ export function UplinkReadinessStep() {
         <Prose runs={runs("uplinks.install")} />
       </Text>
       <StepCheck check={check} />
-      {!waitingForMod && installed.length > 0 && (
+      {!waitingForMod && installed.some((e) => e.state !== "mod-only") && (
         <Text level="muted" size="sm">
           {summarise(entries)}
         </Text>
@@ -203,6 +205,8 @@ function ReadinessReading({
           {say("uplinks.row.unavailable")}
         </StatusIndicator>
       );
+    case "mod-only":
+      return null;
     case "no-client":
       return (
         <StatusIndicator tone="warn">
