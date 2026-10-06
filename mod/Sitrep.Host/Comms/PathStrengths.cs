@@ -65,8 +65,8 @@ namespace Sitrep.Host.Comms
                 : new ContactHopFacts(Math.Max(0.0, Math.Min(1.0, facts.Strength)), facts.Extensions);
         }
 
-        /// <summary>How many routes other than the earliest have been weighed against it through this object, for a test to count.</summary>
-        public int RoutesWeighed { get; internal set; }
+        /// <summary>How many routes other than the earliest have been weighed against it through this object.</summary>
+        internal int RoutesWeighed { get; set; }
 
         /// <summary>
         /// What a centre can work out about hop strengths, or null when the

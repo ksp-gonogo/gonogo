@@ -145,9 +145,9 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(0.8, view.Strength!.Value, 9);
         }
 
-        /// <summary>Weighing the other stations is one route search each, and none is made where there is nothing to weigh by.</summary>
+        /// <summary>Weighing the other stations is one route search each, and none is made for a centre with only itself to be shown the path to.</summary>
         [Fact]
-        public void OneRouteIsSearchedForEachOtherStationAndNoneWithoutStrengths()
+        public void OneRouteIsSearchedForEachOtherStationAndNoneForACentreShownThePathToItself()
         {
             var plan = Plan(
                 Pair(Probe, Ksc, 2.0, Always()),

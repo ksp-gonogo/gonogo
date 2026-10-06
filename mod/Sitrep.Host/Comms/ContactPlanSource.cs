@@ -377,8 +377,7 @@ namespace Sitrep.Host.Comms
         private string? _radioCraft;
         private bool _radioFirstLook;
 
-        /// <summary>The path each centre was last worked out to believe in, for the passes between one plan and the next.</summary>
-        private readonly Dictionary<string, CentrePathView> _believed = new Dictionary<string, CentrePathView>(StringComparer.Ordinal);
+        private readonly BelievedPaths _believed = new BelievedPaths();
 
         /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at, and which kind of figure it was: measured on its path, worked out, or measured on another.</summary>
         private readonly Dictionary<string, (long Strength, int Kind, string? GradedBy, long? Grade)> _signalSent =
@@ -1103,7 +1102,7 @@ namespace Sitrep.Host.Comms
                     _pathShapes.Remove(centre);
                     _radioSent.Remove(centre);
                     _signalSent.Remove(centre);
-                    _believed.Remove(centre);
+                    _believed.Forget(centre);
                     System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
             }
@@ -1274,8 +1273,7 @@ namespace Sitrep.Host.Comms
                 if (plan == null && looked.ActiveCraft != null)
                 {
                     // Between one plan and the next the centre believes what it last believed.
-                    _believed.TryGetValue(centre, out var last);
-                    frames += PublishSignal(looked, centre, last, radio);
+                    frames += PublishSignal(looked, centre, _believed.Of(centre, looked.ActiveCraft), radio);
                     continue;
                 }
                 var asked = false;
@@ -1300,7 +1298,10 @@ namespace Sitrep.Host.Comms
                     lightFactor,
                     PathStrengths.For(heard, looked.PathStrength));
                 WithHeardFacts(view.Path, radio);
-                _believed[centre] = view;
+                if (looked.ActiveCraft != null)
+                {
+                    _believed.Keep(centre, looked.ActiveCraft, view);
+                }
                 frames += PublishSignal(looked, centre, view, radio);
                 var reshaped = !_pathShapes.TryGetValue(centre, out var shape) || shape != view.Shape;
                 _pathShapes[centre] = view.Shape;
