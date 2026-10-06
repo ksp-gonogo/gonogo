@@ -102,6 +102,7 @@ jobs:
             gamedata: Gonogo
             extra_dlls: "Sitrep.Host.dll Sitrep.Contract.dll Sitrep.Transport.dll Sitrep.Core.dll Sitrep.Propagation.dll"
             notice: ""
+            license: LICENSE
             mod_id_var: SPACEDOCK_MOD_ID_GONOGO
     uses: ./.github/workflows/_build-uplink-mod.yml
     with:
@@ -111,6 +112,7 @@ jobs:
       gamedata: ${{ matrix.gamedata }}
       extra_dlls: ${{ matrix.extra_dlls }}
       notice: ${{ matrix.notice }}
+      license: ${{ matrix.license }}
       channel: ${{ inputs.channel || 'rc' }}
       ref: ${{ inputs.ref || github.sha }}
       version: ${{ needs.version.outputs.value }}

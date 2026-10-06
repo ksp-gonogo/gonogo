@@ -43,6 +43,11 @@ on:
         required: false
         type: string
         default: ""
+      license:
+        description: "Path to a LICENSE file to place at the top of GameData/<gamedata>/, if any"
+        required: false
+        type: string
+        default: ""
       channel:
         description: "rc or release"
         required: true
@@ -233,6 +238,13 @@ jobs:
           if [ -f "$uplink_license" ]; then
             cp "$uplink_license" "$plugins_dir/"
             echo "bundled $uplink_license"
+          fi
+
+          # The licence for the mod as a whole, at the folder's top level where
+          # CKAN and a player both look. MIT requires the notice to travel with
+          # every copy, and the zip is the copy.
+          if [ -n "${{ inputs.license }}" ]; then
+            cp "${{ inputs.license }}" "GameData/${{ inputs.gamedata }}/LICENSE"
           fi
 
           node scripts/write-avc-version.mjs \

@@ -129,4 +129,28 @@ describe("publish-mods.yml's matrix names paths that exist", () => {
       "A publish-mods.yml matrix leg names a notice file that is not in the tree.",
     ).toEqual([]);
   });
+
+  it("every leg's non-empty licence file exists in the repo", () => {
+    const missing = matrix.filter(
+      (entry) => entry.license && !existsSync(join(ROOT, entry.license)),
+    );
+    expect(
+      missing.map((entry) => `${entry.id}: ${entry.license}`),
+      "A publish-mods.yml matrix leg names a licence file that is not in the tree.",
+    ).toEqual([]);
+  });
+
+  it("the core leg ships the MIT licence, and the build workflow places it in the zip", () => {
+    const core = matrix.find((entry) => entry.id === "Gonogo");
+    expect(core?.license).toBe("LICENSE");
+    expect(readFileSync(join(ROOT, "LICENSE"), "utf8")).toMatch(/MIT License/);
+    expect(workflowText).toMatch(/license: \$\{\{ matrix\.license \}\}/);
+    const build = readFileSync(
+      join(ROOT, ".github/workflows/_build-uplink-mod.yml"),
+      "utf8",
+    );
+    expect(build).toMatch(
+      /cp "\$\{\{ inputs\.license \}\}" "GameData\/\$\{\{ inputs\.gamedata \}\}\/LICENSE"/,
+    );
+  });
 });
