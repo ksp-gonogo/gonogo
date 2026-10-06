@@ -1,4 +1,7 @@
-import type { Vector3 } from "@ksp-gonogo/sitrep-client";
+import {
+  rotatePerifocalToInertial,
+  type Vector3,
+} from "@ksp-gonogo/sitrep-client";
 
 /** Keplerian orbit geometry in the parent's inertial frame, metres. */
 
@@ -45,23 +48,14 @@ export function perifocalToParent(
   inclinationDeg: number,
   zPerifocal = 0,
 ): Vector3 {
-  const lan = lanDeg * RAD;
-  const argPe = argPeDeg * RAD;
-  const inc = inclinationDeg * RAD;
-  const cosW = Math.cos(argPe);
-  const sinW = Math.sin(argPe);
-  const cosO = Math.cos(lan);
-  const sinO = Math.sin(lan);
-  const cosI = Math.cos(inc);
-  const sinI = Math.sin(inc);
-  // Rotate by argPe in the orbit plane first, so what follows is the standard node-line tilt applied to a point measured from the ascending node.
-  const xn = xPerifocal * cosW - yPerifocal * sinW;
-  const yn = xPerifocal * sinW + yPerifocal * cosW;
-  return [
-    xn * cosO - yn * sinO * cosI + zPerifocal * sinO * sinI,
-    xn * sinO + yn * cosO * cosI - zPerifocal * cosO * sinI,
-    yn * sinI + zPerifocal * cosI,
-  ];
+  return rotatePerifocalToInertial(
+    xPerifocal,
+    yPerifocal,
+    inclinationDeg * RAD,
+    lanDeg * RAD,
+    argPeDeg * RAD,
+    zPerifocal,
+  );
 }
 
 /** The whole ring of an orbit in the parent's inertial frame, metres, sampled uniformly in eccentric anomaly so points spread along the arc instead of piling up at apoapsis. */

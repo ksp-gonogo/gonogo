@@ -525,10 +525,14 @@ function solveWrappedEccentricAnomaly(
 }
 
 /**
- * Rotates a planar perifocal-frame vector (z=0) into the parent-body-relative
- * inertial frame using the 3-1-3 Euler rotation R3(-lan) * R1(-inc) * R3(-argPe)
+ * Rotates a perifocal-frame vector into the parent-body-relative inertial
+ * frame using the 3-1-3 Euler rotation R3(-lan) * R1(-inc) * R3(-argPe)
  * (Vallado/AIAA convention). Applies identically to position and velocity
  * components. Mirrors `RotatePerifocalToInertial`.
+ *
+ * `zPf` is the part along the orbit normal. A conic has none, so it is left
+ * out and the vector is planar; an integrated arc leaves the osculating plane
+ * and passes it.
  */
 export function rotatePerifocalToInertial(
   xPf: number,
@@ -536,6 +540,7 @@ export function rotatePerifocalToInertial(
   inc: number,
   lan: number,
   argPe: number,
+  zPf = 0,
 ): Vector3 {
   const cosLan = Math.cos(lan);
   const sinLan = Math.sin(lan);
@@ -551,11 +556,19 @@ export function rotatePerifocalToInertial(
   const r31 = sinArgPe * sinInc;
   const r32 = cosArgPe * sinInc;
 
-  const x = r11 * xPf + r12 * yPf;
-  const y = r21 * xPf + r22 * yPf;
-  const z = r31 * xPf + r32 * yPf;
+  if (zPf === 0) {
+    return [
+      r11 * xPf + r12 * yPf,
+      r21 * xPf + r22 * yPf,
+      r31 * xPf + r32 * yPf,
+    ];
+  }
 
-  return [x, y, z];
+  return [
+    r11 * xPf + r12 * yPf + sinLan * sinInc * zPf,
+    r21 * xPf + r22 * yPf - cosLan * sinInc * zPf,
+    r31 * xPf + r32 * yPf + cosInc * zPf,
+  ];
 }
 
 /**

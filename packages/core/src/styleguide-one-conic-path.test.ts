@@ -23,6 +23,11 @@ const CALLERS = [
 const PRIMITIVES =
   /\b(solveKepler|solveEccentricAnomaly|meanAnomalyAt|eccentricToTrueAnomaly|trueAnomalyFromEccentric)\b/;
 
+/** Files that used to carry their own perifocal rotation and now call the shared one. */
+const ROTATORS = ["packages/components/src/SystemView/orbitGeometry.ts"];
+
+const ROTATION_TERM = /Math\.(sin|cos)\(\s*(argPe|lan|inc)\b/;
+
 function codeLines(path: string): string[] {
   return readFileSync(join(ROOT, path), "utf8")
     .split("\n")
@@ -32,6 +37,11 @@ function codeLines(path: string): string[] {
 describe("one conic arithmetic path", () => {
   it.each(CALLERS)("%s advances a conic through solveConic", (path) => {
     const hits = codeLines(path).filter((line) => PRIMITIVES.test(line));
+    expect(hits).toEqual([]);
+  });
+
+  it.each(ROTATORS)("%s rotates through rotatePerifocalToInertial", (path) => {
+    const hits = codeLines(path).filter((line) => ROTATION_TERM.test(line));
     expect(hits).toEqual([]);
   });
 });

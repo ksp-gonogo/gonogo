@@ -286,6 +286,7 @@ export {
   readFrameChoicesEqual,
   resolveReadFrame,
   rotateInertialToPerifocal,
+  rotatePerifocalToInertial,
   solve,
   solveAnomalies,
   solveConic,
