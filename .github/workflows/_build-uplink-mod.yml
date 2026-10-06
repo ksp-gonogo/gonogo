@@ -292,6 +292,7 @@ jobs:
           SPACEDOCK_MOD_ID: ${{ inputs.spacedock_mod_id }}
         run: |
           set -euo pipefail
+          node scripts/mod-release-tag.mjs assert "${{ inputs.version }}"
           VERSION="$(node scripts/spacedock-release.mjs bare-version "${{ inputs.version }}")"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
