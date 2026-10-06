@@ -9,6 +9,7 @@ import {
 import {
   type ReactNode,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -188,6 +189,8 @@ export function SitrepTelemetryProvider({
    * waiting state until the new keyframes land.
    */
   const [generation, setGeneration] = useState(0);
+  // The screen's own choice of command centre outlives the client that recorded it: a rebuilt client starts with none, and a game that has just started puts every connection at its default.
+  const chosenVantage = useRef<string | undefined>(undefined);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reconnectNonce has no direct use in the body, bumping it (the panel's Reconnect action, once the transport has given up) must force this effect to tear down and rebuild even when host/port are unchanged.
   useEffect(() => {
@@ -242,8 +245,15 @@ export function SitrepTelemetryProvider({
       return;
     }
     const telemetryClient = new TelemetryClient(transport);
+    if (chosenVantage.current !== undefined) {
+      telemetryClient.setVantage(chosenVantage.current);
+    }
+    const unsubVantage = telemetryClient.onSelectedVantageChange(() => {
+      chosenVantage.current = telemetryClient.selectedVantage;
+    });
     setClient(telemetryClient);
     return () => {
+      unsubVantage();
       telemetryClient.dispose();
       setClient(null);
     };
