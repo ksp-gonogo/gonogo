@@ -74,6 +74,7 @@ describe("probeUplinkRoster", () => {
         expectedClientHash: null,
         // A mod-only entry (no clientSource on the wire) decodes to null.
         clientSource: null,
+        health: { state: "unavailable", detail: "not ready" },
       },
     ]);
   });
@@ -118,6 +119,7 @@ describe("decodeRosterPayload", () => {
         repo: "https://example.invalid/stranger/alpha",
         expectedClientHash: "sha256-abc",
         clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
+        health: { state: "healthy", detail: null },
       },
       {
         id: "beta",

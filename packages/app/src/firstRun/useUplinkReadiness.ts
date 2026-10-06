@@ -52,7 +52,7 @@ export interface UplinkReadinessEntry {
   version: string | null;
   /** Present in the mod's roster. False for a client loaded from an earlier session. */
   installed: boolean;
-  /** The mod's own `available` flag, meaningful only when `installed`. */
+  /** The mod's `available` flag and its own health both allow it, meaningful only when `installed`. */
   modAvailable: boolean;
   /** The mod's own reason, carried verbatim and never reworded. */
   modReason: string | null;
@@ -133,7 +133,9 @@ export function computeUplinkReadiness(
     const rosterEntry = rosterById.get(id);
     const outcome = outcomeById.get(id) ?? null;
     const installed = rosterEntry !== undefined;
-    const modAvailable = rosterEntry?.available ?? false;
+    const healthUnavailable = rosterEntry?.health.state === "unavailable";
+    const modAvailable =
+      (rosterEntry?.available ?? false) && !healthUnavailable;
     const declaredContract = rosterEntry?.contract ?? null;
     return {
       id,
@@ -141,7 +143,9 @@ export function computeUplinkReadiness(
       version: rosterEntry?.version ?? outcome?.version ?? null,
       installed,
       modAvailable,
-      modReason: rosterEntry?.reason ?? null,
+      modReason:
+        rosterEntry?.reason ??
+        (healthUnavailable ? rosterEntry.health.detail : null),
       declaredContract,
       coreContract,
       rosterEntry: rosterEntry ?? null,

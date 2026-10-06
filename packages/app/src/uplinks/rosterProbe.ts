@@ -14,6 +14,7 @@ import {
   type Transport,
   WebSocketTransport,
 } from "@ksp-gonogo/sitrep-client";
+import { HEALTH_STATE_NAMES } from "@ksp-gonogo/sitrep-sdk/spine";
 import { getSitrepHostConfig } from "../telemetry/sitrepRuntime";
 import type { RosterEntry } from "./loader";
 
@@ -28,7 +29,7 @@ interface RawRosterEntry {
   repo?: string | null;
   expectedClientHash?: string | null;
   clientSource?: { url: string; devPath: string | null } | null;
-  health?: unknown;
+  health?: { state: number; detail?: string | null };
 }
 
 export interface RosterProbeOptions {
@@ -64,6 +65,14 @@ export function decodeRosterPayload(value: unknown): RosterEntry[] | undefined {
     // readable on RosterEntry. The loader/RegistrySource does not
     // consume it yet (separate follow-on); this only surfaces it.
     clientSource: e.clientSource ?? null,
+    ...(e.health
+      ? {
+          health: {
+            state: HEALTH_STATE_NAMES[e.health.state] ?? "unavailable",
+            detail: e.health.detail ?? null,
+          },
+        }
+      : {}),
   }));
 }
 

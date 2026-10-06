@@ -307,6 +307,11 @@ function checkCompat(
       `mod reports Uplink unavailable${roster.reason ? `: ${roster.reason}` : ""}`,
     );
   }
+  if (roster?.health?.state === "unavailable") {
+    refuse(
+      `mod reports Uplink unavailable${roster.health.detail ? `: ${roster.health.detail}` : ""}`,
+    );
+  }
 
   /*
    * Mod-hash gate (design §3.3 row B, the H_mod == H_index half, checked here,
