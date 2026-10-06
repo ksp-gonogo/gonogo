@@ -104,6 +104,7 @@ export * from "./replay-transport";
 export * from "./screen";
 export * from "./settings-registry";
 export * from "./settings-tabs";
+export { assertSizeDelta } from "./size-delta";
 export * from "./space-center-state";
 export * from "./stream-status";
 export * from "./subscribe-read";

@@ -1,4 +1,9 @@
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
+import {
+  clearAugments,
+  registerAugment,
+  sizeDeltaFor,
+} from "@ksp-gonogo/ui-kit";
 import type { Layouts } from "react-grid-layout";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
@@ -144,5 +149,60 @@ describe("applyMinSizes", () => {
       items,
     );
     expect(out.lg[0]).toMatchObject({ w: 3, h: 3, minW: 3, minH: 3 });
+  });
+
+  describe("with an extension asking for room", () => {
+    afterEach(() => clearAugments());
+
+    function registerHost(tiny: boolean, requires?: string) {
+      registerComponent({
+        id: "host",
+        name: "host",
+        description: "host",
+        tags: [],
+        component: () => null,
+        dataRequirements: [],
+        defaultSize: { w: 6, h: 6 },
+        minSize: { w: 4, h: 5 },
+        augmentSlots: ["host.sections"],
+        ...(tiny ? { tiny: { title: "host", useEssentials: () => [] } } : {}),
+      });
+      registerAugment({
+        id: "host-extra",
+        augments: "host.sections",
+        component: () => null,
+        requires,
+        sizeDelta: { w: 1 },
+      });
+    }
+    const items: DashboardItem[] = [{ i: "a", componentId: "host" }];
+
+    it("clamps a non-tiny widget's saved tile one wider", () => {
+      registerHost(false);
+      const out = applyMinSizes(
+        { lg: [{ i: "a", x: 0, y: 0, w: 4, h: 5 }] },
+        items,
+        (def) => sizeDeltaFor(def, () => true),
+      );
+      expect(out.lg[0]).toMatchObject({ w: 5, h: 5, minW: 5, minH: 5 });
+    });
+
+    it("leaves a tiny widget's tile alone, since the delta moves only where it switches to its tiny form", () => {
+      registerHost(true);
+      const entry = { i: "a", x: 0, y: 0, w: 4, h: 5, minW: 3, minH: 3 };
+      const out = applyMinSizes({ lg: [entry] }, items, (def) =>
+        sizeDeltaFor(def, () => true),
+      );
+      expect(out.lg[0]).toBe(entry);
+    });
+
+    it("does not clamp when the extension's Domain is absent", () => {
+      registerHost(false, "mod");
+      const entry = { i: "a", x: 0, y: 0, w: 4, h: 5, minW: 4, minH: 5 };
+      const out = applyMinSizes({ lg: [entry] }, items, (def) =>
+        sizeDeltaFor(def, () => false),
+      );
+      expect(out.lg[0]).toBe(entry);
+    });
   });
 });

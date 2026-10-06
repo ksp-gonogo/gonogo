@@ -867,6 +867,12 @@ export interface ContributionDefinition<
    * @defaultValue `1`
    */
   priority?: number;
+  /**
+   * Room this contribution asks of its host widget. Counted only while it
+   * renders: in the highest `priority` band of a slot the widget declares or
+   * carries, with its `requires` Domain present.
+   */
+  sizeDelta?: SizeDelta;
   /** Per-instance settings this contribution adds to the host widget's settings panel, stored under its `id`. */
   settings?: readonly AugmentSettingField[];
   /** Stamped by `defineUplinkClient(...).registerContribution`, never set by hand. */
@@ -926,6 +932,28 @@ export interface NamespacedAugmentSettings {
   augmentId: string;
   namespace: string;
   fields: readonly AugmentSettingField[];
+}
+
+/**
+ * Room an extension asks of the widget that hosts it, in grid units: how many
+ * more columns and rows the host needs, over its own, for the extension's
+ * content to fit.
+ *
+ * Whole numbers of zero or more. An extension asks for room and never gives it
+ * back, so there is no negative form, and nothing here is a maximum: no widget
+ * has an upper size. The requests of every extension that actually renders in
+ * a widget are summed, and the total is added to the widget's `defaultSize`
+ * and `minSize`. When a widget has a tiny mode its tiny size does not move, but
+ * the tile size at which it stops showing the tiny form does. A tile already on
+ * the dashboard never shrinks by itself when an extension leaves.
+ *
+ * @category Extensions
+ */
+export interface SizeDelta {
+  /** Extra columns. */
+  w?: number;
+  /** Extra rows. */
+  h?: number;
 }
 
 /**
@@ -989,6 +1017,11 @@ export interface AugmentDefinition<Slot extends string = string> {
    * @defaultValue `0`
    */
   priority?: number;
+  /**
+   * Room this augment asks of its host widget. Counted only while it renders:
+   * bound to a slot the widget declares, with its `requires` Domain present.
+   */
+  sizeDelta?: SizeDelta;
   /** Per-instance settings this augment adds to the host widget's settings panel, stored under its `id`. */
   settings?: readonly AugmentSettingField[];
   /**

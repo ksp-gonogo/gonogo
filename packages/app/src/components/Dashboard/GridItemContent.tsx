@@ -18,8 +18,10 @@ import {
   PanelStatusStoreProvider,
   showsTiny,
   Tooltip,
+  useSizeDeltaFor,
   WidgetBody,
   widgetDrawnFields,
+  withSizeDelta,
 } from "@ksp-gonogo/ui-kit";
 import {
   memo,
@@ -73,6 +75,7 @@ export const GridItemContent = memo(function GridItemContent({
     getUplinkOutcomes,
   );
   const def = getComponent(item.componentId);
+  const sizeDeltaFor = useSizeDeltaFor();
 
   const onSaveConfig = useCallback(
     (next: Record<string, unknown>) => updateItemConfig(item.i, next),
@@ -127,6 +130,8 @@ export const GridItemContent = memo(function GridItemContent({
   );
 
   if (!def) return null;
+  // The room the extensions rendering here ask for moves where the widget stops showing its tiny form.
+  const sizedDef = withSizeDelta(def, sizeDeltaFor(def));
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
 
@@ -197,13 +202,14 @@ export const GridItemContent = memo(function GridItemContent({
                         channels={def.channels}
                         title={def.name}
                         compact={
-                          def.tiny !== undefined && showsTiny(def, w, h)
-                            ? { title: def.tiny.title }
+                          sizedDef.tiny !== undefined &&
+                          showsTiny(sizedDef, w, h)
+                            ? { title: sizedDef.tiny.title }
                             : undefined
                         }
                       >
                         <WidgetBody
-                          def={def}
+                          def={sizedDef}
                           id={item.i}
                           config={item.config}
                           w={w}

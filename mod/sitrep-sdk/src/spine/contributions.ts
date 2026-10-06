@@ -5,6 +5,7 @@ import type {
   ContributionDep,
   NamespacedAugmentSettings,
 } from "../api/types";
+import { assertSizeDelta } from "./size-delta";
 
 /**
  * The contribution REGISTRATION seam: the
@@ -72,6 +73,7 @@ export function registerContribution<
   Slot extends string,
   const Deps extends readonly ContributionDep[] = readonly [],
 >(def: ContributionDefinition<Slot, Deps>): void {
+  assertSizeDelta(def.id, def.sizeDelta);
   const s = state();
   const existing = s.entries.get(def.id);
   if (existing !== undefined) {

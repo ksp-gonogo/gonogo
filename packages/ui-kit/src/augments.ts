@@ -4,6 +4,7 @@ import type {
   SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
+import { assertSizeDelta } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ComponentType } from "react";
 
 /*
@@ -175,6 +176,7 @@ export function registerAugment<Slot extends string>(
   def: AugmentDefinition<Slot>,
 ): void {
   reportIfSlotRetired(def);
+  assertSizeDelta(def.id, def.sizeDelta);
   const state = registry();
   state.augments.set(def.id, {
     // Erased through `unknown`: a merged `SlotProps<Slot>` is not bivariantly comparable to the erased form.

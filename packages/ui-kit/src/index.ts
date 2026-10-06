@@ -544,6 +544,7 @@ export {
 } from "./SubjectHeading";
 export { Switch, type SwitchProps } from "./Switch";
 export type { GapToken, InsetToken } from "./scales";
+export * from "./sizeDelta";
 export {
   type DrawnPrecision,
   placedOnScale,

@@ -221,6 +221,7 @@ export type {
   SettingType,
   SettingValue,
   SettingValueByType,
+  SizeDelta,
   SlotId,
   SlotProps,
   SlotRegistry,

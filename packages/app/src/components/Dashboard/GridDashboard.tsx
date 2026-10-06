@@ -1,3 +1,4 @@
+import { useSizeDeltaFor } from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 import { useMemo, useRef } from "react";
 import type { Layout } from "react-grid-layout";
@@ -55,9 +56,10 @@ export function GridDashboard({
   // COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
   // before handing the map off so it doesn't warn on every render. Then
   // inject minW/minH + clamp from each item's registered minSize.
+  const sizeDeltaFor = useSizeDeltaFor();
   const filteredLayouts = useMemo(
-    () => applyMinSizes(filterLayouts(layouts), items),
-    [layouts, items],
+    () => applyMinSizes(filterLayouts(layouts), items, sizeDeltaFor),
+    [layouts, items, sizeDeltaFor],
   );
 
   const gridRef = useRef<HTMLDivElement | null>(null);

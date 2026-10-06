@@ -1,5 +1,5 @@
-import { getComponent } from "@ksp-gonogo/core";
-import { gridFloor } from "@ksp-gonogo/ui-kit";
+import { type ComponentDefinition, getComponent } from "@ksp-gonogo/core";
+import { gridFloor, withSizeDelta } from "@ksp-gonogo/ui-kit";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "./index";
 
@@ -71,10 +71,13 @@ export function filterLayouts(layouts: Layouts): Layouts {
  * minSize (or when a user shrank one below the new floor). The floor is the
  * widget's `minSize`, or the kit-wide tiny size for a widget with a tiny mode,
  * so a tile that now shows the tiny form where it showed the body is left alone.
+ * `sizeDeltaFor` adds the room the extensions rendering in a widget ask for to
+ * its `minSize`.
  */
 export function applyMinSizes(
   layouts: Layouts,
   items: DashboardItem[],
+  sizeDeltaFor?: (def: ComponentDefinition) => { w: number; h: number },
 ): Layouts {
   const idToComponentId = new Map<string, string>();
   for (const it of items) idToComponentId.set(it.i, it.componentId);
@@ -85,7 +88,9 @@ export function applyMinSizes(
       const componentId = idToComponentId.get(entry.i);
       if (!componentId) return entry;
       const def = getComponent(componentId);
-      const min = def ? gridFloor(def) : undefined;
+      const min = def
+        ? gridFloor(sizeDeltaFor ? withSizeDelta(def, sizeDeltaFor(def)) : def)
+        : undefined;
       if (!min) return entry;
       const w = Math.max(entry.w, min.w);
       const h = Math.max(entry.h, min.h);

@@ -12,6 +12,7 @@ import {
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
+import { clearAugments, registerAugment } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -76,6 +77,7 @@ function registerTrivial() {
 describe("ComponentOverlay: add → configure → persist", () => {
   afterEach(() => {
     clearRegistry();
+    clearAugments();
   });
 
   it("persists the config entered in the on-add modal via updateItemConfig", async () => {
@@ -159,5 +161,51 @@ describe("ComponentOverlay: add → configure → persist", () => {
 
     // Enter on the highlighted option adds the widget, same as a click would.
     expect(addItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("places a widget at its defaultSize plus what the extensions that render in it ask for", async () => {
+    registerComponent({
+      id: "roomy",
+      name: "Roomy",
+      description: "",
+      tags: [],
+      component: TrivialWidget,
+      dataRequirements: [],
+      defaultSize: { w: 5, h: 6 },
+      minSize: { w: 3, h: 3 },
+      augmentSlots: ["roomy.sections"],
+    });
+    registerAugment({
+      id: "roomy-extra",
+      augments: "roomy.sections",
+      component: () => null,
+      sizeDelta: { w: 1, h: 2 },
+    });
+    registerAugment({
+      id: "roomy-absent",
+      augments: "roomy.sections",
+      component: () => null,
+      requires: "not-running",
+      sizeDelta: { w: 4, h: 4 },
+    });
+    const user = userEvent.setup();
+    const addItem = vi.fn();
+    const serialService = new SerialDeviceService({ screenKey: "test" });
+
+    render(
+      <ModalProvider>
+        <SerialDeviceProvider service={serialService}>
+          <OverlayProvider addItem={addItem} updateItemConfig={vi.fn()}>
+            <ComponentOverlay currentLayouts={{ lg: [] }} />
+          </OverlayProvider>
+        </SerialDeviceProvider>
+      </ModalProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+    await user.click(await screen.findByRole("option", { name: /Roomy/ }));
+
+    expect(addItem).toHaveBeenCalledTimes(1);
+    expect(addItem.mock.calls[0][1]).toMatchObject({ w: 6, h: 8 });
   });
 });

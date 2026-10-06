@@ -19,7 +19,12 @@ import {
   useFabCluster,
   useModal,
 } from "@ksp-gonogo/ui";
-import { Box, Tooltip } from "@ksp-gonogo/ui-kit";
+import {
+  Box,
+  Tooltip,
+  useSizeDeltaFor,
+  withSizeDelta,
+} from "@ksp-gonogo/ui-kit";
 import type { KeyboardEvent, ReactNode } from "react";
 import {
   createContext,
@@ -93,6 +98,7 @@ export function ComponentOverlay({
 
   const { addItem, updateItemConfig } = useOverlay();
   const { open: openModal, close: closeModal } = useModal();
+  const sizeDeltaFor = useSizeDeltaFor();
   // ModalProvider lives at the app root, above SerialDeviceProvider. Config
   // components opened here via `openConfigOnAdd` portal out of the provider
   // subtree, so we capture the service screen-side and re-provide it inside
@@ -199,8 +205,9 @@ export function ComponentOverlay({
         componentId: def.id,
         config: def.defaultConfig ? { ...def.defaultConfig } : undefined,
       };
-      const defaultSize = def.defaultSize ?? { w: 3, h: 3 };
-      const min = def.minSize;
+      const sized = withSizeDelta(def, sizeDeltaFor(def));
+      const defaultSize = sized.defaultSize ?? { w: 3, h: 3 };
+      const min = sized.minSize;
       const size = min
         ? {
             w: Math.max(defaultSize.w, min.w),
@@ -237,6 +244,7 @@ export function ComponentOverlay({
       addItem,
       updateItemConfig,
       nextY,
+      sizeDeltaFor,
       openModal,
       closeModal,
       closeOverlay,
