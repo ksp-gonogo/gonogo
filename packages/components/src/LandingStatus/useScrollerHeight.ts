@@ -47,6 +47,20 @@ export function useScrollerHeight(): [
     read();
     const ro = new ResizeObserver(read);
     ro.observe(box);
+    // A section above the row growing moves the row without resizing the scroll box, so everything above the row is watched too.
+    for (
+      let el: Element | null = node;
+      el && el !== box;
+      el = el.parentElement
+    ) {
+      for (
+        let sib = el.previousElementSibling;
+        sib;
+        sib = sib.previousElementSibling
+      ) {
+        ro.observe(sib);
+      }
+    }
     box.addEventListener("scroll", read, { passive: true });
     cleanup.current = () => {
       ro.disconnect();
