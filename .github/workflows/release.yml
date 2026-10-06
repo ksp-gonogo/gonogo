@@ -47,8 +47,10 @@ name: release
 # release, no tag, no commit, no ledger freeze. Each RC is a prerelease of the
 # version the next release would carry (`scripts/rc-packages.mjs` says how that
 # is worked out), suffixed `-rc.<run number>`, applied to the packed tarball
-# only. npm gets it under the `rc` dist-tag, never `latest`; NuGet gets it as a
-# SemVer prerelease. Every gate the release runs before a publish runs on the
+# only. npm gets it under the `rc` dist-tag and leaves an existing `latest`
+# alone (a package with no earlier version may see its first version, the RC,
+# become `latest`, and the job summary says so); NuGet gets it as a SemVer
+# prerelease. Every gate the release runs before a publish runs on the
 # RC's own artifact. It runs only on refs/heads/staging, and only on dispatch.
 # Add `-f dry_run=true` to do everything but the login and the push.
 
@@ -301,16 +303,16 @@ jobs:
             echo "::error::$DIR is $NAME, expected ${{ matrix.package }}, the matrix and the tree disagree."
             exit 1
           fi
-          REFUSED=""
+          FIRST=false
           if [ "$RC" = true ]; then
             printf '%s' "$RC_PLAN" > "$RUNNER_TEMP/rc-plan.json"
             VERSION="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].version' "$NAME")"
-            REFUSED="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].refused ?? ""' "$NAME")"
+            FIRST="$(node -p 'JSON.parse(process.env.RC_PLAN).packages[process.argv[1]].firstVersion' "$NAME")"
           fi
           {
             echo "name=$NAME"
             echo "version=$VERSION"
-            echo "refused=$REFUSED"
+            echo "first=$FIRST"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v6
@@ -339,12 +341,6 @@ jobs:
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           VERSION='${{ steps.pkg.outputs.version }}'
-          REFUSED='${{ steps.pkg.outputs.refused }}'
-          if [ -n "$REFUSED" ]; then
-            echo "::notice::$NAME: no RC, $REFUSED."
-            echo "skip=refused" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           if [ "$RC" = true ]; then
             echo "latest=$(npm view "$NAME" dist-tags.latest)" >> "$GITHUB_OUTPUT"
           fi
@@ -475,12 +471,18 @@ jobs:
           fi
 
       # Cannot be undone from here, but a moved `latest` must not pass as green.
+      # A package whose first version this is had no `latest` to protect: npm may
+      # point it at the RC, so that case reports where it points and passes.
       - name: The RC left npm's latest where it was
         if: env.RC == 'true' && steps.published.outputs.skip == 'false' && !inputs.dry_run
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           BEFORE='${{ steps.published.outputs.latest }}'
           AFTER="$(npm view "$NAME" dist-tags.latest)"
+          if [ '${{ steps.pkg.outputs.first }}' = true ]; then
+            echo "$NAME had no earlier version, so its first version is this RC, and \`latest\` now points at ${AFTER:-nothing}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           if [ "$AFTER" != "$BEFORE" ]; then
             echo "::error::$NAME's latest moved from $BEFORE to $AFTER. Restore it: npm dist-tag add $NAME@$BEFORE latest"
             exit 1
@@ -491,9 +493,7 @@ jobs:
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           VERSION='${{ steps.pkg.outputs.version }}'
-          if [ '${{ steps.published.outputs.skip }}' = 'refused' ]; then
-            echo "⛔ $NAME: no RC, ${{ steps.pkg.outputs.refused }}." >> "$GITHUB_STEP_SUMMARY"
-          elif [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
+          if [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
             echo "⏭ $NAME@$VERSION: already on npm, no version change." >> "$GITHUB_STEP_SUMMARY"
           elif [ '${{ inputs.dry_run }}' = 'true' ]; then
             echo "🧪 $NAME@$VERSION: packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"

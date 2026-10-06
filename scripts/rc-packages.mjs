@@ -132,7 +132,9 @@ export function pendingLevel(ledgerTexts, packageName) {
 
 /**
  * One package's RC from what a release would carry, its pending level, the
- * versions already on the registry and the run number.
+ * versions already on the registry and the run number. A package with nothing
+ * published gets an RC of the version a release would carry, and says so in
+ * `firstVersion`: npm may make that RC the package's `latest` whatever the tag.
  */
 export function planPackage({ release, level, published, run }) {
   if (!Number.isInteger(run) || run < 1) {
@@ -149,10 +151,7 @@ export function planPackage({ release, level, published, run }) {
   return {
     base,
     version: `${base}-rc.${run}`,
-    refused:
-      published.length === 0
-        ? "never published: an RC must not be a package's first version, which npm makes `latest` whatever the tag"
-        : null,
+    firstVersion: published.length === 0,
   };
 }
 
@@ -396,7 +395,7 @@ export async function main(
       });
       for (const [name, entry] of Object.entries(result.packages)) {
         console.error(
-          `${name}: tree ${entry.tree}, release ${entry.release}, pending ${entry.level} -> ${entry.version}${entry.refused ? ` (refused: ${entry.refused})` : ""}`,
+          `${name}: tree ${entry.tree}, release ${entry.release}, pending ${entry.level} -> ${entry.version}${entry.firstVersion ? " (first version of the package)" : ""}`,
         );
       }
       print(JSON.stringify(result));

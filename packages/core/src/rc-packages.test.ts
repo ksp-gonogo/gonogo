@@ -26,8 +26,8 @@ import {
  * `release.yml`'s RC mode publishes a prerelease of the version the next
  * release would carry, with every sibling pinned to the RC from the same run.
  * What holds here is that the version never sorts below a published one, that a
- * never-published package is refused, and that the packed manifest names its
- * siblings exactly.
+ * never-published package gets an RC of its own first version, and that the
+ * packed manifest names its siblings exactly.
  */
 
 const ledgerText = (
@@ -88,7 +88,7 @@ describe("planPackage", () => {
         published: ["0.1.0"],
         run: 7,
       }),
-    ).toEqual({ base: "0.2.0", version: "0.2.0-rc.7", refused: null });
+    ).toEqual({ base: "0.2.0", version: "0.2.0-rc.7", firstVersion: false });
   });
 
   it("is the next version past a published one, never an RC of it", () => {
@@ -112,11 +112,17 @@ describe("planPackage", () => {
     ).toThrow(/does not sort above the published 0\.3\.0/);
   });
 
-  it("refuses a package that has never been published", () => {
+  it("gives a package that has never been published an RC of its own first version", () => {
     expect(
-      planPackage({ release: "0.1.0", level: "none", published: [], run: 7 })
-        .refused,
-    ).toMatch(/latest/);
+      planPackage({ release: "0.1.0", level: "none", published: [], run: 7 }),
+    ).toEqual({ base: "0.1.0", version: "0.1.0-rc.7", firstVersion: true });
+  });
+
+  it("does not bump a never-published package by its pending changes", () => {
+    expect(
+      planPackage({ release: "0.1.0", level: "break", published: [], run: 7 })
+        .version,
+    ).toBe("0.1.0-rc.7");
   });
 
   it("refuses a run number that is not a positive integer", () => {
