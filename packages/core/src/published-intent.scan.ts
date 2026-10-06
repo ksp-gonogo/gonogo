@@ -5,7 +5,7 @@ import ts from "typescript";
 import {
   compilerOptions,
   publishedEntryPoints,
-} from "./published-doc-coverage.scan";
+} from "./published-entry-points";
 
 /**
  * The scan behind `styleguide-published-intent.test.ts`: every symbol a
