@@ -427,6 +427,69 @@ public class Hello
 }
 
 /// <summary>
+/// Server-to-client: what the game is doing, sent on its own and not through
+/// any topic. Sent straight after <see cref="Hello"/> on every connection that
+/// has anything to learn, and again at every change.
+///
+/// <para>It is a frame of its own, and not a value on a topic, because a game
+/// that is loading a scene has no clock that moves, and everything on a topic
+/// is delivered by that clock. A topic could say a load had started only after
+/// it had ended. It is also not delayed by light time at any command centre: a
+/// load is a fact about the game on the machine, there is no game time to count
+/// light time in while it runs, and nothing else reaches any centre during it
+/// anyway.</para>
+///
+/// <para>While <see cref="State"/> is <c>"loading"</c> or
+/// <c>"no-game"</c>, nothing the stream last said is current. Readings
+/// received before the frame are still the latest there are, and none of them
+/// is a live one. A <c>"ready"</c> that follows a load which started a
+/// new timeline arrives after that timeline's <c>timeline-reset</c>.</para>
+///
+/// <para>A client that reads no <c>game-state</c> frame (an older client, or a
+/// host that never sends one) is not wrong, only unaware: it drops a frame type
+/// it does not know.</para>
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class GameState
+{
+    /// <summary>A scene is being loaded.</summary>
+    public const string Loading = "loading";
+
+    /// <summary>A scene stands and the game is running in it.</summary>
+    public const string Ready = "ready";
+
+    /// <summary>The main menu stands, so there is no game.</summary>
+    public const string NoGame = "no-game";
+
+    /// <summary>The frame type, always <c>"game-state"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"game-state\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "game-state";
+
+    /// <summary>
+    /// <c>"loading"</c>, <c>"ready"</c> or <c>"no-game"</c>. A client treats a
+    /// value it does not know as <c>"ready"</c>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string State { get; set; } = Ready;
+
+    /// <summary>
+    /// The scene being loaded while <see cref="State"/> is <c>"loading"</c>,
+    /// otherwise the scene that stands: one of KSP's scene names, such as
+    /// <c>"FLIGHT"</c>, <c>"SPACECENTER"</c>, <c>"TRACKSTATION"</c>,
+    /// <c>"EDITOR"</c> or <c>"MAINMENU"</c>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Scene { get; set; } = "";
+}
+
+/// <summary>
 /// Client-to-server: asks for a <see cref="Pong"/>, to tell a connection that
 /// is quiet from one that is dead. A subscribed connection can be silent for
 /// as long as nothing it subscribed to changes, so silence alone says nothing;

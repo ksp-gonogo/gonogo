@@ -3383,6 +3383,47 @@ export interface Hello
 	bootId: string;
 }
 /**
+* Server-to-client: what the game is doing, sent on its own and not through
+* any topic. Sent straight after `Hello` on every connection that has anything
+* to learn, and again at every change.
+*
+* It is a frame of its own, and not a value on a topic, because a game that is
+* loading a scene has no clock that moves, and everything on a topic is
+* delivered by that clock. A topic could say a load had started only after it
+* had ended. It is also not delayed by light time at any command centre: a
+* load is a fact about the game on the machine, there is no game time to count
+* light time in while it runs, and nothing else reaches any centre during it
+* anyway.
+*
+* While `GameState.state` is `"loading"` or `"no-game"`, nothing the stream
+* last said is current. Readings received before the frame are still the
+* latest there are, and none of them is a live one. A `"ready"` that follows a
+* load which started a new timeline arrives after that timeline's
+* `timeline-reset`.
+*
+* A client that reads no `game-state` frame (an older client, or a host that
+* never sends one) is not wrong, only unaware: it drops a frame type it does
+* not know.
+*
+* @category Stream messages
+*/
+export interface GameState
+{
+	/** The frame type, always `"game-state"`. */
+	type: "game-state";
+	/**
+	* `"loading"`, `"ready"` or `"no-game"`. A client treats a value it does not
+	* know as `"ready"`.
+	*/
+	state: string;
+	/**
+	* The scene being loaded while `GameState.state` is `"loading"`, otherwise the
+	* scene that stands: one of KSP's scene names, such as `"FLIGHT"`,
+	* `"SPACECENTER"`, `"TRACKSTATION"`, `"EDITOR"` or `"MAINMENU"`.
+	*/
+	scene: string;
+}
+/**
 * Client-to-server: asks for a `Pong`, to tell a connection that is quiet from
 * one that is dead. A subscribed connection can be silent for as long as
 * nothing it subscribed to changes, so silence alone says nothing; a ping that

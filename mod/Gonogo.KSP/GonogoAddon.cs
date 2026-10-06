@@ -92,6 +92,7 @@ namespace Gonogo.KSP
         // against the same store every consumer is subscribed to.
         private SettingsStore? _settings;
         private ChannelEngine? _engine;
+        private GameLoadReporter? _loadReporter;
 
         /// <summary>The running engine, for the scenario that saves what store-and-forward holds; null before it starts.</summary>
         internal static ChannelEngine? SharedEngine { get; private set; }
@@ -119,6 +120,7 @@ namespace Gonogo.KSP
                 // comment describes.
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
                 SharedEngine = _engine;
+                _loadReporter = new GameLoadReporter(_engine);
 
                 // Route the engine's fail-soft diagnostics to the KSP log.
                 // Sitrep.Host otherwise logs only to Console.Error, which KSP does
@@ -430,6 +432,7 @@ namespace Gonogo.KSP
             // queue (see ChannelEngine.RunPendingCommands). The Courier thread
             // blocks (bounded) waiting on exactly this drain. Never throws.
             _engine?.RunPendingCommands();
+            _loadReporter?.Update();
             // Re-read every gated command's requirements and publish them to
             // system.uplink.gates, so a control can be drawn dark before it is
             // pressed. HERE rather than in a channel mapper because a gate
@@ -575,6 +578,7 @@ namespace Gonogo.KSP
             ScetAlarmUplink.ConfigureSelectableVantage(null);
             ScetAlarmUplink.ConfigureMainThreadRunner(null);
             SharedEngine = null;
+            _loadReporter?.Dispose();
 
             try
             {

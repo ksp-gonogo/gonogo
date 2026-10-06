@@ -2431,8 +2431,15 @@ namespace Sitrep.Contract
         /// up to ten minutes ago, the interval at which an unchanged vessel is
         /// read again. Additive: <see cref="TargetListEntry.AsOfUt"/> still says
         /// when the last word was made.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 18 -&gt; 19: the game says when it is
+        /// loading.</b> <see cref="GameState"/> is a frame of its own, sent after
+        /// <see cref="Hello"/> and at every change, because a load stops the clock
+        /// that delivers everything on a topic. A client could not tell a reading
+        /// held by a load from a current one. Additive: a client that knows no
+        /// <c>game-state</c> frame drops it.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 18;
+        public const int Minor = 19;
     }
 }

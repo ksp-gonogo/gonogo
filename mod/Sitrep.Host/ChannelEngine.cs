@@ -7513,6 +7513,7 @@ namespace Sitrep.Host
             NoteActiveCraft(tick.Snapshot);
             _clock.AdvanceTo(tick.Ut);
             TickDelivery(tick.Ut);
+            ReleaseGameStateAfterTick();
             tick.Done?.Set();
         }
 
@@ -8354,6 +8355,107 @@ namespace Sitrep.Host
         /// a multi-channel client can tell exactly which of its
         /// subscriptions needs to resync/abandon its delayed view.
         /// </summary>
+        private readonly object _gameStateLock = new object();
+
+        /// <summary>What the connections were last told, or null before the game has said anything.</summary>
+        private GameState? _toldGameState;
+
+        /// <summary>A ready the game has reached and no tick has yet released, or null.</summary>
+        private GameState? _waitingReady;
+
+        private long _waitingReadyAt;
+
+        /**
+         * Says what the game is doing to every connection, from whichever thread
+         * the game's event arrives on. A load starting, and the main menu
+         * standing, go out at once: no tick runs in either, and the clock that
+         * would carry them does not move. A ready is held back until the next tick
+         * has run, so a timeline reset that tick raises reaches the connection
+         * first, and a client never sees a ready game with the old timeline's
+         * readings.
+         */
+        public void SetGameState(GamePhase phase, string scene)
+        {
+            lock (_gameStateLock)
+            {
+                if (phase == GamePhase.Ready)
+                {
+                    _waitingReady = new GameState { State = GameState.Ready, Scene = scene };
+                    _waitingReadyAt = System.Diagnostics.Stopwatch.GetTimestamp();
+                    return;
+                }
+                _waitingReady = null;
+                SayGameState(new GameState { State = phase == GamePhase.Loading ? GameState.Loading : GameState.NoGame, Scene = scene });
+            }
+        }
+
+        /// <summary>
+        /// Releases a ready that has waited longer than <paramref name="age"/> for
+        /// a tick that did not come, as in a scene whose clock does not advance.
+        /// </summary>
+        public void ReleaseGameStateWaitingLongerThan(TimeSpan age)
+        {
+            lock (_gameStateLock)
+            {
+                if (_waitingReady == null)
+                {
+                    return;
+                }
+                var waited = (System.Diagnostics.Stopwatch.GetTimestamp() - _waitingReadyAt) / (double)System.Diagnostics.Stopwatch.Frequency;
+                if (waited >= age.TotalSeconds)
+                {
+                    ReleaseWaitingReady();
+                }
+            }
+        }
+
+        private void ReleaseGameStateAfterTick()
+        {
+            lock (_gameStateLock)
+            {
+                ReleaseWaitingReady();
+            }
+        }
+
+        private void ReleaseWaitingReady()
+        {
+            var ready = _waitingReady;
+            if (ready == null)
+            {
+                return;
+            }
+            _waitingReady = null;
+            SayGameState(ready);
+        }
+
+        private void SayGameState(GameState state)
+        {
+            _toldGameState = state;
+            var bytes = Encoding.UTF8.GetBytes(EnvelopeCodec.WriteGameState(state));
+            foreach (var session in _sessions.Values)
+            {
+                try
+                {
+                    session.Outbox.PublishReliable(bytes);
+                }
+                catch (Exception sendEx)
+                {
+                    LogHost("could not tell a connection the game state: " + SafeExceptionMessage(sendEx));
+                }
+            }
+        }
+
+        private void GreetWithGameState(ClientSession session)
+        {
+            lock (_gameStateLock)
+            {
+                if (_toldGameState != null)
+                {
+                    session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteGameState(_toldGameState)));
+                }
+            }
+        }
+
         private void BroadcastTimelineReset()
         {
             foreach (var session in _sessions.Values)
@@ -8448,6 +8550,7 @@ namespace Sitrep.Host
             try
             {
                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId })));
+                GreetWithGameState(session);
             }
             catch (Exception publishEx)
             {

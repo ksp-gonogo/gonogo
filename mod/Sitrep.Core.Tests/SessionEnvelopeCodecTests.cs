@@ -21,6 +21,23 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void AGameStateIsWrittenAndReadBackAsAServerMessage()
+        {
+            var json = EnvelopeCodec.WriteGameState(new GameState { State = GameState.Loading, Scene = "FLIGHT" });
+
+            Assert.Equal("{\"type\":\"game-state\",\"state\":\"loading\",\"scene\":\"FLIGHT\"}", json);
+            var read = Assert.IsType<GameState>(EnvelopeCodec.ParseServerMessage(json));
+            Assert.Equal("loading", read.State);
+            Assert.Equal("FLIGHT", read.Scene);
+        }
+
+        [Fact]
+        public void AGameStateWithNoStateIsRefusedAsAGameStateWithAFieldWrong()
+        {
+            Assert.Throws<InvalidEnvelopeException>(() => EnvelopeCodec.ParseServerMessage("{\"type\":\"game-state\",\"scene\":\"FLIGHT\"}"));
+        }
+
+        [Fact]
         public void APingIsReadAsAClientMessageAndAPongAsAServerMessage()
         {
             var ping = EnvelopeCodec.WritePing(new Ping { Nonce = "7" });

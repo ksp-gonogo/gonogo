@@ -43,6 +43,7 @@ public static class RtConfig
         builder.ExportAsInterface<Unsubscribe>().AutoI(false).WithPublicProperties().OverrideName("Unsubscribe");
         builder.ExportAsInterface<SetVantage>().AutoI(false).WithPublicProperties().OverrideName("SetVantage");
         builder.ExportAsInterface<Hello>().AutoI(false).WithPublicProperties().OverrideName("Hello");
+        builder.ExportAsInterface<GameState>().AutoI(false).WithPublicProperties().OverrideName("GameState");
         builder.ExportAsInterface<Ping>().AutoI(false).WithPublicProperties().OverrideName("Ping");
         builder.ExportAsInterface<Pong>().AutoI(false).WithPublicProperties().OverrideName("Pong");
         builder.ExportAsInterface<StreamBinary>().AutoI(false).WithPublicProperties().OverrideName("StreamBinary");

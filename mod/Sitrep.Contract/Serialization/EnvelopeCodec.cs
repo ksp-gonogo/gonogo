@@ -649,6 +649,40 @@ namespace Sitrep.Contract.Serialization
             return new Hello { Type = "hello", BootId = RequireString(raw, "bootId") };
         }
 
+        /// <summary>Serializes a <c>game-state</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WriteGameState(GameState msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+            AppendField(sb, "state");
+            JsonWriter.AppendString(sb, msg.State);
+            AppendField(sb, "scene");
+            JsonWriter.AppendString(sb, msg.Scene);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        /// <summary>Parses a <c>game-state</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>game-state</c>
+        /// envelope, or <c>state</c> is missing or not a string.</exception>
+        public static GameState ParseGameState(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "game-state");
+            return new GameState
+            {
+                Type = "game-state",
+                State = RequireString(raw, "state"),
+                Scene = raw.TryGetValue("scene", out var scene) && scene is string text ? text : "",
+            };
+        }
+
         /// <summary>Serializes a <c>ping</c> envelope.</summary>
         /// <param name="msg">The envelope to write.</param>
         /// <returns>The JSON text of the envelope.</returns>
@@ -699,7 +733,7 @@ namespace Sitrep.Contract.Serialization
         /// Parses a server-to-client envelope (<c>StreamData&lt;object?&gt;</c>,
         /// <see cref="EventMsg"/>, <c>CommandResponse&lt;object?&gt;</c>,
         /// <see cref="CommandAccepted"/>, <see cref="ErrorMsg"/>,
-        /// <see cref="Hello"/> or <see cref="Pong"/>), dispatching
+        /// <see cref="Hello"/>, <see cref="GameState"/> or <see cref="Pong"/>), dispatching
         /// on the <c>"type"</c> field the same way the TypeScript SDK does.
         /// <internal>
         /// Mirrors <c>parseServerMessage</c> in
@@ -725,6 +759,7 @@ namespace Sitrep.Contract.Serialization
                     "command-accepted" => ParseCommandAccepted(json),
                     "error" => ParseErrorMsg(json),
                     "hello" => ParseHello(json),
+                    "game-state" => ParseGameState(json),
                     "pong" => ParsePong(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown server envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),

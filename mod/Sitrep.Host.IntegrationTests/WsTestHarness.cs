@@ -162,6 +162,8 @@ namespace Sitrep.Host.IntegrationTests
                     SingleWriter = true,
                     SingleReader = false,
                 });
+            /// <summary>The game-state frames, kept aside like the greeting so a test counting the frames it asked for never steps over one.</summary>
+            private readonly Channel<GameState> _gameStates = Channel.CreateUnbounded<GameState>();
             private readonly TaskCompletionSource<Hello> _hello = new TaskCompletionSource<Hello>(TaskCreationOptions.RunContinuationsAsynchronously);
             private readonly CancellationTokenSource _pumpCts = new CancellationTokenSource();
             private Thread? _pumpThread;
@@ -223,6 +225,11 @@ namespace Sitrep.Host.IntegrationTests
                                 _hello.TrySetResult(EnvelopeCodec.ParseHello(text));
                                 continue;
                             }
+                            if (text.StartsWith("{\"type\":\"game-state\"", StringComparison.Ordinal))
+                            {
+                                _gameStates.Writer.TryWrite(EnvelopeCodec.ParseGameState(text));
+                                continue;
+                            }
                             _incoming.Writer.TryWrite(text);
                         }
                     }
@@ -235,6 +242,21 @@ namespace Sitrep.Host.IntegrationTests
                     // AggregateException from GetResult) just ends the loop.
                     // It must never escape and fault the thread.
                 }
+            }
+
+            /// <summary>The next game-state frame the server sent this connection.</summary>
+            public async Task<GameState> GameStateAsync(TimeSpan timeout)
+            {
+                using var cts = new CancellationTokenSource(timeout);
+                return await _gameStates.Reader.ReadAsync(cts.Token);
+            }
+
+            /// <summary>Assert no game-state frame arrives in this window.</summary>
+            public async Task AssertNoGameStateAsync(TimeSpan window)
+            {
+                using var cts = new CancellationTokenSource(window);
+                await Xunit.Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                    await _gameStates.Reader.ReadAsync(cts.Token));
             }
 
             /// <summary>The greeting the server opened this connection with.</summary>

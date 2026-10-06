@@ -740,6 +740,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     breakingGround: "flag",
     makingHistory: "flag",
   },
+  "GameState": {
+    scene: "id",
+    state: "id",
+    type: "id",
+  },
   "GateVerdict": {
     detail: "text",
     errorCode: "enum",

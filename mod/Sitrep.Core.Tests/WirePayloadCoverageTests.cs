@@ -62,7 +62,7 @@ namespace Sitrep.Core.Tests
             // NOT here any more, it has a real flattener (VesselViewProvider.
             // ToWire(PayloadMeta)) and the scan grades it.
             "Meta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe", "SetVantage",
-            "Hello", "Ping", "Pong",
+            "Hello", "GameState", "Ping", "Pong",
             // A control frame like the six above: EnvelopeCodec.WriteCommandAccepted
             // writes its two fields itself, and it is never a channel payload,
             // so it cannot reach the payload switch.
