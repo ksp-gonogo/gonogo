@@ -130,6 +130,16 @@ describe("publish-mods.yml's matrix names paths that exist", () => {
     ).toEqual([]);
   });
 
+  it("every leg's non-empty netkan file exists in the repo", () => {
+    const missing = matrix.filter(
+      (entry) => entry.netkan && !existsSync(join(ROOT, entry.netkan)),
+    );
+    expect(
+      missing.map((entry) => `${entry.id}: ${entry.netkan}`),
+      "A publish-mods.yml matrix leg names a netkan that is not in the tree.",
+    ).toEqual([]);
+  });
+
   it("every leg's non-empty licence file exists in the repo", () => {
     const missing = matrix.filter(
       (entry) => entry.license && !existsSync(join(ROOT, entry.license)),

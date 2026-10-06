@@ -110,6 +110,7 @@ jobs:
             extra_dlls: "Sitrep.Host.dll Sitrep.Contract.dll Sitrep.Transport.dll Sitrep.Core.dll Sitrep.Propagation.dll"
             notice: ""
             license: LICENSE
+            netkan: mod/Gonogo.KSP/GonogoCore.netkan
             mod_id_var: SPACEDOCK_MOD_ID_GONOGO
     uses: ./.github/workflows/_build-uplink-mod.yml
     with:
@@ -120,6 +121,7 @@ jobs:
       extra_dlls: ${{ matrix.extra_dlls }}
       notice: ${{ matrix.notice }}
       license: ${{ matrix.license }}
+      netkan: ${{ matrix.netkan }}
       channel: ${{ inputs.channel || 'rc' }}
       ref: ${{ inputs.ref || github.sha }}
       version: ${{ needs.version.outputs.value }}

@@ -43,6 +43,11 @@ on:
         required: false
         type: string
         default: ""
+      netkan:
+        description: "Path to the mod's .netkan, validated against CKAN's NetKAN schema when set"
+        required: false
+        type: string
+        default: ""
       license:
         description: "Path to a LICENSE file to place at the top of GameData/<gamedata>/, if any"
         required: false
@@ -121,18 +126,17 @@ jobs:
             echo "::notice::${{ inputs.id }} has no ExpectedClientHash scaffold this workflow can fill; its DLL will vouch for no client bundle"
           fi
 
+      # The CKAN check below needs node and the workspace's schema validator
+      # whether or not the client hash is armed.
       - uses: actions/setup-node@v6
-        if: steps.vouches.outputs.armed == 'true'
         with:
           node-version: "24"
 
       - uses: pnpm/action-setup@v6
-        if: steps.vouches.outputs.armed == 'true'
         with:
           run_install: false
 
       - name: Install workspace dependencies
-        if: steps.vouches.outputs.armed == 'true'
         run: pnpm install --frozen-lockfile
 
       # Rebuilt here rather than trusted, and then held to the value the tree
@@ -271,6 +275,24 @@ jobs:
           name: ${{ inputs.id }}-zip
           path: ${{ env.ZIP_NAME }}
           if-no-files-found: error
+
+      # What CKAN will read, checked on the zip itself and before anything
+      # uploads it: a version SpaceDock holds cannot be replaced. The check
+      # plants each fault first and fails as BLIND if it cannot see one.
+      - name: Check ${{ inputs.id }} is what CKAN reads
+        env:
+          NETKAN: ${{ inputs.netkan }}
+        run: |
+          set -euo pipefail
+          args=(--zip "${{ env.ZIP_NAME }}" --folder "${{ inputs.gamedata }}")
+          if [ -n "$NETKAN" ]; then
+            base=https://raw.githubusercontent.com/KSP-CKAN/CKAN/master
+            curl -fsS "$base/NetKAN.schema" -o "$RUNNER_TEMP/NetKAN.schema"
+            curl -fsS "$base/CKAN.schema" -o "$RUNNER_TEMP/CKAN.schema"
+            args+=(--netkan "$NETKAN" --netkan-schema "$RUNNER_TEMP/NetKAN.schema" --ckan-schema "$RUNNER_TEMP/CKAN.schema")
+          fi
+          node scripts/check-ckan-zip.mjs "${args[@]}" | tee check.out
+          echo "### ${{ inputs.id }}: $(cat check.out)" >> "$GITHUB_STEP_SUMMARY"
 
       # Mirrors kerbcam release.yml's "Publish to SpaceDock": cookie-based
       # login (SpaceDock has no API tokens), multipart upload to
