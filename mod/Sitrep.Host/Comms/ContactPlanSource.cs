@@ -391,8 +391,23 @@ namespace Sitrep.Host.Comms
         private HeardSnapshot? _heardNow;
         private long _heardNowNews = -1;
 
-        // COURIER THREAD: what the reset just announced starts every centre knowing, or null for nothing.
-        private HeardSnapshot? _heardToRestore;
+        /// <summary>What a reset starts every centre knowing, held from the reset until the centres have been given it.</summary>
+        private sealed class Restore
+        {
+            public Restore(HeardSnapshot? heard) => Heard = heard;
+
+            /// <summary>What the loaded game carried, or null for nothing.</summary>
+            public HeardSnapshot? Heard { get; }
+        }
+
+        /*
+         * Written by the reset on the Courier thread and read by a save from
+         * another. The centres are given it at the first look after the
+         * reset, which waits for the game's vessel list to stand, and the
+         * game saves in between: until then this, and not what was heard on
+         * the timeline the load left, is what every centre knows.
+         */
+        private Restore? _restore;
         private int _plansVersion;
 
         /// <param name="game">The game the plan is made of.</param>
@@ -537,7 +552,7 @@ namespace Sitrep.Host.Comms
             var plans = host as ICentrePlanHost;
             plans?.SetCentrePlans(PlanOf, () => System.Threading.Volatile.Read(ref _plansVersion));
             plans?.SetNodeNames(NameAt);
-            plans?.SetHeardStore(HeardNow, heard => _heardToRestore = heard);
+            plans?.SetHeardStore(HeardNow, heard => System.Threading.Volatile.Write(ref _restore, new Restore(heard)));
             _streams.DeclareAddressedTopic(ContactsTopic);
             _streams.DeclareAddressedTopic(RouteTopic);
             // A plan is state, and an addressed sample is not kept for whoever
@@ -659,8 +674,7 @@ namespace Sitrep.Host.Comms
                 _hearing.Reset();
                 // A load starts every centre where the save left it, knowing what
                 // it had heard by then and nothing that was still on its way.
-                var carried = _heardToRestore;
-                _heardToRestore = null;
+                var carried = System.Threading.Volatile.Read(ref _restore)?.Heard;
                 if (carried != null)
                 {
                     _hearing.Restore(carried);
@@ -702,6 +716,8 @@ namespace Sitrep.Host.Comms
                 _heardNowNews = -1;
             }
             KeepHeardForSave(listening);
+            // What is kept for a save is now what the centres were given back and have heard since.
+            System.Threading.Volatile.Write(ref _restore, null);
 
             NoteGround(looked);
             TakeFinished(looked.Ut);
@@ -931,7 +947,13 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>What every centre has heard, for saving with the game. Any thread.</summary>
-        public HeardSnapshot? HeardNow() => System.Threading.Volatile.Read(ref _heardNow);
+        public HeardSnapshot? HeardNow()
+        {
+            var restore = System.Threading.Volatile.Read(ref _restore);
+            return restore != null
+                ? restore.Heard ?? new HeardSnapshot(new HeardAtCentre[0])
+                : System.Threading.Volatile.Read(ref _heardNow);
+        }
 
         /// <summary>MAIN THREAD: each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? RosterOf(KspSnapshot snapshot)

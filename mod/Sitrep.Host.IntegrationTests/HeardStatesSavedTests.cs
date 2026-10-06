@@ -151,6 +151,36 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(view.Vessel(ScriptedContactGame.RelayGuid) != null, "a craft left a centre's list because the game, out of flight, listed nothing for it");
         }
 
+        /// <summary>
+        /// The game saves a moment after a load, before its vessel list has
+        /// been filled and so before the centres have been given back what the
+        /// loaded game carried. That save must carry what the loaded game did:
+        /// not nothing, and not what was heard on the timeline the load left.
+        /// </summary>
+        [Fact]
+        public async Task ASaveWrittenAfterALoadAndBeforeTheVesselListStandsCarriesWhatTheLoadedGameCarried()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            world.Tick(1.0);
+            world.Tick(2.0);
+            await world.SettleAsync();
+            var early = SavedAndReadBack(world)!;
+            Assert.DoesNotContain(early.Centres.Single(c => c.Centre == Home).States, s => s.Id == Relay);
+            world.Tick(700.0);
+            world.Tick(702.0);
+            await world.SettleAsync();
+            Assert.Contains(world.Engine.HeardSnapshotNow()!.Centres.Single(c => c.Centre == Home).States, s => s.Id == Relay);
+
+            world.Game.ListNotStanding = true;
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), early);
+            world.Tick(3.0);
+            world.Tick(4.0);
+
+            var written = world.Engine.HeardSnapshotNow()!;
+            Assert.Contains(written.Centres, c => c.Centre == Home);
+            Assert.DoesNotContain(written.Centres.Single(c => c.Centre == Home).States, s => s.Id == Relay);
+        }
+
         [Fact]
         public async Task ALoadThatCarriesNothingLeavesEveryCentreToHearAgain()
         {

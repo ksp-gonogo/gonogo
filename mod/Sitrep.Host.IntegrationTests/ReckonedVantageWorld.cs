@@ -372,8 +372,15 @@ namespace Sitrep.Host.IntegrationTests
             return roster;
         }
 
-        public ContactGameLook Look()
+        /// <summary>Whether the game's vessel list is still being filled, as it is for a few seconds after a load: nothing can be read from it.</summary>
+        public bool ListNotStanding { get; set; }
+
+        public ContactGameLook? Look()
         {
+            if (ListNotStanding)
+            {
+                return null;
+            }
             // A node's radio is its own id where a backend is elected, so the backend can tell the pair it is asked about.
             object? Antenna(string id) => LinkStrengths == null ? null : id;
             var nodes = new List<ContactGameNode>
