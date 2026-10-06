@@ -135,14 +135,15 @@ export function VesselMarker({
   );
   const r = 5 / zoom;
   const { colour, opacity } = markerStyle(state);
-  // The kit's vessel mark, a square where the position is held and a triangle where it is reckoned; overdue and lost keep their own warning rings.
-  const vesselMark = held
-    ? "held"
-    : state === "predicted"
-      ? "modelled"
-      : state === "observed"
-        ? "current"
-        : null;
+  // The kit's vessel mark in every state. An overdue craft is held, so it takes the square; a lost one takes the square emptied.
+  const vesselMark =
+    state === "lost"
+      ? "lost"
+      : held || state === "overdue"
+        ? "held"
+        : state === "predicted"
+          ? "modelled"
+          : "current";
   return (
     <g
       pointerEvents="none"
@@ -171,24 +172,9 @@ export function VesselMarker({
           opacity={0.6}
         />
       )}
-      {vesselMark === null ? (
-        <circle
-          data-vessel-marker=""
-          cx={marker.x}
-          cy={marker.y}
-          r={r}
-          fill="none"
-          stroke={colour}
-          strokeWidth={1.4 / zoom}
-          // Dashed ring for an overdue or lost position: the same visual language the upcoming-patch arcs use for "computed, not observed".
-          strokeDasharray={`${3 / zoom} ${2.5 / zoom}`}
-        />
-      ) : (
-        // The kit's one vessel mark, sized to this diagram's zoom.
-        <g data-vessel-marker="">
-          <VesselMarkSvg state={vesselMark} x={marker.x} y={marker.y} r={r} />
-        </g>
-      )}
+      <g data-vessel-marker="">
+        <VesselMarkSvg state={vesselMark} x={marker.x} y={marker.y} r={r} />
+      </g>
       <circle
         cx={marker.x}
         cy={marker.y}

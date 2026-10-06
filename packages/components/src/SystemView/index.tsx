@@ -24,6 +24,7 @@ import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { countdownOf } from "../shared/countdownOf";
+import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useEncounterIn } from "../shared/useEncounterIn";
@@ -205,8 +206,16 @@ function SystemViewComponent({
 
   // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame matches its parent body.
   const vSma = orbit?.sma?.magnitude;
+  // Where the craft is on that orbit: where a model carries it, else where it is now, else where it was last seen. With none of them there is no place to draw it, and periapsis is not a stand-in.
+  const craft = craftOnOrbit(orbitReading, orbitObserved, derived);
+  const vesselAt = craft?.modelled ?? craft?.current ?? craft?.held ?? null;
+  // A place a model carried the craft to is drawn as modelled even while every contact state says the craft is in touch.
+  const drawnPlotState =
+    vesselPlotState === "observed" && craft?.modelled != null
+      ? "predicted"
+      : vesselPlotState;
   const vesselOrbit =
-    vesselBody != null && orbit?.sma.isFinite()
+    vesselBody != null && orbit?.sma.isFinite() && vesselAt !== null
       ? {
           parentName: vesselBody,
           sma: orbit.sma.magnitude,
@@ -214,7 +223,7 @@ function SystemViewComponent({
           lan: orbit.lan?.magnitude ?? 0,
           argPe: orbit.argPe?.magnitude ?? 0,
           inclination: orbit.inc.magnitude,
-          trueAnomaly: derived?.trueAnomaly ?? 0,
+          trueAnomaly: vesselAt,
         }
       : null;
 
@@ -518,8 +527,10 @@ function SystemViewComponent({
                     }
                     vessel={vesselOrbit}
                     vesselTrajectory={vesselTrajectory}
-                    vesselPlotState={vesselPlotState}
-                    vesselPositionHeld={orbitReading.state === "held"}
+                    vesselPlotState={drawnPlotState}
+                    vesselPositionHeld={
+                      vesselAt !== null && vesselAt === craft?.held
+                    }
                     phaseAngles={phaseAngles}
                     transferStatuses={transferStatuses}
                     onFocusBodyChange={setFocusedBody}

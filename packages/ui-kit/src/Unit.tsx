@@ -58,7 +58,7 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
       : ""}
 `;
 
-// A held figure is relatively positioned and reserves the mark's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the dot alone.
+// A held figure is relatively positioned and reserves the mark's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the mark alone.
 const Unit__Quantity = styled.span<{ $mark: ReckoningKind | null }>`
   white-space: nowrap;
   ${({ $mark }) =>

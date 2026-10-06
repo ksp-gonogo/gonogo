@@ -5,7 +5,7 @@ import { VESSEL_MARK, VesselMarkSvg } from "./vesselMark";
 
 const GREEN = "var(--color-accent-fg)";
 
-function mark(state?: "current" | "held" | "modelled") {
+function mark(state?: "current" | "held" | "modelled" | "lost") {
   const { container } = render(
     <svg aria-hidden="true">
       <VesselMarkSvg x={100} y={50} r={10} state={state} />
@@ -69,6 +69,24 @@ describe("VesselMarkSvg", () => {
           10 * VESSEL_MARK.reach + 1,
         );
         expect(Math.abs(x) + outline).toBeLessThanOrEqual(12.1);
+      }
+    }
+  });
+
+  it("draws a lost vessel as the square emptied, its outline in the no-go hue", () => {
+    const { circle, shape } = mark("lost");
+    expect(circle).toBeNull();
+    expect(corners(shape)).toHaveLength(4);
+    expect(shape).toHaveAttribute("fill", "none");
+    expect(shape).toHaveAttribute("stroke", "var(--color-nogo-mark)");
+  });
+
+  it("reaches as far as its farthest corner and half the outline round it, so two marks a reach apart do not touch", () => {
+    for (const state of ["held", "modelled", "lost"] as const) {
+      for (const [x, y] of corners(mark(state).shape)) {
+        expect(
+          Math.hypot(x, y) + (10 * VESSEL_MARK.outlineWidth) / 2,
+        ).toBeLessThanOrEqual(10 * VESSEL_MARK.reach + 1e-9);
       }
     }
   });

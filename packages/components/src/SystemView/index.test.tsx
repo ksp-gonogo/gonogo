@@ -1,4 +1,5 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
@@ -314,6 +315,53 @@ describe("SystemViewComponent", () => {
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
     );
     expect(container.querySelectorAll("[data-vessel-mark]")).toHaveLength(0);
+  });
+
+  it("draws the craft held at its last place, not at periapsis, when its orbit is held and nothing solves it", async () => {
+    const { container } = render(
+      <fixture.Provider>
+        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+      </fixture.Provider>,
+    );
+    primeStream();
+    act(() => {
+      // A quarter of the way round a circular orbit, on a loaded craft: the model declines under physics, so once the link drops nothing solves the orbit.
+      fixture.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 0,
+          sma: 8_000_000,
+          ecc: 0,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: Math.PI / 2,
+          epoch: 100,
+          mu: KERBIN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
+        },
+        { quality: Quality.Loaded },
+      );
+    });
+    await waitFor(() =>
+      expect(container.querySelectorAll("[data-vessel-mark]")).toHaveLength(1),
+    );
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+    await waitFor(() =>
+      expect(fixture.store.sampleReading("vessel.orbit").state).toBe("held"),
+    );
+    const mark = container.querySelector("[data-vessel-mark]");
+    expect(mark).toHaveAttribute("data-vessel-mark", "held");
+    // Periapsis lies along the x axis from the body; a quarter of the way round is off it.
+    const [x, y] = (mark?.getAttribute("transform") ?? "")
+      .replace(/^translate\(|\)$/g, "")
+      .split(" ")
+      .map(Number);
+    expect(Math.abs(y)).toBeGreaterThan(Math.abs(x));
+    await act(async () => {});
   });
 
   it("draws exactly one vessel marker, at a real (non-origin) position, once vessel.orbit lands", async () => {
