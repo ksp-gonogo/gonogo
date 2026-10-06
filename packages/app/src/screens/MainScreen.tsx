@@ -56,6 +56,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { GameLoadingBanner } from "../components/GameLoadingBanner";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
@@ -461,6 +462,7 @@ function MainDashboard({
             <HeaderBadges />
             <SignalLossIndicator />
             <SustainedFailureBanner />
+            <GameLoadingBanner />
             <SceneChangeBanner />
             <FlightOutcomeBanner />
             <HomeFallbackNotice />

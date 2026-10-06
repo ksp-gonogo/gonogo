@@ -34,6 +34,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { GameLoadingBanner } from "../components/GameLoadingBanner";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
@@ -454,6 +455,7 @@ export function StationScreen() {
                                 />
                                 <HostDisconnectBanner client={client} />
                                 <HeaderBadges />
+                                <GameLoadingBanner />
                                 <SignalLossIndicator />
                                 <SustainedFailureBanner />
                                 <HostVersionBanner client={client} />

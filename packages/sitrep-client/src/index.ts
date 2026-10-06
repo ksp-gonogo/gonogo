@@ -419,7 +419,11 @@ export type {
   ReckonedSample,
   TimelineStoreOptions,
 } from "./timeline-store";
-export { lerpPayload, TimelineStore } from "./timeline-store";
+export {
+  type GameStatus,
+  lerpPayload,
+  TimelineStore,
+} from "./timeline-store";
 export type {
   LostCommand,
   Transport,
@@ -453,6 +457,7 @@ export {
   type ControlStreamOptions,
   useControlStream,
 } from "./use-control-stream";
+export { useGameStatus } from "./use-game-status";
 export {
   type LateTelemetrySubscribe,
   type Unsubscribe,

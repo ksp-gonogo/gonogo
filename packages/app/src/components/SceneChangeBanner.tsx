@@ -30,7 +30,6 @@ const SCENE_LABELS: Record<string, string> = {
   Editor: "Editor",
   TrackingStation: "Tracking Station",
   MainMenu: "Main Menu",
-  Other: "Loading...",
 };
 
 function labelForScene(scene: string): string {
@@ -64,7 +63,9 @@ export function SceneChangeBanner() {
     sceneReading.state === "observed" || sceneReading.state === "held"
       ? sceneReading.value.scene
       : undefined;
-  const scene = typeof sceneRaw === "string" ? sceneRaw : null;
+  /* "Other" is the game's own loading screen, which `GameLoadingBanner` owns. */
+  const scene =
+    typeof sceneRaw === "string" && sceneRaw !== "Other" ? sceneRaw : null;
 
   // Seed prev-scene from localStorage so a station that reloads (or just
   // joined a host) can compare the first arriving value against the last
