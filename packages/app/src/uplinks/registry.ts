@@ -68,6 +68,12 @@ export interface UplinkDescriptor {
    * showing.
    */
   identity?: UplinkIdentity;
+  /**
+   * Set by the dev server on an Uplink named with `--uplink`. Honoured only
+   * when `import.meta.env.DEV`: a production build treats the entry as an
+   * ordinary one, however the index came to say it.
+   */
+  source?: "local";
   versions: UplinkVersionDescriptor[];
 }
 

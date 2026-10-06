@@ -21,6 +21,8 @@ export interface UplinkLoadOutcome {
   /** The resolved version, if the descriptor got that far. */
   version?: string;
   status: UplinkLoadStatus;
+  /** `local` for a build named with `--uplink` under the dev server. */
+  source?: "local";
   /**
    * Why it is in this state. For `quarantined` this is the operator-legible
    * refusal reason (compat gate / hash mismatch / fetch error / no crypto / ...).

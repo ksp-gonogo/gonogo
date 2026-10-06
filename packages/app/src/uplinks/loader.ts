@@ -268,6 +268,17 @@ function toCompatManifest(
 }
 
 /**
+ * Whether this descriptor is a build named with `--uplink` under the dev server.
+ *
+ * The environment test is the whole safety: it is a compile-time constant, so a
+ * production bundle has no path on which a `local` descriptor is honoured, and an
+ * index that claims one is read as an ordinary entry and held to every gate.
+ */
+function isLocal(descriptor: UplinkDescriptor): boolean {
+  return import.meta.env.DEV && descriptor.source === "local";
+}
+
+/**
  * What `checkCompat` found that the rest of `loadOne` has to act on. Only the
  * skew override so far, and it has to travel: it changes which party anchors
  * the byte check, and the arm that would otherwise re-assert the mod's hash
@@ -293,6 +304,7 @@ function checkCompat(
   ctx: LoaderContext,
   roster: RosterEntry | undefined,
 ): CompatVerdict {
+  const local = isLocal(descriptor);
   const manifest = toCompatManifest(descriptor, version);
   const app: AppCompatIdentity = {
     apiVersion: ctx.hostCompat.apiVersion,
@@ -347,7 +359,7 @@ function checkCompat(
    * disagree with and skew is answered by the compat table alone. That path is
    * built; nothing in `mod/` populates `clientSource` yet.
    */
-  if (roster?.expectedClientHash != null) {
+  if (!local && roster?.expectedClientHash != null) {
     if (roster.expectedClientHash !== version.integrity) {
       /*
        * A DECLARATION disagreement, and the only integrity finding an operator
@@ -721,10 +733,13 @@ async function loadOne(
   integrityAnchor: UplinkIntegrityParty = "hub-index",
 ): Promise<UplinkLoadOutcome> {
   const identity = descriptorIdentity(descriptor);
+  const local = isLocal(descriptor);
+  const source = local ? ("local" as const) : undefined;
   const base: UplinkLoadOutcome = {
     id: descriptor.id,
     name: descriptor.name,
     identity,
+    source,
     status: "loading",
   };
   setUplinkOutcome(base);
@@ -743,15 +758,17 @@ async function loadOne(
     // First-party ids are NOT pre-trusted, a first load at a new id@version asks
     // the operator; a remembered grant short-circuits. Decline quarantines with a
     // legible reason. Bytes are never fetched for a declined Uplink.
-    const ensure = ctx.ensureConsent ?? ensureConsent;
-    const consented = await ensure({
-      id: descriptor.id,
-      name: descriptor.name,
-      version: version.version,
-      author: descriptor.author || undefined,
-      identity,
-    });
-    if (!consented) refuse("consent declined");
+    if (!local) {
+      const ensure = ctx.ensureConsent ?? ensureConsent;
+      const consented = await ensure({
+        id: descriptor.id,
+        name: descriptor.name,
+        version: version.version,
+        author: descriptor.author || undefined,
+        identity,
+      });
+      if (!consented) refuse("consent declined");
+    }
 
     // Fetch, then verify the bytes BEFORE import (design §5 step 5).
     // `version.integrity` is threaded through as `expectedHash` (D6) so a
@@ -801,7 +818,7 @@ async function loadOne(
      * Uplink whose bytes passed. What is NOT skipped, and cannot be, is the
      * digest check above.
      */
-    if (roster?.expectedClientHash != null && !skewOverridden) {
+    if (!local && roster?.expectedClientHash != null && !skewOverridden) {
       if (digest !== roster.expectedClientHash) {
         refuseIntegrity(
           {
@@ -827,6 +844,12 @@ async function loadOne(
     const ms = Math.round(performance.now() - start);
 
     const resolveModHashNote = () => {
+      if (local) {
+        return (
+          " (local build; mod hash not compared: local build; consent not asked: local build" +
+          `${roster ? "" : `; mod: not reporting ${descriptor.id}`})`
+        );
+      }
       if (roster?.expectedClientHash == null)
         return " (mod-hash arm pending: mod does not yet emit expectedClientHash)";
       // Loud on the loaded row, not only in the log. An Uplink running past a
@@ -844,6 +867,7 @@ async function loadOne(
       id: descriptor.id,
       name: descriptor.name,
       identity,
+      source,
       version: version.version,
       status: "loaded",
       reason: `verified + loaded in ${ms}ms${modHashNote}`,
@@ -862,6 +886,7 @@ async function loadOne(
       id: descriptor.id,
       name: descriptor.name,
       identity,
+      source,
       version: base.version,
       status: "quarantined",
       reason,
@@ -908,12 +933,17 @@ function deriveEnabledIds(
   // outright over the roster. `[]` (empty `?uplinkLoaderIds=`) is a meaningful
   // "load nothing" and is honoured too; only `undefined` (no override param)
   // defers to the roster below.
-  if (override !== undefined) return [...override];
-  if (!roster) return [];
+  const local = index.uplinks.filter(isLocal).map((d) => d.id);
+  // Naming a build with `--uplink` is intent, so neither the roster nor an override drops it.
+  const withLocal = (ids: string[]) => [...new Set([...ids, ...local])];
+  if (override !== undefined) return withLocal([...override]);
+  if (!roster) return withLocal([]);
   const indexed = new Set(index.uplinks.map((descriptor) => descriptor.id));
-  return roster
-    .filter((entry) => indexed.has(entry.id) || entry.clientSource != null)
-    .map((entry) => entry.id);
+  return withLocal(
+    roster
+      .filter((entry) => indexed.has(entry.id) || entry.clientSource != null)
+      .map((entry) => entry.id),
+  );
 }
 
 /**

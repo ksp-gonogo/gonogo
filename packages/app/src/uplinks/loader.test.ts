@@ -1549,3 +1549,123 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(fetchManifest).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * A descriptor with `source: "local"` is one the dev server built from a path
+ * named on the command line. It is explicit intent, so it loads without the mod
+ * reporting it, without the mod's hash, and without a consent prompt, and it is
+ * still held to the compat gates and to the hash of the bytes it fetched.
+ */
+describe("loadEnabledUplinks: a local build under the dev server", () => {
+  const localIndex = (
+    integrity: string,
+    versionOverrides: Partial<RegistryIndex["uplinks"][0]["versions"][0]> = {},
+  ): RegistryIndex => {
+    const index = indexWith(integrity, versionOverrides);
+    index.uplinks[0].source = "local";
+    return index;
+  };
+  const importOk = () =>
+    vi.fn<(bytes: ArrayBuffer, url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+  const armedRoster = (hash: string): RosterEntry[] => [
+    {
+      id: "scansat",
+      version: "1.0.0",
+      available: true,
+      reason: null,
+      expectedClientHash: hash,
+    },
+  ];
+  const loadLocal = (
+    index: RegistryIndex,
+    extra: {
+      roster?: RosterEntry[];
+      importBundle?: ReturnType<typeof importOk>;
+      ensureConsent?: () => Promise<boolean>;
+    } = {},
+  ) => {
+    stubRegistryFetch(index);
+    return loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: extra.roster,
+      ensureConsent: extra.ensureConsent ?? (async () => true),
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle: extra.importBundle ?? importOk(),
+    });
+  };
+
+  it("loads against an armed mod whose hash it will never match, which an ordinary Uplink is refused for", async () => {
+    const importBundle = importOk();
+    const outcomes = await loadLocal(localIndex(goodHash), {
+      roster: armedRoster("sha256-the-released-build"),
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("loaded");
+    expect(outcomes[0].source).toBe("local");
+    expect(outcomes[0].reason).toContain("mod hash not compared: local build");
+    expect(importBundle).toHaveBeenCalledOnce();
+  });
+
+  it("loads with no roster at all, and says the mod is not reporting it", async () => {
+    const outcomes = await loadLocal(localIndex(goodHash));
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].status).toBe("loaded");
+    expect(outcomes[0].reason).toContain("mod: not reporting scansat");
+  });
+
+  it("does not say the mod is not reporting an Uplink the roster lists", async () => {
+    const outcomes = await loadLocal(localIndex(goodHash), {
+      roster: armedRoster("sha256-whatever"),
+    });
+    expect(outcomes[0].reason).not.toContain("not reporting");
+  });
+
+  it("never asks for consent, and says so", async () => {
+    const ensureConsent = vi.fn(async () => false);
+    const outcomes = await loadLocal(localIndex(goodHash), { ensureConsent });
+    expect(ensureConsent).not.toHaveBeenCalled();
+    expect(outcomes[0].status).toBe("loaded");
+    expect(outcomes[0].reason).toContain("consent not asked: local build");
+  });
+
+  it("still quarantines bytes that do not match the index hash", async () => {
+    const importBundle = importOk();
+    const outcomes = await loadLocal(localIndex("sha256-not-these-bytes"), {
+      importBundle,
+    });
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/bundle hash/);
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  it("is still refused for a contract it was not built against", async () => {
+    const outcomes = await loadLocal(
+      localIndex(goodHash, { contractMajor: 4 }),
+    );
+    expect(outcomes[0].status).toBe("quarantined");
+  });
+
+  it("is an ordinary descriptor in a build that is not the dev server", async () => {
+    vi.stubEnv("DEV", false);
+    try {
+      const importBundle = importOk();
+      const refused = await loadLocal(localIndex(goodHash), {
+        roster: armedRoster("sha256-the-released-build"),
+        importBundle,
+      });
+      expect(refused[0].status).toBe("quarantined");
+      expect(refused[0].reason).toMatch(/mod expects client/);
+
+      __resetUplinkOutcomes();
+      const unlisted = await loadLocal(localIndex(goodHash), { importBundle });
+      expect(unlisted).toEqual([]);
+      expect(importBundle).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
