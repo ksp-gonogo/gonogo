@@ -252,7 +252,7 @@ namespace Sitrep.Contract
     /// read while the Uplink registers. Keep the handle it is given to read them
     /// later.</para>
     ///
-    /// <para><b>A throw costs the settings, never the Uplink.</b> It still
+    /// <para>If <see cref="DeclareSettings"/> throws, the Uplink still
     /// registers and publishes, its settings read as their declared defaults for
     /// the session, and its stored block is left in the file exactly as it
     /// was.</para>

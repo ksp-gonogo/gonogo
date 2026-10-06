@@ -88,10 +88,10 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// The mapping between the two enums this contract declares: what KSP's own
-    /// roster status means in the vocabulary above, before any backend has a say.
-    /// The core registrar applies it wherever a backend declines to read a
-    /// kerbal, and a mod backend that corrects one standing can use it for the
-    /// default of every other kerbal it is handed.
+    /// roster status means as a <see cref="CrewStanding"/>, before any backend has
+    /// a say. Gonogo applies it wherever a backend declines to read a kerbal, and
+    /// a backend that corrects one standing can use it for every other kerbal it
+    /// is handed.
     /// </summary>
     /// <category>Uplink API</category>
     public static class CrewStandings
@@ -102,10 +102,9 @@ namespace Sitrep.Contract
         /// <see cref="CrewStanding.Available"/> and
         /// <see cref="CrewStanding.Applicant"/>.
         ///
-        /// <para>A WHITELIST, so any standing added later reads as unavailable
-        /// until it is written down as flyable. An applicant counts as free:
-        /// nothing blocks hiring one, and the hire surface reads this
-        /// field.</para>
+        /// <para>Any standing added later reads as unavailable unless it is
+        /// added here. An applicant counts as free, since nothing blocks hiring
+        /// one.</para>
         /// <internal>
         /// As a blocklist, every standing added later would be flyable until
         /// somebody remembered to add it, and the standing most likely to be
@@ -124,11 +123,10 @@ namespace Sitrep.Contract
         /// name for the rest. Empty string when they can fly,
         /// and for <see cref="CrewStanding.Unknown"/>.
         ///
-        /// <para>PROSE ONLY, carrying no date. The when rides
-        /// <see cref="CrewStandingResolution.StandingEndsAtUt"/> as a <c>ut</c>
-        /// value instead, because a date formatted here would use the mod's idea
-        /// of a calendar: an RSS save counts years differently from a stock one,
-        /// and the client owns that model.</para>
+        /// <para>Prose only, with no date. When it ends is
+        /// <see cref="CrewStandingResolution.StandingEndsAtUt"/>, a universal
+        /// time the client formats in the save's own calendar, since an RSS save
+        /// counts years differently from a stock one.</para>
         /// <internal>
         /// Unknown returns empty rather than the word "Unknown" because this
         /// string sits in a tooltip beside a disabled control, where "Unknown"
@@ -174,9 +172,9 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The whole derivation, in ONE place: a backend's reading folded onto
-        /// the stock standing, and <c>available</c>, <c>unavailableReason</c> and
-        /// the scheduled end derived from the result.
+        /// Folds a backend's reading onto the stock standing, and derives
+        /// <c>available</c>, <c>unavailableReason</c> and the scheduled end from
+        /// the result.
         ///
         /// <para>Every field a backend leaves null falls back to the stock
         /// derivation, so a backend that corrects one kerbal's standing gets
@@ -282,17 +280,16 @@ namespace Sitrep.Contract
         /// whatever the backend says is keeping the kerbal off a flight. Null
         /// when there is no scheduled end, which is most of the time.
         ///
-        /// <para>A <c>ut</c> value and never a formatted date, for the reason
-        /// <see cref="CrewStandings.UnavailableReason"/> gives.</para>
+        /// <para>A universal time, never a formatted date; see
+        /// <see cref="CrewStandings.UnavailableReason"/>.</para>
         /// </summary>
         public double? StandingEndsAtUt { get; set; }
     }
 
     /// <summary>
     /// Everything a backend is handed about one kerbal, and everything the stock
-    /// derivation needs. A struct rather than a parameter list, so a field added
-    /// later does not break a backend's signature: an author who ignores a field
-    /// they have never heard of keeps compiling.
+    /// derivation needs. A field added to it later does not break a backend that
+    /// ignores it.
     ///
     /// <para>Nothing here is a KSP type: the capture reads the game objects and
     /// hands over primitives.</para>
@@ -309,8 +306,6 @@ namespace Sitrep.Contract
         /// <summary>
         /// KSP's own <c>(int)ProtoCrewMember.RosterStatus</c>, or null for an
         /// applicant (who has none) and when the capture could not read one.
-        /// Handed over rather than read because the value is not in dispute,
-        /// only what it means.
         /// </summary>
         public int? RosterStatusOrdinal { get; set; }
 
@@ -334,11 +329,10 @@ namespace Sitrep.Contract
         public double? InactiveUntilUt { get; set; }
 
         /// <summary>
-        /// Universal time at the moment of the capture, in seconds. Carried because
-        /// a backend's reading can be a DEADLINE, and a deadline derived from a
-        /// remaining amount over a rate needs the now it is measured from. A
-        /// backend must not read the clock itself: the capture's own UT is what
-        /// every other field on this tick was read against.
+        /// Universal time at the moment of the capture, in seconds. Use it, never
+        /// the game clock, for any deadline the reading derives, such as a
+        /// remaining amount over a rate: every other field was read at this
+        /// time.
         /// </summary>
         public double Ut { get; set; }
     }
@@ -365,9 +359,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The exclusive capability id every crew-standing backend competes for,
-    /// declared in the contract so a backend and the core registrar spell it
-    /// from one constant.
+    /// The exclusive capability id every crew-standing backend competes for.
     /// </summary>
     /// <category>Uplink API</category>
     public static class CrewStandingCapability
@@ -377,9 +369,11 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The active instance of the exclusive <c>"crewStanding"</c> capability:
-    /// what this install makes of a kerbal whose roster status alone does not
-    /// say their standing.
+    /// A crew-standing backend: the active instance of the exclusive
+    /// <see cref="CrewStandingCapability"/>, saying what this install makes of a
+    /// kerbal whose roster status alone does not give their standing. Register
+    /// one from your Uplink when your mod knows better, for example about rest
+    /// or training.
     /// </summary>
     /// <category>Uplink API</category>
     public interface ICrewStandingBackend : ISitrepProvider

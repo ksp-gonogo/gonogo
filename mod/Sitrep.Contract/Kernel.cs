@@ -58,9 +58,10 @@ namespace Sitrep.Contract
         public bool Exclusive { get; set; }
 
         /// <summary>
-        /// A capability the telemetry spine cannot run without. When no provider
-        /// is able to serve it and it has no vanilla, <see cref="Kernel.Resolve"/>
-        /// throws <see cref="SpineCapabilityUnsatisfiedError"/>.
+        /// A capability Gonogo cannot start without. When no provider is able to
+        /// serve it and it has no <see cref="Vanilla"/>,
+        /// <see cref="Kernel.Resolve"/> throws
+        /// <see cref="SpineCapabilityUnsatisfiedError"/>.
         /// </summary>
         public bool SpineCritical { get; set; }
 
@@ -116,14 +117,14 @@ namespace Sitrep.Contract
         public ProviderVersions? Versions { get; set; }
 
         /// <summary>
-        /// Whether this provider can serve the capability on THIS install, asked
-        /// at resolve time before any winner is picked.
+        /// Whether this provider can serve the capability on this install, asked
+        /// during <see cref="Kernel.Resolve"/> before any winner is picked, never
+        /// at registration.
         ///
         /// <para>A provider that returns false withdraws with a
-        /// <c>"provider-declined"</c> notice: it is not a candidate, so for an
-        /// exclusive capability the runner-up wins outright rather than the
-        /// capability falling through to vanilla. Relative priority therefore
-        /// cannot make a provider that models nothing beat one that does.</para>
+        /// <c>"provider-declined"</c> notice and is not a candidate, so for an
+        /// exclusive capability the next provider in line wins rather than the
+        /// capability falling back to vanilla, whatever their priorities.</para>
         ///
         /// <para>Null means always able.</para>
         /// </summary>
@@ -179,25 +180,24 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The capability's VANILLA instance, whether or not the vanilla won the
-        /// election, and including the election this factory is being run for.
+        /// Returns the capability's vanilla instance, whether or not the vanilla
+        /// won the election, including the election this factory is running for.
         ///
-        /// <para><see cref="Query{T}"/> cannot reach it: that returns whatever is
-        /// active, so a provider that has just won <c>propagation</c> asking for
-        /// <c>propagation</c> gets either nothing (its own capability's instances
-        /// are not published until its factory returns) or, after resolution,
-        /// itself.</para>
+        /// <para>Use it when a provider replaces the vanilla but still needs what
+        /// the vanilla computes, for example an n-body propagation provider that
+        /// takes two-body results from the vanilla rather than carrying its own.
+        /// <see cref="Query{T}"/> cannot reach it: it returns whatever is active,
+        /// which for the provider's own capability is nothing until its factory
+        /// returns, and the provider itself after that.</para>
         ///
-        /// <para>A provider that displaces an implementation may still need it.
-        /// The transfer-window search is patched-conic by design, so a provider
-        /// that models n-body still needs conic results to drive it, and can
-        /// take them from the vanilla rather than carrying its own copy of
-        /// two-body motion.</para>
-        ///
-        /// <para>One instance per capability per resolution, shared: two
-        /// providers asking, and the fallback path itself, all get the same
-        /// object. Throws when the capability declares no vanilla, and when a
-        /// vanilla factory asks for its own vanilla, which cannot terminate.</para>
+        /// <para>Each capability has one vanilla instance per resolution, and every
+        /// caller gets that same object. Throws when the capability declares no
+        /// vanilla, and when a vanilla factory asks for its own capability's
+        /// vanilla.</para>
+        /// <internal>
+        /// The transfer-window search is patched-conic by design, which is why an
+        /// n-body propagation provider still needs the conic vanilla.
+        /// </internal>
         /// </summary>
         public T Vanilla<T>(string capability)
         {
@@ -270,16 +270,15 @@ namespace Sitrep.Contract
         public string Detail { get; set; } = "";
 
         /// <summary>
-        /// The provider this notice is ABOUT, when exactly one is implicated
-        /// ("superseded", "version-excluded", "factory-failed",
-        /// "provider-declined", and each tied provider's "ambiguous"). Null for a
-        /// capability-wide notice such as "vanilla-fallback" or
-        /// "selection-failed", which is about the capability rather than the
-        /// conduct of one provider.
+        /// The provider this notice is about, for the kinds that concern one
+        /// provider: <c>"superseded"</c>, <c>"version-excluded"</c>,
+        /// <c>"factory-failed"</c>, <c>"provider-declined"</c>, and each tied
+        /// provider's <c>"ambiguous"</c>. Null for <c>"vanilla-fallback"</c> and
+        /// <c>"selection-failed"</c>, which concern the whole capability.
         ///
-        /// <para>This is what tells "installed and not modelling this save"
-        /// (a named provider declined) apart from "nothing installed that could
-        /// model it".</para>
+        /// <para>A <c>"provider-declined"</c> notice with a provider id is how a
+        /// consumer tells a provider that is installed but cannot serve this game
+        /// apart from no provider installed at all.</para>
         /// </summary>
         public string? ProviderId { get; set; }
     }

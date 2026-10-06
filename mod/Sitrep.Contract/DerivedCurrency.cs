@@ -51,21 +51,22 @@ public interface IDerivedCurrencyWithholder : ISitrepProvider
 {
     /// <summary>
     /// Where this implementation reports what it could not do. The core installs
-    /// a sink that reaches the game log before it makes either call below, so an
-    /// implementation that declines to withhold something can say why somewhere
-    /// the person running the game can read it.
-    ///
-    /// <para>It is on the interface because an implementation lives in an
-    /// Uplink assembly, which references no game or engine assembly and so has
-    /// no log of its own.</para>
+    /// a sink that writes to the game log before it makes either call below, so an
+    /// implementation that declines to withhold something can say why where the
+    /// player can read it.
     ///
     /// <para>Initialise it to a no-op, so the implementation still runs under a
     /// host that installs no sink.</para>
+    /// <internal>
+    /// It is on the interface because an implementation lives in an Uplink
+    /// assembly, which references no game or engine assembly and so has no log
+    /// of its own.
+    /// </internal>
     /// </summary>
     Action<string> Diagnostic { get; set; }
 
     /// <summary>
-    /// A change to <paramref name="primaryCurrency"/> has been ASKED for and
+    /// A change to <paramref name="primaryCurrency"/> has been asked for and
     /// nothing has derived from it yet: record whatever derived quantities this
     /// implementation is responsible for, against <paramref name="ut"/>.
     ///
@@ -86,9 +87,9 @@ public interface IDerivedCurrencyWithholder : ISitrepProvider
     /// must land in the same place as putting it back once.</para>
     ///
     /// <para>An implementation with no observation for <paramref name="ut"/>
-    /// must do NOTHING and report it through <see cref="Diagnostic"/>, rather
-    /// than restore an older reading. Restoring an older reading erases a currency movement that had nothing to do with this
-    /// change.</para>
+    /// must do nothing and report it through <see cref="Diagnostic"/>, rather
+    /// than restore an older reading, which would erase a movement that had
+    /// nothing to do with this change.</para>
     /// </summary>
     void WithholdDerived(string primaryCurrency, double baseAmount, double ut);
 }
@@ -96,8 +97,8 @@ public interface IDerivedCurrencyWithholder : ISitrepProvider
 /// <summary>
 /// The <c>derivedCurrency</c> capability id and the primary-currency names
 /// passed to <see cref="IDerivedCurrencyWithholder"/>. Use these constants
-/// rather than literals: a second spelling of one identity means the capability
-/// never elects.
+/// rather than literals: a misspelt id registers against a capability nobody
+/// resolves.
 /// </summary>
 /// <category>Host and Kernel</category>
 public static class DerivedCurrencyCapability
@@ -105,7 +106,7 @@ public static class DerivedCurrencyCapability
     /// <summary>The capability id, <c>"derivedCurrency"</c>.</summary>
     public const string CapabilityId = "derivedCurrency";
 
-    /// <summary>The primary-currency name for career funds, <c>"funds"</c>. The three names are lowercase and match the currency-delay ledger.</summary>
+    /// <summary>The primary-currency name for career funds, <c>"funds"</c>.</summary>
     public const string Funds = "funds";
 
     /// <summary>The primary-currency name for science points, <c>"science"</c>.</summary>

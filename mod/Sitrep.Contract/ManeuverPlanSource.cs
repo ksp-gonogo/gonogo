@@ -4,16 +4,13 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The provider of the active craft's maneuver plan, registered for the
-    /// <see cref="ManeuverPlanCapability.Id"/> capability: one interface with a
-    /// swappable provider, as with <see cref="IActionGroupsBackend"/> and
-    /// <see cref="ICommsBackend"/>, so <c>vessel.maneuver</c> looks identical
-    /// whoever provides it. Stock's own patched-conic solver is the provider in
-    /// an unmodified game.
+    /// <see cref="ManeuverPlanCapability.Id"/> capability, so
+    /// <c>vessel.maneuver</c> looks the same whoever provides it. Stock's own
+    /// patched-conic solver is the provider in an unmodified game.
     ///
     /// <para><b>Threading.</b> An implementation reads live KSP, so it is only
-    /// ever called on the main thread, during the capture. Never call a
-    /// provider from a channel-source mapper, which runs off the main
-    /// thread.</para>
+    /// ever called on the main thread, during capture. Never call it from a
+    /// channel-source mapper, which runs off the main thread.</para>
     /// <internal>
     /// A capability rather than a mod's own Domain because core needs a defined
     /// value for "what burns are planned" whatever is installed, and stock's
@@ -30,17 +27,11 @@ namespace Sitrep.Contract
         /// The burns planned for the craft being captured, ordered by
         /// execution, earliest <see cref="ManeuverNode.Ut"/> first.
         ///
-        /// <para><b>Null and empty are different values and both are real.</b>
-        /// An empty list means "there is a planner and it has no burns
-        /// queued", which is the overwhelmingly common case. Null means "there
-        /// is no planner at all", which stock reaches on its own: an
-        /// un-upgraded Tracking Station leaves
-        /// <c>Vessel.patchedConicSolver</c> NULL, so an early-career craft
-        /// cannot hold a plan rather than merely not holding one. Collapsing
-        /// those two onto <c>[]</c> tells an operator their plan is empty when
-        /// the truth is that they cannot make one, and it is the same
-        /// distinction <see cref="IActionGroupsBackend.Groups"/>
-        /// draws for the same reason.</para>
+        /// <para><b>Null and empty.</b> An empty list means there is a planner
+        /// with no burns queued, the common case. Null means there is no planner
+        /// at all, as for a craft before the Tracking Station is upgraded, which
+        /// cannot hold a plan. Never return an empty list for that case: it tells
+        /// the operator their plan is empty when they cannot make one.</para>
         ///
         /// <para>A provider assigns each burn's
         /// <see cref="ManeuverNode.Id"/> itself, because only the provider

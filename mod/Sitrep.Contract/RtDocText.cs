@@ -37,21 +37,19 @@ public static class RtDocText
     private static readonly Regex WhitespaceRun = new Regex("\\s+", RegexOptions.Compiled);
 
     /// <summary>
-    /// The element a summary marks its maintainer rationale with, dropped whole
-    /// on the way to TSDoc.
+    /// The element that marks maintainer notes inside a <c>summary</c>. Its
+    /// whole subtree is dropped on the way to TSDoc, so it reaches neither the
+    /// generated TypeScript nor the AsyncAPI document, and stays in the C#.
     ///
-    /// <para>The doc comment is one text with two audiences. A client author
-    /// reading the SDK or the AsyncAPI document needs WHAT the value is: its
-    /// vocabulary, its null rule, its shape on the wire. A maintainer needs WHY
-    /// it is that way: which provider fills it, why it is nullable, the trap
-    /// a change would fall into. Both belong in the C#, beside the type, where the next
-    /// person changing it will read them. Only the first belongs on the published
-    /// surface.</para>
-    ///
-    /// <para>An explicit element rather than a heuristic on the prose. A
-    /// generator guessing which sentence is which would be wrong quietly, and
-    /// wrong in the direction that loses a client-relevant fact buried inside an
-    /// implementation sentence, which is the shape most of these have.</para>
+    /// <para>Put what a value is (its vocabulary, its null rule, its shape on
+    /// the wire) outside it, and why it is that way inside it. A summary made
+    /// of nothing but this element fails generation.</para>
+    /// <internal>
+    /// An explicit element rather than a heuristic on the prose: a generator
+    /// guessing which sentence is which would be wrong quietly, and wrong in the
+    /// direction that loses a client fact buried inside an implementation
+    /// sentence.
+    /// </internal>
     /// </summary>
     public const string InternalElement = "internal";
 
@@ -67,11 +65,11 @@ public static class RtDocText
 
     /// <summary>
     /// How many <c>internal</c> blocks have been dropped this run.
-    ///
-    /// <para>Printed by <see cref="RtDocVisitor"/> for the reason every other
-    /// count in this codegen is printed: a stripper that silently stripped
+    /// <internal>
+    /// Printed by RtDocVisitor because a stripper that silently stripped
     /// nothing reads exactly like a tree that had nothing to strip, and the two
-    /// want opposite fixes.</para>
+    /// want opposite fixes.
+    /// </internal>
     /// </summary>
     public static int InternalBlocksStripped { get; private set; }
 

@@ -49,7 +49,12 @@ namespace Sitrep.Contract
             Units.NotApplicable,
         };
 
-        /// <summary>The five collections the descriptor carries, all sorted so the output is byte-stable.</summary>
+        /// <summary>
+        /// The collections <see cref="Collect"/> reflects, each sorted so the output
+        /// is byte-stable. <see cref="ToJson(Maps)"/> writes the vocabulary, the
+        /// unit maps and the shape maps; the enum, static and deterministic maps
+        /// are for callers that read them in process.
+        /// </summary>
         public sealed class Maps
         {
             /// <summary>
@@ -227,7 +232,7 @@ namespace Sitrep.Contract
         /// own contract assembly works exactly as well: nothing here is
         /// specific to the first-party contract except the default.
         /// </param>
-        /// <returns>The five sorted collections.</returns>
+        /// <returns>The sorted collections.</returns>
         public static Maps Collect(bool validateVocabulary = false, Assembly assembly = null)
         {
             var vocabulary = new SortedSet<string>(StringComparer.Ordinal);

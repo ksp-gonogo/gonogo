@@ -11,33 +11,25 @@ namespace Sitrep.Contract;
  */
 
 /// <summary>
-/// The "science" capability's active-instance interface (parallel to
-/// <see cref="ICommsBackend"/> / <see cref="IIsruBackend"/>): the five
-/// science.* read surfaces plus the two experiment commands, which together are
-/// everything the science registrar publishes.
+/// A science backend: the active instance of the exclusive <c>"science"</c>
+/// capability, supplying the five <c>science.*</c> channels and the two
+/// experiment commands. Gonogo declares those channels and commands and
+/// publishes what the elected backend returns; a mod's Uplink registers a
+/// backend only when its mod is loaded, and never declares a <c>science.*</c>
+/// channel itself.
 ///
-/// <para>Unlike <see cref="IIsruBackend"/>'s parameterless typed reads,
-/// each read takes a <see cref="KspSnapshot"/> and returns <c>object?</c>:</para>
+/// <para>Each read takes this tick's <see cref="KspSnapshot"/> and returns the
+/// channel's payload, like a mapper given to
+/// <see cref="IUplinkHost.AddChannelSource"/>. Reads run off the main thread
+/// and must never touch the game: read what you need on the main thread with
+/// an <see cref="ISnapshotSampler"/> and pick it up from the snapshot.</para>
 ///
-/// <list type="bullet">
-/// <item>The snapshot parameter is the channel-mapper signature
-/// (<see cref="IUplinkHost.AddChannelSource"/>: <c>snapshot -&gt; payload</c>).
-/// Stock science is already captured on the main thread into
-/// <c>KspSnapshot.Values["science"]</c>, so the stock backend is a pure snapshot
-/// mapper. A provider whose data is NOT on the shared snapshot reads it on the
-/// main thread through its own <c>AddSampledSource</c> capture and hands the
-/// bundle forward: a channel mapper runs off the main thread and must never
-/// touch a live KSP API.</item>
-/// <item><c>object?</c> is the payload the channel carries: a value tree of
-/// dictionaries and lists in the shape of <see cref="ExperimentEntry"/> and its
-/// siblings, with a non-finite number written as absent.</item>
-/// </list>
-///
-/// <para>Each read returns <c>null</c> (never an empty list) when it has nothing
-/// to say: no active vessel, or a sub-group that could not be built. A channel
-/// whose mapper has never returned a non-null value emits nothing at all, which
-/// is what makes "this vessel has no science lab" silence rather than a false
-/// empty list.</para>
+/// <para>The payload is a value tree of dictionaries and lists in the shape of
+/// <see cref="ExperimentEntry"/> and its siblings, with a non-finite number
+/// left out. Return <c>null</c>, never an empty list, when there is nothing to
+/// say, such as no active vessel. A channel that has never had a non-null
+/// payload sends nothing at all, so a vessel with no lab is silence rather
+/// than an empty list.</para>
 /// <internal>
 /// Both halves keep the wire byte-identical across this seam. Stock science is
 /// captured by <c>Gonogo.KSP.KspHost.BuildScience</c>, which keeps the vanilla
@@ -80,22 +72,20 @@ public interface IScienceBackend : ISitrepProvider
 
     /// <summary>
     /// Run the experiment on the given part (<c>science.experiment.deploy</c>).
-    /// Returns an already-typed <see cref="CommandResult"/>, never throws: an
-    /// unresolvable part is <see cref="CommandErrorCode.NotFound"/>, an
-    /// experiment that cannot run right now is
-    /// <see cref="CommandErrorCode.ModeUnavailable"/>.
+    /// Returns a <see cref="CommandResult"/> and never throws: a part that cannot
+    /// be found is <see cref="CommandErrorCode.NotFound"/>, an experiment that
+    /// cannot run right now is <see cref="CommandErrorCode.ModeUnavailable"/>.
     /// </summary>
     CommandResult DeployExperiment(ExperimentActionArgs args);
 
     /// <summary>
     /// Transmit the stored result on the given part
-    /// (<c>science.experiment.transmit</c>). Same never-throws contract as
-    /// <see cref="DeployExperiment"/>. A backend whose transmission is
-    /// continuous rather than a one-shot send (a modelling mod may drain
-    /// stored results by value over time) implements this as "flag this for sending".
-    /// A backend that knows when a one-shot send will have left the craft returns
-    /// a <see cref="CommandResult{T}"/> of <see cref="ScienceTransmission"/>,
-    /// which is what puts the transmission on a client's delay rail.
+    /// (<c>science.experiment.transmit</c>). Never throws, as for
+    /// <see cref="DeployExperiment"/>. A backend that transmits continuously
+    /// rather than in one send marks the result for sending. A backend that
+    /// knows when a one-shot send will have left the craft returns a
+    /// <see cref="CommandResult{T}"/> of <see cref="ScienceTransmission"/>, so a
+    /// client can show the transmission in flight.
     /// </summary>
     CommandResult TransmitExperiment(ExperimentActionArgs args);
 }

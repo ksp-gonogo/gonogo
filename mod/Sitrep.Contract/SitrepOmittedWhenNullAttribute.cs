@@ -12,9 +12,9 @@ namespace Sitrep.Contract
     /// type is <c>name?: T</c> instead, because a key that is never written
     /// cannot arrive null.</para>
     ///
-    /// <para>The mark does not omit the key itself: the producer that writes the
-    /// payload must leave it out, and the mark records that it does. Put the
-    /// REASON on the property beside it.</para>
+    /// <para>The mark does not omit the key itself: whatever writes the payload
+    /// must leave it out, and the mark records that it does. Say on the property
+    /// why its key can be missing.</para>
     /// <internal>
     /// <c>JsonWriter.AppendObject</c> walks every pair in a payload dictionary and
     /// calls <c>AppendValue</c> unconditionally, whose <c>case null:</c> writes

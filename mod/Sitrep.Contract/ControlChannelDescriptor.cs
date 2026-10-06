@@ -6,19 +6,16 @@ using System.Reflection;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The contract's control-channel knowledge, as data, derived by reflection:
-    /// which write command carries a value, and which wire key that value sits
-    /// under in its args. A sibling of <see cref="UnitDescriptor"/>, and like it
-    /// reflected at runtime from the declarations rather than embedded, so it
-    /// cannot drift from them.
+    /// Which write command sets which control channel's value, and under which
+    /// wire key of its args that value sits, read by reflection from the
+    /// <see cref="SitrepControlChannelAttribute"/> declarations at run time.
     ///
-    /// <para><b>What it is for.</b> A pending uplink says a command is in
-    /// flight; without this it cannot say WHAT the command asked for, because
-    /// the args arrive as a decoded bag keyed by wire name and nothing on the
-    /// server knows which key of that bag is the value. That is the difference
-    /// between rendering "a SAS command is in flight" and rendering the mode it
-    /// asked for, and the second is what a command-echo expectation needs.</para>
+    /// <para>Use it to say what a command in flight asked for (the SAS mode,
+    /// not just "a SAS command"), since its args arrive as a decoded bag keyed
+    /// by wire name.</para>
     /// <internal>
+    /// A sibling of <see cref="UnitDescriptor"/>, and like it reflected from
+    /// the declarations rather than embedded, so it cannot drift from them.
     /// <c>RtConfig.EmitChannelMap</c> reflects over the same attribute to generate
     /// the TypeScript table, but <c>RtConfig</c> references Reinforced.Typings, a
     /// codegen-time dependency the shipped mod does not carry, so it cannot be
@@ -30,16 +27,15 @@ namespace Sitrep.Contract
     public static class ControlChannelDescriptor
     {
         /// <summary>
-        /// Write command name to the CAMEL-CASED args key carrying its value,
-        /// e.g. <c>"vessel.control.setSas"</c> to <c>"enabled"</c>.
+        /// Write command name to the camel-cased args key carrying its value,
+        /// e.g. <c>"vessel.control.setSas"</c> to <c>"enabled"</c>. The key is
+        /// camel-cased because that is how it appears on the wire and in the
+        /// decoded args bag.
         ///
-        /// <para>Camel-cased because that is what crosses the wire
-        /// (<c>CamelCaseForProperties</c>), and the decoded args bag is keyed by
-        /// wire name. One command may back several channels (six fly-by-wire
-        /// axes share <c>setAxes</c>), so a command is only listed when every
-        /// channel declaring it agrees on the value key; a disagreement means
-        /// the command carries more than one value and no single scalar
-        /// describes it, so it is omitted rather than guessed at.</para>
+        /// <para>One command may back several channels (six fly-by-wire axes
+        /// share <c>setAxes</c>). A command is listed only when every channel
+        /// declaring it agrees on the value key; otherwise it carries more than
+        /// one value and is left out.</para>
         /// </summary>
         /// <param name="assembly">The assembly to read declarations from; this contract assembly when null.</param>
         /// <returns>Write command name to its camel-cased value key.</returns>
@@ -86,9 +82,9 @@ namespace Sitrep.Contract
         /// has a floating-point value field.
         ///
         /// <para>The difference matters wherever a command can wait. A switch
-        /// thrown late is still the switch the operator threw. A stream of
-        /// throttle or stick values that waits arrives as a wall of stale
-        /// positions.</para>
+        /// thrown late is still the switch the operator threw, but a queue of
+        /// throttle or stick values arrives as a burst of positions the operator
+        /// has already moved past.</para>
         /// </summary>
         /// <param name="assembly">The assembly to read declarations from; this contract assembly when null.</param>
         /// <returns>The continuous write commands' names.</returns>
@@ -118,12 +114,10 @@ namespace Sitrep.Contract
         /// Pull the scalar a decoded args bag carries under <paramref name="valueKey"/>,
         /// as a double, or null when there is nothing usable there.
         ///
-        /// <para>A bool comes back as 1 or 0 and an enum as its ordinal, which is
-        /// what they already are on the wire: the channel's own declared args type
-        /// says how to read the number back. A string or a nested object yields
-        /// null rather than a parse attempt, because a channel's value field is
-        /// always a scalar, so anything else means the args did not come from the
-        /// channel they claim.</para>
+        /// <para>A bool comes back as 1 or 0 and an enum as its ordinal, as on
+        /// the wire; the channel's declared args type says how to read the number
+        /// back. A string or a nested object yields null, since a channel's value
+        /// field is always a scalar.</para>
         /// </summary>
         /// <param name="args">The decoded args bag, an <c>IDictionary&lt;string, object&gt;</c> keyed by wire name.</param>
         /// <param name="valueKey">The camel-cased key, as <see cref="ValueKeyByCommand"/> returns it.</param>

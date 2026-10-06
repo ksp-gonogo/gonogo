@@ -19,18 +19,16 @@ namespace Sitrep.Contract;
 /// <c>Vessel.ControlLevel</c> distinguishes, which a comms backend reports in
 /// <see cref="CommsLinkState.Grade"/>.
 ///
-/// <para>Four rather than the three of <see cref="CommsControlSource"/>,
-/// because <see cref="CommsConnectivity.HasLocalControl"/> turns on crewed
-/// versus uncrewed: a crewed pod can be flown with no link home, an uncrewed
-/// one cannot. <see cref="CommsBackendBase"/> derives
+/// <para><see cref="CommsBackendBase"/> derives
 /// <see cref="CommsControlSource"/>, the <c>comms.control</c> state and
-/// <see cref="CommsConnectivity.HasLocalControl"/> all from this one value, so
-/// they cannot disagree.</para>
+/// <see cref="CommsConnectivity.HasLocalControl"/> from this one value. It
+/// separates crewed from uncrewed partial control because a crewed pod can be
+/// flown with no link home and an uncrewed one cannot.</para>
 /// </summary>
 /// <category>Uplink API</category>
 public enum CommsControlGrade
 {
-    /// <summary>A measurement: the craft has no control source.</summary>
+    /// <summary>The craft has no control source.</summary>
     None,
 
     /// <summary>Partial control of an uncrewed craft: KSP's <c>PARTIAL_UNMANNED</c>.</summary>
@@ -61,12 +59,10 @@ public enum CommsControlGrade
 /// <c>comms.commandCentre</c> names a centre). It is a live handle: it must not
 /// cross a thread boundary or outlive the capture that produced it.</para>
 ///
-/// <para><see cref="Id"/> is a unique, stable join key, and the backend derives
-/// it because doing so needs the game (a vessel node's owning craft is not
-/// reachable from the node). It is the only thing the shared shapes key on, so
-/// a per-hop annotation on a provider's own channel joins onto the published
-/// route. See <see cref="CommsHop"/> and <see cref="CommsNetworkNode"/> for why
-/// a display name could not serve.</para>
+/// <para><see cref="Id"/> is a unique, stable key that the published route and
+/// network are keyed on, so a per-hop annotation on your own channel can join
+/// onto them. Two nodes must never share one, so a display name will not
+/// do.</para>
 /// </summary>
 /// <category>Uplink API</category>
 public readonly struct CommsNodeView
@@ -200,10 +196,12 @@ public readonly struct CommsSubject
 /// <c>comms.connectivity</c>, <c>comms.signal</c> and <c>comms.control</c>
 /// payloads are derived from, and nothing else.
 ///
-/// <para>One struct rather than three accessors because those channels describe
+/// <para>Read all three in one go, from one link.</para>
+/// <internal>
+/// One struct rather than three accessors because those channels describe
 /// one tick of one link. Read separately, a scene change between reads could
-/// publish a connected flag beside a control level from the previous
-/// craft.</para>
+/// publish a connected flag beside a control level from the previous craft.
+/// </internal>
 /// </summary>
 /// <category>Uplink API</category>
 public readonly struct CommsLinkState

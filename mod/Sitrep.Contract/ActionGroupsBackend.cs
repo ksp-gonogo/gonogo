@@ -32,10 +32,10 @@ namespace Sitrep.Contract
     /// one needs no client change: a widget renders whatever names and indices
     /// arrive.</para>
     ///
-    /// <para><b>Threading.</b> An implementation reads live KSP, so it is only
-    /// ever called on the game's main thread, during vessel capture. Never call
-    /// a backend from a channel-source closure, which runs on the stream
-    /// thread.</para>
+    /// <para>An implementation reads live KSP, so it is only ever called on the
+    /// game's main thread, while the vessel is captured. Never call a backend
+    /// from a map passed to <see cref="IUplinkHost.AddChannelSource"/>, which
+    /// runs off the main thread.</para>
     /// <internal>
     /// The election helper stays in Sitrep.Host: registering the capability and
     /// resolving the winner are core's side of the seam. The stock backend is

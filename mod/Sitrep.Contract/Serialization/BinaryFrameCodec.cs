@@ -6,16 +6,13 @@ using Sitrep.Contract;
 namespace Sitrep.Contract.Serialization
 {
     /// <summary>
-    /// Reader/writer for the <see cref="BinaryLane"/> wire frame: the four
-    /// framing bytes, the UTF-8 JSON header (written by
-    /// <see cref="EnvelopeCodec.WriteStreamBinaryHeader"/>) and the segment
-    /// region.
+    /// Reads and writes a whole <see cref="BinaryLane"/> frame: a magic byte, a
+    /// lane byte, a big-endian 16-bit header length, the JSON header, then the
+    /// segments back to back with their lengths listed in the header.
     ///
-    /// <para>The JSON header itself is written and read by
-    /// <see cref="EnvelopeCodec"/>; this class owns only the byte framing around
-    /// it: a magic byte, a lane byte, a big-endian 16-bit header length, the
-    /// header, then the segments back to back with their lengths listed in the
-    /// header.</para>
+    /// <para>The JSON header on its own is written and read by
+    /// <see cref="EnvelopeCodec.WriteStreamBinaryHeader"/> and
+    /// <see cref="EnvelopeCodec.ParseStreamBinaryHeader"/>.</para>
     ///
     /// <para><b>A malformed frame is never read as an empty one.</b> Every
     /// failure returns false or throws with a named reason, so an empty segment
@@ -107,11 +104,9 @@ namespace Sitrep.Contract.Serialization
         /// naming what was wrong, for anything that is not a well-formed frame
         /// of a lane this build knows.
         ///
-        /// <para>An unknown lane is refused with its lane byte in the reason,
-        /// rather than falling back to reading the bytes as text: a UTF-8 decode
-        /// of, say, compressed audio fails JSON parsing somewhere else and loses
-        /// the one fact worth reporting. The segment lengths in the header must
-        /// sum exactly to the bytes that follow it; a shorter or longer frame is
+        /// <para>An unknown lane is refused with its lane byte in the reason, and
+        /// never read as text. The segment lengths in the header must sum exactly
+        /// to the bytes that follow it; a shorter or longer frame is
         /// refused.</para>
         /// </summary>
         /// <param name="frame">The buffer holding the frame.</param>

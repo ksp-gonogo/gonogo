@@ -363,8 +363,8 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One command an uplink declares: which id it serves, and what the engine
-    /// must satisfy before the handler runs.
+    /// One command an Uplink declares: which id it serves, and what must hold
+    /// before its handler runs.
     ///
     /// <para>Whether the command rides the light-time delay is not declared
     /// here. It is declared once, on <see cref="SitrepCommandAttribute.Delay"/>,
@@ -396,10 +396,9 @@ namespace Sitrep.Contract
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
 
         /// <summary>
-        /// Preconditions the engine evaluates before the handler runs, from
-        /// this declaration alone. No handler implements them and no widget
-        /// checks them: the command says what it needs once. Empty (the
-        /// default) means ungated.
+        /// Preconditions Gonogo checks before the handler runs, from this
+        /// declaration alone, so neither the handler nor a widget checks them
+        /// itself. Empty (the default) means ungated.
         /// </summary>
         public CommandRequirement[] Requires { get; set; } = new CommandRequirement[0];
 
@@ -845,8 +844,9 @@ namespace Sitrep.Contract
     /// <para>The gate report asks each item in turn, with the requirement's one
     /// <see cref="CommandRequirement.Needs"/> path set to the item's value, and
     /// publishes every verdict that is not a Pass on
-    /// <see cref="CommandGate.Items"/>. A control then goes dark before it is
-    /// pressed, with the same verdict the dispatch would return.</para>
+    /// <see cref="CommandGate.Items"/>, so a control can show an item as
+    /// refused before it is pressed, with the verdict sending it would
+    /// return.</para>
     ///
     /// <para>Only a requirement that names exactly one need is asked. Name the
     /// items a control could plausibly offer right now (the nodes still to be
@@ -938,9 +938,12 @@ namespace Sitrep.Contract
         public IReadOnlyList<CommandDeclaration> Commands { get; set; } = Array.Empty<CommandDeclaration>();
 
         /// <summary>
-        /// Every refusal refinement this Uplink's commands may answer with, read
-        /// off its holder class by <see cref="ErrorCodeCatalog.Of"/> so nothing
-        /// is listed twice.
+        /// Every refusal refinement this Uplink's commands may return. Declare
+        /// each as a public static <see cref="RefusalCode"/> field of one class,
+        /// and set this to <see cref="ErrorCodeCatalog.Of"/> of that class.
+        /// <internal>
+        /// Read off the holder class so no code is listed twice.
+        /// </internal>
         ///
         /// <para>Each id must begin with this Uplink's <see cref="Id"/>. The host
         /// drops the whole set when one does not, and a result naming a
@@ -1075,8 +1078,7 @@ namespace Sitrep.Contract
     /// What Gonogo hands an <see cref="ISitrepUplink"/> during
     /// <see cref="ISitrepUplink.Register"/>. An Uplink registers its pieces
     /// here and never touches the transport, the signal delay or threading
-    /// directly: the engine runs everything registered through this
-    /// interface.
+    /// directly: Gonogo runs everything registered through this interface.
     /// </summary>
     /// <category>Host and Kernel</category>
     public interface IUplinkHost
@@ -1100,8 +1102,8 @@ namespace Sitrep.Contract
         /// <summary>
         /// Pull-style channel source: a mapper from the tick's snapshot to the
         /// topic's typed payload, for a topic the calling Uplink declared in its
-        /// <see cref="UplinkManifest.Channels"/>. The engine runs it each tick,
-        /// change-gates the result and delivers it. The mapper runs off the main
+        /// <see cref="UplinkManifest.Channels"/>. Gonogo runs it each tick and
+        /// sends the result when it changes. The mapper runs off the main
         /// thread and must not touch the game; read everything from the
         /// snapshot.
         /// <internal>
@@ -1120,11 +1122,12 @@ namespace Sitrep.Contract
         IChannelPublisher Publisher(string topic);
 
         /// <summary>
-        /// A capture-on-main, handle-off-main source: the way for an Uplink to
-        /// read live KSP, Unity or another mod's APIs that are not already on
-        /// the shared <see cref="KspSnapshot"/>. Unity APIs are main-thread
-        /// only, and <see cref="AddChannelSource"/>'s mapper runs off the main
-        /// thread, so a live read from there crashes or returns garbage.
+        /// A source in two halves, one that reads the game on the main thread and
+        /// one that publishes off it: the way for an Uplink to read live KSP,
+        /// Unity or another mod's APIs that are not already on the shared
+        /// <see cref="KspSnapshot"/>. Unity APIs are main-thread only, and
+        /// <see cref="AddChannelSource"/>'s mapper runs off the main thread, so a
+        /// live read from there crashes or returns garbage.
         ///
         /// <para><paramref name="captureOnMainThread"/> runs on the Unity main
         /// thread, once per tick, as the <see cref="KspSnapshot"/> is built. It
@@ -1133,8 +1136,8 @@ namespace Sitrep.Contract
         /// no live KSP or Unity object references.</para>
         ///
         /// <para><paramref name="handleOnCourier"/> then runs off the main
-        /// thread with exactly that captured value, and does the rest:
-        /// change-gating, packing, and publishing to channels obtained from
+        /// thread with exactly that captured value, and does the rest: deciding
+        /// what changed, building payloads, and publishing to channels obtained from
         /// <see cref="Publisher"/> or <see cref="RegisterDynamicNamespace"/>. It
         /// must not touch any KSP or Unity API; read everything game-facing in
         /// <paramref name="captureOnMainThread"/> and pass it forward as
@@ -1157,7 +1160,7 @@ namespace Sitrep.Contract
         /// Subscription-gated overload of <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>,
         /// with the same capture and handle semantics, plus
         /// <paramref name="subscriptionTopicPrefixes"/>: the topic prefixes this
-        /// source produces (e.g. <c>"scansat.coverage."</c>). The engine skips
+        /// source produces (e.g. <c>"scansat.coverage."</c>). Gonogo skips
         /// <paramref name="captureOnMainThread"/> entirely on any tick where no
         /// subscribed topic starts with any of them, so a source that does
         /// expensive main-thread work costs nothing while no client is looking.
@@ -1165,27 +1168,20 @@ namespace Sitrep.Contract
         /// owns and the exact topics a <see cref="Publisher"/> targets (an exact
         /// topic is its own prefix). Passing no prefixes captures every tick.
         ///
-        /// <para><b>The gate is safe only for a capture whose entire effect is
-        /// its return value.</b> For one of those a late subscriber still gets
-        /// the current value, because the first capture after a subscription
-        /// runs again and a new subscriber is sent a keyframe.</para>
+        /// <para>Use this overload only for a capture whose whole effect is its
+        /// return value. A late subscriber still gets the current value, because
+        /// the capture runs again once a topic is subscribed and a new
+        /// subscriber is sent a keyframe.</para>
         ///
-        /// <para><b>A capture that also writes state something else reads is
-        /// silently starved by this.</b> The skip is total: no capture, so no
-        /// write, so every reader of that state sees whatever was last left
-        /// there for as long as nobody subscribes a declared prefix. There is
-        /// no exception, no log line and no degraded mode to notice. If the
-        /// reader provides an exclusive capability there is no stock fallback
-        /// either, because providing it is what stops stock from being used:
-        /// the client is told nothing, or told positively that there is nothing
-        /// to tell.</para>
-        ///
-        /// <para><b>So never gate a capture that feeds anything but its own
-        /// topics.</b> Register it with the ungated overload, and if the
-        /// expensive part is the packing rather than the reading, check
-        /// <see cref="IsAnyTopicSubscribed"/> before publishing instead.
-        /// Skipping a publish starves nothing; skipping the reading starves
-        /// everything downstream of it.</para>
+        /// <para>A capture that also writes state something else reads must use
+        /// the ungated overload. While nobody subscribes, the capture does not
+        /// run at all, so every reader of that state sees whatever was last left
+        /// there, with no exception or log line. If that reader provides an
+        /// exclusive capability, stock is not used in its place either, so a
+        /// client is told nothing, or told wrongly that there is nothing to
+        /// tell. If the expensive part is building the payload rather than
+        /// reading the game, check <see cref="IsAnyTopicSubscribed"/> before
+        /// publishing instead.</para>
         /// </summary>
         /// <param name="captureOnMainThread">Reads the game on the main thread and returns plain data.</param>
         /// <param name="handleOnCourier">Receives that data off the main thread and publishes.</param>
@@ -1197,7 +1193,7 @@ namespace Sitrep.Contract
         /// same check the gated <see cref="AddSampledSource(Func{KspSnapshot?,
         /// object?}, Action{object?}, string[])"/> overload applies, for an
         /// Uplink whose expensive work is driven by an external callback rather
-        /// than the engine's tick, such as a Harmony postfix that fires on every
+        /// than Gonogo's tick, such as a Harmony postfix that fires on every
         /// kerboscript <c>PRINT</c>.
         ///
         /// <para>Safe to call from the main thread and from off-main-thread
@@ -1245,18 +1241,18 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Register a handler that is told which command centre the command came
-        /// FROM, as well as what it said.
+        /// from, as well as what it said.
         ///
         /// <para>Almost no command needs this: setting a throttle means the
         /// same thing wherever it was sent from. The ones that do are questions
-        /// whose correct result differs per command centre, because each has
-        /// been told different things: where a craft goes, what a plan would
-        /// do. Those cannot be computed from the game's own state, which is
-        /// every centre's future.</para>
+        /// whose result differs per command centre because, under signal delay,
+        /// each centre has been told different things: where a craft is going,
+        /// what a plan would do. The game's own state is ahead of what every
+        /// centre has been told, so it cannot answer them.</para>
         ///
-        /// <para>The vantage is the sender's, resolved where the command
+        /// <para>The command centre is the sender's, resolved where the command
         /// entered rather than taken from its arguments, so a client cannot
-        /// claim another centre's vantage.</para>
+        /// claim to be another centre.</para>
         /// </summary>
         /// <typeparam name="TArgs">The command's argument type, decoded from the wire.</typeparam>
         /// <typeparam name="TResult">The handler's result type.</typeparam>
@@ -1286,21 +1282,16 @@ namespace Sitrep.Contract
         /// Uplink does not own, so an installed mod can impose its own
         /// precondition on a command core declared.
         ///
-        /// <para><b>Why a command needs preconditions from elsewhere.</b> The
-        /// Uplink that declares a command knows what the game requires of it.
-        /// It cannot know what an installed mod requires, and under a career
-        /// overhaul that is most of what stands between an operator and a launch:
-        /// stock will fly any craft file, a realism career only a vehicle a launch
-        /// complex integrated and then rolled out to a pad. A launch that walks
-        /// past both steps passes every stock test on the way.</para>
+        /// <para>The Uplink that declares a command knows what the game requires
+        /// of it, but not what an installed mod requires. Stock launches any
+        /// craft file, for example, while a realism career launches only a
+        /// vehicle a launch complex has integrated and rolled out to a pad.</para>
         ///
-        /// <para><b>Contributions compose.</b> Two mods may each legitimately
-        /// impose a precondition, and every requirement on a command has to
-        /// hold, so this appends. Register only when your mod is present: an
-        /// Uplink whose mod is absent contributes nothing, and nothing is a
-        /// complete contribution.</para>
+        /// <para>Contributions add up: every requirement on a command has to
+        /// hold, so each call appends one. Contribute only when your mod is
+        /// installed; an Uplink whose mod is absent contributes nothing.</para>
         ///
-        /// <para><b>Order.</b> Contributions are evaluated after the owning
+        /// <para>Contributions are evaluated after the owning
         /// Uplink's own declared requirements, in the order they were
         /// contributed, and evaluation stops at the first verdict that is not a
         /// pass. The built-in launch requirements can be decided with no
@@ -1308,8 +1299,8 @@ namespace Sitrep.Contract
         /// requirement that abstained ahead of them would hide every one of
         /// them.</para>
         ///
-        /// <para><b>The kind still needs an evaluator</b> (<see
-        /// cref="AddGateEvaluator"/>), validated once after every Uplink has
+        /// <para>The requirement's kind still needs an evaluator (<see
+        /// cref="AddGateEvaluator"/>), checked once every Uplink has
         /// registered. A contributed requirement nobody can evaluate is a
         /// startup failure for the same reason a declared one is.</para>
         ///
@@ -1364,11 +1355,10 @@ namespace Sitrep.Contract
         /// Set the one-way light-time between two command centres: the delay a
         /// command takes travelling from <paramref name="fromCentreId"/> to
         /// <paramref name="toCentreId"/>. The same as a centre's delay to a
-        /// fleet craft, except that the destination is a centre rather than a
-        /// craft, which is what an act aimed at the
-        /// program's home centre (a currency spend) needs in order to be delayed
-        /// at all. Populate it on each capture pass, one row per ordered pair of
-        /// active centres that can reach each other.
+        /// fleet craft, except that the destination is a centre, such as a
+        /// currency spend sent to the home command. Populate it on each capture
+        /// pass, one row per ordered pair of active centres that can reach each
+        /// other.
         /// </summary>
         /// <param name="fromCentreId">The sending command centre's id.</param>
         /// <param name="toCentreId">The destination command centre's id.</param>
@@ -1377,11 +1367,11 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Set how long a change to a fact held at the home command takes to reach
-        /// <paramref name="centreId"/> as a vantage: the delay every
+        /// <paramref name="centreId"/>: the delay every
         /// <see cref="ChannelDeclaration.HeldAtHome"/> channel rides to that centre.
         ///
-        /// <para>This is the centre's PATH HOME, not a route to the one station
-        /// the home-command claimant named. Every ground station reaches home
+        /// <para>This is the centre's path home, not a route to the one station
+        /// the <see cref="IHomeCommandProvider"/> named. Every ground station reaches home
         /// over the ground network, so a ground centre's row is zero; a crewed
         /// vessel's row is its own control path to whichever station it
         /// reaches, which is the same number a currency award from that vessel
@@ -1396,16 +1386,18 @@ namespace Sitrep.Contract
         /// <param name="oneWaySeconds">One-way light-time home, in seconds.</param>
         void SetHomeCommandDelay(string centreId, double oneWaySeconds);
 
-        /// <summary> Replace every centre's delay to the ACTIVE craft: the
+        /// <summary> Replace every centre's delay to the active craft: the
         /// delay each ordinary channel (one with no per-vessel node and not
-        /// held at home) rides to that centre as a vantage, since those
-        /// channels all describe whichever craft is active.
+        /// held at home) rides to that centre, since those channels all
+        /// describe whichever craft is active.
         ///
         /// <para>The map is the whole set, not an update. A centre left out
         /// uses the active craft's own light-time home, and a centre that had a
-        /// row on the previous call and has none now loses it. That is what
-        /// keeps a pilot who switches away from their craft from reading the
-        /// next one instantly on a held zero.</para>
+        /// row on the previous call and has none now loses it.</para>
+        /// <internal>
+        /// Replacing rather than merging keeps a pilot who switches away from
+        /// their own craft from reading the next one instantly on a held zero.
+        /// </internal>
         ///
         /// <para>Populate it on each capture pass: zero for the crewed centre
         /// that is the active craft, and its route to the active craft for any
@@ -1420,9 +1412,9 @@ namespace Sitrep.Contract
         /// the active vessel. Call it for every vessel on every tick from the
         /// off-main-thread handler of an ungated
         /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>
-        /// source, not one gated on a subscription: a vessel is known to be out
-        /// of contact only if that was reported while nobody was watching, and a
-        /// first subscriber's catch-up is graded by exactly that.
+        /// source, not one gated on a subscription: a first subscriber's
+        /// catch-up shows the vessel as out of contact only if that was reported
+        /// while nobody was watching.
         /// <see cref="SetConnectivitySource"/> covers the active vessel.
         /// </summary>
         /// <param name="vesselId">The vessel's id.</param>
@@ -1466,14 +1458,10 @@ namespace Sitrep.Contract
         /// <see cref="SetConnectivitySource"/>, and is handed the tick's UT, so
         /// it may read the comms backend's hop geometry and routing.
         ///
-        /// <para><b>Why neither of the other two can carry it.</b> The delay
-        /// says how far away the craft is; it has no honest value for gone.
-        /// Connectivity says whether anything new can be sent, which is a
-        /// different question from what becomes of the signal already in
-        /// flight: a relay dying mid-flight leaves the craft connected by
-        /// another route while the samples crossing the dead one are lost. Those
-        /// samples are what a break retires, since they could not physically
-        /// have arrived.</para>
+        /// <para>A break is about signal already in flight, which neither the
+        /// delay nor connectivity describes: a relay dying mid-flight can leave
+        /// the craft connected by another route while the samples crossing the
+        /// dead one are lost. A break drops those samples.</para>
         ///
         /// <para>A break carries a position as well as an instant, because
         /// position decides whether a sample is lost: signal already past the
@@ -1556,7 +1544,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Call it only from within a registered
         /// <see cref="ISnapshotSampler.Sample"/> or a command handler, which run
-        /// on the engine's own thread; calling it from other code races the
+        /// on Gonogo's sampling thread; calling it from other code races the
         /// channel's emission state.</para>
         /// <internal>
         /// Forces the next ChannelEmitter.Decide, the same mechanism as
@@ -1694,7 +1682,7 @@ namespace Sitrep.Contract
 
     /// <summary> One labelled diagnostic on an <see cref="UplinkHealth"/>:
     /// which file, which build, which hash, whatever an operator would have to
-    /// quote when reporting this uplink's state to somebody else.
+    /// quote when reporting this Uplink's state to somebody else.
     ///
     /// <para>Both halves are display text; nothing parses them.</para>
     ///
@@ -1710,7 +1698,7 @@ namespace Sitrep.Contract
         /// "binary".</summary>
         public string Label { get; }
 
-        /// <summary>The value as it should read on a screen. Null when the uplink
+        /// <summary>The value as it should read on a screen. Null when the Uplink
         /// knows the fact applies but has not established it.</summary>
         public string? Value { get; }
 
@@ -1727,8 +1715,8 @@ namespace Sitrep.Contract
     /// <summary>
     /// One <see cref="ISitrepUplink.Health"/> result: a coarse
     /// <see cref="State"/> plus an optional <see cref="Detail"/> sentence saying
-    /// what "ready" means for this Uplink (e.g. "no active CPU selected"). The
-    /// engine never writes or parses <see cref="Detail"/>; it is display-only
+    /// what "ready" means for this Uplink (e.g. "no active CPU selected").
+    /// Gonogo never writes or parses <see cref="Detail"/>; it is display-only
     /// text the Uplink itself writes.
     ///
     /// <para><see cref="Facts"/> are labelled rows beneath it: what somebody
@@ -1747,7 +1735,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Labelled diagnostics, in the order the author wants them read. Never
-        /// null: an uplink with nothing to add reports an empty list, so a client
+        /// null: an Uplink with nothing to add reports an empty list, so a client
         /// enumerates unconditionally.
         /// </summary>
         public IReadOnlyList<UplinkHealthFact> Facts { get; }
@@ -1783,12 +1771,11 @@ namespace Sitrep.Contract
         public static readonly UplinkHealth Healthy = new UplinkHealth(UplinkHealthState.Healthy);
 
         /// <summary>
-        /// Working, but not as it should be: the uplink is registered and its
+        /// Working, but not as it should be: the Uplink is registered and its
         /// dependency is present, and something it needs is missing or wrong
         /// (no CPU selected, a capture that threw, a version it does not
         /// recognise). <paramref name="detail"/> is the sentence an operator
-        /// reads under the state, and a degraded report is the one shape where
-        /// omitting it leaves them nothing to act on.
+        /// reads under the state; without it they have nothing to act on.
         /// </summary>
         /// <param name="detail">Why, in the operator's terms. Required.</param>
         /// <param name="facts">Labelled facts, or null for none.</param>
@@ -1798,7 +1785,7 @@ namespace Sitrep.Contract
             new UplinkHealth(UplinkHealthState.Degraded, detail, facts);
 
         /// <summary>
-        /// Not usable at all: the mod this uplink integrates is absent, or a
+        /// Not usable at all: the mod this Uplink integrates is absent, or a
         /// capability it depends on never resolved, so none of its channels
         /// will carry anything. <paramref name="detail"/> says which, in the
         /// operator's terms.

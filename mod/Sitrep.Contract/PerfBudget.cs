@@ -4,15 +4,14 @@ using System.Collections.Generic;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Soft performance budget: tracks a volume over a rolling window and warns
-    /// (rate-limited to once per window) when a threshold is exceeded. No throw,
-    /// no behavioural change: the budget is purely diagnostic.
+    /// A soft performance budget: totals what is recorded over a rolling window
+    /// and warns, at most once per window, when the total goes over a threshold.
+    /// It never throws and changes no behaviour.
     ///
-    /// <para>Keyed on whatever time axis the caller already samples on
-    /// (typically UT, since a KSP-side capture cadence is driven by UT, not
-    /// wall clock). Nothing here calls a clock itself, so it stays KSP-free and
-    /// unit-testable.</para>
+    /// <para>Time is whatever axis the caller passes to <see cref="Record"/>,
+    /// usually UT in seconds. The budget reads no clock of its own.</para>
     /// <internal>
+    /// Reading no clock keeps it KSP-free and unit-testable.
     /// The mod-side counterpart to the app's <c>PerfBudget</c>
     /// (<c>packages/core/src/perf/PerfBudget.ts</c>). The UT cadence it usually
     /// runs on is <c>SampleCadence.IntervalUtAt</c>.
@@ -90,7 +89,7 @@ namespace Sitrep.Contract
             }
         }
 
-        /// <summary>Current windowed total as of <paramref name="at"/>. Mainly for tests.</summary>
+        /// <summary>The windowed total as of <paramref name="at"/>, in the budget's unit.</summary>
         public double Rate(double at)
         {
             Trim(at);

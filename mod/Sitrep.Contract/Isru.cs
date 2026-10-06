@@ -171,11 +171,10 @@ public class IsruConverterEntry
 }
 
 /// <summary>
-/// The "isru" capability's active-instance interface (parallel to
-/// <see cref="IScienceBackend"/>). An Uplink that models ISRU implements it
-/// and registers it as a Kernel provider; the elected one's readouts are
-/// published on <c>isru.drills</c> and <c>isru.converters</c>. Parameterless and
-/// KSP-free: an implementation reads the active vessel itself.
+/// An ISRU backend: the active instance of the <c>"isru"</c> capability. An
+/// Uplink that models ISRU implements it and registers it as a provider, and
+/// the elected backend's readouts are published on <c>isru.drills</c> and
+/// <c>isru.converters</c>. An implementation reads the active vessel itself.
 ///
 /// <para><b>Main thread only.</b> Both readers walk live PartModules, so they
 /// are called from the main-thread capture and never from a channel mapper,

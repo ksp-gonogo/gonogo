@@ -5,14 +5,16 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The exclusive capability id every home-command claimant competes for.
-    /// </summary>
-    /// <remarks>
+    /// Register an <see cref="IHomeCommandProvider"/> against it.
+    /// <internal>
     /// Declared in the contract rather than beside the election so an Uplink,
     /// which may reference only this assembly, registers against the same
     /// constant core declares.
-    ///
+    /// </internal>
+    /// </summary>
+    /// <remarks>
     /// <para><b>How a claimant registers.</b> Any registered provider that can
-    /// serve beats the stock vanilla outright, whatever its priority. Between two
+    /// serve beats the built-in stock claimant, whatever its priority. Between two
     /// or more registered providers the kernel takes a user preference first,
     /// then a sole <see cref="ProviderRegistration.IsDefault"/> provider, then the
     /// unique highest <see cref="ProviderRegistration.Priority"/>. A tie at the

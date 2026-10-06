@@ -5,10 +5,8 @@ namespace Sitrep.Contract
     /// <summary>
     /// The kind of a command centre.
     ///
-    /// <para><see cref="CrewedVessel"/> changes delay: a crewed-vessel centre
-    /// whose <see cref="ICommandCentre.Id"/> names the subject being routed is
-    /// at zero delay to that subject, because a vantage observing itself is no
-    /// distance from itself.</para>
+    /// <para>A <see cref="CrewedVessel"/> centre is at zero signal delay to the
+    /// vessel it is aboard.</para>
     /// <internal>
     /// Sitrep.Host.CommandCentres.AuthorityMatrixPass.Populate writes the zero;
     /// the routed graph cannot supply it for a path whose two ends are one node.
@@ -26,11 +24,11 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A command centre: a physical place you command from, the vantage in the
-    /// per-(vantage, subject) signal delay model. This interface is the
-    /// identity view (id, name, kind, body, surface position) plus whether it
-    /// is a valid command source right now. The routing geometry stays with the
-    /// Uplink that produces the centre.
+    /// A command centre: a physical place commands are sent from, and the end
+    /// that signal delay is measured from. This interface gives its id, name,
+    /// kind, body and surface position, and whether it can issue commands right
+    /// now. How signals route to and from it stays with the Uplink that
+    /// provides the centre.
     /// <internal>The CommNet node or position that <c>SignalDelay.Compute</c>
     /// consumes lives in the KSP-layer source, because Sitrep.Host references no
     /// KSP or Unity assemblies.</internal>
@@ -38,7 +36,7 @@ namespace Sitrep.Contract
     /// <category>Uplink API</category>
     public interface ICommandCentre
     {
-        /// <summary>Stable vantage key, same scheme as <see cref="CommandCentreEntry.Id"/>: <c>"ground:&lt;name&gt;"</c> or <c>"vessel:&lt;guid&gt;"</c>. Unique across every active centre.</summary>
+        /// <summary>Stable id, same scheme as <see cref="CommandCentreEntry.Id"/>: <c>"ground:&lt;name&gt;"</c> or <c>"vessel:&lt;guid&gt;"</c>. Unique across every active centre.</summary>
         string Id { get; }
 
         /// <summary>Human-facing name.</summary>

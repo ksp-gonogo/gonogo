@@ -6,21 +6,16 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The BINARY LANE: how a channel whose payload is opaque bytes reaches a
-    /// client without paying JSON's tax on every byte.
+    /// The framing for a channel whose payload is opaque bytes, such as audio,
+    /// so it reaches a client without being encoded as JSON.
     ///
-    /// <para>Every other server-to-client frame is a WebSocket BINARY frame
-    /// carrying UTF-8 JSON, and every one of those documents opens with
-    /// <c>{</c> (0x7B). A binary-lane frame is the same WebSocket frame with a
-    /// different first byte, so the lane needs no transport change on either
-    /// side, only a discriminator both decoders check before they decode
-    /// anything.</para>
-    ///
-    /// <para><b>The layout, and it is deliberately the dullest thing that
-    /// works.</b> A third party must be able to read this off a socket with no
-    /// Gonogo package installed, so there is no bespoke binary header: the
-    /// framing is four bytes, and everything descriptive is the same JSON the
-    /// rest of the protocol speaks.</para>
+    /// <para>Every other server-to-client frame is a WebSocket binary frame
+    /// carrying UTF-8 JSON, which always opens with <c>{</c> (0x7B). A
+    /// binary-lane frame is the same kind of WebSocket frame with a different
+    /// first byte, <see cref="Magic"/>, so a decoder checks that byte before
+    /// decoding anything. The framing is four bytes, and everything descriptive
+    /// is JSON, so the frame can be read off a socket with no Gonogo package
+    /// installed.</para>
     ///
     /// <code>
     /// offset  size          field
@@ -31,61 +26,42 @@ namespace Sitrep.Contract
     /// 4+H     sum(segments) the segments, concatenated, in declaration order
     /// </code>
     ///
-    /// <para><b>Why 0x9E cannot collide with a JSON frame.</b> Two independent
-    /// reasons, either of which alone would do. A JSON document written by this
-    /// protocol always leads with 0x7B. And 0x80-0xBF is the UTF-8
-    /// CONTINUATION range, which can never legally lead a UTF-8 document at
-    /// all, so the byte is not merely unused, it is unusable. The check
-    /// is one comparison at each decode seam, before any decoding is
-    /// attempted.</para>
+    /// <para>0x9E cannot lead a JSON frame: this protocol's JSON always leads
+    /// with 0x7B, and 0x80 to 0xBF is the UTF-8 continuation range, which can
+    /// never start a UTF-8 document.</para>
     ///
-    /// <para><b>Why this format can be as simple as it is.</b> A payload on
-    /// this lane is held for light-time before it is revealed, typically 10-60
-    /// seconds. That is what pays for TCP. The usual objection to a reliable
-    /// transport for voice is that a retransmit lands after the playout
-    /// deadline and is therefore useless, but a delay buffer IS a jitter
-    /// buffer: at a ten-second hold a retransmit costing tens of milliseconds
-    /// (a couple of seconds on a bad link) is still early, so this lane
-    /// delivers the ACTUAL bytes where a media track would have concealed the
-    /// drop. Lossless-but-late beats lossy-but-sooner once the listener has
-    /// already agreed to wait, and there is consequently no sequencing, no
-    /// retransmit logic and no loss concealment in the frame: the transport
-    /// underneath already did it.</para>
-    ///
-    /// <para><b>Why the lane byte exists at all when there is only one lane.</b>
-    /// So a second one can be added later without touching the frames this
-    /// version writes. The regime this lane does NOT suit is a near-zero delay
-    /// (a vessel in low orbit is sub-millisecond light-time, which is most of
-    /// an early career), where the hold no longer pays for head-of-line
-    /// blocking and an unreliable path would win; a future lane can carry that
-    /// under a new byte while <see cref="LaneStreamBinary"/> keeps its
-    /// meaning.</para>
-    ///
-    /// <para><b>Why a segment table rather than one opaque blob.</b> Batching
-    /// is the point: the per-frame envelope, not the payload encoding, is what
-    /// costs, and a producer that sends one 20 ms audio chunk per frame pays it
-    /// fifty times a second. A frame therefore carries N segments, and the
-    /// header says how long each one is. Core learns only "N runs of bytes, of
-    /// these lengths"; it never learns what a segment MEANS. That keeps the
-    /// lane codec-agnostic while leaving a batch readable by anything that can
-    /// open a socket, which one undifferentiated blob would not: unpacking that
-    /// would need the producing Uplink's private sub-framing.</para>
+    /// <para>A frame carries any number of segments, and the header lists the
+    /// length of each. What a segment means is up to the Uplink that sends it;
+    /// the lane only delivers the bytes, in order. There is no sequencing,
+    /// retransmit or loss concealment in the frame: it travels over the same
+    /// reliable WebSocket as everything else.</para>
+    /// <internal>
+    /// Reliable delivery suits this lane because its payloads are held for
+    /// light-time before they are revealed, typically 10 to 60 seconds, and a
+    /// delay buffer is a jitter buffer: a retransmit costing tens of
+    /// milliseconds is still early, so the listener gets the actual bytes where
+    /// a media track would have concealed the drop. The regime it does not suit
+    /// is near-zero delay (low orbit), where head-of-line blocking costs and an
+    /// unreliable path would win; that would be a new lane byte, which is why
+    /// the lane byte exists with only one lane. Segments exist for batching:
+    /// the per-frame envelope is what costs, and one 20 ms audio chunk per frame
+    /// pays it fifty times a second. A segment table rather than one blob keeps
+    /// a batch readable without the producing Uplink's private sub-framing.
+    /// </internal>
     /// </summary>
     /// <category>Serialization</category>
     public static class BinaryLane
     {
         /// <summary>
-        /// First byte of every binary-lane frame. See the class remarks for why
-        /// this value cannot be confused with the leading byte of a JSON frame.
+        /// First byte of every binary-lane frame, a byte that never leads a JSON
+        /// frame.
         /// </summary>
         public const byte Magic = 0x9E;
 
         /// <summary>
-        /// Second byte: WHICH binary lane. There is exactly one
-        /// (<see cref="LaneStreamBinary"/>), and the byte exists so that a
-        /// decoder meeting a lane it does not know REFUSES it by name instead
-        /// of guessing. A frame is bytes; the one thing a decoder must never do
-        /// with an unrecognised one is fall back to treating it as text.
+        /// Second byte: which binary lane, and the only lane defined. A decoder that
+        /// meets a lane byte it does not know refuses the frame, naming the
+        /// byte, and never falls back to reading it as text.
         /// </summary>
         public const byte LaneStreamBinary = 0x01;
 
@@ -93,16 +69,16 @@ namespace Sitrep.Contract
         public const int PrefixBytes = 4;
 
         /// <summary>
-        /// What the u16 length field can express. A header past this is a
-        /// producer bug (the header holds a topic, a <see cref="Meta"/> and a
-        /// length table, none of which is large), not a case to grow the field
-        /// for, so the writer throws rather than truncating.
+        /// The longest JSON header the 16-bit length field can express. The
+        /// writer throws for a longer header rather than truncating it; a header
+        /// holds only a topic, a <see cref="Meta"/> and the length table, so
+        /// reaching this means far too many segments in one frame.
         /// </summary>
         public const int MaxHeaderBytes = 65535;
 
         /// <summary>
-        /// Whether <paramref name="frame"/> leads with <see cref="Magic"/>, the
-        /// only question either decode seam asks before it commits to a lane.
+        /// Whether <paramref name="frame"/> leads with <see cref="Magic"/>, which
+        /// is all a decoder checks before treating it as a binary-lane frame.
         /// An empty or null frame returns <c>false</c>; a frame that leads with
         /// the magic byte but is too short to hold a prefix returns <c>true</c>
         /// here and is refused as malformed by the parse, rather than being read

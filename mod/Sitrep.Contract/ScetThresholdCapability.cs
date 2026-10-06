@@ -44,11 +44,13 @@ public sealed class ScetThresholdSource
     /// <summary>
     /// The Topic, spelled as the wire spells one (<c>"example.projects"</c>).
     ///
-    /// <para>A Topic core already knows is NOT overridden: the built-in table is
-    /// consulted first and a contributed entry naming one of its Topics is
-    /// ignored. Core's own reading of a core Topic cannot be replaced by an
-    /// installed mod, because an operator reading an altitude off the screen has
-    /// to be able to set a threshold on the number they are looking at.</para>
+    /// <para>A Topic Gonogo already offers is not overridden: an entry naming
+    /// one is ignored.</para>
+    /// <internal>
+    /// Core's reading of a core Topic cannot be replaced by an installed mod,
+    /// because an operator reading an altitude off the screen has to be able to
+    /// set a threshold on the number they are looking at.
+    /// </internal>
     /// </summary>
     public string Topic { get; set; } = "";
 
@@ -74,12 +76,10 @@ public sealed class ScetThresholdSource
 /// <summary>
 /// One mod's contribution to what a SCET threshold may be set on.
 ///
-/// <para><b>The set is fixed at registration.</b> <see cref="Sources"/> is asked
-/// on demand and must return the same entries every time, so whether an alarm
-/// can fire does not depend on anything happening at the moment it is asked. A
-/// provider whose set varied would let an alarm be accepted and then become
-/// unreadable, which is what the up-front refusal of an unknown Topic
-/// prevents.</para>
+/// <para><b>The set is fixed at registration.</b> <see cref="Sources"/> is
+/// asked on demand and must return the same entries every time. An alarm on a
+/// Topic not in the set is refused when it is set, so a set that changed later
+/// would leave an accepted alarm unreadable.</para>
 /// </summary>
 /// <category>Uplink API</category>
 public interface IScetThresholdSources : ISitrepProvider

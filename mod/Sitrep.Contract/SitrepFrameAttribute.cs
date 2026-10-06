@@ -37,8 +37,9 @@ namespace Sitrep.Contract
         /// <summary>
         /// Origin at the reference body's centre, axes co-rotating with that
         /// body's spin. KSP uses one or the other per body depending on
-        /// <c>CelestialBody.inverseRotation</c>, which is why
-        /// <see cref="SitrepFrameAttribute.SelectedBy"/> exists.
+        /// <c>CelestialBody.inverseRotation</c>, so a value that can be in
+        /// either names the flag that says which with
+        /// <see cref="SitrepFrameAttribute.SelectedBy"/>.
         /// </summary>
         public const string BodyCentredRotating = "body-centred-rotating";
 
@@ -72,10 +73,9 @@ namespace Sitrep.Contract
     /// expressed in. Required on every <see cref="Vec3"/> property of a contract
     /// payload.
     ///
-    /// <para>A position without a frame fails silently: two well-formed vectors
-    /// in different frames subtract into a well-formed nonsense vector, with no
-    /// null, no exception and no wrong-looking number until someone plots
-    /// it.</para>
+    /// <para>Mixing frames fails silently: two well-formed vectors in different
+    /// frames subtract into a well-formed nonsense vector, with no null, no
+    /// exception and no wrong-looking number until someone plots it.</para>
     ///
     /// <para><b>Per property, never per type.</b> A payload is a bundle of
     /// different fields, and a <see cref="Vec3"/> in one frame can hold a nested
@@ -83,7 +83,7 @@ namespace Sitrep.Contract
     /// <see cref="Frames.VesselLocal"/> and the <c>PartBounds</c> hanging off it
     /// is <see cref="Frames.PartLocal"/>.</para>
     ///
-    /// <para><b>When the frame changes per tick.</b> An attribute cannot vary per
+    /// <para><b>A frame that changes per tick.</b> An attribute cannot vary per
     /// tick, so a value whose axes switch (as <c>VesselOrbitTruth.Position</c>'s
     /// do with the body's rotation) carries a sibling <c>bool</c> flag on the
     /// same payload, and the attribute names it: <see cref="SelectedBy"/> names
@@ -125,8 +125,8 @@ namespace Sitrep.Contract
         /// says which of <see cref="Frame"/> and <see cref="WhenSet"/> applies to
         /// this tick's value.
         ///
-        /// <para>It must be a property of the same payload, so the reference is
-        /// checked at build time rather than failing at read time in a
+        /// <para>It must name a property of the same payload, so the reference
+        /// can be checked at build time rather than failing at read time in a
         /// client.</para>
         /// </summary>
         public string? SelectedBy { get; set; }

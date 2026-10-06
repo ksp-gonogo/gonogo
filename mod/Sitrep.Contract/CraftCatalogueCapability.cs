@@ -7,7 +7,7 @@ namespace Sitrep.Contract
     /// The <c>craftCatalogue</c> capability: the save's <c>.craft</c> files,
     /// listed, measured, and loaded into live parts for a consumer that needs
     /// the craft itself rather than a description of it. Resolve it through
-    /// <c>host.Kernel</c> as an <see cref="ICraftCatalogue"/>.
+    /// <see cref="IUplinkHost.Kernel"/> as an <see cref="ICraftCatalogue"/>.
     ///
     /// <para><c>spaceCenter.savedShips</c> is the read-only listing a widget
     /// draws; this capability is what a command acts on. The core mod does the
@@ -16,10 +16,10 @@ namespace Sitrep.Contract
     /// <see cref="ICraftCatalogue.Release"/> once the consumer is done with
     /// it.</para>
     ///
-    /// <para>There is one provider and no election: a craft folder is a fact
-    /// about the save's directory, not a model mods hold rival opinions
-    /// about.</para>
+    /// <para>Gonogo registers the only provider.</para>
     /// <internal>
+    /// There is no election: a craft folder is a fact about the save's
+    /// directory, not a model mods hold rival opinions about.
     /// Implemented by Gonogo.KSP.CraftCatalogueBackend and registered from
     /// SpaceCenterUplink. It is a capability because that is the only route an
     /// Uplink has into core; an Uplink may not reference KSP, and managing Unity
@@ -41,25 +41,20 @@ namespace Sitrep.Contract
     /// <summary>
     /// One <c>.craft</c> file, measured without loading it.
     ///
-    /// <para>Every field is nullable and absence is a real answer: a figure that
-    /// could not be measured must never arrive looking like a measured zero. A
-    /// consumer deciding whether a craft fits somewhere has to be able to tell
-    /// "this weighs nothing" from "nobody weighed this", because the two want
-    /// opposite verdicts.</para>
+    /// <para>Every measured figure is null when it could not be measured, never
+    /// zero, so a consumer can tell "weighs nothing" from "not weighed".</para>
     /// </summary>
     /// <category>Host and Kernel</category>
     public sealed class CraftFileRecord
     {
         /// <summary>
-        /// The file's own name without its extension, and the ONLY thing that
-        /// addresses a craft.
+        /// The file's own name without its extension, and the only thing that
+        /// addresses a craft: it is unique within its folder.
         ///
         /// <para>Not <see cref="ShipName"/>, which is what an operator reads and
-        /// what <c>spaceCenter.savedShips</c> publishes: KSP stores the ship name
-        /// inside the file and lets it differ from the file's, so two files can
-        /// carry one ship name and a command naming that would act on whichever
-        /// the directory listed first. A file name is unique within its folder by
-        /// construction.</para>
+        /// what <c>spaceCenter.savedShips</c> publishes. KSP stores the ship name
+        /// inside the file and lets it differ from the file name, so two files
+        /// can carry the same ship name.</para>
         /// </summary>
         public string? File { get; set; }
 
@@ -78,12 +73,10 @@ namespace Sitrep.Contract
         /// <summary>
         /// Mass in tonnes with launch clamps left out.
         ///
-        /// <para>A separate figure rather than a correction applied to
-        /// <see cref="Mass"/>, because a mod that measures a vehicle against a
-        /// facility's limit is usually measuring the thing that flies: clamps
-        /// stay on the ground and KSP's own <c>ShipConstruct.GetShipMass</c>
-        /// offers the same choice. Equal to <see cref="Mass"/> for a craft with
-        /// no clamps, which is most of them.</para>
+        /// <para>The mass of what flies, which is usually what a facility limit
+        /// is measured against; KSP's own <c>ShipConstruct.GetShipMass</c> offers
+        /// the same choice. Equal to <see cref="Mass"/> for a craft with no
+        /// clamps.</para>
         /// </summary>
         public double? MassExcludingClamps { get; set; }
 
@@ -107,9 +100,8 @@ namespace Sitrep.Contract
         public string[]? MissingParts { get; set; }
 
         /// <summary>
-        /// Parts whose tech node is not researched. Distinct from
-        /// <see cref="UnpurchasedParts"/> because the two have different
-        /// remedies: research versus money.
+        /// Parts whose tech node is not researched. Parts that only need buying
+        /// are in <see cref="UnpurchasedParts"/> instead.
         /// </summary>
         public string[]? LockedParts { get; set; }
 
@@ -118,11 +110,8 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A craft loaded into live parts, or the reason it was not.
-    ///
-    /// <para>Two fields rather than a nullable handle, because "there is no such
-    /// craft" and "the file is corrupt" are different sentences to put in front
-    /// of an operator and a consumer cannot make either one up.</para>
+    /// A craft loaded into live parts, or the reason it was not: a successful
+    /// load sets <see cref="Ship"/>, a failed one <see cref="Failure"/>.
     /// </summary>
     /// <category>Host and Kernel</category>
     public sealed class CraftLoad
@@ -145,11 +134,9 @@ namespace Sitrep.Contract
         /// The craft measured again from the parts that were just loaded, rather
         /// than from the cached listing.
         ///
-        /// <para>Both exist because they are asked at different moments and a
-        /// consumer needs to know which it is holding. <see cref="ICraftCatalogue.Craft"/>
-        /// serves a widget drawing a list and may be a rescan behind; this serves
-        /// a command about to spend money, where a part unlocked since the last
-        /// rescan has to count.</para>
+        /// <para><see cref="ICraftCatalogue.Craft"/> may be a rescan behind; this is
+        /// current, so a part unlocked since the last rescan counts. Use it before
+        /// a command spends money on the craft.</para>
         /// </summary>
         public CraftFileRecord? Measured { get; set; }
 
@@ -167,9 +154,9 @@ namespace Sitrep.Contract
     /// <summary>
     /// The save's craft folders: what is in them, and how to open one.
     ///
-    /// <para><b>Every member is main-thread only.</b> The listing walks the disk
-    /// and reads part prefabs; the load instantiates them. Neither is legal from
-    /// the stream thread, so a channel mapper must not call either.</para>
+    /// <para>Every member is main-thread only: the listing walks the disk and
+    /// reads part prefabs, and the load instantiates them. Never call one from a
+    /// map passed to <see cref="IUplinkHost.AddChannelSource"/>.</para>
     /// </summary>
     /// <category>Host and Kernel</category>
     public interface ICraftCatalogue : ISitrepProvider

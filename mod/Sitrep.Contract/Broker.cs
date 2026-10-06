@@ -29,7 +29,8 @@ namespace Sitrep.Contract
     /// <summary>
     /// Orders capability activation so that every capability a provider depends
     /// on (<see cref="DependencyNode.Deps"/>) is already active when its factory
-    /// runs, so <c>ctx.Query(dep)</c> inside the factory resolves.
+    /// runs, so <see cref="ProviderContext.Query{T}"/> inside the factory
+    /// finds it.
     ///
     /// <para>It does not select providers. <see cref="Kernel.Resolve"/> selects
     /// first, builds one <see cref="DependencyNode"/> per capability from the
@@ -51,9 +52,9 @@ namespace Sitrep.Contract
         ///
         /// <para>A dependency on a capability that is not in
         /// <paramref name="nodes"/> is not an edge and does not block activation.
-        /// A factory that then queries that id gets a "not exactly one active
-        /// provider" error from <c>ctx.Query</c>; the sort does not pre-empt
-        /// it.</para>
+        /// A factory that then queries that id gets the error
+        /// <see cref="ProviderContext.Query{T}"/> throws for a capability without
+        /// exactly one active instance; the sort does not check for it.</para>
         ///
         /// <para>Deterministic: ties are broken by the order of
         /// <paramref name="nodes"/> (registration order). The ready queue is

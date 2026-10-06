@@ -2,14 +2,15 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The capability id an <see cref="IActiveVessel"/> is registered under.
-    /// Resolve it through <c>host.Kernel</c>, or use
-    /// <see cref="ActiveVesselQuery"/>, which does that per call.
+    /// Resolve it through <see cref="IUplinkHost.Kernel"/>, or use
+    /// <see cref="ActiveVesselQuery"/>, which does that on each call. Gonogo
+    /// registers the only provider.
+    /// <internal>
+    /// There is nothing to elect: which vessel the stream is scoped to is a
+    /// decision the mod makes and publishes. It is a capability because that is
+    /// how an Uplink reaches the mod.
+    /// </internal>
     /// </summary>
-    /// <remarks>
-    /// There is one provider, the mod's own, and nothing to elect: which vessel
-    /// the stream is scoped to is a decision the mod makes and publishes. It is
-    /// a capability because that is how an Uplink reaches the mod.
-    /// </remarks>
     /// <category>Host and Kernel</category>
     public static class ActiveVesselCapability
     {
@@ -25,15 +26,15 @@ namespace Sitrep.Contract
     /// part ids from the parts channel resolve against the craft the operator
     /// sees.
     ///
-    /// <para><b>Read it per call, never cache it.</b> The value changes on a
+    /// <para>Read it on each call and never cache it. The value changes on a
     /// vessel switch, a dock, an undock, and on both ends of an EVA, and a
-    /// handle held across any of those addresses a craft that is no longer the
+    /// handle held across any of those points at a craft that is no longer the
     /// subject.</para>
     ///
-    /// <para><b>Main thread only.</b> This reads live game state, on the same
-    /// terms as <see cref="IManeuverPlanSource"/>: call it from a command
-    /// handler or a main-thread capture, never from a channel-source closure.
-    /// </para>
+    /// <para>Main thread only, because it reads live game state: call it from a
+    /// command handler or the main-thread capture of
+    /// <see cref="IUplinkHost.AddSampledSource(System.Func{KspSnapshot?, object?}, System.Action{object?})"/>,
+    /// never from a map passed to <see cref="IUplinkHost.AddChannelSource"/>.</para>
     /// </summary>
     /// <category>Host and Kernel</category>
     public interface IActiveVessel : ISitrepProvider
@@ -59,15 +60,12 @@ namespace Sitrep.Contract
         /// True while <see cref="Reported"/> is NOT what KSP is flying: a kerbal
         /// is outside, and this is the craft they left.
         ///
-        /// <para>It is for commands. A read wants
-        /// <see cref="Reported"/> and nothing else. A write has to know, because
-        /// most stock calls take no vessel and resolve KSP's own active one
-        /// themselves, so a command issued in this state acts on the kerbal, or
-        /// on nothing, while reporting success. A provider that cannot reach the
-        /// reported craft should refuse with
-        /// <see cref="CommandErrorCode.WrongState"/>: the craft is in a state
-        /// this command does not work in, and it resolves when the kerbal
-        /// boards, which is an act rather than a wait.</para>
+        /// <para>It matters to commands, not reads. Most stock calls take no
+        /// vessel and act on KSP's own active one, so a command issued in this
+        /// state acts on the kerbal, or on nothing, while reporting success. A
+        /// command handler that cannot reach the reported craft should refuse
+        /// with <see cref="CommandErrorCode.WrongState"/>; the command works again
+        /// once the kerbal boards.</para>
         ///
         /// <para>False when there is no flight, because there is then nothing to
         /// substitute.</para>

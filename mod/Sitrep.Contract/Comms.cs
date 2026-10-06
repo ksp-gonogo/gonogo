@@ -684,20 +684,16 @@ public class CommsCommandCentre
 /// endpoints, whether either end is a ground station, and the two endpoints'
 /// own opaque node handles.
 ///
-/// <para>Not a <see cref="CommsHop"/>: it carries no node ids, only the
+/// <para>Unlike a <see cref="CommsHop"/> it carries no node ids, only the
 /// backend's own node handles, which a caller resolves to a name only when it
 /// needs one.</para>
 ///
-/// <para><see cref="FromHandle"/> and <see cref="ToHandle"/> are the same
-/// opaque terms <see cref="CommsNodeView.Handle"/> and
-/// <see cref="ICommsBackend.RouteBetween"/> use: a live object,
-/// reference-matched by whoever asked for it, never dereferenced and never
-/// resolved to a name by this struct. They are optional because a hop built
-/// outside a live backend walk (a test fixture, a synthesised route) may have
-/// none to give.</para>
+/// <para><see cref="FromHandle"/> and <see cref="ToHandle"/> are opaque handles
+/// of the same kind as <see cref="CommsNodeView.Handle"/>: a live object,
+/// matched by reference and never dereferenced here. They are optional, for a
+/// hop built outside a live backend, such as in a test.</para>
 ///
-/// <para>Carries no KSP type, so arithmetic built on it runs with no KSP
-/// reference assemblies at all.</para>
+/// <para>Carries no KSP type.</para>
 /// <internal>
 /// Naming a node costs a walk over every vessel in the game, which the
 /// centre-to-centre delay matrix (centres squared, every tick) cannot pay.
@@ -730,7 +726,7 @@ public readonly struct CommsRouteHop
     /// <summary>Straight-line distance between the hop's two endpoints, in metres.</summary>
     public double DistanceMeters { get; }
 
-    /// <summary>True when EITHER endpoint is a ground station.</summary>
+    /// <summary>True when either endpoint is a ground station.</summary>
     public bool TouchesHome { get; }
 
     /// <summary>The live object behind this hop's origin endpoint, or null when
@@ -743,24 +739,20 @@ public readonly struct CommsRouteHop
 }
 
 /// <summary>
-/// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves
-/// to: exactly the readouts every comms backend can honestly supply.
-/// RealAntennas-only richness (link margin, data rate) is not on this
-/// interface and lives on RealAntennas' own channels instead.
+/// A comms backend: what the <c>"comms"</c> capability resolves to, supplying
+/// the readouts every comms mod can honestly give. Facts only one mod has, such
+/// as a RealAntennas link margin, belong on that mod's own channels.
 ///
-/// <para>Each accessor returns a wire payload that the core comms
-/// registration publishes to its channel after resolving the elected backend
-/// via <c>host.Kernel.Query&lt;ICommsBackend&gt;("comms")</c>. Implementations
-/// read live KSP and mod state and MUST be called only where such reads are
-/// safe (on the main thread, during capture): the interface itself is
-/// pure.</para>
+/// <para>Gonogo resolves the elected backend through
+/// <see cref="Kernel.Query{T}"/> and publishes what each accessor returns to
+/// its channel. Implementations read live game state, so every accessor is
+/// called on the main thread, during capture. Inherit
+/// <see cref="CommsBackendBase"/> to have most of them built for you.</para>
 ///
-/// <para>Every accessor that reads a ROUTE takes the craft it is asked about,
-/// as <c>vessel</c>, and none of them assumes the one on screen: the active
-/// craft is simply the vessel its caller passes. <c>vessel</c> is an OPAQUE
-/// handle on the same terms as <see cref="RouteBetween"/>'s node handles. Both
-/// shipped backends read it as a KSP <c>Vessel</c>, and a handle a backend does
-/// not recognise, or a null one, is treated as a craft with no route.</para>
+/// <para>Every accessor about a route takes the craft it is asked about as
+/// <c>vessel</c>, never assuming the one on screen. <c>vessel</c> is an opaque
+/// handle, in practice a KSP <c>Vessel</c>; a null or unrecognised handle is a
+/// craft with no route.</para>
 /// </summary>
 /// <category>Uplink API</category>
 public interface ICommsBackend : ISitrepProvider
@@ -773,26 +765,24 @@ public interface ICommsBackend : ISitrepProvider
     CommsConnectivity Connectivity();
 
     /// <summary>
-    /// How good the active vessel's link is right now. A backend that models
-    /// no signal strength still returns a value, saying so through it rather
-    /// than by throwing: a caller cannot tell a thrown accessor from a broken
-    /// one.
+    /// How good the active vessel's link is right now. A backend that models no
+    /// signal strength still returns a value rather than throwing, since a throw
+    /// reads as a failed read.
     /// </summary>
     /// <returns>The <c>comms.signal</c> payload.</returns>
     CommsSignal SignalStrength();
 
     /// <summary>
-    /// What the active vessel can be commanded to do right now, which is not the
-    /// same question as <see cref="Connectivity"/>: a probe with no crew and no
-    /// link is connected to nothing AND uncontrollable, a crewed vessel out of
-    /// contact is uncontrollable remotely and fully controllable locally.
+    /// What the active vessel can be commanded to do right now. This differs
+    /// from <see cref="Connectivity"/>: a crewed vessel out of contact cannot be
+    /// commanded remotely but is fully controllable by its crew.
     /// </summary>
     /// <returns>The <c>comms.control</c> payload.</returns>
     CommsControl ControlState();
 
     /// <summary>
-    /// <paramref name="vessel"/>'s ordered hops home: the geometry the signal
-    /// delay's light-time is computed over. Empty when it has no route.
+    /// <paramref name="vessel"/>'s ordered hops home, which signal delay is
+    /// computed over. Empty when it has no route.
     /// </summary>
     /// <param name="vessel">The craft to route from, as an opaque handle.</param>
     /// <returns>The <c>comms.path</c> payload.</returns>
@@ -800,38 +790,30 @@ public interface ICommsBackend : ISitrepProvider
 
     /// <summary>
     /// The network as this backend sees it from <paramref name="vessel"/>: the
-    /// nodes and links a client draws. Live read; the shape changes as craft move
-    /// and ground stations rotate, so a caller reads it per frame rather than
-    /// caching it.
+    /// nodes and links a client draws. It changes as craft move and ground
+    /// stations rotate, so it is read every capture, never cached.
     /// </summary>
     /// <param name="vessel">The craft to view the network from, as an opaque handle.</param>
     /// <returns>The <c>comms.network</c> payload.</returns>
     CommsNetwork Network(object? vessel);
 
     /// <summary>
-    /// The route THIS backend's own router finds between two nodes, as ordered
-    /// hop geometry, or null when it will not route between them.
+    /// The route this backend's own router finds between two nodes, as ordered
+    /// hops, or null when it will not route between them.
     ///
-    /// <para>It is on the interface for the same reason
-    /// <see cref="OcclusionModel"/> is: routing is a rule the elected backend
-    /// owns, not a stock method core can call on its behalf. RealAntennas
-    /// overrides <c>CommNetwork.FindClosestWhere</c> and leaves
-    /// <c>FindPath</c> alone, so calling stock <c>FindPath</c> directly quotes
-    /// light-times over routes RealAntennas refuses to carry.</para>
-    ///
-    /// <para><paramref name="from"/> and <paramref name="to"/> are OPAQUE node
-    /// handles on the same terms as <see cref="IActiveVessel.Reported"/>: both
-    /// shipped backends read them as a KSP <c>CommNet.CommNode</c>, and a
-    /// backend handed something it does not recognise returns null rather than
-    /// guessing. Null is also the result for a missing handle, the same node at
-    /// both ends (a path to yourself is not a route), and an unreachable end: a
-    /// caller that wants "no delay because it is the same place" says so itself,
-    /// because a route that does not exist has no light-time and a zero would
-    /// claim one.</para>
-    ///
-    /// <para>An EMPTY list is a different result again: routed, with nothing to
-    /// measure. Live read, so main thread only, like every accessor
-    /// above.</para>
+    /// <para><paramref name="from"/> and <paramref name="to"/> are opaque node
+    /// handles, in practice a KSP <c>CommNet.CommNode</c>. Returns null for an
+    /// unrecognised or missing handle, for the same node at both ends, and for
+    /// an unreachable end. An empty list means routed with nothing to
+    /// measure. Main thread only.</para>
+    /// <internal>
+    /// On the interface because routing is the elected backend's rule, not a
+    /// stock method core can call for it: RealAntennas overrides
+    /// <c>CommNetwork.FindClosestWhere</c> and leaves <c>FindPath</c> alone, so
+    /// stock <c>FindPath</c> quotes light-times over routes RealAntennas will not
+    /// carry. Same-node is null because a route that does not exist has no
+    /// light-time, and a zero would claim one.
+    /// </internal>
     /// </summary>
     /// <param name="from">The start node, as an opaque handle.</param>
     /// <param name="to">The end node, as an opaque handle.</param>
@@ -844,23 +826,15 @@ public interface ICommsBackend : ISitrepProvider
     /// vessel's route was recently running THROUGH. <c>null</c> means it cannot
     /// say.
     ///
-    /// <para>It exists to tell two things apart that <see cref="Path"/> alone
-    /// cannot, and the difference decides whether telemetry already in flight
-    /// ever lands. A relay leaving the route because a cheaper one appeared is
-    /// an ordinary reroute: the old relay is still there, still forwarding, and
-    /// the tail crossing it arrives. A relay leaving the route because it was
-    /// destroyed, or because a body moved in front of it, is a BREAK: nothing
-    /// retransmits the tail and it is lost. Both look identical in a before and
-    /// after comparison of <see cref="Path"/>, because both are simply a
-    /// different list of hops.</para>
+    /// <para>It tells a reroute from a break, which <see cref="Path"/> alone
+    /// cannot. A relay that leaves the route because a cheaper one appeared is
+    /// still forwarding, so telemetry already crossing it arrives. A relay that
+    /// was destroyed, or that a body moved in front of, is a break, and that
+    /// telemetry is lost.</para>
     ///
-    /// <para><c>null</c> rather than a guess when the backend has no opinion,
-    /// on the same terms as <see cref="CommsReachModels.Unknown"/>. A caller
-    /// that cannot establish a break must do what it does with no break at all,
-    /// which is deliver, because a wrongly-declared break deletes telemetry that
-    /// physically arrived.</para>
-    ///
-    /// <para>Live read, so main thread only, like every accessor above.</para>
+    /// <para>Return <c>null</c> rather than guess. Gonogo treats null as no
+    /// break and delivers, since a wrongly declared break deletes telemetry that
+    /// did arrive. Main thread only.</para>
     /// </summary>
     /// <param name="vessel">The craft whose route is in question, as an opaque handle.</param>
     /// <param name="nodeId">The node id, as <see cref="CommsHop.From"/> and <see cref="CommsHop.To"/> carry it.</param>
@@ -869,32 +843,20 @@ public interface ICommsBackend : ISitrepProvider
 
     /// <summary>
     /// The reach rule this backend applies between two nodes: how far apart
-    /// they can be and still carry a link (see <see cref="ICommsReachModel"/>
-    /// for the whole rule, and why core cannot supply it for any backend).
+    /// they can be and still carry a link. See <see cref="ICommsReachModel"/>.
     ///
-    /// <para>It is on the interface for the same reason
-    /// <see cref="OcclusionModel"/> and <see cref="RouteBetween"/> are. Without
-    /// a declared reach, a contact prediction models the geometry and nothing
-    /// else, and promises reacquisition on line of sight alone. That is a
-    /// PREDICTION an operator plans against rather than a readout they can
-    /// check against the game, which makes it worse than a wrong number on
-    /// screen.</para>
+    /// <para><paramref name="from"/> and <paramref name="to"/> are opaque node
+    /// handles, as for <see cref="RouteBetween"/>. Never null: for a pair it
+    /// cannot rate, or a handle it does not recognise, return
+    /// <see cref="CommsReachModels.Unknown"/>, which asserts no limit.</para>
     ///
-    /// <para><paramref name="from"/> and <paramref name="to"/> are OPAQUE node
-    /// handles on exactly the terms <see cref="RouteBetween"/> established: both
-    /// shipped backends read them as a KSP <c>CommNet.CommNode</c>, and a
-    /// backend handed something it does not recognise declares nothing rather
-    /// than guessing.</para>
-    ///
-    /// <para>NEVER null: a backend that cannot rate the pair returns
-    /// <see cref="CommsReachModels.Unknown"/>, whose maximum is ABSENT. Absent
-    /// asserts no limit and leaves the consumer predicting what it can, which is
-    /// the only honest fallback here (<see cref="CommsReachModels.Unknown"/>
-    /// carries the argument for why there is no conservative guess to make).
-    /// Live read to BUILD the rule, so main thread only, like every accessor
-    /// above; the model it returns is thereafter pure arithmetic and safe
-    /// anywhere, including a sweep evaluating it at thousands of future
-    /// instants off-thread.</para>
+    /// <para>Called on the main thread, since building the rule may read the
+    /// game. The model it returns is pure arithmetic and safe on any
+    /// thread.</para>
+    /// <internal>
+    /// Without a declared reach a contact prediction models geometry alone and
+    /// promises reacquisition on line of sight, which an operator plans against.
+    /// </internal>
     /// </summary>
     /// <param name="from">One node, as an opaque handle.</param>
     /// <param name="to">The other node, as an opaque handle.</param>
@@ -902,28 +864,20 @@ public interface ICommsBackend : ISitrepProvider
     ICommsReachModel ReachModel(object? from, object? to);
 
     /// <summary>
-    /// How degraded this backend grades the active vessel's link home right now
-    /// (see <see cref="ICommsDegradeModel"/> for the scale, and why core cannot
-    /// grade it for any backend).
+    /// How degraded this backend grades the active vessel's link home right now.
+    /// See <see cref="ICommsDegradeModel"/> for the scale.
     ///
-    /// <para>It is on the interface for the same reason
-    /// <see cref="OcclusionModel"/> and <see cref="ReachModel"/> are. A quality
-    /// derived as <c>1 - comms.signal.strength</c> is a different curve per
-    /// install, because that field carries a range fraction under stock and a
-    /// rate-ladder headroom fraction under RealAntennas, with nothing saying
-    /// so. Asking the backend gets a rating that arrives with its rule
-    /// attached.</para>
+    /// <para>Never null: a backend with no opinion returns
+    /// <see cref="CommsDegradeModels.Unknown"/>, whose rating is absent, rather
+    /// than inventing one.</para>
     ///
-    /// <para>NEVER null: a backend that will not grade the link returns
-    /// <see cref="CommsDegradeModels.Unknown"/>, whose rating is ABSENT, and
-    /// that is the one-line implementation a backend with no opinion should
-    /// give rather than inventing one. Absent leaves a consumer doing exactly
-    /// what it would do with no rating, which is the only honest fallback on a
-    /// scale whose every value is an instruction.</para>
-    ///
-    /// <para>Live read to BUILD the rating, so main thread only, like every
-    /// accessor above; the model it returns is thereafter just a number and
-    /// safe anywhere.</para>
+    /// <para>Called on the main thread, since building the rating may read the
+    /// game. The model it returns is safe on any thread.</para>
+    /// <internal>
+    /// A quality derived as <c>1 - comms.signal.strength</c> is a different
+    /// curve per install: that field is a range fraction under stock and a
+    /// rate-ladder headroom fraction under RealAntennas.
+    /// </internal>
     /// </summary>
     /// <returns>The degrade rating for the active vessel's link, never null.</returns>
     ICommsDegradeModel DegradeModel();
@@ -934,19 +888,11 @@ public interface ICommsBackend : ISitrepProvider
     /// nowhere (no connection, or a last hop that touches neither a ground
     /// station nor a crewed control source).
     ///
-    /// <para><b>A handle, not a <see cref="CommsCommandCentre"/>.</b> Naming
-    /// the centre takes two things and only one of them is the backend's: WHICH
-    /// node the path ended at is a fact about the path, and the path is the
-    /// backend's; matching that node against the live centre registry, and
-    /// shaping the payload, is core's, and the registry is a core type an Uplink
-    /// may not reference. So the backend supplies the half it owns and core does
-    /// the rest, once, for whichever backend won. The terminal-node rule itself
-    /// is shared (both shipped backends inherit stock's <c>isHome</c> and
-    /// <c>isControlSource</c> unchanged).</para>
+    /// <para>Return the node's handle, not a <see cref="CommsCommandCentre"/>:
+    /// Gonogo matches it against its command centres and builds the payload.</para>
     ///
-    /// <para>Live read, main thread only. The handle it returns is a live KSP
-    /// object and MUST NOT cross a thread boundary or outlive the capture that
-    /// produced it; core resolves it to a payload on the same thread.</para>
+    /// <para>Main thread only. The handle is a live KSP object and must not cross
+    /// a thread or outlive the capture that produced it.</para>
     /// </summary>
     /// <param name="vessel">The craft whose control path is read, as an opaque handle.</param>
     /// <returns>The terminal node's handle, or null.</returns>
@@ -954,17 +900,13 @@ public interface ICommsBackend : ISitrepProvider
 
     /// <summary>
     /// The occlusion geometry this backend applies: which radius of a body
-    /// actually blocks a radio path through it (see
-    /// <see cref="ICommsOcclusionModel"/>). Stock CommNet shrinks the body by
-    /// its occlusion multipliers, RealAntennas does not, and that difference is
-    /// worth minutes of predicted blackout, so it is DECLARED here rather than
-    /// inferred by a consumer branching on which mod is installed.
+    /// blocks a radio path through it. See <see cref="ICommsOcclusionModel"/>.
+    /// Stock CommNet shrinks the body by its occlusion multipliers and
+    /// RealAntennas does not, a difference worth minutes of predicted blackout.
     ///
-    /// <para>Unlike the accessors above this returns a rule, not a reading. It
-    /// may perform a live read to BUILD the rule (stock's multipliers are a
-    /// difficulty setting), so it is called on the main thread during capture;
-    /// the model it returns is thereafter pure arithmetic and safe
-    /// anywhere.</para>
+    /// <para>Returns a rule, not a reading. Called on the main thread during
+    /// capture, since building the rule may read a difficulty setting; the model
+    /// it returns is pure arithmetic and safe on any thread.</para>
     /// </summary>
     /// <returns>The occlusion rule, never null.</returns>
     ICommsOcclusionModel OcclusionModel();

@@ -6,12 +6,15 @@ namespace Sitrep.Contract.Serialization
     /// The frame's <c>type</c> discriminant is absent, unreadable, or names no
     /// envelope this build knows.
     ///
-    /// <para>The two cases get different responses, which is what
-    /// <see cref="EnvelopeType"/> tells apart. A frame with no readable type
-    /// names nothing a server could refuse, and is echoed back, as the "is
-    /// anything listening" probe expects. A frame that names a type this build
-    /// does not support is refused by that name, because an echo of it would be
-    /// byte-identical to the frame the client sent and read as a reply.</para>
+    /// <para><see cref="EnvelopeType"/> tells the two cases apart, and the
+    /// server responds to them differently. A frame with no readable type is echoed
+    /// back unchanged, so a client can send any non-envelope text to check that
+    /// the server is listening. A frame that names a type this build does not
+    /// support is refused with an error naming that type.</para>
+    /// <internal>
+    /// The named case is refused rather than echoed because an echo would be
+    /// byte-identical to the frame the client sent and would read as a reply.
+    /// </internal>
     /// </summary>
     /// <category>Serialization</category>
     public class UnknownEnvelopeTypeException : FormatException
@@ -58,11 +61,13 @@ namespace Sitrep.Contract.Serialization
     /// The frame's type was recognised, and a required field inside it was
     /// missing or the wrong JSON type.
     ///
-    /// <para>Kept apart from <see cref="UnknownEnvelopeTypeException"/>
-    /// because the two get opposite responses. Here the server knows which
-    /// envelope it was handed and which field is wrong, so it refuses naming
-    /// them; an echo would hand a command-request author back their own frame,
-    /// which reads as a reply and hides the refusal completely.</para>
+    /// <para>The server refuses such a frame with an error naming the envelope
+    /// type and the field, and never echoes it, unlike a frame with no readable
+    /// type (see <see cref="UnknownEnvelopeTypeException"/>).</para>
+    /// <internal>
+    /// An echo would hand a command-request author back their own frame, which
+    /// reads as a reply and hides the refusal completely.
+    /// </internal>
     /// </summary>
     /// <category>Serialization</category>
     public class InvalidEnvelopeException : FormatException

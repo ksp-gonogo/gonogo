@@ -8,8 +8,8 @@ namespace Sitrep.Contract
     /// its args type, what it returns, and whether it rides the light-time
     /// delay. It is metadata only and does not touch the wire.
     ///
-    /// <para><c>AllowMultiple</c> is on because one args shape routinely serves
-    /// several commands: <see cref="SetEnabledArgs"/> carries six
+    /// <para>Apply it once per command when one args class serves several:
+    /// <see cref="SetEnabledArgs"/> carries six
     /// (<c>setSas</c>/<c>setRcs</c>/<c>setGear</c>/<c>setBrakes</c>/
     /// <c>setLights</c>/<c>setAbort</c>).</para>
     ///
@@ -22,16 +22,15 @@ namespace Sitrep.Contract
     /// that resolves with something that is not a <see cref="CommandResult"/>
     /// at all (<c>system.bodies.statesAt</c> resolves a bare
     /// <see cref="BodyStatesReply"/>), and names that type exactly. Setting
-    /// both is a contradiction and stops the build.</para>
-    ///
-    /// <para>Both are a Type rather than a string, so a result that does not
-    /// exist stops the build here, where the mistake is, rather than reaching a
-    /// client as a name that resolves to nothing.</para>
+    /// both is an error that stops the build.</para>
     ///
     /// <para>A command with NO arguments still needs somewhere to carry its tag:
     /// <see cref="NoCommandArgs"/> for core, and a marker class of its own in an
     /// Uplink's slice.</para>
     /// <internal>
+    /// Payload and Result are a Type rather than a string, so a result that
+    /// does not exist stops the build where the mistake is, rather than
+    /// reaching a client as a name that resolves to nothing.
     /// The write-side twin of <see cref="SitrepTopicAttribute"/>: the TS-SDK
     /// codegen builds the <c>CommandId -&gt; CommandArgs&lt;C&gt;</c> /
     /// <c>CommandReply&lt;C&gt;</c> maps from it by reflection. A command that
@@ -60,8 +59,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// The exact type the dispatch resolves with, for a command that does
         /// not return a <see cref="CommandResult"/> at all. Null otherwise.
-        /// Mutually exclusive
-        /// with <see cref="Payload"/>.
+        /// Mutually exclusive with <see cref="Payload"/>.
         /// </summary>
         public Type Result { get; set; }
 
@@ -71,15 +69,12 @@ namespace Sitrep.Contract
         /// like any other signal, and only a fact with no analogue in flight is
         /// <see cref="DelayRole.TrueNow"/>.
         ///
-        /// <para>The SAME enum a channel declares on
-        /// <see cref="ChannelDeclaration.Delay"/>, because it is the same
-        /// question asked in the other direction: is this datum's subject aboard
-        /// a craft across the gap, or here on the ground. A matched pair settles
-        /// it. <c>time.warp</c> is a <see cref="DelayRole.TrueNow"/> channel and
-        /// <c>time.setWarpIndex</c> is a <see cref="DelayRole.TrueNow"/> command;
-        /// the <c>alarm.scet.*</c> channels and the <c>alarm.scet.arm</c> /
-        /// <c>alarm.scet.disarm</c> commands that write them are the same pair
-        /// again.</para>
+        /// <para>It is the same enum a channel declares on
+        /// <see cref="ChannelDeclaration.Delay"/>, and a command and the channel
+        /// it writes take the same role: <c>time.warp</c> and
+        /// <c>time.setWarpIndex</c> are both <see cref="DelayRole.TrueNow"/>, and
+        /// so are the <c>alarm.scet.*</c> channels and the <c>alarm.scet.arm</c>
+        /// and <c>alarm.scet.disarm</c> commands that write them.</para>
         ///
         /// <para>This is the only place a command's delay role is declared: the
         /// mod applies it at dispatch, and a client's delay UX reads the same
@@ -90,16 +85,15 @@ namespace Sitrep.Contract
         /// <c>GENERATED_COMMAND_RAIL</c>.
         /// </internal>
         ///
-        /// <para>Three things earn <see cref="DelayRole.TrueNow"/>, and the rule
-        /// is the SIMULATION's point of view rather than one console's. A command
-        /// that changes the SCENE (launch, recover, revert, switch vessel, the
-        /// tracking station) changes it for every vantage at once, so there is no
-        /// light-time for it to ride. A meta-game control (warp, pause) is not a
-        /// signal to a craft. A PRESENTATION choice (which frame a readout is in,
-        /// which vantage a trajectory is drawn for) sends nothing anywhere at
-        /// all. Everything else delays, career and construction orders included:
-        /// those are orders, not ground-side facts, and a second command centre
-        /// can issue them.</para>
+        /// <para>Three kinds of command are <see cref="DelayRole.TrueNow"/>. A
+        /// command that changes the scene (launch, recover, revert, switch
+        /// vessel, the tracking station) changes it for every command centre at
+        /// once, so there is no light time for it to cross. A game control (warp,
+        /// pause) is not a signal to a craft. A display choice (which frame a
+        /// readout is in, which command centre a trajectory is drawn for) sends
+        /// nothing anywhere. Everything else is delayed, career and construction
+        /// orders included, since a second command centre can issue them
+        /// too.</para>
         /// </summary>
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
 

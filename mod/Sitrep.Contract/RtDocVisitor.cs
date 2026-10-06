@@ -13,22 +13,20 @@ using Reinforced.Typings.Visitors.TypeScript;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The exporter that writes the contract's C# prose onto the generated
-/// TypeScript, as TSDoc.
+/// The Reinforced.Typings exporter that writes the contract's C# doc comments
+/// onto the generated TypeScript, as TSDoc. <see cref="RtDocText"/> translates
+/// each summary's XML into TSDoc lines.
 ///
-/// <para>Reinforced.Typings already carries a summary as far as the AST, so the
-/// two things missing are translation and reachability. Translation is
-/// <see cref="RtDocText"/>: what RT stores is the summary's raw XML, which
-/// reaches an author's editor as literal markup. Reachability is here, because
-/// only the file being written knows which names it exports.</para>
-///
-/// <para><b>A carried doc must not point somewhere the reader cannot go.</b> The
-/// C# prose crefs host types, private assemblies and static helper classes
-/// freely, and it is right to: on that side they are all one solution. On the
-/// published side they are names an author can neither import nor read. A cref
-/// whose target is emitted into the SDK becomes a code-form pointer at its real
-/// TypeScript name; every other cref degrades to plain prose, which still says
-/// where a value came from without implying there is something to reach for.</para>
+/// <para>A <c>see cref</c> whose target is exported by the file being written
+/// becomes a code-form pointer at its TypeScript name; any other <c>cref</c> is
+/// written as plain prose, so the TypeScript never points at a name an author
+/// cannot import.</para>
+/// <internal>
+/// Reachability is decided here rather than in RtDocText because only the file
+/// being written knows which names it exports. The C# prose crefs host types,
+/// private assemblies and static helpers freely, which is right on that side,
+/// where they are all one solution.
+/// </internal>
 /// </summary>
 /// <category>Serialization</category>
 public class RtDocVisitor : TypeScriptExportVisitor

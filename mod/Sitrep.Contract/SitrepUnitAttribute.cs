@@ -38,9 +38,9 @@ namespace Sitrep.Contract
         /// Kilometres. Only for a field genuinely authored in km.
         ///
         /// <para>Every other distance on this wire is <see cref="Metres"/>. The
-        /// client's presentation ladder already promotes a metres value to km
-        /// above 1000 m, so a field needs this token only when its value is
-        /// authored in km, not merely displayed that way.</para>
+        /// client's formatter already shows a metres value in km above 1000 m,
+        /// so a field needs this token only when its value is authored in km,
+        /// not merely displayed that way.</para>
         /// <internal>
         /// Exists for MechJebAscentArgs.TargetAltitudeKm: the MechJeb widget
         /// builds that wire key in km. Do not reach for it on anything new.
@@ -120,9 +120,9 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Tonnes, the unit KSP reports a vessel's mass in
-        /// (<c>DeltaVStageInfo.startMass</c> and similar). The client's ladder
-        /// normalises to kilograms before scaling, so a tonne value still climbs
-        /// and falls correctly.
+        /// (<c>DeltaVStageInfo.startMass</c> and similar). The client's formatter
+        /// converts to kilograms before choosing a prefix, so a tonne value still
+        /// scales correctly.
         /// </summary>
         public const string Tonnes = "t";
 

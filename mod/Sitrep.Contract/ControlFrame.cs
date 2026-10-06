@@ -214,9 +214,9 @@ namespace Sitrep.Contract
     /// The provider that knows which frame the game's navigation view is in, and
     /// can move it. It competes for <see cref="ControlFrameCapability.Id"/>.
     ///
-    /// <para>It is a capability because the frame belongs to whichever mod owns
-    /// the view. Stock's is a body with inertial axes; an n-body producer's is
-    /// one of five kinds over sets of bodies.</para>
+    /// <para>The frame belongs to whichever mod owns the view. Stock's is a body
+    /// with inertial axes; an n-body mod's can be one of five kinds over sets of
+    /// bodies.</para>
     /// </summary>
     /// <category>Uplink API</category>
     public interface IControlFrameSource : ISitrepProvider
@@ -233,9 +233,6 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Puts the view in <paramref name="frame"/>.
-        ///
-        /// <para>Read and write share one interface because the owner of the view
-        /// is the only thing that can move it.</para>
         ///
         /// <para>Refusing is a normal outcome, not a fault: stock's frame follows
         /// the craft's own reference body and cannot be set at all. A source that

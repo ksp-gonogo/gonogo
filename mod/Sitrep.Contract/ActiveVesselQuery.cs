@@ -1,19 +1,13 @@
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The one way to ask which vessel the stream is about, written once so the
-    /// rule underneath it cannot drift.
+    /// Asks which vessel the stream is about, by resolving
+    /// <see cref="IActiveVessel"/> through the <see cref="Kernel"/> on each call.
     ///
-    /// <para>It resolves <see cref="IActiveVessel"/> through the Kernel, per call,
-    /// and returns no vessel when it cannot be resolved, so no caller grows a
-    /// <c>?? FlightGlobals.ActiveVessel</c> fallback of its own.</para>
-    ///
-    /// <para><b>Absent means NO VESSEL, never KSP's active vessel.</b> An older core, or
-    /// one whose capability declaration failed, leaves the Uplink unable to see
-    /// which craft it is reporting on. Reporting nothing says exactly that;
-    /// falling back to <c>FlightGlobals.ActiveVessel</c> would say "this is the
-    /// craft" about the kerbal standing next to it. A read that could not see the
-    /// craft is honest, the wrong craft is not.</para>
+    /// <para>When the capability cannot be resolved it returns no vessel, never
+    /// KSP's active vessel. Report nothing in that case rather than falling back
+    /// to <c>FlightGlobals.ActiveVessel</c>, which during an EVA is the kerbal
+    /// rather than the craft.</para>
     /// </summary>
     /// <category>Host and Kernel</category>
     public static class ActiveVesselQuery
@@ -24,15 +18,11 @@ namespace Sitrep.Contract
         /// with <c>as Vessel</c>.
         ///
         /// <para>Null when there is no flight, when <paramref name="kernel"/> is
-        /// null, and when the capability is unknown or unresolved: different
-        /// causes with one correct consequence, because this read does not know
-        /// which craft it is about.</para>
+        /// null, and when the capability is unknown or unresolved.</para>
         ///
-        /// <para><b>Call it per read and never hold the result.</b> The result
-        /// changes on a vessel switch, a dock, an undock, and on both ends of an
-        /// EVA. <b>Main thread only</b>, on the same terms as the interface
-        /// itself: a capture-on-main or a command handler, never a
-        /// channel-source closure.</para>
+        /// <para>Call it on each read and never hold the result: it changes on a
+        /// vessel switch, a dock, an undock, and on both ends of an EVA. Main
+        /// thread only, as for <see cref="IActiveVessel"/>.</para>
         /// </summary>
         /// <param name="kernel">The host's Kernel, or null.</param>
         /// <returns>The reported vessel's opaque handle, or null.</returns>

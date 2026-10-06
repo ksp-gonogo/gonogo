@@ -1,23 +1,18 @@
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The "delayedScience" capability's active-instance interface: the
-/// source-agnostic entry point a per-increment science source hands its raw
-/// crediting events to, so a delayed credit can be produced without the source
-/// knowing anything about the aggregator, the pending-credit ledger, or how a
-/// reveal-UT is derived.
+/// Where an Uplink hands science a mod credits in increments, so Gonogo credits
+/// it after the signal delay from the earning vessel. The active instance of
+/// <see cref="DelayedScienceCapability"/>.
 ///
-/// <para>Core registers a default sink, so once capabilities are resolved the
-/// capability is satisfied on every install; before that, resolving through
-/// <c>host.Kernel</c> returns nothing. An Uplink that observes a
-/// third-party mod crediting science its own way resolves the sink and hands
-/// each increment to it, with no reference to the implementing
-/// assembly.</para>
+/// <para>Gonogo registers a default sink, so once capabilities are resolved it
+/// is present on every install; before that, resolving it through
+/// <see cref="IUplinkHost.Kernel"/> returns nothing. An Uplink that sees a mod
+/// crediting science its own way resolves the sink and hands it each
+/// increment.</para>
 ///
-/// <para>Deliberately primitives-only. The implementation resolves the vessel
-/// itself, from the <c>vesselId</c> it is handed, because only a LIVE vessel has a
-/// CommNet route and a route is the only thing that produces a delay: a handle
-/// to a vessel the caller happens to hold says nothing about routability.</para>
+/// <para>It takes the vessel by id and finds the live vessel itself, since only
+/// a live vessel has a route home to measure the delay over.</para>
 /// <internal>
 /// The core registrar is <c>Gonogo.KSP.CurrencyEventUplink</c>, which ships the
 /// currency-delay sink as the capability's Vanilla factory.
@@ -27,11 +22,9 @@ namespace Sitrep.Contract;
 public interface IDelayedScienceSink : ISitrepProvider
 {
     /// <summary>
-    /// Records one science increment earned by a vessel: its identity, the raw
-    /// amount, the UT it was earned at, and an opaque origin label for the
-    /// pending-credit row. Implementations are no-ops rather than throwers for
-    /// a non-positive amount, an empty id, or a currency-delay subsystem that
-    /// is not currently active (no loaded game).
+    /// Records one science increment earned by a vessel. Does nothing, rather
+    /// than throwing, for a non-positive amount, an empty id, or when no game is
+    /// loaded.
     /// </summary>
     /// <param name="vesselId">The earning vessel, as KSP's <c>Vessel.id</c> GUID string.</param>
     /// <param name="amount">The raw science amount earned.</param>
@@ -41,10 +34,9 @@ public interface IDelayedScienceSink : ISitrepProvider
 }
 
 /// <summary>
-/// The capability id both the registrar and a resolving Uplink name. It lives
-/// here, in the published contract, so both spell it from one constant: two
-/// spellings of one identity drift silently, and the capability simply never
-/// resolves.
+/// The capability id an <see cref="IDelayedScienceSink"/> is resolved under. Use
+/// this constant rather than writing the string: a mismatched id fails
+/// silently, as a capability that never resolves.
 /// </summary>
 /// <category>Uplink API</category>
 public static class DelayedScienceCapability

@@ -6,8 +6,9 @@ namespace Sitrep.Contract
     /// <summary>
     /// Raised during <see cref="Kernel.Resolve"/>'s selection when an EXCLUSIVE
     /// capability has two or more equally-ranked provider candidates and there
-    /// is no user preference or unique <c>IsDefault</c>/highest-priority
-    /// provider to break the tie.
+    /// is no preference, single
+    /// <see cref="ProviderRegistration.IsDefault"/> provider or unique highest
+    /// <see cref="ProviderRegistration.Priority"/> to break the tie.
     ///
     /// <para>The kernel refuses to pick a winner by anything arbitrary, such as
     /// registration order. This does not escape <see cref="Kernel.Resolve"/>:
@@ -39,10 +40,11 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Thrown by <see cref="Kernel.Resolve"/> when a <c>SpineCritical</c>
-    /// capability has no compatible provider (every registered provider was
-    /// excluded by version gating, or none were registered at all) AND no
-    /// <c>Vanilla</c> fallback.
+    /// Thrown by <see cref="Kernel.Resolve"/> when a
+    /// <see cref="CapabilityDescriptor.SpineCritical"/> capability has no
+    /// compatible provider (every registered provider was excluded by its
+    /// version constraints, or none were registered at all) and no
+    /// <see cref="CapabilityDescriptor.Vanilla"/> fallback.
     ///
     /// <para>Gonogo cannot start without a spine-critical capability, so the
     /// kernel stops rather than continue without it. A capability that is not
