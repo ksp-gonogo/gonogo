@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landing site with a low slope but a boulder-strewn surface, rated marginal because of the roughness.",
     "scenario": "boulder-rough",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Boulder-rough: low slope, high residual roughness => MARGINAL on roughness"

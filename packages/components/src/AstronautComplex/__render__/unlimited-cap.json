@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A fully upgraded Astronaut Complex with 22 active crew, a cap shown as Unlimited, two applicants at 96,000 funds each and 1,250,000 funds in hand.",
     "notes": "Top-tier Astronaut Complex: GetActiveCrewLimit returns int.MaxValue (2147483647) at the maxed-out facility, which the widget must detect and render as 'Unlimited' rather than the raw sentinel. 22 active crew, a two-applicant pool, and a generous 1,250,000f balance.",
     "scenario": "unlimited-cap"
   },

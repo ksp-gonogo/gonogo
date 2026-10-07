@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 680 km semi-major axis orbit of Kerbin after the link has dropped, so the value and sparkline are shown as held readings.",
     "scenario": "lko-kerbin-stopped-arriving",
     "notes": "Low Kerbin Orbit. Kerbin radius 600 km + ~80 km altitude = 680 km SMA. Sparkline shows the last 5 minutes of station-keeping nudging the SMA up by ~600 m. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

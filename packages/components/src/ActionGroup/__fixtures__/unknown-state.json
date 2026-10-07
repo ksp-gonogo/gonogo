@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A button bound to Brakes before any vessel control reading has arrived, so its state indicator shows a faint dash.",
     "scenario": "unknown-state",
     "notes": "Widget configured for Brake group but v.brakeValue not yet received from telemetry. StateIndicator should show ', ' in faint colour.",
     "widgetConfig": {

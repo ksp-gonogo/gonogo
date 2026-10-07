@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in low circular Kerbin orbit after the link has dropped, its position carried along the orbit and drawn as modelled.",
     "scenario": "lko-circular-stopped-arriving",
     "notes": "Current Orbit's circular-lko, then the link drops: the conic carries the craft, drawn modelled."
   },

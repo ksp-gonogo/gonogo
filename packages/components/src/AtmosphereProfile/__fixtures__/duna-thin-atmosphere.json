@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft at 1,000 m over Duna in a thin atmosphere (about 0.067 atm at the surface), with density in g/m3 and a narrow pressure curve on the log axis.",
     "scenario": "duna-thin-atmosphere",
     "notes": "Duna surface at 1000 m. Thin atmosphere ~0.067 atm (6755 Pa surface). Tests the g/m\u00b3 density rung and a narrow pressure curve on the log Y axis."
   },

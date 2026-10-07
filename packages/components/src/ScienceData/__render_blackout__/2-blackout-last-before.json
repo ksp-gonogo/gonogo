@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A page opened during a communications blackout: the science readings are the last samples sent before contact was lost, marked as stale beside a still-live career science total.",
     "capturedAt": "2026-08-13",
     "body": "Kerbin",
     "notes": "The dashboard opened DURING the outage. Both science topics are stamped Meta.Staleness.LastBeforeBlackout, which is what the Courier stamps once MarkSubjectLinkDown has been applied for the craft: the newest sample that got out before contact was lost. Before the recorder landed, this read Fresh and the panel showed no badge, so an operator arriving mid-outage was served a pre-outage sample as the state of the craft now. The career science figure beside the badge is space-centre-sourced and stays live through the outage."

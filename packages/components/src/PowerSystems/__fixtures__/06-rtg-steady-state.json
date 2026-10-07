@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A deep-space probe powered only by two RTGs producing 1.5 EC/s, with a small battery and a Communotron drawing nearly all of it, so the net rate is close to zero.",
     "scenario": "rtg-steady-state",
     "notes": "Deep-space probe: RTG as sole power source. Balanced net (RTG just keeps up with probe systems). No solar, no batteries other than small buffer. Net near-zero, neutral tone. Shows RTG efficiency at 100% (flow equals nominalFlow)."
   },

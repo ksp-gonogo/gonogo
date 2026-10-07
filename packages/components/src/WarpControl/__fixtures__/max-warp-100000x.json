@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Maximum on-rails warp in flight, with the rate reading 100k× and that button highlighted.",
     "scenario": "max-warp-100000x",
     "notes": "Maximum on-rails warp at 100000\u00d7 (index 7 = '100k\u00d7'). Rate label formats as '100k\u00d7'. The 100k\u00d7 button highlighted. Typically used for long interplanetary transfers."
   },

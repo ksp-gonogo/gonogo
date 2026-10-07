@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft 150 km above a body named Proxima that reports a radius but no gravitational parameter, so the escape curve cannot be drawn and only the craft's orbital speed is plotted with a no-reference-data notice.",
     "scenario": "unknown-body-no-reference",
     "notes": "The roster reports a radius for the body and no gravitational parameter, and no bundled table carries the name either. So the body resolves and its escape curve cannot be drawn: the widget shows the no-reference-data notice and plots the orbital-speed trace alone. It used to show the unknown-body notice, back when the body came from a table of stock bodies keyed by name; a body the stream has described is not unknown. v.altitude/v.orbitalVelocity are vessel.flight.altitudeAsl/orbitalSpeed, read straight off the vessel.flight emit."
   },

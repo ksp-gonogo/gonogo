@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The Tracking Station scene, with no flight and no pad: the widget offers Space Center and a Fly vessel list of three craft, leaving the asteroid out.",
     "scenario": "in-tracking-station",
     "notes": "The Tracking Station scene: no flight and no pad, so the widget offers the way out (Space Center, Fly vessel) instead of a launch. system.vessels lists three craft and one asteroid, which the Fly list leaves out. `_stream` drives both snapshots.test.tsx and the probe render harness."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A hyperbolic escape from Kerbin, so the semi-major axis reads as a negative 5,000 km.",
     "scenario": "escape-kerbin",
     "notes": "Hyperbolic escape trajectory around Kerbin. SMA is negative for hyperbolic orbits. Exercises the formatDistance function with a negative value."
   },

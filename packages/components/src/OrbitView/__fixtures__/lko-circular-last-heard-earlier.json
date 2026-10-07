@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in low Kerbin orbit after the link dropped 400 s after its last reading, so its last-heard place and its modelled place a fifth of an orbit on are drawn apart with separate marks.",
     "scenario": "lko-circular-last-heard-earlier",
     "notes": "Current Orbit's circular-lko with elements taken 400 s before the link drops, so the conic carries the craft about a fifth of the way round from where it was last observed: the held place and the modelled place are drawn apart, each with its own mark."
   },

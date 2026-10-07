@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft flying low over the Kerbin grasslands with a Crew Report and a Mystery Goo observation aboard, both partway to their science cap, when the link drops and the readings are held.",
     "capturedAt": "2026-08-13",
     "body": "Kerbin",
     "notes": "In flight low over Kerbin's grasslands; two subjects aboard, both partway to their science cap (neither exhausted, neither untouched). Drives the Aboard tab's default render and the dual-run/stream proofs. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",

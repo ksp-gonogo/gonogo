@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "No orbit has been received, so the widget shows its \"No orbital data\" message instead of a diagram.",
     "scenario": "no-data",
     "notes": "No orbital data emitted. Widget should show the 'No orbital data' fallback text. All orbit keys omitted so hasOrbit stays false. Used to verify the empty-state renders cleanly at every size."
   },

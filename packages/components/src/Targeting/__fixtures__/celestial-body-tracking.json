@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The Mun set as the target from 850 km away and receding at 547.8 m/s, so the widget stays in plain tracking and never offers docking.",
     "scenario": "celestial-body-tracking",
     "notes": "Target is a CelestialBody (Mun). Even at close range, dockable=false so mode stays 'tracking' indefinitely. Exercises the CelestialBody gate in the useEffect. The legacy `tar.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness (the widget reads native vessel.target). Keep the two in sync."
   },

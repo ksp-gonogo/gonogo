@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Electric charge at 100,000x warp with samples five orbits apart, so each sample stands alone with no line between them.",
     "scenario": "warp-breaks",
     "synthetic": true,
     "notes": "SYNTHETIC. The same charge at 100,000x: samples 10,000 UT apart, five orbits of charge and discharge between each pair. No model claims the value and the span is wider than the one-second sampleIntervalUt, so a chord across it is a path nothing observed and each sample stands alone."

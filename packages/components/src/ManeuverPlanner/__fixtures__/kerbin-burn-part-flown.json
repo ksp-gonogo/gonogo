@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 300 m/s prograde burn partly flown: 120 m/s remain on the node, so the burn reads 180 of 300 m/s delivered.",
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "notes": "A burn PART FLOWN: the plan asked for 300 m/s and 120 remain, so conformance reads 180 of 300. The node list and burn window describe the same burn."

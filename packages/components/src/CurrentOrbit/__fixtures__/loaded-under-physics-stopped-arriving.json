@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A loaded craft in low Kerbin orbit after the link has dropped: the last orbit is drawn as held with no craft marker on it, and inclination and eccentricity carry the held mark.",
     "scenario": "loaded-under-physics-stopped-arriving",
     "notes": "loaded-under-physics, then the link drops. The elements are osculating, so no model carries the held reading: the last orbit is drawn held, with no craft on it, and the inclination and eccentricity wear the held mark."
   },

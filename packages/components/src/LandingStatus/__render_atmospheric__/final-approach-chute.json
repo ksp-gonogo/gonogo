@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft at about 1.5 km over Kerbin under an open parachute at about 9 m/s, with the terrain plots showing again alongside the descent read.",
     "scenario": "atmospheric-final-approach-chute",
     "synthetic": true,
     "notes": "SYNTHETIC. Kerbin final approach (~1.5 km, chute deployed, ~9 m/s) WITH a settled terrain sample: exercises the terrain plots RE-APPEARING on an atmospheric board (Q1: low-altitude / stable-prediction gate) alongside the atmospheric-aware descent read."

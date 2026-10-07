@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 680 km semi-major axis orbit while the body list is unavailable for good, so the reference body cannot be named.",
     "scenario": "lko-kerbin-bodies-tombstoned",
     "notes": "Low Kerbin Orbit with system.bodies a confirmed tombstone, so the reference body is known to be unnameable rather than still loading."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander sitting on the Mun after touchdown, with the board showing LANDED, the vessel on its site, a safe verdict, thrust-to-weight and fuel, and no countdowns.",
     "scenario": "landed-mun",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Touched down on the Mun: situation Landed, motion nulled. The touchdown-confirmed view: LANDED hero, plots showing the vessel on the site, SAFE verdict, TWR + fuel, no live countdowns."

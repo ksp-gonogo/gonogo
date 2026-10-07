@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in a stable low orbit around the Mun, which has no atmosphere, with periapsis on the right of the diagram.",
     "scenario": "mun-orbit",
     "notes": "Stable low orbit around the Mun (no atmosphere). Exercises getBody() color/radius for a non-Kerbin body. argPe=270\u00b0 places periapsis on the right side of the diagram, exercising the bbox rotation math for a near-vertical apsis line."
   },

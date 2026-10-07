@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft at about 8 km over Kerbin descending steadily at 118 m/s, where drag matches its weight, so it is at terminal velocity and slows further before touchdown.",
     "scenario": "atmospheric-at-terminal",
     "synthetic": true,
     "notes": "SYNTHETIC. Mid Kerbin descent (~8 km, 118 m/s down): drag \u2248 weight, so the vessel is AT TERMINAL, steady descent. Terminal at ground (denser) is lower, so it slows further before touchdown."

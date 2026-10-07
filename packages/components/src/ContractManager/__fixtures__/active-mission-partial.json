@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "One active contract, Plant a flag on the Mun, with one of its three terms complete and one optional, 5 days left on its deadline, and one offered contract below it.",
     "scenario": "active-mission-partial",
     "notes": "One active contract (Mun flag plant) with three objectives listed as its terms, one of them optional. Deadline 5 stock days remaining. Also one offered contract visible in the offered section."
   },

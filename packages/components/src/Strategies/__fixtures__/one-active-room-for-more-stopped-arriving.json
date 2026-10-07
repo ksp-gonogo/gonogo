@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Aggressive Negotiations active with one slot free, a blocked strategy under Available and a locked one showing its reputation requirement, then the link drops so every reading is held.",
     "notes": "T2 admin building: one strategy active, one more slot available. The blocked strategy appears under Available with 'Deactivate the running strategy first' hint. The locked strategy shows its rep requirement. Good funds. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
     "scenario": "one-active-room-for-more-stopped-arriving"
   },

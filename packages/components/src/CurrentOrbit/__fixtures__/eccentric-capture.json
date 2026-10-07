@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A highly eccentric Kerbin capture orbit with apoapsis at 2,500 km, periapsis at 80 km and eccentricity about 0.64, drawn as a long ellipse.",
     "scenario": "eccentric-capture",
     "notes": "Highly eccentric Kerbin capture. Ap at 2500 km, Pe at 80 km. Eccentricity ~0.64. isOrbiting=true (PeA > 70 km atmosphere threshold). Exercises the diagram with a pronounced ellipse."
   },

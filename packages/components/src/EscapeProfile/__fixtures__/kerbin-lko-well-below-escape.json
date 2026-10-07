@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in low Kerbin orbit at 80 km moving at 2246 m/s, well under the roughly 3220 m/s escape speed, so its marker sits well below the escape curve.",
     "scenario": "kerbin-lko-well-below-escape",
     "notes": "Low Kerbin orbit at 80 km. Orbital speed ~2246 m/s; escape velocity at this altitude ~3224 m/s. Trace dot plots well below the reference curve, craft is in a stable orbit. v.altitude/v.orbitalVelocity are vessel.flight.altitudeAsl/orbitalSpeed, read straight off the vessel.flight emit."
   },

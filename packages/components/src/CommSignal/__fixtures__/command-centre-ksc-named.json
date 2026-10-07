@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft with a strong 87% direct link to the Kerbin Space Center, named as the command centre, with a one-hop route from the craft to home.",
     "scenario": "command-centre-ksc-named",
     "notes": "strong direct link, comms.commandCentre names KSC explicitly (id ground:Kerbal Space Center, kind GroundStation) instead of the widget's hardcoded fallback. comms.path is a single direct hop (vessel -> home), the 'You -> KSC' route case."
   },

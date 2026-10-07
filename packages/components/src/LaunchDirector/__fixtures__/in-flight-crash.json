@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Doomed Probe at 50 m with a crash chip showing, and both revert controls dark with the game's reason that the flight cannot be reverted.",
     "scenario": "in-flight-crash",
     "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. canRevertToLaunch=false and canRevertToEditor=false, so both reverts' own gates refuse them and the controls are dark with the game's reason. Funds readout visible. crash.lastCrash is unset so the session-wide crash.hasRecent flag alone raises the chip. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },

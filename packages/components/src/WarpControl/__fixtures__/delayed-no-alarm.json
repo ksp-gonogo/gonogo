@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Realtime flight 12 light-minutes from the command centre with no alarm set, so the warp-up buttons are disabled with a prompt to set an alarm while 1x and pause stay live.",
     "scenario": "delayed-no-alarm",
     "notes": "Realtime in flight on a craft 12 light-minutes from its command centre, with no alarm set. Warp-up controls are disabled and the widget states the condition that enables them: set an alarm. 1x and the pause control stay live."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A near-circular 80 by 85 km Kerbin orbit after the link has dropped, with the craft's last observed position and its modelled position a fifth of a lap further on drawn apart, each with its own mark.",
     "scenario": "circular-lko-last-heard-earlier",
     "notes": "circular-lko with elements taken 400 s before the link drops, so the conic carries the craft about a fifth of the way round from where it was last observed: the held place and the modelled place are drawn apart, each with its own mark."
   },

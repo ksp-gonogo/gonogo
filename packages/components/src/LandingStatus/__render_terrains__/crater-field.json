@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landing site in a crater, with a deep central dip and a raised rim, rated marginal because of the roughness.",
     "scenario": "crater-field",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Crater: deep central dip + raised rim => MARGINAL on roughness"

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft with a link at 63% strength routed to a crewed vessel, Constant Companion, instead of the Space Center, so the caption reads Signal to Constant Companion.",
     "scenario": "command-centre-crewed-vessel",
     "notes": "KSC is unreachable, the vessel's ControlPath resolved to a crewed control-source vessel instead (the stock 6-kerbal command-center mechanic). comms.commandCentre names it, so the caption reads 'Signal to Constant Companion' rather than the hardcoded 'Signal to KSC'. comms.path's single hop lands on that same crewed vessel (kind Relay, neither end is home), the 'You -> Constant Companion' route case."
   },

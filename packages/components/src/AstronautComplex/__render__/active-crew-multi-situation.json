@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Seven hired kerbals across every crew standing, with Bill standing down after a flight, Bob Kerman at max rank, and Lodan held back by a mod, plus Nedcas Kerman available with every stat shown as a dash.",
     "notes": "Active tab, one sub-tab per CrewStanding present: seven hired kerbals spanning every stock standing, with Bill standing down after a flight. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. Lodan sits in Available held back by a mod backend: his standing is the stock one, and available:false, the backend's own reason and a standingEndsAtUt the client formats are what keep him off a flight. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here. Nedcas Kerman stands beside Ludrey in Available carrying no rank, courage, stupidity or progress at all, the shape a capture that read none of them sends: every one of those chips reads as a dash, so a reading nobody has cannot be mistaken for the rookie stats of an L0.",
     "scenario": "active-crew-multi-situation"
   },

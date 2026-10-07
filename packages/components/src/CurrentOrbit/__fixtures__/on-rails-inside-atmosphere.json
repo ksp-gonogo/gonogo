@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A coasting craft whose whole orbit lies inside Kerbin's 70 km atmosphere (periapsis 48 km, apoapsis 62 km): the orbit still draws, but the apsides, countdowns and period are withheld because drag decides the path.",
     "scenario": "on-rails-inside-atmosphere",
     "notes": "A coasting craft whose whole orbit lies inside Kerbin's 70 km atmosphere: periapsis 48 km, apoapsis 62 km, sampled on rails. A conic drawn here ignores the drag that is actually deciding where the craft goes, so the model withdraws and the apsides, the countdowns and the period go with it. The elements themselves still draw."
   },

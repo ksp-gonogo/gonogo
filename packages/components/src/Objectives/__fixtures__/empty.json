@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "No contracts active or offered: the widget shows a muted empty state.",
     "scenario": "empty",
     "notes": "No contracts: muted empty state."
   },

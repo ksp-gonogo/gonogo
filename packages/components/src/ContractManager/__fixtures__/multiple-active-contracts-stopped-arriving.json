@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Three active contracts with differing deadlines and no offered ones, after the link drops so every reading is marked as held.",
     "scenario": "multiple-active-contracts-stopped-arriving",
     "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range). No offered contracts. Deadline formats: days+hours, hours, no-deadline. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

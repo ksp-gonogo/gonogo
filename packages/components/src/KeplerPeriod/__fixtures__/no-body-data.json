@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "No reference body has been reported yet, so the graph is titled Kepler Period but draws no curve.",
     "scenario": "no-body-data",
     "notes": "Neither v.body nor o.referenceBody is set yet (e.g. loading state). Widget should render an empty GraphView with title KEPLER PERIOD and no curve."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft behind Kerbin with no signal: zero bars, no control, and a dash in place of the delay.",
     "scenario": "no-signal-occluded",
     "notes": "Vessel behind Kerbin: zero bars, no control, full signal loss. comm.signalStrength is 0 and controlState is None. comms.delay.oneWaySeconds is null (not 0): no connection means no measurable ControlPath, and 0 is a distinct, valid live-delay value elsewhere in this codebase (see command-delay.ts's no-path/live mode split), so 0 here rendered a misleading 'DELAY 0 ms' instead of the em-dash placeholder."
   },

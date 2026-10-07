@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander coasting about 45 km above the Mun toward a landing site far downrange, well before the burn, with the site near the edge of the reticle.",
     "scenario": "pre-burn-cruise",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). High cruise above the Mun (~45 km AGL), coasting toward the predicted site far downrange: the full descent picture with the site near the reticle rim, well before the burn."

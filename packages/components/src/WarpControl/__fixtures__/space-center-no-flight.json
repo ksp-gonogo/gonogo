@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The game at the Space Center rather than in flight, at 1× with the warp controls live and no pause button.",
     "scenario": "space-center-no-flight",
     "notes": "KSP is in the Space Center scene (not Flight). DimmedOverlay should NOT fire, SpaceCenter is a warpable scene. Pause button should be hidden (only shown in Flight). Rate shows 1\u00d7."
   },

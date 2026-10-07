@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Two active contracts: Test the LV-909 in flight for C7 Aerospace, and Rescue a Kerbal from orbit for Rescue Inc with two parameters.",
     "scenario": "contracts-only",
     "notes": "Two active contracts. Source tags distinguish them."
   },

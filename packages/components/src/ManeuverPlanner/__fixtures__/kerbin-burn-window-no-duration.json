@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "One queued 300 m/s prograde burn on a craft with no burn-time estimate, so ignition and cutoff times show as absent.",
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "notes": "The same single queued burn with NO burn-time model. Ignition and cutoff report absent rather than collapsing onto the node; every other section is unchanged."

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A near-circular, nearly equatorial Kerbin orbit between 80 and 85 km, drawn as a diagram with the apsides, period and countdowns beside it.",
     "scenario": "circular-lko",
     "notes": "Near-circular low Kerbin orbit. Ap and Pe close together (80–85 km), low eccentricity, equatorial. isOrbiting=true (PeA > 70 km atmosphere). Diagram renders."
   },

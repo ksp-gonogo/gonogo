@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Kerbal X standing on the KSC launch pad, whose row offers Recover and Revert to VAB, while the runway listed before it reports no occupancy.",
     "scenario": "pad-occupied",
     "notes": "Kerbal X is standing on the stock KSC pad (padOccupied true on that site alone), so that pad sorts first and its row offers Recover and Revert to VAB. The runway is listed ahead of it on the wire and reports no occupancy at all. Funds readout visible. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },

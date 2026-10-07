@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A loaded craft in the same low Kerbin orbit as the on-rails case, at periapsis with apoapsis half a period away, reading the same apsides, period and countdowns.",
     "scenario": "loaded-under-physics",
     "notes": "The same near-circular low Kerbin orbit as circular-lko, sampled while the craft is LOADED (meta.quality 1), at periapsis, carrying KSP's own countdowns as the mod sends them under physics (timeToAp half a period, timeToPe 0). Its elements are osculating, so the conic declines to advance them, but every figure is still answered: the apsides and period from the elements as they stand, the countdowns from KSP's own. Pair this with circular-lko, the identical orbit on rails, which should read the same."
   },

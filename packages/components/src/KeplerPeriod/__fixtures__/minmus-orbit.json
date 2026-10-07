@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 90 km semi-major axis orbit of Minmus with a period of about 67 minutes, plotted on Minmus's own period curve.",
     "scenario": "minmus-orbit",
     "notes": "Orbit around Minmus at ~30 km. Minmus radius 60 km, SMA \u2248 90 km, real period \u2248 67 min at Minmus's actual GM (1.7658e9; the 38 min originally claimed here assumed Kerbin-scale gravity). Tests a smaller moon body with its own Kepler curve. The vessel.orbit emit's sma/mu must actually be Minmus's (90000 / 1.7658e9), o.sma/o.period are unread legacy mirrors; the emit was left at the Kerbin 700000/3531600000000 boilerplate shared with every other Navball/EscapeProfile fixture, which plotted the dot off Minmus's own curve entirely (Kerbin's GM is ~2000x Minmus's). system.bodies.radius corrected to Minmus's actual 60 km too, it had inherited Kerbin's 600 km."
   },

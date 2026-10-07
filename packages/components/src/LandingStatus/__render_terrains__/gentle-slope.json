@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landing site on a gentle slope of about 9 degrees, rated marginal because of the slope.",
     "scenario": "gentle-slope",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Gentle slope (~9deg) => MARGINAL on slope"

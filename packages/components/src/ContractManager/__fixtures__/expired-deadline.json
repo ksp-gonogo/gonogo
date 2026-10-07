@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "One active contract, Test the Impact Sensor in flight, whose deadline has passed so it reads expired, with one term complete, one failed and one still open.",
     "scenario": "expired-deadline",
     "notes": "One active contract whose deadline has passed, so formatDeadline shows 'expired'. Its three objectives, a part test among them, are listed as terms."
   },

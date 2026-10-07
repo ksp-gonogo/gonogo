@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A probe bound for Jool, barely in range through a relay at 31% signal with partial control and a signal delay of about eight minutes.",
     "scenario": "deep-space-delay",
     "notes": "Probe in transit to Jool: barely in range via relay, 2 bars, 8-minute signal delay. Stress-tests the shared duration helper's minutes+seconds branch."
   },

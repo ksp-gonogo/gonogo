@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft, Explorer II, linked at 55% through two relays (Relay Sat 1 and Relay Sat 2) to home, with a 6.2 second delay and a relay circle for each hop on the route.",
     "scenario": "relay-network-multi-hop",
     "notes": "Signal routed through TWO relays (three hops: vessel -> Relay Sat 1 -> Relay Sat 2 -> home), the train-schedule case with several relay circles on the rail."
   },

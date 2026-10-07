@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landing site on a slope steeper than 15 degrees, rated divert because of the slope.",
     "scenario": "steep-slope",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Steep slope (>15deg) => DIVERT on slope"

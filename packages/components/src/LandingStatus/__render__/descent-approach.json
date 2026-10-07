@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander on final approach over the Mun, descending softly at about 2.5 m/s from 149 m over a marginal slope, with the commit countdowns running.",
     "scenario": "descent-approach",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Final approach: slowed to a soft descent over a MARGINAL slope; commit clocks live."

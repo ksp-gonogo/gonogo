@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "No strategy data at all, as in sandbox or without an Administration Building: the widget reads 'Awaiting career data'.",
     "notes": "Strategies feature unavailable: sandbox mode or admin building not constructed. The data source returns null (not an empty array), parseStrategies(null) returns null, triggering the 'Awaiting career data...' loading state. This is the authentic null-data path, not an empty-list career state.",
     "scenario": "feature-unavailable"
   },

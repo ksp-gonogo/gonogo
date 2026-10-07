@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Signal just regained after a blackout: the science readings were taken while the craft was dark, so they carry an informational Recorded badge beside the live career science total.",
     "capturedAt": "2026-08-13",
     "body": "Kerbin",
     "notes": "The replay, at acquisition of signal. Both science topics are stamped Meta.Staleness.Recorded: taken aboard while the craft was dark and dumped when the link came back, so each value is exact for its own instant and simply is not now. The badge reads RECORDED at info severity rather than STALE at warning, because nothing about the value is uncertain. Beside it sits the career science figure, which was live throughout, so one aside carries both and the severity distinction has somewhere to show."

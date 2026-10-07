@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in an 85 km circular prograde equatorial orbit around Kerbin, its ground track a flat line along the equator.",
     "scenario": "kerbin-lko-equator",
     "notes": "Circular 85 km equatorial parking orbit, prograde. The ground track is a flat line along the equator, which is what the projection should draw for inclination 0."
   },

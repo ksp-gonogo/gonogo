@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on a hyperbolic escape trajectory from Kerbin (eccentricity 1.42), with the status badge reading Escape.",
     "scenario": "escape-trajectory",
     "notes": "Hyperbolic escape trajectory from Kerbin (e=1.42). SMA is negative for a hyperbola (the codebase's established convention; see CurrentOrbit's escape-trajectory fixture and orbital-solve.ts's solveOrbit), sized so periapsisRadius = sma*(1-ecc) reproduces PeR/PeA below. Widget should show status badge 'Escape'."
   },

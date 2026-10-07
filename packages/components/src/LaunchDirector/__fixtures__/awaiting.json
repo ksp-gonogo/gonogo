@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A page opened before any launch pads are known, so it shows an awaiting-telemetry placeholder.",
     "scenario": "awaiting",
     "notes": "No spaceCenter.launchSites yet: the widget's subject is the pads, so their absence is what shows the awaiting-telemetry placeholder. career.funds intentionally absent. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },

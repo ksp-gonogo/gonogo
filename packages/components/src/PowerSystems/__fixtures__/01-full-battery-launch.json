@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on the launch pad with its 4,000 EC battery bank full, one solar panel and one RTG producing, and a small net gain after the probe core and pod draw.",
     "scenario": "full-battery-launch",
     "notes": "On the launchpad. Battery at 100%. Solar panel deployed, RTG running. Small net positive from solar+RTG minus probe draw. Good baseline showing all sections populated."
   },

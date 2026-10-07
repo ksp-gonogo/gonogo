@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A rocket with no thermal instrument fitted, so every group collapses and the panel shows its empty placeholder.",
     "scenario": "no-thermal-data",
     "notes": "Early-career rocket with no thermometer instrument fitted. The wire emits near-absolute-zero sentinels (~2K). The widget's sentinel guard should collapse all groups and show the empty-state placeholder."
   },

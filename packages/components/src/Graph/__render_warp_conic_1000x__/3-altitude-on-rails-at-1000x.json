@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Altitude on a 700 km Kerbin orbit on rails at 1000x warp, drawn as one continuous line.",
     "scenario": "warp-breaks",
     "synthetic": true,
     "notes": "SYNTHETIC. Altitude on a Kerbin orbit (sma 700 km, ecc 0.02, period about 1958 s), on rails at 1000x: samples 100 UT apart, a tenth of a real second of game time, which the conic carries."

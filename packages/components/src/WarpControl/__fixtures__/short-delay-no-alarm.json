@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Realtime flight 3 light-seconds from the command centre with no alarm set, so every warp control is live and nothing extra shows.",
     "scenario": "short-delay-no-alarm",
     "notes": "Realtime in flight on a craft 3 light-seconds from its command centre, with no alarm set. The delay is under the gate's 5 s, so every warp control is live and nothing extra shows."
   },

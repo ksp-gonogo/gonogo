@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on a Kerbin transfer orbit from an 85 km periapsis whose predicted track ends 15,000 s ahead at an encounter ring marking the Mun.",
     "scenario": "kerbin-mun-encounter",
     "notes": "A Kerbin transfer orbit from an 85 km periapsis, prograde and equatorial, whose patch ends at an SOI transition 15,000 s ahead: vessel.orbit.encounter names the Mun as an ENCOUNTER. The predicted track stops where the patch does, and the encounter ring is drawn at that end."
   },

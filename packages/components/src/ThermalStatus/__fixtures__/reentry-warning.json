@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Atmospheric reentry with the 2.5 m heat shield at 81% of its temperature limit under moderate flux, so the panel reads warning, while the engine is cool.",
     "scenario": "reentry-warning",
     "notes": "Atmospheric reentry \u2014 skin heating up to warning band (80% of max). Heat shield carrying significant flux. Engine is cool (throttled off for reentry)."
   },

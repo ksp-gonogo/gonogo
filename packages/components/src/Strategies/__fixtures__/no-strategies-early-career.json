@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "An early-career agency with 12,450 funds and 8.5 reputation, no active strategies, and most available ones locked behind reputation requirements.",
     "notes": "Early career: Admin Building unlocked but no strategies active. Low funds and reputation mean most strategies are locked behind rep requirements. Empty array (not null) distinguishes 'connected, KSP returned no active strategies' from 'still awaiting data'.",
     "scenario": "no-strategies-early-career"
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The game paused and the signal lost at once: the RCS button is unavailable and says Paused rather than No signal.",
     "scenario": "no-signal-paused",
     "notes": "Game paused and signal lost simultaneously. Both unavailability reasons active, widget should surface 'Paused' (takes priority over No signal). Widget configured for RCS (v.rcsValue).",
     "widgetConfig": {

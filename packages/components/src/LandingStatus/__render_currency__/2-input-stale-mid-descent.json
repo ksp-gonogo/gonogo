@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander mid-descent whose flight and surface readings have stopped arriving: altitude and speed still show with a staleness caption, and the ignition instant is withheld.",
     "scenario": "currency-stale-mid-descent",
     "synthetic": true,
     "notes": "SYNTHETIC. THE case: flight and surface stopped being current mid-descent (validAt far behind the pinned view UT). Altitude/velocity/dv are DESCRIPTIONS and still render, captioned; the ignition instant is an INSTRUCTION and is withheld."

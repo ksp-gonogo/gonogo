@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "No orbit has been received, so the widget shows its empty state.",
     "scenario": "no-data",
     "notes": "No orbit data at all: widget should show empty state. Both keys absent to exercise the undefined/non-finite guard."
   }

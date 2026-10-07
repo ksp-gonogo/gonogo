@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander sitting on the Mun after touchdown: situation Landed, no motion and no countdown.",
     "scenario": "descent-landed",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."

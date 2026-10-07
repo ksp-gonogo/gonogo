@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A strong 87% direct link to the Space Center after the link has dropped: the panel keeps every line but shows each as empty, with a single No signal warning badge.",
     "scenario": "strong-direct-ksc-stopped-arriving",
     "notes": "The same strong direct link as strong-direct-ksc, after it stops arriving. The panel used to replace itself with one sentence and take the percentage, the light-time and the route down with it. Ruled shape (#337, operator 2026-09-17): the panel STAYS and shows every line, each line renders its NULL state rather than a held or reckoned value, and one \"No signal\" warning badge carries the reason. Rendering this beside strong-direct-ksc is what shows that the healthy case is untouched."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landed craft with gear down, brakes applied and lights on, and the button bound to Gear reading on.",
     "scenario": "gear-down-landed",
     "notes": "Vessel landed: gear deployed (on), brakes applied, lights on for night ops. Widget configured for Gear group (v.gearValue).",
     "widgetConfig": {

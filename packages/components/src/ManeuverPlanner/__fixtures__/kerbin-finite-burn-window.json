@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "One queued 300 m/s prograde burn about 27 seconds ahead, with an ignition and cutoff window spread unevenly either side of the node as the craft lightens.",
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "notes": "ONE queued burn, described consistently by every section: the node list, its burn window, and a planner with real orbit elements. The window is asymmetric about the node because the craft is lighter for the second half. The node's post-burn patch chain is the SAME capture's own o.maneuverNodes[0].orbitPatches[0], copied across to the stream half rather than authored: the legacy half recorded it and the stream half had it empty, because nothing filled ManeuverNode.Patches on the mod side until the stock backend was wired to KSP's nextPatch."

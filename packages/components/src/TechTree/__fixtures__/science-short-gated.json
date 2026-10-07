@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A tree at the Space Center with 30 science against two researchable nodes that cost 45, so both Unlock controls are disabled and show the shortfall.",
     "scenario": "science-short-gated",
     "notes": "30 science against two 45-science researchable nodes. The mod's per-node gate refuses both, so their Unlock controls are dark with the shortfall; the price readout still shows each node's cost."
   },

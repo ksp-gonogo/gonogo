@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft at 2,000 m over Eve in a thick atmosphere (about 5 atm at sea level), with density near 6 kg/m3 and the pressure curve at the top of the log axis.",
     "scenario": "eve-thick-atmosphere",
     "notes": "Low altitude over Eve at 2000 m. Eve has ~5 atm at sea level (506 625 Pa), tests the extreme high-pressure end of the log scale and density formatting in kg/m\u00b3 (density ~6 kg/m\u00b3). Threshold line sits near the top."
   },

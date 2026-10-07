@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft at about 2.5 km over Kerbin falling at 90 m/s with a parachute armed but not yet open, captioned that the touchdown estimate leaves the chute out and the real landing will be softer.",
     "scenario": "atmospheric-chute-armed",
     "synthetic": true,
     "notes": "SYNTHETIC. Kerbin final (~2.5 km, 90 m/s down) with a parachute ARMED but not yet deployed: the terminal-velocity model EXCLUDES the chute (its drag isn't in the aggregate yet), so the read is captioned accordingly: the real touchdown will be far softer once it pops."

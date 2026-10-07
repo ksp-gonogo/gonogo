@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Funds of 2,340 against two craft costing 38,000 and 95,000: the open pad reads 0 ready and every craft row is blocked.",
     "scenario": "pre-launch-insufficient-funds",
     "notes": "Every craft costs more than the balance, so the open pad reads '0/N ready' and every craft row is blocked. The funds readout stays visible beside the spend control. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },

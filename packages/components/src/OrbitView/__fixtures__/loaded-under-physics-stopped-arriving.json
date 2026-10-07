@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft loaded under physics after the link has dropped, drawn held at its last place because its orbit elements cannot carry it forward.",
     "scenario": "loaded-under-physics-stopped-arriving",
     "notes": "Current Orbit's loaded-under-physics, then the link drops. The elements are osculating, so no model carries the held reading: the craft is drawn held, at its last place."
   },

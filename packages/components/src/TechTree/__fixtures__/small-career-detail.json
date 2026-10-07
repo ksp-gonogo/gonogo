@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A five-node tree at the Space Center with three nodes unlocked, 4,854 science and a multi-parent node (Stability), each node carrying its description.",
     "notes": "Small hand-authored tree (not a live capture) used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx) and stream test (stream.test.tsx). career.status.tech.nodes (CareerViewProvider.BuildTechNodes) carries a description as of contract 14.1, read off the tech tree's own config, so the node detail's description line is drawn here from the real wire shape and not only from the legacy capture; the two halves of this file carry the same strings, since a node's flavour line does not depend on which producer sent it. Parts are still absent from the wire and this fixture still omits them, which is why the rich per-node part detail early-career-63-nodes.json exercises stays legacy-only (index.test.tsx). Includes a multi-parent node (stability) to exercise the same tech-tree edge shape the C# synthetic wire fixture covers.",
     "scenario": "small-career-detail"
   },

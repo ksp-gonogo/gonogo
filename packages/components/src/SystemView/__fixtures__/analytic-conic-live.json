@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A commsat in a 250 km circular Kerbin orbit, drawn as a full conic ring because the position is predicted by the stock analytic solver.",
     "capturedAt": "2026-08-23",
     "vessel": "commsat (250 km LKO, Kerbin)",
     "body": "Kerbin",

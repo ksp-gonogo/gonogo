@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A retrograde equatorial Kerbin orbit at 88 to 92 km with inclination 178 degrees.",
     "scenario": "retrograde-orbit",
     "notes": "Retrograde equatorial Kerbin orbit. Inclination = 178°. Near-circular at 90 km. Exercises the inclination label at near-180°, confirms the display doesn't wrap or overflow."
   },

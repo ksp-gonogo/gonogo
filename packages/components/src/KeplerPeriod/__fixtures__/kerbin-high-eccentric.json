@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A highly eccentric Kerbin orbit with a semi-major axis of 5,050 km and a period of about 5.5 hours, the marker far out on the period curve.",
     "scenario": "kerbin-high-eccentric",
     "notes": "Highly eccentric Kerbin orbit (Ap \u2248 10 Mm, Pe \u2248 100 km). SMA \u2248 5 Mm, period \u2248 5.5 hours. Dot sits in the upper-right portion of the curve. Tests that SMA, not altitude, is the x-axis. The vessel.orbit emit's sma must actually be 5050000, o.sma/o.period are unread legacy mirrors; it was left at the same 700000 boilerplate as every other Navball/EscapeProfile fixture, which put the dot in the same low-sma spot as kerbin-lko regardless of scenario."
   },

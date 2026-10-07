@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "An orbit of Jool with a semi-major axis of 26,000 km, shown in megameters with a nearly flat sparkline.",
     "scenario": "jool-system",
     "notes": "Orbit around Jool (KSP's gas giant). Very large SMA ~26 Mm from body centre. Exercises formatDistance at megameter scale."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in an 85 km circular equatorial orbit around Kerbin after the link has dropped, so every reading on the map is held rather than current.",
     "scenario": "kerbin-lko-equator-stopped-arriving",
     "notes": "Circular 85 km equatorial parking orbit, prograde. The ground track is a flat line along the equator, which is what the projection should draw for inclination 0. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

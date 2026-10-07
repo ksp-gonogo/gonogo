@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Mun Hopper I descending through the atmosphere at about 28 km, then the link drops: the altitude shows the model's estimate with its modelled mark while funds stay marked as held.",
     "scenario": "in-flight-ascent-modelled",
     "notes": "A craft descending through an atmosphere with a model carrying its altitude (the same stream as kerbin-descent-modelled), then the link drops. The Altitude readout draws the model's figure with the kit's modelled mark, where the funds readout beside it keeps the held dot. `_stream` drives the probe render harness and the snapshot test."
   },

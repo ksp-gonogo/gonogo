@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft called Munar Relay on a 3,000 km Kerbin orbit while the game reports a rotating Kerbin-Mun frame, so the elements are read around Kerbin and the panel names that frame.",
     "scenario": "rotating-control-frame",
     "notes": "A RotatingPulsating Kerbin-Mun Control Frame on system.frame, which no stock install reports. It has a pair rather than a centre, so Current Orbit reads its elements in a frame centred on the vessel's own reference body instead, and names that frame on the panel."
   },

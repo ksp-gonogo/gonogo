@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The game paused in flight at 1x, with the pause button shown in its active state.",
     "scenario": "paused-in-flight",
     "notes": "Game is paused during flight (t.isPaused=true). Warp is at 1\u00d7. Pause button should render with active/play-icon state. The pause toggle is only visible in Flight scene."
   },

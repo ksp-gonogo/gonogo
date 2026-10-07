@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on the dark side with the battery bank at 72 of 4,000 EC while a Convert-O-Tron 250 and a drill draw 18 EC/s against 0.75 EC/s from an RTG, and the net rate shows a warning.",
     "scenario": "near-zero-battery-alarm",
     "notes": "Battery critically low: less than 2% remaining. Heavy consumers running (ISRU, life support). No solar (dark side). NET cell must show warning tone prominently. Alarm condition: vessel will lose control soon."
   },

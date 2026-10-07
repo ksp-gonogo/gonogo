@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Near Kerbol, with an OX-STAT solar panel at 85% of its 1200 K limit and no engine stress or heat shield.",
     "scenario": "solar-heating",
     "notes": "Near Kerbol: solar radiation heating structural parts to warm band (85%). No engine thermal stress (station keeping only). No heat shield."
   },

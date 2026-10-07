@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft re-entering over Kerbin at 28 km, descending at 210 m/s on a 6 degree inclined track, with impact 87 s downrange to the east.",
     "scenario": "kerbin-reentry",
     "notes": "Re-entry through 28 km, descending at 210 m/s on an inclination-6 track whose periapsis is 261 km below the surface. Impact is 87 s downrange to the east."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landing site on flat, smooth plains with almost no slope, rated safe.",
     "scenario": "flat-plains",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Flat plains, near-zero slope, smooth => SAFE"

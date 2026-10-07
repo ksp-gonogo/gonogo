@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft at about 35 km over Kerbin falling at 900 m/s in thin air, still speeding up because drag is below its weight, with the projected path dashed at Mach 3.",
     "scenario": "atmospheric-accelerating",
     "synthetic": true,
     "notes": "SYNTHETIC. High Kerbin reentry (~35 km, 900 m/s down) in thin air: current speed well BELOW terminal at this density, so drag < weight and the vessel is still ACCELERATING. Terminal at ground (dense air) is low, so the projected touchdown is soft. The showcase's SUPERSONIC frame: Mach 3.093 (920 m/s against a 220.15 K speed of sound) dashes the projected trace above the settle point, which is how the plot admits that a constant-drag-coefficient estimate is at its worst through the transonic rise. Drag is 0.432x weight here, so the chevron over the vessel mark is at its smallest; decelerating.json is the same mark at 3.628x for contrast."

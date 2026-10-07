@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The KSC Launch Pad with Mun Hopper I ready to launch and a two-kerbal roster, Jebediah and Bill, both free to fly, so the crew tally gives the roster size and nothing else.",
     "scenario": "crew-all-available",
     "notes": "SYNTHETIC. The same pad and craft as crew-mixed-standings, with a roster where every kerbal is free to fly. The scene that has to be distinguishable from an unreadable roster: the tally reads the roster's size and says nothing else, because a term that is zero is not printed."
   },

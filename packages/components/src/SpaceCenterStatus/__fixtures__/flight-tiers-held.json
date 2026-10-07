@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in flight, away from the space centre, where the facility tiers last read an hour ago are held and the grid says when they were read.",
     "notes": "In flight, away from the space centre. KSP only reports a facility's tier count from the live building objects it puts in the scene at the space centre, so career.facilities stopped arriving an hour of game time ago. The grid keeps the tiers it read and says when it read them.",
     "scenario": "flight-tiers-held"
   },

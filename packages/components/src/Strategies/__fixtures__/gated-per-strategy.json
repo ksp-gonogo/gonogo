@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A running strategy whose Deactivate is dark until it has been active 30 days, and an open strategy refused because another in its department is running, each with its own reason.",
     "scenario": "gated-per-strategy",
     "notes": "The running strategy cannot end before its minimum commitment, and the open one is refused by the game's own check. Each control is dark with its own strategy's reason; nothing else on the card changes."
   },

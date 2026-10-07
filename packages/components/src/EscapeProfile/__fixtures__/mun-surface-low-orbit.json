@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in low orbit 10 km above the Mun at 552 m/s, well under the roughly 790 m/s escape speed, over an airless body.",
     "scenario": "mun-surface-low-orbit",
     "notes": "Low Mun orbit at 10 km. Mun escape velocity at this altitude ~788 m/s. Orbital speed ~552 m/s, well below escape. Airless body so no atmosphere ceiling; reference curve spans a few body radii. v.altitude/v.orbitalVelocity are vessel.flight.altitudeAsl/orbitalSpeed, read straight off the vessel.flight emit."
   },

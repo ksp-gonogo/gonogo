@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander mid-descent with no communications link at all, so the headline says there is no link instead of giving a burn time.",
     "scenario": "currency-no-link",
     "synthetic": true,
     "notes": "SYNTHETIC. No link at all: comms.delay reports oneWaySeconds null, so the hero takes the link-first refusal arm rather than the currency wording."

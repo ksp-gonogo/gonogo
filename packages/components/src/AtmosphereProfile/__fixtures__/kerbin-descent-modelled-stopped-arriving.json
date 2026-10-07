@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft re-entering at about 29 km over Kerbin after the link has dropped: the live chip stays up, and density, air temperature and skin temperature all wear the held mark.",
     "scenario": "kerbin-descent-modelled-stopped-arriving",
     "notes": "kerbin-descent-modelled, then the link drops. The air model still carries the altitude, so the live chip stays up, and every figure on it (density, air and skin temperature) is the last observation and wears the held mark. The temperatures used to be unwrapped off the payload and read as current beside a marked density."
   },

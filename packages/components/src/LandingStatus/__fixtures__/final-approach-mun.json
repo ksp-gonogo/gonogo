@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander about 180 m above the Mun descending at 8 m/s on a live link, with the ignition countdown urgent and the craft low over the landing site.",
     "scenario": "final-approach-mun",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Very low final approach (~180 m AGL, 8 m/s down) on a LIVE link: the suicide-burn ignition countdown is urgent (role=alert), the vessel sits low over the site."

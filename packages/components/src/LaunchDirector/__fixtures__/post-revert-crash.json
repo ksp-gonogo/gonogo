@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Doomed Probe reverted to launch after a crash, so the crash chip is not shown and Recover stays enabled.",
     "scenario": "post-revert-crash",
     "notes": "The same craft as in-flight-crash, after the operator reverted the crash away. crash.hasRecent is session-sticky and still true, and the reverted vessel carries the crashed vessel's name, so on the name alone this is indistinguishable from a crash in progress. The revert rewound universal time to 113270 and the snapshot was captured at 125371, which dates it to a timeline that no longer happened: no chip, and Recover stays enabled. Put beside in-flight-crash the pair shows the whole gate, since that scene carries no crash.lastCrash at all and reaches the same chip through the fail-safe branch. Reported by the user on 2026-06-12, when the chip blocked recovery forever; index.test.tsx asserts it at the same two instants."
   },

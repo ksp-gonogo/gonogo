@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft under heavy electrical load with the battery bank about half drained and the net rate negative, then the link drops so every reading is held.",
     "scenario": "battery-draining-high-load-stopped-arriving",
     "notes": "High load scenario: engines firing, drills running, ISRU processing. Net negative, battery draining fast. NET cell should show warning tone. Multiple consumers. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

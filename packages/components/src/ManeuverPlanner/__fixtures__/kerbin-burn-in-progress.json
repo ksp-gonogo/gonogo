@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 300 m/s prograde burn 20 seconds into ignition with the engines running, so the gap to the planned orbit is neither the intended change nor a shortfall yet.",
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "notes": "The SAME captured burn as kerbin-finite-burn-window, wound forward to 20 s after ignition so the conformance regime is IN PROGRESS. Neither framing is true while the engines are running: the gap is not yet the intended change and not yet deviance, which is why mid-burn is its own state rather than a hole in the design. Only the clock moves; the burn and its patch chain are the capture's own."

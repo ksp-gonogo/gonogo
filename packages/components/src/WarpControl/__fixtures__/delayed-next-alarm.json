@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "On-rails warp at 100x on a craft 12 light-minutes from its command centre, with a Duna periapsis alarm 1 hour 30 minutes ahead shown under live controls.",
     "scenario": "delayed-next-alarm",
     "notes": "On-rails warp at 100x on a craft 12 light-minutes from its command centre, with a time alarm 1h 30min ahead on the view clock. The controls are live and the next alarm shows under them. A second alarm further out does not show."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "No engine data has arrived, so the dial gives way to a \"No engine data\" message.",
     "scenario": "engine-off-empty",
     "notes": "No engine data available (NaN / undefined TWR). Widget should show the EmptyState panel, 'No engine data'."
   },

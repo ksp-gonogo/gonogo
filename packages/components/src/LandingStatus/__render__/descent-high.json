@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander high over the Mun with the aim point far downrange, over steep rough ground rated divert, on a staged comms delay.",
     "scenario": "descent-high",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). High descent: reticle far downrange, steep+rough site -> DIVERT; STAGED delay."

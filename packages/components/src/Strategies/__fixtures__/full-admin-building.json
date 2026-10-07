@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A large Administration Building with 91 strategies across seven departments, three running, many blocked by the cap, reputation or a locked department, and long descriptions cut with an expand control.",
     "scenario": "full-admin-building",
     "synthetic": true,
     "notes": "SYNTHETIC, written by scripts/gen-eligibility-fixtures.ts: 91 rows on career.status.strategies.all across 7 departments, against the two to four every other Strategies fixture carries. Every name is invented. 3 rows are running, 7 are refused by the concurrent-strategy cap, 10 by another arm (a reputation shortfall, or a department that is still locked), and the rest are eligible. Several blurbs run past a thousand characters, so this is the fixture where a description is cut and there is something to expand. Not a live capture."

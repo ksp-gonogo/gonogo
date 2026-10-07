@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on the launch pad at about 80 m over Kerbin, in dense air near 1.2 kg/m3 with the pressure marker at the top of the chart.",
     "scenario": "kerbin-sea-level",
     "notes": "KSC launch pad, ~80 m ASL. Dense air, near sea-level pressure. Live chip should show density ~1.2 kg/m\u00b3 and temps. Threshold line sits at the top of the log chart (highest pressure)."
   },

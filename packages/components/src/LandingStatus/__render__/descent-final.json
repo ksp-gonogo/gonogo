@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander about to touch down on the Mun, 39 m up and descending at 1.4 m/s with gear down, over smooth flat ground rated safe.",
     "scenario": "descent-final",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Final: near touchdown, smooth flat site -> SAFE, gear down."

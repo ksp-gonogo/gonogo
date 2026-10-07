@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A mid-career space centre with Mun Shot III on the pad and facilities at mixed tiers, after the link drops so every reading is marked as held.",
     "notes": "Mid-career save. Mix of T1, T2, and T3 buildings. Pad occupied with a vessel named 'Mun Shot III'. Reasonable funds, some upgrades affordable, some not. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
     "scenario": "mid-career-mixed-stopped-arriving"
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Distance to a docking target at 100,000x warp, with samples 10,000 seconds apart and each joining segment drawn as an unmeasured stretch.",
     "scenario": "warp-breaks",
     "synthetic": true,
     "notes": "SYNTHETIC. The same distance at 100,000x: the mod samples at most ten times a real second, so the samples are 10,000 UT apart (five 2000 UT ticks) and nothing between two of them was observed. A distance carried by its last velocity is honest for about 30 seconds, so each segment joining two samples is a line nothing measured."

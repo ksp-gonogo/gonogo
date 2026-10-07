@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Four launch sites: the KSC pad on Kerbin, a pad on the Mun that names its body, and two pads whose body is unknown or missing and show none.",
     "scenario": "pre-launch-off-kerbin",
     "notes": "Four pads under a Kopernicus-style install: the stock KSC pad on the home world, a pad on the Mun, a pad whose bodyIndex names no body in the catalogue, and a pad that reported no body at all. The site carries `bodyIndex`, never a body name, and the name comes from `system.bodies`. Only the Mun pad names its body: the home world is the unmarked case, and an index that resolves to nothing shows no body rather than a guess. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "On-rails warp at 1000x in orbit above Kerbin, with the rate reading 1.0k× and that button highlighted.",
     "scenario": "rails-warp-1000x",
     "notes": "On-rails warp at 1000\u00d7 (index 5 = '1k\u00d7' on the high ladder) in vacuum orbit above Kerbin. Mode is 'High'. The 1k\u00d7 button should be highlighted in the full ladder. Rate label formats as '1.0k\u00d7'."
   },

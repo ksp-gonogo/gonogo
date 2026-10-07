@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A near-circular 80 by 85 km equatorial Kerbin orbit after the link has dropped, so every figure and the diagram are shown as held readings.",
     "scenario": "circular-lko-stopped-arriving",
     "notes": "Near-circular low Kerbin orbit. Ap and Pe close together (80–85 km), low eccentricity, equatorial. isOrbiting=true (PeA > 70 km atmosphere). Diagram renders. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

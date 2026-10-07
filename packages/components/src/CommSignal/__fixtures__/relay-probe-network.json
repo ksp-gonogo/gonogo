@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft linked at 63% through one relay, Relay Sat 1, to home, with a 4.7 second signal delay and a route showing the relay in between.",
     "scenario": "relay-probe-network",
     "notes": "Signal routed via a relay network. Strength is good (3 bars) but delay is significant because signal hops through multiple relays in HKO. comms.path is two hops (vessel -> Relay Sat 1 -> home), the 'You -> Relay Sat 1 -> KSC' route case."
   },

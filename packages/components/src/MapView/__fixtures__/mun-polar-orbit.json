@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in a 35 km circular polar orbit around the Mun, northbound at 65 degrees north, its ground track crossing both poles.",
     "scenario": "mun-polar-orbit",
     "notes": "Circular 35 km polar orbit around the Mun, crossing 65 degrees north northbound. The ground track crosses both poles, which is what exercises the equirectangular projection at high latitudes."
   },

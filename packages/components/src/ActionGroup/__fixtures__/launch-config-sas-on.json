@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in launch configuration with SAS and RCS on and gear retracted, and the button showing SAS on.",
     "scenario": "launch-config-sas-on",
     "notes": "Launch configuration: SAS enabled (StabilityAssist), gear retracted, RCS on for attitude, brakes off, comm live. Widget configured for SAS group."
   },

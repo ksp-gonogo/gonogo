@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft under heavy electrical load from a Convert-O-Tron 125 drawing 6 EC/s, with the battery bank about half drained and the net rate showing a warning.",
     "scenario": "battery-draining-high-load",
     "notes": "High load scenario: engines firing, drills running, ISRU processing. Net negative, battery draining fast. NET cell should show warning tone. Multiple consumers."
   },

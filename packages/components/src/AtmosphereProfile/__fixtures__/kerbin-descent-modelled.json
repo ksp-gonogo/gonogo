@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft descending through Kerbin's atmosphere at 28 km, with four recent flight samples behind it and the newest seven seconds old, so the readout gives density, air temperature and skin temperature from the latest sample.",
     "scenario": "kerbin-descent-modelled",
     "notes": "Kerbin reentry descent at 28 km with four flight samples behind it, read seven seconds after the last. The live chip states density, air and skin temperature off the newest sample; the air model carries only the altitude."
   },

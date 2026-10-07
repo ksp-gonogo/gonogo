@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on the pad before launch with SAS, RCS, gear, brakes and lights all off, and the button showing SAS off.",
     "scenario": "cold-pad-all-off",
     "notes": "Vehicle on the pad before launch. SAS off, RCS off, gear up (retracted), brakes off, lights off. Default group shown is SAS (v.sasValue)."
   },

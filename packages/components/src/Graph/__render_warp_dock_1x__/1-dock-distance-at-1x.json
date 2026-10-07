@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Distance to a docking target on a phasing orbit at 1x warp, drawn as one continuous line.",
     "scenario": "warp-breaks",
     "synthetic": true,
     "notes": "SYNTHETIC. Distance to a docking target on a phasing orbit, sampled every UT second at 1x (observationQuantumUt 1, the sampleIntervalUt). Every gap is one second, which the dead reckoning carries, so the trace is one line."

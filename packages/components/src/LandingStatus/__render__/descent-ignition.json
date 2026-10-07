@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander at suicide-burn ignition over the Mun, committed to the burn but still fast enough that the site reads divert, on an autonomous comms delay.",
     "scenario": "descent-ignition",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Suicide-burn ignition: committed, still fast so the site reads DIVERT; AUTONOMOUS delay."

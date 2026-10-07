@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A science station with a Mobile Processing Lab MPL-LG-2 operational but idle (two scientists aboard, no data loaded) and a single unused Mystery Goo canister.",
     "capturedAt": "2026-07-08",
     "vessel": "science station",
     "notes": "Operational Mobile Processing Lab MPL-LG-2, idle (no data loaded, 2 crew aboard, scienceRate 0), matches local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json's first science.lab frame, folded into reference-wire-fixture-lab.json."

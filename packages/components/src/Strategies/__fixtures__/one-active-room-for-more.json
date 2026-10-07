@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A level-2 Administration Facility with Aggressive Negotiations running and one more slot open: Fundraising Campaign can be activated, and Patriotism Drive is locked behind a reputation requirement.",
     "notes": "T2 admin building: one strategy active, one more slot available. The blocked strategy appears under Available with 'Deactivate the running strategy first' hint. The locked strategy shows its rep requirement. Good funds.",
     "scenario": "one-active-room-for-more"
   },

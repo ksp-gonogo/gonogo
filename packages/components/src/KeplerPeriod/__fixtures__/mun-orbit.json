@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 215 km semi-major axis orbit of the Mun with a period of about 41 minutes, plotted on the Mun's own period curve.",
     "scenario": "mun-orbit",
     "notes": "Low Mun orbit at ~15 km. Mun radius 200 km, SMA \u2248 215 km, real period \u2248 41 min at Mun's actual GM (6.5138398e10; the 54 min originally claimed here assumed Kerbin-scale gravity). Tests body switching: the Kepler curve should re-render for Mun's GM. The vessel.orbit emit's sma/mu must actually be Mun's (215000 / 6.5138398e10), o.sma/o.period are unread legacy mirrors; the emit was left at the Kerbin 700000/3531600000000 boilerplate shared with every other Navball/EscapeProfile fixture, which plotted the dot off Mun's own curve entirely. system.bodies.radius corrected to Mun's actual 200 km too, it had inherited Kerbin's 600 km."
   },

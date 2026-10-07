@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in low Kerbin orbit with a strong 87% direct link to the Space Center, four bars, full control and almost no delay.",
     "scenario": "strong-direct-ksc",
     "notes": "Direct 4-bar link to KSC from LKO. Full control, near-zero delay typical of a crewed vessel in low orbit."
   },

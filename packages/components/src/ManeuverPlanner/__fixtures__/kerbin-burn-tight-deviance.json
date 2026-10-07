@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 300 m/s prograde burn from a 100 km circular Kerbin orbit that finished 4 m/s short, so the flown and planned orbits differ by about 11 km at apoapsis and nowhere else.",
     "capturedAt": "2026-09-15",
     "body": "Kerbin",
     "notes": "DERIVED, not captured, and that is the point: the flown orbit is the planned burn re-solved with the delta-v actually delivered, so the gap between the two conics is exactly what a real shortfall produces. Every captured conformance fixture carries a flown orbit unrelated to its delivery figure, which makes their corridor an artefact of the capture rather than a measurement, and reading a scale off one of those is how 'the gap is large' got claimed. A 300 m/s prograde burn at periapsis of a 100 km circular Kerbin orbit (v=2246.14 m/s) raises apoapsis to 657943 m; the same burn 4 m/s short (296, 99%) reaches 646959 m. So the corridor is a crescent: zero width at periapsis, which both orbits still share exactly, widening to 10985 m at apoapsis, which is 0.87% of the drawn extent. That is the tight case the framing question is actually about."

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft 12 light-minutes from its command centre with no alarm set, after the link drops so the one-way delay beside Set alarm to warp is marked as held.",
     "scenario": "delayed-no-alarm-stopped-arriving",
     "notes": "The same 12 light-minute craft as delayed-no-alarm, after the stream stops arriving. The alarm gate still holds on the last delay, and the one-way delay beside \"Set alarm to warp\" carries the held mark rather than reading as current."
   },

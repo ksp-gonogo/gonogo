@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A map opened before any telemetry has arrived, with no body and no position.",
     "scenario": "no-vessel-data",
     "notes": "Empty / loading state: no body, no position telemetry yet."
   }

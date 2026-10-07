@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A lander mid-descent with every input current, so the suicide-burn instant is stated and no staleness caption appears.",
     "scenario": "currency-live",
     "synthetic": true,
     "notes": "SYNTHETIC. The CONTROL: mid-descent with every solve input current, so the suicide-burn instant is asserted and no currency caption appears."

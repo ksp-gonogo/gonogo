@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "An LV-T45 Swivel at 2180 K of its 2273 K limit with the engine overheat flag raised, so the panel reads critical.",
     "scenario": "engine-overheat",
     "notes": "Engine thermal stress: anyEnginesOverheating flag is true. Forces CRITICAL band via the flag path regardless of ratio. Hottest part is the engine itself."
   },

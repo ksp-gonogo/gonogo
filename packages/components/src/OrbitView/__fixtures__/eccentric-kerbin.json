@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in a highly eccentric Kerbin orbit (eccentricity 0.85) with apoapsis out past the Mun near 12 Mm and periapsis at 80 km, the ellipse turned 45 degrees.",
     "scenario": "eccentric-kerbin",
     "notes": "Highly eccentric Kerbin orbit (e=0.85). Apoapsis out beyond Mun (~12 Mm), periapsis at 80 km altitude. argPe=45\u00b0 rotates the ellipse so apsis markers exercise the radialOffset label math at a diagonal."
   },

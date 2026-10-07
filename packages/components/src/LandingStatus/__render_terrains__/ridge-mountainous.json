@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A landing site on a sharp mountain ridge, rated divert because of both slope and roughness.",
     "scenario": "ridge-mountainous",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Sharp ridge / mountainous => DIVERT (slope + roughness)"

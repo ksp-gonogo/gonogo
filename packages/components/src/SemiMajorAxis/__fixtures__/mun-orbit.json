@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A low orbit of the Mun with a semi-major axis of 215 km, the reference body labelled Mun.",
     "scenario": "mun-orbit",
     "notes": "Low Mun orbit. Mun radius 200 km + ~15 km altitude = 215 km SMA. Tests the reference body label showing 'Mun'."
   },

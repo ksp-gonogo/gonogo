@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A Kerbin ascent plotted as altitude, orbital speed and vertical speed against time, with a shaded band around the altitude trace.",
     "capturedAt": "2026-05-29",
     "notes": "Reuses the recorded Kerbin ascent (altitude/velocity) as multi-series time-series data for the Graph widget. The capture recorded horizontal and vertical speed in the orbital frame; vessel.flight.orbitalSpeed is their magnitude, sample by sample. synthetic.altBandLow / synthetic.altBandHigh are an artificial +/-(10%+200m) envelope around v.altitude, added purely to exercise the band render path (the real capture has no natural envelope). They share v.altitude timestamps exactly so the index-paired band builder aligns."
   },

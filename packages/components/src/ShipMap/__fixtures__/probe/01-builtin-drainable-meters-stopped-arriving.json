@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A Mk1 pod, an FL-T400 tank half full of liquid fuel and oxidizer, and a Reliant engine, with fuel bars on the tank only, when the link drops and the levels are held.",
     "scenario": "builtin-drainable-meters-stopped-arriving",
     "notes": "Plain stock stack, no planted Uplink Domain present. Exercises the built-in `core` ship-map.part-meters contribution alone (packages/components/src/ShipMap/partMetersContribution.ts): LiquidFuel + Oxidizer bars on the fuel tank, no bars anywhere else. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

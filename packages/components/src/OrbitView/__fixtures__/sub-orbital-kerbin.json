@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A sub-orbital arc over Kerbin with apoapsis at 440 km and periapsis 400 m below the surface, so the part of the path under the planet is hidden behind its disc.",
     "scenario": "sub-orbital-kerbin",
     "notes": "Sub-orbital arc over Kerbin. Periapsis is below the surface (PeR < Kerbin radius 600000 m), so the trajectory dips into the body. The body disc should occlude the part of the orbit below the surface. Widget should show status badge 'Sub-orbital' or orange orbit stroke (isOrbiting=false, PeA<0)."
   },

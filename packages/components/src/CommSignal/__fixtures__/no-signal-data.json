@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A page opened before any comms data has arrived, so the widget shows its empty placeholder.",
     "scenario": "no-signal-data",
     "notes": "No comm.* keys published yet, widget should fall through to the EmptyState placeholder. All comm keys absent (only underscore-prefixed metadata)."
   }

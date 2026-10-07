@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "An Administration Building at its limit of two active strategies, with every other strategy listed as available but blocked until one is deactivated.",
     "notes": "T2 admin building at its slot cap: exactly 2 active strategies. All inactive strategies are soft-blocked (cap is full) and appear under Available with 'Deactivate the running strategy first' hint. No Locked section because reputation is high enough to afford everything.",
     "scenario": "at-admin-cap"
   },

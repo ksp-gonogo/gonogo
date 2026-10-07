@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A polar Kerbin orbit at 98 to 102 km with inclination 90 degrees.",
     "scenario": "polar-orbit",
     "notes": "Polar Kerbin orbit. Inclination = 90°. Near-circular at 100 km altitude. isOrbiting=true. Exercises inclination display at an extreme value."
   },

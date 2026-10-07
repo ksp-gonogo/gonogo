@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in orbit 15 km above the airless Mun, so the widget shows its no-atmosphere notice and no live readout.",
     "scenario": "mun-vacuum",
     "notes": "Orbiting the Mun at 15 000 m. No atmosphere, should show the airless notice overlay and suppress the live chip (density=0). Tests the showAirlessNotice path and chip suppression gate."
   },

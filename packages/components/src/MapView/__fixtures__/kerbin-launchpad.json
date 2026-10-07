@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft on the KSC launch pad before liftoff, with the degenerate orbit of a landed craft: apoapsis at the pad's 80 m and periapsis 598 km inside the planet.",
     "scenario": "kerbin-launchpad",
     "notes": "Pre-launch on the KSC pad. Co-rotating with Kerbin, so the osculating orbit is the degenerate one a landed craft has: apoapsis at the pad's own 80 m and periapsis 598 km inside the planet.",
     "patchesAbsent": "The only MapView fixture with no patch chain, deliberately: a craft on the pad has no forward ground track, and the empty prediction layer here is the widget answering correctly rather than the fixture starving it. Its sibling fixtures carry a chain so the prediction path is exercised.",

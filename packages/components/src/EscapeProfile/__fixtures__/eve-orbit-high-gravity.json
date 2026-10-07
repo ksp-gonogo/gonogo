@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft in orbit 100 km above Eve at 2500 m/s, far below Eve's escape speed of about 4500 m/s at that height.",
     "scenario": "eve-orbit-high-gravity",
     "notes": "Eve orbit at 100 km (just above atmosphere ceiling at 90 km). Eve escape velocity at this altitude ~4526 m/s. Orbital speed ~2500 m/s, well below. High-gravity body with thick atmosphere: large scale and wide reference curve. v.altitude/v.orbitalVelocity are vessel.flight.altitudeAsl/orbitalSpeed, read straight off the vessel.flight emit."
   },

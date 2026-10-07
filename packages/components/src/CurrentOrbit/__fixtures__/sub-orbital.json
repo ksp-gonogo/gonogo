@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A sub-orbital Kerbin trajectory with periapsis 5 km below the surface and apoapsis at 72 km, the craft falling at 33.5 km up, drawn in the non-orbiting style.",
     "scenario": "sub-orbital",
     "notes": "Sub-orbital trajectory above Kerbin. PeA is negative (below surface), isOrbiting=false. hasOrbit guard: sma, eccentricity, ApR, PeR all present so hasOrbit=true and diagram still renders, but isOrbiting=false changes the diagram's visual style. The phase puts the craft 33.5 km up and falling, a quarter turn short of the periapsis it will never reach: sampled AT that periapsis it would be 5.3 km underground, which is not a position the game can report."
   },

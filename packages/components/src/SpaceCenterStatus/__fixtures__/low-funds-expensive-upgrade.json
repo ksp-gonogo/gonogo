@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A young career with 22,000 funds, where the cheap Runway and Administration upgrades show as affordable and the Research and Development and Spaceplane Hangar upgrades show as out of reach.",
     "notes": "Player has just enough funds for some cheap upgrades but not the major ones. Runway and admin upgrades are affordable; R&D and SPH upgrades are not. Tests cost colour coding: affordable = accent-fg, unaffordable = nogo-fg.",
     "scenario": "low-funds-expensive-upgrade"
   },

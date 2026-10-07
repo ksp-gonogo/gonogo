@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A Kerbosynchronous orbit of Kerbin with a semi-major axis of about 2,869 km, with a sparkline of the last five minutes.",
     "scenario": "ksync-kerbin",
     "notes": "Kerbosynchronous orbit around Kerbin. SMA ~2868.75 km from body centre (well-known KSP value). Period matches Kerbin's rotation."
   },

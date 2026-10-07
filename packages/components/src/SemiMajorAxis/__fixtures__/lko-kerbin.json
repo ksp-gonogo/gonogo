@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A low Kerbin orbit with a semi-major axis of 680 km and a sparkline showing it creeping up about 600 m over the last five minutes.",
     "scenario": "lko-kerbin",
     "notes": "Low Kerbin Orbit. Kerbin radius 600 km + ~80 km altitude = 680 km SMA. Sparkline shows the last 5 minutes of station-keeping nudging the SMA up by ~600 m."
   },

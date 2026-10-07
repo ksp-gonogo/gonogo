@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A sandbox game with no funds, every facility at its top tier and no upgrade buttons.",
     "notes": "Sandbox mode. No career funds. Facility upgrades have upgradeFunds 0, no upgrade buttons shown. partsAvailable may be 0 (the fork emits zeroed entries for sandbox). scene is SpaceCenter.",
     "scenario": "sandbox-no-career"
   },

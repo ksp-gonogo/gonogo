@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A 300 m/s prograde burn whose window has passed with only 4 m/s left undelivered, so the gap between the planned and current orbit reads as flying error.",
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "notes": "The SAME captured burn, wound forward past cutoff so the gap between the planned conic and the current orbit IS deviance. T/P here is 45/725.7, so the impulsive-plan residual is well under the attributable limit and the widget may read the gap as flying rather than modelling. A second vessel.maneuver frame drops the node's remaining delta-v from 300 to 4 m/s, so the burn was actually flown: past cutoff WITH delivery behind it is what makes the gap deviance rather than a missed window."
