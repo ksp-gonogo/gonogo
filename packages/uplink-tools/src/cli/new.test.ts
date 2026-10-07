@@ -160,7 +160,7 @@ describe("uplink-tools new", () => {
       bundle: "uplink-tools bundle",
       bake: "uplink-tools bake --bundle dist/widgets/widgets.client.js",
       release: "uplink-tools release",
-      page: "uplink-tools docs --no-assets",
+      page: "uplink-tools page",
     });
     expect(scripts.build).toBeUndefined();
   });

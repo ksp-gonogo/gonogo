@@ -297,6 +297,7 @@ describe("the top-level help", () => {
       "bake",
       "package",
       "release",
+      "page",
       "render",
       "docs",
     ]) {
@@ -325,6 +326,7 @@ describe("every command answers --help", () => {
     "bake",
     "package",
     "release",
+    "page",
     "render",
     "docs",
   ]) {
@@ -349,6 +351,7 @@ describe("every command refuses a flag it does not read", () => {
     ["codegen", ["codegen", "--watch"]],
     ["package", ["package", "--check"]],
     ["release", ["release", "--watch"]],
+    ["page", ["page", "--watch"]],
     ["render", ["render", "--check"]],
     ["docs", ["docs", "--scene", "x"]],
   ];

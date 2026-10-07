@@ -33,6 +33,7 @@ import { CODEGEN_USAGE, codegen } from "./codegen";
 import { parseFlags, wantsHelp } from "./flags";
 import { NEW_USAGE, newUplink } from "./new";
 import { PACKAGE_USAGE, packageCommand } from "./package";
+import { PAGE_USAGE, page } from "./page";
 import { RELEASE_USAGE, release } from "./release";
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
@@ -48,6 +49,8 @@ const USAGE = `uplink-tools <command>
   package  lay the built plugin out as GameData and zip it
   release  bundle, bake, compile the plugin and package, in the order that
            gives a plugin the app will load a client for
+  page     write this Uplink's generated page from its registrations, with
+           no browser
   render   render this Uplink's widgets to images
   docs     this Uplink's README, its assets and the SAME gonogo-uplink.json
            that bundle writes
@@ -398,6 +401,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       bake: [BAKE_USAGE, bake],
       codegen: [CODEGEN_USAGE, codegen],
       package: [PACKAGE_USAGE, packageCommand],
+      page: [PAGE_USAGE, page],
       release: [RELEASE_USAGE, (rest) => release(rest, bundle)],
     };
     if (Object.hasOwn(plain, verb)) {

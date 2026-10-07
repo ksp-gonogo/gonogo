@@ -32,6 +32,7 @@ Once it is in an Uplink's devDependencies the same commands answer to
 | `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
 | `package` | lay the built plugin out as `GameData/<name>/` and zip it |
 | `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order |
+| `page` | write `README.md`, `gonogo-uplink.json` and `docs/widgets.json` from what the client registers, with no browser |
 | `render` | render every scene to `renders/` |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
 

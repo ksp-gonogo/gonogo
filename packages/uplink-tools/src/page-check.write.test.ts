@@ -18,6 +18,7 @@ import {
   PAGE_UPDATE_ENV,
   writeUplinkPage,
 } from "./page-check";
+import { PAGE_WRITE_ENV } from "./page-write-env";
 
 /**
  * The browserless writer, which is the half that makes the gate affordable.
@@ -137,6 +138,21 @@ describe("expectUplinkPageCurrent", () => {
     expect(() => expectUplinkPageCurrent({ root: dir })).toThrow(
       /pnpm uplink-pages/,
     );
+  });
+
+  it("writes the page under CI when uplink-tools page asked for it, where the hand-set switch is refused", () => {
+    const dir = plantClient();
+    vi.stubEnv("CI", "true");
+
+    vi.stubEnv(PAGE_UPDATE_ENV, "1");
+    expect(() => expectUplinkPageCurrent({ root: dir })).toThrow(
+      /is set in CI/,
+    );
+    vi.stubEnv(PAGE_UPDATE_ENV, "");
+
+    vi.stubEnv(PAGE_WRITE_ENV, "1");
+    expectUplinkPageCurrent({ root: dir });
+    expect(checkUplinkPage({ root: dir }).differences).toEqual([]);
   });
 
   it("rewrites the page instead of throwing when asked to", () => {

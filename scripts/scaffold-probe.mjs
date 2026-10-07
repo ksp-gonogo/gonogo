@@ -36,6 +36,8 @@
  * Each plant is run through the same commands and must fail, or the probe exits
  * as BLIND:
  *
+ *   - `docs` run where no browser is installed, which is how it is known that
+ *     no earlier command needed one
  *   - a client import of `@ksp-gonogo/core`, which no author can install
  *   - a contract property added after codegen, which `codegen --check` must see
  *   - the package's codegen folder removed, which `codegen` must refuse
@@ -114,7 +116,10 @@ const env = {
   npm_config_audit: "false",
   // Always, on every machine: an author's own CI runs these same commands, and one of them once refused to run there while passing everywhere else.
   CI: "true",
+  // Empty, always: no command an author runs before `docs` may need a browser, and a machine with one cached would never show that one did.
+  PLAYWRIGHT_BROWSERS_PATH: join(work, "no-browsers"),
 };
+mkdirSync(env.PLAYWRIGHT_BROWSERS_PATH);
 // The scaffold's projects must find KSP only when a step here says where it is.
 for (const name of Object.keys(env)) {
   if (/^ksp_?(root|managed|gamedata)$/i.test(name)) delete env[name];
@@ -307,6 +312,7 @@ if (published) {
     "bake",
     "package",
     "release",
+    "page",
   ]) {
     must(`uplink-tools ${verb} --help, with nothing else installed`, bin, [
       verb,
@@ -392,6 +398,14 @@ const npmRun = (script) =>
 npmRun("codegen:check");
 npmRun("typecheck");
 must("npm test", "npm", ["test"], { cwd: client });
+// That every step above ran without a browser is only worth saying if this environment really has none, so the one command that does need one must fail here for want of it.
+mustFail(
+  "docs, which draws the pictures, with no browser installed",
+  /Executable doesn't exist|playwright install/,
+  "npx",
+  ["uplink-tools", "docs", "--no-assets"],
+  { cwd: client },
+);
 const testsProject = join(uplink, "mod-tests", `${NS}.Tests.csproj`);
 must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 
@@ -544,7 +558,7 @@ writeFileSync(pluginProject, projectSource);
 if (published) {
   console.log(
     `\n✓ scaffold-probe: at ${version} from npm and nuget.org, an Uplink scaffolded in an empty ` +
-      "directory generates, typechecks, tests on both halves and releases; four plants were refused. " +
+      "directory generates, typechecks, tests on both halves and releases; five plants were refused. " +
       "NOT RUN: loading the released plugin and client into this tree's mod and app.",
   );
   process.exit(0);
@@ -701,5 +715,5 @@ await plant("a plugin that announces no client", "unannounced", () => {
 console.log(
   `\n✓ scaffold-probe: from what this tree would publish as ${version}, an Uplink scaffolded outside ` +
     "the repo generates, typechecks, tests on both halves and releases, its plugin is found by the " +
-    "mod's scan, and the app loads the client it announces and draws the widget. Six plants were seen.",
+    "mod's scan, and the app loads the client it announces and draws the widget. Seven plants were seen.",
 );

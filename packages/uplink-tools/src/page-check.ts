@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { readInventory } from "@ksp-gonogo/uplink-tools/render-probe";
+import { PAGE_WRITE_ENV } from "./page-write-env";
 import {
   display,
   renderModuleUrl,
@@ -276,6 +277,8 @@ export const PAGE_UPDATE_ENV = "GONOGO_UPLINK_PAGE_UPDATE";
  * paid for twice.
  */
 function updateRequested(): boolean {
+  // `uplink-tools page` asking for the page by name, which is a write and not a check healing itself.
+  if (process.env[PAGE_WRITE_ENV] === "1") return true;
   if (process.env[PAGE_UPDATE_ENV] !== "1") return false;
   if (process.env.CI) {
     throw new Error(
@@ -319,8 +322,8 @@ export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
     `The generated Uplink page no longer matches the code: ` +
       `${differences.length} difference(s).\n  ${differences.join("\n  ")}\n\n` +
       `Regenerate the prose in place, with no browser and no change under ` +
-      `docs/assets, by re-running this suite with ${PAGE_UPDATE_ENV}=1:\n` +
-      `      ${PAGE_UPDATE_ENV}=1 npx vitest run\n` +
+      `docs/assets:\n` +
+      `      npx uplink-tools page\n` +
       "  (inside the gonogo repository, `pnpm uplink-pages` does that for every Uplink).\n\n" +
       "  `uplink-tools docs` also fixes it, and re-renders every picture " +
       "through this machine's\n  rasteriser on the way past. Pictures are " +

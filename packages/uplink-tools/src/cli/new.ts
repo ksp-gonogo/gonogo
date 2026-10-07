@@ -120,7 +120,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         bake: `uplink-tools bake --bundle dist/${id}/${id}.client.js`,
         release: "uplink-tools release",
         render: "uplink-tools render",
-        page: "uplink-tools docs --no-assets",
+        page: "uplink-tools page",
         docs: "uplink-tools docs",
         "docs:check": "uplink-tools docs --check",
       },
@@ -1139,7 +1139,7 @@ export function newUplink(
           () => shell("npm", ["install"], clientDir),
         ),
       );
-  // Written by the page generator, never through the test run's update switch: that switch is refused under CI, where a first write is as legitimate as anywhere. It needs the install and reads the generated types.
+  // Written by `uplink-tools page`, which needs no browser and is allowed under CI, where a first write is as legitimate as anywhere. It needs the install and reads the generated types.
   const paged =
     generated &&
     installed &&
