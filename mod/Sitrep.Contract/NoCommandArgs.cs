@@ -30,6 +30,11 @@ namespace Sitrep.Contract;
 /// </internal>
 /// </summary>
 /// <category>Command arguments</category>
+/// <categoryDescription>
+/// What each core command takes, one type per command or per family of commands
+/// that share a shape, each naming the command ids it is sent with. Look a command
+/// up here to see what it needs and which values it refuses.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

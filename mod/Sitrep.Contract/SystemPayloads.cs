@@ -20,6 +20,11 @@ namespace Sitrep.Contract;
 /// </internal>
 /// </summary>
 /// <category>Solar system and fleet</category>
+/// <categoryDescription>
+/// The bodies of the solar system and every vessel in it: each body's figures,
+/// atmosphere and orbit, the fleet roster, and each vessel's own link home, contact
+/// and silence.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("system.bodies")]
 #if SITREP_CODEGEN

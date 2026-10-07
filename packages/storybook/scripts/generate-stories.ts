@@ -118,6 +118,22 @@ interface StoryEntry {
   profile?: string;
   mode: SizeMode;
   modeNames: string[];
+  /** The fixture's `_meta.shows`: one plain sentence of what the scene shows, for the widget's docs page. */
+  shows?: string;
+}
+
+/**
+ * What a fixture says its scene shows, from `_meta.shows`. Kept apart from
+ * `_meta.notes`, which records where the values came from and is written for
+ * whoever maintains the fixture, not for a reader of the widget's page.
+ */
+function fixtureShows(data: Record<string, unknown>): string | undefined {
+  const meta = data._meta;
+  if (typeof meta !== "object" || meta === null) return undefined;
+  const shows = (meta as { shows?: unknown }).shows;
+  return typeof shows === "string" && shows.trim() !== ""
+    ? shows.trim()
+    : undefined;
 }
 
 const HEADER =
@@ -169,11 +185,14 @@ function storyBlock(s: StoryEntry): string {
       : undefined,
     s.profile ? `profile: ${JSON.stringify(s.profile)}` : undefined,
   ].filter(Boolean);
+  const parameters = s.shows
+    ? `\n  parameters: { docs: { description: { story: ${JSON.stringify(s.shows)} } } },`
+    : "";
   return `
 /** Sizes this scene renders at in the harness: ${s.modeNames.join(", ")}. */
 export const ${s.exportName}: Story = {
   name: ${JSON.stringify(s.name)},
-  args: { ${args.join(", ")} },
+  args: { ${args.join(", ")} },${parameters}
 };
 `;
 }
@@ -206,6 +225,7 @@ async function writeWidgetFile(
         profile,
         mode: modes.find((m) => m.name.startsWith("default")) ?? modes[0],
         modeNames: modes.map((m) => m.name),
+        shows: fixtureShows(scene.data),
       });
     }
   });

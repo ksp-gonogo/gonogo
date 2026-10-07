@@ -92,6 +92,12 @@ namespace Sitrep.Contract
     /// </internal>
     /// </summary>
     /// <category>Channels and emission</category>
+    /// <categoryDescription>
+    /// How an Uplink declares a channel and feeds it: its delivery and delay role,
+    /// when a changed value is worth sending, and the samplers, publishers and
+    /// dynamic namespaces that put values on it. Read here when adding a channel to
+    /// an <see cref="UplinkManifest"/> or when one emits too often or too rarely.
+    /// </categoryDescription>
     public sealed class ChannelDeclaration
     {
         /// <summary>
@@ -372,6 +378,12 @@ namespace Sitrep.Contract
     /// disagree.</para>
     /// </summary>
     /// <category>Commands</category>
+    /// <categoryDescription>
+    /// How an Uplink declares a command and what must hold before its handler runs:
+    /// the declaration, the requirements a command is gated on, the evaluators that
+    /// judge those requirements against the game, and the attribute that gives the
+    /// command its typed arguments and reply on the client.
+    /// </categoryDescription>
     public sealed class CommandDeclaration
     {
         /// <summary>
@@ -1077,6 +1089,13 @@ namespace Sitrep.Contract
     /// directly: Gonogo runs everything registered through this interface.
     /// </summary>
     /// <category>Host and Kernel</category>
+    /// <categoryDescription>
+    /// What Gonogo hands an Uplink's plugin at load: the host it registers its
+    /// pieces with, the kernel and broker it resolves shared capabilities from,
+    /// version ranges, and the capabilities (the active vessel, action groups, the
+    /// craft catalogue, the home command) an Uplink depends on instead of reaching
+    /// into the game for them.
+    /// </categoryDescription>
     public interface IUplinkHost
     {
         /// <summary>
@@ -1593,6 +1612,12 @@ namespace Sitrep.Contract
     /// another assembly.</para>
     /// </summary>
     /// <category>Uplink API</category>
+    /// <categoryDescription>
+    /// What an Uplink's plugin implements to join Gonogo: the Uplink and its
+    /// manifest, its health and settings, and the provider and backend interfaces
+    /// through which it supplies comms, science, crew, alarms, manoeuvre plans or
+    /// ISRU to the rest of the mod.
+    /// </categoryDescription>
     public interface ISitrepUplink
     {
         /// <summary>

@@ -154,6 +154,11 @@ public class ChannelEmissionEntry
 /// </internal>
 /// </summary>
 /// <category>System diagnostics</category>
+/// <categoryDescription>
+/// Why a command is refused or a value is missing, as Gonogo reports it: the gates
+/// each command and channel sits behind and what they say now, the values locked
+/// until the save unlocks them, and how often each channel has emitted.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

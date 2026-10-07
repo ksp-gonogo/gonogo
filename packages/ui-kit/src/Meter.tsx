@@ -176,6 +176,9 @@ export interface MeterProps<UnitSymbol extends string = string>
  * ```
  *
  * @category Meter
+ * @categoryDescription Meter
+ * Bars for a value against its range: meters and stacks of them, level bars,
+ * diverging bars, and the meters contributed to a widget.
  */
 export function Meter<UnitSymbol extends string = string>({
   label,

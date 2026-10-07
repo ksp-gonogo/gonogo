@@ -195,6 +195,11 @@ const NOOP = () => {};
  * ```
  *
  * @category Testing
+ * @categoryDescription Testing
+ * Testing a widget the way the dashboard renders it: by its registered id
+ * inside the dashboard's providers, with queries by tooltip, a resize observer
+ * a test can drive, and checks for accessibility, live regions, held marks,
+ * framing and units.
  */
 export function renderWidget(
   widgetId: string,

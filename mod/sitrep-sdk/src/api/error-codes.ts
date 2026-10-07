@@ -16,6 +16,9 @@ const registered = new Map<string, ErrorCodeDeclaration>();
  * `undefined` for an id nothing here has declared.
  *
  * @category Error codes
+ * @categoryDescription Error codes
+ * The codes a command is refused or fails with, the sentence an operator reads
+ * for each, and how an Uplink registers codes of its own.
  */
 export function describeErrorCode(
   id: string,

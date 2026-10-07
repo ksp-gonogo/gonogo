@@ -67,6 +67,10 @@ export interface FilterListProps {
  * ```
  *
  * @category FilterList
+ * @categoryDescription FilterList
+ * Lists an operator can narrow: rows filtered by typed text and contributed
+ * filter chips, selectable rows, and the hook for filtering rows a widget draws
+ * itself.
  */
 export function FilterList({
   rows,

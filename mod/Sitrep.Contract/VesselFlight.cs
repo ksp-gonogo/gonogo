@@ -16,6 +16,11 @@ namespace Sitrep.Contract;
 /// <see cref="VesselIdentity.LaunchUt"/>.</para>
 /// </summary>
 /// <category>Vessel</category>
+/// <categoryDescription>
+/// The active vessel as a whole: its identity, flight state and attitude, control
+/// and SAS, propulsion and ΔV by stage, resources, heat, landing, structure and
+/// inventory. Most flight widgets read from here.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

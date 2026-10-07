@@ -150,6 +150,10 @@ interface RawStream {
  * to run.
  *
  * @category Rendering scenes
+ * @categoryDescription Rendering scenes
+ * Rendering an Uplink's widgets in a real browser: the scenes to draw, the
+ * engine and fonts they are drawn with, the pictures and GIFs written, and the
+ * widgets found too small for what they hold.
  */
 export interface Scene {
   file: string;

@@ -96,13 +96,15 @@ public class RtDocVisitor : TypeScriptExportVisitor
             $"codegen (docs) -> {_blocks} declarations documented, "
             + $"{_pointers} crefs carried as pointers, {_demoted} as prose, "
             + $"{RtDocText.InternalBlocksStripped} <{RtDocText.InternalElement}> blocks withheld, "
-            + $"{RtDocText.CategoriesCarried} <{RtDocText.CategoryElement}>s carried");
+            + $"{RtDocText.CategoriesCarried} <{RtDocText.CategoryElement}>s carried, "
+            + $"{RtDocText.CategoryDescriptionsCarried} <{RtDocText.CategoryDescriptionElement}>s carried");
     }
 
     public override void Visit(RtJsdocNode node)
     {
         if (node == null) return;
-        var lines = RtDocText.ToDocLines(node.Description ?? string.Empty, RenderCref, out var category);
+        var lines = RtDocText.ToDocLines(
+            node.Description ?? string.Empty, RenderCref, out var category, out var categoryDescription);
         if (lines.Count == 0 && node.TagToDescription.Count == 0 && category == null) return;
         _blocks++;
 
@@ -132,6 +134,16 @@ public class RtDocVisitor : TypeScriptExportVisitor
         {
             AppendTabs();
             WriteLine("* @category " + category);
+        }
+        if (categoryDescription.Count > 0)
+        {
+            AppendTabs();
+            WriteLine("* @categoryDescription " + category);
+            foreach (var line in categoryDescription)
+            {
+                AppendTabs();
+                WriteLine(line.Length == 0 ? "*" : "* " + line);
+            }
         }
         AppendTabs();
         WriteLine("*/");

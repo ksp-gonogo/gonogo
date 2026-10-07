@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft with no engines or tanks: the totals show dashes and no stages are listed.",
     "scenario": "no-engine-data",
     "notes": "Empty state: dv.stages is an empty array, all totalDV* are omitted (undefined in the widget), all resource maxes are 0. The TotalsRow shows two dash readouts, the resource list renders nothing (all filtered), and the stage stack is hidden. Tests the widget's minimum viable empty state, title only, plus dashes in totals."
   },

@@ -19,6 +19,11 @@ namespace Sitrep.Contract
     /// contact planner off the main thread for hours of game time ahead.</para>
     /// </summary>
     /// <category>Comms models</category>
+    /// <categoryDescription>
+    /// The models a comms backend supplies to say when two nodes can see each other
+    /// and how strong the link between them is, for an Uplink that brings its own
+    /// radio physics.
+    /// </categoryDescription>
     public interface ICommsContactModel
     {
         /// <summary>

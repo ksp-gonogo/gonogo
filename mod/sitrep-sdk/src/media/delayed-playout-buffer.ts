@@ -113,6 +113,11 @@ export interface DelayedPlayoutBufferOptions<Frame = unknown> {
  * never shown before telemetry from the same instant would be.
  *
  * @category Delayed video
+ * @categoryDescription Delayed video
+ * Holding video back by the signal delay, so a picture arrives with the
+ * telemetry that describes it: stamping frames with game time, playout buffers,
+ * the encoded-frame and worker pipelines, and delayed streams shared between
+ * widgets.
  */
 export class DelayedPlayoutBuffer<Frame = unknown> {
   private queue: StampedFrame<Frame>[] = [];

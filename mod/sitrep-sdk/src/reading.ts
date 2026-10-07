@@ -108,6 +108,38 @@ export interface TopicReckoningAvailable<Payload> {
  * @typeParam Payload - The Topic's payload type.
  *
  * @category Reading telemetry
+ *
+ * @concept Reckoning
+ * A reckoning is what a forward model says a value is at the craft's present,
+ * worked out from the last real observation. It rides beside a reading's
+ * `state` and never replaces it: the `value` of an observed or held reading is
+ * always something that was received, and a modelled figure is only ever found
+ * in `reckoning.value`.
+ *
+ * - reckoned is not observed: an `observed` reading is the newest value that
+ *   could have reached this screen, which under signal delay is already old by
+ *   the delay. A reckoning carries it across the gap, and
+ *   {@link TopicReckoningAvailable.beyondReceived} says when it reaches past
+ *   the newest data received, so a figure drawn from it is modelled, not
+ *   observed
+ * - reckoned is not held: a held reading is the last value received after
+ *   updates stopped. A reckoning can sit beside a held reading, and it still
+ *   does not make that reading current
+ * - moved is not everything: {@link TopicReckoningAvailable.modelled} lists the
+ *   payload paths the model moved, each with its {@link ReckoningBasis}. Every
+ *   other path in the reckoned value is the last observation, unchanged
+ * - a band is a claim, and its absence is not: an {@link UncertaintyBand} says
+ *   how far the model would defend a value, as a hard bound or one standard
+ *   deviation ({@link BandKind}). No band means the model does not say, never
+ *   that the value is exact
+ *
+ * `status` says which case holds: `"available"` with a value, `"none"` when no
+ * model was offered, or `"declined"` when a model the contract declares could
+ * not produce one this frame, with a {@link ReckoningDecline} saying why. A
+ * Topic whose contract declares a model reads as a {@link ReckonableReading},
+ * whose reckoning is never `"none"`. Models are supplied as a
+ * {@link TopicModel}; {@link withoutReckoning} drops a reckoning a widget does
+ * not want.
  */
 export type TopicReckoning<Payload> =
   | TopicReckoningAvailable<Payload>
@@ -526,6 +558,31 @@ export type ReckonableReading<
  * whatever its grade.
  *
  * @category Reading telemetry
+ *
+ * @concept Held
+ * Held means a Topic's updates stopped arriving, so its reading carries the
+ * last value actually received, `asOfUt` saying when that value was observed,
+ * and a {@link HeldGrade} saying why updates stopped. A held value is drawn as
+ * held, never as current; the grade changes the label, not the drawing.
+ *
+ * Held is one of five reading states ({@link TopicCurrency}), and the others
+ * are not interchangeable with it:
+ *
+ * - observed is not held: an observed value is the newest that could have
+ *   reached this screen. Under signal delay it is as old as the delay and is
+ *   still observed
+ * - absent is not zero: an absent reading means the game confirmed there is no
+ *   value, such as no target set. It carries no payload, so nothing stands in
+ *   for the missing value
+ * - pending and unowned are not absent: pending means nothing has arrived yet,
+ *   and unowned means nothing installed will ever publish the Topic. Neither
+ *   carries a payload
+ * - locked is not empty: a field the save has not unlocked arrives as a
+ *   {@link LockedValue} naming what is missing, which {@link isLocked} tells
+ *   apart
+ *
+ * A held reading can still carry a {@link TopicReckoning}: a model's figure for
+ * now, drawn as modelled. It does not make the held value current.
  */
 export type HeldGrade =
   | "held"

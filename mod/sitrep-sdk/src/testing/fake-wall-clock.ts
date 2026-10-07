@@ -15,6 +15,10 @@ export interface FakeWallClock {
  * Pass its `now` wherever a clock takes `nowWall`, which is in seconds too.
  *
  * @category Test doubles
+ * @categoryDescription Test doubles
+ * Stand-ins for the wall clock, storage, the logger, data sources and alarm
+ * requests, so a test decides what a widget sees and can read back what it
+ * asked for.
  */
 export function createFakeWallClock(start = 0): FakeWallClock {
   let now = start;

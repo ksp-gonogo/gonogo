@@ -42,6 +42,12 @@ namespace Sitrep.Contract
     /// question looks exactly like a right one on screen.</para>
     /// </summary>
     /// <category>Propagation and models</category>
+    /// <categoryDescription>
+    /// How Gonogo predicts where a body or craft is between observations, and the
+    /// models an Uplink can supply to it: the propagation provider and its
+    /// horizons, the bases a reckoning may rest on, and the degrade, occlusion and
+    /// reach models a comms link is graded by.
+    /// </categoryDescription>
     public interface IPropagationProvider : ISitrepProvider
     {
         /// <summary>

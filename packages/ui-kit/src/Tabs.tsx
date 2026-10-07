@@ -108,6 +108,8 @@ export function shouldExpandTabs(
  * ```
  *
  * @category Tabs
+ * @categoryDescription Tabs
+ * Tabs that switch a widget's body between views.
  */
 export function Tabs({
   tabs,

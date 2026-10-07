@@ -34,10 +34,11 @@ import ts from "typescript";
  * One declaration's TSDoc, as the markdown the generator will carry into a
  * `description`.
  *
- * Only the prose is carried. The one tag the emitter writes, `@category`, names
- * the reference page a type is listed on and stays out of the schema. The
- * emitter writes no `{@link}`, so a `comment` that is not a plain string means
- * its output has changed.
+ * Only the prose is carried. The two tags the emitter writes, `@category` and
+ * `@categoryDescription`, name the reference page a type is listed on and say
+ * what that page is for, and stay out of the schema: this document groups by
+ * channel, never by reference page. The emitter writes no `{@link}`, so a
+ * `comment` that is not a plain string means its output has changed.
  */
 function docOf(node) {
   const blocks = node.jsDoc ?? [];

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A knife-edge bank to the right, the horizon running vertically through the dial, with RCS on and SAS off.",
     "notes": "Knife-edge bank right: 90\u00b0 roll, level pitch. Horizon line should run vertically through the dial centre with sky on the left, ground on the right. RCS on for precision attitude work, SAS off (manual).",
     "scenario": "banked-90-right"
   },

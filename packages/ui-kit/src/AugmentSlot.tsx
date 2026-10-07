@@ -41,6 +41,10 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  * ```
  *
  * @category Extensions
+ * @categoryDescription Extensions
+ * The widget side of extension: placing a slot where Uplinks may draw, reading
+ * the contributions handed to a widget, the settings an augment exposes, and
+ * whether a Domain is present for an augment that needs one.
  */
 export function AugmentSlot<Slot extends string>(
   args:

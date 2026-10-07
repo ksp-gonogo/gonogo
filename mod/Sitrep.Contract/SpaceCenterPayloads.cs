@@ -90,6 +90,10 @@ public class LaunchSiteEntry
 /// </internal>
 /// </summary>
 /// <category>Space center</category>
+/// <categoryDescription>
+/// The space centre between flights: the current scene, the launch sites and points
+/// of interest, the saved craft in each editor, and the parts the player can place.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("spaceCenter.scene")]
 #if SITREP_CODEGEN
@@ -128,6 +132,11 @@ public class SpaceCenterScene
 /// </internal>
 /// </summary>
 /// <category>Crew</category>
+/// <categoryDescription>
+/// The kerbals: the roster and each one's standing, who is aboard a vessel or out
+/// on EVA, and the applicants at the astronaut complex. Read here to list crew or
+/// to say whether a kerbal is available, assigned, missing or dead.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("spaceCenter.crewRoster", isArray: true)]
 #if SITREP_CODEGEN

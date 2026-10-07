@@ -58,6 +58,9 @@ let modalSeq = 0;
  * trapped inside the dialog and returns to the opener when it closes.
  *
  * @category Modal
+ * @categoryDescription Modal
+ * Dialogs over the dashboard: opening one, its save bar and footer, and telling
+ * whether its content has unsaved changes.
  */
 export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [modals, setModals] = useState<ModalEntry[]>([]);

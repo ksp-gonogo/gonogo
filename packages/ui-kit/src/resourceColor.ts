@@ -233,6 +233,10 @@ export function hashHue(key: string): number {
  * ```
  *
  * @category Theme
+ * @categoryDescription Theme
+ * The theme a widget is drawn with: its colours, borders and type, the colour
+ * for each tone and resource, and whether the operator has asked for reduced
+ * motion. Take colours from here, never write one by hand.
  */
 export function resourceColor(name: string): string {
   const key = name.trim().toLowerCase();

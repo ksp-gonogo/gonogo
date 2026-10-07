@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A single-stage lander carrying only monopropellant, xenon and electric charge, so the fuel types it lacks are left out.",
     "scenario": "lander-monoprop-only",
     "notes": "Lander in descent: LF and Oxidizer max=0 so they are filtered out of the resource list. Only MonoPropellant (RCS), XenonGas (ion thruster), and ElectricCharge show. Tests the max===0 filter path for current-stage resources and the sparse resource list with only vessel-scope items. Single stage."
   },

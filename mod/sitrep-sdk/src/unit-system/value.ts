@@ -47,8 +47,8 @@ declare const UnknownUnitBrand: unique symbol;
 export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
 
 /**
- * Every declared unit with the same dimension as `Unit`, including units an
- * Uplink declared. `SameDimensionAs<"W">` includes `"J/s"`, so
+ * Every declared unit with the same dimension as the unit given, including
+ * units an Uplink declared. `SameDimensionAs<"W">` includes `"J/s"`, so
  * `Value<"W">.plus(Value<"J/s">)` compiles, and `Value<"m">.plus(Value<"s">)`
  * does not. `never` for a unit nothing declares.
  *

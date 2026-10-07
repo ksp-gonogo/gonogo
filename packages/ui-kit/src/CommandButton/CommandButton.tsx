@@ -629,6 +629,10 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  * ```
  *
  * @category CommandButton
+ * @categoryDescription CommandButton
+ * A control that sends a command and shows what became of it: armed, in flight,
+ * refused, lost or blocked, with the outcome announced. Every control that
+ * dispatches a command handle is one of these.
  */
 export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   handle,

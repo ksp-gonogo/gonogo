@@ -182,6 +182,9 @@ function arcPath(
  * ```
  *
  * @category Gauge
+ * @categoryDescription Gauge
+ * Instruments for a value against a scale: a dial and a tape, each with ticks
+ * and coloured zones.
  */
 export function Dial<Unit extends string = string>({
   value,

@@ -84,6 +84,9 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
  * `external: [...UPLINK_BUNDLE_EXTERNALS]`.
  *
  * @category Bundling
+ * @categoryDescription Bundling
+ * The package names an Uplink's client bundle leaves unresolved for the app to
+ * supply at load, which its build marks external.
  */
 export const UPLINK_BUNDLE_EXTERNALS: readonly string[] = [
   ...UPLINK_EXTERNAL_SPECIFIERS,

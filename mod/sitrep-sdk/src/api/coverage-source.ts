@@ -76,6 +76,10 @@ export function onCoverageSourcesChange(cb: () => void): () => void {
  * Adds a coverage source, replacing any registered under the same id.
  *
  * @category Maps and coverage
+ * @categoryDescription Maps and coverage
+ * Drawing on a body's map: the map's configuration, the points of interest an
+ * Uplink adds, and the coverage sources and masks that show what has been
+ * scanned.
  */
 export function registerCoverageSource(def: CoverageSourceDefinition): void {
   if (hasHost()) {

@@ -7,6 +7,10 @@ import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
  * `null`, never missing.
  *
  * @category Inventory
+ * @categoryDescription Inventory
+ * What an Uplink client registered, read back as data: its widgets, augments
+ * and contributions with everything their registrations declare. The renderer
+ * and the generated page both read it.
  */
 export interface WidgetRecord {
   /** The registered widget id. */

@@ -90,6 +90,10 @@ public class MissionObjectiveEntry
 /// </internal>
 /// </summary>
 /// <category>Missions</category>
+/// <categoryDescription>
+/// A Making History mission in the current game: whether one is running and how far
+/// each of its objectives has got.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("missions.active")]
 #if SITREP_CODEGEN

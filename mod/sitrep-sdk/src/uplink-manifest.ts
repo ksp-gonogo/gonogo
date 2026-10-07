@@ -73,6 +73,9 @@ export interface UplinkDeclaration {
  * Every field `gonogo-uplink.json` carries, in the order it is written.
  *
  * @category Manifest
+ * @categoryDescription Manifest
+ * The `gonogo-uplink.json` file an Uplink ships beside its bundle: what it
+ * declares, how it is built and read, and the warnings it can carry.
  */
 export interface UplinkManifest {
   id: string;

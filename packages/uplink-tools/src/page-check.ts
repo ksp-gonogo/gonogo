@@ -141,6 +141,9 @@ function committedIntegrity(manifestPath: string): string {
  * compares them with the committed files, without writing anything.
  *
  * @category Page check
+ * @categoryDescription Page check
+ * Keeping an Uplink's generated page current: regenerate it and compare it with
+ * what is committed, or write it, from a test or the command line.
  */
 export function checkUplinkPage(
   options: PageCheckOptions = {},

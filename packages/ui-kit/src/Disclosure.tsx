@@ -85,6 +85,9 @@ export interface DisclosureProps {
  * ```
  *
  * @category Disclosure
+ * @categoryDescription Disclosure
+ * Detail on demand: a button that shows and hides a panel, reachable from the
+ * keyboard where a hover reveal would not be.
  */
 export function Disclosure({
   label,

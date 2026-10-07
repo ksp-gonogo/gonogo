@@ -59,6 +59,13 @@ public enum CommsControlSource
 /// has a control link home right now. All three fields describe the same tick.
 /// </summary>
 /// <category>Comms</category>
+/// <categoryDescription>
+/// The link between a craft and the ground, as the comms backend in force reports
+/// it: whether there is control, how strong and how degraded the signal is, the
+/// routed network and its contact windows, the command centres and their delays,
+/// and the commands still on their way. Read here for anything that shows signal or
+/// delay, or says whether a command can get through.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

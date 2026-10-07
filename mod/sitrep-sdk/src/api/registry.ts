@@ -104,6 +104,10 @@ function isSameRegistration(
  * two bundles, is taken as the same widget and does nothing.
  *
  * @category Registering
+ * @categoryDescription Registering
+ * Putting an Uplink's pieces into the app: registering widgets, themes, data
+ * sources and providers, the definition each one takes, and the props and
+ * config a widget is rendered with. Every Uplink client starts here.
  */
 export function registerComponent<Config = Record<string, unknown>>(
   def: ComponentDefinition<Config>,

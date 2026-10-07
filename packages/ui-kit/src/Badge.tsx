@@ -61,6 +61,9 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
  * ```
  *
  * @category Badge
+ * @categoryDescription Badge
+ * Small marks that name a state: a badge in a tone, the held badge, a status
+ * dot, and the stream's connection status in words.
  */
 export function Badge({
   tone,

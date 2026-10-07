@@ -60,8 +60,18 @@ public static class RtDocText
     /// </summary>
     public const string CategoryElement = "category";
 
+    /// <summary>
+    /// The element that says what a reference page is for, written beside the
+    /// <c>category</c> on one declaration of that page and emitted as the TSDoc
+    /// <c>@categoryDescription</c> tag, its first line the category's name.
+    /// </summary>
+    public const string CategoryDescriptionElement = "categoryDescription";
+
     /// <summary>How many <c>category</c> elements have been carried this run.</summary>
     public static int CategoriesCarried { get; private set; }
+
+    /// <summary>How many <c>categoryDescription</c> elements have been carried this run.</summary>
+    public static int CategoryDescriptionsCarried { get; private set; }
 
     /// <summary>
     /// How many <c>internal</c> blocks have been dropped this run.
@@ -91,9 +101,18 @@ public static class RtDocText
     /// </param>
     /// <param name="category">The declaration's <c>category</c>, or null when it names none.</param>
     public static List<string> ToDocLines(
-        string summaryXml, Func<string, string> renderCref, out string? category)
+        string summaryXml, Func<string, string> renderCref, out string? category) =>
+        ToDocLines(summaryXml, renderCref, out category, out _);
+
+    /// <summary>
+    /// The doc lines for one summary body, and the lines of its
+    /// <c>categoryDescription</c> in the same form, empty when it has none.
+    /// </summary>
+    public static List<string> ToDocLines(
+        string summaryXml, Func<string, string> renderCref, out string? category,
+        out List<string> categoryDescription)
     {
-        var paragraphs = Parse(summaryXml, renderCref, out var stripped, out category);
+        var paragraphs = Parse(summaryXml, renderCref, out var stripped, out category, out var described);
         if (stripped > 0 && paragraphs.Count == 0)
         {
             throw new InvalidOperationException(
@@ -103,6 +122,20 @@ public static class RtDocText
                 + "value IS outside the marker, however briefly. The summary began: "
                 + Excerpt(summaryXml));
         }
+        if (described.Count > 0 && category == null)
+        {
+            throw new InvalidOperationException(
+                "codegen (docs): a <" + CategoryDescriptionElement + "> describes a page, and this "
+                + "declaration names no <" + CategoryElement + "> to say which. The summary began: "
+                + Excerpt(summaryXml));
+        }
+        categoryDescription = Lines(described);
+        if (categoryDescription.Count > 0) CategoryDescriptionsCarried++;
+        return Lines(paragraphs);
+    }
+
+    private static List<string> Lines(List<Paragraph> paragraphs)
+    {
         var lines = new List<string>();
         for (var i = 0; i < paragraphs.Count; i++)
         {
@@ -117,13 +150,19 @@ public static class RtDocText
     }
 
     private static List<Paragraph> Parse(
-        string summaryXml, Func<string, string> renderCref, out int stripped, out string? category)
+        string summaryXml, Func<string, string> renderCref, out int stripped, out string? category,
+        out List<Paragraph> described)
     {
         stripped = 0;
         category = null;
         var categoryText = new StringBuilder();
         var inCategory = false;
-        var paragraphs = new List<Paragraph>();
+        var summaryParagraphs = new List<Paragraph>();
+        var descriptionParagraphs = new List<Paragraph>();
+        var describing = false;
+        // Where a finished paragraph goes: the summary, or the page description
+        // while inside a `categoryDescription`.
+        var paragraphs = summaryParagraphs;
         var sb = new StringBuilder();
         var closers = new Stack<string>();
         var bullet = false;
@@ -229,6 +268,24 @@ public static class RtDocText
                             break;
                         }
 
+                        if (name == CategoryDescriptionElement.ToLowerInvariant())
+                        {
+                            if (describing || descriptionParagraphs.Count > 0)
+                            {
+                                throw new InvalidOperationException(
+                                    "codegen (docs): a declaration carries two <" + CategoryDescriptionElement
+                                    + ">s; its page opens with one. The summary began: " + Excerpt(summaryXml));
+                            }
+                            Flush();
+                            if (!empty)
+                            {
+                                describing = true;
+                                paragraphs = descriptionParagraphs;
+                            }
+                            afterTag = false;
+                            break;
+                        }
+
                         if (afterTag && sb.Length > 0 && !char.IsWhiteSpace(sb[sb.Length - 1]))
                             sb.Append(' ');
                         afterTag = empty;
@@ -299,6 +356,14 @@ public static class RtDocText
 
                     case XmlNodeType.EndElement:
                     {
+                        if (describing && reader.Name.ToLowerInvariant() == CategoryDescriptionElement.ToLowerInvariant())
+                        {
+                            Flush();
+                            describing = false;
+                            paragraphs = summaryParagraphs;
+                            afterTag = false;
+                            break;
+                        }
                         switch (reader.Name.ToLowerInvariant())
                         {
                             case "para":
@@ -325,6 +390,7 @@ public static class RtDocText
         }
 
         Flush();
+        described = descriptionParagraphs;
         stripped = strippedHere;
         InternalBlocksStripped += strippedHere;
         var named = Collapse(categoryText.ToString());
@@ -333,7 +399,7 @@ public static class RtDocText
             category = named;
             CategoriesCarried++;
         }
-        return paragraphs;
+        return summaryParagraphs;
     }
 
     /// <summary>
@@ -408,12 +474,13 @@ public static class RtDocText
 
     /// <summary>
     /// Folds each member's <c>remarks</c> into its <c>summary</c> as a trailing
-    /// paragraph, and moves its <c>category</c> inside the summary, in a sibling
-    /// copy of the doc file, and registers that copy so RT reads it.
+    /// paragraph, and moves its <c>category</c> and <c>categoryDescription</c>
+    /// inside the summary, in a sibling copy of the doc file, and registers that
+    /// copy so RT reads it.
     ///
     /// <para>RT parses <c>remarks</c> and then never emits it, and does not read
-    /// <c>category</c> at all: only <c>Summary.Text</c> reaches a generated
-    /// declaration.</para>
+    /// <c>category</c> or <c>categoryDescription</c> at all: only
+    /// <c>Summary.Text</c> reaches a generated declaration.</para>
     ///
     /// <para>Registered through <c>AdditionalDocumentationPathes</c> rather than
     /// written over the compiler's own output: additional files are cached after
@@ -437,7 +504,8 @@ public static class RtDocText
         {
             var remarks = member.Element("remarks");
             var category = member.Element(CategoryElement);
-            if (remarks == null && category == null) continue;
+            var categoryDescription = member.Element(CategoryDescriptionElement);
+            if (remarks == null && category == null && categoryDescription == null) continue;
             var summary = member.Element("summary");
             if (summary == null)
             {
@@ -455,6 +523,11 @@ public static class RtDocText
             {
                 category.Remove();
                 summary.Add(category);
+            }
+            if (categoryDescription != null)
+            {
+                categoryDescription.Remove();
+                summary.Add(categoryDescription);
             }
             members.Add(member);
         }

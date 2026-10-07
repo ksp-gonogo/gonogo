@@ -121,6 +121,9 @@ export interface MissionDateProps {
  * ```
  *
  * @category MissionDate
+ * @categoryDescription MissionDate
+ * Instants on the game's own calendar: a date for a point in time, and a
+ * countdown to one. A length of time is a {@link Unit}.
  */
 export function MissionDate({ value, context }: MissionDateProps) {
   // A held instant stays true, so a held reading adds only the mark, its grade and its last-valid instant.

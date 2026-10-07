@@ -14,6 +14,10 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
  * {@link MemoryStore} keeps them in memory. Every method returns a promise.
  *
  * @category Flight recording
+ * @categoryDescription Flight recording
+ * The record of past flights: how samples are buffered and kept, the stores
+ * that hold them, how a flight is detected and what ended it, and the fixture
+ * format a flight is exported to and replayed from.
  */
 export interface FlightStore {
   upsertFlight(record: FlightRecord): Promise<void>;

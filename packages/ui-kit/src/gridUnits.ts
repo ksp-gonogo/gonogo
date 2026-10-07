@@ -28,6 +28,10 @@ export const GRID_MARGIN = 8;
  * carries none.
  *
  * @category Layout
+ * @categoryDescription Layout
+ * Arranging a widget's content: stacks, rows, clusters, grids, boxes, cards and
+ * sections, the spacing scale they share, and the dashboard grid's cell sizes
+ * for turning a tile's columns and rows into pixels.
  */
 export function gridToPixels(
   w: number,

@@ -83,6 +83,10 @@ const QUEUE_LABEL = "Uplink queue";
  * widget's; this places them and draws the frame around them.
  *
  * @category Console
+ * @categoryDescription Console
+ * A two-way text console over a delayed link: the scrollback, the line being
+ * typed, and what is still crossing, framed with one reading of how far away
+ * the other end is.
  */
 export function Console({
   tone,

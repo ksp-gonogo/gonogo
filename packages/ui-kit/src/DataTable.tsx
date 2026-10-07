@@ -127,6 +127,9 @@ export interface DataTableProps<Row> {
  * ```
  *
  * @category DataTable
+ * @categoryDescription DataTable
+ * A table of rows under typed columns, with optional sections, for data an
+ * operator scans across.
  */
 export function DataTable<Row>({
   columns,

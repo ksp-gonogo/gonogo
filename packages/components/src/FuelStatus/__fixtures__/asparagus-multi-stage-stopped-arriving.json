@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A five-stage asparagus rocket after the link drops, every figure held at its last value.",
     "scenario": "asparagus-multi-stage-stopped-arriving",
     "notes": "Asparagus-staged rocket with 5 stages. Each outer booster pair decouples carrying symmetric LF/Ox load. Stages have widely varying deltaV values to exercise the bar-scaling logic (maxStageDv divides all bars). Stage 4 has the highest ΔV; stage 0 (lander) has the lowest. Tests RESOURCES filter, stage-bar proportional widths, and TWR column across modes. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

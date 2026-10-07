@@ -135,6 +135,9 @@ const SIZE_STYLES = {
  * ```
  *
  * @category Typography
+ * @categoryDescription Typography
+ * Text: the type levels, faint text, truncation, expandable text, subject
+ * headings, visually hidden text, and the live region that announces a change.
  */
 export function Text({
   tone = "neutral",

@@ -782,6 +782,11 @@ export function toFrame(
  * returned as it is.
  *
  * @category Frames of reference
+ * @categoryDescription Frames of reference
+ * Where a point is in the frame you chose to draw it in: choosing a frame,
+ * resolving it to a state at one instant, converting positions to and from it,
+ * and the Lagrange points of a pair of bodies. For an Uplink that contributes a
+ * projection or a trajectory.
  */
 export function resolveReadFrame(
   choice: ReadFrameChoice,

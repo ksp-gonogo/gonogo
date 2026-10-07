@@ -37,6 +37,9 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * environment such as jsdom.
  *
  * @category Rendering
+ * @categoryDescription Rendering
+ * Rendering a widget or a hook in a test with the theme and DOM stubs it needs,
+ * and reading its text the way an operator sees it.
  */
 export function render(
   ui: ReactElement,

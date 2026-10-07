@@ -24,6 +24,12 @@ namespace Sitrep.Contract;
 /// </internal>
 /// </summary>
 /// <category>Parts</category>
+/// <categoryDescription>
+/// A vessel's parts one at a time: what each part is, its resources and modules,
+/// the parts that make and store power, robotics, ISRU drills and converters, and
+/// the right-click actions a part offers. Read here for anything that names, lists
+/// or acts on a single part.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -344,6 +344,11 @@ export const clearAugments = (): void => {
  * misspelled slot does not typecheck.
  *
  * @category Extensions
+ * @categoryDescription Extensions
+ * Adding to widgets you do not own: an augment draws inside another widget, a
+ * contribution hands it data to draw, and either goes into a slot that widget
+ * opens. Read here to extend a core widget from an Uplink;
+ * {@link ContributionSlotId} lists the slots.
  */
 export const registerAugment = <Slot extends string>(
   def: AugmentDefinition<Slot>,
@@ -463,6 +468,10 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * `"number"` row with a `defaultValue` of `true` does not compile.
  *
  * @category Settings
+ * @categoryDescription Settings
+ * Settings a client keeps: declaring one, reading and writing it from a widget,
+ * and the tab it is shown on. A setting the mod holds arrives on the stream
+ * instead, as a {@link SettingsModel} row.
  */
 export function registerSetting<
   SettingKind extends SettingType = "boolean",
@@ -540,6 +549,11 @@ export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
  * ```
  *
  * @category Reading telemetry
+ * @categoryDescription Reading telemetry
+ * Reading the stream in a widget: the Topic ids and their payloads, the hooks
+ * that subscribe to one, how a reading says whether its value is current, held
+ * or reckoned, and the fields a Topic carries. Most widgets need nothing else
+ * from the SDK.
  */
 export function useTelemetry<Topic extends TopicId>(
   topic: Topic,
@@ -563,6 +577,33 @@ export function useTelemetry<Topic extends TopicId>(
  * browser's clock.
  *
  * @category Delay and vantage
+ *
+ * @concept Delay and vantage
+ * Every screen sees the game from a vantage: the command centre its connection
+ * observes at and commands from, chosen with {@link SetVantage} from the
+ * centres on the roster ({@link CommandCentreEntry}). News from a craft reaches
+ * that centre one signal delay after it happened, so the screen shows the game
+ * at a view time behind the game's own present, and {@link useViewUt} returns
+ * that view time. Nothing on the screen is the game's truth at this instant; a
+ * {@link TopicReckoning} is the nearest a widget gets, and it is drawn as
+ * modelled.
+ *
+ * - a vantage is not the game: what a screen shows is what its centre has been
+ *   told, so two centres at different distances show the same craft at
+ *   different moments
+ * - delayed is not true now: most Topics are read one delay back
+ *   ({@link DelayLane} `"delayed"`). A {@link TrueNowTopic}, such as the warp
+ *   state or the bodies, is true at the command centre and read with no delay
+ *   subtracted, and a {@link HeldAtHomeTopic}, such as the career's finances,
+ *   is read at the centre's delay from home
+ * - sent is not arrived: a command leaves the vantage now and reaches the craft
+ *   one delay later, and its effect is seen one more delay after that.
+ *   {@link DelayMode} says how a command sent now would travel, and
+ *   {@link useCommand} reports where it has got to
+ *
+ * A widget takes times from the view clock ({@link useViewUt},
+ * {@link useViewClock}), never from the browser's clock, and works out a
+ * countdown by subtracting the view time from an absolute UT.
  */
 export function useViewUt(): Value<"ut"> | undefined {
   return getHost().useViewUt();
@@ -604,6 +645,10 @@ export function useViewUt(): Value<"ut"> | undefined {
  * ```
  *
  * @category Commands
+ * @categoryDescription Commands
+ * Sending commands to the game: the command ids with their typed arguments and
+ * replies, the hook a widget sends through, how a refusal is classified, and
+ * the rail a command travels on to reach the craft.
  */
 export function useCommand<Command extends CommandId>(
   command: Command,
@@ -785,6 +830,10 @@ export function modSettingDep<
  * returns the bare `Result`.
  *
  * @category Processors
+ * @categoryDescription Processors
+ * Values computed from Topics once and shared: a processor reads its
+ * dependencies and returns a derived value each frame, and any Uplink can read
+ * one through a handle without depending on the Uplink that implements it.
  */
 export function useProcessor<Result, Carried extends boolean>(handle: {
   readonly id: string;
@@ -805,6 +854,11 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
  * shape you use, such as {@link DelayClockLike}.
  *
  * @category Delay and vantage
+ * @categoryDescription Delay and vantage
+ * Signal delay as a widget meets it: the clock the screen sees the game at,
+ * which Topics are delayed and which are true now, where a command is on its
+ * way out, and events shown only once the delay has passed. Read here before
+ * showing a time, a countdown or a command in flight.
  */
 export function useViewClock(): unknown {
   return getHost().useViewClock();

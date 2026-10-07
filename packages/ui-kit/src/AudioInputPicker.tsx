@@ -44,6 +44,9 @@ export interface AudioInputPickerProps extends UseAudioInputOptions {
  * ```
  *
  * @category AudioInputPicker
+ * @categoryDescription AudioInputPicker
+ * Choosing and opening a microphone: the picker an operator selects an input
+ * with, the hook behind it, and whether this browser can capture audio at all.
  */
 export function AudioInputPicker({
   label = "Audio input",

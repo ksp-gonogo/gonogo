@@ -7,6 +7,10 @@
  * data behind the thing is gone, which is not the same as a neutral reading.
  *
  * @category Tone
+ * @categoryDescription Tone
+ * The words a widget uses for state (go, caution, warn, no go, offline) in
+ * place of colours, so every widget and contribution says the same thing the
+ * same way and ui-kit picks the colour for where it is drawn.
  */
 export type Tone =
   | "neutral"

@@ -528,6 +528,10 @@ function inputRuleExemptions(inputs: DocsInputs): string[] {
  * `description`, which opens the page.
  *
  * @category Uplink page
+ * @categoryDescription Uplink page
+ * The page an Uplink publishes about itself: its README, the manifest beside
+ * its bundle, its widget records, and the channels and payloads it puts on the
+ * wire, all generated from the code.
  */
 export function buildReadme(
   inputs: DocsInputs,

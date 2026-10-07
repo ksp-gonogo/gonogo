@@ -340,6 +340,11 @@ export interface CareerMode
 * unknown.
 *
 * @category Career
+* @categoryDescription Career
+* The career save as a ground team sees it: funds, reputation and science,
+* contracts, strategies, the tech tree and the space centre's buildings, and
+* the events that move those balances. Read here before building anything that
+* shows or spends a career resource.
 */
 export interface CareerStatus
 {
@@ -904,6 +909,10 @@ export interface ChannelEmissionEntry
 * zero into a non-zero, which is the difference that carries the diagnosis.
 *
 * @category System diagnostics
+* @categoryDescription System diagnostics
+* Why a command is refused or a value is missing, as Gonogo reports it: the
+* gates each command and channel sits behind and what they say now, the values
+* locked until the save unlocks them, and how often each channel has emitted.
 */
 export interface ChannelEmissionReport
 {
@@ -1487,6 +1496,9 @@ export interface CommcastMessageSendArgs
 * acknowledgement does.
 *
 * @category Command results
+* @categoryDescription Command results
+* The answers a command sends back when it has more to report than accepted or
+* refused, read by the screen that sent it.
 */
 export interface CommcastSendReceipt
 {
@@ -1720,6 +1732,12 @@ export enum CommsControlSource {
 * control link home right now. All three fields describe the same tick.
 *
 * @category Comms
+* @categoryDescription Comms
+* The link between a craft and the ground, as the comms backend in force
+* reports it: whether there is control, how strong and how degraded the signal
+* is, the routed network and its contact windows, the command centres and
+* their delays, and the commands still on their way. Read here for anything
+* that shows signal or delay, or says whether a command can get through.
 */
 export interface CommsConnectivity
 {
@@ -3361,6 +3379,11 @@ export interface SetVantage
 * remembered of the old one can be compared with it.
 *
 * @category Stream messages
+* @categoryDescription Stream messages
+* The messages a client and Gonogo exchange over the stream: the handshake,
+* subscriptions, data and event frames, command requests and their results and
+* refusal codes, and the meta that says how current and how good each value
+* is.
 */
 export interface Hello
 {
@@ -3785,6 +3808,10 @@ export enum FlightEndReason {
 * held.
 *
 * @category Flights
+* @categoryDescription Flights
+* A flight from launch to its end: which flight is active, the notices that
+* one started, ended or changed vessel, the recovery and crash reports that
+* close one, and whether a revert is still possible.
 */
 export interface FlightCurrent
 {
@@ -4638,6 +4665,9 @@ export interface MissionObjectiveEntry
 * off.
 *
 * @category Missions
+* @categoryDescription Missions
+* A Making History mission in the current game: whether one is running and how
+* far each of its objectives has got.
 */
 export interface MissionStatus
 {
@@ -4768,6 +4798,10 @@ export interface WriteModSettingArgs
 * is read and discarded. Every other command requires its args.
 *
 * @category Command arguments
+* @categoryDescription Command arguments
+* What each core command takes, one type per command or per family of commands
+* that share a shape, each naming the command ids it is sent with. Look a
+* command up here to see what it needs and which values it refuses.
 */
 export interface NoCommandArgs
 {
@@ -5884,6 +5918,12 @@ export interface ScetAlarmAction
 * channel is not delayed by light time.
 *
 * @category Alarms
+* @categoryDescription Alarms
+* Alarms that stop time warp when a time arrives or a value crosses a
+* threshold. The simulation host judges the ones set on the craft's own clock:
+* what each watches for, what the craft does when it fires, how far it has
+* got, and which Topics a threshold may be set against. Read here to arm, list
+* or react to an alarm.
 */
 export interface ScetAlarm
 {
@@ -6183,6 +6223,10 @@ export interface ScienceTransmission
 * and is `null` whenever the raw value is absent or non-finite.
 *
 * @category Science
+* @categoryDescription Science
+* Science aboard a craft and on the ground: stored results and the instruments
+* that take them, labs, sensors, deployed surface experiments, results being
+* transmitted, and the archive of every subject the career has studied.
 */
 export interface ExperimentEntry
 {
@@ -6780,6 +6824,11 @@ export interface ArchiveEntry
 * the command's reply.
 *
 * @category Mod settings
+* @categoryDescription Mod settings
+* Settings as the stream carries them: Gonogo's own, its Uplinks', and a host
+* mod's own settings read through its Uplink. Each row says what it may hold,
+* what it holds now and whether it can be written, and the model says whether
+* the settings file on the KSP machine agrees.
 */
 export interface SettingsModel
 {
@@ -7021,6 +7070,10 @@ export interface LaunchSiteEntry
 * (DelayRole.TrueNow): it is a fact about the game, not a craft.
 *
 * @category Space center
+* @categoryDescription Space center
+* The space centre between flights: the current scene, the launch sites and
+* points of interest, the saved craft in each editor, and the parts the player
+* can place.
 */
 export interface SpaceCenterScene
 {
@@ -7051,6 +7104,10 @@ export interface SpaceCenterScene
 * Held at the home command, like `LaunchSiteEntry`.
 *
 * @category Crew
+* @categoryDescription Crew
+* The kerbals: the roster and each one's standing, who is aboard a vessel or
+* out on EVA, and the applicants at the astronaut complex. Read here to list
+* crew or to say whether a kerbal is available, assigned, missing or dead.
 */
 export interface CrewRosterEntry
 {
@@ -7480,6 +7537,10 @@ export interface StageDeltaVSummary
 * envelope (`StreamData.Meta`), never the payload body.
 *
 * @category Solar system and fleet
+* @categoryDescription Solar system and fleet
+* The bodies of the solar system and every vessel in it: each body's figures,
+* atmosphere and orbit, the fleet roster, and each vessel's own link home,
+* contact and silence.
 */
 export interface SystemBodies
 {
@@ -8416,6 +8477,9 @@ export enum SettingKind {
 * implied by the shape itself.
 *
 * @category Units and values
+* @categoryDescription Units and values
+* How a number on the stream says what it measures: the unit each field is
+* declared in, and the vectors and quantities built from those units.
 */
 export interface Vec3
 {
@@ -9186,6 +9250,10 @@ export enum ManeuverFrame {
 * no mission time field: see `VesselIdentity.launchUt`.
 *
 * @category Vessel
+* @categoryDescription Vessel
+* The active vessel as a whole: its identity, flight state and attitude,
+* control and SAS, propulsion and ΔV by stage, resources, heat, landing,
+* structure and inventory. Most flight widgets read from here.
 */
 export interface VesselFlight
 {
@@ -9717,6 +9785,10 @@ export interface VesselManeuver
 * whole modelled orbit overlays those on the observed payload.
 *
 * @category Orbits and trajectories
+* @categoryDescription Orbits and trajectories
+* Where a craft is and where it is going: its orbit and patches, its manoeuvre
+* nodes, its target and closest approach, and how far ahead a predicted
+* trajectory can be trusted.
 */
 export interface VesselOrbit
 {
@@ -10013,6 +10085,11 @@ export interface VesselOrbitTruth
 * `vessel.thermal` carries a ready-made hottest-part rollup.
 *
 * @category Parts
+* @categoryDescription Parts
+* A vessel's parts one at a time: what each part is, its resources and
+* modules, the parts that make and store power, robotics, ISRU drills and
+* converters, and the right-click actions a part offers. Read here for
+* anything that names, lists or acts on a single part.
 */
 export interface VesselParts
 {
@@ -10847,6 +10924,9 @@ export enum WarpMode {
 * and Tracking Station as well as in flight, with or without an active vessel.
 *
 * @category Game
+* @categoryDescription Game
+* The running game rather than any craft in it: time warp and pause, the
+* calendar the save counts days in, and which expansions are installed.
 */
 export interface WarpState
 {

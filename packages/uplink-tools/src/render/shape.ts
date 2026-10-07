@@ -185,6 +185,9 @@ export interface AssetShape {
  * fresh render against.
  *
  * @category Shape records
+ * @categoryDescription Shape records
+ * The recorded shape of every rendered picture, which lets the page check tell
+ * a page that no longer matches the code without comparing pixels.
  */
 export interface ShapeRecord {
   /** Bumped when the admissible set changes, so an old record is not compared

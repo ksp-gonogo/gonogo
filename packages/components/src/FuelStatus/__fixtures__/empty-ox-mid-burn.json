@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Mid-burn with the oxidizer gone while liquid fuel remains, the empty oxidizer bar still shown.",
     "scenario": "empty-ox-mid-burn",
     "notes": "Mid-burn with oxidizer completely exhausted (LF/Ox imbalance after partial engine failure). Current-stage Oxidizer bar at 0% but max>0 so still shown. LiquidFuel still has ~40% remaining. Tests bar fill at 0% (empty bar visible but not hidden), partial TWR degradation. Two stages with the lander still intact."
   },

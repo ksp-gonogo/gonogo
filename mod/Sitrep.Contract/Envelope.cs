@@ -403,6 +403,11 @@ public class SetVantage
 /// it.</para>
 /// </summary>
 /// <category>Stream messages</category>
+/// <categoryDescription>
+/// The messages a client and Gonogo exchange over the stream: the handshake,
+/// subscriptions, data and event frames, command requests and their results and
+/// refusal codes, and the meta that says how current and how good each value is.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

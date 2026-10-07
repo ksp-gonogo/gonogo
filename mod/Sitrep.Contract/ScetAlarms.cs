@@ -356,6 +356,13 @@ public class ScetAlarmAction
 /// </internal>
 /// </summary>
 /// <category>Alarms</category>
+/// <categoryDescription>
+/// Alarms that stop time warp when a time arrives or a value crosses a threshold.
+/// The simulation host judges the ones set on the craft's own clock: what each
+/// watches for, what the craft does when it fires, how far it has got, and which
+/// Topics a threshold may be set against. Read here to arm, list or react to an
+/// alarm.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("alarm.scet", isArray: true)]
 #if SITREP_CODEGEN

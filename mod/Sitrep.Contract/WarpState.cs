@@ -46,6 +46,10 @@ public enum WarpMode
 /// </internal>
 /// </summary>
 /// <category>Game</category>
+/// <categoryDescription>
+/// The running game rather than any craft in it: time warp and pause, the calendar
+/// the save counts days in, and which expansions are installed.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

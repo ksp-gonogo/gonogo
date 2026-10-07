@@ -69,6 +69,9 @@ export interface StreamFixture {
  * it.
  *
  * @category Stream fixture
+ * @categoryDescription Stream fixture
+ * Running a widget against a scripted stream in a test: a real telemetry client
+ * over a stub transport, the values it delivers, and the commands it records.
  */
 export function setupStreamFixture(
   opts: StreamFixtureOptions = {},

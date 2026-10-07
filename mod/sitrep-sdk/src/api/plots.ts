@@ -122,6 +122,10 @@ export interface PlotFrame {
  * contribution.
  *
  * @category Plots
+ * @categoryDescription Plots
+ * Contributing to a plot: the subject a plot is of, the frame its axes are
+ * drawn in, and the layers (series, markers, regions, rules, relief and
+ * captions) a contribution draws onto it.
  */
 export interface PlotEntry {
   /**

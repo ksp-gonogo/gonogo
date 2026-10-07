@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Mid-ascent with the active stage's fuel almost gone and the lander stage still full.",
     "scenario": "ascent-stage-drained",
     "notes": "Mid-ascent: active stage 1 LF/Ox almost completely consumed. Stage 2 already separated, so its \u0394V is irrelevant (very small). Stage 1 bar will be nearly empty; stage 0 lander still full. Tests the active-stage highlight (\u25b6 marker) and near-zero bar fill."
   },

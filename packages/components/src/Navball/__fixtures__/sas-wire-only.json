@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The steep westward dive, SAS holding retrograde, with the SAS mode named from its number in the stream alone.",
     "notes": "The steep-dive-west scene with the legacy flat SAS-mode string removed, so the mode can only be named from the wire's vessel.control.sasMode ordinal. Every other Navball scene carries both spellings, which name the same mode, so a widget reading the flat key again would render identically to one reading the wire; here it would lose the mode's name.",
     "scenario": "sas-wire-only"
   },

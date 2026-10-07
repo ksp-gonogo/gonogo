@@ -43,6 +43,12 @@ namespace Sitrep.Contract.Serialization
     /// </internal>
     /// </summary>
     /// <category>Serialization</category>
+    /// <categoryDescription>
+    /// How a value becomes bytes on the stream: the envelope and binary frame
+    /// codecs, the attributes that give a payload field its unit, its frame and its
+    /// omitted-when-null rule, and the unit and frame tables the client SDK reads
+    /// them from.
+    /// </categoryDescription>
     public static class EnvelopeCodec
     {
         /// <summary>Serializes a <see cref="Meta"/> block as a JSON object.

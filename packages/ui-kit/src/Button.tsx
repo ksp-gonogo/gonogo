@@ -80,6 +80,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * ```
  *
  * @category Button
+ * @categoryDescription Button
+ * Buttons for things that happen on this screen: plain, icon and text buttons,
+ * toggles, groups, and a button that fits its label to the space it has. A
+ * button that sends a command to the game is a {@link CommandButton}.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(

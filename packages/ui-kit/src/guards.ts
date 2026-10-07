@@ -271,6 +271,9 @@ export function findHandTypedUnits(
  * ```
  *
  * @category Testing
+ * @categoryDescription Testing
+ * Checks that a widget never types a unit symbol by hand, so every unit it
+ * shows comes from the value it describes.
  */
 export function expectNoHandTypedUnits(
   options: HandTypedUnitOptions = {},

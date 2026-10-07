@@ -48,6 +48,9 @@ const Readout__Box = styled.div<{ $size: ReadoutSize; $tone: Tone }>`
  * Pair with {@link ReadoutCaption} for an optional sub-label.
  *
  * @category Readout
+ * @categoryDescription Readout
+ * Figures that stand on their own: the bold display readout, a labelled stat, a
+ * data line, and the stats contributed to a widget.
  */
 export function Readout({
   size = "inline",

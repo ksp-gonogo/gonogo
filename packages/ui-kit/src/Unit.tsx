@@ -322,6 +322,11 @@ function UnitSymbol({
  * ```
  *
  * @category Unit
+ * @categoryDescription Unit
+ * Drawing a quantity: a value with its unit, formatted the same way everywhere,
+ * marked when it is held or reckoned instead of current, with bands for a
+ * figure known only within limits and the null token for no value. Every number
+ * with a unit is drawn through a {@link Unit}.
  */
 export function Unit<UnitSymbol extends string = string>({
   value,

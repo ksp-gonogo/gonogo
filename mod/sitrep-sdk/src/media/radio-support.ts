@@ -126,6 +126,9 @@ export function radioSupportStatus(): RadioSupport {
  *  not.
  *
  * @category Radio
+ * @categoryDescription Radio
+ * Whether this browser can carry live push-to-talk radio, and the audio
+ * settings the radio encodes and decodes with.
  */
 export function isRadioSupported(): boolean {
   return radioSupportStatus().supported;

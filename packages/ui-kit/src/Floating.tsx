@@ -63,6 +63,9 @@ export interface FloatingProps extends HTMLAttributes<HTMLDivElement> {
  * ```
  *
  * @category Floating
+ * @categoryDescription Floating
+ * Layers drawn over the page instead of inside a widget: tooltips, hover cards
+ * and anchored menus, placed against the viewport so no panel clips them.
  */
 export function Floating({ anchor, style, children, ...rest }: FloatingProps) {
   const [host, setHost] = useState<HTMLDivElement | null>(null);

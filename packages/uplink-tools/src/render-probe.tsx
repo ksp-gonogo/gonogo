@@ -161,6 +161,10 @@ export interface SceneEmit {
  * One frame-producing step in a motion scene.
  *
  * @category Scenes
+ * @categoryDescription Scenes
+ * What a scene is made of: the widget, augment or contribution it mounts, the
+ * payloads it feeds and the steps of a motion scene, built from a fixture, and
+ * the report of Topics a scene left unread.
  */
 export interface SceneStep {
   /** Emit onto the stream at the current clock. */
@@ -429,6 +433,8 @@ export interface UplinkCompat {
  * One refusal refinement as the page lists it.
  *
  * @category Error codes
+ * @categoryDescription Error codes
+ * The refusal codes an Uplink declares, as its page lists them.
  */
 export interface InventoryErrorCode {
   id: string;
@@ -704,6 +710,9 @@ let activeSetup: RenderSetup = {};
  * Register the Uplink's own browser-side glue. Call once, at module scope.
  *
  * @category Probe setup
+ * @categoryDescription Probe setup
+ * The browser-side setup an Uplink registers so the renderer can mount its
+ * widgets, and the size audit the renderer runs on each one.
  */
 export function defineRenderSetup(setup: RenderSetup): RenderSetup {
   activeSetup = setup;

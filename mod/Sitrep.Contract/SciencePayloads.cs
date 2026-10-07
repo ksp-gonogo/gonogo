@@ -63,6 +63,11 @@ public static class ScienceValueModels
 /// </internal>
 /// </summary>
 /// <category>Science</category>
+/// <categoryDescription>
+/// Science aboard a craft and on the ground: stored results and the instruments
+/// that take them, labs, sensors, deployed surface experiments, results being
+/// transmitted, and the archive of every subject the career has studied.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("science.experiments", isArray: true)]
 #if SITREP_CODEGEN

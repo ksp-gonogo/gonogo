@@ -56,6 +56,10 @@ import { forwardRef } from "react";
  * reaches the `svg` element.
  *
  * @category Icons
+ * @categoryDescription Icons
+ * The icon set: each icon takes its text colour and the control size unless
+ * told otherwise, and is hidden from assistive technology unless it is given a
+ * label.
  */
 export interface IconProps extends LucideProps {
   /**

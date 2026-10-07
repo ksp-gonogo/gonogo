@@ -96,6 +96,10 @@ export const ENUM_NAME_TABLES: ReadonlyArray<{
  * Show nothing for `undefined`, as for a value that has not arrived.
  *
  * @category Enum names
+ * @categoryDescription Enum names
+ * The names behind the numbered enums the stream sends, KSP's and the
+ * contract's own, so a widget can show or switch on a name instead of an
+ * ordinal.
  */
 export function enumNameOf<EnumName extends string>(
   names: readonly string[],

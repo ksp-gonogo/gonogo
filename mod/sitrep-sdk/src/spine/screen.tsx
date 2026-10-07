@@ -36,6 +36,10 @@ export function ScreenProvider({
  * a test.
  *
  * @category Host and runtime
+ * @categoryDescription Host and runtime
+ * The app a widget is running in: which screen and seat it sits on, the host
+ * and its versions, the health each Uplink reports, and the relay and ICE
+ * servers a station connects through.
  */
 export function useScreen(): Screen {
   return useContext(ScreenContext) ?? "main";

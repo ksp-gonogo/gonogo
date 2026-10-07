@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The eastward gravity turn under a 1.6 second signal delay, with the throttle's commands shown crossing the link.",
     "notes": "Same gravity-turn attitude as gravity-turn-east, plus a 1.6s one-way comms delay so the control surface's ControlDelayStream (throttle axis) actually renders instead of self-hiding: anchors the sparkline's dividers/ramp/fills in the visual gate.",
     "scenario": "control-delay"
   },

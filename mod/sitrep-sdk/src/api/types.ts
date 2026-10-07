@@ -87,6 +87,36 @@ export interface ActionInputPayload {
  * an operator can bind to a key, button or axis.
  *
  * @category Actions
+ * @categoryDescription Actions
+ * The things a widget can be told to do from outside its own controls: the
+ * actions it declares, the handlers that carry them out, and the payload an
+ * operator's key, button or analog input arrives with. Read here to make a
+ * widget drivable from a keyboard or a physical panel.
+ *
+ * @concept Action and binding
+ * An action is something a widget can be told to do by an input the operator
+ * holds, such as a key, a controller button or an analog axis. The widget
+ * declares its actions in {@link ComponentDefinition.actions}, each an
+ * {@link ActionDefinition} saying which kinds of input
+ * ({@link ActionInputKind}) may drive it, and handles them with
+ * {@link useActionInput}.
+ *
+ * A binding connects one input of one device to one action of one placed
+ * widget. The operator makes it on the widget's Inputs tab, and it is saved
+ * with that widget. A device belongs to the screen it is plugged into, and its
+ * inputs never reach another screen. The keyboard is always present, so any
+ * action can be bound to a key.
+ *
+ * - an action is not a command: an action runs the widget's own handler on this
+ *   screen. Whatever that handler sends to the game goes through
+ *   {@link useCommand} and its delay like any other command
+ * - an action is not a binding: the widget owns the action and its id, and the
+ *   operator owns the binding. Keep an action's id stable, because saved
+ *   bindings refer to it
+ *
+ * A handler receives an {@link ActionInputPayload}, and what it returns is sent
+ * back to the device that fired it, for a control panel with a display of its
+ * own.
  */
 export interface ActionDefinition {
   /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. Any string will do: the built-in widgets use `camelCase` in some and `kebab-case` in others, and neither is required. */
@@ -1017,6 +1047,31 @@ export interface SizeDelta {
  *   with a retry, as it does for an error of its own.
  *
  * @category Extensions
+ *
+ * @concept Augment, contribution and slot
+ * A slot is a named place a widget opens to other Uplinks,
+ * `<componentId>.<segment>`, such as `"crew-status.badges"`. A widget lists the
+ * slots it draws in {@link ComponentDefinition.augmentSlots} and
+ * {@link ComponentDefinition.contributionSlots}, and every widget drawn in a
+ * Panel carries a sections, an actions and a badges slot without declaring
+ * them. An Uplink fills a slot in one of two ways, and the two are not
+ * interchangeable:
+ *
+ * - an augment draws: it is a component, registered with
+ *   {@link registerAugment} as an {@link AugmentDefinition}, that the widget
+ *   renders as a child where it places the slot. It receives the slot's props
+ *   ({@link SlotProps}) and reads any Topic it needs with {@link useTelemetry},
+ *   as a widget does
+ * - a contribution hands over data and never draws: it is a
+ *   {@link ContributionDefinition} whose `compute` receives the payloads of the
+ *   Topics it names in `deps` and returns entries, which the widget draws in
+ *   its own style. Its inputs are bare payloads, not readings, so nothing in
+ *   them says a value is held, and only the highest priority band registered to
+ *   a slot runs
+ *
+ * Both may name a Domain in `requires` and then appear only while that Domain
+ * is present. {@link SlotRegistry} and {@link ContributionSlotId} type the slot
+ * ids, so a misspelled slot does not compile.
  */
 export interface AugmentDefinition<Slot extends string = string> {
   /** Stable id, unique across every Uplink. Registering the same id again replaces the earlier augment. */
@@ -1417,6 +1472,24 @@ export interface DataSource<
  * on each, as the GO/NO-GO poll does.
  *
  * @category Host and runtime
+ *
+ * @concept Station and main screen
+ * Every page of the app is one of three screens ({@link Screen}), and which one
+ * is a matter of how it is wired, not what the operator does there:
+ *
+ * - the main screen (`"main"`) is the one connection to the game. It reads the
+ *   stream from the mod and passes it on to every station
+ * - a station (`"station"`) is fed by the main screen over a peer connection
+ *   and never talks to the game itself. Its layout lives in the browser it runs
+ *   in
+ * - the pilot screen (`"pilot"`) connects to the game from aboard the craft and
+ *   passes nothing on
+ *
+ * A widget asks with {@link useScreen} and may draw differently on each, as a
+ * GO/NO-GO poll does. The screen is not the seat: main and station screens both
+ * put the operator at mission control, and only the pilot screen puts them
+ * aboard ({@link Seat}, {@link seatOf}). Rules about signal delay follow the
+ * seat.
  */
 export type Screen = "main" | "station" | "pilot";
 
@@ -1426,6 +1499,32 @@ export type Screen = "main" | "station" | "pilot";
  * signal delay both depend on the seat.
  *
  * @category Host and runtime
+ *
+ * @concept Domain and seat
+ * A Domain is a family of Topics named by the first segment of their ids, such
+ * as `vessel`, `career` or an Uplink's own prefix. A Domain an Uplink adds can
+ * come and go with its mod, and it counts as present from the first value its
+ * `<domain>.available` Topic delivers. An augment, a contribution or a map
+ * point provider that names a Domain in `requires` appears only while that
+ * Domain is present.
+ *
+ * A seat is where the operator sits: at mission control, or aboard the craft as
+ * the pilot ({@link Seat}). It is worked out from the screen ({@link seatOf}),
+ * and every rule that cares about light-time is a rule about the seat, never
+ * about the screen.
+ *
+ * The two meet in {@link ComponentDefinition.seats}, which says at which seats
+ * a widget may be placed. When a widget leaves it out, the dashboard works it
+ * out from the Domains of the Topics the widget lists: a widget reading a Topic
+ * about the ground (the space centre, the career, recovery, and command centres
+ * other than the roster and their separation) stays at mission control, and
+ * every other widget, including one reading an Uplink's own Domain, is
+ * available aboard as well.
+ *
+ * - a seat is not a screen: a pilot on a peer-fed page is on a different screen
+ *   and in the same seat
+ * - a Domain is not a Topic: a widget lists Topics, and its seats and an
+ *   extension's presence follow from their Domains
  */
 export type Seat = "mission-control" | "pilot";
 

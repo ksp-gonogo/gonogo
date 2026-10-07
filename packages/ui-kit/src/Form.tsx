@@ -47,6 +47,10 @@ import { focusRing } from "./focusRing";
  * ```
  *
  * @category Form
+ * @categoryDescription Form
+ * Controls for entering values: labelled fields with hints, inputs and selects,
+ * a combobox, a date field on the game's calendar, a reference frame picker, a
+ * jog wheel and read-only fields. A widget's config form is built from these.
  */
 export const ConfigForm = styled.div<{ $boxed?: boolean }>`
   display: flex;

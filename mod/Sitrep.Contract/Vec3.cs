@@ -11,6 +11,10 @@ namespace Sitrep.Contract;
 /// never implied by the shape itself.
 /// </summary>
 /// <category>Units and values</category>
+/// <categoryDescription>
+/// How a number on the stream says what it measures: the unit each field is
+/// declared in, and the vectors and quantities built from those units.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

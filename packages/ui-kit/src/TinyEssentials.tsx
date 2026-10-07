@@ -45,6 +45,9 @@ export interface TinyEssentialsProps {
  * are dropped from the end, so every figure the tile shows is whole.
  *
  * @category TinyEssentials
+ * @categoryDescription TinyEssentials
+ * A widget's tiny form: the essential values it keeps at the smallest tile
+ * size, drawn the same way for every widget.
  */
 export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
   const [hero, ...rest] = essentials;

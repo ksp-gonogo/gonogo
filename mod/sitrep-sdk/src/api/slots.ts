@@ -510,6 +510,10 @@ export interface SystemOverlayContext {
  * `y = (wy - camera.panY) * camera.zoom + height / 2`.
  *
  * @category Widget slots
+ * @categoryDescription Widget slots
+ * The slots each core widget opens to Uplinks, and what each one passes in or
+ * expects back: the context an augment is drawn with, and the entry a
+ * contribution supplies. Find the widget you want to extend here.
  */
 export interface MapOverlayContext {
   /** Overlay width in pixels, the same as the map area. */

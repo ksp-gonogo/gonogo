@@ -22,6 +22,12 @@ namespace Sitrep.Contract;
 /// outcome here, never from the command's reply.</para>
 /// </summary>
 /// <category>Mod settings</category>
+/// <categoryDescription>
+/// Settings as the stream carries them: Gonogo's own, its Uplinks', and a host
+/// mod's own settings read through its Uplink. Each row says what it may hold, what
+/// it holds now and whether it can be written, and the model says whether the
+/// settings file on the KSP machine agrees.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

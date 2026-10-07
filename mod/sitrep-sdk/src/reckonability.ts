@@ -49,6 +49,11 @@ export type ReckonableFields<Topic extends TopicId> =
  * Returns whether `topic` has a declared forward model on any of its values.
  *
  * @category Reckoners
+ * @categoryDescription Reckoners
+ * The forward models that carry a value between observations: which Topics and
+ * fields can be reckoned, the inputs each model needs, and the Kepler and
+ * atmospheric reckoners that work out a value for now from the last one
+ * received.
  */
 export function isReckonableTopic(topic: string): topic is ReckonableTopic {
   return topic in GENERATED_RECKONABLE_FIELDS;

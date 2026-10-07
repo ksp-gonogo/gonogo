@@ -128,6 +128,10 @@ public class CommcastMessageSendArgs
 /// listener's acknowledgement does.
 /// </summary>
 /// <category>Command results</category>
+/// <categoryDescription>
+/// The answers a command sends back when it has more to report than accepted or
+/// refused, read by the screen that sent it.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

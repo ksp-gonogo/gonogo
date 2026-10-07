@@ -53,6 +53,11 @@ public enum FlightEndReason
 /// value is held.</para>
 /// </summary>
 /// <category>Flights</category>
+/// <categoryDescription>
+/// A flight from launch to its end: which flight is active, the notices that one
+/// started, ended or changed vessel, the recovery and crash reports that close one,
+/// and whether a revert is still possible.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

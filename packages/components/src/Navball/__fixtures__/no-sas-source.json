@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A craft with nothing aboard that can run SAS, so SAS cannot be turned on and the reason is shown beside the toggle.",
     "notes": "A craft with no SAS source (no Pilot aboard, no probe core with SAS), so the mod publishes sasAvailable false with its reason and the SAS toggle is held with the reason stated beside it. Turning SAS off stays possible, which a craft with SAS already on would show.",
     "scenario": "no-sas-source"
   },

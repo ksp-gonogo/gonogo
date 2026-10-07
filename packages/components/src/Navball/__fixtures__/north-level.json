@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Level flight heading due north.",
     "notes": "Heading discriminator for the strip-alignment fix. With heading=0 the only label near the pointer is '0' (next labels are 30\u00b0 away in either direction), so any residual offset between pointer and current-heading tick is unambiguous at a glance. Wings level, pitch level.",
     "scenario": "north-level"
   },

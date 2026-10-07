@@ -36,6 +36,12 @@ namespace Sitrep.Contract;
 /// </internal>
 /// </summary>
 /// <category>Career</category>
+/// <categoryDescription>
+/// The career save as a ground team sees it: funds, reputation and science,
+/// contracts, strategies, the tech tree and the space centre's buildings, and the
+/// events that move those balances. Read here before building anything that shows
+/// or spends a career resource.
+/// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("career.status")]
 #if SITREP_CODEGEN

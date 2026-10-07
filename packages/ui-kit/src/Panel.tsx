@@ -1210,8 +1210,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   inactive?: PanelInactiveReason;
   /**
    * The panel's body, as one or more sections: the preferred way to give a
-   * panel content. Each entry is normally a `Section`; Panel owns how they
-   * flow, down one column in a portrait tile and across two or three in a
+   * panel content. Each entry is normally a {@link Section}; Panel owns how
+   * they flow, down one column in a portrait tile and across two or three in a
    * landscape one. A single node is fine, and a conditional `null` entry does
    * not render.
    *
@@ -2043,9 +2043,9 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * (title plus a right-hand aside of controls and badges), a scrolling body
  * with a glow at whichever edge has more to scroll to, and optional toolbar,
  * sidebar, trend strip and footer. Give it content through `sections`: each
- * entry is normally a `Section`, and the panel flows them down one column in
- * a portrait tile and across two or three in a landscape one. A `Section fill`
- * takes the height left over. The panel also reserves a strip above the
+ * entry is normally a {@link Section}, and the panel flows them down one
+ * column in a portrait tile and across two or three in a landscape one. A
+ * `Section fill` takes the height left over. The panel also reserves a strip above the
  * header for the delay rail, which shows this widget's commands in flight.
  *
  * The header aside holds, in order, `panelAside`, the `actions` augments,
@@ -2063,8 +2063,8 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * - `${componentId}.sections`: an augment slot, bound with `registerAugment`.
  *   Each augment renders after everything the widget draws in its body; when
  *   the widget passes `sections`, each augment is its own item in the last
- *   section grid, so returning a `Section` flows it into a column beside the
- *   widget's own. Its component gets no props. A widget can move the slot with
+ *   section grid, so returning a {@link Section} flows it into a column
+ *   beside the widget's own. Its component gets no props. A widget can move the slot with
  *   {@link WidgetSections} and `panelSections={false}`
  * - `${componentId}.actions`: an augment slot for controls in the header
  *   aside, after `panelAside` and before the badges. Its component gets no
@@ -2175,6 +2175,11 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * ```
  *
  * @category Panel
+ * @categoryDescription Panel
+ * The frame every widget draws in and what hangs off it: the title, aside and
+ * badges, sections and scrolling, the states a widget reports, and the lock
+ * marks for what the save has not unlocked. Every widget starts from a
+ * {@link Panel}.
  */
 export const Panel = Object.assign(PanelRoot, {
   Context: PanelContextProvider,

@@ -27,6 +27,11 @@ namespace Sitrep.Contract;
 /// modelled orbit overlays those on the observed payload.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
+/// <categoryDescription>
+/// Where a craft is and where it is going: its orbit and patches, its manoeuvre
+/// nodes, its target and closest approach, and how far ahead a predicted trajectory
+/// can be trusted.
+/// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

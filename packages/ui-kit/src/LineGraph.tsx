@@ -292,6 +292,9 @@ function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
  * ```
  *
  * @category LineGraph
+ * @categoryDescription LineGraph
+ * A value over time: a line graph with series and thresholds, and the notice a
+ * graph shows when it has nothing, or not enough, to draw.
  */
 export function LineGraph({
   series,
