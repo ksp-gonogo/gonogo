@@ -5,4 +5,15 @@
     <AssemblyName>Sitrep.Contract</AssemblyName>
   </PropertyGroup>
   <Import Project="..\CodegenTwin.props" />
+
+  <!-- The same contract stamp the shipped assembly carries. The twin rides in the
+       NuGet package's codegen folder, and the stamp is what lets a reader hold it
+       to the lib copies beside it without loading either. -->
+  <Import Project="..\Sitrep.Contract\ContractVersion.props" />
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SitrepContractVersion</_Parameter1>
+      <_Parameter2>$(ContractMajor).$(ContractMinor)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

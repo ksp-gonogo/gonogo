@@ -1,18 +1,22 @@
 /**
- * `uplink-tools new <id>`: the hand-written seed of a fresh Uplink.
+ * `uplink-tools new <id>`: the hand-written seed of a fresh Uplink, and then its
+ * generators, so the directory it leaves builds and tests.
  *
- * It emits only what an author writes. Everything a generator owns is left to
+ * It writes only what an author writes. Everything a generator owns is left to
  * that generator, so the scaffold cannot drift from the toolchain: the contract,
- * topic map and unit map come from the codegen twin, the page from `docs`, and
- * the three `.g.cs` files the plugin announces its client with from `bake`. The
- * scaffold runs `bake` itself, since the plugin does not compile without them,
- * and `tooling/codegen-uplink.mjs` when the repo carries it.
+ * topic map and unit map come from `codegen`, the page from the page check, and
+ * the three `.g.cs` files the plugin announces its client with from `bake`.
+ *
+ * The C# half reaches Gonogo through one NuGet package,
+ * `KspGonogo.Sitrep.Contract`, pinned to exactly this package's own version as
+ * the npm packages are: every published package carries the one release
+ * version.
  *
  * The widget is deliberately minimal. Copying a finished Uplink hands an author
  * someone else's demo to delete; an empty one that builds is a better start.
  */
 
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -23,7 +27,9 @@ import {
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { bakeUplink, describeBake } from "./bake";
+import { generate } from "./codegen";
 import { parseFlags } from "./flags";
+import { PLACEHOLDER_OWNER } from "./release";
 
 export interface SeedOptions {
   id: string;
@@ -31,6 +37,8 @@ export interface SeedOptions {
   author: string;
   repo: string;
   clientUrl: string;
+  /** The version of the `KspGonogo.Sitrep.Contract` NuGet package every C# project references. */
+  contractVersion: string;
   dependencies: Readonly<Record<string, string>>;
   devDependencies: Readonly<Record<string, string>>;
 }
@@ -59,6 +67,11 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
   const json = (value: unknown): string =>
     `${JSON.stringify(value, null, 2)}\n`;
   const files = new Map<string, string>();
+  // Exact, in NuGet's range syntax: a bare version there means "this or anything newer".
+  const contractPackage = (attributes: string): string =>
+    `<PackageReference Include="KspGonogo.Sitrep.Contract" Version="[${o.contractVersion}]"${attributes} />`;
+  const referenceAssemblies = `<!-- The .NET Framework reference assemblies, so net48 compiles on macOS and Linux. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />`;
 
   files.set(
     "uplink.json",
@@ -98,12 +111,14 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
       },
       scripts: {
-        build: "tsc -p tsconfig.json",
         test: "vitest run",
         typecheck:
           "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.nodenext.json",
+        codegen: "uplink-tools codegen",
+        "codegen:check": "uplink-tools codegen --check",
         bundle: "uplink-tools bundle",
         bake: `uplink-tools bake --bundle dist/${id}/${id}.client.js`,
+        release: "uplink-tools release",
         render: "uplink-tools render",
         docs: "uplink-tools docs",
         "docs:check": "uplink-tools docs --check",
@@ -167,7 +182,8 @@ export default defineConfig({
 integrates and what someone has to install first.
 
 Everything else on the generated page is derived from your registrations, your
-contract slice and your fixtures. Run \`npm run docs\` and commit what it writes.
+contract slice and your fixtures. Run \`GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run\`
+(or \`npm run docs\`, which also renders the pictures) and commit what it writes.
 
 ## widget:${widgetId}
 
@@ -381,12 +397,11 @@ describe("the generated Uplink page", () => {
     <RootNamespace>${ns}</RootNamespace>
   </PropertyGroup>
 
-  <!-- Private="false": GonogoCore provides Sitrep.Contract.dll at runtime, and two
+  <!-- IncludeAssets="compile": GonogoCore provides Sitrep.Contract.dll at runtime, and two
        copies of one assembly identity are two sets of types that do not compare equal. -->
   <ItemGroup>
-    <Reference Include="Sitrep.Contract" Private="false">
-      <HintPath>$(GonogoContract)\\netstandard2.0\\Sitrep.Contract.dll</HintPath>
-    </Reference>
+    ${contractPackage(' IncludeAssets="compile" PrivateAssets="all"')}
+    ${referenceAssemblies}
   </ItemGroup>
 </Project>
 `,
@@ -475,19 +490,28 @@ public static class ${Id}RtConfig
     `mod-contract-codegen/${ns}.Contract.Codegen.csproj`,
     `<Project Sdk="Microsoft.NET.Sdk">
   <!-- Codegen-only twin of the contract slice: the same sources recompiled with
-       SITREP_CODEGEN defined. Nothing references it and nothing ships it. -->
+       SITREP_CODEGEN defined. Nothing references it and nothing ships it.
+
+       It is built only by \`uplink-tools codegen\`, which passes GonogoCodegen: the
+       folder of the KspGonogo.Sitrep.Contract package holding the contract's own
+       twin and the props every twin takes its shape from. -->
   <PropertyGroup>
     <CodegenTwinSource>..\\mod-contract</CodegenTwinSource>
     <AssemblyName>${ns}.Contract</AssemblyName>
     <RootNamespace>${ns}</RootNamespace>
+    <TargetFramework Condition="'$(GonogoCodegen)' == ''">netstandard2.0</TargetFramework>
   </PropertyGroup>
-  <Import Project="$(GonogoContract)\\CodegenTwin.props" />
+  <Import Project="$(GonogoCodegen)\\CodegenTwin.props" Condition="'$(GonogoCodegen)' != ''" />
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(GonogoCodegen)' != ''">
     <Reference Include="Sitrep.Contract">
-      <HintPath>$(GonogoContract)\\codegen\\Sitrep.Contract.dll</HintPath>
+      <HintPath>$(GonogoCodegen)\\Sitrep.Contract.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <Target Name="RequireCodegenCommand" BeforeTargets="CoreCompile" Condition="'$(GonogoCodegen)' == ''">
+    <Error Text="This project is the contract slice's codegen twin, and only one command builds it: npx uplink-tools codegen" />
+  </Target>
 </Project>
 `,
   );
@@ -497,7 +521,7 @@ public static class ${Id}RtConfig
     `<Project Sdk="Microsoft.NET.Sdk">
   <!-- The plugin assembly, net48 to match what KSP loads. It reads only the shared
        KspSnapshot, so it has no KSP or Unity reference. An Uplink that needs a live
-       API adds a $(KspManaged) reference here. -->
+       API adds one here, with a HintPath under $(KspManaged) and Private="false". -->
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>12</LangVersion>
@@ -508,10 +532,11 @@ public static class ${Id}RtConfig
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
+  <!-- IncludeAssets="compile": compiled against and never copied to the output,
+       because GonogoCore provides Sitrep.Contract.dll at runtime. -->
   <ItemGroup>
-    <Reference Include="Sitrep.Contract" Private="false">
-      <HintPath>$(GonogoContract)\\net472\\Sitrep.Contract.dll</HintPath>
-    </Reference>
+    ${contractPackage(' IncludeAssets="compile" PrivateAssets="all"')}
+    ${referenceAssemblies}
   </ItemGroup>
 
   <ItemGroup>
@@ -677,15 +702,11 @@ namespace ${ns}
     <Compile Include="..\\mod\\*.cs" />
   </ItemGroup>
 
+  <!-- For a test project the package also carries Sitrep.Contract.TestSupport
+       (fakes and rule assertions) and the real delay engine behind it. -->
   <ItemGroup>
-    <Reference Include="Sitrep.Contract">
-      <HintPath>$(GonogoContract)\\netstandard2.0\\Sitrep.Contract.dll</HintPath>
-    </Reference>
+    ${contractPackage("")}
     <ProjectReference Include="..\\mod-contract\\${ns}.Contract.csproj" />
-    <Reference Include="Sitrep.Contract.TestSupport">
-      <HintPath>$(GonogoDevkit)\\Sitrep.Contract.TestSupport.dll</HintPath>
-    </Reference>
-    <PackageReference Include="xunit.assert" Version="2.9.2" />
   </ItemGroup>
 
   <Target Name="RequireBakedClientSource" BeforeTargets="CoreCompile">
@@ -827,7 +848,8 @@ const asStrings = (value: unknown): Record<string, string> =>
  * What a sibling Uplink in the same repo already pins, or `undefined` when there
  * is none. A repo that vendors its packages by `file:` tarball pins them
  * identically for every client, and a new one has to pin the same bytes: a
- * floating range would move it independently of the rest.
+ * floating range would move it independently of the rest. The contract package
+ * is read the same way, from the sibling's plugin project.
  */
 function inheritFromSibling(uplinksDir: string, id: string) {
   if (!existsSync(uplinksDir)) return undefined;
@@ -840,12 +862,24 @@ function inheritFromSibling(uplinksDir: string, id: string) {
     const declared = asRecord(JSON.parse(readFileSync(decl, "utf8")));
     const siblingId = String(declared.id ?? sibling);
     const url = String(asRecord(declared.client).url ?? "");
+    const project = join(
+      uplinksDir,
+      sibling,
+      "mod",
+      `${String(declared.gamedata ?? "")}.csproj`,
+    );
+    const contractVersion = existsSync(project)
+      ? /Include="KspGonogo\.Sitrep\.Contract"\s+Version="\[?([^"\]]+)\]?"/.exec(
+          readFileSync(project, "utf8"),
+        )?.[1]
+      : undefined;
     return {
       dependencies: asStrings(parsed.dependencies),
       devDependencies: asStrings(parsed.devDependencies),
       repo: String(declared.repo ?? ""),
       author: String(declared.author ?? ""),
       clientUrl: url.split(siblingId).join(id),
+      contractVersion,
     };
   }
   return undefined;
@@ -853,20 +887,26 @@ function inheritFromSibling(uplinksDir: string, id: string) {
 
 export const NEW_USAGE = `uplink-tools new <id> [options]
 
-  Scaffold a fresh Uplink: the hand-written seed only (contract slice, plugin,
-  tests, a minimal widget and its fixture). Generated files are left to their
-  generators, so nothing here can drift from the toolchain. It runs bake once,
-  because the plugin does not compile without the files bake writes.
+  Scaffold a fresh Uplink and leave it building: the hand-written seed (contract
+  slice, plugin, tests, a minimal widget and its fixture), then its generators.
+  After writing the files it bakes what the plugin announces, generates the
+  client's types (needs the .NET SDK), installs the client's dependencies and
+  writes the generated page.
 
   Where it goes:
     in a repo with an uplinks/ folder   uplinks/<id>/, pinned like its siblings
     anywhere else                       the current directory, which becomes
                                         the Uplink's own repo
 
-  --dir <dir>      put it in <dir>/<id> instead, beside any Uplinks already there
-  --name <name>    the display name (default: the id, capitalised)
-  --author <name>  written to uplink.json and the netkan
-  --no-generate    do not run tooling/codegen-uplink.mjs afterwards`;
+  --dir <dir>            put it in <dir>/<id> instead, beside any Uplinks there
+  --name <name>          the display name (default: the id, capitalised)
+  --author <name>        written to uplink.json and the netkan
+  --repo <owner>/<name>  the GitHub repository it will live in. Sets where the
+                         released client bundle is fetched from; without it the
+                         URL is a placeholder that release refuses
+  --no-generate          do not generate the client's types
+  --no-install           do not install the client's dependencies, which also
+                         leaves the generated page unwritten`;
 
 /**
  * Where the seed goes, and whether it joins a folder of sibling Uplinks.
@@ -878,24 +918,127 @@ export const NEW_USAGE = `uplink-tools new <id> [options]
 function placement(cwd: string, dirFlag: string | undefined, id: string) {
   if (dirFlag !== undefined || existsSync(resolve(cwd, "uplinks"))) {
     const uplinksDir = resolve(cwd, dirFlag ?? "uplinks");
-    return {
-      target: join(uplinksDir, id),
-      uplinksDir,
-      repoRoot: dirname(uplinksDir),
-    };
+    return { target: join(uplinksDir, id), uplinksDir };
   }
-  const root = resolve(cwd);
-  return { target: root, uplinksDir: undefined, repoRoot: root };
+  return { target: resolve(cwd), uplinksDir: undefined };
 }
 
-/** What a repo that IS one Uplink keeps out of git: installs, builds, local renders, the .NET output and what bake writes. */
+/** What a repo that IS one Uplink keeps out of git: installs, builds, local renders, the .NET output, what bake writes and where this machine's KSP is. */
 const SINGLE_REPO_GITIGNORE = `node_modules/
 dist/
 renders/
 bin/
 obj/
 *.g.cs
+ksp.local.props
 `;
+
+/**
+ * Where the game is, for a plugin that references its assemblies.
+ *
+ * The scaffold's plugin references none, so nothing here is read until an
+ * author adds one. The game's assemblies are theirs: these files name a
+ * location and never copy from it.
+ */
+const SINGLE_REPO_BUILD_PROPS = `<Project>
+  <!-- Where your KSP install is, for a plugin that references the game's own
+       assemblies (Assembly-CSharp, UnityEngine and the rest). The scaffold's
+       heartbeat references none, so none of this is read until you add one:
+
+         <Reference Include="Assembly-CSharp" Private="false">
+           <HintPath>$(KspManaged)/Assembly-CSharp.dll</HintPath>
+         </Reference>
+
+       KspRoot is the folder that holds KSP_Data (or KSP.app on macOS) and
+       GameData. It comes from, in order: -p:KspRoot=... on the command line,
+       the KSP_ROOT environment variable, then ksp.local.props beside this file,
+       which is yours and kept out of git:
+
+         <Project><PropertyGroup><KspRoot>/path/to/KSP</KspRoot></PropertyGroup></Project>
+  -->
+  <PropertyGroup>
+    <KspRoot Condition="'$(KspRoot)' == ''">$(KSP_ROOT)</KspRoot>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)ksp.local.props"
+          Condition="'$(KspRoot)' == '' And Exists('$(MSBuildThisFileDirectory)ksp.local.props')" />
+  <PropertyGroup>
+    <KspRoot Condition="'$(KspRoot)' == ''">KSP_ROOT-is-not-set</KspRoot>
+    <KspManaged Condition="'$(KspManaged)' == '' And Exists('$(KspRoot)/KSP.app/Contents/Resources/Data/Managed')">$(KspRoot)/KSP.app/Contents/Resources/Data/Managed</KspManaged>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(KspRoot)/KSP_Data/Managed</KspManaged>
+    <KspGameData Condition="'$(KspGameData)' == ''">$(KspRoot)/GameData</KspGameData>
+  </PropertyGroup>
+</Project>
+`;
+
+const SINGLE_REPO_BUILD_TARGETS = `<Project>
+  <!-- Says what is wrong when a project references the game and the game was not
+       found, instead of leaving it to a page of "type or namespace not found".
+       A project with no reference under $(KspManaged) or $(KspGameData) is never
+       asked where KSP is. -->
+  <Target Name="RequireKspInstall" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <_KspReference Include="@(Reference)"
+                     Condition="'%(Reference.HintPath)' != '' And ($([System.String]::Copy('%(Reference.HintPath)').StartsWith('$(KspManaged)')) Or $([System.String]::Copy('%(Reference.HintPath)').StartsWith('$(KspGameData)')))" />
+      <_MissingKspReference Include="@(_KspReference)" Condition="!Exists('%(_KspReference.HintPath)')" />
+    </ItemGroup>
+    <Error Condition="'@(_MissingKspReference)' != '' And '$(KspRoot)' == 'KSP_ROOT-is-not-set'"
+           Text="This project references the game's assemblies (@(_MissingKspReference)) and does not know where KSP is. Set the KSP_ROOT environment variable to your KSP install, the folder holding KSP_Data and GameData, or pass -p:KspRoot=&lt;that folder&gt;. Directory.Build.props has the detail." />
+    <Error Condition="'@(_MissingKspReference)' != '' And '$(KspRoot)' != 'KSP_ROOT-is-not-set'"
+           Text="KspRoot is $(KspRoot), and these referenced assemblies are not under it: @(_MissingKspReference->'%(HintPath)'). KspRoot must be the folder holding KSP_Data (or KSP.app) and GameData." />
+  </Target>
+</Project>
+`;
+
+/** `owner/name`, from that or from a GitHub URL of the repository. */
+function parseRepo(value: string): { owner: string; name: string } {
+  const match =
+    /^(?:https?:\/\/github\.com\/)?([A-Za-z0-9][A-Za-z0-9-]*)\/([A-Za-z0-9._-]+?)(?:\.git)?\/?$/.exec(
+      value,
+    );
+  if (!match) {
+    throw new Error(
+      `--repo "${value}" is not a GitHub repository. Give it as <owner>/<name>.`,
+    );
+  }
+  return { owner: match[1], name: match[2] };
+}
+
+/** Runs one of the scaffold's follow-on steps, and reports a failure as something left to do rather than as a crash. */
+function attempt(
+  label: string,
+  command: string,
+  run: () => void,
+): string | undefined {
+  console.log(`\n== ${label}`);
+  try {
+    run();
+    return undefined;
+  } catch (err) {
+    const reason = (err instanceof Error ? err.message : String(err)).trim();
+    console.error(`\n${label} did not finish: ${reason}`);
+    return `${label} did not finish. Once that is put right: ${command}`;
+  }
+}
+
+function shell(command: string, args: readonly string[], cwd: string): void {
+  const result = spawnSync(command, args, {
+    cwd,
+    stdio: "inherit",
+    env: { ...process.env, GONOGO_UPLINK_PAGE_UPDATE: "1" },
+    // npm and npx are batch files on Windows, which only a shell can start.
+    shell: process.platform === "win32",
+  });
+  if (result.error) {
+    throw new Error(
+      Reflect.get(result.error, "code") === "ENOENT"
+        ? `${command} is not on PATH`
+        : result.error.message,
+    );
+  }
+  if (result.status !== 0) {
+    throw new Error(`\`${command} ${args.join(" ")}\` exited ${result.status}`);
+  }
+}
 
 export function newUplink(
   argv: readonly string[],
@@ -904,8 +1047,8 @@ export function newUplink(
   const { values, switches, positionals } = parseFlags(argv, {
     verb: "new",
     usage: NEW_USAGE,
-    values: ["--dir", "--name", "--author"],
-    switches: ["--no-generate"],
+    values: ["--dir", "--name", "--author", "--repo"],
+    switches: ["--no-generate", "--no-install"],
     positionals: 1,
   });
   const id = positionals[0];
@@ -913,11 +1056,7 @@ export function newUplink(
   const invalid = validateUplinkId(id);
   if (invalid) throw new Error(invalid);
 
-  const { target, uplinksDir, repoRoot } = placement(
-    cwd,
-    values.get("--dir"),
-    id,
-  );
+  const { target, uplinksDir } = placement(cwd, values.get("--dir"), id);
   if (uplinksDir !== undefined && existsSync(target)) {
     throw new Error(
       `${target} already exists. new never overwrites: remove it or pick another id.`,
@@ -925,24 +1064,32 @@ export function newUplink(
   }
 
   const inherited = uplinksDir ? inheritFromSibling(uplinksDir, id) : undefined;
-  const repo = uplinksDir
-    ? "https://github.com/you/your-uplinks"
-    : `https://github.com/you/${id}`;
+  const repoFlag = values.get("--repo");
+  const named = repoFlag === undefined ? undefined : parseRepo(repoFlag);
+  const owner = named?.owner ?? PLACEHOLDER_OWNER;
+  const repoName = named?.name ?? (uplinksDir ? "your-uplinks" : id);
+  // A repo of several Uplinks publishes each under its own folder of the releases branch.
+  const releasesPath = uplinksDir ? "uplinks/releases" : "releases";
+  const derivedUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@releases/${releasesPath}/${id}/0.0.1/${id}.client.js`;
+  const clientUrl = named ? derivedUrl : (inherited?.clientUrl ?? derivedUrl);
   const files = renderSeed({
     id,
     name: values.get("--name") ?? pascal(id),
     author: values.get("--author") ?? inherited?.author ?? "your name here",
-    repo: inherited?.repo ?? repo,
-    clientUrl:
-      inherited?.clientUrl ??
-      (uplinksDir
-        ? `https://cdn.jsdelivr.net/gh/you/your-uplinks@releases/uplinks/releases/${id}/0.0.1/${id}.client.js`
-        : `https://cdn.jsdelivr.net/gh/you/${id}@releases/releases/${id}/0.0.1/${id}.client.js`),
+    repo: named
+      ? `https://github.com/${owner}/${repoName}`
+      : (inherited?.repo ?? `https://github.com/${owner}/${repoName}`),
+    clientUrl,
+    contractVersion: inherited?.contractVersion ?? ownVersion(),
     dependencies: inherited?.dependencies ?? fallbackDependencies(ownVersion()),
     devDependencies:
       inherited?.devDependencies ?? fallbackDevDependencies(ownVersion()),
   });
-  if (!uplinksDir) files.set(".gitignore", SINGLE_REPO_GITIGNORE);
+  if (!uplinksDir) {
+    files.set(".gitignore", SINGLE_REPO_GITIGNORE);
+    files.set("Directory.Build.props", SINGLE_REPO_BUILD_PROPS);
+    files.set("Directory.Build.targets", SINGLE_REPO_BUILD_TARGETS);
+  }
 
   const clashes = [...files.keys()].filter((path) =>
     existsSync(join(target, path)),
@@ -962,28 +1109,75 @@ export function newUplink(
   console.log(`${id}: wrote ${files.size} files to ${target}`);
   console.log(describeBake(bakeUplink({ uplinkDir: target })));
 
-  const codegen = join(repoRoot, "tooling", "codegen-uplink.mjs");
-  const generated = !switches.has("--no-generate") && existsSync(codegen);
-  if (generated) {
-    execFileSync(process.execPath, [codegen, id], { stdio: "inherit" });
-  }
+  const clientDir = join(target, "client");
+  const client = relative(cwd, clientDir) || ".";
+  const inClient = (command: string) => `cd ${client} && ${command}`;
+  const pageCommand = inClient("GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run");
+  const unfinished: string[] = [];
+  const note = (failure: string | undefined) => {
+    if (failure !== undefined) unfinished.push(failure);
+    return failure === undefined;
+  };
 
-  const client = relative(cwd, join(target, "client"));
-  const todo = [
-    ...(generated
-      ? []
-      : [
-          "generate client/src/__generated__/ from the contract slice in mod-contract/ (tooling/codegen-uplink.mjs does it in a repo that carries it)",
-        ]),
-    ...(uplinksDir
-      ? []
-      : [
-          "point the MSBuild properties GonogoContract and GonogoDevkit at the Sitrep.Contract reference set before building mod/, mod-contract/ and mod-tests/",
-        ]),
-    `install the client's dependencies: cd ${client} && npm install`,
-    "write the generated page: `GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run` (no browser) or `npm run docs` (also renders the pictures), then commit what it writes",
-    `before installing the plugin in a game: \`npm run bundle\` then \`npm run bake\` in ${client}, and only then build mod/ in Release, so the plugin vouches for the bundle that ships`,
+  const generated = switches.has("--no-generate")
+    ? false
+    : note(
+        attempt(
+          "generate the client's types",
+          inClient("npx uplink-tools codegen"),
+          () => {
+            generate({ uplinkDir: target });
+          },
+        ),
+      );
+  const installed = switches.has("--no-install")
+    ? false
+    : note(
+        attempt(
+          "install the client's dependencies",
+          inClient("npm install"),
+          () => shell("npm", ["install"], clientDir),
+        ),
+      );
+  // The page is written by the client's own test run, which needs the install and compiles the generated types.
+  const paged =
+    generated &&
+    installed &&
+    note(
+      attempt("write the generated page", pageCommand, () =>
+        shell("npx", ["vitest", "run"], clientDir),
+      ),
+    );
+
+  const skipped = [
+    ...(switches.has("--no-generate")
+      ? [`generate the client's types: ${inClient("npx uplink-tools codegen")}`]
+      : []),
+    ...(switches.has("--no-install")
+      ? [`install the client's dependencies: ${inClient("npm install")}`]
+      : []),
+    ...(!paged && unfinished.length === 0
+      ? [`write the generated page, then commit it: ${pageCommand}`]
+      : []),
   ];
-  console.log(`\nNext:\n${todo.map((step) => `  - ${step}`).join("\n")}`);
-  return 0;
+  const yours = [
+    "say what it is for in client/uplink.md",
+    ...(named
+      ? []
+      : [
+          'set "repo" and "client.url" in uplink.json to where it will be published (or scaffold with --repo <owner>/<name>): release refuses the placeholder',
+        ]),
+    `prove both halves: ${inClient("npm test")}, and dotnet test ${relative(cwd, join(target, "mod-tests")) || "."}`,
+    `when it is ready to install in a game: ${inClient("npm run release")}, which bundles, bakes, compiles and zips in the order that makes the app load the client`,
+  ];
+  const section = (title: string, lines: readonly string[]) =>
+    lines.length === 0
+      ? ""
+      : `\n${title}\n${lines.map((line) => `  - ${line}`).join("\n")}\n`;
+  console.log(
+    section("Did not finish:", unfinished) +
+      section("Skipped, as asked:", skipped) +
+      section("Next:", yours),
+  );
+  return unfinished.length === 0 ? 0 : 1;
 }

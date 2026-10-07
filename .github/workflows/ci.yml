@@ -1028,17 +1028,60 @@ jobs:
           fi
           node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
 
-      # Whether an Uplink started with `uplink-tools new` reaches the dashboard.
-      # The scaffold is bundled, baked and built outside the repo, its plugin is
-      # loaded by the mod's own scan into a real stream engine, and the app reads
-      # that stream's roster and loads the client it names. Two planted faults
-      # must fail or the probe exits BLIND. The script's header has the rest.
-      - name: A scaffolded Uplink is announced by its plugin and loaded by the app
-        run: |
-          set -euo pipefail
-          # The command the probe runs, and every package the app's test run imports from a build.
-          pnpm --filter "@ksp-gonogo/uplink-tools..." --filter "@ksp-gonogo/app^..." build
-          pnpm scaffold-probe
+  # Whether an author who starts an Uplink with `uplink-tools new` ends with a
+  # widget on the dashboard, holding only what a release publishes. The three
+  # npm packages are packed and stamped as a release stamps them, the contract is
+  # packed into a local NuGet feed, and in a directory outside the workspace the
+  # job runs the commands the scaffold itself names: new, install, codegen,
+  # typecheck, test on both halves, release. The released plugin is then loaded
+  # by the mod's own scan into a real stream engine, and the app reads that
+  # stream's roster and loads the client it names. Six planted faults must each
+  # fail or the probe exits BLIND. The script's header has the rest.
+  #
+  # Its own job because it needs all of dotnet, a full build and the network,
+  # and none of the other jobs has all three.
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace
+        run: pnpm build
+
+      # The same private reference set the `mod` job compiles against, for the
+      # one leg that builds a plugin referencing the game. Without it (a fork)
+      # that leg prints NOT RUN and everything else still runs.
+      - name: Checkout KSP reference assemblies
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          repository: ksp-gonogo/ksp-managed
+          token: ${{ secrets.KSP_MANAGED_TOKEN }}
+          path: ksp-managed
+
+      - name: A scaffolded Uplink builds from the packed packages and reaches the dashboard
+        env:
+          KSP_ROOT: ${{ github.workspace }}/ksp-managed
+        run: pnpm scaffold-probe
 
   e2e:
     runs-on: ubuntu-latest

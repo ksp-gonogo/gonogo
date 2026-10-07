@@ -319,12 +319,12 @@ export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
     `The generated Uplink page no longer matches the code: ` +
       `${differences.length} difference(s).\n  ${differences.join("\n  ")}\n\n` +
       `Regenerate the prose in place, with no browser and no change under ` +
-      `docs/assets:\n` +
-      `      pnpm uplink-pages\n` +
-      `  or, for this Uplink alone, re-run its suite with ${PAGE_UPDATE_ENV}=1.\n\n` +
+      `docs/assets, by re-running this suite with ${PAGE_UPDATE_ENV}=1:\n` +
+      `      ${PAGE_UPDATE_ENV}=1 npx vitest run\n` +
+      "  (inside the gonogo repository, `pnpm uplink-pages` does that for every Uplink).\n\n" +
       "  `uplink-tools docs` also fixes it, and re-renders every picture " +
-      "through this machine's\n  rasteriser on the way past. The pictures are " +
-      "regenerated on Linux with `pnpm uplink-docs`;\n  a local render of them is " +
+      "through this machine's\n  rasteriser on the way past. Pictures are " +
+      "regenerated on Linux and committed from there;\n  a local render of them is " +
       "the same mistake as a locally-rendered visual baseline.",
   );
 }

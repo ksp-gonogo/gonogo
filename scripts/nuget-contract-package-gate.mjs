@@ -26,6 +26,17 @@
  *      into this package, and a stylesheet that silently stopped matching would
  *      leave no trace but 29 extra paragraphs in a shipped .xml.
  *
+ *   4. THE CODEGEN TWIN LEAKS, OR GOES MISSING. The package carries one more
+ *      assembly, `codegen/Sitrep.Contract.dll`: the SITREP_CODEGEN twin an
+ *      Uplink's own codegen compiles against, with `codegen/CodegenTwin.props`
+ *      beside it. It is the one assembly here that MUST reference
+ *      Reinforced.Typings, and it is safe only because NuGet binds nothing
+ *      outside lib/. In a lib folder it is failure mode 1 again; absent, or
+ *      swapped for the shipped assembly, an outside Uplink cannot generate its
+ *      client types; and a props file that lost its Reinforced.Typings
+ *      reference or its documentation switch builds a twin that generates
+ *      nothing, or generates it without a word of prose.
+ *
  * And the two numbers a consumer reads: the package version is the Gonogo
  * release (the app's own, which every published package carries), and the wire
  * contract's Major.Minor is stamped inside Sitrep.Contract.dll as
@@ -75,6 +86,10 @@ const RELEASE_MANIFEST = join(REPO_ROOT, "packages", "app", "package.json");
 const STAMP_KEY = "SitrepContractVersion";
 
 const PACKAGE_ID = "KspGonogo.Sitrep.Contract";
+
+/** The codegen twin and the props an Uplink's own twin imports, outside every lib group. */
+const CODEGEN_TWIN = "codegen/Sitrep.Contract.dll";
+const CODEGEN_PROPS = "codegen/CodegenTwin.props";
 
 /**
  * What each target-framework group is allowed to contain, as ruled on #272.
@@ -208,6 +223,9 @@ function describePackage(nupkg) {
 
   const readme = pick("readme");
   return {
+    codegenProps: members.includes(CODEGEN_PROPS)
+      ? unzipText(nupkg, CODEGEN_PROPS)
+      : null,
     id: pick("id"),
     version: pick("version"),
     readme,
@@ -251,9 +269,21 @@ export function auditPackage(pkg, expected) {
   }
 
   const stamped = Object.entries(pkg.contractStamps);
-  if (stamped.length !== Object.keys(EXPECTED_GROUPS).length) {
+  const expectedStamped = [
+    ...Object.keys(EXPECTED_GROUPS).map(
+      (tfm) => `lib/${tfm}/Sitrep.Contract.dll`,
+    ),
+    CODEGEN_TWIN,
+  ].sort();
+  if (
+    stamped
+      .map(([member]) => member)
+      .sort()
+      .join(",") !== expectedStamped.join(",")
+  ) {
     failures.push(
-      `found ${stamped.length} packed Sitrep.Contract.dll, expected one per framework group`,
+      `the packed Sitrep.Contract.dll are [${stamped.map(([member]) => member).join(", ")}], ` +
+        `expected one per framework group and the codegen twin: [${expectedStamped.join(", ")}]`,
     );
   }
   for (const [member, stamp] of stamped) {
@@ -330,7 +360,45 @@ export function auditPackage(pkg, expected) {
     }
   }
 
+  if (pkg.codegenProps === null) {
+    failures.push(
+      `${CODEGEN_PROPS} is not in the package. An Uplink's codegen twin imports it, ` +
+        `so without it no Uplink outside this repo can generate its client types.`,
+    );
+  } else {
+    if (
+      !/<PackageReference\s+Include="Reinforced\.Typings"/.test(
+        pkg.codegenProps,
+      )
+    ) {
+      failures.push(
+        `${CODEGEN_PROPS} declares no Reinforced.Typings PackageReference. That reference is ` +
+          `what restores rtcli, so a twin importing this file builds and generates nothing.`,
+      );
+    }
+    if (
+      !/<GenerateDocumentationFile>true<\/GenerateDocumentationFile>/.test(
+        pkg.codegenProps,
+      )
+    ) {
+      failures.push(
+        `${CODEGEN_PROPS} does not set GenerateDocumentationFile. rtcli reads prose from the ` +
+          `twin's XML doc file only, so the generated contract would carry no doc comments.`,
+      );
+    }
+  }
+  const twinNames = pkg.assemblyNamesInBytes[CODEGEN_TWIN];
+  if (twinNames && !twinNames.some((n) => /^Reinforced\./.test(n))) {
+    failures.push(
+      `${CODEGEN_TWIN} carries no reference to Reinforced.Typings, so it is not the codegen ` +
+        `twin: it is the shipped assembly in the twin's place, with no RtConfig for an ` +
+        `Uplink's own codegen to call.`,
+    );
+  }
+
   for (const [member, names] of Object.entries(pkg.assemblyNamesInBytes)) {
+    // The twin is the one assembly that must carry the reference, and is held to that above.
+    if (member === CODEGEN_TWIN) continue;
     const reinforced = names.filter((n) => /^Reinforced\./.test(n));
     if (reinforced.length > 0) {
       failures.push(
@@ -400,6 +468,57 @@ const PLANTS = [
       p.assemblyNamesInBytes["lib/net472/Sitrep.Contract.dll"] = [
         "Reinforced.Typings",
       ];
+    },
+  },
+  {
+    what: "the codegen twin copied into a lib folder a plugin resolves",
+    mutate: (p) => {
+      p.assemblyNamesInBytes["lib/netstandard2.0/Sitrep.Contract.dll"] =
+        p.assemblyNamesInBytes[CODEGEN_TWIN];
+    },
+  },
+  {
+    what: "the shipped assembly in the codegen twin's place",
+    mutate: (p) => {
+      p.assemblyNamesInBytes[CODEGEN_TWIN] =
+        p.assemblyNamesInBytes["lib/netstandard2.0/Sitrep.Contract.dll"];
+    },
+  },
+  {
+    what: "a codegen twin carrying no contract stamp",
+    mutate: (p) => {
+      p.contractStamps[CODEGEN_TWIN] = null;
+    },
+  },
+  {
+    what: "the codegen twin missing from the package",
+    mutate: (p) => {
+      delete p.contractStamps[CODEGEN_TWIN];
+      delete p.assemblyNamesInBytes[CODEGEN_TWIN];
+    },
+  },
+  {
+    what: "CodegenTwin.props missing from the package",
+    mutate: (p) => {
+      p.codegenProps = null;
+    },
+  },
+  {
+    what: "a CodegenTwin.props that restores no Reinforced.Typings",
+    mutate: (p) => {
+      p.codegenProps = p.codegenProps.replace(
+        /Reinforced\.Typings/g,
+        "Nothing",
+      );
+    },
+  },
+  {
+    what: "a CodegenTwin.props that writes no documentation file",
+    mutate: (p) => {
+      p.codegenProps = p.codegenProps.replace(
+        /<GenerateDocumentationFile>true/,
+        "<GenerateDocumentationFile>false",
+      );
     },
   },
   {
@@ -547,8 +666,8 @@ console.log(
     `every Sitrep.Contract.dll is stamped contract ${expected.contract}, the README states no version, ` +
     `net472 and netstandard2.0 carry Sitrep.Contract alone with no dependencies, ` +
     `net10.0 adds Sitrep.Contract.TestSupport, Sitrep.Core and xunit.assert, ` +
-    `no Reinforced.Typings ` +
-    `anywhere, and no <internal> prose in ${Object.keys(pkg.xmlDocs).length} packed XML docs. ` +
+    `the codegen twin and CodegenTwin.props sit outside every lib group, ` +
+    `no Reinforced.Typings anywhere but that twin, and no <internal> prose in ${Object.keys(pkg.xmlDocs).length} packed XML docs. ` +
     `${PLANTS.length} planted violations were all caught. ` +
     `Symbols: ${existsSync(snupkg) ? "present" : "ABSENT"}.`,
 );

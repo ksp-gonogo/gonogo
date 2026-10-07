@@ -11,20 +11,35 @@ It is a **devDependency**. Nothing here ships in an Uplink's bundle.
 One command, `uplink-tools`, and nothing to install before the first run:
 
 ```sh
-npx @ksp-gonogo/uplink-tools new myuplink    # scaffold, in an empty directory
+npx @ksp-gonogo/uplink-tools new myuplink --repo you/myuplink   # in an empty directory
 npx @ksp-gonogo/uplink-tools --help
 ```
+
+`new` writes the Uplink and then runs its generators, so the directory it leaves
+builds and tests: `npm test` in `client/`, and `dotnet test mod-tests`. It needs
+Node and the .NET SDK, and no clone of anything. The C# half reaches Gonogo
+through one NuGet package, `KspGonogo.Sitrep.Contract`, at the same version as
+this package.
 
 Once it is in an Uplink's devDependencies the same commands answer to
 `uplink-tools` in a `package.json` script, which is what a workflow calls:
 
 | command | what it does |
 |---|---|
-| `new <id>` | scaffold the hand-written seed of an Uplink: contract slice, plugin, tests, one widget and its fixture. In a repo with an `uplinks/` folder it goes to `uplinks/<id>/`; anywhere else the current directory becomes the Uplink |
+| `new <id>` | scaffold an Uplink: contract slice, plugin, tests, one widget and its fixture, then generate its client types, install the client and write its page. In a repo with an `uplinks/` folder it goes to `uplinks/<id>/`; anywhere else the current directory becomes the Uplink |
+| `codegen` | generate `client/src/__generated__/` from the C# contract slice; `codegen --check` fails on drift |
 | `bundle` | build the client bundle the app loads, and the `gonogo-uplink.json` beside it |
 | `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
+| `package` | lay the built plugin out as `GameData/<name>/` and zip it |
+| `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order |
 | `render` | render every scene to `renders/` |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
+
+The order inside `release` is the point of it. The app loads an installed
+Uplink's client only when the plugin says where the bundle lives and vouches for
+its hash, so the bundle has to be built and hashed before the plugin is
+compiled. A plugin baked without its bundle builds, tests green, and shows no
+widget.
 
 Every command takes `--help`, and refuses a flag it does not read.
 

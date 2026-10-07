@@ -249,6 +249,14 @@ function selfTest(tarballs, workRoot) {
           react: "^18.0.0",
           "react-dom": "^18.0.0",
           "styled-components": "^6.0.0",
+          /**
+           * The harness's own two. uplink-tools marks every peer optional so
+           * that `npx @ksp-gonogo/uplink-tools new` installs nothing but itself,
+           * which means npm no longer brings these in unasked; an Uplink's
+           * client names them, as the scaffold does, and so does this one.
+           */
+          esbuild: "^0.28.0",
+          playwright: "^1.60.0",
         },
       },
       null,

@@ -51,11 +51,14 @@ import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./widgetRecord";
  * first and separately: most stale pages are stale in their text.
  */
 const REGENERATE_REMEDY =
-  "The prose is browserless and safe to regenerate anywhere:\n" +
-  "    pnpm uplink-pages\n\n" +
+  "The prose is browserless and safe to regenerate anywhere, by running the " +
+  "client's\n  tests with the update variable set:\n" +
+  "    GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run\n\n" +
   "  The PICTURES are regenerated on Linux, and committed with the change:\n" +
-  "    pnpm uplink-docs\n\n" +
-  "  `uplink-tools docs` also regenerates both, on THIS machine's rasteriser, " +
+  "    npx uplink-tools docs\n\n" +
+  "  (Inside the gonogo repository those are `pnpm uplink-pages` and " +
+  "`pnpm uplink-docs`.)\n" +
+  "  `uplink-tools docs` regenerates both on THIS machine's rasteriser, " +
   "and it\n  empties docs/assets before it renders: a run that throws leaves the " +
   "committed\n  pictures deleted. Recover with `git checkout -- docs/assets`.";
 
@@ -723,7 +726,7 @@ function compareCommittedShapes(
     console.warn(
       `\n  warning: ${verdict.unrecorded.length} asset(s) have no recorded ` +
         "shape, so nothing here can say whether their pictures match the code. " +
-        `Run \`pnpm uplink-docs\` to record them: ${verdict.unrecorded.join(", ")}`,
+        `Run \`uplink-tools docs\` on Linux to record them: ${verdict.unrecorded.join(", ")}`,
     );
   }
   return wholePageRestyle(verdict, rendered.size);

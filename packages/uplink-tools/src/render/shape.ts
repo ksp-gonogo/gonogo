@@ -457,7 +457,7 @@ export function compareShapes(
       incomparable:
         `the record is version ${record.version} and this build writes ` +
         `${SHAPE_RECORD_VERSION}, so the two walks are not the same walk. ` +
-        "Regenerate with `pnpm uplink-docs`.",
+        "Regenerate with `uplink-tools docs`, on Linux.",
     };
   }
   if (record.engine !== engine) {

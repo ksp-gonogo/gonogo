@@ -65,11 +65,16 @@ function unzipBinary(nupkg, member) {
   });
 }
 
-/** lib/<tfm>/<file>.dll → Buffer, for every assembly the package carries. */
+/**
+ * Member path → Buffer, for every assembly the package carries: the lib groups
+ * and the codegen twin beside them. The twin is bound by no consumer's compile,
+ * but an Uplink's generated client types are made from it, so a twin that
+ * changed under an unchanged version is a fossil like any other.
+ */
 function readAssemblies(nupkg) {
   const assemblies = new Map();
   for (const member of listMembers(nupkg)) {
-    if (/^lib\/[^/]+\/.+\.dll$/.test(member)) {
+    if (/^(lib\/[^/]+|codegen)\/.+\.dll$/.test(member)) {
       assemblies.set(member, unzipBinary(nupkg, member));
     }
   }
@@ -344,6 +349,23 @@ for (const member of [...allMembers].sort()) {
       `${member}: content differs after normalising build identity (${diffBytes} bytes differ)`,
     );
   }
+}
+
+// The props an Uplink's codegen twin imports is text, so it is compared as it is.
+const CODEGEN_PROPS = "codegen/CodegenTwin.props";
+const propsOf = (nupkg) =>
+  listMembers(nupkg).includes(CODEGEN_PROPS)
+    ? unzipBinary(nupkg, CODEGEN_PROPS)
+    : null;
+const freshProps = propsOf(freshPath);
+const publishedProps = propsOf(publishedPath);
+if (
+  (freshProps === null) !== (publishedProps === null) ||
+  (freshProps !== null && !freshProps.equals(publishedProps))
+) {
+  problems.push(
+    `${CODEGEN_PROPS}: the fresh pack and the published copy do not carry the same file`,
+  );
 }
 
 function countDifferingBytes(a, b) {

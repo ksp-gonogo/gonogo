@@ -24,6 +24,9 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 
+/** Only the files: the generators need the .NET SDK, npm and the network, and the scaffold probe is what runs them. */
+const BARE = ["--no-generate", "--no-install"];
+
 const seed = () =>
   renderSeed({
     id: "widgets",
@@ -31,6 +34,7 @@ const seed = () =>
     author: "me",
     repo: "https://elsewhere.test/r",
     clientUrl: "https://elsewhere.test/widgets.js",
+    contractVersion: "4.5.6",
     dependencies: {},
     devDependencies: {},
   });
@@ -113,6 +117,53 @@ describe("uplink-tools new", () => {
     );
   });
 
+  it("references Gonogo through the one NuGet package, pinned exactly, in every C# project", () => {
+    const files = seed();
+    const exact =
+      '<PackageReference Include="KspGonogo.Sitrep.Contract" Version="[4.5.6]"';
+    const plugin = files.get("mod/GonogoWidgetsUplink.csproj") ?? "";
+    const slice =
+      files.get("mod-contract/GonogoWidgetsUplink.Contract.csproj") ?? "";
+    const tests = files.get("mod-tests/GonogoWidgetsUplink.Tests.csproj") ?? "";
+    // Compiled against and never copied: GonogoCore provides the assembly in the game.
+    for (const shipped of [plugin, slice]) {
+      expect(shipped).toContain(
+        `${exact} IncludeAssets="compile" PrivateAssets="all" />`,
+      );
+      expect(shipped).toContain("Microsoft.NETFramework.ReferenceAssemblies");
+    }
+    // The test project takes the whole package, which is where TestSupport comes from.
+    expect(tests).toContain(`${exact} />`);
+    for (const [path, content] of files) {
+      expect(content, path).not.toMatch(
+        /GonogoContract|GonogoDevkit|HintPath>\$\(Gonogo(?!Codegen)/,
+      );
+    }
+  });
+
+  it("leaves the codegen twin to the codegen command, and says so when it is built any other way", () => {
+    const twin =
+      seed().get(
+        "mod-contract-codegen/GonogoWidgetsUplink.Contract.Codegen.csproj",
+      ) ?? "";
+    expect(twin).toContain("$(GonogoCodegen)\\CodegenTwin.props");
+    expect(twin).toContain("$(GonogoCodegen)\\Sitrep.Contract.dll");
+    expect(twin).toContain("npx uplink-tools codegen");
+    expect(twin).not.toContain("PackageReference");
+  });
+
+  it("offers every step as a script of the client, and no build script that builds nothing", () => {
+    const scripts = JSON.parse(seed().get("client/package.json") ?? "").scripts;
+    expect(scripts).toMatchObject({
+      codegen: "uplink-tools codegen",
+      "codegen:check": "uplink-tools codegen --check",
+      bundle: "uplink-tools bundle",
+      bake: "uplink-tools bake --bundle dist/widgets/widgets.client.js",
+      release: "uplink-tools release",
+    });
+    expect(scripts.build).toBeUndefined();
+  });
+
   it("refuses an id that cannot name a namespace", () => {
     expect(validateUplinkId("my-uplink")).toMatch(/not a usable/);
     expect(validateUplinkId("1abc")).toMatch(/not a usable/);
@@ -141,7 +192,7 @@ describe("uplink-tools new", () => {
     );
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["fresh", "--dir", uplinks]);
+    newUplink(["fresh", "--dir", uplinks, ...BARE]);
 
     const pkg = JSON.parse(
       readFileSync(join(uplinks, "fresh", "client", "package.json"), "utf8"),
@@ -156,7 +207,7 @@ describe("uplink-tools new", () => {
     expect(existsSync(join(uplinks, "fresh", "mod", "FreshUplink.cs"))).toBe(
       true,
     );
-    expect(() => newUplink(["fresh", "--dir", uplinks])).toThrow(
+    expect(() => newUplink(["fresh", "--dir", uplinks, ...BARE])).toThrow(
       /already exists/,
     );
   });
@@ -164,7 +215,7 @@ describe("uplink-tools new", () => {
     const uplinks = join(workdir(), "uplinks");
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["fresh", "--dir", uplinks, "--no-generate"]);
+    newUplink(["fresh", "--dir", uplinks, ...BARE]);
 
     const own = JSON.parse(
       readFileSync(
@@ -191,7 +242,7 @@ describe("uplink-tools new", () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["solo", "--no-generate"], repo);
+    newUplink(["solo", ...BARE], repo);
 
     for (const path of [
       "uplink.json",
@@ -229,9 +280,63 @@ describe("uplink-tools new", () => {
     expect(scripts.bundle).toBe("uplink-tools bundle");
     expect(scripts.docs).toBe("uplink-tools docs");
 
-    expect(() => newUplink(["solo", "--no-generate"], repo)).toThrow(
+    expect(() => newUplink(["solo", ...BARE], repo)).toThrow(
       /never overwrites/,
     );
+  });
+
+  it("takes the repository it will be published from, and derives where the client is fetched", () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    newUplink(["solo", "--repo", "kerbal/solo-uplink", ...BARE], repo);
+
+    const declared = JSON.parse(
+      readFileSync(join(repo, "uplink.json"), "utf8"),
+    );
+    expect(declared.repo).toBe("https://github.com/kerbal/solo-uplink");
+    expect(declared.client.url).toBe(
+      "https://cdn.jsdelivr.net/gh/kerbal/solo-uplink@releases/releases/solo/0.0.1/solo.client.js",
+    );
+    expect(() =>
+      newUplink(["other", "--repo", "not a repo", ...BARE], workdir()),
+    ).toThrow(/not a GitHub repository/);
+  });
+
+  it("says where the game is found, for a lone repo, and asks only a project that references it", () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    newUplink(["solo", ...BARE], repo);
+
+    const props = readFileSync(join(repo, "Directory.Build.props"), "utf8");
+    expect(props).toContain("$(KSP_ROOT)");
+    expect(props).toContain("ksp.local.props");
+    expect(
+      readFileSync(join(repo, "Directory.Build.targets"), "utf8"),
+    ).toContain("Set the KSP_ROOT environment variable");
+    expect(readFileSync(join(repo, ".gitignore"), "utf8")).toContain(
+      "ksp.local.props",
+    );
+  });
+
+  it("ends by saying what was skipped and what is the author's, naming commands that exist", () => {
+    const repo = workdir();
+    const said: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((line: string) => {
+      said.push(line);
+    });
+
+    expect(newUplink(["solo", ...BARE], repo)).toBe(0);
+
+    const out = said.join("\n");
+    expect(out).toContain("npx uplink-tools codegen");
+    expect(out).toContain("npm install");
+    expect(out).toContain("GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run");
+    expect(out).toContain("npm run release");
+    expect(out).toContain("release refuses the placeholder");
+    // Nothing an outside author cannot run: no repo-only script, no property to point at a reference set.
+    expect(out).not.toMatch(/tooling\/|GonogoContract|pnpm /);
   });
 
   it("goes into an uplinks folder that is already there, beside its siblings", () => {
@@ -239,7 +344,7 @@ describe("uplink-tools new", () => {
     mkdirSync(join(repo, "uplinks"));
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["second", "--no-generate"], repo);
+    newUplink(["second", ...BARE], repo);
 
     expect(existsSync(join(repo, "uplinks", "second", "uplink.json"))).toBe(
       true,

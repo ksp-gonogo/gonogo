@@ -8,7 +8,7 @@
  * `package.json` script.
  *
  * `render` and `docs` drive Playwright and are imported only when one of them
- * runs, so `new`, `bundle` and `bake` never load a browser driver.
+ * runs, so no other command loads a browser driver.
  */
 
 import { createHash } from "node:crypto";
@@ -29,45 +29,55 @@ import {
   UPLINK_MANIFEST_FILE,
 } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
 import { BAKE_USAGE, bake } from "./bake";
+import { CODEGEN_USAGE, codegen } from "./codegen";
 import { parseFlags, wantsHelp } from "./flags";
 import { NEW_USAGE, newUplink } from "./new";
+import { PACKAGE_USAGE, packageCommand } from "./package";
+import { RELEASE_USAGE, release } from "./release";
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
 const WATCH_STATUS_FILE = "watch-status.json";
 
 const USAGE = `uplink-tools <command>
 
-  new     scaffold a fresh Uplink: the hand-written seed, then its generators
-  bundle  build the client bundle the app loads, and its gonogo-uplink.json
-  bake    write what the plugin tells the app about its client into C#: where
-          the bundle lives, who wrote it and the hash the mod vouches for
-  render  render this Uplink's widgets to images
-  docs    this Uplink's README, its assets and the SAME gonogo-uplink.json
-          that bundle writes
+  new      scaffold a fresh Uplink: the hand-written seed, then its generators
+  codegen  generate the client's types from the C# contract slice
+  bundle   build the client bundle the app loads, and its gonogo-uplink.json
+  bake     write what the plugin tells the app about its client into C#: where
+           the bundle lives, who wrote it and the hash the mod vouches for
+  package  lay the built plugin out as GameData and zip it
+  release  bundle, bake, compile the plugin and package, in the order that
+           gives a plugin the app will load a client for
+  render   render this Uplink's widgets to images
+  docs     this Uplink's README, its assets and the SAME gonogo-uplink.json
+           that bundle writes
 
 Run a command with --help for its options. Without an install:
   npx @ksp-gonogo/uplink-tools <command>`;
 
 /**
- * The version of a package as INSTALLED, read from its own manifest.
+ * The ui-kit version the client is built against, as the kit itself states it
+ * for compatibility.
  *
- * Not from the dependency range in the client's package.json, which is a
- * specifier and not a version: `^0.2.0` is not `0.2.0`, and a `file:` spec is not
- * a version at all. Deriving it produced `"0.2.0.tgz"` from a tarball path, which
- * would have shipped in a GATE field the loader compares, failing compatibility
- * for a reason no one could read.
+ * The app compares this with its own `UI_KIT_VERSION`, so what is recorded has
+ * to be that same constant from the installed kit, which the kit writes to
+ * `dist/compat.json`. It is not the installed package's version: a release
+ * stamps the packed manifest with the release version and leaves the constant
+ * where it was, so the two differ in every published kit.
  *
- * Empty when the package is not installed rather than throwing: an Uplink that
- * does not use ui-kit still has a bundle to describe.
+ * A kit that predates `compat.json` is read by its package version, which is
+ * what was recorded for it before. Empty when the kit is not installed rather
+ * than throwing: an Uplink that does not use ui-kit still has a bundle to
+ * describe.
  */
-function installedVersion(fromDir: string, pkg: string): string {
-  const dir = installedPackageDir(fromDir, pkg, 6);
+function uiKitCompatVersion(fromDir: string): string {
+  const dir = installedPackageDir(fromDir, "@ksp-gonogo/ui-kit", 6);
   if (!dir) return "";
-  const version: unknown = Reflect.get(
-    readManifest(join(dir, "package.json")),
-    "version",
-  );
-  return typeof version === "string" ? version : "";
+  const compat = join(dir, "dist", "compat.json");
+  const stated: unknown = existsSync(compat)
+    ? Reflect.get(readManifest(compat), "uiKitVersion")
+    : Reflect.get(readManifest(join(dir, "package.json")), "version");
+  return typeof stated === "string" ? stated : "";
 }
 
 /** The directory `pkg` is installed in, walking up from `fromDir` at most `levels` times. */
@@ -281,7 +291,7 @@ async function bundle(argv: readonly string[]): Promise<number> {
           clientDir,
           compat: {
             apiVersion: compat.EXTENSION_API_VERSION,
-            uiKitVersion: installedVersion(clientDir, "@ksp-gonogo/ui-kit"),
+            uiKitVersion: uiKitCompatVersion(clientDir),
             contractMajor: compat.CONTRACT_MAJOR,
             contractMinor: compat.CONTRACT_MINOR,
           },
@@ -381,15 +391,41 @@ export async function run(argv: readonly string[]): Promise<number> {
       return newUplink(argv.slice(1));
     }
     if (verb === "bundle") return await bundle(argv.slice(1));
-    if (verb === "bake") {
+    const plain: Record<
+      string,
+      [string, (argv: readonly string[]) => number | Promise<number>]
+    > = {
+      bake: [BAKE_USAGE, bake],
+      codegen: [CODEGEN_USAGE, codegen],
+      package: [PACKAGE_USAGE, packageCommand],
+      release: [RELEASE_USAGE, (rest) => release(rest, bundle)],
+    };
+    if (Object.hasOwn(plain, verb)) {
+      const [usage, command] = plain[verb];
       if (wantsHelp(argv)) {
-        console.log(BAKE_USAGE);
+        console.log(usage);
         return 0;
       }
-      return bake(argv.slice(1));
+      return await command(argv.slice(1));
     }
     if (verb === "render" || verb === "docs") {
-      const { renderOrDocs } = await import("../render/cli");
+      const { renderOrDocs } = await import("../render/cli").catch(
+        (err: unknown) => {
+          // The render half draws the client's widgets with the client's own React and ui-kit, so it cannot load where they are not installed.
+          if (
+            typeof err === "object" &&
+            err !== null &&
+            Reflect.get(err, "code") === "ERR_MODULE_NOT_FOUND"
+          ) {
+            throw new Error(
+              `${verb} draws this Uplink's widgets, so it needs the client's dependencies, and one ` +
+                `is not installed: ${String(Reflect.get(err, "message")).split(" imported from ")[0]}. ` +
+                "Run it inside the Uplink's client after `npm install`.",
+            );
+          }
+          throw err;
+        },
+      );
       await renderOrDocs(argv);
       return 0;
     }

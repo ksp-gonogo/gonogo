@@ -166,11 +166,140 @@ describe("uplink-tools bake", () => {
   });
 });
 
+describe("uplink-tools package", () => {
+  /** A built mod as far as package reads it: the plugin, its slice, a licence, a notice and a stray file. */
+  const builtMod = () => {
+    const dir = uplinkDir({
+      gamedata: "GonogoXUplink",
+      dll: "GonogoXUplink.dll",
+    });
+    const bin = join(dir, "mod", "bin", "Release");
+    mkdirSync(bin, { recursive: true });
+    mkdirSync(join(dir, "mod-contract"));
+    writeFileSync(join(bin, "GonogoXUplink.dll"), "plugin bytes");
+    writeFileSync(join(bin, "GonogoXUplink.Contract.dll"), "slice bytes");
+    // GonogoCore provides this one in the game, so it must never be zipped.
+    writeFileSync(join(bin, "Sitrep.Contract.dll"), "not ours to ship");
+    writeFileSync(join(dir, "mod", "LICENSE"), "MIT");
+    writeFileSync(join(dir, "mod", "NOTICE-X.txt"), "notice");
+    writeFileSync(join(dir, "mod", "GonogoXUplink.netkan"), "{}");
+    return dir;
+  };
+
+  it("zips the plugin, its own slice, the licence and notices, and nothing of Gonogo's", () => {
+    const dir = builtMod();
+
+    execFileSync(process.execPath, [BIN, "package"], { cwd: dir });
+
+    const zip = join(dir, "dist", "GonogoXUplink.zip");
+    const listed = execFileSync("unzip", ["-Z1", zip], { encoding: "utf8" })
+      .split("\n")
+      .filter(Boolean);
+    expect(listed).toEqual([
+      "GonogoXUplink/LICENSE",
+      "GonogoXUplink/NOTICE-X.txt",
+      "GonogoXUplink/Plugins/GonogoXUplink.Contract.dll",
+      "GonogoXUplink/Plugins/GonogoXUplink.dll",
+    ]);
+    // Read back through a real unzip, so the archive is one other tools open and its bytes survive.
+    expect(
+      execFileSync(
+        "unzip",
+        ["-p", zip, "GonogoXUplink/Plugins/GonogoXUplink.dll"],
+        {
+          encoding: "utf8",
+        },
+      ),
+    ).toBe("plugin bytes");
+    expect(existsSync(join(dir, "dist", "GonogoXUplink.netkan"))).toBe(true);
+  });
+
+  it("gives the same archive for the same files", () => {
+    const dir = builtMod();
+    execFileSync(process.execPath, [BIN, "package", "--out", join(dir, "a")], {
+      cwd: dir,
+    });
+    execFileSync(process.execPath, [BIN, "package", "--out", join(dir, "b")], {
+      cwd: dir,
+    });
+    expect(
+      readFileSync(join(dir, "a", "GonogoXUplink.zip")).equals(
+        readFileSync(join(dir, "b", "GonogoXUplink.zip")),
+      ),
+    ).toBe(true);
+  });
+
+  it("refuses to zip a mod that was not built", () => {
+    const dir = uplinkDir({
+      gamedata: "GonogoXUplink",
+      dll: "GonogoXUplink.dll",
+    });
+    const { code, out } = runBin(["package"], dir);
+    expect(code).toBe(1);
+    expect(out).toContain("build the mod in Release first");
+  });
+});
+
+describe("uplink-tools release", () => {
+  it("refuses a client URL that is still the scaffold's placeholder, before building anything", () => {
+    const dir = uplinkDir({
+      gamedata: "GonogoXUplink",
+      dll: "GonogoXUplink.dll",
+      client: {
+        url: "https://cdn.jsdelivr.net/gh/you/x@releases/releases/x/0.0.1/x.client.js",
+      },
+    });
+    writeFileSync(join(dir, "mod", "GonogoXUplink.csproj"), "<Project />");
+
+    const { code, out } = runBin(["release"], dir);
+
+    expect(code).toBe(1);
+    expect(out).toContain("still the placeholder");
+    expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(false);
+  });
+});
+
+describe("uplink-tools codegen", () => {
+  it("has nothing to do for an Uplink with no contract slice of its own, and says so", () => {
+    const dir = uplinkDir();
+    const { code, out } = runBin(["codegen"], dir);
+    expect(code).toBe(0);
+    expect(out).toContain("nothing to generate");
+  });
+
+  it("refuses a --contract directory that does not hold the twin and its props", () => {
+    const dir = uplinkDir({
+      codegen: {
+        assembly: "Gonogo.X.Contract",
+        configurationMethod: "Gonogo.X.RtConfig.Configure",
+        emits: {},
+      },
+    });
+    mkdirSync(join(dir, "mod-contract-codegen"));
+    writeFileSync(
+      join(dir, "mod-contract-codegen", "Gonogo.X.Contract.Codegen.csproj"),
+      "<Project />",
+    );
+    const { code, out } = runBin(["codegen", "--contract", workdir()], dir);
+    expect(code).toBe(1);
+    expect(out).toContain("CodegenTwin.props");
+  });
+});
+
 describe("the top-level help", () => {
   it("names every command and how to run one without an install", () => {
     const { code, out } = runBin(["--help"]);
     expect(code).toBe(0);
-    for (const verb of ["new", "bundle", "bake", "render", "docs"]) {
+    for (const verb of [
+      "new",
+      "codegen",
+      "bundle",
+      "bake",
+      "package",
+      "release",
+      "render",
+      "docs",
+    ]) {
       expect(out).toMatch(new RegExp(`^  ${verb} `, "m"));
     }
     expect(out).toContain("npx @ksp-gonogo/uplink-tools <command>");
@@ -189,7 +318,16 @@ describe("the top-level help", () => {
  * flag parser with `--help` as an unknown flag.
  */
 describe("every command answers --help", () => {
-  for (const verb of ["new", "bundle", "bake", "render", "docs"]) {
+  for (const verb of [
+    "new",
+    "codegen",
+    "bundle",
+    "bake",
+    "package",
+    "release",
+    "render",
+    "docs",
+  ]) {
     it(`${verb} prints its own options rather than running`, () => {
       const { code, out } = runBin([verb, "--help"]);
       expect(code).toBe(0);
@@ -208,6 +346,9 @@ describe("every command refuses a flag it does not read", () => {
     ["new", ["new", "fresh", "--scene", "x"]],
     ["bundle", ["bundle", "--check"]],
     ["bake", ["bake", "--watch"]],
+    ["codegen", ["codegen", "--watch"]],
+    ["package", ["package", "--check"]],
+    ["release", ["release", "--watch"]],
     ["render", ["render", "--check"]],
     ["docs", ["docs", "--scene", "x"]],
   ];
@@ -227,6 +368,77 @@ describe("every command refuses a flag it does not read", () => {
  * `watch-status.json` beside the bundle, which is what the app's dev server
  * reads to say "waiting", "built" or "failed" without parsing a log.
  */
+describe("uplink-tools bundle", () => {
+  /** A client with a ui-kit installed above it, as far as bundle reads one. */
+  const clientWithKit = (kit: Record<string, string>) => {
+    const dir = workdir();
+    writeFileSync(
+      join(dir, "uplink.json"),
+      JSON.stringify({
+        id: "fixture",
+        name: "Fixture",
+        minAppVersion: "0.0.0",
+      }),
+    );
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "fixture-client", version: "1.2.3" }),
+    );
+    mkdirSync(join(dir, "src"));
+    writeFileSync(join(dir, "src", "index.ts"), "export const marker = 1;\n");
+    const installed = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
+    for (const [file, content] of Object.entries(kit)) {
+      mkdirSync(join(installed, file, ".."), { recursive: true });
+      writeFileSync(join(installed, file), content);
+    }
+    return dir;
+  };
+  const recordedKit = (dir: string): unknown =>
+    Reflect.get(
+      JSON.parse(
+        readFileSync(
+          join(dir, "dist", "fixture", "gonogo-uplink.json"),
+          "utf8",
+        ),
+      ),
+      "uiKitVersion",
+    );
+
+  it("records the version the installed ui-kit states for compatibility, not the version it was published under", () => {
+    // A release stamps the manifest and leaves the kit's own constant, which is the one the app compares.
+    const dir = clientWithKit({
+      "package.json": JSON.stringify({
+        name: "@ksp-gonogo/ui-kit",
+        version: "7.0.0-rc.3",
+      }),
+      "dist/compat.json": JSON.stringify({ uiKitVersion: "0.4.0" }),
+    });
+
+    execFileSync(process.execPath, [BIN, "bundle"], {
+      cwd: dir,
+      stdio: "pipe",
+    });
+
+    expect(recordedKit(dir)).toBe("0.4.0");
+  });
+
+  it("reads a ui-kit from before it stated one by its package version", () => {
+    const dir = clientWithKit({
+      "package.json": JSON.stringify({
+        name: "@ksp-gonogo/ui-kit",
+        version: "0.1.0",
+      }),
+    });
+
+    execFileSync(process.execPath, [BIN, "bundle"], {
+      cwd: dir,
+      stdio: "pipe",
+    });
+
+    expect(recordedKit(dir)).toBe("0.1.0");
+  });
+});
+
 describe("uplink-tools bundle --watch", () => {
   const children: Array<ReturnType<typeof spawn>> = [];
   afterEach(() => {

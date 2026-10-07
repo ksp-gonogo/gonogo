@@ -110,6 +110,46 @@
   </ItemGroup>
 
   <!--
+    THE CODEGEN TWIN, carried outside every lib group on purpose.
+
+    An Uplink that declares wire types of its own generates its TypeScript from
+    them the way this repo does: by building a twin of its contract slice with
+    SITREP_CODEGEN defined and running rtcli over it. That twin has to compile
+    against a Sitrep.Contract that carries RtConfig and the Reinforced.Typings
+    attributes, which is this assembly's own twin, and it imports
+    CodegenTwin.props for its shape. `uplink-tools codegen` reads both from
+    here.
+
+    NuGet resolves compile and runtime assets only from lib/, ref/ and
+    runtimes/, so a file under codegen/ can be bound by no plugin, slice or test
+    project by accident. That is the whole reason it may sit in the same
+    package as the assemblies that must never reference Reinforced.Typings.
+    Reinforced.Typings.dll itself is not packed: CodegenTwin.props restores it,
+    and rtcli with it, through its own PackageReference.
+
+    ReferenceOutputAssembly="false" is required, not tidy. The twin's assembly
+    name is Sitrep.Contract, so if its output reached
+    @(ReferenceCopyLocalPaths) the name filter in _PackContractAssemblies would
+    pack it into lib/ as a second Sitrep.Contract.dll. One leg builds it: it has
+    a single target framework and one copy to pack.
+  -->
+  <ItemGroup>
+    <ProjectReference Condition="'$(TargetFramework)' == 'netstandard2.0'"
+                      Include="..\Sitrep.Contract.Codegen\Sitrep.Contract.Codegen.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <None Include="..\Sitrep.Contract.Codegen\bin\$(Configuration)\netstandard2.0\Sitrep.Contract.dll"
+          Pack="true" PackagePath="codegen" Visible="false" />
+    <None Include="..\CodegenTwin.props" Pack="true" PackagePath="codegen" Visible="false" />
+  </ItemGroup>
+
+  <!-- NU5100 is "an assembly outside lib/ will not be added as a reference",
+       which for the twin is the intent stated above. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU5100</NoWarn>
+  </PropertyGroup>
+
+  <!--
     The ONE real dependency, and only in the net10.0 group: TestSupport calls
     xunit's Assert. A net48 Uplink plugin resolves the net472 assets, sees no
     TestSupport and restores no xunit, which is the point of the split.
