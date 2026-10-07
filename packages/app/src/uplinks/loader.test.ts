@@ -4,6 +4,7 @@ import type { ConsentInfo } from "./consent";
 import type { HostCompat } from "./hostCompat";
 import {
   descriptorFromClientSource,
+  isThisComputer,
   loadEnabledUplinks,
   manifestUrlFor,
   type RosterEntry,
@@ -1281,6 +1282,213 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(fetchManifest).not.toHaveBeenCalled();
     expect(fetchBytes).not.toHaveBeenCalled();
     expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  describe("a plugin that vouches for no hash", () => {
+    const DEV_BYTES_URL = "http://localhost:5173/widget-y.client.js";
+
+    /** Load widget-y with no vouched hash and the given dev path, on a main screen unless told otherwise. */
+    async function loadUnvouched(
+      devPath: string | null,
+      ctx: { bundlesFromHost?: true } = {},
+    ) {
+      const importBundle = vi.fn<
+        (bytes: ArrayBuffer, url: string) => Promise<unknown>
+      >(async () => ({}));
+      stubRegistryFetch(indexWith(goodHash));
+      const fetchManifest = vi.fn(async (_url: string) => manifestFor());
+      const fetchBytes = vi.fn(
+        async (_url: string, _expectedHash?: string) => THIRD_PARTY_BYTES,
+      );
+      const outcomes = await loadEnabledUplinks({
+        registrySource: { url: "/uplinks/registry.local.json" },
+        hostCompat: HOST,
+        appVersion: "1.0.0",
+        roster: [
+          {
+            id: "widget-y",
+            version: "2.0.0",
+            available: true,
+            reason: null,
+            expectedClientHash: null,
+            clientSource: {
+              url: "https://cdn.example/widget-y.client.js",
+              devPath,
+            },
+          },
+        ],
+        ensureConsent: async () => true,
+        fetchBytes,
+        fetchManifest,
+        importBundle,
+        ...ctx,
+      });
+      return { outcome: outcomes[0], fetchManifest, fetchBytes, importBundle };
+    }
+
+    it.each([
+      "http://localhost:5173/widget-y.client.js",
+      "http://127.0.0.1:5173/widget-y.client.js",
+      "http://[::1]:5173/widget-y.client.js",
+    ])("loads from a dev path on this computer (%s), and says it is unvouched", async (devPath) => {
+      const { outcome, fetchManifest, fetchBytes, importBundle } =
+        await loadUnvouched(devPath);
+
+      expect(outcome.status).toBe("loaded");
+      expect(outcome.unvouchedDevClient).toBe(true);
+      expect(outcome.reason).toContain("UNVOUCHED DEVELOPMENT CLIENT");
+      expect(outcome.reason).toContain("checked against nothing");
+      expect(fetchManifest).toHaveBeenCalledWith(manifestUrlFor(devPath));
+      // No hash is handed to the fetch, because there is none to check against.
+      expect(fetchBytes).toHaveBeenCalledWith(devPath, undefined);
+      expect(importBundle).toHaveBeenCalledWith(IMPORTED_BYTES, devPath);
+    });
+
+    it.each([
+      "http://192.168.1.20:5173/widget-y.client.js",
+      "https://dev.example/widget-y.client.js",
+      "http://localhost.example/widget-y.client.js",
+    ])("refuses a dev path on another machine (%s) before any fetch, and says why", async (devPath) => {
+      const { outcome, fetchManifest, fetchBytes, importBundle } =
+        await loadUnvouched(devPath);
+
+      expect(outcome.status).toBe("quarantined");
+      expect(outcome.reason).toMatch(/no mod-vouched client hash/);
+      expect(outcome.reason).toContain("is not on this computer");
+      expect(outcome.reason).toContain(devPath);
+      expect(outcome.unvouchedDevClient).toBeUndefined();
+      expect(fetchManifest).not.toHaveBeenCalled();
+      expect(fetchBytes).not.toHaveBeenCalled();
+      expect(importBundle).not.toHaveBeenCalled();
+    });
+
+    it("refuses a client on this computer whose plugin declares no dev path", async () => {
+      stubRegistryFetch(indexWith(goodHash));
+      const fetchManifest = vi.fn(async () => manifestFor());
+      const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
+      const outcomes = await loadEnabledUplinks({
+        registrySource: { url: "/uplinks/registry.local.json" },
+        hostCompat: HOST,
+        appVersion: "1.0.0",
+        roster: [
+          {
+            id: "widget-y",
+            version: "2.0.0",
+            available: true,
+            reason: null,
+            expectedClientHash: null,
+            clientSource: { url: DEV_BYTES_URL, devPath: null },
+          },
+        ],
+        ensureConsent: async () => true,
+        fetchBytes,
+        fetchManifest,
+        importBundle: async () => ({}),
+      });
+
+      expect(outcomes[0].status).toBe("quarantined");
+      expect(outcomes[0].reason).toMatch(/refusing hash-blind load/);
+      expect(outcomes[0].reason).toContain("--dev-path");
+      expect(fetchManifest).not.toHaveBeenCalled();
+      expect(fetchBytes).not.toHaveBeenCalled();
+    });
+
+    it("refuses on a station, which takes its bundles from the main screen", async () => {
+      const { outcome, fetchManifest, fetchBytes } = await loadUnvouched(
+        DEV_BYTES_URL,
+        { bundlesFromHost: true },
+      );
+
+      expect(outcome.status).toBe("quarantined");
+      expect(outcome.reason).toContain("loads on the main screen only");
+      expect(fetchManifest).not.toHaveBeenCalled();
+      expect(fetchBytes).not.toHaveBeenCalled();
+    });
+
+    it("still asks for consent, and loads nothing when it is declined", async () => {
+      stubRegistryFetch(indexWith(goodHash));
+      const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
+      const outcomes = await loadEnabledUplinks({
+        registrySource: { url: "/uplinks/registry.local.json" },
+        hostCompat: HOST,
+        appVersion: "1.0.0",
+        roster: [
+          {
+            id: "widget-y",
+            version: "2.0.0",
+            available: true,
+            reason: null,
+            expectedClientHash: null,
+            clientSource: {
+              url: "https://cdn.example/y.js",
+              devPath: DEV_BYTES_URL,
+            },
+          },
+        ],
+        ensureConsent: async () => false,
+        fetchBytes,
+        fetchManifest: async () => manifestFor(),
+        importBundle: async () => ({}),
+      });
+
+      expect(outcomes[0].status).toBe("quarantined");
+      expect(outcomes[0].reason).toBe("consent declined");
+      // A development client that did not load is still one, so the surfaces that show it keep saying so.
+      expect(outcomes[0].unvouchedDevClient).toBe(true);
+      expect(fetchBytes).not.toHaveBeenCalled();
+    });
+
+    it("keeps the hash check for a dev path on this computer whose plugin does vouch for one", async () => {
+      stubRegistryFetch(indexWith(goodHash));
+      const vouched = "sha256-not-what-the-dev-server-serves";
+      const importBundle = vi.fn(async () => ({}));
+      const outcomes = await loadEnabledUplinks({
+        registrySource: { url: "/uplinks/registry.local.json" },
+        hostCompat: HOST,
+        appVersion: "1.0.0",
+        roster: [
+          {
+            id: "widget-y",
+            version: "2.0.0",
+            available: true,
+            reason: null,
+            expectedClientHash: vouched,
+            clientSource: {
+              url: "https://cdn.example/y.js",
+              devPath: DEV_BYTES_URL,
+            },
+          },
+        ],
+        ensureConsent: async () => true,
+        fetchBytes: async () => THIRD_PARTY_BYTES,
+        fetchManifest: async () => manifestFor({ integrity: vouched }),
+        importBundle,
+      });
+
+      expect(outcomes[0].status).toBe("quarantined");
+      expect(outcomes[0].integrity).toBeDefined();
+      expect(outcomes[0].unvouchedDevClient).toBeUndefined();
+      expect(importBundle).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("isThisComputer", () => {
+    it.each([
+      ["http://localhost:5173/x.js", undefined, true],
+      ["http://127.0.0.1/x.js", undefined, true],
+      ["http://[::1]:8080/x.js", undefined, true],
+      ["http://127.0.0.2/x.js", undefined, false],
+      ["http://localhost.evil.example/x.js", undefined, false],
+      ["http://10.0.0.5:5173/x.js", undefined, false],
+      // A path with no origin is wherever the app itself is served from.
+      ["/uplinks/x.js", "http://localhost:5173/", true],
+      ["/uplinks/x.js", "https://ksp-gonogo.github.io/app/", false],
+      ["not a url", "also not a url", false],
+    ])("%s on a page at %s: %s", (url, pageUrl, expected) => {
+      expect(isThisComputer(url, pageUrl ?? "https://elsewhere.example/")).toBe(
+        expected,
+      );
+    });
   });
 
   it("quarantines with a legible reason when the manifest fetch fails", async () => {

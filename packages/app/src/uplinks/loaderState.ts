@@ -24,6 +24,12 @@ export interface UplinkLoadOutcome {
   /** `local` for a build named with `--uplink` under the dev server. */
   source?: "local";
   /**
+   * Set when this client is a development build nobody vouched for: its plugin
+   * declares a dev path on this computer and no hash, so the bytes were checked
+   * against nothing. Every surface that shows this Uplink says so in words.
+   */
+  unvouchedDevClient?: true;
+  /**
    * Why it is in this state. For `quarantined` this is the operator-legible
    * refusal reason (compat gate / hash mismatch / fetch error / no crypto / ...).
    */

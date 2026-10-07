@@ -86,6 +86,7 @@ export async function runStationUplinkLoad(
     // whole function station-safe: no direct `fetch` for bundle bytes ever
     // happens here.
     fetchBytes: createPeerBundleFetcher(bundleFetchConduit),
+    bundlesFromHost: true,
     importBundle,
   });
 }

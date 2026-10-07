@@ -94,6 +94,13 @@ export interface LoaderContext {
   /** Where to read the built Uplink index (`registry.local.json`). */
   registrySource: RegistrySource;
   /**
+   * Set on a station, where bundle bytes come from the main screen and not
+   * from this browser's own fetch. The main screen checks each against a hash
+   * before sending it, so a development client nobody vouched for has no route
+   * to a station and is refused here in those words.
+   */
+  bundlesFromHost?: true;
+  /**
    * The explicit `?uplinkLoaderIds=` override, if the param is present. Takes
    * PRECEDENCE over the roster: a deliberate override is intent, so it must win
    * even when a roster is talking (e.g. an e2e boots with
@@ -545,15 +552,86 @@ export function descriptorFromClientSource(
   roster: RosterEntry,
   manifest: GonogoUplinkManifest,
 ): UplinkDescriptor {
-  if (!roster.clientSource) {
-    throw new Error(
-      `descriptorFromClientSource: ${roster.id} has no clientSource`,
-    );
-  }
   if (roster.expectedClientHash == null) {
     throw new Error(
       `descriptorFromClientSource: ${roster.id} has no expectedClientHash ` +
         "(caller must guard this before building a third-party descriptor)",
+    );
+  }
+  return clientSourceDescriptor(roster, manifest, roster.expectedClientHash);
+}
+
+/** The hosts that are this computer, as `URL.hostname` spells them. */
+const THIS_COMPUTER = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * Whether `url` is served from the computer this page is open on. A path with
+ * no origin is read against the page's own address, so it is this computer
+ * exactly when the app itself is being served from it.
+ */
+export function isThisComputer(
+  url: string,
+  pageUrl: string | undefined = globalThis.location?.href,
+): boolean {
+  try {
+    return THIS_COMPUTER.has(new URL(url, pageUrl).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Why a client whose plugin vouches for no hash may not load, or `null` when
+ * it may load as an unvouched development client.
+ *
+ * It may only when the plugin itself declares a dev path, which is what a
+ * plugin baked with `--dev-path` does, AND that path is on this computer. Both
+ * halves are needed. A dev path alone would let any installed plugin point
+ * every operator at bytes nobody checked on a machine that is not theirs; this
+ * computer alone would load an ordinary release whose build simply forgot the
+ * hash. Together they describe one person, at one desk, running their own
+ * build.
+ */
+export function unvouchedClientRefusal(
+  clientSource: { url: string; devPath: string | null },
+  ctx: Pick<LoaderContext, "bundlesFromHost"> = {},
+  pageUrl?: string,
+): string | null {
+  const noHash =
+    "third-party Uplink has no mod-vouched client hash (expectedClientHash absent)";
+  if (!clientSource.devPath) {
+    return (
+      `${noHash}: refusing hash-blind load. Its plugin was compiled without a ` +
+      "bundle to vouch for. Build it with `uplink-tools release`, or for a " +
+      "development loop on this computer bake it with `--dev-path http://localhost:<port>/...`"
+    );
+  }
+  if (!isThisComputer(clientSource.devPath, pageUrl)) {
+    return (
+      `${noHash}, and its development path (${clientSource.devPath}) is not on this ` +
+      "computer. An unvouched development client loads only from localhost, 127.0.0.1 " +
+      "or [::1], because nothing checks its bytes. Serve it from this computer, or build " +
+      "the plugin with `uplink-tools release` so it vouches for a hash"
+    );
+  }
+  if (ctx.bundlesFromHost) {
+    return (
+      `${noHash}. It is a development client on the main screen's own computer, and a ` +
+      "station takes its bundles from the main screen, which sends only bytes it has " +
+      "checked against a hash. It loads on the main screen only"
+    );
+  }
+  return null;
+}
+
+function clientSourceDescriptor(
+  roster: RosterEntry,
+  manifest: GonogoUplinkManifest,
+  integrity: string,
+): UplinkDescriptor {
+  if (!roster.clientSource) {
+    throw new Error(
+      `descriptorFromClientSource: ${roster.id} has no clientSource`,
     );
   }
   const { url: bundleUrl } = resolveClientBundleUrl(roster.clientSource);
@@ -577,7 +655,7 @@ export function descriptorFromClientSource(
         contractMajor: manifest.contractMajor,
         contractMinor: manifest.contractMinor,
         bundleUrl,
-        integrity: roster.expectedClientHash,
+        integrity,
         expectedClientHash: roster.expectedClientHash,
       },
     ],
@@ -662,12 +740,14 @@ async function loadThirdParty(
       `clientSource.${picked} (${bundleUrl})`,
   );
 
-  if (roster.expectedClientHash == null) {
-    return quarantineOutcome(
-      id,
-      "third-party Uplink has no mod-vouched client hash " +
-        "(expectedClientHash absent): refusing hash-blind load",
-      modIdentity,
+  const unvouched = roster.expectedClientHash == null;
+  if (unvouched) {
+    const refusal = unvouchedClientRefusal(roster.clientSource, ctx);
+    if (refusal) return quarantineOutcome(id, refusal, modIdentity);
+    logger.warn(
+      `[uplink-loader] ${id}: UNVOUCHED DEVELOPMENT CLIENT. The plugin declares a dev ` +
+        `path on this computer (${bundleUrl}) and vouches for no hash, so its bytes ` +
+        "are checked against nothing",
     );
   }
 
@@ -683,6 +763,16 @@ async function loadThirdParty(
       `third-party manifest fetch/parse failed (${manifestUrl}): ` +
         `${err instanceof Error ? err.message : String(err)}`,
       modIdentity,
+    );
+  }
+
+  if (roster.expectedClientHash == null) {
+    // An empty integrity is never compared: `loadOne` is told the client is unvouched and checks the bytes against nothing.
+    return loadOne(
+      clientSourceDescriptor(roster, manifest, ""),
+      ctx,
+      "installed-mod",
+      true,
     );
   }
 
@@ -728,15 +818,19 @@ async function loadOne(
   descriptor: UplinkDescriptor,
   ctx: LoaderContext,
   integrityAnchor: UplinkIntegrityParty = "hub-index",
+  unvouched = false,
 ): Promise<UplinkLoadOutcome> {
   const identity = descriptorIdentity(descriptor);
   const local = isLocal(descriptor);
   const source = local ? ("local" as const) : undefined;
+  // Carried on every outcome from here, the refusals too: a development client that failed to load is still one.
+  const unvouchedDevClient = unvouched ? (true as const) : undefined;
   const base: UplinkLoadOutcome = {
     id: descriptor.id,
     name: descriptor.name,
     identity,
     source,
+    unvouchedDevClient,
     status: "loading",
   };
   setUplinkOutcome(base);
@@ -772,7 +866,10 @@ async function loadOne(
     // peer-backed `fetchBytes` can hand it to the host for verification,
     // see the doc comment on `LoaderContext.fetchBytes`.
     const fetchBytes = ctx.fetchBytes ?? defaultFetchBytes;
-    const bytes = await fetchBytes(version.bundleUrl, version.integrity);
+    const bytes = await fetchBytes(
+      version.bundleUrl,
+      unvouched ? undefined : version.integrity,
+    );
     const digest = await sha256Hex(bytes);
 
     /*
@@ -782,7 +879,8 @@ async function loadOne(
      * two readings and the one an operator can act on.
      */
     const vouchedBy = vouchersFor(version, roster, integrityAnchor);
-    if (digest !== version.integrity) {
+    // The one path on which bytes run unchecked. `unvouched` is only ever passed by `loadThirdParty`, after `unvouchedClientRefusal` allowed it.
+    if (!unvouched && digest !== version.integrity) {
       refuseIntegrity(
         {
           subject: "bundle",
@@ -841,6 +939,12 @@ async function loadOne(
     const ms = Math.round(performance.now() - start);
 
     const resolveModHashNote = () => {
+      if (unvouched) {
+        return (
+          ` (UNVOUCHED DEVELOPMENT CLIENT from ${version.bundleUrl}: the plugin declares a ` +
+          "dev path on this computer and vouches for no hash, so these bytes were checked against nothing)"
+        );
+      }
       if (local) {
         return (
           " (local build; mod hash not compared: local build; consent not asked: local build" +
@@ -865,6 +969,7 @@ async function loadOne(
       name: descriptor.name,
       identity,
       source,
+      unvouchedDevClient,
       version: version.version,
       status: "loaded",
       reason: `verified + loaded in ${ms}ms${modHashNote}`,
@@ -884,6 +989,7 @@ async function loadOne(
       name: descriptor.name,
       identity,
       source,
+      unvouchedDevClient,
       version: base.version,
       status: "quarantined",
       reason,

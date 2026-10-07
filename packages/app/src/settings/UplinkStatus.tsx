@@ -3,7 +3,7 @@ import type {
   UplinkHealthStateName,
 } from "@ksp-gonogo/sitrep-client";
 import { Button } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Badge, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import styled from "styled-components";
 import { revokeConsent } from "../uplinks/consent";
@@ -11,6 +11,7 @@ import type {
   UplinkLoadOutcome,
   UplinkLoadStatus,
 } from "../uplinks/loaderState";
+import { UNVOUCHED_DEV_CLIENT_DETAIL } from "../uplinks/UnvouchedDevClientBridge";
 import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../uplinks/UplinkIntegrityDetail";
 import { UplinkSkewOverride } from "../uplinks/UplinkSkewOverride";
@@ -71,6 +72,14 @@ export function UplinkClientStatus({
       {outcome.identity && (
         <UplinkIdentityBlock identity={outcome.identity} live />
       )}
+      {outcome.unvouchedDevClient && (
+        <Detail>
+          <Badge tone="warn" size="sm">
+            Unvouched
+          </Badge>{" "}
+          {UNVOUCHED_DEV_CLIENT_DETAIL}
+        </Detail>
+      )}
       {/* Says which kind of refusal it was; the reason below stays the diagnostic line. */}
       {outcome.integrity && (
         <UplinkIntegrityDetail failure={outcome.integrity} />
@@ -101,6 +110,8 @@ export function statusNeedsAttention(
   outcome: UplinkLoadOutcome | undefined,
 ): boolean {
   if (entry !== undefined && entry.health.state !== "healthy") return true;
+  // An unvouched development client loaded, and still wants the operator to know it is there.
+  if (outcome?.unvouchedDevClient) return true;
   return outcome?.status === "quarantined";
 }
 

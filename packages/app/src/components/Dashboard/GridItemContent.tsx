@@ -37,6 +37,7 @@ import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
+import { UnvouchedDevClientBridge } from "../../uplinks/UnvouchedDevClientBridge";
 import type { DashboardItem } from "./index";
 import {
   ComponentWrapper,
@@ -163,6 +164,9 @@ export const GridItemContent = memo(function GridItemContent({
           the instant on screen. Mounts a subscribing child only for widgets that
           read the trajectory; renders nothing otherwise. */}
         <TrajectoryCurrencyBridge declaredTopics={widgetDrawnFields(def)} />
+        {/* Folds in that the Uplink drawing this widget is running a development
+          client nobody vouched for, so the panel says so on every widget it owns. */}
+        <UnvouchedDevClientBridge ownerId={def.owner?.id} />
         <Tooltip text="Drag to reposition" announce={false}>
           <CellHeader className="drag-handle">
             {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
