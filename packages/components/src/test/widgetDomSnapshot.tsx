@@ -172,6 +172,8 @@ interface SnapshotOpts<Config> {
    * produce. Applies only to a fixture that has a `_stream` block.
    */
   profile?: string;
+  /** Mounted around the widget, for a test that observes what the tree does. Only {@link renderWidgetMode} reads it. */
+  wrapper?: React.ComponentType<{ children: React.ReactNode }>;
 }
 
 /**
@@ -649,6 +651,7 @@ export async function renderWidgetMode<
       ...((opts.mode.config ?? {}) as Config),
     };
     const instanceId = opts.instanceId ?? "snap";
+    const Observer = opts.wrapper ?? Fragment;
     const {
       Wrap,
       providerMounted,
@@ -664,13 +667,15 @@ export async function renderWidgetMode<
         <DashboardItemContext.Provider value={{ instanceId }}>
           <WidgetContributions Widget={opts.Widget}>
             <HarnessAlarms fixture={opts.fixture}>
-              <SnapshotBody
-                Widget={opts.Widget}
-                config={config}
-                id={instanceId}
-                w={opts.mode.w}
-                h={opts.mode.h}
-              />
+              <Observer>
+                <SnapshotBody
+                  Widget={opts.Widget}
+                  config={config}
+                  id={instanceId}
+                  w={opts.mode.w}
+                  h={opts.mode.h}
+                />
+              </Observer>
             </HarnessAlarms>
           </WidgetContributions>
         </DashboardItemContext.Provider>

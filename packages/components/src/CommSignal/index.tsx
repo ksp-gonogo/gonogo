@@ -24,6 +24,7 @@ registerComponent<CommSignalConfig>({
   contributionSlots: ["comm-signal.hop-rates"],
   // Connectivity is the freeze-exempt `comms.link`; `vessel.comms` holds its last value through a blackout.
   channels: commSignalTopics.channels,
+  optionalChannels: commSignalTopics.optionalChannels,
   fields: commSignalTopics.fields,
   defaultConfig: {},
   actions: [],

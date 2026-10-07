@@ -40,6 +40,8 @@ registerComponent<LaunchDirectorConfig>({
     "system.vessels",
     "spaceCenter.scene.scene",
     "spaceCenter.scene.launchSite",
+    "spaceCenter.state",
+    "career.mode",
     "career.status.balances.funds",
     "vessel.identity.name",
     "vessel.identity.launchUt",

@@ -73,6 +73,8 @@ const topics = defineTopicManifest({
     "vessel.target",
     "comms.network",
     "system.uplink.pending",
+    "system.frame",
+    "system.vessels",
   ],
 });
 

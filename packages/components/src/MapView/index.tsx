@@ -73,6 +73,7 @@ const topics = defineTopicManifest({
     "vessel.identity",
     "system.bodies",
   ],
+  optionalChannels: ["vessel.maneuver", "spaceCenter.pois"],
   fields: [
     "vessel.flight.latitude",
     "vessel.flight.longitude",
@@ -476,6 +477,9 @@ registerComponent<MapViewConfig>({
   configComponent: MapViewConfigComponent,
   // `vessel.orbit` is read by `OrbitalEventChips` inside this widget, so it is declared here.
   channels: topics.channels,
+  // The space centre markers are reference points on the map, not a ground control.
+  seats: ["mission-control", "pilot"],
+  optionalChannels: topics.optionalChannels,
   fields: topics.fields,
   defaultConfig: {
     trajectoryLength: 2000,

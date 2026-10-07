@@ -67,6 +67,7 @@ export type { TransferWindowActions } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["system.bodies", "vessel.orbit", "target.available", "dv.summary"],
+  optionalChannels: ["dv.stages", "vessel.structure"],
 });
 
 /** Stable empty catalogue: `useProcessor` answers undefined before the first frame. */
@@ -419,6 +420,7 @@ registerComponent<TransferWindowConfig>({
   minSize: { w: 6, h: 10 },
   component: TransferWindowComponent,
   channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   defaultConfig: { showPorkchop: true, leadHours: 6, reserveDeltaV: 0 },
   actions: transferWindowActions,
   pushable: true,

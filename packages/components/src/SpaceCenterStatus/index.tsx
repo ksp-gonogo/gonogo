@@ -28,6 +28,7 @@ const topics = defineTopicManifest({
     "spaceCenter.scene",
     "spaceCenter.state",
   ],
+  optionalChannels: ["career.mode"],
   fields: [
     "career.facilities.facilities",
     "career.status.balances.funds",
@@ -143,6 +144,7 @@ registerComponent<SpaceCenterStatusConfig>({
     useEssentials: useSpaceCenterEssentials,
   },
   channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

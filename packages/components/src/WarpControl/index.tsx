@@ -32,7 +32,13 @@ export type { WarpControlActions, WarpControlConfig } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["time.warp"],
-  optionalChannels: ["comms.delay"],
+  optionalChannels: [
+    "comms.delay",
+    "vessel.maneuver",
+    "career.mode",
+    "spaceCenter.scene",
+    "spaceCenter.state",
+  ],
   fields: [
     "time.warp.warpRate",
     "time.warp.warpRateIndex",
@@ -242,6 +248,8 @@ registerComponent<WarpControlConfig>({
   channels: topics.channels,
   optionalChannels: topics.optionalChannels,
   fields: topics.fields,
+  // The scene and career reads only dim it; warp is a pilot's control.
+  seats: ["mission-control", "pilot"],
   defaultConfig: { requireAlarmUnderDelay: true },
   actions: warpActions,
   augmentSlots: ["warp-control.stepper"],

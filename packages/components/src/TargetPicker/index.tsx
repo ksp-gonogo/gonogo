@@ -19,6 +19,7 @@ registerComponent<TargetPickerConfig>({
   configComponent: TargetPickerConfigForm,
   augmentSlots: ["target-picker.sections"],
   channels: targetPickerTopics.channels,
+  optionalChannels: targetPickerTopics.optionalChannels,
   defaultConfig: {},
   actions: targetPickerActions,
   pushable: true,

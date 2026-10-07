@@ -45,6 +45,7 @@ const topics = defineTopicManifest({
     "science.archive",
     "career.status",
   ],
+  optionalChannels: ["career.mode", "spaceCenter.scene", "spaceCenter.state"],
   fields: [
     "vessel.identity.parentBodyIndex",
     "vessel.identity.situation",
@@ -182,6 +183,7 @@ registerComponent<ScienceDataConfig>({
   minSize: { w: 5, h: 4 },
   component: ScienceDataComponent,
   channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

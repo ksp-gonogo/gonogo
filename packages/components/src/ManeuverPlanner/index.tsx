@@ -28,11 +28,7 @@ registerComponent<ManeuverPlannerConfig>({
     useEssentials: useManeuverEssentials,
   },
   augmentSlots: ["maneuver-planner.sections"],
-  /*
-   * Apsides, countdowns and period are solved from these elements, so are not
-   * declared. `vessel.target` is not declared either: with nothing targeted the
-   * wire tombstones it, and a badge would mark the whole panel NO DATA.
-   */
+  // Apsides, countdowns and period are solved from these elements, so are not declared.
   dataRequirements: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -44,7 +40,12 @@ registerComponent<ManeuverPlannerConfig>({
     "system.bodies",
     "vessel.identity.parentBodyIndex",
     "vessel.maneuver.nodes",
+    "vessel.target",
+    "vessel.propulsion",
+    "system.frame",
+    "dv.summary",
     "dv.stages",
+    "vessel.structure",
   ],
   defaultConfig: { defaultPreset: "circularize-apo" },
   actions: maneuverActions,

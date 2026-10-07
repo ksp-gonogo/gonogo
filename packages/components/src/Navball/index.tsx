@@ -39,7 +39,7 @@ const topics = defineTopicManifest({
     "vessel.comms",
     "comms.delay",
   ],
-  optionalChannels: ["vessel.identity"],
+  optionalChannels: ["vessel.identity", "vessel.orbit"],
   fields: [
     "vessel.attitude.heading",
     "vessel.attitude.pitch",

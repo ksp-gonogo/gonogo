@@ -85,7 +85,12 @@ registerComponent<ActionGroupConfig>({
     useEssentials: useActionGroupEssentials,
   },
   configComponent: ActionGroupConfigForm,
-  dataRequirements: [],
+  dataRequirements: [
+    "vessel.control",
+    "vessel.structure",
+    "time.warp",
+    "comms.link",
+  ],
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
   augmentSlots: ["action-group.subsystem"],

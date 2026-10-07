@@ -21,6 +21,7 @@ export { parseTechNodes } from "./wire";
 
 const topics = defineTopicManifest({
   channels: ["career.status"],
+  optionalChannels: ["career.mode", "spaceCenter.scene", "spaceCenter.state"],
   fields: ["career.status.tech.nodes", "career.status.balances.science"],
 });
 
@@ -104,6 +105,7 @@ registerComponent<TechTreeConfig>({
   component: TechTreeComponent,
   tiny: { title: "TECH", useEssentials: useTechTreeEssentials },
   channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

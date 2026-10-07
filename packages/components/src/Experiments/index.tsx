@@ -247,6 +247,7 @@ registerComponent<ExperimentsConfig>({
     "science.instruments",
     "science.experiments",
     "science.lab",
+    "comms.delay",
   ],
   defaultConfig: {},
   actions: [],
