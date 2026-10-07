@@ -22,13 +22,15 @@ export const RELEASE_USAGE = `uplink-tools release [options]
   plugin's sources, compile the plugin in Release, check the compiled DLL
   carries what was baked, and zip the GameData tree. Needs the .NET SDK.
 
-  The client lands in client/dist/<id>/ and the mod zip in dist/.
+  The client lands in client/dist/<id>/ and the mod zip in dist/, or both
+  under --out: <out>/<id>/ for the client and <out>/ for the zip.
 
   --dev-path <url>      bake a dev server URL for the bundle. The loader prefers
                         it over the released URL, so the result is a dev build
                         and is not zipped
   --allow-dev-package   zip a dev build anyway, to hand to one machine
-  --out <dir>           where the mod zip goes (default: dist/ in the Uplink)
+  --out <dir>           one folder for both: the client in <dir>/<id>/, the
+                        mod zip in <dir>/
   --uplink <dir>        the Uplink's directory, the one holding uplink.json
                         (default: found by walking up from the current directory)`;
 
@@ -95,9 +97,17 @@ export async function release(
   let bundlePath: string | undefined;
   if (url) {
     step("bundle the client");
-    const code = await bundle(["--client", clientDir]);
+    const code = await bundle([
+      "--client",
+      clientDir,
+      ...(outValue === undefined ? [] : ["--out", outDir]),
+    ]);
     if (code !== 0) return code;
-    bundlePath = join(clientDir, "dist", id, `${id}.client.js`);
+    bundlePath = join(
+      outValue === undefined ? join(clientDir, "dist") : outDir,
+      id,
+      `${id}.client.js`,
+    );
   }
 
   step("bake what the plugin says about its client");

@@ -21,9 +21,9 @@ namespace Sitrep.Contract.TestSupport
     /// <para>So the assertion has to be the same one on both sides. An outside
     /// author calls it on their implementation and learns whether they got it
     /// right; this repo calls it on its own and learns the same thing. It lives
-    /// here because <see cref="Sitrep.Contract.TestSupport"/> is SHIPPED, vendored
-    /// to an Uplink's <c>vendor/devkit</c> and packed into the net10.0 group of
-    /// the <c>KspGonogo.Sitrep.Contract</c> NuGet package, so "an implementer can
+    /// here because <see cref="Sitrep.Contract.TestSupport"/> is SHIPPED, in the
+    /// net10.0 group of the <c>KspGonogo.Sitrep.Contract</c> NuGet package that
+    /// an Uplink's test project references, so "an implementer can
     /// run it" is a fact about the package rather than a hope.</para>
     ///
     /// <para><b>It asserts the contract, never an implementation's choices.</b>

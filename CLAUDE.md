@@ -418,9 +418,10 @@ That half was outside the walk until 2026-08-30, which is how every list here
 read zero while ten of the twelve test projects reached one. Its debt lists
 (`TestProjectReferenceDebt`, `TestProjectImportDebt`) are seeded and shrink-only.
 All ten of those entries were `Sitrep.Contract.TestSupport`, and they CLEARED on
-2026-09-15: TestSupport is a shipped surface now, vendored to `vendor/devkit` by
-`scripts/vendor-uplinks-reference-set.sh` and carried in the `net10.0` group of
-the `KspGonogo.Sitrep.Contract` NuGet package, so the gate reads it as private to
+2026-09-15: TestSupport is a shipped surface now, carried in the `net10.0` group of
+the `KspGonogo.Sitrep.Contract` NuGet package (gonogo-uplinks takes its copy of
+that package from `scripts/vendor-uplinks-reference-set.sh`, which packs it from
+one gonogo commit into that repo's `vendor/nuget`), so the gate reads it as private to
 a PLUGIN and shipped to a Tests project (`ShippedToTestProjects`). **Both lists
 are EMPTY as of 2026-09-21**: `Sitrep.Core` joined `ShippedToTestProjects` the
 same way, riding into both places behind TestSupport's ProjectReference, which

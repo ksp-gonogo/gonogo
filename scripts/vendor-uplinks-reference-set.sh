@@ -1,34 +1,30 @@
 #!/usr/bin/env bash
-# Produce the gonogo-uplinks repo's `vendor/contract` and `vendor/devkit` from ONE
-# gonogo commit, and record which one.
+# Pack the gonogo-uplinks repo's copy of `KspGonogo.Sitrep.Contract` from ONE
+# gonogo commit, into its local NuGet feed, and record which commit.
 #
 #   scripts/vendor-uplinks-reference-set.sh <gonogo-uplinks checkout> [<gonogo ref>]
 #
 # The ref defaults to HEAD. Sources are taken from the COMMIT with `git archive`,
 # never from the working tree, so an uncommitted edit under mod/ cannot reach the
-# vendored set and the sha written beside it is the whole truth about its origin.
+# package and the sha in its version is the whole truth about its origin.
 #
-# What it writes, replacing both directories wholesale so nothing stale survives:
+# gonogo-uplinks builds the way an outside author's Uplink does: every project
+# there references the package, and nothing references a loose assembly. So this
+# writes one file and moves two pins:
 #
-#   vendor/contract/net472/Sitrep.Contract.dll          what an Uplink plugin binds to
-#   vendor/contract/netstandard2.0/Sitrep.Contract.dll  what a contract slice and a Tests project bind to
-#   vendor/contract/codegen/Sitrep.Contract.dll         the SITREP_CODEGEN twin rtcli reads
-#   vendor/contract/codegen/Reinforced.Typings.dll      the twin's attribute assembly
-#   vendor/contract/CodegenTwin.props                   the shape every Uplink's codegen twin imports
-#   vendor/devkit/Sitrep.Contract.TestSupport.dll       fakes and rule assertions for a Tests project
-#   vendor/devkit/Sitrep.Core.dll                       the real Courier/Archive delay engine
-#   vendor/{contract,devkit}/VENDORED_FROM              the gonogo commit sha
+#   vendor/nuget/KspGonogo.Sitrep.Contract.<version>.nupkg   the package, the only one in the feed
+#   Directory.Build.props, GonogoContractVersion             the version every project references
+#   vendor/gonogo-ref                                        the gonogo commit sha
 #
-# The devkit needs nothing else beside it. TestSupport references
-# Sitrep.Contract, which the Tests project already takes from
-# vendor/contract/netstandard2.0 (the same build TestSupport compiled against
-# here), and xunit.assert, which arrives with the Tests project's own xunit
-# package. Sitrep.Core is BCL-only apart from that same Sitrep.Contract.
+# THE VERSION NAMES THE PIN: <release>-pin.g<first 12 of the sha>. NuGet keeps a
+# machine-wide cache keyed by id and version, and would go on serving the first
+# bytes it ever saw under a version that was packed twice. A version that moves
+# with the commit cannot be stale, on a developer's machine or on a runner.
 #
-# Sitrep.Core is the netstandard2.0 leg, which is what TestSupport's own net10.0
-# build resolved and what a net10.0 Tests project resolves. It is here so a Tests
-# project can drive the real delay engine rather than a double of it; a PLUGIN
-# still binds Sitrep.Core out of GameData, never from here.
+# The package is what a plugin, a contract slice, a test project and codegen all
+# resolve: Sitrep.Contract for net472 and netstandard2.0, TestSupport and
+# Sitrep.Core beside it for net10.0, and the codegen twin with CodegenTwin.props
+# in its codegen folder.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
@@ -47,12 +43,13 @@ TARGET="$(cd "$TARGET" 2>/dev/null && pwd)" || {
   echo "✖ vendor: $1 is not a directory"
   exit 1
 }
-# Directory.Build.props is what reads vendor/contract and vendor/devkit, so a
-# target without one is not the repo this set is for.
-if [ ! -f "$TARGET/Directory.Build.props" ] || [ ! -d "$TARGET/uplinks" ] \
-  || ! grep -q "GonogoDevkit" "$TARGET/Directory.Build.props"; then
+# Directory.Build.props is where every project there reads the package version
+# from, so a target without that property is not the repo this feed is for.
+PROPS="$TARGET/Directory.Build.props"
+if [ ! -f "$PROPS" ] || [ ! -d "$TARGET/uplinks" ] \
+  || ! grep -q "<GonogoContractVersion>" "$PROPS"; then
   echo "✖ vendor: $TARGET does not look like a gonogo-uplinks checkout"
-  echo "  (expected uplinks/ and a Directory.Build.props declaring GonogoDevkit)"
+  echo "  (expected uplinks/ and a Directory.Build.props declaring GonogoContractVersion)"
   exit 1
 fi
 
@@ -60,44 +57,66 @@ SHA="$(git -C "$ROOT" rev-parse --verify "$REF^{commit}")"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-echo "vendor: building the reference set from gonogo $SHA"
+echo "vendor: packing KspGonogo.Sitrep.Contract from gonogo $SHA"
 git -C "$ROOT" archive "$SHA" \
   mod/Directory.Build.props \
   mod/CodegenTwin.props \
   mod/Sitrep.Contract \
   mod/Sitrep.Contract.Codegen \
+  mod/Sitrep.Contract.Package \
   mod/Sitrep.Contract.TestSupport \
   mod/Sitrep.Core \
+  packages/app/package.json \
   | tar -x -C "$WORK"
 
-for project in Sitrep.Contract Sitrep.Contract.Codegen Sitrep.Contract.TestSupport Sitrep.Core; do
-  dotnet build "$WORK/mod/$project/$project.csproj" -c Release --nologo -v quiet -clp:ErrorsOnly
+RELEASE="$(sed -n 's/^  "version": "\([0-9][0-9.]*\)",\{0,1\}$/\1/p' "$WORK/packages/app/package.json" | head -1)"
+if [ -z "$RELEASE" ]; then
+  echo "✖ vendor: could not read the release version from packages/app/package.json at $SHA"
+  exit 1
+fi
+VERSION="$RELEASE-pin.g${SHA:0:12}"
+
+# The archive is not a git checkout, so SourceLink has no commit to point at. The
+# package's nuspec still carries the repository URL, which the csproj states.
+dotnet pack "$WORK/mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj" \
+  -c Release -o "$WORK/out" --nologo -v quiet -clp:ErrorsOnly \
+  -p:PackageVersion="$VERSION" -p:EnableSourceLink=false -p:EmbedUntrackedSources=false
+
+NUPKG="$WORK/out/KspGonogo.Sitrep.Contract.$VERSION.nupkg"
+if [ ! -f "$NUPKG" ]; then
+  echo "✖ vendor: the pack produced no $NUPKG"
+  exit 1
+fi
+# A package that lost a group or its codegen folder restores cleanly and fails
+# later in every Uplink at once, so what it must hold is checked here by name.
+for member in \
+  lib/net472/Sitrep.Contract.dll \
+  lib/netstandard2.0/Sitrep.Contract.dll \
+  lib/net10.0/Sitrep.Contract.dll \
+  lib/net10.0/Sitrep.Contract.TestSupport.dll \
+  lib/net10.0/Sitrep.Core.dll \
+  codegen/Sitrep.Contract.dll \
+  codegen/CodegenTwin.props; do
+  if ! unzip -Z1 "$NUPKG" | grep -qx "$member"; then
+    echo "✖ vendor: the package packed from $SHA holds no $member"
+    exit 1
+  fi
 done
 
-STAGE="$WORK/stage"
-mkdir -p "$STAGE/contract/net472" "$STAGE/contract/netstandard2.0" \
-  "$STAGE/contract/codegen" "$STAGE/devkit"
+FEED="$TARGET/vendor/nuget"
+mkdir -p "$FEED"
+# One package in the feed: an older one left beside it would still satisfy a
+# project whose version nobody moved.
+find "$FEED" -maxdepth 1 -name 'KspGonogo.Sitrep.Contract.*.nupkg' -delete
+cp "$NUPKG" "$FEED/"
 
-# Each copy names its source explicitly and `cp` fails on a missing one, so a
-# build that put an assembly somewhere else stops the run instead of vendoring a
-# set with a hole in it. MSBuild's missing-HintPath warning would not.
-BIN="$WORK/mod"
-cp "$BIN/Sitrep.Contract/bin/Release/net472/Sitrep.Contract.dll" "$STAGE/contract/net472/"
-cp "$BIN/Sitrep.Contract/bin/Release/netstandard2.0/Sitrep.Contract.dll" "$STAGE/contract/netstandard2.0/"
-cp "$BIN/Sitrep.Contract.Codegen/bin/Release/netstandard2.0/Sitrep.Contract.dll" "$STAGE/contract/codegen/"
-cp "$BIN/Sitrep.Contract.Codegen/bin/Release/netstandard2.0/Reinforced.Typings.dll" "$STAGE/contract/codegen/"
-cp "$BIN/CodegenTwin.props" "$STAGE/contract/"
-cp "$BIN/Sitrep.Contract.TestSupport/bin/Release/net10.0/Sitrep.Contract.TestSupport.dll" "$STAGE/devkit/"
-cp "$BIN/Sitrep.Core/bin/Release/netstandard2.0/Sitrep.Core.dll" "$STAGE/devkit/"
+sed -i.bak "s|<GonogoContractVersion>[^<]*</GonogoContractVersion>|<GonogoContractVersion>$VERSION</GonogoContractVersion>|" "$PROPS"
+rm -f "$PROPS.bak"
+if ! grep -q "<GonogoContractVersion>$VERSION</GonogoContractVersion>" "$PROPS"; then
+  echo "✖ vendor: could not write GonogoContractVersion into $PROPS"
+  exit 1
+fi
+echo "$SHA" > "$TARGET/vendor/gonogo-ref"
 
-echo "$SHA" > "$STAGE/contract/VENDORED_FROM"
-echo "$SHA" > "$STAGE/devkit/VENDORED_FROM"
-
-mkdir -p "$TARGET/vendor"
-for dir in contract devkit; do
-  rm -rf "$TARGET/vendor/$dir"
-  mv "$STAGE/$dir" "$TARGET/vendor/$dir"
-done
-
-echo "vendor: wrote $TARGET/vendor/contract and $TARGET/vendor/devkit from $SHA"
-(cd "$TARGET/vendor" && find contract devkit -type f | sort | sed 's/^/  /')
+echo "vendor: $FEED/KspGonogo.Sitrep.Contract.$VERSION.nupkg"
+echo "vendor: GonogoContractVersion is $VERSION, vendor/gonogo-ref is $SHA"

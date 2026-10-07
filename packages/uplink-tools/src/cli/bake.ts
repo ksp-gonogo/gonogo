@@ -119,9 +119,10 @@ export function bakeUplink(inputs: BakeInputs): BakeResult {
     );
   }
 
+  // An Uplink with no client half has no client package to take a version from, and its plugin states its own.
   const pkgPath = join(uplinkDir, "client", "package.json");
   const version = existsSync(pkgPath) ? text(readJson(pkgPath).version) : "";
-  if (!version) {
+  if (!version && existsSync(join(uplinkDir, "client"))) {
     throw new Error(
       `${pkgPath} carries no version. An Uplink has one version for both halves, and the ` +
         "client's package.json is where it is written.",

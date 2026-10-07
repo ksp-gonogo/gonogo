@@ -148,6 +148,28 @@ describe("uplink-tools bake", () => {
     expect(out).toContain("announces no client");
   });
 
+  it("bakes an Uplink that has no client half, which has no client package to take a version from", () => {
+    const dir = workdir();
+    mkdirSync(join(dir, "mod"));
+    writeFileSync(
+      join(dir, "uplink.json"),
+      JSON.stringify({
+        id: "modonly",
+        name: "Mod only",
+        csharpNamespace: "Gonogo.ModOnly",
+      }),
+    );
+
+    const out = execFileSync(process.execPath, [BIN, "bake"], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+
+    expect(baked(dir, "Provenance.g.cs")).toContain('Name = "Mod only";');
+    expect(existsSync(join(dir, "mod", "ClientSource.g.cs"))).toBe(false);
+    expect(out).toContain("announces no client");
+  });
+
   it("refuses a bundle that does not exist rather than baking a hash of nothing", () => {
     const dir = uplinkDir();
     const { code, out } = runBin(

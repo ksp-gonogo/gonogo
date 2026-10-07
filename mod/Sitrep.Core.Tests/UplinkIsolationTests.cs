@@ -94,12 +94,11 @@ namespace Sitrep.Core.Tests
         /// Projects in <see cref="PrivateProjects"/> that a <c>&lt;Uplink&gt;.Tests</c>
         /// project MAY reach, because an outside author has them too.
         ///
-        /// <para>Both ship beside the vendored contract:
-        /// <c>scripts/vendor-uplinks-reference-set.sh</c> builds them from the same
-        /// gonogo commit as <c>Sitrep.Contract</c> and writes them to the
-        /// gonogo-uplinks repo's <c>vendor/devkit</c>, where that repo's Tests
-        /// projects reference them by HintPath, and the <c>net10.0</c> group of
-        /// <c>KspGonogo.Sitrep.Contract</c> carries the same two. Neither is in
+        /// <para>Both ship in the <c>net10.0</c> group of the
+        /// <c>KspGonogo.Sitrep.Contract</c> NuGet package, which is how a Tests
+        /// project reaches them, in the gonogo-uplinks repo (whose copy of the
+        /// package <c>scripts/vendor-uplinks-reference-set.sh</c> packs from one
+        /// gonogo commit) as anywhere else. Neither is in
         /// GameData, which is why the plugin half still counts them private.</para>
         ///
         /// <para><c>Sitrep.Core</c> rides in behind
