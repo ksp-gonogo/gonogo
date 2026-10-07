@@ -11,13 +11,16 @@ import type {
  * @category Test doubles
  */
 export interface MockDataSourceOptions {
+  /** The source's id. Absent, `"mock"`. */
   id?: string;
+  /** The source's display name. Absent, `"Mock"`. */
   name?: string;
+  /** The keys `schema()` reports. Absent, none. */
   keys?: DataKey[];
   /**
-   * Set this to match a source whose samples stop arriving on signal loss, so a
-   * buffering wrapper's signal-gate path is actually exercised rather than
-   * skipped.
+   * Whether this source's samples stop arriving while the craft has no
+   * signal, as telemetry from a craft does. Set it in a test of how something
+   * behaves across a loss of signal.
    */
   affectedBySignalLoss?: boolean;
 }

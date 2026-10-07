@@ -3,7 +3,10 @@ import { Text } from "./Text";
 
 // styleguide-emdash.test.ts allows the em dash here and nowhere else.
 /**
- * The null token, the dash that means "no data yet". Use it anywhere only a
+ * The null token, the dash that means "no value to show": nothing has arrived
+ * yet, or the game confirmed there is none. It does not say which, so a widget
+ * that has to tell them apart reads the reading's `state` and says so in
+ * words. Use it anywhere only a
  * string fits: a formatter's return value, a template fallback, an attribute
  * value. For a bare JSX node use {@link NullValue}. {@link Unit} already draws
  * it for an absent value.

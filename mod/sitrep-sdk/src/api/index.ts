@@ -478,11 +478,10 @@ export function registerSetting<
   Topic extends TopicId = TopicId,
 >(def: SettingDefinitionOf<SettingKind, Topic>): void;
 /**
- * Register an ALREADY-TYPED definition, for a client that built its rows as a
- * list and registers them in a loop. Mixed rows collapse to
- * `SettingDefinition` the moment they share an array, and `select`'s
- * parameter is contravariant, so the generic form rejects exactly the shape a
- * list has.
+ * The form to call with a row taken from a list, for a client that keeps its
+ * rows in an array and registers them in a loop. Rows of different types in
+ * one array are typed as the plain `SettingDefinition`, which the generic form
+ * above does not accept.
  */
 export function registerSetting(def: SettingDefinition): void;
 export function registerSetting(

@@ -1239,8 +1239,9 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   compactTitle?: string | readonly string[];
   /**
    * Content for the right of the header row, beside the stream-status badge:
-   * state chips, an `AugmentSlot` for Uplink badges, a small control such as a
-   * select or a show/hide button. Keep it small: anything that wants real
+   * state chips, a small control such as a select or a show/hide button. An
+   * Uplink's badges need nothing here: they are contributions to the widget's
+   * `badges` slot, which the header draws itself. Keep it small: anything that wants real
    * layout belongs in the body or a hand-composed `Panel.Header`.
    */
   panelAside?: ReactNode;

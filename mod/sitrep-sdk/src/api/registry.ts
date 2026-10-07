@@ -99,7 +99,11 @@ function isSameRegistration(
  * registered. Prefix your ids with your Uplink's name (`foo-status`,
  * `foo-map`) to stay clear of the built-in widgets and of other Uplinks. The
  * id is registered exactly as you write it: passing `owner` records which
- * Uplink the widget belongs to and adds nothing to the id. Registering the
+ * Uplink the widget belongs to and adds nothing to the id. That differs from
+ * the `register...` methods on the handle `defineUplinkClient` returns, which
+ * put the Uplink's id in front of the id they are given, so a contribution
+ * registered as `"badge"` through the handle of `my-uplink` is
+ * `"my-uplink:badge"`. Registering the
  * same id with the same `name` again, as happens when a module is loaded by
  * two bundles, is taken as the same widget and does nothing.
  *

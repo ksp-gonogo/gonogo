@@ -49,7 +49,10 @@ function bucketFor(instanceId: string): Map<string, ActionHandler> {
 
 /**
  * Registers the handler for one action of one widget instance, replacing any
- * before it. `useActionInput` does this for you.
+ * before it. `useActionInput` does this for you, and is the way a widget
+ * handles its actions: it knows the instance it is mounted as. `instanceId` is
+ * the id the dashboard gave that one placed copy of the widget, which is how
+ * two copies of one widget keep separate bindings.
  *
  * @category Actions
  */

@@ -80,8 +80,9 @@ public class LaunchSiteEntry
 /// outside the five named ones (<c>LOADING</c>, <c>PSYSTEM</c>,
 /// <c>MISSIONBUILDER</c>, ...) mapped to <c>"Other"</c>.
 ///
-/// <para>A wrapper object <c>{ "scene": string }</c>. The whole payload is
-/// <c>null</c> when no sample has arrived yet. Its <c>meta</c> is on the
+/// <para>An object holding the scene and, in the editor, the launch site
+/// picked there. The whole payload is <c>null</c> when no sample has arrived
+/// yet. Its <c>meta</c> is on the
 /// envelope. Never delayed (<see cref="DelayRole.TrueNow"/>): it is a fact
 /// about the game, not a craft.</para>
 /// <internal>
@@ -347,9 +348,8 @@ public class SavedShipEntry
     /// <para>This one is not a display concern. A client sends the facility
     /// straight back as the <c>ksp.launch</c> command's <c>facility</c>
     /// argument, so never substitute a default editor for a value it does not
-    /// recognise: a substituted default that becomes a dispatched argument
-    /// launches a spaceplane from the launchpad. KSP's enum also declares
-    /// <c>None</c>.</para>
+    /// recognise: the craft would launch from the wrong facility. KSP's enum
+    /// also declares <c>None</c>.</para>
     ///
     /// <para><c>null</c> when the capture carried no facility, which is a
     /// third value and must not be read as either editor.</para>

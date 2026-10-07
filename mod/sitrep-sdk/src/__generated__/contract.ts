@@ -4607,10 +4607,7 @@ export interface OrbitPayloadMeta
 * Where one Making History mission objective stands, defined by this contract
 * rather than by KSP.
 *
-* KSP's mission graph has no per-objective state. A node is either activated
-* (the mission reached it) or not, and exactly one node is the mission's
-* active node, so this reduces those facts to the four outcomes an operator
-* reads. On the wire it is an integer ordinal.
+* On the wire it is an integer ordinal.
 *
 * @category Missions
 */
@@ -4694,8 +4691,8 @@ export interface MissionStatus
 	/** The most score the mission can award. */
 	maxScore?: Value<"count"> | null;
 	/**
-	* The mission's objectives in flow order, orphaned nodes left out. Empty when
-	* it has none.
+	* The mission's objectives in flow order. A node of the mission that nothing
+	* leads to is left out. Empty when it has none.
 	*/
 	objectives?: MissionObjectiveEntry[] | null;
 }
@@ -4757,8 +4754,9 @@ export interface ModSettingRow
 	writable: boolean;
 	/**
 	* The value in force, spelled as `SettingsRowState.value` is: `True` or
-	* `False`, a number with a full stop in `ModSettingRow.unit`, or the text.
-	* Null when it cannot be read, and `ModSettingRow.unavailable` then says why.
+	* `False`, a number in the unit `ModSettingRow.unit` names with a full stop as
+	* its decimal point, or the text. Null when it cannot be read, and
+	* `ModSettingRow.unavailable` then says why.
 	*/
 	value?: string | null;
 	/** Why the value cannot be read right now, or null when it was. */
@@ -6948,7 +6946,7 @@ export interface SettingsDeclarationFailure
 {
 	/** The id of the Uplink whose settings could not be declared. */
 	uplinkId: string;
-	/** Why, for an operator to read. */
+	/** The reason, as a sentence written for the operator. */
 	reason: string;
 }
 /**
@@ -7065,9 +7063,10 @@ export interface LaunchSiteEntry
 * the five named ones (`LOADING`, `PSYSTEM`, `MISSIONBUILDER`, ...) mapped to
 * `"Other"`.
 *
-* A wrapper object `{ "scene": string }`. The whole payload is `null` when no
-* sample has arrived yet. Its `meta` is on the envelope. Never delayed
-* (DelayRole.TrueNow): it is a fact about the game, not a craft.
+* An object holding the scene and, in the editor, the launch site picked
+* there. The whole payload is `null` when no sample has arrived yet. Its
+* `meta` is on the envelope. Never delayed (DelayRole.TrueNow): it is a fact
+* about the game, not a craft.
 *
 * @category Space center
 * @categoryDescription Space center
@@ -7281,9 +7280,8 @@ export interface SavedShipEntry
 	*
 	* This one is not a display concern. A client sends the facility straight back
 	* as the `ksp.launch` command's `facility` argument, so never substitute a
-	* default editor for a value it does not recognise: a substituted default that
-	* becomes a dispatched argument launches a spaceplane from the launchpad.
-	* KSP's enum also declares `None`.
+	* default editor for a value it does not recognise: the craft would launch
+	* from the wrong facility. KSP's enum also declares `None`.
 	*
 	* `null` when the capture carried no facility, which is a third value and must
 	* not be read as either editor.
@@ -8091,12 +8089,13 @@ export interface TargetAvailable
 * divide by these values rather than by a constant: 21,600 seconds per day is
 * right only for stock KSP on Kerbin time.
 *
+* Three things change them:
+*
 * - **Stock, no mods.** `GameSettings.KERBIN_TIME` is a setting a player can
 *   turn off, and KSP's own UI then reads in 24-hour days and 365-day years.
 * - **A planet pack.** RSS and anything else built on Kopernicus replaces
 *   `KSPUtil.dateTimeFormatter`, so a day becomes 86,400 s and a year 365
-*   days. Dividing by 21,600 reports four times too many days, in a number
-*   that looks plausible.
+*   days.
 * - **Anything else.** The formatter has a public setter, so a mod can put any
 *   calendar behind it.
 *

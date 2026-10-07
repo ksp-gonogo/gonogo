@@ -2595,9 +2595,10 @@ channels:
       the five named ones (`LOADING`, `PSYSTEM`, `MISSIONBUILDER`, ...) mapped to
       `"Other"`.
 
-      A wrapper object `{ "scene": string }`. The whole payload is `null` when no
-      sample has arrived yet. Its `meta` is on the envelope. Never delayed
-      (DelayRole.TrueNow): it is a fact about the game, not a craft.
+      An object holding the scene and, in the editor, the launch site picked
+      there. The whole payload is `null` when no sample has arrived yet. Its
+      `meta` is on the envelope. Never delayed (DelayRole.TrueNow): it is a fact
+      about the game, not a craft.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -2852,12 +2853,13 @@ channels:
       divide by these values rather than by a constant: 21,600 seconds per day is
       right only for stock KSP on Kerbin time.
 
+      Three things change them:
+
       - **Stock, no mods.** `GameSettings.KERBIN_TIME` is a setting a player can
         turn off, and KSP's own UI then reads in 24-hour days and 365-day years.
       - **A planet pack.** RSS and anything else built on Kopernicus replaces
         `KSPUtil.dateTimeFormatter`, so a day becomes 86,400 s and a year 365
-        days. Dividing by 21,600 reports four times too many days, in a number
-        that looks plausible.
+        days.
       - **Anything else.** The formatter has a public setter, so a mod can put any
         calendar behind it.
 
@@ -10271,10 +10273,9 @@ components:
             The maneuver plan is owned by a planner other than stock's
             `patchedConicSolver`, so a node written there would never be used.
 
-            Refused rather than attempted: an n-body planner clears stock's node list
-            every frame and writes its own guidance node into it, so a written node
-            would show on the board and do nothing. The owning planner is on the wire as
-            `VesselManeuver.Planner`.
+            A node written while another planner owns the plan would show on the board
+            and never be flown, so the command is refused and nothing is written. The
+            owning planner is on the wire as `VesselManeuver.Planner`.
           x-sitrep-sentence: another planner owns the flight plan
         - const: limitReached
           title: LimitReached
@@ -10311,7 +10312,7 @@ components:
             `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds
             separate currencies.
 
-            Authority: `CurrencyModifierQuery.RunQuery(reason,
+            Decided by `CurrencyModifierQuery.RunQuery(reason,
             ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech`
             checks, modifiers included.
           x-sitrep-sentence: there is not enough science
@@ -10321,7 +10322,7 @@ components:
             The save is not a career save, so this command's whole subsystem does not
             exist here.
 
-            Authority: `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
+            Decided by `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
             of the `ScenarioModule` that would have served it (`Funding`,
             `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`,
             `ScenarioUpgradeableFacilities`).
@@ -10334,7 +10335,7 @@ components:
           description: |-
             The game is in a scene this command cannot run from.
 
-            Authority: `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
+            Decided by `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
             names the scene when the producer had one.
           x-sitrep-sentence: the game is not in a scene that allows it
         - const: wrongState
@@ -10345,7 +10346,7 @@ components:
             contract asked to accept when it is not offered, an assigned kerbal asked to
             be sacked, a spent experiment asked to deploy.
 
-            Authority: the entity's own state enum. `Strategies.Strategy.IsActive`,
+            Decided by the entity's own state enum. `Strategies.Strategy.IsActive`,
             `RDTech.State`, `Contract.State`, `ProtoCrewMember.RosterStatus`,
             `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
             `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
@@ -10357,7 +10358,7 @@ components:
             Right command, wrong moment: the flight is not in a state that permits it
             yet, and will be later.
 
-            Authority: `FlightGlobals.ClearToSave()`, which returns one of five refusals
+            Decided by `FlightGlobals.ClearToSave()`, which returns one of five refusals
             (in atmosphere, under acceleration, moving over the surface, about to crash,
             on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch`
             and the `GameParameters` flags for leaving to the space center and to the
@@ -10380,7 +10381,7 @@ components:
             no such action, an action present but inert, an autopilot mode this craft
             cannot hold.
 
-            Authority: the part's own module list and fields
+            Decided by the part's own module list and fields
             (`ModuleRoboticServoRotor`/`Hinge`/`Piston`, `servoIsMotorized`,
             `BaseEvent.active`, `BaseEvent.EventIsDisabledByVariant`) and
             `VesselAutopilot.CanSetMode`.
@@ -10394,7 +10395,7 @@ components:
           description: |-
             There is no usable link for what this command needs to send.
 
-            Authority: `ScienceUtil.GetBestTransmitter(Vessel)` and
+            Decided by `ScienceUtil.GetBestTransmitter(Vessel)` and
             `IScienceDataTransmitter.CanTransmit()`: the vessel has no antenna that can
             carry the payload. This is not the comms-loss refusal that stops a command
             before it reaches the vessel.
@@ -10405,7 +10406,7 @@ components:
             The capability exists in the game but this save has not unlocked it: fuel
             transfer, custom action groups, flight planning, EVA, the maneuver tool.
 
-            Authority: `GameVariables.UnlockedFuelTransfer`,
+            Decided by `GameVariables.UnlockedFuelTransfer`,
             `UnlockedActionGroupsStock`/`Custom`, `UnlockedFlightPlanning`,
             `UnlockedEVA`/`Flags`/`Clamber`, `ManeuverToolAvailable`, each read at the
             owning facility's normalised level.
@@ -10419,7 +10420,7 @@ components:
           description: |-
             Another vessel is on the launch site.
 
-            Authority: `PreFlightTests.LaunchSiteClear`, whose
+            Decided by `PreFlightTests.LaunchSiteClear`, whose
             `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
             it and ride on `CommandResult.detail`.
           x-sitrep-sentence: another vessel is on the launch site
@@ -10428,7 +10429,7 @@ components:
           description: |-
             The facility this command needs is destroyed or damaged.
 
-            Authority: `PreFlightTests.FacilityOperational`, over
+            Decided by `PreFlightTests.FacilityOperational`, over
             `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
           x-sitrep-sentence: the building is out of action
         - const: insufficientResource
@@ -10437,7 +10438,7 @@ components:
             The command consumes a countable ITEM and there are not enough of them
             aboard.
 
-            Authority: the provider's own charge, which it should also state wherever it
+            Decided by the provider's own charge, which it should also state wherever it
             shows the cost, so the cost shown and the cost taken agree. The item is the
             provider's to name: this code says only that there were too few, never which
             item.
@@ -15584,10 +15585,7 @@ components:
         Where one Making History mission objective stands, defined by this contract
         rather than by KSP.
 
-        KSP's mission graph has no per-objective state. A node is either activated
-        (the mission reached it) or not, and exactly one node is the mission's
-        active node, so this reduces those facts to the four outcomes an operator
-        reads. On the wire it is an integer ordinal.
+        On the wire it is an integer ordinal.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -15682,8 +15680,8 @@ components:
           items:
             $ref: "#/components/schemas/MissionObjectiveEntry"
           description: |-
-            The mission's objectives in flow order, orphaned nodes left out. Empty when
-            it has none.
+            The mission's objectives in flow order. A node of the mission that nothing
+            leads to is left out. Empty when it has none.
     NoCommandArgs:
       type: object
       description: |-
@@ -17000,9 +16998,8 @@ components:
 
             This one is not a display concern. A client sends the facility straight back
             as the `ksp.launch` command's `facility` argument, so never substitute a
-            default editor for a value it does not recognise: a substituted default that
-            becomes a dispatched argument launches a spaceplane from the launchpad.
-            KSP's enum also declares `None`.
+            default editor for a value it does not recognise: the craft would launch
+            from the wrong facility. KSP's enum also declares `None`.
 
             `null` when the capture carried no facility, which is a third value and must
             not be read as either editor.
@@ -18320,7 +18317,7 @@ components:
         reason:
           type: string
           x-sitrep-unit: text
-          description: Why, for an operator to read.
+          description: The reason, as a sentence written for the operator.
     SettingsModel:
       type: object
       description: |-
@@ -18706,9 +18703,10 @@ components:
         the five named ones (`LOADING`, `PSYSTEM`, `MISSIONBUILDER`, ...) mapped to
         `"Other"`.
 
-        A wrapper object `{ "scene": string }`. The whole payload is `null` when no
-        sample has arrived yet. Its `meta` is on the envelope. Never delayed
-        (DelayRole.TrueNow): it is a fact about the game, not a craft.
+        An object holding the scene and, in the editor, the launch site picked
+        there. The whole payload is `null` when no sample has arrived yet. Its
+        `meta` is on the envelope. Never delayed (DelayRole.TrueNow): it is a fact
+        about the game, not a craft.
       properties:
         scene:
           type:
@@ -19402,12 +19400,13 @@ components:
         divide by these values rather than by a constant: 21,600 seconds per day is
         right only for stock KSP on Kerbin time.
 
+        Three things change them:
+
         - **Stock, no mods.** `GameSettings.KERBIN_TIME` is a setting a player can
           turn off, and KSP's own UI then reads in 24-hour days and 365-day years.
         - **A planet pack.** RSS and anything else built on Kopernicus replaces
           `KSPUtil.dateTimeFormatter`, so a day becomes 86,400 s and a year 365
-          days. Dividing by 21,600 reports four times too many days, in a number
-          that looks plausible.
+          days.
         - **Anything else.** The formatter has a public setter, so a mod can put any
           calendar behind it.
 

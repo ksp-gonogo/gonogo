@@ -604,12 +604,15 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
 
 /**
  * A button that dispatches a command and shows what became of it: at rest,
- * armed (with a `confirmLabel`), in flight, refused, lost, found, or blocked by
- * the mod's standing gate. The panel's delay rail shows that a command is in
- * flight; this shows which control sent it.
+ * armed (with a `confirmLabel`), in flight, refused, lost (no reply came in
+ * time), found (a lost command has since replied), or blocked. It is blocked
+ * while the mod says in advance that the command would be refused, such as a
+ * purchase the save cannot afford, and the button then says why. The panel's
+ * delay rail shows that a command is in flight; this shows which control sent
+ * it.
  *
- * Pending clears on `send()`'s own promise, so it settles even for a command
- * with no observable telemetry consequence. Pending is per RENDERED CONTROL, not
+ * Pending ends when the promise `send()` returned settles, whether or not any
+ * telemetry changes as a result. Pending is per RENDERED CONTROL, not
  * per handle, so one handle serving a list gives each row its own pending
  * state. Outcomes are announced through a polite live region.
  *
@@ -631,7 +634,7 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  * @category CommandButton
  * @categoryDescription CommandButton
  * A control that sends a command and shows what became of it: armed, in flight,
- * refused, lost or blocked, with the outcome announced. Every control that
+ * refused, lost, found again or blocked, with the outcome announced. Every control that
  * dispatches a command handle is one of these.
  */
 export function CommandButton<Result = CommandReplyLike, Args = unknown>({

@@ -52,19 +52,28 @@ export const UPLINK_MANIFEST_FILE = "gonogo-uplink.json";
  * The id and name also appear in the code, and {@link buildUplinkManifest}
  * throws when the two disagree.
  *
+ * An Uplink of your own always has this file: `uplink-tools new` writes it and
+ * every `uplink-tools` command reads it. Only an Uplink bundled inside the
+ * app's own repository has none.
+ *
  * @category Manifest
  */
 export interface UplinkDeclaration {
+  /** The Uplink's id, the same one `defineUplinkClient` and the plugin's `[SitrepUplink]` name. */
   id?: string;
+  /** The name an operator sees, as `defineUplinkClient` gives it. */
   name?: string;
+  /** Who wrote it, shown when the app asks the operator whether to load the client. */
   author?: string;
+  /** The URL of its source repository, shown beside the author. */
   repo?: string;
+  /** The oldest app version it is known to work with. The app warns below it and still loads the client. */
   minAppVersion?: string;
   /**
-   * The KSP mod this Uplink wraps, when it wraps one.
-   *
-   * Not part of the manifest: it says what the Uplink is FOR, which the generated
-   * page prints and the loader has no use for.
+   * The KSP mod this Uplink wraps, when it wraps one: its name, the version
+   * the Uplink was built against, and how it is installed. The generated page
+   * prints it. It is not copied into `gonogo-uplink.json`, since the app
+   * loading the client has no use for it.
    */
   mod?: { name?: string; builtAgainst?: string; tier?: string };
 }
@@ -78,13 +87,19 @@ export interface UplinkDeclaration {
  * declares, how it is built and read, and the warnings it can carry.
  */
 export interface UplinkManifest {
+  /** The Uplink's id, the same one the plugin announces. */
   id: string;
+  /** The name an operator sees. */
   name: string;
   /** The client's own `defineUplinkClient` description, when it declares one. */
   description?: string;
+  /** Who wrote it, from `uplink.json`. Empty when that names nobody. */
   author: string;
+  /** The URL of its source repository, from `uplink.json`. Empty when that names none. */
   repo: string;
+  /** The Uplink's own version, which its client and its plugin share. */
   version: string;
+  /** The oldest app version it is known to work with. The app warns below it and still loads the client. */
   minAppVersion: string;
   /**
    * The extension API the client was built against: the sdk's
@@ -94,7 +109,9 @@ export interface UplinkManifest {
    * a package's version.
    */
   apiVersion: string;
+  /** The major version of the wire contract the client was built against. The app refuses a client whose major differs from the mod's. */
   contractMajor: number;
+  /** The minor version of that contract. The app refuses a client built against a newer minor than the mod carries. */
   contractMinor: number;
   /**
    * Where the bundle sits relative to this file. The two are always in the
@@ -106,12 +123,14 @@ export interface UplinkManifest {
    * `sha256-<hex>` of the bundle you distribute. The app hashes the bytes it
    * fetched and refuses to load the Uplink on any mismatch.
    *
-   * Empty when the manifest was written with no bundle named, as a working
-   * copy is. An empty value never matches, so the app refuses that Uplink: a
+   * Empty when the manifest was written with no bundle named, as the copy
+   * committed beside the client's source is. An empty value never matches, so
+   * the app refuses that Uplink: a
    * manifest you distribute must be written from the bundle it ships with
    * (`uplink-tools docs --bundle <file>` or `uplink-tools bundle`).
    */
   integrity: string;
+  /** The version of `@ksp-gonogo/sitrep-sdk` that wrote this file. A record for a bug report; nothing compares it. */
   sdkVersion: string;
 }
 
@@ -191,8 +210,8 @@ function readJsonFile(path: string, what: string): Record<string, unknown> {
 
 /**
  * Returns the Uplink's `uplink.json` and its path, found by searching up from
- * `clientDir`, or `undefined` when there is none, which is normal for an Uplink
- * with no separate declaration.
+ * `clientDir`, or `undefined` when there is none. An Uplink of your own always
+ * has one; only an Uplink bundled inside the app's own repository does not.
  *
  * @category Manifest
  */

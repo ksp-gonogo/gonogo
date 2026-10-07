@@ -106,7 +106,9 @@ export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
  * @category Host and runtime
  */
 export interface UplinkHealthFact {
+  /** What the detail is, in the Uplink's own words, such as "Mod build". */
   label: string;
+  /** The detail itself, or `null` when the Uplink could not read it. */
   value: string | null;
 }
 
@@ -116,7 +118,9 @@ export interface UplinkHealthFact {
  * @category Host and runtime
  */
 export interface ContractVersionReading {
+  /** Moves when the wire contract changes in a way an older client cannot read. */
   major: number;
+  /** Moves when the wire contract gains something an older client simply does not use. */
   minor: number;
 }
 

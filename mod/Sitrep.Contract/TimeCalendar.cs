@@ -13,14 +13,14 @@ namespace Sitrep.Contract;
 /// years, divide by these values rather than by a constant: 21,600 seconds per
 /// day is right only for stock KSP on Kerbin time.</para>
 ///
+/// <para>Three things change them:</para>
 /// <list type="bullet">
 /// <item><description><b>Stock, no mods.</b> <c>GameSettings.KERBIN_TIME</c>
 /// is a setting a player can turn off, and KSP's own UI then reads in 24-hour
 /// days and 365-day years.</description></item>
 /// <item><description><b>A planet pack.</b> RSS and anything else built on
 /// Kopernicus replaces <c>KSPUtil.dateTimeFormatter</c>, so a day becomes
-/// 86,400 s and a year 365 days. Dividing by 21,600 reports four times too many
-/// days, in a number that looks plausible.</description></item>
+/// 86,400 s and a year 365 days.</description></item>
 /// <item><description><b>Anything else.</b> The formatter has a public setter,
 /// so a mod can put any calendar behind it.</description></item>
 /// </list>

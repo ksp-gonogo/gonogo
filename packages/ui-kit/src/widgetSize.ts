@@ -30,6 +30,10 @@ const SMALL_H = 7;
  * {@link TINY_BELOW} on either axis, `small` below 8 wide or 7 tall, `normal`
  * otherwise. Returns `normal` while either dimension is `undefined`.
  *
+ * This is the bucket by size alone, for a widget arranging its own body.
+ * Whether the dashboard draws a widget's tiny form in place of that body is a
+ * different question with the widget's own `minSize` in it: ask `showsTiny`.
+ *
  * @category Layout
  */
 export function getSizeBucket(

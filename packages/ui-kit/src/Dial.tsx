@@ -67,9 +67,17 @@ export interface DialProps<Unit extends string = string> {
    * @defaultValue `120`
    */
   height?: number;
-  /** Degrees clockwise from up where `min` sits. Default 0 (top). */
+  /**
+   * Degrees clockwise from up where `min` sits.
+   *
+   * @defaultValue `0`, the top
+   */
   startAngle?: number;
-  /** Degrees swept from `min` to `max`. Default 360 (full compass). */
+  /**
+   * Degrees swept from `min` to `max`.
+   *
+   * @defaultValue `360`, a full circle
+   */
   sweep?: number;
   /**
    * Treat the value as wrapping (compass): value is taken modulo the range.

@@ -9,11 +9,12 @@ namespace Sitrep.Contract;
 /// Where one Making History mission objective stands, defined by this contract
 /// rather than by KSP.
 ///
-/// <para>KSP's mission graph has no per-objective state. A node is either
-/// activated (the mission reached it) or not, and exactly one node is the
-/// mission's active node, so this reduces those facts to the four outcomes an
-/// operator reads. On the wire it is an integer ordinal.</para>
+/// <para>On the wire it is an integer ordinal.</para>
 /// <internal>
+/// KSP's mission graph has no per-objective state. A node is either activated
+/// (the mission reached it) or not, and exactly one node is the mission's
+/// active node, so this reduces those facts to the four outcomes an operator
+/// reads.
 /// Being ours, it needs no mirror test: nobody else owns its numbering.
 /// Derived by Sitrep.Host.MakingHistoryViewProvider from the raw
 /// hasBeenActivated / isActive facts the capture records.
@@ -133,6 +134,6 @@ public class MissionStatus
     [SitrepUnit(Units.Count)]
     public double? MaxScore { get; set; }
 
-    /// <summary>The mission's objectives in flow order, orphaned nodes left out. Empty when it has none.</summary>
+    /// <summary>The mission's objectives in flow order. A node of the mission that nothing leads to is left out. Empty when it has none.</summary>
     public List<MissionObjectiveEntry>? Objectives { get; set; }
 }

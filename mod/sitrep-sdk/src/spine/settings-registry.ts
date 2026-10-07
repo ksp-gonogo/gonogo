@@ -57,7 +57,9 @@ export type SettingType = "boolean" | "text" | "number";
  * @category Settings
  */
 export interface SettingValueByType {
+  /** A switch. */
   boolean: boolean;
+  /** A line of text. */
   text: string;
   number: number | Value;
 }
@@ -75,8 +77,11 @@ export type SettingValue = SettingValueByType[SettingType];
  * @category Settings
  */
 export interface SettingDefinitionBase {
+  /** The setting's key, unique across every Uplink. It is what `useSetting` and `getSetting` take, and what a saved value is stored under, so keep it stable. */
   id: string;
+  /** The row's name, as the operator reads it. */
   label: string;
+  /** A sentence under the label saying what the setting changes. */
   description?: string;
   /** The heading this row files under, e.g. an Uplink's name. */
   category: string;
@@ -97,8 +102,9 @@ export interface SettingDefinitionBase {
   uplink?: string;
   /**
    * The operator cannot change this row: it is drawn as a labelled value, not as
-   * a disabled control. Set it whenever the setting cannot be written. A
-   * setting read from a Topic is read-only whether or not this is set.
+   * a disabled control. Set it on a setting your client stores and the
+   * operator must not change. A setting read from a Topic is read-only
+   * whether or not this is set, so there it changes nothing.
    */
   readOnly?: boolean;
   /**
@@ -128,7 +134,7 @@ export interface ClientPrefSettingOf<SettingKind extends SettingType>
  * A setting whose value arrives on a Topic, which the row only shows: a mod's
  * own configuration, as its Uplink publishes it.
  *
- * It cannot be changed from the row, so `readOnly` adds nothing here; ask
+ * It cannot be changed from the row whatever its `readOnly` says, so ask
  * {@link isReadOnlySetting} whether a row can be changed rather than reading
  * the flag.
  *

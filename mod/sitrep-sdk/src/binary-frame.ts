@@ -31,7 +31,8 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
 export const BINARY_LANE_MAGIC = 0x9e;
 
 /**
- * The lane byte of a `stream-binary` frame, the one lane there is.
+ * The lane byte of a `stream-binary` frame. The header has room for more
+ * lanes and this is the only one in use.
  *
  * @category Binary lane
  *
@@ -127,8 +128,8 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  *
  * @category Binary lane
  * @categoryDescription Binary lane
- * The stream's second lane, which carries bulk payloads as raw bytes instead of
- * JSON: how to tell a binary frame from a text one and read its header and
+ * The stream's binary frames, which carry bulk payloads as raw bytes beside
+ * the JSON text frames everything else arrives in: how to tell a binary frame from a text one and read its header and
  * body. Only a client that handles the socket itself meets these.
  */
 export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {

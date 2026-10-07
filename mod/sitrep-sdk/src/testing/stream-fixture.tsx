@@ -29,7 +29,7 @@ import { StubTransport } from "./stub-transport";
  * @category Stream fixture
  */
 export interface StreamFixtureOptions {
-  /** UT to pin the view clock at, via `clock.scrubTo`. Omit to leave the clock live (required for `delaySeconds` to have any effect; see this file's doc comment). */
+  /** UT to pin the view clock at. Omit it to leave the clock running, which `delaySeconds` needs: a pinned clock ignores the delay. */
   pinnedUt?: number;
   /** Fixed network/display delay in seconds (`ViewClock`'s delay authority). Defaults to 0. */
   delaySeconds?: number;

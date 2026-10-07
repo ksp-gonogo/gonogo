@@ -72,7 +72,8 @@ export interface GraphNoticeProps extends HTMLAttributes<HTMLDivElement> {
    * `overlay` pins the pill to the bottom-left corner over the graph (pair with
    * a `position: relative` ancestor such as `Fill`); `center` pins it to the
    * middle of that ancestor instead. `inline` sits as a flow
-   * row below the graph, where an overlay would cover the x-axis labels.
+   * row below the graph, where an overlay would cover labels the caller draws
+   * under it.
    * `beside` sits as a flex column to its right. {@link placeGraphNotice}
    * picks one from measured space.
    */

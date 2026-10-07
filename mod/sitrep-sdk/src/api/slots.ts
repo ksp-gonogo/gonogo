@@ -64,7 +64,7 @@
  * @category Widget slots
  */
 export interface TargetingHudContext {
-  /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Read it from here and never write the number in: it is 8 today and may change. */
+  /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Read it from here and never write the number in, since it can change between releases. */
   maxDeg: number;
   /**
    * The reticle's offset from the box centre, each axis from -1 to 1: the
@@ -75,9 +75,10 @@ export interface TargetingHudContext {
   /**
    * Pixels the reticle travels per unit of `reticleOffset`, the same on both
    * axes and measured from the centre of the HUD's frame. An overlay places a
-   * marker at `calc(50% + offset.x·reticleTravelPx px)` across and
-   * `calc(50% + offset.y·reticleTravelPx px)` down to sit in the same space,
-   * so a degree is as far across as it is down.
+   * marker `reticleOffset.x * reticleTravelPx` pixels right of centre and
+   * `reticleOffset.y * reticleTravelPx` pixels below it, as CSS
+   * `calc(50% + <that many>px)` on each axis, to sit in the same space, so a
+   * degree is as far across as it is down.
    */
   reticleTravelPx: number;
   /**
@@ -241,7 +242,10 @@ export interface ShipMapBounds {
  * `x = width / 2 + (lat - bounds.cx) * baseScale` and
  * `y = height / 2 - (axial - bounds.cy) * baseScale`. This is the diagram before
  * the operator zooms or pans it; the overlay does not follow the live zoom or
- * pan. The slot is not drawn until the vessel has parts.
+ * pan, so a mark placed this way drifts off its part once the operator moves
+ * the diagram. Draw what belongs to the whole diagram here, and use the
+ * `ship-map.part-meters` contribution for something tied to one part. The slot
+ * is not drawn until the vessel has parts.
  *
  * @category Widget slots
  */
@@ -526,7 +530,7 @@ export interface MapOverlayContext {
   worldW: number;
   /** Height of the world image in world pixels, spanning 180 degrees of latitude. */
   worldH: number;
-  /** The name of the body the map shows, such as `"Kerbin"`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
   /** The mapped body's radius in metres. `undefined` while it is not known. */
   bodyRadius: number | undefined;
@@ -545,7 +549,7 @@ export interface MapOverlayContext {
  * @category Widget slots
  */
 export interface MapViewScope {
-  /** The name of the body the map shows, such as `"Kerbin"`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
 }
 
@@ -907,7 +911,8 @@ declare module "./types" {
      * A block below the Launch & Recovery widget's list of pads, for checks to make
      * before a launch, such as whether the picked crew is rested. Drawn while
      * the pad list is shown, which is neither in flight nor in the Tracking
-     * Station. Passes a {@link LaunchDirectorSlotContext}.
+     * Station, so an augment here never sees the context's `inFlight` true.
+     * Passes a {@link LaunchDirectorSlotContext}.
      */
     "launch-director.preflight": LaunchDirectorSlotContext;
     /**

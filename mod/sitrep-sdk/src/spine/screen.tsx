@@ -32,8 +32,8 @@ export function ScreenProvider({
 }
 
 /**
- * The screen this component is on: `"main"` when the app has not said, as in
- * a test.
+ * The screen this component is on. With no screen provider above it, as in a
+ * test that mounts a widget on its own, it is `"main"`.
  *
  * @category Host and runtime
  * @categoryDescription Host and runtime

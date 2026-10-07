@@ -3,13 +3,15 @@
  * names a tone, never a colour, and ui-kit chooses the colour for where it is
  * drawn.
  *
- * `neutral` carries no state. `caution` is a milder `warn`. `offline` means the
- * data behind the thing is gone, which is not the same as a neutral reading.
+ * `neutral` carries no state. `info` is something worth noticing that is
+ * neither good nor bad. `go` is all well. `caution` is a milder `warn`, and
+ * `nogo` is worse than either. `offline` means the data behind the thing is
+ * gone, which is not the same as a neutral reading.
  *
  * @category Tone
  * @categoryDescription Tone
- * The words a widget uses for state (go, caution, warn, no go, offline) in
- * place of colours, so every widget and contribution says the same thing the
+ * The words a widget uses for state (`neutral`, `info`, `go`, `caution`,
+ * `warn`, `nogo`, `offline`) in place of colours, so every widget and contribution says the same thing the
  * same way and ui-kit picks the colour for where it is drawn.
  */
 export type Tone =

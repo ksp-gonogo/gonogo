@@ -123,7 +123,7 @@ export class PerfBudget {
     return this.exceedanceCount;
   }
 
-  /** Reset all counters. Test-only. */
+  /** Empties the rolling window and sets the exceedance count back to zero, as if the budget were new. For tests. */
   reset(): void {
     this.events = [];
     this.headIdx = 0;
@@ -133,10 +133,9 @@ export class PerfBudget {
   }
 
   /**
-   * Clear the rolling-window content (drops `rate()` back to 0) without
-   * touching the exceedance counter or warn-throttle state. Used by the
-   * test gate to give each test a fresh window, burst counts from one
-   * test then don't bleed into the next.
+   * Empties the rolling window, so `rate()` is 0 again, and leaves the
+   * exceedance count as it was. The test gate calls it before each test, so
+   * one test's burst is not counted against the next.
    */
   resetWindow(): void {
     this.events = [];
@@ -145,16 +144,19 @@ export class PerfBudget {
     this.lastWarnAt = 0;
   }
 
-  /** Read-only metadata. */
+  /** The budget's name, as warnings and a failed test print it. */
   get name(): string {
     return this.opts.name;
   }
+  /** The total within one window above which the budget is exceeded. */
   get threshold(): number {
     return this.opts.threshold;
   }
+  /** The length of the rolling window, in milliseconds. */
   get windowMs(): number {
     return this.opts.windowMs;
   }
+  /** What is being counted, as a word for the warning, such as `"samples"`. */
   get unit(): string {
     return this.opts.unit;
   }
@@ -202,6 +204,7 @@ export class PerfBudget {
     return globalThis[PERF_BUDGET_REGISTRY_KEY];
   }
 
+  /** Every budget registered in this page, in the order they were made. */
   static getAll(): readonly PerfBudget[] {
     return [...PerfBudget.registry];
   }
@@ -212,20 +215,20 @@ export class PerfBudget {
   }
 
   /**
-   * Vitest-only hook. Each test snapshots every budget's exceedance
-   * count in `beforeEach`; the matching `afterEach` fails the test if
-   * any budget's count rose during the run. Call this from a setup file
-   * (`setupFiles` in vitest.config) so it applies globally.
+   * Makes every test fail that pushes a budget over its threshold. Each test
+   * notes every budget's exceedance count before it runs, and fails afterwards
+   * if any count rose. Call it once from a test setup file (`setupFiles` in a
+   * Vitest config) so it applies to every test.
    *
-   * Tests that intentionally exceed thresholds (the PerfBudget unit
-   * suite, deliberately stress-y benchmarks) should either:
-   *   - Clear the registry in their own `afterEach`, the gate then
-   *     iterates over zero budgets and passes.
-   *   - Call `b.reset()` on the affected budget at the end of the test
-   *     so the diff is zero.
+   * It checks the budgets registered in the page the tests run in, which is
+   * every budget made with `new PerfBudget` or `createPerfBudget` there, an
+   * Uplink's own included.
    *
-   * The gate does nothing when `beforeEach` / `afterEach` aren't
-   * available (i.e. outside a test runner).
+   * A test that goes over a threshold on purpose either clears the registry
+   * in its own `afterEach`, or calls `reset()` on the budget before it ends.
+   *
+   * It needs a test runner that provides global `beforeEach` and `afterEach`,
+   * and does nothing without them.
    */
   static installTestGate(): void {
     /* The runner's, read reflectively: declaring them would collide with the

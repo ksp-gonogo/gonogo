@@ -168,7 +168,7 @@ public class SettingsDeclarationFailure
     [SitrepUnit(Units.Id)]
     public string UplinkId { get; set; } = "";
 
-    /// <summary>Why, for an operator to read.</summary>
+    /// <summary>The reason, as a sentence written for the operator.</summary>
     [SitrepUnit(Units.Text)]
     public string Reason { get; set; } = "";
 }

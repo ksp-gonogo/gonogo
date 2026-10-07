@@ -50,8 +50,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 /**
  * A compact uppercase pill that shows a label in one `Tone`. A stateful tone
- * (`go` through `nogo`, and `offline`) draws an outlined pill in that tone's
- * colour, with a glow that grows with severity; no tone, or `neutral`, draws
+ * (`info`, `go`, `caution`, `warn`, `nogo` or `offline`) draws an outlined
+ * pill in that tone's colour, with a glow that grows with severity; no tone, or `neutral`, draws
  * a grey rounded chip for a kind tag or a count. The panel's summary badge and
  * {@link StreamStatusBadge} are both drawn with it.
  *

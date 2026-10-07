@@ -172,7 +172,8 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The value spelled as a settings row spells it: <c>True</c> or
-        /// <c>False</c>, a number with a full stop, or the text itself. Null
+        /// <c>False</c>, a number with a full stop as its decimal point, or the
+        /// text itself. Null
         /// when unavailable.
         /// </summary>
         public string? Spelled()
@@ -325,8 +326,9 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The value in force, spelled as <see cref="SettingsRowState.Value"/> is:
-        /// <c>True</c> or <c>False</c>, a number with a full stop in
-        /// <see cref="Unit"/>, or the text. Null when it cannot be read, and
+        /// <c>True</c> or <c>False</c>, a number in the unit
+        /// <see cref="Unit"/> names with a full stop as its decimal point, or
+        /// the text. Null when it cannot be read, and
         /// <see cref="Unavailable"/> then says why.
         /// </summary>
         [SitrepUnit(Units.Text)]

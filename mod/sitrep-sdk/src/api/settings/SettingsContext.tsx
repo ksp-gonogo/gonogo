@@ -49,8 +49,12 @@ export function useSettingsService(): SettingsService {
  * The value of one client setting and a function that sets it, re-rendering
  * when it changes. A new value is saved and every other reader of the setting
  * sees it. This is the one to use in a component, for a setting your Uplink
- * registers with `registerSetting`. For client settings only: a setting the
- * mod publishes is read from its Topic.
+ * registers with `registerSetting`: the key is that row's id. For client
+ * settings only: a setting the mod publishes is read from its Topic.
+ *
+ * The second argument is what is returned until a value has been saved. Pass
+ * the row's own default: the hook reads the saved value by key and does not
+ * look the row up.
  *
  * Needs a `SettingsProvider` above it and throws without one. The dashboard
  * mounts one; a test mounts its own.

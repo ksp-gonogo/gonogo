@@ -78,7 +78,7 @@ export interface ActionInputPayload {
   kind: ActionInputKind;
   /** For a button, `true` when pressed and `false` when released; for an axis, from -1 to 1. */
   value: boolean | number;
-  /** The device's own value before conversion, if the handler wants it. */
+  /** The device's own value, before it was turned into the pressed flag or the -1 to 1 of `value`, if the handler wants it. */
   raw?: unknown;
 }
 
@@ -119,7 +119,7 @@ export interface ActionInputPayload {
  * own.
  */
 export interface ActionDefinition {
-  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. Any string will do: the built-in widgets use `camelCase` in some and `kebab-case` in others, and neither is required. */
+  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. Any string will do. */
   id: string;
   /** The action's name, shown where the operator binds inputs. */
   label: string;
@@ -272,7 +272,9 @@ export interface TinyControl {
  * @category Registering
  */
 export interface TinyGauge {
+  /** The value at the empty end of the gauge. */
   min: Value;
+  /** The value at the full end of the gauge, in the same unit as `min`. */
   max: Value;
   /** Stretches of the scale drawn in a tone of their own, in order, such as a band the value must stay out of. */
   bands?: readonly { from: Value; to: Value; tone: TinyEssentialTone }[];
@@ -616,8 +618,11 @@ export interface StatEntry {
  * mapped to the entry type its contributions produce. The full slot id is
  * `${componentId}.${segment}`, for the widget the component is mounted in.
  *
- * Only `badges` is on every widget. `filters` and `meters` exist on a widget
- * only where it renders the component that draws them.
+ * Of these contribution segments, only `badges` is on every widget. `filters`
+ * and `meters` exist on a widget only where it renders the component that
+ * draws them. A widget drawn in ui-kit's `Panel` also carries two augment
+ * slots, `sections` and `actions`, which are not contribution segments and so
+ * are not listed here.
  *
  * @category Extensions
  */
@@ -627,7 +632,7 @@ export interface ComponentSlotRegistry {
    * `FilterList`.
    */
   filters: string;
-  /** One badge on the widget's panel header. Every widget carries it. */
+  /** A badge on the widget's panel header. Every widget carries the slot, and a contribution to it returns as many badges as it has to show. */
   badges: BadgeEntry;
   /**
    * One labelled bar, drawn by a widget that renders `WidgetMeters`, optionally
@@ -934,7 +939,7 @@ export interface ContributionDefinition<
    * a slot renders, and every contribution in it renders, in registration
    * order. A widget filling its own slot sits at 0, so a contribution at the
    * default replaces the widget's own entries rather than appearing beside
-   * them.
+   * them. Set `0` to add to what the widget draws rather than replace it.
    *
    * @defaultValue `1`
    */
@@ -1108,7 +1113,8 @@ export interface AugmentDefinition<Slot extends string = string> {
   requires?: string;
   /**
    * Order among the augments in one slot, lowest first; ties render in
-   * registration order.
+   * registration order. Every augment in a slot renders: unlike a
+   * contribution's `priority`, this only orders them.
    *
    * @defaultValue `0`
    */
@@ -1661,6 +1667,12 @@ export type { PerfBudgetOptions } from "../perf/PerfBudget";
  * @category Logging and performance
  */
 export interface PerfBudgetHandle {
+  /**
+   * Counts one event against the budget, or `amount` of them. Call it wherever
+   * the thing being budgeted happens, such as each sample a source emits.
+   * `now` is the time in milliseconds to count it at, for a test; absent, the
+   * clock's own.
+   */
   record(amount?: number, now?: number): void;
 }
 
@@ -1921,7 +1933,9 @@ export interface HostIceServers {
  * @category Host and runtime
  */
 export interface StationBroker {
+  /** Calls a method of the Uplink's registered handle on the main screen and resolves with what it returns. */
   relay: UplinkRelay;
+  /** The TURN and STUN servers the main screen is broadcasting, and a way to hear when they change. */
   iceServers: HostIceServers;
 }
 

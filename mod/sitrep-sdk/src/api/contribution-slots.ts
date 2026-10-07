@@ -340,7 +340,7 @@ export interface SystemViewProjection {
  * @category Widget slots
  */
 export interface CrewRowToneEntry {
-  /** The kerbal's name, matched to a roster row. */
+  /** The kerbal's name, matched to a roster row. Two kerbals aboard with the same name both take the entry, since the name is all it is matched on. */
   crewName: string;
   /** How alarming the situation is. The widget picks the colour. */
   tone: AlertTone;

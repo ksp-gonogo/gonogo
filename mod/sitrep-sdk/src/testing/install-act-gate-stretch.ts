@@ -15,7 +15,10 @@ const FRAME_MS = 1000 / 60;
 /**
  * Keeps each test's component tree mounted for a set number of animation
  * frames after the test body returns, so an update scheduled shortly after the
- * body is caught on every machine, fast or slow. You turn it on for a run by
+ * body is caught on every machine, fast or slow. Such an update is one React
+ * warns about as "not wrapped in act(...)": the test finished while the
+ * component was still changing, and on a fast machine the tree is gone before
+ * the warning can be raised. You turn it on for a run by
  * setting {@link ACT_GATE_STRETCH_ENV} to the number of frames; it does nothing
  * while the variable is unset, and throws when it is set to anything but a
  * positive whole number.
