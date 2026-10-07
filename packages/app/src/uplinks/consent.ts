@@ -67,6 +67,12 @@ export interface ConsentInfo {
    * name in front of them or the bundle wrote it about itself.
    */
   identity?: UplinkIdentity;
+  /**
+   * True when the prompt is shown on a station. A station gets its Uplink
+   * bytes from the main screen, and a decline is not remembered, so the
+   * dialog says what declining costs here.
+   */
+  onStation?: boolean;
 }
 
 /**

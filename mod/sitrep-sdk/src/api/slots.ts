@@ -317,15 +317,13 @@ export interface AstronautComplexCrewContext {
 /**
  * Props passed to every `launch-director.preflight` augment: the launch the
  * operator is setting up in the Launch & Recovery widget. The slot draws once, below
- * the list of pads.
+ * the list of pads, which the widget shows only outside a flight.
  *
  * @category Widget slots
  */
 export interface LaunchDirectorSlotContext {
   /** The current KSP scene, such as `"Flight"` or `"SpaceCenter"`. `undefined` until the scene is reported. */
   scene: string | undefined;
-  /** True while the scene is `"Flight"`. */
-  inFlight: boolean;
   /** The name of the saved craft the operator has picked. `null` when none is picked. */
   selectedShip: string | null;
   /** The internal name of the launch site the operator has open, such as `"LaunchPad"`. An empty string when no sites are reported. */

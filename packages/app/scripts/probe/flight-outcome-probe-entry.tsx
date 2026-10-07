@@ -77,9 +77,7 @@ async function renderScene(scene: Scene): Promise<void> {
   await twoFrames();
 
   if (scene.openDetail) {
-    const banner = host.querySelector<HTMLButtonElement>(
-      'button[role="status"]',
-    );
+    const banner = host.querySelector<HTMLButtonElement>("button");
     if (!banner) throw new Error("no banner to open");
     banner.click();
     await twoFrames();

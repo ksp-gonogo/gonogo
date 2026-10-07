@@ -97,9 +97,9 @@ describe("MainScreen smoke", () => {
     expect(
       screen.queryByRole("button", { name: /^Command centre vantage:/ }),
     ).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Command centre vantage: Unknown",
-    );
+    expect(
+      screen.getAllByRole("status").map((region) => region.textContent),
+    ).toContain("Command centre vantage: Unknown");
   });
 
   it("swaps to the Space Center layout when the stream says the game is at KSC", async () => {

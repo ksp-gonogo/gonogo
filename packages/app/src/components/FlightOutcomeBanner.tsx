@@ -8,7 +8,12 @@ import {
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useModal } from "@ksp-gonogo/ui";
-import { magnitudeOf, SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  magnitudeOf,
+  SectionTitle,
+  Unit,
+  VisuallyHidden,
+} from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -226,25 +231,61 @@ export function FlightOutcomeBanner() {
     return () => clearTimeout(id);
   }, [bannerExpiresAt]);
 
-  if (!outcome || bannerExpiresAt === null) return null;
+  /*
+   * The live region stays mounted while the banner comes and goes: a region
+   * inserted together with its text is not reliably announced.
+   */
+  const shown = outcome && bannerExpiresAt !== null ? outcome : null;
+  const openDetail = () => {
+    if (!shown) return;
+    setBannerExpiresAt(null);
+    if (shown.kind === "recovered") {
+      modal.open(<RecoveryDetail summary={shown.report} />, {
+        title: `${str(shown.report.vesselName) || "Vessel"} recovered`,
+        width: "640px",
+      });
+      return;
+    }
+    modal.open(<CrashDetail summary={shown.report} />, {
+      title: `${str(shown.report.vesselName) || "Vessel"} destroyed`,
+      width: "560px",
+    });
+  };
+  return (
+    <>
+      <VisuallyHidden role="status" aria-live="polite">
+        {shown ? announcement(shown) : ""}
+      </VisuallyHidden>
+      {shown && <OutcomeBanner outcome={shown} onOpen={openDetail} />}
+    </>
+  );
+}
 
+function announcement(outcome: Outcome): string {
+  const name = str(outcome.report.vesselName) || "Untitled";
+  return outcome.kind === "recovered"
+    ? `Vessel recovered: ${name}`
+    : `Vessel destroyed: ${name}`;
+}
+
+function OutcomeBanner({
+  outcome,
+  onOpen,
+}: {
+  outcome: Outcome;
+  onOpen: () => void;
+}) {
+  const name = str(outcome.report.vesselName) || "Untitled";
   if (outcome.kind === "recovered") {
     const summary = outcome.report;
     return (
       <RecoveryBanner
         type="button"
-        role="status"
-        aria-live="polite"
-        onClick={() => {
-          setBannerExpiresAt(null);
-          modal.open(<RecoveryDetail summary={summary} />, {
-            title: `${str(summary.vesselName) || "Vessel"} recovered`,
-            width: "640px",
-          });
-        }}
+        aria-label={`${announcement(outcome)}. Open breakdown`}
+        onClick={onOpen}
       >
         <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
-        <BannerVessel>{str(summary.vesselName) || "Untitled"}</BannerVessel>
+        <BannerVessel>{name}</BannerVessel>
         <BannerStats>
           <BannerStat>
             <Gain value={q(summary.fundsEarned)} />
@@ -269,18 +310,11 @@ export function FlightOutcomeBanner() {
   return (
     <CrashBanner
       type="button"
-      role="status"
-      aria-live="polite"
-      onClick={() => {
-        setBannerExpiresAt(null);
-        modal.open(<CrashDetail summary={summary} />, {
-          title: `${str(summary.vesselName) || "Vessel"} destroyed`,
-          width: "560px",
-        });
-      }}
+      aria-label={`${announcement(outcome)}. Open breakdown`}
+      onClick={onOpen}
     >
       <BannerLabel $variant="crashed">VESSEL DESTROYED</BannerLabel>
-      <BannerVessel>{str(summary.vesselName) || "Untitled"}</BannerVessel>
+      <BannerVessel>{name}</BannerVessel>
       <BannerStats>
         {partsLostCount > 0 && <BannerStat>-{partsLostCount} parts</BannerStat>}
         {kerbalsKilled.length > 0 && (

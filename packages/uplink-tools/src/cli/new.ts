@@ -278,7 +278,7 @@ for (const [typeName, units] of Object.entries(GENERATED_TYPE_UNITS)) {
  * function Ticks() {
  *   const heartbeat = useTelemetry("${topic}");
  *   if (heartbeat.state !== "observed") return null;
- *   return <Unit value={heartbeat.value.ticks} />;
+ *   return <Unit value={heartbeat.ticks} />;
  * }
  * \`\`\`
  */

@@ -37,7 +37,7 @@ function getWakeLock(): WakeLockApi | undefined {
  * changes because browsers silently drop the lock when the tab backgrounds.
  */
 export function useStationWakeLock(active: boolean): void {
-  const [enabled] = useSetting<boolean>(STATION_WAKE_LOCK_SETTING, true);
+  const [enabled] = useSetting<boolean>(STATION_WAKE_LOCK_SETTING);
   const want = active && enabled;
 
   useEffect(() => {

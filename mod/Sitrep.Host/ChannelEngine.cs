@@ -2398,6 +2398,10 @@ namespace Sitrep.Host
                     continue;
                 }
                 RegisterUplink(uplink);
+                if (IsUplinkAvailable(uplink.Manifest.Id))
+                {
+                    LogHost($"uplink \"{uplink.Manifest.Id}\" {uplink.Manifest.Version} loaded");
+                }
             }
 
             _settingsPublisher?.Rebuild();

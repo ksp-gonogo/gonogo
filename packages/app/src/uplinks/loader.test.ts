@@ -450,6 +450,28 @@ describe("loadEnabledUplinks", () => {
     );
   });
 
+  it("tells the consent prompt whether the load is a station's", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const ensureConsent = vi.fn(async () => true);
+    await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), importBundle, ensureConsent }),
+    );
+    await loadEnabledUplinks({
+      ...ctx({ index: indexWith(goodHash), importBundle, ensureConsent }),
+      bundlesFromHost: true,
+    });
+    expect(ensureConsent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ onStation: false }),
+    );
+    expect(ensureConsent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ onStation: true }),
+    );
+  });
+
   it("quarantines every enabled id when the registry is unreadable", async () => {
     const importBundle = vi.fn<
       (bytes: ArrayBuffer, url: string) => Promise<unknown>

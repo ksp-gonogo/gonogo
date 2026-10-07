@@ -128,6 +128,12 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
             This runs with the same access as the rest of the app. Only install
             Uplink clients you trust.
           </p>
+          {info.onStation && (
+            <p>
+              If you decline, this Uplink’s widgets will not work on this
+              station for this session.
+            </p>
+          )}
         </div>
         <div className="UplinkConsent__actions">
           <Button

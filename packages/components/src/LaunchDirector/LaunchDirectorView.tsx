@@ -123,7 +123,6 @@ export function LaunchDirectorComponent({
   // Plain object, not a hook, so it can sit above the early return.
   const slotContext: LaunchDirectorSlotContext = {
     scene: scene ?? undefined,
-    inFlight: scene === "Flight",
     selectedShip,
     selectedSite,
     selectedCrew: Array.from(selectedCrew),

@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { getSettingDefinition } from "../../spine/settings-registry";
 import type { SettingsService } from "./SettingsService";
 
 const SettingsContext = createContext<SettingsService | null>(null);
@@ -52,9 +53,10 @@ export function useSettingsService(): SettingsService {
  * registers with `registerSetting`: the key is that row's id. For client
  * settings only: a setting the mod publishes is read from its Topic.
  *
- * The second argument is what is returned until a value has been saved. Pass
- * the row's own default: the hook reads the saved value by key and does not
- * look the row up.
+ * Until a value has been saved the hook returns the default of the row
+ * registered under the key, so a default is stated once, on the row. The
+ * second argument overrides it, and is required for a key with no registered
+ * client setting. The hook throws when it has neither.
  *
  * Needs a `SettingsProvider` above it and throws without one. The dashboard
  * mounts one; a test mounts its own.
@@ -63,11 +65,11 @@ export function useSettingsService(): SettingsService {
  */
 export function useSetting<SettingValue>(
   key: string,
-  defaultValue: SettingValue,
+  defaultValue?: SettingValue,
 ): [SettingValue, (v: SettingValue) => void] {
   const svc = useSettingsService();
   const [value, setValueState] = useState<SettingValue>(() =>
-    svc.get(key, defaultValue),
+    svc.get(key, defaultValue ?? registeredDefault<SettingValue>(key)),
   );
 
   useEffect(() => svc.subscribe<SettingValue>(key, setValueState), [svc, key]);
@@ -80,4 +82,14 @@ export function useSetting<SettingValue>(
   );
 
   return [value, setValue];
+}
+
+function registeredDefault<SettingValue>(key: string): SettingValue {
+  const def = getSettingDefinition(key);
+  if (def && def.backing !== "stream-backed") {
+    return def.defaultValue as SettingValue;
+  }
+  throw new Error(
+    `useSetting("${key}") has no default: register a client setting under that key or pass one`,
+  );
 }

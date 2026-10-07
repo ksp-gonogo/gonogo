@@ -1002,7 +1002,9 @@ describe("the README docs is about to overwrite", () => {
     });
     await expect(
       refuseToClobberHandWrittenReadme(dir, readmeOf(dir)),
-    ).rejects.toThrow(/was not written by this command[\s\S]*git mv/);
+    ).rejects.toThrow(
+      /was not written by `uplink-tools docs` or `uplink-tools page`[\s\S]*git mv/,
+    );
   });
 });
 

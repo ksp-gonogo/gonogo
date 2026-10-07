@@ -89,6 +89,44 @@ namespace Sitrep.Host.Tests
             Assert.Contains(lines, l => l.Contains(nameof(ThrowingCtorUplink)));
         }
 
+        /// <summary>
+        /// A registered Uplink says so through the engine's diagnostic sink, with its
+        /// id and version, so a load that worked is as visible in KSP.log as one that
+        /// was refused.
+        /// </summary>
+        [Fact]
+        public void LogsOneLinePerLoadedUplinkWithItsIdAndVersion()
+        {
+            var lines = new List<string>();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.SetDiagnosticLog(lines.Add);
+            var uplink = new LoadedLineUplink();
+
+            engine.RegisterDiscoveredUplinks(new List<UplinkDiscovery.DiscoveredUplink>
+            {
+                new UplinkDiscovery.DiscoveredUplink(uplink, ContractVersion.Major, ContractVersion.Minor),
+            });
+
+            engine.Start();
+            try
+            {
+                Assert.Single(lines, l => l.Contains("\"discovery-test-loaded-line\" 4.5.6 loaded"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        public sealed class LoadedLineUplink : ISitrepUplink
+        {
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } =
+                new UplinkManifest { Id = "discovery-test-loaded-line", Version = "4.5.6" };
+            public void Register(IUplinkHost host) { }
+        }
+
         /// <summary>A caller whose sink throws still gets a complete scan: reporting a failure must never become one.</summary>
         [Fact]
         public void SurvivesADiagnosticSinkThatThrows()

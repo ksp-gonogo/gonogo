@@ -11,6 +11,7 @@ import {
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
@@ -273,7 +274,7 @@ describe("FlightOutcomeBanner", () => {
       fixture.store.beginFrame();
     });
 
-    const banner = screen.getByRole("status");
+    const banner = screen.getByRole("button");
     expect(banner).toHaveTextContent("1,035");
     expect(banner).toHaveTextContent("12.5");
     expect(banner).toHaveTextContent("7.5");
@@ -331,7 +332,7 @@ describe("FlightOutcomeBanner", () => {
     });
 
     await act(async () => {
-      screen.getByRole("status").click();
+      screen.getByRole("button").click();
     });
 
     expect(rowFor(/RT-10 Hammer/)).toHaveTextContent("×8");
@@ -430,7 +431,7 @@ describe("FlightOutcomeBanner", () => {
     });
 
     await act(async () => {
-      screen.getByRole("status").click();
+      screen.getByRole("button").click();
     });
 
     expect(rowFor("Highest altitude")).toHaveTextContent("12.4");
@@ -522,7 +523,7 @@ describe("FlightOutcomeBanner", () => {
       fixture.store.beginFrame();
     });
 
-    const banner = screen.getByRole("status");
+    const banner = screen.getByRole("button");
     expect(banner).toHaveTextContent(NULL_DISPLAY);
     expect(banner).not.toHaveTextContent("+0");
   });
@@ -571,5 +572,49 @@ describe("FlightOutcomeBanner", () => {
       fixture.store.beginFrame();
     });
     expect(screen.queryByText("Reusable")).toBeNull();
+  });
+});
+
+describe("FlightOutcomeBanner accessibility", () => {
+  async function showCrash() {
+    const fixture = setupOutcomeStream();
+    const view = render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+    await act(async () => {
+      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+      fixture.store.beginFrame();
+    });
+    return view;
+  }
+
+  it("is a named button with the announcement in a separate polite live region", async () => {
+    const { container } = await showCrash();
+
+    const button = screen.getByRole("button", {
+      name: "Vessel destroyed: career-orbital-test. Open breakdown",
+    });
+    expect(button).not.toHaveAttribute("role");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Vessel destroyed: career-orbital-test",
+    );
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(button).not.toContainElement(screen.getByRole("status"));
+
+    await expectNoA11yViolations(container);
+  });
+
+  it("keeps an empty live region mounted before any outcome", async () => {
+    const fixture = setupOutcomeStream();
+    const { container } = render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    await expectNoA11yViolations(container);
   });
 });

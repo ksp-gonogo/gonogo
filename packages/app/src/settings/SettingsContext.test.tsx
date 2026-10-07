@@ -2,6 +2,7 @@ import { act, render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { Component, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { registerSetting } from "./registry";
 import { SettingsProvider, useSetting } from "./SettingsContext";
 import { SettingsService } from "./SettingsService";
 
@@ -112,5 +113,73 @@ describe("useSetting", () => {
     expect(caught.message).toMatch(/SettingsProvider/);
     window.removeEventListener("error", swallowError);
     spy.mockRestore();
+  });
+
+  describe("with no default given", () => {
+    function Bare({ keyName }: { keyName: string }) {
+      const [value] = useSetting<boolean>(keyName);
+      return <output data-testid="value">{String(value)}</output>;
+    }
+
+    it("reads the default of the row registered under the key", () => {
+      registerSetting({
+        id: "test.registeredDefaultOff",
+        label: "Registered default",
+        category: "Test",
+        defaultValue: false,
+      });
+      render(
+        <SettingsProvider service={service}>
+          <Bare keyName="test.registeredDefaultOff" />
+        </SettingsProvider>,
+      );
+      expect(screen.getByTestId("value").textContent).toBe("false");
+    });
+
+    it("lets an explicit default win over the registered one", () => {
+      registerSetting({
+        id: "test.registeredDefaultOverridden",
+        label: "Registered default",
+        category: "Test",
+        defaultValue: false,
+      });
+      function Explicit() {
+        const [value] = useSetting<boolean>(
+          "test.registeredDefaultOverridden",
+          true,
+        );
+        return <output data-testid="value">{String(value)}</output>;
+      }
+      render(
+        <SettingsProvider service={service}>
+          <Explicit />
+        </SettingsProvider>,
+      );
+      expect(screen.getByTestId("value").textContent).toBe("true");
+    });
+
+    it("throws for a key with no registered client setting", () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const swallowError = (e: ErrorEvent) => e.preventDefault();
+      window.addEventListener("error", swallowError);
+      let caught: unknown;
+      render(
+        <SettingsProvider service={service}>
+          <CatchBoundary
+            onError={(err) => {
+              caught = err;
+            }}
+          >
+            <Bare keyName="test.neverRegistered" />
+          </CatchBoundary>
+        </SettingsProvider>,
+      );
+      if (!(caught instanceof Error)) {
+        throw new Error(`expected an Error, got: ${String(caught)}`);
+      }
+      expect(caught.message).toMatch(/test\.neverRegistered/);
+      window.removeEventListener("error", swallowError);
+      spy.mockRestore();
+    });
   });
 });

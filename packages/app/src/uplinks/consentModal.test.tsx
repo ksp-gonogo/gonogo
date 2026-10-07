@@ -266,3 +266,21 @@ describe("promptForConsent nested-modal guard", () => {
     localStorage.clear();
   });
 });
+
+describe("promptForConsent on a station", () => {
+  it("says declining stops that Uplink's widgets for this session", async () => {
+    const { decision } = await openPrompt({ ...info, onStation: true });
+    expect(
+      screen.getByText(
+        /widgets will not work on this station for this session/,
+      ),
+    ).toBeInTheDocument();
+    await closePrompt(decision);
+  });
+
+  it("leaves the main screen's prompt without that line", async () => {
+    const { decision } = await openPrompt();
+    expect(screen.queryByText(/on this station/)).not.toBeInTheDocument();
+    await closePrompt(decision);
+  });
+});

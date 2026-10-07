@@ -857,6 +857,7 @@ async function loadOne(
         version: version.version,
         author: descriptor.author || undefined,
         identity,
+        onStation: ctx.bundlesFromHost === true,
       });
       if (!consented) refuse("consent declined");
     }

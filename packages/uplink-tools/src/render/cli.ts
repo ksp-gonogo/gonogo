@@ -544,15 +544,15 @@ export async function refuseToClobberHandWrittenReadme(
   const existing = await readFile(readmePath, "utf8");
   if (existing.startsWith(README_GENERATED_MARKER)) return;
   throw new Error(
-    `uplink-tools docs: ${display(dir, readmePath)} was not written by this ` +
-      "command, and the page it generates would replace the whole file.\n\n" +
+    `uplink-tools: ${display(dir, readmePath)} was not written by ` +
+      "`uplink-tools docs` or `uplink-tools page`, and the page it generates would replace the whole file.\n\n" +
       "Everything a generated page says comes from your registrations, your " +
       "contract slice and your fixtures, so there is nowhere in it for prose " +
       "to survive. Move what you want to keep somewhere the generator does " +
       "not write (docs/, or the repository root's own README), then run this " +
       "again:\n" +
       `  git mv ${display(dir, readmePath)} NOTES.md\n\n` +
-      "Every README this command writes opens with " +
+      "Every README they write opens with " +
       `"${README_GENERATED_MARKER}", which is how it recognises its own.`,
   );
 }

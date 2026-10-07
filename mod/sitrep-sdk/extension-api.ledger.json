@@ -8127,6 +8127,10 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk . LaunchDirectorSlotContext#inFlight",
+        "note": "Removed. The slot draws only in the pad list, which the widget hides in flight, so the member was always false"
+      },
+      {
         "key": "sitrep-sdk . SDK_VERSION",
         "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
@@ -8145,6 +8149,10 @@
       {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "sitrep-sdk . useSetting",
+        "note": "The default argument is optional: without one the hook reads the default of the client setting registered under the key, and throws when there is none"
       },
       {
         "key": "sitrep-sdk . ~MapViewScope",
@@ -8221,6 +8229,10 @@
       {
         "key": "sitrep-sdk ./testing ~HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~LaunchDirectorSlotContext#inFlight",
+        "note": "Removed with the member on the main entry point"
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
@@ -8650,10 +8662,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~LaunchDirectorSlotContext#funds",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~LaunchDirectorSlotContext#inFlight",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
