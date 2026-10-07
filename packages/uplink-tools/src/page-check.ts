@@ -108,33 +108,12 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
     readmePath: join(pkg.dir, "README.md"),
     readme,
     manifestPath,
-    // The one field generated here is always empty, because a working copy has
-    // no distributed file to hash. Carrying the committed value through is what
-    // lets the writer below rewrite a released manifest without blanking the
-    // hash the release stamped into it.
-    manifestJson: `${JSON.stringify({ ...manifest, integrity: committedIntegrity(manifestPath) }, null, 2)}\n`,
+    // `buildManifest` carries the committed integrity through when no bundle is named, which is what lets the writer below rewrite a released manifest without blanking the hash the release stamped into it.
+    manifestJson: `${JSON.stringify(manifest, null, 2)}\n`,
     recordsPath: join(pkg.dir, WIDGET_RECORDS_FILE),
     recordsJson: widgetRecordsJson(widgetRecordsOf(inventory)),
     root: pkg.dir,
   };
-}
-
-function isJsonObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** The `integrity` a committed manifest already carries, or the empty claim. */
-function committedIntegrity(manifestPath: string): string {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
-    if (isJsonObject(parsed) && typeof parsed.integrity === "string") {
-      return parsed.integrity;
-    }
-  } catch {
-    // No manifest yet, or one nothing can parse. Either way there is no hash to
-    // preserve, and the caller is about to write a whole new file over it.
-  }
-  return "";
 }
 
 /**

@@ -19,6 +19,9 @@ import {
   writeUplinkPage,
 } from "./page-check";
 import { PAGE_WRITE_ENV } from "./page-write-env";
+import { resolveUplinkPackage } from "./render/context";
+import { buildManifest } from "./render/docs";
+import { readInventory } from "./render-probe";
 
 /**
  * The browserless writer, which is the half that makes the gate affordable.
@@ -128,6 +131,39 @@ describe("writeUplinkPage", () => {
     const rewritten = readManifest(manifestPath);
     expect(rewritten.integrity).toBe("sha256-anAlreadyPublishedBundle");
     expect(rewritten.name).toBe("Planted");
+  });
+});
+
+describe("buildManifest with no bundle named", () => {
+  const inputsFor = (dir: string) => ({
+    pkg: resolveUplinkPackage(dir),
+    inventory: readInventory(undefined),
+    scenes: [],
+    assets: [],
+    assetDir: "docs/assets",
+  });
+
+  it("keeps the integrity already in the manifest, and warns of nothing", () => {
+    const dir = plantClient();
+    writeUplinkPage({ root: dir });
+    const manifestPath = join(dir, "gonogo-uplink.json");
+    const released = readManifest(manifestPath);
+    released.integrity = "sha256-anAlreadyPublishedBundle";
+    writeFileSync(manifestPath, `${JSON.stringify(released, null, 2)}\n`);
+
+    const { manifest, warning } = buildManifest(inputsFor(dir));
+
+    expect(manifest.integrity).toBe("sha256-anAlreadyPublishedBundle");
+    expect(warning).toBeUndefined();
+  });
+
+  it("writes an empty integrity and says what it costs when the manifest carries none", () => {
+    const dir = plantClient();
+
+    const { manifest, warning } = buildManifest(inputsFor(dir));
+
+    expect(manifest.integrity).toBe("");
+    expect(warning).toMatch(/integrity/i);
   });
 });
 

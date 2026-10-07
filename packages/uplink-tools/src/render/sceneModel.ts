@@ -763,6 +763,15 @@ function modesFor(
   const chosen: InventoryMode[] = [];
   for (const name of scene.modes) {
     const found = all.find((m) => m.name === name);
+    if (!found && name === "min" && target.kind === "widget") {
+      throw new Error(
+        `${where}: "_scene.modes" names "min", and this widget has no separate ` +
+          "smallest size to draw: its minSize is absent or equal to its " +
+          'defaultSize, so "default" already is the smallest. Remove "min" from ' +
+          `"_scene.modes" in ${where}, or give the widget a minSize smaller ` +
+          "than its defaultSize.",
+      );
+    }
     if (!found) {
       throw new Error(
         `${where}: "_scene.modes" names "${name}", which is not a mode this ` +

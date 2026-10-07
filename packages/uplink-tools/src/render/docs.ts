@@ -55,6 +55,21 @@ export function linkedAssets(scenes: readonly Scene[]): PageAsset[] {
   );
 }
 
+/** The `integrity` the manifest on disk already carries, or the empty claim. */
+export function committedIntegrity(manifestPath: string): string {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const integrity: unknown =
+      typeof parsed === "object" && parsed !== null
+        ? Reflect.get(parsed, "integrity")
+        : undefined;
+    if (typeof integrity === "string") return integrity;
+  } catch {
+    // No manifest yet, or one nothing can parse. Either way there is no hash to keep, and the caller is about to write a whole new file over it.
+  }
+  return "";
+}
+
 /**
  * The manifest first, the page from it.
  *
@@ -109,14 +124,20 @@ export type UplinkManifestJson = UplinkManifest;
  * page stale over a number that is not the page's business. A gate that cries
  * wolf is a gate someone turns off.
  *
- * So: no `--bundle`, no integrity, and a loud warning saying what that costs.
+ * So: no `--bundle`, no new integrity. A hash already in the manifest stays
+ * there: it was stamped from a bundle by an earlier `--bundle` run, and writing
+ * the page again must not blank it, since an empty one is refused by the app.
+ * Only a manifest with no hash at all draws the warning saying what that costs.
  */
 function bundleIntegrity(
   pkg: UplinkPackage,
   bundle: string | undefined,
 ): { integrity: string; warning?: string } {
   if (!bundle) {
-    return { integrity: "", warning: NO_BUNDLE_INTEGRITY_WARNING };
+    const kept = committedIntegrity(join(pkg.dir, "gonogo-uplink.json"));
+    return kept
+      ? { integrity: kept }
+      : { integrity: "", warning: NO_BUNDLE_INTEGRITY_WARNING };
   }
   const candidate = resolve(pkg.dir, bundle);
   try {

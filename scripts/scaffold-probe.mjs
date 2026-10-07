@@ -545,10 +545,117 @@ mustFail(
   ["uplink-tools", "docs", "--no-assets"],
   { cwd: client },
 );
-drawsReadably(client, join(client, "src/Heartbeat/index.tsx"));
+const widgetFile = join(client, "src/Heartbeat/index.tsx");
+drawsReadably(client, widgetFile);
 // The pictures now exist, so the page links them and has to be current again for the test run below.
 npmRun("page");
 must("npm test, with the pictures drawn", "npm", ["test"], { cwd: client });
+
+/*
+ * Three things an author does in their first hour, each of which once left
+ * them with commands that pointed at each other.
+ */
+{
+  const widget = readFileSync(widgetFile, "utf8");
+  const manifestFile = join(client, "gonogo-uplink.json");
+  const readme = () => readFileSync(join(client, "README.md"), "utf8");
+
+  // A changed widget makes the page stale and, as often as not, breaks one of its own tests in the same edit. `page` has to write the page anyway.
+  const brokenTest = join(client, "src/Heartbeat/broken.test.ts");
+  writeFileSync(
+    brokenTest,
+    'import { expect, it } from "vitest";\nit("fails", () => expect(1).toBe(2));\n',
+  );
+  writeFileSync(
+    widgetFile,
+    widget.replace("It has no controls.", "It has no controls at all."),
+  );
+  mustFail(
+    "npm test, with a stale page and another test failing",
+    /no longer matches the code/,
+    "npm",
+    ["test"],
+    { cwd: client },
+  );
+  const wrote = must(
+    "npm run page, with another test failing",
+    "npm",
+    ["run", "page"],
+    { cwd: client },
+  );
+  if (
+    !/page: wrote .*README\.md/.test(wrote) ||
+    !readme().includes("It has no controls at all.")
+  ) {
+    console.error(wrote);
+    fail(
+      "page did not write the stale page while another test was failing, or did not say that it had",
+    );
+  }
+  rmSync(brokenTest);
+  must("npm test, once the page is written", "npm", ["test"], { cwd: client });
+  writeFileSync(widgetFile, widget);
+  const unchanged = must(
+    "npm run page, back to the widget as scaffolded",
+    "npm",
+    ["run", "page"],
+    { cwd: client },
+  );
+  if (!/page: wrote/.test(unchanged)) fail("page did not say what it wrote");
+  if (
+    !/Nothing written/.test(
+      must("npm run page, with nothing to do", "npm", ["run", "page"], {
+        cwd: client,
+      }),
+    )
+  ) {
+    fail("page with nothing to write did not say so");
+  }
+
+  // A minSize raised to the defaultSize leaves the widget one size, and the fixture still asks for two.
+  const defaultSize = /defaultSize: (\{ w: \d+, h: \d+ \})/.exec(widget)?.[1];
+  if (!defaultSize) fail(`${widgetFile} states no defaultSize`);
+  writeFileSync(
+    widgetFile,
+    widget.replace(/minSize: \{ w: \d+, h: \d+ \}/, `minSize: ${defaultSize}`),
+  );
+  mustFail(
+    "a fixture naming the min mode of a widget that has one size",
+    /no separate smallest size to draw[\s\S]*Remove "min" from "_scene.modes" in [^\n]*beating\.json/,
+    "npm",
+    ["run", "page"],
+    { cwd: client },
+  );
+  writeFileSync(widgetFile, widget);
+
+  // Drawing the pictures again must not blank the hash a release stamped into the committed manifest.
+  const manifest = readFileSync(manifestFile, "utf8");
+  const stamped =
+    "sha256-0000000000000000000000000000000000000000000000000000000000000000";
+  writeFileSync(
+    manifestFile,
+    manifest.replace(/"integrity": "[^"]*"/, `"integrity": "${stamped}"`),
+  );
+  const drawn = must(
+    "uplink-tools docs, over a manifest a release stamped",
+    "npx",
+    ["uplink-tools", "docs"],
+    { cwd: client, env: withBrowser },
+  );
+  if (
+    !readFileSync(manifestFile, "utf8").includes(stamped) ||
+    /EMPTY integrity/.test(drawn)
+  ) {
+    console.error(drawn);
+    fail(
+      "docs with no --bundle blanked the integrity already in gonogo-uplink.json",
+    );
+  }
+  writeFileSync(manifestFile, manifest);
+  must("npm test, with the scaffold as it was", "npm", ["test"], {
+    cwd: client,
+  });
+}
 const testsProject = join(uplink, "mod-tests", `${NS}.Tests.csproj`);
 must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 

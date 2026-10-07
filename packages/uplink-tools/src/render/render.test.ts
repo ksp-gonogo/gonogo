@@ -491,6 +491,27 @@ describe("fixtures become scenes", () => {
     ).toThrow(/not a mode this target has/);
   });
 
+  it("says why a widget has no min mode, and what to change, when a fixture names one", () => {
+    // A widget whose minSize equals its defaultSize has one size, so the inventory lists no "min" for it.
+    const oneSize: UplinkInventory = {
+      ...INVENTORY,
+      widgets: INVENTORY.widgets.map((widget) => ({
+        ...widget,
+        modes: widget.modes.filter((mode) => mode.name !== "min"),
+      })),
+    };
+    const build = () =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { widget: "reactor", modes: ["default", "min"] } }),
+        ),
+        oneSize,
+      );
+    expect(build).toThrow(/no separate smallest size to draw/);
+    expect(build).toThrow(/Remove "min" from "_scene.modes" in .*hot\.json/);
+    expect(build).toThrow(/minSize smaller than its defaultSize/);
+  });
+
   it("names the registered ids when a scene points at nothing", () => {
     expect(() =>
       buildScenes(
