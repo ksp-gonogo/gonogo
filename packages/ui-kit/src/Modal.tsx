@@ -35,7 +35,9 @@ interface ModalOpenOptions {
 }
 
 interface ModalContextValue {
+  /** Opens a dialog showing `content` on top of any already open, and returns its id. */
   open: (content: ReactNode, options?: ModalOpenOptions) => string;
+  /** Closes the dialog with this id, whether or not it is on top. Does nothing for an id already closed. */
   close: (id: string) => void;
 }
 

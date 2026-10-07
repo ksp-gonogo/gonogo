@@ -10,7 +10,9 @@ import { Text } from "./Text";
 export interface TextFieldProps {
   /** Shown above the field and tied to it, so the field is never unlabelled. */
   label: string;
+  /** The text now in the field. */
   value: string;
+  /** Called with the whole new text on every edit. */
   onChange: (next: string) => void;
   /**
    * The message saying why the current text is refused, shown under the field;
@@ -18,9 +20,13 @@ export interface TextFieldProps {
    * the caller decides what is refused (a duplicate name, a mod's naming rule).
    */
   invalid?: string;
+  /** Shown faint in the empty field. Absent, the empty field shows nothing. */
   placeholder?: string;
+  /** The most characters the field takes. Absent, no limit. */
   maxLength?: number;
+  /** Shows the text but takes no input. */
   disabled?: boolean;
+  /** A test id for the input element. */
   "data-testid"?: string;
 }
 

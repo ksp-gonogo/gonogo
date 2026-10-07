@@ -26,6 +26,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * moves a panel summary.
    */
   tone?: Tone;
+  /** Text size, `sm` or `md`. Absent, `md`. */
   size?: BadgeSize;
   /**
    * Announce this badge as a screen-reader live region (`role="status"`). Use
@@ -43,6 +44,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * any worse state in the panel wins the summary over it.
    */
   report?: { id: string; label?: string };
+  /** The badge's words, drawn uppercase. */
   children: ReactNode;
 }
 

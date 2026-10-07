@@ -10,7 +10,9 @@ import { TONE_MARK, toneEdge } from "./tone";
  */
 export interface StatusIndicatorProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  /** The state the dot shows, which sets its colour. */
   tone: Tone;
+  /** The words beside the dot. */
   children: ReactNode;
   /**
    * When true, the indicator becomes a screen-reader live region.

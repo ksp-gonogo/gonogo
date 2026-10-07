@@ -24,12 +24,14 @@ export interface DisclosureProps {
    * (an icon or glyph) so the button is not unlabelled to a screen reader.
    */
   ariaLabel?: string;
+  /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
   /**
-   * - `"popover"` (default): the panel pops out over whatever follows, sized to
-   *   its content, for a compact hint beside a tight trigger
-   * - `"inline"`: the panel expands in flow below the trigger, full width, as
-   *   an accordion. The trigger grows a rotating chevron unless `chevron={false}`
+   * Where the panel opens. `"popover"`, the default, pops it out over whatever
+   * follows, sized to its content, for a compact hint beside a tight trigger.
+   * `"inline"` expands it in flow below the trigger, full width, as an
+   * accordion, and the trigger grows a rotating chevron unless
+   * `chevron={false}`.
    */
   variant?: "popover" | "inline";
   /**

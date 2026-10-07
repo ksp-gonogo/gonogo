@@ -2087,12 +2087,25 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *
  * ## Parts
  *
- * `Panel` is built entirely from the parts below and draws nothing they do
- * not, so a widget can compose a variant by hand from `Panel.Container` (the bordered frame),
- * `Panel.Context` (links the body's scroller to the glow), `Panel.Delay` (the
- * delay rail), `Panel.Header`, `Panel.Title`, `Panel.Toolbar`, `Panel.Glow`,
- * `Panel.Body` (the scrolling, inset content box), `Panel.Section`,
- * `Panel.Sidebar` and `Panel.Footer`.
+ * `Panel` is built entirely from these parts and draws nothing they do not, so
+ * a widget can compose a variant by hand from them:
+ *
+ * - `Panel.Container`: the bordered frame
+ * - `Panel.Context`: links the body's scroller to the glow
+ * - `Panel.Delay`: the delay rail above the header
+ * - `Panel.Header`: the title and its aside on one row, collapsing the aside
+ *   to status dots when they no longer fit
+ * - `Panel.Title`: the title, in the longest form that fits (see
+ *   {@link PanelTitleProps})
+ * - `Panel.Toolbar`: a full-width row of controls under the header, outside
+ *   the scrolling body
+ * - `Panel.Glow`: the glow at whichever edge of the body has more to scroll to
+ * - `Panel.Body`: the scrolling, inset content box
+ * - `Panel.Section`: the same {@link Section} a `sections` entry is
+ * - `Panel.Sidebar`: secondary content beside or below the body, scrolling on
+ *   its own
+ * - `Panel.Footer`: the strip pinned to the bottom, which `panelFooter`
+ *   renders into
  *
  * @example
  * A typical widget body:

@@ -26,7 +26,7 @@ export interface DialZone<Unit extends string = string> {
   from: Value<Unit>;
   /** Upper bound of the coloured arc segment. */
   to: Value<Unit>;
-  /** Arc colour. */
+  /** The segment's colour: any CSS colour, such as a theme `var()`. */
   color: string;
 }
 

@@ -39,12 +39,19 @@ const words = (text: string): string =>
  * @category Floating
  */
 export interface TooltipAnchorProps {
+  /** Opens the tip against the element the pointer entered. */
   onPointerEnter?: (event: { currentTarget: Element }) => void;
+  /** Closes the tip shortly after the pointer leaves, unless it moves onto the tip. */
   onPointerLeave?: () => void;
+  /** Closes the tip on a press, so it never covers what is being pressed. */
   onPointerDown?: () => void;
+  /** Ends the press, so the next keyboard focus can open the tip again. */
   onPointerUp?: () => void;
+  /** Opens the tip on keyboard focus; the focus a press gives does not. */
   onFocus?: (event: FocusEvent<Element>) => void;
+  /** Closes the tip when focus leaves, unless the pointer still holds it open. */
   onBlur?: () => void;
+  /** The tip's text, on the element itself. Absent while there is no tip. */
   "data-tooltip"?: string;
 }
 

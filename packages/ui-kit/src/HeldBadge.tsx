@@ -14,6 +14,7 @@ export interface HeldBadgeProps {
   grade: HeldGrade;
   /** What is held, in the operator's terms, for the hover text: "Contract board", a part's title. */
   subject?: string;
+  /** Text size, `sm` or `md`. Absent, `md`. */
   size?: BadgeSize;
 }
 

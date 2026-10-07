@@ -35,6 +35,7 @@ export interface ExpandableTextProps {
    * to a screen reader as "Show more of Objectives".
    */
   subject?: string;
+  /** A class for the wrapping element, so a styled-component can extend it. */
   className?: string;
 }
 

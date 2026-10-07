@@ -29,6 +29,7 @@ export interface LiveRegionProps {
   assertive?: boolean;
   /** The element the region renders as. */
   as?: "div" | "span";
+  /** A class for the region's element, so a styled-component can extend it. */
   className?: string;
 }
 

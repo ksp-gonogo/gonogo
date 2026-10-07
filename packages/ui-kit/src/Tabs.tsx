@@ -23,7 +23,9 @@ import { VisuallyHidden } from "./VisuallyHidden";
 export interface TabDescriptor {
   /** Stable identity for the tab. Falls back to the tab's position in the array. */
   id?: string;
+  /** The tab's name in the strip, and its panel's accessible name. */
   label: string;
+  /** What the tab's panel shows while it is selected. */
   content: ReactNode;
   /** Shows an attention dot beside the label, for a tab whose subsystem needs attention. */
   indicator?: boolean;
@@ -42,9 +44,11 @@ export interface TabDescriptor {
  * @category Tabs
  */
 export interface TabsProps {
+  /** The tabs, in strip order. */
   tabs: TabDescriptor[];
   /** The selected tab's id, for controlled selection. Omit it to let the component hold the selection, starting on the first tab. */
   activeId?: string;
+  /** Called with the id of the tab the operator selects. */
   onChange?: (id: string) => void;
   /**
    * Lay every panel out side by side, each under its own label, once the
@@ -59,6 +63,7 @@ export interface TabsProps {
   "aria-label"?: string;
   /** As `aria-label`, when the name is already on screen as an element. */
   "aria-labelledby"?: string;
+  /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
 }
 

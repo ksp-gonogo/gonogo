@@ -8,6 +8,7 @@ import { type FormatQuantityOptions, writeQuantity } from "./units";
  * @category Unit
  */
 export interface DrawnPrecision<Figure> {
+  /** Whether `a` and `b` come out as the same drawing at this precision. */
   readsAsOne(a: Figure, b: Figure): boolean;
 }
 

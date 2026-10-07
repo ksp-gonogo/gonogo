@@ -54,6 +54,7 @@ export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
   size?: TextSize;
   /** Font weight. Omit to inherit the ambient weight; set `semibold` to emphasise a key figure. */
   weight?: TextWeight;
+  /** The text, or inline content such as a {@link Unit}. */
   children?: ReactNode;
 }
 

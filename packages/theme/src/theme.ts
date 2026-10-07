@@ -62,19 +62,30 @@ export interface ThemeColors {
  * @category Theme
  */
 export interface ThemeTypography {
+  /** The font families, as CSS `font-family` values. */
   family: {
+    /** The monospace family every widget is set in. */
     mono: string;
   };
+  /** The size scale, smallest first, each a CSS variable string. */
   size: {
+    /** The smallest step of the scale. */
     xs: string;
+    /** One step below body text. */
     sm: string;
+    /** Body text. */
     base: string;
+    /** One step above body text. */
     lg: string;
   };
+  /** The font weights, as numbers. */
   weight: {
+    /** Body text. */
     regular: number;
+    /** Emphasis. */
     bold: number;
   };
+  /** The letter spacings, as CSS lengths. */
   letterSpacing: {
     /** Subtle negative-to-zero tracking for dense running text. */
     tight: string;
@@ -94,7 +105,9 @@ export interface ThemeTypography {
  * @category Theme
  */
 export interface ThemeBorders {
+  /** The quieter of the two borders, in the subtle border colour. */
   subtle: string;
+  /** The more prominent of the two borders, in the strong border colour. */
   strong: string;
 }
 
@@ -110,7 +123,10 @@ export interface ThemeBorders {
  * @category Theme
  */
 export interface UiKitTheme {
+  /** Every colour the kit draws with. */
   colors: ThemeColors;
+  /** The font family, sizes, weights and letter spacings. */
   typography: ThemeTypography;
+  /** The border shorthands. */
   borders: ThemeBorders;
 }

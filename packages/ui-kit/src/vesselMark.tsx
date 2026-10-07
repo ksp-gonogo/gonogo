@@ -39,17 +39,26 @@ const OUTLINE_WIDTH = 0.3;
  * @category Unit
  */
 export const VESSEL_MARK = {
+  /** The vessel's green, as the theme token's name, for a canvas painter that resolves it itself. */
   cssVar: "--color-accent-fg",
+  /** The vessel's green, as a CSS `var()` of the theme token. */
   color: "var(--color-accent-fg)",
+  /** The vessel's green where the token cannot be read. */
   fallback: "rgb(0 255 136)",
   /** The hue of a lost vessel's outline. */
   lost: {
+    /** The token's name. */
     cssVar: "--color-nogo-mark",
+    /** The hue as a CSS `var()` of the token. */
     color: "var(--color-nogo-mark)",
+    /** The hue where the token cannot be read. */
     fallback: "rgb(255 77 77)",
   },
+  /** Half the held square's side, measured to the middle of its outline. */
   squareHalf: SQUARE_HALF,
+  /** The modelled triangle's corners, point up, as `[x, y]` pairs with y down. */
   triangle: TRIANGLE,
+  /** The width of the outline round a held, modelled or lost shape. */
   outlineWidth: OUTLINE_WIDTH,
   /**
    * The width of each of the keyline's two rings. A dark ring hugs the mark and
@@ -116,10 +125,13 @@ function keylineStroke(
  * @category Unit
  */
 export interface VesselMarkSvgProps {
+  /** The centre's x, in the diagram's own units. */
   x: number;
+  /** The centre's y, in the diagram's own units, y down. */
   y: number;
   /** The radius of the current vessel's circle, in the diagram's own units. The held and modelled shapes fill the same footprint. */
   r: number;
+  /** How the position is known. Absent, `"current"`: the green circle. */
   state?: VesselMarkState;
   /**
    * Draw the keyline round the mark: a dark ring and a light ring, so the mark

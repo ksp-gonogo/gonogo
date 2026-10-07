@@ -294,7 +294,9 @@ export function figureAttributes(resolved: {
  * @category Unit
  */
 export interface ReckoningMarking {
+  /** Which mark the figure takes: held or modelled. */
   kind: ReckoningKind;
+  /** What the mark means in words, said to a screen reader and shown on hover rather than drawn. */
   caption: string;
 }
 

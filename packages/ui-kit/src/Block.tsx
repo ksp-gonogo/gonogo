@@ -11,8 +11,8 @@ import type { StaticElement } from "./staticElement";
  */
 export interface BlockAnatomyProps {
   /**
-   * The name this record is about, drawn as a heading: larger and heavier than
-   * the body under it. Replaces the HTML `title` tooltip attribute.
+   * The block's heading, naming what it is about: larger and heavier than the
+   * body under it. Replaces the HTML `title` tooltip attribute.
    */
   title?: ReactNode;
   /** Tag for `title`. Defaults to `div`; pass a heading where the outline wants one. */
@@ -24,7 +24,7 @@ export interface BlockAnatomyProps {
   titleLeft?: ReactNode;
   /**
    * Drawn AFTER the title and pushed to the end of its line: the badges that
-   * say how this record is doing. Wraps under the title rather than squeezing
+   * say how its subject is doing. Wraps under the title rather than squeezing
    * it. Distinct from `right`, which sits beside (or below) the whole body.
    */
   titleRight?: ReactNode;
@@ -39,8 +39,9 @@ export interface BlockAnatomyProps {
   top?: ReactNode;
   /** Content across the bottom, below the footer. It stays there at every width. */
   bottom?: ReactNode;
-  /** The actions and tags that close the record, spread across one wrapping row. */
+  /** The actions and tags that close the block, spread across one wrapping row. */
   footer?: ReactNode;
+  /** The body, under the title. */
   children?: ReactNode;
 }
 
@@ -89,8 +90,11 @@ const Block__TitleLead = styled.div`
  * @category Layout
  */
 export interface BlockTitleRowProps {
+  /** Drawn before the name, such as an icon or a mark. Absent, the name starts the line. */
   left?: ReactNode;
+  /** Pushed to the end of the name's line, usually the subject's state. Absent, nothing follows the name. */
   right?: ReactNode;
+  /** The name itself. */
   children?: ReactNode;
 }
 

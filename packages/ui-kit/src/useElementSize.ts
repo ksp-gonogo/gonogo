@@ -6,7 +6,9 @@ import { type RefObject, useEffect, useRef, useState } from "react";
  * @category Layout
  */
 export interface ElementSize {
+  /** Width in whole CSS pixels. */
   w: number;
+  /** Height in whole CSS pixels. */
   h: number;
 }
 

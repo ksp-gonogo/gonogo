@@ -26,6 +26,7 @@ export interface FloatingProps extends HTMLAttributes<HTMLDivElement> {
    * scroll), so a layer anchored to an element follows it.
    */
   anchor: AnchorPoint | (() => AnchorPoint | null);
+  /** What the layer shows. It has no surface of its own, so style it here. */
   children?: ReactNode;
 }
 

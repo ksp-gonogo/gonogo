@@ -17,6 +17,7 @@ export interface StepperProps<Option> {
   /** The value now held. One not present in `options` reads as off the set:
    * both step controls stay live and stepping lands on the nearest end. */
   value: Option;
+  /** Called with the option a step lands on. */
   onChange: (value: Option) => void;
   /** Names the quantity for a screen reader, and both step controls take their
    * own names from it. */
@@ -24,10 +25,12 @@ export interface StepperProps<Option> {
   /** How a value reads. Defaults to `String`, which suits a plain integer; for
    * a member carrying a unit, write it with {@link writeQuantity}. */
   format?: (value: Option) => string;
+  /** Shows the value with both step controls off. */
   disabled?: boolean;
   /** Sits under the value, for the sentence that explains what the setting
    * costs. */
   children?: React.ReactNode;
+  /** A test id for the element holding the value and both step controls. */
   "data-testid"?: string;
 }
 

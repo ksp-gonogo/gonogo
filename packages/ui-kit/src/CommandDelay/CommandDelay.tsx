@@ -28,7 +28,7 @@ import {
 /**
  * What {@link CommandDelay} and the Panel delay rail read from a command: its
  * in-flight rows, its delay, and what became of its dispatches. Declared
- * structurally; `useCommand`'s return value satisfies it.
+ * structurally; {@link useCommand}'s return value satisfies it.
  *
  * @category CommandDelay
  */
@@ -41,8 +41,8 @@ export interface CommandDelayHandle {
   /**
    * What this entry IS on the rail's three axes, in full. The renderer follows
    * from these, so no consumer branches on what kind of command this is. A
-   * command handle gets them from `useCommand`; a producer that is not a
-   * command (an open microphone) states them with `railTagsForTelemetry`.
+   * command handle gets them from {@link useCommand}; a producer that is not a
+   * command (an open microphone) states them with {@link railTagsForTelemetry}.
    */
   tags: RailTags;
   /**

@@ -4,7 +4,9 @@
  * @category Floating
  */
 export interface AnchorPoint {
+  /** Pixels from the viewport's left edge. */
   x: number;
+  /** Pixels from the viewport's top edge. */
   y: number;
 }
 
@@ -20,7 +22,9 @@ export interface BoxSize {
  * @category Floating
  */
 export interface AnchoredPosition {
+  /** Pixels from the viewport's left edge. */
   left: number;
+  /** Pixels from the viewport's top edge. */
   top: number;
 }
 

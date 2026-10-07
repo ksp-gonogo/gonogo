@@ -74,7 +74,7 @@ export interface CommandReplyLike {
 
 /**
  * The command handle a {@link CommandButton} dispatches on: the delay-rail handle plus a
- * way to send. Declared structurally; `useCommand`'s return value satisfies it.
+ * way to send. Declared structurally; {@link useCommand}'s return value satisfies it.
  *
  * @category CommandButton
  */

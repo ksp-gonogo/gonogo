@@ -3,11 +3,17 @@ import type { InFlightListItem } from "./InFlightList";
 
 /** The structural subset of an in-flight command that this mapping reads. */
 export interface InFlightCommandLike {
+  /** Stable for the entry's lifetime, so the list keeps its row as it moves. */
   id: string;
+  /** The entry in the operator's words, such as "SAS Prograde". */
   label: string;
+  /** The command id it was sent as. */
   command: string;
+  /** Seconds until it reaches the far end; `null` when there is no path. */
   reachEtaSeconds: number | null;
+  /** Seconds until its reply is expected back; `null` when there is no path, and always for an entry that expects no reply. */
   replyEtaSeconds: number | null;
+  /** Where it is expected to be now. */
   predictedPhase: InFlightListItem["phase"];
   /** The issuing button's own terse glyph ("PRO", "RET"). Defaults to an abbreviation of `label`. */
   glyph?: string;

@@ -89,7 +89,8 @@ export interface ControlRibbonDatum {
   spanSamples?: number;
   /**
    * What this entry IS on the three axes, in full, and NOT optional. A
-   * producer builds them with `railTagsForTelemetry(continuity)`.
+   * producer builds them with {@link railTagsForTelemetry}, passing its
+   * continuity.
    */
   tags: RailTags;
 }

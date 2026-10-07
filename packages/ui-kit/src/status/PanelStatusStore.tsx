@@ -28,8 +28,11 @@ export interface StatusContribution {
  * @category Panel
  */
 export interface StatusSummary {
+  /** The winning contribution's own {@link StatusContribution.id}. */
   id: string;
+  /** The worst severity on the panel. */
   severity: Severity;
+  /** The winning contribution's label, the words the summary badge shows. */
   label: string;
 }
 
@@ -41,7 +44,9 @@ export interface StatusSummary {
  * @category Panel
  */
 export interface StatusBreakdownEntry {
+  /** The severity this row counts. */
   severity: Severity;
+  /** How many contributions sit at it, never zero: a severity nobody reports has no row. */
   count: number;
 }
 

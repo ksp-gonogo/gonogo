@@ -48,10 +48,15 @@ export interface MissionDateFieldProps {
  * @category Form
  */
 export interface MissionDateParts {
+  /** The year, one-based: UT zero is Year 1. */
   year: number;
+  /** The day of the year, one-based: UT zero is Day 1. */
   day: number;
+  /** The hour of the day, from zero. */
   hour: number;
+  /** The minute of the hour, from zero. */
   minute: number;
+  /** The second of the minute, from zero. */
   second: number;
 }
 

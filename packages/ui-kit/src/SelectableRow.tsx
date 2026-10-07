@@ -35,6 +35,7 @@ export interface SelectableRowProps
    * for a row whose text should stay readable as it is.
    */
   selectedLook?: "fill" | "outline";
+  /** What the row shows. */
   children?: ReactNode;
 }
 

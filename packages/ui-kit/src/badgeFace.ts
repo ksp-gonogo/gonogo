@@ -8,8 +8,11 @@ import { heldWord } from "./status/streamStatusWord";
  * @category Badge
  */
 export interface BadgeFace {
+  /** The words the badge shows: the held grade's word where the entry is held, its own label otherwise. */
   label: string;
+  /** The badge's tone. `undefined` draws it neutral. */
   tone: Tone | undefined;
+  /** The hover text. `undefined` where there is none. */
   title: string | undefined;
 }
 

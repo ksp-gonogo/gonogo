@@ -23,6 +23,7 @@ export interface NoticeProps extends BlockProps {
    * nothing softer.
    */
   assertive?: boolean;
+  /** What the banner says. */
   children?: ReactNode;
 }
 
