@@ -111,8 +111,12 @@ export interface PlotFrame {
 /**
  * One contributed plot, stated as data.
  *
- * Return `null` from `compute` when the plot has nothing to show, for any
- * reason, including that it no longer applies, such as an ascent plot once the
+ * A plot is contributed with `registerContribution` on your Uplink's handle
+ * (see {@link ContributionDefinition}), whose `compute` returns an array of
+ * these, one per plot, or `null`.
+ *
+ * Return `null` from `compute` when there is nothing to show, for any reason,
+ * including that a plot no longer applies, such as an ascent plot once the
  * craft is in orbit. An entry whose `layers` is empty is not drawn either.
  * Leave a plot out entirely while its mod is not running with `requires` on the
  * contribution.

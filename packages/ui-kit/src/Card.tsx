@@ -32,8 +32,8 @@ export interface CardProps extends BlockProps {
    * resource's own colour, a category's hue. Not a status, which is `tone`;
    * a card can have both.
    *
-   * A CSS colour, not a resource name: resolve a name first, e.g.
-   * `identityColor={resourceColor(name)}`.
+   * A CSS colour, not a resource name: resolve a name first with
+   * {@link resourceColor}, as in `identityColor={resourceColor(name)}`.
    */
   identityColor?: string;
   /**

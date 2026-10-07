@@ -57,8 +57,29 @@ export interface UiKitHostPieces {
  * {@link useTelemetry}, {@link registerComponent}, {@link useCommand} and the
  * rest work as they do in the app. Without a host they throw.
  *
- * Returns a function that removes the host again. Most suites never call it:
- * the host keeps no state of its own, and the registries a test resets hold it.
+ * Call it once, in the test setup file. It returns a function that removes the
+ * host again, which most suites never need: the host keeps no state of its
+ * own, so there is nothing to clear between tests.
+ *
+ * @example The setup file a client's `vitest.config.ts` names in `setupFiles`
+ * ```ts
+ * import { installDomStubs, installRealTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import {
+ *   AugmentSlot,
+ *   clearAugments,
+ *   getAugmentsForSlot,
+ *   registerAugment,
+ * } from "@ksp-gonogo/ui-kit";
+ *
+ * installDomStubs();
+ * // Here and not in a beforeEach: registerComponent runs when a widget's module loads, which is before any hook.
+ * installRealTestHost({
+ *   AugmentSlot,
+ *   clearAugments,
+ *   getAugmentsForSlot,
+ *   registerAugment,
+ * });
+ * ```
  *
  * @category Test hosts
  */

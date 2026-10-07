@@ -16,6 +16,8 @@ import type { Value } from "./value";
  *
  * @example
  * ```ts
+ * import { unitGuard, type Value } from "@ksp-gonogo/sitrep-sdk";
+ *
  * const isOxygen = unitGuard("Oxygen:u");
  *
  * function freeOxygen(stored: Value, capacity: Value) {

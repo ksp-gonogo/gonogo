@@ -94,13 +94,14 @@ function isSameRegistration(
 /**
  * Adds a widget to the dashboard's catalogue. Call it once, at module load.
  *
- * Widget ids share one namespace across every package, and registering a second
- * widget under an id already taken throws. Prefix your ids with your Uplink's
- * name (`foo-status`, `foo-map`) to stay clear of the built-in widgets and of
- * other Uplinks. The id is registered exactly as you write it: passing `owner`
- * records which Uplink the widget belongs to and adds nothing to the id.
- * Registering the same widget twice, as happens when a module is loaded by two
- * bundles, is allowed.
+ * Widget ids share one namespace across every package, and registering a
+ * widget under an id already taken throws when its `name` differs from the one
+ * registered. Prefix your ids with your Uplink's name (`foo-status`,
+ * `foo-map`) to stay clear of the built-in widgets and of other Uplinks. The
+ * id is registered exactly as you write it: passing `owner` records which
+ * Uplink the widget belongs to and adds nothing to the id. Registering the
+ * same id with the same `name` again, as happens when a module is loaded by
+ * two bundles, is taken as the same widget and does nothing.
  *
  * @category Registering
  */

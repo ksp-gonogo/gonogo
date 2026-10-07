@@ -41,9 +41,25 @@ export interface LiveRegionProps {
  *
  * Polite unless `assertive`, which interrupts and is kept for ABORT-class states.
  *
- * @example
+ * @example Mounted with the control, empty until there is an outcome to say
  * ```tsx
- * <LiveRegion>{outcome}</LiveRegion>
+ * import { Button, LiveRegion } from "@ksp-gonogo/ui-kit";
+ * import { useState } from "react";
+ *
+ * function Deploy(props: { onDeploy: () => Promise<void> }) {
+ *   const [outcome, setOutcome] = useState("");
+ *   const deploy = () =>
+ *     props.onDeploy().then(
+ *       () => setOutcome("Deployed"),
+ *       () => setOutcome("Deploy refused"),
+ *     );
+ *   return (
+ *     <>
+ *       <Button onClick={() => void deploy()}>Deploy</Button>
+ *       <LiveRegion>{outcome}</LiveRegion>
+ *     </>
+ *   );
+ * }
  * ```
  *
  * @category Typography

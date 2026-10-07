@@ -174,8 +174,9 @@ const NOOP = () => {};
  * Render a widget the way the dashboard does: by its registered id, inside the
  * provider stack the dashboard puts around one ({@link WidgetHost}). A bare
  * `render` omits that stack, so for instance a `Panel` status badge would never
- * appear. The widget must already be registered, so import its module first;
- * an unknown id throws and lists the registered ones.
+ * appear. The widget must already be registered, which a widget's module does
+ * when it is loaded by calling the sdk's `registerComponent`, so import that
+ * module first; an unknown id throws and lists the registered ones.
  *
  * Returns the `RenderResult` of `@ksp-gonogo/sitrep-sdk/testing`'s `render`. A
  * widget with unusual needs drops to `render` and builds its own scaffolding.

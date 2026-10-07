@@ -11,7 +11,7 @@ export interface LogContext {
 }
 
 /**
- * A logger whose entries carry a tag, returned by `Logger.tag`. A tagged entry
+ * A logger whose entries carry a tag, returned by `tag` on a {@link Logger}. A tagged entry
  * reaches the console only while its tag is switched on.
  *
  * @category Logging and performance

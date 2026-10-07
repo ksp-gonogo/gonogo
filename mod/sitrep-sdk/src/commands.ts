@@ -67,10 +67,14 @@ export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
 /**
  * Every command id mapped to the type its `send` resolves with.
  *
- * A refusal is never a reply: when the game says no, `send` rejects with a
- * `CommandErrorCode` instead, so a reply always means the command ran. Most
- * commands reply with a bare `CommandResult`; those with a value to return
- * reply with `CommandResultOf<Payload>`, the value on `payload`.
+ * A refusal is never a reply. On the wire the game's "no" is a
+ * `command-response` whose result has `success: false`, and the client turns
+ * that into a rejection before it reaches you: `send` rejects with an error
+ * carrying the `CommandErrorCode`, which {@link classifyCommandRejection}
+ * reads. So a reply always means the command ran: write a `catch`, and never a
+ * check of `success`. Most commands reply with a bare `CommandResult`; those
+ * with a value to return reply with `CommandResultOf<Payload>`, the value on
+ * `payload`.
  *
  * @category Commands
  */

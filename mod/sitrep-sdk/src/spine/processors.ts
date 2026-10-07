@@ -284,17 +284,40 @@ export function defineProcessor<
  * Throws when `id` is not `"<uplink id>:<name>"`, the implementing Uplink's
  * id and then the processor's own name.
  *
+ * @example One Uplink implements a processor, and any other reads it
  * ```ts
- * // In a module both Uplinks import, beside its result type:
- * export const HAB_SUMMARY = defineProcessorContract<HabSummary>("habitat:summary");
+ * import {
+ *   defineProcessorContract,
+ *   defineUplinkClient,
+ *   useProcessor,
+ * } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * // In a module both Uplinks import: the result's type and the contract.
+ * interface HabSummary {
+ *   crewDays: number;
+ * }
+ * const HAB_SUMMARY = defineProcessorContract<HabSummary>("habitat:summary");
  *
  * // In the Uplink "habitat", which implements it. Its handle puts
- * // "habitat:" in front of the name, so the id is "habitat:summary". `deps`
- * // and `compute` are that processor's own, and `compute` returns a HabSummary:
- * HABITAT.registerProcessor({ id: "summary", deps, compute });
+ * // "habitat:" in front of the name, so the id is "habitat:summary".
+ * const HABITAT = defineUplinkClient({
+ *   id: "habitat",
+ *   version: "1.0.0",
+ *   name: "Habitat",
+ *   description: "Life support for a crewed vessel.",
+ * });
+ * HABITAT.registerProcessor({
+ *   id: "summary",
+ *   deps: [],
+ *   compute: (): HabSummary => ({ crewDays: 12 }),
+ * });
  *
- * // In any other Uplink:
- * const summary = useProcessor(HAB_SUMMARY); // HabSummary | undefined
+ * // In any other Uplink's component. A contract does not say whether the
+ * // processor's inputs were readings, so the result is typed as the bare
+ * // HabSummary or a Reading of one, and is undefined while nothing implements it.
+ * function useHabSummary() {
+ *   return useProcessor(HAB_SUMMARY);
+ * }
  * ```
  *
  * @category Processors

@@ -496,7 +496,8 @@ export interface ContributionRegistry {}
 export type ContributionSlotId = keyof ContributionRegistry;
 
 /**
- * One badge on a widget's panel header: the entry of the `badges` segment.
+ * One badge on a widget's panel header: the entry of the `badges` segment of
+ * {@link ComponentSlotRegistry}, which is the slot `<widget id>.badges`.
  *
  * @category Extensions
  */
@@ -522,7 +523,8 @@ export interface BadgeEntry {
 
 /**
  * One labelled bar in a widget's meter list: the entry of the `meters`
- * segment. The widget draws it with ui-kit's `Meter`.
+ * segment of {@link ComponentSlotRegistry}, which is the slot
+ * `<widget id>.meters`. The widget draws it with ui-kit's `Meter`.
  *
  * @category Extensions
  */

@@ -118,34 +118,40 @@ function splitAcross(total: number, sizes: readonly number[]): number[] {
  * @example
  * ```tsx
  * import { value } from "@ksp-gonogo/sitrep-sdk";
- * import { UnitInput } from "@ksp-gonogo/ui-kit";
+ * import { Stack, UnitInput } from "@ksp-gonogo/ui-kit";
+ * import { useState } from "react";
  *
- * const [prograde, setPrograde] = useState(value("m/s", 0));
- *
- * <UnitInput
- *   label="Prograde"
- *   unit="m/s"
- *   value={prograde}
- *   onChange={setPrograde}
- * />
- *
- * // A duration typed as hours, minutes and seconds, emitted in seconds.
- * <UnitInput
- *   label="Burn time"
- *   unit="s"
- *   rungs={["h", "min", "s"]}
- *   value={burn}
- *   onChange={setBurn}
- * />
- *
- * // A node time on the game calendar, nudged with a rate wheel.
- * <UnitInput
- *   label="Node UT"
- *   unit="ut"
- *   value={nodeUt}
- *   rate={{ step: 60 }}
- *   onChange={setNodeUt}
- * />
+ * function NodeEditor() {
+ *   const [prograde, setPrograde] = useState(value("m/s", 0));
+ *   const [burn, setBurn] = useState(value("s", 0));
+ *   const [nodeUt, setNodeUt] = useState(value("ut", 0));
+ *   return (
+ *     <Stack>
+ *       <UnitInput
+ *         label="Prograde"
+ *         unit="m/s"
+ *         value={prograde}
+ *         onChange={setPrograde}
+ *       />
+ *       <UnitInput
+ *         // A duration typed as hours, minutes and seconds, emitted in seconds.
+ *         label="Burn time"
+ *         unit="s"
+ *         rungs={["h", "min", "s"]}
+ *         value={burn}
+ *         onChange={setBurn}
+ *       />
+ *       <UnitInput
+ *         // A node time on the game calendar, nudged with a rate wheel.
+ *         label="Node UT"
+ *         unit="ut"
+ *         value={nodeUt}
+ *         rate={{ step: 60 }}
+ *         onChange={setNodeUt}
+ *       />
+ *     </Stack>
+ *   );
+ * }
  * ```
  *
  * @category Form

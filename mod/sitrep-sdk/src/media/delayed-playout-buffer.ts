@@ -48,12 +48,17 @@ export interface StampedFrame<Frame = unknown> {
  * @category Delayed video
  */
 export interface DelayClockLike {
-  /** The certainty horizon: a frame stamped at-or-before this UT is
-   *  releasable. THE one delay authority: never delay-subtracted here. */
+  /**
+   * The latest UT, in seconds, that may be shown: a frame stamped at or before
+   * it can be released. The signal delay is already applied, so do not
+   * subtract it again.
+   */
   confirmedEdgeUt(): number;
-  /** Best-effort per-frame notification (real-time driven). Not required
-   *  for correctness: tests and other deterministic callers can drive
-   *  releases explicitly via `pump()` instead. */
+  /**
+   * Calls `cb` with the view UT on each frame, and returns a function that
+   * unsubscribes. Optional to use: a test can release frames itself with
+   * `pump()` instead.
+   */
   onFrame(cb: (viewUt: number) => void): () => void;
 }
 

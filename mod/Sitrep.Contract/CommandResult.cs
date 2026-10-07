@@ -297,8 +297,8 @@ public static class CommandErrorCode
 /// matches on message text.
 ///
 /// <para>This is the result of a command that returns no value. A command that
-/// does returns <see cref="CommandResult{T}"/>, which adds a
-/// <c>Payload</c>.</para>
+/// does returns the same fields with its value beside them, as
+/// <c>payload</c> on the wire.</para>
 /// </summary>
 /// <category>Stream messages</category>
 [SitrepContract]
@@ -309,7 +309,12 @@ public static class CommandErrorCode
 #endif
 public class CommandResult
 {
-    /// <summary>Whether the command ran. False means the game refused it.</summary>
+    /// <summary>
+    /// Whether the command ran. False means the game refused it. Code that sends
+    /// through the SDK's <c>useCommand</c> never sees false: the client turns a
+    /// refusal into a rejected <c>send</c>, so it writes a <c>catch</c> rather
+    /// than checking this.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Success { get; set; } = true;
 

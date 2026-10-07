@@ -7,6 +7,12 @@ import type { Value } from "./unit-system/value";
  *
  * @example
  * ```ts
+ * import {
+ *   combineReadings,
+ *   useTelemetry,
+ *   vectorMagnitude,
+ * } from "@ksp-gonogo/sitrep-sdk";
+ *
  * const target = useTelemetry("vessel.target");
  * const range = combineReadings([target.relativePosition], (position) =>
  *   vectorMagnitude(position),

@@ -22,12 +22,10 @@
  * browser-facing wrapper that supplies the real objects.
  *
  * Browser support: `MediaStreamTrackProcessor`/`Generator` are Chromium-only
- * as of writing. `isFrameDelaySupported()` feature-detects; the caller
- * (the camera feed) falls back to live passthrough: never a black
- * feed: when unsupported, or when `raw` has no video track. This is a
- * documented, flagged trade-off (not a silent drop): Safari/Firefox get the
- * feed live, undelayed, until/unless a canvas-based fallback (mechanism B
- * in the spec) is built.
+ * as of writing. `isFrameDelaySupported()` feature-detects, and the caller
+ * (the camera feed) tries the worker backends in `worker/` when this one is
+ * unsupported. When none can delay the feed it shows no video: a feed that
+ * cannot be delayed is never shown live.
  *
  * Buffer cap: `DelayedPlayoutBuffer`'s existing `maxBufferedBytes` cap
  * doubles here as a FRAME-COUNT cap (every queued item counts `bytes: 1`,
@@ -336,10 +334,12 @@ export interface VideoTrackSource {
 }
 
 /**
- * A delayed copy of the first video track of `raw`. Returns `null`, and never
+ * A delayed copy of the first video track of `raw`, the `MediaStream` as it
+ * arrived, such as the one a WebRTC connection hands over. Returns `null`, and never
  * throws, when that cannot be built here: the browser lacks the APIs, `raw`
- * has no video track, or building the track pipeline threw. Show the live
- * stream, or nothing, in that case, rather than a black feed.
+ * has no video track, or building the track pipeline threw. Show no video in
+ * that case, and say the delay is unavailable. Never show `raw`: it is the
+ * live picture, ahead of everything else the operator is looking at.
  *
  * @category Delayed video
  */

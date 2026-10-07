@@ -1319,13 +1319,18 @@ export interface MissingUnlock
 * matches on message text.
 *
 * This is the result of a command that returns no value. A command that does
-* returns `CommandResult`, which adds a `Payload`.
+* returns the same fields with its value beside them, as `payload` on the
+* wire.
 *
 * @category Stream messages
 */
 export interface CommandResult
 {
-	/** Whether the command ran. False means the game refused it. */
+	/**
+	* Whether the command ran. False means the game refused it. Code that sends
+	* through the SDK's `useCommand` never sees false: the client turns a refusal
+	* into a rejected `send`, so it writes a `catch` rather than checking this.
+	*/
 	success: boolean;
 	/**
 	* Why it was refused, null on success. On the wire this is the root's id, so

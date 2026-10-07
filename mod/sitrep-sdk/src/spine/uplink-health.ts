@@ -158,7 +158,7 @@ export interface UplinkHealthEntry {
   modSettings: boolean;
   /** How the Uplink says it is doing. */
   health: {
-    /** Its state. */
+    /** Its state, as a name. The `system.uplinks` Topic carries it as a number, which is decoded here. */
     state: UplinkHealthStateName;
     /** What the Uplink says about its state, to show as it is. */
     detail: string | null;

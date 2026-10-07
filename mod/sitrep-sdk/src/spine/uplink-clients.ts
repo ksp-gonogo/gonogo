@@ -60,7 +60,7 @@ import { registerReckoner } from "./reckoners";
  * @category Registering
  */
 export interface UplinkClientHandle {
-  /** The Uplink's id. It must match the id its mod declares with `[SitrepUplink]` and the id in its `gonogo-uplink.json`. */
+  /** The Uplink's id. It must match the id its mod declares with `[SitrepUplink]` and the `id` in the `uplink.json` you write, from which the generated `gonogo-uplink.json` takes it. */
   id: string;
   /** The Uplink's version, the same for its mod and its client. */
   version: string;

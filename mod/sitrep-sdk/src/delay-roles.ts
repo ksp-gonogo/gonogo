@@ -60,7 +60,9 @@ export type TrueNowTopic = GeneratedTrueNowTopic;
 /**
  * A Gonogo Topic held at the home command centre, such as the career's
  * finances and the space centre's records. Each command centre reads it at its
- * own delay from home rather than at the active craft's delay.
+ * own delay from home rather than at the active craft's delay. The mod applies
+ * that delay before it sends the Topic, so the client reads it in the
+ * `"true-now"` {@link DelayLane} and subtracts nothing more.
  *
  * @category Delay and vantage
  */

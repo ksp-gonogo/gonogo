@@ -52,9 +52,9 @@ interface MeterCommonProps
    */
   tone?: Tone;
   /**
-   * Arbitrary CSS colour for the fill (e.g. `resourceColor(name)`), for meters
-   * whose fill carries an identity rather than a status. Wins over `tone` for
-   * the fill colour only.
+   * Arbitrary CSS colour for the fill, such as a resource's own from
+   * {@link resourceColor}, for meters whose fill carries an identity rather than
+   * a status. Wins over `tone` for the fill colour only.
    */
   fillColor?: string;
   /**
@@ -143,11 +143,11 @@ export interface MeterProps<UnitSymbol extends string = string>
  * fraction of the capacity drawn. A band in a different unit from the value or
  * capacity it belongs to draws nothing.
  *
- * In each example `value` is from `@ksp-gonogo/sitrep-sdk`, and `Meter` and
- * `MeterStack` from `@ksp-gonogo/ui-kit`.
- *
  * @example A fraction on its own, which must be a `ratio`
  * ```tsx
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ * import { Meter } from "@ksp-gonogo/ui-kit";
+ *
  * <Meter label="Shielding" value={value("ratio", 0.72)} tone="go" />
  * ```
  *

@@ -639,6 +639,8 @@ export type UnmodelledReading<Payload> = TopicCurrency<
  *
  * @example
  * ```ts
+ * import { observedValue, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ *
  * const flight = observedValue(useTelemetry("vessel.flight"));
  * const descending = flight !== undefined && flight.verticalSpeed.lessThan(0);
  * ```

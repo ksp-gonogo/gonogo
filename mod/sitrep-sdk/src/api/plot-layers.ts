@@ -94,7 +94,7 @@ export interface PlotSeriesLayer extends PlotLayerBase {
  */
 export interface PlotRuleLayer extends PlotLayerBase {
   kind: "rule";
-  /** `"y"` draws a horizontal rule at `value`; `"x"` a vertical one. */
+  /** The axis `value` is on: `"y"` draws a horizontal rule at that y, `"x"` a vertical rule at that x. */
   along: "x" | "y";
   value: number;
   label?: string;
@@ -182,7 +182,7 @@ export interface PlotMarkerLayer extends PlotLayerBase {
 export interface PlotAnnotationLayer extends PlotLayerBase {
   kind: "annotation";
   at: PlotPoint;
-  /** Which way the bar runs. Defaults to `"x"` (a horizontal tick). */
+  /** The axis the bar runs along, which is not how a rule's `along` reads: `"x"`, the default, is a horizontal tick, and `"y"` a vertical one. */
   across?: "x" | "y";
   label?: string;
 }

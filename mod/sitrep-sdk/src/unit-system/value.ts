@@ -287,6 +287,8 @@ type CombinableWith<Unit extends string> = [Unit] extends [UnknownUnit]
  *
  * @example
  * ```ts
+ * import { observedValue, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ *
  * const flight = observedValue(useTelemetry("vessel.flight"));
  * const descending = flight !== undefined && flight.verticalSpeed.isNegative();
  * const altitudeKm = flight?.altitudeAsl.in("km");

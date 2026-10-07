@@ -518,6 +518,9 @@ export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
  *
  * @example A field passed on whole
  * ```tsx
+ * import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ * import { Unit } from "@ksp-gonogo/ui-kit";
+ *
  * function VerticalSpeed() {
  *   const flight = useTelemetry("vessel.flight");
  *   return <Unit value={flight.verticalSpeed} />;
@@ -526,6 +529,9 @@ export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
  *
  * @example Checking the state, for something only a current value may decide
  * ```tsx
+ * import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ * import { Text } from "@ksp-gonogo/ui-kit";
+ *
  * function DescentFlag() {
  *   const flight = useTelemetry("vessel.flight");
  *   if (flight.state !== "observed") return null;
@@ -567,15 +573,19 @@ export function useViewUt(): Value<"ut"> | undefined {
  * arguments and resolves with its reply. See {@link UseCommandResult}.
  *
  * `send` resolves only when the command has run. When the game refuses it,
- * `send` rejects with a `CommandErrorCode` you can branch on; when no reply
+ * `send` rejects with an error carrying a `CommandErrorCode`, which
+ * {@link classifyCommandRejection} reads for you to branch on; when no reply
  * arrives in time, it rejects too. Both are also recorded on the handle, in
  * `refusals` and `losses`, so a `send` you do not await loses nothing.
  *
  * Every command except those about the game clock travels at the signal
  * delay of the command centre it is sent from, so a sent command has not yet
  * happened. Pass the handle to `<CommandDelay>` to show its delay and what
- * became of it. In a development build, sending a command with no delay rail
- * mounted throws.
+ * became of it.
+ *
+ * The dashboard mounts what tracks commands in flight, and so do the test
+ * render helpers. A component rendered outside both, as in a test that renders
+ * it bare, throws on `send` in a development build.
  *
  * Every command id is listed in {@link COMMAND_IDS}.
  *
@@ -584,6 +594,9 @@ export function useViewUt(): Value<"ut"> | undefined {
  *
  * @example
  * ```tsx
+ * import { useCommand } from "@ksp-gonogo/sitrep-sdk";
+ * import { Button } from "@ksp-gonogo/ui-kit";
+ *
  * function SasOn() {
  *   const setSas = useCommand("vessel.control.setSas");
  *   return <Button onClick={() => void setSas.send({ enabled: true })}>SAS on</Button>;
@@ -637,7 +650,14 @@ export function useCommand(
  * passed on through the main screen, and the Uplink's code is the same either
  * way.
  *
+ * The returned function stays the same while the route does, so it is safe in
+ * a dependency array. It rejects, rather than hanging, when there is no route.
+ *
+ * @example Calling a method of the object the Uplink stored with `registerUplinkHandle("my-uplink", ...)`
  * ```tsx
+ * import { useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
+ * import { useEffect, useState } from "react";
+ *
  * function CameraCount(props: { vesselId: string }) {
  *   const relay = useUplinkRelay("my-uplink");
  *   const [cameras, setCameras] = useState<unknown[]>([]);
@@ -658,9 +678,6 @@ export function useCommand(
  *   return <span>{cameras.length} cameras</span>;
  * }
  * ```
- *
- * The returned function stays the same while the route does, so it is safe in
- * a dependency array. It rejects, rather than hanging, when there is no route.
  *
  * @category Host and runtime
  */
@@ -1054,8 +1071,8 @@ export function AugmentSlot<Slot extends string>(props: {
  * Creates a performance budget: a count of events, such as samples, over a
  * rolling window, that logs a warning when it goes over `threshold`. Call
  * `record()` on the handle for each event. In the running app that warning is
- * all it does. In a test run that has called `PerfBudget.installTestGate()`,
- * a test that pushes a budget over its threshold fails.
+ * all it does. In a test run that has called `installTestGate()` on
+ * {@link PerfBudget}, a test that pushes a budget over its threshold fails.
  *
  * Give anything that takes in samples or sends requests at a high rate one
  * budget, with a `name` that says what is counted and a `threshold` three to
