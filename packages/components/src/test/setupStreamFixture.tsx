@@ -45,6 +45,8 @@ export interface StreamFixtureOptions {
   suspendFrames?: boolean;
   /** Derived channels not to register, by topic: an address on one then resolves to a topic nothing publishes. */
   withoutDerivedChannels?: readonly string[];
+  /** Have the stub answer for topic ownership: a subscribe the test never acks reads as a topic nothing publishes. */
+  decidesTopicOwnership?: boolean;
 }
 
 export interface StreamFixture {
@@ -71,7 +73,9 @@ export function setupStreamFixture(
   setProcessorEvaluationRecorder(() => PROCESSOR_EVAL_BUDGET.record());
   setProcessorNotificationRecorder(() => PROCESSOR_NOTIFY_BUDGET.record());
   const wall = createFakeWallClock();
-  const transport = new StubTransport();
+  const transport = new StubTransport({
+    decidesTopicOwnership: opts.decidesTopicOwnership,
+  });
   const client = new TelemetryClient(transport);
   const clock = new ViewClock({
     nowWall: wall.now,

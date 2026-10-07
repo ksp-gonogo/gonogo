@@ -11,6 +11,7 @@ import {
   Button,
   Cluster,
   getSizeBucket,
+  HeldFigure,
   IconButton,
   Inline,
   Section,
@@ -32,6 +33,8 @@ export interface ActionGroupViewProps
   value: unknown;
   /** The state was withheld because its reading is held, not because it never came. */
   valueHeld: boolean;
+  /** The value is the last one received, its updates running late; it is drawn marked held. */
+  valueLate: boolean;
   /** A current payload named this group and could not say whether it is engaged. */
   stateUnreadable: boolean;
 }
@@ -44,6 +47,7 @@ export function ActionGroupView({
   group,
   value,
   valueHeld,
+  valueLate,
   stateUnreadable,
 }: ActionGroupViewProps) {
   const currentLabel = config?.label ?? group?.name ?? "";
@@ -205,7 +209,13 @@ export function ActionGroupView({
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >
-                  {stateLabel}
+                  {valueLate ? (
+                    <HeldFigure caption="Last reading, updates running late">
+                      {stateLabel}
+                    </HeldFigure>
+                  ) : (
+                    stateLabel
+                  )}
                 </ToggleButton>
               </Tooltip>
             </Inline>

@@ -34,7 +34,7 @@ function ActionGroupComponent(
   if (group && group.index === undefined && group.name === "Stage") {
     return <StageActionGroup {...props} group={group} />;
   }
-  const { value, valueHeld, stateUnreadable } = groupStateOf(
+  const { value, valueHeld, valueLate, stateUnreadable } = groupStateOf(
     group,
     controlReading,
   );
@@ -44,6 +44,7 @@ function ActionGroupComponent(
       group={group}
       value={value}
       valueHeld={valueHeld}
+      valueLate={valueLate}
       stateUnreadable={stateUnreadable}
     />
   );
@@ -62,6 +63,7 @@ function StageActionGroup({
       group={group}
       value={stillTrue(structure, undefined)?.currentStage}
       valueHeld={false}
+      valueLate={false}
       stateUnreadable={false}
     />
   );

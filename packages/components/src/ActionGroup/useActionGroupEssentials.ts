@@ -31,6 +31,7 @@ export function useActionGroupEssentials(
           ...state,
           value: stillTrue(structure, undefined)?.currentStage,
           valueHeld: false,
+          valueLate: false,
           stateUnreadable: false,
         }
       : state),
