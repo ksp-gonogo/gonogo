@@ -3,13 +3,15 @@
 Two computers are involved in a gonogo session:
 
 - The **KSP computer** runs Kerbal Space Program, with the gonogo mods installed
-- The **main screen computer** runs gonogo and talks to the KSP computer over your network
+- The **main screen computer** runs gonogo, and the browser you open the main screen in talks to the KSP computer over your network
 
-These have to be separate computers. Running both on one machine isn't supported yet, because KSP pauses when it isn't the focused window, so the dashboard would stop getting data the moment you switched to it.
+It is the browser, not the container, that opens that connection: it dials the Gonogo mod on port 8090 of the KSP computer directly (and kerbcast on 8088 for cameras). The container serves the app and the relay and never contacts the game. For a firewall this means the rule belongs on the KSP computer, which has to accept incoming connections on those ports from the main screen computer; nothing about the container's published ports matters for it.
 
-Station screens are different again. A station is any browser that joins the session: a tablet, a phone, a second laptop. A station never talks to KSP, and never needs to know your KSP computer's address or ports. It needs two things: the share code from the main screen, and an internet connection (see [How a station finds the main screen](#how-a-station-finds-the-main-screen), the two ends meet on a broker that lives on the internet).
+Running both on one machine works but is awkward, because KSP pauses when it isn't the focused window, so the dashboard stops getting data the moment you switch to it. Two computers avoids that.
 
-Most of this page assumes you run gonogo the way the [README](../README.md#how-to-run-it) describes: the `ghcr.io/ksp-gonogo/gonogo:latest` container, which serves the app on `:8080` and the relay on `:3002`. Where a setting differs between that and a source checkout running `pnpm dev`, both are given.
+Station screens are different again. A station is any browser that joins the session: a tablet, a phone, a second laptop. A station never talks to KSP, and never needs to know your KSP computer's address or ports. It gets everything through the main screen's browser tab, so a station works only while that tab stays open and awake: close it, or let the computer sleep, and every station loses its data until it is back. On its first load a station also shows the **Load Uplink "..."?** prompts, answered separately from the main screen's. It needs two things: the share code from the main screen, and an internet connection (see [How a station finds the main screen](#how-a-station-finds-the-main-screen), the two ends meet on a broker that lives on the internet).
+
+Most of this page assumes you run gonogo the way the [README](../README.md#how-to-run-it) describes: the `ghcr.io/ksp-gonogo/gonogo` container (`:latest` after the first release, `:rc` before it), which serves the app on `:8080` and the relay on `:3002`. Where a setting differs between that and a source checkout running `pnpm dev`, both are given.
 
 ## Pointing the main screen at KSP
 
@@ -19,21 +21,21 @@ The main screen needs the KSP computer's address on your network. Find it on the
 - **macOS**: System Settings, Network, Wi-Fi, Details, TCP/IP
 - **Linux / SteamOS / Steam Deck**: run `ip addr show`, look for an `inet` address on your active connection
 
-It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in **Settings → Connection → Telemetry stream** (the gear in the bottom-right **+** menu), or seed it once with `KSP_HOST=<address>` on the container. [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp) covers both, and the build-time `VITE_SITREP_HOST` floor that only applies when you build from a checkout.
+It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in **Settings → Connection → Telemetry stream** (the gear in the bottom-right **+** menu), or seed it once with `KSP_HOST=<address>` on the container. On a first run, the setup that opens by itself has a **Connect to KSP** step with the same row: that is where a player whose game is on a second computer types the KSP computer's address. [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp) covers both, and the build-time `VITE_SITREP_HOST` floor that only applies when you build from a checkout.
 
-If the main screen can't reach the KSP computer on the same WiFi, a firewall on the KSP computer is the usual cause; Windows and macOS often block local network traffic by default. This is a main-screen-to-KSP problem only. Stations never contact the KSP computer, so no firewall or port on that machine can stop a station connecting.
+If the main screen can't reach the KSP computer on the same WiFi, a firewall on the KSP computer is the usual cause (it must allow incoming connections on port 8090, and 8088 for cameras); Windows and macOS often block local network traffic by default. The check is made by the browser on the main screen computer, so that computer's own network is the other half. This is a main-screen-to-KSP problem only. Stations never contact the KSP computer, so no firewall or port on that machine can stop a station connecting.
 
 ## Adding a station screen
 
-1. On the main screen, hover the **+** button (bottom-right) and press **Add station** (the broadcast symbol). The modal shows a four-character **share code** (e.g. `AB3K`), the same code as a link and a QR code, and the TURN indicator described [below](#checking-the-relay-works)
+1. On the main screen, hover the **+** button (bottom-right), or Tab to it, to reveal the menu (it stays hidden otherwise; pressing **+** itself opens the Add component list instead), and press **Add station** (the broadcast symbol). The modal shows a six-character **share code**, the same code as a link and a QR code, and the TURN indicator described [below](#checking-the-relay-works)
 2. On the other device, open the station page. Any of these work:
-   - Scan the QR code, or open a link from the modal. Both carry the code as `?host=<code>`, so the station connects on landing with nothing to type. The modal lists the address of your own main screen (for a device that can reach it) and, when the main screen is on localhost or a local address, the public build beside it (for a device on another network). The QR encodes the one a phone can reach: your own address on a local network, the public build when the main screen is on localhost
-   - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app, available once a release has been published
+   - Scan the QR code, or open a link from the modal. Both carry the code as `?host=<code>`, so the station connects on landing with nothing to type. The modal lists the address of your own main screen, labelled **This app** (for a device on the same network, or another window on the main screen's computer), and, when the main screen is on localhost or a local address, the **Public build** beside it (for a device on another network, needs internet). The QR encodes the one a phone can reach: your own address on a local network, the public build when the main screen is on localhost
+   - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app. It is a 404 until the first release is published, so before that use your own address
    - On the same WiFi, `http://<main-screen-computer-ip>:8080/station`, served by your own container. Running from a checkout it is `http://<main-screen-computer-ip>:5173/station`
-3. If you didn't arrive by QR or link, the station shows a **Connect to Mission Control** screen. Type the four-character code and press **Connect**
-4. A new main screen or station starts with no widgets and says so: press the **+** (Add component) at the bottom right to add one
+3. If you didn't arrive by QR or link, the station shows a **Connect to Mission Control** screen. Type the six-character code and press **Connect**
+4. A new main screen or station starts empty: it says "No widgets on this dashboard", and the **+** (Add component) at the bottom right is how you add one
 
-The station remembers the code, so it reconnects by itself on the next page load. To change or clear it, open the **Connection** FAB on a connected station: it shows the current code and status, takes a different code, and has a **Disconnect** that returns the device to the connect screen.
+The station remembers the code, so it reconnects by itself on the next page load, provided the main screen's tab is open. To change or clear it, open the **Connection** FAB on a connected station: it shows the current code and status, takes a different code, and has a **Disconnect** that returns the device to the connect screen.
 
 Regenerating the code (the **New share code** button in Add Station) drops every connected station: they all need the new code.
 
@@ -60,7 +62,7 @@ Work down this list. The first three cover nearly every same-WiFi failure, and n
    - *"Can't reach the peer broker: this device needs internet access."* This device has no route to the broker. Nothing is wrong with the code or the main screen. Check that the device is genuinely online (load any website), that it isn't on a guest network or captive portal, and that outbound HTTPS isn't blocked
    - *"Broker doesn't know that code."* The broker answered and nobody is holding that identity. Check the code against the Add Station modal, check the main screen tab is still open and awake, and check the code wasn't regenerated
    - *"Reconnecting"* or *"Connection lost"* after a working session. The host went away (refresh, sleep, restart). A station retries on its own for five minutes; a main screen that restarted uncleanly may spend a few seconds reclaiming its identity, which the Add Station modal says explicitly when it happens
-2. **Check the code is the one on screen now.** It is four characters, case-insensitive, and it changes only when someone presses **New share code**
+2. **Check the code is the one on screen now.** It is six characters, case-insensitive, and it changes only when someone presses **New share code** (a main screen that already had an older four-character code keeps it until then)
 3. **Check WiFi client isolation.** Guest and public networks often block device-to-device traffic. That does not stop the introduction at the broker, so the station gets past "connecting" and then fails to open a channel. Put both devices on the normal network, or fall back to the cross-internet path below, which relays through TURN instead of going device-to-device
 4. **Look at the logs.** The connect screen has a **Download logs** button, and every screen keeps the same ring buffer. The peer lines (`[PeerClient] ...`) name the identity being targeted and the reason for each retry
 5. **Only then look at TURN.** TURN is used only when the two browsers can't reach each other directly, which on the same WiFi they can. A red TURN indicator does not explain a same-WiFi station that won't connect
@@ -69,7 +71,7 @@ Work down this list. The first three cover nearly every same-WiFi failure, and n
 
 A station on the same WiFi as the main screen connects directly, peer-to-peer, and never needs TURN or any port-forwarding. Everything below only applies when a station is on a different network, a phone on cellular, someone joining from their own home.
 
-Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. Add Station lists the public build (`ksp-gonogo.github.io/app/station`) beside your own address whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
+Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. Add Station lists the public build (`ksp-gonogo.github.io/app/station`, live from the first release) beside your own address whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
 
 For a cross-internet station to reach the main screen, two things must be in place:
 
