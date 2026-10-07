@@ -158,7 +158,7 @@ async function readOrbitAp(page: Page): Promise<string> {
 }
 
 test.describe("widget DOM mirror", () => {
-  test("CurrentOrbit renders on host and station; Ap value on host", async ({
+  test("CurrentOrbit renders on host and station with the same Ap value", async ({
     browser,
   }) => {
     const mainContext = await browser.newContext();
@@ -180,19 +180,14 @@ test.describe("widget DOM mirror", () => {
       timeout: 30_000,
     });
 
-    // Ap is only checked on the host. It is solved from the stream, and only
-    // the MAIN screen mounts `SitrepTelemetryProvider` today: station stream
-    // forwarding over PeerJS is a documented pending gap (see that provider's own doc comment). The station side of this
-    // test still proves real value: the dashboard mounts, the widget
-    // renders, and the peer handshake completes, a station-side Ap
-    // assertion would fail on the app's current telemetry-forwarding gap,
-    // not on anything this harness controls.
     const mainAp = await readOrbitAp(main);
 
     // The canonical snapshot value: sma=773862.315964763 / ecc=0.0956792487342901
     // / Kerbin radius=600000 -> apoapsisAlt ~247904.9 m -> formatDistance
     // "247.9 km" (see sitrep-stream-server.mjs).
     expect(mainAp).toBe("247.9 km");
+    // The station subscribes what its own widget reads and the host relays it, so the solved apsis lands there as well.
+    expect(await readOrbitAp(station)).toBe("247.9 km");
 
     await main.close();
     await station.close();
