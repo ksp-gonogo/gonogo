@@ -260,8 +260,9 @@ export class ViewClock {
    *   re-anchors on each delivery and can step back
    * - `viewUt` itself while scrubbed, since history is observed rather than
    *   modelled
-   * - `viewUt` itself when the light-time is under {@link VISIBLE_GAP_SECONDS},
-   *   where the two clocks read the same, and before anything has been received
+   * - `viewUt` itself when the light-time is under one second
+   *   (`VISIBLE_GAP_SECONDS`), where the two clocks read the same on screen,
+   *   and before anything has been received
    */
   scetUt(viewUt: number): number {
     if (!Number.isFinite(viewUt)) return viewUt;

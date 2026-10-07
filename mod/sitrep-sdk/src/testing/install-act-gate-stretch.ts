@@ -1,6 +1,8 @@
 /**
- * The environment variable the act-warning check sets to the number of frames
- * to hold each test's tree mounted.
+ * The environment variable that turns {@link installActGateStretch} on. Set it
+ * to the number of animation frames to hold each test's tree mounted, a
+ * positive whole number such as `3`. There is no default: while it is unset,
+ * nothing is held.
  *
  * @category Test hosts
  */
@@ -12,9 +14,11 @@ const FRAME_MS = 1000 / 60;
 
 /**
  * Keeps each test's component tree mounted for a set number of animation
- * frames after the test body returns, when {@link ACT_GATE_STRETCH_ENV} is set,
- * so an update scheduled shortly after the body is caught on every machine,
- * fast or slow. Does nothing while the variable is unset.
+ * frames after the test body returns, so an update scheduled shortly after the
+ * body is caught on every machine, fast or slow. You turn it on for a run by
+ * setting {@link ACT_GATE_STRETCH_ENV} to the number of frames; it does nothing
+ * while the variable is unset, and throws when it is set to anything but a
+ * positive whole number.
  *
  * Call it last in a vitest setup file, after Testing Library is imported, and
  * await it.

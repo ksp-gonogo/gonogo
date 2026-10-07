@@ -64,13 +64,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  *
  * @example
  * ```tsx
- * <Cluster justify="end">
- *   <Button variant="ghost" onClick={onCancel}>Cancel</Button>
- *   <Button variant="primary" onClick={onSave}>
- *     <CheckIcon />
- *     Save
- *   </Button>
- * </Cluster>
+ * import { Button, CheckIcon, Cluster } from "@ksp-gonogo/ui-kit";
+ *
+ * function SaveBar(props: { onCancel: () => void; onSave: () => void }) {
+ *   return (
+ *     <Cluster justify="end">
+ *       <Button variant="ghost" onClick={props.onCancel}>Cancel</Button>
+ *       <Button variant="primary" onClick={props.onSave}>
+ *         <CheckIcon />
+ *         Save
+ *       </Button>
+ *     </Cluster>
+ *   );
+ * }
  * ```
  *
  * @category Button
@@ -284,9 +290,15 @@ export const TextButton = styled.button`
  *
  * @example
  * ```tsx
- * <IconButton aria-label="Close" onClick={onClose}>
- *   <CloseIcon />
- * </IconButton>
+ * import { CloseIcon, IconButton } from "@ksp-gonogo/ui-kit";
+ *
+ * function CloseButton(props: { onClose: () => void }) {
+ *   return (
+ *     <IconButton aria-label="Close" onClick={props.onClose}>
+ *       <CloseIcon />
+ *     </IconButton>
+ *   );
+ * }
  * ```
  *
  * @category Button

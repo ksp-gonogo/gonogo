@@ -36,7 +36,11 @@ export interface FitLabelButtonProps
  *
  * @example
  * ```tsx
- * <FitLabelButton label="Settings" icon={<SettingsIcon />} onClick={onOpen} />
+ * import { FitLabelButton, SettingsIcon } from "@ksp-gonogo/ui-kit";
+ *
+ * function SettingsButton(props: { onOpen: () => void }) {
+ *   return <FitLabelButton label="Settings" icon={<SettingsIcon />} onClick={props.onOpen} />;
+ * }
  * ```
  *
  * @category Button

@@ -9,7 +9,9 @@ import { Tooltip } from "./Tooltip";
 /**
  * An orbit path that may not be drawn, and the reason: no horizon was stated
  * for it, the instant on screen is past its horizon, its shape was not stated,
- * the frame asked for cannot be built, or it could not be sampled.
+ * the frame asked for cannot be built, or it could not be sampled. It is the
+ * `withheld` member of `OrbitTrajectory`, which `useOrbitTrajectory` from
+ * `@ksp-gonogo/sitrep-sdk/frames` returns.
  *
  * @category EmptyState
  */

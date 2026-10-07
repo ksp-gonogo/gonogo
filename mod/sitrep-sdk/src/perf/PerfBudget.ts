@@ -16,7 +16,7 @@ declare global {
 }
 
 /**
- * Options for a new `PerfBudget`.
+ * What {@link createPerfBudget} and `new PerfBudget` take.
  *
  * @category Logging and performance
  */
@@ -43,12 +43,19 @@ interface Event {
 /**
  * A soft performance budget: counts events (or bytes, or writes) over a
  * rolling window and logs a warning when the total goes over `threshold`. At
- * most one warning per window, and nothing else changes: it never throws or
- * slows anything down. `rate()` returns the current total, for a test that
- * asserts on steady-state cost.
+ * most one warning per window, and in the running app nothing else changes: it
+ * never throws or slows anything down. In a test run that has called
+ * `PerfBudget.installTestGate()`, a test that pushes a budget over its
+ * threshold fails. `rate()` returns the current total, for a test that asserts
+ * on steady-state cost.
  *
- * Construct one at module scope beside the code it measures and call
- * `record()` on each event. Recording costs one `Date.now()` and an array push.
+ * An Uplink calls {@link createPerfBudget}, which makes one of these in the
+ * app's own copy of the SDK and returns a handle to it.
+ *
+ * Make one at module scope beside the code it measures and call `record()` on
+ * each event. Recording costs one `Date.now()` and an array push. The three
+ * static members are called on the class: `PerfBudget.getAll()`,
+ * `PerfBudget.clearRegistry()` and `PerfBudget.installTestGate()`.
  *
  * @category Logging and performance
  */

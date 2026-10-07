@@ -19,6 +19,7 @@ export interface LockSummary {
   reason: string;
   /** "45 science to research", or "Needs Building level 2". */
   hint?: string;
+  /** Every lock the summary was made from. Each is `{ capability, missing, detail? }`: the capability that is locked, the unlocks it still needs, and a sentence for when it names none. */
   locks: readonly CapabilityLock[];
 }
 

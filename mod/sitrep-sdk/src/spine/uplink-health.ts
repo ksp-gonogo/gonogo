@@ -171,7 +171,10 @@ export interface UplinkHealthEntry {
 }
 
 /**
- * The payload of the `system.uplinkHealth` Topic: every Uplink's health.
+ * Every Uplink's health: the value of `system.uplinkHealth`. That is a derived
+ * channel, one of {@link DERIVED_CHANNEL_IDS}, which the app works out from
+ * the `system.uplinks` Topic, so it is not in the list of Topics. Read it with
+ * `useStream("system.uplinkHealth")`.
  *
  * @category Host and runtime
  */

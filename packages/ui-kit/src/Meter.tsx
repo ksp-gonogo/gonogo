@@ -143,6 +143,9 @@ export interface MeterProps<UnitSymbol extends string = string>
  * fraction of the capacity drawn. A band in a different unit from the value or
  * capacity it belongs to draws nothing.
  *
+ * In each example `value` is from `@ksp-gonogo/sitrep-sdk`, and `Meter` and
+ * `MeterStack` from `@ksp-gonogo/ui-kit`.
+ *
  * @example A fraction on its own, which must be a `ratio`
  * ```tsx
  * <Meter label="Shielding" value={value("ratio", 0.72)} tone="go" />
@@ -155,14 +158,20 @@ export interface MeterProps<UnitSymbol extends string = string>
  *
  * @example A bar alone with its statement under it, as work advances toward a total that can move
  * ```tsx
- * <Meter hideLabel statement label="Nodes researched" value={done} capacity={queued} />
+ * <Meter
+ *   hideLabel
+ *   statement
+ *   label="Nodes researched"
+ *   value={value("count", 3)}
+ *   capacity={value("count", 8)}
+ * />
  * ```
  *
  * @example Row meters in a stack, sharing columns so every bar lines up
  * ```tsx
  * <MeterStack>
- *   <Meter label="LF" layout="row" value={liquidFuel} capacity={liquidFuelMax} />
- *   <Meter label="Ox" layout="row" value={oxidizer} capacity={oxidizerMax} />
+ *   <Meter label="LF" layout="row" value={value("units", 320)} capacity={value("units", 400)} />
+ *   <Meter label="Ox" layout="row" value={value("units", 391)} capacity={value("units", 489)} />
  * </MeterStack>
  * ```
  *

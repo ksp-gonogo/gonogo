@@ -36,9 +36,9 @@ import { join, relative, sep } from "node:path";
  */
 
 /**
- * The symbols worth looking for, curated rather than derived from the unit
- * catalogue, whose tokens include ones never typed beside a number and short
- * ones that occur constantly in prose.
+ * The unit symbols the check looks for by default. It is a chosen list and
+ * not every unit: a symbol nobody types beside a number, or one short enough
+ * to turn up in ordinary prose, is left out.
  *
  * Pass your own through `symbols` when your Uplink registers a unit of its own.
  *

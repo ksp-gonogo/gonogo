@@ -1195,8 +1195,8 @@ export type { PanelInactiveReason } from "./InactiveNotice";
 export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   /**
    * The panel's heading. With it set, the panel draws its own header and pads
-   * its body. Named `panelTitle` so it does not clash with the HTML `title`
-   * tooltip attribute.
+   * its body. It is not `title`: that is the HTML tooltip attribute, which
+   * goes through to the panel's element like any other.
    */
   panelTitle?: ReactNode;
   /**
@@ -1217,8 +1217,9 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    *
    * A widget that is wholly a drawing (a map, a globe) passes one
    * `<Section fill>` holding it. Not to be confused with the boolean
-   * `panelSections`, which is about the augment slot. A bare boolean is
-   * rejected so `sections={false}` cannot render an empty panel.
+   * `panelSections`, which is about the augment slot. A bare boolean is a
+   * type error: for a section that is sometimes absent, pass `null` in its
+   * place, as in `cond ? <Section /> : null`.
    */
   sections?: Exclude<ReactNode, boolean> | readonly ReactNode[];
   /**
@@ -2086,8 +2087,8 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *
  * ## Parts
  *
- * `Panel` renders its parts and draws no markup of its own, so a widget can
- * compose a variant by hand from `Panel.Container` (the bordered frame),
+ * `Panel` is built entirely from the parts below and draws nothing they do
+ * not, so a widget can compose a variant by hand from `Panel.Container` (the bordered frame),
  * `Panel.Context` (links the body's scroller to the glow), `Panel.Delay` (the
  * delay rail), `Panel.Header`, `Panel.Title`, `Panel.Toolbar`, `Panel.Glow`,
  * `Panel.Body` (the scrolling, inset content box), `Panel.Section`,

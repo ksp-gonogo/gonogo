@@ -538,7 +538,7 @@ export function loadedRegimeDecline(
 
 /**
  * Returns a {@link ReckoningDecline} with reason `"under-physics"`, naming
- * `input` and with `note` for the player: the craft is being fully simulated,
+ * `input` and with `note` for the operator: the craft is being fully simulated,
  * so its motion is not carried forward. Its current orbit can still be solved
  * at its own epoch.
  *

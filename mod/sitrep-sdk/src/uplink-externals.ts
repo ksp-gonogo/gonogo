@@ -77,7 +77,11 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
 ];
 
 /**
- * Everything an Uplink's bundler marks `external`: both lists together.
+ * Everything an Uplink's bundler marks `external`: both lists together, and
+ * the one to use. `uplink-tools bundle` passes it for you. A build of your own
+ * imports it from this package's `uplink-externals` subpath and passes it as
+ * the bundler's list of externals: with esbuild,
+ * `external: [...UPLINK_BUNDLE_EXTERNALS]`.
  *
  * @category Bundling
  */

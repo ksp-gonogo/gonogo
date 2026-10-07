@@ -12,11 +12,10 @@ namespace Sitrep.Contract
     /// that is not one of these states no per-hop strength, and a centre is then
     /// shown only the strength the active vessel's own radio last reported.</para>
     ///
-    /// <para><b>Called on the main thread, evaluated on any thread.</b>
-    /// <see cref="LinkStrength"/> reads live game state. The
-    /// <see cref="IContactLinkStrength"/> it returns holds what it needs as
-    /// captured data and is evaluated off the main thread, as is
-    /// <see cref="Combine"/>, which must be pure.</para>
+    /// <para><b>Called on the main thread, evaluated on any thread.</b> <see cref="LinkStrength"/>
+    /// reads live game state. The <see cref="IContactLinkStrength"/> it
+    /// returns holds what it needs as captured data and is evaluated off the
+    /// main thread, as is <see cref="Combine"/>, which must be pure.</para>
     /// </summary>
     /// <category>Comms models</category>
     public interface ICommsPathStrength

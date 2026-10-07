@@ -4,7 +4,9 @@ import type { UiKitTheme } from "./theme";
  * `default-dark`: the built-in mission-control theme, and the one the app
  * mounts. Every colour and size is a CSS variable string (such as
  * `var(--color-text-primary)`), so responsive overrides such as larger type on
- * a touch screen still apply when a component reads the theme.
+ * a touch screen still apply when a component reads the theme. The variables
+ * are defined by `@ksp-gonogo/ui-kit/tokens.css`, which has to be imported
+ * once for any of them to have a value.
  *
  * @category Theme
  */

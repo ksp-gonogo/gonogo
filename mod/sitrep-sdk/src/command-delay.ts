@@ -50,7 +50,7 @@ export interface PendingEntry {
   clientRequestId: string;
   /** The command id. */
   command: string;
-  /** The dispatch's description for the player. */
+  /** The dispatch's description for the operator. */
   label: string;
   /** The part or route the command is addressed to. */
   topic: string;

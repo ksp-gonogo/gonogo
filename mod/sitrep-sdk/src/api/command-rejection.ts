@@ -161,7 +161,7 @@ function firstStringArg(args: unknown): string | undefined {
 }
 
 /**
- * Returns a name for a refused command, to start the sentence the player
+ * Returns a name for a refused command, to start the sentence the operator
  * reads: `"Hire Valentina Kerman"`, `"Upgrade Launch Pad"`.
  *
  * The dispatch's own `label` is used when it has one. Otherwise the name is

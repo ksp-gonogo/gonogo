@@ -113,9 +113,11 @@ function notify(key: string): void {
 }
 
 /**
- * The value of a setting: the one saved in this browser, or else the value
- * seeded at startup, or `undefined` when there is neither. A default is the
- * caller's to supply.
+ * The value of one of the app's own shared settings, such as the host the game
+ * runs on: the one saved in this browser, or else the value seeded at startup,
+ * or `undefined` when there is neither. A default is the caller's to supply.
+ * Values are strings, and it can be called outside React. For a setting of
+ * your own, drawn in a component, use {@link useSetting}.
  *
  * @category Settings
  */
@@ -126,8 +128,8 @@ export function getSetting(key: string): string | undefined {
 }
 
 /**
- * Saves a value for a setting in this browser. It takes precedence over a
- * seeded value from then on.
+ * Saves a value for one of the app's own shared settings in this browser. It
+ * takes precedence over a seeded value from then on. See {@link getSetting}.
  *
  * @category Settings
  */

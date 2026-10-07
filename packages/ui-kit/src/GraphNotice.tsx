@@ -111,7 +111,7 @@ const PLACEMENT_STYLES = {
  * "unknown body"). `pointer-events: none`, so it never intercepts the graph's
  * clicks. `role="status"` by default; override via `role`.
  *
- * @example Over a graph in a {@link Fill}
+ * @example Over a graph in a `Fill`
  * ```tsx
  * <Fill>
  *   <LineGraph series={series} ariaLabel="Altitude trend" />

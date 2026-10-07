@@ -497,10 +497,12 @@ export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
  * Subscribes to a Topic and returns its latest {@link TopicReading}: the
  * payload together with how current it is.
  *
- * The payload is only there when `state` is `"observed"`, or `"held"` for a
- * held value, so check `state` before reading it. Every payload field is also a
- * {@link Reading} of its own, so a single field can be passed on without
- * checking the whole reading first.
+ * The payload as a whole, `reading.value`, is only there when `state` is
+ * `"observed"`, or `"held"` for a held value, so check `state` before reading
+ * it. Every payload field is also on the reading itself as a {@link Reading}
+ * of its own, `flight.altitudeAsl` beside `flight.value.altitudeAsl`. That one
+ * can be passed to a kit component such as `Unit` without a check: it carries
+ * its own state, and the component shows how current it is.
  *
  * For a Topic whose contract declares a forward model, such as
  * `vessel.flight`, it returns a {@link ReckonableReading}.
@@ -635,9 +637,26 @@ export function useCommand(
  * passed on through the main screen, and the Uplink's code is the same either
  * way.
  *
- * ```ts
- * const relay = useUplinkRelay("my-uplink");
- * const cameras = await relay("listCameras", { vesselId });
+ * ```tsx
+ * function CameraCount(props: { vesselId: string }) {
+ *   const relay = useUplinkRelay("my-uplink");
+ *   const [cameras, setCameras] = useState<unknown[]>([]);
+ *   useEffect(() => {
+ *     let stale = false;
+ *     relay("listCameras", { vesselId: props.vesselId }).then(
+ *       (list) => {
+ *         if (!stale) setCameras(list as unknown[]);
+ *       },
+ *       () => {
+ *         if (!stale) setCameras([]);
+ *       },
+ *     );
+ *     return () => {
+ *       stale = true;
+ *     };
+ *   }, [relay, props.vesselId]);
+ *   return <span>{cameras.length} cameras</span>;
+ * }
  * ```
  *
  * The returned function stays the same while the route does, so it is safe in
@@ -659,12 +678,19 @@ export function useUplinkRelay(uplinkId: string) {
  *
  * ```ts
  * const ice = useHostIceServers();
- * const pc = new RTCPeerConnection({ iceServers: ice.current() });
- * useEffect(() => ice.onChange((servers) => reconfigure(pc, servers)), [ice, pc]);
+ * useEffect(() => {
+ *   const pc = new RTCPeerConnection({ iceServers: ice.current() });
+ *   const stop = ice.onChange((iceServers) => pc.setConfiguration({ iceServers }));
+ *   return () => {
+ *     stop();
+ *     pc.close();
+ *   };
+ * }, [ice]);
  * ```
  *
- * Credentials rotate, so a long-lived connection watches `onChange` rather than
- * reading `current()` once.
+ * Open the connection in an effect, as above, so it is made once and not on
+ * every render. Credentials rotate, so a long-lived connection watches
+ * `onChange` rather than reading `current()` once.
  *
  * @category Host and runtime
  */
@@ -731,8 +757,8 @@ export function modSettingDep<
 
 /**
  * Returns a processor's value for the current frame, and re-renders when it
- * changes. Pass the handle `registerProcessor` returned on your Uplink's
- * client, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
+ * changes. Pass the handle that {@link UplinkClientHandle.registerProcessor}
+ * returned, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
  * result is typed from the handle. The processor runs once per frame however
  * many widgets read it. Returns `undefined` with no telemetry stream mounted,
  * or before the first frame.
@@ -768,16 +794,21 @@ export function useViewClock(): unknown {
 }
 
 /**
- * Connects a widget's declared actions to handlers, so an input the player
+ * Connects a widget's declared actions to handlers, so an input the operator
  * has bound, such as a key or a joystick button, fires them. Keys are the
- * action ids from the widget's `actions`. What a handler returns is sent back
- * to the device, so a display on the hardware can follow the widget.
+ * action ids from {@link ComponentDefinition.actions}. What a handler returns
+ * is sent back to the device that fired it, a control panel with a display of
+ * its own for instance, so the display can follow the widget. Return whatever
+ * that display is set up to show, or nothing.
  *
  * Pass a new handler object on every render if you like: the latest handlers
  * are always the ones called, and nothing is registered again.
  *
  * @example
  * ```tsx
+ * import { type ActionDefinition, useActionInput } from "@ksp-gonogo/sitrep-sdk";
+ * import { Text } from "@ksp-gonogo/ui-kit";
+ *
  * const actions = [
  *   { id: "toggle", label: "Toggle", accepts: ["button"] },
  * ] as const satisfies readonly ActionDefinition[];
@@ -869,8 +900,11 @@ export function useUtNow(): number | undefined {
 
 /**
  * Returns the store that holds the received history of every Topic, or
- * `undefined` when no telemetry stream is mounted. The return is typed
- * `unknown`; narrow it to the members you use.
+ * `undefined` when no telemetry stream is mounted. It is here for ui-kit's own
+ * components, and the store's type is not published, which is why the return
+ * is `unknown`. An Uplink reads a Topic with {@link useTelemetry} or
+ * {@link useStream}, and tests for a mounted stream by whether this is
+ * `undefined`.
  *
  * @category Reading telemetry
  */
@@ -1017,9 +1051,32 @@ export function AugmentSlot<Slot extends string>(props: {
 // have been indirection with one implementation on the other end.
 
 /**
- * Creates a performance budget: a rate, such as samples per second, that warns
- * when it goes over `threshold` and fails a test that pushes it over. Every
- * data source should record into one.
+ * Creates a performance budget: a count of events, such as samples, over a
+ * rolling window, that logs a warning when it goes over `threshold`. Call
+ * `record()` on the handle for each event. In the running app that warning is
+ * all it does. In a test run that has called `PerfBudget.installTestGate()`,
+ * a test that pushes a budget over its threshold fails.
+ *
+ * Give anything that takes in samples or sends requests at a high rate one
+ * budget, with a `name` that says what is counted and a `threshold` three to
+ * five times the rate you expect in normal use, so a runaway loop or a
+ * duplicated subscription is caught and an ordinary burst is not.
+ *
+ * @example
+ * ```ts
+ * import { createPerfBudget } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * // Made once, when the client loads; `windowMs` defaults to one second.
+ * const SAMPLES_IN = createPerfBudget({
+ *   name: "MySource samples in/sec",
+ *   threshold: 1500,
+ *   unit: "samples",
+ * });
+ *
+ * export function onSample(): void {
+ *   SAMPLES_IN.record();
+ * }
+ * ```
  *
  * @category Logging and performance
  */

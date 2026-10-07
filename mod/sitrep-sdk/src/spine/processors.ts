@@ -17,7 +17,7 @@ import type { TopicReading } from "./client-reading";
 // ---------------------------------------------------------------------------
 
 /**
- * A handle to a processor, as `registerProcessor` or
+ * A handle to a processor, as {@link UplinkClientHandle.registerProcessor} or
  * {@link defineProcessorContract} returns it. Pass it to {@link useProcessor},
  * or list it in a contribution's `deps`. Its type carries the processor's
  * result type.
@@ -272,20 +272,25 @@ export function defineProcessor<
 /**
  * Returns a handle to a processor that another Uplink implements, so any
  * Uplink can read it with {@link useProcessor} without depending on the one
- * that implements it. The handle and its result type are published in the
- * SDK; the implementing Uplink registers a processor under the same id and
- * types its `compute` with the same result type.
+ * that implements it. Export the handle and its result type from a module
+ * both Uplinks import: a small shared package of your own for two of your
+ * Uplinks, as the SDK does for the ones it ships. The implementing Uplink
+ * registers a processor under the same id and types its `compute` with the
+ * same result type.
  *
  * When nothing registers the processor, as when its mod is not installed,
  * `useProcessor` returns `undefined`.
  *
- * Throws when `id` is not `"<owner>:<name>"`.
+ * Throws when `id` is not `"<uplink id>:<name>"`, the implementing Uplink's
+ * id and then the processor's own name.
  *
  * ```ts
- * // In the SDK, beside its result type:
+ * // In a module both Uplinks import, beside its result type:
  * export const HAB_SUMMARY = defineProcessorContract<HabSummary>("habitat:summary");
  *
- * // In the Uplink "habitat", which implements it:
+ * // In the Uplink "habitat", which implements it. Its handle puts
+ * // "habitat:" in front of the name, so the id is "habitat:summary". `deps`
+ * // and `compute` are that processor's own, and `compute` returns a HabSummary:
  * HABITAT.registerProcessor({ id: "summary", deps, compute });
  *
  * // In any other Uplink:

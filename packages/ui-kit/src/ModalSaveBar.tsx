@@ -93,15 +93,27 @@ export interface ModalSaveBarOptions<Draft> {
  *
  * @example
  * ```tsx
+ * import { useMemo, useState } from "react";
+ * import type { ConfigComponentProps } from "@ksp-gonogo/sitrep-sdk";
+ * import { ConfigForm, Switch, useModalSaveBar } from "@ksp-gonogo/ui-kit";
+ *
+ * interface NavballConfig {
+ *   controlMode?: boolean;
+ * }
+ *
  * function NavballConfigForm({ config, onSave }: ConfigComponentProps<NavballConfig>) {
- *   const [controlMode, setControlMode] = useState(config?.controlMode === true);
+ *   const [controlMode, setControlMode] = useState(config.controlMode === true);
  *   const candidate = useMemo(() => ({ controlMode }), [controlMode]);
  *   useModalSaveBar({
  *     onSave: () => onSave(candidate),
  *     value: candidate,
- *     saved: config ?? {},
+ *     saved: config,
  *   });
- *   return <ConfigForm>...</ConfigForm>;
+ *   return (
+ *     <ConfigForm>
+ *       <Switch label="Control mode" checked={controlMode} onChange={setControlMode} />
+ *     </ConfigForm>
+ *   );
  * }
  * ```
  *

@@ -132,7 +132,7 @@ export function controlFrameLabel(
  * Returns the text to show in place of a quantity that has no meaning in the
  * current frame, such as `"No apoapsis in this frame"`, or `undefined` when
  * the quantity is valid and should be shown. Showing a reason, rather than
- * leaving the readout blank, tells the player it comes from the frame they
+ * leaving the readout blank, tells the operator it comes from the frame they
  * chose and not from a lost signal.
  *
  * @param validity - From {@link lengthsAreLengths} or {@link apsidesExist}.

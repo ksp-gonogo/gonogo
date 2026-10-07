@@ -20,7 +20,7 @@ export function isLocked(value: unknown): value is LockedValue {
  * Returns a field's value, or `null` while it is a {@link LockedValue}. Use it
  * in calculations, where a locked field and a missing one both mean there is
  * nothing to work with. To show the field, use {@link isLocked} instead, so
- * the player sees why it is empty.
+ * the operator sees why it is empty.
  *
  * @category Readings
  */

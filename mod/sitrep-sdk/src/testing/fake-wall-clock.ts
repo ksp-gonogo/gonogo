@@ -4,13 +4,15 @@
  * @category Test doubles
  */
 export interface FakeWallClock {
+  /** The clock's reading, in seconds. */
   now: () => number;
+  /** Moves the clock forward by `seconds`. Zero or a negative number is ignored: the clock never goes back. */
   advanceBy: (seconds: number) => void;
 }
 
 /**
- * A {@link FakeWallClock} starting at `start` milliseconds. Pass its `now` as a
- * clock's `nowWall`.
+ * A {@link FakeWallClock} that reads `start` seconds until it is advanced.
+ * Pass its `now` wherever a clock takes `nowWall`, which is in seconds too.
  *
  * @category Test doubles
  */

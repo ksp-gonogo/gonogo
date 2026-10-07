@@ -289,7 +289,9 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
  *
  * Topics an Uplink adds at load are not in it; {@link getAllKnownTopicIds}
  * and {@link isTopicId} include them. Topics whose id is built at runtime,
- * such as one per celestial body, are in neither.
+ * such as one per celestial body or an Uplink's own `settings.<uplink id>`,
+ * are in neither. Nor are the derived channels in {@link DERIVED_CHANNEL_IDS},
+ * such as `system.uplinkHealth`, which the app works out from Topics.
  *
  * @category Reading telemetry
  */
@@ -344,8 +346,8 @@ for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
  * the Uplink's client package loads, beside its augmentation of
  * {@link TopicPayloadMap}. Registering an id twice does nothing.
  *
- * Named for the commonest case, a Topic whose payload is a bare boolean, but
- * any payload shape may be registered. A Topic with numeric fields also needs
+ * Despite its name it takes a Topic of any payload shape, not only one whose
+ * payload is a bare boolean or number. A Topic with numeric fields also needs
  * {@link registerTopicUnits}.
  *
  * @category Reading telemetry

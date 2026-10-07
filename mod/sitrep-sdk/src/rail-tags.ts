@@ -193,7 +193,7 @@ export function railTagsForCommand(command: string): RailTags {
 }
 
 /**
- * Returns the tags for a control the player holds, such as pitch or
+ * Returns the tags for a control the operator holds, such as pitch or
  * throttle, sent as a stream of settings and echoed back by the craft.
  * `writeCommand` is the command that sets it.
  *

@@ -1,6 +1,8 @@
 /**
  * A `Storage` held in memory, for a test that needs a `localStorage` of its own.
- * `length` is always 0 and `key()` always returns `null`.
+ * It reads, writes, removes and clears by key, and that is all: it cannot be
+ * walked. `length` is always 0 and `key()` always returns `null` whatever it
+ * holds, so do not use it for code that lists what storage contains.
  *
  * @category Test doubles
  */

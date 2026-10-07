@@ -36,8 +36,12 @@ function slot(): Slot {
  * The broker can arrive before the link to the main screen does, and `relay`
  * rejects until it is up, so a caller retries rather than giving up.
  *
- *   registerStationBroker("my-uplink", ({ relay, iceServers }) =>
- *     mySource.routeThrough(relay, iceServers));
+ * ```ts
+ * // The object on the right is the Uplink's own long-lived one, such as its
+ * // media connection, with a method of its own that takes the two.
+ * registerStationBroker("my-uplink", ({ relay, iceServers }) =>
+ *   myMediaConnection.routeThrough(relay, iceServers));
+ * ```
  *
  * Last write wins: registering the same id again replaces the previous attach,
  * and a station already up is handed the new one.

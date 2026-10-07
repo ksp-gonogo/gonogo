@@ -5,7 +5,7 @@ import type { EventOccurrence } from "../event-timeline";
  * one Topic. The Uplink that owns the Topic registers it with
  * {@link registerRevealedEventSource}.
  *
- * A source returns what the player may see at the view UT it is given, not
+ * A source returns what the operator may see at the view UT it is given, not
  * everything that has happened, so the signal delay applies without the source
  * tracking it.
  *
@@ -17,7 +17,7 @@ export interface RevealedEventSourceDefinition {
   /** The Topic whose occurrences this source produces. */
   topic: string;
   /**
-   * Returns the occurrences the player may see at `viewUt`, oldest first, for
+   * Returns the occurrences the operator may see at `viewUt`, oldest first, for
    * example from {@link EventTimeline.revealed}. Alarms call it often, so
    * return what the source already holds rather than computing anything.
    *

@@ -88,20 +88,19 @@ export interface UplinkManifest {
   contractMajor: number;
   contractMinor: number;
   /**
-   * Where the bundle sits RELATIVE to this file, which is the only thing either
-   * writer can honestly say about it: the loader fetches the sidecar by stripping
-   * the last segment off the bundle's own URL, so the two are always siblings and
-   * an absolute URL here would be a claim about a host neither command knows.
+   * Where the bundle sits relative to this file. The two are always in the
+   * same directory: the app finds this file by replacing the last segment of
+   * the bundle's URL, so this is a file name and never an absolute URL.
    */
   bundleUrl: string;
   /**
-   * `sha256-<hex>` of the bundle the author distributes.
+   * `sha256-<hex>` of the bundle you distribute. The app hashes the bytes it
+   * fetched and refuses to load the Uplink on any mismatch.
    *
-   * EMPTY when no bundle was named, which is every manifest committed to this
-   * repo, and that is fail-closed rather than a hole: the loader hashes the bytes
-   * it fetched and refuses on any mismatch, and no digest is ever the empty
-   * string, so an unstamped manifest quarantines its Uplink every time. Both
-   * writers say so on stderr when they write one.
+   * Empty when the manifest was written with no bundle named, as a working
+   * copy is. An empty value never matches, so the app refuses that Uplink: a
+   * manifest you distribute must be written from the bundle it ships with
+   * (`uplink-tools docs --bundle <file>` or `uplink-tools bundle`).
    */
   integrity: string;
   sdkVersion: string;
@@ -134,12 +133,9 @@ export interface UplinkManifestInputs {
    */
   registered?: RegisteredIdentity;
   /**
-   * The compat numbers this Uplink was built against.
-   *
-   * An input rather than a read of this package's own constants, because the two
-   * callers answer it differently on purpose: `docs` reads them out of the very
-   * bundle whose registrations it just enumerated, so the manifest claims
-   * something true about the code it describes.
+   * The compat numbers this Uplink was built against. Pass the ones read from
+   * the built bundle where there is one, so the manifest describes the code it
+   * ships with.
    */
   compat: {
     apiVersion: string;

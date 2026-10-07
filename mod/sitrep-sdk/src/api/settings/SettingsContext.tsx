@@ -48,8 +48,12 @@ export function useSettingsService(): SettingsService {
 /**
  * The value of one client setting and a function that sets it, re-rendering
  * when it changes. A new value is saved and every other reader of the setting
- * sees it. For client settings only: a setting the mod publishes is read from
- * its Topic.
+ * sees it. This is the one to use in a component, for a setting your Uplink
+ * registers with `registerSetting`. For client settings only: a setting the
+ * mod publishes is read from its Topic.
+ *
+ * Needs a `SettingsProvider` above it and throws without one. The dashboard
+ * mounts one; a test mounts its own.
  *
  * @category Settings
  */

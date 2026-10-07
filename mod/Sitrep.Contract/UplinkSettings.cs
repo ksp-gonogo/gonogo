@@ -27,7 +27,7 @@ namespace Sitrep.Contract
         /// <summary>True or false.</summary>
         Bool = 1,
 
-        /// <summary>A number, written with a full stop for the decimal point whatever the player's locale.</summary>
+        /// <summary>A number, written with a full stop for the decimal point whatever the locale of the machine the game runs on.</summary>
         Number = 2,
     }
 

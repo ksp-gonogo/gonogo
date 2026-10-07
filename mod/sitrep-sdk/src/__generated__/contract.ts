@@ -6770,9 +6770,9 @@ export interface ArchiveEntry
 * It is never delayed by light time: a setting configures the system the
 * operator is sitting at, not a craft.
 *
-* This is where a client learns whether a save landed. A save command can time
-* out and still land, so read the outcome here, never from the command's
-* reply.
+* This is where a client learns whether a save landed. The `settings.save`
+* command can time out and still land, so read the outcome here, never from
+* the command's reply.
 *
 * @category Mod settings
 */
@@ -8399,8 +8399,8 @@ export enum SettingKind {
 	/** True or false. */
 	Bool = 1,
 	/**
-	* A number, written with a full stop for the decimal point whatever the
-	* player's locale.
+	* A number, written with a full stop for the decimal point whatever the locale
+	* of the machine the game runs on.
 	*/
 	Number = 2
 }

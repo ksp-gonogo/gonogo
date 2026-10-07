@@ -69,7 +69,7 @@ export const RADIO_DECODER_CONFIG = {
  */
 export const RADIO_CHUNK_FRAMES = 960;
 
-/** Why the radio cannot run here. `insecure-context` the player can fix
+/** Why the radio cannot run here. `insecure-context` the operator can fix
  *  by opening the page over https or on localhost; `no-codec` they cannot.
  *
  * @category Radio

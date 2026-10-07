@@ -27,9 +27,10 @@ import { registerReckoner } from "./reckoners";
  * {@link defineUplinkClient}. Declare one per client, in one module, and import
  * it wherever the client registers something.
  *
- * Every `register...` method prefixes the id it is given with the Uplink's
- * own, `my-uplink:<id>`, so two Uplinks can use the same local ids without
- * colliding.
+ * Every `register...` method on the handle prefixes the id it is given with
+ * the Uplink's own, `my-uplink:<id>`, so two Uplinks can use the same local ids
+ * without colliding. `registerComponent` and `registerAugment` are not methods
+ * of the handle: they take the handle as `owner` and use the id as written.
  *
  * @example
  * ```tsx

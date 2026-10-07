@@ -30,9 +30,11 @@ function withTheme(Extra?: Wrapper): Wrapper {
 }
 
 /**
- * Testing Library's `render` with the kit's theme always mounted, so a
- * `@ksp-gonogo/ui-kit` component renders without a provider of your own. A
- * `wrapper` you pass is mounted inside the theme.
+ * The render function of `@testing-library/react` with the kit's theme always
+ * mounted, so a `@ksp-gonogo/ui-kit` component renders without a provider of
+ * your own. A `wrapper` you pass is mounted inside the theme. It needs
+ * `@testing-library/react` and `styled-components` installed, and a DOM test
+ * environment such as jsdom.
  *
  * @category Rendering
  */
@@ -44,8 +46,8 @@ export function render(
 }
 
 /**
- * Testing Library's `renderHook` with the kit's theme always mounted. A
- * `wrapper` you pass is mounted inside the theme.
+ * The hook-rendering function of `@testing-library/react` with the kit's
+ * theme always mounted. A `wrapper` you pass is mounted inside the theme.
  *
  * @category Rendering
  */

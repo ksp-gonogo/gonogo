@@ -29,17 +29,16 @@ export type MarkKind = "current" | ReckoningKind;
 export const HOLLOW_MARK_STROKE = "max(0.075em, 1.25px)";
 
 /**
- * The spec for each kind. `held` is a square in the warning hue, a stop sign
- * for data that has stopped; `modelled` is a
- * triangle, point up, in the modelled hue and about a pixel larger, so the two
- * weigh alike at small sizes.
+ * The spec for each kind. `held` is a square in the warning hue; `modelled`
+ * is a triangle, point up, in the modelled hue and about a pixel larger, so
+ * the two weigh alike at small sizes.
  *
  * Each also has a hollow form, drawn where the figure is `elsewhere`: of
  * something other than what its label names. Hollow says that and nothing
  * else; the shape and the hue go on saying how current the figure is. A hollow
- * mark is larger than its filled twin (`hollowDomSize`), because at the filled
- * size the hole closes up. `current` has only the hollow form, a ring: a
- * current figure of the thing its label names carries no mark at all.
+ * mark is drawn larger than its filled twin, at `hollowDomSize`. `current` has
+ * only the hollow form, a ring: a current figure of the thing its label names
+ * carries no mark at all.
  *
  * @category Unit
  */

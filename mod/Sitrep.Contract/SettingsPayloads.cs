@@ -17,9 +17,9 @@ namespace Sitrep.Contract;
 /// <para>It is never delayed by light time: a setting configures the system
 /// the operator is sitting at, not a craft.</para>
 ///
-/// <para>This is where a client learns whether a save landed. A save command
-/// can time out and still land, so read the outcome here, never from the
-/// command's reply.</para>
+/// <para>This is where a client learns whether a save landed. The
+/// <c>settings.save</c> command can time out and still land, so read the
+/// outcome here, never from the command's reply.</para>
 /// </summary>
 /// <category>Mod settings</category>
 [SitrepContract]

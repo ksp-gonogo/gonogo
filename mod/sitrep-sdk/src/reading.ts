@@ -254,7 +254,7 @@ export interface ReckoningDecline {
     | "insufficient-history";
   /** The input responsible, spelled as the contract declares it, such as `"@vessel.orbit"`. Absent where the reason has none. */
   readonly input?: string;
-  /** One sentence to show the player. Its wording can change, so never branch on it. */
+  /** One sentence to show the operator. Its wording can change, so never branch on it. */
   readonly note?: string;
 }
 
@@ -1230,9 +1230,9 @@ export function hasAnswered(reading: {
  * For a held value it is when that value was observed. A reading with a
  * forward model returns its last real observation, never the model's instant.
  *
- * An age is `viewUt.minus(observedAt(reading))`, a `Value<"s">`. Clamp it at
- * zero: samples can arrive out of order, so one can sit slightly ahead of the
- * view time.
+ * An age is `viewUt.minus(observedAt(reading))`, a `Value<"s">`, with
+ * `viewUt` from {@link useViewUt}. Clamp it at zero: samples can arrive out of
+ * order, so one can sit slightly ahead of the view time.
  *
  * @category Reading telemetry
  */
@@ -1433,6 +1433,8 @@ export interface ReckonerFrame<Payload = unknown> {
  * received at, with the observation still live, so there is no gap to carry
  * the value across. Under signal delay it is `false`: a live observation is
  * still the signal delay behind the craft.
+ *
+ * @param frame - The {@link ReckonerFrame} a reckoner's `reckon` is given.
  *
  * @category Reading telemetry
  */

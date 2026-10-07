@@ -158,21 +158,27 @@ function arcPath(
  *
  * @example A heading compass
  * ```tsx
- * import { value } from "@ksp-gonogo/sitrep-sdk";
+ * import { useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
+ * import { Dial } from "@ksp-gonogo/ui-kit";
  *
- * <Dial
- *   value={headingReading}
- *   min={value("°", 0)}
- *   max={value("°", 360)}
- *   wrap
- *   ticks={[
- *     { value: value("°", 0), label: "N" },
- *     { value: value("°", 90), label: "E" },
- *     { value: value("°", 180), label: "S" },
- *     { value: value("°", 270), label: "W" },
- *   ]}
- *   ariaLabel="Heading"
- * />
+ * function HeadingCompass() {
+ *   const attitude = useTelemetry("vessel.attitude");
+ *   return (
+ *     <Dial
+ *       value={attitude.heading}
+ *       min={value("°", 0)}
+ *       max={value("°", 360)}
+ *       wrap
+ *       ticks={[
+ *         { value: value("°", 0), label: "N" },
+ *         { value: value("°", 90), label: "E" },
+ *         { value: value("°", 180), label: "S" },
+ *         { value: value("°", 270), label: "W" },
+ *       ]}
+ *       ariaLabel="Heading"
+ *     />
+ *   );
+ * }
  * ```
  *
  * @category Gauge

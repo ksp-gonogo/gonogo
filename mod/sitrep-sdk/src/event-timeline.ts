@@ -68,7 +68,7 @@ const DEFAULT_RETENTION_SECONDS = 300;
 
 /**
  * The occurrences received on one event Topic, sorted by UT, with
- * {@link EventTimeline.revealed} returning those the player may see yet under
+ * {@link EventTimeline.revealed} returning those the operator may see yet under
  * the signal delay. Occurrences may be appended out of order.
  *
  * Appending an occurrence from a newer generation (`epoch`) clears everything
@@ -119,7 +119,7 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   }
 
   /**
-   * Returns the occurrences the player may see at `now`, oldest first: those
+   * Returns the occurrences the operator may see at `now`, oldest first: those
    * whose UT plus the delay has passed, and which happened while the link was
    * up.
    */

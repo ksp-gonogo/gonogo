@@ -43,8 +43,8 @@ import type { Screen } from "./screen";
  */
 
 /**
- * What a row's value is. The same three words as `AugmentSettingField["type"]`,
- * and they must stay the same three: see the module header.
+ * What a row's value is: the same three words {@link AugmentSettingField}
+ * uses for its `type`.
  *
  * @category Settings
  */
@@ -87,7 +87,7 @@ export interface SettingDefinitionBase {
    * mod's settings into parts a reader can find their way through.
    */
   group?: string;
-  /** Which screens this setting is relevant on. Omit for both. */
+  /** Which screens this setting is relevant on. Omit for every screen. */
   screens?: readonly Screen[];
   /**
    * The Uplink this row belongs to, by its id. The row is then drawn on that
@@ -200,8 +200,8 @@ export type ClientPrefSetting =
   | ClientPrefSettingOf<"number">;
 
 /**
- * A setting the mod owns, read from a Topic and written with a command, of any
- * value type.
+ * A setting the mod owns, of any value type, read from a Topic. The row shows
+ * its value and cannot change it.
  *
  * @category Settings
  */

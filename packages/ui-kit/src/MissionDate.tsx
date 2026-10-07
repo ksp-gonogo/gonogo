@@ -76,8 +76,9 @@ const MissionDate__Context = styled.span`
 export interface MissionDateProps {
   /**
    * Universal time: seconds since the game's epoch, not a duration. A plain
-   * number is accepted for the client-interpolated view clock, and a
-   * `Value<"s">` renders a date measured from the epoch.
+   * number is accepted for the client-interpolated view clock. A `Value<"s">`
+   * is accepted too and is read the same way, as seconds since the epoch: it
+   * is never drawn as a length of time here. For a length of time use `Unit`.
    */
   value:
     | Value<"ut">

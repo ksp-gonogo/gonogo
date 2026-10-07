@@ -18,7 +18,13 @@ export interface LineGraphSeries {
   label?: string;
   /** CSS colour for the stroke, e.g. `var(--color-nogo-mark)`. */
   color: string;
-  /** Ascending by `x`. Fewer than two points renders no line for this series. */
+  /**
+   * The line's points, ascending by `x`. Fewer than two renders no line for
+   * this series. `x` and `y` are bare numbers in whatever unit the caller
+   * chose, the same for every series: the chart scales each axis linearly
+   * across the range it is given and labels neither. For a trend over time
+   * pass seconds as `x`, a UT or seconds ago.
+   */
   points: ReadonlyArray<{ x: number; y: number }>;
   /**
    * Indices into `points` that open a known hole: no data between the previous
@@ -88,6 +94,7 @@ export interface LineGraphProps {
    * renders `aria-hidden`.
    */
   ariaLabel?: string;
+  /** Placed on the chart's root element, for a caller's own sizing or layout. */
   className?: string;
   /**
    * `"chart"` (default): quarter gridlines and bare strokes. `"sparkline"`: no

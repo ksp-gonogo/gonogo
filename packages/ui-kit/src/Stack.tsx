@@ -37,25 +37,39 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
  * label/value table, and a {@link Box} for an inset well.
  *
  * @example
+ * `gap="section"` sets the three blocks further apart than the default
+ * `related` gap would.
  * ```tsx
- * <Stack gap="section">
- *   <Cluster>
- *     <Text>Target</Text>
- *     <Inline>
- *       <Button onClick={onSet}>Set</Button>
- *       <Button onClick={onClear}>Clear</Button>
- *     </Inline>
- *   </Cluster>
- *   <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row" align="baseline">
- *     <Text level="muted">Apoapsis</Text>
- *     <Text>{apoapsis}</Text>
- *     <Text level="muted">Periapsis</Text>
- *     <Text>{periapsis}</Text>
- *   </Grid>
- *   <Box surface="sunken" pad="surface" radius="regular">
- *     {notes}
- *   </Box>
- * </Stack>
+ * import { Box, Button, Cluster, Grid, Inline, Stack, Text } from "@ksp-gonogo/ui-kit";
+ *
+ * function TargetBody(props: {
+ *   apoapsis: string;
+ *   periapsis: string;
+ *   notes: string;
+ *   onSet: () => void;
+ *   onClear: () => void;
+ * }) {
+ *   return (
+ *     <Stack gap="section">
+ *       <Cluster>
+ *         <Text>Target</Text>
+ *         <Inline>
+ *           <Button onClick={props.onSet}>Set</Button>
+ *           <Button onClick={props.onClear}>Clear</Button>
+ *         </Inline>
+ *       </Cluster>
+ *       <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row" align="baseline">
+ *         <Text level="muted">Apoapsis</Text>
+ *         <Text>{props.apoapsis}</Text>
+ *         <Text level="muted">Periapsis</Text>
+ *         <Text>{props.periapsis}</Text>
+ *       </Grid>
+ *       <Box surface="sunken" pad="surface" radius="regular">
+ *         {props.notes}
+ *       </Box>
+ *     </Stack>
+ *   );
+ * }
  * ```
  *
  * @category Layout

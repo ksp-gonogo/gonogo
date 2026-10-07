@@ -44,8 +44,10 @@ import type {
 
 /**
  * The registries and hooks the app installs when it starts, which the sdk's
- * functions call through. An Uplink never implements or calls it directly. A
- * test installs one with `installTestHost` or `installRealTestHost` from
+ * functions call through. An Uplink's own code never implements or calls it:
+ * it calls the sdk's functions. A test is the one place you supply it, by
+ * passing the members the code under test needs to `installTestHost`, or by
+ * installing a whole one with `installRealTestHost`, both from
  * `@ksp-gonogo/sitrep-sdk/testing`.
  *
  * @category Host and runtime

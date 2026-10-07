@@ -113,7 +113,7 @@ export interface ShipMapPartMetaEntry {
  * The bitrate of one hop on the comms route, contributed to
  * `comm-signal.hop-rates`.
  *
- * Comm Signal joins each entry onto the hop of the `comms.path` route with the
+ * CommNet Signal joins each entry onto the hop of the `comms.path` route with the
  * same `fromNodeId` and `toNodeId`, shows the rate beside it, and marks the
  * slowest hop once at least two hops carry a rate. An entry naming a hop that
  * is not on the route is not drawn.
@@ -600,7 +600,7 @@ declare module "./types" {
       entry: MeterEntry;
     };
     /**
-     * The data rate of each hop on the comms route Comm Signal draws, for a
+     * The data rate of each hop on the comms route CommNet Signal draws, for a
      * comms mod that models bitrate. Each rate is shown beside its hop, and
      * the slowest hop is marked. The route, and so the rates, appear only
      * when the widget is large enough to draw the full path. Returns
@@ -610,7 +610,7 @@ declare module "./types" {
       entry: CommSignalHopRateEntry;
     };
     /**
-     * Screens of the Administration Building in the Strategies widget, each
+     * Screens of the Administration Building in the Admin Building widget, each
      * drawn as a tab listing some strategy departments. With no entries the
      * widget draws every strategy in one list. What a screen holds beyond its
      * strategy cards comes from the `strategies.screen-body` augment slot.

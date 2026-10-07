@@ -159,49 +159,70 @@ export interface ComboboxListboxProps<Option extends ComboboxOption> {
  *
  * @example
  * ```tsx
- * const [query, setQuery] = useState("");
- * const [open, setOpen] = useState(false);
- * const [active, setActive] = useState(-1);
- * const listId = useId();
- * const optionId = (key: string) => `${listId}-${key}`;
- * const groups = groupComboboxOptions(filterComboboxOptions(options, query));
- * const flat = flattenComboboxGroups(groups);
+ * import { useId, useState } from "react";
+ * import {
+ *   type ComboboxOption,
+ *   ComboboxListbox,
+ *   filterComboboxOptions,
+ *   flattenComboboxGroups,
+ *   groupComboboxOptions,
+ *   Input,
+ *   moveComboboxActiveIndex,
+ * } from "@ksp-gonogo/ui-kit";
  *
- * <div style={{ position: "relative" }}>
- *   <Input
- *     role="combobox"
- *     aria-label="Body"
- *     aria-expanded={open}
- *     aria-controls={listId}
- *     aria-autocomplete="list"
- *     aria-activedescendant={active >= 0 ? optionId(flat[active].key) : undefined}
- *     value={query}
- *     onFocus={() => setOpen(true)}
- *     onBlur={() => setOpen(false)}
- *     onChange={(e) => {
- *       setQuery(e.target.value);
- *       setActive(-1);
- *     }}
- *     onKeyDown={(e) => {
- *       if (e.key === "ArrowDown") setActive((i) => moveComboboxActiveIndex(i, 1, flat.length));
- *       if (e.key === "ArrowUp") setActive((i) => moveComboboxActiveIndex(i, -1, flat.length));
- *       if (e.key === "Enter" && flat[active]) onPick(flat[active].key);
- *       if (e.key === "Escape") setOpen(false);
- *     }}
- *   />
- *   {open && (
- *     <ComboboxListbox
- *       id={listId}
- *       groups={groups}
- *       flatOptions={flat}
- *       activeIndex={active}
- *       selectedKey={selected}
- *       getOptionId={optionId}
- *       onHoverIndex={setActive}
- *       onSelectKey={onPick}
- *     />
- *   )}
- * </div>
+ * function BodyPicker(props: {
+ *   options: readonly ComboboxOption[];
+ *   selected: string | undefined;
+ *   onPick: (key: string) => void;
+ * }) {
+ *   const [query, setQuery] = useState("");
+ *   const [open, setOpen] = useState(false);
+ *   const [active, setActive] = useState(-1);
+ *   const listId = useId();
+ *   const optionId = (key: string) => `${listId}-${key}`;
+ *   const groups = groupComboboxOptions(filterComboboxOptions(props.options, query));
+ *   const flat = flattenComboboxGroups(groups);
+ *   // The list can shrink under the highlighted row, so it is looked up, never assumed.
+ *   const activeOption = flat[active];
+ *
+ *   return (
+ *     <div style={{ position: "relative" }}>
+ *       <Input
+ *         role="combobox"
+ *         aria-label="Body"
+ *         aria-expanded={open}
+ *         aria-controls={listId}
+ *         aria-autocomplete="list"
+ *         aria-activedescendant={activeOption ? optionId(activeOption.key) : undefined}
+ *         value={query}
+ *         onFocus={() => setOpen(true)}
+ *         onBlur={() => setOpen(false)}
+ *         onChange={(e) => {
+ *           setQuery(e.target.value);
+ *           setActive(-1);
+ *         }}
+ *         onKeyDown={(e) => {
+ *           if (e.key === "ArrowDown") setActive((i) => moveComboboxActiveIndex(i, 1, flat.length));
+ *           if (e.key === "ArrowUp") setActive((i) => moveComboboxActiveIndex(i, -1, flat.length));
+ *           if (e.key === "Enter" && activeOption) props.onPick(activeOption.key);
+ *           if (e.key === "Escape") setOpen(false);
+ *         }}
+ *       />
+ *       {open && (
+ *         <ComboboxListbox
+ *           id={listId}
+ *           groups={groups}
+ *           flatOptions={flat}
+ *           activeIndex={active}
+ *           selectedKey={props.selected}
+ *           getOptionId={optionId}
+ *           onHoverIndex={setActive}
+ *           onSelectKey={props.onPick}
+ *         />
+ *       )}
+ *     </div>
+ *   );
+ * }
  * ```
  *
  * @category Form

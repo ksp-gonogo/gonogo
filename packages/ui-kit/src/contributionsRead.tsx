@@ -55,21 +55,8 @@ void _everySegmentListed;
  * Uplink fills any widget's header badges by contributing to
  * `"<widget-id>.badges"` with its handle's `registerContribution`, without the
  * widget declaring the slot. `compute` returns {@link BadgeEntry} items. How
- * the panel draws them is under Standard slots on {@link Panel}.
- *
- * @example
- * ```ts
- * EXAMPLE.registerContribution({
- *   id: "cadence-badge",
- *   contributes: "space-center-status.badges",
- *   deps: ["example.heartbeat"],
- *   requires: "example",
- *   compute: (topics) =>
- *     topics["example.heartbeat"]
- *       ? [{ id: "cadence", label: "Publishing", tone: "info" as const }]
- *       : null,
- * });
- * ```
+ * the panel draws them, and a whole example, are under Standard slots on
+ * {@link Panel}.
  *
  * @category Panel
  */

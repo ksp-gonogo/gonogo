@@ -64,7 +64,7 @@
  * @category Widget slots
  */
 export interface TargetingHudContext {
-  /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Currently 8. */
+  /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Read it from here and never write the number in: it is 8 today and may change. */
   maxDeg: number;
   /**
    * The reticle's offset from the box centre, each axis from -1 to 1: the
@@ -312,7 +312,7 @@ export interface AstronautComplexCrewContext {
 
 /**
  * Props passed to every `launch-director.preflight` augment: the launch the
- * operator is setting up in the Launch Director. The slot draws once, below
+ * operator is setting up in the Launch & Recovery widget. The slot draws once, below
  * the list of pads.
  *
  * @category Widget slots
@@ -334,7 +334,7 @@ export interface LaunchDirectorSlotContext {
 
 /**
  * Props passed to every `launch-director.pad` augment, once for each launch
- * site in the Launch Director's pad list. Use it to say something about one
+ * site in the Launch & Recovery widget's pad list. Use it to say something about one
  * pad from its own row, such as that a launch complex your Uplink tracks is
  * busy.
  *
@@ -345,7 +345,7 @@ export interface LaunchDirectorPadContext {
   siteName: string;
   /** The site's display name, as the row shows it. */
   displayName: string;
-  /** The editor that builds for this site: `"VAB"` for a launch pad, `"SPH"` for a runway. */
+  /** The editor that builds for this site, as a {@link KspEditorFacility} member's name: `"VAB"` for a launch pad, `"SPH"` for a runway, `"None"` where the game records neither. */
   editorFacility: string;
   /** Whether a vessel is standing on the site. `null` when the site does not report it. */
   occupied: boolean | null;
@@ -522,11 +522,11 @@ export interface MapOverlayContext {
   worldW: number;
   /** Height of the world image in world pixels, spanning 180 degrees of latitude. */
   worldH: number;
-  /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
   /** The mapped body's radius in metres. `undefined` while it is not known. */
   bodyRadius: number | undefined;
-  /** Returns the overlay pixel for a latitude and longitude in degrees, through the same projection the map is drawn with. */
+  /** Returns the overlay pixel for a latitude and longitude in degrees, through the same projection the map is drawn with. Latitude runs from -90 at the south pole to 90 at the north, and is held to that range. Longitude is degrees east and may be given as -180 to 180 or 0 to 360: it is wrapped. */
   project: (lat: number, lon: number) => { x: number; y: number };
   /** The active vessel's latitude in degrees. `undefined` without a position, or when the map shows another body. */
   vesselLat: number | undefined;
@@ -541,7 +541,7 @@ export interface MapOverlayContext {
  * @category Widget slots
  */
 export interface MapViewScope {
-  /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
 }
 
@@ -571,15 +571,16 @@ export interface MapCoverageGate {
  *
  * Any number of augments can fill this slot at once. Each hands back a canvas
  * through `onLayer`, and the map stretches it over the whole world image, so
- * the canvas is an equirectangular picture of the whole body. Canvases are
- * drawn in order over the stock texture, and transparent pixels show what is
- * beneath. An augment that declares `suppressesVanillaBase` removes the stock
+ * the canvas is an equirectangular picture of the whole body: its left edge
+ * is longitude -180 and its right edge 180, its top edge the north pole and
+ * its bottom edge the south. Canvases are drawn in order over the stock
+ * texture, and transparent pixels show what is beneath. An augment that declares `suppressesVanillaBase` removes the stock
  * texture.
  *
  * @category Widget slots
  */
 export interface MapBaseLayerContext {
-  /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.overlay` augment is given as `bodyName`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyId: string | undefined;
   /** Width of the map area in pixels. */
   width: number;
@@ -653,8 +654,9 @@ export interface ScienceDataAboardRowContext {
  * Props passed to every `orbit-view.overlay` augment: a layer over the Orbit
  * View diagram, with the active vessel's orbit.
  *
- * The diagram is centred on the body the vessel orbits. Distances are metres
- * from the body's centre. Before rotating by `argPe`, positive x runs along the
+ * The diagram is centred on the body the vessel orbits. Every field is a plain
+ * number in the unit its line names, not a `Value`. Distances are metres from
+ * the body's centre. Before rotating by `argPe`, positive x runs along the
  * line of apsides towards periapsis and positive y is up. The slot is drawn only
  * while there is an orbit.
  *
@@ -675,7 +677,7 @@ export interface OrbitOverlayContext {
   trueAnomaly: number;
   /** The body's radius in metres. Absent while it is not known. */
   bodyRadius?: number;
-  /** Where the body is drawn. Always the origin. */
+  /** Where the body is drawn: always `{ x: 0, y: 0 }`, the point every distance here is measured from. */
   center: { x: number; y: number };
   /** The distance from the centre to the edge of the visible diagram, in metres: the apoapsis, or a multiple of the periapsis on an escape trajectory. */
   scale: number;
@@ -858,8 +860,9 @@ declare module "./types" {
     "ship-map.overlay": ShipMapOverlayContext;
 
     /**
-     * Inline badges at the end of each crew row, keyed by `crewName`. Distinct
-     * from the widget's `crew-status.badges` header segment.
+     * Inline badges at the end of each crew row. Passes a
+     * {@link CrewBadgeContext}: the kerbal's name and position in the crew
+     * list. Distinct from the widget's `crew-status.badges` header segment.
      */
     "crew-status.row-badges": CrewBadgeContext;
     /**
@@ -897,14 +900,14 @@ declare module "./types" {
     "astronaut-complex.tab": Record<string, never>;
 
     /**
-     * A block below the Launch Director's list of pads, for checks to make
+     * A block below the Launch & Recovery widget's list of pads, for checks to make
      * before a launch, such as whether the picked crew is rested. Drawn while
      * the pad list is shown, which is neither in flight nor in the Tracking
      * Station. Passes a {@link LaunchDirectorSlotContext}.
      */
     "launch-director.preflight": LaunchDirectorSlotContext;
     /**
-     * A line under each pad in the Launch Director's pad list, for something
+     * A line under each pad in the Launch & Recovery widget's pad list, for something
      * your Uplink knows about that pad, such as that its launch complex is
      * still being built. It takes no room when the augment draws nothing.
      * Passes a {@link LaunchDirectorPadContext}.
@@ -1018,7 +1021,7 @@ declare module "./types" {
     "fleet-roster.updates": FleetRosterUpdatesContext;
 
     /**
-     * The body of an Administration Building screen in the Strategies widget,
+     * The body of an Administration Building screen in the Admin Building widget,
      * below the strategy cards the screen lists, for content of your own such
      * as a Programs screen with its own controls. Screens come from the
      * `strategies.screens` contribution slot; the body is drawn only on a

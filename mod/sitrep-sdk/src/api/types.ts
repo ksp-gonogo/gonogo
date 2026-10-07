@@ -83,19 +83,19 @@ export interface ActionInputPayload {
 }
 
 /**
- * One action a widget declares in `ComponentDefinition.actions`, which an
- * operator can bind to a key, button or axis.
+ * One action a widget declares in {@link ComponentDefinition.actions}, which
+ * an operator can bind to a key, button or axis.
  *
  * @category Actions
  */
 export interface ActionDefinition {
-  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. */
+  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. Any string will do: the built-in widgets use `camelCase` in some and `kebab-case` in others, and neither is required. */
   id: string;
-  /** The action's name, shown where the player binds inputs. */
+  /** The action's name, shown where the operator binds inputs. */
   label: string;
   /** Which input kinds may drive this action. */
   accepts: readonly ActionInputKind[];
-  /** A longer description, shown where the player binds inputs. */
+  /** A longer description, shown where the operator binds inputs. */
   description?: string;
 }
 
@@ -162,7 +162,7 @@ export interface TinyEssential {
   /** A few letters naming the figure, drawn with it: `ΔV`, `ALT`, `CREW`. */
   label: string;
   /**
-   * The figure, drawn through `<Unit>`. A whole Reading also draws whether it
+   * The figure, drawn as ui-kit's `Unit` draws one. A whole Reading also draws whether it
    * is current; null or absent draws the null token.
    */
   value?: Value | Reading<Value> | null;
@@ -249,7 +249,8 @@ export interface TinyGauge {
 }
 
 /**
- * The severity words a tiny essential is coloured by, as a kit readout's are.
+ * The severity words a tiny essential is coloured by: {@link Tone} without
+ * `caution` and `offline`.
  *
  * @category Registering
  */
@@ -290,7 +291,7 @@ export interface TinyMode<Config = Record<string, unknown>> {
  * @category Registering
  */
 export interface ComponentDefinition<Config = Record<string, unknown>> {
-  /** Unique across every package. Prefix it with your Uplink's name. */
+  /** Unique across every package, and used exactly as written, so prefix it with your Uplink's name yourself (`foo-status`). */
   id: string;
   /** The widget's name in the widget picker and its panel heading. */
   name: string;
@@ -395,7 +396,7 @@ export interface ThemeDefinition {
   id: string;
   /** The theme's name in the theme picker. */
   name: string;
-  /** The theme's tokens, a `GonogoTheme` from `@ksp-gonogo/ui-kit`. */
+  /** The theme's tokens: a `UiKitTheme`, the type `@ksp-gonogo/ui-kit` exports. */
   theme: unknown;
 }
 
@@ -446,7 +447,16 @@ export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
  * a slot that passes no props, such as `sections`, follows the widget.
  *
  * A widget publishes its scope with `WidgetScopeProvider` from
- * `@ksp-gonogo/ui-kit`, and declares its shape here by declaration merging.
+ * `@ksp-gonogo/ui-kit`, and declares its shape here by declaration merging,
+ * in the widget's own package:
+ *
+ * ```ts
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface WidgetScopeRegistry {
+ *     "my-widget": { selectedResource: string | undefined };
+ *   }
+ * }
+ * ```
  *
  * @category Registering
  */
@@ -529,8 +539,10 @@ export interface MeterEntry {
   valueLabel?: string;
   /**
    * Which row of the host widget this meter belongs beside, when the host
-   * renders a list: a kerbal's name, a part id. Absent for a whole-widget
-   * meter.
+   * renders a list: a kerbal's name, a part id. Leave it out for a meter
+   * about the whole widget, in a slot that draws those. A slot that draws
+   * meters only beside rows, as `crew-status.meters` does, draws nothing for
+   * an entry with no `row`.
    */
   row?: string;
 }
@@ -1428,7 +1440,7 @@ export interface SettingsTabDefinition {
   label: string;
   /** The tab's content, rendered with no props. */
   component: ComponentType;
-  /** Which screens this tab appears on. Omit for both. */
+  /** Which screens this tab appears on. Omit for every screen. */
   screens?: readonly Screen[];
   /**
    * The Uplink this tab belongs to, by its id. The tab is then drawn as a
@@ -1654,7 +1666,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * expected time. A refusal or loss from a `send` whose promise nobody awaits
    * is still recorded in `refusals` or `losses`.
    *
-   * `opts.label` is a description of this dispatch to show the player.
+   * `opts.label` is a description of this dispatch to show the operator.
    * `opts.topic` addresses the command to one part or route on the craft.
    */
   send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
@@ -1805,8 +1817,8 @@ export interface StationBroker {
 }
 
 /**
- * Called on a station for the Uplink that registered it, once per station
- * screen that comes up.
+ * Called on a station for the Uplink that passed it to
+ * {@link registerStationBroker}, once per station screen that comes up.
  *
  * @category Host and runtime
  */

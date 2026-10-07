@@ -38,16 +38,19 @@ export const BINARY_LANE_MAGIC = 0x9e;
 export const BINARY_LANE_STREAM_BINARY = 0x01;
 
 /**
- * The length of a binary frame's fixed prefix, in bytes: the magic byte, the
- * lane byte and the two-byte header length.
+ * The length of a binary frame's fixed prefix, in bytes. A frame is laid out
+ * as the magic byte, the lane byte, the header's length as a big-endian
+ * unsigned 16-bit number, the header as UTF-8 JSON of that length, and then
+ * the segments one after another, each as long as the header says.
  *
  * @category Binary lane
  */
 export const BINARY_LANE_PREFIX_BYTES = 4;
 
 /**
- * One binary frame, decoded: the header's fields, with `segments` holding the
- * segments' bytes in place of their lengths. Each segment is a `Uint8Array`.
+ * One binary frame, decoded: the fields of its {@link StreamBinary} header,
+ * with `segments` holding the segments' bytes in place of their lengths. Each
+ * segment is a `Uint8Array`.
  *
  * @category Binary lane
  */

@@ -46,8 +46,9 @@ let modalSeq = 0;
 
 /**
  * Holds the stack of open modal dialogs and renders them into `document.body`.
- * The dashboard mounts one at its root, so a widget calls {@link useModal}
- * without mounting its own.
+ * The dashboard mounts one at its root, so a widget on the dashboard calls
+ * {@link useModal} without mounting its own. Anywhere else, such as a test or
+ * a page of your own, wrap the tree in one: `useModal` needs it above it.
  *
  * Each dialog has a title bar with a close button, a scrolling body, and an
  * optional sticky footer set with {@link useModalSaveBar} or

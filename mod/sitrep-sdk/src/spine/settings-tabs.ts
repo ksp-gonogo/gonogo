@@ -20,7 +20,7 @@ export interface SettingsTabDefinition {
   label: string;
   /** The tab's content, rendered with no props. */
   component: ComponentType;
-  /** Which screens this tab appears on. Omit for both. */
+  /** Which screens this tab appears on. Omit for every screen. */
   screens?: readonly Screen[];
   /**
    * The Uplink this tab belongs to, by its id. The tab is then drawn as a

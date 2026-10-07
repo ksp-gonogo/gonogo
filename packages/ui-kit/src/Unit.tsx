@@ -302,15 +302,23 @@ function UnitSymbol({
  *
  * @example
  * ```tsx
- * import { value } from "@ksp-gonogo/sitrep-sdk";
- * import { Unit } from "@ksp-gonogo/ui-kit";
+ * import { useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
+ * import { Stack, Unit } from "@ksp-gonogo/ui-kit";
  *
- * // A whole Reading: draws the held mark when the channel goes quiet.
- * <Unit value={rangeReading} />
- * // A bare number off a payload, wrapped with its SI unit.
- * <Unit value={value("m", body.radius)} />
- * <Unit value={value("m/s", closingSpeed)} decimals={1} />
- * <Unit value={value("m/s", surfaceSpeed)} format="km/h" />
+ * function Readouts(props: { bodyRadiusMetres: number }) {
+ *   const flight = useTelemetry("vessel.flight");
+ *   // The first three are fields of a Topic, each a whole Reading, so each
+ *   // draws the held mark when the Topic goes quiet. The last is a bare
+ *   // number, wrapped with its SI unit.
+ *   return (
+ *     <Stack>
+ *       <Unit value={flight.altitudeAsl} />
+ *       <Unit value={flight.verticalSpeed} decimals={1} />
+ *       <Unit value={flight.surfaceSpeed} format="km/h" />
+ *       <Unit value={value("m", props.bodyRadiusMetres)} />
+ *     </Stack>
+ *   );
+ * }
  * ```
  *
  * @category Unit
