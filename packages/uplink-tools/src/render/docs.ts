@@ -525,7 +525,7 @@ function inputRuleExemptions(inputs: DocsInputs): string[] {
 
 /**
  * The Uplink's generated page as markdown. Throws when the client declares no
- * `description`, which opens the page.
+ * `description`, which opens the page, or a widget registers none.
  *
  * @category Uplink page
  * @categoryDescription Uplink page
@@ -584,6 +584,17 @@ export function buildReadme(
   ];
 
   const records = widgetRecordsOf(inventory);
+  const undescribed = records.filter((widget) => !widget.description?.trim());
+  if (undescribed.length > 0) {
+    throw new Error(
+      `uplink-tools docs: ${undescribed.map((widget) => `\`${widget.id}\``).join(", ")} ` +
+        `register${undescribed.length === 1 ? "s" : ""} no \`description\`, and it is the one ` +
+        "sentence the page and the widget picker have for a widget.\n\n" +
+        "Add one where the widget is registered, in plain words: what it shows " +
+        "and what an operator can do with it.\n" +
+        '  registerComponent({ id, name, description: "...", ... })',
+    );
+  }
   if (records.length > 0) {
     out.push("## Widgets", "");
     for (const widget of records) {

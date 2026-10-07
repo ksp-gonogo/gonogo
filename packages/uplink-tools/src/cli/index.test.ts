@@ -308,6 +308,36 @@ describe("uplink-tools codegen", () => {
   });
 });
 
+describe("uplink-tools new, run with no terminal", () => {
+  it("asks nothing, exits 2 and names every missing flag, through the real bin", () => {
+    const dir = workdir();
+    // stdin is a pipe here, which is how an agent or a script runs it.
+    const { code, out } = runBin(["new", "fresh", "--name", "Fresh"], dir);
+
+    expect(code).toBe(2);
+    expect(out).toContain("stdin is not a terminal");
+    for (const flag of ["--author <name>", "--topics own | core", "--yes"]) {
+      expect(out).toContain(flag);
+    }
+    expect(existsSync(join(dir, "uplink.json"))).toBe(false);
+  });
+
+  it("lists every question as a flag in its help", () => {
+    const { out } = runBin(["new", "--help"]);
+    for (const flag of [
+      "--name <name>",
+      "--author <name>",
+      "--repo <owner>/<name> | --no-repo",
+      "--topics own | core",
+      "--workflows | --no-workflows",
+      "--ksp <path> | --no-ksp",
+      "--yes",
+    ]) {
+      expect(out).toContain(flag);
+    }
+  });
+});
+
 describe("the top-level help", () => {
   it("names every command and how to run one without an install", () => {
     const { code, out } = runBin(["--help"]);

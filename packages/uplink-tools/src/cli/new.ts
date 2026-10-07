@@ -29,7 +29,19 @@ import { fileURLToPath } from "node:url";
 import { bakeUplink, describeBake } from "./bake";
 import { generate } from "./codegen";
 import { parseFlags } from "./flags";
+import {
+  type Answers,
+  MissingAnswers,
+  type Prompter,
+  pascal,
+  QUESTION_SWITCHES,
+  QUESTION_VALUES,
+  questionHelp,
+  resolveAnswers,
+} from "./questions";
 import { PLACEHOLDER_OWNER } from "./release";
+
+export { validateUplinkId } from "./questions";
 
 export interface SeedOptions {
   id: string;
@@ -39,22 +51,11 @@ export interface SeedOptions {
   clientUrl: string;
   /** The version of the `KspGonogo.Sitrep.Contract` NuGet package every C# project references. */
   contractVersion: string;
+  /** `own`: a contract slice, generated client types and a Topic the plugin publishes. `core`: none of those, and a widget that reads a Topic Gonogo already publishes. */
+  topics: Answers["topics"];
   dependencies: Readonly<Record<string, string>>;
   devDependencies: Readonly<Record<string, string>>;
 }
-
-const ID_PATTERN = /^[a-z][a-z0-9]{1,29}$/;
-
-export function validateUplinkId(id: string): string | undefined {
-  if (ID_PATTERN.test(id)) return undefined;
-  return (
-    `"${id}" is not a usable Uplink id. It names a Topic prefix, a C# namespace and a ` +
-    "GameData folder, so it is lowercase letters and digits only, starts with a letter " +
-    "and is 2 to 30 characters long."
-  );
-}
-
-const pascal = (id: string): string => id[0].toUpperCase() + id.slice(1);
 
 /** The seed's files keyed by path relative to the Uplink's directory. */
 export function renderSeed(o: SeedOptions): Map<string, string> {
@@ -230,11 +231,16 @@ setQuantityLocale("en-GB");
 /** Must equal package.json's version: gonogo-uplink.json is generated from this. */
 const UPLINK_VERSION = "0.0.1";
 
+/**
+ * This Uplink's client, as the dashboard lists it. Every widget names it as its
+ * \`owner\`. The description opens the generated page, so it says what the Uplink
+ * is for in a sentence someone deciding whether to install it can use.
+ */
 export const ${upper} = defineUplinkClient({
   id: "${id}",
   version: UPLINK_VERSION,
   name: ${JSON.stringify(o.name)},
-  description: "A new Uplink: one channel and one widget.",
+  description: "Shows that the ${o.name} Uplink is installed and publishing: a count of its samples and the game time of the latest.",
 });
 `,
   );
@@ -261,12 +267,14 @@ import {
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units.js";
 
+// Tells the sdk what each of this Uplink's Topics carries, so useTelemetry("${topic}") is typed. Add a line for every Topic the contract slice declares.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "${topic}": ${Id}Heartbeat;
   }
 }
 
+// The unit of each field, from the [SitrepUnit] attributes in the contract slice. It is what lets <Unit> write a value with its unit.
 for (const [topic, units] of Object.entries(GENERATED_TOPIC_UNITS)) {
   registerTopicUnits(topic, units, GENERATED_TOPIC_SHAPES[topic] ?? {});
 }
@@ -274,6 +282,20 @@ for (const [typeName, units] of Object.entries(GENERATED_TYPE_UNITS)) {
   registerTypeUnits(typeName, units, GENERATED_TYPE_SHAPES[typeName] ?? {});
 }
 
+/**
+ * What \`${topic}\` carries. The fields and their descriptions are generated
+ * from the C# type of the same name in \`mod-contract/\`, which is the one place
+ * to change them.
+ *
+ * @example
+ * \`\`\`tsx
+ * function Ticks() {
+ *   const heartbeat = useTelemetry("${topic}");
+ *   if (heartbeat.state !== "observed") return null;
+ *   return <Unit value={heartbeat.value.ticks} />;
+ * }
+ * \`\`\`
+ */
 export type { ${Id}Heartbeat };
 `,
   );
@@ -284,6 +306,11 @@ export type { ${Id}Heartbeat };
 import { EmptyState, Panel, Section, Text, Unit } from "@ksp-gonogo/ui-kit";
 import { ${upper} } from "../uplink.js";
 
+/**
+ * How many samples the ${o.name} Uplink has published, and the game time of the
+ * latest. Until the first one arrives it says it is waiting, since a zero would
+ * read as a count.
+ */
 function HeartbeatWidget() {
   const heartbeat = useTelemetry("${topic}");
 
@@ -320,12 +347,14 @@ function HeartbeatWidget() {
 registerComponent({
   id: "${widgetId}",
   name: "Heartbeat",
-  description: "How many times the ${o.name} Uplink has published, and the universal time of the last sample.",
+  // Shown in the widget picker and on the generated page: what it shows and what an operator can do with it, in plain words.
+  description: "How many samples the ${o.name} Uplink has published, and the game time of the latest one. It has no controls.",
   tags: ["${id}"],
   defaultSize: { w: 3, h: 3 },
   minSize: { w: 2, h: 2 },
   component: HeartbeatWidget,
-  dataRequirements: ["${topic}"],
+  // The Topics it needs. When the Uplink serving one is unavailable, the dashboard says why in the widget's place.
+  channels: ["${topic}"],
   defaultConfig: {},
   actions: [],
   owner: ${upper},
@@ -418,8 +447,15 @@ using Sitrep.Contract;
 namespace ${ns};
 
 /// <summary>
-/// The <c>${topic}</c> channel. A wire type belongs in the Uplink's own contract
-/// slice, never in <c>Sitrep.Contract</c>.
+/// What <c>${topic}</c> carries: a count of the samples this Uplink has
+/// published and the game time of the latest. Nothing is published until a save
+/// is loaded.
+/// <internal>
+/// The wire is written from the dictionary ${Id}Uplink.Sample returns, and this
+/// type is what the client's TypeScript is generated from, so the two are kept
+/// in step by hand. Prose inside this element stays in the C# and never reaches
+/// the generated types.
+/// </internal>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("${topic}")]
@@ -428,11 +464,11 @@ namespace ${ns};
 #endif
 public sealed class ${Id}Heartbeat
 {
-    /// <summary>Universal time the sample was captured at.</summary>
+    /// <summary>The game's universal time when the sample was taken. Never null in a published sample.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? Ut { get; set; }
 
-    /// <summary>How many times this Uplink has published, since load.</summary>
+    /// <summary>How many samples this Uplink has published since the game started, this one included. It starts again from 1 when the game restarts.</summary>
     [SitrepUnit(Units.Count)]
     public double? Ticks { get; set; }
 }
@@ -456,10 +492,13 @@ public static class ${Id}RtConfig
 {
     public static void Configure(ConfigurationBuilder builder)
     {
+        // The last two carry the doc comments on the wire types into the generated TypeScript, without anything inside an <internal> element.
         builder.Global(g => g
             .CamelCaseForProperties()
             .UseModules(true)
-            .AutoOptionalProperties());
+            .AutoOptionalProperties()
+            .GenerateDocumentation()
+            .UseVisitor<Sitrep.Contract.RtDocVisitor>());
 
         var wireTypes = new[] { typeof(${Id}Heartbeat) };
 
@@ -586,10 +625,16 @@ namespace ${ns}
     [SitrepUplink("${id}")]
     public sealed class ${Id}Uplink : ISitrepUplink
     {
+        /// <summary>The one Topic this Uplink publishes. Its payload is <see cref="${Id}Heartbeat"/>.</summary>
         public const string HeartbeatTopic = "${topic}";
 
         private double _ticks;
 
+        /// <summary>
+        /// What this Uplink tells the mod about itself: who it is, where its client
+        /// lives, and every channel it will publish, each with how it is delivered
+        /// and whether it is held back by signal delay.
+        /// </summary>
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "${id}",
@@ -623,6 +668,7 @@ namespace ${ns}
             },
         };
 
+        /// <summary>Called once at startup. Each channel the manifest declares gets its source here.</summary>
         public void Register(IUplinkHost host)
         {
             host.AddChannelSource(HeartbeatTopic, Sample);
@@ -781,7 +827,306 @@ namespace ${ns}.Tests
 `,
   );
 
+  if (o.topics === "core") applyCoreTopics(files, o);
   return files;
+}
+
+/**
+ * Turns the seed into an Uplink with no Topics of its own: no contract slice,
+ * no generated types, a plugin that publishes nothing and exists to announce
+ * the client, and a widget that reads a Topic Gonogo already publishes.
+ *
+ * It starts from the full seed and takes away, so the two shapes cannot drift
+ * in the files they share.
+ */
+function applyCoreTopics(files: Map<string, string>, o: SeedOptions): void {
+  const id = o.id;
+  const Id = pascal(id);
+  const ns = `Gonogo${Id}Uplink`;
+  const upper = id.toUpperCase();
+  const widgetId = `${id}-vessel`;
+  const json = (value: unknown): string =>
+    `${JSON.stringify(value, null, 2)}\n`;
+  const edit = (path: string, change: (text: string) => string) => {
+    const before = files.get(path);
+    if (before === undefined) throw new Error(`the seed has no ${path}`);
+    const after = change(before);
+    if (after === before) {
+      throw new Error(
+        `the core-Topics seed found nothing to change in ${path}`,
+      );
+    }
+    files.set(path, after);
+  };
+  const cut = (text: string, from: string, to: string): string => {
+    const start = text.indexOf(from);
+    const end = text.indexOf(to, start + from.length);
+    return start === -1 || end === -1
+      ? text
+      : text.slice(0, start) + text.slice(end + to.length);
+  };
+
+  for (const path of [...files.keys()]) {
+    if (
+      path.startsWith("mod-contract/") ||
+      path.startsWith("mod-contract-codegen/") ||
+      path.startsWith("client/src/Heartbeat/") ||
+      path === "client/src/topics.ts"
+    ) {
+      files.delete(path);
+    }
+  }
+
+  edit("uplink.json", (text) => {
+    const declared: Record<string, unknown> = JSON.parse(text);
+    const { codegen: _codegen, ...rest } = declared;
+    return json(rest);
+  });
+  edit("client/package.json", (text) => {
+    const manifest: { scripts: Record<string, string> } = JSON.parse(text);
+    const {
+      codegen: _codegen,
+      "codegen:check": _check,
+      ...scripts
+    } = manifest.scripts;
+    return json({ ...manifest, scripts });
+  });
+  edit("client/uplink.md", (text) =>
+    cut(text, "## widget:", "last sample.\n").concat(
+      `## widget:${widgetId}\n\nThe name of the vessel being flown.\n`,
+    ),
+  );
+  edit("client/src/uplink.ts", (text) =>
+    text.replace(
+      /description: "[^"]*",/,
+      `description: "Shows the name of the vessel being flown, from a Topic Gonogo already publishes.",`,
+    ),
+  );
+  files.set(
+    "client/src/index.ts",
+    `import "./Vessel/index.js";
+
+export { ${upper} } from "./uplink.js";
+export { VesselWidget } from "./Vessel/index.js";
+`,
+  );
+  files.set(
+    "client/src/Vessel/index.tsx",
+    `import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
+import { ${upper} } from "../uplink.js";
+
+/**
+ * The name of the vessel being flown, read from \`vessel.identity\`, a Topic
+ * Gonogo publishes itself. Until the game reports a vessel it says it is
+ * waiting, since an empty name would read as a vessel with none.
+ */
+function VesselWidget() {
+  const identity = useTelemetry("vessel.identity");
+
+  if (identity.state !== "observed") {
+    return (
+      <Panel
+        panelTitle="Vessel"
+        sections={
+          <Section>
+            <EmptyState>Waiting for a vessel</EmptyState>
+          </Section>
+        }
+      />
+    );
+  }
+
+  return (
+    <Panel
+      panelTitle="Vessel"
+      sections={
+        <Section>
+          <Text>{identity.value.name}</Text>
+        </Section>
+      }
+    />
+  );
+}
+
+registerComponent({
+  id: "${widgetId}",
+  name: "Vessel",
+  // Shown in the widget picker and on the generated page: what it shows and what an operator can do with it, in plain words.
+  description: "The name of the vessel being flown. It has no controls.",
+  tags: ["${id}"],
+  defaultSize: { w: 3, h: 2 },
+  minSize: { w: 2, h: 2 },
+  component: VesselWidget,
+  // The Topics it needs. When whatever serves one is unavailable, the dashboard says why in the widget's place.
+  channels: ["vessel.identity"],
+  defaultConfig: {},
+  actions: [],
+  owner: ${upper},
+});
+
+export { VesselWidget };
+`,
+  );
+  files.set(
+    "client/src/Vessel/index.test.tsx",
+    `import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { describe, expect, it } from "vitest";
+import { VesselWidget } from "./index.js";
+
+describe("VesselWidget", () => {
+  it("says it is waiting rather than rendering an empty name", () => {
+    render(<VesselWidget />);
+
+    expect(screen.getByText(/waiting for a vessel/i)).toBeVisible();
+  });
+});
+`,
+  );
+  files.set(
+    "client/src/Vessel/__fixtures__/named.json",
+    json({
+      _meta: {
+        notes:
+          "A fixture is a scene the render harness mounts the widget in. Everything the widget reads has to be emitted in _stream, because the harness feeds it nothing by default.",
+      },
+      _scene: {
+        widget: widgetId,
+        hero: true,
+        caption: "A vessel named Kerbal X on the pad",
+        modes: ["default", "min"],
+      },
+      _stream: {
+        pinnedUt: 1000000,
+        emits: [
+          {
+            topic: "vessel.identity",
+            payload: {
+              vesselId: "v1",
+              name: "Kerbal X",
+              vesselType: 0,
+              situation: 1,
+              parentBodyIndex: 1,
+              launchUt: null,
+            },
+          },
+        ],
+      },
+    }),
+  );
+
+  const sliceReference = `  <ItemGroup>
+    <ProjectReference Include="..\\mod-contract\\${ns}.Contract.csproj" />
+  </ItemGroup>
+
+`;
+  edit(`mod/${ns}.csproj`, (text) => text.replace(sliceReference, ""));
+  edit(`mod-tests/${ns}.Tests.csproj`, (text) =>
+    text.replace(
+      `    <ProjectReference Include="..\\mod-contract\\${ns}.Contract.csproj" />\n`,
+      "",
+    ),
+  );
+  edit(`mod/${ns}.netkan`, (text) =>
+    text.replace(
+      /"abstract": "[^"]*"/,
+      `"abstract": "A Gonogo Uplink: adds a widget to the dashboard."`,
+    ),
+  );
+  files.set(
+    `mod/${Id}Uplink.cs`,
+    `using Sitrep.Contract;
+
+namespace ${ns}
+{
+    /// <summary>
+    /// Publishes nothing of its own. It is here so the mod can tell the app that
+    /// this Uplink is installed and where its client lives: the app loads a
+    /// client only for an Uplink a plugin announces. Its widgets read Topics
+    /// Gonogo already publishes. To publish one of your own, declare it in
+    /// <c>Channels</c> and give it a source in <see cref="Register"/>.
+    /// </summary>
+    [SitrepUplink("${id}")]
+    public sealed class ${Id}Uplink : ISitrepUplink
+    {
+        /// <summary>
+        /// What this Uplink tells the mod about itself: who it is and where its
+        /// client lives. It declares no channels.
+        /// </summary>
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "${id}",
+            // Provenance, ClientSource and ExpectedClientHash are written by \`uplink-tools bake\`, and one version covers both halves of the Uplink.
+            Version = Provenance.Version,
+            Name = Provenance.Name,
+            Author = Provenance.Author,
+            Repo = Provenance.Repo,
+            // The app loads a client only for a plugin that says where the bundle lives, and refuses one that vouches for no hash.
+            ExpectedClientHash = string.IsNullOrEmpty(ExpectedClientHash.Value)
+                ? null
+                : ExpectedClientHash.Value,
+            ClientSource = new UplinkClientSource
+            {
+                Url = ClientSource.Url,
+                DevPath = string.IsNullOrEmpty(ClientSource.DevPath) ? null : ClientSource.DevPath,
+            },
+        };
+
+        /// <summary>Called once at startup. There is nothing to register until this Uplink declares a channel or a command.</summary>
+        public void Register(IUplinkHost host)
+        {
+        }
+
+        /// <summary>
+        /// Mandatory. An Uplink wrapping a third-party mod reports "the assembly is
+        /// not loaded" here as <c>UplinkHealthState.Unavailable</c> with a reason.
+        /// </summary>
+        public UplinkHealth Health() => UplinkHealth.Healthy;
+    }
+}
+`,
+  );
+  files.set(
+    `mod-tests/${Id}UplinkTests.cs`,
+    `using Sitrep.Contract;
+using Xunit;
+
+namespace ${ns}.Tests
+{
+    public class ${Id}UplinkTests
+    {
+        [Fact]
+        public void DeclaresNoChannelOfItsOwn()
+        {
+            var manifest = new ${Id}Uplink().Manifest;
+
+            Assert.Equal("${id}", manifest.Id);
+            Assert.Empty(manifest.Channels);
+        }
+
+        [Fact]
+        public void AnnouncesItsClientSoTheAppCanFindIt()
+        {
+            var manifest = new ${Id}Uplink().Manifest;
+
+            Assert.NotNull(manifest.ClientSource);
+            Assert.NotEqual("", manifest.ClientSource!.Url);
+            Assert.NotEqual("", manifest.Version);
+            // Null until \`uplink-tools bake --bundle\` has hashed a built bundle, and never a malformed value.
+            Assert.True(
+                manifest.ExpectedClientHash == null
+                    || manifest.ExpectedClientHash.StartsWith("sha256-"));
+        }
+
+        [Fact]
+        public void ReportsItselfHealthy()
+        {
+            Assert.Equal(UplinkHealthState.Healthy, new ${Id}Uplink().Health().State);
+        }
+    }
+}
+`,
+  );
 }
 
 /**
@@ -852,17 +1197,14 @@ const asStrings = (value: unknown): Record<string, string> =>
  * floating range would move it independently of the rest. The contract package
  * is read the same way, from the sibling's plugin project.
  */
-function inheritFromSibling(uplinksDir: string, id: string) {
-  if (!existsSync(uplinksDir)) return undefined;
+function siblingPins(uplinksDir: string | undefined) {
+  if (uplinksDir === undefined || !existsSync(uplinksDir)) return undefined;
   for (const sibling of readdirSync(uplinksDir).sort()) {
-    if (sibling === id) continue;
     const pkg = join(uplinksDir, sibling, "client", "package.json");
     const decl = join(uplinksDir, sibling, "uplink.json");
     if (!existsSync(pkg) || !existsSync(decl)) continue;
     const parsed = asRecord(JSON.parse(readFileSync(pkg, "utf8")));
     const declared = asRecord(JSON.parse(readFileSync(decl, "utf8")));
-    const siblingId = String(declared.id ?? sibling);
-    const url = String(asRecord(declared.client).url ?? "");
     const project = join(
       uplinksDir,
       sibling,
@@ -875,53 +1217,59 @@ function inheritFromSibling(uplinksDir: string, id: string) {
         )?.[1]
       : undefined;
     return {
+      id: String(declared.id ?? sibling),
       dependencies: asStrings(parsed.dependencies),
       devDependencies: asStrings(parsed.devDependencies),
       repo: String(declared.repo ?? ""),
       author: String(declared.author ?? ""),
-      clientUrl: url.split(siblingId).join(id),
+      clientUrl: String(asRecord(declared.client).url ?? ""),
       contractVersion,
     };
   }
   return undefined;
 }
 
-export const NEW_USAGE = `uplink-tools new <id> [options]
+export const NEW_USAGE = `uplink-tools new [<id>] [options]
 
-  Scaffold a fresh Uplink and leave it building: the hand-written seed (contract
-  slice, plugin, tests, a minimal widget and its fixture), then its generators.
-  After writing the files it bakes what the plugin announces, generates the
-  client's types (needs the .NET SDK), installs the client's dependencies and
-  writes the generated page.
+  Scaffold a fresh Uplink and leave it building: the hand-written seed (plugin,
+  tests, a minimal widget and its fixture, and a contract slice when it has
+  Topics of its own), then its generators. After writing the files it bakes
+  what the plugin announces, generates the client's types (needs the .NET SDK),
+  installs the client's dependencies and writes the generated page.
+
+  It asks what it was not told. Every question is one of these flags, so with
+  all of them given, or with --yes, it asks nothing. With no terminal it never
+  asks: it stops and names each flag that is missing.
+
+${questionHelp()}
+
+  --yes                  take the default for every question not answered above
+  --dir <dir>            put it in <dir>/<id>, beside any Uplinks already there
+  --no-generate          do not generate the client's types
+  --no-install           do not install the client's dependencies, which also
+                         leaves the generated page unwritten
 
   Where it goes:
     in a repo with an uplinks/ folder   uplinks/<id>/, pinned like its siblings
     anywhere else                       the current directory, which becomes
-                                        the Uplink's own repo
-
-  --dir <dir>            put it in <dir>/<id> instead, beside any Uplinks there
-  --name <name>          the display name (default: the id, capitalised)
-  --author <name>        written to uplink.json and the netkan
-  --repo <owner>/<name>  the GitHub repository it will live in. Sets where the
-                         released client bundle is fetched from; without it the
-                         URL is a placeholder that release refuses
-  --no-generate          do not generate the client's types
-  --no-install           do not install the client's dependencies, which also
-                         leaves the generated page unwritten`;
+                                        the Uplink's own repo`;
 
 /**
- * Where the seed goes, and whether it joins a folder of sibling Uplinks.
+ * The folder of sibling Uplinks the seed joins, or `undefined` when the current
+ * directory is to become the Uplink's own repo.
  *
  * A repo holding several Uplinks keeps them under `uplinks/`, and a new one
  * there inherits its siblings' pins. An author with one Uplink has no such
  * folder, and the repo itself is the Uplink: `uplink.json` at its root.
  */
-function placement(cwd: string, dirFlag: string | undefined, id: string) {
+function siblingsFolder(
+  cwd: string,
+  dirFlag: string | undefined,
+): string | undefined {
   if (dirFlag !== undefined || existsSync(resolve(cwd, "uplinks"))) {
-    const uplinksDir = resolve(cwd, dirFlag ?? "uplinks");
-    return { target: join(uplinksDir, id), uplinksDir };
+    return resolve(cwd, dirFlag ?? "uplinks");
   }
-  return { target: resolve(cwd), uplinksDir: undefined };
+  return undefined;
 }
 
 /** What a repo that IS one Uplink keeps out of git: installs, builds, local renders, the .NET output, what bake writes and where this machine's KSP is. */
@@ -990,18 +1338,69 @@ const SINGLE_REPO_BUILD_TARGETS = `<Project>
 </Project>
 `;
 
-/** `owner/name`, from that or from a GitHub URL of the repository. */
-function parseRepo(value: string): { owner: string; name: string } {
-  const match =
-    /^(?:https?:\/\/github\.com\/)?([A-Za-z0-9][A-Za-z0-9-]*)\/([A-Za-z0-9._-]+?)(?:\.git)?\/?$/.exec(
-      value,
-    );
-  if (!match) {
-    throw new Error(
-      `--repo "${value}" is not a GitHub repository. Give it as <owner>/<name>.`,
-    );
-  }
-  return { owner: match[1], name: match[2] };
+/**
+ * The CI a lone Uplink's repo runs on every push: the same commands its author
+ * runs, and nothing of ours beyond them.
+ */
+function ciWorkflow(topics: Answers["topics"]): string {
+  return `name: ci
+
+# Checks both halves of this Uplink on every push, with the commands you run
+# yourself. A plugin that references the game's own assemblies cannot build
+# here: they are not yours or ours to put in a repository, so a public runner
+# has none. One that reaches its mod by reflection, as the scaffold does, can.
+on:
+  push:
+  pull_request:
+
+jobs:
+  uplink:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install the client
+        working-directory: client
+        run: npm install
+${
+  topics === "own"
+    ? `
+      - name: The generated client types are current
+        working-directory: client
+        run: npm run codegen:check
+`
+    : ""
+}
+      - name: Typecheck the client
+        working-directory: client
+        run: npm run typecheck
+
+      - name: Test the client
+        working-directory: client
+        run: npm test
+
+      - name: Test the plugin
+        run: dotnet test mod-tests
+
+      # Bundles the client, bakes its hash into the plugin, compiles and zips.
+      # It refuses a client URL that is still the scaffold's placeholder.
+      - name: Build both halves for release
+        working-directory: client
+        run: npm run release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uplink
+          path: |
+            client/dist
+            dist
+`;
 }
 
 /** Runs one of the scaffold's follow-on steps, and reports a failure as something left to do rather than as a crash. */
@@ -1040,55 +1439,120 @@ function shell(command: string, args: readonly string[], cwd: string): void {
   }
 }
 
-export function newUplink(
+/** `@clack/prompts`, loaded only once a question is really going to be asked on a terminal. */
+async function loadPrompter(): Promise<Prompter> {
+  const clack = await import("@clack/prompts");
+  return {
+    text: (options) => clack.text(options),
+    select: (options) => clack.select<string>(options),
+    confirm: (options) => clack.confirm(options),
+    isCancel: (value): value is symbol => clack.isCancel(value),
+  };
+}
+
+export interface NewUplinkRuntime {
+  /** Whether there is a terminal to ask on. Defaults to whether stdin is one. */
+  interactive?: boolean;
+  /** Supplies the prompts. Defaults to `@clack/prompts`, loaded on first use. */
+  loadPrompter?: () => Promise<Prompter>;
+}
+
+/**
+ * Runs `new`. Returns 0 when the directory it leaves builds, 1 when the files
+ * were written and a later step did not finish, and 2 when a question went
+ * unanswered with nobody to ask, having written nothing.
+ */
+export async function newUplink(
   argv: readonly string[],
   cwd: string = process.cwd(),
-): number {
-  const { values, switches, positionals } = parseFlags(argv, {
+  runtime: NewUplinkRuntime = {},
+): Promise<number> {
+  const flags = parseFlags(argv, {
     verb: "new",
     usage: NEW_USAGE,
-    values: ["--dir", "--name", "--author", "--repo"],
-    switches: ["--no-generate", "--no-install"],
+    values: ["--dir", ...QUESTION_VALUES],
+    switches: ["--no-generate", "--no-install", "--yes", ...QUESTION_SWITCHES],
     positionals: 1,
   });
-  const id = positionals[0];
-  if (!id) throw new Error(`new needs an id.\n\n${NEW_USAGE}`);
-  const invalid = validateUplinkId(id);
-  if (invalid) throw new Error(invalid);
+  const { values, switches } = flags;
 
-  const { target, uplinksDir } = placement(cwd, values.get("--dir"), id);
+  const uplinksDir = siblingsFolder(cwd, values.get("--dir"));
+  const sibling = siblingPins(uplinksDir);
+
+  let answers: Answers;
+  try {
+    answers = await resolveAnswers({
+      flags,
+      cwd,
+      yes: switches.has("--yes"),
+      interactive: runtime.interactive ?? process.stdin.isTTY === true,
+      inherited: sibling && { author: sibling.author, repo: sibling.repo },
+      loadPrompter: runtime.loadPrompter ?? loadPrompter,
+    });
+  } catch (err) {
+    if (err instanceof MissingAnswers) {
+      console.error(err.message);
+      return 2;
+    }
+    throw err;
+  }
+  const { id } = answers;
+
+  const target = uplinksDir ? join(uplinksDir, id) : resolve(cwd);
   if (uplinksDir !== undefined && existsSync(target)) {
     throw new Error(
       `${target} already exists. new never overwrites: remove it or pick another id.`,
     );
   }
 
-  const inherited = uplinksDir ? inheritFromSibling(uplinksDir, id) : undefined;
-  const repoFlag = values.get("--repo");
-  const named = repoFlag === undefined ? undefined : parseRepo(repoFlag);
+  const named = answers.repo;
   const owner = named?.owner ?? PLACEHOLDER_OWNER;
   const repoName = named?.name ?? (uplinksDir ? "your-uplinks" : id);
   // A repo of several Uplinks publishes each under its own folder of the releases branch.
   const releasesPath = uplinksDir ? "uplinks/releases" : "releases";
   const derivedUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@releases/${releasesPath}/${id}/0.0.1/${id}.client.js`;
-  const clientUrl = named ? derivedUrl : (inherited?.clientUrl ?? derivedUrl);
+  // A sibling's URL with this Uplink's id in its place: the same repository and layout, which is where this one will be published too.
+  const inheritedUrl = sibling?.clientUrl
+    ? sibling.clientUrl.split(sibling.id).join(id)
+    : undefined;
   const files = renderSeed({
     id,
-    name: values.get("--name") ?? pascal(id),
-    author: values.get("--author") ?? inherited?.author ?? "your name here",
+    name: answers.name,
+    author: answers.author,
     repo: named
       ? `https://github.com/${owner}/${repoName}`
-      : (inherited?.repo ?? `https://github.com/${owner}/${repoName}`),
-    clientUrl,
-    contractVersion: inherited?.contractVersion ?? ownVersion(),
-    dependencies: inherited?.dependencies ?? fallbackDependencies(ownVersion()),
+      : sibling?.repo || `https://github.com/${owner}/${repoName}`,
+    clientUrl: named ? derivedUrl : (inheritedUrl ?? derivedUrl),
+    contractVersion: sibling?.contractVersion ?? ownVersion(),
+    topics: answers.topics,
+    dependencies: sibling?.dependencies ?? fallbackDependencies(ownVersion()),
     devDependencies:
-      inherited?.devDependencies ?? fallbackDevDependencies(ownVersion()),
+      sibling?.devDependencies ?? fallbackDevDependencies(ownVersion()),
   });
+  // What belongs to a repository, which a folder of sibling Uplinks already has of its own.
+  const repoOnly: string[] = [];
   if (!uplinksDir) {
     files.set(".gitignore", SINGLE_REPO_GITIGNORE);
     files.set("Directory.Build.props", SINGLE_REPO_BUILD_PROPS);
     files.set("Directory.Build.targets", SINGLE_REPO_BUILD_TARGETS);
+    if (answers.workflows) {
+      files.set(".github/workflows/ci.yml", ciWorkflow(answers.topics));
+    }
+    if (answers.ksp !== null) {
+      files.set(
+        "ksp.local.props",
+        `<Project>
+  <!-- Where KSP is on this machine. Kept out of git: Directory.Build.props reads it. -->
+  <PropertyGroup>
+    <KspRoot>${answers.ksp.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</KspRoot>
+  </PropertyGroup>
+</Project>
+`,
+      );
+    }
+  } else {
+    if (answers.workflows) repoOnly.push("a workflow (--workflows)");
+    if (answers.ksp !== null) repoOnly.push("a KSP location (--ksp)");
   }
 
   const clashes = [...files.keys()].filter((path) =>
@@ -1107,21 +1571,29 @@ export function newUplink(
     writeFileSync(out, content);
   }
   console.log(`${id}: wrote ${files.size} files to ${target}`);
+  if (repoOnly.length > 0) {
+    console.log(
+      `  not written: ${repoOnly.join(" and ")}. Those belong to a repository, and this Uplink joined one that has its own.`,
+    );
+  }
   console.log(describeBake(bakeUplink({ uplinkDir: target })));
 
   const clientDir = join(target, "client");
   const client = relative(cwd, clientDir) || ".";
   const inClient = (command: string) => `cd ${client} && ${command}`;
   const pageCommand = inClient("npm run page");
+  const ownTopics = answers.topics === "own";
   const unfinished: string[] = [];
   const note = (failure: string | undefined) => {
     if (failure !== undefined) unfinished.push(failure);
     return failure === undefined;
   };
 
-  const generated = switches.has("--no-generate")
-    ? false
-    : note(
+  // An Uplink with no Topics of its own has no types to generate, so that step is neither run nor owed.
+  const generated =
+    !ownTopics ||
+    (!switches.has("--no-generate") &&
+      note(
         attempt(
           "generate the client's types",
           inClient("npx uplink-tools codegen"),
@@ -1129,7 +1601,7 @@ export function newUplink(
             generate({ uplinkDir: target });
           },
         ),
-      );
+      ));
   const installed = switches.has("--no-install")
     ? false
     : note(
@@ -1150,7 +1622,7 @@ export function newUplink(
     );
 
   const skipped = [
-    ...(switches.has("--no-generate")
+    ...(ownTopics && switches.has("--no-generate")
       ? [`generate the client's types: ${inClient("npx uplink-tools codegen")}`]
       : []),
     ...(switches.has("--no-install")
@@ -1162,7 +1634,7 @@ export function newUplink(
   ];
   const yours = [
     "say what it is for in client/uplink.md",
-    ...(named
+    ...(named || inheritedUrl
       ? []
       : [
           'set "repo" and "client.url" in uplink.json to where it will be published (or scaffold with --repo <owner>/<name>): release refuses the placeholder',

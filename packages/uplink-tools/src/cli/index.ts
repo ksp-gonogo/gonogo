@@ -365,7 +365,7 @@ export async function run(argv: readonly string[]): Promise<number> {
         console.log(NEW_USAGE);
         return 0;
       }
-      return newUplink(argv.slice(1));
+      return await newUplink(argv.slice(1));
     }
     if (verb === "bundle") return await bundle(argv.slice(1));
     const plain: Record<
@@ -413,13 +413,4 @@ export async function run(argv: readonly string[]): Promise<number> {
     console.error(`\n${err instanceof Error ? err.message : String(err)}`);
     return 1;
   }
-}
-
-/** A `package.json`'s top-level object, or a failure naming the file. */
-function readManifest(path: string): Record<string, unknown> {
-  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error(`${path} does not hold a JSON object.`);
-  }
-  return parsed as Record<string, unknown>;
 }

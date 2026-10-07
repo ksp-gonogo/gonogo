@@ -1034,7 +1034,7 @@ jobs:
   # job runs the commands the scaffold itself names: new, install, codegen,
   # typecheck, test on both halves, release. The released plugin is then loaded
   # by the mod's own scan into a real stream engine, and the app reads that
-  # stream's roster and loads the client it names. Seven planted faults must each
+  # stream's roster and loads the client it names. Nine planted faults must each
   # fail or the probe exits BLIND. The script's header has the rest.
   #
   # Its own job because it needs all of dotnet, a full build and the network,

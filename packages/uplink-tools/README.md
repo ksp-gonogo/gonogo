@@ -15,6 +15,13 @@ npx @ksp-gonogo/uplink-tools new myuplink --repo you/myuplink   # in an empty di
 npx @ksp-gonogo/uplink-tools --help
 ```
 
+`new` asks what it was not told: the id, a display name, the author, the
+repository it will be published from, whether it has Topics of its own, whether
+to write a CI workflow, and where KSP is. Every question is also a flag
+(`uplink-tools new --help` lists them), and `--yes` takes the default for the
+rest. With no terminal it never asks: it stops, writes nothing and names each
+missing flag, so a script or an agent can fix its call in one go.
+
 `new` writes the Uplink and then runs its generators, so the directory it leaves
 builds and tests: `npm test` in `client/`, and `dotnet test mod-tests`. It needs
 Node and the .NET SDK, and no clone of anything. The C# half reaches Gonogo

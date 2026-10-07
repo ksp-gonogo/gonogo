@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { newUplink, renderSeed, validateUplinkId } from "./new";
+import type { Prompter } from "./questions";
 
 const scratch: string[] = [];
 const workdir = () => {
@@ -24,8 +25,8 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 
-/** Only the files: the generators need the .NET SDK, npm and the network, and the scaffold probe is what runs them. */
-const BARE = ["--no-generate", "--no-install"];
+/** Only the files, and every question answered by its default: the generators need the .NET SDK, npm and the network, and the scaffold probe is what runs them. */
+const BARE = ["--yes", "--author", "Tester", "--no-generate", "--no-install"];
 
 const seed = () =>
   renderSeed({
@@ -35,6 +36,7 @@ const seed = () =>
     repo: "https://elsewhere.test/r",
     clientUrl: "https://elsewhere.test/widgets.js",
     contractVersion: "4.5.6",
+    topics: "own",
     dependencies: {},
     devDependencies: {},
   });
@@ -72,7 +74,8 @@ describe("uplink-tools new", () => {
     for (const [path, content] of files) {
       if (path.endsWith(".json"))
         expect(() => JSON.parse(content)).not.toThrow();
-      expect(content).not.toContain("example");
+      // Nothing left over from an Uplink this seed was once copied from.
+      expect(content).not.toMatch(/example[.-]|Example(Uplink|Heartbeat)/);
     }
   });
 
@@ -171,7 +174,7 @@ describe("uplink-tools new", () => {
     expect(validateUplinkId("ok2")).toBeUndefined();
   });
 
-  it("writes the seed, inherits a sibling's pins and never overwrites", () => {
+  it("writes the seed, inherits a sibling's pins and never overwrites", async () => {
     const root = workdir();
     const uplinks = join(root, "uplinks");
     mkdirSync(join(uplinks, "sib", "client"), { recursive: true });
@@ -193,7 +196,7 @@ describe("uplink-tools new", () => {
     );
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["fresh", "--dir", uplinks, ...BARE]);
+    await newUplink(["fresh", "--dir", uplinks, ...BARE]);
 
     const pkg = JSON.parse(
       readFileSync(join(uplinks, "fresh", "client", "package.json"), "utf8"),
@@ -208,15 +211,15 @@ describe("uplink-tools new", () => {
     expect(existsSync(join(uplinks, "fresh", "mod", "FreshUplink.cs"))).toBe(
       true,
     );
-    expect(() => newUplink(["fresh", "--dir", uplinks, ...BARE])).toThrow(
-      /already exists/,
-    );
+    await expect(
+      newUplink(["fresh", "--dir", uplinks, ...BARE]),
+    ).rejects.toThrow(/already exists/);
   });
-  it("pins every published sibling to this package's own version when there is no sibling Uplink to inherit from", () => {
+  it("pins every published sibling to this package's own version when there is no sibling Uplink to inherit from", async () => {
     const uplinks = join(workdir(), "uplinks");
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["fresh", "--dir", uplinks, ...BARE]);
+    await newUplink(["fresh", "--dir", uplinks, ...BARE]);
 
     const own = JSON.parse(
       readFileSync(
@@ -239,11 +242,11 @@ describe("uplink-tools new", () => {
     });
   });
 
-  it("makes an empty directory the Uplink's own repo when there is no uplinks folder", () => {
+  it("makes an empty directory the Uplink's own repo when there is no uplinks folder", async () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["solo", ...BARE], repo);
+    await newUplink(["solo", ...BARE], repo);
 
     for (const path of [
       "uplink.json",
@@ -281,16 +284,16 @@ describe("uplink-tools new", () => {
     expect(scripts.bundle).toBe("uplink-tools bundle");
     expect(scripts.docs).toBe("uplink-tools docs");
 
-    expect(() => newUplink(["solo", ...BARE], repo)).toThrow(
+    await expect(newUplink(["solo", ...BARE], repo)).rejects.toThrow(
       /never overwrites/,
     );
   });
 
-  it("takes the repository it will be published from, and derives where the client is fetched", () => {
+  it("takes the repository it will be published from, and derives where the client is fetched", async () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["solo", "--repo", "kerbal/solo-uplink", ...BARE], repo);
+    await newUplink(["solo", "--repo", "kerbal/solo-uplink", ...BARE], repo);
 
     const declared = JSON.parse(
       readFileSync(join(repo, "uplink.json"), "utf8"),
@@ -299,16 +302,16 @@ describe("uplink-tools new", () => {
     expect(declared.client.url).toBe(
       "https://cdn.jsdelivr.net/gh/kerbal/solo-uplink@releases/releases/solo/0.0.1/solo.client.js",
     );
-    expect(() =>
+    await expect(
       newUplink(["other", "--repo", "not a repo", ...BARE], workdir()),
-    ).toThrow(/not a GitHub repository/);
+    ).rejects.toThrow(/not a GitHub repository/);
   });
 
-  it("says where the game is found, for a lone repo, and asks only a project that references it", () => {
+  it("says where the game is found, for a lone repo, and asks only a project that references it", async () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["solo", ...BARE], repo);
+    await newUplink(["solo", ...BARE], repo);
 
     const props = readFileSync(join(repo, "Directory.Build.props"), "utf8");
     expect(props).toContain("$(KSP_ROOT)");
@@ -321,14 +324,14 @@ describe("uplink-tools new", () => {
     );
   });
 
-  it("ends by saying what was skipped and what is the author's, naming commands that exist", () => {
+  it("ends by saying what was skipped and what is the author's, naming commands that exist", async () => {
     const repo = workdir();
     const said: string[] = [];
     vi.spyOn(console, "log").mockImplementation((line: string) => {
       said.push(line);
     });
 
-    expect(newUplink(["solo", ...BARE], repo)).toBe(0);
+    expect(await newUplink(["solo", ...BARE], repo)).toBe(0);
 
     const out = said.join("\n");
     expect(out).toContain("npx uplink-tools codegen");
@@ -342,12 +345,12 @@ describe("uplink-tools new", () => {
     expect(out).not.toMatch(/tooling\/|GonogoContract|pnpm /);
   });
 
-  it("goes into an uplinks folder that is already there, beside its siblings", () => {
+  it("goes into an uplinks folder that is already there, beside its siblings", async () => {
     const repo = workdir();
     mkdirSync(join(repo, "uplinks"));
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    newUplink(["second", ...BARE], repo);
+    await newUplink(["second", ...BARE], repo);
 
     expect(existsSync(join(repo, "uplinks", "second", "uplink.json"))).toBe(
       true,
@@ -356,5 +359,203 @@ describe("uplink-tools new", () => {
     expect(existsSync(join(repo, "uplinks", "second", ".gitignore"))).toBe(
       false,
     );
+  });
+
+  it("with no terminal and a question unanswered, writes nothing and names every missing flag at once", async () => {
+    const repo = workdir();
+    const said: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((line: string) => {
+      said.push(line);
+    });
+
+    const code = await newUplink(
+      ["solo", "--name", "Solo", "--no-generate", "--no-install"],
+      repo,
+      { interactive: false },
+    );
+
+    expect(code).toBe(2);
+    expect(existsSync(join(repo, "uplink.json"))).toBe(false);
+    const message = said.join("\n");
+    expect(message).toContain("stdin is not a terminal");
+    for (const flag of [
+      "--author <name>",
+      "--repo <owner>/<name> | --no-repo",
+      "--topics own | core",
+      "--workflows | --no-workflows",
+      "--ksp <path> | --no-ksp",
+    ]) {
+      expect(message).toContain(flag);
+    }
+    // Answered on the command line, so not asked for again.
+    expect(message).not.toContain("--name");
+    expect(message).toContain("--yes");
+  });
+
+  it("asks nothing, and loads no prompt library, when every question is a flag", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const loadPrompter = vi.fn<() => Promise<Prompter>>();
+
+    const code = await newUplink(
+      [
+        "solo",
+        "--name",
+        "Solo",
+        "--author",
+        "Tester",
+        "--no-repo",
+        "--topics",
+        "own",
+        "--no-workflows",
+        "--no-ksp",
+        "--no-generate",
+        "--no-install",
+      ],
+      repo,
+      { interactive: true, loadPrompter },
+    );
+
+    expect(code).toBe(0);
+    expect(loadPrompter).not.toHaveBeenCalled();
+  });
+
+  it("on a terminal, asks only what the flags left open and writes what was answered", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const asked: string[] = [];
+    const prompter: Prompter = {
+      text: async ({ message }) => {
+        asked.push(message);
+        if (message.startsWith("Author")) return "Val Kerman";
+        if (message.startsWith("GitHub repository")) return "val/solo";
+        return "";
+      },
+      select: async ({ message }) => {
+        asked.push(message);
+        return "core";
+      },
+      confirm: async ({ message }) => {
+        asked.push(message);
+        return true;
+      },
+      isCancel: (value): value is symbol => typeof value === "symbol",
+    };
+
+    const code = await newUplink(
+      ["solo", "--name", "Solo", "--no-generate", "--no-install"],
+      repo,
+      { interactive: true, loadPrompter: async () => prompter },
+    );
+
+    expect(code).toBe(0);
+    // The id and the name came from the command line.
+    expect(asked).toHaveLength(5);
+    const declared = JSON.parse(
+      readFileSync(join(repo, "uplink.json"), "utf8"),
+    );
+    expect(declared.author).toBe("Val Kerman");
+    expect(declared.repo).toBe("https://github.com/val/solo");
+    expect(declared.codegen).toBeUndefined();
+    expect(existsSync(join(repo, ".github", "workflows", "ci.yml"))).toBe(true);
+    expect(existsSync(join(repo, "ksp.local.props"))).toBe(false);
+  });
+
+  it("writes nothing when a prompt is cancelled", async () => {
+    const repo = workdir();
+    const cancelled = Symbol("cancel");
+    const prompter: Prompter = {
+      text: async () => cancelled,
+      select: async () => cancelled,
+      confirm: async () => cancelled,
+      isCancel: (value): value is symbol => value === cancelled,
+    };
+
+    await expect(
+      newUplink(["solo", "--no-generate", "--no-install"], repo, {
+        interactive: true,
+        loadPrompter: async () => prompter,
+      }),
+    ).rejects.toThrow(/Nothing was written/);
+    expect(existsSync(join(repo, "uplink.json"))).toBe(false);
+  });
+
+  it("scaffolds an Uplink with no Topics of its own: no contract slice, a plugin that only announces the client, a widget on a core Topic", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    expect(await newUplink(["solo", "--topics", "core", ...BARE], repo)).toBe(
+      0,
+    );
+
+    for (const absent of [
+      "mod-contract",
+      "mod-contract-codegen",
+      "client/src/topics.ts",
+      "client/src/Heartbeat",
+    ]) {
+      expect(existsSync(join(repo, absent)), absent).toBe(false);
+    }
+    const read = (path: string) => readFileSync(join(repo, path), "utf8");
+    const declared = JSON.parse(read("uplink.json"));
+    expect(declared.codegen).toBeUndefined();
+    expect(
+      JSON.parse(read("client/package.json")).scripts.codegen,
+    ).toBeUndefined();
+    expect(read("mod/SoloUplink.cs")).not.toContain("Channels =");
+    expect(read("mod/SoloUplink.cs")).toContain(
+      "ClientSource = new UplinkClientSource",
+    );
+    expect(read("mod/GonogoSoloUplink.csproj")).not.toContain("mod-contract");
+    expect(read("mod-tests/GonogoSoloUplink.Tests.csproj")).not.toContain(
+      "mod-contract",
+    );
+    expect(read("client/src/Vessel/index.tsx")).toContain(
+      'channels: ["vessel.identity"]',
+    );
+    expect(read("client/src/index.ts")).not.toContain("topics");
+  });
+
+  it("writes a CI workflow for a lone repo when asked, checking generated types only where there are some", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const own = workdir();
+    const core = workdir();
+
+    await newUplink(["solo", "--workflows", ...BARE], own);
+    await newUplink(["solo", "--workflows", "--topics", "core", ...BARE], core);
+    const plain = workdir();
+    await newUplink(["solo", ...BARE], plain);
+
+    const workflow = (repo: string) =>
+      readFileSync(join(repo, ".github", "workflows", "ci.yml"), "utf8");
+    expect(workflow(own)).toContain("npm run codegen:check");
+    expect(workflow(own)).toContain("dotnet test mod-tests");
+    expect(workflow(own)).toContain("npm run release");
+    expect(workflow(core)).not.toContain("codegen");
+    // Off unless asked for.
+    expect(existsSync(join(plain, ".github"))).toBe(false);
+  });
+
+  it("records where KSP is, out of git, and refuses a folder that is not an install", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const install = workdir();
+    mkdirSync(join(install, "KSP_Data", "Managed"), { recursive: true });
+    writeFileSync(
+      join(install, "KSP_Data", "Managed", "Assembly-CSharp.dll"),
+      "",
+    );
+    const repo = workdir();
+
+    await newUplink(["solo", "--ksp", install, ...BARE], repo);
+
+    expect(readFileSync(join(repo, "ksp.local.props"), "utf8")).toContain(
+      `<KspRoot>${install}</KspRoot>`,
+    );
+    expect(readFileSync(join(repo, ".gitignore"), "utf8")).toContain(
+      "ksp.local.props",
+    );
+    await expect(
+      newUplink(["other", "--ksp", workdir(), ...BARE], workdir()),
+    ).rejects.toThrow(/not a KSP install/);
   });
 });

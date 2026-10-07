@@ -17,6 +17,9 @@
  *   dotnet test mod-tests
  *   npm run release         bundle, bake, compile, verify, zip
  *
+ * It does that for both shapes `new` writes: an Uplink with Topics of its own,
+ * every question answered by a flag, and one with none, scaffolded with `--yes`.
+ *
  * and then follows the result where an install would take it: the released DLL
  * is loaded by the mod's own assembly scan into a real stream engine
  * (`scaffold-probe-host/`), and the app reads that stream's roster, loads the
@@ -36,6 +39,9 @@
  * Each plant is run through the same commands and must fail, or the probe exits
  * as BLIND:
  *
+ *   - `new` with no terminal and a question unanswered, which must stop and
+ *     name the flag instead of waiting on a prompt
+ *   - a widget registered with no description, which the page must refuse
  *   - `docs` run where no browser is installed, which is how it is known that
  *     no earlier command needed one
  *   - a client import of `@ksp-gonogo/core`, which no author can install
@@ -246,13 +252,22 @@ if (published) {
 
 // ── uplink-tools new, as npx runs it ────────────────────────────────────────
 
+let launcher;
+let bin;
+// Every question answered by its flag, since there is no terminal here and `new` asks nothing without one.
 const newArgs = [
   "new",
   ID,
+  "--name",
+  "Probe",
   "--author",
   "Scaffold Probe",
   "--repo",
   "ksp-gonogo/probe",
+  "--topics",
+  "own",
+  "--workflows",
+  "--no-ksp",
   // In an install the tarballs are named, so the scaffold's own install would look for these versions on npm and not find them. The probe runs the same steps below.
   ...(published ? [] : ["--no-install", "--no-generate"]),
 ];
@@ -278,7 +293,7 @@ if (published) {
    * and the sdk is named only because a tarball's exact pin on its sibling
    * cannot be found on npm.
    */
-  const launcher = join(work, "launcher");
+  launcher = join(work, "launcher");
   mkdirSync(launcher);
   writeFileSync(join(launcher, "package.json"), '{ "private": true }\n');
   must(
@@ -304,7 +319,7 @@ if (published) {
       );
     }
   }
-  const bin = join(launcher, "node_modules/.bin/uplink-tools");
+  bin = join(launcher, "node_modules/.bin/uplink-tools");
   for (const verb of [
     "new",
     "codegen",
@@ -329,6 +344,19 @@ if (published) {
       );
     }
   }
+  // With no terminal and an answer missing it must stop and say which, never wait on a prompt nobody will answer.
+  const unanswered = join(work, "unanswered");
+  mkdirSync(unanswered);
+  mustFail(
+    "new with no terminal and a question unanswered",
+    /stdin is not a terminal[\s\S]*--author <name>/,
+    bin,
+    ["new", "unanswered"],
+    { cwd: unanswered },
+  );
+  if (readdirSync(unanswered).length > 0) {
+    fail("new wrote files although a question went unanswered");
+  }
   must("uplink-tools new", bin, newArgs, { cwd: uplink });
 }
 
@@ -352,15 +380,20 @@ for (const project of [
 }
 console.log(`  ✓ every pin the scaffold wrote is exactly ${version}`);
 
-if (!published) {
+/** The probe's only two edits to a scaffold: its three npm specifiers to the packed tarballs, and a feed for the packed contract. */
+function pointAtPacked(dir) {
+  const manifestPath = join(dir, "client/package.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   for (const field of ["dependencies", "devDependencies"]) {
     for (const name of SCOPED) {
-      if (pkg[field]?.[name]) pkg[field][name] = `file:${tarballs[name]}`;
+      if (manifest[field]?.[name]) {
+        manifest[field][name] = `file:${tarballs[name]}`;
+      }
     }
   }
-  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   writeFileSync(
-    join(uplink, "nuget.config"),
+    join(dir, "nuget.config"),
     `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
@@ -371,6 +404,10 @@ if (!published) {
 </configuration>
 `,
   );
+}
+
+if (!published) {
+  pointAtPacked(uplink);
   console.log(
     `  edited client/package.json: ${SCOPED.join(", ")} now name the packed tarballs\n` +
       `  added nuget.config: ${NUGET_ID} ${version} comes from ${feed}`,
@@ -392,6 +429,23 @@ for (const file of ["contract.ts", "topic-map.ts", "units.ts", "units.json"]) {
 }
 if (!existsSync(join(client, "README.md"))) {
   fail("the generated page, client/README.md, was not written");
+}
+// The page of a fresh scaffold is the first thing its author reads back, so every part of it has to say something.
+const pageText = readFileSync(join(client, "README.md"), "utf8");
+const widgetRecords = JSON.parse(
+  readFileSync(join(client, "docs/widgets.json"), "utf8"),
+).widgets;
+if (widgetRecords.length === 0) fail("the generated page lists no widget");
+for (const widget of widgetRecords) {
+  if (!widget.description?.trim() || !pageText.includes(widget.description)) {
+    fail(`the generated page does not carry a description of ${widget.id}`);
+  }
+}
+if (/undefined|\bnull\b/.test(pageText)) {
+  fail("the generated page prints an undefined or null where a value belongs");
+}
+if (!existsSync(join(uplink, ".github/workflows/ci.yml"))) {
+  fail("--workflows was given and no .github/workflows/ci.yml was written");
 }
 const npmRun = (script) =>
   must(`npm run ${script}`, "npm", ["run", script], { cwd: client });
@@ -466,6 +520,23 @@ mustFail(
   /@ksp-gonogo\/core/,
   "npm",
   ["run", "typecheck"],
+  { cwd: client },
+);
+writeFileSync(widget, widgetSource);
+
+const described = widgetSource.replace(
+  /description: "[^"]*",/,
+  'description: "",',
+);
+if (described === widgetSource) {
+  fail("the scaffolded widget has no description to blank");
+}
+writeFileSync(widget, described);
+mustFail(
+  "a widget registered with no description",
+  /registers? no `description`/,
+  "npm",
+  ["run", "page"],
   { cwd: client },
 );
 writeFileSync(widget, widgetSource);
@@ -555,10 +626,68 @@ if (kspManaged) {
 }
 writeFileSync(pluginProject, projectSource);
 
+// ── The other shape: no Topics of its own, every other answer a default ─────
+
+if (!published) {
+  console.log(
+    "scaffold-probe: an Uplink with no Topics of its own, scaffolded with --yes",
+  );
+  const coreId = "probecore";
+  const coreNs = "GonogoProbecoreUplink";
+  const core = join(work, coreId);
+  const coreClient = join(core, "client");
+  mkdirSync(core);
+  must(
+    "uplink-tools new --yes --topics core",
+    bin,
+    [
+      "new",
+      coreId,
+      "--yes",
+      "--topics",
+      "core",
+      "--author",
+      "Scaffold Probe",
+      "--repo",
+      "ksp-gonogo/probecore",
+      "--no-install",
+    ],
+    { cwd: core },
+  );
+  for (const absent of ["mod-contract", "mod-contract-codegen"]) {
+    if (existsSync(join(core, absent))) {
+      fail(`--topics core still wrote ${absent}`);
+    }
+  }
+  pointAtPacked(core);
+  must("npm install", "npm", ["install", "--no-package-lock"], {
+    cwd: coreClient,
+  });
+  for (const script of ["page", "typecheck", "test", "release"]) {
+    must(`npm run ${script}`, "npm", ["run", script], { cwd: coreClient });
+  }
+  must("dotnet test mod-tests", "dotnet", [
+    "test",
+    join(core, "mod-tests", `${coreNs}.Tests.csproj`),
+    ...dotnetQuiet,
+  ]);
+  const coreZip = must("list the mod zip", "unzip", [
+    "-Z1",
+    join(core, "dist", `${coreNs}.zip`),
+  ])
+    .split("\n")
+    .filter(Boolean);
+  if (coreZip.join("\n") !== `${coreNs}/Plugins/${coreNs}.dll`) {
+    fail(
+      `the core-Topics mod zip holds [${coreZip.join(", ")}], expected the plugin alone`,
+    );
+  }
+}
+
 if (published) {
   console.log(
     `\n✓ scaffold-probe: at ${version} from npm and nuget.org, an Uplink scaffolded in an empty ` +
-      "directory generates, typechecks, tests on both halves and releases; five plants were refused. " +
+      "directory generates, typechecks, tests on both halves and releases; six plants were refused. " +
       "NOT RUN: loading the released plugin and client into this tree's mod and app.",
   );
   process.exit(0);
@@ -715,5 +844,5 @@ await plant("a plugin that announces no client", "unannounced", () => {
 console.log(
   `\n✓ scaffold-probe: from what this tree would publish as ${version}, an Uplink scaffolded outside ` +
     "the repo generates, typechecks, tests on both halves and releases, its plugin is found by the " +
-    "mod's scan, and the app loads the client it announces and draws the widget. Seven plants were seen.",
+    "mod's scan, and the app loads the client it announces and draws the widget. Nine plants were seen.",
 );
