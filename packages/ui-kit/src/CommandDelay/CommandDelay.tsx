@@ -4,6 +4,7 @@ import {
   type ControlRibbonDatum,
   type ControlStreamDatum,
 } from "./ControlDelayStream";
+import type { CommandFailedEntry } from "./commandFailedSentence";
 import type { CommandFoundEntry } from "./commandFoundSentence";
 import type { CommandLossEntry } from "./commandLossSentence";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
@@ -98,6 +99,12 @@ export interface CommandDelayHandle {
    * the command did not run. An entry here has left `losses`, as with `founds`.
    */
   undelivered?: CommandUndeliveredEntry[];
+  /**
+   * Dispatches from this command the mod answered with a FAULT in place of a
+   * reply, until dismissed: it expired or was cancelled on its way, or a game
+   * load undid it. Each carries the fault's code, which says which.
+   */
+  failures?: CommandFailedEntry[];
   /**
    * Clear a dead command (`overdue`/`lost`) from this handle's shared delay
    * queue, both in the widget-top queue and on the issuing control. When

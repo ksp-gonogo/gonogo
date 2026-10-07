@@ -329,6 +329,13 @@ export const FaultCode = {
    */
   CommandCancelled: "commandCancelled",
   /**
+   * A game load started a new timeline while the command was on its way, and the
+   * save it loaded does not carry the command, so it will not run. A quickload
+   * to before the command was sent is the common case. A command the loaded save
+   * does carry stays on its way and is answered as usual.
+   */
+  UndoneByLoad: "undoneByLoad",
+  /**
    * A continuous input, a throttle or a control axis, was dropped at a node
    * where it would have had to wait on its way to the craft. Held and sent on
    * later it would arrive as a run of out-of-date values, so a node that cannot
@@ -637,6 +644,14 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     origin: "mod",
     sentence: "it was cancelled before it ran",
     meaning: "A cancel stopped the command before it ran.",
+  },
+  {
+    id: "undoneByLoad",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "a game load undid it before it ran",
+    meaning: "A game load started a new timeline while the command was on its way, and the save it loaded does not carry the command, so it will not run. A quickload to before the command was sent is the common case. A command the loaded save does carry stays on its way and is answered as usual.",
   },
   {
     id: "continuousInputWouldWait",

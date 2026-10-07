@@ -8,13 +8,14 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { CommandGateReport } from "../__generated__/contract";
-import { FaultCode } from "../__generated__/error-codes";
+import { CORE_ERROR_CODES, FaultCode } from "../__generated__/error-codes";
 import {
   COMMAND_LOST,
   COMMAND_REFUSED,
   classifyCommandRejection,
 } from "../api/command-rejection";
 import type {
+  CommandFailure,
   CommandFound,
   CommandLoss,
   CommandRefusal,
@@ -92,6 +93,20 @@ const NO_FOUNDS: CommandFound[] = [];
 /** Same reason as `NO_REFUSALS`. Empty unless a transport gave up on a link
  *  entirely, which is once per outage that never ends. */
 const NO_UNDELIVERED: CommandUndelivered[] = [];
+
+/** Same reason as `NO_REFUSALS`. Empty unless the mod answered a dispatch with a fault. */
+const NO_FAILURES: CommandFailure[] = [];
+
+const MOD_FAULTS: ReadonlySet<string> = new Set(
+  CORE_ERROR_CODES.filter((d) => d.kind === "fault" && d.origin === "mod").map(
+    (d) => d.id,
+  ),
+);
+
+/** Whether `code` is a fault the mod itself answers with, rather than one this client mints about its own link. */
+function isModFault(code: string): boolean {
+  return MOD_FAULTS.has(code);
+}
 
 /**
  * How long (real UT seconds) a dispatched id may go without EVER appearing
@@ -273,6 +288,15 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * whole reason an operator wants to be told.
    */
   undelivered: CommandUndelivered[];
+  /**
+   * Every dispatch from this hook the mod answered with a FAULT rather than a
+   * reply, newest last, until the operator clears it with the same `dismiss`:
+   * it expired or was cancelled on its way, a continuous input was dropped
+   * where it would have waited, or a game load undid it. The mod said what
+   * became of it, so it is neither a loss, which knows nothing, nor a refusal,
+   * which is the game's verdict on the command. None of them ran.
+   */
+  failures: CommandFailure[];
   /**
    * What the mod says about this command BEFORE anyone presses anything: the
    * standing verdict of its declared gates, off `system.uplink.gates`.
@@ -482,6 +506,7 @@ export function useCommand(
   // spent, exactly as it is for a found).
   const [undelivered, setUndelivered] =
     useState<CommandUndelivered[]>(NO_UNDELIVERED);
+  const [failures, setFailures] = useState<CommandFailure[]>(NO_FAILURES);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
@@ -826,6 +851,10 @@ export function useCommand(
       const keep = prev.filter((u) => u.id !== id);
       return keep.length === prev.length ? prev : keep;
     });
+    setFailures((prev) => {
+      const keep = prev.filter((f) => f.id !== id);
+      return keep.length === prev.length ? prev : keep;
+    });
   }, []);
 
   const send = useCallback(
@@ -975,6 +1004,21 @@ export function useCommand(
           ]);
           return;
         }
+        // A fault the mod answered with names what became of the command, so it is kept to be said rather than dropped with the promise.
+        if (rejection.kind === "failed" && isModFault(rejection.code)) {
+          setFailures((prev) => [
+            ...prev,
+            {
+              id: newRequestId,
+              command,
+              args,
+              label: opts?.label ?? "",
+              code: rejection.code,
+              reason: rejection.message,
+            },
+          ]);
+          return;
+        }
         if (rejection.kind !== "refused") return;
         setRefusals((prev) => [
           ...prev,
@@ -1010,6 +1054,7 @@ export function useCommand(
     losses,
     founds,
     undelivered,
+    failures,
     tags,
     effectiveDelaySeconds,
     delayReading,

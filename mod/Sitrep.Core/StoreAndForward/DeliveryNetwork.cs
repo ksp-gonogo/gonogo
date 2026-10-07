@@ -565,6 +565,15 @@ namespace Sitrep.Core.StoreAndForward
             }
         }
 
+        /// <summary>Whether <paramref name="id"/> names a command this network has sent and still keeps.</summary>
+        public bool Carries(string id)
+        {
+            lock (_gate)
+            {
+                return _sentCommands.ContainsKey(id);
+            }
+        }
+
         /// <summary>Where every message is right now, for tests and diagnostics.</summary>
         public IReadOnlyList<(string Node, DeliveryMessage Message)> HeldMessages()
         {

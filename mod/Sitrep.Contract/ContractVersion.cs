@@ -2452,8 +2452,13 @@ namespace Sitrep.Contract
         /// radio measured the strength on, set whenever
         /// <see cref="CommsSignal.OtherPath"/> is true and null otherwise.
         /// Additive: a client that does not know the field drops it.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 21 -&gt; 22:</b> the fault code
+        /// <c>undoneByLoad</c>. A command still on its way when a game load starts
+        /// a new timeline that does not carry it is now refused with it, where its
+        /// request was left with no answer at all. Additive on the wire.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 21;
+        public const int Minor = 22;
     }
 }

@@ -120,7 +120,7 @@ function dispatchPlan(
         undelivered.push(dispatch);
         return;
       }
-      failed.push(dispatch);
+      failed.push({ ...dispatch, code: classified.code });
     });
   });
   void Promise.all(settled).then(() => {

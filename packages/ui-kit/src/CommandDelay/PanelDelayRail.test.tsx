@@ -881,6 +881,53 @@ describe("PanelDelayRail", () => {
     });
   });
 
+  describe("a command the mod answered with a fault", () => {
+    function faultedHandle(id: string, dismiss?: (id: string) => void) {
+      return {
+        id,
+        inFlight: [],
+        tags: RAIL_DISCRETE,
+        effectiveDelaySeconds: 5,
+        failures: [
+          {
+            id: `${id}-f0`,
+            command: "vessel.control.setActionGroup",
+            args: { group: 3, state: true },
+            label: "AG3 on",
+            code: "undoneByLoad",
+          },
+        ],
+        dismiss,
+      };
+    }
+
+    it("counts with the failures and says what became of it, once expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(faultedHandle("cmd"));
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.getByText("1 command failed")).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      const list = screen.getByRole("list", { name: /failed/i });
+      expect(list.textContent).toMatch(
+        /AG3 on: failed, a game load undid it before it ran\./,
+      );
+    });
+
+    it("clears it through the handle that owns it", async () => {
+      const user = userEvent.setup();
+      const dismissed: string[] = [];
+      const store = createDelayRailStore();
+      store.register(faultedHandle("cmd", (id) => dismissed.push(id)));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await user.click(screen.getByRole("button", { name: /Dismiss AG3 on/i }));
+      expect(dismissed).toEqual(["cmd-f0"]);
+    });
+  });
+
   it("keeps the band when the last command completes under an open rail, and gives the detail back", async () => {
     const user = userEvent.setup();
     const store = createDelayRailStore();

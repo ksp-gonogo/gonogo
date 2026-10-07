@@ -103,6 +103,22 @@ export interface CommandUndelivered extends CommandLoss {
 }
 
 /**
+ * One dispatch the mod answered with a fault rather than a reply, as a widget
+ * surface renders it: it expired or was cancelled on its way, a continuous
+ * input was dropped where it would have waited, or a game load undid it.
+ *
+ * Not a refusal, which is the game's verdict on the command itself, and not a
+ * loss, which carries no news at all. The mod said what became of it, and
+ * `code` says which of those it was.
+ */
+export interface CommandFailure extends CommandLoss {
+  /** The fault the mod answered with, a `FaultCode` id. `describeErrorCode` gives its sentence. */
+  code: string;
+  /** What the mod said of it, in its own words. */
+  reason: string;
+}
+
+/**
  * One dispatch that was called lost and then replied to after all, as a widget
  * surface renders it.
  *

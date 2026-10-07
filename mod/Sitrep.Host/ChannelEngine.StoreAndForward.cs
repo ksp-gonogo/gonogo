@@ -35,12 +35,21 @@ namespace Sitrep.Host
         private DeliveryInputs _deliveryInputs = new DeliveryInputs();
         private DeliveryNetwork _delivery = null!;
         private readonly Dictionary<string, DispatchCommandJob> _deliveryJobs = new Dictionary<string, DispatchCommandJob>(StringComparer.Ordinal);
+
+        /// <summary>The request of each command on the Courier's live path, by its id, until its response comes back.</summary>
+        private readonly Dictionary<string, DispatchCommandJob> _courierJobs = new Dictionary<string, DispatchCommandJob>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _laneCraftNodes = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<CommsJourneyEvent> _journey = new List<CommsJourneyEvent>();
         private int _seenPlanVersion;
         private Func<string, ContactPlan?>? _centrePlans;
         private Func<int>? _centrePlansVersion;
         private string? _activeCraftId;
+
+        /// <summary>
+        /// Whether <see cref="_activeCraftId"/> is loaded as the active vessel
+        /// now. Outside flight no craft is, and the id is the one last active.
+        /// </summary>
+        private bool _activeCraftLoaded;
         private SavedGame? _loadedGame;
         private SavedGame? _latestSave;
         private int _gameLoaded;
@@ -671,13 +680,22 @@ namespace Sitrep.Host
             return byUt - travel;
         }
 
-        /// <summary>Runs a command that reached its craft. One sent to the active vessel runs only if that craft is still the active one.</summary>
+        /// <summary>
+        /// Runs a command that reached its craft. One sent to the active vessel
+        /// runs only if that craft is still the active one and is loaded: the
+        /// game applies it through the active vessel, so a craft on rails is
+        /// told it could not be applied.
+        /// </summary>
         private object? ExecuteDelivered(CommandMessage message, double atUt)
         {
             if (string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal)
                 && !string.Equals(message.Lane.Craft, _activeCraftId, StringComparison.Ordinal))
             {
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the craft it was sent to is no longer the active vessel");
+            }
+            if (string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal) && !_activeCraftLoaded)
+            {
+                return CommandResult.Fail(CommandErrorCode.WrongState, "the craft it was sent to was not loaded when it arrived, so the game could not apply it");
             }
             return InvokeCommandHandler(message.Command, message.Args, message.Lane.Vantage);
         }
@@ -901,15 +919,40 @@ namespace Sitrep.Host
             return entry == null || entry.PredictedReplyUt == null || now > entry.PredictedReplyUt.Value;
         }
 
-        /// <summary>Courier thread, before the clock advance: which craft is active on this tick.</summary>
+        /// <summary>Courier thread, before the clock advance: which craft is active on this tick, and whether any is loaded at all.</summary>
         private void NoteActiveCraft(KspSnapshot? snapshot)
         {
-            var active = snapshot != null ? VesselViewProvider.TryGetActiveVesselId(snapshot) : null;
+            if (snapshot == null)
+            {
+                return;
+            }
+            var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            _activeCraftLoaded = active != null;
             if (active != null)
             {
                 _activeCraftId = "vessel:" + active;
             }
         }
+
+        /// <summary>
+        /// The ledger node that answers for <paramref name="craft"/>'s link now.
+        /// A lane to the active vessel executes on the engine's own node, but
+        /// that node reads the link of whatever craft is loaded as active, and
+        /// outside flight none is. A craft that is not the loaded active vessel
+        /// is answered for by its own fleet node, as every other craft is.
+        /// </summary>
+        private string LinkNodeOf(string craft, string execNode)
+        {
+            if (!string.Equals(execNode, NodeId, StringComparison.Ordinal)
+                || (_activeCraftLoaded && string.Equals(craft, _activeCraftId, StringComparison.Ordinal))
+                || !craft.StartsWith(CraftPrefix, StringComparison.Ordinal))
+            {
+                return execNode;
+            }
+            return FleetNodePrefix + craft.Substring(CraftPrefix.Length);
+        }
+
+        private const string CraftPrefix = "vessel:";
 
         /// <summary>Courier thread, after the clock advance: sends on whatever can leave, expires and releases.</summary>
         private void TickDelivery(double ut)
@@ -933,8 +976,11 @@ namespace Sitrep.Host
         /// newest save behind that instant held. Returns what was restored
         /// from, for the log.
         /// </summary>
-        private string ResetDelivery(double ut, string? save)
+        private string ResetDelivery(double ut, string? save, IReadOnlyList<PendingUplink> pendingBefore, IReadOnlyDictionary<string, string> dispatchersBefore)
         {
+            var jobsBefore = _deliveryJobs.ToList();
+            var courierJobsBefore = _courierJobs.Values.ToList();
+            _courierJobs.Clear();
             _delivery.Reset();
             _deliveryJobs.Clear();
             _journey.Clear();
@@ -957,6 +1003,7 @@ namespace Sitrep.Host
                     _laneCraftNodes[command.Lane.Craft] = command.ExecNode;
                 }
             }
+            CarryOrUndo(jobsBefore, courierJobsBefore, pendingBefore, dispatchersBefore);
             var ic = System.Globalization.CultureInfo.InvariantCulture;
             if (from != null)
             {
@@ -965,6 +1012,57 @@ namespace Sitrep.Host
             return latest == null
                 ? "restored nothing, no save has been written or loaded"
                 : "restored nothing, the newest save is of UT " + latest.Ut.ToString("F2", ic) + " in '" + latest.Save + "'";
+        }
+
+        /// <summary>
+        /// Settles every request that was waiting on the timeline a reset left.
+        /// A command the restored network still carries is still on its way, so
+        /// its request and pending entry stay with it and its reply settles it
+        /// as usual. Every other one, the Courier's live path included, will not
+        /// run on this timeline, and its request is told so now rather than left
+        /// waiting for a reply that cannot come.
+        /// </summary>
+        private void CarryOrUndo(
+            IReadOnlyList<KeyValuePair<string, DispatchCommandJob>> jobsBefore,
+            IReadOnlyList<DispatchCommandJob> courierJobsBefore,
+            IReadOnlyList<PendingUplink> pendingBefore,
+            IReadOnlyDictionary<string, string> dispatchersBefore)
+        {
+            var carried = new HashSet<DispatchCommandJob>();
+            foreach (var entry in jobsBefore)
+            {
+                if (_delivery.Carries(entry.Key))
+                {
+                    _deliveryJobs[entry.Key] = entry.Value;
+                    carried.Add(entry.Value);
+                }
+            }
+            foreach (var entry in pendingBefore)
+            {
+                if (!_deliveryJobs.ContainsKey(entry.Id))
+                {
+                    continue;
+                }
+                _pending.Add(entry);
+                if (dispatchersBefore.TryGetValue(entry.Id, out var dispatcher))
+                {
+                    _pendingDispatcher[entry.Id] = dispatcher;
+                }
+            }
+            var undone = jobsBefore.Select(entry => entry.Value).Where(job => !carried.Contains(job))
+                .Concat(courierJobsBefore)
+                .Distinct();
+            foreach (var job in undone)
+            {
+                try
+                {
+                    job.OnRefused?.Invoke(FaultCode.UndoneByLoad, "A game load started a new timeline that does not carry it, so it will not run.");
+                }
+                catch (Exception ex)
+                {
+                    LogHost("command \"" + job.Command + "\" could not be told a load undid it: " + SafeExceptionMessage(ex));
+                }
+            }
         }
 
         /// <summary>
@@ -983,11 +1081,11 @@ namespace Sitrep.Host
             {
                 if (_engine._laneCraftNodes.TryGetValue(to, out var toNode) && !_engine._laneCraftNodes.ContainsKey(from))
                 {
-                    return Ledger(from, toNode);
+                    return Ledger(from, _engine.LinkNodeOf(to, toNode));
                 }
                 if (_engine._laneCraftNodes.TryGetValue(from, out var fromNode) && !_engine._laneCraftNodes.ContainsKey(to))
                 {
-                    return Ledger(to, fromNode);
+                    return Ledger(to, _engine.LinkNodeOf(from, fromNode));
                 }
                 var links = _engine._deliveryInputs.Links;
                 return GroundNetwork.Shortest(from, to, _engine.HomeCentre(), _engine._activeGroundIds, links.LivePath);

@@ -8135,6 +8135,10 @@
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#failures",
+        "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
         "key": "sitrep-sdk . ~MapViewScope",
         "note": "No longer reachable only through WidgetScopeRegistry: now exported by name, with the same shape"
       },
@@ -8183,6 +8187,10 @@
         "note": "New: listens for a change in what the game is doing"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#failures",
+        "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
         "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
       },
@@ -8215,6 +8223,22 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
+        "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "ui-kit . CommandFailedEntry",
+        "note": "now its own interface over CommandFailedLike, where it was an alias of CommandLossEntry, so a failure can carry its fault code"
+      },
+      {
+        "key": "ui-kit . CommandFailedEntry#id",
+        "note": "moved onto the new CommandFailedEntry interface, unchanged"
+      },
+      {
+        "key": "ui-kit . CommandFailedLike",
+        "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
+      },
+      {
         "key": "ui-kit . HeldFigure",
         "note": "Gains the optional elsewhere prop and its kind widens with \"current\" (decision 81). A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
       },
@@ -8229,6 +8253,14 @@
       {
         "key": "ui-kit . RECKONING_MARK",
         "note": "Gains a current entry (the lilac ring, which has only a hollow form) and a hollowDomSize on held and modelled. Every field a caller read before is unchanged; code that walks the table's keys now meets current"
+      },
+      {
+        "key": "ui-kit . RailFailed",
+        "note": "now its own interface over CommandFailedEntry, where it was an alias of RailLoss, so the rail's failures carry their code"
+      },
+      {
+        "key": "ui-kit . RailFailed#tags",
+        "note": "moved onto the new RailFailed interface, unchanged"
       },
       {
         "key": "ui-kit . ReckoningMark",
@@ -8363,6 +8395,18 @@
       {
         "key": "sitrep-sdk . solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandFailure",
+        "note": "one dispatch the mod answered with a fault rather than a reply, as useCommand's failures holds it"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandFailure#code",
+        "note": "the FaultCode id the mod answered with"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandFailure#reason",
+        "note": "what the mod said of it, in its own words"
       },
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotContext",
@@ -9221,6 +9265,18 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk ./spine CommandFailure",
+        "note": "one dispatch the mod answered with a fault rather than a reply, as useCommand's failures holds it"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandFailure#code",
+        "note": "the FaultCode id the mod answered with"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandFailure#reason",
+        "note": "what the mod said of it, in its own words"
+      },
+      {
         "key": "sitrep-sdk ./spine ConicShape",
         "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
       },
@@ -9309,6 +9365,18 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk ./testing ~CommandFailure",
+        "note": "one dispatch the mod answered with a fault rather than a reply, as useCommand's failures holds it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandFailure#code",
+        "note": "the FaultCode id the mod answered with"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandFailure#reason",
+        "note": "what the mod said of it, in its own words"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -9339,6 +9407,14 @@
       {
         "key": "ui-kit . AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "ui-kit . CommandDelayHandle#failures?",
+        "note": "a handle's mod-answered failures, which the panel rail counts and lists"
+      },
+      {
+        "key": "ui-kit . CommandFailedLike#code?",
+        "note": "the fault code, which commandFailedSentence says in the code's own words"
       },
       {
         "key": "ui-kit . HeldFigureProps#elsewhere?",

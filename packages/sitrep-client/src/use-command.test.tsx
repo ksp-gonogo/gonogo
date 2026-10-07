@@ -887,6 +887,87 @@ describe("useCommand undelivered", () => {
   });
 });
 
+// ── failures: a dispatch the mod answered with a fault ───────────────────
+
+function DeployWithFailures() {
+  const cmd = useCommand("deploy");
+  return (
+    <div>
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+        go
+      </button>
+      <span>phase:{cmd.status.phase}</span>
+      <span>losses:{cmd.losses.length}</span>
+      <span>failures:{cmd.failures.length}</span>
+      <span>codes:{cmd.failures.map((f) => f.code).join(",")}</span>
+      <span>commands:{cmd.failures.map((f) => f.command).join(",")}</span>
+      <button
+        type="button"
+        onClick={() => cmd.dismiss(cmd.failures[0]?.id ?? "")}
+      >
+        clear
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The mod can answer a command with a fault that says what became of it: it
+ * expired or was cancelled on its way, or a game load undid it. Dropped with
+ * the promise, the control simply cleared and nothing anywhere said why.
+ */
+describe("useCommand failures", () => {
+  const ONLY_REQUEST = "t-0";
+
+  function renderSent() {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock, { idPrefix: "t" });
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithFailures />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    return { clock, transport };
+  }
+
+  it("keeps a fault the mod answered with, naming the command and the fault", async () => {
+    const { transport } = renderSent();
+    await act(async () => {
+      transport.deliver({
+        type: "error",
+        requestId: ONLY_REQUEST,
+        code: "undoneByLoad",
+        message:
+          "A game load started a new timeline that does not carry it, so it will not run.",
+      });
+    });
+
+    expect(screen.getByText("phase:failed")).toBeTruthy();
+    expect(screen.getByText("failures:1")).toBeTruthy();
+    expect(screen.getByText("codes:undoneByLoad")).toBeTruthy();
+    expect(screen.getByText("commands:deploy")).toBeTruthy();
+    expect(screen.getByText("losses:0")).toBeTruthy();
+  });
+
+  it("clears one through the same dismiss the other outcomes use", async () => {
+    const { transport } = renderSent();
+    await act(async () => {
+      transport.deliver({
+        type: "error",
+        requestId: ONLY_REQUEST,
+        code: "commandExpired",
+        message: "It expired at ground:Home before it could run.",
+      });
+    });
+    expect(screen.getByText("failures:1")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("clear"));
+    expect(screen.getByText("failures:0")).toBeTruthy();
+  });
+});
+
 /**
  * `StubTransport` answers a command on a later microtask, so a test whose only
  * assertion is about the click itself returns before the response lands and the

@@ -14,7 +14,7 @@ export interface CommandOutcomes {
   unconfirmed: InFlightCommandLike[];
   /** True when any dispatch is unconfirmed, including a loss that never had a row. For a control's `data-unconfirmed` tint. */
   hasUnconfirmed: boolean;
-  /** True when a dispatch never left this machine. For a control's `data-failed` tint. */
+  /** True when a dispatch never left this machine, or the mod answered it with a fault. For a control's `data-failed` tint. */
   hasFailure: boolean;
   /**
    * Clear an entry, the SAME dismiss the widget-top queue uses, so clearing on
@@ -38,7 +38,9 @@ export function commandOutcomes(handle: CommandDelayHandle): CommandOutcomes {
   return {
     unconfirmed,
     hasUnconfirmed: unconfirmed.length > 0 || (handle.losses?.length ?? 0) > 0,
-    hasFailure: (handle.undelivered?.length ?? 0) > 0,
+    hasFailure:
+      (handle.undelivered?.length ?? 0) > 0 ||
+      (handle.failures?.length ?? 0) > 0,
     dismiss: handle.dismiss ?? (() => {}),
   };
 }

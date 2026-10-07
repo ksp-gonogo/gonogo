@@ -6,6 +6,10 @@ import { TONE_TEXT } from "../tone";
 import { CommandDelay } from "./CommandDelay";
 import { CommandList } from "./CommandList";
 import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
+import {
+  commandFailedSentence,
+  type RailFailed,
+} from "./commandFailedSentence";
 import { commandFoundSentence, type RailFound } from "./commandFoundSentence";
 import { commandLossSentence, type RailLoss } from "./commandLossSentence";
 import {
@@ -57,7 +61,7 @@ function handleHasContent(handle: CommandHandle): boolean {
  * toggles.
  *
  * The strip is empty unless a command is in flight, refused, unanswered,
- * found or never sent.
+ * found, never sent, or answered with a fault.
  *
  * `tiny` is for a tiny panel with no header: the empty strip draws no
  * background, so it does not cover the panel's focus ring.
@@ -80,8 +84,12 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
   const undelivered: RailUndelivered[] = handles.flatMap((h) =>
     (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
   );
+  // The mod said what became of each of these, and none of them ran.
+  const failures: RailFailed[] = handles.flatMap((h) =>
+    (h.failures ?? []).map((f) => ({ ...f, tags: h.tags })),
+  );
   // A loss may still have run, so it is counted as unconfirmed and never as failed.
-  const failedCount = refusals.length + undelivered.length;
+  const failedCount = refusals.length + undelivered.length + failures.length;
   const hasContent =
     visible.length > 0 ||
     failedCount > 0 ||
@@ -131,6 +139,13 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
           .find((h) => h.undelivered?.some((u) => u.id === id))
           ?.dismiss?.(id)
     : undefined;
+  const canDismissFailure = handles.some(
+    (h) => h.dismiss && (h.failures?.length ?? 0) > 0,
+  );
+  const dismissFailure = canDismissFailure
+    ? (id: string) =>
+        handles.find((h) => h.failures?.some((f) => f.id === id))?.dismiss?.(id)
+    : undefined;
   const canDismissFound = handles.some(
     (h) => h.dismiss && (h.founds?.length ?? 0) > 0,
   );
@@ -163,6 +178,9 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
             <span key={`undelivered:${u.id}`}>
               {commandUndeliveredSentence(u)}
             </span>
+          ))}
+          {failures.map((f) => (
+            <span key={`failure:${f.id}`}>{commandFailedSentence(f)}</span>
           ))}
           {founds.map((f) => (
             <span key={`found:${f.id}`}>{commandFoundSentence(f)}</span>
@@ -270,6 +288,14 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
           kind="undelivered"
           entries={undelivered}
           onDismiss={dismissUndelivered}
+          live={false}
+        />
+      )}
+      {grown && failures.length > 0 && (
+        <CommandList
+          kind="failed"
+          entries={failures}
+          onDismiss={dismissFailure}
           live={false}
         />
       )}

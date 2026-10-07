@@ -1552,6 +1552,7 @@ export interface PerfBudgetHandle {
 // not, so the two disagreed about what a refusal carries.
 import type { CommandGateStatus } from "../spine/command-gate";
 import type {
+  CommandFailure,
   CommandFound,
   CommandLoss,
   CommandRefusal,
@@ -1561,6 +1562,7 @@ import type {
 
 export type { CommandGateStatus } from "../spine/command-gate";
 export type {
+  CommandFailure,
   CommandFound,
   CommandFoundOutcome,
   CommandLoss,
@@ -1637,7 +1639,7 @@ export interface UseCommandOptions {
  * is {@link AnyCommandReply}. Pass the whole handle to `<CommandDelay>` to show
  * its delay and outcomes.
  *
- * The lists `refusals`, `losses`, `founds` and `undelivered` each hold a
+ * The lists `refusals`, `losses`, `founds`, `undelivered` and `failures` each hold a
  * dispatch until it is dismissed with `dismiss`, and a dispatch is in at most
  * one of them at a time.
  *
@@ -1690,7 +1692,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   delayMode: DelayMode | null;
   /**
    * Removes the dispatch with this id from `inFlight`, `refusals`, `losses`,
-   * `founds` or `undelivered`. Dismissing it anywhere, such as from the
+   * `founds`, `undelivered` or `failures`. Dismissing it anywhere, such as from the
    * panel's delay rail, removes it here too.
    */
   dismiss: (id: string) => void;
@@ -1711,6 +1713,12 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * back, newest last. None of them ran, so each is safe to send again.
    */
   undelivered: CommandUndelivered[];
+  /**
+   * Dispatches the mod answered with a fault rather than a reply, newest last:
+   * expired or cancelled on the way, dropped where a continuous input would
+   * have waited, or undone by a game load. None of them ran.
+   */
+  failures: CommandFailure[];
   /**
    * Whether the command can be sent right now, as the mod reports it before
    * anything is pressed, with the reason when it cannot. While it is blocked,

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.21.0
+  version: 29.22.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -13776,6 +13776,14 @@ components:
           title: CommandCancelled
           description: A cancel stopped the command before it ran.
           x-sitrep-sentence: it was cancelled before it ran
+        - const: undoneByLoad
+          title: UndoneByLoad
+          description: |-
+            A game load started a new timeline while the command was on its way, and the
+            save it loaded does not carry the command, so it will not run. A quickload
+            to before the command was sent is the common case. A command the loaded save
+            does carry stays on its way and is answered as usual.
+          x-sitrep-sentence: a game load undid it before it ran
         - const: continuousInputWouldWait
           title: ContinuousInputWouldWait
           description: |-

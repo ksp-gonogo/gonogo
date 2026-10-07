@@ -7258,14 +7258,15 @@ namespace Sitrep.Host
                     _subjectConnectivityHistory[subjectNode] =
                         new List<(double, bool)> { (double.NegativeInfinity, SubjectConnected(subjectNode)) };
                 }
-                // Same abandoned-timeline treatment for the pending-uplink
-                // roster: an in-flight prediction is anchored to the timeline it
-                // was dispatched on, so its DispatchedAt/OneWaySeconds mean
-                // nothing against the one the rewind lands on. Dropped whole
-                // rather than carried forward or pruned normally.
+                // The pending-uplink roster belongs to the abandoned timeline
+                // too, except for a command the restored network still carries:
+                // ResetDelivery puts that one back and tells every other
+                // request that the load undid it.
+                var pendingBefore = _pending.ToList();
+                var dispatchersBefore = new Dictionary<string, string>(_pendingDispatcher, StringComparer.Ordinal);
                 _pending.Clear();
                 _pendingDispatcher.Clear();
-                LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save));
+                LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save, pendingBefore, dispatchersBefore));
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
                 NotifyTimelineResetListeners();
@@ -7903,7 +7904,12 @@ namespace Sitrep.Host
             // No explicit uplinkDelaySeconds: the Courier falls back to
             // DelayTo(vantage, node) -- the same ledger delay used above -- so
             // telemetry and command delay share one per-(vantage, node) model.
-            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response => Deliver(job, response.Result));
+            _courierJobs[requestId] = job;
+            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response =>
+            {
+                _courierJobs.Remove(requestId);
+                Deliver(job, response.Result);
+            });
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a
@@ -7929,6 +7935,13 @@ namespace Sitrep.Host
                     _pending.RemoveAll(entry => entry.Id == id);
                     _pendingDispatcher.Remove(id);
                     _deliveryJobs.Remove(id);
+                }
+                if (!job.Carried)
+                {
+                    foreach (var id in _courierJobs.Where(entry => ReferenceEquals(entry.Value, job)).Select(entry => entry.Key).ToList())
+                    {
+                        _courierJobs.Remove(id);
+                    }
                 }
                 var reason = FailSoftCommand(
                     job.Command,

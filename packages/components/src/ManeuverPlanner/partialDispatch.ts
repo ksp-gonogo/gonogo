@@ -31,7 +31,7 @@ export function describeNodeRejection(
   if (rejection.code === FaultCode.Undelivered) {
     return commandUndeliveredSentence(dispatch);
   }
-  return commandFailedSentence(dispatch);
+  return commandFailedSentence({ ...dispatch, code: rejection.code });
 }
 
 /**
