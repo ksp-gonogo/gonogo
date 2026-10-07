@@ -73,7 +73,7 @@ interface RawScene {
    * This scene is one of the README's picture(s) of its target.
    *
    * Stackable: any number of a target's scenes may carry it, and every one
-   * that does is shown. `gonogo-uplink docs` refuses a target with scenes and
+   * that does is shown. `uplink-tools docs` refuses a target with scenes and
    * none marked, because a hero silently defaulted to "whichever fixture
    * sorts first" is a picture nobody chose.
    */

@@ -2,7 +2,7 @@
 //
 // Node realm: every piece under test here reads the filesystem or builds a
 // string, and none of it touches the DOM. The browser half is exercised by
-// running the tool against a real Uplink, which is what `gonogo-uplink render`
+// running the tool against a real Uplink, which is what `uplink-tools render`
 // is; this file covers the parts that decide whether a run happens at all.
 import {
   existsSync,

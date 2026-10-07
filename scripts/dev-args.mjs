@@ -16,7 +16,7 @@ export const DEV_USAGE = `pnpm dev [--uplink <path>]...
   --uplink <path>   serve an Uplink you are building into this app. <path> is
                     the Uplink's directory, the one holding uplink.json. Repeat
                     the flag for several. The app loads each one's own build
-                    output (run \`gonogo-uplink bundle --watch\` in its client)
+                    output (run \`uplink-tools bundle --watch\` in its client)
                     and reloads the page when it is rebuilt
   --help            print this and exit`;
 

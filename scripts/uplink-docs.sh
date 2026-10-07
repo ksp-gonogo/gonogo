@@ -69,7 +69,7 @@ failed=()
 for pkg in "${packages[@]}"; do
   echo "── $pkg"
   # shellcheck disable=SC2086 # $mode is one optional flag, deliberately split
-  if ! pnpm --filter "$pkg" exec gonogo-uplink docs $mode; then
+  if ! pnpm --filter "$pkg" exec uplink-tools docs $mode; then
     failed+=("$pkg")
   fi
 done

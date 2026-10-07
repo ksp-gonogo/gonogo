@@ -45,7 +45,7 @@ export function assertEveryWidgetCovered(
     .map((w) => w.id);
   if (missing.length > 0) {
     throw new Error(
-      `gonogo-uplink: ${missing.length} widget(s) have no fixture, so the ` +
+      `uplink-tools: ${missing.length} widget(s) have no fixture, so the ` +
         "generated page would show no picture of them:\n  " +
         `${missing.join("\n  ")}\n` +
         'Add a fixture under src/<Name>/__fixtures__/ with a "_scene" block ' +

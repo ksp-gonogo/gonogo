@@ -11,7 +11,7 @@ import type {
 import { buildUplinkClientBundle } from "./uplink-bundle";
 import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 
-/** Where `gonogo-uplink bundle --watch` leaves its state, beside the bundle. */
+/** Where `uplink-tools bundle --watch` leaves its state, beside the bundle. */
 const WATCH_STATUS_FILE = "watch-status.json";
 const SIDECAR_FILE = "gonogo-uplink.json";
 

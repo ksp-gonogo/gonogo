@@ -25,6 +25,8 @@
  *     `src` the sdk also ships for go-to-definition
  *  3. every published entry point LOADS under a bare `node` import, or carries a
  *     recorded reason in `RUNTIME_IMPORT_EXEMPT` below
+ *  4. every published bin RUNS: the link npm made for it answers `--help` with
+ *     exit 0, which is what `npx <package> --help` reaches
  *
  * ## Why (3) is bare node and not a typecheck or vitest
  *
@@ -376,6 +378,57 @@ function selfTest(tarballs, workRoot) {
   );
 
   runtimeImports(specs, work);
+  binsRun(Object.keys(tarballs), work);
+}
+
+/**
+ * Requirement (4). Through `node_modules/.bin`, the link npm writes from the
+ * manifest's `bin`, so a wrong name, a missing shebang, a file left out of
+ * `files` or a `dist` the shim cannot load each fails here as it would for
+ * `npx`. A link that is not there fails too: the manifest declared a bin npm did
+ * not install.
+ */
+function binsRun(names, work) {
+  const bins = [];
+  for (const name of names) {
+    const manifest = JSON.parse(
+      readFileSync(join(work, "node_modules", name, "package.json"), "utf8"),
+    );
+    const declared =
+      typeof manifest.bin === "string"
+        ? { [name.split("/").pop()]: manifest.bin }
+        : (manifest.bin ?? {});
+    for (const bin of Object.keys(declared)) bins.push(`${name}: ${bin}`);
+  }
+  if (bins.length === 0) {
+    console.error(
+      "✖ BLIND: no published package declares a bin, and uplink-tools ships one. The\n" +
+        "  manifests read here are not the ones a release publishes.",
+    );
+    process.exit(1);
+  }
+  const failed = [];
+  for (const entry of bins) {
+    const bin = entry.split(": ")[1];
+    const result = run(join(work, "node_modules", ".bin", bin), ["--help"], {
+      cwd: work,
+    });
+    if (result.status !== 0) {
+      failed.push(
+        `${entry}: ${result.error?.message ?? `exited ${result.status}`}\n      ${`${result.stderr}`.trim().split("\n").slice(-1)[0] ?? ""}`,
+      );
+    }
+  }
+  if (failed.length > 0) {
+    console.error(
+      `✖ ${failed.length} published bin(s) do not run as \`npx\` would run them:\n` +
+        `${failed.map((entry) => `    ${entry}`).join("\n")}`,
+    );
+    process.exit(1);
+  }
+  console.log(
+    `bins: ${bins.length} published bin(s) answered --help through node_modules/.bin: ${bins.join(", ")}.`,
+  );
 }
 
 /**

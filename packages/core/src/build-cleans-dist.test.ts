@@ -15,9 +15,8 @@ import { describe, expect, it } from "vitest";
  *
  * The prune runs AFTER `tsc` rather than as an `rm -rf dist` before it. An
  * emptied `dist` is a window in which the package has no build, and turbo runs
- * a package's own `test` alongside its own `build`: the sdk's CLI suite
- * executes `dist`, and a build killed inside that window left the sdk with no
- * `dist` at all.
+ * a package's own `test` alongside its own `build` unless told otherwise, and a
+ * suite that executes `dist` fails inside that window.
  *
  * A bundler that already cleans (`tsup`, `vite build`) is not asked, and nor is
  * a `tsc --noEmit`, which writes nothing to go stale. An Uplink is not asked

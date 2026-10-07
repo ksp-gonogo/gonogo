@@ -3,12 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { run } from "../cli";
 import {
   type CommittedPage,
   compareCommittedPage,
   PICTURES_ARE_CI_NOTE,
   picturesComparedHere,
-  run,
 } from "./cli";
 import {
   type AssetShape,

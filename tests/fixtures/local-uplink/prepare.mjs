@@ -1,6 +1,6 @@
 /**
  * Lays the fixture Uplink out in a scratch directory and builds its bundle with
- * the sdk's own CLI, which is the command an Uplink author runs.
+ * `uplink-tools bundle`, which is the command an Uplink author runs.
  *
  * Copied rather than built in place because the bundle's sidecar reads the
  * installed ui-kit version from a `node_modules` above the client, and this
@@ -41,7 +41,7 @@ writeFileSync(
 execFileSync(
   process.execPath,
   [
-    join(root, "mod/sitrep-sdk/bin/gonogo-uplink.mjs"),
+    join(root, "packages/uplink-tools/bin/uplink-tools.mjs"),
     "bundle",
     "--client",
     join(target, "client"),

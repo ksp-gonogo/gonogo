@@ -28,13 +28,10 @@ docs/superpowers/
 # C# / .NET build outputs
 bin/
 # ...except a JS package's `bin/`, which is source. The .NET rule above matches
-# a directory of that name at any depth, so ui-kit's committed CLI shim was
+# a directory of that name at any depth, so a committed CLI shim would be
 # silently unstageable, with `git add` reporting it as ignored rather than
 # anything explaining why.
 !packages/*/bin/
-# ...and the sdk's, which is a JS package living under mod/. Named exactly, not
-# globbed: every OTHER mod/*/bin is .NET build output and must stay ignored.
-!mod/sitrep-sdk/bin/
 obj/
 *.dll
 *.pdb
@@ -54,7 +51,7 @@ feature_log/
 .launch.sh
 .startup-prompt
 
-# `gonogo-uplink render` review output: pictures for a human, regenerated on
+# `uplink-tools render` review output: pictures for a human, regenerated on
 # demand and never a gate. The docs assets under `docs/assets/` ARE committed,
 # because the generated page references them.
 renders/

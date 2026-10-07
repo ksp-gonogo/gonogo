@@ -35,7 +35,7 @@ const seed = () =>
     devDependencies: {},
   });
 
-describe("gonogo-uplink new", () => {
+describe("uplink-tools new", () => {
   it("templates no generated file", () => {
     for (const path of seed().keys()) {
       expect(path).not.toMatch(/__generated__|\.g\.cs$|README\.md$|renders\//);
@@ -119,7 +119,7 @@ describe("gonogo-uplink new", () => {
       /already exists/,
     );
   });
-  it("pins every published sibling to this sdk's own version when there is no sibling Uplink to inherit from", () => {
+  it("pins every published sibling to this package's own version when there is no sibling Uplink to inherit from", () => {
     const uplinks = join(workdir(), "uplinks");
     vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -144,5 +144,54 @@ describe("gonogo-uplink new", () => {
       "@ksp-gonogo/ui-kit": own,
       "@ksp-gonogo/uplink-tools": own,
     });
+  });
+
+  it("makes an empty directory the Uplink's own repo when there is no uplinks folder", () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    newUplink(["solo", "--no-generate"], repo);
+
+    for (const path of [
+      "uplink.json",
+      ".gitignore",
+      "client/package.json",
+      "client/src/index.ts",
+      "mod/SoloUplink.cs",
+      "mod-contract/GonogoSoloUplink.Contract.csproj",
+      "mod-tests/GonogoSoloUplink.Tests.csproj",
+    ]) {
+      expect(existsSync(join(repo, path)), path).toBe(true);
+    }
+    expect(existsSync(join(repo, "uplinks"))).toBe(false);
+    const declared = JSON.parse(
+      readFileSync(join(repo, "uplink.json"), "utf8"),
+    );
+    expect(declared.repo).toBe("https://github.com/you/solo");
+    const scripts = JSON.parse(
+      readFileSync(join(repo, "client", "package.json"), "utf8"),
+    ).scripts;
+    expect(scripts.bundle).toBe("uplink-tools bundle");
+    expect(scripts.docs).toBe("uplink-tools docs");
+
+    expect(() => newUplink(["solo", "--no-generate"], repo)).toThrow(
+      /never overwrites/,
+    );
+  });
+
+  it("goes into an uplinks folder that is already there, beside its siblings", () => {
+    const repo = workdir();
+    mkdirSync(join(repo, "uplinks"));
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    newUplink(["second", "--no-generate"], repo);
+
+    expect(existsSync(join(repo, "uplinks", "second", "uplink.json"))).toBe(
+      true,
+    );
+    expect(existsSync(join(repo, "uplink.json"))).toBe(false);
+    expect(existsSync(join(repo, "uplinks", "second", ".gitignore"))).toBe(
+      false,
+    );
   });
 });

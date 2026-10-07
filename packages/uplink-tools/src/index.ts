@@ -1,8 +1,7 @@
 /**
- * `@ksp-gonogo/uplink-tools`: the Node half of the Uplink render harness, which
- * `gonogo-uplink render` and `gonogo-uplink docs` run. It bundles an Uplink with
- * esbuild, renders its scenes in Playwright, encodes GIFs and writes the
- * generated page. Never import it from a browser bundle; the browser half is
+ * `@ksp-gonogo/uplink-tools`: the Node half of the Uplink toolchain behind the
+ * `uplink-tools` command. It bundles an Uplink with esbuild, renders its scenes
+ * in Playwright, encodes GIFs and writes the generated page. Never import it from a browser bundle; the browser half is
  * `./render-probe`.
  *
  * `playwright` and `esbuild` are optional peers. A missing one fails with a
@@ -17,11 +16,11 @@ export {
   gridToPixels,
   ROW_HEIGHT,
 } from "@ksp-gonogo/ui-kit/grid";
+export { run } from "./cli";
 export {
   type ChannelDisposition,
   readChannelDispositions,
 } from "./render/channels";
-export { run } from "./render/cli";
 export {
   display,
   type FontFace,

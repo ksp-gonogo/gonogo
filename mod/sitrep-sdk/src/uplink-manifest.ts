@@ -158,7 +158,7 @@ export interface UplinkManifestInputs {
  * The generated constant is the right source everywhere else and is the wrong
  * one here: this module is resolved as SOURCE inside the workspace, where Node
  * strips the types but does not redirect a `./x.js` specifier to `./x.ts`, so
- * importing it made every `gonogo-uplink docs` run fail with a module that
+ * importing it made every `uplink-tools docs` run fail with a module that
  * cannot be found. The package root is one level up from both `src/` and
  * `dist/`, so the same expression works from either.
  */
@@ -232,7 +232,7 @@ function agreed(
   if (declared === undefined || registered === undefined) return;
   if (declared === registered) return;
   throw new Error(
-    `gonogo-uplink: uplink.json declares ${field} "${declared}" and this ` +
+    `uplink-tools: uplink.json declares ${field} "${declared}" and this ` +
       `client's registration says "${registered}". The manifest can only claim ` +
       "one of them, so make them equal rather than leaving the two commands " +
       "that write it free to disagree.",
@@ -256,7 +256,7 @@ export function buildUplinkManifest(
   const pkgPath = join(clientDir, "package.json");
   if (!existsSync(pkgPath)) {
     throw new Error(
-      `gonogo-uplink: no package.json in ${clientDir}. The manifest reads the ` +
+      `uplink-tools: no package.json in ${clientDir}. The manifest reads the ` +
         "version an Uplink publishes under from it, so it cannot be written " +
         "from anywhere else.",
     );
@@ -272,7 +272,7 @@ export function buildUplinkManifest(
   const id = declared.id ?? registered?.id ?? carried.id;
   if (!id) {
     throw new Error(
-      "gonogo-uplink: nothing declares this Uplink's id. It comes from " +
+      "uplink-tools: nothing declares this Uplink's id. It comes from " +
         "`uplink.json` or from the client's own `defineUplinkClient`, and the " +
         "loader matches it against the roster, so it cannot be defaulted.",
     );
@@ -290,7 +290,7 @@ export function buildUplinkManifest(
     registered.version !== pkg.version
   ) {
     throw new Error(
-      `gonogo-uplink: this client declares version "${registered.version}" ` +
+      `uplink-tools: this client declares version "${registered.version}" ` +
         `through defineUplinkClient, and package.json says "${pkg.version}". ` +
         "The manifest can only claim one of them, and the app compares what it " +
         "reads here against what the loaded bundle declares. Make them equal " +

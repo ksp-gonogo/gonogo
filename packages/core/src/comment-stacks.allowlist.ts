@@ -48,7 +48,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/api/slots.ts": 3,
   "mod/sitrep-sdk/src/api/types.ts": 1,
   "mod/sitrep-sdk/src/burn-clock.test.ts": 2,
-  "mod/sitrep-sdk/src/cli/index.ts": 1,
   "mod/sitrep-sdk/src/commands.test-d.ts": 1,
   "mod/sitrep-sdk/src/commands.ts": 2,
   "mod/sitrep-sdk/src/delay-roles.ts": 1,

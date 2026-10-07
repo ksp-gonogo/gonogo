@@ -226,7 +226,7 @@ export function readWireSurface(pkgDir: string): WireSurface {
     const entry = mapped.get(id);
     if (!entry) {
       throw new Error(
-        `gonogo-uplink docs: ${unitsPath} declares the channel "${id}" and ` +
+        `uplink-tools docs: ${unitsPath} declares the channel "${id}" and ` +
           `${topicMapPath} does not say what payload it carries.\n` +
           "Both files come out of the same codegen run, so this is not an " +
           "authoring mistake: either the two are from different runs (re-run " +
@@ -249,7 +249,7 @@ export function readWireSurface(pkgDir: string): WireSurface {
      */
     if (sourcesFound && !dispositions.has(id)) {
       throw new Error(
-        `gonogo-uplink docs: the channel "${id}" is declared in the generated ` +
+        `uplink-tools docs: the channel "${id}" is declared in the generated ` +
           "contract slice, and no `ChannelDeclaration` for it was found in this " +
           "Uplink's C#.\n" +
           "The scan reads plain object initialisers and single-expression " +

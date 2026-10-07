@@ -1,5 +1,5 @@
 /**
- * `gonogo-uplink new <id>`: the hand-written seed of a fresh Uplink.
+ * `uplink-tools new <id>`: the hand-written seed of a fresh Uplink.
  *
  * It emits only what an author writes. Everything a generator owns is left to
  * that generator, so the scaffold cannot drift from the toolchain: the contract,
@@ -20,7 +20,9 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseFlags } from "./flags";
 
 export interface SeedOptions {
   id: string;
@@ -99,9 +101,10 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         test: "vitest run",
         typecheck:
           "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.nodenext.json",
-        render: "gonogo-uplink render",
-        docs: "gonogo-uplink docs",
-        "docs:check": "gonogo-uplink docs --check",
+        bundle: "uplink-tools bundle",
+        render: "uplink-tools render",
+        docs: "uplink-tools docs",
+        "docs:check": "uplink-tools docs --check",
       },
       dependencies: o.dependencies,
       devDependencies: o.devDependencies,
@@ -717,23 +720,33 @@ namespace ${ns}.Tests
 }
 
 /**
- * This sdk's own version, read from its manifest rather than baked in at build:
- * the published manifest carries the version a release or RC was stamped with,
- * and every published package carries that same one.
+ * This package's own version, read from its manifest rather than baked in at
+ * build: the published manifest carries the version a release or RC was stamped
+ * with, and every published package carries that same one. Found by walking up,
+ * since the source and the bundled `dist` sit at different depths.
  */
 function ownVersion(): string {
-  const manifest = asRecord(
-    JSON.parse(
-      readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
-    ),
-  );
-  if (typeof manifest.version !== "string") {
-    throw new Error("the sdk's own package.json carries no version");
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (;;) {
+    const path = join(dir, "package.json");
+    if (existsSync(path)) {
+      const manifest = asRecord(JSON.parse(readFileSync(path, "utf8")));
+      if (manifest.name === "@ksp-gonogo/uplink-tools") {
+        if (typeof manifest.version !== "string") {
+          throw new Error(`${path} carries no version`);
+        }
+        return manifest.version;
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error("cannot find @ksp-gonogo/uplink-tools' own package.json");
+    }
+    dir = parent;
   }
-  return manifest.version;
 }
 
-/** Every published package moves in lockstep, so a fresh Uplink pins each sibling to exactly the version of the sdk that wrote it. */
+/** Every published package moves in lockstep, so a fresh Uplink pins each sibling to exactly the version of the tools that wrote it. */
 const fallbackDependencies = (version: string) => ({
   "@ksp-gonogo/ui-kit": version,
   "styled-components": "^6.0.0",
@@ -795,48 +808,106 @@ function inheritFromSibling(uplinksDir: string, id: string) {
   return undefined;
 }
 
-export const NEW_USAGE = `gonogo-uplink new <id> [options]
+export const NEW_USAGE = `uplink-tools new <id> [options]
 
   Scaffold a fresh Uplink: the hand-written seed only (contract slice, plugin,
   tests, a minimal widget and its fixture). Generated files are left to their
   generators, so nothing here can drift from the toolchain.
 
-  --dir <dir>      the directory holding Uplinks (default: ./uplinks)
+  Where it goes:
+    in a repo with an uplinks/ folder   uplinks/<id>/, pinned like its siblings
+    anywhere else                       the current directory, which becomes
+                                        the Uplink's own repo
+
+  --dir <dir>      put it in <dir>/<id> instead, beside any Uplinks already there
   --name <name>    the display name (default: the id, capitalised)
   --author <name>  written to uplink.json and the netkan
   --no-generate    do not run tooling/codegen-uplink.mjs afterwards`;
 
-export function newUplink(argv: readonly string[]): number {
-  const flag = (name: string): string | undefined =>
-    argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined;
-  const id = argv.find(
-    (a, i) => !a.startsWith("--") && !(i > 0 && argv[i - 1].startsWith("--")),
-  );
+/**
+ * Where the seed goes, and whether it joins a folder of sibling Uplinks.
+ *
+ * A repo holding several Uplinks keeps them under `uplinks/`, and a new one
+ * there inherits its siblings' pins. An author with one Uplink has no such
+ * folder, and the repo itself is the Uplink: `uplink.json` at its root.
+ */
+function placement(cwd: string, dirFlag: string | undefined, id: string) {
+  if (dirFlag !== undefined || existsSync(resolve(cwd, "uplinks"))) {
+    const uplinksDir = resolve(cwd, dirFlag ?? "uplinks");
+    return {
+      target: join(uplinksDir, id),
+      uplinksDir,
+      repoRoot: dirname(uplinksDir),
+    };
+  }
+  const root = resolve(cwd);
+  return { target: root, uplinksDir: undefined, repoRoot: root };
+}
+
+/** What a repo that IS one Uplink keeps out of git: installs, builds, local renders and the .NET output. */
+const SINGLE_REPO_GITIGNORE = `node_modules/
+dist/
+renders/
+bin/
+obj/
+`;
+
+export function newUplink(
+  argv: readonly string[],
+  cwd: string = process.cwd(),
+): number {
+  const { values, switches, positionals } = parseFlags(argv, {
+    verb: "new",
+    usage: NEW_USAGE,
+    values: ["--dir", "--name", "--author"],
+    switches: ["--no-generate"],
+    positionals: 1,
+  });
+  const id = positionals[0];
   if (!id) throw new Error(`new needs an id.\n\n${NEW_USAGE}`);
   const invalid = validateUplinkId(id);
   if (invalid) throw new Error(invalid);
 
-  const uplinksDir = resolve(flag("--dir") ?? "uplinks");
-  const target = join(uplinksDir, id);
-  if (existsSync(target)) {
+  const { target, uplinksDir, repoRoot } = placement(
+    cwd,
+    values.get("--dir"),
+    id,
+  );
+  if (uplinksDir !== undefined && existsSync(target)) {
     throw new Error(
       `${target} already exists. new never overwrites: remove it or pick another id.`,
     );
   }
 
-  const inherited = inheritFromSibling(uplinksDir, id);
+  const inherited = uplinksDir ? inheritFromSibling(uplinksDir, id) : undefined;
+  const repo = uplinksDir
+    ? "https://github.com/you/your-uplinks"
+    : `https://github.com/you/${id}`;
   const files = renderSeed({
     id,
-    name: flag("--name") ?? pascal(id),
-    author: flag("--author") ?? inherited?.author ?? "your name here",
-    repo: inherited?.repo ?? "https://github.com/you/your-uplinks",
+    name: values.get("--name") ?? pascal(id),
+    author: values.get("--author") ?? inherited?.author ?? "your name here",
+    repo: inherited?.repo ?? repo,
     clientUrl:
       inherited?.clientUrl ??
-      `https://cdn.jsdelivr.net/gh/you/your-uplinks@releases/uplinks/releases/${id}/0.0.1/${id}.client.js`,
+      (uplinksDir
+        ? `https://cdn.jsdelivr.net/gh/you/your-uplinks@releases/uplinks/releases/${id}/0.0.1/${id}.client.js`
+        : `https://cdn.jsdelivr.net/gh/you/${id}@releases/releases/${id}/0.0.1/${id}.client.js`),
     dependencies: inherited?.dependencies ?? fallbackDependencies(ownVersion()),
     devDependencies:
       inherited?.devDependencies ?? fallbackDevDependencies(ownVersion()),
   });
+  if (!uplinksDir) files.set(".gitignore", SINGLE_REPO_GITIGNORE);
+
+  const clashes = [...files.keys()].filter((path) =>
+    existsSync(join(target, path)),
+  );
+  if (clashes.length > 0) {
+    throw new Error(
+      `new never overwrites, and ${target} already holds ${clashes.join(", ")}. ` +
+        "Run it in an empty directory, or pass --dir to put the Uplink in a folder of its own.",
+    );
+  }
 
   for (const [path, content] of files) {
     const out = join(target, path);
@@ -845,20 +916,26 @@ export function newUplink(argv: readonly string[]): number {
   }
   console.log(`${id}: wrote ${files.size} files to ${target}`);
 
-  const codegen = join(dirname(uplinksDir), "tooling", "codegen-uplink.mjs");
-  const generated = !argv.includes("--no-generate") && existsSync(codegen);
+  const codegen = join(repoRoot, "tooling", "codegen-uplink.mjs");
+  const generated = !switches.has("--no-generate") && existsSync(codegen);
   if (generated) {
     execFileSync(process.execPath, [codegen, id], { stdio: "inherit" });
   }
 
+  const client = relative(cwd, join(target, "client"));
   const todo = [
     ...(generated
       ? []
       : [
-          `generate the client types from the contract slice (tooling/codegen-uplink.mjs ${id} in a repo that carries it)`,
+          "generate client/src/__generated__/ from the contract slice in mod-contract/ (tooling/codegen-uplink.mjs does it in a repo that carries it)",
         ]),
-    "install the client's dependencies",
-    `write the generated page from ${join(target, "client")}: \`GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run\` (no browser) or \`npm run docs\` (also renders the pictures), then commit what it writes`,
+    ...(uplinksDir
+      ? []
+      : [
+          "point the MSBuild properties GonogoContract and GonogoDevkit at the Sitrep.Contract reference set before building mod/, mod-contract/ and mod-tests/",
+        ]),
+    `install the client's dependencies: cd ${client} && npm install`,
+    "write the generated page: `GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run` (no browser) or `npm run docs` (also renders the pictures), then commit what it writes",
   ];
   console.log(`\nNext:\n${todo.map((step) => `  - ${step}`).join("\n")}`);
   return 0;

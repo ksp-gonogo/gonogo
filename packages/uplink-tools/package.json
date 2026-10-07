@@ -1,6 +1,6 @@
 {
   "name": "@ksp-gonogo/uplink-tools",
-  "description": "The Uplink docs toolchain: renders an Uplink's scenes in a real browser, generates its page, and supplies the app's own widgets as render hosts.",
+  "description": "The Uplink author's toolchain and its uplink-tools command: scaffolds, bundles and bakes an Uplink, renders its scenes in a real browser, generates its page, and supplies the app's own widgets as render hosts.",
   "license": "MIT",
   "version": "0.1.0",
   "type": "module",
@@ -37,7 +37,11 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "uplink-tools": "./bin/uplink-tools.mjs"
+  },
   "files": [
+    "bin",
     "dist",
     "README.md"
   ],

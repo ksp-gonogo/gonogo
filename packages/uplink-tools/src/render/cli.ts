@@ -40,8 +40,8 @@ import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./widgetRecord";
 /**
  * What to do about a stale page, and it is not the obvious thing.
  *
- * The line here used to read "Run `gonogo-uplink docs` and commit the result",
- * which is wrong twice on a developer's machine. It re-rasterises every picture
+ * "Run `uplink-tools docs` and commit the result" would be wrong twice on a
+ * developer's machine. It re-rasterises every picture
  * locally, and a picture rendered on the wrong OS is the same mistake as a
  * locally-rendered visual baseline. And `docs` empties the asset directory BEFORE
  * it renders, so a run that throws part-way leaves the committed pictures deleted
@@ -55,18 +55,18 @@ const REGENERATE_REMEDY =
   "    pnpm uplink-pages\n\n" +
   "  The PICTURES are regenerated on Linux, and committed with the change:\n" +
   "    pnpm uplink-docs\n\n" +
-  "  `gonogo-uplink docs` also regenerates both, on THIS machine's rasteriser, " +
+  "  `uplink-tools docs` also regenerates both, on THIS machine's rasteriser, " +
   "and it\n  empties docs/assets before it renders: a run that throws leaves the " +
   "committed\n  pictures deleted. Recover with `git checkout -- docs/assets`.";
 
 /**
- * `gonogo-uplink`: the author's whole interface.
+ * The browser verbs of `uplink-tools`:
  *
- *   gonogo-uplink render                    every scene, to ./renders/
- *   gonogo-uplink render --scene <name>
- *   gonogo-uplink docs                      README.md + gonogo-uplink.json + assets
- *   gonogo-uplink docs --check              fail on drift; pictures on CI only
- *   gonogo-uplink docs --no-assets          README.md + gonogo-uplink.json only
+ *   uplink-tools render                    every scene, to ./renders/
+ *   uplink-tools render --scene <name>
+ *   uplink-tools docs                      README.md + gonogo-uplink.json + assets
+ *   uplink-tools docs --check              fail on drift; pictures on CI only
+ *   uplink-tools docs --no-assets          README.md + gonogo-uplink.json only
  *
  * Zero required `package.json` script lines. An Uplink that wants
  * `pnpm ... render` adds one alias.
@@ -166,14 +166,18 @@ function parseArgs(argv: readonly string[]): Args {
         args.noAssets = true;
         break;
       default:
-        throw new Error(`unknown flag "${flag}"`);
+        throw new Error(
+          `${flag} is not an option of ${args.verb}\n\n${usageOf(args.verb)}`,
+        );
     }
   }
   for (const [verb, flags] of Object.entries(VERB_ONLY_FLAGS)) {
     if (verb === args.verb || !(args.verb in VERB_ONLY_FLAGS)) continue;
     const misplaced = flags.find((flag) => given.has(flag));
     if (misplaced) {
-      throw new Error(`${misplaced} only applies to ${verb}\n\n${USAGE}`);
+      throw new Error(
+        `${misplaced} only applies to ${verb}\n\n${usageOf(args.verb)}`,
+      );
     }
   }
   if (args.noAssets && args.check) {
@@ -186,14 +190,7 @@ function parseArgs(argv: readonly string[]): Args {
   return args;
 }
 
-const USAGE = `gonogo-uplink <render|docs> [options]
-
-  render                 render every fixture to ./renders/
-  docs                   write README.md, gonogo-uplink.json, docs/widgets.json
-                         and docs/assets/
-
-Either verb:
-  --root <dir>           the Uplink client package (default: cwd)
+const SHARED_OPTIONS = `  --root <dir>           the Uplink client package (default: cwd)
   --entry <file>         the client entry to bundle (default: src/index.ts,
                          then src/index.tsx, then package.json "main")
   --uplink <id>          which declared client, when the bundle has several
@@ -202,14 +199,23 @@ Either verb:
                          package.json's "gonogo.renderWith". A path, or an
                          installed package (@ksp-gonogo/uplink-tools/widgets
                          for the app's own widgets). For a one-off run;
-                         declare the ones a fixture needs every time. Repeatable
+                         declare the ones a fixture needs every time. Repeatable`;
 
-render only:
+const RENDER_USAGE = `uplink-tools render [options]
+
+  Render every fixture to ./renders/, for a person to look at.
+
+${SHARED_OPTIONS}
   --scene <name>         one fixture only
   --out <dir>            render output (default: renders/)
   --frames               keep the numbered PNGs of a motion scene
+`;
 
-docs only:
+const DOCS_USAGE = `uplink-tools docs [options]
+
+  Write README.md, gonogo-uplink.json, docs/widgets.json and docs/assets/.
+
+${SHARED_OPTIONS}
   --check                regenerate in memory and fail on any difference.
                          The pictures' shapes are compared only on CI
                          (CI or GITHUB_ACTIONS set); elsewhere the README,
@@ -223,13 +229,14 @@ docs only:
   --bundle <file>        the file you distribute, hashed into integrity
 `;
 
-async function main(argv: readonly string[]): Promise<void> {
-  // Anywhere in the line, not only first. The sdk's own help tells an author to
-  // run a command with --help for its options, and `render --help` reached
-  // `parseArgs` and came back with `unknown flag "--help"`, which is the tool
-  // refusing the thing its help had just recommended.
-  if (argv.length === 0 || argv.includes("--help") || argv.includes("-h")) {
-    console.log(USAGE);
+const usageOf = (verb: string): string =>
+  verb === "docs" ? DOCS_USAGE : RENDER_USAGE;
+
+/** `render` or `docs`, with `argv[0]` naming which. Throws on any failure. */
+export async function renderOrDocs(argv: readonly string[]): Promise<void> {
+  // Anywhere in the line, so `--help` never reaches `parseArgs` as an unknown flag.
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(usageOf(argv[0] ?? ""));
     return;
   }
   const args = parseArgs(argv);
@@ -266,7 +273,7 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 
   if (args.verb !== "docs") {
-    throw new Error(`unknown verb "${args.verb}"\n\n${USAGE}`);
+    throw new Error(`unknown verb "${args.verb}"`);
   }
 
   if (args.noAssets) {
@@ -375,7 +382,7 @@ async function docs(
     .filter((id) => !excused.has(id));
   if (bare.length > 0) {
     throw new Error(
-      `gonogo-uplink docs --check: ${bare.length} augment(s) declare no render ` +
+      `uplink-tools docs --check: ${bare.length} augment(s) declare no render ` +
         `scene, so no reviewer can ever see them:\n  ${bare.join("\n  ")}\n\n` +
         "Add a `_scene` fixture under the widget's `__fixtures__/`, showing a state " +
         "worth reviewing rather than the happy path.\n\n" +
@@ -411,7 +418,7 @@ async function docs(
   });
   if (differences.length > 0) {
     throw new Error(
-      `gonogo-uplink docs --check: ${differences.length} difference(s) ` +
+      `uplink-tools docs --check: ${differences.length} difference(s) ` +
         `between the committed page and what the code says today:\n  ` +
         `${differences.join("\n  ")}\n\n` +
         (wholePage ? `${wholePage}\n\n` : "") +
@@ -534,7 +541,7 @@ export async function refuseToClobberHandWrittenReadme(
   const existing = await readFile(readmePath, "utf8");
   if (existing.startsWith(README_GENERATED_MARKER)) return;
   throw new Error(
-    `gonogo-uplink docs: ${display(dir, readmePath)} was not written by this ` +
+    `uplink-tools docs: ${display(dir, readmePath)} was not written by this ` +
       "command, and the page it generates would replace the whole file.\n\n" +
       "Everything a generated page says comes from your registrations, your " +
       "contract slice and your fixtures, so there is nowhere in it for prose " +
@@ -760,19 +767,4 @@ export function wholePageRestyle(
     "once. Expect it after a `packages/theme` or `packages/ui-kit` edit, and " +
     "expect\n  the scheduled regeneration to clear it."
   );
-}
-
-/**
- * Runs the `gonogo-uplink` command line with `argv` and returns the exit code.
- *
- * @category Rendering scenes
- */
-export async function run(argv: readonly string[]): Promise<number> {
-  try {
-    await main(argv);
-    return 0;
-  } catch (err) {
-    console.error(`\n${err instanceof Error ? err.message : String(err)}`);
-    return 1;
-  }
 }

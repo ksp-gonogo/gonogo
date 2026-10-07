@@ -2,9 +2,10 @@
   "$schema": "https://turbo.build/schema.json",
   "extends": ["//"],
   "tasks": {
-    // context.fonts.test reads the app's fonts.css for the weights it self-hosts.
+    // context.fonts.test reads the app's fonts.css for the weights it self-hosts,
+    // and the cli suite runs the bin, which executes this package's own dist.
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/packages/app/src/styles/fonts.css"

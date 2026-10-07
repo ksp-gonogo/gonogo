@@ -88,10 +88,9 @@ jobs:
       # check reports them stale for a reason that has nothing to do with their
       # pictures. `ci.yml` and `uplink-docs.yml` both carry the same filter.
       #
-      # `uplink-tools` joined the filter when the render harness left ui-kit: the
-      # sdk CLI resolves `@ksp-gonogo/uplink-tools` from the client being
-      # documented, so an unbuilt `dist` is a module-not-found naming a path
-      # inside the Uplink rather than the package that was never built.
+      # `uplink-tools` is in the filter because its bin is what `docs --check`
+      # runs, and an unbuilt `dist` is a module-not-found naming a path inside
+      # the Uplink rather than the package that was never built.
       - name: Build
         run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... --filter @ksp-gonogo/uplink-tools... build
 

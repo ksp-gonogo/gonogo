@@ -1,36 +1,14 @@
 /**
- * The `gonogo-uplink` command an Uplink author actually runs.
+ * The `uplink-tools` command an Uplink author runs, and the one their release
+ * workflow calls: `npx @ksp-gonogo/uplink-tools <command>`.
  *
- * ## Why it moved here
+ * One bin, named after the package. npx runs the bin whose name matches the
+ * package's unscoped name, so `npx @ksp-gonogo/uplink-tools new` works with
+ * nothing installed, and an installed copy answers to the same name in a
+ * `package.json` script.
  *
- * Release-time tooling that only exists inside the gonogo repo is tooling a
- * stranger cannot run, and a template whose getting-started calls it is a
- * template that is broken the moment it is generated. `bundle` existed only as an
- * 80-line Vite plugin inside the app; `bake-hash` existed only as
- * `mod/scripts/bake-client-hash.mjs`, which ships in neither published package.
- * Both are here now because here is what an author installs.
- *
- * ## One command, and the browser half stays lazy
- *
- * `render` and `docs` drive Playwright through `@ksp-gonogo/uplink-tools` and
- * are forwarded to it, imported only when one of those verbs is actually used.
- * An author running `bundle` in CI does not pay for a browser driver they are
- * not using, and the sdk keeps no dependency on the tools package.
- *
- * Two commands would have been the alternative and it is worse: a second tool is
- * a second thing to discover, version and document, and an author has no way to
- * know which of the two owns the verb they want.
- *
- * ## esbuild and uplink-tools are NOT declared as optional peers
- *
- * They are the author's, resolved at the moment a verb needs one, and each
- * missing case throws with the exact install command. Declaring them as peers
- * instead conveys the same information less well AND breaks the workspace: pnpm
- * resolves a per-peer INSTANCE of a workspace package and COPIES it rather than
- * linking, so this package's `src` arrives without the files a consumer resolves
- * and 4 core suites fail with "Stripping types is currently unsupported for files
- * under node_modules". The tools package's own tsup config documents the same
- * trap for the same reason.
+ * `render` and `docs` drive Playwright and are imported only when one of them
+ * runs, so `new`, `bundle` and `bake-hash` never load a browser driver.
  */
 
 import { createHash } from "node:crypto";
@@ -42,36 +20,31 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { UPLINK_BUNDLE_EXTERNALS } from "../uplink-externals.js";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { UPLINK_BUNDLE_EXTERNALS } from "@ksp-gonogo/sitrep-sdk/uplink-externals";
 import {
   buildUplinkManifest,
   readUplinkDeclaration,
   serialiseUplinkManifest,
   UPLINK_MANIFEST_FILE,
-} from "../uplink-manifest.js";
-// `.js`, explicitly. This package emits unbundled ESM and Node's resolver needs
-// the extension; `moduleResolution: "bundler"` accepts it too, so it is correct
-// in both modes. This CLI is the first thing here RUN from `dist` rather than
-// typechecked, which is why it is the first to care.
-import { NEW_USAGE, newUplink } from "./new.js";
+} from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
+import { parseFlags, wantsHelp } from "./flags";
+import { NEW_USAGE, newUplink } from "./new";
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
 const WATCH_STATUS_FILE = "watch-status.json";
 
-const USAGE = `gonogo-uplink <command>
+const USAGE = `uplink-tools <command>
 
   new        scaffold a fresh Uplink: the hand-written seed, then its generators
   bundle     build the client bundle the app loads, and its gonogo-uplink.json
   bake-hash  write a client bundle's sha256 into C#, for the mod to vouch for
-  render     render this Uplink's widgets to images (needs @ksp-gonogo/uplink-tools)
+  render     render this Uplink's widgets to images
   docs       this Uplink's README, its assets and the SAME gonogo-uplink.json
-             that bundle writes (needs @ksp-gonogo/uplink-tools)
+             that bundle writes
 
-Run a command with --help for its options.`;
-
-const flag = (argv: readonly string[], name: string): string | undefined =>
-  argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined;
+Run a command with --help for its options. Without an install:
+  npx @ksp-gonogo/uplink-tools <command>`;
 
 /**
  * The version of a package as INSTALLED, read from its own manifest.
@@ -86,18 +59,79 @@ const flag = (argv: readonly string[], name: string): string | undefined =>
  * does not use ui-kit still has a bundle to describe.
  */
 function installedVersion(fromDir: string, pkg: string): string {
-  let dir = fromDir;
-  for (let up = 0; up < 6; up++) {
-    const manifest = join(dir, "node_modules", pkg, "package.json");
-    if (existsSync(manifest)) {
-      const version: unknown = Reflect.get(readManifest(manifest), "version");
-      return typeof version === "string" ? version : "";
-    }
+  const dir = installedPackageDir(fromDir, pkg, 6);
+  if (!dir) return "";
+  const version: unknown = Reflect.get(
+    readManifest(join(dir, "package.json")),
+    "version",
+  );
+  return typeof version === "string" ? version : "";
+}
+
+/** The directory `pkg` is installed in, walking up from `fromDir` at most `levels` times. */
+function installedPackageDir(
+  fromDir: string,
+  pkg: string,
+  levels = Number.POSITIVE_INFINITY,
+): string | undefined {
+  let dir = resolve(fromDir);
+  for (let up = 0; up <= levels; up++) {
+    const candidate = join(dir, "node_modules", pkg);
+    if (existsSync(join(candidate, "package.json"))) return candidate;
     const parent = dirname(dir);
-    if (parent === dir) break;
+    if (parent === dir) return undefined;
     dir = parent;
   }
-  return "";
+  return undefined;
+}
+
+interface CompatVersions {
+  EXTENSION_API_VERSION: string;
+  CONTRACT_MAJOR: number;
+  CONTRACT_MINOR: number;
+}
+
+/**
+ * The compatibility stamps of the sdk the client compiles against: the author's
+ * own install first, then the one installed beside this package.
+ *
+ * Read from the sdk's emitted `dist/compat-versions.js` by path rather than
+ * through its root export. The root pulls the whole sdk into a Node process for
+ * three constants, and inside this repository's workspace it resolves to the
+ * sdk's TypeScript source, which bare Node cannot load.
+ */
+async function compatVersions(clientDir: string): Promise<CompatVersions> {
+  const sdk = "@ksp-gonogo/sitrep-sdk";
+  const here = dirname(fileURLToPath(import.meta.url));
+  const dir =
+    installedPackageDir(clientDir, sdk) ?? installedPackageDir(here, sdk);
+  const file = dir ? join(dir, "dist", "compat-versions.js") : undefined;
+  if (!file || !existsSync(file)) {
+    throw new Error(
+      `${sdk} is not installed where ${clientDir} can reach it, or carries no ` +
+        "dist/compat-versions.js. The manifest's compatibility stamps come from the sdk " +
+        `the client compiles against:\n  npm i -D ${sdk}`,
+    );
+  }
+  const loaded: unknown = await import(pathToFileURL(file).href);
+  const api = Reflect.get(Object(loaded), "EXTENSION_API_VERSION");
+  const major = Reflect.get(Object(loaded), "CONTRACT_MAJOR");
+  const minor = Reflect.get(Object(loaded), "CONTRACT_MINOR");
+  if (
+    typeof api !== "string" ||
+    typeof major !== "number" ||
+    typeof minor !== "number"
+  ) {
+    throw new Error(
+      `${file} does not export EXTENSION_API_VERSION, CONTRACT_MAJOR and CONTRACT_MINOR, so ` +
+        "this sdk cannot stamp a manifest the app will accept. Install a matching sdk.",
+    );
+  }
+  return {
+    EXTENSION_API_VERSION: api,
+    CONTRACT_MAJOR: major,
+    CONTRACT_MINOR: minor,
+  };
 }
 
 /**
@@ -111,7 +145,7 @@ function installedVersion(fromDir: string, pkg: string): string {
  * all the same sidecar path and the last one wins, which is why each gets its own
  * directory here.
  */
-const BUNDLE_USAGE = `gonogo-uplink bundle [options]
+const BUNDLE_USAGE = `uplink-tools bundle [options]
 
   Build the ESM bundle the app import()s, plus the gonogo-uplink.json sidecar
   beside it with its integrity hash already filled.
@@ -125,7 +159,7 @@ const BUNDLE_USAGE = `gonogo-uplink bundle [options]
                    A failed rebuild leaves the last good bundle in place.
                    Stop it with Ctrl-C`;
 
-const BAKE_HASH_USAGE = `gonogo-uplink bake-hash --bundle <file> --out <file> --namespace <ns>
+const BAKE_HASH_USAGE = `uplink-tools bake-hash --bundle <file> --out <file> --namespace <ns>
 
   Write a client bundle's sha256 into a generated C# const, so the running mod
   can vouch for the client it was released with. Run it AFTER bundle and BEFORE
@@ -135,16 +169,19 @@ const BAKE_HASH_USAGE = `gonogo-uplink bake-hash --bundle <file> --out <file> --
   --out <file>        the ExpectedClientHash.g.cs to write
   --namespace <ns>    the C# namespace to declare it in`;
 
-const wantsHelp = (argv: readonly string[]): boolean =>
-  argv.includes("--help") || argv.includes("-h");
-
 async function bundle(argv: readonly string[]): Promise<number> {
   if (wantsHelp(argv)) {
     console.log(BUNDLE_USAGE);
     return 0;
   }
-  const clientDir = resolve(flag(argv, "--client") ?? process.cwd());
-  const outDir = resolve(flag(argv, "--out") ?? join(clientDir, "dist"));
+  const { values, switches } = parseFlags(argv, {
+    verb: "bundle",
+    usage: BUNDLE_USAGE,
+    values: ["--client", "--entry", "--out"],
+    switches: ["--watch"],
+  });
+  const clientDir = resolve(values.get("--client") ?? process.cwd());
+  const outDir = resolve(values.get("--out") ?? join(clientDir, "dist"));
 
   const declaration = readUplinkDeclaration(clientDir);
   if (!declaration) {
@@ -156,16 +193,11 @@ async function bundle(argv: readonly string[]): Promise<number> {
   const id = String(declaration.declared.id ?? "");
   if (!id) throw new Error(`${declaration.path} declares no id`);
 
-  const entry = resolve(clientDir, flag(argv, "--entry") ?? "src/index.ts");
+  const entry = resolve(clientDir, values.get("--entry") ?? "src/index.ts");
   if (!existsSync(entry)) {
     throw new Error(`entry ${entry} does not exist`);
   }
 
-  /*
-   * esbuild is the AUTHOR's dependency, resolved from their client rather than
-   * bundled here: the sdk declares no dependencies and an author who pins a
-   * particular esbuild gets the one they pinned.
-   */
   let build: typeof import("esbuild").build;
   let context: typeof import("esbuild").context;
   try {
@@ -174,15 +206,16 @@ async function bundle(argv: readonly string[]): Promise<number> {
     )) as typeof import("esbuild"));
   } catch {
     throw new Error(
-      "esbuild is not installed. It is the bundler this uses and it is your dependency, not the " +
-        "sdk's, so an author who pins a version gets the one they pinned:\n  npm i -D esbuild",
+      "esbuild is not installed. It is the bundler this uses, and a peer of this package so " +
+        "an author who pins a version gets the one they pinned:\n  npm i -D esbuild",
     );
   }
 
+  const compat = await compatVersions(clientDir);
   const bundleDir = join(outDir, id);
   mkdirSync(bundleDir, { recursive: true });
   const outFile = join(bundleDir, `${id}.client.js`);
-  const watching = argv.includes("--watch");
+  const watching = switches.has("--watch");
 
   /*
    * Output is held in memory and written only after the emitted bytes pass the
@@ -202,11 +235,13 @@ async function bundle(argv: readonly string[]): Promise<number> {
     external: [...UPLINK_BUNDLE_EXTERNALS],
     logLevel: "warning" as const,
   };
+  /*
+   * Every CSS import folded into the one JS bundle as a self-injecting <style>.
+   * The loader fetches only the JS, so a sibling .css esbuild emitted would never
+   * be applied and the widget would render unstyled with nothing failing. It also
+   * keeps the whole client under ONE hash.
+   */
   const cssInject = {
-    // Every CSS import folded into the one JS bundle as a self-injecting
-    // <style>. The loader fetches only the JS, so a sibling .css esbuild
-    // emitted would never be applied and the widget would render unstyled
-    // with nothing failing. It also keeps the whole client under ONE hash.
     name: "gonogo-css-inject",
     setup(pluginBuild: import("esbuild").PluginBuild) {
       pluginBuild.onLoad({ filter: /\.css$/ }, (args) => ({
@@ -246,7 +281,6 @@ async function bundle(argv: readonly string[]): Promise<number> {
       );
     }
 
-    const compatVersions = await import("../compat-versions.js");
     writeFileSync(outFile, bytes);
     writeFileSync(
       join(bundleDir, UPLINK_MANIFEST_FILE),
@@ -254,10 +288,10 @@ async function bundle(argv: readonly string[]): Promise<number> {
         buildUplinkManifest({
           clientDir,
           compat: {
-            apiVersion: compatVersions.EXTENSION_API_VERSION,
+            apiVersion: compat.EXTENSION_API_VERSION,
             uiKitVersion: installedVersion(clientDir, "@ksp-gonogo/ui-kit"),
-            contractMajor: compatVersions.CONTRACT_MAJOR,
-            contractMinor: compatVersions.CONTRACT_MINOR,
+            contractMajor: compat.CONTRACT_MAJOR,
+            contractMinor: compat.CONTRACT_MINOR,
           },
           integrity,
         }),
@@ -340,8 +374,7 @@ async function bundle(argv: readonly string[]): Promise<number> {
  * vouch for the client it was released with.
  *
  * The loader compares three witnesses: the index's hash, the bytes it fetched,
- * and this. Leave it empty and the check silently becomes two-way, which is what
- * every bundled Uplink has been doing.
+ * and this. Leave it empty and the check silently becomes two-way.
  *
  * ORDER MATTERS and is not the author's to remember: the bundle must exist and be
  * hashed BEFORE the DLL is compiled, or the DLL vouches for bytes that are not
@@ -352,9 +385,14 @@ async function bakeHash(argv: readonly string[]): Promise<number> {
     console.log(BAKE_HASH_USAGE);
     return 0;
   }
-  const bundlePath = flag(argv, "--bundle");
-  const out = flag(argv, "--out");
-  const namespace = flag(argv, "--namespace");
+  const { values } = parseFlags(argv, {
+    verb: "bake-hash",
+    usage: BAKE_HASH_USAGE,
+    values: ["--bundle", "--out", "--namespace"],
+  });
+  const bundlePath = values.get("--bundle");
+  const out = values.get("--out");
+  const namespace = values.get("--namespace");
   if (!bundlePath || !out || !namespace) {
     throw new Error(
       "bake-hash needs --bundle <file> --out <ExpectedClientHash.g.cs> --namespace <C# namespace>",
@@ -372,7 +410,7 @@ async function bakeHash(argv: readonly string[]): Promise<number> {
   mkdirSync(dirname(resolve(out)), { recursive: true });
   writeFileSync(
     resolve(out),
-    `// <auto-generated> Written by \`gonogo-uplink bake-hash\`. DO NOT EDIT.
+    `// <auto-generated> Written by \`uplink-tools bake-hash\`. DO NOT EDIT.
 //
 // The sha256 of the client bundle this DLL was built alongside. Empty leaves
 // UplinkManifest.ExpectedClientHash null and the loader's three-way check running
@@ -391,98 +429,10 @@ namespace ${namespace}
 }
 
 /**
- * Where the AUTHOR's copy of `pkg` is, walking up from their package.
+ * Runs the `uplink-tools` command line with `argv` and returns the exit code.
  *
- * The subpath is resolved out of that package's own `exports` map rather than
- * guessed, because guessing `dist/index.js` would reach past the map and keep
- * working right up until the file moved.
- *
- * `createRequire().resolve` is the wrong instrument and looks like the right
- * one: it applies the `require` condition, and these maps declare only `types`
- * and `import`, so it fails with ERR_PACKAGE_PATH_NOT_EXPORTED on a package
- * that is installed and fine. `import.meta.resolve`'s two-argument form would
- * do it and needs a flag. So: fs walk, then read the map.
- *
- * Parameterised by package NAME since the render harness left ui-kit for
- * `@ksp-gonogo/uplink-tools`. Every message below names the package it actually
- * looked for: the wording here is load-bearing, and this function's own history
- * is why. Authors on pnpm were once told ui-kit was not installed while it sat
- * in their devDependencies, and a message naming the WRONG package would be
- * that same defect wearing a new coat.
+ * @category Rendering scenes
  */
-function findAuthorsPackage(
-  fromDir: string,
-  pkg: string,
-  subpath: string,
-): string | undefined {
-  const [scope, name] = pkg.split("/");
-  let dir = resolve(fromDir);
-  for (;;) {
-    const pkgDir = join(dir, "node_modules", scope, name);
-    const manifest = join(pkgDir, "package.json");
-    if (existsSync(manifest)) {
-      const file = exportedEntryPoint(
-        Reflect.get(readManifest(manifest), "exports"),
-        subpath,
-      );
-      if (!file) {
-        throw new Error(
-          `${pkg} at ${pkgDir} exports no "${subpath}", so this version of it ` +
-            `cannot render. Upgrade it:\n  npm i -D ${pkg}@latest`,
-        );
-      }
-      return join(pkgDir, file);
-    }
-    const parent = dirname(dir);
-    if (parent === dir) return undefined;
-    dir = parent;
-  }
-}
-
-/** The package that owns the browser verbs. Left ui-kit at ticket 221. */
-const TOOLS_PACKAGE = "@ksp-gonogo/uplink-tools";
-
-/**
- * Forward a browser verb to the tools CLI, imported HERE rather than at module
- * scope so `bundle` and `bake-hash` never load Playwright or a DOM stack.
- *
- * Resolved from the AUTHOR's package, never from this one's module graph, and
- * that distinction is the whole function. A bare
- * `await import("@ksp-gonogo/uplink-tools")` resolves against THIS file, and the
- * sdk deliberately does not depend on it: it depends on the sdk, so declaring it
- * back is a cycle, and declaring it as an optional peer makes pnpm copy a
- * per-peer instance of a workspace package instead of linking it (see this
- * module's own header). Under npm's flat layout the bare import gets away with
- * it, because the walk-up from `node_modules/@ksp-gonogo/sitrep-sdk` finds the
- * sibling. Under pnpm the two live in separate isolated stores and it can NEVER
- * resolve, so every author on pnpm was told the package was not installed while
- * it sat in their own devDependencies. It is also the right question on npm: the
- * version the page reports must be the one the author pinned.
- */
-async function forwardToTools(argv: readonly string[]): Promise<number> {
-  // The same `--root` the browser verbs take, so the copy found is the one
-  // belonging to the package being documented rather than to wherever the
-  // command happened to be typed.
-  const root = resolve(flag(argv, "--root") ?? process.cwd());
-  const entry = findAuthorsPackage(root, TOOLS_PACKAGE, ".");
-  if (!entry) {
-    throw new Error(
-      `\`${argv[0]}\` renders in a real browser and lives in ${TOOLS_PACKAGE}, which is not ` +
-        `installed in ${root} or any directory above it:\n  npm i -D ${TOOLS_PACKAGE} playwright\n` +
-        "`bundle` and `bake-hash` need neither, which is why this is not a dependency of the sdk.",
-    );
-  }
-  const loaded: unknown = await import(pathToFileURL(entry).href);
-  const run: unknown =
-    typeof loaded === "object" && loaded !== null
-      ? Reflect.get(loaded, "run")
-      : undefined;
-  if (typeof run !== "function") {
-    throw new Error(`${entry} exports no run()`);
-  }
-  return await (run as (argv: readonly string[]) => Promise<number>)(argv);
-}
-
 export async function run(argv: readonly string[]): Promise<number> {
   const verb = argv[0];
   if (!verb || verb === "--help" || verb === "-h") {
@@ -499,7 +449,11 @@ export async function run(argv: readonly string[]): Promise<number> {
     }
     if (verb === "bundle") return await bundle(argv.slice(1));
     if (verb === "bake-hash") return await bakeHash(argv.slice(1));
-    if (verb === "render" || verb === "docs") return await forwardToTools(argv);
+    if (verb === "render" || verb === "docs") {
+      const { renderOrDocs } = await import("../render/cli");
+      await renderOrDocs(argv);
+      return 0;
+    }
     console.error(`unknown command "${verb}"\n\n${USAGE}`);
     return 1;
   } catch (err) {
@@ -515,24 +469,4 @@ function readManifest(path: string): Record<string, unknown> {
     throw new Error(`${path} does not hold a JSON object.`);
   }
   return parsed as Record<string, unknown>;
-}
-
-/**
- * The file an `exports` map serves for `subpath`, reading the conditional
- * form's `import` then `default`, or `undefined` when it serves none.
- */
-function exportedEntryPoint(
-  exports: unknown,
-  subpath: string,
-): string | undefined {
-  if (typeof exports !== "object" || exports === null) return undefined;
-  if (!(subpath in exports)) return undefined;
-  const entry: unknown = Reflect.get(exports, subpath);
-  if (typeof entry === "string") return entry;
-  if (typeof entry !== "object" || entry === null) return undefined;
-  for (const condition of ["import", "default"]) {
-    const value: unknown = Reflect.get(entry, condition);
-    if (typeof value === "string") return value;
-  }
-  return undefined;
 }

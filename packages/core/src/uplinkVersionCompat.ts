@@ -58,7 +58,7 @@ export interface GonogoUplinkManifest {
   contractMinor: number;
   integrity: string;
   /**
-   * What the Uplink is as a DISTRIBUTION, written by `gonogo-uplink` from the
+   * What the Uplink is as a DISTRIBUTION, written by `uplink-tools` from the
    * author's `uplink.json`.
    *
    * Optional and unchecked, like `description`: a manifest generated before these

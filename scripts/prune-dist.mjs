@@ -6,7 +6,7 @@
  * removed or renamed source leaves its old output behind for good. Run this
  * AFTER `tsc`, never instead of cleaning before it: emptying `dist` first
  * leaves a window in which the package has no build at all, and a test that
- * executes its own `dist` (the sdk's CLI does) fails whenever a build overlaps
+ * executes its own `dist` fails whenever a build overlaps
  * it or is killed partway.
  *
  * Only `tsc`'s own outputs are candidates (`.js`, `.d.ts` and their maps), so

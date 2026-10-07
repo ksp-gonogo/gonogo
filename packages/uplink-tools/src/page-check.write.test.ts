@@ -23,7 +23,7 @@ import {
  * The browserless writer, which is the half that makes the gate affordable.
  *
  * The check has always been able to say a page is stale. The only way to act on
- * that was `gonogo-uplink docs`, which rasterises every fixture on the way past,
+ * that was `uplink-tools docs`, which rasterises every fixture on the way past,
  * so an additive contract bump (one markdown line, in every bundled Uplink at
  * once) cost a full render run and a diff of pictures nobody had touched.
  *

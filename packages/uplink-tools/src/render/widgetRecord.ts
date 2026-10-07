@@ -75,7 +75,7 @@ export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
 }
 
 /**
- * Where `gonogo-uplink docs` writes an Uplink's widget records, relative to its
+ * Where `uplink-tools docs` writes an Uplink's widget records, relative to its
  * client package. Committed beside the README and checked with it.
  *
  * @category Uplink page

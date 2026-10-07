@@ -61,7 +61,13 @@ export default defineConfig([
     // `page-check` is a separate entry because it must NOT pull Playwright: it
     // is the half of the gate an author with no browser can run, and a static
     // import of the driver would make it cost exactly what it exists to avoid.
-    entry: ["src/index.ts", "src/page-check.ts"],
+    // `cli` is what the bin runs, and it must load under bare Node with nothing
+    // but this package and its peers installed.
+    entry: {
+      index: "src/index.ts",
+      "page-check": "src/page-check.ts",
+      cli: "src/cli/index.ts",
+    },
     platform: "node",
     // Small, pure JS and dependency-free, so inlining keeps this manifest free
     // of runtime dependencies. Reachable only from `dist/index.js`, which a
@@ -87,7 +93,7 @@ export default defineConfig([
      * Its own entry, and NOT part of the root barrel, because the two are
      * opposite kinds of thing. The barrel is a Node API an author imports for
      * its functions; this is a side-effect module carrying the whole private
-     * app graph as browser code. Rolled together, `gonogo-uplink docs` would
+     * app graph as browser code. Rolled together, `uplink-tools docs` would
      * load a megabyte of widgets into a Node CLI on every run, and importing
      * the harness would register the app's widgets as a side effect.
      *

@@ -125,7 +125,7 @@ const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
    *
    * No import-map entry is NOT the same as no `exports` entry, and the second
    * one cannot be removed: `@ksp-gonogo/ui-kit`'s `render-probe`, which IS an
-   * author surface and is what `gonogo-uplink` drives, imports this subpath, so
+   * author surface and is what `uplink-tools` drives, imports this subpath, so
    * its published dist carries the bare specifier and an author's Node has to
    * resolve it. Un-advertising the subpath would break the render harness for
    * everyone outside this repo. `every subpath ui-kit imports stays exported`
@@ -135,7 +135,7 @@ const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
   // Test-only. No shipped Uplink bundle imports it, so nothing has to resolve it
   // in a browser.
   testing: "test harness, never in a shipped bundle",
-  // Build tooling. `gonogo-uplink bundle` reads it to mark specifiers external,
+  // Build tooling. `uplink-tools bundle` reads it to mark specifiers external,
   // and the app reads it to bake the import map; both resolve it at BUILD time,
   // so no shipped bundle carries the specifier and nothing has to resolve it in
   // a browser.

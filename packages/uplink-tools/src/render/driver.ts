@@ -317,7 +317,7 @@ export async function renderUplink(
     const scenes = opts.scene ? all.filter((s) => s.name === opts.scene) : all;
     if (scenes.length === 0) {
       throw new Error(
-        `gonogo-uplink: no scene named "${opts.scene}". Known scenes: ` +
+        `uplink-tools: no scene named "${opts.scene}". Known scenes: ` +
           `${all.map((s) => s.name).join(", ")}`,
       );
     }

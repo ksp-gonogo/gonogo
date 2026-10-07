@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * One render process, and only one: `@ksp-gonogo/ui-kit`'s `gonogo-uplink`.
+ * One render process, and only one: `uplink-tools render`, from `@ksp-gonogo/uplink-tools`.
  *
  * Three Uplinks each grew their own Playwright driver and probe page, roughly
  * 2,300 lines between them, and the cost was not the duplication. It was that
@@ -39,7 +39,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 const MOD = join(REPO_ROOT, "mod");
 
-const SHARED_TOOL = "gonogo-uplink render";
+const SHARED_TOOL = "uplink-tools render";
 
 /** The packages only a render DRIVER imports. Third-party, so nothing else in
  *  this repo's boundary rules has an opinion about them. */
@@ -183,7 +183,7 @@ describe("one render process", () => {
       offenders,
       `${offenders.length} file(s) launch their own browser:\n  ` +
         `${offenders.join("\n  ")}\n\n` +
-        "Rendering is `gonogo-uplink render` from @ksp-gonogo/ui-kit, and " +
+        "Rendering is `uplink-tools render` from @ksp-gonogo/uplink-tools, and " +
         "anything it cannot do gets ADDED to it rather than worked around in " +
         "one Uplink. A scene needing a fake only you can write goes in " +
         "client/gonogo-render.setup.ts.",

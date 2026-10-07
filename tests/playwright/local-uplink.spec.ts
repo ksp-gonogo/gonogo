@@ -3,7 +3,7 @@ import { LOCAL_UPLINK_URL } from "../../playwright.config";
 import { dashboardWithWidget } from "./helpers";
 
 /**
- * A client built with `gonogo-uplink bundle` and named with `--uplink` renders
+ * A client built with `uplink-tools bundle` and named with `--uplink` renders
  * under `vite dev`.
  *
  * The widget is on the dashboard grid, which can only happen if the bundle's

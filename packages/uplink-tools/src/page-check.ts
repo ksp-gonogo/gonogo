@@ -16,7 +16,7 @@ import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./render/widgetRecord";
 
 /*
- * The browserless half of `gonogo-uplink docs --check`: whether the generated page still matches what the registrations declare.
+ * The browserless half of `uplink-tools docs --check`: whether the generated page still matches what the registrations declare.
  * It reads through the same `readInventory` and `buildReadme` the renderer uses, so it cannot describe a different Uplink from the pictures.
  */
 
@@ -54,7 +54,7 @@ export interface PageCheckResult {
 function withoutIntegrity(json: string): string {
   const parsed: unknown = JSON.parse(json);
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error("gonogo-uplink: the manifest does not hold a JSON object.");
+    throw new Error("uplink-tools: the manifest does not hold a JSON object.");
   }
   const manifest: Record<string, unknown> = parsed as Record<string, unknown>;
   delete manifest.integrity;
@@ -177,7 +177,7 @@ export function checkUplinkPage(
  * for a change that moves the page's text but not its pictures, such as a new
  * contract version.
  * It needs no browser and writes the same bytes on any machine, where
- * `gonogo-uplink docs` would re-render every picture.
+ * `uplink-tools docs` would re-render every picture.
  *
  * @category Page check
  */
@@ -292,7 +292,7 @@ function updateRequested(): boolean {
  * Fails when the Uplink's committed README, manifest or `docs/widgets.json` no
  * longer matches what its registrations declare, listing each difference. For an Uplink's own test
  * suite: it needs no browser, and it cannot tell whether the committed images
- * are current, which `gonogo-uplink docs --check` does. With `PAGE_UPDATE_ENV`
+ * are current, which `uplink-tools docs --check` does. With `PAGE_UPDATE_ENV`
  * set to `1` it rewrites the files instead of failing; on CI that is refused.
  *
  * @example
@@ -322,7 +322,7 @@ export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
       `docs/assets:\n` +
       `      pnpm uplink-pages\n` +
       `  or, for this Uplink alone, re-run its suite with ${PAGE_UPDATE_ENV}=1.\n\n` +
-      "  `gonogo-uplink docs` also fixes it, and re-renders every picture " +
+      "  `uplink-tools docs` also fixes it, and re-renders every picture " +
       "through this machine's\n  rasteriser on the way past. The pictures are " +
       "regenerated on Linux with `pnpm uplink-docs`;\n  a local render of them is " +
       "the same mistake as a locally-rendered visual baseline.",

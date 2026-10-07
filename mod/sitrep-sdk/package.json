@@ -24,7 +24,6 @@
   },
   "homepage": "https://github.com/ksp-gonogo/gonogo/tree/main/mod/sitrep-sdk#readme",
   "files": [
-    "bin",
     "biome.shared.json",
     "dist",
     "src",
@@ -104,8 +103,5 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "styled-components": "^6.0.0"
-  },
-  "bin": {
-    "gonogo-uplink": "./bin/gonogo-uplink.mjs"
   }
 }

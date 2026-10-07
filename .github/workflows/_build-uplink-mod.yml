@@ -110,7 +110,7 @@ jobs:
       #
       # The `packages/app` test is not belt-and-braces. This workflow is written
       # to be `workflow_call`ed by a future third-party Uplink repo, and there the
-      # bundle is built by the author's own `gonogo-uplink bundle`, not by an app
+      # bundle is built by the author's own `uplink-tools bundle`, not by an app
       # that does not exist in their checkout. Their bake belongs in their caller.
       - name: Does ${{ inputs.id }} vouch for a client bundle
         id: vouches

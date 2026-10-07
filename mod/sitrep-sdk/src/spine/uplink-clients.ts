@@ -70,7 +70,7 @@ export interface UplinkClientHandle {
    * generated page and describes it wherever the app lists what is installed.
    * Each widget's own description belongs on its registration, not here.
    *
-   * `gonogo-uplink docs` will not write a page for an Uplink without one.
+   * `uplink-tools docs` will not write a page for an Uplink without one.
    */
   description?: string;
   /**

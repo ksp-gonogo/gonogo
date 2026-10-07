@@ -50,7 +50,7 @@ export interface UplinkPackage {
 export function readJsonObject(file: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error(`gonogo-uplink: ${file} does not hold a JSON object.`);
+    throw new Error(`uplink-tools: ${file} does not hold a JSON object.`);
   }
   return parsed as Record<string, unknown>;
 }
@@ -82,7 +82,7 @@ function resolveEntry(dir: string, pkg: { main?: string }, override?: string) {
     if (exists(full)) return full;
   }
   throw new Error(
-    `gonogo-uplink: cannot find this Uplink client's entry module in ${dir}. ` +
+    `uplink-tools: cannot find this Uplink client's entry module in ${dir}. ` +
       'Looked for src/index.ts, src/index.tsx, then package.json "main". ' +
       "Name it with --entry <path>.",
   );
@@ -120,7 +120,7 @@ function findFixtures(root: string): string[] {
  * host widget ships with the APP, in a package no Uplink may import. `--with`
  * can name one per run, but a render that only works when someone remembers a
  * flag is a render nobody runs: the FIRST Uplink to use `_scene.hostWidget` shipped a
- * plain `gonogo-uplink render` script beside a fixture naming a host, which
+ * plain `uplink-tools render` script beside a fixture naming a host, which
  * cannot succeed. So the modules are a fact about the package, beside
  * `minAppVersion` in the same `gonogo` block:
  *
@@ -150,14 +150,14 @@ function resolveRenderWith(dir: string, gonogo: unknown): string[] {
   if (declared === undefined) return [];
   if (!Array.isArray(declared)) {
     throw new Error(
-      `gonogo-uplink: "gonogo.renderWith" in ${join(dir, "package.json")} must ` +
+      `uplink-tools: "gonogo.renderWith" in ${join(dir, "package.json")} must ` +
         `be an array of module paths or specifiers, got ${typeof declared}.`,
     );
   }
   return declared.map((entry) => {
     if (typeof entry !== "string") {
       throw new Error(
-        `gonogo-uplink: every "gonogo.renderWith" entry must be a path or a ` +
+        `uplink-tools: every "gonogo.renderWith" entry must be a path or a ` +
           `specifier string, got ${JSON.stringify(entry)}.`,
       );
     }
@@ -217,7 +217,7 @@ export function resolveRenderModule(
     const full = resolve(dir, entry);
     if (!exists(full)) {
       throw new Error(
-        `gonogo-uplink: ${where} names "${entry}", which resolves to ${full} ` +
+        `uplink-tools: ${where} names "${entry}", which resolves to ${full} ` +
           "and does not exist. An entry starting with . or / is a path " +
           "relative to the client package; drop the leading dots to name an " +
           "installed package instead.",
@@ -239,7 +239,7 @@ export function resolveRenderModule(
   const pkg = packageNameOf(entry);
   if (!nodeModulesChain(dir).some((root) => exists(join(root, pkg)))) {
     throw new Error(
-      `gonogo-uplink: ${where} names "${entry}", and "${pkg}" is not ` +
+      `uplink-tools: ${where} names "${entry}", and "${pkg}" is not ` +
         `installed under ${dir}. Add it to devDependencies: it is a render-` +
         "time module, not something the Uplink imports. For the app's own " +
         'widgets that package is "@ksp-gonogo/uplink-tools/widgets".',
@@ -262,7 +262,7 @@ export function resolveUplinkPackage(
   const manifestPath = join(dir, "package.json");
   if (!exists(manifestPath)) {
     throw new Error(
-      `gonogo-uplink: no package.json in ${dir}. Run it from your Uplink ` +
+      `uplink-tools: no package.json in ${dir}. Run it from your Uplink ` +
         "client package directory, or pass --root <dir>.",
     );
   }
@@ -270,7 +270,7 @@ export function resolveUplinkPackage(
   const { name, version, main } = pkg;
   if (typeof name !== "string" || typeof version !== "string") {
     throw new Error(
-      `gonogo-uplink: ${manifestPath} needs a string "name" and "version".`,
+      `uplink-tools: ${manifestPath} needs a string "name" and "version".`,
     );
   }
   const setup = ["gonogo-render.setup.ts", "gonogo-render.setup.tsx"]
@@ -317,7 +317,7 @@ export function themeTokensCss(): string {
     const css = readFileSync(file, "utf8");
     if (!/:root\s*\{/.test(css)) {
       throw new Error(
-        `gonogo-uplink: ${file} carries no ":root" block, so a render would ` +
+        `uplink-tools: ${file} carries no ":root" block, so a render would ` +
           "have no colours. The kit publishes its tokens from " +
           "@ksp-gonogo/ui-kit/tokens.css; a file with no :root block is the " +
           "wrong file.",
@@ -326,7 +326,7 @@ export function themeTokensCss(): string {
     return css;
   }
   throw new Error(
-    "gonogo-uplink: cannot resolve @ksp-gonogo/ui-kit/tokens.css. Tried:\n  " +
+    "uplink-tools: cannot resolve @ksp-gonogo/ui-kit/tokens.css. Tried:\n  " +
       `${tried.join("\n  ") || "(nothing resolved)"}\n` +
       "The kit copies it into its own dist during build, so an in-repo run " +
       "needs `pnpm --filter @ksp-gonogo/ui-kit build` first.",
@@ -398,7 +398,7 @@ export function jetbrainsMonoFace(): FontFace {
       const file = /url\(\.\/files\/([\w.-]+\.woff2)\)/.exec(block)?.[1];
       if (!file) {
         throw new Error(
-          `gonogo-uplink: an @font-face in @fontsource/jetbrains-mono/${weight}.css has no woff2 src`,
+          `uplink-tools: an @font-face in @fontsource/jetbrains-mono/${weight}.css has no woff2 src`,
         );
       }
       const range = /unicode-range:\s*([^;]+);/.exec(block)?.[1];
@@ -460,14 +460,14 @@ export function renderModuleUrl(dir: string, entry: string): string {
     const file = exportedEntryPoint(exported.exports, subpath);
     if (!file) {
       throw new Error(
-        `gonogo-uplink: ${pkg} at ${pkgDir} exports no "${subpath}", so ` +
+        `uplink-tools: ${pkg} at ${pkgDir} exports no "${subpath}", so ` +
           `"${entry}" cannot be loaded. Upgrade it:\n  npm i -D ${pkg}@latest`,
       );
     }
     return pathToFileURL(join(pkgDir, file)).href;
   }
   throw new Error(
-    `gonogo-uplink: "${entry}" names "${pkg}", which is not installed under ` +
+    `uplink-tools: "${entry}" names "${pkg}", which is not installed under ` +
       `${dir}. Add it to devDependencies.`,
   );
 }

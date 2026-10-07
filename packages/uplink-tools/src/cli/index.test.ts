@@ -17,7 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
  * getting-started names. A test that imports `run` would pass with a broken
  * shim, an absent `bin` entry, or a dist that does not load.
  */
-const BIN = join(import.meta.dirname, "../../bin/gonogo-uplink.mjs");
+const BIN = join(import.meta.dirname, "../../bin/uplink-tools.mjs");
 const scratch: string[] = [];
 const workdir = () => {
   const dir = mkdtempSync(join(tmpdir(), "gonogo-cli-"));
@@ -30,7 +30,7 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 
-describe("gonogo-uplink bake-hash", () => {
+describe("uplink-tools bake-hash", () => {
   it("writes the bundle's sha256 into a C# const the mod can vouch with", () => {
     const dir = workdir();
     const bundle = join(dir, "x.client.js");
@@ -77,126 +77,82 @@ describe("gonogo-uplink bake-hash", () => {
   });
 });
 
+const runBin = (args: readonly string[], cwd?: string) => {
+  try {
+    const stdout = execFileSync(process.execPath, [BIN, ...args], {
+      cwd,
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    return { code: 0, out: stdout };
+  } catch (err) {
+    const field = (key: string) =>
+      String(
+        (typeof err === "object" && err !== null
+          ? Reflect.get(err, key)
+          : "") ?? "",
+      );
+    return {
+      code: Number(field("status")) || 1,
+      out: `${field("stdout")}${field("stderr")}`,
+    };
+  }
+};
+
+describe("the top-level help", () => {
+  it("names every command and how to run one without an install", () => {
+    const { code, out } = runBin(["--help"]);
+    expect(code).toBe(0);
+    for (const verb of ["new", "bundle", "bake-hash", "render", "docs"]) {
+      expect(out).toMatch(new RegExp(`^  ${verb} `, "m"));
+    }
+    expect(out).toContain("npx @ksp-gonogo/uplink-tools <command>");
+  });
+
+  it("refuses a command it does not have", () => {
+    const { code, out } = runBin(["publish"]);
+    expect(code).toBe(1);
+    expect(out).toContain('unknown command "publish"');
+  });
+});
+
 /**
- * The top-level help says "Run a command with --help for its options", and for
- * a while no command honoured it: `bundle --help` started a build and
- * `render --help` came back with `unknown flag "--help"`, which is the tool
- * refusing what its own help had just told the author to type.
+ * The top-level help says "Run a command with --help for its options", so every
+ * command must print its own options rather than run, and must not reach its
+ * flag parser with `--help` as an unknown flag.
  */
 describe("every command answers --help", () => {
-  for (const verb of ["bundle", "bake-hash"]) {
-    it(`${verb} prints its options rather than running`, () => {
-      const out = execFileSync(process.execPath, [BIN, verb, "--help"], {
-        stdio: "pipe",
-        encoding: "utf8",
-      });
-      expect(out).toContain(`gonogo-uplink ${verb}`);
+  for (const verb of ["new", "bundle", "bake-hash", "render", "docs"]) {
+    it(`${verb} prints its own options rather than running`, () => {
+      const { code, out } = runBin([verb, "--help"]);
+      expect(code).toBe(0);
+      expect(out).toContain(`uplink-tools ${verb}`);
       expect(out).toContain("--");
     });
   }
 });
 
 /**
- * The browser verbs are forwarded to `@ksp-gonogo/uplink-tools`, and WHOSE copy
- * of it is the whole question.
- *
- * A bare `await import("@ksp-gonogo/uplink-tools")` inside this package resolves
- * against THIS package's own directory, and this package deliberately does not
- * depend on it (it would be a cycle: it depends on the sdk). Under npm's flat
- * layout an author gets away with it, because both packages sit side by side at
- * the top of `node_modules` and Node's walk-up finds one from the other. Under
- * pnpm they are in separate isolated stores and it can never resolve, so `docs`
- * and `render` failed for every author on pnpm with a message saying the package
- * was not installed while it sat installed in their client.
- *
- * The fixture builds an author package the way pnpm would: the tools package
- * reachable from the AUTHOR and unreachable from the sdk. It also gives it an
- * `exports` map with no `require` condition, which is what it really ships and
- * what makes `createRequire().resolve` the wrong instrument here.
- *
- * It was ui-kit until ticket 221 moved the harness out. The fixture names the
- * package the CLI actually looks for: a stale one here would pass by planting
- * the wrong thing and prove nothing about what an author has installed.
+ * A flag that belongs to another command is the likeliest typo there is, and a
+ * command that ignored it would run and quietly do something else.
  */
-describe("gonogo-uplink forwards a browser verb to the AUTHOR's tools", () => {
-  const author = () => {
-    const dir = workdir();
-    writeFileSync(
-      join(dir, "package.json"),
-      JSON.stringify({ name: "an-uplink-client", private: true }),
-    );
-    const tools = join(dir, "node_modules", "@ksp-gonogo", "uplink-tools");
-    mkdirSync(tools, { recursive: true });
-    writeFileSync(
-      join(tools, "package.json"),
-      JSON.stringify({
-        name: "@ksp-gonogo/uplink-tools",
-        type: "module",
-        version: "9.9.9",
-        exports: {
-          ".": {
-            types: "./dist/index.d.ts",
-            import: "./dist/index.js",
-          },
-        },
-      }),
-    );
-    mkdirSync(join(tools, "dist"), { recursive: true });
-    writeFileSync(
-      join(tools, "dist", "index.js"),
-      "export async function run(argv) {\n" +
-        '  console.log("REACHED uplink-tools 9.9.9 with " + argv.join(" "));\n' +
-        "  return 0;\n" +
-        "}\n",
-    );
-    return dir;
-  };
-
-  it("resolves it from --root, not from its own module graph", () => {
-    const dir = author();
-    const out = execFileSync(
-      process.execPath,
-      [BIN, "docs", "--root", dir, "--check"],
-      { encoding: "utf8" },
-    );
-    expect(out).toContain("REACHED uplink-tools 9.9.9 with docs --root");
-  });
-
-  it("resolves it from the working directory when no --root is given", () => {
-    const dir = author();
-    const out = execFileSync(process.execPath, [BIN, "render"], {
-      cwd: dir,
-      encoding: "utf8",
+describe("every command refuses a flag it does not read", () => {
+  const cases: ReadonlyArray<[string, string[]]> = [
+    ["new", ["new", "fresh", "--scene", "x"]],
+    ["bundle", ["bundle", "--check"]],
+    ["bake-hash", ["bake-hash", "--watch"]],
+    ["render", ["render", "--check"]],
+    ["docs", ["docs", "--scene", "x"]],
+  ];
+  for (const [verb, args] of cases) {
+    it(verb, () => {
+      const dir = workdir();
+      const { code, out } = runBin(args, dir);
+      expect(code).toBe(1);
+      expect(out).toMatch(/is not an option of|only applies to/);
+      expect(out).toContain(`uplink-tools ${verb}`);
     });
-    expect(out).toContain("REACHED uplink-tools 9.9.9 with render");
-  });
-
-  it("still says the tools package is missing when it really is", () => {
-    const dir = workdir();
-    writeFileSync(
-      join(dir, "package.json"),
-      JSON.stringify({ name: "no-tools-here", private: true }),
-    );
-    let combined = "";
-    expect(() => {
-      try {
-        execFileSync(process.execPath, [BIN, "docs"], {
-          cwd: dir,
-          encoding: "utf8",
-          stdio: "pipe",
-        });
-      } catch (err) {
-        const stderr: unknown =
-          typeof err === "object" && err !== null
-            ? Reflect.get(err, "stderr")
-            : undefined;
-        combined = String(stderr ?? "");
-        throw err;
-      }
-    }).toThrow();
-    expect(combined).toContain("@ksp-gonogo/uplink-tools");
-    expect(combined).toContain("npm i -D @ksp-gonogo/uplink-tools playwright");
-  });
+  }
 });
 
 /**
@@ -204,7 +160,7 @@ describe("gonogo-uplink forwards a browser verb to the AUTHOR's tools", () => {
  * `watch-status.json` beside the bundle, which is what the app's dev server
  * reads to say "waiting", "built" or "failed" without parsing a log.
  */
-describe("gonogo-uplink bundle --watch", () => {
+describe("uplink-tools bundle --watch", () => {
   const children: Array<ReturnType<typeof spawn>> = [];
   afterEach(() => {
     for (const child of children.splice(0)) child.kill("SIGKILL");

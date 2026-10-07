@@ -1,24 +1,45 @@
 # @ksp-gonogo/uplink-tools
 
-The Uplink docs toolchain: it renders an Uplink's scenes in a real browser,
-generates its page, and supplies the app's own widgets as the host widgets an
-augment is drawn inside.
+The Uplink author's toolchain: it scaffolds an Uplink, bundles its client,
+renders its scenes in a real browser, generates its page, and supplies the app's
+own widgets as the host widgets an augment is drawn inside.
 
 It is a **devDependency**. Nothing here ships in an Uplink's bundle.
+
+## The command line
+
+One command, `uplink-tools`, and nothing to install before the first run:
+
+```sh
+npx @ksp-gonogo/uplink-tools new myuplink    # scaffold, in an empty directory
+npx @ksp-gonogo/uplink-tools --help
+```
+
+Once it is in an Uplink's devDependencies the same commands answer to
+`uplink-tools` in a `package.json` script, which is what a workflow calls:
+
+| command | what it does |
+|---|---|
+| `new <id>` | scaffold the hand-written seed of an Uplink: contract slice, plugin, tests, one widget and its fixture. In a repo with an `uplinks/` folder it goes to `uplinks/<id>/`; anywhere else the current directory becomes the Uplink |
+| `bundle` | build the client bundle the app loads, and the `gonogo-uplink.json` beside it |
+| `bake-hash` | write a bundle's sha256 into a C# const, so the mod can vouch for the client it shipped with |
+| `render` | render every scene to `renders/` |
+| `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
+
+Every command takes `--help`, and refuses a flag it does not read.
 
 ## What is in it
 
 | entry | what it is |
 |---|---|
-| `@ksp-gonogo/uplink-tools` | the harness API and the `gonogo-uplink render` / `docs` implementation. Node: esbuild, Playwright, the filesystem |
+| `@ksp-gonogo/uplink-tools` | the harness API and the `uplink-tools` command's `run`. Node: esbuild, Playwright, the filesystem |
 | `@ksp-gonogo/uplink-tools/render-probe` | the browser half, which mounts a widget in the page the harness builds |
 | `@ksp-gonogo/uplink-tools/page-check` | the assertion an Uplink's own suite runs to keep its committed page honest. Deliberately free of Playwright, so an author with no browser can still run it |
 | `@ksp-gonogo/uplink-tools/widgets` | the app's own widgets, registered, so a scene can name one as its `_scene.hostWidget` |
 
-You will not usually import the first of these: `gonogo-uplink render` and
-`gonogo-uplink docs` forward to it, resolved from your own install.
+You will not usually import the first of these: the command line runs it.
 
-`gonogo-uplink docs` writes `README.md`, `gonogo-uplink.json` and
+`uplink-tools docs` writes `README.md`, `gonogo-uplink.json` and
 `docs/widgets.json`, the record of each widget you register. The README's widget
 sections are rendered from those records, and `docs --check` and
 `expectUplinkPageCurrent` fail when any of the three no longer matches your

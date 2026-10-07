@@ -10,7 +10,7 @@
 // is, because it BUILDS the bundle it hashes with the same bundler the app ships
 // with, and a hash of any other build is one the loader can never match. This takes
 // a bundle path and trusts the caller to have produced the right bytes, which is the
-// right shape for an outside author (`gonogo-uplink bake-hash` is the published twin)
+// right shape for an outside author (`uplink-tools bake-hash` is the published twin)
 // and the wrong one for a first-party Uplink whose bundle the app emits.
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";

@@ -9,8 +9,8 @@ import {
 } from "./uplink-manifest";
 
 /**
- * The invariant this file exists for: `gonogo-uplink bundle` and
- * `gonogo-uplink docs` write the SAME bytes for the same Uplink.
+ * The invariant this file exists for: `uplink-tools bundle` and
+ * `uplink-tools docs` write the SAME bytes for the same Uplink.
  *
  * They used to write nine fields and thirteen under one filename, and no reader
  * of either could tell which the loader honours. The two callers still differ in

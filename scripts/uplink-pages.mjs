@@ -11,7 +11,7 @@
  *
  * So the cheapest permitted change in the whole contract, adding a field, failed
  * a blocking test in every bundled Uplink at once, and the only remedy anyone
- * had was `gonogo-uplink docs`: a full Chromium render of every fixture, which
+ * had was `uplink-tools docs`: a full Chromium render of every fixture, which
  * rewrites all 170 committed PNGs through the local rasteriser on the way past.
  * That is the same error as committing locally-rendered visual baselines, and it
  * was the sanctioned fix for a one-line markdown change.

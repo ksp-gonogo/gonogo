@@ -249,8 +249,8 @@ jobs:
 
       # `pnpm test` (`turbo test test:scans`) only orders a package's `test`
       # task behind `^build`, its OWN dependencies. Two things in this job reach
-      # further than that graph: `sitrep-sdk`'s `src/cli/index.test.ts` shells
-      # out to the built `bin/gonogo-uplink.mjs`, and core's `unknown-cast.test.ts`
+      # further than that graph: `uplink-tools`' `src/cli/index.test.ts` shells
+      # out to the built `bin/uplink-tools.mjs`, and core's `unknown-cast.test.ts`
       # walks every package's SOURCE tree with the TypeScript compiler API to
       # resolve imports repo-wide, which needs app/components/storybook/the
       # Uplink client and everything THEY depend on built too, none of which

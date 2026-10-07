@@ -153,7 +153,7 @@ export const AUTHOR_SUBPATHS: Record<
   },
   "@ksp-gonogo/uplink-tools": {
     "render-probe":
-      "the browser half of the render harness, driven by the gonogo-uplink bin. An author's `gonogo-render.setup.ts` imports `defineRenderSetup` from it",
+      "the browser half of the render harness, driven by the uplink-tools bin. An author's `gonogo-render.setup.ts` imports `defineRenderSetup` from it",
     "page-check":
       "the generated-page assertions an author's own `uplink-page.test.ts` reads back",
   },
@@ -174,7 +174,7 @@ export const NON_AUTHOR_SUBPATHS: Record<
     registry:
       "dashboard orchestration, which widgets a screen renders. The app reaches it through core's re-export and an Uplink has no business calling it",
     "uplink-externals":
-      "the specifiers a client bundle leaves external, read by BUILD tooling (`gonogo-uplink bundle`) and by the app's import map. Published so an author's bundler and the app cannot drift, which they did while it lived only in the app; nothing in a widget's runtime imports it",
+      "the specifiers a client bundle leaves external, read by BUILD tooling (`uplink-tools bundle`) and by the app's import map. Published so an author's bundler and the app cannot drift, which they did while it lived only in the app; nothing in a widget's runtime imports it",
     "uplink-manifest":
       "the writer behind `gonogo-uplink.json`, read by BUILD tooling on both sides (`bundle` here, `docs` through ui-kit) so the two cannot write different shapes under one filename, which they did. It reads the filesystem, so nothing in a browser could import it anyway",
   },

@@ -9,7 +9,7 @@ this package: the SDK never redefines the shape by hand.
 **Writing an Uplink? Start with the [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/).**
 This package is the authoring surface an Uplink imports (`defineUplinkClient`,
 `registerComponent`, `useTelemetry`, `useCommand`, the generated contract types,
-the unit model, and the `gonogo-uplink` CLI), but the README below is written for
+and the unit model; the command line is `@ksp-gonogo/uplink-tools`), but the README below is written for
 a maintainer of this repo: it covers the codegen, the drift gate and the
 hand-owned seams, not how to build anything with the package. Not every subpath
 here is an author surface; the docs site names the ones that are.
