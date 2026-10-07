@@ -72,6 +72,7 @@ export interface UnitInputProps<Unit extends string = string> {
   range?: SlidableRange<Unit>;
   /** Supplying a notch size adds a rate wheel beside the field. See {@link RateControl}. */
   rate?: RateControl;
+  /** Greys the field, and any slider or wheel, out and ignores input. */
   disabled?: boolean;
 }
 

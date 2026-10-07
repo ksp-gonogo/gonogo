@@ -68,7 +68,8 @@ export function unregisterStationBroker(uplinkId: string): void {
 }
 
 /**
- * Remove every registration and every watcher. For tests; a running app never
+ * Remove every registration, and every screen watching for them through
+ * {@link watchStationBrokers}. For tests; a running app never
  * calls it.
  *
  * @category Registering

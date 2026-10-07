@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.attitude</c> channel payload: pitch, heading and roll of the
+/// The <c>vessel.attitude</c> Topic payload: pitch, heading and roll of the
 /// vessel's control reference (<c>Vessel.GetTransform()</c>) against the local
 /// surface up and north, in two named frames.
 ///

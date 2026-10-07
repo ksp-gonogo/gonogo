@@ -24,6 +24,7 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
    * rather than growing the whole column.
    */
   fill?: boolean;
+  /** The items, laid out top to bottom. */
   children?: ReactNode;
 }
 

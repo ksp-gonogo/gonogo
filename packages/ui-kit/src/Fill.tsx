@@ -14,6 +14,7 @@ export interface FillProps extends HTMLAttributes<HTMLDivElement> {
    * fills the dashboard grid cell.
    */
   grow?: boolean;
+  /** The content that takes the space. */
   children?: ReactNode;
 }
 

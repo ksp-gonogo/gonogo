@@ -66,7 +66,8 @@ export const CommandErrorCode = {
    * A capacity is full: the Astronaut Complex holds its cap of active crew, a
    * facility holds its cap of anything else countable.
    *
-   * A retry succeeds only once something changes, such as freeing a slot.
+   * A retry succeeds only once something changes, such as a kerbal leaving the
+   * active roster.
    *
    * `CommandResult.breach` carries the numbers, so a client can say "16 of 16".
    */
@@ -92,19 +93,13 @@ export const CommandErrorCode = {
    * `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds
    * separate currencies.
    *
-   * Decided by `CurrencyModifierQuery.RunQuery(reason,
-   * ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech`
-   * checks, modifiers included.
+   * The cost is the one the game itself would charge, with every modifier
+   * applied.
    */
   InsufficientScience: "insufficientScience",
   /**
    * The save is not a career save, so this command's whole subsystem does not
    * exist here.
-   *
-   * Decided by `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
-   * of the `ScenarioModule` that would have served it (`Funding`,
-   * `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`,
-   * `ScenarioUpgradeableFacilities`).
    *
    * A permanent property of the save, not a state that may change, so a client
    * can hide the control rather than show it refused.
@@ -113,8 +108,7 @@ export const CommandErrorCode = {
   /**
    * The game is in a scene this command cannot run from.
    *
-   * Decided by `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
-   * names the scene when the producer had one.
+   * `CommandResult.detail` names the scene when the producer had one.
    */
   WrongScene: "wrongScene",
   /**
@@ -123,28 +117,24 @@ export const CommandErrorCode = {
    * contract asked to accept when it is not offered, an assigned kerbal asked to
    * be sacked, a spent experiment asked to deploy.
    *
-   * Decided by the entity's own state enum. `Strategies.Strategy.IsActive`,
-   * `RDTech.State`, `Contract.State`, `ProtoCrewMember.RosterStatus`,
-   * `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
-   * `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
-   * carry the state in the game's own words.
+   * `CommandResult.detail` can carry the state in the game's own words.
    */
   WrongState: "wrongState",
   /**
    * Right command, wrong moment: the flight is not in a state that permits it
    * yet, and will be later.
    *
-   * Decided by `FlightGlobals.ClearToSave()`, which returns one of five refusals
-   * (in atmosphere, under acceleration, moving over the surface, about to crash,
-   * on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch`
-   * and the `GameParameters` flags for leaving to the space center and to the
-   * tracking station. The game's reason is on `CommandResult.detail`.
+   * The game gives five such reasons: in atmosphere, under acceleration, moving
+   * over the surface, about to crash, on a ladder; and a revert or a scene
+   * change can also be switched off by the save's own difficulty settings. The
+   * game's reason is on `CommandResult.detail`.
    *
    * Also returned by the SCET alarm command for a vantage it cannot check
    * because no command centre is known to the simulation yet: the main menu, and
-   * the ticks before the first capture. A vantage that is known and inactive is
-   * `CommandErrorCode.Range` instead, because that one does not resolve by
-   * waiting.
+   * the ticks before the first capture. The same command refuses a vantage that
+   * is known and inactive with `CommandErrorCode.Range` instead, because that
+   * one does not resolve by waiting. Any other command naming an inactive
+   * vantage fails with the `unknownVantage` fault.
    *
    * Distinct from `CommandErrorCode.WrongState`, which is about the entity and
    * does not resolve by waiting.
@@ -156,11 +146,6 @@ export const CommandErrorCode = {
    * no such action, an action present but inert, an autopilot mode this craft
    * cannot hold.
    *
-   * Decided by the part's own module list and fields
-   * (`ModuleRoboticServoRotor`/`Hinge`/`Piston`, `servoIsMotorized`,
-   * `BaseEvent.active`, `BaseEvent.EventIsDisabledByVariant`) and
-   * `VesselAutopilot.CanSetMode`.
-   *
    * Nothing an operator waits for. The craft would have to be different for this
    * to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not
    * `CommandErrorCode.WrongState`.
@@ -169,49 +154,39 @@ export const CommandErrorCode = {
   /**
    * There is no usable link for what this command needs to send.
    *
-   * Decided by `ScienceUtil.GetBestTransmitter(Vessel)` and
-   * `IScienceDataTransmitter.CanTransmit()`: the vessel has no antenna that can
-   * carry the payload. This is not the comms-loss refusal that stops a command
-   * before it reaches the vessel.
+   * The vessel has no antenna that can carry the payload, such as a science
+   * transmission.
    */
   NoConnection: "noConnection",
   /**
    * The capability exists in the game but this save has not unlocked it: fuel
    * transfer, custom action groups, flight planning, EVA, the maneuver tool.
    *
-   * Decided by `GameVariables.UnlockedFuelTransfer`,
-   * `UnlockedActionGroupsStock`/`Custom`, `UnlockedFlightPlanning`,
-   * `UnlockedEVA`/`Flags`/`Clamber`, `ManeuverToolAvailable`, each read at the
-   * owning facility's normalised level.
+   * Each switch follows the level of the building that owns it.
    *
    * Distinct from `CommandErrorCode.LimitReached`, which is a number against a
    * number. This is a switch that is off, and the fix is an upgrade rather than
-   * freeing a slot.
+   * making room.
    */
   NotUnlocked: "notUnlocked",
   /**
    * Another vessel is on the launch site.
    *
-   * Decided by `PreFlightTests.LaunchSiteClear`, whose
-   * `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
-   * it and ride on `CommandResult.detail`.
+   * The game's own words for it ride on `CommandResult.detail`.
    */
   SiteOccupied: "siteOccupied",
   /**
    * The facility this command needs is destroyed or damaged.
-   *
-   * Decided by `PreFlightTests.FacilityOperational`, over
-   * `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
    */
   FacilityDamaged: "facilityDamaged",
   /**
    * The command consumes a countable ITEM and there are not enough of them
    * aboard.
    *
-   * Decided by the provider's own charge, which it should also state wherever it
-   * shows the cost, so the cost shown and the cost taken agree. The item is the
-   * provider's to name: this code says only that there were too few, never which
-   * item.
+   * The provider decides by its own charge, which it should also state wherever
+   * it shows the cost, so the cost shown and the cost taken agree. The item is
+   * the provider's to name: this code says only that there were too few, never
+   * which item.
    *
    * Separate from `CommandErrorCode.InsufficientFunds` and
    * `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
@@ -315,7 +290,8 @@ export const FaultCode = {
   PayloadSerializationError: "payloadSerializationError",
   /**
    * A `set-vantage`, or a command's `vantage`, naming a command centre that is
-   * not active.
+   * not active. The SCET alarm command is the exception: it refuses an inactive
+   * vantage with the `range` refusal instead.
    */
   UnknownVantage: "unknownVantage",
   /**
@@ -335,12 +311,14 @@ export const FaultCode = {
    */
   UndoneByLoad: "undoneByLoad",
   /**
-   * A continuous input, a throttle or a control axis, was dropped at a node
-   * where it would have had to wait on its way to the craft. Held and sent on
-   * later it would arrive as a run of out-of-date values, so a node that cannot
-   * send it on at once drops it. It was accepted with a warning when it was
-   * sent, and this is the news of its loss, arriving when a report from that
-   * node could have reached the sending centre.
+   * A continuous input, a throttle or a control axis, was dropped at a node, a
+   * ground station or relay on the route to the craft, because the link onward
+   * was down there and it would have had to be held until it came back. Held and
+   * sent on later it would arrive as a run of out-of-date values, so a node that
+   * cannot send it on at once drops it. It was accepted with a warning when it
+   * was sent, and this is the news of its loss, arriving at the command centre
+   * that sent it once a report from that node could have reached it at light
+   * speed.
    */
   ContinuousInputWouldWait: "continuousInputWouldWait",
   /**
@@ -426,7 +404,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "a limit has been reached",
-    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as freeing a slot.\n\n`CommandResult.breach` carries the numbers, so a client can say \"16 of 16\".",
+    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as a kerbal leaving the active roster.\n\n`CommandResult.breach` carries the numbers, so a client can say \"16 of 16\".",
   },
   {
     id: "alreadyAtMaximum",
@@ -450,7 +428,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there is not enough science",
-    meaning: "The command costs more science than is banked. Separate from `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds separate currencies.\n\nDecided by `CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` checks, modifiers included.",
+    meaning: "The command costs more science than is banked. Separate from `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds separate currencies.\n\nThe cost is the one the game itself would charge, with every modifier applied.",
   },
   {
     id: "careerModeRequired",
@@ -458,7 +436,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "this save is not a career game",
-    meaning: "The save is not a career save, so this command's whole subsystem does not exist here.\n\nDecided by `HighLogic.CurrentGame.Mode`, and in practice the null `Instance` of the `ScenarioModule` that would have served it (`Funding`, `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`, `ScenarioUpgradeableFacilities`).\n\nA permanent property of the save, not a state that may change, so a client can hide the control rather than show it refused.",
+    meaning: "The save is not a career save, so this command's whole subsystem does not exist here.\n\nA permanent property of the save, not a state that may change, so a client can hide the control rather than show it refused.",
   },
   {
     id: "wrongScene",
@@ -466,7 +444,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the game is not in a scene that allows it",
-    meaning: "The game is in a scene this command cannot run from.\n\nDecided by `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail` names the scene when the producer had one.",
+    meaning: "The game is in a scene this command cannot run from.\n\n`CommandResult.detail` names the scene when the producer had one.",
   },
   {
     id: "wrongState",
@@ -474,7 +452,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "it is not in a state that allows it",
-    meaning: "The entity is not in a state this transition applies to: an already-active strategy asked to activate, an already-researched node asked to unlock, a contract asked to accept when it is not offered, an assigned kerbal asked to be sacked, a spent experiment asked to deploy.\n\nDecided by the entity's own state enum. `Strategies.Strategy.IsActive`, `RDTech.State`, `Contract.State`, `ProtoCrewMember.RosterStatus`, `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can carry the state in the game's own words.",
+    meaning: "The entity is not in a state this transition applies to: an already-active strategy asked to activate, an already-researched node asked to unlock, a contract asked to accept when it is not offered, an assigned kerbal asked to be sacked, a spent experiment asked to deploy.\n\n`CommandResult.detail` can carry the state in the game's own words.",
   },
   {
     id: "notClearToProceed",
@@ -482,7 +460,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the flight is not clear for it yet",
-    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nDecided by `FlightGlobals.ClearToSave()`, which returns one of five refusals (in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch` and the `GameParameters` flags for leaving to the space center and to the tracking station. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the SCET alarm command for a vantage it cannot check because no command centre is known to the simulation yet: the main menu, and the ticks before the first capture. A vantage that is known and inactive is `CommandErrorCode.Range` instead, because that one does not resolve by waiting.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
+    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the SCET alarm command for a vantage it cannot check because no command centre is known to the simulation yet: the main menu, and the ticks before the first capture. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
   },
   {
     id: "capabilityMismatch",
@@ -490,7 +468,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "this craft cannot do it",
-    meaning: "The part or vessel does not have the capability this command needs: a rotor asked for a target angle, an unmotorised servo asked to drive, a part with no such action, an action present but inert, an autopilot mode this craft cannot hold.\n\nDecided by the part's own module list and fields (`ModuleRoboticServoRotor`/`Hinge`/`Piston`, `servoIsMotorized`, `BaseEvent.active`, `BaseEvent.EventIsDisabledByVariant`) and `VesselAutopilot.CanSetMode`.\n\nNothing an operator waits for. The craft would have to be different for this to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not `CommandErrorCode.WrongState`.",
+    meaning: "The part or vessel does not have the capability this command needs: a rotor asked for a target angle, an unmotorised servo asked to drive, a part with no such action, an action present but inert, an autopilot mode this craft cannot hold.\n\nNothing an operator waits for. The craft would have to be different for this to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not `CommandErrorCode.WrongState`.",
   },
   {
     id: "noConnection",
@@ -498,7 +476,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there is no usable link",
-    meaning: "There is no usable link for what this command needs to send.\n\nDecided by `ScienceUtil.GetBestTransmitter(Vessel)` and `IScienceDataTransmitter.CanTransmit()`: the vessel has no antenna that can carry the payload. This is not the comms-loss refusal that stops a command before it reaches the vessel.",
+    meaning: "There is no usable link for what this command needs to send.\n\nThe vessel has no antenna that can carry the payload, such as a science transmission.",
   },
   {
     id: "notUnlocked",
@@ -506,7 +484,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "it has not been unlocked yet",
-    meaning: "The capability exists in the game but this save has not unlocked it: fuel transfer, custom action groups, flight planning, EVA, the maneuver tool.\n\nDecided by `GameVariables.UnlockedFuelTransfer`, `UnlockedActionGroupsStock`/`Custom`, `UnlockedFlightPlanning`, `UnlockedEVA`/`Flags`/`Clamber`, `ManeuverToolAvailable`, each read at the owning facility's normalised level.\n\nDistinct from `CommandErrorCode.LimitReached`, which is a number against a number. This is a switch that is off, and the fix is an upgrade rather than freeing a slot.",
+    meaning: "The capability exists in the game but this save has not unlocked it: fuel transfer, custom action groups, flight planning, EVA, the maneuver tool.\n\nEach switch follows the level of the building that owns it.\n\nDistinct from `CommandErrorCode.LimitReached`, which is a number against a number. This is a switch that is off, and the fix is an upgrade rather than making room.",
   },
   {
     id: "siteOccupied",
@@ -514,7 +492,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "another vessel is on the launch site",
-    meaning: "Another vessel is on the launch site.\n\nDecided by `PreFlightTests.LaunchSiteClear`, whose `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for it and ride on `CommandResult.detail`.",
+    meaning: "Another vessel is on the launch site.\n\nThe game's own words for it ride on `CommandResult.detail`.",
   },
   {
     id: "facilityDamaged",
@@ -522,7 +500,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the building is out of action",
-    meaning: "The facility this command needs is destroyed or damaged.\n\nDecided by `PreFlightTests.FacilityOperational`, over `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.",
+    meaning: "The facility this command needs is destroyed or damaged.",
   },
   {
     id: "insufficientResource",
@@ -530,7 +508,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there are not enough of what it uses aboard",
-    meaning: "The command consumes a countable ITEM and there are not enough of them aboard.\n\nDecided by the provider's own charge, which it should also state wherever it shows the cost, so the cost shown and the cost taken agree. The item is the provider's to name: this code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
+    meaning: "The command consumes a countable ITEM and there are not enough of them aboard.\n\nThe provider decides by its own charge, which it should also state wherever it shows the cost, so the cost shown and the cost taken agree. The item is the provider's to name: this code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
   },
   {
     id: "unreadable",
@@ -626,7 +604,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "that command centre is not active",
-    meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active.",
+    meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active. The SCET alarm command is the exception: it refuses an inactive vantage with the `range` refusal instead.",
   },
   {
     id: "commandExpired",
@@ -658,7 +636,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "it would wait on its way, and a continuous input cannot",
-    meaning: "A continuous input, a throttle or a control axis, was dropped at a node where it would have had to wait on its way to the craft. Held and sent on later it would arrive as a run of out-of-date values, so a node that cannot send it on at once drops it. It was accepted with a warning when it was sent, and this is the news of its loss, arriving when a report from that node could have reached the sending centre.",
+    meaning: "A continuous input, a throttle or a control axis, was dropped at a node, a ground station or relay on the route to the craft, because the link onward was down there and it would have had to be held until it came back. Held and sent on later it would arrive as a run of out-of-date values, so a node that cannot send it on at once drops it. It was accepted with a warning when it was sent, and this is the news of its loss, arriving at the command centre that sent it once a report from that node could have reached it at light speed.",
   },
   {
     id: "undelivered",

@@ -19,8 +19,8 @@ export interface NoticeProps extends BlockProps {
   tone?: Tone;
   /**
    * Interrupt rather than announce politely: the banner becomes
-   * `role="alert"` with `aria-live="assertive"`. Keep it for an abort and
-   * nothing softer.
+   * `role="alert"` with `aria-live="assertive"`. Keep it for a state that
+   * must interrupt, such as a mission abort, and nothing softer.
    */
   assertive?: boolean;
   /** What the banner says. */

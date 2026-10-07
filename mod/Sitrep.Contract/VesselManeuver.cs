@@ -171,7 +171,7 @@ public class ManeuverNode
 }
 
 /// <summary>
-/// The <c>vessel.maneuver</c> channel payload: the active vessel's planned
+/// The <c>vessel.maneuver</c> Topic payload: the active vessel's planned
 /// burns. <see cref="Nodes"/> is always an array, empty when no burn is
 /// queued, never null.
 /// <internal>

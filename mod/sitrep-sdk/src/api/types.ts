@@ -37,15 +37,17 @@ import type { Tone } from "./tone";
 
 /**
  * A data key a widget lists in {@link ComponentDefinition.dataRequirements},
- * such as `"vessel.altitude"`.
+ * in the older flat-key form that names one value per key, such as
+ * `"v.altitude"`. A widget that reads Topics lists them in `channels` instead.
  *
  * @category Registering
  */
 export type DataRequirement = string;
 
 /**
- * A behaviour a widget opts into. `"gonogo-participant"` marks a widget as
- * part of the GO/NO-GO poll.
+ * A behaviour a widget opts into. `"gonogo-participant"` is the only one and
+ * has no effect: the GO/NO-GO poll is a vote the operators take, and nothing a
+ * widget does feeds it.
  *
  * @category Registering
  */
@@ -53,8 +55,8 @@ export type ComponentBehavior = "gonogo-participant";
 
 /**
  * A game state a widget needs before it can show anything useful.
- * `"flight"` needs a vessel in flight; `"career"` needs a career or science
- * save. While one a widget lists is not met, the dashboard draws a notice
+ * `"flight"` needs a vessel in flight; `"career"` needs a career save or a
+ * science-mode save (KSP's mode with science but no funds). While one a widget lists is not met, the dashboard draws a notice
  * naming it in place of the widget's body.
  *
  * @category Registering
@@ -175,7 +177,7 @@ export interface ConfigComponentProps<Config = Record<string, unknown>> {
  * @category Registering
  */
 export interface TinyEssentialMark {
-  /** How current the figure is. A reading of now when omitted. */
+  /** How current the figure is: `held`, the last value received, or `modelled`, an estimate carried forward from it. A current reading when omitted. */
   kind?: "held" | "modelled";
   /** The figure is of something other than what its label names. */
   elsewhere?: boolean;
@@ -206,8 +208,9 @@ export interface TinyEssential {
    * Whether the word is urgent now, so the kit interrupts to say it rather than
    * announcing it politely, once each time it becomes urgent or changes while
    * urgent. For a state that must interrupt, as ABORT does, and nothing softer.
-   * Set it on every render, `false` while the word is ordinary, so the tile's
-   * interrupting region is in the document before the word it has to say.
+   * Set it on every render, `false` while the word is ordinary: a screen
+   * reader interrupts reliably only when the place it speaks from was already
+   * on the page before the urgent word arrived.
    */
   urgent?: boolean;
   /** Decimal places, where the unit's own default says more than the figure means. */
@@ -215,7 +218,7 @@ export interface TinyEssential {
   /**
    * What the figure is where the Reading in `value` cannot say it, drawn with
    * the marks a full readout uses. `kind` is how current it is: `held` or
-   * `modelled`, and a reading of now when omitted. `elsewhere` says the figure
+   * `modelled`, and a current reading when omitted. `elsewhere` says the figure
    * is of something other than the label names (a strength measured on
    * another route), which draws the mark hollow. A `value` that is itself a
    * held or modelled Reading keeps that kind, and `elsewhere` still applies.
@@ -354,7 +357,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   mobileWidth?: "full" | "half";
   /** On a phone, the widget's height in pixels. Defaults to the height of its `defaultSize`. */
   mobileHeight?: number;
-  /** Data keys the widget depends on, in the flat-key form. A widget that reads Topics lists them in `channels` instead. */
+  /** Data keys the widget depends on, in the older flat-key form that names one value per key, such as `"v.altitude"`. A widget that reads Topics lists them in `channels` instead. */
   dataRequirements?: DataRequirement[];
   /**
    * Topics the widget needs. Listing one does not subscribe to it:
@@ -375,7 +378,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * can read.
    */
   fields?: readonly WidgetFieldPath[];
-  /** Behaviours the widget opts into. */
+  /** Behaviours the widget opts into, each a flag the dashboard reads; see {@link ComponentBehavior} for what each one does. Absent means none. */
   behaviors?: ComponentBehavior[];
   /** The settings a new instance starts with. */
   defaultConfig?: Partial<Config>;
@@ -438,7 +441,10 @@ export interface ThemeDefinition {
  * `registerAugment`; the widget renders it in place.
  *
  * A widget that owns a slot declares it here by declaration merging, so an
- * augment of a misspelled slot does not typecheck.
+ * augment of a misspelled slot does not typecheck. The two standard segments
+ * every widget's panel carries, `<widget-id>.sections` and
+ * `<widget-id>.actions`, are typed by ui-kit's `AugmentSegmentRegistry`
+ * instead, though a widget may also name its own here.
  *
  * @category Extensions
  */
@@ -546,7 +552,7 @@ export interface BadgeEntry {
    * (`Reading.grade` is unset on every other state), so a producer can pass its
    * whole reading unconditionally and only a held one changes anything.
    *
-   * Held, the panel draws the grade's own word and tone in place of `label`
+   * When the reading is held, the panel draws the grade's own word and tone in place of `label`
    * and `tone`, as it draws every held figure, so a verdict read from a Topic
    * that stopped arriving is never shown as though it were current.
    */
@@ -661,6 +667,13 @@ type SegmentOf<Slot extends string> = Slot extends `${string}.${infer Rest}`
  * widget declares for that slot, or for a slot every widget carries, such as
  * `badges`, that slot's entry.
  *
+ * Read the type as three cases in turn. A slot id a widget declares in
+ * `ContributionRegistry` gives the entry it declares there. Otherwise, a slot
+ * id ending in a segment every widget carries (`<widget-id>.badges`) gives
+ * that segment's entry from `ComponentSlotRegistry`. Any other named slot id
+ * has no entry type, so a contribution to it does not compile; a slot typed as
+ * a plain `string` gives an open record.
+ *
  * @category Extensions
  */
 export type ContributionEntry<Slot extends string> =
@@ -705,7 +718,7 @@ export type Contributed<Entry> = Entry & {
 /**
  * One entry of a contribution's `deps`: a Topic id, `{ reading: topicId }`, a
  * setting of an Uplink's host mod from {@link modSettingDep}, or the handle
- * `registerProcessor` returned. {@link DepTopics} says what `compute` receives
+ * {@link UplinkClientHandle.registerProcessor} returned. {@link DepTopics} says what `compute` receives
  * for each.
  *
  * @category Extensions
@@ -754,6 +767,7 @@ export interface ModSettingDep<
   Uplink extends keyof ModSettingsRegistry & string,
   Key extends keyof ModSettingsRegistry[Uplink] & string,
 > {
+  /** The Uplink, by its id, and the key of the host mod's setting to read, as `ModSettingsRegistry` declares them. */
   readonly modSetting: { readonly uplink: Uplink; readonly key: Key };
 }
 
@@ -845,7 +859,10 @@ type DepValue<Dependency> = Dependency extends string
 /**
  * The argument a contribution's `compute` receives: each Topic named in its
  * `deps`, keyed by the Topic's id and typed by its payload. A Topic not named
- * in `deps` cannot be read.
+ * in `deps` cannot be read. A dep written as a bare Topic id gives its last
+ * value alone, with nothing saying whether it is held; a dep written as
+ * `{ reading: topicId }` gives the Topic's `Reading`, which says how current
+ * the value is.
  *
  * A Topic's value is `undefined` until its first sample arrives, and `null`
  * while the mod reports that it has nothing to describe. When samples stop, it
@@ -1015,8 +1032,9 @@ export interface NamespacedAugmentSettings {
  * back, so there is no negative form, and nothing here is a maximum: no widget
  * has an upper size. The requests of every extension that actually renders in
  * a widget are summed, and the total is added to the widget's `defaultSize`
- * and `minSize`. When a widget has a tiny mode its tiny size does not move, but
- * the tile size at which it stops showing the tiny form does. A tile already on
+ * and `minSize`. When a widget has a tiny mode (the compact form it draws at
+ * {@link TINY_SIZE}, showing only its essentials), its tiny size does not
+ * move, but the tile size at which it stops showing the tiny form does. A tile already on
  * the dashboard never shrinks by itself when an extension leaves.
  *
  * @category Extensions
@@ -1148,7 +1166,7 @@ export type { UplinkClientHandle } from "../spine/uplink-clients";
 export interface CoverageSourceDefinition {
   /** Unique across every source. Also the layer id the source's masks are stored under. */
   id: string;
-  /** A name for the source. */
+  /** A readable name for the source, for your own code: the map does not draw it. */
   label?: string;
   /** How fully a covered cell is revealed, from 0 to 255. Defaults to 255, fully. */
   weight?: number;
@@ -1182,7 +1200,7 @@ export interface MapPoiAction {
 export interface MapPoi {
   /** Unique among the provider's points. */
   id: string;
-  /** The name of the body the point is on, such as `"Kerbin"`. */
+  /** The body the point is on. A body's id is its name, such as `"Kerbin"`, here and everywhere a body id appears. */
   bodyId: string;
   /** Latitude, in degrees. */
   lat: number;
@@ -1194,7 +1212,11 @@ export interface MapPoi {
   label: string;
   /** One more line on the point's card. */
   detail?: string;
-  /** For a `"contractTarget"`, whether the contract is `"active"` or `"available"`. */
+  /**
+   * For a `"contractTarget"`, whether the contract is `"active"` or
+   * `"available"`. `"info"` is accepted and drawn the same as `"available"`.
+   * Ignored for every other kind.
+   */
   status?: "active" | "available" | "info";
   /** Extra details, each shown on the point's card as a row of key and value. */
   meta?: Record<string, unknown>;
@@ -1208,7 +1230,7 @@ export interface MapPoi {
  * @category Maps and coverage
  */
 export interface MapPoiProviderContext {
-  /** The currently-mapped body. */
+  /** The id (its name, such as `"Kerbin"`) of the body the map is showing, or `undefined` before one is chosen. */
   bodyId: string | undefined;
 }
 
@@ -1239,7 +1261,8 @@ export interface MapPoiProviderDefinition {
 }
 
 /**
- * How a body's surface texture maps latitude and longitude to pixels.
+ * How a body's surface texture maps latitude and longitude to pixels. It is
+ * the `map` field of a {@link BodyDefinition}.
  *
  * @category Maps and coverage
  */

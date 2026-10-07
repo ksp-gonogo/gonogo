@@ -123,9 +123,12 @@ public class CommcastMessageSendArgs
 }
 
 /// <summary>
-/// What <c>commcast.message.send</c> did with a message: who it left for, and
-/// who it could not leave for. It says nothing of arrival, which only each
-/// listener's acknowledgement does.
+/// What <c>commcast.message.send</c>, the command that says a text message to a
+/// group (its args are <see cref="CommcastMessageSendArgs"/>), did with a
+/// message: which command centres it left for, and which it could not leave
+/// for. A centre is a <c>commandCentre.roster</c> entry, a place commands are
+/// sent from. It says nothing of arrival, which only each listener's
+/// acknowledgement does.
 /// </summary>
 /// <category>Command results</category>
 /// <categoryDescription>
@@ -138,14 +141,15 @@ public class CommcastMessageSendArgs
 #endif
 public class CommcastSendReceipt
 {
-    /// <summary>Every centre the message left for, the speaker's own included, in ordinal id order. The same list its listeners read as the message's <c>to</c>.</summary>
+    /// <summary>Every centre the message left for, the speaker's own included, sorted by id. The same list its listeners read as the message's <c>to</c>.</summary>
     [SitrepUnit(Units.Id)]
     public List<string> Addressed { get; set; } = new();
 
     /// <summary>
     /// Every member it was meant for that no signal from the speaker could
-    /// reach when it was said, in ordinal id order. The message never left for
-    /// these, so no wait will bring an acknowledgement from them.
+    /// reach when it was said, sorted by id. The message was never sent to
+    /// these centres, so none of them will ever acknowledge it; to reach them,
+    /// send it again later naming them in <c>to</c>.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> Unreached { get; set; } = new();

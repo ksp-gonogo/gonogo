@@ -10,7 +10,8 @@ import { Unit } from "./Unit";
  * A quantity, or the whole `Reading` it arrived in, goes through {@link Unit},
  * so a held reading keeps its held mark. Not a bare number, which has lost the
  * unit that says how to write it: hand over `value("m", 1)`,
- * `value("count", 3)`, or `value("1", x)` for a dimensionless reading.
+ * `value("count", 3)`, or `value("1", x)` for a dimensionless reading (`"1"`
+ * is the unit of a plain ratio or factor).
  *
  * @category Form
  */
@@ -31,7 +32,9 @@ export interface ReadOnlyFieldProps {
   label: ReactNode;
   /** Why it matters, or where it comes from. Announced with the label. */
   description?: ReactNode;
+  /** The value shown. See {@link ReadOnlyFieldValue} for what it can be. */
   value: ReadOnlyFieldValue;
+  /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
 }
 

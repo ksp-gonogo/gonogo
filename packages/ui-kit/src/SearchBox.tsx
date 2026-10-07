@@ -14,7 +14,9 @@ export interface SearchBoxProps
     InputHTMLAttributes<HTMLInputElement>,
     "type" | "value" | "onChange"
   > {
+  /** The text in the box. */
   value: string;
+  /** Called with the new text on each keystroke, and with `""` when cleared. */
   onChange: (next: string) => void;
   /** The clear control's accessible name. Defaults to "Clear search". */
   clearLabel?: string;

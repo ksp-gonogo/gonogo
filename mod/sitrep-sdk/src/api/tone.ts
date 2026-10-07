@@ -5,8 +5,10 @@
  *
  * `neutral` carries no state. `info` is something worth noticing that is
  * neither good nor bad. `go` is all well. `caution` is a milder `warn`, and
- * `nogo` is worse than either. `offline` means the data behind the thing is
- * gone, which is not the same as a neutral reading.
+ * `nogo` is worse than both `caution` and `warn`, so from least to most severe
+ * the four states run `go`, `caution`, `warn`, `nogo`. `offline` means the data
+ * behind the thing is gone, which is not the same as a neutral reading, and it
+ * sits outside that scale with `neutral` and `info`.
  *
  * @category Tone
  * @categoryDescription Tone
@@ -39,8 +41,9 @@ export const TONES: readonly Tone[] = [
 ];
 
 /**
- * The tones a contribution uses to say how alarming something is. There is no
- * "all is well" tone: leave out an entry with nothing to report.
+ * The tones a contribution uses to say how alarming something it reports is,
+ * such as each entry its `compute` returns. `go` is not among them: when all is
+ * well, return no entry at all rather than one with a reassuring tone.
  *
  * @category Tone
  */

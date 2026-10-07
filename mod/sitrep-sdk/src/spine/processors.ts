@@ -24,7 +24,10 @@ import type { TopicReading } from "./client-reading";
  *
  * @typeParam Result - What the processor computes.
  * @typeParam ProcessorId - Its id.
- * @typeParam Carried - Whether it returns a `Reading` (see {@link useProcessor}).
+ * @typeParam Carried - Whether the processor returns a `Reading` rather than a
+ * bare value. It does when any of its dependencies is a reading: the result
+ * then says how current it is (observed, held or modelled), dated by those
+ * inputs. See {@link useProcessor}.
  *
  * @category Processors
  */

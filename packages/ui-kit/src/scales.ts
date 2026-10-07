@@ -12,15 +12,19 @@
  * accepts. Each names what the space is for, and resolves to the `--gap-*`
  * CSS variable of the same name.
  *
- * - `related` and `section`: between related items, and between sections.
- *   Both are smaller inside a {@link Card} than on a panel
- * - `related-comfortable`, `related-compact`, `related-dense`,
- *   `related-packed`, `section-comfortable` and `section-compact`: the same
- *   two spacings at one fixed density, whatever the container
- * - `rows`: between stacked rows that carry their own padding
- * - `caption`: under the line a caption belongs to
- * - `readout-row` and `label-value`: between the rows and between the columns
- *   of a label/value grid
+ * - `related` and `section`: between related items, and between sections:
+ *   8px and 16px on a panel, 6px and 12px inside a {@link Card}
+ * - `related-comfortable` (8px), `related-compact` (6px), `related-dense`
+ *   (4px), `related-packed` (2px), `section-comfortable` (16px) and
+ *   `section-compact` (12px): the same two spacings at one fixed density,
+ *   whatever the container
+ * - `rows` (2px): between stacked rows that carry their own padding
+ * - `caption` (2px): under the line a caption belongs to
+ * - `readout-row` (2px) and `label-value` (8px): between the rows and between
+ *   the columns of a label/value grid
+ *
+ * The pixel values are the default sheet's; a host that mounts its own sheet
+ * may change them.
  *
  * @category Layout
  */
@@ -55,10 +59,15 @@ export const GAP_VAR = {
 
 /**
  * The padding names {@link Box}'s `pad` prop accepts, each resolving to the
- * `--inset-*` CSS variable of the same name: `chip`, `chip-roomy` and
- * `chip-readout` for small pills, `pill` for a stadium, `surface` and
- * `surface-standalone` for a block's own padding, `popover` for a floating
- * card.
+ * `--inset-*` CSS variable of the same name, given here as vertical then
+ * horizontal padding in the default sheet:
+ *
+ * - `chip` (1px 6px), `chip-roomy` (1px 8px) and `chip-readout` (2px 8px):
+ *   small pills
+ * - `pill` (6px 12px): a stadium
+ * - `surface` (6px 8px) and `surface-standalone` (10px 12px): a block's own
+ *   padding
+ * - `popover` (8px all round): a floating card
  *
  * @category Layout
  */

@@ -825,7 +825,12 @@ export interface FormatQuantityOptions {
   as?: string;
   /** Override the kind's decimal places. */
   decimals?: number;
-  /** The rung the value was last shown at, so a value hovering on a boundary does not flicker. */
+  /**
+   * For a caller of `formatQuantity` that keeps the result: pass back the
+   * `rung` of the {@link FormattedQuantity} it returned last time, so a value
+   * hovering on a boundary between two units does not flicker between them.
+   * {@link Unit} does this for you.
+   */
   heldSymbol?: string;
 }
 

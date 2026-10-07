@@ -25,6 +25,7 @@ export interface DivergingBarProps<Unit extends string = string> {
    * an empty track.
    */
   maxAbs: Value<Unit>;
+  /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
 }
 

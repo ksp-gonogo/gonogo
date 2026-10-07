@@ -31,33 +31,10 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
 export const BINARY_LANE_MAGIC = 0x9e;
 
 /**
- * The lane byte of a `stream-binary` frame. The header has room for more
- * lanes and this is the only one in use.
+ * The lane byte of a `stream-binary` frame, the only lane in use. The other
+ * values of that byte are left free for lanes to come.
  *
  * @category Binary lane
- *
- * @concept Binary lane
- * The binary lane is how the stream carries a payload that is opaque bytes,
- * such as radio audio, without encoding it as JSON. Every other server frame is
- * UTF-8 JSON and opens with `{`; a binary-lane frame opens with
- * {@link BINARY_LANE_MAGIC} instead, then a lane byte
- * ({@link BINARY_LANE_STREAM_BINARY}, the only lane defined), a two-byte header
- * length, a JSON {@link StreamBinary} header, and the payload as one or more
- * segments laid end to end.
- *
- * - it is wire level: a widget reading Topics never meets a binary frame. Only
- *   code that reads the socket itself does, and checks the first byte with
- *   {@link isBinaryFrame} before parsing anything
- * - its bytes are delayed like any value: the header carries the same meta as a
- *   JSON data frame, so a binary delivery observes the signal delay, the
- *   vantage and the timeline exactly as a JSON one does
- * - no segments is not no message: a frame with zero segments decodes
- *   successfully, while a frame whose segment lengths do not add up is refused
- *   with a reason ({@link BinaryFrameFailure}) and never replaced by an empty
- *   payload
- *
- * {@link decodeBinaryFrame} reads a frame into a {@link StreamBinaryMessage}.
- * What each segment means belongs to the Uplink that sends it.
  */
 export const BINARY_LANE_STREAM_BINARY = 0x01;
 
@@ -131,6 +108,29 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  * The stream's binary frames, which carry bulk payloads as raw bytes beside
  * the JSON text frames everything else arrives in: how to tell a binary frame from a text one and read its header and
  * body. Only a client that handles the socket itself meets these.
+ *
+ * @concept Binary lane
+ * The binary lane is how the stream carries a payload that is opaque bytes,
+ * such as radio audio, without encoding it as JSON. Every other server frame is
+ * UTF-8 JSON and opens with `{`; a binary-lane frame opens with
+ * {@link BINARY_LANE_MAGIC} instead, then a lane byte
+ * ({@link BINARY_LANE_STREAM_BINARY}, the only lane defined), a two-byte header
+ * length, a JSON {@link StreamBinary} header, and the payload as one or more
+ * segments laid end to end.
+ *
+ * - it is wire level: a widget reading Topics never meets a binary frame. Only
+ *   code that reads the socket itself does, and checks the first byte with
+ *   {@link isBinaryFrame} before parsing anything
+ * - its bytes are delayed like any value: the header carries the same meta as a
+ *   JSON data frame, so a binary delivery observes the signal delay, the
+ *   vantage and the timeline exactly as a JSON one does
+ * - no segments is not no message: a frame with zero segments decodes
+ *   successfully, while a frame whose segment lengths do not add up is refused
+ *   with a reason ({@link BinaryFrameFailure}) and never replaced by an empty
+ *   payload
+ *
+ * {@link decodeBinaryFrame} reads a frame into a {@link StreamBinaryMessage}.
+ * What each segment means belongs to the Uplink that sends it.
  */
 export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
   if (!isBinaryFrame(bytes)) {

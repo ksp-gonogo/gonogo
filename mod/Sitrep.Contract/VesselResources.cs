@@ -43,7 +43,7 @@ public class ResourceAmount
 }
 
 /// <summary>
-/// The <c>vessel.resources</c> channel payload: a keyframed map, keyed by
+/// The <c>vessel.resources</c> Topic payload: a keyframed map, keyed by
 /// resource name. No value is ever a sentinel such as <c>-1</c>.
 ///
 /// <para>Only these stock resources are reported: <c>LiquidFuel</c>,

@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>game.dlc</c> channel payload: which KSP expansions ("DLC") are
+/// The <c>game.dlc</c> Topic payload: which KSP expansions ("DLC") are
 /// installed. A fact about the install, independent of scene, so a widget can
 /// tell "the player has no DLC" from "the DLC is present but nothing is
 /// deployed yet" (deployed science, for instance, needs Breaking Ground).
@@ -29,7 +29,7 @@ namespace Sitrep.Contract;
 #endif
 public class GameDlc
 {
-    /// <summary>Whether the Breaking Ground expansion ("Serenity") is installed: deployed science, robotics and surface features.</summary>
+    /// <summary>Whether the Breaking Ground expansion is installed: deployed science, robotics and surface features.</summary>
     [SitrepUnit(Units.Flag)]
     public bool BreakingGround { get; set; }
 

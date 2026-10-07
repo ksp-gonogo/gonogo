@@ -436,7 +436,9 @@ export {
  *
  * Pass the handle as `owner` to every `registerComponent` and
  * {@link registerAugment} call the client makes, and register contributions
- * through the handle's own `registerContribution`.
+ * through the handle's own `registerContribution`. A widget registered without
+ * an `owner` is not tied to its Uplink, so searching the add-widget picker for
+ * the Uplink's id does not find it.
  *
  * @category Registering
  */
@@ -478,8 +480,8 @@ export function registerSetting<
   Topic extends TopicId = TopicId,
 >(def: SettingDefinitionOf<SettingKind, Topic>): void;
 /**
- * The form to call with a row taken from a list, for a client that keeps its
- * rows in an array and registers them in a loop. Rows of different types in
+ * This overload takes a row from a list, for a client that keeps its rows in an
+ * array and registers them in a loop. Rows of different types in
  * one array are typed as the plain `SettingDefinition`, which the generic form
  * above does not accept.
  */
@@ -807,6 +809,18 @@ export function useModSettings(
  * declared does not compile, and `compute` receives the value under
  * `settings.<uplink>.<key>` as the type the registry declares.
  *
+ * @example
+ * ```ts
+ * // Declare the host mod's settings once, in the Uplink's client:
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface ModSettingsRegistry {
+ *     "my-uplink": { difficulty: number };
+ *   }
+ * }
+ *
+ * const deps = [modSettingDep("my-uplink", "difficulty")] as const;
+ * ```
+ *
  * @category Extensions
  */
 export function modSettingDep<
@@ -833,6 +847,9 @@ export function modSettingDep<
  * Values computed from Topics once and shared: a processor reads its
  * dependencies and returns a derived value each frame, and any Uplink can read
  * one through a handle without depending on the Uplink that implements it.
+ * Also here are the pieces of a derived channel, a Topic the app computes from
+ * other Topics ({@link DerivedChannelDefinition}), and {@link TimelinePoint},
+ * the dated sample both a derived channel and a reckoner read.
  */
 export function useProcessor<Result, Carried extends boolean>(handle: {
   readonly id: string;
@@ -866,10 +883,13 @@ export function useViewClock(): unknown {
 /**
  * Connects a widget's declared actions to handlers, so an input the operator
  * has bound, such as a key or a joystick button, fires them. Keys are the
- * action ids from {@link ComponentDefinition.actions}. What a handler returns
- * is sent back to the device that fired it, a control panel with a display of
- * its own for instance, so the display can follow the widget. Return whatever
- * that display is set up to show, or nothing.
+ * action ids from {@link ComponentDefinition.actions}; an operator binds an
+ * input to an action on the widget's Inputs tab, in its settings. What a
+ * handler returns is sent back to the device that fired it, a control panel
+ * with a display of its own for instance, so the display can follow the
+ * widget. The built-in 21 by 8 text display takes a flat object of keys to
+ * values, such as `{ ALT: "12.4 km", THR: "80%" }`, and prints one `KEY VALUE`
+ * line per entry, sorted by key. Return nothing when the device has no display.
  *
  * Pass a new handler object on every render if you like: the latest handlers
  * are always the ones called, and nothing is registered again.

@@ -6,4 +6,9 @@
  *
  * @category Registering
  */
-export const TINY_SIZE = { w: 3, h: 3 } as const;
+export const TINY_SIZE = {
+  /** Width, in grid columns. */
+  w: 3,
+  /** Height, in grid rows. */
+  h: 3,
+} as const;

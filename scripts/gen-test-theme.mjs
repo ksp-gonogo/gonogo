@@ -50,12 +50,24 @@ const { defaultDarkTheme } = await import(
   join(root, "packages/theme/src/defaultDarkTheme.ts")
 );
 
+/** The doc comment each top-level group carries, so the published theme's groups say what they hold. */
+const GROUP_DOCS = {
+  colors:
+    "Colour roles as `var(--color-...)` references: text, surfaces, borders, the accent and the focus ring.",
+  typography:
+    "The monospace family, font sizes as `var(--font-size-...)` references, weights as numbers and letter spacings in `em`.",
+  borders:
+    "Whole CSS border declarations, such as `1px solid var(--color-border-subtle)`.",
+};
+
 let leaves = 0;
 function emit(node, depth) {
   const pad = "  ".repeat(depth);
   const out = [];
   for (const [key, value] of Object.entries(node)) {
     const k = /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? key : JSON.stringify(key);
+    if (depth === 1 && GROUP_DOCS[key])
+      out.push(`${pad}/** ${GROUP_DOCS[key]} */`);
     if (value !== null && typeof value === "object") {
       out.push(`${pad}${k}: {`, ...emit(value, depth + 1), `${pad}},`);
     } else {

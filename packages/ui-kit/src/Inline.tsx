@@ -28,6 +28,7 @@ export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
    * that cannot break overflows a narrow column.
    */
   wrap?: boolean;
+  /** The runs of text and inline items, laid out in a line. */
   children?: ReactNode;
 }
 

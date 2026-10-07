@@ -73,7 +73,9 @@ export function onCoverageSourcesChange(cb: () => void): () => void {
 }
 
 /**
- * Adds a coverage source, replacing any registered under the same id.
+ * Adds a coverage source: a layer of the body map that reveals the cells the
+ * source reports as covered, such as the ground a scanner has mapped.
+ * Registering a second source with an id already in use replaces the first.
  *
  * @category Maps and coverage
  * @categoryDescription Maps and coverage

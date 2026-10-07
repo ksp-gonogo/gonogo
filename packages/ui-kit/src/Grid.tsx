@@ -46,6 +46,7 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    * wants its rows tighter than its columns.
    */
   rowGap?: GapToken;
+  /** The cells, filled in reading order. */
   children?: ReactNode;
 }
 

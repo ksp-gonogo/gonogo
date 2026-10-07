@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.identity</c> channel payload: who the active vessel is, what
+/// The <c>vessel.identity</c> Topic payload: who the active vessel is, what
 /// kind of craft it is, and where it is.
 ///
 /// <para>There is no mission time field. <see cref="LaunchUt"/> is fixed after

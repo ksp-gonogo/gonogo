@@ -413,7 +413,7 @@ registerComponent<TransferWindowConfig>({
   id: "transfer-window",
   name: "Transfer Window",
   description:
-    "Plan transfers to other planets and moons: a live phase angle dial, a list of upcoming transfer windows, and a map of the Δv each pair of departure and arrival dates costs.",
+    "Plan transfers to other planets and moons: a live phase angle dial, a list of upcoming transfer windows, and a map of the Δv each pair of departure and arrival dates costs. The dial reads IDEAL at the phase angle a transfer needs, NEAR as it approaches and FAR otherwise. With the craft's Δv budget known, each destination reads GO when the budget covers both leaving and arriving, ONE WAY when it covers leaving but not capture, MARGINAL when within a tenth of the departure cost, and NO when it cannot leave; the reserve set in the tile's settings is held back first.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },

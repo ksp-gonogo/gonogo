@@ -227,7 +227,7 @@ registerComponent<WarpControlConfig>({
   id: "warp-control",
   name: "Warp Control",
   description:
-    "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level.",
+    "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level. When the craft's one-way signal delay is over 5 seconds, warping up in flight needs an alarm set first; the tile's settings can turn this off.",
   tags: ["control", "time"],
   defaultSize: { w: 6, h: 5 },
   // Below it the ladder has no room.

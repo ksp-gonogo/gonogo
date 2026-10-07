@@ -108,7 +108,7 @@ public class ActionGroupState
 }
 
 /// <summary>
-/// The <c>vessel.control</c> channel payload: the active vessel's control
+/// The <c>vessel.control</c> Topic payload: the active vessel's control
 /// state (the stock toggles, SAS mode, throttle, the commanded fly-by-wire
 /// axes and the custom action groups). The payload is present whenever there
 /// is an active vessel; each field is individually nullable, and <c>null</c>

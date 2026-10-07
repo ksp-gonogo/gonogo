@@ -50,8 +50,9 @@ export interface CommandGateLike extends CommandRefusalLike {
   /** The game EVALUATED this and said no. */
   blocked: boolean;
   /**
-   * The mod could not evaluate this command's gates at all, as in a sandbox
-   * save. The control is drawn as ordinary, not darkened, and carries
+   * The mod could not evaluate this command's gates (the checks it runs
+   * before a command is pressed) at all, as in a sandbox save, which has no
+   * career to check against. The control is drawn as ordinary, not darkened, and carries
    * `data-gate` to say so.
    */
   undetermined?: boolean;
@@ -84,7 +85,9 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
   /**
    * Dispatch. The promise resolves when the command is confirmed and rejects
    * when it is refused, lost, or the machinery failed, so the control clears its
-   * own pending state with no per-command telemetry predicate.
+   * own pending state with no per-command telemetry predicate. A refusal
+   * rejects with an error carrying its `CommandErrorCode`: read it with
+   * `classifyCommandRejection` from `@ksp-gonogo/sitrep-sdk`.
    *
    * `Result` carries the reply's real type to
    * {@link CommandButtonProps.onConfirmed}; a handle from `useCommand("...")`

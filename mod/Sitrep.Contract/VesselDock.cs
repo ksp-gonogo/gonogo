@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.dock</c> channel payload: the relative position, velocity and
+/// The <c>vessel.dock</c> Topic payload: the relative position, velocity and
 /// coarse orientation between the active vessel's nearest free (undocked)
 /// docking port and the targeted docking port, for docking-alignment widgets.
 /// The whole payload is absent when docking is not relevant right now: nothing

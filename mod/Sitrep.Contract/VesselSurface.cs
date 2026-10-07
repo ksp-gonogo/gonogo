@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.surface</c> channel payload: surface data a landing widget
+/// The <c>vessel.surface</c> Topic payload: surface data a landing widget
 /// needs that <c>vessel.flight</c> doesn't already carry.
 /// <c>vessel.flight.AltitudeTerrain</c> is the height of the vessel's root
 /// part above the terrain; <see cref="HeightFromTerrain"/> is the height of the

@@ -2,8 +2,18 @@ import { getHost } from "./host";
 import type { Logger } from "./logger-contract";
 
 /**
- * The app's logger. Entries go to the browser console, the app's log buffer and
- * the app's shipped logs. Throws when used with no app or test host installed.
+ * The app's logger. Entries go to the browser console, to the log buffer the
+ * app keeps in the page (what its in-app log viewer and log export read), and
+ * to the logs the running app sends to its log service. Throws when used with
+ * no app or test host installed.
+ *
+ * @example
+ * ```ts
+ * import { logger } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * const log = logger.tag("my-uplink");
+ * log.info("Station list refreshed", { count: 3 });
+ * ```
  *
  * @category Logging and performance
  * @categoryDescription Logging and performance

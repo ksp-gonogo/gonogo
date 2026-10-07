@@ -39,7 +39,7 @@ public static class ScienceValueModels
     public const string Stock = "stock";
 }
 
-/// <summary> One entry in the <c>science.experiments</c> channel payload: a
+/// <summary> One entry in the <c>science.experiments</c> Topic payload: a
 /// single stored science result on the active vessel, held either by the
 /// science module that collected it or by a container part. The channel
 /// payload is a bare array of these (<c>ExperimentEntry[]</c>) or <c>null</c>,
@@ -214,7 +214,7 @@ public class ExperimentEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.instruments</c> channel payload: a single
+/// One entry in the <c>science.instruments</c> Topic payload: a single
 /// <c>ModuleScienceExperiment</c> on the active vessel, as an inventory and
 /// status row keyed by <see cref="PartId"/> (the part's KSP
 /// <c>flightID</c>).
@@ -227,7 +227,7 @@ public class ExperimentEntry
 /// rerunnable, resettable, collectable) an operator needs to decide what to run
 /// next.</para>
 ///
-/// <para>The channel payload is a bare array (<c>InstrumentEntry[]</c>) or
+/// <para>The Topic payload is a bare array (<c>InstrumentEntry[]</c>) or
 /// <c>null</c> when there is no active vessel or it carries no experiment
 /// module. Every field is nullable, and is <c>null</c> whenever the raw value
 /// is absent.</para>
@@ -315,7 +315,7 @@ public class InstrumentEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.lab</c> channel payload: a Mobile Processing
+/// One entry in the <c>science.lab</c> Topic payload: a Mobile Processing
 /// Lab (KSP's <c>ModuleScienceLab</c>) on the active vessel. The channel
 /// payload is a bare array (<c>LabEntry[]</c>) or <c>null</c> when there is no
 /// active vessel or it carries no lab. Every field is nullable, and is
@@ -414,9 +414,9 @@ public class LabEntry
     public Dictionary<string, object?>? Extensions { get; set; }
 }
 
-/// <summary> One entry in the <c>deployed.bases</c> channel payload: a
+/// <summary> One entry in the <c>deployed.bases</c> Topic payload: a
 /// Breaking Ground deployed-science experiment
-/// (<c>ModuleGroundExperiment</c>). The channel payload is a bare array
+/// (<c>ModuleGroundExperiment</c>). The Topic payload is a bare array
 /// (<c>DeployedEntry[]</c>) or <c>null</c> when no loaded vessel carries a
 /// deployed experiment (including an install without Breaking Ground).
 ///
@@ -621,10 +621,10 @@ public enum DeployedPowerState
 }
 
 /// <summary>
-/// One entry in the <c>science.sensors</c> channel payload: a single
+/// One entry in the <c>science.sensors</c> Topic payload: a single
 /// environmental-sensor module (<c>ModuleEnviroSensor</c>: thermometer,
 /// barometer, gravioli detector, accelerometer, and any modded sensor
-/// sharing the module) on the active vessel. The channel payload is a bare
+/// sharing the module) on the active vessel. The Topic payload is a bare
 /// array (<c>SensorEntry[]</c>) or <c>null</c> when there is no active vessel
 /// or it carries no sensor module.
 ///
@@ -680,14 +680,14 @@ public class SensorEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.experimentBreakdown</c> channel payload: a
+/// One entry in the <c>science.experimentBreakdown</c> Topic payload: a
 /// per-subject rollup of the stored science results that
 /// <c>science.experiments</c> lists one row per result. One row per distinct
 /// subject id: several stored results for the same subject (for example two
 /// crew reports from the same biome) collapse into one entry with
 /// <see cref="DataMits"/> summed across them.
 ///
-/// <para>The channel payload is a bare array
+/// <para>The Topic payload is a bare array
 /// (<c>ExperimentBreakdownEntry[]</c>) or <c>null</c>, never a wrapper object.
 /// The whole array is <c>null</c> when there is no active vessel or the vessel
 /// holds no stored science data; there is no separate empty-array state.
@@ -773,13 +773,13 @@ public class ExperimentBreakdownEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.archive</c> channel payload: a single subject
+/// One entry in the <c>science.archive</c> Topic payload: a single subject
 /// out of the whole-career R&amp;D archive
 /// (<c>ResearchAndDevelopment.GetSubjects()</c>). That is every subject the
 /// career has ever collected or recovered, across every mission and every
 /// body, not scoped to the active vessel.
 ///
-/// <para>The channel payload is a bare array (<c>ArchiveEntry[]</c>), or
+/// <para>The Topic payload is a bare array (<c>ArchiveEntry[]</c>), or
 /// <c>null</c> when the save has no R&amp;D to walk (Sandbox mode). A save
 /// with R&amp;D but nothing collected yet emits an empty array, so an empty
 /// array and <c>null</c> mean different things here.</para>

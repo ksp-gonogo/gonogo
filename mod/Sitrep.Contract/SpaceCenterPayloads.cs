@@ -73,7 +73,7 @@ public class LaunchSiteEntry
 }
 
 /// <summary>
-/// The <c>spaceCenter.scene</c> channel payload: the single current KSP game
+/// The <c>spaceCenter.scene</c> Topic payload: the single current KSP game
 /// scene. <see cref="Scene"/> carries exactly one of the six strings
 /// <c>{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}</c>:
 /// KSP's <c>GameScenes</c> enum folded onto that fixed set, with any scene
@@ -367,7 +367,7 @@ public class SavedShipEntry
 }
 
 /// <summary>
-/// The <c>spaceCenter.partsAvailable</c> channel payload: a wrapper carrying
+/// The <c>spaceCenter.partsAvailable</c> Topic payload: a wrapper carrying
 /// the count of parts the player can place right now (tech-unlocked and
 /// purchased in career; the full <c>PartLoader</c> catalogue in sandbox).
 ///
@@ -393,7 +393,7 @@ public class SpaceCenterPartsAvailable
 }
 
 /// <summary>
-/// The <c>spaceCenter.astronautComplex</c> channel payload: the Astronaut
+/// The <c>spaceCenter.astronautComplex</c> Topic payload: the Astronaut
 /// Complex hire tab, the rolling pool of applicants the operator can recruit,
 /// plus the roster-cap context a hire is gated on.
 ///

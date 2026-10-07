@@ -24,9 +24,10 @@ export type SwitchProps = SwitchBaseProps &
   );
 
 /**
- * An on/off toggle for a setting that takes effect at once: a native checkbox
- * drawn as a sliding track, keyboard-operable with Space and with the focus
- * ring drawn on the track.
+ * An on/off toggle for one setting, which takes effect as it is flipped; inside
+ * a form with a save bar the change waits for Save like any other field. It is
+ * a native checkbox drawn as a sliding track, keyboard-operable with Space and
+ * with the focus ring drawn on the track.
  *
  * @category Form
  */

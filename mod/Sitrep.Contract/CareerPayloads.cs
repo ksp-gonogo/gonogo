@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>career.status</c> channel payload: the KSC and career-mode snapshot,
+/// The <c>career.status</c> Topic payload: the KSC and career-mode snapshot,
 /// in four groups (balances, contracts, strategies, tech). The space centre's
 /// buildings are not here: they are on <see cref="CareerFacilities"/>, which can
 /// be held on its own while this channel keeps arriving.
@@ -93,7 +93,7 @@ public class CareerStatus
 }
 
 /// <summary>
-/// The <c>career.facilities</c> channel payload: the space centre's buildings,
+/// The <c>career.facilities</c> Topic payload: the space centre's buildings,
 /// each with the tier it stands at and the ladder it stands on.
 ///
 /// <para><b>When it arrives.</b> A facility's tier count and prices are readable from the

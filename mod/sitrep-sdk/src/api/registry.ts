@@ -41,7 +41,18 @@ const REGISTRY_KEY = "__GONOGO_COMPONENT_REGISTRY__" as const;
 // `ComponentType` is contravariant in props, so neither `unknown` nor `never`
 // would work here. `Config` is checked at the call site (`registerComponent` /
 // `registerDataSource`); the internal Map just needs to hold anything.
+/**
+ * A registered widget's definition, whatever its config type: the same type
+ * as {@link ComponentDefinition}.
+ *
+ * @category Registering
+ */
 export type AnyDef = ComponentDefinition;
+/**
+ * A registered data source: the same type as {@link DataSource}.
+ *
+ * @category Registering
+ */
 export type AnySource = DataSource;
 
 interface Registry {

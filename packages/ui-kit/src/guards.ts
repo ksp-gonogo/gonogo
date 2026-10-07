@@ -2,7 +2,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 /**
- * Build-time guards an Uplink can run against its own source.
+ * Build-time guards an Uplink runs against its own source, from one test file
+ * in its client.
  *
  * Published as `@ksp-gonogo/ui-kit/guards`, separate from `./testing` because
  * it reads the filesystem (`node:fs`), which would break a browser test runner.

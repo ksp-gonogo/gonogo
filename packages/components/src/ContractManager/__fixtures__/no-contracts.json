@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A connected career with no active, offered or recent contracts, so the empty message points to Mission Control.",
+    "shows": "A connected career with no active, offered or recent contracts, so the empty message points to KSP's Mission Control building.",
     "scenario": "no-contracts",
     "notes": "Telemetry connected but no active or offered contracts. Shows the empty-state 'No active contracts. Pick one up in Mission Control.' message. Subtitle shows '0 active \u00b7 0 offered \u00b7 0 recent'."
   },

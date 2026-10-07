@@ -81,7 +81,7 @@ export interface UplinkClientHandle {
   registerRootProvider(def: RootProviderDefinition): void;
 
   /**
-   * Feeds this Uplink's events to the `event` alarm trigger. The source is
+   * Gives an alarm's `event` trigger this Uplink's events to watch for. The source is
    * asked for its events with the UT the operator is viewing, which lags the
    * game under signal delay; return only the events that have happened by
    * then.

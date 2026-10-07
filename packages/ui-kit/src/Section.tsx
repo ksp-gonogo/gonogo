@@ -38,12 +38,14 @@ export interface SectionProps
    * Take the panel body's leftover height rather than the section's natural
    * one, for a section that is a drawing (a map, a plot, a dial).
    *
-   * A filling section is lifted out of the section grid, so it always spans the
-   * panel's full width; ordinary sections around it still columnise. Two filling
-   * sections each keep their content height and share the leftover equally.
-   * Ignored under `fitToSize`, and inert outside a panel body.
+   * A filling section is lifted out of the section grid (the columns a wide
+   * panel lays its sections out in), so it always spans the panel's full
+   * width; ordinary sections around it still form columns. Two filling sections
+   * each keep their content height and share the leftover equally. Ignored
+   * when the panel's `fitToSize` prop is set, and inert outside a panel body.
    */
   fill?: boolean;
+  /** The section's content, under its title. */
   children?: ReactNode;
 }
 

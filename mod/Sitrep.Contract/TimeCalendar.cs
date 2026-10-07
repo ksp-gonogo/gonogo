@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>time.calendar</c> channel payload: how long a minute, hour, day and
+/// The <c>time.calendar</c> Topic payload: how long a minute, hour, day and
 /// year are, and what real-world instant UT 0 is (when the game has one), as
 /// the running game defines them.
 ///
@@ -80,14 +80,14 @@ public class TimeCalendar
     /// <c>Y3 D122</c>.</para>
     ///
     /// <para>It is read from the date formatter itself. Formatters that model a
-    /// real calendar (RSSTimeFormatter, Kronometer) hold an anchor date; the
-    /// stock formatter holds none.</para>
+    /// real calendar hold an anchor date: RSS installs RSSTimeFormatter, which
+    /// does, and Kronometer can. The stock formatter holds none.</para>
     ///
     /// <para><c>null</c> is the normal value, and it is not zero. Stock KSP has
     /// no real calendar: its own UI prints Year 1, Day 1, and so should every
-    /// consumer. That holds for a planet pack too whenever no date-based
-    /// formatter is installed alongside it. Do not render a default anchor for
-    /// those games.</para>
+    /// consumer. A planet pack that changes the day length without installing a
+    /// date-based formatter has no anchor either. Do not render a default
+    /// anchor for those games.</para>
     /// <internal>
     /// The anchor lives in a private DateTime field on those formatters and is
     /// read by reflection, the same way a career mod's own date utilities do.

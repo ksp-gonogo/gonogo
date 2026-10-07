@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.orbit</c> channel payload: the active vessel's orbital
+/// The <c>vessel.orbit</c> Topic payload: the active vessel's orbital
 /// elements. Elements are the cause; every kinematic quantity (position,
 /// velocity, apsides, anomalies, period) is derived by the consumer at its
 /// view UT through the propagation capability, and is not streamed here. The

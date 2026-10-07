@@ -13,8 +13,14 @@ import type { RailTags } from "./railTags";
  * @category CommandDelay
  */
 export interface CommandRefusalLike {
+  /** Why the command was refused, as one of the root codes every Uplink shares, such as `insufficientFunds`. */
   errorCode: CommandErrorCode;
-  /** The refinement's id, when the refusal was more specific than its root `errorCode`. */
+  /**
+   * The refinement's id, when the refusal was more specific than its root
+   * `errorCode`. A refinement is a narrower reason an Uplink declares under a
+   * root code, such as a particular kind of `wrongState`; a client that does
+   * not know it still reads the root.
+   */
   reason?: string;
   /** The command id that was dispatched, e.g. `career.facility.upgrade`. */
   command?: string;

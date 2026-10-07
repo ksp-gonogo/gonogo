@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "Commsat \"commsat\" in a near-circular 250 km orbit of Kerbin tracked by an n-body provider, so the orbit is drawn only out to a limited horizon, with no maneuver node queued.",
+    "shows": "Commsat \"commsat\" in a near-circular 250 km orbit of Kerbin whose future position is computed by a mod that models more than one body's gravity, which answers only a limited way ahead, so the orbit is drawn only that far, with no maneuver node queued.",
     "capturedAt": "2026-08-23",
     "vessel": "commsat (250 km LKO, Kerbin)",
     "body": "Kerbin",

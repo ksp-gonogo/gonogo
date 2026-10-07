@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A 300 m/s prograde burn planned to run about six minutes, half an orbit, already complete, so the gap to the planned orbit is blamed on the long burn rather than on flying.",
+    "shows": "A 300 m/s prograde burn planned to run about six minutes, half an orbit, already complete, so the gap to the planned orbit is put down to the burn being long, which a plan made as one instant push cannot match, rather than to how it was flown.",
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "notes": "A LONG low-thrust burn: the same node and the same post-burn conic, with a burn duration of half an orbital period (T/P = 0.5) instead of 45 s. Past cutoff, so the regime is deviance, but the finite-burn residual is ~36% of the burn, far above the attributable limit. This is the case the residual changes what the widget SAYS rather than merely annotating it: an impulsive plan and a burn spanning 90 degrees of orbit differ by construction, so the gap cannot be read as flying error."

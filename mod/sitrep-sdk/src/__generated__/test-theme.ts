@@ -18,6 +18,7 @@
 // so those need no provider.
 
 export const GENERATED_TEST_THEME = {
+  /** Colour roles as `var(--color-...)` references: text, surfaces, borders, the accent and the focus ring. */
   colors: {
     text: {
       primary: "var(--color-text-primary)",
@@ -42,6 +43,7 @@ export const GENERATED_TEST_THEME = {
     },
     focus: "var(--color-focus)",
   },
+  /** The monospace family, font sizes as `var(--font-size-...)` references, weights as numbers and letter spacings in `em`. */
   typography: {
     family: {
       mono: "var(--font-family-mono)",
@@ -63,6 +65,7 @@ export const GENERATED_TEST_THEME = {
       body: "0",
     },
   },
+  /** Whole CSS border declarations, such as `1px solid var(--color-border-subtle)`. */
   borders: {
     subtle: "1px solid var(--color-border-subtle)",
     strong: "1px solid var(--color-border-strong)",

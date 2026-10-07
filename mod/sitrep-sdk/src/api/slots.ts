@@ -826,10 +826,13 @@ export interface FleetRosterUpdatesContext {
 // ambiguity.
 declare module "./types" {
   interface SlotRegistry {
+    /** The standard body segment of the Space Center Status widget: content of your own after everything the widget draws. Passes no props. */
     "space-center-status.sections": Record<string, never>;
 
+    /** The standard body segment of the Maneuver Planner widget: content of your own after everything the widget draws. Passes no props. */
     "maneuver-planner.sections": Record<string, never>;
 
+    /** The standard body segment of the Target Picker widget: content of your own after everything the widget draws. Passes no props. */
     "target-picker.sections": Record<string, never>;
 
     /**
@@ -843,7 +846,8 @@ declare module "./types" {
     /**
      * The video backdrop behind the reticle box in the Targeting widget's
      * docking view. Fill the frame with a camera picture, such as a docking
-     * port camera, and pass its aspect to `reportPictureAspect` so the
+     * port camera, and pass its aspect to
+     * {@link TargetingHudContext.reportPictureAspect} so the
      * reticle's scale follows the picture. Drawn only while the docking view
      * is shown at a size with room for the frame, and not when the operator
      * picks the view without a camera. Passes a {@link TargetingHudContext}.
@@ -851,12 +855,14 @@ declare module "./types" {
     "targeting.camera": TargetingHudContext;
     /**
      * A layer over the reticle box in the Targeting widget's docking view, for
-     * marks of your own placed in the reticle's space with `reticleOffset` and
-     * `reticleTravelPx`. Drawn only while the docking view is shown at a size
+     * marks of your own placed in the reticle's space with
+     * {@link TargetingHudContext.reticleOffset} and
+     * {@link TargetingHudContext.reticleTravelPx}. Drawn only while the docking view is shown at a size
      * with room for the frame. Passes a {@link TargetingHudContext}.
      */
     "targeting.overlay": TargetingHudContext;
 
+    /** The standard body segment of the CommNet Signal widget: content of your own after everything the widget draws. Passes no props. */
     "comm-signal.sections": Record<string, never>;
 
     /**
@@ -870,7 +876,8 @@ declare module "./types" {
     /**
      * Inline badges at the end of each crew row. Passes a
      * {@link CrewBadgeContext}: the kerbal's name and position in the crew
-     * list. Distinct from the widget's `crew-status.badges` header segment.
+     * list. Distinct from the `crew-status.badges` slot, whose badges sit in
+     * the panel header.
      */
     "crew-status.row-badges": CrewBadgeContext;
     /**
@@ -939,6 +946,7 @@ declare module "./types" {
      */
     "action-group.subsystem": ActionGroupSlotContext;
 
+    /** The standard header segment of the System View widget: controls of your own in its panel header. Passes no props. */
     "system-view.actions": Record<string, never>;
     /**
      * A layer over the System View diagram, the same size as it, for marks
@@ -951,7 +959,8 @@ declare module "./types" {
 
     /**
      * A layer over every canvas of the Map View, the same size as the map
-     * area, for marks placed by latitude and longitude with `project`. The
+     * area, for marks placed by latitude and longitude with
+     * {@link MapOverlayContext.project}. The
      * layer passes pointer events through to the map, so an element that
      * needs clicks turns them back on itself. Passes a
      * {@link MapOverlayContext}.
@@ -960,22 +969,18 @@ declare module "./types" {
     /**
      * The Map View's base surface, under every other layer, for a picture of
      * the whole body such as a scanned terrain map. The augment draws nothing
-     * itself: it paints a canvas and hands it to the map with `onLayer`, and
+     * itself: it paints a canvas and hands it to the map with
+     * {@link MapBaseLayerContext.onLayer}, and
      * returns `null`. Set `suppressesVanillaBase` on the augment to remove the
      * stock texture. Passes a {@link MapBaseLayerContext}.
      */
     "map-view.base": MapBaseLayerContext;
-    // Mounted by `Panel`'s universal segments, not by the widget. Declared so a
-    // binder types against the propless contract, not the loose fallback.
+    /** The standard body segment of the Map View widget: content of your own after everything the widget draws. Passes no props. */
     "map-view.sections": Record<string, never>;
+    /** The standard header segment of the Map View widget: controls of your own in its panel header. Passes no props. */
     "map-view.actions": Record<string, never>;
 
-    // Same universal segment, and the reason it is worth naming a second one:
-    // the tech tree looked like a widget that needed a slot ADDED to it (it
-    // declares no `augmentSlots` of its own), which is a first-party edit an
-    // Uplink author cannot make. It does not, because `Panel` mounts
-    // `${componentId}.sections` for every widget. Declared here so a binder
-    // gets the propless contract rather than the loose fallback.
+    /** The standard body segment of the Tech Tree widget: content of your own after everything the widget draws. Passes no props. */
     "tech-tree.sections": Record<string, never>;
 
     /**
@@ -994,8 +999,9 @@ declare module "./types" {
      */
     "orbit-view.overlay": OrbitOverlayContext;
 
-    // Mounted by `Panel`'s universal segments, not by the widget.
+    /** The standard body segment of the Landing Status widget: content of your own after everything the widget draws. Passes no props. */
     "landing-status.sections": Record<string, never>;
+    /** The standard header segment of the Landing Status widget: controls of your own in its panel header. Passes no props. */
     "landing-status.actions": Record<string, never>;
 
     /**
@@ -1006,7 +1012,7 @@ declare module "./types" {
      * {@link ExperimentsInstrumentSlotContext}.
      */
     "experiments.instrument": ExperimentsInstrumentSlotContext;
-    // Mounted by `Panel`'s universal `actions` segment, not by the widget.
+    /** The standard header segment of the Experiments widget: controls of your own in its panel header. Passes no props. */
     "experiments.actions": Record<string, never>;
 
     /**
@@ -1016,16 +1022,17 @@ declare module "./types" {
      */
     "deployed-science.experiment": DeployedExperimentContext;
 
+    /** The standard body segment of the Fuel & ΔV widget: content of your own after everything the widget draws. Passes no props. */
     "fuel-status.sections": Record<string, never>;
 
-    // Mounted by `Panel`'s universal `sections` segment; the resource in focus reaches an augment through `WidgetScopeRegistry` below instead.
+    /** The standard body segment of the Power Systems widget: content of your own after everything the widget draws. Passes no props; read the resource in focus with `useWidgetScope("power-systems")`. */
     "power-systems.sections": Record<string, never>;
 
     /**
      * A line under each craft's name in the Fleet Roster, for a note about
      * that craft such as a health warning or an alarm. The line takes no room
-     * when the augment draws nothing; draw only a `Badge` while `compact` is
-     * true. Passes a {@link FleetRosterUpdatesContext}.
+     * when the augment draws nothing; draw only a `Badge` while
+     * {@link FleetRosterUpdatesContext.compact} is true. Passes a {@link FleetRosterUpdatesContext}.
      */
     "fleet-roster.updates": FleetRosterUpdatesContext;
 
@@ -1044,7 +1051,9 @@ declare module "./types" {
   // the slot props above are: a widget in `packages/components` declaring its
   // scope is invisible to a sealed client that cannot see that package.
   interface WidgetScopeRegistry {
+    /** What the Map View is showing: the body it maps. Read with `useWidgetScope("map-view")`. */
     "map-view": MapViewScope;
+    /** The resource Power Systems is showing, as the operator picked it. Read with `useWidgetScope("power-systems")`. */
     "power-systems": PowerSystemsScope;
   }
 }

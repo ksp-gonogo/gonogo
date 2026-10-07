@@ -206,7 +206,16 @@ public class UplinkResendRequest
     public long LaneSeq { get; set; }
 }
 
-/// <summary>What a cancel or a send again did at this centre.</summary>
+/// <summary>
+/// The reply to <c>system.uplink.cancel</c> (<see cref="UplinkCancelRequest"/>,
+/// stop a delayed command still on its way to the craft) and to
+/// <c>system.uplink.resend</c> (<see cref="UplinkResendRequest"/>, send a held or
+/// overdue command again). It reports what the command centre that asked did,
+/// not what happened at the craft; that arrives later as
+/// <c>comms.journey</c> reports (<see cref="CommsJourneyEvent"/>).
+/// A lane is the ordered run of delayed commands one centre sends to one craft,
+/// and a lane number is a command's place in it (<see cref="PendingUplink.LaneSeq"/>).
+/// </summary>
 /// <category>Command results</category>
 [SitrepContract]
 #if SITREP_CODEGEN

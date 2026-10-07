@@ -1,3 +1,15 @@
+/**
+ * The TypeScript package an Uplink's client is written against. Gonogo is a
+ * KSP mod that streams the game's state to the Gonogo app over a WebSocket, as
+ * Topics (a named stream of one kind of value, such as `vessel.orbit`) and
+ * commands; an Uplink is an add-on that extends that mod with Topics and
+ * commands of its own and ships widgets for the app. This package holds the
+ * typed contract for every Topic and command, generated from the mod's C#, and
+ * the calls a client makes with it: `defineUplinkClient`, `registerComponent`,
+ * `useTelemetry`, `useCommand` and the unit model.
+ *
+ * @packageDocumentation
+ */
 export * from "./__generated__/contract";
 export * from "./__generated__/error-codes";
 export * from "./api";

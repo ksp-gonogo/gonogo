@@ -27,12 +27,12 @@ public enum WarpMode
 }
 
 /// <summary>
-/// The <c>time.warp</c> channel payload: the game's time-warp and pause state,
+/// The <c>time.warp</c> Topic payload: the game's time-warp and pause state,
 /// as separate typed fields.
 ///
-/// <para>Current UT is not a field here (or anywhere in this contract):
-/// <c>meta.validAt</c> stamps every sample, and the SDK's view clock is the
-/// "what time is it" surface.</para>
+/// <para>Current UT is not a field here, nor on any other Topic of the wire
+/// contract: <c>meta.validAt</c> stamps every sample with the UT it describes,
+/// and a client asks what time it is with the SDK's <c>useViewUt</c>.</para>
 ///
 /// <para>Warp and pause are game-wide state, so <see cref="Meta"/> is
 /// stamped <c>Source = "game"</c>, not <c>"vessel:&lt;guid&gt;"</c>, and the
@@ -124,8 +124,9 @@ public class WarpState
     /// physics step.
     ///
     /// <para>Equal to <see cref="SampleIntervalUt"/> up to 10x warp. Above that the mod
-    /// samples at most ten times a real second, so this is a tenth of a second
-    /// of game time at the current rate (10,000 at 100,000x), or one physics
+    /// samples at most ten times a real second, so this is the game time that
+    /// passes in a tenth of a real second at the current rate (0.1 s x 100,000
+    /// = 10,000 s at 100,000x), or one physics
     /// tick where a tick advances the game further than that.
     /// Nothing between two consecutive samples was observed, so a line drawn
     /// between two samples that differ asserts a path across this span that

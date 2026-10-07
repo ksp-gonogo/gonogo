@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.orbit.truth</c> channel payload: KSP's own maintained state
+/// The <c>vessel.orbit.truth</c> Topic payload: KSP's own maintained state
 /// vector for the active vessel (<c>Orbit.pos</c> and <c>Orbit.vel</c>),
 /// relative to the body it orbits. A development channel for checking
 /// element-to-position math against KSP's own state, not a source of altitude

@@ -65,8 +65,10 @@ export function renderHook<Result, Props>(
 }
 
 /**
- * The text a test probe should print for a value: the magnitude of a quantity,
- * and anything else as it is. For a test of whether a value arrived, not of how
+ * The text a test probe should print for a value. A probe is a small test
+ * component that prints what a hook returned so a test can assert on it. A
+ * quantity (a `Value`, which pairs a magnitude with its unit) prints as its
+ * magnitude, and anything else as it is. For a test of whether a value arrived, not of how
  * it is drawn; use `visibleText` from `@ksp-gonogo/ui-kit/testing` for what a
  * reader sees.
  *

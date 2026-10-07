@@ -44,6 +44,7 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
    * never silently turns into a ragged block; chip strips and tag lists opt in.
    */
   wrap?: boolean;
+  /** The items, laid out in a row. */
   children?: ReactNode;
 }
 

@@ -155,7 +155,7 @@ public class AlternatorEntry
 }
 
 /// <summary>
-/// The <c>parts.power</c> channel payload: the active vessel's electric-charge
+/// The <c>parts.power</c> Topic payload: the active vessel's electric-charge
 /// production surface (solar panels, batteries, fuel cells, engine
 /// alternators, and a rolled-up production total). A single object, or
 /// <c>null</c> when there is no active vessel or it carries none of the four
@@ -204,7 +204,7 @@ public class PartsPower
 }
 
 /// <summary>
-/// One entry in the <c>robotics.servos</c> channel payload, a single Breaking
+/// One entry in the <c>robotics.servos</c> Topic payload, a single Breaking
 /// Ground robotic servo on the active vessel. The payload is a bare array of
 /// these, or <c>null</c> when there is no active vessel or it carries no
 /// servo; read <c>robotics.available</c> to tell those two apart.
@@ -341,7 +341,7 @@ public class ServoEntry
 }
 
 /// <summary>
-/// The <c>robotics.available</c> channel payload: a single object (or
+/// The <c>robotics.available</c> Topic payload: a single object (or
 /// <c>null</c> when there is no active vessel) whose one field states whether
 /// the active vessel carries any Breaking Ground robotic servo. It is its own
 /// Topic because the <c>robotics.servos</c> array is <c>null</c> both when

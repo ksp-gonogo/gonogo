@@ -29,6 +29,7 @@ export interface MissionDateFieldProps {
   /** Names the whole group for a screen reader: "Ignition", "Plan end". */
   label: string;
 
+  /** Greys the field and its buttons out and ignores input. */
   disabled?: boolean;
 
   /**

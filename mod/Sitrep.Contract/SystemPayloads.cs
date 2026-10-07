@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>system.bodies</c> channel payload: every celestial body in the
+/// The <c>system.bodies</c> Topic payload: every celestial body in the
 /// game, as a tree, wrapped as <c>{ "bodies": [ ... ] }</c>. The whole payload
 /// is <c>null</c>, not an empty list, when no sample has been taken yet, so
 /// "no data yet" and "zero bodies" stay distinct.
@@ -372,7 +372,7 @@ public class OrbitEntry
 }
 
 /// <summary>
-/// The <c>system.vessels</c> channel payload: every vessel the receiving
+/// The <c>system.vessels</c> Topic payload: every vessel the receiving
 /// command centre knows of, wrapped as <c>{ "vessels": [ ... ] }</c>. Like
 /// <see cref="SystemBodies"/>, it carries no per-payload <c>Meta</c>: that
 /// rides the envelope.

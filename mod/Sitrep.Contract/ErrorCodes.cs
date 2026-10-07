@@ -204,7 +204,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// <summary>A topic whose payload could not be written.</summary>
     public static readonly FaultCode PayloadSerializationError = Mod("payloadSerializationError", "its value could not be sent");
 
-    /// <summary>A <c>set-vantage</c>, or a command's <c>vantage</c>, naming a command centre that is not active.</summary>
+    /// <summary>A <c>set-vantage</c>, or a command's <c>vantage</c>, naming a command centre that is not active. The SCET alarm command is the exception: it refuses an inactive vantage with the <c>range</c> refusal instead.</summary>
     public static readonly FaultCode UnknownVantage = Mod("unknownVantage", "that command centre is not active");
 
     /// <summary>A held command reached its expiry, or its place on the lane passed, before it could run.</summary>
@@ -223,12 +223,14 @@ public sealed class FaultCode : IEquatable<FaultCode>
     public static readonly FaultCode UndoneByLoad = Mod("undoneByLoad", "a game load undid it before it ran");
 
     /// <summary>
-    /// A continuous input, a throttle or a control axis, was dropped at a node
-    /// where it would have had to wait on its way to the craft. Held and sent
-    /// on later it would arrive as a run of out-of-date values, so a node that cannot
-    /// send it on at once drops it. It was accepted with a warning when it was
-    /// sent, and this is the news of its loss, arriving when a report from that
-    /// node could have reached the sending centre.
+    /// A continuous input, a throttle or a control axis, was dropped at a node,
+    /// a ground station or relay on the route to the craft, because the link
+    /// onward was down there and it would have had to be held until it came
+    /// back. Held and sent on later it would arrive as a run of out-of-date
+    /// values, so a node that cannot send it on at once drops it. It was
+    /// accepted with a warning when it was sent, and this is the news of its
+    /// loss, arriving at the command centre that sent it once a report from that
+    /// node could have reached it at light speed.
     /// </summary>
     public static readonly FaultCode ContinuousInputWouldWait = Mod("continuousInputWouldWait", "it would wait on its way, and a continuous input cannot");
 

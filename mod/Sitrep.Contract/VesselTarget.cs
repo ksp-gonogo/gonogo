@@ -82,7 +82,7 @@ public class ClosestApproach
 }
 
 /// <summary>
-/// The <c>vessel.target</c> channel payload: the active vessel's current
+/// The <c>vessel.target</c> Topic payload: the active vessel's current
 /// target only. <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/>
 /// both use the one <see cref="Vec3"/> shape.
 ///

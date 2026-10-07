@@ -34,7 +34,10 @@ import { namesByValue } from "./enum-names";
  */
 
 /**
- * KSP's `ProtoCrewMember.RosterStatus`, behind `spaceCenter.crewRoster[]`.
+ * KSP's `ProtoCrewMember.RosterStatus`, as `spaceCenter.crewRoster[]` entries carry it. A map from each value to its
+ * member name: `KSP_ROSTER_STATUS_NAMES.get(0)` is `"Available"`, and a value the
+ * table does not know gives `undefined`. A roster entry's value is its
+ * `situationOrdinal`.
  *
  * @category Enum names
  */
@@ -47,7 +50,8 @@ export const KSP_ROSTER_STATUS_NAMES = namesByValue(KspRosterStatus);
 export type KspRosterStatusName = keyof typeof KspRosterStatus;
 
 /**
- * KSP's `Contracts.ParameterState`, behind a contract's objective rows.
+ * KSP's `Contracts.ParameterState`, as a contract's objective rows carry it. A map from each
+ * value to its member name.
  *
  * @category Enum names
  */
@@ -60,7 +64,8 @@ export const KSP_PARAMETER_STATE_NAMES = namesByValue(KspParameterState);
 export type KspParameterStateName = keyof typeof KspParameterState;
 
 /**
- * KSP's `PartCategories`, behind `vessel.parts[]`. Carries `none = -1`.
+ * KSP's `PartCategories`, as `vessel.parts[]` entries carry it. A map from each value
+ * to its member name; it includes `none = -1`.
  *
  * @category Enum names
  */
@@ -73,7 +78,8 @@ export const KSP_PART_CATEGORY_NAMES = namesByValue(KspPartCategory);
 export type KspPartCategoryName = keyof typeof KspPartCategory;
 
 /**
- * KSP's `KSPActionGroup`, behind a part action's bindings. A bitmask.
+ * KSP's `KSPActionGroup`, as a part action's bindings carry it. A bitmask, so read a
+ * value with {@link actionGroupNames} rather than looking it up here.
  *
  * @category Enum names
  */
@@ -86,7 +92,8 @@ export const KSP_ACTION_GROUP_NAMES = namesByValue(KspActionGroup);
 export type KspActionGroupName = keyof typeof KspActionGroup;
 
 /**
- * KSP's `EditorFacility`, behind `spaceCenter.savedShips[]`.
+ * KSP's `EditorFacility`, as `spaceCenter.savedShips[]` entries carry it. A map
+ * from each value to its member name.
  *
  * @category Enum names
  */
@@ -99,7 +106,8 @@ export const KSP_EDITOR_FACILITY_NAMES = namesByValue(KspEditorFacility);
 export type KspEditorFacilityName = keyof typeof KspEditorFacility;
 
 /**
- * KSP's `SpaceCenterFacility`, behind the career facilities map.
+ * KSP's `SpaceCenterFacility`, as the career facilities map is keyed. A map from each
+ * value to its member name.
  *
  * @category Enum names
  */
@@ -114,7 +122,8 @@ export const KSP_SPACE_CENTER_FACILITY_NAMES = namesByValue(
 export type KspSpaceCenterFacilityName = keyof typeof KspSpaceCenterFacility;
 
 /**
- * KSP's `ResourceFlowMode`, as resource definitions carry it.
+ * KSP's `ResourceFlowMode`, as resource definitions carry it. A map from each value to
+ * its member name.
  *
  * @category Enum names
  */
@@ -133,8 +142,11 @@ export type KspResourceFlowModeName = keyof typeof KspResourceFlowMode;
  */
 // enum-name-tables.test.ts checks each table matches its enum and that every generated Ksp* enum has one.
 export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
+  /** The table's exported name, such as `"KSP_ROSTER_STATUS_NAMES"`. */
   label: string;
+  /** The generated enum the table is built from, such as `KspRosterStatus`. */
   members: object;
+  /** The table itself: each value of the enum mapped to its member name. */
   names: ReadonlyMap<number, string>;
 }> = [
   {
@@ -176,7 +188,8 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
 
 /**
  * Returns the names of the action groups set in a `KSPActionGroup` bitmask, in
- * KSP's order. `None` and `REPLACEWITHDEFAULT` are never included. Returns an
+ * KSP's order. `None` and `REPLACEWITHDEFAULT` are KSP's placeholder values,
+ * not action groups, and are never included. Returns an
  * empty array for no mask.
  *
  * @category Enum names

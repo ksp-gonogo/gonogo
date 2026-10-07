@@ -285,7 +285,10 @@ export type TopicId = keyof TopicPayloadMap;
 export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
 
 /**
- * Every Topic id the SDK itself declares, as an array.
+ * A Topic is one named stream of values from the mod, such as `vessel.orbit`,
+ * read by its id with {@link useTelemetry}. This is every Topic id the SDK
+ * itself declares, as an array, and {@link TopicPayloadMap} maps each id to the
+ * type of its payload.
  *
  * Topics an Uplink adds at load are not in it; {@link getAllKnownTopicIds}
  * and {@link isTopicId} include them. Topics whose id is built at runtime,

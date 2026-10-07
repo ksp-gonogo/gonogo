@@ -248,7 +248,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The <c>settings.&lt;uplink&gt;</c> channel payload: one Uplink's host mod's
+    /// The <c>settings.&lt;uplink&gt;</c> Topic payload: one Uplink's host mod's
     /// own settings, as the Uplink read them.
     ///
     /// <para><b>One topic per Uplink</b>, declared only for an Uplink that
@@ -280,7 +280,7 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Text)]
         public string? Failure { get; set; }
 
-        /// <summary>The game install's own configuration, about no vessel.</summary>
+        /// <summary>The payload's provenance. Its <c>source</c> is always <c>"game"</c>: these settings describe the game install, never a craft, and like the rest of this Topic they are always current and never delayed.</summary>
         public PayloadMeta Meta { get; set; } = new();
     }
 

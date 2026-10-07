@@ -45,8 +45,8 @@ public static class CommandErrorCode
     /// A capacity is full: the Astronaut Complex holds its cap of active crew,
     /// a facility holds its cap of anything else countable.
     ///
-    /// <para>A retry succeeds only once something changes, such as freeing a
-    /// slot.</para>
+    /// <para>A retry succeeds only once something changes, such as a kerbal
+    /// leaving the active roster.</para>
     ///
     /// <para><see cref="Sitrep.Contract.CommandResult.Breach"/> carries the
     /// numbers, so a client can say "16 of 16".</para>
@@ -76,9 +76,11 @@ public static class CommandErrorCode
     /// <see cref="InsufficientFunds"/>, as the game keeps science and funds
     /// separate currencies.
     ///
-    /// <para>Decided by <c>CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)</c>,
+    /// <para>The cost is the one the game itself would charge, with every
+    /// modifier applied.
+    /// <internal>Decided by <c>CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)</c>,
     /// which is what <c>RDTech.ResearchTech</c> checks, modifiers included.
-    /// <internal>Not <c>ResearchAndDevelopment.CanAfford</c>, which skips the
+    /// Not <c>ResearchAndDevelopment.CanAfford</c>, which skips the
     /// modifier chain and so disagrees with what the game acts on.</internal></para>
     /// </summary>
     public static readonly RefusalCode InsufficientScience = RefusalCode.DeclareRoot("insufficientScience", "there is not enough science");
@@ -87,10 +89,12 @@ public static class CommandErrorCode
     /// The save is not a career save, so this command's whole subsystem does not
     /// exist here.
     ///
-    /// <para>Decided by <c>HighLogic.CurrentGame.Mode</c>, and in practice the
+    /// <internal>
+    /// Decided by <c>HighLogic.CurrentGame.Mode</c>, and in practice the
     /// null <c>Instance</c> of the <c>ScenarioModule</c> that would have
     /// served it (<c>Funding</c>, <c>ContractSystem</c>, <c>StrategySystem</c>,
-    /// <c>ResearchAndDevelopment</c>, <c>ScenarioUpgradeableFacilities</c>).</para>
+    /// <c>ResearchAndDevelopment</c>, <c>ScenarioUpgradeableFacilities</c>).
+    /// </internal>
     ///
     /// <para>A permanent property of the save, not a state that may change, so a
     /// client can hide the control rather than show it refused.</para>
@@ -100,9 +104,9 @@ public static class CommandErrorCode
     /// <summary>
     /// The game is in a scene this command cannot run from.
     ///
-    /// <para>Decided by <c>HighLogic.LoadedScene</c> (<c>GameScenes</c>).
-    /// <see cref="Sitrep.Contract.CommandResult.Detail"/> names the scene when the producer had
-    /// one.</para>
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names the scene when the producer had
+    /// one.
+    /// <internal>Decided by <c>HighLogic.LoadedScene</c> (<c>GameScenes</c>).</internal></para>
     /// </summary>
     public static readonly RefusalCode WrongScene = RefusalCode.DeclareRoot("wrongScene", "the game is not in a scene that allows it");
 
@@ -112,13 +116,13 @@ public static class CommandErrorCode
     /// contract asked to accept when it is not offered, an assigned kerbal asked
     /// to be sacked, a spent experiment asked to deploy.
     ///
-    /// <para>Decided by the entity's own state enum. <c>Strategies.Strategy.IsActive</c>,
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> can carry the state in the game's own
+    /// words.
+    /// <internal>Decided by the entity's own state enum. <c>Strategies.Strategy.IsActive</c>,
     /// <c>RDTech.State</c>, <c>Contract.State</c>,
     /// <c>ProtoCrewMember.RosterStatus</c>,
     /// <c>ModuleScienceExperiment.Deployed</c>/<c>Inoperable</c>. Every one of
-    /// those is <c>[Description]</c>-tagged or otherwise nameable, so
-    /// <see cref="Sitrep.Contract.CommandResult.Detail"/> can carry the state in the game's own
-    /// words.</para>
+    /// those is <c>[Description]</c>-tagged or otherwise nameable.</internal></para>
     /// </summary>
     public static readonly RefusalCode WrongState = RefusalCode.DeclareRoot("wrongState", "it is not in a state that allows it");
 
@@ -126,19 +130,22 @@ public static class CommandErrorCode
     /// Right command, wrong moment: the flight is not in a state that permits it
     /// yet, and will be later.
     ///
-    /// <para>Decided by <c>FlightGlobals.ClearToSave()</c>, which returns one of
-    /// five refusals (in atmosphere, under acceleration, moving over the
-    /// surface, about to crash, on a ladder), plus
+    /// <para>The game gives five such reasons: in atmosphere, under
+    /// acceleration, moving over the surface, about to crash, on a ladder; and a
+    /// revert or a scene change can also be switched off by the save's own
+    /// difficulty settings. The game's reason is on
+    /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.
+    /// <internal>Decided by <c>FlightGlobals.ClearToSave()</c>, plus
     /// <c>FlightDriver.CanRevertToPostInit</c>/<c>CanRevertToPrelaunch</c> and
     /// the <c>GameParameters</c> flags for leaving to the space center and to
-    /// the tracking station. The game's reason is on
-    /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.</para>
+    /// the tracking station.</internal></para>
     ///
     /// <para>Also returned by the SCET alarm command for a vantage it cannot check because no
     /// command centre is known to the simulation yet: the main menu, and the
-    /// ticks before the first capture. A vantage that is known and inactive is
-    /// <see cref="Range"/> instead, because that one does not resolve by
-    /// waiting.</para>
+    /// ticks before the first capture. The same command refuses a vantage that
+    /// is known and inactive with <see cref="Range"/> instead, because that one
+    /// does not resolve by waiting. Any other command naming an inactive
+    /// vantage fails with the <c>unknownVantage</c> fault.</para>
     ///
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
     /// and does not resolve by waiting.
@@ -157,11 +164,13 @@ public static class CommandErrorCode
     /// part with no such action, an action present but inert, an autopilot mode
     /// this craft cannot hold.
     ///
-    /// <para>Decided by the part's own module list and fields
+    /// <internal>
+    /// Decided by the part's own module list and fields
     /// (<c>ModuleRoboticServoRotor</c>/<c>Hinge</c>/<c>Piston</c>,
     /// <c>servoIsMotorized</c>, <c>BaseEvent.active</c>,
     /// <c>BaseEvent.EventIsDisabledByVariant</c>) and
-    /// <c>VesselAutopilot.CanSetMode</c>.</para>
+    /// <c>VesselAutopilot.CanSetMode</c>.
+    /// </internal>
     ///
     /// <para>Nothing an operator waits for. The craft would have to be different
     /// for this to work, which is why it is not <see cref="NotClearToProceed"/>
@@ -172,10 +181,10 @@ public static class CommandErrorCode
     /// <summary>
     /// There is no usable link for what this command needs to send.
     ///
-    /// <para>Decided by <c>ScienceUtil.GetBestTransmitter(Vessel)</c> and
-    /// <c>IScienceDataTransmitter.CanTransmit()</c>: the vessel has no antenna
-    /// that can carry the payload. This is not the comms-loss refusal that stops
-    /// a command before it reaches the vessel.</para>
+    /// <para>The vessel has no antenna that can carry the payload, such as a
+    /// science transmission.
+    /// <internal>Decided by <c>ScienceUtil.GetBestTransmitter(Vessel)</c> and
+    /// <c>IScienceDataTransmitter.CanTransmit()</c>.</internal></para>
     /// </summary>
     public static readonly RefusalCode NoConnection = RefusalCode.DeclareRoot("noConnection", "there is no usable link");
 
@@ -183,32 +192,37 @@ public static class CommandErrorCode
     /// The capability exists in the game but this save has not unlocked it: fuel
     /// transfer, custom action groups, flight planning, EVA, the maneuver tool.
     ///
-    /// <para>Decided by <c>GameVariables.UnlockedFuelTransfer</c>,
+    /// <para>Each switch follows the level of the building that owns it.
+    /// <internal>Decided by <c>GameVariables.UnlockedFuelTransfer</c>,
     /// <c>UnlockedActionGroupsStock</c>/<c>Custom</c>,
     /// <c>UnlockedFlightPlanning</c>, <c>UnlockedEVA</c>/<c>Flags</c>/<c>Clamber</c>,
     /// <c>ManeuverToolAvailable</c>, each read at the owning facility's
-    /// normalised level.</para>
+    /// normalised level.</internal></para>
     ///
     /// <para>Distinct from <see cref="LimitReached"/>, which is a number against
     /// a number. This is a switch that is off, and the fix is an upgrade rather
-    /// than freeing a slot.</para>
+    /// than making room.</para>
     /// </summary>
     public static readonly RefusalCode NotUnlocked = RefusalCode.DeclareRoot("notUnlocked", "it has not been unlocked yet");
 
     /// <summary>
     /// Another vessel is on the launch site.
     ///
-    /// <para>Decided by <c>PreFlightTests.LaunchSiteClear</c>, whose
-    /// <c>GetWarningTitle()</c>/<c>GetWarningDescription()</c> are the game's own
-    /// words for it and ride on <see cref="Sitrep.Contract.CommandResult.Detail"/>.</para>
+    /// <para>The game's own words for it ride on
+    /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.
+    /// <internal>Decided by <c>PreFlightTests.LaunchSiteClear</c>, whose
+    /// <c>GetWarningTitle()</c>/<c>GetWarningDescription()</c> supply those
+    /// words.</internal></para>
     /// </summary>
     public static readonly RefusalCode SiteOccupied = RefusalCode.DeclareRoot("siteOccupied", "another vessel is on the launch site");
 
     /// <summary>
     /// The facility this command needs is destroyed or damaged.
     ///
-    /// <para>Decided by <c>PreFlightTests.FacilityOperational</c>, over
-    /// <c>PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()</c>.</para>
+    /// <internal>
+    /// Decided by <c>PreFlightTests.FacilityOperational</c>, over
+    /// <c>PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()</c>.
+    /// </internal>
     /// </summary>
     public static readonly RefusalCode FacilityDamaged = RefusalCode.DeclareRoot("facilityDamaged", "the building is out of action");
 
@@ -216,7 +230,7 @@ public static class CommandErrorCode
     /// The command consumes a countable ITEM and there are not enough of them
     /// aboard.
     ///
-    /// <para>Decided by the provider's own charge, which it should also state
+    /// <para>The provider decides by its own charge, which it should also state
     /// wherever it shows the cost, so the cost shown and the cost taken agree.
     /// The item is the provider's to name: this code says only that there were
     /// too few, never which item.</para>

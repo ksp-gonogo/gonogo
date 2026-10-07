@@ -42,7 +42,7 @@ public enum FlightEndReason
 }
 
 /// <summary>
-/// The <c>flight.current</c> channel payload: a UT-indexed value, delivered
+/// The <c>flight.current</c> Topic payload: a UT-indexed value, delivered
 /// latest-wins and delayed like every <c>vessel.*</c> channel. It says which
 /// flight is active and what phase it is in, for the vessel gonogo is
 /// reporting as active. That is the vessel the game is flying, with one
@@ -87,7 +87,7 @@ public class FlightCurrent
 }
 
 /// <summary>
-/// The <c>flight.started</c> channel payload: a reliable, ordered, delayed
+/// The <c>flight.started</c> Topic payload: a reliable, ordered, delayed
 /// event sent when a new flight begins. A flight is new when its vessel id
 /// has not been started before in this game session (a launch, or a first
 /// switch onto a vessel), and every vessel active just after a revert or a
@@ -124,7 +124,7 @@ public class FlightStarted
 }
 
 /// <summary>
-/// The <c>flight.ended</c> channel payload: a reliable, ordered, delayed
+/// The <c>flight.ended</c> Topic payload: a reliable, ordered, delayed
 /// event sent once per flight when it stops being trackable: recovered,
 /// crashed, destroyed or reverted. It shares the delay class of
 /// <c>crash.lastCrash</c> and <c>recovery.lastSummary</c>, so an end that a
@@ -161,7 +161,7 @@ public class FlightEnded
 }
 
 /// <summary>
-/// The <c>flight.vesselChanged</c> channel payload: a reliable, ordered,
+/// The <c>flight.vesselChanged</c> Topic payload: a reliable, ordered,
 /// delayed event sent whenever the active vessel changes after the first
 /// observation of the session (docking, undocking, a tracking-station
 /// reselect). Switching away from a vessel that is still flying does not end

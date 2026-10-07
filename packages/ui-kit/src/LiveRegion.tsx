@@ -24,7 +24,8 @@ export interface LiveRegionProps {
   additionsOnly?: boolean;
   /**
    * Interrupt rather than announce: `aria-live="assertive"`, and `role="alert"`
-   * where the region is on screen. For ABORT-class states and nothing softer.
+   * where the region is on screen. Only for states that must interrupt
+   * whatever the operator is doing, such as a mission abort, and nothing softer.
    */
   assertive?: boolean;
   /** The element the region renders as. */
@@ -40,7 +41,8 @@ export interface LiveRegionProps {
  * its message is often never announced. Mount this for as long as the thing it
  * reports on is on screen, and put the words in when there is something to say.
  *
- * Polite unless `assertive`, which interrupts and is kept for ABORT-class states.
+ * Polite unless `assertive`, which interrupts and is kept for states that must
+ * interrupt, such as a mission abort.
  *
  * @example Mounted with the control, empty until there is an outcome to say
  * ```tsx

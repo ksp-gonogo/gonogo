@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.propulsion</c> channel payload: the active vessel's mass and
+/// The <c>vessel.propulsion</c> Topic payload: the active vessel's mass and
 /// thrust, the inputs to thrust-to-weight and burn-time figures. Mass is in
 /// tonnes and thrust in kN, so <c>thrust / (mass · g)</c> is a
 /// thrust-to-weight ratio directly.

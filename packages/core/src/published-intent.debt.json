@@ -25,7 +25,6 @@
     ".:ComputerIcon",
     ".:FrenetNormalIcon",
     ".:TangentIcon",
-    ".:TextField",
     ".:useAllAugmentSettings",
     ".:usePrefersReducedMotion"
   ],

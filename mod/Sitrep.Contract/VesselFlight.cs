@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.flight</c> channel payload: quantities the game measures,
+/// The <c>vessel.flight</c> Topic payload: quantities the game measures,
 /// either because they cannot be derived from orbital elements (terrain
 /// height, aerodynamic state) or because they are the measured value to check
 /// a prediction against (speeds). One field per quantity.

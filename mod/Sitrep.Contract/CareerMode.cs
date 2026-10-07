@@ -39,7 +39,7 @@ public enum GameMode
 }
 
 /// <summary>
-/// The <c>career.mode</c> channel payload: the active save's
+/// The <c>career.mode</c> Topic payload: the active save's
 /// <see cref="GameMode"/>, as <c>{ "mode": &lt;int&gt; }</c>. The whole payload
 /// is <c>null</c> when no game is loaded (main menu, no save). Once a save is
 /// loaded the mode is always one of the four <see cref="GameMode"/> members.

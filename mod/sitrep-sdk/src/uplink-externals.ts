@@ -32,8 +32,10 @@
 /**
  * Each specifier the app resolves for a loaded Uplink, paired with the name of
  * the file the app serves it from. Mark every specifier `external` when
- * bundling an Uplink's client, so it uses the app's own copy of each package;
- * a bundled copy brings its own registries, which the dashboard never reads.
+ * bundling an Uplink's client, so it uses the app's own copy of each package.
+ * A bundled copy brings its own `registerComponent`, `registerAugment` and the
+ * other registries, so whatever it registers lands in a copy the dashboard
+ * never reads.
  * A subpath, such as `@ksp-gonogo/sitrep-sdk/media`, is its own entry.
  *
  * @category Bundling
@@ -67,7 +69,8 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
 
 /**
  * Specifiers a bundler must also leave out of an Uplink's bundle, which the
- * app reaches only through another specifier and loads no file for.
+ * app reaches only through another specifier and loads no file for:
+ * `react-dom/client` and `react/jsx-dev-runtime`.
  *
  * @category Bundling
  */
@@ -78,7 +81,9 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
 
 /**
  * Everything an Uplink's bundler marks `external`: both lists together, and
- * the one to use. `uplink-tools bundle` passes it for you. A build of your own
+ * the one to use.
+ * [`uplink-tools bundle`](https://ksp-gonogo.github.io/uplink-dev-docs/reference/tools/command-line)
+ * passes it for you. A build of your own
  * imports it from this package's `uplink-externals` subpath and passes it as
  * the bundler's list of externals: with esbuild,
  * `external: [...UPLINK_BUNDLE_EXTERNALS]`.

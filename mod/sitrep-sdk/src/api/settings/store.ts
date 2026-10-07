@@ -142,7 +142,9 @@ export function setSetting(key: string, value: string): void {
 
 /**
  * Sets a value used for this page load only, while nothing is saved for the
- * setting. Never saved.
+ * setting. Never saved. The app seeds the game's host this way at startup
+ * from the `KSP_HOST` it was deployed with, so a fresh browser starts pointed
+ * at the right machine.
  *
  * @category Settings
  */

@@ -43,6 +43,7 @@ export interface BoxProps extends HTMLAttributes<HTMLDivElement> {
   bordered?: boolean;
   /** Corner radius. Omit for square corners. */
   radius?: BoxRadius;
+  /** The content inside the padding and border. */
   children?: ReactNode;
 }
 

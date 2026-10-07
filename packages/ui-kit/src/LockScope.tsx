@@ -29,6 +29,7 @@ export interface LockSummary {
  * @category Panel
  */
 export interface LockScopeProps {
+  /** The content the scope guards, drawn while nothing used inside it is locked. */
   children?: ReactNode;
   /**
    * What draws in place of `children` while something used inside the scope

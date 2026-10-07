@@ -111,6 +111,8 @@ export interface DataTableProps<Row> {
  *
  * @example
  * ```tsx
+ * // `"Mit"` is the unit KSP measures science data in, and `"science"` is
+ * // science points; any unit `value()` accepts works the same way.
  * const columns: ReadonlyArray<DataTableColumn<Subject>> = [
  *   { key: "subject", header: "Subject", rowHeader: true, width: "1fr", minWidth: "22ch", render: (s) => s.title },
  *   { key: "data", header: "Data", align: "end", width: "9ch", value: (s) => value("Mit", s.dataMits) },

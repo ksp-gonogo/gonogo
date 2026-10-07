@@ -26,7 +26,8 @@ import {
 } from "./toInFlightListItems";
 
 /**
- * What {@link CommandDelay} and the Panel delay rail read from a command: its
+ * What {@link CommandDelay} and the Panel delay rail (the strip at the top of a
+ * panel showing commands still crossing to the craft) read from a command: its
  * in-flight rows, its delay, and what became of its dispatches. Declared
  * structurally; {@link useCommand}'s return value satisfies it.
  *

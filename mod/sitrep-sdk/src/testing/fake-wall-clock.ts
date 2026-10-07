@@ -11,8 +11,10 @@ export interface FakeWallClock {
 }
 
 /**
- * A {@link FakeWallClock} that reads `start` seconds until it is advanced.
- * Pass its `now` wherever a clock takes `nowWall`, which is in seconds too.
+ * A {@link FakeWallClock} that reads `start` seconds, 0 when omitted, until it
+ * is advanced. Pass its `now` wherever a clock takes `nowWall`, the real time
+ * in seconds: the view clock's options and a media pipeline's
+ * `tickPacing(nowWall)` take one.
  *
  * @category Test doubles
  * @categoryDescription Test doubles

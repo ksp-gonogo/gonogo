@@ -61,6 +61,7 @@ export interface SettingValueByType {
   boolean: boolean;
   /** A line of text. */
   text: string;
+  /** A number, bare or as a `Value` with its unit. */
   number: number | Value;
 }
 
@@ -77,7 +78,7 @@ export type SettingValue = SettingValueByType[SettingType];
  * @category Settings
  */
 export interface SettingDefinitionBase {
-  /** The setting's key, unique across every Uplink. It is what `useSetting` and `getSetting` take, and what a saved value is stored under, so keep it stable. */
+  /** The setting's key, unique across every Uplink. It is what `useSetting` takes, and what a saved value is stored under, so keep it stable. */
   id: string;
   /** The row's name, as the operator reads it. */
   label: string;
@@ -95,9 +96,10 @@ export interface SettingDefinitionBase {
   /** Which screens this setting is relevant on. Omit for every screen. */
   screens?: readonly Screen[];
   /**
-   * The Uplink this row belongs to, by its id. The row is then drawn on that
-   * Uplink's page under the Uplinks tab, below the settings its mod reports,
-   * rather than under its `category` in General.
+   * The Uplink this row belongs to, by its id. The Settings window has a
+   * General tab for the app's own settings and an Uplinks tab with a page for
+   * each Uplink. With this set, the row is drawn on that Uplink's page, below
+   * the settings its mod reports, rather than under its `category` in General.
    */
   uplink?: string;
   /**
@@ -125,8 +127,11 @@ export interface SettingDefinitionBase {
  */
 export interface ClientPrefSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {
+  /** Where the value is kept: `"client-pref"`, this browser. The default, so it may be left out. */
   backing?: "client-pref";
+  /** The kind of value: `"boolean"` (the default when left out), `"text"` or `"number"`. Sets the control drawn. */
   type?: SettingKind;
+  /** The value the row holds until the operator changes it. */
   defaultValue: SettingValueByType[SettingKind];
 }
 
@@ -144,7 +149,9 @@ export interface StreamBackedSettingOf<
   SettingKind extends SettingType,
   Topic extends TopicId = TopicId,
 > extends SettingDefinitionBase {
+  /** Where the value comes from: `"stream-backed"`, a Topic. */
   backing: "stream-backed";
+  /** The kind of value: `"boolean"` (the default when left out), `"text"` or `"number"`. Sets how the value is drawn. */
   type?: SettingKind;
   /** The Topic id whose payload carries this row's value. */
   topic: Topic;
@@ -160,12 +167,13 @@ export interface StreamBackedSettingOf<
 }
 
 /**
- * The stream-backed row as the REGISTRY stores it.
+ * A stream-backed row as the settings registry holds it once registered: the
+ * same fields as {@link StreamBackedSettingOf}, with `topic` a plain string
+ * and `select` taking a payload of unknown type, since the registry holds rows
+ * for every Topic at once. Write rows with {@link StreamBackedSettingOf}; this
+ * is what reading them back gives.
  *
- * The renderer holds a definition it did not author and has no topic literal
- * left, so its `select` takes the erased payload: same split as every other
- * registry in this package, and the precision lives on the authoring type
- * above where the topic is known.
+ * @category Settings
  */
 export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {

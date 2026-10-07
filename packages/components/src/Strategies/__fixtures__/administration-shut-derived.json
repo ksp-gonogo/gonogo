@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "The Administration Building is closed: two strategies are refused with the game's own wording and stay dark, and two have no check made and still offer Activate.",
+    "shows": "The Administration Building is closed: two strategies are refused with the game's own wording and stay dark, and two the game has given no verdict on, so they still offer Activate.",
     "scenario": "administration-shut-derived",
     "notes": "The Administration Building is SHUT, so the career model puts CanBeActivated's arms one at a time instead of calling it. Two rows carry a refusal the game itself makes, in its own wording, with activateVerdictSource=derived: a refusal is sound off-screen because stock returns on its FIRST refusal, so an arm that fires here would have fired there. Two carry no verdict at all, activateVerdictSource=none, because the concurrent-strategy cap is counted on that screen and nowhere else and a pass is owed to every arm. No row is a derived YES and none can be: that pair is unreachable by design. The career's activation is the game's own (activationPatched=false), so the two rows with no verdict arm Activate: the command puts the checks that could not be made here when it runs. The two derived refusals stay dark. The only fixture carrying activateVerdictSource, and the scenario Saga #335 exists for."
   },

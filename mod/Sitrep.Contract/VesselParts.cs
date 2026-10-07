@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.parts</c> channel payload: the active vessel's full part
+/// The <c>vessel.parts</c> Topic payload: the active vessel's full part
 /// tree, with each part's position, mass, temperatures, resources, module
 /// states and action-group bindings. A single object, or <c>null</c> when
 /// there is no active vessel.

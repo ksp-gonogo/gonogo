@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.landing</c> channel payload: landing data for the active
+/// The <c>vessel.landing</c> Topic payload: landing data for the active
 /// vessel that needs KSP's PQS terrain heightmap (slope, roughness and
 /// elevation at the touchdown site), plus an atmosphere-aware descent estimate
 /// built from the vessel's measured drag. The vacuum ballistic figures (which

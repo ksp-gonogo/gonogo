@@ -70,7 +70,9 @@ export const ConfigForm = styled.div<{ $boxed?: boolean }>`
 /**
  * One labelled control in a {@link ConfigForm}, stacked: {@link FieldLabel} on
  * top, the control below, an optional {@link FieldHint} under it. Tie the label
- * to the control with `htmlFor` and `id`.
+ * to the control with `htmlFor` and `id`. For a single line of text, prefer
+ * {@link TextField}, which does all of this in one; build with `Field` and
+ * {@link Input} for a control it does not cover.
  *
  * @example
  * ```tsx

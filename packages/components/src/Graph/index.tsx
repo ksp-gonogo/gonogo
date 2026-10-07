@@ -24,7 +24,8 @@ function GraphComponent({
 registerComponent<GraphConfig>({
   id: "graph",
   name: "Graph",
-  description: "Line chart of one or more live telemetry series over time.",
+  description:
+    "Line chart of one or more live telemetry series over time. Which series it plots, and over how long a window, are set in the tile's settings.",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

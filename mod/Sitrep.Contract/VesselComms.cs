@@ -47,7 +47,7 @@ public enum ControlState
 }
 
 /// <summary>
-/// The <c>vessel.comms</c> channel payload: the active vessel's own CommNet
+/// The <c>vessel.comms</c> Topic payload: the active vessel's own CommNet
 /// connection, from KSP's <c>vessel.connection</c>. The whole payload is null
 /// when the vessel has no CommNet connection object; there is no zero or
 /// disconnected placeholder reading.

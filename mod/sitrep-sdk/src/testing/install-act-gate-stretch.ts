@@ -26,6 +26,15 @@ const FRAME_MS = 1000 / 60;
  * Call it last in a vitest setup file, after Testing Library is imported, and
  * await it.
  *
+ * @example
+ * ```ts
+ * // vitest.setup.ts, run with GONOGO_ACT_GATE_STRETCH_FRAMES=3 in the environment
+ * import "@testing-library/react";
+ * import { installActGateStretch } from "@ksp-gonogo/sitrep-sdk/testing";
+ *
+ * await installActGateStretch();
+ * ```
+ *
  * @category Test hosts
  */
 export async function installActGateStretch(): Promise<void> {

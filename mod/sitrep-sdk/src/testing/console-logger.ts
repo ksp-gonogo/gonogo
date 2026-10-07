@@ -1,9 +1,9 @@
 import type { Logger } from "../api/logger-contract";
 
 /**
- * A logger that writes every level straight to `console`, as a test host
- * installs it. `tag()` returns the same logger, so tagged entries are always
- * shown.
+ * A {@link Logger} that writes every level straight to `console`, as a test
+ * host installs it. `tag()` returns the same logger, so tagged entries are
+ * always shown.
  *
  * @category Test doubles
  */

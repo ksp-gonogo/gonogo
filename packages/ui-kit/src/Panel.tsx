@@ -1257,8 +1257,10 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * announced when it changes. `live` shows nothing, and `"none"` suppresses
    * the badge.
    *
-   * The dashboard sets the blackout grades (`recorded`,
-   * `last-before-blackout`) itself, from the widget's declared channels. Any
+   * The dashboard sets the blackout grades itself, from the widget's declared
+   * channels: `last-before-blackout` (the last value sent before a known loss
+   * of signal) and `recorded` (sent by the craft once contact came back). The
+   * grades are listed on {@link StreamStatusValue}. Any
    * other grade shows only when set here, so set it for a panel that reads one
    * specific Topic. It is merged, worst first, with the dashboard's status and
    * any badge drawn with `report`.
@@ -2143,6 +2145,8 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * } from "@ksp-gonogo/sitrep-sdk";
  * import { Section, Text, Unit } from "@ksp-gonogo/ui-kit";
  *
+ * // In a real Uplink, `uplink-tools codegen` writes this declaration from the
+ * // contract; it is spelled out here so the example stands alone.
  * declare module "@ksp-gonogo/sitrep-sdk" {
  *   interface TopicPayloadMap {
  *     "example.heartbeat": { ut: Value<"ut"> };
@@ -2161,7 +2165,7 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   return (
  *     <Section title="Example">
  *       <Text>
- *         Last beat at UT <Unit value={heartbeat.value.ut} />
+ *         Last beat at UT <Unit value={heartbeat.ut} />
  *       </Text>
  *     </Section>
  *   );

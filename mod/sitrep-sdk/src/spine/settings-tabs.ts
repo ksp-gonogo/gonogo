@@ -23,9 +23,10 @@ export interface SettingsTabDefinition {
   /** Which screens this tab appears on. Omit for every screen. */
   screens?: readonly Screen[];
   /**
-   * The Uplink this tab belongs to, by its id. The tab is then drawn as a
-   * section of that Uplink's page under the Uplinks tab, titled `label`,
-   * rather than as a tab of its own.
+   * The Uplink this tab belongs to, by its id. The Settings window has an
+   * Uplinks tab with a page for each Uplink; with this set, the tab is drawn
+   * as a section of that Uplink's page, titled `label`, rather than as a tab
+   * of its own.
    */
   uplink?: string;
 }

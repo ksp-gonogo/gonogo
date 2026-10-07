@@ -17,8 +17,12 @@ import type { Meta } from "./__generated__/contract";
 
 /**
  * One received sample of a Topic: its value, when it is valid, and what is
- * known about where it came from. A reckoner and a derived channel receive
- * these.
+ * known about where it came from. A reckoner (the model that carries a Topic
+ * forward between samples, registered with
+ * {@link UplinkClientHandle.registerReckoner}) and a derived channel
+ * ({@link DerivedChannelDefinition}) receive these.
+ *
+ * @typeParam Payload - The Topic's payload type, as the reader expects it.
  *
  * @category Processors
  */
@@ -36,7 +40,8 @@ export interface TimelinePoint<Payload = unknown> {
 /**
  * How a derived channel's `derive` reads its inputs: `get(topic)` returns that
  * Topic's sample at the same view time `derive` was called for, including its
- * `meta`. There is no way to ask for any other time, so every input is from
+ * `meta`. `Payload` is the input Topic's payload type, which the caller names:
+ * `get<VesselOrbit>("vessel.orbit")`. There is no way to ask for any other time, so every input is from
  * one instant. Another derived channel can be read the same way.
  *
  * @category Processors
@@ -46,8 +51,10 @@ export type DerivedGet = <Payload = unknown>(
 ) => TimelinePoint<Payload> | undefined;
 
 /**
- * A Topic computed on the client from other Topics, registered on the timeline
- * store so it is read like any other.
+ * A Topic computed on the client from other Topics, registered with
+ * {@link UplinkClientHandle.registerDerivedChannel}. It joins the timeline
+ * store, the app's record of every Topic's samples over game time, so a
+ * widget reads it like any other Topic.
  *
  * @category Processors
  */
@@ -57,7 +64,8 @@ export interface DerivedChannelDefinition<Payload> {
   /** The Topics `derive` reads. Listing them does not subscribe to them. */
   inputs: string[];
   /**
-   * Computes the channel's value at `viewUt`. The same inputs must give the
+   * Computes the channel's value at `viewUt`, the game time the screen is
+   * showing, which trails the game by the signal delay. The same inputs must give the
    * same result, so a replay draws the same thing. Return `undefined` while an
    * input has not arrived yet, and `null` when the value is confirmed absent;
    * never a made-up zero.

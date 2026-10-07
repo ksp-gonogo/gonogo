@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>settings.gonogo</c> channel payload: every setting the mod and its
+/// The <c>settings.gonogo</c> Topic payload: every setting the mod and its
 /// Uplinks declared, what each holds now, and whether the settings file on the
 /// KSP machine holds the same.
 ///
@@ -14,8 +14,10 @@ namespace Sitrep.Contract;
 /// from the row's own description, so a setting an Uplink adds needs no client
 /// code of its own.</para>
 ///
-/// <para>It is never delayed by light time: a setting configures the system
-/// the operator is sitting at, not a craft.</para>
+/// <para>It is never delayed by light time, the time a signal takes to cross
+/// between a craft and the command centre (the screen an operator sends
+/// commands from): a setting configures the system the operator is sitting
+/// at, not a craft.</para>
 ///
 /// <para>This is where a client learns whether a save landed. The
 /// <c>settings.save</c> command can time out and still land, so read the
@@ -26,7 +28,9 @@ namespace Sitrep.Contract;
 /// Settings as the stream carries them: Gonogo's own, its Uplinks', and a host
 /// mod's own settings read through its Uplink. Each row says what it may hold, what
 /// it holds now and whether it can be written, and the model says whether the
-/// settings file on the KSP machine agrees.
+/// settings file on the KSP machine agrees. A client reads them with
+/// <c>useStream("settings.gonogo")</c>; a setting that lives only in the browser
+/// is declared with <c>registerSetting</c> instead.
 /// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN

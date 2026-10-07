@@ -185,7 +185,7 @@ registerComponent<TwrConfig>({
   id: "twr",
   name: "TWR",
   description:
-    "The vessel's thrust-to-weight ratio right now, its current thrust over its whole mass, as a dial: red below 1 (cannot lift off), amber from 1 to 1.5, green above, with a line showing the last minute.",
+    "The vessel's thrust-to-weight ratio right now, its current thrust over its weight at standard gravity (9.81 m/s²), as a dial running 0 to 3 that pins at 3: red below 1 (cannot lift off), amber from 1 to 1.5, green above, with a line showing the last minute.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 3, h: 3 },

@@ -446,7 +446,7 @@ channels:
     description: |-
       Carries a `CareerFacilities`.
 
-      The `career.facilities` channel payload: the space centre's buildings, each
+      The `career.facilities` Topic payload: the space centre's buildings, each
       with the tier it stands at and the ladder it stands on.
 
       **When it arrives.** A facility's tier count and prices are readable from
@@ -497,10 +497,10 @@ channels:
     description: |-
       Carries a `CareerMode`.
 
-      The `career.mode` channel payload: the active save's `GameMode`, as `{
-      "mode": <int> }`. The whole payload is `null` when no game is loaded (main
-      menu, no save). Once a save is loaded the mode is always one of the four
-      `GameMode` members.
+      The `career.mode` Topic payload: the active save's `GameMode`, as `{ "mode":
+      <int> }`. The whole payload is `null` when no game is loaded (main menu, no
+      save). Once a save is loaded the mode is always one of the four `GameMode`
+      members.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -517,10 +517,10 @@ channels:
     description: |-
       Carries a `CareerStatus`.
 
-      The `career.status` channel payload: the KSC and career-mode snapshot, in
-      four groups (balances, contracts, strategies, tech). The space centre's
-      buildings are not here: they are on `CareerFacilities`, which can be held on
-      its own while this channel keeps arriving.
+      The `career.status` Topic payload: the KSC and career-mode snapshot, in four
+      groups (balances, contracts, strategies, tech). The space centre's buildings
+      are not here: they are on `CareerFacilities`, which can be held on its own
+      while this channel keeps arriving.
 
       **Three states.** The whole payload is `null` in a sandbox save, where there
       is no career at all. A non-null payload with a sub-group `null` means career
@@ -644,7 +644,7 @@ channels:
       CommNet home nodes (KSC, Extra Ground Stations, Kerbal Konstructs sites) and
       crewed control-source vessels.
 
-      The channel payload is a bare array of these entries, like
+      The Topic payload is a bare array of these entries, like
       `SpaceCenterPoiEntry`, one per centre, keyed by `CommandCentreEntry.id`.
 
       Each command centre is sent its own roster, the centres it knows of. A
@@ -708,7 +708,7 @@ channels:
       station whose node went away, a crewed vessel that lost its crew or was
       destroyed or recovered.
 
-      The channel payload is a bare array of these entries, one per remembered
+      The Topic payload is a bare array of these entries, one per remembered
       centre that is currently off the roster, keyed by
       `UnreachableCentreEntry.id`. A centre that comes back leaves this channel
       and rejoins the roster, and a centre that has not been on the roster since
@@ -1301,10 +1301,10 @@ channels:
     description: |-
       Carries an array of `DeployedEntry`.
 
-      One entry in the `deployed.bases` channel payload: a Breaking Ground
-      deployed-science experiment (`ModuleGroundExperiment`). The channel payload
-      is a bare array (`DeployedEntry[]`) or `null` when no loaded vessel carries
-      a deployed experiment (including an install without Breaking Ground).
+      One entry in the `deployed.bases` Topic payload: a Breaking Ground
+      deployed-science experiment (`ModuleGroundExperiment`). The Topic payload is
+      a bare array (`DeployedEntry[]`) or `null` when no loaded vessel carries a
+      deployed experiment (including an install without Breaking Ground).
 
       Unlike the `science.*` channels, `deployed.bases` covers every loaded
       vessel, not just the active one: a deployed cluster is its own ground
@@ -1361,7 +1361,7 @@ channels:
     description: |-
       Carries a `StageDeltaVSummary`.
 
-      The `dv.summary` channel payload: the whole-vessel ΔV rollup KSP's stock
+      The `dv.summary` Topic payload: the whole-vessel ΔV rollup KSP's stock
       `VesselDeltaV` exposes alongside the per-stage `StageDeltaVEntry` list: the
       ΔV-producing stage count plus the vacuum, sea-level and current totals and
       total burn time. A single object, or `null` when the stock simulation is not
@@ -1434,7 +1434,7 @@ channels:
     description: |-
       Carries a `FlightCurrent`.
 
-      The `flight.current` channel payload: a UT-indexed value, delivered
+      The `flight.current` Topic payload: a UT-indexed value, delivered
       latest-wins and delayed like every `vessel.*` channel. It says which flight
       is active and what phase it is in, for the vessel gonogo is reporting as
       active. That is the vessel the game is flying, with one exception: a kerbal
@@ -1458,7 +1458,7 @@ channels:
     description: |-
       Carries a `FlightEnded`.
 
-      The `flight.ended` channel payload: a reliable, ordered, delayed event sent
+      The `flight.ended` Topic payload: a reliable, ordered, delayed event sent
       once per flight when it stops being trackable: recovered, crashed, destroyed
       or reverted. It shares the delay class of `crash.lastCrash` and
       `recovery.lastSummary`, so an end that a rewind discards before its
@@ -1480,9 +1480,9 @@ channels:
     description: |-
       Carries a `FlightStarted`.
 
-      The `flight.started` channel payload: a reliable, ordered, delayed event
-      sent when a new flight begins. A flight is new when its vessel id has not
-      been started before in this game session (a launch, or a first switch onto a
+      The `flight.started` Topic payload: a reliable, ordered, delayed event sent
+      when a new flight begins. A flight is new when its vessel id has not been
+      started before in this game session (a launch, or a first switch onto a
       vessel), and every vessel active just after a revert or a quickload starts a
       new flight, even one with the same id.
 
@@ -1506,13 +1506,13 @@ channels:
     description: |-
       Carries a `FlightVesselChanged`.
 
-      The `flight.vesselChanged` channel payload: a reliable, ordered, delayed
-      event sent whenever the active vessel changes after the first observation of
-      the session (docking, undocking, a tracking-station reselect). Switching
-      away from a vessel that is still flying does not end its flight, and
-      switching back to a known one does not start a new one. Switching onto a
-      vessel for the first time also sends `FlightStarted`. Going on EVA does not
-      change the active vessel (see `FlightCurrent`).
+      The `flight.vesselChanged` Topic payload: a reliable, ordered, delayed event
+      sent whenever the active vessel changes after the first observation of the
+      session (docking, undocking, a tracking-station reselect). Switching away
+      from a vessel that is still flying does not end its flight, and switching
+      back to a known one does not start a new one. Switching onto a vessel for
+      the first time also sends `FlightStarted`. Going on EVA does not change the
+      active vessel (see `FlightCurrent`).
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
@@ -1528,8 +1528,8 @@ channels:
     description: |-
       Carries a `GameDlc`.
 
-      The `game.dlc` channel payload: which KSP expansions ("DLC") are installed.
-      A fact about the install, independent of scene, so a widget can tell "the
+      The `game.dlc` Topic payload: which KSP expansions ("DLC") are installed. A
+      fact about the install, independent of scene, so a widget can tell "the
       player has no DLC" from "the DLC is present but nothing is deployed yet"
       (deployed science, for instance, needs Breaking Ground).
 
@@ -1785,11 +1785,11 @@ channels:
     description: |-
       Carries a `MissionStatus`.
 
-      The `missions.active` channel payload: the Making History mission that is
+      The `missions.active` Topic payload: the Making History mission that is
       running, or has just ended, in the current game. The whole payload is `null`
       when there is no mission game, when no mission has been set up, or when the
-      expansion is not installed; read `game.dlc` to tell the last from the
-      others.
+      expansion is not installed; read the `game.dlc` Topic (`GameDlc`) to tell
+      the last from the others.
 
       A mission that has ended stays in the payload with `MissionStatus.finished`
       true until the game leaves the mission, so a client can show the outcome.
@@ -1815,7 +1815,7 @@ channels:
     description: |-
       Carries a `PartsPower`.
 
-      The `parts.power` channel payload: the active vessel's electric-charge
+      The `parts.power` Topic payload: the active vessel's electric-charge
       production surface (solar panels, batteries, fuel cells, engine alternators,
       and a rolled-up production total). A single object, or `null` when there is
       no active vessel or it carries none of the four kinds of part.
@@ -1861,7 +1861,7 @@ channels:
     description: |-
       Carries a `RoboticsAvailability`.
 
-      The `robotics.available` channel payload: a single object (or `null` when
+      The `robotics.available` Topic payload: a single object (or `null` when
       there is no active vessel) whose one field states whether the active vessel
       carries any Breaking Ground robotic servo. It is its own Topic because the
       `robotics.servos` array is `null` both when the vessel has no robotic parts
@@ -2078,7 +2078,7 @@ channels:
     description: |-
       Carries an array of `ServoEntry`.
 
-      One entry in the `robotics.servos` channel payload, a single Breaking Ground
+      One entry in the `robotics.servos` Topic payload, a single Breaking Ground
       robotic servo on the active vessel. The payload is a bare array of these, or
       `null` when there is no active vessel or it carries no servo; read
       `robotics.available` to tell those two apart.
@@ -2109,12 +2109,12 @@ channels:
     description: |-
       Carries an array of `ArchiveEntry`.
 
-      One entry in the `science.archive` channel payload: a single subject out of
+      One entry in the `science.archive` Topic payload: a single subject out of
       the whole-career R&D archive (`ResearchAndDevelopment.GetSubjects()`). That
       is every subject the career has ever collected or recovered, across every
       mission and every body, not scoped to the active vessel.
 
-      The channel payload is a bare array (`ArchiveEntry[]`), or `null` when the
+      The Topic payload is a bare array (`ArchiveEntry[]`), or `null` when the
       save has no R&D to walk (Sandbox mode). A save with R&D but nothing
       collected yet emits an empty array, so an empty array and `null` mean
       different things here.
@@ -2183,18 +2183,17 @@ channels:
     description: |-
       Carries an array of `ExperimentBreakdownEntry`.
 
-      One entry in the `science.experimentBreakdown` channel payload: a
-      per-subject rollup of the stored science results that `science.experiments`
-      lists one row per result. One row per distinct subject id: several stored
-      results for the same subject (for example two crew reports from the same
-      biome) collapse into one entry with `ExperimentBreakdownEntry.dataMits`
-      summed across them.
+      One entry in the `science.experimentBreakdown` Topic payload: a per-subject
+      rollup of the stored science results that `science.experiments` lists one
+      row per result. One row per distinct subject id: several stored results for
+      the same subject (for example two crew reports from the same biome) collapse
+      into one entry with `ExperimentBreakdownEntry.dataMits` summed across them.
 
-      The channel payload is a bare array (`ExperimentBreakdownEntry[]`) or
-      `null`, never a wrapper object. The whole array is `null` when there is no
-      active vessel or the vessel holds no stored science data; there is no
-      separate empty-array state. Every field is nullable, and is `null` whenever
-      the raw value is absent or non-finite.
+      The Topic payload is a bare array (`ExperimentBreakdownEntry[]`) or `null`,
+      never a wrapper object. The whole array is `null` when there is no active
+      vessel or the vessel holds no stored science data; there is no separate
+      empty-array state. Every field is nullable, and is `null` whenever the raw
+      value is absent or non-finite.
 
       `ExperimentBreakdownEntry.biome` and `ExperimentBreakdownEntry.situation`
       are parsed from the subject id by KSP's
@@ -2216,7 +2215,7 @@ channels:
     description: |-
       Carries an array of `ExperimentEntry`.
 
-      One entry in the `science.experiments` channel payload: a single stored
+      One entry in the `science.experiments` Topic payload: a single stored
       science result on the active vessel, held either by the science module that
       collected it or by a container part. The channel payload is a bare array of
       these (`ExperimentEntry[]`) or `null`, never a wrapper object. The whole
@@ -2241,7 +2240,7 @@ channels:
     description: |-
       Carries an array of `InstrumentEntry`.
 
-      One entry in the `science.instruments` channel payload: a single
+      One entry in the `science.instruments` Topic payload: a single
       `ModuleScienceExperiment` on the active vessel, as an inventory and status
       row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`).
 
@@ -2252,8 +2251,8 @@ channels:
       rerunnable, resettable, collectable) an operator needs to decide what to run
       next.
 
-      The channel payload is a bare array (`InstrumentEntry[]`) or `null` when
-      there is no active vessel or it carries no experiment module. Every field is
+      The Topic payload is a bare array (`InstrumentEntry[]`) or `null` when there
+      is no active vessel or it carries no experiment module. Every field is
       nullable, and is `null` whenever the raw value is absent.
     servers:
       - $ref: "#/servers/mod"
@@ -2270,11 +2269,11 @@ channels:
     description: |-
       Carries an array of `LabEntry`.
 
-      One entry in the `science.lab` channel payload: a Mobile Processing Lab
-      (KSP's `ModuleScienceLab`) on the active vessel. The channel payload is a
-      bare array (`LabEntry[]`) or `null` when there is no active vessel or it
-      carries no lab. Every field is nullable, and is `null` whenever the raw
-      value is absent or non-finite.
+      One entry in the `science.lab` Topic payload: a Mobile Processing Lab (KSP's
+      `ModuleScienceLab`) on the active vessel. The channel payload is a bare
+      array (`LabEntry[]`) or `null` when there is no active vessel or it carries
+      no lab. Every field is nullable, and is `null` whenever the raw value is
+      absent or non-finite.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -2290,11 +2289,11 @@ channels:
     description: |-
       Carries an array of `SensorEntry`.
 
-      One entry in the `science.sensors` channel payload: a single
+      One entry in the `science.sensors` Topic payload: a single
       environmental-sensor module (`ModuleEnviroSensor`: thermometer, barometer,
       gravioli detector, accelerometer, and any modded sensor sharing the module)
-      on the active vessel. The channel payload is a bare array (`SensorEntry[]`)
-      or `null` when there is no active vessel or it carries no sensor module.
+      on the active vessel. The Topic payload is a bare array (`SensorEntry[]`) or
+      `null` when there is no active vessel or it carries no sensor module.
 
       One entry per sensor module, with `SensorEntry.type` carrying the raw
       `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/...) as a string, so
@@ -2351,7 +2350,7 @@ channels:
     description: |-
       Carries a `SettingsModel`.
 
-      The `settings.gonogo` channel payload: every setting the mod and its Uplinks
+      The `settings.gonogo` Topic payload: every setting the mod and its Uplinks
       declared, what each holds now, and whether the settings file on the KSP
       machine holds the same.
 
@@ -2359,8 +2358,9 @@ channels:
       row's own description, so a setting an Uplink adds needs no client code of
       its own.
 
-      It is never delayed by light time: a setting configures the system the
-      operator is sitting at, not a craft.
+      It is never delayed by light time, the time a signal takes to cross between
+      a craft and the command centre (the screen an operator sends commands from):
+      a setting configures the system the operator is sitting at, not a craft.
 
       This is where a client learns whether a save landed. The `settings.save`
       command can time out and still land, so read the outcome here, never from
@@ -2431,8 +2431,8 @@ channels:
     description: |-
       Carries a `AstronautComplexInfo`.
 
-      The `spaceCenter.astronautComplex` channel payload: the Astronaut Complex
-      hire tab, the rolling pool of applicants the operator can recruit, plus the
+      The `spaceCenter.astronautComplex` Topic payload: the Astronaut Complex hire
+      tab, the rolling pool of applicants the operator can recruit, plus the
       roster-cap context a hire is gated on.
 
       A wrapper object, not a bare array, so the applicant list arrives with the
@@ -2516,9 +2516,9 @@ channels:
     description: |-
       Carries a `SpaceCenterPartsAvailable`.
 
-      The `spaceCenter.partsAvailable` channel payload: a wrapper carrying the
-      count of parts the player can place right now (tech-unlocked and purchased
-      in career; the full `PartLoader` catalogue in sandbox).
+      The `spaceCenter.partsAvailable` Topic payload: a wrapper carrying the count
+      of parts the player can place right now (tech-unlocked and purchased in
+      career; the full `PartLoader` catalogue in sandbox).
 
       A wrapper object, because a bare scalar has no Topic shape: read
       `spaceCenter.partsAvailable.count`. The whole payload is `null` when no
@@ -2588,7 +2588,7 @@ channels:
     description: |-
       Carries a `SpaceCenterScene`.
 
-      The `spaceCenter.scene` channel payload: the single current KSP game scene.
+      The `spaceCenter.scene` Topic payload: the single current KSP game scene.
       `SpaceCenterScene.scene` carries exactly one of the six strings
       `{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}`:
       KSP's `GameScenes` enum folded onto that fixed set, with any scene outside
@@ -2614,7 +2614,7 @@ channels:
     description: |-
       Carries a `SystemBodies`.
 
-      The `system.bodies` channel payload: every celestial body in the game, as a
+      The `system.bodies` Topic payload: every celestial body in the game, as a
       tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is `null`, not
       an empty list, when no sample has been taken yet, so "no data yet" and "zero
       bodies" stay distinct.
@@ -2774,7 +2774,7 @@ channels:
     description: |-
       Carries a `SystemVessels`.
 
-      The `system.vessels` channel payload: every vessel the receiving command
+      The `system.vessels` Topic payload: every vessel the receiving command
       centre knows of, wrapped as `{ "vessels": [ ... ] }`. Like `SystemBodies`,
       it carries no per-payload `Meta`: that rides the envelope.
 
@@ -2814,8 +2814,8 @@ channels:
     description: |-
       Carries a `TargetAvailable`.
 
-      The `target.available` channel payload: the list of everything targetable
-      from the active vessel, as the active vessel knows it. Wrapper object `{
+      The `target.available` Topic payload: the list of everything targetable from
+      the active vessel, as the active vessel knows it. Wrapper object `{
       "entries": [ ... ] }`, like `system.vessels`.
 
       A vessel is on the list once the active vessel has come to know of it, by
@@ -2845,7 +2845,7 @@ channels:
     description: |-
       Carries a `TimeCalendar`.
 
-      The `time.calendar` channel payload: how long a minute, hour, day and year
+      The `time.calendar` Topic payload: how long a minute, hour, day and year
       are, and what real-world instant UT 0 is (when the game has one), as the
       running game defines them.
 
@@ -2922,12 +2922,12 @@ channels:
     description: |-
       Carries a `WarpState`.
 
-      The `time.warp` channel payload: the game's time-warp and pause state, as
+      The `time.warp` Topic payload: the game's time-warp and pause state, as
       separate typed fields.
 
-      Current UT is not a field here (or anywhere in this contract):
-      `meta.validAt` stamps every sample, and the SDK's view clock is the "what
-      time is it" surface.
+      Current UT is not a field here, nor on any other Topic of the wire contract:
+      `meta.validAt` stamps every sample with the UT it describes, and a client
+      asks what time it is with the SDK's `useViewUt`.
 
       Warp and pause are game-wide state, so `WarpState.meta` is stamped `Source =
       "game"`, not `"vessel:<guid>"`, and the channel emits at the Space Center
@@ -2947,9 +2947,9 @@ channels:
     description: |-
       Carries a `VesselAttitude`.
 
-      The `vessel.attitude` channel payload: pitch, heading and roll of the
-      vessel's control reference (`Vessel.GetTransform()`) against the local
-      surface up and north, in two named frames.
+      The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's
+      control reference (`Vessel.GetTransform()`) against the local surface up and
+      north, in two named frames.
 
       `VesselAttitude.pitch`, `VesselAttitude.heading` and `VesselAttitude.roll`
       are the primary frame, with up and north measured at `Vessel.CoM` (MechJeb's
@@ -2976,7 +2976,7 @@ channels:
     description: |-
       Carries a `VesselComms`.
 
-      The `vessel.comms` channel payload: the active vessel's own CommNet
+      The `vessel.comms` Topic payload: the active vessel's own CommNet
       connection, from KSP's `vessel.connection`. The whole payload is null when
       the vessel has no CommNet connection object; there is no zero or
       disconnected placeholder reading.
@@ -2998,7 +2998,7 @@ channels:
     description: |-
       Carries a `VesselControl`.
 
-      The `vessel.control` channel payload: the active vessel's control state (the
+      The `vessel.control` Topic payload: the active vessel's control state (the
       stock toggles, SAS mode, throttle, the commanded fly-by-wire axes and the
       custom action groups). The payload is present whenever there is an active
       vessel; each field is individually nullable, and `null` means that input
@@ -3295,12 +3295,12 @@ channels:
     description: |-
       Carries a `DockAlignment`.
 
-      The `vessel.dock` channel payload: the relative position, velocity and
-      coarse orientation between the active vessel's nearest free (undocked)
-      docking port and the targeted docking port, for docking-alignment widgets.
-      The whole payload is absent when docking is not relevant right now: nothing
-      is targeted, the target is not a docking port, or the active vessel has no
-      free port. It is never an old or zero-distance placeholder record, the same
+      The `vessel.dock` Topic payload: the relative position, velocity and coarse
+      orientation between the active vessel's nearest free (undocked) docking port
+      and the targeted docking port, for docking-alignment widgets. The whole
+      payload is absent when docking is not relevant right now: nothing is
+      targeted, the target is not a docking port, or the active vessel has no free
+      port. It is never an old or zero-distance placeholder record, the same
       convention as `VesselTarget`.
 
       `DockAlignment.forwardDot` is the dot product of the two ports' forward
@@ -3323,7 +3323,7 @@ channels:
     description: |-
       Carries a `VesselFlight`.
 
-      The `vessel.flight` channel payload: quantities the game measures, either
+      The `vessel.flight` Topic payload: quantities the game measures, either
       because they cannot be derived from orbital elements (terrain height,
       aerodynamic state) or because they are the measured value to check a
       prediction against (speeds). One field per quantity.
@@ -3346,8 +3346,8 @@ channels:
     description: |-
       Carries a `VesselIdentity`.
 
-      The `vessel.identity` channel payload: who the active vessel is, what kind
-      of craft it is, and where it is.
+      The `vessel.identity` Topic payload: who the active vessel is, what kind of
+      craft it is, and where it is.
 
       There is no mission time field. `VesselIdentity.launchUt` is fixed after
       liftoff, so mission elapsed time is `viewUt - launchUt`, computed by the
@@ -3423,11 +3423,11 @@ channels:
     description: |-
       Carries a `VesselLanding`.
 
-      The `vessel.landing` channel payload: landing data for the active vessel
-      that needs KSP's PQS terrain heightmap (slope, roughness and elevation at
-      the touchdown site), plus an atmosphere-aware descent estimate built from
-      the vessel's measured drag. The vacuum ballistic figures (which need no
-      terrain) are not here; a client solves those itself.
+      The `vessel.landing` Topic payload: landing data for the active vessel that
+      needs KSP's PQS terrain heightmap (slope, roughness and elevation at the
+      touchdown site), plus an atmosphere-aware descent estimate built from the
+      vessel's measured drag. The vacuum ballistic figures (which need no terrain)
+      are not here; a client solves those itself.
 
       The whole payload is absent unless the vessel is descending toward a solid
       surface: the body must have a solid surface and PQS terrain, and the vessel
@@ -3451,7 +3451,7 @@ channels:
     description: |-
       Carries a `VesselManeuver`.
 
-      The `vessel.maneuver` channel payload: the active vessel's planned burns.
+      The `vessel.maneuver` Topic payload: the active vessel's planned burns.
       `VesselManeuver.nodes` is always an array, empty when no burn is queued,
       never null.
 
@@ -3535,7 +3535,7 @@ channels:
     description: |-
       Carries a `VesselOrbit`.
 
-      The `vessel.orbit` channel payload: the active vessel's orbital elements.
+      The `vessel.orbit` Topic payload: the active vessel's orbital elements.
       Elements are the cause; every kinematic quantity (position, velocity,
       apsides, anomalies, period) is derived by the consumer at its view UT
       through the propagation capability, and is not streamed here. The one
@@ -3568,7 +3568,7 @@ channels:
     description: |-
       Carries a `VesselOrbitTruth`.
 
-      The `vessel.orbit.truth` channel payload: KSP's own maintained state vector
+      The `vessel.orbit.truth` Topic payload: KSP's own maintained state vector
       for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it
       orbits. A development channel for checking element-to-position math against
       KSP's own state, not a source of altitude or velocity for a widget: read
@@ -3598,7 +3598,7 @@ channels:
     description: |-
       Carries a `VesselParts`.
 
-      The `vessel.parts` channel payload: the active vessel's full part tree, with
+      The `vessel.parts` Topic payload: the active vessel's full part tree, with
       each part's position, mass, temperatures, resources, module states and
       action-group bindings. A single object, or `null` when there is no active
       vessel.
@@ -3641,10 +3641,9 @@ channels:
     description: |-
       Carries a `VesselPropulsion`.
 
-      The `vessel.propulsion` channel payload: the active vessel's mass and
-      thrust, the inputs to thrust-to-weight and burn-time figures. Mass is in
-      tonnes and thrust in kN, so `thrust / (mass · g)` is a thrust-to-weight
-      ratio directly.
+      The `vessel.propulsion` Topic payload: the active vessel's mass and thrust,
+      the inputs to thrust-to-weight and burn-time figures. Mass is in tonnes and
+      thrust in kN, so `thrust / (mass · g)` is a thrust-to-weight ratio directly.
 
       TWR, maximum TWR and a vessel-level burn-time estimate are derived by the
       client from these fields, and are not streamed here.
@@ -3663,7 +3662,7 @@ channels:
     description: |-
       Carries a `VesselResources`.
 
-      The `vessel.resources` channel payload: a keyframed map, keyed by resource
+      The `vessel.resources` Topic payload: a keyframed map, keyed by resource
       name. No value is ever a sentinel such as `-1`.
 
       Only these stock resources are reported: `LiquidFuel`, `Oxidizer`,
@@ -3703,7 +3702,7 @@ channels:
     description: |-
       Carries a `VesselStructure`.
 
-      The `vessel.structure` channel payload: the active vessel's stage and part
+      The `vessel.structure` Topic payload: the active vessel's stage and part
       counts. Absent when there is no active vessel.
 
       `VesselStructure.currentStage` uses KSP's own staging numbering unchanged,
@@ -3724,9 +3723,9 @@ channels:
     description: |-
       Carries a `VesselSurface`.
 
-      The `vessel.surface` channel payload: surface data a landing widget needs
-      that `vessel.flight` doesn't already carry. `vessel.flight.AltitudeTerrain`
-      is the height of the vessel's root part above the terrain;
+      The `vessel.surface` Topic payload: surface data a landing widget needs that
+      `vessel.flight` doesn't already carry. `vessel.flight.AltitudeTerrain` is
+      the height of the vessel's root part above the terrain;
       `VesselSurface.heightFromTerrain` is the height of the vessel's lowest
       point, the number a landing-gear or suicide-burn readout cares about. The
       two differ by how far the vessel reaches below its root.
@@ -3748,9 +3747,9 @@ channels:
     description: |-
       Carries a `VesselTarget`.
 
-      The `vessel.target` channel payload: the active vessel's current target
-      only. `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both
-      use the one `Vec3` shape.
+      The `vessel.target` Topic payload: the active vessel's current target only.
+      `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
+      one `Vec3` shape.
 
       `VesselTarget.orbit` reuses `VesselOrbit` itself (not a separate "target
       orbit" shape), so the SDK propagates a target with the same code path as the
@@ -3823,9 +3822,9 @@ channels:
     description: |-
       Carries a `VesselThermal`.
 
-      The `vessel.thermal` channel payload: the active vessel's thermal rollup,
-      its hottest part, heat shield and engine. Each ratio is null when no part
-      had a valid maximum temperature this tick, never 0, so "no valid part" and
+      The `vessel.thermal` Topic payload: the active vessel's thermal rollup, its
+      hottest part, heat shield and engine. Each ratio is null when no part had a
+      valid maximum temperature this tick, never 0, so "no valid part" and
       "coldest possible part" stay distinct.
 
       The whole payload is null when the vessel has no parts at all, a different,
@@ -8709,12 +8708,12 @@ components:
     ArchiveEntry:
       type: object
       description: |-
-        One entry in the `science.archive` channel payload: a single subject out of
+        One entry in the `science.archive` Topic payload: a single subject out of
         the whole-career R&D archive (`ResearchAndDevelopment.GetSubjects()`). That
         is every subject the career has ever collected or recovered, across every
         mission and every body, not scoped to the active vessel.
 
-        The channel payload is a bare array (`ArchiveEntry[]`), or `null` when the
+        The Topic payload is a bare array (`ArchiveEntry[]`), or `null` when the
         save has no R&D to walk (Sandbox mode). A save with R&D but nothing
         collected yet emits an empty array, so an empty array and `null` mean
         different things here.
@@ -8805,8 +8804,8 @@ components:
     AstronautComplexInfo:
       type: object
       description: |-
-        The `spaceCenter.astronautComplex` channel payload: the Astronaut Complex
-        hire tab, the rolling pool of applicants the operator can recruit, plus the
+        The `spaceCenter.astronautComplex` Topic payload: the Astronaut Complex hire
+        tab, the rolling pool of applicants the operator can recruit, plus the
         roster-cap context a hire is gated on.
 
         A wrapper object, not a bare array, so the applicant list arrives with the
@@ -9524,7 +9523,7 @@ components:
     CareerFacilities:
       type: object
       description: |-
-        The `career.facilities` channel payload: the space centre's buildings, each
+        The `career.facilities` Topic payload: the space centre's buildings, each
         with the tier it stands at and the ladder it stands on.
 
         **When it arrives.** A facility's tier count and prices are readable from
@@ -9605,10 +9604,10 @@ components:
     CareerMode:
       type: object
       description: |-
-        The `career.mode` channel payload: the active save's `GameMode`, as `{
-        "mode": <int> }`. The whole payload is `null` when no game is loaded (main
-        menu, no save). Once a save is loaded the mode is always one of the four
-        `GameMode` members.
+        The `career.mode` Topic payload: the active save's `GameMode`, as `{ "mode":
+        <int> }`. The whole payload is `null` when no game is loaded (main menu, no
+        save). Once a save is loaded the mode is always one of the four `GameMode`
+        members.
       required:
         - mode
       properties:
@@ -9620,10 +9619,10 @@ components:
     CareerStatus:
       type: object
       description: |-
-        The `career.status` channel payload: the KSC and career-mode snapshot, in
-        four groups (balances, contracts, strategies, tech). The space centre's
-        buildings are not here: they are on `CareerFacilities`, which can be held on
-        its own while this channel keeps arriving.
+        The `career.status` Topic payload: the KSC and career-mode snapshot, in four
+        groups (balances, contracts, strategies, tech). The space centre's buildings
+        are not here: they are on `CareerFacilities`, which can be held on its own
+        while this channel keeps arriving.
 
         **Three states.** The whole payload is `null` in a sandbox save, where there
         is no career at all. A non-null payload with a sub-group `null` means career
@@ -10089,7 +10088,7 @@ components:
         CommNet home nodes (KSC, Extra Ground Stations, Kerbal Konstructs sites) and
         crewed control-source vessels.
 
-        The channel payload is a bare array of these entries, like
+        The Topic payload is a bare array of these entries, like
         `SpaceCenterPoiEntry`, one per centre, keyed by `CommandCentreEntry.id`.
 
         Each command centre is sent its own roster, the centres it knows of. A
@@ -10283,7 +10282,8 @@ components:
             A capacity is full: the Astronaut Complex holds its cap of active crew, a
             facility holds its cap of anything else countable.
 
-            A retry succeeds only once something changes, such as freeing a slot.
+            A retry succeeds only once something changes, such as a kerbal leaving the
+            active roster.
 
             `CommandResult.breach` carries the numbers, so a client can say "16 of 16".
           x-sitrep-sentence: a limit has been reached
@@ -10312,20 +10312,14 @@ components:
             `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds
             separate currencies.
 
-            Decided by `CurrencyModifierQuery.RunQuery(reason,
-            ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech`
-            checks, modifiers included.
+            The cost is the one the game itself would charge, with every modifier
+            applied.
           x-sitrep-sentence: there is not enough science
         - const: careerModeRequired
           title: CareerModeRequired
           description: |-
             The save is not a career save, so this command's whole subsystem does not
             exist here.
-
-            Decided by `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
-            of the `ScenarioModule` that would have served it (`Funding`,
-            `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`,
-            `ScenarioUpgradeableFacilities`).
 
             A permanent property of the save, not a state that may change, so a client
             can hide the control rather than show it refused.
@@ -10335,8 +10329,7 @@ components:
           description: |-
             The game is in a scene this command cannot run from.
 
-            Decided by `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
-            names the scene when the producer had one.
+            `CommandResult.detail` names the scene when the producer had one.
           x-sitrep-sentence: the game is not in a scene that allows it
         - const: wrongState
           title: WrongState
@@ -10346,11 +10339,7 @@ components:
             contract asked to accept when it is not offered, an assigned kerbal asked to
             be sacked, a spent experiment asked to deploy.
 
-            Decided by the entity's own state enum. `Strategies.Strategy.IsActive`,
-            `RDTech.State`, `Contract.State`, `ProtoCrewMember.RosterStatus`,
-            `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
-            `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
-            carry the state in the game's own words.
+            `CommandResult.detail` can carry the state in the game's own words.
           x-sitrep-sentence: it is not in a state that allows it
         - const: notClearToProceed
           title: NotClearToProceed
@@ -10358,17 +10347,17 @@ components:
             Right command, wrong moment: the flight is not in a state that permits it
             yet, and will be later.
 
-            Decided by `FlightGlobals.ClearToSave()`, which returns one of five refusals
-            (in atmosphere, under acceleration, moving over the surface, about to crash,
-            on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch`
-            and the `GameParameters` flags for leaving to the space center and to the
-            tracking station. The game's reason is on `CommandResult.detail`.
+            The game gives five such reasons: in atmosphere, under acceleration, moving
+            over the surface, about to crash, on a ladder; and a revert or a scene
+            change can also be switched off by the save's own difficulty settings. The
+            game's reason is on `CommandResult.detail`.
 
             Also returned by the SCET alarm command for a vantage it cannot check
             because no command centre is known to the simulation yet: the main menu, and
-            the ticks before the first capture. A vantage that is known and inactive is
-            `CommandErrorCode.Range` instead, because that one does not resolve by
-            waiting.
+            the ticks before the first capture. The same command refuses a vantage that
+            is known and inactive with `CommandErrorCode.Range` instead, because that
+            one does not resolve by waiting. Any other command naming an inactive
+            vantage fails with the `unknownVantage` fault.
 
             Distinct from `CommandErrorCode.WrongState`, which is about the entity and
             does not resolve by waiting.
@@ -10381,11 +10370,6 @@ components:
             no such action, an action present but inert, an autopilot mode this craft
             cannot hold.
 
-            Decided by the part's own module list and fields
-            (`ModuleRoboticServoRotor`/`Hinge`/`Piston`, `servoIsMotorized`,
-            `BaseEvent.active`, `BaseEvent.EventIsDisabledByVariant`) and
-            `VesselAutopilot.CanSetMode`.
-
             Nothing an operator waits for. The craft would have to be different for this
             to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not
             `CommandErrorCode.WrongState`.
@@ -10395,10 +10379,8 @@ components:
           description: |-
             There is no usable link for what this command needs to send.
 
-            Decided by `ScienceUtil.GetBestTransmitter(Vessel)` and
-            `IScienceDataTransmitter.CanTransmit()`: the vessel has no antenna that can
-            carry the payload. This is not the comms-loss refusal that stops a command
-            before it reaches the vessel.
+            The vessel has no antenna that can carry the payload, such as a science
+            transmission.
           x-sitrep-sentence: there is no usable link
         - const: notUnlocked
           title: NotUnlocked
@@ -10406,31 +10388,22 @@ components:
             The capability exists in the game but this save has not unlocked it: fuel
             transfer, custom action groups, flight planning, EVA, the maneuver tool.
 
-            Decided by `GameVariables.UnlockedFuelTransfer`,
-            `UnlockedActionGroupsStock`/`Custom`, `UnlockedFlightPlanning`,
-            `UnlockedEVA`/`Flags`/`Clamber`, `ManeuverToolAvailable`, each read at the
-            owning facility's normalised level.
+            Each switch follows the level of the building that owns it.
 
             Distinct from `CommandErrorCode.LimitReached`, which is a number against a
             number. This is a switch that is off, and the fix is an upgrade rather than
-            freeing a slot.
+            making room.
           x-sitrep-sentence: it has not been unlocked yet
         - const: siteOccupied
           title: SiteOccupied
           description: |-
             Another vessel is on the launch site.
 
-            Decided by `PreFlightTests.LaunchSiteClear`, whose
-            `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
-            it and ride on `CommandResult.detail`.
+            The game's own words for it ride on `CommandResult.detail`.
           x-sitrep-sentence: another vessel is on the launch site
         - const: facilityDamaged
           title: FacilityDamaged
-          description: |-
-            The facility this command needs is destroyed or damaged.
-
-            Decided by `PreFlightTests.FacilityOperational`, over
-            `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
+          description: The facility this command needs is destroyed or damaged.
           x-sitrep-sentence: the building is out of action
         - const: insufficientResource
           title: InsufficientResource
@@ -10438,10 +10411,10 @@ components:
             The command consumes a countable ITEM and there are not enough of them
             aboard.
 
-            Decided by the provider's own charge, which it should also state wherever it
-            shows the cost, so the cost shown and the cost taken agree. The item is the
-            provider's to name: this code says only that there were too few, never which
-            item.
+            The provider decides by its own charge, which it should also state wherever
+            it shows the cost, so the cost shown and the cost taken agree. The item is
+            the provider's to name: this code says only that there were too few, never
+            which item.
 
             Separate from `CommandErrorCode.InsufficientFunds` and
             `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
@@ -10887,9 +10860,11 @@ components:
     CommcastSendReceipt:
       type: object
       description: |-
-        What `commcast.message.send` did with a message: who it left for, and who it
-        could not leave for. It says nothing of arrival, which only each listener's
-        acknowledgement does.
+        What `commcast.message.send`, the command that says a text message to a
+        group (its args are `CommcastMessageSendArgs`), did with a message: which
+        command centres it left for, and which it could not leave for. A centre is a
+        `commandCentre.roster` entry, a place commands are sent from. It says
+        nothing of arrival, which only each listener's acknowledgement does.
       required:
         - addressed
         - unreached
@@ -10900,8 +10875,8 @@ components:
             type: string
             x-sitrep-unit: id
           description: |-
-            Every centre the message left for, the speaker's own included, in ordinal id
-            order. The same list its listeners read as the message's `to`.
+            Every centre the message left for, the speaker's own included, sorted by id.
+            The same list its listeners read as the message's `to`.
         unreached:
           type: array
           items:
@@ -10909,8 +10884,9 @@ components:
             x-sitrep-unit: id
           description: |-
             Every member it was meant for that no signal from the speaker could reach
-            when it was said, in ordinal id order. The message never left for these, so
-            no wait will bring an acknowledgement from them.
+            when it was said, sorted by id. The message was never sent to these centres,
+            so none of them will ever acknowledge it; to reach them, send it again later
+            naming them in `to`.
     CommcastTraffic:
       type: object
       description: |-
@@ -12924,10 +12900,10 @@ components:
     DeployedEntry:
       type: object
       description: |-
-        One entry in the `deployed.bases` channel payload: a Breaking Ground
-        deployed-science experiment (`ModuleGroundExperiment`). The channel payload
-        is a bare array (`DeployedEntry[]`) or `null` when no loaded vessel carries
-        a deployed experiment (including an install without Breaking Ground).
+        One entry in the `deployed.bases` Topic payload: a Breaking Ground
+        deployed-science experiment (`ModuleGroundExperiment`). The Topic payload is
+        a bare array (`DeployedEntry[]`) or `null` when no loaded vessel carries a
+        deployed experiment (including an install without Breaking Ground).
 
         Unlike the `science.*` channels, `deployed.bases` covers every loaded
         vessel, not just the active one: a deployed cluster is its own ground
@@ -13129,12 +13105,12 @@ components:
     DockAlignment:
       type: object
       description: |-
-        The `vessel.dock` channel payload: the relative position, velocity and
-        coarse orientation between the active vessel's nearest free (undocked)
-        docking port and the targeted docking port, for docking-alignment widgets.
-        The whole payload is absent when docking is not relevant right now: nothing
-        is targeted, the target is not a docking port, or the active vessel has no
-        free port. It is never an old or zero-distance placeholder record, the same
+        The `vessel.dock` Topic payload: the relative position, velocity and coarse
+        orientation between the active vessel's nearest free (undocked) docking port
+        and the targeted docking port, for docking-alignment widgets. The whole
+        payload is absent when docking is not relevant right now: nothing is
+        targeted, the target is not a docking port, or the active vessel has no free
+        port. It is never an old or zero-distance placeholder record, the same
         convention as `VesselTarget`.
 
         `DockAlignment.forwardDot` is the dot product of the two ports' forward
@@ -13463,18 +13439,17 @@ components:
     ExperimentBreakdownEntry:
       type: object
       description: |-
-        One entry in the `science.experimentBreakdown` channel payload: a
-        per-subject rollup of the stored science results that `science.experiments`
-        lists one row per result. One row per distinct subject id: several stored
-        results for the same subject (for example two crew reports from the same
-        biome) collapse into one entry with `ExperimentBreakdownEntry.dataMits`
-        summed across them.
+        One entry in the `science.experimentBreakdown` Topic payload: a per-subject
+        rollup of the stored science results that `science.experiments` lists one
+        row per result. One row per distinct subject id: several stored results for
+        the same subject (for example two crew reports from the same biome) collapse
+        into one entry with `ExperimentBreakdownEntry.dataMits` summed across them.
 
-        The channel payload is a bare array (`ExperimentBreakdownEntry[]`) or
-        `null`, never a wrapper object. The whole array is `null` when there is no
-        active vessel or the vessel holds no stored science data; there is no
-        separate empty-array state. Every field is nullable, and is `null` whenever
-        the raw value is absent or non-finite.
+        The Topic payload is a bare array (`ExperimentBreakdownEntry[]`) or `null`,
+        never a wrapper object. The whole array is `null` when there is no active
+        vessel or the vessel holds no stored science data; there is no separate
+        empty-array state. Every field is nullable, and is `null` whenever the raw
+        value is absent or non-finite.
 
         `ExperimentBreakdownEntry.biome` and `ExperimentBreakdownEntry.situation`
         are parsed from the subject id by KSP's
@@ -13559,7 +13534,7 @@ components:
     ExperimentEntry:
       type: object
       description: |-
-        One entry in the `science.experiments` channel payload: a single stored
+        One entry in the `science.experiments` Topic payload: a single stored
         science result on the active vessel, held either by the science module that
         collected it or by a container part. The channel payload is a bare array of
         these (`ExperimentEntry[]`) or `null`, never a wrapper object. The whole
@@ -13769,7 +13744,8 @@ components:
           title: UnknownVantage
           description: |-
             A `set-vantage`, or a command's `vantage`, naming a command centre that is
-            not active.
+            not active. The SCET alarm command is the exception: it refuses an inactive
+            vantage with the `range` refusal instead.
           x-sitrep-sentence: that command centre is not active
         - const: commandExpired
           title: CommandExpired
@@ -13792,12 +13768,14 @@ components:
         - const: continuousInputWouldWait
           title: ContinuousInputWouldWait
           description: |-
-            A continuous input, a throttle or a control axis, was dropped at a node
-            where it would have had to wait on its way to the craft. Held and sent on
-            later it would arrive as a run of out-of-date values, so a node that cannot
-            send it on at once drops it. It was accepted with a warning when it was
-            sent, and this is the news of its loss, arriving when a report from that
-            node could have reached the sending centre.
+            A continuous input, a throttle or a control axis, was dropped at a node, a
+            ground station or relay on the route to the craft, because the link onward
+            was down there and it would have had to be held until it came back. Held and
+            sent on later it would arrive as a run of out-of-date values, so a node that
+            cannot send it on at once drops it. It was accepted with a warning when it
+            was sent, and this is the news of its loss, arriving at the command centre
+            that sent it once a report from that node could have reached it at light
+            speed.
           x-sitrep-sentence: it would wait on its way, and a continuous input cannot
         - const: undelivered
           title: Undelivered
@@ -13948,7 +13926,7 @@ components:
     FlightCurrent:
       type: object
       description: |-
-        The `flight.current` channel payload: a UT-indexed value, delivered
+        The `flight.current` Topic payload: a UT-indexed value, delivered
         latest-wins and delayed like every `vessel.*` channel. It says which flight
         is active and what phase it is in, for the vessel gonogo is reporting as
         active. That is the vessel the game is flying, with one exception: a kerbal
@@ -14016,7 +13994,7 @@ components:
     FlightEnded:
       type: object
       description: |-
-        The `flight.ended` channel payload: a reliable, ordered, delayed event sent
+        The `flight.ended` Topic payload: a reliable, ordered, delayed event sent
         once per flight when it stops being trackable: recovered, crashed, destroyed
         or reverted. It shares the delay class of `crash.lastCrash` and
         `recovery.lastSummary`, so an end that a rewind discards before its
@@ -14060,9 +14038,9 @@ components:
     FlightStarted:
       type: object
       description: |-
-        The `flight.started` channel payload: a reliable, ordered, delayed event
-        sent when a new flight begins. A flight is new when its vessel id has not
-        been started before in this game session (a launch, or a first switch onto a
+        The `flight.started` Topic payload: a reliable, ordered, delayed event sent
+        when a new flight begins. A flight is new when its vessel id has not been
+        started before in this game session (a launch, or a first switch onto a
         vessel), and every vessel active just after a revert or a quickload starts a
         new flight, even one with the same id.
 
@@ -14100,13 +14078,13 @@ components:
     FlightVesselChanged:
       type: object
       description: |-
-        The `flight.vesselChanged` channel payload: a reliable, ordered, delayed
-        event sent whenever the active vessel changes after the first observation of
-        the session (docking, undocking, a tracking-station reselect). Switching
-        away from a vessel that is still flying does not end its flight, and
-        switching back to a known one does not start a new one. Switching onto a
-        vessel for the first time also sends `FlightStarted`. Going on EVA does not
-        change the active vessel (see `FlightCurrent`).
+        The `flight.vesselChanged` Topic payload: a reliable, ordered, delayed event
+        sent whenever the active vessel changes after the first observation of the
+        session (docking, undocking, a tracking-station reselect). Switching away
+        from a vessel that is still flying does not end its flight, and switching
+        back to a known one does not start a new one. Switching onto a vessel for
+        the first time also sends `FlightStarted`. Going on EVA does not change the
+        active vessel (see `FlightCurrent`).
       required:
         - flightId
         - vesselId
@@ -14178,8 +14156,8 @@ components:
     GameDlc:
       type: object
       description: |-
-        The `game.dlc` channel payload: which KSP expansions ("DLC") are installed.
-        A fact about the install, independent of scene, so a widget can tell "the
+        The `game.dlc` Topic payload: which KSP expansions ("DLC") are installed. A
+        fact about the install, independent of scene, so a widget can tell "the
         player has no DLC" from "the DLC is present but nothing is deployed yet"
         (deployed science, for instance, needs Breaking Ground).
 
@@ -14196,8 +14174,8 @@ components:
           type: boolean
           x-sitrep-unit: flag
           description: |-
-            Whether the Breaking Ground expansion ("Serenity") is installed: deployed
-            science, robotics and surface features.
+            Whether the Breaking Ground expansion is installed: deployed science,
+            robotics and surface features.
         makingHistory:
           type: boolean
           x-sitrep-unit: flag
@@ -14312,7 +14290,7 @@ components:
     InstrumentEntry:
       type: object
       description: |-
-        One entry in the `science.instruments` channel payload: a single
+        One entry in the `science.instruments` Topic payload: a single
         `ModuleScienceExperiment` on the active vessel, as an inventory and status
         row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`).
 
@@ -14323,8 +14301,8 @@ components:
         rerunnable, resettable, collectable) an operator needs to decide what to run
         next.
 
-        The channel payload is a bare array (`InstrumentEntry[]`) or `null` when
-        there is no active vessel or it carries no experiment module. Every field is
+        The Topic payload is a bare array (`InstrumentEntry[]`) or `null` when there
+        is no active vessel or it carries no experiment module. Every field is
         nullable, and is `null` whenever the raw value is absent.
       properties:
         partId:
@@ -14921,11 +14899,11 @@ components:
     LabEntry:
       type: object
       description: |-
-        One entry in the `science.lab` channel payload: a Mobile Processing Lab
-        (KSP's `ModuleScienceLab`) on the active vessel. The channel payload is a
-        bare array (`LabEntry[]`) or `null` when there is no active vessel or it
-        carries no lab. Every field is nullable, and is `null` whenever the raw
-        value is absent or non-finite.
+        One entry in the `science.lab` Topic payload: a Mobile Processing Lab (KSP's
+        `ModuleScienceLab`) on the active vessel. The channel payload is a bare
+        array (`LabEntry[]`) or `null` when there is no active vessel or it carries
+        no lab. Every field is nullable, and is `null` whenever the raw value is
+        absent or non-finite.
       properties:
         partName:
           type:
@@ -15582,8 +15560,8 @@ components:
     MissionObjectiveState:
       type: integer
       description: |-
-        Where one Making History mission objective stands, defined by this contract
-        rather than by KSP.
+        Where one Making History mission objective stands. Gonogo works this out
+        from the mission's progress: KSP itself keeps no per-objective state.
 
         On the wire it is an integer ordinal.
       x-sitrep-enum-kind: ordinal
@@ -15594,8 +15572,8 @@ components:
         - const: 1
           title: Active
           description: |-
-            The mission is on this objective now: it is the mission's active node and
-            the mission is still running.
+            The mission is on this objective now: it is the step the mission is on now
+            and the mission is still running.
         - const: 2
           title: Reached
           description: |-
@@ -15607,11 +15585,11 @@ components:
     MissionStatus:
       type: object
       description: |-
-        The `missions.active` channel payload: the Making History mission that is
+        The `missions.active` Topic payload: the Making History mission that is
         running, or has just ended, in the current game. The whole payload is `null`
         when there is no mission game, when no mission has been set up, or when the
-        expansion is not installed; read `game.dlc` to tell the last from the
-        others.
+        expansion is not installed; read the `game.dlc` Topic (`GameDlc`) to tell
+        the last from the others.
 
         A mission that has ended stays in the payload with `MissionStatus.finished`
         true until the game leaves the mission, so a client can show the outcome.
@@ -16126,7 +16104,7 @@ components:
     PartsPower:
       type: object
       description: |-
-        The `parts.power` channel payload: the active vessel's electric-charge
+        The `parts.power` Topic payload: the active vessel's electric-charge
         production surface (solar panels, batteries, fuel cells, engine alternators,
         and a rolled-up production total). A single object, or `null` when there is
         no active vessel or it carries none of the four kinds of part.
@@ -16785,7 +16763,7 @@ components:
     RoboticsAvailability:
       type: object
       description: |-
-        The `robotics.available` channel payload: a single object (or `null` when
+        The `robotics.available` Topic payload: a single object (or `null` when
         there is no active vessel) whose one field states whether the active vessel
         carries any Breaking Ground robotic servo. It is its own Topic because the
         `robotics.servos` array is `null` both when the vessel has no robotic parts
@@ -17666,11 +17644,11 @@ components:
     SensorEntry:
       type: object
       description: |-
-        One entry in the `science.sensors` channel payload: a single
+        One entry in the `science.sensors` Topic payload: a single
         environmental-sensor module (`ModuleEnviroSensor`: thermometer, barometer,
         gravioli detector, accelerometer, and any modded sensor sharing the module)
-        on the active vessel. The channel payload is a bare array (`SensorEntry[]`)
-        or `null` when there is no active vessel or it carries no sensor module.
+        on the active vessel. The Topic payload is a bare array (`SensorEntry[]`) or
+        `null` when there is no active vessel or it carries no sensor module.
 
         One entry per sensor module, with `SensorEntry.type` carrying the raw
         `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/...) as a string, so
@@ -17720,7 +17698,7 @@ components:
     ServoEntry:
       type: object
       description: |-
-        One entry in the `robotics.servos` channel payload, a single Breaking Ground
+        One entry in the `robotics.servos` Topic payload, a single Breaking Ground
         robotic servo on the active vessel. The payload is a bare array of these, or
         `null` when there is no active vessel or it carries no servo; read
         `robotics.available` to tell those two apart.
@@ -18321,7 +18299,7 @@ components:
     SettingsModel:
       type: object
       description: |-
-        The `settings.gonogo` channel payload: every setting the mod and its Uplinks
+        The `settings.gonogo` Topic payload: every setting the mod and its Uplinks
         declared, what each holds now, and whether the settings file on the KSP
         machine holds the same.
 
@@ -18329,8 +18307,9 @@ components:
         row's own description, so a setting an Uplink adds needs no client code of
         its own.
 
-        It is never delayed by light time: a setting configures the system the
-        operator is sitting at, not a craft.
+        It is never delayed by light time, the time a signal takes to cross between
+        a craft and the command centre (the screen an operator sends commands from):
+        a setting configures the system the operator is sitting at, not a craft.
 
         This is where a client learns whether a save landed. The `settings.save`
         command can time out and still land, so read the outcome here, never from
@@ -18581,9 +18560,9 @@ components:
     SpaceCenterPartsAvailable:
       type: object
       description: |-
-        The `spaceCenter.partsAvailable` channel payload: a wrapper carrying the
-        count of parts the player can place right now (tech-unlocked and purchased
-        in career; the full `PartLoader` catalogue in sandbox).
+        The `spaceCenter.partsAvailable` Topic payload: a wrapper carrying the count
+        of parts the player can place right now (tech-unlocked and purchased in
+        career; the full `PartLoader` catalogue in sandbox).
 
         A wrapper object, because a bare scalar has no Topic shape: read
         `spaceCenter.partsAvailable.count`. The whole payload is `null` when no
@@ -18696,7 +18675,7 @@ components:
     SpaceCenterScene:
       type: object
       description: |-
-        The `spaceCenter.scene` channel payload: the single current KSP game scene.
+        The `spaceCenter.scene` Topic payload: the single current KSP game scene.
         `SpaceCenterScene.scene` carries exactly one of the six strings
         `{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}`:
         KSP's `GameScenes` enum folded onto that fixed set, with any scene outside
@@ -18854,7 +18833,7 @@ components:
     StageDeltaVSummary:
       type: object
       description: |-
-        The `dv.summary` channel payload: the whole-vessel ΔV rollup KSP's stock
+        The `dv.summary` Topic payload: the whole-vessel ΔV rollup KSP's stock
         `VesselDeltaV` exposes alongside the per-stage `StageDeltaVEntry` list: the
         ΔV-producing stage count plus the vacuum, sea-level and current totals and
         total burn time. A single object, or `null` when the stock simulation is not
@@ -19025,7 +19004,7 @@ components:
     SystemBodies:
       type: object
       description: |-
-        The `system.bodies` channel payload: every celestial body in the game, as a
+        The `system.bodies` Topic payload: every celestial body in the game, as a
         tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is `null`, not
         an empty list, when no sample has been taken yet, so "no data yet" and "zero
         bodies" stay distinct.
@@ -19043,7 +19022,7 @@ components:
     SystemVessels:
       type: object
       description: |-
-        The `system.vessels` channel payload: every vessel the receiving command
+        The `system.vessels` Topic payload: every vessel the receiving command
         centre knows of, wrapped as `{ "vessels": [ ... ] }`. Like `SystemBodies`,
         it carries no per-payload `Meta`: that rides the envelope.
 
@@ -19081,8 +19060,8 @@ components:
     TargetAvailable:
       type: object
       description: |-
-        The `target.available` channel payload: the list of everything targetable
-        from the active vessel, as the active vessel knows it. Wrapper object `{
+        The `target.available` Topic payload: the list of everything targetable from
+        the active vessel, as the active vessel knows it. Wrapper object `{
         "entries": [ ... ] }`, like `system.vessels`.
 
         A vessel is on the list once the active vessel has come to know of it, by
@@ -19392,7 +19371,7 @@ components:
     TimeCalendar:
       type: object
       description: |-
-        The `time.calendar` channel payload: how long a minute, hour, day and year
+        The `time.calendar` Topic payload: how long a minute, hour, day and year
         are, and what real-world instant UT 0 is (when the game has one), as the
         running game defines them.
 
@@ -19468,13 +19447,14 @@ components:
             deadline can be shown as `14 Mar 1957` rather than `Y3 D122`.
 
             It is read from the date formatter itself. Formatters that model a real
-            calendar (RSSTimeFormatter, Kronometer) hold an anchor date; the stock
-            formatter holds none.
+            calendar hold an anchor date: RSS installs RSSTimeFormatter, which does, and
+            Kronometer can. The stock formatter holds none.
 
             `null` is the normal value, and it is not zero. Stock KSP has no real
-            calendar: its own UI prints Year 1, Day 1, and so should every consumer.
-            That holds for a planet pack too whenever no date-based formatter is
-            installed alongside it. Do not render a default anchor for those games.
+            calendar: its own UI prints Year 1, Day 1, and so should every consumer. A
+            planet pack that changes the day length without installing a date-based
+            formatter has no anchor either. Do not render a default anchor for those
+            games.
         kerbinTime:
           type: boolean
           x-sitrep-unit: flag
@@ -19587,7 +19567,7 @@ components:
         station whose node went away, a crewed vessel that lost its crew or was
         destroyed or recovered.
 
-        The channel payload is a bare array of these entries, one per remembered
+        The Topic payload is a bare array of these entries, one per remembered
         centre that is currently off the roster, keyed by
         `UnreachableCentreEntry.id`. A centre that comes back leaves this channel
         and rejoins the roster, and a centre that has not been on the roster since
@@ -19702,7 +19682,14 @@ components:
             `career.facilities`' `facilities` map.
     UplinkActionReply:
       type: object
-      description: What a cancel or a send again did at this centre.
+      description: |-
+        The reply to `system.uplink.cancel` (`UplinkCancelRequest`, stop a delayed
+        command still on its way to the craft) and to `system.uplink.resend`
+        (`UplinkResendRequest`, send a held or overdue command again). It reports
+        what the command centre that asked did, not what happened at the craft; that
+        arrives later as `comms.journey` reports (`CommsJourneyEvent`). A lane is
+        the ordered run of delayed commands one centre sends to one craft, and a
+        lane number is a command's place in it (`PendingUplink.laneSeq`).
       required:
         - throughSeq
         - id
@@ -19795,9 +19782,9 @@ components:
     VesselAttitude:
       type: object
       description: |-
-        The `vessel.attitude` channel payload: pitch, heading and roll of the
-        vessel's control reference (`Vessel.GetTransform()`) against the local
-        surface up and north, in two named frames.
+        The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's
+        control reference (`Vessel.GetTransform()`) against the local surface up and
+        north, in two named frames.
 
         `VesselAttitude.pitch`, `VesselAttitude.heading` and `VesselAttitude.roll`
         are the primary frame, with up and north measured at `Vessel.CoM` (MechJeb's
@@ -19853,7 +19840,7 @@ components:
     VesselComms:
       type: object
       description: |-
-        The `vessel.comms` channel payload: the active vessel's own CommNet
+        The `vessel.comms` Topic payload: the active vessel's own CommNet
         connection, from KSP's `vessel.connection`. The whole payload is null when
         the vessel has no CommNet connection object; there is no zero or
         disconnected placeholder reading.
@@ -19892,7 +19879,7 @@ components:
     VesselControl:
       type: object
       description: |-
-        The `vessel.control` channel payload: the active vessel's control state (the
+        The `vessel.control` Topic payload: the active vessel's control state (the
         stock toggles, SAS mode, throttle, the commanded fly-by-wire axes and the
         custom action groups). The payload is present whenever there is an active
         vessel; each field is individually nullable, and `null` means that input
@@ -20111,7 +20098,7 @@ components:
     VesselFlight:
       type: object
       description: |-
-        The `vessel.flight` channel payload: quantities the game measures, either
+        The `vessel.flight` Topic payload: quantities the game measures, either
         because they cannot be derived from orbital elements (terrain height,
         aerodynamic state) or because they are the measured value to check a
         prediction against (speeds). One field per quantity.
@@ -20214,8 +20201,8 @@ components:
     VesselIdentity:
       type: object
       description: |-
-        The `vessel.identity` channel payload: who the active vessel is, what kind
-        of craft it is, and where it is.
+        The `vessel.identity` Topic payload: who the active vessel is, what kind of
+        craft it is, and where it is.
 
         There is no mission time field. `VesselIdentity.launchUt` is fixed after
         liftoff, so mission elapsed time is `viewUt - launchUt`, computed by the
@@ -20304,11 +20291,11 @@ components:
     VesselLanding:
       type: object
       description: |-
-        The `vessel.landing` channel payload: landing data for the active vessel
-        that needs KSP's PQS terrain heightmap (slope, roughness and elevation at
-        the touchdown site), plus an atmosphere-aware descent estimate built from
-        the vessel's measured drag. The vacuum ballistic figures (which need no
-        terrain) are not here; a client solves those itself.
+        The `vessel.landing` Topic payload: landing data for the active vessel that
+        needs KSP's PQS terrain heightmap (slope, roughness and elevation at the
+        touchdown site), plus an atmosphere-aware descent estimate built from the
+        vessel's measured drag. The vacuum ballistic figures (which need no terrain)
+        are not here; a client solves those itself.
 
         The whole payload is absent unless the vessel is descending toward a solid
         surface: the body must have a solid surface and PQS terrain, and the vessel
@@ -20534,7 +20521,7 @@ components:
     VesselManeuver:
       type: object
       description: |-
-        The `vessel.maneuver` channel payload: the active vessel's planned burns.
+        The `vessel.maneuver` Topic payload: the active vessel's planned burns.
         `VesselManeuver.nodes` is always an array, empty when no burn is queued,
         never null.
 
@@ -20581,7 +20568,7 @@ components:
     VesselOrbit:
       type: object
       description: |-
-        The `vessel.orbit` channel payload: the active vessel's orbital elements.
+        The `vessel.orbit` Topic payload: the active vessel's orbital elements.
         Elements are the cause; every kinematic quantity (position, velocity,
         apsides, anomalies, period) is derived by the consumer at its view UT
         through the propagation capability, and is not streamed here. The one
@@ -20735,7 +20722,7 @@ components:
     VesselOrbitTruth:
       type: object
       description: |-
-        The `vessel.orbit.truth` channel payload: KSP's own maintained state vector
+        The `vessel.orbit.truth` Topic payload: KSP's own maintained state vector
         for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it
         orbits. A development channel for checking element-to-position math against
         KSP's own state, not a source of altitude or velocity for a widget: read
@@ -21008,7 +20995,7 @@ components:
     VesselParts:
       type: object
       description: |-
-        The `vessel.parts` channel payload: the active vessel's full part tree, with
+        The `vessel.parts` Topic payload: the active vessel's full part tree, with
         each part's position, mass, temperatures, resources, module states and
         action-group bindings. A single object, or `null` when there is no active
         vessel.
@@ -21056,10 +21043,9 @@ components:
     VesselPropulsion:
       type: object
       description: |-
-        The `vessel.propulsion` channel payload: the active vessel's mass and
-        thrust, the inputs to thrust-to-weight and burn-time figures. Mass is in
-        tonnes and thrust in kN, so `thrust / (mass · g)` is a thrust-to-weight
-        ratio directly.
+        The `vessel.propulsion` Topic payload: the active vessel's mass and thrust,
+        the inputs to thrust-to-weight and burn-time figures. Mass is in tonnes and
+        thrust in kN, so `thrust / (mass · g)` is a thrust-to-weight ratio directly.
 
         TWR, maximum TWR and a vessel-level burn-time estimate are derived by the
         client from these fields, and are not streamed here.
@@ -21163,7 +21149,7 @@ components:
     VesselResources:
       type: object
       description: |-
-        The `vessel.resources` channel payload: a keyframed map, keyed by resource
+        The `vessel.resources` Topic payload: a keyframed map, keyed by resource
         name. No value is ever a sentinel such as `-1`.
 
         Only these stock resources are reported: `LiquidFuel`, `Oxidizer`,
@@ -21303,7 +21289,7 @@ components:
     VesselStructure:
       type: object
       description: |-
-        The `vessel.structure` channel payload: the active vessel's stage and part
+        The `vessel.structure` Topic payload: the active vessel's stage and part
         counts. Absent when there is no active vessel.
 
         `VesselStructure.currentStage` uses KSP's own staging numbering unchanged,
@@ -21342,9 +21328,9 @@ components:
     VesselSurface:
       type: object
       description: |-
-        The `vessel.surface` channel payload: surface data a landing widget needs
-        that `vessel.flight` doesn't already carry. `vessel.flight.AltitudeTerrain`
-        is the height of the vessel's root part above the terrain;
+        The `vessel.surface` Topic payload: surface data a landing widget needs that
+        `vessel.flight` doesn't already carry. `vessel.flight.AltitudeTerrain` is
+        the height of the vessel's root part above the terrain;
         `VesselSurface.heightFromTerrain` is the height of the vessel's lowest
         point, the number a landing-gear or suicide-burn readout cares about. The
         two differ by how far the vessel reaches below its root.
@@ -21389,9 +21375,9 @@ components:
     VesselTarget:
       type: object
       description: |-
-        The `vessel.target` channel payload: the active vessel's current target
-        only. `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both
-        use the one `Vec3` shape.
+        The `vessel.target` Topic payload: the active vessel's current target only.
+        `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
+        one `Vec3` shape.
 
         `VesselTarget.orbit` reuses `VesselOrbit` itself (not a separate "target
         orbit" shape), so the SDK propagates a target with the same code path as the
@@ -21510,9 +21496,9 @@ components:
     VesselThermal:
       type: object
       description: |-
-        The `vessel.thermal` channel payload: the active vessel's thermal rollup,
-        its hottest part, heat shield and engine. Each ratio is null when no part
-        had a valid maximum temperature this tick, never 0, so "no valid part" and
+        The `vessel.thermal` Topic payload: the active vessel's thermal rollup, its
+        hottest part, heat shield and engine. Each ratio is null when no part had a
+        valid maximum temperature this tick, never 0, so "no valid part" and
         "coldest possible part" stay distinct.
 
         The whole payload is null when the vessel has no parts at all, a different,
@@ -21680,12 +21666,12 @@ components:
     WarpState:
       type: object
       description: |-
-        The `time.warp` channel payload: the game's time-warp and pause state, as
+        The `time.warp` Topic payload: the game's time-warp and pause state, as
         separate typed fields.
 
-        Current UT is not a field here (or anywhere in this contract):
-        `meta.validAt` stamps every sample, and the SDK's view clock is the "what
-        time is it" surface.
+        Current UT is not a field here, nor on any other Topic of the wire contract:
+        `meta.validAt` stamps every sample with the UT it describes, and a client
+        asks what time it is with the SDK's `useViewUt`.
 
         Warp and pause are game-wide state, so `WarpState.meta` is stamped `Source =
         "game"`, not `"vessel:<guid>"`, and the channel emits at the Space Center
@@ -21761,13 +21747,13 @@ components:
             seconds, or `null` where the host did not report its physics step.
 
             Equal to `WarpState.sampleIntervalUt` up to 10x warp. Above that the mod
-            samples at most ten times a real second, so this is a tenth of a second of
-            game time at the current rate (10,000 at 100,000x), or one physics tick
-            where a tick advances the game further than that. Nothing between two
-            consecutive samples was observed, so a line drawn between two samples that
-            differ asserts a path across this span that only a model of the value can
-            stand behind. Two samples further apart than this are a channel that did not
-            change in between.
+            samples at most ten times a real second, so this is the game time that
+            passes in a tenth of a real second at the current rate (0.1 s x 100,000 =
+            10,000 s at 100,000x), or one physics tick where a tick advances the game
+            further than that. Nothing between two consecutive samples was observed, so
+            a line drawn between two samples that differ asserts a path across this span
+            that only a model of the value can stand behind. Two samples further apart
+            than this are a channel that did not change in between.
 
             It changes only when the warp rate does. A client judging a gap reads the
             quantum in force when the later sample was taken.

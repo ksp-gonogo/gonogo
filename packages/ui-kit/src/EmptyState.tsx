@@ -17,7 +17,10 @@ export type EmptyStateLayout = "inline" | "fill";
 export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   /** The placeholder text. */
   children?: ReactNode;
-  /** Defaults to `inline`. */
+  /**
+   * `inline`, the default, sits where it is mounted with no inset of its own;
+   * `fill` centres the text in all the space its container gives it.
+   */
   layout?: EmptyStateLayout;
 }
 
@@ -28,16 +31,6 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  * mounted, taking the padding of the body or section around it, so it lines up
  * with the content it stands in for. `fill` centres in the available space and
  * suits a panel's sole child.
- *
- * @example
- * ```tsx
- * function VesselsBody({ vessels }: { vessels: readonly string[] }) {
- *   if (vessels.length === 0) {
- *     return <EmptyState layout="fill">No vessels in flight</EmptyState>;
- *   }
- *   return <VesselList vessels={vessels} />;
- * }
- * ```
  *
  * @category EmptyState
  * @categoryDescription EmptyState

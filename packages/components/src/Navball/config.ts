@@ -10,8 +10,8 @@ export interface NavballConfig {
 /** One action per axis and mode so each maps to its own input; ordered like the visible button rows. */
 export const navballActions = [
   { id: "take-control", label: "Toggle control mode", accepts: ["button"] },
-  { id: "arm-fbw", label: "Arm FBW", accepts: ["button"] },
-  { id: "disarm-fbw", label: "Disarm FBW", accepts: ["button"] },
+  { id: "arm-fbw", label: "Arm fly-by-wire (FBW)", accepts: ["button"] },
+  { id: "disarm-fbw", label: "Disarm fly-by-wire (FBW)", accepts: ["button"] },
   { id: "toggle-sas", label: "Toggle SAS", accepts: ["button"] },
   { id: "toggle-rcs", label: "Toggle RCS", accepts: ["button"] },
   { id: "toggle-precision", label: "Toggle precision", accepts: ["button"] },

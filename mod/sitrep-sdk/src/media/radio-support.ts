@@ -37,17 +37,21 @@ export const RADIO_REQUIRED_GLOBALS = [
 ] as const;
 
 /**
- * The encoder configuration the radio transmits at, and the one the probe
- * measures: 20 ms chunks of mono 48 kHz audio at a voice-radio bitrate.
+ * The encoder configuration the radio transmits at: 20 ms chunks of mono
+ * 48 kHz audio at a voice-radio bitrate.
  * `bitrate` is a target that some browsers exceed, so size buffers by the
  * measured rate rather than this number.
  *
  * @category Radio
  */
 export const RADIO_ENCODER_CONFIG = {
+  /** The codec, Opus. */
   codec: "opus",
+  /** Samples per second, in hertz. */
   sampleRate: 48_000,
+  /** One channel: mono. */
   numberOfChannels: 1,
+  /** The target bitrate, in bits per second. */
   bitrate: 12_000,
 } as const;
 
@@ -57,8 +61,11 @@ export const RADIO_ENCODER_CONFIG = {
  * @category Radio
  */
 export const RADIO_DECODER_CONFIG = {
+  /** The codec, Opus. */
   codec: "opus",
+  /** Samples per second, in hertz. */
   sampleRate: 48_000,
+  /** One channel: mono. */
   numberOfChannels: 1,
 } as const;
 
@@ -128,7 +135,9 @@ export function radioSupportStatus(): RadioSupport {
  * @category Radio
  * @categoryDescription Radio
  * Whether this browser can carry live push-to-talk radio, and the audio
- * settings the radio encodes and decodes with.
+ * settings the radio encodes and decodes with. The audio itself is sent with
+ * the `commcast.radio.transmit` command and heard on the `commcast.radio`
+ * Topic, as binary frames.
  */
 export function isRadioSupported(): boolean {
   return radioSupportStatus().supported;

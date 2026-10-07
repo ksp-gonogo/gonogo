@@ -11,7 +11,7 @@ namespace Sitrep.Contract;
 /// CommNet home nodes (KSC, Extra Ground Stations, Kerbal Konstructs sites) and
 /// crewed control-source vessels.
 ///
-/// <para>The channel payload is a bare array of these entries, like
+/// <para>The Topic payload is a bare array of these entries, like
 /// <see cref="SpaceCenterPoiEntry"/>, one per centre, keyed by
 /// <see cref="Id"/>.</para>
 ///
@@ -134,7 +134,7 @@ public class CommandCentreEntry
 /// ground station whose node went away, a crewed vessel that lost its crew or
 /// was destroyed or recovered.
 ///
-/// <para>The channel payload is a bare array of these entries, one per
+/// <para>The Topic payload is a bare array of these entries, one per
 /// remembered centre that is currently off the roster, keyed by <see cref="Id"/>.
 /// A centre that comes back leaves this channel and rejoins the roster, and a
 /// centre that has not been on the roster since the mod started is not

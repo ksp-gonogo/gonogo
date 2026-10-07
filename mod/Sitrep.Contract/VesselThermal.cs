@@ -41,7 +41,7 @@ public class ThermalHottestPart
 }
 
 /// <summary>
-/// The <c>vessel.thermal</c> channel payload: the active vessel's thermal
+/// The <c>vessel.thermal</c> Topic payload: the active vessel's thermal
 /// rollup, its hottest part, heat shield and engine. Each ratio is null when
 /// no part had a valid maximum temperature this tick, never 0, so "no valid
 /// part" and "coldest possible part" stay distinct.

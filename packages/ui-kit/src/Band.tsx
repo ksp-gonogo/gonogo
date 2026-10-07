@@ -36,6 +36,7 @@ export interface BandProps<UnitSymbol extends string = string>
    * the way round instead of printing a meaningless width.
    */
   wrapsAt?: number;
+  /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
 }
 

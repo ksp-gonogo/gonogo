@@ -6,8 +6,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Where one Making History mission objective stands, defined by this contract
-/// rather than by KSP.
+/// Where one Making History mission objective stands. Gonogo works this out
+/// from the mission's progress: KSP itself keeps no per-objective state.
 ///
 /// <para>On the wire it is an integer ordinal.</para>
 /// <internal>
@@ -30,7 +30,7 @@ public enum MissionObjectiveState
     /// <summary>The mission has not reached this objective yet.</summary>
     Pending,
 
-    /// <summary>The mission is on this objective now: it is the mission's active node and the mission is still running.</summary>
+    /// <summary>The mission is on this objective now: it is the step the mission is on now and the mission is still running.</summary>
     Active,
 
     /// <summary>The mission reached this objective and has moved past it, or ended successfully on it.</summary>
@@ -68,11 +68,11 @@ public class MissionObjectiveEntry
 }
 
 /// <summary>
-/// The <c>missions.active</c> channel payload: the Making History mission
+/// The <c>missions.active</c> Topic payload: the Making History mission
 /// that is running, or has just ended, in the current game. The whole payload
 /// is <c>null</c> when there is no mission game, when no mission has been set
-/// up, or when the expansion is not installed; read <c>game.dlc</c> to tell
-/// the last from the others.
+/// up, or when the expansion is not installed; read the <c>game.dlc</c> Topic
+/// (<see cref="GameDlc"/>) to tell the last from the others.
 ///
 /// <para>A mission that has ended stays in the payload with
 /// <see cref="Finished"/> true until the game leaves the mission, so a client

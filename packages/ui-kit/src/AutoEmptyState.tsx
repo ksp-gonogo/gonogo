@@ -17,6 +17,7 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   fallback: ReactNode;
   /** Gap between rendered children. Defaults to `related-dense`. */
   gap?: GapToken;
+  /** The content that may render nothing; when every child renders nothing, `fallback` shows instead. */
   children?: ReactNode;
 }
 

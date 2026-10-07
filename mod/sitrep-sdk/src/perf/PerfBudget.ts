@@ -50,7 +50,9 @@ interface Event {
  * on steady-state cost.
  *
  * An Uplink calls {@link createPerfBudget}, which makes one of these in the
- * app's own copy of the SDK and returns a handle to it.
+ * app's own copy of the SDK and returns a handle to it. `new PerfBudget(...)`
+ * works too: both land in the same registry, shared by every copy of the SDK
+ * on the page.
  *
  * Make one at module scope beside the code it measures and call `record()` on
  * each event. Recording costs one `Date.now()` and an array push. The three
@@ -204,7 +206,7 @@ export class PerfBudget {
     return globalThis[PERF_BUDGET_REGISTRY_KEY];
   }
 
-  /** Every budget registered in this page, in the order they were made. */
+  /** Every budget registered in this browser page (one window, shared by every copy of the SDK loaded into it), in the order they were made. */
   static getAll(): readonly PerfBudget[] {
     return [...PerfBudget.registry];
   }

@@ -231,6 +231,7 @@ export interface UnitProps<UnitSymbol extends string = string>
   elsewhere?: string | null;
   /** A bare unit token, rendered as a symbol with no number. Used only when `value` is not passed; prefer passing a value. */
   children?: ReactNode;
+  /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
 }
 

@@ -365,7 +365,13 @@ export interface StrategiesScreenEntry {
   label: string;
   /** Sort position, ascending; ties keep contribution order. A screen without one sorts after every screen that has one. */
   order?: number;
-  /** The department names whose strategies this screen lists, matched against each strategy's department in `career.status`. None lists nothing, leaving the screen to its augments. */
+  /**
+   * The department names whose strategies this screen lists, matched exactly
+   * against each strategy's department in `career.status`. Stock KSP's
+   * departments are `"Finances"`, `"Operations"`, `"Public Relations"` and
+   * `"Research & Development"`; a career mod can name others. None lists
+   * nothing, leaving the screen to its augments.
+   */
   departments?: readonly string[];
   /**
    * `false` for a screen that exists but cannot be used yet. Its tab is still
@@ -378,7 +384,8 @@ export interface StrategiesScreenEntry {
   /**
    * True when the screen's `strategies.screen-body` augment draws its own
    * controls for activating and deactivating its strategies, such as a
-   * Programs screen offering Accept and Complete. The widget then draws that
+   * Programs tab a career mod's Uplink contributes, offering Accept and
+   * Complete in place of Activate and Deactivate. The widget then draws that
    * screen's cards with no Activate or Deactivate button, and with no price or
    * commitment factor: the augment shows what its own controls cost.
    */

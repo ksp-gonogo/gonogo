@@ -21,7 +21,12 @@ export { TINY_SIZE } from "@ksp-gonogo/sitrep-sdk";
  *
  * @category Layout
  */
-export const TINY_BELOW = { w: 5, h: 4 } as const;
+export const TINY_BELOW = {
+  /** Width in grid columns: a tile under 5 columns wide is `tiny`. */
+  w: 5,
+  /** Height in grid rows: a tile under 4 rows tall is `tiny`. */
+  h: 4,
+} as const;
 const SMALL_W = 8;
 const SMALL_H = 7;
 
@@ -69,6 +74,7 @@ export type WidgetShape = "portrait" | "landscape" | "square";
  * @category Layout
  */
 export interface WidgetShapeInfo {
+  /** Whether the tile is tall, wide or roughly square. */
   shape: WidgetShape;
   /**
    * Raw grid aspect ratio, `w / h`. > 1 is wider-than-tall, < 1 is

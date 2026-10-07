@@ -77,12 +77,9 @@ export interface DisclosureProps {
  *
  * @example
  * ```tsx
- * <Disclosure
- *   variant="inline"
- *   chevron={false}
- *   label={(open) => (open ? "Hide detail" : "Show detail")}
- * >
- *   <StageBreakdown stages={stages} />
+ * // The default: the detail pops out over what follows.
+ * <Disclosure label="Why held?">
+ *   <Text>The last update arrived 40 s ago.</Text>
  * </Disclosure>
  * ```
  *

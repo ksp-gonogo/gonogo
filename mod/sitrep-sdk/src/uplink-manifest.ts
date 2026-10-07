@@ -56,10 +56,20 @@ export const UPLINK_MANIFEST_FILE = "gonogo-uplink.json";
  * every `uplink-tools` command reads it. Only an Uplink bundled inside the
  * app's own repository has none.
  *
+ * Three words recur in its fields. The plugin is the Uplink's C# half, the DLL
+ * that loads into KSP. The contract slice is the plugin's `Contract` project,
+ * the C# types its Topics and commands are declared in. The generated page is
+ * the README that `uplink-tools page` writes from the Uplink's code.
+ *
  * @category Manifest
  */
 export interface UplinkDeclaration {
-  /** The Uplink's id, the same one `defineUplinkClient` and the plugin's `[SitrepUplink]` name. */
+  /**
+   * The Uplink's id, the same one `defineUplinkClient` and the plugin's
+   * `[SitrepUplink]` attribute give. It may be left out when the client's own
+   * `defineUplinkClient` gives it; building the manifest fails when nothing
+   * does.
+   */
   id?: string;
   /** The name an operator sees, as `defineUplinkClient` gives it. */
   name?: string;
@@ -80,8 +90,7 @@ export interface UplinkDeclaration {
   dll?: string;
   /**
    * The C# namespace the plugin's sources are in. `uplink-tools bake` writes
-   * its generated classes into it. It is stated here because it cannot be
-   * worked out from the id.
+   * its generated classes into it.
    */
   csharpNamespace?: string;
   /**
@@ -187,10 +196,9 @@ export interface UplinkManifest {
    * `sha256-<hex>` of the bundle you distribute. The app hashes the bytes it
    * fetched and refuses to load the Uplink on any mismatch.
    *
-   * Empty when the manifest was written with no bundle named, as the copy
-   * committed beside the client's source is. An empty value never matches, so
-   * the app refuses that Uplink: a
-   * manifest you distribute must be written from the bundle it ships with
+   * Empty when the manifest was written with no bundle named. An empty value
+   * never matches, so the app refuses that Uplink: a manifest you distribute
+   * must be written from the bundle it ships with
    * (`uplink-tools docs --bundle <file>` or `uplink-tools bundle`).
    */
   integrity: string;
@@ -204,9 +212,13 @@ export interface UplinkManifest {
  * @category Manifest
  */
 export interface RegisteredIdentity {
+  /** The id the client passed to `defineUplinkClient`. */
   id: string;
+  /** The name an operator sees, as the client registered it. */
   name: string;
+  /** The client's version, as `defineUplinkClient` declares it. */
   version: string;
+  /** The client's one-line description, when it gives one. */
   description?: string;
 }
 
@@ -219,9 +231,9 @@ export interface UplinkManifestInputs {
   /** The Uplink's client package: the directory holding its `package.json`. */
   clientDir: string;
   /**
-   * The registrations, when the caller evaluated the client. `docs` renders the
-   * bundle in a browser and has them; `bundle` never runs the client and does
-   * not.
+   * The registrations, when the caller evaluated the client.
+   * `uplink-tools docs` renders the bundle in a browser and has them;
+   * `uplink-tools bundle` never runs the client and does not.
    */
   registered?: RegisteredIdentity;
   /**

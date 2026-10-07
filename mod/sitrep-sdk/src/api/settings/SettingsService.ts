@@ -60,11 +60,13 @@ export class SettingsService {
     }
   }
 
+  /** The value saved under the key, or the fallback given when nothing is saved under it. */
   get<SettingValue>(key: string, fallback: SettingValue): SettingValue {
     if (!this.values.has(key)) return fallback;
     return this.values.get(key) as SettingValue;
   }
 
+  /** Saves the value under the key and tells every listener on that key. A value equal to the one saved does nothing. */
   set<SettingValue>(key: string, value: SettingValue): void {
     // Cheap dedupe: structural compare via JSON since settings are always JSON-serialisable by contract.
     const prev = this.values.get(key);
@@ -75,6 +77,7 @@ export class SettingsService {
     if (bucket) for (const l of bucket) (l as Listener<SettingValue>)(value);
   }
 
+  /** Calls the listener with the new value each time the key's value changes. Returns the function that stops it. */
   subscribe<SettingValue>(key: string, cb: Listener<SettingValue>): () => void {
     let bucket = this.listeners.get(key);
     if (!bucket) {
