@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "Near Kerbol, with an OX-STAT solar panel at 85% of its 1200 K limit and no engine stress or heat shield.",
+    "shows": "An OX-STAT solar panel at 447 °C of its 927 °C limit and the highest internal temperature aboard at 85% of its limit, so the panel reads warm, with no engine stress or heat shield.",
     "scenario": "solar-heating",
     "notes": "Near Kerbol: solar radiation heating structural parts to warm band (85%). No engine thermal stress (station keeping only). No heat shield."
   },

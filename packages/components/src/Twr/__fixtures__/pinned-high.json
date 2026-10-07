@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A light stage with thrust-to-weight ratio 4.5, beyond the dial's maximum of 3, so the needle sits at the end of the arc.",
+    "shows": "A craft with thrust-to-weight ratio 4.5, beyond the dial's maximum of 3, so the needle sits at the end of the arc.",
     "scenario": "pinned-high",
     "notes": "Light probe or upper stage, TWR 4.5, exceeds GAUGE_MAX=3, should render with the needle pinned at the maximum arc end. Tests clamping behaviour."
   },

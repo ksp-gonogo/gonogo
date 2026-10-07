@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "Mun Hopper I in flight at 12.5 km with revert and switch controls enabled, then the link drops so every reading shown is held rather than current.",
+    "shows": "Mun Hopper I in flight at 12.5 km with the revert controls enabled and the vessel switcher disabled (no other vessels), then the link drops so every reading shown is held rather than current.",
     "scenario": "in-flight-ascent-stopped-arriving",
     "notes": "Active flight mid-ascent. canRevertToLaunch=true, canRevertToEditor=true. tar.availableVessels includes 2 non-SpaceObject vessels so Switch button is enabled. Funds readout visible. `_stream` drives both snapshots.test.tsx and the probe render harness. The mission time renders blank because vessel.identity.launchUt is null; the altitude comes straight off the vessel.flight emit. tar.availableVessels is not replayed (system.vessels ships the new {vessels:[...]} shape the switcher hasn't migrated to). The vessel.orbit emit carries quality:1 (Loaded), a craft under physics. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

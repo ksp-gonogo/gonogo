@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A lander 12 km above the Mun descending at 350 m/s, far too fast for its thrust to stop in the remaining height, so the board reads a divert warning.",
+    "shows": "A lander 12 km above the Mun descending at 350 m/s, far too fast for its thrust to stop in the remaining height, so the board reads NO LANDING VECTOR and UNAVOIDABLE IMPACT with the site card marked ABORT.",
     "scenario": "high-speed-no-solution",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Very high vertical speed on the Mun (~12 km AGL, 350 m/s down): far too fast for the available thrust to arrest in the remaining altitude, so the board reads a hard DIVERT / over-speed descent."

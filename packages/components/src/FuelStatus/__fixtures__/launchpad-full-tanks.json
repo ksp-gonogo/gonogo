@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "shows": "A three-stage vehicle on the pad with every tank full and about 4,500 m/s of ΔV.",
+    "shows": "A three-stage vehicle on the pad with every tank full and 3,850 m/s of ΔV as the engines would deliver from the pad, about 4,500 m/s in vacuum.",
     "scenario": "launchpad-full-tanks",
-    "notes": "Vehicle sitting on the pad with all tanks full. Three stages: asparagus boosters (S2), core (S1), lander (S0). Total \u0394V ~4500 m/s. All five resource categories present. This is the baseline for the fully-populated default render."
+    "notes": "Vehicle sitting on the pad with all tanks full. Three stages: asparagus boosters (S2), core (S1), lander (S0). Total \u0394V 3850 m/s actual (the default mode), 4502 m/s vacuum. All five resource categories present. This is the baseline for the fully-populated default render."
   },
   "v.currentStage": 2,
   "dv.stageCount": 3,

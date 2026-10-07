@@ -1,13 +1,13 @@
 {
   "_meta": {
-    "shows": "A low Kerbin orbit with a semi-major axis of 680 km and a period of about 33 minutes, the marker near the lower left of the period curve.",
+    "shows": "A low Kerbin orbit with a semi-major axis of 680 km and a period of about 31 minutes, the marker near the lower left of the period curve.",
     "scenario": "kerbin-lko",
-    "notes": "Low Kerbin Orbit at 80 km altitude. SMA \u2248 680 km (600 km radius + 80 km), period \u2248 33 min. Dot should sit near the left-bottom of the Kepler curve. The vessel.orbit emit's sma is what places the dot: the flat o.sma/o.period keys are unread, and the period is solved from the emitted elements."
+    "notes": "Low Kerbin Orbit at 80 km altitude. SMA \u2248 680 km (600 km radius + 80 km), period \u2248 31 min. Dot should sit near the left-bottom of the Kepler curve. The vessel.orbit emit's sma is what places the dot: the flat o.sma/o.period keys are unread, and the period is solved from the emitted elements."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
   "o.sma": 680000,
-  "o.period": 1984.9,
+  "o.period": 1874.8,
   "_stream": {
     "emits": [
       {

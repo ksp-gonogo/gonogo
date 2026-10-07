@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "shows": "Ares in a 700 km Earth orbit with Mars targeted but 250 degrees ahead, far from the ideal phase, so the dial reads HOLD and counts down roughly half a synodic period.",
+    "shows": "Ares, in a Real Solar System game, in a 700 km Earth orbit with Mars targeted but 250 degrees ahead, far from the ideal phase, so the dial reads FAR and the next window is a little over half a synodic period away.",
     "capturedAt": "2026-07-24",
     "vessel": "Ares (LEO parking orbit)",
     "body": "Earth (RSS)",
-    "situation": "700 km LEO around Earth, Mars targeted, phase FAR from the ideal (HOLD), Mars at +250deg, ~half a synodic period from the next window",
+    "situation": "700 km LEO around Earth, Mars targeted, phase FAR from the ideal (HOLD), Mars at +250deg, ~446 Earth days (0.57 of a synodic period) from the next window; no time.calendar is emitted, so the widget counts it in Kerbin days",
     "notes": "Stream fixture for the Transfer Window widget, RSS Sun/Earth/Mars/Venus, coplanar-circular (inc/lan/argPe 0, epoch 0, pinnedUt 0) so each body's true longitude equals its meanAnomalyAtEpoch. Earth at lon 0; Mars parked at +250deg (well off the +44.3deg ideal) so the dial reads HOLD and the next-window countdown shows the synodic wait. Venus is a second selectable destination. Mars is the current target (target.available) so the widget seeds the destination to it. The porkchop spans a full synodic period so its Δv surface + best-cell ring render regardless of the instantaneous phase."
   },
   "_stream": {

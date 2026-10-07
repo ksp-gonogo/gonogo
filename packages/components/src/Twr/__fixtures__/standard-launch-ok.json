@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A standard rocket at lift-off with thrust-to-weight ratio 1.82 in the green zone, and a sparkline climbing from 1.32 to 1.82 over the last minute as propellant burns.",
+    "shows": "A standard rocket with thrust-to-weight ratio 1.82 in the green zone, and a sparkline climbing from 1.32 to 1.82 over the last minute as propellant burns.",
     "scenario": "standard-launch-ok",
     "notes": "Standard rocket at lift-off, TWR 1.82, well into the green zone. Sparkline shows mass-burn climb from 1.32 → 1.82 across the last minute as the engine burns through propellant. Seeded as the stream's own thrust held constant and the mass falling, so thrust/(mass*g) climbs through the same TWR values."
   },

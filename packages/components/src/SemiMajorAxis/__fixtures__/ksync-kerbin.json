@@ -1,42 +1,42 @@
 {
   "_meta": {
-    "shows": "A Kerbosynchronous orbit of Kerbin with a semi-major axis of about 2,869 km, with a sparkline of the last five minutes.",
+    "shows": "A Kerbosynchronous orbit of Kerbin with a semi-major axis of about 3,469 km, shown as 3.5 Mm, with a sparkline of the last five minutes.",
     "scenario": "ksync-kerbin",
-    "notes": "Kerbosynchronous orbit around Kerbin. SMA ~2868.75 km from body centre (well-known KSP value). Period matches Kerbin's rotation."
+    "notes": "Kerbosynchronous orbit around Kerbin. SMA ~3468.75 km from body centre, which puts it 2868.75 km above Kerbin's 600 km surface. Period matches Kerbin's rotation, 6 hours."
   },
   "_series": {
     "vessel.orbit.sma": [
       {
         "t": -300000,
-        "v": 2867550
+        "v": 3467550
       },
       {
         "t": -250000,
-        "v": 2867850
+        "v": 3467850
       },
       {
         "t": -200000,
-        "v": 2868150
+        "v": 3468150
       },
       {
         "t": -150000,
-        "v": 2868414
+        "v": 3468414
       },
       {
         "t": -100000,
-        "v": 2868606
+        "v": 3468606
       },
       {
         "t": -50000,
-        "v": 2868714
+        "v": 3468714
       },
       {
         "t": 0,
-        "v": 2868750
+        "v": 3468750
       }
     ]
   },
-  "vessel.orbit.sma": 2868750,
+  "vessel.orbit.sma": 3468750,
   "o.referenceBody": "Kerbin",
   "_stream": {
     "emits": [
@@ -44,7 +44,7 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 2868750,
+          "sma": 3468750,
           "ecc": 0.1,
           "inc": 0,
           "lan": 0,

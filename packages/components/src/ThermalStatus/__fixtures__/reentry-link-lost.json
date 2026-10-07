@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A reentry with the heat shield at 81% of its limit after the link drops, so the temperatures are marked as held while the band tags and summary pill read unknown.",
+    "shows": "A reentry with the heat shield at 1398 °C of its 2127 °C limit after the link drops, so the temperatures are marked as held while the band tags and summary pill read unknown.",
     "scenario": "reentry-link-lost",
     "notes": "The same reentry as reentry-warning, after the thermal record stops arriving. The wire is identical and the link then drops, so every temperature is HELD and the panel says so, while the band tags and the summary pill go to unknown because a band is read as the situation now. Rendering the two side by side is what shows the split at all. Before this the whole panel collapsed to one sentence and the heat-shield reading went with it."
   },

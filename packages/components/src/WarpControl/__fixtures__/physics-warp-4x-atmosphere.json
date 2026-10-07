@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "Physics time warp at 4x during atmospheric flight, with the rate reading 4× and the pause button shown.",
+    "shows": "Physics time warp at 4x in flight, with the rate reading 4× and the pause button shown.",
     "scenario": "physics-warp-4x-atmosphere",
     "notes": "Physical time warp at 4\u00d7 during atmospheric flight. Mode is 'Physics' and rate shows 4\u00d7. This is low-warp mode, the game uses a separate physics ladder. Pause button visible (Flight scene)."
   },

@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A lander about 2.8 km above the Mun descending at 42 m/s with the burn approaching, after the link has dropped so every reading is held rather than current.",
+    "shows": "A lander about 2.8 km above the Mun descending at 42.5 m/s with the burn approaching, after the link has dropped so every reading is held rather than current.",
     "scenario": "suicide-burn-approaching-stopped-arriving",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Mid descent (~2.8 km AGL, 42 m/s down) under STAGED delay: the commit clock is live and the burn is coming up; full metric grid, terrain + cross-section, commit point. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."

@@ -30,7 +30,7 @@
           "name": "tester (Mk1 pod)",
           "vesselType": 0,
           "situation": 3,
-          "parentBodyIndex": 0
+          "parentBodyIndex": 1
         }
       }
     ]

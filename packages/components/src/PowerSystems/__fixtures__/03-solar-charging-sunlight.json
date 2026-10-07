@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A craft in sunlight with two Gigantor solar panels deployed and an RTG producing about 50 EC/s, so the net rate is positive and the battery is charging.",
+    "shows": "A craft in sunlight with two Gigantor solar panels deployed and an RTG, together producing about 50 EC/s, so the net rate is positive and the battery is charging.",
     "scenario": "solar-charging-sunlight",
     "notes": "In sunlight, Gigantor solar panels fully deployed and tracking. RTG also producing. Net positive, battery charging. Shows multiple producers, net GO tone."
   },

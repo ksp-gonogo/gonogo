@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "Deep reentry with the 2.5 m heat shield at 98% of its temperature limit under heavy ablation flux, so the panel reads critical, while the engine stays cool.",
+    "shows": "Deep reentry with the 2.5 m heat shield at 1806 °C of its 2127 °C limit under heavy ablation flux and the highest internal temperature aboard at 98% of its limit, so the panel reads critical, while the engine stays cool.",
     "scenario": "reentry-critical",
     "notes": "Deep reentry \u2014 hottest part is at 98% of its max temperature limit. CRITICAL band. Shield is under massive ablative flux. Engine remains cool."
   },

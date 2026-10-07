@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "shows": "A craft at 1,000 m over Duna in a thin atmosphere (about 0.067 atm at the surface), with density in g/m3 and a narrow pressure curve on the log axis.",
+    "shows": "A craft at 1,000 m over Duna in thin air, about 4.7 kPa and a density of 67 g/m3, so density reads in g/m3 rather than kg/m3, with a narrow pressure curve on the log axis.",
     "scenario": "duna-thin-atmosphere",
-    "notes": "Duna surface at 1000 m. Thin atmosphere ~0.067 atm (6755 Pa surface). Tests the g/m\u00b3 density rung and a narrow pressure curve on the log Y axis."
+    "notes": "Duna surface at 1000 m. Thin atmosphere, density 0.067 kg/m\u00b3 at this altitude. No pressure is emitted, so pressure comes from the widget's model of Duna (4.66 kPa at 1000 m). Tests the g/m\u00b3 density rung and a narrow pressure curve on the log Y axis."
   },
   "v.body": "Duna",
   "v.altitude": 1000,

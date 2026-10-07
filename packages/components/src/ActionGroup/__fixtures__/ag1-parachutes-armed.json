@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A craft descending under parachutes with a button labelled Chutes bound to action group 1, which is on.",
+    "shows": "A button labelled Chutes bound to action group 1, which is on.",
     "scenario": "ag1-parachutes-armed",
     "notes": "Atmospheric descent: AG1 = parachutes armed (on). Widget configured for AG1 group. RCS off, comm strong.",
     "widgetConfig": {

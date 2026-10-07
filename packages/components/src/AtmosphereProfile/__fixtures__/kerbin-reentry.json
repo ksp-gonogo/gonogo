@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A craft re-entering Kerbin's atmosphere at 30 km in thin air, with aerodynamic heating pushing the skin to 1500 K.",
+    "shows": "A craft re-entering Kerbin's atmosphere at 30 km in thin air, with aerodynamic heating pushing the skin to 1227 °C.",
     "scenario": "kerbin-reentry",
     "notes": "Kerbin reentry at 30 km, skin temp 1500 K from aerodynamic heating. Density is measurable but low. Tests skin-temp formatting in live chip (\u00b0C conversion for very high Kelvin values)."
   },

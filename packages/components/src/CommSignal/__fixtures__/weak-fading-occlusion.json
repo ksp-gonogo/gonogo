@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "shows": "A craft near the edge of Kerbin with a weak 23% signal, two bars and partial control, carried by a different route through Relay Alpha than the one it normally uses.",
+    "shows": "A craft with a weak 23% signal, one bar and partial control, carried by a different route through Relay Alpha than the one it normally uses.",
     "scenario": "weak-fading-occlusion",
-    "notes": "Partial signal during orbit-occlusion. Vessel is near the limb of Kerbin and signal is fading, 2 bars, partial control state."
+    "notes": "Partial signal during orbit-occlusion. Vessel is near the limb of Kerbin and signal is fading, 1 bar (ceil(0.23 x 4)), partial control state."
   },
   "comm.connected": true,
   "comm.signalStrength": 0.23,

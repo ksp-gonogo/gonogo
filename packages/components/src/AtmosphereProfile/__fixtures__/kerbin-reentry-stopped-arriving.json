@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A craft re-entering Kerbin's atmosphere at 30 km with a 1500 K skin, after the link has dropped, so every reading is shown as held rather than current.",
+    "shows": "A craft re-entering Kerbin's atmosphere at 30 km after the link has dropped: the live density and temperature chip is withdrawn, and the pressure line stays at 30 km with the held mark.",
     "scenario": "kerbin-reentry-stopped-arriving",
     "notes": "Kerbin reentry at 30 km, skin temp 1500 K from aerodynamic heating. Density is measurable but low. Tests skin-temp formatting in live chip (°C conversion for very high Kelvin values). Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },

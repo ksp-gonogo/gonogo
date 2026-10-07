@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "shows": "A craft in a high Kerbin orbit at 500 km moving at 1950 m/s, close to the roughly 2250 m/s escape speed there, so its marker sits just under the escape curve.",
+    "shows": "A craft in a high Kerbin orbit at 500 km moving at 1950 m/s, under the roughly 2530 m/s escape speed there, so its marker sits below the escape curve.",
     "scenario": "kerbin-hko-approaching-escape",
-    "notes": "High Kerbin orbit at 500 km. Orbital speed ~1950 m/s; escape velocity at this altitude ~2250 m/s. Trace dot is close to the curve, craft near escape. v.altitude/v.orbitalVelocity are vessel.flight.altitudeAsl/orbitalSpeed, read straight off the vessel.flight emit."
+    "notes": "High Kerbin orbit at 500 km. Orbital speed ~1950 m/s; escape velocity at this altitude ~2534 m/s. Trace dot sits below the curve, craft still bound. v.altitude/v.orbitalVelocity are vessel.flight.altitudeAsl/orbitalSpeed, read straight off the vessel.flight emit."
   },
   "v.body": "Kerbin",
   "v.altitude": 500000,

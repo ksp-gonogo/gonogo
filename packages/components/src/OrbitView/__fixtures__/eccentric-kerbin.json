@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "shows": "A craft in a highly eccentric Kerbin orbit (eccentricity 0.85) with apoapsis out past the Mun near 12 Mm and periapsis at 80 km, the ellipse turned 45 degrees.",
+    "shows": "A craft in a highly eccentric Kerbin orbit (eccentricity 0.82) with apoapsis about 6,430 km up, a little over halfway to the Mun, and periapsis at 80 km, the ellipse turned 45 degrees.",
     "scenario": "eccentric-kerbin",
-    "notes": "Highly eccentric Kerbin orbit (e=0.85). Apoapsis out beyond Mun (~12 Mm), periapsis at 80 km altitude. argPe=45\u00b0 rotates the ellipse so apsis markers exercise the radialOffset label math at a diagonal."
+    "notes": "Highly eccentric Kerbin orbit (e=0.824). Apoapsis 6.43 Mm up (radius 7.03 Mm, inside the Mun's 12 Mm orbit), periapsis at 80 km altitude. argPe=45\u00b0 rotates the ellipse so apsis markers exercise the radialOffset label math at a diagonal."
   },
   "v.body": "Kerbin",
   "o.sma": 3800000,
