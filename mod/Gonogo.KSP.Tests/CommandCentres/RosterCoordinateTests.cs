@@ -24,9 +24,9 @@ namespace Gonogo.KSP.Tests.CommandCentres
     /// for that reason: the pair is the claim, neither half alone is.</para>
     ///
     /// <para>These run against the mapper, which reads only the registry, not
-    /// <c>FlightGlobals</c>. The two SOURCES that decide anchoredness need
-    /// <c>CommNetHome</c> and <c>Vessel</c> and are not compiled into this project,
-    /// so their landed-versus-orbiting rule is build-verified only.</para>
+    /// <c>FlightGlobals</c>. The crewed-vessel source that decides anchoredness
+    /// needs a live <c>Vessel</c>, so its landed-versus-orbiting rule is
+    /// build-verified only.</para>
     /// </summary>
     public class RosterCoordinateTests
     {

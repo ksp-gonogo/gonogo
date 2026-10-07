@@ -28,7 +28,7 @@ namespace Gonogo.KSP.CommandCentres
             string displayName,
             CommandCentreKind kind,
             int? bodyIndex,
-            CommNode node,
+            CommNode? node,
             Vector3d position,
             bool active,
             double? latitude = null,
@@ -51,7 +51,7 @@ namespace Gonogo.KSP.CommandCentres
         public int? BodyIndex { get; }
 
         /// <summary>The CommNet node for routed (ControlPath) delay; may be null (then use <see cref="Position"/>). Not on the KSP-free interface.</summary>
-        public CommNode Node { get; }
+        public CommNode? Node { get; }
 
         /// <summary>Straight-line-geometry fallback position when <see cref="Node"/> is null.</summary>
         public Vector3d Position { get; }
