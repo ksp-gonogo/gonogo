@@ -190,7 +190,8 @@ describe("MissionBanner", () => {
     act(() => {
       fixture.emitIdentity({ vesselId: "v1", name: "" });
     });
-    await act(async () => {});
+    // The identity is the first sample, so the view clock starts and the date replaces the dash a frame later.
+    await screen.findByText(/^Y\d+ D\d+ /);
     expect(screen.queryByText("Vessel")).toBeNull();
   });
 
