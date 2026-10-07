@@ -15598,6 +15598,8 @@ components:
         value is absent or could not be read. Score fields are meaningful only when
         `MissionStatus.scoreEnabled` is true: a mission author can switch scoring
         off.
+      required:
+        - objectives
       properties:
         name:
           type:
@@ -15652,9 +15654,7 @@ components:
           x-sitrep-unit: count
           description: The most score the mission can award.
         objectives:
-          type:
-            - array
-            - "null"
+          type: array
           items:
             $ref: "#/components/schemas/MissionObjectiveEntry"
           description: |-

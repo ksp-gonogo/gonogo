@@ -107,8 +107,8 @@ export interface DialProps<Unit extends string = string> {
   needleColor?: string;
   /** Arc track colour. Defaults to `var(--color-border-subtle)`. */
   trackColor?: string;
-  /** Accessible name. Defaults to `"Dial"`; the value is spoken as `aria-valuetext`. */
-  ariaLabel?: string;
+  /** Accessible name naming what the dial measures; the value is spoken as `aria-valuetext`. */
+  "aria-label": string;
 }
 
 const TRACK_THICKNESS = 6;
@@ -183,7 +183,7 @@ function arcPath(
  *         { value: value("°", 180), label: "S" },
  *         { value: value("°", 270), label: "W" },
  *       ]}
- *       ariaLabel="Heading"
+ *       aria-label="Heading"
  *     />
  *   );
  * }
@@ -210,7 +210,7 @@ export function Dial<Unit extends string = string>({
   format,
   needleColor = "var(--color-text-primary)",
   trackColor = "var(--color-border-subtle)",
-  ariaLabel,
+  "aria-label": ariaLabel,
 }: Readonly<DialProps<Unit>>) {
   const resolved = resolveCurrency(value);
   const { shown, held, caption, band } = resolved;
@@ -298,7 +298,7 @@ export function Dial<Unit extends string = string>({
       {...(hasFigure
         ? {
             role: "meter",
-            "aria-label": sayHeld(ariaLabel ?? "Dial", caption),
+            "aria-label": sayHeld(ariaLabel, caption),
             ...heldNameMarker(caption),
             "aria-valuenow": display,
             "aria-valuemin": axisMin,
@@ -308,7 +308,7 @@ export function Dial<Unit extends string = string>({
         : {
             /* With no value to state, the face is an image rather than a meter at its minimum. */
             role: "img",
-            "aria-label": sayHeld(`${ariaLabel ?? "Dial"}: ${spoken}`, caption),
+            "aria-label": sayHeld(`${ariaLabel}: ${spoken}`, caption),
             ...heldNameMarker(caption),
           })}
     >

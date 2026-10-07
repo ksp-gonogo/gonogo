@@ -48,7 +48,7 @@ export function TargetRow({
           <KnownOnly entry={entry} distance={distance} listHeld={listHeld} />
         )}
       </RowDistance>
-      {isPending && <Spinner ariaLabel="Setting target" />}
+      {isPending && <Spinner aria-label="Setting target" />}
       {!isPending && entry.isCurrent && <RowTag>TARGET</RowTag>}
     </Row>
   );

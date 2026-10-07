@@ -11,7 +11,7 @@ describe("JogWheel", () => {
         min={0}
         max={90}
         step={1}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         format={(v) => `${v}°`}
         onChange={() => {}}
       />,
@@ -31,7 +31,7 @@ describe("JogWheel", () => {
         min={0}
         max={90}
         step={1}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={onChange}
       />,
     );
@@ -50,7 +50,7 @@ describe("JogWheel", () => {
         min={0}
         max={90}
         step={1}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         disabled
         onChange={onChange}
       />,
@@ -68,7 +68,7 @@ describe("JogWheel", () => {
         min={0}
         max={90}
         step={1}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={() => {}}
       />,
     );
@@ -107,7 +107,7 @@ describe("JogWheel sizing", () => {
           min={0}
           max={90}
           step={1}
-          ariaLabel="Across"
+          aria-label="Across"
           onChange={() => {}}
         />
         <JogWheel
@@ -116,7 +116,7 @@ describe("JogWheel sizing", () => {
           max={90}
           step={1}
           orientation="vertical"
-          ariaLabel="Down"
+          aria-label="Down"
           onChange={() => {}}
         />
       </>,
@@ -140,7 +140,7 @@ describe("JogWheel sizing", () => {
         step={1}
         width={72}
         height={24}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={() => {}}
       />,
     );
@@ -160,7 +160,7 @@ describe("JogWheel sizing", () => {
         step={1}
         width={8}
         height={6}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={() => {}}
       />,
     );
@@ -180,7 +180,7 @@ describe("JogWheel sizing", () => {
         step={1}
         width={72}
         height={24}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={onChange}
       />,
     );
@@ -202,7 +202,7 @@ describe("JogWheel sizing", () => {
         step={1}
         width={72}
         height={24}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={() => {}}
       />,
     );
@@ -226,7 +226,7 @@ describe("JogWheel sizing", () => {
         step={1}
         width={72}
         height={24}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         onChange={() => {}}
       />,
     );
@@ -262,7 +262,7 @@ describe("JogWheel in rate mode", () => {
           value={1000}
           step={1}
           stepsPerSecond={10}
-          ariaLabel="Ignition"
+          aria-label="Ignition"
           onChange={onChange}
         />,
       );
@@ -288,7 +288,7 @@ describe("JogWheel in rate mode", () => {
           mode="rate"
           value={1000}
           step={1}
-          ariaLabel="Ignition"
+          aria-label="Ignition"
           onChange={onChange}
         />,
       );
@@ -316,7 +316,7 @@ describe("JogWheel in rate mode", () => {
         mode="rate"
         value={1000}
         step={60}
-        ariaLabel="Ignition"
+        aria-label="Ignition"
         onChange={onChange}
       />,
     );
@@ -337,7 +337,7 @@ describe("JogWheel in rate mode", () => {
         mode="rate"
         value={1030}
         step={60}
-        ariaLabel="Ignition"
+        aria-label="Ignition"
         onChange={onChange}
       />,
     );
@@ -358,7 +358,7 @@ describe("JogWheel in rate mode", () => {
           mode="rate"
           value={1000}
           step={1}
-          ariaLabel="Ignition"
+          aria-label="Ignition"
           onChange={onChange}
         />,
       );
@@ -384,7 +384,7 @@ describe("JogWheel with no value to show", () => {
         min={0}
         max={90}
         step={1}
-        ariaLabel="Yaw"
+        aria-label="Yaw"
         format={() => "no reading"}
         onChange={() => {}}
       />,
@@ -402,7 +402,7 @@ describe("JogWheel label", () => {
       min={0}
       max={9}
       step={1}
-      ariaLabel="Yaw"
+      aria-label="Yaw"
       label={label}
       onChange={() => {}}
     />

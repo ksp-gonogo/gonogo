@@ -151,7 +151,7 @@ export const AutoDensity: Story = {
 /** A science transmission coming home: inbound entries in transit point down. */
 export const Inbound: Story = {
   args: {
-    ariaLabel: "Transmissions home",
+    "aria-label": "Transmissions home",
     items: [
       {
         id: "crew-report",

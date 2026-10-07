@@ -151,7 +151,7 @@ export function SolutionReadouts({
               values={descentHistory}
               width={120}
               height={24}
-              ariaLabel="Descent-rate trend"
+              aria-label="Descent-rate trend"
             />
           </div>
         )}

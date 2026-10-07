@@ -157,10 +157,10 @@ describe("LaunchDirector actions", () => {
     expect(getComponent("launch-director")?.actions?.map((a) => a.id)).toEqual([
       "launch",
       "recover",
-      "revertToLaunch",
-      "revertToEditor",
-      "trackingStation",
-      "spaceCenter",
+      "revert-to-launch",
+      "revert-to-editor",
+      "tracking-station",
+      "space-center",
     ]);
   });
 
@@ -256,8 +256,8 @@ describe("LaunchDirector actions", () => {
       name: /Revert to launch unavailable/,
     });
 
-    press("revertToLaunch");
-    press("revertToLaunch");
+    press("revert-to-launch");
+    press("revert-to-launch");
     await act(async () => {});
 
     expect(sent("ksp.revertToLaunch")).toEqual([]);
@@ -277,9 +277,9 @@ describe("LaunchDirector actions", () => {
     emitFlight({ name: "Probe" });
     await screen.findByText("Revert to launch");
 
-    press("revertToLaunch");
+    press("revert-to-launch");
     expect(screen.getByText(/Confirm revert to launch/i)).toBeInTheDocument();
-    press("revertToLaunch");
+    press("revert-to-launch");
 
     await waitFor(() =>
       expect(
@@ -296,9 +296,9 @@ describe("LaunchDirector actions", () => {
     emitFlight({ name: "Probe" });
     await screen.findByText("Revert to VAB");
 
-    press("revertToEditor");
+    press("revert-to-editor");
     expect(sent("ksp.revertToEditor")).toEqual([]);
-    press("revertToEditor");
+    press("revert-to-editor");
 
     await waitFor(() =>
       expect(sent("ksp.revertToEditor")[0]).toMatchObject({
@@ -313,11 +313,11 @@ describe("LaunchDirector actions", () => {
     emitFlight({ name: "Probe" });
     await screen.findByText("Tracking Station");
 
-    press("trackingStation");
+    press("tracking-station");
     expect(sent("ksp.toTrackingStation")).toEqual([]);
     expect(screen.getByText(/Confirm: save and leave/i)).toBeInTheDocument();
 
-    press("trackingStation");
+    press("tracking-station");
     await waitFor(() =>
       expect(sent("ksp.toTrackingStation")[0]).toMatchObject({
         vantage: "meta",
@@ -330,10 +330,10 @@ describe("LaunchDirector actions", () => {
     emitFlight({ name: "Probe" });
     await screen.findByText("Space Center");
 
-    press("spaceCenter");
+    press("space-center");
     expect(sent("ksp.toSpaceCenter")).toEqual([]);
 
-    press("spaceCenter");
+    press("space-center");
     await waitFor(() =>
       expect(sent("ksp.toSpaceCenter")[0]).toMatchObject({ vantage: "meta" }),
     );
@@ -343,7 +343,7 @@ describe("LaunchDirector actions", () => {
     const { container } = renderWidget();
     emitFlight({ name: "Probe" });
     await screen.findByText("Revert to VAB");
-    press("revertToEditor");
+    press("revert-to-editor");
     await expectNoA11yViolations(container);
   });
 });

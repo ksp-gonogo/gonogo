@@ -18,7 +18,7 @@ export interface TimeTrigger {
 
 export const transferWindowActions = [
   {
-    id: "cycleDestination",
+    id: "cycle-destination",
     label: "Next Destination",
     accepts: ["button"],
     description: "Cycle the transfer destination to the next sibling body.",

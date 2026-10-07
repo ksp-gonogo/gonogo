@@ -93,7 +93,7 @@ describe("Sparkline", () => {
         values={[1, 2]}
         width={100}
         height={20}
-        ariaLabel="TWR trend"
+        aria-label="TWR trend"
       />,
     );
     const svg = container.querySelector("svg");

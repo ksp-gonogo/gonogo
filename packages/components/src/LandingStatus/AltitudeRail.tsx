@@ -112,7 +112,7 @@ export function AltitudeRail({
                   },
                 ]
           }
-          ariaLabel={
+          aria-label={
             centreOfMass
               ? "Root-part altitude above terrain"
               : "Altitude above terrain"

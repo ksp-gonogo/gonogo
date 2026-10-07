@@ -14,7 +14,7 @@ describe("ActionMenu a11y", () => {
         ]}
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
-        ariaLabel="Mk1 Command Pod actions"
+        aria-label="Mk1 Command Pod actions"
       />,
     );
 
@@ -27,7 +27,7 @@ describe("ActionMenu a11y", () => {
         items={[]}
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
-        ariaLabel="Mk1 Command Pod actions"
+        aria-label="Mk1 Command Pod actions"
         emptyLabel="Awaiting actions..."
       />,
     );

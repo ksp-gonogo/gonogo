@@ -33,7 +33,7 @@ export function RadioMute({
     <ToggleButton
       size="sm"
       tone="warn"
-      active={muted}
+      pressed={muted}
       aria-label={`Mute ${threadName}`}
       onClick={onToggle}
     >

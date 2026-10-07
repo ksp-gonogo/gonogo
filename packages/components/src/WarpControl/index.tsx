@@ -105,14 +105,14 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   };
 
   useActionInput<WarpControlActions>({
-    stepUp: (payload) => {
+    "step-up": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (alarmRequired) return undefined;
       const next = Math.min(TOP_WARP_INDEX, (currentIndex ?? 0) + 1);
       setWarp(next);
       return { Warp: warpLabel(next) };
     },
-    stepDown: (payload) => {
+    "step-down": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       const next = Math.max(0, (currentIndex ?? 0) - 1);
       setWarp(next);
@@ -123,7 +123,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
       setWarp(0);
       return { Warp: "1×" };
     },
-    togglePause: (payload) => {
+    "toggle-pause": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       togglePause();
       return { Paused: !effectivePaused };

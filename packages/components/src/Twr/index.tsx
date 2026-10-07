@@ -110,7 +110,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                       width={sparkSize.w + SPARK_OVERDRAW_PX}
                       height={sparkSize.h + SPARK_OVERDRAW_PX}
                       color={toneColorFor(twr)}
-                      ariaLabel="TWR trend"
+                      aria-label="TWR trend"
                     />
                   </div>
                 </div>
@@ -131,7 +131,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 width={gaugeW}
                 height={gaugeH}
                 readout="large"
-                ariaLabel={`TWR ${writeQuantity(twr)}`}
+                aria-label={`TWR ${writeQuantity(twr)}`}
               />
             </div>
           </FramedDisplay>

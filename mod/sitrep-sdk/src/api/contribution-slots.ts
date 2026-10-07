@@ -94,20 +94,28 @@ export interface ShipMapPartMeterEntry {
  *
  * @category Widget slots
  */
-export interface ShipMapPartMetaEntry {
+export type ShipMapPartMetaEntry = {
   /** The part's `flightId`, as a decimal string. */
   partId: string;
   /** The row's label, such as `"Water Recycler"`. */
   label: string;
-  /** The status colour of a `"ratio"` row's meter. */
-  tone: Tone;
-  /** `"ratio"` draws `value` as a meter; `"text"` draws `text` beside the label. */
-  kind: "ratio" | "text";
-  /** A fraction from 0 to 1, read when `kind` is `"ratio"`. Absent draws an empty meter. */
-  value?: number;
-  /** Free text, read when `kind` is `"text"`. */
-  text?: string;
-}
+} & (
+  | {
+      /** `"ratio"` draws `value` as a meter; `"text"` draws `text` beside the label. */
+      kind: "ratio";
+      /** The status colour of the row's meter. */
+      tone: Tone;
+      /** A fraction from 0 to 1. Absent draws an empty meter. */
+      value?: number;
+    }
+  | {
+      kind: "text";
+      /** A text row never draws a tone, so it may be left out. */
+      tone?: Tone;
+      /** Free text, drawn beside the label. */
+      text?: string;
+    }
+);
 
 /**
  * The bitrate of one hop on the comms route, contributed to

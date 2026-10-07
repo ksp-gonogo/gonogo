@@ -14,7 +14,6 @@ import {
 } from "react";
 import styled, { css } from "styled-components";
 import { BarTrack } from "./BarTrack";
-import { bandClaim } from "./bandClaim";
 import { HeldFigure, HeldHost, HeldMark } from "./HeldMark";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
@@ -408,8 +407,9 @@ function apartFrom(at: number, bounds: MeterBounds | null): MeterBounds | null {
 
 /**
  * The intervals appended to what the track already announces, since the marks
- * are shapes with no reading of their own. What each pair claims is
- * `bandClaim`'s to say; the capacity's interval is its own clause.
+ * are shapes with no reading of their own. A band is said as plain
+ * containment, with no statistics vocabulary; the capacity's interval is its
+ * own clause.
  */
 function withBands(
   spoken: string,
@@ -421,7 +421,7 @@ function withBands(
     const lo = speakQuantity(bound.loSaid, shared);
     const hi = speakQuantity(bound.hiSaid, shared);
     // The connector tells a listener which two of three numbers are the band.
-    return bandClaim(bound.kind, `${lead}with bands at ${lo} and ${hi}`);
+    return `${lead}with bands at ${lo} and ${hi}`;
   };
   const clauses = [
     bounds === null ? null : said(bounds, ""),

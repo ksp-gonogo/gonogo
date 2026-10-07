@@ -26,7 +26,7 @@ function renderMenu(overrides?: {
       items={overrides?.items ?? ITEMS}
       onSelect={onSelect}
       onDismiss={onDismiss}
-      ariaLabel="Test actions"
+      aria-label="Test actions"
     />,
   );
   return { onSelect, onDismiss, view };
@@ -128,7 +128,7 @@ describe("ActionMenu", () => {
         items={[{ key: "a", label: "Alpha" }]}
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
-        ariaLabel="Single"
+        aria-label="Single"
       />,
     );
     expect(single.container.textContent).not.toContain("Other");
@@ -144,7 +144,7 @@ describe("ActionMenu", () => {
         items={[{ key: "a", label: "Alpha" }]}
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
-        ariaLabel="Test actions"
+        aria-label="Test actions"
       />,
     );
 

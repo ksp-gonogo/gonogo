@@ -2,25 +2,25 @@ import type { ActionDefinition } from "@ksp-gonogo/sitrep-sdk";
 
 export const roboticsActions = [
   {
-    id: "targetUp",
+    id: "target-up",
     label: "Target +",
     accepts: ["button"],
     description: "Increase the selected joint's target.",
   },
   {
-    id: "targetDown",
+    id: "target-down",
     label: "Target −",
     accepts: ["button"],
     description: "Decrease the selected joint's target.",
   },
   {
-    id: "toggleMotor",
+    id: "toggle-motor",
     label: "Toggle motor",
     accepts: ["button"],
     description: "Engage / disengage the selected joint's motor.",
   },
   {
-    id: "toggleLock",
+    id: "toggle-lock",
     label: "Toggle lock",
     accepts: ["button"],
     description: "Lock / unlock the selected joint.",

@@ -111,7 +111,7 @@ export function ReachList({
                   <ReachTd>
                     <ToggleButton
                       size="sm"
-                      active={entry.body.index === selectedIndex}
+                      pressed={entry.body.index === selectedIndex}
                       onClick={() => onSelect(entry.body.index)}
                     >
                       {bodyLabel(entry.body)}

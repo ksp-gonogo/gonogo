@@ -47,7 +47,7 @@ function RosterRow({
               padding: "var(--inset-roster-cell)",
             }}
           >
-            <LinkDot tone={COMMS_TONE[v.comms]} ariaLabel={comms.aria} />
+            <LinkDot tone={COMMS_TONE[v.comms]} aria-label={comms.aria} />
             <Truncate
               style={{
                 fontSize: "var(--font-size-value)",

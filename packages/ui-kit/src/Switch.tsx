@@ -1,6 +1,11 @@
 import styled from "styled-components";
 
-interface SwitchBaseProps {
+/**
+ * The props every {@link Switch} takes.
+ *
+ * @category Form
+ */
+export interface SwitchBaseProps {
   checked: boolean;
   onChange: (value: boolean) => void;
   /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere, such as a sub-setting inert while its parent setting is off. */

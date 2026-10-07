@@ -42,6 +42,7 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
+  DataSourceState,
   LateTelemetrySubscribe,
   ModSettingDep,
   ModSettingsRegistry,
@@ -196,6 +197,7 @@ export type {
   DataKey,
   DataRequirement,
   DataSource,
+  DataSourceState,
   DataSourceStatus,
   DelayClockLike,
   DelayMode,
@@ -931,7 +933,7 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
  *
  * @category Registering
  */
-export function useDataSources(): unknown {
+export function useDataSources(): DataSourceState[] {
   return getHost().useDataSources();
 }
 

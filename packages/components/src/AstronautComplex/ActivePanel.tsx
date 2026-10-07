@@ -36,9 +36,9 @@ export function ActivePanel({
   crew: CrewRosterRow[];
   /** The shared fire handle; see `ApplicantsPanel`'s `hireCmd`. */
   fireCmd: CommandButtonHandle;
-  /** The crew member `fireHighlighted` acts on. */
+  /** The crew member `fire-highlighted` acts on. */
   highlightedName: string | null;
-  /** Whether that crew member's fire is armed: the next `fireHighlighted` press sends it. */
+  /** Whether that crew member's fire is armed: the next `fire-highlighted` press sends it. */
   armed: boolean;
 }) {
   // Filters on the `isApplicant` flag: an absent roster ordinal is a field that did not arrive, not an applicant.

@@ -121,7 +121,7 @@ function SentVerdict({
         </Text>
       )}
       <HoverCard
-        ariaLabel={STATUS_LABEL[status]}
+        aria-label={STATUS_LABEL[status]}
         trigger={<Icon size="var(--icon-size-control)" aria-hidden="true" />}
       >
         <Stack as="ul">

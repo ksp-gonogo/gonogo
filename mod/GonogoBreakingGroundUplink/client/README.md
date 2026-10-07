@@ -35,7 +35,7 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | --- | --- |
 | Widget id | `robotics-console` |
 | Reads | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
-| Actions | Target + (`targetUp`), Target − (`targetDown`), Toggle motor (`toggleMotor`), Toggle lock (`toggleLock`) |
+| Actions | Target + (`target-up`), Target − (`target-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`) |
 | Only while present | `flight` |
 | Default size | 5 × 8 |
 | Scenes | 3 |
@@ -50,7 +50,7 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | --- | --- |
 | Widget id | `rotor-tachometer` |
 | Reads | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
-| Actions | RPM up (`rpmUp`), RPM down (`rpmDown`), Toggle motor (`toggleMotor`), Toggle lock (`toggleLock`), Reverse (`reverse`) |
+| Actions | RPM up (`rpm-up`), RPM down (`rpm-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`), Reverse (`reverse`) |
 | Only while present | `flight` |
 | Default size | 6 × 10 |
 | Scenes | 3 |

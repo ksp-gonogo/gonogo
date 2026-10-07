@@ -114,7 +114,7 @@ export function RadioPtt({
           inFlight: [],
           tags: VOICE_RAIL_TAGS,
           effectiveDelaySeconds: separationSeconds ?? null,
-          ariaLabel: label,
+          "aria-label": label,
           ribbons: [
             {
               id: "radio.voice",
@@ -140,7 +140,7 @@ export function RadioPtt({
       <ToggleButton
         size="sm"
         tone="nogo"
-        active={radio.transmitting}
+        pressed={radio.transmitting}
         disabled={radio.unavailable !== null}
         {...(blocked === null ? {} : { "aria-describedby": reasonId })}
         onClick={radio.toggle}

@@ -15,7 +15,7 @@ function chart(layers: PlotLayer[]) {
       xDomain={[0, 100]}
       yDomainPrimary={[0, 1000]}
       layers={layers}
-      ariaLabel="Test plot"
+      aria-label="Test plot"
       {...SIZE}
     />,
   );
@@ -176,7 +176,7 @@ describe("plot layers", () => {
           },
           { kind: "marker", id: "here", at: { x: 40, y: 400 } },
         ]}
-        ariaLabel="Test plot"
+        aria-label="Test plot"
         width={150}
         height={110}
       />,

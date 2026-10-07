@@ -585,8 +585,8 @@ describe("radio, inside its budgets", () => {
     expect(chunks?.getExceedanceCount()).toBe(0);
     expect(bytes?.getExceedanceCount()).toBe(0);
     // One second of the worst engine measured in slice 0, well under both caps.
-    expect(chunks?.rate()).toBe(50);
-    expect(bytes?.rate()).toBe(50 * 86);
+    expect(chunks?.windowTotal()).toBe(50);
+    expect(bytes?.windowTotal()).toBe(50 * 86);
   });
 });
 

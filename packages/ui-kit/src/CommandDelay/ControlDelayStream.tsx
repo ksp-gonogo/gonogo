@@ -116,7 +116,7 @@ export interface ControlDelayStreamProps {
    */
   ribbons?: ControlRibbonDatum[];
   /** Accessible label for the graph. Defaults to "Controls in flight". */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /**
    * `"inline"` (default, 40px) is the in-widget rendering; `"rail"` (16px, no
    * labels) is the collapsed drag-bar strip; `"expanded"` is the full-bleed,
@@ -574,7 +574,7 @@ function RibbonMark({
 export function ControlDelayStream({
   streams,
   ribbons = [],
-  ariaLabel = "Controls in flight",
+  "aria-label": ariaLabel = "Controls in flight",
   variant = "inline",
   delayReading,
 }: ControlDelayStreamProps) {

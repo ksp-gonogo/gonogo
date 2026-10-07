@@ -189,7 +189,7 @@ export function UnitInput<Unit extends string>({
     <Stack gap="related-packed">
       <JogWheel
         mode="rate"
-        ariaLabel={`${label} rate`}
+        aria-label={`${label} rate`}
         value={magnitude}
         step={rate.step}
         stepsPerSecond={rate.stepsPerSecond}

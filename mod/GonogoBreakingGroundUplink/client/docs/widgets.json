@@ -51,19 +51,19 @@
       "fields": [],
       "actions": [
         {
-          "id": "targetUp",
+          "id": "target-up",
           "label": "Target +"
         },
         {
-          "id": "targetDown",
+          "id": "target-down",
           "label": "Target −"
         },
         {
-          "id": "toggleMotor",
+          "id": "toggle-motor",
           "label": "Toggle motor"
         },
         {
-          "id": "toggleLock",
+          "id": "toggle-lock",
           "label": "Toggle lock"
         }
       ],
@@ -102,19 +102,19 @@
       "fields": [],
       "actions": [
         {
-          "id": "rpmUp",
+          "id": "rpm-up",
           "label": "RPM up"
         },
         {
-          "id": "rpmDown",
+          "id": "rpm-down",
           "label": "RPM down"
         },
         {
-          "id": "toggleMotor",
+          "id": "toggle-motor",
           "label": "Toggle motor"
         },
         {
-          "id": "toggleLock",
+          "id": "toggle-lock",
           "label": "Toggle lock"
         },
         {

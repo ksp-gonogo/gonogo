@@ -9,7 +9,7 @@ const m = (n: number) => value("m", n);
 describe("Tape", () => {
   it("exposes meter semantics with the current value and range", () => {
     render(
-      <Tape value={m(1200)} min={m(0)} max={m(5000)} ariaLabel="Altitude" />,
+      <Tape value={m(1200)} min={m(0)} max={m(5000)} aria-label="Altitude" />,
     );
     const meter = screen.getByRole("meter", { name: "Altitude" });
     expect(meter).toHaveAttribute("aria-valuenow", "1200");
@@ -18,7 +18,7 @@ describe("Tape", () => {
   });
 
   it("clamps aria-valuenow into range but reports the true value in valuetext", () => {
-    render(<Tape value={m(9000)} min={m(0)} max={m(5000)} ariaLabel="Alt" />);
+    render(<Tape value={m(9000)} min={m(0)} max={m(5000)} aria-label="Alt" />);
     const meter = screen.getByRole("meter", { name: "Alt" });
     expect(meter).toHaveAttribute("aria-valuenow", "5000");
     // Spoken, not written: the strip announces the unit's word, never "m".
@@ -33,7 +33,7 @@ describe("Tape", () => {
         min={m(0)}
         max={m(5000)}
         tickStep={m(1000)}
-        ariaLabel="Alt"
+        aria-label="Alt"
       />,
     );
     const text = container.textContent ?? "";
@@ -43,7 +43,7 @@ describe("Tape", () => {
 
   it("treats a non-finite value as the minimum", () => {
     render(
-      <Tape value={m(Number.NaN)} min={m(0)} max={m(5000)} ariaLabel="Alt" />,
+      <Tape value={m(Number.NaN)} min={m(0)} max={m(5000)} aria-label="Alt" />,
     );
     expect(screen.getByRole("meter", { name: "Alt" })).toHaveAttribute(
       "aria-valuenow",
@@ -57,7 +57,7 @@ describe("Tape", () => {
         value={m(800)}
         min={m(0)}
         max={m(5000)}
-        ariaLabel="Alt"
+        aria-label="Alt"
         zones={[{ from: m(500), to: m(1500), label: "ignition" }]}
         markers={[{ value: m(200), label: "gear" }]}
       />,
@@ -78,7 +78,7 @@ describe("Tape", () => {
         value={m(800)}
         min={m(0)}
         max={m(5000)}
-        ariaLabel="Alt"
+        aria-label="Alt"
         markers={[{ value: m(900), bounds: { lo: m(850), hi: m(950) } }]}
       />,
     );
@@ -91,7 +91,7 @@ describe("Tape", () => {
         value={m(800)}
         min={m(0)}
         max={m(5000)}
-        ariaLabel="Alt"
+        aria-label="Alt"
         groundLine={m(0)}
         seaLevel={m(-200)}
       />,
@@ -106,7 +106,7 @@ describe("Tape", () => {
   });
 
   it("renders a safe empty meter when the range is degenerate", () => {
-    render(<Tape value={m(5)} min={m(10)} max={m(10)} ariaLabel="Alt" />);
+    render(<Tape value={m(5)} min={m(10)} max={m(10)} aria-label="Alt" />);
     // Degenerate range collapses to valuemin===valuemax; still a valid node.
     expect(screen.getByRole("meter", { name: "Alt" })).toBeInTheDocument();
   });
@@ -119,7 +119,7 @@ describe("Tape", () => {
         max={m(5000)}
         tickStep={m(1000)}
         groundLine={m(0)}
-        ariaLabel="Altitude above terrain"
+        aria-label="Altitude above terrain"
       />,
     );
     await expectNoA11yViolations(container);
@@ -133,7 +133,7 @@ describe("Tape zones", () => {
         value={m(1200)}
         min={m(0)}
         max={m(5000)}
-        ariaLabel="Altitude"
+        aria-label="Altitude"
         zones={[{ from: m(0), to: m(500), label: "LOW" }]}
       />,
     );

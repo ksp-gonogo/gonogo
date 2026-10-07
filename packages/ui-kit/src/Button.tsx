@@ -286,28 +286,7 @@ export const TextButton = styled.button`
   }
 `;
 
-/**
- * An icon-only `button` with no chrome, just the glyph. Give it an
- * `aria-label`, since the icon inside is decorative. As a toggle, with
- * `aria-pressed`, it takes the filled pressed look while pressed. Under a
- * coarse pointer it grows to a 44px touch target.
- *
- * @example
- * ```tsx
- * import { CloseIcon, IconButton } from "@ksp-gonogo/ui-kit";
- *
- * function CloseButton(props: { onClose: () => void }) {
- *   return (
- *     <IconButton aria-label="Close" onClick={props.onClose}>
- *       <CloseIcon />
- *     </IconButton>
- *   );
- * }
- * ```
- *
- * @category Button
- */
-export const IconButton = styled.button`
+const IconButton__Body = styled.button`
   background: none;
   border: none;
   cursor: pointer;
@@ -339,3 +318,41 @@ export const IconButton = styled.button`
     justify-content: center;
   }
 `;
+
+/**
+ * Props for {@link IconButton}. Any other `button` attribute passes through.
+ *
+ * @category Button
+ */
+export interface IconButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Makes the button a toggle: sets `aria-pressed` and, while true, draws the pressed look. */
+  pressed?: boolean;
+}
+
+/**
+ * An icon-only `button` with no chrome, just the glyph. Give it an
+ * `aria-label`, since the icon inside is decorative. As a toggle, with
+ * `pressed`, it sets `aria-pressed` and takes the filled pressed look while
+ * pressed. The ref reaches the `button` element. Under a coarse pointer it grows to a 44px touch target.
+ *
+ * @example
+ * ```tsx
+ * import { CloseIcon, IconButton } from "@ksp-gonogo/ui-kit";
+ *
+ * function CloseButton(props: { onClose: () => void }) {
+ *   return (
+ *     <IconButton aria-label="Close" onClick={props.onClose}>
+ *       <CloseIcon />
+ *     </IconButton>
+ *   );
+ * }
+ * ```
+ *
+ * @category Button
+ */
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton({ pressed, ...rest }, ref) {
+    return <IconButton__Body ref={ref} aria-pressed={pressed} {...rest} />;
+  },
+);

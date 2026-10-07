@@ -56,7 +56,7 @@ describe("InFlightList", () => {
   });
 
   it("accepts a custom aria-label", () => {
-    render(<InFlightList items={ITEMS} ariaLabel="Uplink queue" />);
+    render(<InFlightList items={ITEMS} aria-label="Uplink queue" />);
     expect(screen.getByLabelText("Uplink queue")).toBeTruthy();
   });
 

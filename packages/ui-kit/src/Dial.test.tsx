@@ -12,7 +12,7 @@ const pct = (n: number) => value("%", n);
 describe("Dial", () => {
   it("exposes meter semantics with the current value and range", () => {
     render(
-      <Dial value={deg(45)} min={deg(0)} max={deg(360)} ariaLabel="Heading" />,
+      <Dial value={deg(45)} min={deg(0)} max={deg(360)} aria-label="Heading" />,
     );
     const meter = screen.getByRole("meter", { name: "Heading" });
     expect(meter).toHaveAttribute("aria-valuenow", "45");
@@ -22,7 +22,7 @@ describe("Dial", () => {
 
   it("speaks the value with its unit, rather than announcing a bare number", () => {
     render(
-      <Dial value={deg(45)} min={deg(0)} max={deg(360)} ariaLabel="Heading" />,
+      <Dial value={deg(45)} min={deg(0)} max={deg(360)} aria-label="Heading" />,
     );
     expect(
       screen
@@ -34,7 +34,7 @@ describe("Dial", () => {
   it("writes the degree sign hard against the number, as SI requires", () => {
     // No space before the sign, and the angle kind's own precision.
     const { container } = render(
-      <Dial value={deg(45)} min={deg(0)} max={deg(360)} ariaLabel="Heading" />,
+      <Dial value={deg(45)} min={deg(0)} max={deg(360)} aria-label="Heading" />,
     );
     expect(container.textContent).toContain("45.00°");
     expect(container.textContent).not.toContain(" °");
@@ -47,7 +47,7 @@ describe("Dial", () => {
         min={deg(0)}
         max={deg(360)}
         wrap
-        ariaLabel="Heading"
+        aria-label="Heading"
       />,
     );
     // 370° wraps to 10° on a 0-360 compass.
@@ -63,7 +63,7 @@ describe("Dial", () => {
         value={pct(500)}
         min={pct(0)}
         max={pct(100)}
-        ariaLabel="Throttle"
+        aria-label="Throttle"
       />,
     );
     expect(screen.getByRole("meter", { name: "Throttle" })).toHaveAttribute(
@@ -78,7 +78,7 @@ describe("Dial", () => {
         value={pct(Number.NaN)}
         min={pct(0)}
         max={pct(100)}
-        ariaLabel="X"
+        aria-label="X"
       />,
     );
     expect(screen.getByRole("meter", { name: "X" })).toHaveAttribute(
@@ -88,7 +88,7 @@ describe("Dial", () => {
   });
 
   it("renders a safe empty meter when the range is degenerate", () => {
-    render(<Dial value={pct(5)} min={pct(10)} max={pct(10)} ariaLabel="X" />);
+    render(<Dial value={pct(5)} min={pct(10)} max={pct(10)} aria-label="X" />);
     expect(screen.getByRole("meter", { name: "X" })).toBeInTheDocument();
   });
 
@@ -105,7 +105,7 @@ describe("Dial", () => {
           { from: pct(30), to: pct(60), color: "orange" },
           { from: pct(60), to: pct(100), color: "green" },
         ]}
-        ariaLabel="Load"
+        aria-label="Load"
       />,
     );
     const caps = [...container.querySelectorAll("[data-dial-cap]")];
@@ -124,7 +124,7 @@ describe("Dial", () => {
         startAngle={-90}
         sweep={180}
         zones={[{ from: pct(30), to: pct(60), color: "orange" }]}
-        ariaLabel="Load"
+        aria-label="Load"
       />,
     );
     expect(container.querySelector("[data-dial-cap]")).toBeNull();
@@ -142,7 +142,7 @@ describe("Dial", () => {
           { value: deg(180), label: "S" },
         ]}
         zones={[{ from: deg(60), to: deg(120), color: "red" }]}
-        ariaLabel="Slope fall direction"
+        aria-label="Slope fall direction"
       />,
     );
     await expectNoA11yViolations(container);

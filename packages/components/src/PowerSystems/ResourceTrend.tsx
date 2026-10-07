@@ -50,7 +50,7 @@ export function ResourceTrend({
           height={36}
           color={TREND_COLOUR[netTone]}
           yDomain={domain}
-          ariaLabel={`${splitCamel(resource)} level trend`}
+          aria-label={`${splitCamel(resource)} level trend`}
         />
       </div>
     </div>

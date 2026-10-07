@@ -119,7 +119,7 @@ export function WarpControlView({
                   {scene === "Flight" && cols >= 4 && rows >= 4 && (
                     <Tooltip text={paused === true ? "Resume" : "Pause"}>
                       <ToggleButton
-                        active={paused === true}
+                        pressed={paused === true}
                         tone="warn"
                         size="sm"
                         onClick={onTogglePause}

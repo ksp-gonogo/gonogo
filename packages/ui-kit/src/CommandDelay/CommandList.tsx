@@ -49,7 +49,7 @@ interface CommandListCommonProps {
    */
   live?: boolean;
   /** Names the list for assistive tech. Each kind has its own default. */
-  ariaLabel?: string;
+  "aria-label"?: string;
 }
 
 /**
@@ -151,7 +151,7 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
  */
 export function CommandList(props: Readonly<CommandListProps>) {
   const { kind, onDismiss, live = true } = props;
-  const ariaLabel = props.ariaLabel ?? DEFAULT_LABEL[kind];
+  const ariaLabel = props["aria-label"] ?? DEFAULT_LABEL[kind];
   const tone: OutcomeTone = kind === "found" ? "info" : "warn";
   if (!live && props.entries.length === 0) return null;
   const boxes = boxesOf(props).map((box) => (

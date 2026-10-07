@@ -149,7 +149,7 @@ async function predictionsOverIdleFrames(
       await frame();
     });
   }
-  return budget.rate();
+  return budget.windowTotal();
 }
 
 describe("MapView's ground track prediction", () => {

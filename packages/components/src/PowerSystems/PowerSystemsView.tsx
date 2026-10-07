@@ -80,7 +80,7 @@ export function PowerSystemsComponent({
   );
 
   useActionInput<PowerSystemsActions>({
-    cycleResource: (payload) => {
+    "cycle-resource": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (resourcesWithFlow.length === 0) return undefined;
       const idx = resourcesWithFlow.indexOf(resource);

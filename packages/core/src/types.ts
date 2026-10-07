@@ -122,7 +122,7 @@ export interface ActionInputPayload {
 }
 
 export interface ActionDefinition {
-  /** Stable ID used when persisting an input→action mapping. Unique per component. */
+  /** Stable kebab-case ID (such as `toggle-follow`) used when persisting an input→action mapping. Unique per component. */
   id: string;
   label: string;
   /** Which input kinds may drive this action. */

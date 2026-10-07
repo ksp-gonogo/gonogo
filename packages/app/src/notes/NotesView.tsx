@@ -34,7 +34,7 @@ export function NotesView({
       panelFooter={
         <AddRow>
           <TagAutocomplete
-            ariaLabel="New note body (use {{ to insert a variable)"
+            aria-label="New note body (use {{ to insert a variable)"
             placeholder="New note"
             value={draft}
             onChange={setDraft}

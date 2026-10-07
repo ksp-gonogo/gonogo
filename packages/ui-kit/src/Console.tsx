@@ -126,7 +126,7 @@ export function Console({
           }
         : {})}
       {...(showStrip
-        ? { queue: <InFlightList items={inFlight} ariaLabel={QUEUE_LABEL} /> }
+        ? { queue: <InFlightList items={inFlight} aria-label={QUEUE_LABEL} /> }
         : {})}
       {...(composer !== undefined ? { composer } : {})}
       {...rest}

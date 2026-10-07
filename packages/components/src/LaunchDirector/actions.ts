@@ -22,28 +22,28 @@ export const launchDirectorActions = [
       "First press arms, second press recovers the vessel in flight, or the one standing on the open pad.",
   },
   {
-    id: "revertToLaunch",
+    id: "revert-to-launch",
     label: "Revert to launch",
     accepts: ["button"],
     description:
       "In flight: first press arms, second press reverts the flight to its launch.",
   },
   {
-    id: "revertToEditor",
+    id: "revert-to-editor",
     label: "Revert to VAB",
     accepts: ["button"],
     description:
       "First press arms, second press reverts the flight, or the vessel on the open pad, to the VAB.",
   },
   {
-    id: "trackingStation",
+    id: "tracking-station",
     label: "Tracking Station",
     accepts: ["button"],
     description:
       "In flight: first press arms, second press saves the game and leaves for the Tracking Station.",
   },
   {
-    id: "spaceCenter",
+    id: "space-center",
     label: "Space Center",
     accepts: ["button"],
     description:

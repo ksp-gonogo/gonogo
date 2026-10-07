@@ -111,7 +111,7 @@ export interface GraphViewProps {
   /** Drop the panel chrome and render the framed chart alone, for a plot composed inside another widget's layout. */
   chrome?: "panel" | "bare";
   /** Names what the chart is, before its layers add their own clauses. Only read while `chrome` is `"bare"`. */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /** Widget grid size, which resolves the `"auto"` display variant. */
   w?: number;
   h?: number;
@@ -134,7 +134,7 @@ export function GraphView({
   layers: ownLayers,
   computedSeries,
   chrome = "panel",
-  ariaLabel,
+  "aria-label": ariaLabel,
   w,
   h,
   notice,
@@ -411,7 +411,7 @@ export function GraphView({
               layers={layers}
               hideXAxis={config?.hideXAxis}
               spatial={config?.spatial}
-              ariaLabel={ariaLabel}
+              aria-label={ariaLabel}
               width={size.w}
               height={size.h}
             />

@@ -35,7 +35,7 @@ interface GoNoGoWidgetConfig {
 
 const actions = [
   {
-    id: "toggleVote",
+    id: "toggle-vote",
     label: "Toggle GO/NO-GO",
     accepts: ["button"],
     description: "Flip the local station's GO/NO-GO vote.",
@@ -199,7 +199,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
   };
 
   useActionInput<GoNoGoActions>({
-    toggleVote: (payload) => {
+    "toggle-vote": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return;
       handleVoteToggle();
       return { Status: vote === "go" ? "NO-GO" : "GO" };

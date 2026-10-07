@@ -202,7 +202,7 @@ describe("the voice ribbon it publishes", () => {
     expect(handle?.inFlight).toEqual([]);
     /* And it names its own graph, so the rail does not call the operator's
        voice "Delay detail". */
-    expect(handle?.ariaLabel).toContain("Odyssey");
+    expect(handle?.["aria-label"]).toContain("Odyssey");
     const crossing = ribbon(store);
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);

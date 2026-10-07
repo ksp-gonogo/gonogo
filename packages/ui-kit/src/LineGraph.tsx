@@ -3,7 +3,6 @@ import type {
   SeriesReckonedSpan,
 } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
-import { bandClaim } from "./bandClaim";
 import { reckoningBasisPhrase } from "./reckoningBasisPhrase";
 
 /**
@@ -93,7 +92,7 @@ export interface LineGraphProps {
    * decorative beside a readout that already carries the reading, and the chart
    * renders `aria-hidden`.
    */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /** Placed on the chart's root element, for a caller's own sizing or layout. */
   className?: string;
   /**
@@ -277,7 +276,7 @@ function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
  * <LineGraph
  *   variant="sparkline"
  *   height={96}
- *   ariaLabel="Radiation dose rate, last 10 minutes"
+ *   aria-label="Radiation dose rate, last 10 minutes"
  *   series={[
  *     {
  *       id: "ambient",
@@ -301,7 +300,7 @@ export function LineGraph({
   thresholds = [],
   yDomain,
   height = 120,
-  ariaLabel,
+  "aria-label": ariaLabel,
   className,
   variant = "chart",
   thresholdStyle = "full",
@@ -322,22 +321,14 @@ export function LineGraph({
         ...series.flatMap((s) => {
           const name = s.label ?? s.id;
           const runs = s.reckoned ?? [];
-          const kinds = new Set(
-            runs
-              .map((run) =>
-                run.bandLo && run.bandHi ? run.bandKind : undefined,
-              )
-              .filter((kind) => kind !== undefined),
-          );
           return [
             ...[...new Set(runs.map((run) => run.basis))].map(
               (basis) =>
                 `${name}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
             ),
-            ...[...kinds].map(
-              (kind) =>
-                `${name}: ${bandClaim(kind, "the value is inside the shaded region")}`,
-            ),
+            ...(runs.some((run) => run.bandLo && run.bandHi)
+              ? [`${name}: the value is inside the shaded region`]
+              : []),
           ];
         }),
       ].join("; ")

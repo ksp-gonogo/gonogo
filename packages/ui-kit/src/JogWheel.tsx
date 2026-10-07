@@ -15,7 +15,12 @@ import { focusRing } from "./focusRing";
  */
 export type JogWheelMode = "offset" | "rate";
 
-interface JogWheelCommon {
+/**
+ * The props every {@link JogWheel} takes, whichever its mode.
+ *
+ * @category Form
+ */
+export interface JogWheelCommon {
   value: number;
   step: number;
   /** Drag/keyboard axis. Default "horizontal". */
@@ -23,23 +28,23 @@ interface JogWheelCommon {
   onChange: (next: number) => void;
   /** Caret label formatter, also used as `aria-valuetext`. Default `String(Math.round(v))`; for a quantity, write it with {@link writeQuantity}. */
   format?: (v: number) => string;
-  ariaLabel: string;
+  "aria-label": string;
   /**
-   * The name drawn above the wheel. Defaults to `ariaLabel`; `false` draws
+   * The name drawn above the wheel. Defaults to `aria-label`; `false` draws
    * none, for a wheel the caller already names beside it.
    */
   label?: string | false;
   disabled?: boolean;
   /**
    * Box width in CSS px. Defaults to 56 horizontal / 24 vertical. Clamped up
-   * to {@link JOG_WHEEL_MIN_TARGET_PX}. A `format` longer than a few
+   * to the smallest touch target. A `format` longer than a few
    * characters needs more than the default, as the caret label is clipped to
    * the box.
    */
   width?: number;
   /**
    * Box height in CSS px. Defaults to 24 horizontal / 56 vertical. Clamped up
-   * to {@link JOG_WHEEL_MIN_TARGET_PX}.
+   * to the smallest touch target.
    */
   height?: number;
 }
@@ -139,7 +144,7 @@ export function applyDelta(
  * @example
  * ```tsx
  * <JogWheel
- *   ariaLabel="Gain"
+ *   aria-label="Gain"
  *   value={gain}
  *   min={0}
  *   max={100}
@@ -159,7 +164,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
     orientation = "horizontal",
     onChange,
     format,
-    ariaLabel,
+    "aria-label": ariaLabel,
     label: caption = ariaLabel,
     disabled = false,
     width,

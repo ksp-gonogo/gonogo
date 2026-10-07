@@ -10,7 +10,7 @@ export function TrackingStationControl({
   handle,
   label = "Tracking Station",
   commandLabel = "Go to Tracking Station",
-  bindAs = "trackingStation",
+  bindAs = "tracking-station",
 }: {
   handle: CommandButtonHandle;
   label?: string;

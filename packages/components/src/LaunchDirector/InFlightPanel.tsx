@@ -77,7 +77,7 @@ export function InFlightPanel({
           pendingLabel="Recovering..."
         />
         <ArmedButton
-          bindAs="revertToLaunch"
+          bindAs="revert-to-launch"
           kind="revert"
           handle={revertLaunchCmd}
           commandLabel="Revert to launch"
@@ -86,7 +86,7 @@ export function InFlightPanel({
           pendingLabel="Reverting..."
         />
         <ArmedButton
-          bindAs="revertToEditor"
+          bindAs="revert-to-editor"
           kind="revert"
           handle={revertEditorCmd}
           args={{ editor: "vab" }}
@@ -100,7 +100,7 @@ export function InFlightPanel({
           handle={toSpaceCenterCmd}
           label="Space Center"
           commandLabel="Go to Space Center"
-          bindAs="spaceCenter"
+          bindAs="space-center"
         />
         <Tooltip
           text={

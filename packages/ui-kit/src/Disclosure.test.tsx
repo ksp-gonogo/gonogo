@@ -50,10 +50,10 @@ describe("Disclosure", () => {
     expect(trigger).toHaveFocus();
   });
 
-  it("labels the trigger with ariaLabel when the label is a non-text node", () => {
+  it("labels the trigger with aria-label when the label is a non-text node", () => {
     render(
       <Disclosure
-        ariaLabel="Explorer signal"
+        aria-label="Explorer signal"
         label={<svg aria-hidden="true" />}
       >
         <span>detail</span>
@@ -82,7 +82,7 @@ describe("Disclosure", () => {
         chevron={false}
         asButton
         label={(open) => (open ? "Hide detail" : "Show detail")}
-        ariaLabel="Show rate breakdown for Water"
+        aria-label="Show rate breakdown for Water"
       >
         <span>ledger</span>
       </Disclosure>,
@@ -109,7 +109,7 @@ describe("Disclosure", () => {
         asButton
         buttonSize="sm"
         label={(open) => (open ? "Hide detail" : "Show detail")}
-        ariaLabel="Show rate breakdown for Water"
+        aria-label="Show rate breakdown for Water"
       >
         <span>ledger</span>
       </Disclosure>,
@@ -130,7 +130,7 @@ describe("Disclosure", () => {
         chevron={false}
         asButton
         label={(open) => (open ? "Hide detail" : "Show detail")}
-        ariaLabel="Show rate breakdown for Water"
+        aria-label="Show rate breakdown for Water"
       >
         <span>ledger</span>
       </Disclosure>,

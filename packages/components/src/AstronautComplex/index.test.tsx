@@ -698,13 +698,13 @@ describe("AstronautComplexComponent", () => {
     await screen.findByText("Bill Kerman");
 
     act(() => {
-      dispatchAction("astronaut-complex", "highlightNextAvailable", {
+      dispatchAction("astronaut-complex", "highlight-next-available", {
         kind: "button",
         value: true,
       });
     });
     act(() => {
-      dispatchAction("astronaut-complex", "fireHighlighted", {
+      dispatchAction("astronaut-complex", "fire-highlighted", {
         kind: "button",
         value: true,
       });
@@ -718,7 +718,7 @@ describe("AstronautComplexComponent", () => {
     ).toBeUndefined();
 
     act(() => {
-      dispatchAction("astronaut-complex", "fireHighlighted", {
+      dispatchAction("astronaut-complex", "fire-highlighted", {
         kind: "button",
         value: true,
       });
@@ -768,13 +768,13 @@ describe("AstronautComplexComponent", () => {
     ).toHaveLength(1);
 
     act(() => {
-      dispatchAction("astronaut-complex", "fireHighlighted", {
+      dispatchAction("astronaut-complex", "fire-highlighted", {
         kind: "button",
         value: true,
       });
     });
     act(() => {
-      dispatchAction("astronaut-complex", "fireHighlighted", {
+      dispatchAction("astronaut-complex", "fire-highlighted", {
         kind: "button",
         value: true,
       });

@@ -7,7 +7,7 @@ export interface PowerSystemsConfig {
 
 export const powerSystemsActions = [
   {
-    id: "cycleResource",
+    id: "cycle-resource",
     label: "Next resource",
     accepts: ["button"],
     description: "Cycle through resources that have live flow contributions.",

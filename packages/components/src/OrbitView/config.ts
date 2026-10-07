@@ -7,7 +7,7 @@ export interface OrbitViewConfig {
 
 export const orbitViewActions = [
   {
-    id: "toggleMarkers",
+    id: "toggle-markers",
     label: "Toggle Markers",
     accepts: ["button"],
     description: "Show or hide the Ap/Pe markers.",

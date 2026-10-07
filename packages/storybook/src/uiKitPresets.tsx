@@ -44,6 +44,7 @@ export const UI_KIT_PRESETS = {
     {
       name: "Live",
       args: {
+        "aria-label": "Dial",
         value: live("deg", 92),
         min: value("deg", 0),
         max: value("deg", 360),
@@ -52,6 +53,7 @@ export const UI_KIT_PRESETS = {
     {
       name: "Held",
       args: {
+        "aria-label": "Dial",
         value: held("deg", 92),
         min: value("deg", 0),
         max: value("deg", 360),
@@ -59,7 +61,12 @@ export const UI_KIT_PRESETS = {
     },
     {
       name: "Pending",
-      args: { value: pending(), min: value("deg", 0), max: value("deg", 360) },
+      args: {
+        "aria-label": "Dial",
+        value: pending(),
+        min: value("deg", 0),
+        max: value("deg", 360),
+      },
     },
   ] satisfies Presets<ComponentProps<typeof Dial>>,
   Tape: [
@@ -69,7 +76,7 @@ export const UI_KIT_PRESETS = {
         value: live("m", 640),
         min: value("m", 0),
         max: value("m", 1000),
-        ariaLabel: "Altitude",
+        "aria-label": "Altitude",
       },
     },
     {
@@ -78,7 +85,7 @@ export const UI_KIT_PRESETS = {
         value: held("m", 640),
         min: value("m", 0),
         max: value("m", 1000),
-        ariaLabel: "Altitude",
+        "aria-label": "Altitude",
       },
     },
     {
@@ -87,7 +94,7 @@ export const UI_KIT_PRESETS = {
         value: live("m", 640, { lo: 590, hi: 700, kind: "bound" }),
         min: value("m", 0),
         max: value("m", 1000),
-        ariaLabel: "Altitude",
+        "aria-label": "Altitude",
       },
     },
   ] satisfies Presets<ComponentProps<typeof Tape>>,

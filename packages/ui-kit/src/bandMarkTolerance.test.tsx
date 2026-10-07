@@ -69,6 +69,7 @@ const cases = [
     name: "Gauge",
     draw: (r: Reading<Value<"%">>) => (
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -83,7 +84,12 @@ const cases = [
   {
     name: "Dial",
     draw: (r: Reading<Value<"%">>) => (
-      <Dial value={r} min={value("%", 0)} max={value("%", 100)} />
+      <Dial
+        aria-label="Dial"
+        value={r}
+        min={value("%", 0)}
+        max={value("%", 100)}
+      />
     ),
   },
   {
@@ -93,7 +99,7 @@ const cases = [
         value={r}
         min={value("%", 0)}
         max={value("%", 100)}
-        ariaLabel="Tape"
+        aria-label="Tape"
       />
     ),
   },

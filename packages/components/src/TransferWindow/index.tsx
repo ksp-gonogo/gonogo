@@ -178,7 +178,7 @@ function TransferWindowComponent({
   };
 
   useActionInput<TransferWindowActions>({
-    cycleDestination: () => cycleDestination(),
+    "cycle-destination": () => cycleDestination(),
   });
 
   // Periapsis radius, `a(1 - e)`, kept in the algebra.

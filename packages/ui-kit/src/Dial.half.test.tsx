@@ -11,6 +11,7 @@ describe("Dial as a half-circle gauge", () => {
   it("renders the value as the centre label by default", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -27,6 +28,7 @@ describe("Dial as a half-circle gauge", () => {
   it("writes the value's own unit beside it, with no unit prop to disagree", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -52,7 +54,7 @@ describe("Dial as a half-circle gauge", () => {
         max={value("kN", 100)}
         width={200}
         height={120}
-        ariaLabel="Thrust"
+        aria-label="Thrust"
       />,
     );
     const meter = screen.getByRole("meter", { name: "Thrust" });
@@ -65,6 +67,7 @@ describe("Dial as a half-circle gauge", () => {
   it("uses the supplied valueLabel when provided", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -82,6 +85,7 @@ describe("Dial as a half-circle gauge", () => {
   it("renders one path per zone plus the track", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -104,6 +108,7 @@ describe("Dial as a half-circle gauge", () => {
     // value above max should still render without throwing; needle pinned to max
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -120,6 +125,7 @@ describe("Dial as a half-circle gauge", () => {
   it("renders an empty SVG gracefully when too small", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -146,7 +152,7 @@ describe("Dial as a half-circle gauge", () => {
         max={twr(3)}
         width={200}
         height={120}
-        ariaLabel="TWR dial"
+        aria-label="TWR dial"
       />,
     );
     expect(
@@ -157,6 +163,7 @@ describe("Dial as a half-circle gauge", () => {
   it("has no axe violations", async () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"

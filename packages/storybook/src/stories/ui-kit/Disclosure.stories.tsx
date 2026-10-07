@@ -105,7 +105,7 @@ export const Popover: Story = {
       <Disclosure
         variant="popover"
         label={<InfoIcon size={14} />}
-        ariaLabel="About signal strength"
+        aria-label="About signal strength"
         defaultOpen
       >
         <span>Mun occludes the KSC dish for 18 minutes of each orbit.</span>

@@ -60,7 +60,7 @@ export function RotorGauge({
                   },
                 ]
           }
-          ariaLabel={`${rotor.name}: ${
+          aria-label={`${rotor.name}: ${
             rpmReading.value == null
               ? "RPM unknown"
               : writeQuantity(rpmReading.value)

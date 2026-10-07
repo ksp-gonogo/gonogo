@@ -197,7 +197,7 @@ describe("WarpControl: genuinely runs off the stream", () => {
     // Scene is unfed here, so the pause button does not render; the widget's own action sends the command instead.
     const { dispatchAction } = await import("@ksp-gonogo/core");
     await act(async () => {
-      await dispatchAction("warp-stream", "togglePause", {
+      await dispatchAction("warp-stream", "toggle-pause", {
         kind: "button",
         value: true,
       });

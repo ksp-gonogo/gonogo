@@ -47,7 +47,7 @@ export function ControlToggles({
             type="button"
             size="sm"
             style={TOGGLE_CELL}
-            active={sas === true}
+            pressed={sas === true}
             onClick={onToggleSas}
             disabled={disabled || sasUnavailableReason !== null}
           >
@@ -58,7 +58,7 @@ export function ControlToggles({
           type="button"
           size="sm"
           style={TOGGLE_CELL}
-          active={rcs === true}
+          pressed={rcs === true}
           onClick={onToggleRcs}
           disabled={disabled}
         >
@@ -70,7 +70,7 @@ export function ControlToggles({
             type="button"
             size="sm"
             style={TOGGLE_CELL}
-            active={precision}
+            pressed={precision}
             disabled
           >
             PRECISION

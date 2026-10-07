@@ -32,6 +32,7 @@ describe("announcesHeld, on what the kit draws", () => {
     [
       "Gauge",
       <Dial
+        aria-label="Label"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -50,10 +51,20 @@ describe("announcesHeld, on what the kit draws", () => {
         {...SCALE}
         width={60}
         height={200}
-        ariaLabel="Tape"
+        aria-label="Tape"
       />,
     ],
-    ["Dial", <Dial key="d" value={HELD} {...SCALE} width={120} height={120} />],
+    [
+      "Dial",
+      <Dial
+        aria-label="Label"
+        key="d"
+        value={HELD}
+        {...SCALE}
+        width={120}
+        height={120}
+      />,
+    ],
   ])("hears a held %s through its accessible name", (_, instrument) => {
     const { container } = render(instrument);
     const el = marked(container);
@@ -81,6 +92,7 @@ describe("announcesHeld, on what the kit draws", () => {
   it("does not stamp a current instrument", () => {
     const { container } = render(
       <Dial
+        aria-label="Label"
         startAngle={-90}
         sweep={180}
         readout="regular"

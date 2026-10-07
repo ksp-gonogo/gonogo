@@ -132,7 +132,7 @@ export function RotorControls({
         {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
         <ToggleButton
           size="sm"
-          active={selected.motorEngaged === true}
+          pressed={selected.motorEngaged === true}
           tone="go"
           disabled={selected.motorEngaged === null}
           aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
@@ -145,7 +145,7 @@ export function RotorControls({
         </ToggleButton>
         <ToggleButton
           size="sm"
-          active={selected.locked === true}
+          pressed={selected.locked === true}
           tone="warn"
           disabled={selected.locked === null}
           aria-label={flagLabel("Toggle lock", selected.locked)}
@@ -159,7 +159,7 @@ export function RotorControls({
         {/* The brake sends an absolute percentage inverted from the current one, so an unread brake disables it. */}
         <ToggleButton
           size="sm"
-          active={
+          pressed={
             selected.brakePercentage !== null && selected.brakePercentage > 0
           }
           tone="warn"

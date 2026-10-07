@@ -121,7 +121,7 @@ export interface ActionInputPayload {
  * own.
  */
 export interface ActionDefinition {
-  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. Any string will do. */
+  /** The action's id, unique within the widget. Saved input bindings refer to it, so keep it stable. Ids are kebab-case, such as `toggle-follow`. */
   id: string;
   /** The action's name, shown where the operator binds inputs. */
   label: string;
@@ -1423,6 +1423,20 @@ export type DataSourceStatus =
   | "disconnected"
   | "reconnecting"
   | "error";
+
+/**
+ * One registered `DataSource` as {@link useDataSources} lists it.
+ *
+ * @category Registering
+ */
+export interface DataSourceState {
+  /** The source's id. */
+  id: string;
+  /** The source's display name. */
+  name: string;
+  /** Its connection state now. */
+  status: DataSourceStatus;
+}
 
 /**
  * One key a `DataSource` offers, as `DataSource.schema` lists it.

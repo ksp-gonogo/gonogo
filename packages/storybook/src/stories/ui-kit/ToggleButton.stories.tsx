@@ -18,7 +18,7 @@ const meta = {
     ),
     withGonogoFrame,
   ],
-  args: { children: "SAS", active: true },
+  args: { children: "SAS", pressed: true },
 } satisfies Meta<typeof ToggleButton>;
 
 export default meta;
@@ -33,7 +33,7 @@ export const WarpRates: Story = {
     return (
       <Cluster justify="start" gap="related-compact">
         {WARP_RATES.map((r) => (
-          <ToggleButton key={r} active={r === rate} onClick={() => setRate(r)}>
+          <ToggleButton key={r} pressed={r === rate} onClick={() => setRate(r)}>
             {r}
           </ToggleButton>
         ))}
@@ -44,12 +44,12 @@ export const WarpRates: Story = {
 
 /** One control switched on: the tone fill and `aria-pressed="true"`. */
 export const Pressed: Story = {
-  args: { children: "SAS", active: true },
+  args: { children: "SAS", pressed: true },
 };
 
 /** The same control off: a raised surface with muted text. */
 export const Unpressed: Story = {
-  args: { children: "SAS", active: false },
+  args: { children: "SAS", pressed: false },
 };
 
 /** A standalone toggle that flips itself when clicked. */
@@ -57,7 +57,7 @@ export const Interactive: Story = {
   render: () => {
     const [on, setOn] = useState(false);
     return (
-      <ToggleButton active={on} onClick={() => setOn((v) => !v)}>
+      <ToggleButton pressed={on} onClick={() => setOn((v) => !v)}>
         {on ? "RCS on" : "RCS off"}
       </ToggleButton>
     );
@@ -76,7 +76,7 @@ export const Tones: Story = {
         ] as const
       ).map(([tone, label]) => (
         <Cluster key={tone} justify="start" gap="related-compact">
-          <ToggleButton tone={tone} active>
+          <ToggleButton tone={tone} pressed>
             {label}
           </ToggleButton>
           <ToggleButton tone={tone}>{label}</ToggleButton>
@@ -108,7 +108,7 @@ export const SmallFilters: Story = {
           <ToggleButton
             key={name}
             size="sm"
-            active={shown.has(name)}
+            pressed={shown.has(name)}
             onClick={() => toggle(name)}
           >
             {name}
@@ -123,7 +123,7 @@ export const SmallFilters: Story = {
 export const Disabled: Story = {
   render: () => (
     <Cluster justify="start" gap="related-compact">
-      <ToggleButton active disabled title="No probe core on Mun Lander II">
+      <ToggleButton pressed disabled title="No probe core on Mun Lander II">
         Hold prograde
       </ToggleButton>
       <ToggleButton disabled title="No probe core on Mun Lander II">

@@ -1,11 +1,9 @@
 import type {
-  BandKind,
   PlotLayer,
   SeriesBridge,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  bandClaim,
   InstrumentHeldMark,
   ReckoningMarkSvg,
   reckoningBasisPhrase,
@@ -183,7 +181,7 @@ export interface LineChartProps {
   /** Everything drawn beyond the series, in data space. Layers join an auto Y domain and are ignored by a pinned one. */
   layers?: readonly PlotLayer[];
   /** Names what the chart is, before the layers add their own clauses. */
-  ariaLabel?: string;
+  "aria-label"?: string;
   width: number;
   height: number;
 }
@@ -245,9 +243,7 @@ const RECKONED_DASHARRAY = "5 3";
 const RECKONED_BAND_OPACITY = 0.15;
 const RECKONED_BAND_EDGE_OPACITY = 0.45;
 
-function bandKindPhrase(kind: BandKind): string {
-  return bandClaim(kind, "the value is inside the shaded region");
-}
+const BAND_CLAIM = "the value is inside the shaded region";
 
 /** Pull every plottable Y value out of a series, including band upper bounds. */
 function seriesYValues(s: ChartSeries): number[] {
@@ -271,7 +267,7 @@ export function LineChart({
   hideXAxis = false,
   spatial = false,
   layers,
-  ariaLabel,
+  "aria-label": ariaLabel,
   width,
   height,
 }: Readonly<LineChartProps>) {
@@ -738,13 +734,8 @@ export function LineChart({
       (basis) =>
         `${s.label}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
     );
-    const kinds = new Set(
-      runs
-        .map((run) => (run.bandLo && run.bandHi ? run.bandKind : undefined))
-        .filter((kind): kind is BandKind => kind !== undefined),
-    );
-    for (const kind of kinds) {
-      clauses.push(`${s.label}: ${bandKindPhrase(kind)}`);
+    if (runs.some((run) => run.bandLo && run.bandHi)) {
+      clauses.push(`${s.label}: ${BAND_CLAIM}`);
     }
     return clauses;
   });

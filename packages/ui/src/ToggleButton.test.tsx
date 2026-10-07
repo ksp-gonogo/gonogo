@@ -18,7 +18,7 @@ describe("ToggleButton", () => {
       "aria-pressed",
       "false",
     );
-    rerender(<ToggleButton active>Mode</ToggleButton>);
+    rerender(<ToggleButton pressed>Mode</ToggleButton>);
     expect(screen.getByRole("button", { name: "Mode" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -27,7 +27,7 @@ describe("ToggleButton", () => {
 
   it("respects an explicitly-provided aria-pressed", () => {
     render(
-      <ToggleButton active aria-pressed="mixed">
+      <ToggleButton pressed aria-pressed="mixed">
         Mixed
       </ToggleButton>,
     );
@@ -51,7 +51,7 @@ describe("ToggleButton", () => {
     const { rerender } = render(<ToggleButton tone="go">Go</ToggleButton>);
     const inactiveClass = screen.getByRole("button", { name: "Go" }).className;
     rerender(
-      <ToggleButton active tone="go">
+      <ToggleButton pressed tone="go">
         Go
       </ToggleButton>,
     );
@@ -76,14 +76,14 @@ describe("ToggleButton", () => {
     const { container } = render(
       <>
         <ToggleButton>Neutral inactive</ToggleButton>
-        <ToggleButton active>Neutral active</ToggleButton>
-        <ToggleButton tone="go" active>
+        <ToggleButton pressed>Neutral active</ToggleButton>
+        <ToggleButton tone="go" pressed>
           Go
         </ToggleButton>
-        <ToggleButton tone="nogo" active>
+        <ToggleButton tone="nogo" pressed>
           NoGo
         </ToggleButton>
-        <ToggleButton tone="warn" active>
+        <ToggleButton tone="warn" pressed>
           Warn
         </ToggleButton>
         <ToggleButton size="sm">Small</ToggleButton>

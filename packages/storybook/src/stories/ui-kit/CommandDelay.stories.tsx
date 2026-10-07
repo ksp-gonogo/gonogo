@@ -110,7 +110,7 @@ const VOICE: CommandDelayHandle = {
   tags: VOICE_TAGS,
   effectiveDelaySeconds: STREAM_ONE_WAY,
   inFlight: [],
-  ariaLabel: "Your transmission crossing to Mun Lander II",
+  "aria-label": "Your transmission crossing to Mun Lander II",
   ribbons: [
     {
       id: "voice",
@@ -170,14 +170,14 @@ export const MergedHandles: Story = {
 export const Stream: Story = {
   args: {
     handle: THROTTLE,
-    ariaLabel: "Throttle in flight",
+    "aria-label": "Throttle in flight",
     variant: "expanded",
   },
 };
 
 /** The same stream inline in a widget body: the short strip with hover labels. */
 export const StreamInline: Story = {
-  args: { handle: THROTTLE, ariaLabel: "Throttle in flight" },
+  args: { handle: THROTTLE, "aria-label": "Throttle in flight" },
 };
 
 /** The stream graph with its delay figures held, because the delay reading went quiet. */

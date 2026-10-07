@@ -28,6 +28,7 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
+  DataSourceState,
   HostIceServers,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
@@ -102,7 +103,7 @@ export interface GonogoHost {
     handlers: ActionHandlers<Actions>,
   ): void;
   /** What {@link useDataSources} calls. */
-  useDataSources(): unknown;
+  useDataSources(): DataSourceState[];
 
   /** What {@link useLatestValue} calls. */
   useLatestValue<Payload = unknown>(topic: string): Payload | undefined;

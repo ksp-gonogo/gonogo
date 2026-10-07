@@ -240,7 +240,7 @@ function RibbonRegistrar({
         inFlight: [],
         tags: VOICE_TAGS,
         effectiveDelaySeconds: separationSeconds,
-        ariaLabel: RIBBON_LABEL,
+        "aria-label": RIBBON_LABEL,
         ribbons,
       }),
       [ribbons, separationSeconds],

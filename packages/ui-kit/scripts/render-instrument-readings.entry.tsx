@@ -86,7 +86,7 @@ function Instrument({ c }: { c: InstrumentCase }) {
         max={max}
         width={140}
         height={80}
-        ariaLabel={c.label}
+        aria-label={c.label}
       />
     );
   }
@@ -99,7 +99,7 @@ function Instrument({ c }: { c: InstrumentCase }) {
         width={92}
         height={150}
         tickStep={value(c.unit, (c.max - c.min) / 4)}
-        ariaLabel={c.label}
+        aria-label={c.label}
       />
     );
   }
@@ -111,7 +111,7 @@ function Instrument({ c }: { c: InstrumentCase }) {
         max={max}
         width={110}
         height={110}
-        ariaLabel={c.label}
+        aria-label={c.label}
       />
     );
   }

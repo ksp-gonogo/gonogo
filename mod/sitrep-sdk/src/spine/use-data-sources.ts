@@ -1,11 +1,8 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { getDataSources } from "../api/registry";
+import type { DataSourceState } from "../api/types";
 
-export interface DataSourceState {
-  id: string;
-  name: string;
-  status: import("../api/types").DataSourceStatus;
-}
+export type { DataSourceState };
 
 export function useDataSources(): DataSourceState[] {
   // subscribe tells React which external events should trigger a re-check.

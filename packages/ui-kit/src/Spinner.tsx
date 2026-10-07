@@ -16,7 +16,7 @@ export interface SpinnerProps
   /** Active arc colour. Defaults to the accent foreground. */
   color?: string;
   /** Accessible name for screen readers. Defaults to "Loading". */
-  ariaLabel?: string;
+  "aria-label"?: string;
 }
 
 /**
@@ -31,7 +31,7 @@ export function Spinner({
   size = 12,
   thickness = 2,
   color = "var(--color-accent-fg)",
-  ariaLabel = "Loading",
+  "aria-label": ariaLabel = "Loading",
   ...rest
 }: Readonly<SpinnerProps>) {
   return (

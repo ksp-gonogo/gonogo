@@ -7,7 +7,7 @@ import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 describe("ToggleButton", () => {
   it("reflects active into aria-pressed", () => {
     render(
-      <ToggleButton active aria-label="prograde">
+      <ToggleButton pressed aria-label="prograde">
         PRO
       </ToggleButton>,
     );
@@ -42,7 +42,7 @@ describe("ToggleButton", () => {
 describe("ToggleButton data-failed tint", () => {
   it("draws its label in the warning colour made for text on a dark ground", () => {
     render(
-      <ToggleButton active={false} data-failed="true">
+      <ToggleButton pressed={false} data-failed="true">
         RCS
       </ToggleButton>,
     );
@@ -58,7 +58,7 @@ describe("ToggleButton draws with the kit's Button", () => {
   it("fills in its tone only while active", () => {
     render(
       <>
-        <ToggleButton tone="nogo" active>
+        <ToggleButton tone="nogo" pressed>
           On
         </ToggleButton>
         <ToggleButton tone="nogo">Off</ToggleButton>
@@ -72,7 +72,7 @@ describe("ToggleButton draws with the kit's Button", () => {
   });
 
   it("fills in go by default", () => {
-    render(<ToggleButton active>SAS</ToggleButton>);
+    render(<ToggleButton pressed>SAS</ToggleButton>);
     expect(
       emittedRuleFor(screen.getByRole("button", { name: "SAS" })),
     ).toContain("background:var(--color-go-status)");

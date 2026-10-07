@@ -137,7 +137,7 @@ export interface InFlightListProps {
    */
   orientation?: "column" | "row";
   /** Accessible label for the list region. Defaults to "In-flight commands". */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /**
    * `"inline"` (default) is the monospace row/badge list. `"rail"` is the
    * Panel rail's 16px strip: each command is a soft glow grazing the top edge,
@@ -257,7 +257,7 @@ export function InFlightList({
   mode,
   density = "auto",
   orientation = "column",
-  ariaLabel = "In-flight commands",
+  "aria-label": ariaLabel = "In-flight commands",
   variant = "inline",
   onDismiss,
 }: InFlightListProps) {
@@ -267,14 +267,14 @@ export function InFlightList({
   // The rail and expanded renderings bypass density entirely.
   if (variant === "rail") {
     if (items.length === 0) return null;
-    return <InFlightRailStrip items={items} ariaLabel={ariaLabel} />;
+    return <InFlightRailStrip items={items} aria-label={ariaLabel} />;
   }
   if (variant === "expanded") {
     if (items.length === 0) return null;
     return (
       <InFlightQueue
         items={items}
-        ariaLabel={ariaLabel}
+        aria-label={ariaLabel}
         onDismiss={onDismiss}
       />
     );
@@ -298,7 +298,7 @@ export function InFlightList({
         ref={ref}
         items={items}
         mode={mode}
-        ariaLabel={ariaLabel}
+        aria-label={ariaLabel}
       />
     );
   }
@@ -336,10 +336,10 @@ const GLOW_PEAK_ALPHA = 0.22;
 
 function InFlightRailStrip({
   items,
-  ariaLabel,
+  "aria-label": ariaLabel,
 }: {
   items: InFlightListItem[];
-  ariaLabel: string;
+  "aria-label": string;
 }) {
   const gradBase = useId();
   const summary = `${items.length} in flight`;
@@ -401,12 +401,12 @@ const InFlightBadge = function InFlightBadge({
   ref,
   items,
   mode,
-  ariaLabel,
+  "aria-label": ariaLabel,
 }: {
   ref: RefObject<HTMLDivElement>;
   items: InFlightListItem[];
   mode?: InFlightListMode;
-  ariaLabel: string;
+  "aria-label": string;
 }) {
   const countdown = useCountdown(nearestEta(items));
   const worst = items.some((i) => ERROR_PHASES.has(i.phase));
@@ -511,11 +511,11 @@ const QUEUE_COLOUR: Record<InFlightListItem["phase"], string> = {
 
 function InFlightQueue({
   items,
-  ariaLabel,
+  "aria-label": ariaLabel,
   onDismiss,
 }: {
   items: InFlightListItem[];
-  ariaLabel: string;
+  "aria-label": string;
   onDismiss?: (id: string) => void;
 }) {
   const { ref, size } = useElementSize({ w: 320, h: QUEUE_THICK });

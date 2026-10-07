@@ -138,7 +138,7 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
       <div style={UT_MODE_ROW_STYLE}>
         <ToggleButton
           size="md"
-          active={inputs.utMode === "relative"}
+          pressed={inputs.utMode === "relative"}
           type="button"
           onClick={() => setUtMode("relative")}
         >
@@ -146,7 +146,7 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
         </ToggleButton>
         <ToggleButton
           size="md"
-          active={inputs.utMode === "absolute"}
+          pressed={inputs.utMode === "absolute"}
           type="button"
           onClick={() => {
             // Seed the absolute field with "now + 60s" the first time the user flips modes, so they don't see a 0.

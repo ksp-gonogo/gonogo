@@ -36,10 +36,10 @@ export function useLaunchCommands() {
   useActionInput<LaunchDirectorActions>({
     launch: pressBound("launch"),
     recover: pressBound("recover"),
-    revertToLaunch: pressBound("revertToLaunch"),
-    revertToEditor: pressBound("revertToEditor"),
-    trackingStation: pressBound("trackingStation"),
-    spaceCenter: pressBound("spaceCenter"),
+    "revert-to-launch": pressBound("revert-to-launch"),
+    "revert-to-editor": pressBound("revert-to-editor"),
+    "tracking-station": pressBound("tracking-station"),
+    "space-center": pressBound("space-center"),
   });
 
   return {

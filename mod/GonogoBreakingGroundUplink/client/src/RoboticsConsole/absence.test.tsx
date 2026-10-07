@@ -196,11 +196,11 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
 
     let returned: unknown;
     act(() => {
-      returned = dispatchAction(INSTANCE, "targetUp", {
+      returned = dispatchAction(INSTANCE, "target-up", {
         kind: "button",
         value: true,
       });
-      dispatchAction(INSTANCE, "targetDown", { kind: "button", value: true });
+      dispatchAction(INSTANCE, "target-down", { kind: "button", value: true });
     });
     await act(async () => {});
 
@@ -272,7 +272,7 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
 
     let returned: unknown;
     act(() => {
-      returned = dispatchAction(INSTANCE, "toggleMotor", {
+      returned = dispatchAction(INSTANCE, "toggle-motor", {
         kind: "button",
         value: true,
       });

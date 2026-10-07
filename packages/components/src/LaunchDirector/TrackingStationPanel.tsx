@@ -27,7 +27,7 @@ export function TrackingStationPanel({
         handle={toSpaceCenterCmd}
         label="Space Center"
         commandLabel="Go to Space Center"
-        bindAs="spaceCenter"
+        bindAs="space-center"
       />
     </FlyVesselMenu>
   );

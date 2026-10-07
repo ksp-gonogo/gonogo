@@ -103,7 +103,7 @@ export interface TapeProps<Unit extends string = string> {
    */
   format?: FormatsFor<Unit>;
   /** Accessible label naming what the scale measures (e.g. "Altitude above terrain"). */
-  ariaLabel: string;
+  "aria-label": string;
 }
 
 const PAD_TOP = 12;
@@ -142,7 +142,7 @@ export function Tape<Unit extends string = string>({
   groundLine,
   seaLevel,
   format,
-  ariaLabel,
+  "aria-label": ariaLabel,
 }: Readonly<TapeProps<Unit>>) {
   // The wrapper's height is parent-driven, so measuring it has no feedback loop with the SVG sized from it.
   const wrapRef = useRef<HTMLDivElement>(null);

@@ -69,7 +69,7 @@ describe("porkchop solve budget", () => {
     // is the wiring, and a rewrite of `buildPorkchop` that stopped recording has to
     // fail here.
     buildOneGrid(0);
-    expect(PORKCHOP_SOLVE_BUDGET.rate()).toBe(32 * 32);
+    expect(PORKCHOP_SOLVE_BUDGET.windowTotal()).toBe(32 * 32);
     PORKCHOP_SOLVE_BUDGET.reset();
 
     // Claim 2, on a synthetic clock: one second of a 60Hz rebuild breaches. That is
@@ -81,7 +81,9 @@ describe("porkchop solve budget", () => {
       PORKCHOP_SOLVE_BUDGET.record(32 * 32, now + frame * 16.7);
     }
 
-    expect(PORKCHOP_SOLVE_BUDGET.rate(now + 999)).toBeGreaterThan(4 * 32 * 32);
+    expect(PORKCHOP_SOLVE_BUDGET.windowTotal(now + 999)).toBeGreaterThan(
+      4 * 32 * 32,
+    );
     expect(PORKCHOP_SOLVE_BUDGET.getExceedanceCount()).toBeGreaterThan(0);
 
     // Clear before the global test gate reads it: this breach is the assertion, not a
@@ -98,7 +100,7 @@ describe("porkchop solve budget", () => {
       PORKCHOP_SOLVE_BUDGET.record(0, now + interaction * 300);
     }
 
-    expect(PORKCHOP_SOLVE_BUDGET.rate(now + 999)).toBeLessThanOrEqual(
+    expect(PORKCHOP_SOLVE_BUDGET.windowTotal(now + 999)).toBeLessThanOrEqual(
       4 * 32 * 32,
     );
     expect(PORKCHOP_SOLVE_BUDGET.getExceedanceCount()).toBe(0);

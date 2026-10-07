@@ -41,16 +41,16 @@ describe("the processor PerfBudgets", () => {
     const unsubscribeA = runtime.subscribe(handle.id, () => {});
     const unsubscribeB = runtime.subscribe(handle.id, () => {});
 
-    const evalsBefore = PROCESSOR_EVAL_BUDGET.rate();
-    const notifiesBefore = PROCESSOR_NOTIFY_BUDGET.rate();
+    const evalsBefore = PROCESSOR_EVAL_BUDGET.windowTotal();
+    const notifiesBefore = PROCESSOR_NOTIFY_BUDGET.windowTotal();
     store.beginFrame();
 
     // One `compute` call, two consumers woken. That ratio is the whole reason
     // the notification budget exists: the evaluation count alone cannot say
     // what a dashboard pays, because it does not know how many widgets are
     // listening.
-    expect(PROCESSOR_EVAL_BUDGET.rate() - evalsBefore).toBe(1);
-    expect(PROCESSOR_NOTIFY_BUDGET.rate() - notifiesBefore).toBe(2);
+    expect(PROCESSOR_EVAL_BUDGET.windowTotal() - evalsBefore).toBe(1);
+    expect(PROCESSOR_NOTIFY_BUDGET.windowTotal() - notifiesBefore).toBe(2);
 
     unsubscribeA();
     unsubscribeB();
@@ -72,14 +72,14 @@ describe("the processor PerfBudgets", () => {
     const unsubscribe = runtime.subscribe(handle.id, () => {});
 
     store.beginFrame(); // the one real derivation
-    const evalsBefore = PROCESSOR_EVAL_BUDGET.rate();
-    const notifiesBefore = PROCESSOR_NOTIFY_BUDGET.rate();
+    const evalsBefore = PROCESSOR_EVAL_BUDGET.windowTotal();
+    const notifiesBefore = PROCESSOR_NOTIFY_BUDGET.windowTotal();
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
     // The two numbers coming apart IS the fix, stated in the same instrument the budgets record: ten more evaluations, no more wakeups.
-    expect(PROCESSOR_EVAL_BUDGET.rate() - evalsBefore).toBe(10);
-    expect(PROCESSOR_NOTIFY_BUDGET.rate() - notifiesBefore).toBe(0);
+    expect(PROCESSOR_EVAL_BUDGET.windowTotal() - evalsBefore).toBe(10);
+    expect(PROCESSOR_NOTIFY_BUDGET.windowTotal() - notifiesBefore).toBe(0);
 
     unsubscribe();
     deactivate();
@@ -103,10 +103,12 @@ describe("the processor PerfBudgets", () => {
     const deactivate = runtime.activate(handle.id);
     const unsubscribe = runtime.subscribe(handle.id, () => {});
 
-    const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
+    const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.windowTotal();
     for (let i = 0; i < 10; i++) store.beginFrame();
 
-    expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(0);
+    expect(
+      PROCESSOR_UNCOMPARABLE_BUDGET.windowTotal() - uncomparableBefore,
+    ).toBe(0);
 
     unsubscribe();
     deactivate();
@@ -131,11 +133,13 @@ describe("the processor PerfBudgets", () => {
     const deactivate = runtime.activate(handle.id);
     const unsubscribe = runtime.subscribe(handle.id, () => {});
 
-    const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
+    const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.windowTotal();
     // Activation is the genuine change (no previous value); all five frames after it are ones the guard cannot answer.
     for (let i = 0; i < 5; i++) store.beginFrame();
 
-    expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(5);
+    expect(
+      PROCESSOR_UNCOMPARABLE_BUDGET.windowTotal() - uncomparableBefore,
+    ).toBe(5);
 
     unsubscribe();
     deactivate();

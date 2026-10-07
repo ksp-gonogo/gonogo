@@ -236,7 +236,7 @@ export function DataKeyPicker({
           getOptionId={optionId}
           onHoverIndex={setActiveIndex}
           onSelectKey={selectOption}
-          ariaLabel={ariaLabel ?? "Data keys"}
+          aria-label={ariaLabel ?? "Data keys"}
           renderItem={(opt) => (
             <>
               <ItemLabel>{opt.label ?? opt.key}</ItemLabel>

@@ -32,7 +32,7 @@ export function InFlightFace({
     <InFlightFace__Root>
       <InFlightFace__Hold aria-hidden="true">{holds}</InFlightFace__Hold>
       <InFlightFace__Spinner>
-        <Spinner size={spinnerSize} ariaLabel={label} />
+        <Spinner size={spinnerSize} aria-label={label} />
       </InFlightFace__Spinner>
     </InFlightFace__Root>
   );

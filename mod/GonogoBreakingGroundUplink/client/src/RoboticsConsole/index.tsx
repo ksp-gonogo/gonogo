@@ -85,14 +85,14 @@ function RoboticsConsoleComponent({
 
   useActionInput<RoboticsConsoleActions>({
     // The nudges are relative, so they dispatch nothing while the target is unread.
-    targetUp: (p) => {
+    "target-up": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.target === null) return undefined;
       const next = selected.target + TARGET_STEP[selected.type];
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
-    targetDown: (p) => {
+    "target-down": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.target === null) return undefined;
       const next = selected.target - TARGET_STEP[selected.type];
@@ -100,13 +100,13 @@ function RoboticsConsoleComponent({
       return { Target: next };
     },
     // Motor and lock send an absolute state inverted from the one read back, so an unread flag dispatches nothing.
-    toggleMotor: (p) => {
+    "toggle-motor": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.motorEngaged === null) return undefined;
       setMotor(selected.partId, !selected.motorEngaged);
       return { Motor: !selected.motorEngaged };
     },
-    toggleLock: (p) => {
+    "toggle-lock": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.locked === null) return undefined;
       setLock(selected.partId, !selected.locked);

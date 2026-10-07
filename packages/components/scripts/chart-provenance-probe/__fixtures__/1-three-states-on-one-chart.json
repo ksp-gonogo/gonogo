@@ -6,7 +6,7 @@
   "props": {
     "xDomain": [0, 1800000],
     "yDomainPrimary": [0, 140000],
-    "ariaLabel": "Altitude on the coast to apoapsis",
+    "aria-label": "Altitude on the coast to apoapsis",
     "legend": "overlay",
     "width": 900,
     "height": 380,

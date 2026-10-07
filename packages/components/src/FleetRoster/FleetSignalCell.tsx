@@ -61,7 +61,7 @@ export function FleetSignalCell({
   );
   return (
     <HoverCard
-      ariaLabel={`${vesselName} signal`}
+      aria-label={`${vesselName} signal`}
       trigger={<CommsTag tone={tone}>{label}</CommsTag>}
     >
       <dl

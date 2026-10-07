@@ -106,19 +106,25 @@ export interface ShipMapPartMeterEntry {
  * One per-part status row for the `ship-map.part-meta` slot: things about a
  * part that are not a fill level.
  */
-export interface ShipMapPartMetaEntry {
+export type ShipMapPartMetaEntry = {
   /** `ShipMapPart.flightId`, stringified (see `ShipMapPartMeterEntry.partId`). */
   partId: string;
   /** Short label, e.g. "Water Recycler". At most one entry per (partId, label). */
   label: string;
-  tone: Tone;
-  /** "ratio": a 0..1 reading rendered as a `<Meter>`. "text": a free-form status row. */
-  kind: "ratio" | "text";
-  /** Present when `kind === "ratio"`. */
-  value?: number;
-  /** Present when `kind === "text"`. */
-  text?: string;
-}
+} & (
+  | {
+      /** A 0..1 reading rendered as a `<Meter>`. */
+      kind: "ratio";
+      tone: Tone;
+      value?: number;
+    }
+  | {
+      /** A free-form status row, which never draws a tone. */
+      kind: "text";
+      tone?: Tone;
+      text?: string;
+    }
+);
 
 /** Normalise `r.resourceFor` output into the diagram's `{n, a, c}` shape, dropping zero-capacity resources. */
 export function normaliseResources(

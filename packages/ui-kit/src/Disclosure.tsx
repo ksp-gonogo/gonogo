@@ -23,7 +23,7 @@ export interface DisclosureProps {
    * Accessible name for the trigger. Required when `label` is a non-text node
    * (an icon or glyph) so the button is not unlabelled to a screen reader.
    */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /** A class for the outer element, so a styled-component can extend it. */
   className?: string;
   /**
@@ -91,7 +91,7 @@ export interface DisclosureProps {
 export function Disclosure({
   label,
   children,
-  ariaLabel,
+  "aria-label": ariaLabel,
   className,
   variant = "popover",
   panelHeight = "cap",

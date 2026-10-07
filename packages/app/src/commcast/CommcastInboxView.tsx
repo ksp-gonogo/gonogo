@@ -71,7 +71,7 @@ export function CommcastInboxView({
           <ToggleButton
             type="button"
             size="sm"
-            active={inputOpen}
+            pressed={inputOpen}
             aria-expanded={inputOpen}
             aria-controls={inputPanelId}
             onClick={() => setInputOpen((open) => !open)}

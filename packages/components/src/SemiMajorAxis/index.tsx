@@ -80,7 +80,7 @@ function SemiMajorAxisComponent({
                 values={sparkValues}
                 width={w}
                 height={h}
-                ariaLabel="SMA trend"
+                aria-label="SMA trend"
               />
             )
           : undefined

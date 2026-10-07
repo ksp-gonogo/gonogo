@@ -8123,6 +8123,10 @@
         "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
       },
       {
+        "key": "sitrep-sdk . GonogoHost#useDataSources",
+        "note": "typed as DataSourceState[] instead of unknown"
+      },
+      {
         "key": "sitrep-sdk . HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
@@ -8131,12 +8135,48 @@
         "note": "Removed. The slot draws only in the pad list, which the widget hides in flight, so the member was always false"
       },
       {
+        "key": "sitrep-sdk . PerfBudget#rate",
+        "note": "renamed to windowTotal, which says it returns the windowed total"
+      },
+      {
+        "key": "sitrep-sdk . PerfBudget#windowTotal",
+        "note": "PerfBudget.rate renamed: the method returns the windowed total"
+      },
+      {
         "key": "sitrep-sdk . SDK_VERSION",
         "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
       {
         "key": "sitrep-sdk . ServerMessage",
         "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry#kind",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry#label",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry#partId",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry#text?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry#tone",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMetaEntry#value?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
         "key": "sitrep-sdk . StreamStatusValue",
@@ -8149,6 +8189,10 @@
       {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "sitrep-sdk . useDataSources",
+        "note": "typed as DataSourceState[] instead of unknown"
       },
       {
         "key": "sitrep-sdk . useSetting",
@@ -8179,8 +8223,40 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#kind",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#label",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#partId",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#text?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#tone",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#value?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
         "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
+      },
+      {
+        "key": "sitrep-sdk ./spine DataSourceState#status",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
         "key": "sitrep-sdk ./spine HeldGrade",
@@ -8215,6 +8291,34 @@
         "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
       },
       {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#kind",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#label",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#partId",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#text?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#tone",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#value?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
         "key": "sitrep-sdk ./testing TimelineStore#gameStatus",
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
@@ -8227,6 +8331,10 @@
         "note": "New: listens for a change in what the game is doing"
       },
       {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useDataSources",
+        "note": "typed as DataSourceState[] instead of unknown"
+      },
+      {
         "key": "sitrep-sdk ./testing ~HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
@@ -8237,6 +8345,34 @@
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
         "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#kind",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#label",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#partId",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#text?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#tone",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#value?",
+        "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
         "key": "sitrep-sdk ./testing ~StreamStatusValue",
@@ -8259,6 +8395,42 @@
         "note": "Loses uiKitVersion, with the manifest field it filled"
       },
       {
+        "key": "ui-kit . ActionMenu",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . ActionMenuItem#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ActionMenuProps#\"aria-label\"",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ActionMenuProps#ariaLabel",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ComboboxListbox",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . ComboboxListboxProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . CommandDelay",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . CommandDelayHandle#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . CommandDelayProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
         "key": "ui-kit . CommandFailedEntry",
         "note": "now its own interface over CommandFailedLike, where it was an alias of CommandLossEntry, so a failure can carry its fault code"
       },
@@ -8271,6 +8443,34 @@
         "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
       },
       {
+        "key": "ui-kit . ControlDelayStream",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . ControlDelayStreamProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . Dial",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . DialProps#\"aria-label\"",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . DialProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . Disclosure",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . DisclosureProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
         "key": "ui-kit . HeldFigure",
         "note": "Gains the optional elsewhere prop and its kind widens with \"current\" (decision 81). A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
       },
@@ -8279,8 +8479,40 @@
         "note": "Widens from held or modelled with \"current\", a reading of now, which is marked only where the figure is elsewhere. Existing values are still accepted"
       },
       {
+        "key": "ui-kit . HoverCard",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . HoverCardProps#\"aria-label\"",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . HoverCardProps#ariaLabel",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . IconButton",
+        "note": "IconButton is a component taking pressed, which sets aria-pressed"
+      },
+      {
+        "key": "ui-kit . InFlightList",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . InFlightListProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
         "key": "ui-kit . InstrumentHeldMark",
         "note": "Gains an optional figureSize, the font size of the figure the mark follows, which raises the mark to the top of that figure's digits. Existing callers pass none and draw exactly as before"
+      },
+      {
+        "key": "ui-kit . LineGraph",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
         "key": "ui-kit . RECKONING_MARK",
@@ -8299,6 +8531,30 @@
         "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
       },
       {
+        "key": "ui-kit . Spinner",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . SpinnerProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . Tape",
+        "note": "its label prop is now aria-label"
+      },
+      {
+        "key": "ui-kit . TapeProps#\"aria-label\"",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . TapeProps#ariaLabel",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ToggleButtonProps#active?",
+        "note": "renamed to pressed, matching Button and IconButton"
+      },
+      {
         "key": "ui-kit . UI_KIT_VERSION",
         "note": "Removed. It was a hand-typed copy of the package version that the app refused clients against, and a release never moved it, so every client built against a published kit was refused. The kit's surface is covered by EXTENSION_API_VERSION"
       },
@@ -8315,6 +8571,10 @@
         "note": "The union widens with \"lost\", a craft nothing vouches for any more. Callers that pass a state are unaffected; one that switches exhaustively over the union needs a case for it"
       },
       {
+        "key": "ui-kit . bandClaim",
+        "note": "removed: an identity function over an unused kind"
+      },
+      {
         "key": "ui-kit . paintVesselKeyline",
         "note": "Removed. It painted the keyline on a separate blended canvas; the keyline is now plain paint drawn with the mark, by passing keyline: true to paintVesselMark or paintVesselPositions. It was added on 2026-10-05 and its one caller was MapView"
       },
@@ -8325,6 +8585,130 @@
       {
         "key": "ui-kit . smallestBodyTile",
         "note": "Removed with bodyMinSize: a tiny widget's body tile is its registered minSize; only the minsize probe used it"
+      },
+      {
+        "key": "ui-kit . ~CommandListCommonProps#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase#align?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase#header",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase#key",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase#minWidth?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase#rowHeader?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~DataTableColumnBase#width?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#ariaLabel",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#disabled?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#format?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#height?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#label?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#onChange",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#orientation?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#step",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#value",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~JogWheelCommon#width?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~ModalContextValue",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~ModalContextValue#close",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~ModalContextValue#open",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~ModalOpenOptions",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~ModalOpenOptions#ariaLabel?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ~ModalOpenOptions#title?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~ModalOpenOptions#width?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~SwitchBaseProps",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~SwitchBaseProps#checked",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~SwitchBaseProps#disabled?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~SwitchBaseProps#id?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~SwitchBaseProps#onChange",
+        "note": "exported, since a published component's props or return type already names it"
       }
     ],
     "additions": [
@@ -8375,6 +8759,22 @@
       {
         "key": "sitrep-sdk . ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk . DataSourceState",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk . DataSourceState#id",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk . DataSourceState#name",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk . DataSourceState#status",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
         "key": "sitrep-sdk . MapViewScope",
@@ -9381,6 +9781,10 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk ./spine ~DataSourceStatus",
+        "note": "reachable through the spine's DataSourceState"
+      },
+      {
         "key": "sitrep-sdk ./spine ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -9411,6 +9815,22 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DataSourceState",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DataSourceState#id",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DataSourceState#name",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DataSourceState#status",
+        "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
         "key": "sitrep-sdk ./testing ~GameStatus",
@@ -9489,28 +9909,196 @@
         "note": "New: the mod block of uplink.json as a named, documented type"
       },
       {
+        "key": "ui-kit . ActionMenuItem#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
         "key": "ui-kit . AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "ui-kit . ComboboxListboxProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . CommandDelayHandle#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
         "key": "ui-kit . CommandDelayHandle#failures?",
         "note": "a handle's mod-answered failures, which the panel rail counts and lists"
       },
       {
+        "key": "ui-kit . CommandDelayProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
         "key": "ui-kit . CommandFailedLike#code?",
         "note": "the fault code, which commandFailedSentence says in the code's own words"
+      },
+      {
+        "key": "ui-kit . ControlDelayStreamProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase#align?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase#header",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase#key",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase#minWidth?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase#rowHeader?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DataTableColumnBase#width?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . DisclosureProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
         "key": "ui-kit . HeldFigureProps#elsewhere?",
         "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise (decision 77)"
       },
       {
+        "key": "ui-kit . IconButtonProps",
+        "note": "IconButton is a component taking pressed, which sets aria-pressed"
+      },
+      {
+        "key": "ui-kit . IconButtonProps#pressed?",
+        "note": "IconButton is a component taking pressed, which sets aria-pressed"
+      },
+      {
+        "key": "ui-kit . InFlightListProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#\"aria-label\"",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#disabled?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#format?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#height?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#label?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#onChange",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#orientation?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#step",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#value",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#width?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
         "key": "ui-kit . MarkKind",
         "note": "What a figure is for the purpose of marking it: current, or a ReckoningKind. The type of the widened kind on ReckoningMark and HeldFigure"
       },
       {
+        "key": "ui-kit . ModalContextValue",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ModalContextValue#close",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ModalContextValue#open",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ModalOpenOptions",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ModalOpenOptions#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . ModalOpenOptions#title?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ModalOpenOptions#width?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . SpinnerProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . SwitchBaseProps",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . SwitchBaseProps#checked",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . SwitchBaseProps#disabled?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . SwitchBaseProps#id?",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . SwitchBaseProps#onChange",
+        "note": "exported, since a published component's props or return type already names it"
+      },
+      {
         "key": "ui-kit . TINY_SIZE",
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "ui-kit . ToggleButtonProps#pressed?",
+        "note": "toggle state is pressed on Button, ToggleButton and IconButton"
       },
       {
         "key": "ui-kit . UnitProps#elsewhere?",
@@ -9531,6 +10119,10 @@
       {
         "key": "ui-kit . withSizeDelta",
         "note": "Adds a size delta to a definition's minSize and defaultSize"
+      },
+      {
+        "key": "ui-kit . ~CommandListCommonProps#\"aria-label\"?",
+        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
         "key": "ui-kit . ~SizedWidget",

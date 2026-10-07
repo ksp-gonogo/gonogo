@@ -41,7 +41,7 @@ describe("MapView prediction throttle", () => {
       }
     }
     // 5 seconds: at most 5 calls in the rolling window.
-    expect(budget.rate(tStart * 1000 + 4750)).toBeLessThanOrEqual(5);
+    expect(budget.windowTotal(tStart * 1000 + 4750)).toBeLessThanOrEqual(5);
   });
 
   it("baseline (no throttle) would record one call per tick, the regression we're avoiding", () => {
@@ -53,6 +53,6 @@ describe("MapView prediction throttle", () => {
     budget.reset();
     const t0 = 2_000_000;
     for (let i = 0; i < 4; i++) budget.record(1, t0 + i * 250); // 1 sec of 4 Hz
-    expect(budget.rate(t0 + 999)).toBe(4);
+    expect(budget.windowTotal(t0 + 999)).toBe(4);
   });
 });

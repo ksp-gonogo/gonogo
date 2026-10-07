@@ -251,7 +251,7 @@ export function TargetPickerComponent({
                       >
                         <ToggleButton
                           size="sm"
-                          active={showSpaceObjects}
+                          pressed={showSpaceObjects}
                           onClick={() => setShowSpaceObjects((v) => !v)}
                         >
                           {showSpaceObjects

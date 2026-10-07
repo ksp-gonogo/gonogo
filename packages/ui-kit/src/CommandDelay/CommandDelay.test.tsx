@@ -64,7 +64,7 @@ describe("CommandDelay", () => {
       tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 5,
     };
-    render(<CommandDelay handle={handle} ariaLabel="Launch: in flight" />);
+    render(<CommandDelay handle={handle} aria-label="Launch: in flight" />);
     expect(screen.getByLabelText(/Launch: in flight/)).toBeInTheDocument();
   });
 
@@ -99,7 +99,7 @@ describe("CommandDelay", () => {
       effectiveDelaySeconds: 1.6,
       streams: [STREAM],
     };
-    render(<CommandDelay handle={handle} ariaLabel="Throttle in flight" />);
+    render(<CommandDelay handle={handle} aria-label="Throttle in flight" />);
     expect(
       screen.getByRole("img", { name: "Throttle in flight" }),
     ).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe("CommandDelay", () => {
       <CommandDelay
         handle={handle}
         variant="rail"
-        ariaLabel="Launch: in flight"
+        aria-label="Launch: in flight"
       />,
     );
     // The rail strip is an <svg role="img"> glow band, not the monospace list.
@@ -157,7 +157,7 @@ describe("CommandDelay", () => {
         effectiveDelaySeconds: 5,
       },
     ];
-    render(<CommandDelay handles={handles} ariaLabel="Nodes in flight" />);
+    render(<CommandDelay handles={handles} aria-label="Nodes in flight" />);
     const region = screen.getByLabelText(/Nodes in flight/);
     expect(region).toHaveTextContent("Add node");
     expect(region).toHaveTextContent("Remove node");
@@ -204,7 +204,7 @@ describe("a handle nothing can draw", () => {
         delivery: "acked",
       },
       effectiveDelaySeconds: 6,
-      ariaLabel: "A downlink nothing answers",
+      "aria-label": "A downlink nothing answers",
     };
     const { container } = render(<CommandDelay handle={handle} />);
     expect(

@@ -162,7 +162,7 @@ describe("relayed frames are counted per recipient", () => {
     return (
       PerfBudget.getAll()
         .find((b) => b.name === name)
-        ?.rate() ?? -1
+        ?.windowTotal() ?? -1
     );
   }
 

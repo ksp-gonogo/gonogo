@@ -101,7 +101,7 @@ const meta = {
     ),
     withGonogoFrame,
   ],
-  args: { streams: [THROTTLE, PITCH, YAW], ariaLabel: "Controls in flight" },
+  args: { streams: [THROTTLE, PITCH, YAW], "aria-label": "Controls in flight" },
 } satisfies Meta<typeof ControlDelayStream>;
 
 export default meta;
@@ -141,7 +141,7 @@ export const VoiceRibbon: Story = {
     streams: [],
     ribbons: [VOICE],
     variant: "expanded",
-    ariaLabel: VOICE.label,
+    "aria-label": VOICE.label,
   },
 };
 

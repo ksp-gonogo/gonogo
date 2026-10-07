@@ -167,7 +167,7 @@ describe("WarpControl: an alarm is required to warp under delay", () => {
     const { commandHandler } = await mount({ oneWaySeconds: 742, pending: [] });
 
     act(() => {
-      dispatchAction(INSTANCE, "stepUp", { kind: "button", value: true });
+      dispatchAction(INSTANCE, "step-up", { kind: "button", value: true });
     });
     act(() => {
       dispatchAction(INSTANCE, "stop", { kind: "button", value: true });

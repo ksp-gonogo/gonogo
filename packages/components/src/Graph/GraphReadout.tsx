@@ -52,7 +52,7 @@ export function GraphReadout({
           width={w}
           height={h}
           color={color}
-          ariaLabel={`${seriesLabel} trend`}
+          aria-label={`${seriesLabel} trend`}
         />
       )}
       sections={

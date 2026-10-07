@@ -7,7 +7,12 @@ import type { UnitValue } from "./readingCurrency";
 import { Unit } from "./Unit";
 import { useKeyboardScrollable } from "./useScrollerMetric";
 
-interface DataTableColumnBase {
+/**
+ * The fields every {@link DataTable} column carries, whatever it draws.
+ *
+ * @category DataTable
+ */
+export interface DataTableColumnBase {
   /** Stable identity for the column, and its React key. */
   key: string;
   /** The column's heading, in the table head. */

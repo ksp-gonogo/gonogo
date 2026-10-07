@@ -6,7 +6,7 @@ import { HoverCard } from "./HoverCard";
 function mount() {
   return render(
     <div data-testid="widget" style={{ overflow: "hidden" }}>
-      <HoverCard trigger={<span>RELAY</span>} ariaLabel="Probe signal">
+      <HoverCard trigger={<span>RELAY</span>} aria-label="Probe signal">
         One-way 4.5 s
       </HoverCard>
     </div>,

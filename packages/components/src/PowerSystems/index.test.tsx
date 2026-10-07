@@ -127,7 +127,7 @@ describe("PowerSystems: states + resource pick", () => {
     expect(select.value).toBe("ElectricCharge");
 
     act(() => {
-      dispatchAction("ps-cycle", "cycleResource", {
+      dispatchAction("ps-cycle", "cycle-resource", {
         kind: "button",
         value: true,
       });
@@ -145,7 +145,7 @@ describe("PowerSystems: states + resource pick", () => {
     await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
 
     act(() => {
-      dispatchAction("ps-sticky", "cycleResource", {
+      dispatchAction("ps-sticky", "cycle-resource", {
         kind: "button",
         value: true,
       });

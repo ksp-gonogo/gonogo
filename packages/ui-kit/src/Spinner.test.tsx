@@ -9,7 +9,7 @@ describe("Spinner", () => {
   });
 
   it("accepts a custom aria label", () => {
-    render(<Spinner ariaLabel="Arming" />);
+    render(<Spinner aria-label="Arming" />);
     expect(screen.getByRole("status", { name: "Arming" })).toBeInTheDocument();
   });
 

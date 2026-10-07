@@ -24,11 +24,11 @@ describe("PerfBudget", () => {
     const b = new PerfBudget({ name: "test", threshold: 10, windowMs: 1000 });
     b.record(1, 1000);
     b.record(2, 1500);
-    expect(b.rate(1500)).toBe(3);
+    expect(b.windowTotal(1500)).toBe(3);
     // 2001 → window starts at 1001; the 1000 event drops out.
-    expect(b.rate(2001)).toBe(2);
+    expect(b.windowTotal(2001)).toBe(2);
     // 2501 → window starts at 1501; both drop out.
-    expect(b.rate(2501)).toBe(0);
+    expect(b.windowTotal(2501)).toBe(0);
   });
 
   it("does not warn while under the threshold", () => {
@@ -67,9 +67,9 @@ describe("PerfBudget", () => {
     });
     b.record(400, 1000);
     b.record(500, 1500);
-    expect(b.rate(1500)).toBe(900);
+    expect(b.windowTotal(1500)).toBe(900);
     b.record(300, 1700);
-    expect(b.rate(1700)).toBe(1200);
+    expect(b.windowTotal(1700)).toBe(1200);
   });
 
   it("counts exceedances independently from warn-throttling", () => {
@@ -103,7 +103,7 @@ describe("PerfBudget", () => {
     // After the run, internal events array should not be 10k long,
     // compaction kicks in once the head crosses 256 + half of length.
     // Hard to assert exact size, but the rate at the end should be small.
-    expect(b.rate(10_000)).toBeLessThan(200);
+    expect(b.windowTotal(10_000)).toBeLessThan(200);
   });
 });
 
@@ -140,6 +140,6 @@ describe("PerfBudget without a host installed", () => {
     resetTestHost();
     const b = new PerfBudget({ name: "hostless-rate", threshold: 100 });
     b.record(3, 1000);
-    expect(b.rate(1000)).toBe(3);
+    expect(b.windowTotal(1000)).toBe(3);
   });
 });

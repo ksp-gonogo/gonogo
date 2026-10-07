@@ -203,7 +203,7 @@ export function ActionGroupView({
               )}
               <Tooltip text={unavailableReason ?? `Toggle ${currentLabel}`}>
                 <ToggleButton
-                  active={isOn}
+                  pressed={isOn}
                   size="sm"
                   disabled={!canToggle}
                   onClick={press}

@@ -135,5 +135,5 @@ public class MissionStatus
     public double? MaxScore { get; set; }
 
     /// <summary>The mission's objectives in flow order. A node of the mission that nothing leads to is left out. Empty when it has none.</summary>
-    public List<MissionObjectiveEntry>? Objectives { get; set; }
+    public List<MissionObjectiveEntry> Objectives { get; set; } = new();
 }

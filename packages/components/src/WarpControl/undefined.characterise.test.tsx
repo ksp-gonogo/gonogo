@@ -122,7 +122,10 @@ describe("WarpControl: the `currentIndex ?? 0` coercion", () => {
     const { dispatchAction } = await import("@ksp-gonogo/core");
 
     await act(async () => {
-      await dispatchAction(INSTANCE, "stepUp", { kind: "button", value: true });
+      await dispatchAction(INSTANCE, "step-up", {
+        kind: "button",
+        value: true,
+      });
     });
 
     // A step up with no telemetry commands 5x rather than refusing.

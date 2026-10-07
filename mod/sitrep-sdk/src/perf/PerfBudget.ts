@@ -46,7 +46,7 @@ interface Event {
  * most one warning per window, and in the running app nothing else changes: it
  * never throws or slows anything down. In a test run that has called
  * `PerfBudget.installTestGate()`, a test that pushes a budget over its
- * threshold fails. `rate()` returns the current total, for a test that asserts
+ * threshold fails. `windowTotal()` returns the current total, for a test that asserts
  * on steady-state cost.
  *
  * An Uplink calls {@link createPerfBudget}, which makes one of these in the
@@ -115,7 +115,7 @@ export class PerfBudget {
   }
 
   /** Current windowed total (events × amount). Useful in tests. */
-  rate(now: number = Date.now()): number {
+  windowTotal(now: number = Date.now()): number {
     this.trim(now);
     return this.currentSum;
   }
@@ -135,7 +135,7 @@ export class PerfBudget {
   }
 
   /**
-   * Empties the rolling window, so `rate()` is 0 again, and leaves the
+   * Empties the rolling window, so `windowTotal()` is 0 again, and leaves the
    * exceedance count as it was. The test gate calls it before each test, so
    * one test's burst is not counted against the next.
    */
@@ -256,7 +256,7 @@ export class PerfBudget {
         const now = b.getExceedanceCount();
         if (now > prev) {
           offenders.push(
-            `${b.name}: +${now - prev} exceedance${now - prev === 1 ? "" : "s"} (now ${now}, was ${prev}); rate=${b.rate()} threshold=${b.threshold}`,
+            `${b.name}: +${now - prev} exceedance${now - prev === 1 ? "" : "s"} (now ${now}, was ${prev}); total=${b.windowTotal()} threshold=${b.threshold}`,
           );
         }
       }

@@ -14,13 +14,13 @@ export const ALARM_REQUIRED_ABOVE_SECONDS = 5;
 
 export const warpActions = [
   {
-    id: "stepUp",
+    id: "step-up",
     label: "Warp up",
     accepts: ["button"],
     description: "Step warp up one level.",
   },
   {
-    id: "stepDown",
+    id: "step-down",
     label: "Warp down",
     accepts: ["button"],
     description: "Step warp down one level.",
@@ -32,7 +32,7 @@ export const warpActions = [
     description: "Drop warp straight to realtime.",
   },
   {
-    id: "togglePause",
+    id: "toggle-pause",
     label: "Toggle pause",
     accepts: ["button"],
     description: "Pause / unpause KSP (in-flight only).",

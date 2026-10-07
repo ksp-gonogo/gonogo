@@ -27,7 +27,7 @@ export interface TagAutocompleteProps {
   ) => void;
   multiline?: boolean;
   placeholder?: string;
-  ariaLabel?: string;
+  "aria-label"?: string;
   autoFocus?: boolean;
   onBlur?: () => void;
 }
@@ -52,7 +52,7 @@ export const TagAutocomplete = forwardRef<
     onKeyDown,
     multiline = false,
     placeholder,
-    ariaLabel,
+    "aria-label": ariaLabel,
     autoFocus,
     onBlur,
   },

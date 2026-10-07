@@ -13,14 +13,14 @@ import { focusRingInset } from "./focusRing";
 export interface ActionMenuItem {
   /** Stable id handed back to `onSelect`. */
   key: string;
-  /** The item's visible text, and its accessible name unless `ariaLabel` is set. */
+  /** The item's visible text, and its accessible name unless `aria-label` is set. */
   label: string;
   /** Optional grouping header; ungrouped items collapse into one flat list. */
   group?: string;
   /** Present but not currently firable: rendered dimmed and inert, still reachable. */
   disabled?: boolean;
   /** Overrides the accessible name when `label` alone is ambiguous out of context. */
-  ariaLabel?: string;
+  "aria-label"?: string;
 }
 
 /**
@@ -36,7 +36,7 @@ export interface ActionMenuProps {
   /** Escape, Tab, or an outside pointer press. The caller restores trigger focus. */
   onDismiss: () => void;
   /** Accessible name for the menu itself: `role="menu"` needs one. */
-  ariaLabel: string;
+  "aria-label": string;
   /** Positioning (the caller owns anchoring); merged over the menu's own frame styles. */
   style?: CSSProperties;
   /** Rendered above the items: a title row, a pending indicator, a delay readout. */
@@ -76,7 +76,7 @@ export interface ActionMenuProps {
  *         { key: "deploy", label: "Deploy chute" },
  *         { key: "cut", label: "Cut chute", disabled: !deployed },
  *       ]}
- *       ariaLabel="Parachute actions"
+ *       aria-label="Parachute actions"
  *       style={{ position: "static" }}
  *       onSelect={(key) => {
  *         fire(key);
@@ -94,7 +94,7 @@ export function ActionMenu({
   items,
   onSelect,
   onDismiss,
-  ariaLabel,
+  "aria-label": ariaLabel,
   style,
   header,
   footer,
@@ -219,7 +219,7 @@ export function ActionMenu({
                   key={item.key}
                   type="button"
                   role="menuitem"
-                  aria-label={item.ariaLabel}
+                  aria-label={item["aria-label"]}
                   // aria-disabled, not `disabled`: a natively disabled button cannot take focus and drops out of the arrow-key walk.
                   aria-disabled={item.disabled}
                   $disabled={item.disabled}

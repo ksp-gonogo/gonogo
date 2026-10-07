@@ -112,10 +112,10 @@ describe("the contribution slot perf budget", () => {
     // for it, and that was the shape CI went red on. One record is allowed:
     // the seeding write that puts the slot's first entry set in the store.
     const busy = contributionBudgets()
-      .filter((b) => b.rate() > 1 || b.getExceedanceCount() > 0)
+      .filter((b) => b.windowTotal() > 1 || b.getExceedanceCount() > 0)
       .map(
         (b) =>
-          `${b.name}: rate=${b.rate()} exceedances=${b.getExceedanceCount()}`,
+          `${b.name}: total=${b.windowTotal()} exceedances=${b.getExceedanceCount()}`,
       );
     expect(busy).toEqual([]);
   });
@@ -146,7 +146,7 @@ describe("the contribution slot perf budget", () => {
     }
 
     const budget = budgetFor("fixture.perf");
-    expect(budget.rate()).toBeGreaterThan(budget.threshold);
+    expect(budget.windowTotal()).toBeGreaterThan(budget.threshold);
     expect(budget.getExceedanceCount()).toBeGreaterThan(
       budgetsBefore.get(budget.name) ?? 0,
     );

@@ -173,7 +173,7 @@ export function RoboticsConsoleView({
             <Cluster justify="start" wrap>
               <ToggleButton
                 size="sm"
-                active={selected.motorEngaged === true}
+                pressed={selected.motorEngaged === true}
                 tone="go"
                 disabled={selected.motorEngaged === null}
                 aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
@@ -186,7 +186,7 @@ export function RoboticsConsoleView({
               </ToggleButton>
               <ToggleButton
                 size="sm"
-                active={selected.locked === true}
+                pressed={selected.locked === true}
                 tone="warn"
                 disabled={selected.locked === null}
                 aria-label={flagLabel("Toggle lock", selected.locked)}

@@ -77,7 +77,7 @@ function Body({ id }: { id: string }) {
               getOptionId={(k) => `probe-${k}`}
               onHoverIndex={() => {}}
               onSelectKey={() => {}}
-              ariaLabel="Probe combobox"
+              aria-label="Probe combobox"
             />
           </div>
           {/* Reserves flow space for the dropdown above, which is

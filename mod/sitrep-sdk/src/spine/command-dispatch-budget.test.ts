@@ -127,7 +127,7 @@ describe("command dispatch budget", () => {
     expect(session.gameIndex()).toBe(4);
 
     // What actually left the client. The gap is the storm.
-    expect(budget.rate()).toBe(REDUNDANT_TICKS + 1);
+    expect(budget.windowTotal()).toBe(REDUNDANT_TICKS + 1);
     expect(session.sent).toHaveLength(REDUNDANT_TICKS + 1);
   });
 
@@ -141,7 +141,7 @@ describe("command dispatch budget", () => {
     }
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(budget.rate()).toBe(storm);
+    expect(budget.windowTotal()).toBe(storm);
     expect(budget.getExceedanceCount()).toBeGreaterThan(0);
   });
 
@@ -157,7 +157,7 @@ describe("command dispatch budget", () => {
     }
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(budget.rate()).toBe(20);
+    expect(budget.windowTotal()).toBe(20);
     expect(budget.getExceedanceCount()).toBe(0);
   });
 });

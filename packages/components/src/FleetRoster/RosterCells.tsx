@@ -5,10 +5,10 @@ import { TONE_MARK, TONE_TEXT, type Tone } from "./comms";
 /** Decorative colour-coded link marker; its `aria-label` carries the meaning. */
 export function LinkDot({
   tone,
-  ariaLabel,
+  "aria-label": ariaLabel,
 }: {
   tone: Tone;
-  ariaLabel: string;
+  "aria-label": string;
 }) {
   return (
     <span

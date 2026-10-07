@@ -78,7 +78,7 @@ function Plot({ plot }: { plot: MergedPlot }) {
       >
         <GraphView
           chrome="bare"
-          ariaLabel={plot.title}
+          aria-label={plot.title}
           layers={plot.layers}
           config={{
             series: [],

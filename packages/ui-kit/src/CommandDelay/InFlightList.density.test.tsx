@@ -31,7 +31,7 @@ describe("InFlightList density", () => {
 
   it("collapses the whole set to a count and the nearest arrival when tiny", () => {
     render(
-      <InFlightList items={ITEMS} density="badge" ariaLabel="Warp queue" />,
+      <InFlightList items={ITEMS} density="badge" aria-label="Warp queue" />,
     );
     // The nearest arrival is what changes what the operator does next.
     expect(

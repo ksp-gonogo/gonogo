@@ -25,7 +25,7 @@ function FleetCommsActions() {
         <ToggleButton
           type="button"
           size="sm"
-          active={showCommlinks}
+          pressed={showCommlinks}
           onClick={() => setShowCommlinks(instanceId, !showCommlinks)}
         >
           Commlinks
@@ -35,7 +35,7 @@ function FleetCommsActions() {
         <ToggleButton
           type="button"
           size="sm"
-          active={showCommandTraffic}
+          pressed={showCommandTraffic}
           onClick={() => setShowCommandTraffic(instanceId, !showCommandTraffic)}
         >
           Traffic

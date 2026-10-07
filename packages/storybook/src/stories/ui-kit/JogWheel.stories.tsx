@@ -18,7 +18,7 @@ const meta = {
   decorators: [withGonogoFrame],
   render: (args) => <Held key={`${args.min}:${args.max}`} {...args} />,
   args: {
-    ariaLabel: "Throttle trim",
+    "aria-label": "Throttle trim",
     value: 50,
     min: 0,
     max: 100,
@@ -35,13 +35,13 @@ export const Offset: Story = {};
 
 /** Dragging up raises the value. */
 export const Vertical: Story = {
-  args: { orientation: "vertical", ariaLabel: "Pitch trim" },
+  args: { orientation: "vertical", "aria-label": "Pitch trim" },
 };
 
 /** A half step, with the caret written to one decimal. */
 export const Fractional: Story = {
   args: {
-    ariaLabel: "Gimbal trim",
+    "aria-label": "Gimbal trim",
     value: 12.5,
     min: 0,
     max: 60,
@@ -55,7 +55,7 @@ export const Rate: Story = {
   render: () => (
     <Held
       mode="rate"
-      ariaLabel="Scrub time"
+      aria-label="Scrub time"
       value={0}
       step={1}
       stepsPerSecond={20}

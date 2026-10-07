@@ -114,7 +114,7 @@ export function AstronautComplexComponent(
     sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
 
   useActionInput<AstronautComplexActions>({
-    highlightNextAvailable: (payload) => {
+    "highlight-next-available": (payload) => {
       // Fire on the press edge only, so one tap steps one row.
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (sackableCrew.length === 0 || !highlighted) return undefined;
@@ -126,7 +126,7 @@ export function AstronautComplexComponent(
       setArmedName(null);
       return { highlighted: next.name };
     },
-    fireHighlighted: (payload) => {
+    "fire-highlighted": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (!highlighted) return undefined;
       if (armedName !== highlighted.name) {

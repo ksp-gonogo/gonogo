@@ -19,7 +19,7 @@ export interface HoverCardProps {
   /** The always-visible trigger content: a glyph, a tag, a short label. */
   trigger: ReactNode;
   /** Accessible name for the trigger, required since the trigger is usually a glyph. */
-  ariaLabel: string;
+  "aria-label": string;
   /** What the card says. Read-only facts: a hover card holds no controls. */
   children: ReactNode;
 }
@@ -36,14 +36,18 @@ const CLOSE_DELAY_MS = 120;
  *
  * @example
  * ```tsx
- * <HoverCard trigger={<InfoIcon />} ariaLabel="Signal path">
+ * <HoverCard trigger={<InfoIcon />} aria-label="Signal path">
  *   <Text>Relayed through {relayName}</Text>
  * </HoverCard>
  * ```
  *
  * @category Floating
  */
-export function HoverCard({ trigger, ariaLabel, children }: HoverCardProps) {
+export function HoverCard({
+  trigger,
+  "aria-label": ariaLabel,
+  children,
+}: HoverCardProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

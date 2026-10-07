@@ -66,7 +66,7 @@ describe("ControlDelayStream", () => {
     const { container } = render(
       <ControlDelayStream
         streams={[stream()]}
-        ariaLabel="Throttle in flight"
+        aria-label="Throttle in flight"
       />,
     );
     expect(
@@ -89,7 +89,7 @@ describe("ControlDelayStream", () => {
           stream(),
           stream({ id: "vessel.control.pitch", label: "Pitch" }),
         ]}
-        ariaLabel="Navball controls in flight"
+        aria-label="Navball controls in flight"
       />,
     );
     expect(getByRole("img")).toHaveAttribute(
@@ -485,7 +485,7 @@ describe("the ribbon mark", () => {
       <ControlDelayStream
         streams={[]}
         ribbons={[ribbon()]}
-        ariaLabel="Your transmission crossing to Odyssey"
+        aria-label="Your transmission crossing to Odyssey"
       />,
     );
     expect(

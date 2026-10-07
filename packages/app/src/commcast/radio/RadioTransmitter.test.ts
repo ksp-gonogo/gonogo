@@ -383,8 +383,8 @@ describe("radio transmit, inside its budgets", () => {
     const bytes = PerfBudget.getAll().find(
       (b) => b.name === "CommcastRadio encoded bytes/sec",
     );
-    expect(chunks?.rate()).toBe(50);
-    expect(bytes?.rate()).toBe(50 * 86);
+    expect(chunks?.windowTotal()).toBe(50);
+    expect(bytes?.windowTotal()).toBe(50 * 86);
     expect(chunks?.getExceedanceCount()).toBe(0);
     expect(bytes?.getExceedanceCount()).toBe(0);
   });

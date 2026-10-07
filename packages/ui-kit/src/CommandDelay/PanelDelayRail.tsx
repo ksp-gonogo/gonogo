@@ -233,7 +233,9 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
                 handle={h}
                 variant={grown ? "expanded" : "rail"}
                 // A handle that names its own graph keeps that name at both heights.
-                ariaLabel={h.ariaLabel ?? (grown ? "Delay detail" : undefined)}
+                aria-label={
+                  h["aria-label"] ?? (grown ? "Delay detail" : undefined)
+                }
               />
             ))}
             {!grown &&

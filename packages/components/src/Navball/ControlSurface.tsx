@@ -92,7 +92,7 @@ export function ControlSurface({
               <ToggleButton
                 key={mode}
                 type="button"
-                active={sasMode === mode}
+                pressed={sasMode === mode}
                 data-unconfirmed={isUnconfirmed ? "true" : undefined}
                 aria-label={
                   isUnconfirmed
@@ -173,7 +173,7 @@ export function ControlSurface({
         {/* Renders nothing at near-zero delay, so it is always mounted. */}
         <ControlDelayStream
           streams={[throttleStream, ...axisStreams]}
-          ariaLabel="Navball: controls in flight"
+          aria-label="Navball: controls in flight"
         />
       </div>
 
@@ -182,7 +182,7 @@ export function ControlSurface({
         <div style={FBW_ROW}>
           <ToggleButton
             type="button"
-            active={fbwState === "armed"}
+            pressed={fbwState === "armed"}
             onClick={
               FBW_VIEW[fbwState].press === "arm" ? onArmFbw : onDisarmFbw
             }

@@ -169,11 +169,11 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
 
     let returned: unknown;
     act(() => {
-      returned = dispatchAction(INSTANCE, "rpmUp", {
+      returned = dispatchAction(INSTANCE, "rpm-up", {
         kind: "button",
         value: true,
       });
-      dispatchAction(INSTANCE, "rpmDown", { kind: "button", value: true });
+      dispatchAction(INSTANCE, "rpm-down", { kind: "button", value: true });
     });
     await act(async () => {});
 
@@ -296,7 +296,7 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
     await screen.findByRole("button", { name: /Motor/i });
 
     act(() => {
-      dispatchAction(INSTANCE, "toggleMotor", { kind: "button", value: true });
+      dispatchAction(INSTANCE, "toggle-motor", { kind: "button", value: true });
     });
     await act(async () => {});
 

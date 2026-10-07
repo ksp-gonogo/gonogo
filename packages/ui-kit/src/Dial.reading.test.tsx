@@ -65,17 +65,17 @@ const AXIS = { min: value("deg", 0), max: value("deg", 360) } as const;
 describe("Dial, handed a Reading", () => {
   it("draws an observed reading exactly as it draws the bare quantity", () => {
     const asReading = render(
-      <Dial {...AXIS} value={banded(value("deg", 90))} ariaLabel="Heading" />,
+      <Dial {...AXIS} value={banded(value("deg", 90))} aria-label="Heading" />,
     );
     const asValue = render(
-      <Dial {...AXIS} value={value("deg", 90)} ariaLabel="Heading" />,
+      <Dial {...AXIS} value={value("deg", 90)} aria-label="Heading" />,
     );
     expect(asReading.container.innerHTML).toBe(asValue.container.innerHTML);
   });
 
   it("marks a centre readout that is not a reading of now", () => {
     const { container } = render(
-      <Dial {...AXIS} value={held(value("deg", 90))} ariaLabel="Heading" />,
+      <Dial {...AXIS} value={held(value("deg", 90))} aria-label="Heading" />,
     );
     expect(container.querySelector("[data-held]")).not.toBeNull();
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
@@ -83,7 +83,7 @@ describe("Dial, handed a Reading", () => {
 
   it("says the currency on the face's own accessible name", () => {
     render(
-      <Dial {...AXIS} value={held(value("deg", 90))} ariaLabel="Heading" />,
+      <Dial {...AXIS} value={held(value("deg", 90))} aria-label="Heading" />,
     );
     expect(screen.getByRole("meter").getAttribute("aria-label")).toMatch(
       /^Heading, /,
@@ -92,7 +92,7 @@ describe("Dial, handed a Reading", () => {
 
   it("leaves a current face's accessible name exactly as it was", () => {
     render(
-      <Dial {...AXIS} value={banded(value("deg", 90))} ariaLabel="Heading" />,
+      <Dial {...AXIS} value={banded(value("deg", 90))} aria-label="Heading" />,
     );
     expect(screen.getByRole("meter").getAttribute("aria-label")).toBe(
       "Heading",
@@ -104,7 +104,7 @@ describe("Dial, handed a Reading", () => {
       <Dial
         {...AXIS}
         value={banded(value("deg", 90), bandOf("deg", 60, 120))}
-        ariaLabel="Heading"
+        aria-label="Heading"
       />,
     );
     const marks = Array.from(container.querySelectorAll("[data-bound]"));
@@ -117,7 +117,7 @@ describe("Dial, handed a Reading", () => {
       <Dial
         {...AXIS}
         value={banded(value("deg", 90), bandOf("m", 60, 120))}
-        ariaLabel="Heading"
+        aria-label="Heading"
       />,
     );
     expect(container.querySelectorAll("[data-bound]")).toHaveLength(0);
@@ -128,7 +128,7 @@ describe("Dial, handed a Reading", () => {
       <Dial
         {...AXIS}
         value={{ state: "pending", reckoning: { status: "none" } }}
-        ariaLabel="Heading"
+        aria-label="Heading"
       />,
     );
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe("Dial, handed a Reading", () => {
           asOfUt: AT,
           grade: "held",
         }}
-        ariaLabel="Heading"
+        aria-label="Heading"
       />,
     );
     await expectNoA11yViolations(container);
@@ -166,7 +166,7 @@ describe("Dial with no figure", () => {
       <Dial
         {...AXIS}
         value={{ state: "pending", reckoning: { status: "none" } }}
-        ariaLabel="Heading"
+        aria-label="Heading"
       />,
     );
     expect(screen.queryByRole("meter")).toBeNull();

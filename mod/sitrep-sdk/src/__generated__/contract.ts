@@ -4703,7 +4703,7 @@ export interface MissionStatus
 	* The mission's objectives in flow order. A node of the mission that nothing
 	* leads to is left out. Empty when it has none.
 	*/
-	objectives?: MissionObjectiveEntry[] | null;
+	objectives: MissionObjectiveEntry[];
 }
 /**
 * The `settings.<uplink>` Topic payload: one Uplink's host mod's own settings,

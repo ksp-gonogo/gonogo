@@ -63,13 +63,13 @@ export function PartActionMenu({
     group: action.group ?? undefined,
     disabled: !action.active,
     // The accessible name carries the part, which the item's own text does not.
-    ariaLabel: `${action.label || action.name} on ${partTitle}`,
+    "aria-label": `${action.label || action.name} on ${partTitle}`,
   }));
 
   return (
     <ActionMenu
       items={items}
-      ariaLabel={`${partTitle} actions`}
+      aria-label={`${partTitle} actions`}
       style={style}
       // An unanswered subscription (a real wait under delay) is not a part with no buttons.
       emptyLabel={pending ? "Awaiting actions..." : "No actions"}

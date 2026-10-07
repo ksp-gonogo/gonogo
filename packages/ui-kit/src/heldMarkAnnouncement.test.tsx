@@ -101,7 +101,7 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         max={value("1", 3)}
         width={160}
         height={100}
-        ariaLabel="TWR"
+        aria-label="TWR"
       />
     ),
     Dial: (grade) => (
@@ -109,7 +109,7 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         value={held(value("deg", 90), grade)}
         min={value("deg", 0)}
         max={value("deg", 360)}
-        ariaLabel="Heading"
+        aria-label="Heading"
       />
     ),
     Tape: (grade) => (
@@ -117,7 +117,7 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         value={held(value("m", 420), grade)}
         min={value("m", 0)}
         max={value("m", 1000)}
-        ariaLabel="AGL"
+        aria-label="AGL"
       />
     ),
     // A figure the model carried past the received edge wears the mark whatever the observation's grade.

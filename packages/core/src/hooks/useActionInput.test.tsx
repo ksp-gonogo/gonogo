@@ -121,7 +121,7 @@ describe("useActionInput", () => {
     );
     // One initial registration on mount.
     expect(budget.getExceedanceCount()).toBe(0);
-    const registrationsAfterMount = budget.rate();
+    const registrationsAfterMount = budget.windowTotal();
     expect(registrationsAfterMount).toBe(1);
 
     // Force ten parent re-renders with fresh handler-object identities.
@@ -131,7 +131,7 @@ describe("useActionInput", () => {
       });
     }
     // No additional registrations: the proxy stays put.
-    expect(budget.rate()).toBe(1);
+    expect(budget.windowTotal()).toBe(1);
 
     // The proxy still routes to the latest closure: dispatch fires the current handler, which sees the up-to-date spy.
     dispatchAction("widget-1", "toggle", { kind: "button", value: true });

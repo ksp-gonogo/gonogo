@@ -64,7 +64,7 @@ function Sheet() {
             series={seriesOf(c)}
             variant={c.variant}
             height={c.variant === "sparkline" ? 56 : 110}
-            ariaLabel={c.title}
+            aria-label={c.title}
           />
         </figure>
       ))}

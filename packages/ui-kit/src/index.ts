@@ -89,6 +89,7 @@ export {
   type ButtonTone,
   type ButtonVariant,
   IconButton,
+  type IconButtonProps,
   TextButton,
 } from "./Button";
 export {
@@ -97,7 +98,6 @@ export {
 } from "./ButtonGroup";
 export { type BadgeFace, badgeFace } from "./badgeFace";
 // How doubt is spoken, in one place, for surfaces outside this package too.
-export { bandClaim } from "./bandClaim";
 export { Card, type CardProps } from "./Card";
 export {
   Cluster,
@@ -252,6 +252,7 @@ export { DataLine, type DataLineProps } from "./DataLine";
 export {
   DataTable,
   type DataTableColumn,
+  type DataTableColumnBase,
   type DataTableProps,
   type DataTableSection,
 } from "./DataTable";
@@ -380,6 +381,7 @@ export { Inline, type InlineProps } from "./Inline";
 export { InstrumentHeldMark, sayHeld } from "./instrumentCurrency";
 export {
   JogWheel,
+  type JogWheelCommon,
   type JogWheelProps,
 } from "./JogWheel";
 export {
@@ -444,7 +446,12 @@ export {
   type MissionDateParts,
   utOfParts,
 } from "./MissionDateField";
-export { ModalProvider, useModal } from "./Modal";
+export {
+  type ModalContextValue,
+  type ModalOpenOptions,
+  ModalProvider,
+  useModal,
+} from "./Modal";
 export {
   ModalChromeContext,
   type ModalChromeValue,
@@ -546,7 +553,7 @@ export {
   SubjectHeading,
   type SubjectHeadingProps,
 } from "./SubjectHeading";
-export { Switch, type SwitchProps } from "./Switch";
+export { Switch, type SwitchBaseProps, type SwitchProps } from "./Switch";
 export type { GapToken, InsetToken } from "./scales";
 export * from "./sizeDelta";
 export {

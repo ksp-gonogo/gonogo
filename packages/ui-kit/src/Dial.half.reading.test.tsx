@@ -65,6 +65,7 @@ describe("Gauge, handed a Reading", () => {
   it("draws an observed reading exactly as it draws the bare quantity", () => {
     const asReading = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -76,6 +77,7 @@ describe("Gauge, handed a Reading", () => {
     );
     const asValue = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -91,6 +93,7 @@ describe("Gauge, handed a Reading", () => {
   it("marks a figure that is not a reading of now, the way a Unit does", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -114,6 +117,7 @@ describe("Gauge, handed a Reading", () => {
     const raise = (readout: "regular" | "large") => {
       const { container } = render(
         <Dial
+          aria-label="Dial"
           startAngle={-90}
           sweep={180}
           readout={readout}
@@ -161,7 +165,7 @@ describe("Gauge, handed a Reading", () => {
         }}
         min={value("1", 0)}
         max={value("1", 3)}
-        ariaLabel="TWR"
+        aria-label="TWR"
       />,
     );
     // The grade's own word, never rephrased here.
@@ -180,7 +184,7 @@ describe("Gauge, handed a Reading", () => {
         value={banded(value("1", 1.84))}
         min={value("1", 0)}
         max={value("1", 3)}
-        ariaLabel="TWR"
+        aria-label="TWR"
       />,
     );
     expect(screen.getByRole("meter").getAttribute("aria-label")).toBe("TWR");
@@ -189,6 +193,7 @@ describe("Gauge, handed a Reading", () => {
   it("draws one mark per bound, and never a shaded interval", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -208,6 +213,7 @@ describe("Gauge, handed a Reading", () => {
   it("places the two bounds apart, at their own points on the arc", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -224,6 +230,7 @@ describe("Gauge, handed a Reading", () => {
   it("draws no bound for a model that offers no band", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -239,6 +246,7 @@ describe("Gauge, handed a Reading", () => {
   it("ignores a band that arrived in another kind rather than placing it", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -254,6 +262,7 @@ describe("Gauge, handed a Reading", () => {
   it("shows no needle for a reading that carries no number", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"
@@ -291,7 +300,7 @@ describe("Gauge, handed a Reading", () => {
         }}
         min={value("1", 0)}
         max={value("1", 3)}
-        ariaLabel="TWR"
+        aria-label="TWR"
       />,
     );
     await expectNoA11yViolations(container);
@@ -302,6 +311,7 @@ describe("Gauge hover title", () => {
   it("says what the accessible name says, not a bare magnitude", () => {
     const { container } = render(
       <Dial
+        aria-label="Dial"
         startAngle={-90}
         sweep={180}
         readout="regular"

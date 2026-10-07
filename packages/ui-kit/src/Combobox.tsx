@@ -138,7 +138,7 @@ export interface ComboboxListboxProps<Option extends ComboboxOption> {
    * control is not a literal `<input role="combobox">`, since an unnamed
    * `role="listbox"` is an accessibility violation.
    */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /**
    * Which side of the control the list opens on. Defaults to `"below"`.
    * `"above"` is for a control at the foot of a clipping container, such as a
@@ -238,7 +238,7 @@ export function ComboboxListbox<Option extends ComboboxOption>({
   onSelectKey,
   renderItem,
   emptyLabel = "No matches",
-  ariaLabel,
+  "aria-label": ariaLabel,
   placement = "below",
 }: Readonly<ComboboxListboxProps<Option>>) {
   return (

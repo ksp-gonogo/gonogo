@@ -21,20 +21,30 @@ import { useKeyboardScrollable } from "./useScrollerMetric";
 interface ModalEntry {
   id: string;
   title?: string;
-  ariaLabel?: string;
+  "aria-label"?: string;
   width?: string;
   content: ReactNode;
 }
 
-interface ModalOpenOptions {
+/**
+ * What {@link useModal}'s `open` takes beside the content.
+ *
+ * @category Modal
+ */
+export interface ModalOpenOptions {
   title?: string;
   /** Names a dialog that has no visible `title`. Ignored when `title` is given. */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /** CSS length for the dialog max-width. Defaults to 560px. */
   width?: string;
 }
 
-interface ModalContextValue {
+/**
+ * What {@link useModal} returns: open and close dialogs.
+ *
+ * @category Modal
+ */
+export interface ModalContextValue {
   /** Opens a dialog showing `content` on top of any already open, and returns its id. */
   open: (content: ReactNode, options?: ModalOpenOptions) => string;
   /** Closes the dialog with this id, whether or not it is on top. Does nothing for an id already closed. */
@@ -75,7 +85,7 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
         {
           id,
           title: options?.title,
-          ariaLabel: options?.ariaLabel,
+          "aria-label": options?.["aria-label"],
           width: options?.width,
           content,
         },
@@ -109,7 +119,7 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
 /**
  * Opens and closes modal dialogs. `open(content, options)` pushes a dialog
  * showing `content` and returns its id; `options` takes a `title`, an
- * `ariaLabel` for a dialog with no visible title, and a CSS `width` for the
+ * `aria-label` for a dialog with no visible title, and a CSS `width` for the
  * dialog's max-width (560px by default). `close(id)` removes that dialog.
  * Throws when called outside a {@link ModalProvider}.
  *
@@ -259,7 +269,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={entry.title ? titleId : undefined}
-            aria-label={entry.title ? undefined : entry.ariaLabel}
+            aria-label={entry.title ? undefined : entry["aria-label"]}
             $width={entry.width}
           >
             <DialogHeader>

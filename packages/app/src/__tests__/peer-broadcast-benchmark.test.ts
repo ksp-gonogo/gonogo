@@ -150,8 +150,8 @@ describe("peer broadcast benchmark", () => {
       source.tick();
     }
 
-    const bytesIn1Sec = bytesBudget.rate(tStart + 999);
-    const countIn1Sec = countBudget.rate(tStart + 999);
+    const bytesIn1Sec = bytesBudget.windowTotal(tStart + 999);
+    const countIn1Sec = countBudget.windowTotal(tStart + 999);
 
     if (import.meta.env.BENCH_LOG) {
       // Absolute numbers for cross-branch comparison; opt-in via BENCH_LOG=1.
@@ -223,8 +223,8 @@ describe("peer broadcast benchmark", () => {
     const tStart = 1_000_000;
     for (let i = 0; i < 4; i++) source.tick();
 
-    const bytesIn1Sec = bytesBudget.rate(tStart + 999);
-    const countIn1Sec = countBudget.rate(tStart + 999);
+    const bytesIn1Sec = bytesBudget.windowTotal(tStart + 999);
+    const countIn1Sec = countBudget.windowTotal(tStart + 999);
     if (import.meta.env.BENCH_LOG) {
       // eslint-disable-next-line no-console
       console.log(

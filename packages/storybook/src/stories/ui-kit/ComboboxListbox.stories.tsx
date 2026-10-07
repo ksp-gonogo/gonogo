@@ -105,7 +105,7 @@ function CrewCombobox({
         />
         <ComboboxListbox
           id="crew-list"
-          ariaLabel="Crew"
+          aria-label="Crew"
           groups={groups}
           flatOptions={flat}
           activeIndex={active}

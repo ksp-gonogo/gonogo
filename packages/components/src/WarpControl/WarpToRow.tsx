@@ -99,21 +99,21 @@ export function WarpToRow({
         <Cluster gap="related-packed" role="group" aria-label="Warp target">
           <ToggleButton
             size="sm"
-            active={target === "for"}
+            pressed={target === "for"}
             onClick={() => setTarget("for")}
           >
             For
           </ToggleButton>
           <ToggleButton
             size="sm"
-            active={target === "node"}
+            pressed={target === "node"}
             onClick={() => setTarget("node")}
           >
             Before node
           </ToggleButton>
           <ToggleButton
             size="sm"
-            active={target === "ut"}
+            pressed={target === "ut"}
             onClick={() => setTarget("ut")}
           >
             UT
@@ -143,7 +143,7 @@ export function WarpToRow({
               <ToggleButton
                 key={seconds}
                 size="sm"
-                active={leadSeconds === seconds}
+                pressed={leadSeconds === seconds}
                 onClick={() => setLeadSeconds(seconds)}
               >
                 <Unit value={value("s", seconds)} />

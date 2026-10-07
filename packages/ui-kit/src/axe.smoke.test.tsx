@@ -209,7 +209,7 @@ describe("a11y smoke (jest-axe)", () => {
           { from: value("m", 400), to: value("m", 900), label: "ignition" },
         ]}
         markers={[{ value: value("m", 150), label: "gear" }]}
-        ariaLabel="Altitude above terrain"
+        aria-label="Altitude above terrain"
       />,
     );
     await expectNoA11yViolations(container);
@@ -235,7 +235,7 @@ describe("a11y smoke (jest-axe)", () => {
             color: "var(--color-warn-on-status)",
           },
         ]}
-        ariaLabel="Slope fall direction"
+        aria-label="Slope fall direction"
       />,
     );
     await expectNoA11yViolations(container);

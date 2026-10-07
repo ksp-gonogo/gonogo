@@ -92,10 +92,10 @@ describe("missionObjectiveItems", () => {
     expect(item.state).toBe("pending");
   });
 
-  it("yields nothing for no mission, or one with no objective list", () => {
+  it("yields nothing for no mission, or one with no objectives", () => {
     expect(missionObjectiveItems(null)).toEqual([]);
     expect(missionObjectiveItems(undefined)).toEqual([]);
-    expect(missionObjectiveItems({ name: "M" })).toEqual([]);
+    expect(missionObjectiveItems({ name: "M", objectives: [] })).toEqual([]);
   });
 });
 

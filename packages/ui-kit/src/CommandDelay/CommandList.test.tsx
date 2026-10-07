@@ -205,7 +205,7 @@ describe("CommandList", () => {
 
   it("takes a caller's name for the list", () => {
     render(
-      <CommandList kind="refused" entries={[refusal]} ariaLabel="Refusals" />,
+      <CommandList kind="refused" entries={[refusal]} aria-label="Refusals" />,
     );
     expect(screen.getByRole("status", { name: "Refusals" })).toBeTruthy();
   });

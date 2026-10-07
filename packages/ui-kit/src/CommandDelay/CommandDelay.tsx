@@ -75,7 +75,7 @@ export interface CommandDelayHandle {
    * what it is. A voice ribbon names the transmission it is drawing; a control
    * axis is happy with the default.
    */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /**
    * Dispatches from this command the GAME REFUSED, until dismissed. Rendered by
    * the Panel rail under both queues, never by `<CommandDelay>`: a refusal is
@@ -133,7 +133,7 @@ export interface CommandDelayProps {
    * Accessible label for the rendered region. Left undefined, each branch
    * keeps its own default ("In-flight commands" / "Controls in flight").
    */
-  ariaLabel?: string;
+  "aria-label"?: string;
   /** Discrete-branch passthrough to `InFlightList`. Ignored for stream. */
   mode?: InFlightListMode;
   /** Discrete-branch passthrough to `InFlightList`. Ignored for stream. */
@@ -176,7 +176,7 @@ export interface CommandDelayProps {
 export function CommandDelay({
   handle,
   handles,
-  ariaLabel,
+  "aria-label": ariaLabel,
   mode,
   density,
   orientation,
@@ -192,7 +192,9 @@ export function CommandDelay({
   const lone = all.length === 1 ? all[0] : null;
   const loneRenderer = lone ? railRendererFor(lone.tags) : null;
   if (lone && loneRenderer === null) {
-    return <UnrepresentedRailHandle tags={lone.tags} who={lone.ariaLabel} />;
+    return (
+      <UnrepresentedRailHandle tags={lone.tags} who={lone["aria-label"]} />
+    );
   }
   if (lone && loneRenderer !== "in-flight-row") {
     const streamHandle = lone;
@@ -204,7 +206,7 @@ export function CommandDelay({
         streams={streamHandle.streams ?? []}
         ribbons={streamHandle.ribbons ?? []}
         delayReading={streamHandle.delayReading}
-        ariaLabel={ariaLabel ?? streamHandle.ariaLabel}
+        aria-label={ariaLabel ?? streamHandle["aria-label"]}
         variant={variant}
       />
     );
@@ -225,7 +227,7 @@ export function CommandDelay({
   return (
     <InFlightList
       items={items}
-      ariaLabel={ariaLabel}
+      aria-label={ariaLabel}
       mode={mode}
       density={density}
       orientation={orientation}

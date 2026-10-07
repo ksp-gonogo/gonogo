@@ -28,7 +28,7 @@ const SHIELDED = {
 describe("LineGraph", () => {
   it("draws one polyline per series with at least two points", () => {
     const { container } = render(
-      <LineGraph series={[AMBIENT, SHIELDED]} ariaLabel="Radiation trend" />,
+      <LineGraph series={[AMBIENT, SHIELDED]} aria-label="Radiation trend" />,
     );
     const lines = container.querySelectorAll("polyline");
     expect(lines).toHaveLength(2);
@@ -50,7 +50,7 @@ describe("LineGraph", () => {
             breaks: [2],
           },
         ]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     expect(container.querySelectorAll("polyline")).toHaveLength(2);
@@ -60,7 +60,7 @@ describe("LineGraph", () => {
     const { container } = render(
       <LineGraph
         series={[{ ...AMBIENT, breaks: [1] }]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     // The break leaves a single point before it, which is not a line: only the two-point run after it draws.
@@ -71,7 +71,7 @@ describe("LineGraph", () => {
     const { container } = render(
       <LineGraph
         series={[{ ...AMBIENT, points: [{ x: 0, y: 1 }] }, SHIELDED]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     expect(container.querySelectorAll("polyline")).toHaveLength(1);
@@ -82,20 +82,20 @@ describe("LineGraph", () => {
       <LineGraph
         series={[AMBIENT]}
         thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const dashed = container.querySelector('line[stroke-dasharray="2 1.5"]');
     expect(dashed).not.toBeNull();
   });
 
-  it("is aria-hidden with no ariaLabel, role=img with one", () => {
+  it("is aria-hidden with no aria-label, role=img with one", () => {
     const { rerender, container } = render(<LineGraph series={[AMBIENT]} />);
     const svg = container.querySelector("svg");
     expect(svg).toHaveAttribute("aria-hidden", "true");
     expect(svg).not.toHaveAttribute("role");
 
-    rerender(<LineGraph series={[AMBIENT]} ariaLabel="Radiation trend" />);
+    rerender(<LineGraph series={[AMBIENT]} aria-label="Radiation trend" />);
     expect(
       screen.getByRole("img", { name: "Radiation trend" }),
     ).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe("LineGraph marker threshold style", () => {
         variant="sparkline"
         thresholds={[{ id: "safe", label: "Safe", value: 1.75, valueText }]}
         thresholdStyle="marker"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
 
@@ -166,7 +166,7 @@ describe("LineGraph marker threshold style", () => {
           },
         ]}
         thresholdStyle="marker"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const marker = container.querySelector<HTMLElement>(
@@ -183,7 +183,7 @@ describe("LineGraph marker threshold style", () => {
         yDomain={[0, 1]}
         thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
         thresholdStyle="marker"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     expect(
@@ -220,7 +220,7 @@ describe("LineGraph sparkline variant", () => {
       <LineGraph
         series={[AMBIENT, SHIELDED]}
         variant="sparkline"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const areas = container.querySelectorAll("polygon");
@@ -232,7 +232,7 @@ describe("LineGraph sparkline variant", () => {
 
   it("draws thinner strokes than the chart variant, for a glance-read trend", () => {
     const { container: chart } = render(
-      <LineGraph series={[AMBIENT]} ariaLabel="Radiation trend" />,
+      <LineGraph series={[AMBIENT]} aria-label="Radiation trend" />,
     );
     const chartLine = chart.querySelector("polyline");
     expect(chartLine).toHaveAttribute("stroke-width", "1.4");
@@ -241,7 +241,7 @@ describe("LineGraph sparkline variant", () => {
       <LineGraph
         series={[AMBIENT]}
         variant="sparkline"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const sparklineLine = sparkline.querySelector("polyline");
@@ -250,7 +250,7 @@ describe("LineGraph sparkline variant", () => {
 
   it("drops the quarter gridlines a chart variant draws", () => {
     const { container: chart } = render(
-      <LineGraph series={[AMBIENT]} ariaLabel="Radiation trend" />,
+      <LineGraph series={[AMBIENT]} aria-label="Radiation trend" />,
     );
     const chartLines = chart.querySelectorAll("line:not([stroke-dasharray])");
     expect(chartLines.length).toBeGreaterThan(0);
@@ -259,7 +259,7 @@ describe("LineGraph sparkline variant", () => {
       <LineGraph
         series={[AMBIENT]}
         variant="sparkline"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const sparklineLines = sparkline.querySelectorAll(
@@ -274,7 +274,7 @@ describe("LineGraph sparkline variant", () => {
         series={[AMBIENT, SHIELDED]}
         variant="sparkline"
         thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     expect(
@@ -289,7 +289,7 @@ describe("LineGraph sparkline variant", () => {
         series={[AMBIENT]}
         variant="sparkline"
         thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const rule = container.querySelector('line[stroke-dasharray="2 1.5"]');
@@ -302,7 +302,7 @@ describe("LineGraph sparkline variant", () => {
       <LineGraph
         series={[{ ...AMBIENT, points: [{ x: 0, y: 1 }] }, SHIELDED]}
         variant="sparkline"
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     expect(container.querySelectorAll("polygon")).toHaveLength(1);
@@ -324,7 +324,7 @@ describe("LineGraph with a missing sample", () => {
             ],
           },
         ]}
-        ariaLabel="Radiation trend"
+        aria-label="Radiation trend"
       />,
     );
     const lines = Array.from(container.querySelectorAll("polyline"));
@@ -349,7 +349,7 @@ describe("LineGraph reckoned runs", () => {
 
   it("draws the measured run plain and the reckoned run muted and dashed, joined at the seam", () => {
     const { container } = render(
-      <LineGraph series={[RECKONED]} ariaLabel="Trend" />,
+      <LineGraph series={[RECKONED]} aria-label="Trend" />,
     );
     const lines = container.querySelectorAll("polyline");
     expect(lines).toHaveLength(2);
@@ -367,7 +367,7 @@ describe("LineGraph reckoned runs", () => {
   });
 
   it("says how the trace was reckoned in the accessible name", () => {
-    render(<LineGraph series={[RECKONED]} ariaLabel="Trend" />);
+    render(<LineGraph series={[RECKONED]} aria-label="Trend" />);
     expect(screen.getByRole("img").getAttribute("aria-label")).toBe(
       "Trend; Ambient: part of this trace is reckoned, carried forward at the last observed velocity, not measured",
     );
@@ -375,7 +375,7 @@ describe("LineGraph reckoned runs", () => {
 
   it("leaves a fully measured series exactly as it was", () => {
     const { container } = render(
-      <LineGraph series={[AMBIENT]} ariaLabel="Trend" />,
+      <LineGraph series={[AMBIENT]} aria-label="Trend" />,
     );
     const line = container.querySelector("polyline");
     expect(line?.getAttribute("stroke-dasharray")).toBeNull();
@@ -398,7 +398,7 @@ describe("LineGraph reckoned runs", () => {
             reckoned: [{ from: 3, to: 4, basis: "rate-integration" }],
           },
         ]}
-        ariaLabel="Trend"
+        aria-label="Trend"
       />,
     );
     const dashed = [...container.querySelectorAll("polyline")].filter(
@@ -424,7 +424,7 @@ describe("LineGraph reckoned runs", () => {
 
   it("shades a run's band as a region with no edge, and says so in the name", () => {
     const { container } = render(
-      <LineGraph series={[BANDED]} ariaLabel="Trend" />,
+      <LineGraph series={[BANDED]} aria-label="Trend" />,
     );
     const band = container.querySelector("polygon[data-band-kind]");
     expect(band?.getAttribute("data-band-kind")).toBe("sigma1");
@@ -437,7 +437,7 @@ describe("LineGraph reckoned runs", () => {
 
   it("grows the y domain to hold the band's bounds", () => {
     const { container } = render(
-      <LineGraph series={[BANDED]} ariaLabel="Trend" />,
+      <LineGraph series={[BANDED]} aria-label="Trend" />,
     );
     const ys = (
       container.querySelector("polygon")?.getAttribute("points") ?? ""
@@ -449,7 +449,7 @@ describe("LineGraph reckoned runs", () => {
 
   it("draws the band in a neutral shade on a sparkline so the series' area fill does not hide it", () => {
     const { container } = render(
-      <LineGraph series={[BANDED]} variant="sparkline" ariaLabel="Trend" />,
+      <LineGraph series={[BANDED]} variant="sparkline" aria-label="Trend" />,
     );
     const band = container.querySelector("polygon[data-band-kind]");
     expect(band?.getAttribute("fill")).toBe("var(--color-text-primary)");
@@ -472,7 +472,7 @@ describe("LineGraph reckoned runs", () => {
             ],
           },
         ]}
-        ariaLabel="Trend"
+        aria-label="Trend"
       />,
     );
     expect(container.querySelector("polygon")).toBeNull();
@@ -480,7 +480,7 @@ describe("LineGraph reckoned runs", () => {
 
   it("has no accessibility violations", async () => {
     const { container } = render(
-      <LineGraph series={[RECKONED]} ariaLabel="Trend" />,
+      <LineGraph series={[RECKONED]} aria-label="Trend" />,
     );
     await expectNoA11yViolations(container);
   });

@@ -12,23 +12,23 @@ import {
 
 export const mapViewActions = [
   {
-    id: "toggleFollow",
+    id: "toggle-follow",
     label: "Toggle Follow",
     accepts: ["button"],
     description: "Switch between global and follow view.",
   },
   {
-    id: "zoomIn",
+    id: "zoom-in",
     label: "Zoom In",
     accepts: ["button"],
   },
   {
-    id: "zoomOut",
+    id: "zoom-out",
     label: "Zoom Out",
     accepts: ["button"],
   },
   {
-    id: "resetView",
+    id: "reset-view",
     label: "Reset View",
     accepts: ["button"],
     description: "Fit the whole map and exit follow mode.",
@@ -53,13 +53,13 @@ export function useMapViewActions({
   containerSize: { w: number; h: number } | null;
 }>): void {
   useActionInput<MapViewActions>({
-    toggleFollow: (payload) => {
+    "toggle-follow": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       const next = viewMode === "follow" ? "global" : "follow";
       setViewMode(next);
       return { follow: next === "follow" };
     },
-    zoomIn: (payload) => {
+    "zoom-in": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       setCamera((prev) => {
         const { min, max } = zoomBounds(baseZoom);
@@ -70,7 +70,7 @@ export function useMapViewActions({
       });
       return undefined;
     },
-    zoomOut: (payload) => {
+    "zoom-out": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       setCamera((prev) => {
         const { min, max } = zoomBounds(baseZoom);
@@ -81,7 +81,7 @@ export function useMapViewActions({
       });
       return undefined;
     },
-    resetView: (payload) => {
+    "reset-view": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       const w = containerSize?.w ?? WORLD_W;
       const h = containerSize?.h ?? WORLD_H;

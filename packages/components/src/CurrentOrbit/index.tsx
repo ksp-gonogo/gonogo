@@ -88,7 +88,7 @@ function CurrentOrbitComponent({
   const showDiagram = config?.showDiagram ?? true;
 
   useActionInput<CurrentOrbitActions>({
-    toggleDiagram: (payload) => {
+    "toggle-diagram": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       const next = !showDiagram;
       onConfigChange?.({ ...config, showDiagram: next });

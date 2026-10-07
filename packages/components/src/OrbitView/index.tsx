@@ -58,7 +58,7 @@ function OrbitViewComponent({
   const showMarkers = (config?.showMarkers ?? true) && !noApsidesHere;
 
   useActionInput<OrbitViewActions>({
-    toggleMarkers: (payload) => {
+    "toggle-markers": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       const next = !showMarkers;
       onConfigChange?.({ ...config, showMarkers: next });

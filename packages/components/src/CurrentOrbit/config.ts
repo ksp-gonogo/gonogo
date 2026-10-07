@@ -18,7 +18,7 @@ export interface CurrentOrbitConfig {
 
 export const currentOrbitActions = [
   {
-    id: "toggleDiagram",
+    id: "toggle-diagram",
     label: "Toggle Diagram",
     accepts: ["button"],
     description: "Show or hide the mini orbit diagram.",

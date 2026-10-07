@@ -20,7 +20,7 @@ function makeRailAugment(oneWaySeconds: number | null) {
       inFlight: [],
       tags: railTagsForTelemetry("continuous"),
       effectiveDelaySeconds: oneWaySeconds,
-      ariaLabel: RIBBON_LABEL,
+      "aria-label": RIBBON_LABEL,
       ribbons: [
         {
           id: `test.transfer.${subjectId}`,

@@ -31,7 +31,7 @@ function renderListbox(activeIndex = 1, selectedKey?: string) {
         getOptionId={(k) => `opt-${k}`}
         onHoverIndex={() => {}}
         onSelectKey={() => {}}
-        ariaLabel="Data keys"
+        aria-label="Data keys"
       />
     </div>,
   );

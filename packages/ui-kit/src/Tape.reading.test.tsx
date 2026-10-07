@@ -62,31 +62,31 @@ const AXIS = { min: value("m", 0), max: value("m", 1000) } as const;
 describe("Tape, handed a Reading", () => {
   it("draws an observed reading exactly as it draws the bare quantity", () => {
     const asReading = render(
-      <Tape {...AXIS} value={banded(value("m", 420))} ariaLabel="AGL" />,
+      <Tape {...AXIS} value={banded(value("m", 420))} aria-label="AGL" />,
     );
     const asValue = render(
-      <Tape {...AXIS} value={value("m", 420)} ariaLabel="AGL" />,
+      <Tape {...AXIS} value={value("m", 420)} aria-label="AGL" />,
     );
     expect(asReading.container.innerHTML).toBe(asValue.container.innerHTML);
   });
 
   it("marks a pointer flag that is not a reading of now", () => {
     const { container } = render(
-      <Tape {...AXIS} value={held(value("m", 420))} ariaLabel="AGL" />,
+      <Tape {...AXIS} value={held(value("m", 420))} aria-label="AGL" />,
     );
     expect(container.querySelector("[data-held]")).not.toBeNull();
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("says the currency on the rail's own accessible name", () => {
-    render(<Tape {...AXIS} value={held(value("m", 420))} ariaLabel="AGL" />);
+    render(<Tape {...AXIS} value={held(value("m", 420))} aria-label="AGL" />);
     expect(screen.getByRole("meter").getAttribute("aria-label")).toMatch(
       /^AGL, /,
     );
   });
 
   it("leaves a current rail's accessible name exactly as it was", () => {
-    render(<Tape {...AXIS} value={banded(value("m", 420))} ariaLabel="AGL" />);
+    render(<Tape {...AXIS} value={banded(value("m", 420))} aria-label="AGL" />);
     expect(screen.getByRole("meter").getAttribute("aria-label")).toBe("AGL");
   });
 
@@ -95,7 +95,7 @@ describe("Tape, handed a Reading", () => {
       <Tape
         {...AXIS}
         value={banded(value("m", 500), bandOf("m", 400, 600))}
-        ariaLabel="AGL"
+        aria-label="AGL"
       />,
     );
     const marks = Array.from(container.querySelectorAll("[data-bound]"));
@@ -108,7 +108,7 @@ describe("Tape, handed a Reading", () => {
       <Tape
         {...AXIS}
         value={banded(value("m", 500), bandOf("s", 400, 600))}
-        ariaLabel="AGL"
+        aria-label="AGL"
       />,
     );
     expect(container.querySelectorAll("[data-bound]")).toHaveLength(0);
@@ -119,7 +119,7 @@ describe("Tape, handed a Reading", () => {
       <Tape
         {...AXIS}
         value={{ state: "pending", reckoning: { status: "none" } }}
-        ariaLabel="AGL"
+        aria-label="AGL"
       />,
     );
     // The track rect survives; what goes is the pointer line across it.
@@ -144,7 +144,7 @@ describe("Tape, handed a Reading", () => {
           asOfUt: AT,
           grade: "held",
         }}
-        ariaLabel="AGL"
+        aria-label="AGL"
       />,
     );
     await expectNoA11yViolations(container);
@@ -157,7 +157,7 @@ describe("Tape with no figure", () => {
       <Tape
         {...AXIS}
         value={{ state: "pending", reckoning: { status: "none" } }}
-        ariaLabel="AGL"
+        aria-label="AGL"
       />,
     );
     expect(screen.queryByRole("meter")).toBeNull();

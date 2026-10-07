@@ -172,7 +172,7 @@ function OpenPad({
         />
         {/* Reverts to VAB: the widget cannot tell which editor the pad's craft came from. */}
         <ArmedButton
-          bindAs="revertToEditor"
+          bindAs="revert-to-editor"
           kind="revert"
           handle={revertEditorCmd}
           args={{ editor: "vab" }}

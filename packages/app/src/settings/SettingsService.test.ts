@@ -92,12 +92,12 @@ describe("SettingsService", () => {
     );
     expect(budget).toBeDefined();
     if (!budget) return;
-    const before = budget.rate();
+    const before = budget.windowTotal();
     const svc = new SettingsService(storage);
     svc.set("flag", true);
     svc.flush();
     svc.set("flag", false);
     svc.flush();
-    expect(budget.rate()).toBe(before + 2);
+    expect(budget.windowTotal()).toBe(before + 2);
   });
 });

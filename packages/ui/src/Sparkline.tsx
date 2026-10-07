@@ -17,7 +17,7 @@ export interface SparklineProps {
   /** The faint fill under the line; set false inside a chip that has its own background. */
   background?: boolean;
   /** ARIA label for screen readers. Defaults to "Trend sparkline". */
-  ariaLabel?: string;
+  "aria-label"?: string;
 }
 
 export function Sparkline({
@@ -29,7 +29,7 @@ export function Sparkline({
   yDomain,
   showZeroBaseline = false,
   background = true,
-  ariaLabel = "Trend sparkline",
+  "aria-label": ariaLabel = "Trend sparkline",
 }: Readonly<SparklineProps>) {
   // A stray NaN would collapse the auto-domain.
   const finite = useMemo(

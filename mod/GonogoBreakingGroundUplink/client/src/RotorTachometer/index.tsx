@@ -100,14 +100,14 @@ function RotorTachometerComponent({
 
   useActionInput<RotorTachometerActions>({
     // The steppers are relative, so they dispatch nothing while the cap is unread.
-    rpmUp: (p) => {
+    "rpm-up": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.rpmLimit === null) return undefined;
       const next = clamp(selected.rpmLimit + RPM_STEP, 0, ROTOR_MAX_RPM);
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
-    rpmDown: (p) => {
+    "rpm-down": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.rpmLimit === null) return undefined;
       const next = clamp(selected.rpmLimit - RPM_STEP, 0, ROTOR_MAX_RPM);
@@ -115,13 +115,13 @@ function RotorTachometerComponent({
       return { RPM: next };
     },
     // Motor and lock send an absolute state inverted from the one read back, so an unread flag dispatches nothing.
-    toggleMotor: (p) => {
+    "toggle-motor": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.motorEngaged === null) return undefined;
       setMotor(selected.partId, !selected.motorEngaged);
       return { Motor: !selected.motorEngaged };
     },
-    toggleLock: (p) => {
+    "toggle-lock": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.locked === null) return undefined;
       setLock(selected.partId, !selected.locked);

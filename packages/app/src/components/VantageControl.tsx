@@ -277,7 +277,7 @@ function VantagePicker() {
             getOptionId={optionId}
             onHoverIndex={setActiveIndex}
             onSelectKey={selectOption}
-            ariaLabel="Command centres"
+            aria-label="Command centres"
             renderItem={(opt) => (
               <>
                 <span>{opt.label}</span>

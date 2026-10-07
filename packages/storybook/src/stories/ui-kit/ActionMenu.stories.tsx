@@ -49,7 +49,7 @@ const meta = {
   ],
   args: {
     items: VESSEL_ACTIONS,
-    ariaLabel: "Vessel actions",
+    "aria-label": "Vessel actions",
     onSelect: () => {},
     onDismiss: () => {},
     style: { top: 0, left: 0 },
@@ -64,7 +64,7 @@ export const Grouped: Story = {};
 
 /** Items with no group render as one flat list, with no headers. */
 export const Flat: Story = {
-  args: { items: FLAT_ACTIONS, ariaLabel: "Mun Lander II actions" },
+  args: { items: FLAT_ACTIONS, "aria-label": "Mun Lander II actions" },
 };
 
 /** A header naming the vessel and a footer with the signal delay, around the items. */
@@ -117,7 +117,7 @@ function TriggeredMenu() {
       {open && (
         <ActionMenu
           items={VESSEL_ACTIONS}
-          ariaLabel="Vessel actions"
+          aria-label="Vessel actions"
           style={{ top: 44, left: 0 }}
           onSelect={(key) => {
             setLast(VESSEL_ACTIONS.find((a) => a.key === key)?.label ?? key);

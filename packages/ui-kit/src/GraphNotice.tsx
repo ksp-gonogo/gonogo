@@ -115,7 +115,7 @@ const PLACEMENT_STYLES = {
  * @example Over a graph in a `Fill`
  * ```tsx
  * <Fill>
- *   <LineGraph series={series} ariaLabel="Altitude trend" />
+ *   <LineGraph series={series} aria-label="Altitude trend" />
  *   {series.length === 0 && (
  *     <GraphNotice placement="overlay">no reference data</GraphNotice>
  *   )}

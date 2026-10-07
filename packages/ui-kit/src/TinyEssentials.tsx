@@ -194,7 +194,7 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
       <Tooltip text={control.hint ?? control.title}>
         <ToggleButton
           size="sm"
-          active={control.active}
+          pressed={control.active}
           disabled={control.disabled}
           onClick={control.onPress}
           aria-label={control.title}

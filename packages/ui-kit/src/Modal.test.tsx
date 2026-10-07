@@ -386,7 +386,7 @@ describe("Modal keyboard contract", () => {
       <ModalProvider>
         <ContentOpener
           content={<p>untitled body</p>}
-          options={{ ariaLabel: "Crash detail" }}
+          options={{ "aria-label": "Crash detail" }}
         />
       </ModalProvider>,
     );

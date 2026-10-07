@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import { Button } from "./Button";
 
 /**
- * The fill an active {@link ToggleButton} takes: `go`, or `nogo` / `warn` when
+ * The fill a pressed {@link ToggleButton} takes: `go`, or `nogo` / `warn` when
  * being on is destructive or needs attention.
  *
  * @category Button
@@ -26,17 +26,17 @@ export type ToggleButtonSize = "sm" | "md";
 export interface ToggleButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Whether the toggle is on. Drives `aria-pressed` and the filled look. Defaults to `false`. */
-  active?: boolean;
-  /** The fill while active. Defaults to `go`. */
+  pressed?: boolean;
+  /** The fill while pressed. Defaults to `go`. */
   tone?: ToggleButtonTone;
   /** Defaults to `md`. */
   size?: ToggleButtonSize;
 }
 
 /**
- * A two-state toggle: a real `<button>` whose `aria-pressed` follows `active`,
+ * A two-state toggle: a real `<button>` whose `aria-pressed` follows `pressed`,
  * for controls that switch between on and off (mode pickers, filter toggles,
- * rate pickers). It draws as a {@link Button}, filled in `tone` while active
+ * rate pickers). It draws as a {@link Button}, filled in `tone` while pressed
  * and plain while not.
  *
  * ToggleButton or {@link Switch}? They are different ARIA patterns:
@@ -57,7 +57,7 @@ export interface ToggleButtonProps
  *     <ToggleButton
  *       key={rate}
  *       size="sm"
- *       active={rate === current}
+ *       pressed={rate === current}
  *       onClick={() => setRate(rate)}
  *     >
  *       {rate}x
@@ -71,7 +71,7 @@ export interface ToggleButtonProps
 export const ToggleButton = forwardRef<HTMLButtonElement, ToggleButtonProps>(
   function ToggleButton(
     {
-      active = false,
+      pressed = false,
       tone = "go",
       size = "md",
       type = "button",
@@ -85,10 +85,10 @@ export const ToggleButton = forwardRef<HTMLButtonElement, ToggleButtonProps>(
         ref={ref}
         type={type}
         /* The tone colours the pressed fill only; an inactive toggle is a plain button. */
-        tone={active ? tone : undefined}
+        tone={pressed ? tone : undefined}
         size={size}
-        pressed={active}
-        aria-pressed={ariaPressed ?? active}
+        pressed={pressed}
+        aria-pressed={ariaPressed ?? pressed}
         {...rest}
       />
     );

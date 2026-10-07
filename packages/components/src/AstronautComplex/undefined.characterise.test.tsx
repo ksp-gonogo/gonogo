@@ -211,13 +211,13 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     await screen.findByText("Desdin Kerman");
 
     act(() => {
-      dispatchAction("astronaut-complex", "highlightNextAvailable", {
+      dispatchAction("astronaut-complex", "highlight-next-available", {
         kind: "button",
         value: true,
       });
     });
     act(() => {
-      dispatchAction("astronaut-complex", "fireHighlighted", {
+      dispatchAction("astronaut-complex", "fire-highlighted", {
         kind: "button",
         value: true,
       });

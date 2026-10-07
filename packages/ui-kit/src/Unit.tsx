@@ -7,7 +7,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled, { css } from "styled-components";
-import { bandClaim } from "./bandClaim";
 import { ReckoningMark, reservesMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import type { ReckoningMarking } from "./readingCurrency";
@@ -156,7 +155,7 @@ interface Interval {
   kind: BandKind;
 }
 
-/** The hover text: the staleness sentence, the band's claim (worded by `bandClaim`, as a meter's is), or both. */
+/** The hover text: the staleness sentence, the band's claim (plain containment, as a meter's is), or both. */
 function hover(
   caption: string | null,
   interval: Interval | null,
@@ -164,10 +163,7 @@ function hover(
   const said =
     interval === null
       ? null
-      : bandClaim(
-          interval.kind,
-          `with bands at ${interval.loSaid} and ${interval.hiSaid}`,
-        );
+      : `with bands at ${interval.loSaid} and ${interval.hiSaid}`;
   if (caption === null) return said;
   return said === null ? caption : `${caption}, ${said}`;
 }
