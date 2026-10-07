@@ -237,6 +237,7 @@ export type {
   ThemeDefinition,
   TinyControl,
   TinyEssential,
+  TinyEssentialMark,
   TinyEssentialTone,
   TinyGauge,
   TinyMode,

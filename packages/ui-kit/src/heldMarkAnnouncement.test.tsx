@@ -21,6 +21,7 @@ import { Meter } from "./Meter";
 import { MissionDate } from "./MissionDate";
 import { ReckonedUnit } from "./ModelledAlongside";
 import { Tape } from "./Tape";
+import { TinyEssentials } from "./TinyEssentials";
 import { Unit } from "./Unit";
 import { UnitInput } from "./UnitInput";
 
@@ -64,6 +65,18 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         label="Fuel"
         value={held(value("ratio", 0.4), grade)}
         valueLabel="40 %"
+      />
+    ),
+    "TinyEssentials, stated mark": (grade) => (
+      <TinyEssentials
+        title="Signal"
+        essentials={[
+          {
+            label: "Signal",
+            value: held(value("%", 23), grade),
+            mark: { elsewhere: true, caption: "measured on another path" },
+          },
+        ]}
       />
     ),
     Countdown: (grade) => <Countdown value={held(value("s", 90), grade)} />,
@@ -177,6 +190,7 @@ const DRAWN_BY: Record<string, readonly string[]> = {
   "./instrumentCurrency.tsx": ["Dial", "Dial, half face", "Tape"],
   "./Unit.tsx": ["Unit"],
   "./Meter.tsx": ["Meter", "Meter, row pair", "Meter, caller's label"],
+  "./TinyEssentials.tsx": ["TinyEssentials, stated mark"],
   "./Countdown.tsx": ["Countdown"],
   "./MissionDate.tsx": ["MissionDate"],
   "./UnitInput.tsx": ["UnitInput"],

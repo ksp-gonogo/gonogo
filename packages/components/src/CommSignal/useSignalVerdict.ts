@@ -1,10 +1,12 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
   CONTROL_STATE_NAMES,
+  type CommsMeasuredPath,
   type ControlStateName,
   collapseControlStateLevel,
   enumNameOf,
   type TinyEssential,
+  type TinyEssentialMark,
   type TinyEssentialTone,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -34,15 +36,69 @@ export interface SignalVerdict {
   /** The observed strength reading, or null wherever `pct` is. */
   strengthReading: TinyEssential["value"];
   /**
-   * The strength is what was worked out for the path this command centre
-   * believes in, where the craft's radio has not reported on that path.
+   * How the strength is marked, or null where it is the measured worth of the
+   * path this command centre believes in. Worked out for that path where the
+   * craft's radio has not reported on it; or measured, but on another path.
    */
-  strengthModelled: boolean;
-  /**
-   * The strength was measured, but on the path the craft was using and not
-   * the one this command centre believes in.
-   */
-  strengthOfOtherPath: boolean;
+  strengthMark: TinyEssentialMark | null;
+}
+
+/** What the modelled mark on the strength means, on hover and in the spoken name. */
+export const MODELLED_STRENGTH =
+  "Worked out for the path this command centre believes in, not measured";
+
+/** The craft's own figure, drawn until this command centre is sent a strength for its own path. */
+export const CRAFT_ROUTE_STRENGTH =
+  "Measured by the craft on the route it was using: this command centre has not been sent a strength for the path it believes in";
+
+/** The stops' names in order, which is all the route's wording reads of a measured path. */
+interface MeasuredPath {
+  nodes: ReadonlyArray<Pick<CommsMeasuredPath["nodes"][number], "displayName">>;
+}
+
+/** The route in words, from the first stop after the vessel to the last: "via Relay A to KSC", or "direct to KSC" for one hop. Undefined where the path names no stop. */
+export function measuredRoute(
+  path: MeasuredPath | null | undefined,
+): string | undefined {
+  const stops = (path?.nodes ?? [])
+    .slice(1)
+    .map((node) => node.displayName.trim())
+    .filter((name) => name.length > 0);
+  const end = stops.pop();
+  if (end === undefined) return undefined;
+  return stops.length === 0
+    ? `direct to ${end}`
+    : `via ${stops.join(", ")} to ${end}`;
+}
+
+/**
+ * What the mark means on a strength the craft's radio measured on a path this
+ * command centre does not believe in, naming that path where the stream says
+ * which it was.
+ */
+export function otherPathStrength(path?: MeasuredPath | null): string {
+  const route = measuredRoute(path);
+  return route === undefined
+    ? "Measured on another path: the craft's radio reported this on a route this command centre does not believe in"
+    : `Measured ${route}, a route this command centre does not believe in`;
+}
+
+function strengthMarkOf(
+  told:
+    | {
+        modelled: boolean;
+        otherPath: boolean;
+        measuredPath?: MeasuredPath | null;
+      }
+    | undefined,
+  fromCraft: boolean,
+): TinyEssentialMark | null {
+  if (fromCraft) return { elsewhere: true, caption: CRAFT_ROUTE_STRENGTH };
+  if (told?.modelled === true)
+    return { kind: "modelled", caption: MODELLED_STRENGTH };
+  if (told?.otherPath === true)
+    return { elsewhere: true, caption: otherPathStrength(told.measuredPath) };
+  return null;
 }
 
 /** The link verdict the body and the tiny essentials both draw. */
@@ -104,8 +160,14 @@ export function useSignalVerdict(): SignalVerdict {
         : told === undefined
           ? commsReading.signalStrength
           : signalReading.strength,
-    strengthModelled: told?.modelled === true,
-    strengthOfOtherPath: told?.otherPath === true,
+    // The craft's own figure is of whatever path the game had it on, which is another path as far as this centre can say.
+    strengthMark:
+      pct === null
+        ? null
+        : strengthMarkOf(
+            told,
+            told?.strength === undefined || told.strength === null,
+          ),
   };
 }
 
@@ -128,6 +190,7 @@ export function useCommSignalEssentials(): readonly TinyEssential[] {
     bars,
     control,
     strengthReading,
+    strengthMark,
   } = useSignalVerdict();
   const level = { lit: bars, of: 4 };
   if (awaitingFirstSignal) {
@@ -143,6 +206,7 @@ export function useCommSignalEssentials(): readonly TinyEssential[] {
     {
       label: "Signal",
       value: strengthReading,
+      mark: strengthMark ?? undefined,
       level,
       tone: ESSENTIAL_TONE[control.tone],
     },

@@ -33,6 +33,40 @@ describe("CommSignal tiny mode", () => {
     await act(async () => {});
   });
 
+  it("carries the same mark as the body: none for the believed path's measured worth, the triangle for a worked-out one, the ring for another path's", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });
+    const mark = () => document.querySelector("[data-held-mark]");
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
+    });
+    await waitFor(() => expect(visibleText()).toContain("60 %"));
+    expect(mark()).toBeNull();
+
+    act(() => {
+      fixture.emit("comms.signal", { strength: 0.6, modelled: true });
+    });
+    await waitFor(() =>
+      expect(mark()?.getAttribute("data-reckoning-mark")).toBe("modelled"),
+    );
+    expect(document.body.textContent).toMatch(/worked out for the path/i);
+
+    act(() => {
+      fixture.emit("comms.signal", {
+        strength: 0.6,
+        modelled: false,
+        otherPath: true,
+      });
+    });
+    await waitFor(() =>
+      expect(mark()?.getAttribute("data-reckoning-mark")).toBe("current"),
+    );
+    expect(mark()?.hasAttribute("data-elsewhere")).toBe(true);
+    expect(document.body.textContent).toMatch(/measured on another path/i);
+    await act(async () => {});
+  });
+
   it("says AWAIT, never LOS or a zero, before the link's first word has arrived", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });

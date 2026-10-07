@@ -316,6 +316,8 @@ textarea {
   /* The apsides, on an orbit drawing and beside their readouts. Neither is the held amber nor the modelled blue, so an apsis never reads as a mark about how current a figure is. */
   --color-apoapsis-mark: var(--color-data-12);
   --color-periapsis-mark: var(--color-data-15);
+  /* The mark of a figure measured now, but of something other than what its label names. Not the held amber, the modelled blue or a go green, so it says nothing about how current the figure is. */
+  --color-elsewhere-mark: var(--color-data-15);
   --color-warn-status: var(--palette-amber-400);
   --color-warn-on-status: var(--palette-ink);
   --color-warn-muted: var(--palette-amber-900);

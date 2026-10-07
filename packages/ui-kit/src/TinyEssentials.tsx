@@ -10,6 +10,7 @@ import type {
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { fillFraction } from "./fillQuantity";
+import { HeldFigure } from "./HeldMark";
 import { LevelBars } from "./LevelBars";
 import { LiveRegion } from "./LiveRegion";
 import { Panel } from "./Panel";
@@ -213,13 +214,42 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
       {essential.word !== undefined ? (
         essential.word
       ) : (
-        <Unit
-          value={essential.value}
-          decimals={essential.decimals}
-          scale="compact"
-        />
+        <MarkedFigure essential={essential} />
       )}
     </>
+  );
+}
+
+/**
+ * The figure, with the mark the widget states for it. The Reading goes to
+ * `<Unit>` whole, so a held or modelled one keeps its own kind and words, and
+ * `elsewhere` empties whichever mark that gives. A kind the widget states for
+ * a reading of now is drawn around the figure.
+ */
+function MarkedFigure({ essential }: { essential: TinyEssential }) {
+  const { mark, value, decimals } = essential;
+  const { held } = resolveCurrency(value);
+  const figure = (
+    <Unit
+      value={value}
+      decimals={decimals}
+      scale="compact"
+      elsewhere={
+        mark?.elsewhere === true && (held || mark.kind === undefined)
+          ? mark.caption
+          : undefined
+      }
+    />
+  );
+  if (mark === undefined || held || mark.kind === undefined) return figure;
+  return (
+    <HeldFigure
+      kind={mark.kind}
+      elsewhere={mark.elsewhere}
+      caption={mark.caption}
+    >
+      {figure}
+    </HeldFigure>
   );
 }
 

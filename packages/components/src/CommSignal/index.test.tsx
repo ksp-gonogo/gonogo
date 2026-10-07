@@ -130,7 +130,7 @@ describe("CommSignalComponent", () => {
     await act(async () => {});
   });
 
-  it("marks a strength measured on another path as held, and says which path it is of", async () => {
+  it("marks a strength measured on another path with the ring, as a figure of now, and says so", async () => {
     const fixture = newFixture();
     renderComm(fixture);
     act(() => {
@@ -143,12 +143,70 @@ describe("CommSignalComponent", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("60 %"));
-    expect(
-      document.querySelector('[data-reckoning-mark="held"]'),
-    ).not.toBeNull();
+    const ring = document.querySelector("[data-elsewhere]");
+    expect(ring?.getAttribute("data-reckoning-mark")).toBe("current");
+    // Not the held square: the figure is not stale.
+    expect(document.querySelector('[data-reckoning-mark="held"]')).toBeNull();
     expect(document.body.textContent).toMatch(
-      /not the path this command centre believes in/i,
+      /measured on another path: the craft's radio reported this on a route this command centre does not believe in/i,
     );
+    await act(async () => {});
+  });
+
+  it("names the route in the mark's caption where the stream says which path was measured", async () => {
+    const fixture = newFixture();
+    renderComm(fixture);
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.signal", {
+        strength: 0.6,
+        modelled: false,
+        otherPath: true,
+        measuredPath: {
+          nodes: [
+            { id: "v1", displayName: "Probe", kind: 1 },
+            { id: "r1", displayName: "Relay A", kind: 1 },
+            { id: "KSC", displayName: "KSC", kind: 0 },
+          ],
+        },
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("60 %"));
+    expect(document.body.textContent).toMatch(
+      /Measured via Relay A to KSC, a route this command centre does not believe in/,
+    );
+    await act(async () => {});
+  });
+
+  it("marks the craft's own figure with the ring until this command centre is sent a strength of its own", async () => {
+    const fixture = newFixture();
+    renderComm(fixture);
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("vessel.comms", {
+        connected: true,
+        signalStrength: 0.82,
+        controlState: CONTROL_STATE_FULL,
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("82 %"));
+    expect(
+      document
+        .querySelector("[data-elsewhere]")
+        ?.getAttribute("data-reckoning-mark"),
+    ).toBe("current");
+    expect(document.body.textContent).toMatch(
+      /measured by the craft on the route it was using/i,
+    );
+
+    // Sent its own path's measured worth, the figure carries no mark at all.
+    act(() => {
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
+    });
+    await waitFor(() => expect(visibleText()).toContain("60 %"));
+    expect(document.querySelector("[data-held-mark]")).toBeNull();
     await act(async () => {});
   });
 

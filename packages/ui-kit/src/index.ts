@@ -512,7 +512,11 @@ export {
   type ReckonedPosition,
   ReckoningMarkSvg,
 } from "./reckoningMarkDraw";
-export { RECKONING_MARK, type ReckoningKind } from "./reckoningMarkSpec";
+export {
+  type MarkKind,
+  RECKONING_MARK,
+  type ReckoningKind,
+} from "./reckoningMarkSpec";
 export { resourceColor } from "./resourceColor";
 export { SearchBox, type SearchBoxProps } from "./SearchBox";
 export { Section, type SectionProps, SectionTitle } from "./Section";

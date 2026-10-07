@@ -8215,8 +8215,28 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "ui-kit . HeldFigure",
+        "note": "Gains the optional elsewhere prop and its kind widens with \"current\" (decision 81). A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
+      },
+      {
+        "key": "ui-kit . HeldFigureProps#kind?",
+        "note": "Widens from held or modelled with \"current\", a reading of now, which is marked only where the figure is elsewhere. Existing values are still accepted"
+      },
+      {
         "key": "ui-kit . InstrumentHeldMark",
         "note": "Gains an optional figureSize, the font size of the figure the mark follows, which raises the mark to the top of that figure's digits. Existing callers pass none and draw exactly as before"
+      },
+      {
+        "key": "ui-kit . RECKONING_MARK",
+        "note": "Gains a current entry (the lilac ring, which has only a hollow form) and a hollowDomSize on held and modelled. Every field a caller read before is unchanged; code that walks the table's keys now meets current"
+      },
+      {
+        "key": "ui-kit . ReckoningMark",
+        "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
+      },
+      {
+        "key": "ui-kit . Unit",
+        "note": "Gains the optional elsewhere prop. A caller that does not pass it draws exactly as before"
       },
       {
         "key": "ui-kit . VESSEL_MARK",
@@ -8319,6 +8339,26 @@
       {
         "key": "sitrep-sdk . TINY_SIZE",
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "sitrep-sdk . TinyEssential#mark?",
+        "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk . TinyEssentialMark",
+        "note": "The shape of a tiny essential's stated mark: kind, elsewhere and caption"
+      },
+      {
+        "key": "sitrep-sdk . TinyEssentialMark#caption",
+        "note": "What the mark means in words, spoken after the figure and shown on hover"
+      },
+      {
+        "key": "sitrep-sdk . TinyEssentialMark#elsewhere?",
+        "note": "The figure is of something other than what its label names, which draws its mark hollow"
+      },
+      {
+        "key": "sitrep-sdk . TinyEssentialMark#kind?",
+        "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
         "key": "sitrep-sdk . solveConic",
@@ -9161,6 +9201,26 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~TinyEssential#mark?",
+        "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyEssentialMark",
+        "note": "The shape of a tiny essential's stated mark: kind, elsewhere and caption"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyEssentialMark#caption",
+        "note": "What the mark means in words, spoken after the figure and shown on hover"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyEssentialMark#elsewhere?",
+        "note": "The figure is of something other than what its label names, which draws its mark hollow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyEssentialMark#kind?",
+        "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
         "key": "sitrep-sdk ./spine ConicShape",
         "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
       },
@@ -9281,8 +9341,20 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "ui-kit . HeldFigureProps#elsewhere?",
+        "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise (decision 77)"
+      },
+      {
+        "key": "ui-kit . MarkKind",
+        "note": "What a figure is for the purpose of marking it: current, or a ReckoningKind. The type of the widened kind on ReckoningMark and HeldFigure"
+      },
+      {
         "key": "ui-kit . TINY_SIZE",
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "ui-kit . UnitProps#elsewhere?",
+        "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is (decision 77)"
       },
       {
         "key": "ui-kit . gridFloor",

@@ -48,14 +48,6 @@ function signalHeadline({
   return controlLabel;
 }
 
-/** What the modelled mark on the strength means, on hover and in the spoken name. */
-const MODELLED_STRENGTH =
-  "Worked out for the path this command centre believes in, not measured";
-
-/** What the held mark on the strength means where the figure is of a path this command centre does not believe in. */
-const OTHER_PATH_STRENGTH =
-  "Measured on the path the craft was using, which is not the path this command centre believes in";
-
 export function CommSignalComponent({
   w,
   h,
@@ -68,8 +60,7 @@ export function CommSignalComponent({
     pct,
     bars,
     control,
-    strengthModelled,
-    strengthOfOtherPath,
+    strengthMark,
   } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
   const delayReading = useTelemetry("comms.delay");
@@ -149,14 +140,13 @@ export function CommSignalComponent({
   });
   const figure =
     pct === null ? null : <Unit value={value("%", pct * 100)} decimals={0} />;
-  const strengthMark = strengthModelled
-    ? ({ kind: "modelled", caption: MODELLED_STRENGTH } as const)
-    : strengthOfOtherPath
-      ? ({ kind: "held", caption: OTHER_PATH_STRENGTH } as const)
-      : null;
   const percent =
     figure !== null && strengthMark !== null ? (
-      <HeldFigure kind={strengthMark.kind} caption={strengthMark.caption}>
+      <HeldFigure
+        kind={strengthMark.kind ?? "current"}
+        elsewhere={strengthMark.elsewhere}
+        caption={strengthMark.caption}
+      >
         {figure}
       </HeldFigure>
     ) : (

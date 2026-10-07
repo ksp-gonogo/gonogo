@@ -140,6 +140,20 @@ export interface ConfigComponentProps<Config = Record<string, unknown>> {
 }
 
 /**
+ * How a {@link TinyEssential}'s figure is marked where its Reading cannot say.
+ *
+ * @category Registering
+ */
+export interface TinyEssentialMark {
+  /** How current the figure is. A reading of now when omitted. */
+  kind?: "held" | "modelled";
+  /** The figure is of something other than what its label names. */
+  elsewhere?: boolean;
+  /** What the mark means, spoken after the figure and shown on hover. */
+  caption: string;
+}
+
+/**
  * One value a widget cannot do without, as its tiny mode draws it.
  *
  * @category Registering
@@ -168,6 +182,17 @@ export interface TinyEssential {
   urgent?: boolean;
   /** Decimal places, where the unit's own default says more than the figure means. */
   decimals?: number;
+  /**
+   * What the figure is where the Reading in `value` cannot say it, drawn with
+   * the marks a full readout uses. `kind` is how current it is: `held` or
+   * `modelled`, and a reading of now when omitted. `elsewhere` says the figure
+   * is of something other than the label names (a strength measured on
+   * another route), which draws the mark hollow. A `value` that is itself a
+   * held or modelled Reading keeps that kind, and `elsewhere` still applies.
+   * `caption` says it in words: it is spoken after the figure and shown on
+   * hover. Ignored beside a `word`.
+   */
+  mark?: TinyEssentialMark;
   /** How alarming the figure is. Defaults to `neutral`. */
   tone?: TinyEssentialTone;
   /**

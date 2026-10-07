@@ -35,7 +35,26 @@
         "value": {
           "strength": 0.23,
           "modelled": false,
-          "otherPath": true
+          "otherPath": true,
+          "measuredPath": {
+            "nodes": [
+              {
+                "id": "v1",
+                "displayName": "Active Vessel",
+                "kind": 1
+              },
+              {
+                "id": "relay-alpha",
+                "displayName": "Relay Alpha",
+                "kind": 1
+              },
+              {
+                "id": "KSC",
+                "displayName": "KSC",
+                "kind": 0
+              }
+            ]
+          }
         }
       },
       {

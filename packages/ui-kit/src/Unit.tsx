@@ -16,7 +16,7 @@ import {
   resolveCurrency,
   type UnitValue,
 } from "./readingCurrency";
-import type { ReckoningKind } from "./reckoningMarkSpec";
+import type { MarkKind } from "./reckoningMarkSpec";
 import { standsApart, writtenAs } from "./standsApart";
 import { Tooltip, useTooltip } from "./Tooltip";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
@@ -59,13 +59,16 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
 `;
 
 // A held figure is relatively positioned and reserves the mark's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the mark alone.
-const Unit__Quantity = styled.span<{ $mark: ReckoningKind | null }>`
+const Unit__Quantity = styled.span<{
+  $mark: MarkKind | null;
+  $elsewhere?: boolean;
+}>`
   white-space: nowrap;
-  ${({ $mark }) =>
+  ${({ $mark, $elsewhere }) =>
     $mark !== null
       ? css`
           position: relative;
-          ${reservesMark($mark)}
+          ${reservesMark($mark, $elsewhere)}
         `
       : ""}
 `;
@@ -219,6 +222,13 @@ export interface UnitProps<UnitSymbol extends string = string>
    * carries none of its own. Ignored when `value` is a whole `Reading`.
    */
   marked?: ReckoningMarking | null;
+  /**
+   * Says the figure is of something other than what its label names (a
+   * strength measured on another route), in the words given. The figure's mark
+   * is then drawn hollow, a ring where the figure is a reading of now, and the
+   * words follow whatever the figure already says about how current it is.
+   */
+  elsewhere?: string | null;
   /** A bare unit token, rendered as a symbol with no number. Used only when `value` is not passed; prefer passing a value. */
   children?: ReactNode;
   className?: string;
@@ -313,6 +323,7 @@ export function Unit<UnitSymbol extends string = string>({
   hideUnitInGroup,
   reckoned,
   marked,
+  elsewhere,
   ...opts
 }: UnitProps<UnitSymbol>) {
   const resolvedCurrency = resolveCurrency(value, { drawsReckoning: reckoned });
@@ -326,7 +337,13 @@ export function Unit<UnitSymbol extends string = string>({
           caption: marked.caption,
         }
       : resolvedCurrency;
-  const { shown, held, mark, caption, band } = currency;
+  const { shown, held, mark: ownMark, band } = currency;
+  const hollow = elsewhere != null && elsewhere !== "" && shown != null;
+  // A reading of now carries no mark of its own, and takes the ring where it is of something else.
+  const mark: MarkKind | null = ownMark ?? (hollow ? "current" : null);
+  const caption = hollow
+    ? [currency.caption, elsewhere].filter(Boolean).join("; ")
+    : currency.caption;
   /*
    * Reports to an enclosing `<UnitSharedFormat>` and returns the format the group settled on; inert with no scope above it.
    * A held member reports as a live one does, so a column's rung does not move when one cell stops updating.
@@ -356,6 +373,7 @@ export function Unit<UnitSymbol extends string = string>({
       <Unit__Quantity
         className={className}
         $mark={mark}
+        $elsewhere={hollow}
         {...figureAttributes(currency)}
         {...anchor}
       >
@@ -382,7 +400,7 @@ export function Unit<UnitSymbol extends string = string>({
           </Unit__Interval>
         )}
         {/* Silent: the caption below is what gets spoken, and the shape alone carries the meaning (WCAG 1.4.1). */}
-        {mark !== null && <ReckoningMark kind={mark} />}
+        {mark !== null && <ReckoningMark kind={mark} elsewhere={hollow} />}
         {caption !== null && (
           <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
         )}
