@@ -30,7 +30,6 @@ import {
 
 const HOST: HostCompat = {
   apiVersion: "1.2.0",
-  uiKitVersion: "0.3.0",
   contractMajor: 3,
   contractMinor: 5,
 };
@@ -62,7 +61,6 @@ function indexWith(integrity: string): RegistryIndex {
             version: "1.0.0",
             minAppVersion: "1.0.0",
             apiVersion: "1.2.5",
-            uiKitVersion: "0.3.9",
             contractMajor: 3,
             contractMinor: 3,
             bundleUrl: "/uplinks/widget-a.client.js",

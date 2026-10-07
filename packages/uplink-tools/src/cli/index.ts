@@ -58,31 +58,6 @@ const USAGE = `uplink-tools <command>
 Run a command with --help for its options. Without an install:
   npx @ksp-gonogo/uplink-tools <command>`;
 
-/**
- * The ui-kit version the client is built against, as the kit itself states it
- * for compatibility.
- *
- * The app compares this with its own `UI_KIT_VERSION`, so what is recorded has
- * to be that same constant from the installed kit, which the kit writes to
- * `dist/compat.json`. It is not the installed package's version: a release
- * stamps the packed manifest with the release version and leaves the constant
- * where it was, so the two differ in every published kit.
- *
- * A kit that predates `compat.json` is read by its package version, which is
- * what was recorded for it before. Empty when the kit is not installed rather
- * than throwing: an Uplink that does not use ui-kit still has a bundle to
- * describe.
- */
-function uiKitCompatVersion(fromDir: string): string {
-  const dir = installedPackageDir(fromDir, "@ksp-gonogo/ui-kit", 6);
-  if (!dir) return "";
-  const compat = join(dir, "dist", "compat.json");
-  const stated: unknown = existsSync(compat)
-    ? Reflect.get(readManifest(compat), "uiKitVersion")
-    : Reflect.get(readManifest(join(dir, "package.json")), "version");
-  return typeof stated === "string" ? stated : "";
-}
-
 /** The directory `pkg` is installed in, walking up from `fromDir` at most `levels` times. */
 function installedPackageDir(
   fromDir: string,
@@ -294,7 +269,6 @@ async function bundle(argv: readonly string[]): Promise<number> {
           clientDir,
           compat: {
             apiVersion: compat.EXTENSION_API_VERSION,
-            uiKitVersion: uiKitCompatVersion(clientDir),
             contractMajor: compat.CONTRACT_MAJOR,
             contractMinor: compat.CONTRACT_MINOR,
           },

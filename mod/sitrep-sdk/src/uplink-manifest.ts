@@ -86,8 +86,14 @@ export interface UplinkManifest {
   repo: string;
   version: string;
   minAppVersion: string;
+  /**
+   * The extension API the client was built against: the sdk's
+   * `EXTENSION_API_VERSION`, which covers the surface of the sdk and of ui-kit
+   * together. The app refuses a client whose major differs from its own or
+   * whose minor is newer. It moves only when that surface changes, never with
+   * a package's version.
+   */
   apiVersion: string;
-  uiKitVersion: string;
   contractMajor: number;
   contractMinor: number;
   /**
@@ -142,7 +148,6 @@ export interface UplinkManifestInputs {
    */
   compat: {
     apiVersion: string;
-    uiKitVersion: string;
     contractMajor: number;
     contractMinor: number;
   };
@@ -315,7 +320,6 @@ export function buildUplinkManifest(
     minAppVersion:
       declared.minAppVersion ?? pkg.gonogo?.minAppVersion ?? "0.0.0",
     apiVersion: inputs.compat.apiVersion,
-    uiKitVersion: inputs.compat.uiKitVersion,
     contractMajor: inputs.compat.contractMajor,
     contractMinor: inputs.compat.contractMinor,
     bundleUrl: `${id}/${id}.client.js`,

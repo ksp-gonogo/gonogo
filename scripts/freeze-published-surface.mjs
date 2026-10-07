@@ -33,7 +33,7 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const EXTENSION_API_FILE = "mod/sitrep-sdk/src/compat-versions.ts";
 const VERSION_LINE =
-  /^(export const EXTENSION_API_VERSION = ")(\d+\.\d+\.\d+)(";)$/m;
+  /^(export const EXTENSION_API_VERSION(?:: string)? = ")(\d+\.\d+\.\d+)(";)$/m;
 
 export const LEDGERS = [
   {

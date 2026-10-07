@@ -16,6 +16,7 @@
  * had reached 12.22.
  */
 
+// Typed `string`, not left as the literal: the release freeze records this surface and then moves this number, and a literal type would make the move a change to the surface it had just recorded.
 /**
  * The version of the surface an Uplink's client compiles against: every export
  * of `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit`. A removed or changed
@@ -24,7 +25,7 @@
  *
  * @category Host and runtime
  */
-export const EXTENSION_API_VERSION = "6.0.0";
+export const EXTENSION_API_VERSION: string = "6.0.0";
 
 /**
  * The major version of the game data contract: the shape of every payload the

@@ -576,7 +576,7 @@ export function buildReadme(
       ],
       [
         "Built against",
-        `contract ${manifest.contractMajor}.${manifest.contractMinor}, api ${manifest.apiVersion}, ui-kit ${manifest.uiKitVersion}`,
+        `contract ${manifest.contractMajor}.${manifest.contractMinor}, extension API ${manifest.apiVersion}`,
       ],
     ]),
     ...wireSection(wire),

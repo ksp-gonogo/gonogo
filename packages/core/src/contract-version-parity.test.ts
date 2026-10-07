@@ -4,8 +4,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as sdk from "@ksp-gonogo/sitrep-sdk";
 import { CONTRACT_MAJOR, CONTRACT_MINOR } from "@ksp-gonogo/sitrep-sdk";
-import { UI_KIT_VERSION } from "@ksp-gonogo/ui-kit";
+import * as uiKit from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { readJsonObject } from "./ratchetBaseRef";
 
@@ -20,10 +21,15 @@ import { readJsonObject } from "./ratchetBaseRef";
  *    them, and the mismatch is silent until the first Uplink ships a correctly
  *    generated manifest, at which point the app refuses it with a message about
  *    a contract mismatch rather than about a stale mirror
- *  - `UI_KIT_VERSION` and the kit's own `package.json` disagreed, carrying a
- *    `TODO(version)` in place of a check. Neither number was ever published:
- *    npm has only 0.1.0, so a bump written here is a claim about a release
- *    that has not happened
+ *  - `UI_KIT_VERSION` was a hand-typed copy of the kit's package version that
+ *    the app compared an Uplink's manifest against. A release stamps the
+ *    package version onto the packed manifest and nothing else, so every
+ *    published kit disagreed with its own constant and every client built
+ *    against one was refused. The sdk's `SDK_VERSION` shipped as 0.0.1 in
+ *    every release for the same reason. Both are gone: the surface an Uplink is
+ *    built against has one number, `EXTENSION_API_VERSION`, which moves when
+ *    the surface does, and the tests below keep a package version from being
+ *    exported or compared again
  *
  * It lives in core because core is where this repo keeps its cross-package
  * ratchets, and because the C# file is not reachable from either package being
@@ -64,11 +70,52 @@ describe("published compat versions mirror their sources", () => {
     expect(CONTRACT_MINOR).toBe(readCsharpConst(contractVersionCs, "Minor"));
   });
 
-  it("UI_KIT_VERSION equals the kit's package version", () => {
-    const pkg = readJsonObject(
-      join(REPO_ROOT, "packages", "ui-kit", "package.json"),
+  it("EXTENSION_API_VERSION is the version the surface ledger last recorded", () => {
+    // The ledger is what moves this number, at a release, by what changed in the surface of the sdk and ui-kit: a break moves the major, an addition the minor.
+    const ledger = readJsonObject(
+      join(REPO_ROOT, "mod", "sitrep-sdk", "extension-api.ledger.json"),
     );
-    expect(UI_KIT_VERSION).toBe(pkg.version);
+    const entries: unknown = ledger.entries;
+    const last: unknown = Array.isArray(entries) ? entries.at(-1) : undefined;
+    const recorded: unknown =
+      typeof last === "object" && last !== null
+        ? Reflect.get(last, "version")
+        : undefined;
+    expect(sdk.EXTENSION_API_VERSION).toBe(recorded);
+  });
+
+  it("neither published package exports a version of its own", () => {
+    /*
+     * A constant holding the package's version cannot be right once published:
+     * a release stamps the version onto the packed manifest, after the build
+     * that would have baked the constant. And anything compared against one
+     * refuses a client for being built a release ago, with no surface changed.
+     * The one version either package exports is the surface's.
+     */
+    const versions = (pkg: object) =>
+      Object.keys(pkg).filter((name) => /VERSION$/.test(name));
+    expect(versions(sdk)).toEqual(["EXTENSION_API_VERSION"]);
+    expect(versions(uiKit)).toEqual([]);
+  });
+
+  it("the app gates an Uplink on the surface and the contract, and on no package version", () => {
+    const hostCompat = readFileSync(
+      join(REPO_ROOT, "packages", "app", "src", "uplinks", "hostCompat.ts"),
+      "utf8",
+    );
+    const declared = /export interface HostCompat \{([\s\S]*?)\n\}/.exec(
+      hostCompat,
+    );
+    if (!declared) {
+      throw new Error(
+        "contract-version-parity: no `export interface HostCompat` in hostCompat.ts. " +
+          "Point this test at wherever the app's compat identity moved to.",
+      );
+    }
+    const members = [...declared[1].matchAll(/^\s{2}(\w+)\??:/gm)].map(
+      (match) => match[1],
+    );
+    expect(members).toEqual(["apiVersion", "contractMajor", "contractMinor"]);
   });
 
   it("every bundled Uplink manifest claims the contract now on the wire", () => {

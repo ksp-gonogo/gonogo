@@ -24,7 +24,6 @@ interface IndexVersion {
   version: string;
   minAppVersion: string;
   apiVersion: string;
-  uiKitVersion: string;
   contractMajor: number;
   contractMinor: number;
   bundleUrl: string;
@@ -48,7 +47,6 @@ interface Sidecar {
   version?: string;
   minAppVersion?: string;
   apiVersion?: string;
-  uiKitVersion?: string;
   contractMajor?: number;
   contractMinor?: number;
 }
@@ -174,7 +172,6 @@ export function createLocalUplinks(rawPaths: readonly string[]) {
             version: sidecar.version ?? "0.0.0",
             minAppVersion: sidecar.minAppVersion ?? "0.0.0",
             apiVersion: sidecar.apiVersion ?? "",
-            uiKitVersion: sidecar.uiKitVersion ?? "",
             contractMajor: sidecar.contractMajor ?? 0,
             contractMinor: sidecar.contractMinor ?? 0,
             bundleUrl: `/uplinks/local/${uplink.id}/${uplink.id}.client.js?h=${integrity}`,
@@ -213,7 +210,6 @@ export function createLocalUplinks(rawPaths: readonly string[]) {
           (hasBundle ? statSync(uplink.bundleFile).mtime.toISOString() : null),
         version: sidecar?.version ?? null,
         apiVersion: sidecar?.apiVersion ?? null,
-        uiKitVersion: sidecar?.uiKitVersion ?? null,
       };
     });
 
@@ -249,7 +245,6 @@ export interface LocalUplinksOptions {
   /** The host's own compat identity, stamped on the bundled Uplinks' entries. */
   host: {
     apiVersion: string;
-    uiKitVersion: string;
     contractMajor: number;
     contractMinor: number;
   };
@@ -381,7 +376,7 @@ export function localUplinks(options: LocalUplinksOptions): PluginOption {
         const lines = local.statuses().map((s) => {
           const detail =
             s.state === "built"
-              ? `built ${s.builtAt ?? ""}, api ${s.apiVersion}, ui-kit ${s.uiKitVersion}`
+              ? `built ${s.builtAt ?? ""}, extension API ${s.apiVersion}`
               : s.state === "failed"
                 ? `build failed: ${s.error}`
                 : "waiting for the first build";

@@ -27,7 +27,6 @@ afterEach(() => {
 
 const COMPAT = {
   apiVersion: "1.0.0",
-  uiKitVersion: "0.2.0",
   contractMajor: 14,
   contractMinor: 6,
 };

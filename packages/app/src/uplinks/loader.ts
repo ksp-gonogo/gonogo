@@ -159,7 +159,7 @@ export interface LoaderContext {
   /**
    * Fetch a third-party Uplink's manifest sidecar (the D5-loader follow-on,
    * a `clientSource`-only id has no local registry entry, so the compat
-   * fields (apiVersion/uiKitVersion/contractMajor/contractMinor/
+   * fields (apiVersion/contractMajor/contractMinor/
    * minAppVersion) the local index would otherwise supply come from this
    * fetch instead, at the conventional sidecar URL `manifestUrlFor` derives).
    * Returns the parsed-or-parseable JSON value (a string OR an already-parsed
@@ -260,7 +260,6 @@ function toCompatManifest(
     version: version.version,
     minAppVersion: version.minAppVersion,
     apiVersion: version.apiVersion,
-    uiKitVersion: version.uiKitVersion,
     contractMajor: version.contractMajor,
     contractMinor: version.contractMinor,
     integrity: version.integrity,
@@ -290,7 +289,7 @@ interface CompatVerdict {
 
 /**
  * The compat + roster + mod-hash gate; runs BEFORE any bytes are fetched
- * (design §5 step 3). The VERSION verdict itself (apiVersion/uiKitVersion/
+ * (design §5 step 3). The VERSION verdict itself (apiVersion/
  * contractMajor/contractMinor/minAppVersion: design §6.3) is delegated
  * whole to core's `checkUplinkCompat`, the single source of truth for that
  * rule table; this function keeps only the orchestration core doesn't know
@@ -308,7 +307,6 @@ function checkCompat(
   const manifest = toCompatManifest(descriptor, version);
   const app: AppCompatIdentity = {
     apiVersion: ctx.hostCompat.apiVersion,
-    uiKitVersion: ctx.hostCompat.uiKitVersion,
     contractMajor: ctx.hostCompat.contractMajor,
     contractMinor: ctx.hostCompat.contractMinor,
     appVersion: ctx.appVersion,
@@ -537,7 +535,7 @@ export function resolveClientBundleUrl(clientSource: {
  *     are what an operator wants to see; withholding them and printing
  *     `by unknown` is not safer, only less useful. What must survive is the
  *     DISTINCTION, and that lives in `identity`, never in the flat fields.
- *   - the compat fields (apiVersion/uiKitVersion/contractMajor/
+ *   - the compat fields (apiVersion/contractMajor/
  *     contractMinor/minAppVersion) come straight from the parsed manifest,
  *     this is the whole point of the manifest-fetch seam: it's the one place
  *     a `clientSource`-only id's compat identity comes from, since there is
@@ -576,7 +574,6 @@ export function descriptorFromClientSource(
         version: manifest.version,
         minAppVersion: manifest.minAppVersion,
         apiVersion: manifest.apiVersion,
-        uiKitVersion: manifest.uiKitVersion,
         contractMajor: manifest.contractMajor,
         contractMinor: manifest.contractMinor,
         bundleUrl,

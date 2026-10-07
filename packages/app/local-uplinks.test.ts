@@ -39,7 +39,6 @@ function checkout(id = "fixture") {
         version: "1.2.3",
         minAppVersion: "0.0.0",
         apiVersion: "7.7.0",
-        uiKitVersion: "5.5.0",
         contractMajor: 9,
         contractMinor: 4,
         bundleUrl: `${id}.client.js`,
@@ -71,7 +70,6 @@ describe("local Uplinks", () => {
     const [version] = entry.versions;
     expect(version.integrity).toBe(sha("export const marker = 1;\n"));
     expect(version.apiVersion).toBe("7.7.0");
-    expect(version.uiKitVersion).toBe("5.5.0");
     expect(version.contractMajor).toBe(9);
     expect(version.bundleUrl).toBe(
       `/uplinks/local/fixture/fixture.client.js?h=${version.integrity}`,

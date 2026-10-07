@@ -28,7 +28,6 @@ const INVENTORY: UplinkInventory = {
   version: "0.0.0",
   compat: {
     apiVersion: "1.0.0",
-    uiKitVersion: "0.0.0",
     contractMajor: 0,
     contractMinor: 0,
   },

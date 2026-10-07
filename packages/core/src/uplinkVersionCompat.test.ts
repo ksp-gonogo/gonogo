@@ -15,7 +15,6 @@ function manifest(
     version: "1.0.0",
     minAppVersion: "1.0.0",
     apiVersion: "1.0.0",
-    uiKitVersion: "1.2.0",
     contractMajor: 4,
     contractMinor: 3,
     integrity: "sha256-deadbeef",
@@ -26,7 +25,6 @@ function manifest(
 function app(overrides: Partial<AppCompatIdentity> = {}): AppCompatIdentity {
   return {
     apiVersion: "1.0.0",
-    uiKitVersion: "1.2.0",
     contractMajor: 4,
     contractMinor: 3,
     appVersion: "2.0.0",
@@ -41,7 +39,22 @@ describe("checkUplinkCompat: apiVersion", () => {
       app({ apiVersion: "1.5.0" }),
     );
     expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/apiVersion major mismatch/);
+    expect(result.reason).toMatch(/extension API mismatch/);
+    // The Uplink is the newer side here, so the remedy is the app's.
+    expect(result.reason).toMatch(/update the app/);
+  });
+
+  it("tells the author of an Uplink built for an older major what to rebuild against", () => {
+    const result = checkUplinkCompat(
+      manifest({ apiVersion: "1.4.0" }),
+      app({ apiVersion: "2.1.0", appVersion: "3.7.0" }),
+    );
+    expect(result.verdict).toBe("refuse");
+    expect(result.reason).toContain("built for extension API 1.x");
+    expect(result.reason).toContain("the app provides 2.1.0");
+    expect(result.reason).toContain(
+      "@ksp-gonogo/sitrep-sdk and @ksp-gonogo/ui-kit 3.7.0",
+    );
   });
 
   it("refuses when client minor is newer than the app's", () => {
@@ -50,7 +63,8 @@ describe("checkUplinkCompat: apiVersion", () => {
       app({ apiVersion: "1.2.0" }),
     );
     expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/apiVersion minor too new/);
+    expect(result.reason).toMatch(/extension API too new/);
+    expect(result.reason).toMatch(/update the app/);
   });
 
   it("loads when client minor is older than the app's", () => {
@@ -70,64 +84,15 @@ describe("checkUplinkCompat: apiVersion", () => {
   });
 });
 
-describe("checkUplinkCompat: uiKitVersion", () => {
-  it("0.x: refuses on a minor mismatch (exact-minor regime)", () => {
-    const result = checkUplinkCompat(
-      manifest({ uiKitVersion: "0.2.0" }),
-      app({ uiKitVersion: "0.1.0" }),
-    );
-    expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/uiKitVersion 0\.x minor mismatch/);
+describe("checkUplinkCompat: a package's own version gates nothing", () => {
+  it("loads a manifest that still carries a kit version from an older tool, whatever it says", () => {
+    // A release moves every package's version whether or not the surface an Uplink uses changed, so the surface has one number of its own and this field is not read.
+    const withKitVersion = { ...manifest(), uiKitVersion: "9.9.9" };
+    expect(checkUplinkCompat(withKitVersion, app()).verdict).toBe("load");
   });
 
-  it("0.x: loads on an exact minor match", () => {
-    const result = checkUplinkCompat(
-      manifest({ uiKitVersion: "0.1.0" }),
-      app({ uiKitVersion: "0.1.0" }),
-    );
-    expect(result.verdict).toBe("load");
-  });
-
-  it("0.x: refuses when the client isn't 0.x at all against a 0.x app (defensive major check)", () => {
-    const result = checkUplinkCompat(
-      manifest({ uiKitVersion: "1.0.0" }),
-      app({ uiKitVersion: "0.1.0" }),
-    );
-    expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/uiKitVersion 0\.x minor mismatch/);
-  });
-
-  it("1.x: refuses on a major mismatch", () => {
-    const result = checkUplinkCompat(
-      manifest({ uiKitVersion: "2.0.0" }),
-      app({ uiKitVersion: "1.2.0" }),
-    );
-    expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/uiKitVersion major mismatch/);
-  });
-
-  it("1.x: refuses when client minor is newer than the app's", () => {
-    const result = checkUplinkCompat(
-      manifest({ uiKitVersion: "1.5.0" }),
-      app({ uiKitVersion: "1.2.0" }),
-    );
-    expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/uiKitVersion minor too new/);
-  });
-
-  it("1.x: loads when client minor is older than or equal to the app's", () => {
-    expect(
-      checkUplinkCompat(
-        manifest({ uiKitVersion: "1.0.0" }),
-        app({ uiKitVersion: "1.2.0" }),
-      ).verdict,
-    ).toBe("load");
-    expect(
-      checkUplinkCompat(
-        manifest({ uiKitVersion: "1.2.0" }),
-        app({ uiKitVersion: "1.2.0" }),
-      ).verdict,
-    ).toBe("load");
+  it("parses a manifest with no kit version in it", () => {
+    expect(() => parseUplinkManifest(JSON.stringify(manifest()))).not.toThrow();
   });
 });
 
@@ -233,16 +198,7 @@ describe("checkUplinkCompat: verdict precedence", () => {
       app({ apiVersion: "1.0.0", appVersion: "2.0.0" }),
     );
     expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/apiVersion major mismatch/);
-  });
-
-  it("checks apiVersion before uiKitVersion when both would refuse", () => {
-    const result = checkUplinkCompat(
-      manifest({ apiVersion: "9.0.0", uiKitVersion: "9.0.0" }),
-      app({ apiVersion: "1.0.0", uiKitVersion: "1.2.0" }),
-    );
-    expect(result.verdict).toBe("refuse");
-    expect(result.reason).toMatch(/^apiVersion/);
+    expect(result.reason).toMatch(/extension API mismatch/);
   });
 
   it("a fully-compatible manifest loads with reason 'compatible'", () => {

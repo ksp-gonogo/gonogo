@@ -45,7 +45,6 @@ import {
   registerAugment,
   Section,
   setQuantityLocale,
-  UI_KIT_VERSION,
   useDomainAvailabilityStore,
   WidgetBody,
 } from "@ksp-gonogo/ui-kit";
@@ -424,7 +423,6 @@ export interface InventoryReckonerExemption {
  */
 export interface UplinkCompat {
   apiVersion: string;
-  uiKitVersion: string;
   contractMajor: number;
   contractMinor: number;
 }
@@ -590,7 +588,6 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     description: client.description,
     compat: {
       apiVersion: EXTENSION_API_VERSION,
-      uiKitVersion: UI_KIT_VERSION,
       contractMajor: CONTRACT_MAJOR,
       contractMinor: CONTRACT_MINOR,
     },

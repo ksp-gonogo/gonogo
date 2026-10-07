@@ -8119,8 +8119,16 @@
         "note": "Typed as the slot ids SlotRegistry declares rather than any string, so a widget cannot list a slot nothing declares; an Uplink listing its own slot declares it with declare module first, as every bundled Uplink already does"
       },
       {
+        "key": "sitrep-sdk . EXTENSION_API_VERSION",
+        "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
+      },
+      {
         "key": "sitrep-sdk . HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk . SDK_VERSION",
+        "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
       {
         "key": "sitrep-sdk . ServerMessage",
@@ -8227,6 +8235,14 @@
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
+        "key": "sitrep-sdk ./uplink-manifest UplinkManifest#uiKitVersion",
+        "note": "Removed from gonogo-uplink.json. The app no longer compares a client against ui-kit's package version, which a release moves whether or not the kit's surface changed; apiVersion speaks for the surface of the sdk and ui-kit together"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkManifestInputs#compat",
+        "note": "Loses uiKitVersion, with the manifest field it filled"
+      },
+      {
         "key": "ui-kit . CommandFailedEntry",
         "note": "now its own interface over CommandFailedLike, where it was an alias of CommandLossEntry, so a failure can carry its fault code"
       },
@@ -8265,6 +8281,10 @@
       {
         "key": "ui-kit . ReckoningMark",
         "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
+      },
+      {
+        "key": "ui-kit . UI_KIT_VERSION",
+        "note": "Removed. It was a hand-typed copy of the package version that the app refused clients against, and a release never moved it, so every client built against a published kit was refused. The kit's surface is covered by EXTENSION_API_VERSION"
       },
       {
         "key": "ui-kit . Unit",

@@ -372,8 +372,7 @@ describe("every command refuses a flag it does not read", () => {
  * reads to say "waiting", "built" or "failed" without parsing a log.
  */
 describe("uplink-tools bundle", () => {
-  /** A client with a ui-kit installed above it, as far as bundle reads one. */
-  const clientWithKit = (kit: Record<string, string>) => {
+  it("writes a sidecar that states the extension API and the contract, and no package's version to be compared", () => {
     const dir = workdir();
     writeFileSync(
       join(dir, "uplink.json"),
@@ -389,56 +388,28 @@ describe("uplink-tools bundle", () => {
     );
     mkdirSync(join(dir, "src"));
     writeFileSync(join(dir, "src", "index.ts"), "export const marker = 1;\n");
-    const installed = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
-    for (const [file, content] of Object.entries(kit)) {
-      mkdirSync(join(installed, file, ".."), { recursive: true });
-      writeFileSync(join(installed, file), content);
-    }
-    return dir;
-  };
-  const recordedKit = (dir: string): unknown =>
-    Reflect.get(
-      JSON.parse(
-        readFileSync(
-          join(dir, "dist", "fixture", "gonogo-uplink.json"),
-          "utf8",
-        ),
-      ),
-      "uiKitVersion",
+    // A ui-kit installed above the client, at a version the sidecar must not repeat: a release moves it with no change to what the client uses.
+    const kit = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
+    mkdirSync(kit, { recursive: true });
+    writeFileSync(
+      join(kit, "package.json"),
+      JSON.stringify({ name: "@ksp-gonogo/ui-kit", version: "7.0.0-rc.3" }),
     );
 
-  it("records the version the installed ui-kit states for compatibility, not the version it was published under", () => {
-    // A release stamps the manifest and leaves the kit's own constant, which is the one the app compares.
-    const dir = clientWithKit({
-      "package.json": JSON.stringify({
-        name: "@ksp-gonogo/ui-kit",
-        version: "7.0.0-rc.3",
-      }),
-      "dist/compat.json": JSON.stringify({ uiKitVersion: "0.4.0" }),
-    });
-
     execFileSync(process.execPath, [BIN, "bundle"], {
       cwd: dir,
       stdio: "pipe",
     });
 
-    expect(recordedKit(dir)).toBe("0.4.0");
-  });
-
-  it("reads a ui-kit from before it stated one by its package version", () => {
-    const dir = clientWithKit({
-      "package.json": JSON.stringify({
-        name: "@ksp-gonogo/ui-kit",
-        version: "0.1.0",
-      }),
+    const sidecar: unknown = JSON.parse(
+      readFileSync(join(dir, "dist", "fixture", "gonogo-uplink.json"), "utf8"),
+    );
+    expect(sidecar).toMatchObject({
+      apiVersion: expect.stringMatching(/^\d+\.\d+\.\d+$/),
+      contractMajor: expect.any(Number),
+      contractMinor: expect.any(Number),
     });
-
-    execFileSync(process.execPath, [BIN, "bundle"], {
-      cwd: dir,
-      stdio: "pipe",
-    });
-
-    expect(recordedKit(dir)).toBe("0.1.0");
+    expect(sidecar).not.toHaveProperty("uiKitVersion");
   });
 });
 

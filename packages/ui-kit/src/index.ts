@@ -705,7 +705,6 @@ export {
 } from "./useRowFilter";
 export { useWidgetBadges } from "./useWidgetBadges";
 export { VisuallyHidden } from "./VisuallyHidden";
-export { UI_KIT_VERSION } from "./version";
 export {
   type PaintVesselMarkOptions,
   paintVesselMark,

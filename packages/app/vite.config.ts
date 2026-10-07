@@ -9,7 +9,6 @@ import { buildUplinkClientBundle } from "./uplink-bundle";
 import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 import { workspaceAliases } from "./workspaceAlias";
 
-const packagesDir = resolve(__dirname, "..");
 const workspaceAlias = workspaceAliases();
 
 const pkg = JSON.parse(
@@ -29,9 +28,9 @@ const pkg = JSON.parse(
  */
 function readExportedStringConst(filePath: string, exportName: string): string {
   const src = readFileSync(filePath, "utf-8");
-  const match = new RegExp(`export const ${exportName}\\s*=\\s*"([^"]+)"`).exec(
-    src,
-  );
+  const match = new RegExp(
+    `export const ${exportName}(?::\\s*string)?\\s*=\\s*"([^"]+)"`,
+  ).exec(src);
   if (!match) {
     throw new Error(
       `readExportedStringConst: could not find "export const ${exportName}" in ${filePath}`,
@@ -64,7 +63,6 @@ function readExportedNumberConst(filePath: string, exportName: string): number {
 //     API-surface gate. Single-sourced from the same constant hostCompat.ts
 //     gates on, so the two can never drift. NOT sitrep-sdk's package.json
 //     version, which is unrelated to that gate's numbering.
-//   • uiKitVersion: @ksp-gonogo/ui-kit's `UI_KIT_VERSION` (src/version.ts).
 //   • contractMajor / contractMinor: mirror the C# `ContractVersion.Major`/
 //     `.Minor` stamp (Sitrep.Contract's `ContractVersion`, currently 4.7).
 //     Held as hand-maintained app constants (the C# contract owns bumping
@@ -77,10 +75,6 @@ const SDK_COMPAT_VERSIONS = resolve(
 const HOST_API_VERSION = readExportedStringConst(
   SDK_COMPAT_VERSIONS,
   "EXTENSION_API_VERSION",
-);
-const HOST_UIKIT_VERSION = readExportedStringConst(
-  resolve(packagesDir, "ui-kit/src/version.ts"),
-  "UI_KIT_VERSION",
 );
 // Read from the sdk rather than typed here. Held as two local constants, this
 // pair went stale: it said 5.0 (with a comment saying 4.7) while
@@ -156,7 +150,6 @@ const uplinkBundles = (): PluginOption => ({
             version: pkg.version,
             minAppVersion: pkg.version,
             apiVersion: HOST_API_VERSION,
-            uiKitVersion: HOST_UIKIT_VERSION,
             contractMajor: HOST_CONTRACT_MAJOR,
             contractMinor: HOST_CONTRACT_MINOR,
             // Phase A: bundle is co-located under the app's own public/. Phase D
@@ -294,7 +287,6 @@ export default defineConfig({
     localUplinks({
       host: {
         apiVersion: HOST_API_VERSION,
-        uiKitVersion: HOST_UIKIT_VERSION,
         contractMajor: HOST_CONTRACT_MAJOR,
         contractMinor: HOST_CONTRACT_MINOR,
       },
@@ -341,9 +333,8 @@ export default defineConfig({
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
     // The C# contract's half of the app's Uplink-compat identity; read by
     // src/uplinks/hostCompat.ts and gated against a descriptor's declared
-    // versions before any bundle is loaded. apiVersion/uiKitVersion don't need
-    // a define: hostCompat.ts imports EXTENSION_API_VERSION/UI_KIT_VERSION
-    // directly from @ksp-gonogo/core / @ksp-gonogo/ui-kit.
+    // versions before any bundle is loaded. apiVersion needs no define:
+    // hostCompat.ts imports EXTENSION_API_VERSION directly from @ksp-gonogo/core.
     __GONOGO_CONTRACT_MAJOR__: JSON.stringify(HOST_CONTRACT_MAJOR),
     __GONOGO_CONTRACT_MINOR__: JSON.stringify(HOST_CONTRACT_MINOR),
   },

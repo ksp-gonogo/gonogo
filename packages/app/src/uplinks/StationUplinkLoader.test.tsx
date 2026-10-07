@@ -70,15 +70,8 @@ function registryWith(integrity: string): RegistryIndex {
           {
             version: "1.0.0",
             minAppVersion: "0.0.0",
-            // Read off the real `hostCompat` this module imports rather than
-            // typed here. Typed, `uiKitVersion` said "0.1.0" and stayed right
-            // only while the constant was ALSO wrong: the moment ui-kit's
-            // version was corrected to match its package, four tests failed
-            // with a compat mismatch about a number neither side chose.
-            // contractMajor/Minor stay 0 because no `__GONOGO_CONTRACT_*__`
-            // define exists outside the real Vite build.
+            // Read off the real `hostCompat` this module imports rather than typed here, so a test cannot pass or fail on a number neither side chose; the contract pair stays 0 because no `__GONOGO_CONTRACT_*__` define exists outside the real Vite build.
             apiVersion: hostCompat.apiVersion,
-            uiKitVersion: hostCompat.uiKitVersion,
             contractMajor: hostCompat.contractMajor,
             contractMinor: hostCompat.contractMinor,
             bundleUrl: BUNDLE_URL,

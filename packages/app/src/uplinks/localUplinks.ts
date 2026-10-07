@@ -13,7 +13,6 @@ export interface LocalUplinkStatus {
   builtAt: string | null;
   version: string | null;
   apiVersion: string | null;
-  uiKitVersion: string | null;
 }
 
 /**

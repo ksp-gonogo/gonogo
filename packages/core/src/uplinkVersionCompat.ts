@@ -52,8 +52,15 @@ export interface GonogoUplinkManifest {
    */
   description?: string;
   minAppVersion: string;
+  /**
+   * The extension API the client was built against, the sdk's
+   * `EXTENSION_API_VERSION`. It is the one number that speaks for the surface
+   * of the sdk and of ui-kit together, and it moves only when that surface
+   * changes: a break moves the major, an addition the minor. No package's own
+   * version is compared anywhere, because a release moves every package's
+   * version whether or not anything an Uplink uses changed.
+   */
   apiVersion: string;
-  uiKitVersion: string;
   contractMajor: number;
   contractMinor: number;
   integrity: string;
@@ -81,7 +88,6 @@ const MANIFEST_STRING_FIELDS = [
   "version",
   "minAppVersion",
   "apiVersion",
-  "uiKitVersion",
   "integrity",
 ] as const satisfies readonly (keyof GonogoUplinkManifest)[];
 
@@ -148,7 +154,6 @@ export interface UplinkCompatVerdict {
  *  real app version source itself. */
 export interface AppCompatIdentity {
   apiVersion: string;
-  uiKitVersion: string;
   contractMajor: number;
   contractMinor: number;
   appVersion: string;
@@ -165,7 +170,7 @@ function compareSemverOrder(a: ParsedSemver, b: ParsedSemver): number {
 
 /**
  * The compat-verdict rule table. Precedence when multiple rules would
- * independently refuse: apiVersion, then uiKitVersion, then contractMajor,
+ * independently refuse: apiVersion, then contractMajor,
  * then contractMinor: the same order the fields are listed in
  * `GonogoUplinkManifest` above. Any refuse wins over warn-load; minAppVersion
  * (the only warn-load-producing rule) is checked last, only once every
@@ -185,54 +190,35 @@ export function checkUplinkCompat(
       reason: `apiVersion unparseable: client "${manifest.apiVersion}" vs app "${app.apiVersion}"`,
     };
   }
+  /*
+   * Each refusal says which side is behind and what closes the gap, as the
+   * contract refusals below do: an operator sees a quarantined row and the
+   * author sees a build, and the two numbers alone tell neither what to do.
+   * "The packages" are the sdk and ui-kit, which a release publishes at the
+   * app's own version, so that version is what an author rebuilds against.
+   */
+  const rebuild =
+    `The Uplink needs rebuilding against @ksp-gonogo/sitrep-sdk and @ksp-gonogo/ui-kit ` +
+    `${app.appVersion}, the versions this app was released with, and re-releasing; ` +
+    "nothing can be changed app-side to load it.";
+  const updateApp =
+    "The app is older than the Uplink, so update the app; the Uplink is not at fault.";
   if (clientApi.major !== appApi.major) {
     return {
       verdict: "refuse",
-      reason: `apiVersion major mismatch: client ${clientApi.major}.x vs app ${appApi.major}.x`,
+      reason:
+        `extension API mismatch: this Uplink was built for extension API ${clientApi.major}.x ` +
+        `(apiVersion ${manifest.apiVersion}), and the app provides ${app.apiVersion}. ` +
+        (clientApi.major < appApi.major ? rebuild : updateApp),
     };
   }
   if (clientApi.minor > appApi.minor) {
     return {
       verdict: "refuse",
-      reason: `apiVersion minor too new: client ${manifest.apiVersion} vs app ${app.apiVersion}`,
+      reason:
+        `extension API too new: this Uplink was built for extension API ${manifest.apiVersion}, ` +
+        `and the app provides ${app.apiVersion}. ${updateApp}`,
     };
-  }
-
-  // -- uiKitVersion --
-  const clientUi = parseSemver(manifest.uiKitVersion);
-  const appUi = parseSemver(app.uiKitVersion);
-  if (!clientUi || !appUi) {
-    return {
-      verdict: "refuse",
-      reason: `uiKitVersion unparseable: client "${manifest.uiKitVersion}" vs app "${app.uiKitVersion}"`,
-    };
-  }
-  if (appUi.major === 0) {
-    // 0.x demands an exact minor match. The rule as specified keys the
-    // regime off "major == 0" without saying whose major decides it; we key
-    // off the APP's uiKitVersion (the host is the arbiter of which compat
-    // regime is active), and additionally require the client's major to
-    // also be 0: a client claiming e.g. "1.0.0" against a 0.x app is a
-    // major mismatch, not a same-regime minor comparison.
-    if (clientUi.major !== 0 || clientUi.minor !== appUi.minor) {
-      return {
-        verdict: "refuse",
-        reason: `uiKitVersion 0.x minor mismatch: client ${manifest.uiKitVersion} vs app ${app.uiKitVersion}`,
-      };
-    }
-  } else {
-    if (clientUi.major !== appUi.major) {
-      return {
-        verdict: "refuse",
-        reason: `uiKitVersion major mismatch: client ${clientUi.major}.x vs app ${appUi.major}.x`,
-      };
-    }
-    if (clientUi.minor > appUi.minor) {
-      return {
-        verdict: "refuse",
-        reason: `uiKitVersion minor too new: client ${manifest.uiKitVersion} vs app ${app.uiKitVersion}`,
-      };
-    }
   }
 
   // -- contractMajor --

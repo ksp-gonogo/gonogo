@@ -184,7 +184,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/StationUplinkLoader.tsx": 1,
   "packages/app/src/uplinks/consentModal.tsx": 1,
   "packages/app/src/uplinks/externals/ext-sitrep-sdk-frames.ts": 1,
-  "packages/app/src/uplinks/hostCompat.ts": 3,
   "packages/app/src/uplinks/identity.ts": 1,
   "packages/app/src/uplinks/loader.ts": 1,
   "packages/app/src/uplinks/rosterProbe.test.ts": 3,

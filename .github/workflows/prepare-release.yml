@@ -133,16 +133,14 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then FLAGS="--dry-run"; fi
           node scripts/freeze-published-surface.mjs --release "${{ steps.version.outputs.new }}" --note "Release ${{ steps.version.outputs.tag }}" $FLAGS
 
-      # The Uplink pages print the EXTENSION_API_VERSION each was built against,
-      # and the app refuses a stale manifest.
-      - name: Regenerate the Uplink pages when the extension API version moved
+      # Every committed gonogo-uplink.json states the sdk version that wrote it,
+      # and the extension API version it was built against. The freeze has just
+      # moved the first and may have moved the second, so the pages are written
+      # again on every release: the app refuses a stale manifest, and the
+      # staleness check would fail the release commit over one.
+      - name: Regenerate the Uplink pages for the versions the freeze moved
         if: ${{ !inputs.dry_run }}
-        run: |
-          if git diff --quiet -- mod/sitrep-sdk/src/compat-versions.ts; then
-            echo "EXTENSION_API_VERSION did not move."
-          else
-            pnpm uplink-pages
-          fi
+        run: pnpm uplink-pages
 
       - name: Show what the cut changes
         run: git status --short

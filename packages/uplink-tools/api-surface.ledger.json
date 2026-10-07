@@ -484,6 +484,10 @@
         "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
       },
       {
+        "key": "uplink-tools . ~UplinkCompat#uiKitVersion",
+        "note": "Removed with the manifest field: the inventory no longer reports a ui-kit version"
+      },
+      {
         "key": "uplink-tools ./render-probe InventoryWidget",
         "note": "InventoryWidget now extends WidgetRecord and adds only behaviors and modes"
       },
@@ -538,6 +542,10 @@
       {
         "key": "uplink-tools ./render-probe InventoryWidget#tags",
         "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe UplinkCompat#uiKitVersion",
+        "note": "Removed with the manifest field: the inventory no longer reports a ui-kit version"
       }
     ],
     "additions": [

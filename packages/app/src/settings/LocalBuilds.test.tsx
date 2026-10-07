@@ -16,7 +16,6 @@ const status = (over: Partial<LocalUplinkStatus> = {}): LocalUplinkStatus => ({
   builtAt: "2026-10-06T14:02:11.000Z",
   version: "0.9.3-dev",
   apiVersion: "6.0.0",
-  uiKitVersion: "0.1.0",
   ...over,
 });
 

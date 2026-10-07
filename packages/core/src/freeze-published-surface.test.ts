@@ -97,6 +97,13 @@ describe("the version writers", () => {
     expect(replaceExtensionApiVersion(source, "7.0.0")).toBe(
       'a\nexport const EXTENSION_API_VERSION = "7.0.0";\nexport const B = "1.0.0";\n',
     );
+    // The declaration as it is written now, typed so that moving it is not a change to the surface.
+    expect(
+      replaceExtensionApiVersion(
+        'export const EXTENSION_API_VERSION: string = "6.0.0";\n',
+        "7.0.0",
+      ),
+    ).toBe('export const EXTENSION_API_VERSION: string = "7.0.0";\n');
     expect(() => replaceExtensionApiVersion("nothing", "7.0.0")).toThrow(
       /no EXTENSION_API_VERSION/,
     );

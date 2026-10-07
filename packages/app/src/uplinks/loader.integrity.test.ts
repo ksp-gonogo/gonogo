@@ -25,7 +25,6 @@ import type { RegistryIndex } from "./registry";
 
 const HOST: HostCompat = {
   apiVersion: "1.2.0",
-  uiKitVersion: "0.3.0",
   contractMajor: 3,
   contractMinor: 5,
 };
@@ -57,7 +56,6 @@ function indexWith(
             version: "1.0.0",
             minAppVersion: "1.0.0",
             apiVersion: "1.2.5",
-            uiKitVersion: "0.3.9",
             contractMajor: 3,
             contractMinor: 3,
             bundleUrl: "/uplinks/widget-a.client.js",
@@ -149,7 +147,7 @@ describe("an integrity failure is recorded apart from an ordinary load failure",
     });
 
     expect(outcome.status).toBe("quarantined");
-    expect(outcome.reason).toMatch(/apiVersion major mismatch/);
+    expect(outcome.reason).toMatch(/extension API mismatch/);
     expect(outcome.integrity).toBeUndefined();
     expect(integrityFailures(getUplinkOutcomes())).toEqual([]);
   });
@@ -291,7 +289,6 @@ describe("who an integrity failure names", () => {
       version: "2.0.0",
       minAppVersion: "1.0.0",
       apiVersion: "1.2.5",
-      uiKitVersion: "0.3.9",
       contractMajor: 3,
       contractMinor: 3,
       integrity: WRONG_HASH,
@@ -342,7 +339,6 @@ describe("who an integrity failure names", () => {
         version: "2.0.0",
         minAppVersion: "1.0.0",
         apiVersion: "1.2.5",
-        uiKitVersion: "0.3.9",
         contractMajor: 3,
         contractMinor: 3,
         integrity: "sha256-manifest-disagrees",

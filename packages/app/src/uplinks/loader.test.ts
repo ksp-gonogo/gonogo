@@ -41,7 +41,6 @@ async function sha256Of(bytes: ArrayBuffer): Promise<string> {
 
 const HOST: HostCompat = {
   apiVersion: "1.2.0",
-  uiKitVersion: "0.3.0",
   contractMajor: 3,
   contractMinor: 5,
 };
@@ -62,7 +61,6 @@ function indexWith(
             version: "1.0.0",
             minAppVersion: "1.0.0",
             apiVersion: "1.2.5", // same major.minor as host 1.2.0, patch differs → passes (checkUplinkCompat gates major exactly + client minor <= host minor)
-            uiKitVersion: "0.3.9", // host is 0.x (0.3.0) → exact minor match required; both minor 3, patch differs → passes
             contractMajor: 3,
             contractMinor: 3, // <= host's 5 → passes
             bundleUrl: "/uplinks/scansat.client.js",
@@ -225,7 +223,7 @@ describe("loadEnabledUplinks", () => {
       importBundle,
     });
     expect(outcomes[0].status).toBe("quarantined");
-    expect(outcomes[0].reason).toMatch(/apiVersion major mismatch/);
+    expect(outcomes[0].reason).toMatch(/extension API mismatch/);
     expect(fetchBytes).not.toHaveBeenCalled();
     expect(importBundle).not.toHaveBeenCalled();
   });
@@ -715,7 +713,6 @@ describe("descriptorFromClientSource", () => {
     version: "2.0.0",
     minAppVersion: "1.0.0",
     apiVersion: "1.2.5",
-    uiKitVersion: "0.3.9",
     contractMajor: 3,
     contractMinor: 3,
     integrity: "sha256-manifest-self-declared",
@@ -770,7 +767,6 @@ describe("descriptorFromClientSource", () => {
     expect(version.version).toBe(manifest.version);
     expect(version.minAppVersion).toBe(manifest.minAppVersion);
     expect(version.apiVersion).toBe(manifest.apiVersion);
-    expect(version.uiKitVersion).toBe(manifest.uiKitVersion);
     expect(version.contractMajor).toBe(manifest.contractMajor);
     expect(version.contractMinor).toBe(manifest.contractMinor);
     expect(descriptor.id).toBe("widget-y");
@@ -847,7 +843,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       version: "2.0.0",
       minAppVersion: "1.0.0",
       apiVersion: "1.2.5", // same major.minor as HOST 1.2.0 → passes
-      uiKitVersion: "0.3.9", // HOST is 0.x (0.3.0) → same minor (3) → passes
       contractMajor: 3, // == HOST's 3 → passes
       contractMinor: 3, // <= HOST's 5 → passes
       integrity: "sha256-manifest-self-declared",
@@ -1390,7 +1385,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       importBundle,
     });
     expect(outcomes[0].status).toBe("quarantined");
-    expect(outcomes[0].reason).toMatch(/apiVersion major mismatch/);
+    expect(outcomes[0].reason).toMatch(/extension API mismatch/);
     expect(fetchBytes).not.toHaveBeenCalled();
     expect(importBundle).not.toHaveBeenCalled();
   });

@@ -14,7 +14,7 @@ import type { UplinkIdentity } from "./identity";
 /**
  * One published version line of an Uplink (both halves ship on one tag).
  *
- * The gate fields (`apiVersion`/`uiKitVersion`/`contractMajor`/`contractMinor`/
+ * The gate fields (`apiVersion`/`contractMajor`/`contractMinor`/
  * `minAppVersion`) are the registry-INDEX twin of core's `GonogoUplinkManifest`
  * (`packages/core/src/uplinkVersionCompat.ts`): same values, different home:
  * this is one entry in an index descriptor's `versions[]` list (no `id` of its
@@ -32,8 +32,6 @@ export interface UplinkVersionDescriptor {
   minAppVersion: string;
   /** GATE: the @ksp-gonogo extension-API surface the client was built against. */
   apiVersion: string;
-  /** GATE: the @ksp-gonogo/ui-kit version. */
-  uiKitVersion: string;
   /** GATE: mirrors the C# ContractVersion.Major stamp. */
   contractMajor: number;
   /** GATE: mirrors the C# ContractVersion.Minor stamp (additive contract growth). */
