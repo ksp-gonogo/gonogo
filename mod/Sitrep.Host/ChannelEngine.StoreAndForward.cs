@@ -322,6 +322,7 @@ namespace Sitrep.Host
             var requestId = NextRequestId();
             var arriveBefore = ArriveBeforeUt(job);
             var message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId);
+            job.Carried = true;
             DeliveryMessagesBudget.Record(1, now);
             _deliveryJobs[message.Id] = job;
             if (job.SessionId != null)
@@ -421,6 +422,7 @@ namespace Sitrep.Host
             {
                 _pendingDispatcher[requestId] = job.SessionId;
             }
+            job.PendingId = requestId;
             _pending.Add(new PendingUplink
             {
                 Id = requestId,
@@ -516,19 +518,26 @@ namespace Sitrep.Host
             return Math.Max(0.0, route[route.Count - 1].ArriveUt - now);
         }
 
-        /// <summary>The deadline a command's own declared arrive-before field carries, when it has one and the args set it.</summary>
+        /// <summary>
+        /// The deadline a command's own declared arrive-before field carries, when
+        /// it has one and the args set it. One args type can declare several
+        /// commands, as the six on/off switches share theirs, so the declaration
+        /// read is the one naming this command.
+        /// </summary>
         private double? ArriveBeforeUt(DispatchCommandJob job)
         {
             if (!_commandArgTypes.TryGetValue(job.Command, out var argsType))
             {
                 return null;
             }
-            var attribute = (SitrepCommandAttribute?)Attribute.GetCustomAttribute(argsType, typeof(SitrepCommandAttribute));
-            if (attribute?.ArriveBefore == null || !(job.Args is IDictionary<string, object?> args))
+            var attribute = argsType.GetCustomAttributes(typeof(SitrepCommandAttribute), false)
+                .OfType<SitrepCommandAttribute>()
+                .FirstOrDefault(a => string.Equals(a.CommandId, job.Command, StringComparison.Ordinal));
+            if (string.IsNullOrEmpty(attribute?.ArriveBefore) || !(job.Args is IDictionary<string, object?> args))
             {
                 return null;
             }
-            var key = char.ToLowerInvariant(attribute.ArriveBefore[0]) + attribute.ArriveBefore.Substring(1);
+            var key = char.ToLowerInvariant(attribute!.ArriveBefore![0]) + attribute.ArriveBefore.Substring(1);
             return args.TryGetValue(key, out var value) && value is double ut && !double.IsNaN(ut) && !double.IsInfinity(ut) ? ut : (double?)null;
         }
 

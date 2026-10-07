@@ -358,6 +358,9 @@ namespace Sitrep.Host
         /// <summary>Main-loop-thread only: throttles the capture's throw report the way a sampled source's is.</summary>
         private int _consecutiveCentreCaptureThrows;
 
+        /// <summary>Courier-thread only: throttles the report of a job other than a dispatch throwing, which a broken tick would otherwise make once a tick.</summary>
+        private int _courierJobThrows;
+
         /// <summary>
         /// The elected home-command claimant's answer at the last main-loop tick.
         /// WRITTEN on the main-loop thread by <see cref="CaptureCommandCentresOnMain"/>,
@@ -6074,7 +6077,15 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine("[ChannelEngine] Courier job " + job.GetType().Name + " threw: " + ex);
+                        if (job is DispatchCommandJob dispatch)
+                        {
+                            LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ex);
+                            FailDispatch(dispatch, ex);
+                        }
+                        else if (++_courierJobThrows == 1 || _courierJobThrows % 300 == 0)
+                        {
+                            LogHost("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far): " + ex);
+                        }
                     }
                 }
             }
@@ -7757,7 +7768,9 @@ namespace Sitrep.Host
                 // Courier.SetCommandHandler) so a throwing handler is
                 // refused, and takes down only itself, instead of killing
                 // the Courier thread.
-                Deliver(job, InvokeCommandHandler(job.Command, job.Args, job.Vantage));
+                var result = InvokeCommandHandler(job.Command, job.Args, job.Vantage);
+                job.Carried = true;
+                Deliver(job, result);
                 job.Done?.Set();
                 return;
             }
@@ -7855,6 +7868,7 @@ namespace Sitrep.Host
                     // command, which is most of them.
                     CommandedValue = CommandedScalar(job),
                 });
+                job.PendingId = requestId;
 
                 // Told to the DISPATCHING CLIENT, correlated by the request id
                 // it chose, which the pending queue above deliberately cannot
@@ -7879,11 +7893,48 @@ namespace Sitrep.Host
             // DelayTo(vantage, node) -- the same ledger delay used above -- so
             // telemetry and command delay share one per-(vantage, node) model.
             _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response => Deliver(job, response.Result));
+            job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a
             // caller blocked on Done cannot produce, so Done marks the dispatch
             // as handed to the Courier rather than as answered.
             job.Done?.Set();
+        }
+
+        /// <summary>
+        /// Settles a dispatch that threw on its way through the host: it is
+        /// refused aloud, with what failed and whether the command had already
+        /// left, and the command is refused from then on as a throwing handler
+        /// leaves it. A command that never left takes its pending entry with it,
+        /// since nothing is in flight for that entry to describe.
+        /// </summary>
+        private void FailDispatch(DispatchCommandJob job, Exception ex)
+        {
+            try
+            {
+                if (!job.Carried && job.PendingId != null)
+                {
+                    var id = job.PendingId;
+                    _pending.RemoveAll(entry => entry.Id == id);
+                    _pendingDispatcher.Remove(id);
+                    _deliveryJobs.Remove(id);
+                }
+                var reason = FailSoftCommand(
+                    job.Command,
+                    job.Carried
+                        ? "the host failed after it was sent, so it may still run"
+                        : "the host failed while sending it, and it was not sent",
+                    ex);
+                job.OnRefused?.Invoke(FaultCode.CommandUnavailable, reason);
+            }
+            catch (Exception refusalEx)
+            {
+                LogHost("command \"" + job.Command + "\" could not be refused after its dispatch threw: " + SafeExceptionMessage(refusalEx));
+            }
+            finally
+            {
+                job.Done?.Set();
+            }
         }
 
         /// <summary>
@@ -9083,6 +9134,12 @@ namespace Sitrep.Host
 
             /// <summary>The connection the request arrived on, or null for one the engine dispatched itself.</summary>
             public readonly string? SessionId;
+
+            /// <summary>Whether the command has left the host's hands: run, or handed to the network that carries it.</summary>
+            public bool Carried { get; set; }
+
+            /// <summary>The id of the pending entry this dispatch put on <see cref="UplinkPendingTopic"/>, once it has put one there.</summary>
+            public string? PendingId { get; set; }
 
             public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
             {

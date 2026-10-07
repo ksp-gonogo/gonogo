@@ -628,7 +628,8 @@ namespace Sitrep.Host.IntegrationTests
                 Interlocked.Increment(ref _activeHandled);
                 return "active:" + args;
             });
-            host.AddCommandHandler<Dictionary<string, object?>, string>(LightsCommand, _ =>
+            // Bound to the args type the game's six switches share, as the vessel Uplink binds it.
+            host.AddCommandHandler<SetEnabledArgs, string>(LightsCommand, _ =>
             {
                 Interlocked.Increment(ref _lit);
                 return "lit";
