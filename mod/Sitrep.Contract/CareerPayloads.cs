@@ -8,13 +8,13 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The <c>career.status</c> channel payload: the KSC and career-mode snapshot,
 /// in four groups (balances, contracts, strategies, tech). The space centre's
-/// buildings are NOT here: they ride <see cref="CareerFacilities"/>, which can
+/// buildings are not here: they are on <see cref="CareerFacilities"/>, which can
 /// be held on its own while this channel keeps arriving.
 ///
-/// <para><b>Three states, and they mean different things.</b> The whole payload
-/// is <c>null</c> in SANDBOX, where there is no career at all. A non-null
-/// payload with a sub-group <c>null</c> means career mode is running and that
-/// group is genuinely unavailable this tick. All four group keys are ALWAYS
+/// <para><b>Three states.</b> The whole payload is <c>null</c> in a sandbox
+/// save, where there is no career at all. A non-null payload with a sub-group
+/// <c>null</c> means career mode is running and that group is unavailable this
+/// tick. All four group keys are always
 /// present, each nullable, never omitted, so a missing key is a protocol error
 /// rather than an absent group.</para>
 ///
@@ -73,13 +73,14 @@ public class CareerStatus
     /// read.
     ///
     /// <para>A SCET alarm compares this stamp against the subject the alarm was
-    /// set for, and refuses a reading that does not match. Without it a
-    /// threshold on a career figure could be set and would then never come due,
-    /// which an operator cannot tell apart from a condition that has not been
-    /// met. <c>"game"</c> is the same token <see cref="ScetAlarm.Subject"/>
-    /// carries for anything the whole simulation shares.</para>
+    /// set for, and refuses a reading that does not match. <c>"game"</c> is the
+    /// same token <see cref="ScetAlarm.Subject"/> carries for anything the whole
+    /// simulation shares.</para>
     /// <internal>
-    /// Stamped by <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>.
+    /// Stamped by <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>. Without the
+    /// stamp a threshold on a career figure could be set and would then never
+    /// come due, which an operator cannot tell apart from a condition that has
+    /// not been met.
     /// </internal>
     /// </summary>
     public PayloadMeta Meta { get; set; } = new();
@@ -89,15 +90,13 @@ public class CareerStatus
 /// The <c>career.facilities</c> channel payload: the space centre's buildings,
 /// each with the tier it stands at and the ladder it stands on.
 ///
-/// <para><b>It arrives only while the game can report it, and stops
-/// otherwise.</b> A facility's tier count and prices are readable from the
+/// <para><b>When it arrives.</b> A facility's tier count and prices are readable from the
 /// building objects, which KSP registers at the space centre, in the editor and
 /// in flight. The tracking station reads the tier the save holds against the
 /// ladder last read in one of those scenes. Where no ladder has been read there
-/// is no reading to take, so this channel goes SILENT rather than reporting a
+/// is no reading to take, so this channel goes silent rather than reporting a
 /// row of nulls. The last reading stands, dated, and the client marks it as
-/// held: a whole channel can be held and said to be held, where a nullable
-/// field on a channel that keeps ticking cannot.</para>
+/// held.</para>
 ///
 /// <para>A tier count does not change during a save, so a ladder held from an
 /// earlier scene is still true. The tier standing on it can move, and does when
@@ -105,7 +104,9 @@ public class CareerStatus
 /// rather than one being trusted further than the other.</para>
 ///
 /// <internal>
-/// <para>Kept off <c>CareerStatus</c> on purpose. A field subtopic takes its
+/// <para>A whole channel can be held and said to be held, where a nullable
+/// field on a channel that keeps ticking cannot. So this is kept off
+/// <c>CareerStatus</c>: a field subtopic takes its
 /// parent channel's freshness outright (see the client's
 /// <c>TimelineStore.sampleStatus</c>), and <c>career.status</c> keeps arriving
 /// everywhere because the balances on it do, so a nested facilities group
@@ -127,8 +128,8 @@ public class CareerStatus
 public class CareerFacilities
 {
     /// <summary>
-    /// DYNAMIC-KEY MAP keyed by <c>SpaceCenterFacility</c> name (e.g.
-    /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>): not a fixed record,
+    /// A map keyed by <c>SpaceCenterFacility</c> name (e.g.
+    /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>), not a fixed record,
     /// so enumerate the keys rather than reaching for one you expect to be there.
     /// A facility the game cannot report is left out of the map. Never empty on
     /// the wire: the channel is absent instead.
@@ -189,13 +190,13 @@ public class CareerFacility
 {
     /// <summary>
     /// Which facility this entry is, as KSP's <c>SpaceCenterFacility</c>
-    /// ORDINAL, typed to <see cref="KspSpaceCenterFacility"/>.
+    /// ordinal, typed to <see cref="KspSpaceCenterFacility"/>.
     ///
     /// <para><see cref="CareerFacilities.Facilities"/> is keyed by the enum
-    /// NAME. The identity also rides INSIDE the entry, so a client can identify
+    /// name. The identity is also inside the entry, so a client can identify
     /// the facility without recognising the key it arrived under.</para>
     ///
-    /// <para><c>null</c> when the producer sent no ordinal.</para>
+    /// <para><c>null</c> when no ordinal was reported.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public KspSpaceCenterFacility? FacilityOrdinal { get; set; }
@@ -246,7 +247,7 @@ public class CareerContracts
     /// </summary>
     public List<CareerContract> Offered { get; set; } = new();
 
-    /// <summary> BOUNDED recently-completed list: the last N (currently 10)
+    /// <summary>The most recently completed contracts, at most 10:
     /// <c>State.Completed</c> contracts from
     /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first by
     /// <c>Contract.DateFinished</c>. Failed, expired, cancelled and withdrawn
@@ -291,7 +292,7 @@ public class CareerContract
     public string? Agent { get; set; }
 
     /// <summary>
-    /// KSP's <c>Contract.State</c> enum NAME, e.g. <c>"Active"</c>,
+    /// KSP's <c>Contract.State</c> enum name, e.g. <c>"Active"</c>,
     /// <c>"Offered"</c> or <c>"Completed"</c>.
     /// </summary>
     [SitrepUnit(Units.Text)]
@@ -364,7 +365,7 @@ public class CareerContractParameter
     public string? Title { get; set; }
 
     /// <summary>
-    /// <c>Contracts.ParameterState</c>'s enum NAME
+    /// <c>Contracts.ParameterState</c>'s enum name
     /// (<c>Incomplete</c>/<c>Complete</c>/<c>Failed</c>): a display label.
     /// <see cref="StateOrdinal"/> is the field to branch on.
     /// </summary>
@@ -372,7 +373,7 @@ public class CareerContractParameter
     public string? State { get; set; }
 
     /// <summary>
-    /// <see cref="State"/>'s KSP ORDINAL, typed to
+    /// <see cref="State"/>'s KSP ordinal, typed to
     /// <see cref="KspParameterState"/>. Branch on this rather than on the
     /// spelling of <see cref="State"/>: matching a label means an unrecognised
     /// spelling reads as outstanding, and a contract-parameter alarm set on
@@ -551,7 +552,7 @@ public class CareerStrategy
 
     /// <summary>
     /// Whether KSP would allow this strategy to be committed to right now.
-    /// <c>null</c> means the question could not be put at all, which is NOT a
+    /// <c>null</c> means the question could not be put at all, which is not a
     /// refusal: <see cref="ActivateBlockedReason"/> then says why no check could
     /// run rather than naming a rule the strategy broke.
     /// <internal>

@@ -5,7 +5,7 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The kinds of reference frame a control frame can be: the five frame types
-    /// an n-body producer constructs, plus <see cref="Unspecified"/>.
+    /// an n-body physics mod offers, plus <see cref="Unspecified"/>.
     ///
     /// <para>This is a superset of the frames a widget can draw in, which cover
     /// three of these. A control frame outside that subset is a real state, not
@@ -23,8 +23,8 @@ namespace Sitrep.Contract
         BodyCentredInertial = 1,
 
         /// <summary>
-        /// Centred on a body, one axis held towards another body. What "parent
-        /// direction" names on the read side.
+        /// Centred on a body, one axis held towards another body: the frame a
+        /// widget's read frame calls "parent direction".
         /// </summary>
         BodyCentredBodyDirection = 2,
 
@@ -32,7 +32,7 @@ namespace Sitrep.Contract
         BarycentricRotating = 3,
 
         /// <summary>
-        /// Turning with a pair of bodies AND holding the separation of their two
+        /// Turning with a pair of bodies and holding the separation of their two
         /// mass centres fixed, so a transfer between them draws the same shape
         /// whatever their current distance.
         /// </summary>

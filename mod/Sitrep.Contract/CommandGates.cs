@@ -39,8 +39,7 @@ namespace Sitrep.Contract
         /// renderer serves both "the game will refuse this" and "the game
         /// refused this" and the two word a reason the same way.
         ///
-        /// <para><b>What a client should draw, per outcome. There are four
-        /// cases, not two.</b></para>
+        /// <para><b>What to draw for each outcome.</b></para>
         ///
         /// <list type="bullet">
         /// <item><description><see cref="GateOutcome.Pass"/>: an ordinary live
@@ -79,7 +78,7 @@ namespace Sitrep.Contract
         public string ItemArgument { get; set; } = "";
 
         /// <summary>
-        /// The verdict for each item that a call naming it would NOT pass, keyed
+        /// The verdict for each item that a call naming it would not pass, keyed
         /// by the value of <see cref="ItemArgument"/>. Sampled only while
         /// <see cref="Verdict"/> is <see cref="GateOutcome.Abstain"/>: a command
         /// refused or unreadable for every item has nothing to add per item.
@@ -117,7 +116,7 @@ namespace Sitrep.Contract
     /// a requirement, with its current verdict. Resampled at the gate sampling
     /// interval and republished whole.
     ///
-    /// <para>Only GATED commands appear. An ungated command is absent rather
+    /// <para>Only gated commands appear. An ungated command is absent rather
     /// than present and passing, so a client that finds no entry knows the
     /// command declares no gate, which is different from knowing it is fine. Nothing here is a permission; see <see
     /// cref="CommandGate"/>.</para>

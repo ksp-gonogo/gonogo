@@ -40,7 +40,7 @@ public class EvaKerbal
     /// when that is not known (the step-out was not recorded, or the craft has
     /// since gone).
     ///
-    /// <para>This is the vessel the mod goes on reporting as active while they
+    /// <para>This is the vessel Gonogo goes on reporting as active while they
     /// are outside, so a reader that follows the active vessel sees no
     /// discontinuity when a kerbal steps out.</para>
     /// </summary>

@@ -14,8 +14,8 @@ namespace Sitrep.Contract;
 /// <see cref="TimeToAp"/> and <see cref="TimeToPe"/>.
 ///
 /// <para>Units: <see cref="Sma"/> in metres; <see cref="Inc"/>,
-/// <see cref="Lan"/> and <see cref="ArgPe"/> in DEGREES; and
-/// <see cref="MeanAnomalyAtEpoch"/> in RADIANS. The degrees/radians split is
+/// <see cref="Lan"/> and <see cref="ArgPe"/> in degrees; and
+/// <see cref="MeanAnomalyAtEpoch"/> in radians. The degrees/radians split is
 /// KSP's own and is kept so every value matches KSP's <c>Orbit</c>.</para>
 ///
 /// <para>A coast moves only <see cref="MeanAnomalyAtEpoch"/> and
@@ -64,7 +64,7 @@ public class VesselOrbit
     public double? ArgPe { get; set; }
 
     /// <summary>
-    /// Mean anomaly at <see cref="Epoch"/>, in RADIANS, not degrees, matching
+    /// Mean anomaly at <see cref="Epoch"/>, in radians, not degrees, matching
     /// KSP's <c>Orbit.meanAnomalyAtEpoch</c>. Reckonable by Kepler
     /// propagation, from <see cref="Sma"/>, <see cref="Mu"/>,
     /// <see cref="Horizon"/> and <c>system.bodies</c>, and under a burn by
@@ -256,11 +256,11 @@ public class PropagationDepartureKnot
     [SitrepUnit(Units.UniversalTime)]
     public double UntilUt { get; set; }
 
-    /// <summary>The largest position drift up to <see cref="UntilUt"/>.</summary>
+    /// <summary>The largest position drift up to <see cref="UntilUt"/>, in metres.</summary>
     [SitrepUnit(Units.Metres)]
     public double Metres { get; set; }
 
-    /// <summary>The largest velocity drift up to <see cref="UntilUt"/>.</summary>
+    /// <summary>The largest velocity drift up to <see cref="UntilUt"/>, in m/s.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double MetresPerSecond { get; set; }
 }
@@ -315,7 +315,7 @@ public enum TrajectoryKind
     Unspecified = 0,
 
     /// <summary>
-    /// A closed-form conic. The orbit IS an ellipse, so a conic renderer is
+    /// A closed-form conic. The orbit is that conic, so a conic renderer is
     /// exactly right and stays right for as long as the horizon allows.
     /// </summary>
     Analytic = 1,
@@ -347,7 +347,7 @@ public class OrbitEncounter
     public double TransitionUt { get; set; }
 
     /// <summary>Index into <c>system.bodies</c> of the body being transitioned
-    /// INTO; null if that body couldn't be resolved.</summary>
+    /// into; null if that body couldn't be resolved.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 }

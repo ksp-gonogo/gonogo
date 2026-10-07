@@ -177,7 +177,7 @@ public class FlightVesselChanged
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
-    /// <summary>KSP's <c>Vessel.id</c> GUID of the vessel focus moved TO, as a string.</summary>
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the vessel focus moved to, as a string.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
@@ -185,7 +185,7 @@ public class FlightVesselChanged
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
-    /// <summary>The vessel id focus moved FROM, or null when there was no previous vessel.</summary>
+    /// <summary>The vessel id focus moved from, or null when there was no previous vessel.</summary>
     [SitrepUnit(Units.Id)]
     public string? PreviousVesselId { get; set; }
 

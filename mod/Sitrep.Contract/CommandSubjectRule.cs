@@ -28,21 +28,21 @@ namespace Sitrep.Contract
     /// Whether a delayed command's <see cref="CommandDeclaration.Subject"/>
     /// names a real destination.
     ///
-    /// <para><c>Sitrep.Host.ChannelEngine.ValidateCommandSubjects</c> (the
-    /// live registry, checked once at startup across every registered
-    /// Uplink) and <c>Sitrep.Contract.TestSupport</c>'s per-Uplink assertion
-    /// (a devkit-visible check an Uplink runs against its own manifest) both
-    /// call this same rule, so the two cannot drift apart the way five
-    /// hand-restated copies of it once did.</para>
+    /// <para>Gonogo checks every registered Uplink against this rule once at
+    /// startup, and an Uplink's own tests can run the same check against its
+    /// manifest with <c>Sitrep.Contract.TestSupport</c>.</para>
+    /// <internal>
+    /// ChannelEngine.ValidateCommandSubjects and the TestSupport assertion both
+    /// call this one rule so the two cannot drift apart.
+    /// </internal>
     /// </summary>
     public static class CommandSubjectRule
     {
         /// <summary>
-        /// A command's delay disposition: whatever its <c>[SitrepCommand]</c>
+        /// Which delay a command takes: whatever its <c>[SitrepCommand]</c>
         /// tag says, when it has one, else its own
-        /// <see cref="CommandDeclaration.Delay"/> (see
-        /// <see cref="SitrepCommandAttribute.Delay"/>'s doc comment for why
-        /// the attribute wins).
+        /// <see cref="CommandDeclaration.Delay"/>. The tag wins; see
+        /// <see cref="SitrepCommandAttribute.Delay"/>.
         /// </summary>
         public static DelayRole ResolveDelay(CommandDeclaration declaration, DelayRole? taggedDelay)
         {

@@ -205,7 +205,7 @@ public class PartsPower
 
 /// <summary>
 /// One entry in the <c>robotics.servos</c> channel payload, a single Breaking
-/// Ground robotic servo on the active vessel. The payload is a BARE ARRAY of
+/// Ground robotic servo on the active vessel. The payload is a bare array of
 /// these, or <c>null</c> when there is no active vessel or it carries no
 /// servo; read <c>robotics.available</c> to tell those two apart.
 ///
@@ -215,10 +215,8 @@ public class PartsPower
 /// (a part pack's own, or one a later KSP adds), which carries only the
 /// readings every servo has.</para>
 ///
-/// <para><b>This list is a description, not a rule.</b> The kinds are derived
-/// from KSP's <c>BaseServo</c> itself rather than from any written-down set. A
-/// consumer should switch on the kinds it can draw and ignore the rest, never
-/// assume this sentence is exhaustive.</para>
+/// <para><b>Open set.</b> The kinds follow KSP's own <c>BaseServo</c> types, so
+/// more may appear. Switch on the kinds you can draw and ignore the rest.</para>
 ///
 /// <para>Fields that belong to one kind are <c>null</c> on every other kind:
 /// angles on hinges and rotation servos, extensions on pistons, and the rpm,
@@ -329,12 +327,14 @@ public class ServoEntry
     /// other kind). KSP's <c>ModuleRoboticServoRotor.maxTorque</c>: the scale
     /// <see cref="ServoMotorLimit"/> (a percentage) is a fraction of.
     ///
-    /// <para>The unit is kN because that is how KSP's own editor UI labels
-    /// it: <c>maxTorque</c> feeds the part's editor-visible motor output line
-    /// (localization token <c>#autoLOC_8002342</c>,
-    /// "&lt;&lt;1&gt;&gt;kN max: Extra mass &lt;&lt;2&gt;&gt;t"). The same
-    /// value also feeds a Unity angular drive's <c>maximumForce</c>, which on an
-    /// angular drive is technically a moment.</para>
+    /// <para>kN is the unit KSP's editor shows for it, although the value acts
+    /// as a torque on the rotor's joint.</para>
+    /// <internal>
+    /// <c>maxTorque</c> feeds the part's editor motor output line (localization
+    /// token <c>#autoLOC_8002342</c>, "&lt;&lt;1&gt;&gt;kN max: Extra mass
+    /// &lt;&lt;2&gt;&gt;t"), and also a Unity angular drive's
+    /// <c>maximumForce</c>, which on an angular drive is a moment.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Kilonewtons)]
     public double? MaxTorque { get; set; }
@@ -343,15 +343,15 @@ public class ServoEntry
 /// <summary>
 /// The <c>robotics.available</c> channel payload: a single object (or
 /// <c>null</c> when there is no active vessel) whose one field states whether
-/// the active vessel carries ANY Breaking Ground robotic servo. It is its own
+/// the active vessel carries any Breaking Ground robotic servo. It is its own
 /// Topic because the <c>robotics.servos</c> array is <c>null</c> both when
 /// the vessel has no robotic parts and when there is no vessel, and a widget
 /// needs to tell "no robotics on this craft" from "nothing to show".
 ///
-/// <para>It is DISTINCT from the Breaking Ground DLC-presence fact
-/// (<c>deployed.available</c>): this reflects parts present on THIS vessel,
-/// so it is Delayed, whereas DLC presence is a ground-side TrueNow
-/// fact.</para>
+/// <para>Not the same as the Breaking Ground DLC-presence fact
+/// (<c>deployed.available</c>): this reflects parts on this vessel, so it is
+/// delayed by light time, whereas DLC presence is known on the ground at
+/// once.</para>
 ///
 /// <para><see cref="Available"/> is three-state. <c>null</c> means the craft
 /// could not be surveyed: a recording that does not carry this field, or a

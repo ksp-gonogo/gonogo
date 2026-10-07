@@ -46,8 +46,8 @@ public class IsruDrillEntry
 
     /// <summary>
     /// Resource this drill extracts (e.g. "Ore"). Free text, not a closed enum:
-    /// whatever the running install's configs and profiles name, the same posture
-    /// every other resource-identity field in this contract takes.
+    /// whatever the running install's configs and profiles name, as with every
+    /// resource name in this contract.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Resource { get; set; }
@@ -62,7 +62,7 @@ public class IsruDrillEntry
 
     /// <summary>
     /// Local abundance of <see cref="Resource"/> at the drill's current position,
-    /// 0..1. Stock reads the same resource map the right-click PAW does. A mod
+    /// 0..1. Stock reads the same resource map the part's right-click menu does. A mod
     /// that samples its own abundance reports that instead, and for asteroid or
     /// comet mining the remaining-mass ratio of the source rock lands here: the
     /// same 0..1 shape from a different source. Null when the backend has no
@@ -72,7 +72,7 @@ public class IsruDrillEntry
     public double? Abundance { get; set; }
 
     /// <summary>
-    /// EFFECTIVE current extraction rate, already abundance- and
+    /// Effective current extraction rate, already abundance- and
     /// efficiency-adjusted rather than the static config rate, so it matches what
     /// the part's own readout shows. Zero rather than null when
     /// <see cref="Running"/> is false: the drill genuinely extracts nothing, which

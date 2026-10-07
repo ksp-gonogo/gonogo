@@ -49,9 +49,9 @@ public class VesselPropulsion
     ///
     /// <para>With <see cref="CurrentThrust"/> and <see cref="TotalMass"/> this
     /// is the whole of a burn's mass budget: the vessel's mass at a later
-    /// instant is the mass now less this rate over the interval, which is what
-    /// carries a burn forward honestly rather than at a constant
-    /// acceleration.</para>
+    /// instant is the mass now less this rate over the interval, so a burn can
+    /// be carried forward with its rising acceleration rather than a constant
+    /// one.</para>
     ///
     /// <para>Null when the engines cannot be read: an on-rails or packed craft
     /// has no running modules to sum, and a zero there would claim the engines
@@ -61,21 +61,23 @@ public class VesselPropulsion
     public double? MassFlow { get; set; }
 
     /// <summary>
-    /// UT the craft's CURRENT continuous period of thrust began, or null when
+    /// UT the craft's current continuous period of thrust began, or null when
     /// it is not under thrust as of the last measurable reading.
     ///
-    /// <para><b>An observation instant.</b> It says when something was SEEN to
+    /// <para><b>An observation instant.</b> It says when something was seen to
     /// be true, which is a different kind of UT from a plan's
-    /// <c>ManeuverNode.Ut</c> or an orbit's <c>epoch</c>, and the <c>ut</c>
-    /// token does not separate them. Subtracting this from a planned instant is
-    /// type-legal and meaningless; the only duration it belongs in is one
-    /// measured against the reader's own view clock.</para>
+    /// <c>ManeuverNode.Ut</c> or an orbit's <c>epoch</c>, although all three
+    /// carry the same unit. Subtracting this from a planned instant compiles and
+    /// means nothing; measure a duration from it only against the reader's own
+    /// view clock.</para>
     ///
-    /// <para>Latched rather than sent as an edge: every vessel channel is
-    /// <c>Delivery.LossyLatest</c>, so a one-shot "thrust just started" event
-    /// could be dropped, and a consumer that missed it could not tell that from
-    /// nothing having happened. A latched instant is on every subsequent frame
-    /// until it changes.</para>
+    /// <para>It is repeated on every frame until it changes, not sent once when
+    /// thrust starts, so a client that missed a frame still sees it.</para>
+    /// <internal>
+    /// Latched rather than sent as an edge because every vessel channel is
+    /// <c>Delivery.LossyLatest</c>: a one-shot event could be dropped, and a
+    /// consumer that missed it could not tell that from nothing having happened.
+    /// </internal>
     ///
     /// <para>Held, not cleared, while thrust is unmeasurable (an on-rails or
     /// packed craft has no parts to read). Otherwise switching away from a
@@ -85,19 +87,19 @@ public class VesselPropulsion
     public double? ThrustStartedUt { get; set; }
 
     /// <summary>
-    /// UT the craft's most recent period of thrust ENDED, or null when no
+    /// UT the craft's most recent period of thrust ended, or null when no
     /// period of thrust has been observed to end since this craft became the
     /// subject. Same observation-instant reading as
     /// <see cref="ThrustStartedUt"/>.
     ///
-    /// <para><b>Present here with a null <see cref="ThrustStartedUt"/> is the
-    /// fact nothing else on the wire can state:</b> the engines ran, and they
-    /// have stopped. <see cref="CurrentThrust"/> at zero cannot say it (a craft
-    /// that never lit reads the same), and <c>vessel.control.throttle</c>
-    /// certainly cannot: that is where the pilot left the lever, and it sits at
-    /// full through a flameout, a dry tank and an unlit stage.</para>
+    /// <para>Set here with a null <see cref="ThrustStartedUt"/>, it says the
+    /// engines ran and have stopped, which no other field can say.
+    /// <see cref="CurrentThrust"/> at zero reads the same for a craft that never
+    /// lit, and <c>vessel.control.throttle</c> is where the pilot left the
+    /// lever, which stays at full through a flameout, a dry tank and an unlit
+    /// stage.</para>
     ///
-    /// <para>It does NOT say why the engines stopped, and no reading can. A
+    /// <para>It does not say why the engines stopped, and no reading can. A
     /// burn paused to be re-planned and a burn abandoned produce the same
     /// instant, because the difference between them is whether the operator
     /// comes back, which has not happened yet. A consumer may report that

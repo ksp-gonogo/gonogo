@@ -36,7 +36,7 @@ public class ResourceAmount
     /// present-but-zero resource (<c>{current: 0, max: &gt; 0, active: true}</c>)
     /// is distinguishable from one that is not reported. Treat a missing or
     /// <c>false</c> entry as "not reported", never as a zero reading. This is
-    /// presence ONLY: it says nothing about flow or rate.
+    /// presence only: it says nothing about flow or rate.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; } = true;
@@ -51,9 +51,9 @@ public class ResourceAmount
 /// <c>ElectricCharge</c>, <c>XenonGas</c>, <c>Ore</c> and
 /// <c>Ablator</c>.</para>
 ///
-/// <para><b>Three-way typed absence:</b></para>
+/// <para><b>Absence.</b></para>
 /// <list type="bullet">
-/// <item><description><b>Key ABSENT</b> from <see cref="Resources"/>:
+/// <item><description><b>Key absent</b> from <see cref="Resources"/>:
 /// structural: this vessel does not carry the resource at all (its capacity is
 /// zero). Changes only on staging/docking.</description></item>
 /// <item><description><b>Key present, <c>{current: 0, max: &gt; 0}</c></b>,
@@ -63,7 +63,7 @@ public class ResourceAmount
 /// same convention as every other <c>vessel.*</c>
 /// channel.</description></item>
 /// </list>
-/// Because every emission is the FULL map (a structured, keyframed channel,
+/// Because every emission is the full map (a structured, keyframed channel,
 /// never a delta), a key disappearing between two emissions is itself a real
 /// structural statement (the vessel stopped carrying that resource, e.g. a
 /// tank was staged away), never an ambiguous "did it change or did the
@@ -87,7 +87,7 @@ public class ResourceAmount
 public class VesselResources
 {
     /// <summary>
-    /// DYNAMIC-KEY MAP keyed by KSP resource name (e.g.
+    /// A map keyed by KSP resource name (e.g.
     /// <c>"LiquidFuel"</c>): enumerate the keys rather than reaching for one
     /// you expect. Empty, never null, for a vessel carrying none of the
     /// reported resources.

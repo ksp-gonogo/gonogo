@@ -260,12 +260,12 @@ export const CommandErrorCode = {
 export type CommandErrorCode = (typeof CommandErrorCode)[keyof typeof CommandErrorCode];
 
 /**
- * Why a command, or any other request, could not be CARRIED: nothing about the
+ * Why a command, or any other request, could not be carried: nothing about the
  * game was decided. The refused/failed split is the kind of code, not a
  * judgement a client makes: a `RefusalCode` says the game said no, this says
  * the machinery did not get that far, and a retry may work.
  *
- * Closed, and declared only here. An Uplink never mints a fault: a handler
+ * Closed, and declared only here. An Uplink never declares a fault: a handler
  * that throws already becomes `FaultCode.CommandUnavailable`, and
  * `CommandFaultException` is how a handler raises one of these deliberately.
  *
@@ -331,10 +331,10 @@ export const FaultCode = {
   /**
    * A continuous input, a throttle or a control axis, was dropped at a node
    * where it would have had to wait on its way to the craft. Held and sent on
-   * later it would arrive as a run of stale values, so a node that cannot send
-   * it on at once drops it. It was accepted with a warning when it was sent, and
-   * this is the news of its loss, arriving when a report from that node could
-   * have reached the sending centre.
+   * later it would arrive as a run of out-of-date values, so a node that cannot
+   * send it on at once drops it. It was accepted with a warning when it was
+   * sent, and this is the news of its loss, arriving when a report from that
+   * node could have reached the sending centre.
    */
   ContinuousInputWouldWait: "continuousInputWouldWait",
   /**
@@ -644,7 +644,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "it would wait on its way, and a continuous input cannot",
-    meaning: "A continuous input, a throttle or a control axis, was dropped at a node where it would have had to wait on its way to the craft. Held and sent on later it would arrive as a run of stale values, so a node that cannot send it on at once drops it. It was accepted with a warning when it was sent, and this is the news of its loss, arriving when a report from that node could have reached the sending centre.",
+    meaning: "A continuous input, a throttle or a control axis, was dropped at a node where it would have had to wait on its way to the craft. Held and sent on later it would arrive as a run of out-of-date values, so a node that cannot send it on at once drops it. It was accepted with a warning when it was sent, and this is the news of its loss, arriving when a report from that node could have reached the sending centre.",
   },
   {
     id: "undelivered",

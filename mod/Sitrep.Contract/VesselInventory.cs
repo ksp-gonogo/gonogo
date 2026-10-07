@@ -6,25 +6,21 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The stock cargo a vessel's PARTS are carrying: the supply aboard.
+/// The stock cargo a vessel's parts are carrying: what is aboard, and in
+/// which part.
 ///
-/// <para><b>Why the crew's own inventories are not here.</b> A kerbal carries
-/// the same KSP module, <c>ModuleInventoryPart</c>, but the two say different
-/// things. This channel says "what is aboard, and where", which is SUPPLY.
-/// <c>vessel.crew</c> says "who is here, are they qualified, and what are they
-/// holding", which is the ACTOR list, and that is where a kerbal's two slots
-/// belong: beside the trait and experience level that decide whether they may
-/// do the job at all.</para>
+/// <para>A kerbal's own inventory is not here: it is on <c>vessel.crew</c>,
+/// beside the trait and experience level that decide whether that kerbal can
+/// do a job. This channel lists only part-hosted stores.</para>
 ///
-/// <para><b>Why location is carried rather than a per-vessel total.</b> A
-/// kerbal has two slots, forty volume and a 65kg limit, one slot of which
-/// defaults to a parachute; a cargo container has far more. A craft can be
-/// carrying plenty of something while the kerbal who needs it has none, and a
-/// single total reports the reassuring half of that.</para>
+/// <para>Each store is reported with its part rather than as one vessel total,
+/// because a craft can carry plenty of something while the kerbal who needs it
+/// has none. A kerbal has two slots, 40 units of volume and a 65 kg limit, and
+/// one slot holds a parachute by default; a cargo container holds far
+/// more.</para>
 ///
-/// <para>This is STOCK, and deliberately not any Uplink's. Stock KSP's own
-/// repair mechanic consumes stock cargo, so a stock-career player has
-/// inventories worth showing whether or not a modelling mod is installed.</para>
+/// <para>Stock KSP, with or without any Uplink: stock repairs consume stock
+/// cargo, so a stock career has inventories worth showing.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -57,7 +53,7 @@ public class InventoryStore
     [SitrepUnit(Units.Text)]
     public string PartName { get; set; } = "";
 
-    /// <summary>What is actually in it. Empty is meaningful and is NOT the same
+    /// <summary>What is actually in it. Empty is meaningful and is not the same
     /// as an absent store: an empty hold is a place to put something.</summary>
     public List<InventoryItem> Items { get; set; } = new();
 
@@ -72,10 +68,9 @@ public class InventoryStore
     public int? SlotsUsed { get; set; }
 
     /// <summary>
-    /// <c>packedVolumeLimit</c>, in KSP's own cargo-volume unit rather than
-    /// cubic metres: it is a config number (a kerbal is 40, a repair kit is 5)
-    /// and presenting it as a physical volume would be inventing a dimension
-    /// the game does not attach to it.
+    /// <c>packedVolumeLimit</c>, in KSP's own cargo-volume unit, not cubic
+    /// metres: it is a config number with no physical dimension (a kerbal holds
+    /// 40, a repair kit takes 5).
     /// </summary>
     [SitrepUnit(Units.Dimensionless)]
     public double? PackedVolumeLimit { get; set; }
@@ -116,7 +111,7 @@ public class InventoryItem
     [SitrepUnit(Units.Count)]
     public int Quantity { get; set; }
 
-    /// <summary>Packed volume of ONE of these, same unit as the store's
+    /// <summary>Packed volume of one of these, same unit as the store's
     /// limits.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double? PackedVolume { get; set; }

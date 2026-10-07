@@ -6,18 +6,18 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One ΔV-producing stage of the active vessel, straight from KSP's STOCK
+/// One ΔV-producing stage of the active vessel, from KSP's stock
 /// <c>VesselDeltaV</c> stage simulation: the same numbers the in-game ΔV app
 /// shows, with atmosphere, ISP, crossfeed and staging all handled by the game.
 /// Only the stages that actually produce ΔV appear, the same set the in-game app
 /// lists rather than the raw stage list, so stage numbers can be sparse.
 ///
-/// <para>The <c>dv.stages</c> payload is a BARE ARRAY of these or <c>null</c>:
+/// <para>The <c>dv.stages</c> payload is a plain array of these, or <c>null</c>,
 /// never a wrapper object. The whole array is <c>null</c> when the stock
 /// simulation is not ready or there is no active vessel.</para>
 ///
-/// <para><b>Every field is nullable, and <c>null</c> is never a sentinel.</b> A
-/// field is <c>null</c> whenever the raw value is absent OR non-finite, so a
+/// <para>Every field is nullable, and <c>null</c> is never a sentinel: a
+/// field is <c>null</c> whenever the raw value is absent or non-finite, so a
 /// stage the simulation reports as <c>NaN</c> or <c>Infinity</c> reaches you as
 /// <c>null</c> rather than as a number you would have to test.</para>
 ///

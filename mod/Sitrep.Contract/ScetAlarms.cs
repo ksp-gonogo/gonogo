@@ -8,10 +8,10 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Which kind of condition a SCET alarm watches for.
 ///
-/// <para>Every alarm has a vantage, so a kind is only about WHAT is watched,
-/// and each kind names its own matcher: a threshold walks a dotted path to a
-/// number, and a contract parameter, which lives in a list no path can index,
-/// finds its contract and objective by identity.</para>
+/// <para>Every alarm has a vantage, so a kind says only what is watched. A
+/// threshold follows a dotted path to a number; a contract parameter, which
+/// sits in a list no path can index, finds its contract and objective by
+/// id and title.</para>
 /// </summary>
 /// <category>Alarms</category>
 #if SITREP_CODEGEN
@@ -28,10 +28,10 @@ public enum ScetAlarmConditionKind
     /// against the reading the simulation actually holds rather than against the
     /// one the command centre has been told.
     ///
-    /// <para>This is the kind that cannot be done anywhere else. A time alarm
-    /// needs only a clock, and a client has one; a threshold needs the craft's
-    /// true state, which reaches the ground a light-time late and by then no
-    /// longer says whether it is above 100 km NOW.</para>
+    /// <para>Only the simulation can check this. A time alarm needs only a
+    /// clock, which a client has; a threshold needs the craft's true state,
+    /// which reaches the ground a light-time late and by then no longer says
+    /// whether the craft is above 100 km now.</para>
     /// </summary>
     Threshold,
 
@@ -114,10 +114,9 @@ public enum ScetAlarmState
     /// come due.
     ///
     /// <para>Only a threshold reaches this: a time condition has no subject to
-    /// lose, because universal time belongs to the game. It is on the roster
-    /// because the simulation knows the craft is gone and the command centre
-    /// does not, and a row that will never fire must read as dead rather than as
-    /// pending forever.</para>
+    /// lose, because universal time belongs to the game. The simulation knows
+    /// the craft is gone before the command centre does, so show such a row as
+    /// dead rather than as pending.</para>
     /// </summary>
     Unreachable,
 
@@ -158,7 +157,7 @@ public class ScetAlarmCondition
     public ScetAlarmConditionKind Kind { get; set; } = ScetAlarmConditionKind.Time;
 
     /// <summary>
-    /// The instant the alarm is set for, as a universal time on the CRAFT's
+    /// The instant the alarm is set for, as a universal time on the craft's
     /// clock rather than on the clock the command centre is reading.
     ///
     /// <para>The difference between the two is the one-way light time, and it
@@ -187,11 +186,13 @@ public class ScetAlarmCondition
     /// Threshold only: the Topic whose payload carries the value to watch, as
     /// the client spells a Topic (<c>"vessel.flight"</c>).
     ///
-    /// <para>A Topic and a path into it, rather than one flat key. The flat key
-    /// space is the client's own and has no meaning to the simulation, which
-    /// holds Topics and the payloads it builds for them; addressing a reading
-    /// the way the wire addresses it is what lets an operator point at a value
-    /// they can already see on screen.</para>
+    /// <para>A Topic and a path into it address a reading the way the wire
+    /// does, so an operator can point at a value they can already see on
+    /// screen.</para>
+    /// <internal>
+    /// Not one flat key: the client's flat key space has no meaning to the
+    /// simulation, which holds Topics and the payloads it builds for them.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
@@ -213,10 +214,9 @@ public class ScetAlarmCondition
     /// Threshold only: the number the operator chose, in whatever unit
     /// <see cref="FieldPath"/> is published in.
     ///
-    /// <para>Declared with no unit of its own because it genuinely has none
-    /// until the field beside it is resolved: the same field says metres for one
-    /// alarm and kilonewtons for the next. A consumer that wants to render it
-    /// looks up the unit of the addressed field.</para>
+    /// <para>It has no unit of its own: the same field is metres for one alarm
+    /// and kilonewtons for the next. To render it, look up the unit of the
+    /// addressed field.</para>
     /// </summary>
     [SitrepUnit(Units.NotApplicable)]
     public double Threshold { get; set; }
@@ -310,7 +310,7 @@ public enum ScetAlarmActionKind
 /// <c>alarm.scet.arm</c> refuses such an alarm. A ground-side alarm's action
 /// travels as an ordinary command instead.</para>
 ///
-/// <para>Every kind but <see cref="ScetAlarmActionKind.Stage"/> TOGGLES,
+/// <para>Every kind but <see cref="ScetAlarmActionKind.Stage"/> toggles,
 /// against the state the craft reports at the moment of the fire, which is
 /// what pressing the group's key does.</para>
 /// </summary>
@@ -345,10 +345,8 @@ public class ScetAlarmAction
 /// after a reconnect, and so a client can remove an entry it no longer
 /// remembers. The roster is held in memory for the game session and is not
 /// written to the save: when the session ends it is gone, and a client sets its
-/// alarms again. It is
-/// ground-side bookkeeping, a list of things somebody asked for rather than a
-/// reading of any craft, which is why the channel does not ride the reveal
-/// clock.</para>
+/// alarms again. It is a list of what somebody asked for, not a reading of any
+/// craft, so the channel is not delayed by light time.</para>
 /// <internal>
 /// Held in memory by <c>Sitrep.Host.Alarms.ScetAlarmRoster</c> and published by
 /// <c>Gonogo.KSP.ScetAlarmUplink</c>. Not written to the save because the
@@ -367,7 +365,7 @@ public class ScetAlarm
 {
     /// <summary>
     /// The client's own id for the alarm, minted where the alarm was created and
-    /// carried unchanged. Setting an alarm under an id already held REPLACES it,
+    /// carried unchanged. Setting an alarm under an id already held replaces it,
     /// so repeating <c>alarm.scet.arm</c> is idempotent and a reconnect cannot
     /// duplicate a row.
     /// </summary>
@@ -382,11 +380,10 @@ public class ScetAlarm
     /// The command centre the <c>alarm.scet.arm</c> command was sent from, as a
     /// <c>commandCentre.roster</c> id.
     ///
-    /// <para>Who ASKED for the alarm, never where it is read. That is
-    /// <see cref="Vantage"/>, and the two are separate jobs: this is also the
-    /// one field a screen at a different vantage may render, because the
-    /// condition and the target would tell it something about a craft faster
-    /// than the light carrying it.</para>
+    /// <para>Who asked for the alarm, never where it is read: that is
+    /// <see cref="Vantage"/>. A screen at a different vantage gets this field
+    /// in full, unlike the condition and target, which would tell it about a
+    /// craft faster than light carries the news (see <see cref="Withheld"/>).</para>
     /// <internal>
     /// Resolved by the engine from where the command entered
     /// (<c>AddVantageCommandHandler</c>) rather than taken from the command's
@@ -406,21 +403,21 @@ public class ScetAlarm
 
     /// <summary>
     /// The place whose knowledge the condition is read against, and therefore
-    /// the place that decides WHEN this alarm comes due. A
+    /// the place that decides when this alarm comes due. A
     /// <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
     /// <c>"vessel:&lt;guid&gt;"</c>). An empty vantage in the command is resolved
     /// to the alarm's own <see cref="Subject"/> when the alarm is set.
     ///
-    /// <para>A vantage that IS the subject reads the craft's true state, so the
+    /// <para>A vantage that is the subject reads the craft's true state, so the
     /// alarm comes due at the instant the condition is met. Any other vantage
     /// reads what that place has been told, which is a light-time old and
     /// different everywhere, so the same condition comes due there when the
     /// light carrying it lands. The vantage decides when, never whether.</para>
     ///
-    /// <para><b>Distinct from <see cref="ArmedBy"/>, which is provenance.</b>
-    /// That says where the command came from and nothing else. An operator
-    /// at one centre may legitimately ask when ANOTHER centre will know, and
-    /// where the command entered cannot express that.</para>
+    /// <para><b>Not the sender.</b> <see cref="ArmedBy"/> says where the
+    /// command came from and nothing else. An operator at one centre may ask
+    /// when another centre will know, which where the command entered cannot
+    /// express.</para>
     ///
     /// <para>A place, never a connection. Two operators sharing a command
     /// centre share its knowledge and its result, and a browser reconnecting is
@@ -516,25 +513,24 @@ public class ScetAlarm
 /// <summary>
 /// The notice that a SCET alarm has fired and the warp has been stopped.
 ///
-/// <para><b>It says THAT one fired and WHEN, and deliberately nothing about the
-/// craft.</b> The stop is universal, because warp is; the telemetry is not, and
+/// <para><b>Nothing about the craft.</b> It says which alarm fired and when.
+/// The stop is universal, because warp is; the telemetry is not, and
 /// stays a light-time behind. So an operator can be told their alarm went off
 /// while every reading beside it still shows the craft as it was minutes ago,
 /// and this payload carries nothing that would close that gap early. Whatever
 /// the craft was doing at <see cref="FiredAtUt"/> arrives when it arrives.</para>
 ///
-/// <para>The id and the instant are the honest minimum. The id is the operator's own
-/// handle, which tells them nothing they did not already write down. The instant
-/// is inseparable from the stop: without it a warp that halted at one universal
-/// time is indistinguishable from one that halted at another, and the operator
-/// cannot tell which of two alarms stopped them. The other fields say
-/// where it was learned and whether its actions were withheld for want of the
-/// right craft, and neither is a reading of the craft.</para>
+/// <para>The other fields say where it was learned and whether its actions
+/// were withheld for want of the right craft; neither is a reading of the
+/// craft.</para>
 /// <para>The condition is not echoed: for a threshold it would be a claim
 /// about the craft ahead of the light that carries it. A client that wants to
 /// name the alarm reads the roster.</para>
 /// <internal>
-/// Published RAW: see <c>JsonWriter.AppendScetAlarmFired</c>.
+/// Published raw: see <c>JsonWriter.AppendScetAlarmFired</c>. The id and the
+/// instant are the minimum: the id is the operator's own handle, and the
+/// instant is inseparable from the stop, since without it the operator cannot
+/// tell which of two alarms stopped them.
 /// </internal>
 /// </summary>
 /// <category>Alarms</category>
@@ -557,11 +553,13 @@ public class ScetAlarmFired
     /// The place that learned it, echoing the alarm's
     /// <see cref="ScetAlarm.Vantage"/>.
     ///
-    /// <para>Carried rather than left to the client to look up, because a reader
-    /// that has to consult the roster first is a reader that will act on the
-    /// wrong notice. A notice at the subject's own vantage is a fact about the
-    /// craft at the instant it happened; a notice at anywhere else is a
-    /// statement about what that place has been told, true only there.</para>
+    /// <para>A notice at the subject's own vantage is a fact about the craft at
+    /// the instant it happened; a notice anywhere else is a statement about what
+    /// that place has been told, true only there.</para>
+    /// <internal>
+    /// Carried rather than left to the client to look up, because a reader that
+    /// has to consult the roster first will act on the wrong notice.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
@@ -571,7 +569,7 @@ public class ScetAlarmFired
     /// the craft named by <see cref="ScetAlarm.ActsOn"/> was not the one being
     /// flown. False for an alarm with no actions.
     ///
-    /// <para>Says nothing about how the craft responded to an action that WAS sent.
+    /// <para>Says nothing about how the craft responded to an action that was sent.
     /// That is a fact aboard the craft, and it reaches the ground the way every
     /// other one does, a light-time later in the craft's own telemetry: this
     /// notice travels at once and must not carry it.</para>
@@ -667,10 +665,9 @@ public class ScetAlarmDisarmArgs
 /// <c>alarm.scet.topics</c> channel.
 ///
 /// <para>The channel is the whole table of what the simulation host can read for a
-/// threshold, so a picker offers exactly those Topics and an arm naming any
-/// other is one the host would refuse. It carries no reckoned or measured split
-/// and no seat or domain filter: any addressable Topic is usable at any
-/// vantage, and the table is a limit of mechanism only.</para>
+/// threshold, so a picker offers exactly those Topics, and
+/// <c>alarm.scet.arm</c> naming any other is refused. Any listed Topic is
+/// usable at any vantage.</para>
 ///
 /// <para>Offering a Topic here promises that the host reads it whether or not
 /// any widget is showing it. A Topic the table does not list is not addressable

@@ -80,20 +80,20 @@ public class BodyEntry
     /// a craft's elements carry: <c>UntilUt</c> is an absolute UT here exactly as
     /// it is there.
     ///
-    /// <para><b>Under stock this is always Unbounded and Analytic, and that is not
-    /// a placeholder.</b> A body rides a fixed conic about a fixed parent, so where
-    /// it is at any UT can be computed on demand from <see cref="Orbit"/>, with no
-    /// drift to bound.</para>
+    /// <para>Under stock it is always Unbounded and Analytic: a body rides a
+    /// fixed conic about a fixed parent, so where it is at any UT can be
+    /// computed from <see cref="Orbit"/>, with no drift to bound.</para>
     ///
-    /// <para><b>Under n-body physics a body's elements drift like a craft's.</b>
-    /// The elements are then the conic osculating an integrated ephemeris at the
-    /// sample instant, and extrapolating them past this horizon draws a moon
-    /// where no model put it. The horizon comes from the installed physics mod,
-    /// through <see cref="IBodyEphemerisHorizon"/>.</para>
-    ///
-    /// <para>Per body rather than once for the system, because the bound is
-    /// local: a moon deep in a giant's satellite system and a lone planet are
-    /// perturbed by orders of magnitude differently.</para>
+    /// <para>Under an n-body physics mod a body's elements drift like a craft's:
+    /// they are the conic osculating an integrated ephemeris at the sample
+    /// instant, and extrapolating them past this horizon places the body where
+    /// no model put it. The horizon then comes from that mod, through
+    /// <see cref="IBodyEphemerisHorizon"/>, and differs from body to body.</para>
+    /// <internal>
+    /// Per body rather than once for the system because the bound is local: a
+    /// moon deep in a giant's satellite system and a lone planet are perturbed
+    /// by orders of magnitude differently.
+    /// </internal>
     /// </summary>
     public PropagationHorizon Horizon { get; set; } = new();
 
@@ -155,7 +155,7 @@ public class BodyEntry
     /// The body's rotation angle at UT 0, degrees
     /// (<c>CelestialBody.initialRotation</c>); null when absent.
     ///
-    /// <para>The PHASE that <see cref="RotationPeriod"/>'s rate is measured
+    /// <para>The phase that <see cref="RotationPeriod"/>'s rate is measured
     /// from, and the pair is what makes a body-fixed coordinate into a place:
     /// the angle at any UT is
     /// <c>initialRotation + 360 · ut / rotationPeriod</c>, and turning a
@@ -372,7 +372,7 @@ public class OrbitEntry
 /// <see cref="SystemBodies"/>, it carries no per-payload <c>Meta</c>: that
 /// rides the envelope.
 ///
-/// <para>ADDRESSED: each command centre is sent its own list and no other
+/// <para>Each command centre is sent its own list and no other
 /// centre's. A centre knows a vessel in two ways, and an entry is made of
 /// both.</para>
 ///

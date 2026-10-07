@@ -11,12 +11,11 @@ namespace Sitrep.Contract;
 /// sites, which is everything registered in KSP's
 /// <c>PSystemSetup.Instance.LaunchSites</c>.
 ///
-/// <para>The channel is a BARE ARRAY of these entries, NOT a wrapper object
-/// and NOT a KSC singleton: KSP has many launch sites, keyed by
+/// <para>The channel is a bare array of these entries, not a wrapper object
+/// and not a single KSC record: KSP has many launch sites, keyed by
 /// <see cref="Name"/>. The whole payload is <c>null</c> (not an empty array)
 /// when no sample has arrived yet, which tells "no data yet" apart from "zero
-/// sites". No per-payload <c>meta</c>, the same convention as
-/// <see cref="SystemBodies"/>.</para>
+/// sites". It carries no <c>meta</c> of its own.</para>
 ///
 /// <para>Held at the home command: each vantage receives a change after its
 /// own delay to home, at once on the ground network.</para>
@@ -82,10 +81,9 @@ public class LaunchSiteEntry
 /// <c>MISSIONBUILDER</c>, ...) mapped to <c>"Other"</c>.
 ///
 /// <para>A wrapper object <c>{ "scene": string }</c>. The whole payload is
-/// <c>null</c> when no sample has arrived yet. No per-payload <c>meta</c> (it
-/// rides the envelope). Never delayed (<see cref="DelayRole.TrueNow"/>): a
-/// ground-side game-state fact, the same class as
-/// <see cref="SystemBodies"/>.</para>
+/// <c>null</c> when no sample has arrived yet. Its <c>meta</c> is on the
+/// envelope. Never delayed (<see cref="DelayRole.TrueNow"/>): it is a fact
+/// about the game, not a craft.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildScene</c>;
 /// typing-only mirror, not serialized itself.
@@ -112,10 +110,10 @@ public class SpaceCenterScene
 /// One kerbal in the <c>spaceCenter.crewRoster</c> channel (the hired-crew
 /// roster: KSP's <c>KerbalRoster.Crew</c>, owned crew that is either available
 /// or currently assigned to a mission), and the same shape for every entry in
-/// <see cref="AstronautComplexInfo.Applicants"/>: ONE shape for a kerbal
+/// <see cref="AstronautComplexInfo.Applicants"/>: one shape for a kerbal
 /// whether hired or still a candidate.
 ///
-/// <para>The <c>spaceCenter.crewRoster</c> channel is a BARE ARRAY of these
+/// <para>The <c>spaceCenter.crewRoster</c> channel is a bare array of these
 /// entries, one per crew member keyed by <see cref="Name"/>. The whole payload
 /// is <c>null</c> (not an empty array) when no sample has arrived yet, which
 /// tells "no data yet" apart from "zero crew".</para>
@@ -152,12 +150,10 @@ public class CrewRosterEntry
     /// <summary>
     /// Whether the kerbal can be assigned to a flight today.
     ///
-    /// <para><b>The field to branch on when all a client needs is yes or
-    /// no.</b> It is derived from EVERY axis the derivation knows about, by
-    /// <see cref="CrewStandings.CanFly"/>, which is a whitelist: only
-    /// <c>Available</c> and <c>Applicant</c> are free, so a standing added to
-    /// <see cref="CrewStanding"/> later reads as unavailable here without anybody
-    /// editing a consumer.</para>
+    /// <para><b>Branch on this for a yes or no.</b> It is derived from
+    /// <see cref="Standing"/> by <see cref="CrewStandings.CanFly"/>: only
+    /// <c>Available</c> and <c>Applicant</c> can fly, so a standing added to
+    /// <see cref="CrewStanding"/> later reads as unavailable here.</para>
     ///
     /// <para>A backend may override it outright.</para>
     /// </summary>
@@ -170,16 +166,15 @@ public class CrewRosterEntry
     /// reads its own name. Empty string when <see cref="Available"/> is true. A
     /// backend may override the wording.
     ///
-    /// <para><b>No date, ever.</b> The when rides <see cref="StandingEndsAtUt"/>
-    /// as a <c>ut</c> value, because a date formatted here would be formatted in
-    /// the mod's idea of a calendar, and the client owns the calendar. This is
-    /// the only string on the payload a client could not re-render.</para>
+    /// <para><b>No date, ever.</b> The end is on <see cref="StandingEndsAtUt"/>
+    /// as a <c>ut</c> value, so the client formats it in its own calendar. This
+    /// is the only string on the payload a client could not re-render.</para>
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
 
     /// <summary>
-    /// The kerbal's standing, as the dashboard means it: the field to BRANCH on.
+    /// The kerbal's standing, as the dashboard means it: the field to branch on.
     /// The elected <see cref="ICrewStandingBackend"/>'s reading where it has one,
     /// otherwise derived by the stock backend from every axis KSP exposes.
     ///
@@ -197,14 +192,14 @@ public class CrewRosterEntry
     /// time.
     ///
     /// <para>Read with <see cref="UnavailableReason"/> to say why a kerbal cannot
-    /// fly AND until when. The two are separate fields so the client formats the
+    /// fly and until when. The two are separate fields so the client formats the
     /// date in its own calendar.</para>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? StandingEndsAtUt { get; set; }
 
     /// <summary>
-    /// <see cref="Standing"/>'s display LABEL: its enum name, or
+    /// <see cref="Standing"/>'s display label: its enum name, or
     /// <c>"Applicant"</c> for a hireable candidate. Text for an operator, never
     /// a branch: compare <see cref="Standing"/> instead.
     /// </summary>
@@ -212,16 +207,14 @@ public class CrewRosterEntry
     public string? Situation { get; set; }
 
     /// <summary>
-    /// KSP's OWN ordinal: <c>(int)ProtoCrewMember.rosterStatus</c>, typed to
+    /// KSP's own ordinal: <c>(int)ProtoCrewMember.rosterStatus</c>, typed to
     /// <see cref="KspRosterStatus"/>, whose members mirror KSP's numbering.
     ///
-    /// <para>A truthful read of the game field and nothing more, kept because
-    /// what KSP itself holds is worth knowing and because a command core
-    /// dispatches is arbitrated against this value. It is NOT the field to
-    /// branch on: it reads <c>Available</c> for a kerbal standing down.
-    /// <see cref="Standing"/> is the field to branch on.</para>
+    /// <para>The game's field, unchanged; Gonogo's crew commands check against
+    /// it. It is not the field to branch on: it reads <c>Available</c> for a
+    /// kerbal standing down. Branch on <see cref="Standing"/>.</para>
     ///
-    /// <para><c>null</c> for an APPLICANT, and that is a real distinction
+    /// <para><c>null</c> for an applicant, and that is a real distinction
     /// rather than a missing value: an applicant is not in the roster, so it
     /// has no <c>RosterStatus</c> at all, and <see cref="Standing"/> carries
     /// <see cref="CrewStanding.Applicant"/> instead. Use
@@ -236,13 +229,11 @@ public class CrewRosterEntry
     /// (<c>ProtoCrewMember.inactive</c>): KSP's own field, published beside the
     /// derived standing the way <see cref="SituationOrdinal"/> is.
     ///
-    /// <para><b>Not the field to branch on.</b> It is an INPUT to the derivation:
-    /// a kerbal standing down has roster status <c>Available</c>, and this flag is
-    /// what turns that into <see cref="CrewStanding.Resting"/> with
-    /// <see cref="Available"/> false.</para>
-    ///
-    /// <para>The field is KSP's, so it goes on the wire on every install and
-    /// reading it costs nothing.</para>
+    /// <para><b>Not the field to branch on.</b> It is one input to
+    /// <see cref="Standing"/>: a kerbal standing down has roster status
+    /// <c>Available</c>, and this flag is what turns that into
+    /// <see cref="CrewStanding.Resting"/> with <see cref="Available"/> false.
+    /// Present on every install.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Inactive { get; set; }
@@ -297,7 +288,7 @@ public class CrewRosterEntry
 /// SPH design the player can launch, read from the save's craft folders via the
 /// stock <c>CraftProfileInfo</c> metadata loader.
 ///
-/// <para>The channel is a BARE ARRAY of these entries, one per <c>.craft</c>
+/// <para>The channel is a bare array of these entries, one per <c>.craft</c>
 /// file keyed by <see cref="File"/>. The whole payload is <c>null</c> (not an
 /// empty array) when no sample has arrived yet. Held at the home
 /// command.</para>
@@ -341,7 +332,7 @@ public class SavedShipEntry
     public string? Facility { get; set; }
 
     /// <summary>
-    /// <see cref="Facility"/>'s KSP ORDINAL, typed to
+    /// <see cref="Facility"/>'s KSP ordinal, typed to
     /// <see cref="KspEditorFacility"/>.
     ///
     /// <para>This one is not a display concern. A client sends the facility
@@ -368,7 +359,7 @@ public class SavedShipEntry
 
 /// <summary>
 /// The <c>spaceCenter.partsAvailable</c> channel payload: a wrapper carrying
-/// the count of parts the player can place right now (tech-unlocked AND
+/// the count of parts the player can place right now (tech-unlocked and
 /// purchased in career; the full <c>PartLoader</c> catalogue in sandbox).
 ///
 /// <para>A wrapper object, because a bare scalar has no Topic shape: read
@@ -397,14 +388,13 @@ public class SpaceCenterPartsAvailable
 /// Complex hire tab, the rolling pool of applicants the operator can recruit,
 /// plus the roster-cap context a hire is gated on.
 ///
-/// <para>A wrapper object (not a bare array) because the applicant list rides
-/// alongside the facility-level cap and the current active-crew count, both of
-/// which the hire affordance needs: the current roster comes from the separate
-/// <c>spaceCenter.crewRoster</c> channel, this one carries the hire side. The
-/// whole payload is <c>null</c> in the SANDBOX / no-career / no-game case (no
-/// applicant pool exists), distinct from a career save whose pool is genuinely
-/// empty (a non-null payload with an empty <see cref="Applicants"/>
-/// list).</para>
+/// <para>A wrapper object, not a bare array, so the applicant list arrives
+/// with the facility's crew cap, the current active-crew count and the hire
+/// price, which a hire control needs together. The current roster is on the
+/// separate <c>spaceCenter.crewRoster</c> channel. The whole payload is
+/// <c>null</c> in sandbox, outside career and with no game loaded, when no
+/// applicant pool exists; a career save whose pool is empty sends a non-null
+/// payload with an empty <see cref="Applicants"/> list.</para>
 ///
 /// <para>Held at the home command, like <see cref="CrewRosterEntry"/>.</para>
 /// <internal>
@@ -428,7 +418,7 @@ public class AstronautComplexInfo
     [SitrepUnit(Units.Count)]
     public int? ActiveCrew { get; set; }
 
-    /// <summary>Active-crew cap set by the Astronaut Complex facility tier (<c>GameVariables.GetActiveCrewLimit</c> over the facility's NORMALISED level). A hire is blocked once <see cref="ActiveCrew"/> reaches it. <c>int.MaxValue</c> at the top facility tier (unlimited); preserved as-is on the wire, never clamped, so the client can render "unlimited". Null when the facility isn't queryable.</summary>
+    /// <summary>Active-crew cap set by the Astronaut Complex facility tier (<c>GameVariables.GetActiveCrewLimit</c> over the facility's normalised level). A hire is blocked once <see cref="ActiveCrew"/> reaches it. <c>int.MaxValue</c> at the top facility tier (unlimited); preserved as-is on the wire, never clamped, so the client can render "unlimited". Null when the facility isn't queryable.</summary>
     [SitrepUnit(Units.Count)]
     public int? CrewCapacity { get; set; }
 
@@ -444,7 +434,7 @@ public class AstronautComplexInfo
 /// coordinate) and every surface contract waypoint whose contract is Active or
 /// Offered (<c>contractTarget</c> kind, from <c>FinePrint.WaypointManager</c>).
 ///
-/// <para>The channel is a BARE ARRAY of these entries, one per POI keyed by
+/// <para>The channel is a bare array of these entries, one per POI keyed by
 /// <see cref="Id"/>. The whole payload is <c>null</c> (not an empty array)
 /// when no sample has arrived yet, which tells "no data yet" apart from "zero
 /// POIs". Held at the home command, like <see cref="LaunchSiteEntry"/>.</para>

@@ -214,7 +214,7 @@ public class UplinkResendRequest
 #endif
 public class UplinkActionReply
 {
-    /// <summary>For a cancel, the last lane number it covers: more than the button counted when another screen sent on the lane meanwhile.</summary>
+    /// <summary>For a cancel, the last lane number it covers. It can be higher than the lane number the client saw, when another screen sent on the lane in the meantime. For a send again, the lane number the request named.</summary>
     [SitrepUnit(Units.Count)]
     public long ThroughSeq { get; set; }
 

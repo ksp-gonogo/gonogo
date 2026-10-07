@@ -90,8 +90,8 @@ public class ActionGroupState
     /// <summary>
     /// Whether the group is currently engaged. <c>null</c> means the backend
     /// knows this group exists (it has an index and a name) but could not read
-    /// whether it is engaged: it does NOT mean the group is disengaged. Treating
-    /// null as off draws an OFF toggle for a group whose state nobody knows, and
+    /// whether it is engaged: it does not mean the group is disengaged. Treating
+    /// null as off draws an off toggle for a group whose state nobody knows, and
     /// toggling from that reading commands the wrong way.
     /// <internal>
     /// Three-valued because a backend can fail per-group. AGX reads each
@@ -194,11 +194,11 @@ public class VesselControl
     public bool? PrecisionControl { get; set; }
 
     /// <summary>
-    /// Whether the fly-by-wire override is armed on this vessel. Changed with
+    /// Whether the fly-by-wire override is on for this vessel. Changed with
     /// <c>vessel.control.setFlyByWire</c>. The override belongs to the craft it was
-    /// armed on, so this is <c>false</c> on any other craft even while the override
-    /// is armed elsewhere, and it reads <c>true</c> again only on the craft that
-    /// carries it. Unlike a client's own record of its arm and disarm commands, it
+    /// turned on for, so this is <c>false</c> on any other craft even while the
+    /// override is on elsewhere, and it reads <c>true</c> again only on the craft
+    /// that carries it. Unlike a client's own record of the commands it sent, it
     /// survives a page reload.
     /// </summary>
     [SitrepControlChannel("vessel.control.flyByWire", "vessel.control.setFlyByWire", typeof(SetFlyByWireArgs), nameof(SetFlyByWireArgs.Enabled))]
@@ -242,7 +242,7 @@ public class VesselControl
 
     /// <summary>
     /// Every custom action group the vessel has,
-    /// each NAMED and carrying its own index (see
+    /// each named and carrying its own index (see
     /// <see cref="ActionGroupState"/>). Stock KSP yields ten entries
     /// (<c>AG1..AG10</c>); an AGX backend may yield up to 250 with the
     /// player's own names. Null when action-group data wasn't available this

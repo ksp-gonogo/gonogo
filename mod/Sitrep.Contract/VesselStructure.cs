@@ -25,7 +25,7 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.structure")]
 public class VesselStructure
 {
-    /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule/high stages have LOW numbers); see the class doc comment.</summary>
+    /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule and upper stages have low numbers); see the class doc comment.</summary>
     [SitrepUnit(Units.Id)]
     public int CurrentStage { get; set; }
 

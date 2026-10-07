@@ -6,8 +6,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One declared channel's emission counters, plus the four engine facts a
-/// reader needs to interpret them.
+/// One declared channel's emission counters, plus the four facts about the
+/// channel a reader needs to interpret them.
 ///
 /// <para>From outside the mod, a Topic that delivers no frames looks the same
 /// whatever the cause. The counters separate the two main causes:</para>
@@ -41,7 +41,7 @@ namespace Sitrep.Contract;
 /// present, <see cref="Available"/> false means the owning Uplink went inert
 /// and took every channel it owns with it, <see cref="TickMapped"/> false means
 /// nothing ever pushed a value at a publish-driven channel, and <see
-/// cref="Born"/> false on a tick-mapped channel means the mapper returned null
+/// cref="Born"/> false on a tick-mapped channel means its source returned null
 /// on every tick and the channel is held back until its first value.</para>
 /// <internal>
 /// A consideration is one <c>Sitrep.Core.ChannelEmitter.Decide</c> call; the
@@ -93,7 +93,7 @@ public class ChannelEmissionEntry
 
     /// <summary>
     /// Whether the channel's owning Uplink is currently available. False means
-    /// the Uplink's registration threw or one of its mappers threw on an
+    /// the Uplink's registration threw or one of its channel sources threw on an
     /// earlier tick, at which point every channel it owns goes inert together,
     /// not just the one that failed.
     /// </summary>
@@ -102,7 +102,7 @@ public class ChannelEmissionEntry
 
     /// <summary>
     /// Whether this channel has ever carried a non-null value. False with a
-    /// subscriber and a tick-driven mapper means the mapper has returned null
+    /// subscriber and a tick-driven source means the source has returned null
     /// every tick: a channel that has never had a real value is held back
     /// rather than sent as absent, unless it opts into
     /// <see cref="ChannelDeclaration.AbsenceIsData"/>.
@@ -111,7 +111,7 @@ public class ChannelEmissionEntry
     public bool Born { get; set; }
 
     /// <summary>
-    /// Whether the mod holds a tick-driven mapper for this channel. False is
+    /// Whether the mod runs a source for this channel every tick. False is
     /// normal and means the channel is publish-driven: an Uplink pushes to it
     /// through an <see cref="IChannelPublisher"/> or a dynamic namespace, so it
     /// is only ever considered when something publishes.

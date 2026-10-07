@@ -9,7 +9,7 @@ namespace Sitrep.Contract;
 /// needs that <c>vessel.flight</c> doesn't already carry.
 /// <c>vessel.flight.AltitudeTerrain</c> is the height of the vessel's root
 /// part above the terrain; <see cref="HeightFromTerrain"/> is the height of the
-/// vessel's LOWEST point, the number a landing-gear or suicide-burn readout
+/// vessel's lowest point, the number a landing-gear or suicide-burn readout
 /// cares about. The two differ by how far the vessel reaches below its root.
 ///
 /// <para>Whole-channel absence means the vessel has no reference body yet.

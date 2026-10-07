@@ -40,9 +40,9 @@ public static class ScienceValueModels
 }
 
 /// <summary> One entry in the <c>science.experiments</c> channel payload: a
-/// single stored science result on the ACTIVE vessel, held either by the
+/// single stored science result on the active vessel, held either by the
 /// science module that collected it or by a container part. The channel
-/// payload is a BARE ARRAY of these (<c>ExperimentEntry[]</c>) or <c>null</c>,
+/// payload is a bare array of these (<c>ExperimentEntry[]</c>) or <c>null</c>,
 /// never a wrapper object. The whole array is <c>null</c> when there is no
 /// active vessel or the vessel holds no stored science data; there is no
 /// separate empty-array state.
@@ -157,7 +157,7 @@ public class ExperimentEntry
     [SitrepUnit(Units.Flag)]
     public bool? Inoperable { get; set; }
 
-    /// <summary>The active vessel's CURRENT situation, KSP's
+    /// <summary>The active vessel's current situation, KSP's
     /// <c>Vessel.situation</c> enum name (for example <c>LANDED</c>,
     /// <c>ORBITING</c>). It describes where the vessel is now, not where the
     /// result was collected; the collection situation is encoded in
@@ -210,19 +210,19 @@ public class ExperimentEntry
 
 /// <summary>
 /// One entry in the <c>science.instruments</c> channel payload: a single
-/// <c>ModuleScienceExperiment</c> on the ACTIVE vessel, as an inventory and
+/// <c>ModuleScienceExperiment</c> on the active vessel, as an inventory and
 /// status row keyed by <see cref="PartId"/> (the part's KSP
 /// <c>flightID</c>).
 ///
 /// <para>Distinct from <see cref="ExperimentEntry"/>:
 /// <c>science.experiments</c> walks the same modules but yields one row per
-/// STORED result (a module with no data produces no row), whereas
+/// stored result (a module with no data produces no row), whereas
 /// <c>science.instruments</c> yields one row per module whether or not it
 /// holds data. It is the operability picture (deployed, inoperable,
 /// rerunnable, resettable, collectable) an operator needs to decide what to run
 /// next.</para>
 ///
-/// <para>The channel payload is a BARE ARRAY (<c>InstrumentEntry[]</c>) or
+/// <para>The channel payload is a bare array (<c>InstrumentEntry[]</c>) or
 /// <c>null</c> when there is no active vessel or it carries no experiment
 /// module. Every field is nullable, and is <c>null</c> whenever the raw value
 /// is absent.</para>
@@ -312,7 +312,7 @@ public class InstrumentEntry
 /// <summary>
 /// One entry in the <c>science.lab</c> channel payload: a Mobile Processing
 /// Lab (KSP's <c>ModuleScienceLab</c>) on the active vessel. The channel
-/// payload is a BARE ARRAY (<c>LabEntry[]</c>) or <c>null</c> when there is no
+/// payload is a bare array (<c>LabEntry[]</c>) or <c>null</c> when there is no
 /// active vessel or it carries no lab. Every field is nullable, and is
 /// <c>null</c> whenever the raw value is absent or non-finite.
 /// <internal>
@@ -368,7 +368,7 @@ public class LabEntry
     public int? ScientistCount { get; set; }
 
     /// <summary>
-    /// Science generated per GAME-DAY, not per second, at the lab's current
+    /// Science generated per game day, not per second, at the lab's current
     /// stored data (KSP's <c>ModuleScienceConverter.CalculateScienceRate</c>,
     /// which scales the per-tick rate to a full day). <c>null</c> when the lab
     /// has no converter or the rate could not be read.
@@ -411,12 +411,12 @@ public class LabEntry
 
 /// <summary> One entry in the <c>deployed.bases</c> channel payload: a
 /// Breaking Ground deployed-science experiment
-/// (<c>ModuleGroundExperiment</c>). The channel payload is a BARE ARRAY
+/// (<c>ModuleGroundExperiment</c>). The channel payload is a bare array
 /// (<c>DeployedEntry[]</c>) or <c>null</c> when no loaded vessel carries a
 /// deployed experiment (including an install without Breaking Ground).
 ///
 /// <para>Unlike the <c>science.*</c> channels, <c>deployed.bases</c> covers
-/// every LOADED vessel, not just the active one: a deployed cluster is its own
+/// every loaded vessel, not just the active one: a deployed cluster is its own
 /// ground vessel, so an entry normally describes a vessel other than the
 /// active one, named by <see cref="VesselName"/>. A cluster whose vessel is not
 /// loaded does not appear.</para>
@@ -541,10 +541,10 @@ public class DeployedEntry
     public bool? ControllerConnected { get; set; }
 
     /// <summary>
-    /// Power units the cluster's parts PRODUCE
+    /// Power units the cluster's parts produce
     /// (<c>DeployedScienceCluster.PowerAvailable</c>), against
     /// <see cref="PowerRequired"/>. Breaking Ground's own integral power scale
-    /// summed over the cluster's parts: NOT electric charge, and not a rate.
+    /// summed over the cluster's parts: not electric charge, and not a rate.
     /// Available at or above required is what makes the cluster powered.
     ///
     /// <para><c>null</c> when the cluster could not be read, on the same terms
@@ -560,7 +560,7 @@ public class DeployedEntry
     public int? PowerAvailable { get; set; }
 
     /// <summary>
-    /// Power units the cluster's parts REQUIRE
+    /// Power units the cluster's parts require
     /// (<c>DeployedScienceCluster.PowerRequired</c>). Same scale and same null
     /// rule as <see cref="PowerAvailable"/>, the demand side of the balance.
     /// </summary>
@@ -600,7 +600,7 @@ public enum DeployedPowerState
     /// <summary>Deployed and switched on, but the cluster has no power.</summary>
     Unpowered,
 
-    /// <summary>The cluster's CONTROLLER is switched off, so nothing is
+    /// <summary>The cluster's controller is switched off, so nothing is
     /// powered.</summary>
     ControllerDisabled,
 
@@ -619,8 +619,8 @@ public enum DeployedPowerState
 /// One entry in the <c>science.sensors</c> channel payload: a single
 /// environmental-sensor module (<c>ModuleEnviroSensor</c>: thermometer,
 /// barometer, gravioli detector, accelerometer, and any modded sensor
-/// sharing the module) on the ACTIVE vessel. The channel payload is a BARE
-/// ARRAY (<c>SensorEntry[]</c>) or <c>null</c> when there is no active vessel
+/// sharing the module) on the active vessel. The channel payload is a bare
+/// array (<c>SensorEntry[]</c>) or <c>null</c> when there is no active vessel
 /// or it carries no sensor module.
 ///
 /// <para>One entry per sensor module, with <see cref="Type"/> carrying the raw
@@ -676,13 +676,13 @@ public class SensorEntry
 
 /// <summary>
 /// One entry in the <c>science.experimentBreakdown</c> channel payload: a
-/// per-SUBJECT rollup of the stored science results that
+/// per-subject rollup of the stored science results that
 /// <c>science.experiments</c> lists one row per result. One row per distinct
 /// subject id: several stored results for the same subject (for example two
 /// crew reports from the same biome) collapse into one entry with
 /// <see cref="DataMits"/> summed across them.
 ///
-/// <para>The channel payload is a BARE ARRAY
+/// <para>The channel payload is a bare array
 /// (<c>ExperimentBreakdownEntry[]</c>) or <c>null</c>, never a wrapper object.
 /// The whole array is <c>null</c> when there is no active vessel or the vessel
 /// holds no stored science data; there is no separate empty-array state.
@@ -768,19 +768,19 @@ public class ExperimentBreakdownEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.archive</c> channel payload: a single SUBJECT
+/// One entry in the <c>science.archive</c> channel payload: a single subject
 /// out of the whole-career R&amp;D archive
 /// (<c>ResearchAndDevelopment.GetSubjects()</c>). That is every subject the
 /// career has ever collected or recovered, across every mission and every
 /// body, not scoped to the active vessel.
 ///
-/// <para>The channel payload is a BARE ARRAY (<c>ArchiveEntry[]</c>), or
+/// <para>The channel payload is a bare array (<c>ArchiveEntry[]</c>), or
 /// <c>null</c> when the save has no R&amp;D to walk (Sandbox mode). A save
-/// with R&amp;D but nothing collected yet emits an EMPTY array, so an empty
+/// with R&amp;D but nothing collected yet emits an empty array, so an empty
 /// array and <c>null</c> mean different things here.</para>
 ///
 /// <para>Distinct from <see cref="ExperimentBreakdownEntry"/>: that one rolls
-/// up the ACTIVE VESSEL's currently stored results and is null with no vessel
+/// up the active vessel's currently stored results and is null with no vessel
 /// flying; this one is career-wide and streams at the Space Center with
 /// nothing flying at all.</para>
 /// <internal>

@@ -6,12 +6,12 @@ using System.Text.RegularExpressions;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Why a command that RAN was refused: the game looked and the answer was no.
+/// Why a command that ran was refused: the game looked and the answer was no.
 ///
-/// <para>Two tiers. A ROOT is declared only on <see cref="CommandErrorCode"/>
+/// <para>Two tiers. A root is declared only on <see cref="CommandErrorCode"/>
 /// and the set of roots is closed, so every client can switch over it
 /// exhaustively and every retry rule (resolves by waiting, permanent, fixable by
-/// the operator) lives on one of them. A REFINEMENT names exactly one root and
+/// the operator) lives on one of them. A refinement names exactly one root and
 /// says something more specific; it inherits the root's meaning, and a client
 /// that has never seen it still reads its root. A refinement cannot itself be
 /// refined.</para>
@@ -117,10 +117,10 @@ public sealed class RefusalCode : IEquatable<RefusalCode>
     }
 }
 
-/// <summary>Where a <see cref="FaultCode"/> is minted.</summary>
+/// <summary>Where a <see cref="FaultCode"/> comes from.</summary>
 public enum FaultOrigin
 {
-    /// <summary>By the mod's engine, on an <c>error</c> frame.</summary>
+    /// <summary>From the mod, on an <c>error</c> frame.</summary>
     Mod,
 
     /// <summary>By a client's own transport, on a dispatch that never reached the mod or never came back.</summary>
@@ -128,12 +128,12 @@ public enum FaultOrigin
 }
 
 /// <summary>
-/// Why a command, or any other request, could not be CARRIED: nothing about the
+/// Why a command, or any other request, could not be carried: nothing about the
 /// game was decided. The refused/failed split is the kind of code, not a
 /// judgement a client makes: a <see cref="RefusalCode"/> says the game said no,
 /// this says the machinery did not get that far, and a retry may work.
 ///
-/// <para>Closed, and declared only here. An Uplink never mints a fault: a
+/// <para>Closed, and declared only here. An Uplink never declares a fault: a
 /// handler that throws already becomes <see cref="CommandUnavailable"/>, and
 /// <see cref="CommandFaultException"/> is how a handler raises one of these
 /// deliberately.</para>
@@ -152,7 +152,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// <summary>The camelCase id, as <c>code</c> carries it.</summary>
     public string Id { get; }
 
-    /// <summary>Whether the mod or a client mints it.</summary>
+    /// <summary>Whether the mod or a client raises it.</summary>
     public FaultOrigin Origin { get; }
 
     /// <summary>What an operator reads after "failed:", lower case and without a full stop.</summary>
@@ -215,7 +215,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// <summary>
     /// A continuous input, a throttle or a control axis, was dropped at a node
     /// where it would have had to wait on its way to the craft. Held and sent
-    /// on later it would arrive as a run of stale values, so a node that cannot
+    /// on later it would arrive as a run of out-of-date values, so a node that cannot
     /// send it on at once drops it. It was accepted with a warning when it was
     /// sent, and this is the news of its loss, arriving when a report from that
     /// node could have reached the sending centre.
@@ -275,7 +275,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
 }
 
 /// <summary>
-/// Thrown by a command handler to answer with a <see cref="FaultCode"/> rather
+/// Thrown by a command handler to reply with a <see cref="FaultCode"/> rather
 /// than a result: the host sends an <c>error</c> frame carrying it and, unlike
 /// any other throw, leaves the command available.
 /// </summary>
@@ -288,14 +288,17 @@ public sealed class CommandFaultException : Exception
         Code = code ?? throw new ArgumentNullException(nameof(code));
     }
 
-    /// <summary>The fault the dispatch answers with.</summary>
+    /// <summary>The fault the command replies with.</summary>
     public FaultCode Code { get; }
 }
 
 /// <summary>
-/// Reads the codes a holder class declares, so a manifest, a generator and a
-/// gate all take them from the static fields themselves and nothing restates
-/// them by hand.
+/// Reads the codes a holder class declares as public static fields. Set
+/// <see cref="UplinkManifest.ErrorCodes"/> with <see cref="Of"/>.
+/// <internal>
+/// A manifest, the generator and the gates all read the static fields
+/// themselves, so nothing restates the codes by hand.
+/// </internal>
 /// </summary>
 public static class ErrorCodeCatalog
 {

@@ -138,7 +138,7 @@ public class VesselPart
     public string Category { get; set; } = "";
 
     /// <summary>
-    /// <see cref="Category"/>'s KSP ORDINAL, typed to
+    /// <see cref="Category"/>'s KSP ordinal, typed to
     /// <see cref="KspPartCategory"/>.
     ///
     /// <para>Classify by this rather than by <see cref="Category"/>'s name,
@@ -214,7 +214,7 @@ public class VesselPart
 #endif
 public class ActionBinding
 {
-    /// <summary>The action's PAW label: <c>BaseAction.guiName</c> (e.g.
+    /// <summary>The action's label in the part's right-click menu: <c>BaseAction.guiName</c> (e.g.
     /// "Toggle", "Extend Panel").</summary>
     [SitrepUnit(Units.Text)]
     public string Action { get; set; } = "";
@@ -227,7 +227,7 @@ public class ActionBinding
     public List<string> Groups { get; set; } = new();
 
     /// <summary>
-    /// <c>BaseAction.actionGroup</c>'s raw <c>[Flags]</c> BITMASK, the whole of
+    /// <c>BaseAction.actionGroup</c>'s raw <c>[Flags]</c> bitmask, the whole of
     /// it. <see cref="KspActionGroup"/> names the bits.
     ///
     /// <para>A mask rather than an ordinal because <c>KSPActionGroup</c> is a
@@ -350,7 +350,7 @@ public class PartModuleState
 /// part's own origin (<c>Part.boundsCentroidOffset</c>). A fuel-line part
 /// reports bounds wrapping the whole conduit, as KSP does.
 ///
-/// <para>Both are in the PART's own frame (<c>part-local</c>), never the
+/// <para>Both are in the part's own frame (<c>part-local</c>), never the
 /// vessel's: they are authored fields of the part's config node, so one value
 /// has to serve every instance of that part however it was assembled. A
 /// consumer placing the box on a ship rotates both by that part's <c>orgRot</c>
@@ -371,7 +371,7 @@ public class PartBounds
     public Vec3 Size { get; set; } = new();
 
     /// <summary> <c>Part.boundsCentroidOffset</c>: mesh-centre offset from the
-    /// part's own origin (metres, PART-local); <c>null</c> when absent.
+    /// part's own origin (metres, part-local); <c>null</c> when absent.
     ///
     /// <para>Part-local, not vessel-local: an authored per-part-type constant
     /// like <see cref="Size"/> beside it, so one value serves every instance of

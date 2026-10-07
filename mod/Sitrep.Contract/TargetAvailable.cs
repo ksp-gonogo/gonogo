@@ -37,7 +37,7 @@ public enum TargetKnowledge
 /// (Vessel / CelestialBody / ModuleDockingNode all implement it) and classified
 /// by concrete type into a <see cref="Kind"/> plus its stable id, so a modded
 /// <c>ITargetable</c> appears as <see cref="TargetKind.Other"/>. The stable id per kind (<see cref="VesselId"/> guid /
-/// <see cref="BodyIndex"/> / <see cref="PartId"/> flightID) is the SAME id
+/// <see cref="BodyIndex"/> / <see cref="PartId"/> flightID) is the same id
 /// <see cref="SetTargetArgs"/> takes, so a widget hands an entry straight back
 /// into <c>vessel.target.set</c> with no lookup.
 /// </summary>
@@ -60,7 +60,7 @@ public class TargetListEntry
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
-    /// <summary>Stable vessel guid: set for <see cref="TargetKind.Vessel"/>, and the OWNING vessel for a <see cref="TargetKind.Part"/>. Null otherwise.</summary>
+    /// <summary>Stable vessel guid: set for <see cref="TargetKind.Vessel"/>, and the owning vessel for a <see cref="TargetKind.Part"/>. Null otherwise.</summary>
     [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
@@ -82,9 +82,9 @@ public class TargetListEntry
 
     /// <summary>
     /// Distance from the active vessel, as of the last emission. A coarse sort
-    /// aid for a picker, NOT a live readout: it moves every tick but is only
+    /// aid for a picker, not a live readout: it moves every tick but is only
     /// refreshed on the channel's slow periodic re-send, and a change in it
-    /// alone does not trigger an emission. Live distance for the CURRENT target
+    /// alone does not trigger an emission. Live distance for the current target
     /// comes off <c>vessel.target</c>. Null when a position was not available
     /// this tick.
     /// </summary>
@@ -167,7 +167,7 @@ public class TargetListEntry
     /// </summary>
     public OrbitEntry? Orbit { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c> of the body <see cref="Orbit"/> is round. Null wherever <see cref="Orbit"/> is.</summary>
+    /// <summary>Index into <c>system.bodies</c> of the body <see cref="Orbit"/> is around. Null wherever <see cref="Orbit"/> is.</summary>
     [SitrepUnit(Units.Id)]
     public int? OrbitBodyIndex { get; set; }
 }

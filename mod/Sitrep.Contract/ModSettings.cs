@@ -10,7 +10,7 @@ namespace Sitrep.Contract
     /// <summary>When the host reads a mod setting again.</summary>
     public enum ModSettingRefresh
     {
-        /// <summary>Fixed for the KSP process: read until one read answers, then never again.</summary>
+        /// <summary>Fixed for the KSP process: read until a read succeeds, then never again.</summary>
         Launch = 0,
 
         /// <summary>Belongs to the loaded save: read again whenever a save is loaded or the scene changes.</summary>
@@ -201,12 +201,12 @@ namespace Sitrep.Contract
     /// <see cref="ModSetting.Refresh"/> names; how the mod stores them is the
     /// Uplink's business.
     ///
-    /// <para><b>A throw costs the mod settings, never the Uplink.</b> A list
-    /// that throws or breaks a rule leaves the Uplink running with no mod
-    /// settings shown, and the reason on its settings topic.</para>
-    ///
-    /// <para>Not shape-gated: an interface on the Uplink-facing surface, not a
-    /// wire type.</para>
+    /// <para>A list that throws or breaks a rule leaves the Uplink running with
+    /// no mod settings shown, and the reason on its settings topic.</para>
+    /// <internal>
+    /// Not shape-gated: an interface on the Uplink-facing surface, not a wire
+    /// type.
+    /// </internal>
     /// </summary>
     public interface IModSettingsSource
     {
@@ -254,11 +254,10 @@ namespace Sitrep.Contract
     /// implements <see cref="IModSettingsSource"/>; its entry on
     /// <c>system.uplinks</c> says so with <c>modSettings</c>.</para>
     ///
-    /// <para><b>TrueNow.</b> A mod setting configures the simulation on the KSP
-    /// machine, not a craft, so there is no vantage from which it is not yet
-    /// known.</para>
+    /// <para><b>Not delayed.</b> A mod setting configures the game on the KSP
+    /// machine, not a craft, so every command centre knows it at once.</para>
     ///
-    /// <para><b>The authority for "did it change".</b> A write can time out and
+    /// <para><b>Whether a write landed.</b> A write can time out and
     /// still land, so a client reads the outcome here, never from the command's
     /// reply.</para>
     /// </summary>

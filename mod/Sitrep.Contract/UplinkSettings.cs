@@ -10,7 +10,7 @@ namespace Sitrep.Contract
     /// <summary>
     /// What a setting may hold, the mod's own or an Uplink's.
     ///
-    /// <para>The set is deliberately small and closed. A setting that needs
+    /// <para>The set is small and closed. A setting that needs
     /// more than these is a <see cref="Text"/> row that the Uplink checks when
     /// it reads it.</para>
     /// </summary>

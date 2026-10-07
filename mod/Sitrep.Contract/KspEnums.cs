@@ -71,10 +71,10 @@ public enum KspParameterState
 /// <c>vessel.parts[].categoryOrdinal</c>, beside the name in
 /// <see cref="VesselPart.Category"/>.
 ///
-/// <para><see cref="none"/> is <c>-1</c>, not <c>0</c>, so this enum is not
-/// dense from zero and cannot be resolved with the array-walking
-/// <c>namesOf</c>. The lower-case spelling is KSP's, and the name on the wire
-/// is exactly <c>"none"</c>.</para>
+/// <para><see cref="none"/> is <c>-1</c>, not <c>0</c>, so resolve an ordinal
+/// with <c>namesByValue</c>, not <c>namesOf</c>, which assumes members numbered
+/// from zero. The lower-case spelling is KSP's, and the name on the wire is
+/// exactly <c>"none"</c>.</para>
 /// </summary>
 /// <category>Parts</category>
 #if SITREP_CODEGEN
@@ -144,39 +144,39 @@ public enum KspActionGroup
     REPLACEWITHDEFAULT = -1,
     /// <summary>No group.</summary>
     None = 0,
-    /// <summary>The staging group (bit 1).</summary>
+    /// <summary>The staging group (mask value 1).</summary>
     Stage = 1,
-    /// <summary>The gear group (bit 2).</summary>
+    /// <summary>The gear group (mask value 2).</summary>
     Gear = 2,
-    /// <summary>The lights group (bit 4).</summary>
+    /// <summary>The lights group (mask value 4).</summary>
     Light = 4,
-    /// <summary>The RCS group (bit 8).</summary>
+    /// <summary>The RCS group (mask value 8).</summary>
     RCS = 8,
-    /// <summary>The SAS group (bit 16).</summary>
+    /// <summary>The SAS group (mask value 16).</summary>
     SAS = 16,
-    /// <summary>The brakes group (bit 32).</summary>
+    /// <summary>The brakes group (mask value 32).</summary>
     Brakes = 32,
-    /// <summary>The abort group (bit 64).</summary>
+    /// <summary>The abort group (mask value 64).</summary>
     Abort = 64,
-    /// <summary>Custom action group 1 (bit 128).</summary>
+    /// <summary>Custom action group 1 (mask value 128).</summary>
     Custom01 = 128,
-    /// <summary>Custom action group 2 (bit 256).</summary>
+    /// <summary>Custom action group 2 (mask value 256).</summary>
     Custom02 = 256,
-    /// <summary>Custom action group 3 (bit 512).</summary>
+    /// <summary>Custom action group 3 (mask value 512).</summary>
     Custom03 = 512,
-    /// <summary>Custom action group 4 (bit 1024).</summary>
+    /// <summary>Custom action group 4 (mask value 1024).</summary>
     Custom04 = 1024,
-    /// <summary>Custom action group 5 (bit 2048).</summary>
+    /// <summary>Custom action group 5 (mask value 2048).</summary>
     Custom05 = 2048,
-    /// <summary>Custom action group 6 (bit 4096).</summary>
+    /// <summary>Custom action group 6 (mask value 4096).</summary>
     Custom06 = 4096,
-    /// <summary>Custom action group 7 (bit 8192).</summary>
+    /// <summary>Custom action group 7 (mask value 8192).</summary>
     Custom07 = 8192,
-    /// <summary>Custom action group 8 (bit 16384).</summary>
+    /// <summary>Custom action group 8 (mask value 16384).</summary>
     Custom08 = 16384,
-    /// <summary>Custom action group 9 (bit 32768).</summary>
+    /// <summary>Custom action group 9 (mask value 32768).</summary>
     Custom09 = 32768,
-    /// <summary>Custom action group 10 (bit 65536).</summary>
+    /// <summary>Custom action group 10 (mask value 65536).</summary>
     Custom10 = 65536,
 }
 

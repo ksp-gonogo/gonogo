@@ -94,7 +94,7 @@ public class CrashReport
     [SitrepUnit(Units.Metres)]
     public double Altitude { get; set; }
 
-    /// <summary>Universal time of the crash capture.</summary>
+    /// <summary>When the crash was captured, in UT seconds.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
@@ -164,7 +164,7 @@ public class CrashFlightStats
     [SitrepUnit(Units.Flag)]
     public bool MissionEnd { get; set; }
 
-    /// <summary>The highest g-force (<c>Vessel.geeForce</c>) sampled during the flight.</summary>
+    /// <summary>The highest g-force (<c>Vessel.geeForce</c>) sampled during the flight, in g.</summary>
     [SitrepUnit(Units.GForce)]
     public double HighestGee { get; set; }
 

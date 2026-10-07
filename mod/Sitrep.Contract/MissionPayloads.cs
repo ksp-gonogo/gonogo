@@ -12,8 +12,7 @@ namespace Sitrep.Contract;
 /// <para>KSP's mission graph has no per-objective state. A node is either
 /// activated (the mission reached it) or not, and exactly one node is the
 /// mission's active node, so this reduces those facts to the four outcomes an
-/// operator reads. It is an ordinal on the wire and a closed union on the
-/// client like every other enum in this contract.</para>
+/// operator reads. On the wire it is an integer ordinal.</para>
 /// <internal>
 /// Being ours, it needs no mirror test: nobody else owns its numbering.
 /// Derived by Sitrep.Host.MakingHistoryViewProvider from the raw

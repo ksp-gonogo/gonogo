@@ -163,42 +163,44 @@ namespace Sitrep.Contract
             double toUt);
     }
 
-    /// <summary> Whether a caller will accept a result past the span the
-    /// provider vouches for, which is a question about CERTIFICATION and not
-    /// about which model ran.
+    /// <summary>
+    /// Whether a caller accepts a result past the span the provider vouches
+    /// for. It chooses certification, not which model runs: both values get the
+    /// same model from the same provider.
     ///
-    /// <para>Both values get the same model out of the same provider. Under an
-    /// integrating provider that is the craft's conic either way, because there
-    /// is no integrated point query to select. What differs is whether the
-    /// caller is willing to read it past the point anybody stands behind it,
-    /// which <see cref="IPropagationProvider.CanPropagate"/> already decides
-    /// and which the caller has to state.</para>
-    ///
-    /// <para><b><see cref="Unspecified"/> is zero and means nothing was
-    /// chosen.</b> Same rule as <c>TrajectoryKind</c>'s zero: a default value
-    /// must never grant the permissive setting without anyone deciding.</para>
+    /// <para><see cref="Unspecified"/> is zero and means nothing was chosen, so
+    /// a default value never grants the permissive setting.</para>
+    /// <internal>
+    /// Under an integrating provider the result is the craft's conic either
+    /// way, because there is no integrated point query to select. What differs
+    /// is whether the caller reads it past the point the provider stands behind,
+    /// which IPropagationProvider.CanPropagate already decides. The zero rule
+    /// matches TrajectoryKind's.
+    /// </internal>
     /// </summary>
     /// <category>Orbits and trajectories</category>
     public enum PropagationCertification
     {
-        /// <summary>Nobody chose. Callers refuse rather than pick on their
-        /// behalf.</summary>
+        /// <summary>Nothing was chosen. A request carrying this is refused
+        /// rather than given a default.</summary>
         Unspecified = 0,
 
         /// <summary>
-        /// Return a result wherever the solver can reach, horizon or no horizon. What a
-        /// PLANNING search wants: a transfer grid asks a two-body question about
-        /// instants nobody has reached, on purpose, and a bound derived from how
-        /// long osculating elements stand in for an integrated path is not a
-        /// statement about that question.
+        /// Return a result wherever the solver can reach, past any horizon. For a
+        /// planning search, such as a transfer grid, which asks a two-body
+        /// question about future instants on purpose.
+        /// <internal>
+        /// A horizon derived from how long osculating elements stand in for an
+        /// integrated path says nothing about a two-body question.
+        /// </internal>
         /// </summary>
         Unbounded = 1,
 
         /// <summary>
         /// Return results only across spans the provider vouches for, and decline
-        /// past them. What an OPERATIONAL prediction wants: a reacquisition sweep
-        /// quoting a UT read off arc nobody stands behind is a confident figure
-        /// with nothing under it.
+        /// past them. For an operational prediction, such as when a link will be
+        /// reacquired, where a time read off an unvouched arc would look certain
+        /// without being so.
         /// </summary>
         CertifiedOnly = 2,
     }

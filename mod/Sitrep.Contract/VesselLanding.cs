@@ -94,7 +94,7 @@ public class VesselLanding
 
     /// <summary>The downhill direction at the sampled point in degrees, 0 north,
     /// clockwise: which way the lander falls if it tips. Null when the slope is
-    /// below the noise floor.</summary>
+    /// too slight to give a direction.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? PredictedSlopeHeading { get; set; }
 

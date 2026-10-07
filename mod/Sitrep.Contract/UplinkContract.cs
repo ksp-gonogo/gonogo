@@ -561,9 +561,8 @@ namespace Sitrep.Contract
     /// actual value, never a verdict on its own.
     ///
     /// <para>"Too heavy" does not tell an operator whether to shed 200&#160;kg or
-    /// redesign. Carrying both numbers lets the CLIENT compose "1.4 t over the
-    /// 18 t Launch Pad limit" through its own unit rendering, rather than the mod
-    /// baking an English sentence in one unit system.</para>
+    /// redesign. With both numbers a client can write "1.4 t over the 18 t
+    /// Launch Pad limit" in the operator's own units.</para>
     /// </summary>
     /// <category>System diagnostics</category>
     [SitrepContract]
@@ -610,15 +609,12 @@ namespace Sitrep.Contract
         public string Quantity { get; set; } = "";
 
         /// <summary>
-        /// The limit, in whatever unit <see cref="Quantity"/> implies. NULL when
-        /// the facility is unlimited.
+        /// The limit, in <see cref="Unit"/>. Null when the facility is unlimited.
         ///
-        /// <para>Never the sentinel. KSP returns <c>float.MaxValue</c> (and
+        /// <para>Never a sentinel: KSP reports <c>float.MaxValue</c> (and
         /// <c>int.MaxValue</c>, and a <c>Vector3</c> of them) at maximum level,
-        /// and 3.4e38 rendered beside a craft mass is not "unlimited", it is a
-        /// bug that reads as a units error. No limit is the ABSENCE of a limit.
-        /// A breach with no limit should be unreachable, since nothing can
-        /// exceed an unlimited limit.</para>
+        /// and those arrive here as null. A breach with no limit should not
+        /// occur, since nothing can exceed an unlimited limit.</para>
         /// </summary>
         [SitrepUnit(Units.NotApplicable)]
         public double? Limit { get; set; }

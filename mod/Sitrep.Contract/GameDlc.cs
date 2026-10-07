@@ -12,11 +12,10 @@ namespace Sitrep.Contract;
 ///
 /// <para>The whole payload is <c>null</c>, not an all-false object, when no
 /// sample has been taken yet, so "no data yet" and "DLC absent" stay
-/// distinct. Like <see cref="SystemBodies"/> it carries no per-payload
-/// <c>Meta</c>: its <see cref="Meta"/> rides the envelope
-/// (<c>StreamData.Meta</c>). A ground-side fact, so the channel is
-/// <see cref="DelayRole.TrueNow"/>, independent of any vessel's comms
-/// link.</para>
+/// distinct. It carries no <c>Meta</c> of its own: its <see cref="Meta"/> is
+/// on the envelope (<c>StreamData.Meta</c>). A fact about the ground, so the
+/// channel is <see cref="DelayRole.TrueNow"/>, independent of any vessel's
+/// comms link.</para>
 /// <internal>
 /// Typing-only mirror of Sitrep.Host.SystemViewProvider.BuildGameDlc's shape;
 /// the provider emits the value tree JsonWriter walks.

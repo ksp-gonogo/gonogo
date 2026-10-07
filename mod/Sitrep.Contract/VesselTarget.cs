@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// <para>Member order is wire-significant, so members are only ever
 /// appended.</para>
 ///
-/// <para><see cref="Position"/> is used ONLY as an input to
+/// <para><see cref="Position"/> is used only as an input to
 /// <c>vessel.target.set</c> (see <see cref="SetTargetArgs.Latitude"/> and
 /// <see cref="SetTargetArgs.Longitude"/>): a map-picked latitude and longitude
 /// that no live KSP target object backs, so it never appears as
@@ -45,7 +45,7 @@ public enum TargetKind
     /// <summary>
     /// A part of a vessel: in practice a docking port (<c>ModuleDockingNode</c>,
     /// which implements <c>ITargetable</c>). Identity is the owning vessel's
-    /// <see cref="VesselTarget.VesselId"/> guid PLUS the part's
+    /// <see cref="VesselTarget.VesselId"/> guid plus the part's
     /// <see cref="VesselTarget.PartId"/> (KSP <c>Part.flightID</c>): a part id
     /// alone is not globally unique, only within its vessel.
     /// </summary>
@@ -59,9 +59,8 @@ public enum TargetKind
 /// it), so an n-body physics mod can supply the true encounter rather than a
 /// Kepler approximation.
 ///
-/// <para>It comes from the propagation provider rather than a solver of its own
-/// so that the encounter and the trajectory it is an encounter ON are always the
-/// same physics. Null on <see cref="VesselTarget"/> when there is no target, no
+/// <para>Because it comes from the same provider as the trajectory, the
+/// encounter and the trajectory it lies on are always the same physics. Null on <see cref="VesselTarget"/> when there is no target, no
 /// frame the provider can reach both objects in, or no encounter inside the
 /// window it was asked about.</para>
 /// </summary>
@@ -83,14 +82,14 @@ public class ClosestApproach
 }
 
 /// <summary>
-/// The <c>vessel.target</c> channel payload: the active vessel's CURRENT
+/// The <c>vessel.target</c> channel payload: the active vessel's current
 /// target only. <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/>
 /// both use the one <see cref="Vec3"/> shape.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a
 /// separate "target orbit" shape), so the SDK propagates a target with the same
 /// code path as the active vessel and both are evaluated at the same view
-/// time. Its nested <see cref="Meta"/> is stamped with the SAME subject (the
+/// time. Its nested <see cref="Meta"/> is stamped with the same subject (the
 /// active vessel producing this sample), not the target's; <see cref="VesselId"/>
 /// and <see cref="BodyIndex"/> carry the target's own identity.</para>
 ///
@@ -126,7 +125,7 @@ public class VesselTarget
     public string? VesselId { get; set; }
 
     /// <summary>
-    /// The target's <c>system.bodies</c> index, populated ONLY when
+    /// The target's <c>system.bodies</c> index, populated only when
     /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, matching
     /// <see cref="SetTargetArgs.BodyIndex"/>. Null for any other target, or when
     /// the body name could not be resolved against <c>system.bodies</c> this
@@ -136,7 +135,7 @@ public class VesselTarget
     public int? BodyIndex { get; set; }
 
     /// <summary>
-    /// The target part's KSP <c>Part.flightID</c>: populated ONLY when
+    /// The target part's KSP <c>Part.flightID</c>: populated only when
     /// <see cref="Kind"/> is <see cref="TargetKind.Part"/> (a docking port),
     /// scoped by <see cref="VesselId"/> (which carries the owning vessel's guid
     /// in the Part case). Null for every other kind. A widget reads this pair

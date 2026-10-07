@@ -5,10 +5,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.flight</c> channel payload: MEASUREMENTS, not evaluations:
-/// quantities the game measures that aren't derivable from orbital elements
-/// (terrain height, aero state) or that serve as off-rails ground truth
-/// (speeds). One field per quantity.
+/// The <c>vessel.flight</c> channel payload: quantities the game measures,
+/// either because they cannot be derived from orbital elements (terrain
+/// height, aerodynamic state) or because they are the measured value to check
+/// a prediction against (speeds). One field per quantity.
 ///
 /// <para>The channel is absent when there is no active vessel or any of its
 /// fields could not be read; there is never a <c>(0,0)</c> lat/long

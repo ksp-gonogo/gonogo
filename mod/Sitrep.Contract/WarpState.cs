@@ -34,7 +34,7 @@ public enum WarpMode
 /// <c>meta.validAt</c> stamps every sample, and the SDK's view clock is the
 /// "what time is it" surface.</para>
 ///
-/// <para>Warp and pause are GLOBAL game state, so <see cref="Meta"/> is
+/// <para>Warp and pause are game-wide state, so <see cref="Meta"/> is
 /// stamped <c>Source = "game"</c>, not <c>"vessel:&lt;guid&gt;"</c>, and the
 /// channel emits at the Space Center and Tracking Station as well as in
 /// flight, with or without an active vessel.</para>
@@ -76,12 +76,12 @@ public class WarpState
     public bool Paused { get; set; }
 
     /// <summary>
-    /// What every HIGH-warp rung of THIS install actually runs at, indexed by
+    /// What every on-rails warp rung of this install actually runs at, indexed by
     /// <see cref="WarpRateIndex"/>, so <c>warpRates[i]</c> is the multiplier
     /// <c>time.setWarpIndex</c> with <c>index = i</c> produces. Null when the
     /// game has no warp controller to read it off (no scene that can warp).
     ///
-    /// <para>The table is CONFIG, not a constant: Kopernicus and
+    /// <para>The table is configuration, not a constant: Kopernicus and
     /// RealSolarSystem both republish it, so a rung stock runs at 100x may run
     /// at 10000x on another install. Read the rate here rather than assuming
     /// stock's table.</para>
@@ -103,11 +103,13 @@ public class WarpState
     /// cadence on every tick, so the mod also waits at least this long in real
     /// time. The gap a client sees between two keyframes of a quiet channel is
     /// therefore at least <c>keyframeFloorSec × warpRate</c> UT. A client that
-    /// infers staleness from keyframe cadence has to allow for that, or every
-    /// quiet channel reads as held too long just after a warp step-up.</para>
-    ///
-    /// <para>On this topic because its only use is that product, and both
-    /// halves then arrive in the same sample.</para>
+    /// judges how current a channel is from its keyframe cadence has to allow
+    /// for that, or every quiet channel reads as held too long just after a
+    /// warp step-up.</para>
+    /// <internal>
+    /// On this topic because its only use is that product, and both halves then
+    /// arrive in the same sample.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double KeyframeFloorSec { get; set; }
@@ -117,7 +119,7 @@ public class WarpState
     /// rate, in seconds, or <c>null</c> where the host did not report its
     /// physics step.
     ///
-    /// <para><see cref="SampleIntervalUt"/> up to 10x. Above that the mod
+    /// <para>Equal to <see cref="SampleIntervalUt"/> up to 10x warp. Above that the mod
     /// samples at most ten times a real second, so this is a tenth of a second
     /// of game time at the current rate (10,000 at 100,000x), or one physics
     /// tick where a tick advances the game further than that.
@@ -126,10 +128,12 @@ public class WarpState
     /// only a model of the value can stand behind. Two samples further apart
     /// than this are a channel that did not change in between.</para>
     ///
-    /// <para>On this topic beside <see cref="KeyframeFloorSec"/> because it is
-    /// the other thing warp does to cadence, and it changes only when the rate
-    /// does. A client judging a gap reads the quantum in force when the later
-    /// sample was taken.</para>
+    /// <para>It changes only when the warp rate does. A client judging a gap
+    /// reads the quantum in force when the later sample was taken.</para>
+    /// <internal>
+    /// On this topic beside KeyframeFloorSec because it is the other thing warp
+    /// does to cadence.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? ObservationQuantumUt { get; set; }

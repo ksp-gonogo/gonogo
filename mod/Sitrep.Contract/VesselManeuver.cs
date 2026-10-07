@@ -6,22 +6,21 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One planned BURN. NAMED delta-v components in a NAMED frame
-/// (<see cref="Frame"/>), with the impulsive case as the one where
-/// <see cref="IgnitionUt"/> and <see cref="CutoffUt"/> are absent rather than
-/// equal.
+/// One planned burn: named delta-v components in a named frame
+/// (<see cref="Frame"/>), with the burn's impulsive instant and, when a burn
+/// time is modelled, its start and end.
 ///
-/// <para><b>A burn, not a stock node.</b> A stock node is an instantaneous
+/// <para><see cref="Ut"/> is the impulsive instant a stock node has;
+/// <see cref="IgnitionUt"/> and <see cref="CutoffUt"/> are the finite burn's
+/// start and end. When no burn time is modelled those two are absent, never
+/// equal to each other or to <see cref="Ut"/>: an absent duration means "not
+/// modelled", while a zero duration with a thrust would mean infinite
+/// acceleration.</para>
+/// <internal>
+/// A burn rather than a stock node because a stock node is an instantaneous
 /// impulse and real burns are not, which stock KSP itself concedes by computing
-/// <c>DeltaVStageInfo.stageBurnTime</c> and by carrying a burn-time readout on
-/// its own navball. <see cref="Ut"/>, <see cref="IgnitionUt"/> and
-/// <see cref="CutoffUt"/> carry the impulsive instant and the finite burn's
-/// start and end.</para>
-///
-/// <para><b>The impulsive case is absent duration, never zero duration.</b> A
-/// zero-duration burn with a thrust implies infinite acceleration, so any
-/// consumer computing thrust times duration over mass gets nonsense instead of
-/// an impulse. Absence says "not modelled", which is the true statement.</para>
+/// DeltaVStageInfo.stageBurnTime and showing a burn-time readout on its navball.
+/// </internal>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -47,11 +46,12 @@ public class ManeuverNode
     public string Id { get; set; } = "";
 
     /// <summary>
-    /// The instant the burn's IMPULSIVE EQUIVALENT occurs: the one instant a
-    /// zero-duration model has. Stock's <c>ManeuverNode.UT</c> is exactly this.
+    /// The instant of the burn's impulsive equivalent: the one instant a
+    /// zero-duration model has, in UT seconds. Stock's <c>ManeuverNode.UT</c> is
+    /// exactly this.
     ///
-    /// <para><b>It is not the ignition time.</b> A finite burn starts before
-    /// this and ends after it. <see cref="IgnitionUt"/> and
+    /// <para>It is not the ignition time: a finite burn starts before this and
+    /// ends after it. <see cref="IgnitionUt"/> and
     /// <see cref="CutoffUt"/> carry those two instants directly, so there is no
     /// "UT minus half the burn time" convention to guess.</para>
     /// </summary>
@@ -59,37 +59,35 @@ public class ManeuverNode
     public double Ut { get; set; }
 
     /// <summary>
-    /// When the engines light, or null when nothing supplies a burn-duration
-    /// model for this craft.
+    /// When the engines light, in UT seconds, or null when nothing supplies a
+    /// burn-duration model for this craft.
     ///
-    /// <para>Null is a real reading and not a failure, on the same terms as
-    /// <c>IPropagationProvider.CharacteristicCycleSeconds</c>. Stock computes a
-    /// burn time only for a LOADED vessel
-    /// (<c>VesselDeltaV.CheckDirtyAndRun</c> early-returns on
-    /// <c>!loaded</c>), so an unloaded craft's queued burn honestly has no
+    /// <para>Null is a real reading, not a failure. Stock computes a burn time
+    /// only for a loaded vessel, so a queued burn on an unloaded craft has no
     /// ignition time rather than a guessed one.</para>
     ///
-    /// <para><b>Never a sentinel equal to <see cref="Ut"/>.</b> Collapsing an
-    /// unmodelled duration onto the impulsive instant would make "we do not
-    /// know when to light the engines" indistinguishable from "this burn is
-    /// instantaneous", and only one of those is ever true.</para>
+    /// <para>Never set equal to <see cref="Ut"/> as a stand-in, so "when to
+    /// light the engines is not known" stays distinct from "this burn is
+    /// instantaneous".</para>
+    /// <internal>
+    /// Stock's VesselDeltaV.CheckDirtyAndRun early-returns on !loaded.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? IgnitionUt { get; set; }
 
     /// <summary>
-    /// When the engines cut, or null on the same terms as
+    /// When the engines cut, in UT seconds, or null on the same terms as
     /// <see cref="IgnitionUt"/>. Burn duration is
-    /// <c>CutoffUt - IgnitionUt</c>.
+    /// <c>CutoffUt - IgnitionUt</c>; there is no separate duration field.
     ///
-    /// <para>Carried as an instant rather than as a separate duration field on
-    /// purpose: a duration alongside two instants is a third number that can
-    /// disagree with the other two, and there is no reading of a disagreement
-    /// that helps anybody.</para>
-    ///
-    /// <para>Not derivable as <c>Ut</c> plus half a duration in general. That
-    /// symmetry holds only while the craft's mass is constant, and a burn long
-    /// enough to be worth modelling is long enough to change it.</para>
+    /// <para>Not in general <c>Ut</c> plus half the duration: that symmetry
+    /// holds only while the craft's mass is constant, and a long burn changes
+    /// it.</para>
+    /// <internal>
+    /// An instant rather than a duration field because a duration beside two
+    /// instants is a third number that can disagree with them.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? CutoffUt { get; set; }
@@ -110,8 +108,8 @@ public class ManeuverNode
     public ManeuverFrame? Frame { get; set; }
 
     /// <summary>
-    /// First delta-v component in <see cref="Frame"/>'s basis (radial under
-    /// the stock basis). Null only if KSP's own dv component was non-finite
+    /// First delta-v component in <see cref="Frame"/>'s basis, in m/s (radial
+    /// under the stock basis). Null only if KSP's own dv component was non-finite
     /// (NaN/Infinity) this tick; the node is still sent, never dropped because
     /// one component came back bad.
     /// <internal>
@@ -133,26 +131,25 @@ public class ManeuverNode
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvPrograde { get; set; }
 
-    /// <summary>Magnitude of the burn's delta-v. Null only if KSP's own dv
+    /// <summary>Magnitude of the burn's delta-v, in m/s. Null only if KSP's own dv
     /// magnitude was non-finite this tick, as for
     /// <see cref="DvRadial"/>.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvTotal { get; set; }
 
     /// <summary>
-    /// This node's post-burn future-orbit patch chain: element 0 is the
-    /// orbit the vessel is on IMMEDIATELY after the burn (KSP's own
-    /// <c>ManeuverNode.nextPatch</c>), followed by any subsequent
-    /// SOI-transition patches, built the same way as
+    /// This node's post-burn patch chain: element 0 is the orbit the vessel is
+    /// on immediately after the burn (KSP's own <c>ManeuverNode.nextPatch</c>),
+    /// followed by any later SOI-transition patches, built the same way as
     /// <see cref="VesselOrbit.Patches"/> but starting from the node's own
-    /// <c>nextPatch</c>. ALWAYS an array, never null: empty when the solver has
+    /// <c>nextPatch</c>. Always an array, never null: empty when the solver has
     /// not produced a post-burn patch yet (a just-added node mid-tick).
     /// <internal>
     /// The walk is <c>Gonogo.KSP.KspHost.BuildOrbitPatchChain</c>.
     /// </internal>
     ///
-    /// <para><b>How one burn links to the next.</b> A burn's INPUT trajectory
-    /// is the patch in the PREVIOUS burn's chain whose
+    /// <para><b>How one burn links to the next.</b> A burn's input trajectory
+    /// is the patch in the previous burn's chain whose
     /// <c>PatchEndTransition</c> is <see cref="TransitionType.Maneuver"/>,
     /// equivalently the one whose <c>EndUt</c> equals this burn's <see
     /// cref="Ut"/>. For the first burn it is the craft's own
@@ -165,28 +162,27 @@ public class ManeuverNode
     /// burn ahead of an existing one re-derives every later chain, so a burn's
     /// input is always the previous burn's result.</para>
     ///
-    /// <para><b>This whole field is a PATCHED-CONIC encoding.</b> It exists
-    /// because a stock plan IS a sequence of conics joined at SOI boundaries. A
-    /// planner that integrates has no such boundaries and will leave this empty
-    /// while still describing a perfectly good burn, so nothing may treat an
-    /// empty chain as a malformed node.</para>
+    /// <para><b>Patched conics only.</b> A stock plan is a sequence of conics
+    /// joined at SOI boundaries. A planner that integrates has no such
+    /// boundaries and leaves this empty while still describing a valid burn, so
+    /// an empty chain is never a malformed node.</para>
     /// </summary>
     public List<OrbitPatch> Patches { get; set; } = new();
 }
 
 /// <summary>
 /// The <c>vessel.maneuver</c> channel payload: the active vessel's planned
-/// burns. <see cref="Nodes"/> is ALWAYS an array, empty when no burn is
+/// burns. <see cref="Nodes"/> is always an array, empty when no burn is
 /// queued, never null.
 /// <internal>
 /// <c>KspHost.BuildManeuverNodes</c> returns <c>null</c> for "no nodes
 /// queued", the common case; the mapper normalises that to <c>[]</c>.
 /// </internal>
 ///
-/// <para><b><see cref="Nodes"/> is ordered by execution</b>, earliest
-/// <see cref="ManeuverNode.Ut"/> first, and that ordering IS the plan: burn N
-/// is flown after burn N-1 and acts on what burn N-1 left behind. No separate
-/// ordinal or predecessor field is carried: array position says it. The
+/// <para><see cref="Nodes"/> is ordered by execution, earliest
+/// <see cref="ManeuverNode.Ut"/> first, and that order is the plan: burn N is
+/// flown after burn N-1 and acts on what burn N-1 left behind. There is no
+/// ordinal or predecessor field; array position says it. The
 /// per-burn patch chain expresses the same linkage again, in a form only a
 /// patched-conic planner can produce; see
 /// <see cref="ManeuverNode.Patches"/>.</para>
@@ -207,20 +203,17 @@ public class VesselManeuver
     public List<ManeuverNode> Nodes { get; set; } = new();
 
     /// <summary>
-    /// The elected maneuver-plan provider's id, or null when THERE IS NO
-    /// PLANNER AT ALL.
+    /// The id of the maneuver-plan provider in use, or null when there is no
+    /// planner at all.
     ///
-    /// <para>That is not the same fact as an empty plan, and stock reaches it
-    /// on its own: an un-upgraded Tracking Station leaves
-    /// <c>Vessel.patchedConicSolver</c> null, so an early-career craft cannot
-    /// hold a plan rather than merely not holding one. Without this field both
-    /// arrive as <c>Nodes: []</c> and an operator is told their plan is empty
-    /// when the truth is that they cannot make one.</para>
+    /// <para>Null is not the same as an empty plan, and stock reaches it on its
+    /// own: an un-upgraded Tracking Station leaves the craft with no solver, so
+    /// an early-career craft cannot hold a plan at all. Both arrive as
+    /// <c>Nodes: []</c>, and this field tells "cannot plan" from "nothing
+    /// planned".</para>
     ///
-    /// <para>Nothing outside the election may branch on the VALUE: a provider
-    /// says what it is so a readout can name it and a diagnostic can record it,
-    /// never so a consumer can special-case one. Present-versus-null is the
-    /// only part anything should test.</para>
+    /// <para>Test only whether it is null. The value is for naming the provider
+    /// in a readout or a diagnostic, never for special-casing one.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Planner { get; set; }

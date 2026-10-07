@@ -22,11 +22,11 @@ namespace Sitrep.Contract
      */
 
     /// <summary>
-    /// What a kerbal's place on the books IS, as the dashboard means it: this
+    /// What a kerbal's place on the books is, as the dashboard means it: this
     /// contract's own vocabulary, not a mirror of any game enum.
     ///
     /// <para>The roster-status members line up with
-    /// <see cref="KspRosterStatus"/> in meaning but NOT in numbering, so never
+    /// <see cref="KspRosterStatus"/> in meaning but not in numbering, so never
     /// cast one to the other. <see cref="Applicant"/> is a standing KSP
     /// expresses as a KerbalType rather than a RosterStatus, and it sits in one
     /// enumeration with the rest so "what is this kerbal's standing" is one
@@ -36,8 +36,8 @@ namespace Sitrep.Contract
     /// field to branch on; see <see cref="CrewRosterEntry.SituationOrdinal"/>
     /// for what the raw KSP ordinal beside it is still good for.</para>
     ///
-    /// <para><b>The numbering IS the reading order</b>: sorted by value, a crew
-    /// surface reads free to fly, then committed, then off the books. The SDK's
+    /// <para><b>Order.</b> The numbering is the reading order: sorted by value, a
+    /// crew list reads free to fly, then committed, then off the books. The SDK's
     /// <c>CREW_STANDING_ORDER</c> is derived from it. A new member is inserted at
     /// its place in that order rather than appended.</para>
     /// <internal>

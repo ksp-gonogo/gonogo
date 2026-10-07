@@ -68,7 +68,7 @@ public class ScienceTransmission
 
     /// <summary>
     /// How long the transmitter takes to send every packet, from its packet size
-    /// and interval. A floor: a transmitter starved of charge holds between
+    /// and interval. It takes at least this long: a transmitter starved of charge holds between
     /// packets, and one already busy sends this after what it is holding.
     /// </summary>
     [SitrepUnit(Units.Seconds)]
