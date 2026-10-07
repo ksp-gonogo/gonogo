@@ -156,6 +156,77 @@ function must(label, command, args, options = {}) {
   return output;
 }
 
+/**
+ * The one step that needs a browser gets the machine's own, where every other
+ * step is given a folder with none in it. It is the browser for the Playwright
+ * the scaffold itself installed, fetched here when the machine has another.
+ */
+const withBrowser = { ...env };
+delete withBrowser.PLAYWRIGHT_BROWSERS_PATH;
+if (process.env.PLAYWRIGHT_BROWSERS_PATH) {
+  withBrowser.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH;
+}
+const UNREADABLE = /cannot read at this size/;
+const SIZES = /(defaultSize|minSize): \{ w: \d+, h: \d+ \}/g;
+
+/**
+ * A new Uplink's own widget has to pass the readability check `docs` runs on
+ * it, at its default size and its smallest. A scaffold that draws a warning on
+ * its first render teaches every author that the warning is ignored.
+ *
+ * The check is shown to see first: the widget is given tiles too small
+ * for it, and `docs` must then say it cannot be read.
+ */
+function drawsReadably(clientDir, widgetFile) {
+  const options = { cwd: clientDir, env: withBrowser };
+  must(
+    "playwright install chromium",
+    "npx",
+    ["playwright", "install", "chromium"],
+    options,
+  );
+  const source = readFileSync(widgetFile, "utf8");
+  if ((source.match(SIZES) ?? []).length !== 2) {
+    fail(`${widgetFile} does not state a defaultSize and a minSize`);
+  }
+  writeFileSync(
+    widgetFile,
+    source.replace(SIZES, (_all, which) =>
+      which === "minSize"
+        ? "minSize: { w: 2, h: 2 }"
+        : "defaultSize: { w: 3, h: 3 }",
+    ),
+  );
+  // Its exit code is not read: a tile that small may fail the render outright, and either way it has to say why.
+  const { output: squeezed } = run("npx", ["uplink-tools", "docs"], options);
+  writeFileSync(widgetFile, source);
+  if (!UNREADABLE.test(squeezed)) {
+    console.error(squeezed);
+    console.error(
+      "\n✖ scaffold-probe: BLIND. A widget given a 3 by 3 tile and a 2 by 2 minimum drew no readability warning, so this probe could not have seen one.",
+    );
+    process.exit(1);
+  }
+  console.log(
+    "  ✓ plant, the widget at 3 by 3 with a 2 by 2 minimum: docs says it cannot be read",
+  );
+  const drawn = must(
+    "uplink-tools docs",
+    "npx",
+    ["uplink-tools", "docs"],
+    options,
+  );
+  if (UNREADABLE.test(drawn)) {
+    console.error(drawn);
+    fail(
+      "the scaffold's own widget draws something an operator cannot read at its default or its smallest size",
+    );
+  }
+  console.log(
+    "  ✓ the widget is readable at its default and its smallest size",
+  );
+}
+
 /** A step that has to fail, and to say `saying` while it does. */
 function mustFail(label, saying, command, args, options = {}) {
   const { ok, output } = run(command, args, options);
@@ -474,6 +545,10 @@ mustFail(
   ["uplink-tools", "docs", "--no-assets"],
   { cwd: client },
 );
+drawsReadably(client, join(client, "src/Heartbeat/index.tsx"));
+// The pictures now exist, so the page links them and has to be current again for the test run below.
+npmRun("page");
+must("npm test, with the pictures drawn", "npm", ["test"], { cwd: client });
 const testsProject = join(uplink, "mod-tests", `${NS}.Tests.csproj`);
 must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 
@@ -677,7 +752,11 @@ if (!published) {
   must("npm install", "npm", ["install", "--no-package-lock"], {
     cwd: coreClient,
   });
-  for (const script of ["page", "typecheck", "test", "release"]) {
+  for (const script of ["page", "typecheck", "test"]) {
+    must(`npm run ${script}`, "npm", ["run", script], { cwd: coreClient });
+  }
+  drawsReadably(coreClient, join(coreClient, "src/Vessel/index.tsx"));
+  for (const script of ["page", "test", "release"]) {
     must(`npm run ${script}`, "npm", ["run", script], { cwd: coreClient });
   }
   must("dotnet test mod-tests", "dotnet", [
@@ -858,5 +937,5 @@ await plant("a plugin that announces no client", "unannounced", () => {
 console.log(
   `\n✓ scaffold-probe: from what this tree would publish as ${version}, an Uplink scaffolded outside ` +
     "the repo generates, typechecks, tests on both halves and releases, its plugin is found by the " +
-    "mod's scan, and the app loads the client it announces and draws the widget. Nine plants were seen.",
+    "mod's scan, and the app loads the client it announces and draws the widget. Ten plants were seen.",
 );

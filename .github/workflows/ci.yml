@@ -1077,6 +1077,13 @@ jobs:
           token: ${{ secrets.KSP_MANAGED_TOKEN }}
           path: ksp-managed
 
+      # The probe draws the scaffold's own widget to hold it to the readability
+      # check an author runs. It fetches the browser for the Playwright the
+      # scaffold installed; this step supplies the system libraries that browser
+      # needs, and the browser too whenever the two versions agree.
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: A scaffolded Uplink builds from the packed packages and reaches the dashboard
         env:
           KSP_ROOT: ${{ github.workspace }}/ksp-managed

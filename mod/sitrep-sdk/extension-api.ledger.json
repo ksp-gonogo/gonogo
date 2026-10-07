@@ -8235,6 +8235,10 @@
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#mod?",
+        "note": "uplink.json's mod block is now the named UplinkWrappedMod and may be null, as the scaffold writes it for an Uplink that wraps no mod"
+      },
+      {
         "key": "sitrep-sdk ./uplink-manifest UplinkManifest#uiKitVersion",
         "note": "Removed from gonogo-uplink.json. The app no longer compares a client against ui-kit's package version, which a release moves whether or not the kit's surface changed; apiVersion speaks for the surface of the sdk and ui-kit together"
       },
@@ -9423,6 +9427,58 @@
       {
         "key": "sitrep-sdk ./testing ~SizeDelta#w?",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration",
+        "note": "New: the codegen block of uplink.json, which uplink-tools codegen reads, as a documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration#assembly?",
+        "note": "New: the codegen block of uplink.json, which uplink-tools codegen reads, as a documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration#configurationMethod?",
+        "note": "New: the codegen block of uplink.json, which uplink-tools codegen reads, as a documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration#emits?",
+        "note": "New: the codegen block of uplink.json, which uplink-tools codegen reads, as a documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#client?",
+        "note": "New: a field uplink-tools already read from uplink.json, now on the type so the reference documents it"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#codegen?",
+        "note": "New: a field uplink-tools already read from uplink.json, now on the type so the reference documents it"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#csharpNamespace?",
+        "note": "New: a field uplink-tools already read from uplink.json, now on the type so the reference documents it"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#dll?",
+        "note": "New: a field uplink-tools already read from uplink.json, now on the type so the reference documents it"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#gamedata?",
+        "note": "New: a field uplink-tools already read from uplink.json, now on the type so the reference documents it"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkWrappedMod",
+        "note": "New: the mod block of uplink.json as a named, documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkWrappedMod#builtAgainst?",
+        "note": "New: the mod block of uplink.json as a named, documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkWrappedMod#name?",
+        "note": "New: the mod block of uplink.json as a named, documented type"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkWrappedMod#tier?",
+        "note": "New: the mod block of uplink.json as a named, documented type"
       },
       {
         "key": "ui-kit . AugmentDefinition#sizeDelta?",

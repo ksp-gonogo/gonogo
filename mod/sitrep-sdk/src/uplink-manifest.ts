@@ -70,12 +70,76 @@ export interface UplinkDeclaration {
   /** The oldest app version it is known to work with. The app warns below it and still loads the client. */
   minAppVersion?: string;
   /**
-   * The KSP mod this Uplink wraps, when it wraps one: its name, the version
-   * the Uplink was built against, and how it is installed. The generated page
-   * prints it. It is not copied into `gonogo-uplink.json`, since the app
-   * loading the client has no use for it.
+   * The name of the folder the plugin installs into under the game's
+   * `GameData`, such as `"GonogoExampleUplink"`. `uplink-tools package` names
+   * the mod zip after it and roots the zip at `GameData/<gamedata>/`, and the
+   * plugin's project is `mod/<gamedata>.csproj`.
    */
-  mod?: { name?: string; builtAgainst?: string; tier?: string };
+  gamedata?: string;
+  /** The file name of the plugin assembly the build writes, such as `"GonogoExampleUplink.dll"`. */
+  dll?: string;
+  /**
+   * The C# namespace the plugin's sources are in. `uplink-tools bake` writes
+   * its generated classes into it. It is stated here because it cannot be
+   * worked out from the id.
+   */
+  csharpNamespace?: string;
+  /**
+   * The KSP mod this Uplink wraps, when it wraps one, or `null` when it wraps
+   * none. The generated page prints it. It is not copied into
+   * `gonogo-uplink.json`, since the app loading the client has no use for it.
+   */
+  mod?: UplinkWrappedMod | null;
+  /**
+   * How `uplink-tools codegen` turns the contract slice into the client's
+   * generated TypeScript. `uplink-tools new` writes it, and it changes only
+   * when the slice starts emitting another file. Absent for an Uplink with no
+   * contract slice of its own.
+   */
+  codegen?: UplinkCodegenDeclaration;
+  /** Where the client lives. Absent for an Uplink with no client, which the plugin then does not announce. */
+  client?: {
+    /**
+     * The address the released client bundle is fetched from, by every install.
+     * The plugin carries it, so it is where you publish the bundle, with the
+     * `gonogo-uplink.json` beside it. Its version folder has to be this
+     * release's version: `uplink-tools release` refuses when it is not.
+     */
+    url?: string;
+  };
+}
+
+/**
+ * The KSP mod an Uplink wraps, as `uplink.json` names it.
+ *
+ * @category Manifest
+ */
+export interface UplinkWrappedMod {
+  /** The mod's name, as a player knows it. */
+  name?: string;
+  /** The version of the mod the Uplink was built and tested against. */
+  builtAgainst?: string;
+  /** How a player gets the mod, in a word the generated page prints after the name, such as `"ckan"` or `"manual"`. */
+  tier?: string;
+}
+
+/**
+ * The `codegen` block of `uplink.json`.
+ *
+ * @category Manifest
+ */
+export interface UplinkCodegenDeclaration {
+  /** The name of the contract slice's assembly, such as `"GonogoExampleUplink.Contract"`. */
+  assembly?: string;
+  /** The full name of the static method that configures the generator, such as `"GonogoExampleUplink.ExampleRtConfig.Configure"`. */
+  configurationMethod?: string;
+  /**
+   * The extra files that method writes, each as the environment variable it
+   * reads the path from and the file name to write under
+   * `client/src/__generated__/`. `contract.ts` is always written and is not
+   * listed.
+   */
+  emits?: Record<string, string>;
 }
 
 /**

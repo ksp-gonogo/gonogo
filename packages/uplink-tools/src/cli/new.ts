@@ -345,8 +345,9 @@ registerComponent({
   // Shown in the widget picker and on the generated page: what it shows and what an operator can do with it, in plain words.
   description: "How many samples the ${o.name} Uplink has published, and the game time of the latest one. It has no controls.",
   tags: ["${id}"],
-  defaultSize: { w: 3, h: 3 },
-  minSize: { w: 2, h: 2 },
+  // In grid units. The smallest size is the smallest at which the title and both lines can still be read, which \`uplink-tools docs\` checks in a real browser.
+  defaultSize: { w: 6, h: 4 },
+  minSize: { w: 5, h: 4 },
   component: HeartbeatWidget,
   // The Topics it needs. When the Uplink serving one is unavailable, the dashboard says why in the widget's place.
   channels: ["${topic}"],
@@ -1047,8 +1048,9 @@ registerComponent({
   // Shown in the widget picker and on the generated page: what it shows and what an operator can do with it, in plain words.
   description: "The name of the vessel being flown. It has no controls.",
   tags: ["${id}"],
-  defaultSize: { w: 3, h: 2 },
-  minSize: { w: 2, h: 2 },
+  // In grid units. The smallest size is the smallest at which the title and the name can still be read, which \`uplink-tools docs\` checks in a real browser.
+  defaultSize: { w: 5, h: 3 },
+  minSize: { w: 4, h: 3 },
   component: VesselWidget,
   // The Topics it needs. When whatever serves one is unavailable, the dashboard says why in the widget's place.
   channels: ["vessel.identity"],
