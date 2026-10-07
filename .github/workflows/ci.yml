@@ -483,8 +483,7 @@ jobs:
   #
   # A `minSize` is a promise: react-grid-layout refuses to drag a tile below
   # it and clamps a smaller saved layout up, so it is the smallest shape an
-  # operator can ever put the widget in, and the shipped default layout
-  # places six widgets AT theirs. Nothing checked the promise until this
+  # operator can ever put the widget in. Nothing checked the promise until this
   # landed, and the first sweep found 19 of 55 failing it, the worst two
   # Uplink-authored.
   #

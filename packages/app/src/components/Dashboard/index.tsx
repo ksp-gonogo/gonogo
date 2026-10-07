@@ -1,6 +1,7 @@
 import { useTouchDevice } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import type { Layout, Layouts } from "react-grid-layout";
+import { EmptyDashboardNotice } from "./EmptyDashboardNotice";
 import { GridDashboard } from "./GridDashboard";
 import { MobileDashboard } from "./MobileDashboard";
 
@@ -73,6 +74,7 @@ export function Dashboard(props: Readonly<DashboardProps>) {
   // Render a linear list with up/down reorder buttons instead, the desktop
   // grid is unaffected, and a desktop user with a narrow window keeps drag.
   const isTouch = useTouchDevice();
+  if (props.items.length === 0) return <EmptyDashboardNotice />;
   if (isTouch) return <MobileDashboard {...props} />;
   return <GridDashboard {...props} />;
 }

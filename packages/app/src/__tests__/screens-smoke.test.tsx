@@ -54,10 +54,6 @@ describe("MainScreen smoke", () => {
   });
 
   it("mounts without throwing", () => {
-    // Default MainScreen demo config references widgets (current-orbit,
-    // map-view, etc.): they all need to render without their data being
-    // available, and none of them should throw when their provider context
-    // is present but telemetry is absent.
     expect(() => renderScreen(<MainScreen />)).not.toThrow();
   });
 
@@ -65,6 +61,14 @@ describe("MainScreen smoke", () => {
     const { container } = renderScreen(<MainScreen />);
     // Any styled container at the layout root, we're not asserting widget internals, just that the screen rendered past error boundary.
     expect(container.querySelector("div")).not.toBeNull();
+  });
+
+  it("shows the empty-dashboard notice on a first run, naming the Add component control", () => {
+    renderScreen(<MainScreen />);
+    expect(screen.getByText("No widgets on this dashboard")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Add component" }),
+    ).not.toBeNull();
   });
 
   it("renders the mission banner above the dashboard", () => {
@@ -99,6 +103,13 @@ describe("MainScreen smoke", () => {
   });
 
   it("swaps to the Space Center layout when the stream says the game is at KSC", async () => {
+    localStorage.setItem(
+      "gonogo:dashboard:main",
+      JSON.stringify({
+        items: [{ i: "orbit", componentId: "current-orbit" }],
+        layouts: { lg: [{ i: "orbit", x: 0, y: 0, w: 4, h: 4 }] },
+      }),
+    );
     localStorage.setItem(
       "gonogo:dashboard:main:SpaceCenter",
       JSON.stringify({

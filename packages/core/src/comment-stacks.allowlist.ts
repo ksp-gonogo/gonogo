@@ -122,7 +122,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/__tests__/relay-host-discovery-client.test.ts": 1,
   "packages/app/src/__tests__/relay-host-discovery-host.test.ts": 2,
   "packages/app/src/__tests__/scene-change-banner.test.tsx": 1,
-  "packages/app/src/__tests__/screens-smoke.test.tsx": 1,
   "packages/app/src/__tests__/serial-to-sitrep-command.test.tsx": 2,
   "packages/app/src/__tests__/sitrep-station-forwarding.test.tsx": 2,
   "packages/app/src/__tests__/telemetry-components.test.tsx": 4,
@@ -368,5 +367,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1618,
+  files: 1665,
 } as const;

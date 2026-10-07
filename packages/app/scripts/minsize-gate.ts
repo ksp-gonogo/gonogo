@@ -7,9 +7,7 @@
  * is clamped up. So the number is a promise to the operator, and until now
  * nothing checked it. A live sweep of 53 widgets found 12 whose own TITLE
  * ellipsises at their own minimum and two with content clipped behind an
- * `overflow: hidden` that has nothing to scroll. The shipped default layout
- * places six widgets AT their minSize, so this is not an edge case somebody has
- * to go looking for.
+ * `overflow: hidden` that has nothing to scroll.
  *
  * ## What it renders, and why unfed
  *

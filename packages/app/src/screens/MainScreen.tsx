@@ -52,6 +52,7 @@ import {
   ComponentOverlay,
   OverlayProvider,
 } from "../components/ComponentOverlay";
+import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
@@ -96,13 +97,14 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
-import { DEMO_CONFIG } from "./demoConfig";
 
 /**
  * Per-scene working layouts: each of the four "real" KSP scenes gets its own
  * auto-persisted dashboard slot, so edits made in one scene survive switching
  * to another and back. Transient and unknown scenes use the shared base key.
  */
+const EMPTY_DASHBOARD: DashboardConfig = { items: [], layouts: {} };
+
 const BASE_DASHBOARD_KEY = "gonogo:dashboard:main";
 const SCENE_SCOPED_KEYS = new Set([
   "SpaceCenter",
@@ -387,7 +389,10 @@ function MainDashboard({
   serialService: SerialDeviceService;
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
-  const dashboard = useDashboardState(dashboardKeyForScene(scene), DEMO_CONFIG);
+  const dashboard = useDashboardState(
+    dashboardKeyForScene(scene),
+    EMPTY_DASHBOARD,
+  );
 
   useEffect(() => {
     const dispatcher = new InputDispatcher({
