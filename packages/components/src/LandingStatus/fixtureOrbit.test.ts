@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import fixture from "./__fixtures__/high-speed-no-solution.json";
+import fixture from "./__fixtures__/descending-too-fast-to-stop.json";
 
 const MUN_RADIUS = 200_000;
 
@@ -12,7 +12,7 @@ function figure(channel: string, key: string): number {
   return entry[1];
 }
 
-describe("high-speed-no-solution fixture", () => {
+describe("descending-too-fast-to-stop fixture", () => {
   it("carries an orbit that puts the craft at the speed and height its flight figures give", () => {
     const radius = MUN_RADIUS + figure("vessel.flight", "altitudeAsl");
     const speedSquared =

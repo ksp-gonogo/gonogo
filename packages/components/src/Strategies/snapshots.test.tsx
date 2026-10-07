@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
-import adminShut from "./__fixtures__/administration-shut-derived.json";
+import adminShut from "./__fixtures__/administration-building-closed.json";
 import atCap from "./__fixtures__/at-admin-cap.json";
 import unavailable from "./__fixtures__/feature-unavailable.json";
-import gatedPerStrategy from "./__fixtures__/gated-per-strategy.json";
 import highCommit from "./__fixtures__/high-commitment-conversion.json";
 import noStrategies from "./__fixtures__/no-strategies-early-career.json";
 import oneActive from "./__fixtures__/one-active-room-for-more.json";
-import overCap from "./__fixtures__/over-cap-quirk.json";
+import gatedPerStrategy from "./__fixtures__/per-strategy-refusals.json";
+import overCap from "./__fixtures__/three-active-cap-of-two.json";
 import { StrategiesComponent } from "./index";
 
 /** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block. */
@@ -17,12 +17,12 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "no-strategies-early-career": noStrategies,
   "one-active-room-for-more": oneActive,
   "at-admin-cap": atCap,
-  "over-cap-quirk": overCap,
+  "three-active-cap-of-two": overCap,
   "high-commitment-conversion": highCommit,
   "feature-unavailable": unavailable,
-  "administration-shut-derived": adminShut,
+  "administration-building-closed": adminShut,
   // A per-strategy gate verdict shows in the control's accessible name, which a pixel diff cannot read.
-  "gated-per-strategy": gatedPerStrategy,
+  "per-strategy-refusals": gatedPerStrategy,
 };
 
 const config = getWidget("strategies");

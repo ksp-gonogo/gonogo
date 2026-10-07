@@ -69,7 +69,7 @@ const MUN: Array<{
     frame: munFrame({ aglMeters: 180, vDown: 8.1, vHoriz: 2, burning: true }),
   },
   {
-    scenario: "high-speed-no-solution",
+    scenario: "descending-too-fast-to-stop",
     oneWay: 4,
     notes:
       "Very high vertical speed on the Mun (~12 km AGL, 350 m/s down): far too fast for the available thrust to arrest in the remaining altitude, so the board reads a hard DIVERT / over-speed descent.",

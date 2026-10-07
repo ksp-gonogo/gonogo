@@ -1,0 +1,129 @@
+{
+  "_meta": {
+    "shows": "A craft in flight, away from the space centre, where the facility tiers last read an hour ago are held and the grid says when they were read.",
+    "notes": "In flight, away from the space centre. KSP only reports a facility's tier count from the live building objects it puts in the scene at the space centre, so career.facilities stopped arriving an hour of game time ago. The grid keeps the tiers it read and says when it read them.",
+    "scenario": "facilities-held-away-from-the-space-centre"
+  },
+  "_stream": {
+    "pinnedUt": 4000.0,
+    "emits": [
+      {
+        "channel": "career.facilities",
+        "value": {
+          "facilities": {
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 150000
+            },
+            "Runway": {
+              "facilityOrdinal": 5,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 30000
+            },
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "SpaceplaneHangar": {
+              "facilityOrdinal": 7,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 175000
+            },
+            "MissionControl": {
+              "facilityOrdinal": 3,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "TrackingStation": {
+              "facilityOrdinal": 6,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 115000
+            },
+            "Administration": {
+              "facilityOrdinal": 0,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 55000
+            },
+            "ResearchAndDevelopment": {
+              "facilityOrdinal": 4,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 225000
+            },
+            "AstronautComplex": {
+              "facilityOrdinal": 1,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 65000
+            }
+          }
+        },
+        "meta": {
+          "validAt": 10.0,
+          "deliveredAt": 10.0
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight",
+          "launchSite": "LaunchPad"
+        },
+        "meta": {
+          "validAt": 4000.0,
+          "deliveredAt": 4000.0
+        }
+      },
+      {
+        "channel": "spaceCenter.partsAvailable",
+        "value": {
+          "count": 183
+        },
+        "meta": {
+          "validAt": 4000.0,
+          "deliveredAt": 4000.0
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Mun Shot III"
+          }
+        ],
+        "meta": {
+          "validAt": 4000.0,
+          "deliveredAt": 4000.0
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": {
+            "funds": 78400,
+            "reputation": null,
+            "science": null
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        },
+        "meta": {
+          "validAt": 4000.0,
+          "deliveredAt": 4000.0
+        }
+      }
+    ]
+  }
+}

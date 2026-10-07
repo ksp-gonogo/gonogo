@@ -3,7 +3,7 @@ import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import earlyGame from "./__fixtures__/early-game-t1.json";
 import flightScene from "./__fixtures__/flight-scene-upgrades-offered.json";
-import fullyUpgraded from "./__fixtures__/fully-upgraded-t3.json";
+import fullyUpgraded from "./__fixtures__/fully-upgraded.json";
 import lowFunds from "./__fixtures__/low-funds-expensive-upgrade.json";
 import midCareer from "./__fixtures__/mid-career-mixed.json";
 import sandbox from "./__fixtures__/sandbox-no-career.json";
@@ -14,7 +14,7 @@ import { SpaceCenterStatusComponent } from "./index";
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "early-game-t1": earlyGame,
   "mid-career-mixed": midCareer,
-  "fully-upgraded-t3": fullyUpgraded,
+  "fully-upgraded": fullyUpgraded,
   "sandbox-no-career": sandbox,
   "low-funds-expensive-upgrade": lowFunds,
   "flight-scene-upgrades-offered": flightScene,

@@ -696,12 +696,16 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 10,
         clicks: [{ selector: '[data-launch-action="arm-recover"]' }],
         /*
-         * post-revert-crash is here because the button it arms is the one a
+         * reverted-after-a-crash is here because the button it arms is the one a
          * crash chip would have disabled: the scene's whole claim is that
          * recovery is still available after the crash was reverted away, and a
          * disabled button cannot be armed, so arming it is the check.
          */
-        forFixtures: ["in-flight-ascent", "pad-occupied", "post-revert-crash"],
+        forFixtures: [
+          "in-flight-at-12-km",
+          "pad-occupied",
+          "reverted-after-a-crash",
+        ],
       },
       // The Tracking Station's two exits: arm the Space Center confirm, and open the fly list.
       {
@@ -725,7 +729,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 7,
         h: 10,
         clicks: [{ selector: '[data-launch-action="arm-revert"]' }],
-        forFixtures: ["in-flight-ascent", "pad-occupied"],
+        forFixtures: ["in-flight-at-12-km", "pad-occupied"],
       },
       // The crew grid and the launch control only render once a craft is
       // picked, so click the first craft row under the open pad to reveal
@@ -1136,7 +1140,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "follow-control-frame-10x12",
         w: 10,
         h: 12,
-        forFixtures: ["kerbin-mun-follow-control-frame"],
+        forFixtures: ["rotating-kerbin-mun-frame"],
         config: {
           frame: "Kerbin",
           projection: "system-view.follow-control-frame.1",
@@ -1958,7 +1962,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "colour-spread-10x16",
         w: 10,
         h: 16,
-        forFixtures: ["03-resource-colour-spread"],
+        forFixtures: ["many-resource-colours"],
       },
       /*
        * Water-family review shot: Water, WasteWater, Waste, CarbonDioxide,
@@ -1969,7 +1973,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "water-family-10x14",
         w: 10,
         h: 14,
-        forFixtures: ["04-water-family"],
+        forFixtures: ["water-family"],
       },
       /*
        * The hover readout, which is where a part's own meters are drawn. Every
@@ -1982,10 +1986,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 10,
         h: 14,
         hovers: [{ selector: 'g[aria-label^="FL-T400 Fuel Tank"]' }],
-        forFixtures: [
-          "01-builtin-drainable-meters",
-          "01-builtin-drainable-meters-stopped-arriving",
-        ],
+        forFixtures: ["fuel-tank-bars-only", "fuel-tank-bars-only-link-lost"],
       },
     ],
   },

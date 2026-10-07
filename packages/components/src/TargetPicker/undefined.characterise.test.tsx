@@ -223,12 +223,12 @@ describe("TargetPicker: a partial vessel.target record", () => {
     expect(visibleText(container)).not.toContain("No target set in KSP");
     // No kind label: the span is not rendered at all.
     expect(visibleText(container)).not.toContain("Vessel");
-    // No distance and no Δv, skipped rather than placeholdered.
-    expect(visibleText(container)).not.toContain("Δv");
+    // No distance and no closing speed, skipped rather than placeholdered.
+    expect(visibleText(container)).not.toContain("Closing");
     expect(visibleText(container)).not.toContain(NULL_DISPLAY);
   });
 
-  it("renders a distance but no Δv when the record carries position without velocity", async () => {
+  it("renders a distance but no closing speed when the record carries position without velocity", async () => {
     // Half the geometry gives the distance and silently drops the closing rate.
     const { container } = renderPicker(fixture);
     act(() => {
@@ -241,7 +241,7 @@ describe("TargetPicker: a partial vessel.target record", () => {
 
     await waitFor(() => expect(visibleText(container)).toContain("1.5 km"));
     expect(visibleText(container)).toContain("Vessel");
-    expect(visibleText(container)).not.toContain("Δv");
+    expect(visibleText(container)).not.toContain("Closing");
   });
 
   it("shows no distance in compact mode when the record carries no position", async () => {

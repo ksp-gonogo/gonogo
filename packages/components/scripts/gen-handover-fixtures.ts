@@ -110,7 +110,7 @@ interface Frame {
  */
 const FRAMES: Frame[] = [
   {
-    slug: "01-above-interface-95km",
+    slug: "above-interface-95km",
     altitudeAsl: 95_000,
     verticalSpeed: -210,
     verticalAcceleration: -8.0,
@@ -121,7 +121,7 @@ const FRAMES: Frame[] = [
     note: "Vacuum, 25 km above the interface. Nothing is decelerating the craft and the conic owns the frame.",
   },
   {
-    slug: "02-above-interface-78km",
+    slug: "above-interface-78km",
     altitudeAsl: 78_000,
     verticalSpeed: -330,
     verticalAcceleration: -8.0,
@@ -132,7 +132,7 @@ const FRAMES: Frame[] = [
     note: "Eight kilometres above the interface, and still far enough above it that the conic's own solution at the view time has not crossed. The last clean conic frame of the descent.",
   },
   {
-    slug: "03-crossing-band-72km",
+    slug: "crossing-band-72km",
     altitudeAsl: 72_000,
     verticalSpeed: -400,
     verticalAcceleration: -7.9,
@@ -143,7 +143,7 @@ const FRAMES: Frame[] = [
     note: "THE CROSSING BAND, and it used to be a hole neither model filled. The observation is 2 km above the interface and the craft falls 2.4 km during the gap, so the conic's floor, which asks about the radius it SOLVES for at the view time, is already inside the air. The selector is handed that same radius, so the frame goes to the rate integration rather than to a conic that would immediately withdraw; before it was, an operator crossing the interface on any reentry was told about drag the conic does not model instead of being given an altitude.",
   },
   {
-    slug: "04-just-inside-68km",
+    slug: "just-inside-68km",
     altitudeAsl: 68_000,
     verticalSpeed: -430,
     verticalAcceleration: -7.4,
@@ -154,7 +154,7 @@ const FRAMES: Frame[] = [
     note: "Two kilometres INSIDE the interface, out the far side of the crossing band. The conic has stood down and the rate integration has taken over; the craft is still accelerating downwards, so this carries a value the conic would have refused outright.",
   },
   {
-    slug: "05-drag-biting-42km",
+    slug: "drag-biting-42km",
     landing: {
       outcome: "atmosphere-modelled",
       sampleSource: null,
@@ -175,7 +175,7 @@ const FRAMES: Frame[] = [
     note: "Drag has taken hold: the observed vertical acceleration has changed SIGN, which is the whole reason this model reads the record rather than a drag coefficient.",
   },
   {
-    slug: "06-peak-deceleration-30km",
+    slug: "peak-deceleration-30km",
     landing: {
       outcome: "atmosphere-modelled",
       sampleSource: null,
@@ -197,7 +197,7 @@ const FRAMES: Frame[] = [
     note: "Peak entry deceleration, 6 g sensed. horizonSecondsFor(6) is 2.5 seconds and the gap is six, so the model WITHDRAWS on its own horizon: this is the frame where the honest answer is that a carried altitude is no longer one.",
   },
   {
-    slug: "07-under-chute-6km",
+    slug: "under-chute-6km",
     landing: {
       outcome: "atmosphere-modelled",
       sampleSource: null,
@@ -221,7 +221,7 @@ const FRAMES: Frame[] = [
 
 FRAMES.push({
   ...FRAMES[4],
-  slug: "08-drag-biting-noisy-42km",
+  slug: "drag-biting-noisy-42km",
   scatter: true,
   note: "The drag-biting frame with measurement scatter in the history, so the descent fit has a residual and the carried altitude comes with a band.",
 });

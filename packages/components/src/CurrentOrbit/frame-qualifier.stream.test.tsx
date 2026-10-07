@@ -4,7 +4,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { ReadingProbe } from "../test/ReadingProbe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import rotatingControlFrame from "./__fixtures__/rotating-control-frame.json";
+import rotatingControlFrame from "./__fixtures__/kerbin-mun-rotating-frame.json";
 import type { CurrentOrbitConfig } from "./config";
 import { CurrentOrbitComponent } from "./index";
 

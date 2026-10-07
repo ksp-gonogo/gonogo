@@ -44,8 +44,8 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     });
 
     await waitFor(() => {
-      // 1670.9 K is 1398 °C.
-      if (!visibleText().includes("1398 °C")) {
+      // 1944 K is 1671 °C.
+      if (!visibleText().includes("1671 °C")) {
         throw new Error("stream leg has not rendered the thermal state yet");
       }
     });

@@ -34,7 +34,7 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
   { eager: true },
 );
 
-const STALE_SUFFIX = "-stopped-arriving";
+const STALE_SUFFIX = "-link-lost";
 
 /** Stale scenes rendering byte-identical to their live twin. Shrink-only. */
 const UNCHANGED_DEBT = new Set<string>([]);

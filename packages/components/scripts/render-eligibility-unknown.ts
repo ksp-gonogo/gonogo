@@ -60,13 +60,13 @@ const CONFIGS: WidgetRenderConfig[] = [
         w: 9,
         h: 14,
         scroll: 700,
-        forFixtures: ["1-admin-building-shut"],
+        forFixtures: ["admin-building-shut"],
       },
       {
         name: "wide-9x14-at-rest",
         w: 9,
         h: 14,
-        forFixtures: ["1-admin-building-shut"],
+        forFixtures: ["admin-building-shut"],
       },
       /*
        * The same career and the same shut facility, once the arms are asked one
@@ -80,13 +80,13 @@ const CONFIGS: WidgetRenderConfig[] = [
         w: 9,
         h: 14,
         scroll: 700,
-        forFixtures: ["3-admin-building-shut-derived"],
+        forFixtures: ["admin-building-shut-derived"],
       },
       {
         name: "wide-9x14-at-rest",
         w: 9,
         h: 14,
-        forFixtures: ["3-admin-building-shut-derived"],
+        forFixtures: ["admin-building-shut-derived"],
       },
     ],
   },
@@ -99,7 +99,7 @@ const CONFIGS: WidgetRenderConfig[] = [
     // Whole content, because the claim here is that the three headings coexist and one of them below the fold would be the same as it not being there.
     fullContent: true,
     modes: [
-      { name: "buckets-9x14", w: 9, h: 14, forFixtures: ["2-three-buckets"] },
+      { name: "buckets-9x14", w: 9, h: 14, forFixtures: ["three-buckets"] },
     ],
   },
 ];

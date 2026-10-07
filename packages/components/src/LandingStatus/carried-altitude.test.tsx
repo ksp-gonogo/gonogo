@@ -103,7 +103,7 @@ describe("the carried ASL altitude reaches the operator", () => {
   });
 
   it("names the quantity it is describing, as a heading", async () => {
-    const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
+    const tree = await mount(loadHandoverFixture("drag-biting-42km.json"));
     expect(
       tree.getByRole("heading", { name: /altitude asl/i }),
     ).toBeInTheDocument();
@@ -112,14 +112,14 @@ describe("the carried ASL altitude reaches the operator", () => {
   it("draws the OBSERVED altitude, which nothing on this widget drew before", async () => {
     // 42 000 m is the anchor sample of the drag-biting frame.
     expect(
-      readoutText(await mount(loadHandoverFixture("05-drag-biting-42km.json"))),
+      readoutText(await mount(loadHandoverFixture("drag-biting-42km.json"))),
     ).toMatch(/42\.0/);
   });
 
   it("draws the CARRIED altitude beside it rather than in place of it", async () => {
     // Six seconds past the anchor the craft is carried to 37 977 m, shown as its own figure beside the observation, never replacing it.
     const text = readoutText(
-      await mount(loadHandoverFixture("05-drag-biting-42km.json")),
+      await mount(loadHandoverFixture("drag-biting-42km.json")),
     );
     expect(text).toMatch(/42\.0/);
     expect(text).toMatch(/38\.0/);
@@ -128,7 +128,7 @@ describe("the carried ASL altitude reaches the operator", () => {
   it("draws the descent fit's band as its two ends", async () => {
     const interval = requireInterval(
       await mount(
-        withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
+        withScatteredHistory(loadHandoverFixture("drag-biting-42km.json")),
       ),
     );
     expect(interval.lo).not.toBe(interval.hi);
@@ -138,7 +138,7 @@ describe("the carried ASL altitude reaches the operator", () => {
     expect(
       readoutText(
         await mount(
-          withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
+          withScatteredHistory(loadHandoverFixture("drag-biting-42km.json")),
         ),
       ),
     ).not.toMatch(/interval|bounds|inside/i);
@@ -146,14 +146,14 @@ describe("the carried ASL altitude reaches the operator", () => {
 
   it("draws the noisy handover scene's band", async () => {
     const interval = requireInterval(
-      await mount(loadHandoverFixture("08-drag-biting-noisy-42km.json")),
+      await mount(loadHandoverFixture("drag-biting-noisy-42km.json")),
     );
     expect(interval.lo).not.toBe(interval.hi);
   });
 
   it("draws the noisy scene's band on the altitude rail as the shared bounds, and a noiseless one with none", async () => {
     const noisy = await mount(
-      loadHandoverFixture("08-drag-biting-noisy-42km.json"),
+      loadHandoverFixture("drag-biting-noisy-42km.json"),
     );
     expect(
       noisy.container.querySelectorAll(
@@ -161,7 +161,7 @@ describe("the carried ASL altitude reaches the operator", () => {
       ),
     ).toHaveLength(2);
     noisy.unmount();
-    const clean = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
+    const clean = await mount(loadHandoverFixture("drag-biting-42km.json"));
     expect(
       clean.container.querySelector('[data-marker="prediction"]'),
     ).not.toBeNull();
@@ -174,16 +174,14 @@ describe("the carried ASL altitude reaches the operator", () => {
 
   /** A noiseless history gives the fit no sigma, so no interval is drawn rather than a zero-width band that would read as exact, and no caption explains the absence. */
   it("draws no band at all through the handover set, and says nothing about it", async () => {
-    const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
+    const tree = await mount(loadHandoverFixture("drag-biting-42km.json"));
     expect(drawnInterval(tree)).toBeNull();
     expect(readoutText(tree)).not.toMatch(/interval|bounds/i);
   });
 
   it("draws no interval where the conic carried the altitude, and invents none", async () => {
     // Above the interface Kepler propagation offers no band; the carried figure stays and an interval must not appear.
-    const tree = await mount(
-      loadHandoverFixture("01-above-interface-95km.json"),
-    );
+    const tree = await mount(loadHandoverFixture("above-interface-95km.json"));
     expect(readoutText(tree)).toMatch(/92\.6/);
     expect(drawnInterval(tree)).toBeNull();
   });
@@ -191,7 +189,7 @@ describe("the carried ASL altitude reaches the operator", () => {
   it("says CANNOT MODEL where the model withdrew, with the model's own note on hover", async () => {
     // Peak deceleration closes the rate integration's horizon, so there is no carried altitude.
     const tree = await mount(
-      loadHandoverFixture("06-peak-deceleration-30km.json"),
+      loadHandoverFixture("peak-deceleration-30km.json"),
     );
     const caption = tree.getByText("CANNOT MODEL");
     expect(readoutText(tree)).not.toMatch(/past the last observation/);
@@ -203,7 +201,7 @@ describe("the carried ASL altitude reaches the operator", () => {
 
   it("has no a11y violations with the band drawn", async () => {
     const tree = await mount(
-      withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
+      withScatteredHistory(loadHandoverFixture("drag-biting-42km.json")),
     );
     await expectNoA11yViolations(tree.container);
   });
@@ -224,7 +222,7 @@ describe("the carried ASL altitude under signal delay", () => {
 
   /** The drag-biting descent, current on the link, with every frame arriving `owlt` seconds after the craft sent it. */
   async function mountDelayed(owlt: number): Promise<RenderResult> {
-    const fixture = loadHandoverFixture("05-drag-biting-42km.json");
+    const fixture = loadHandoverFixture("drag-biting-42km.json");
     const stream = setupStreamFixture({
       delaySeconds: owlt,
       suspendFrames: true,

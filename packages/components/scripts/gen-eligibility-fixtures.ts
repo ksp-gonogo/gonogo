@@ -462,7 +462,7 @@ async function main(): Promise<void> {
    */
   const shut = all.map((row) => (row.isActive ? row : legacyUnanswered(row)));
   await writeFixture(
-    join(OUT_DIR, "1-admin-building-shut.json"),
+    join(OUT_DIR, "admin-building-shut.json"),
     withRoster(shut, {
       scenario: "admin-building-shut",
       synthetic: true,
@@ -485,7 +485,7 @@ async function main(): Promise<void> {
     ...answeredYes.slice(2, 5).map(unanswered),
   ];
   await writeFixture(
-    join(OUT_DIR, "2-three-buckets.json"),
+    join(OUT_DIR, "three-buckets.json"),
     withRoster(mixed, {
       scenario: "three-buckets",
       synthetic: true,
@@ -503,16 +503,16 @@ async function main(): Promise<void> {
    */
   const shutDerived = all.map((row) => (row.isActive ? row : derived(row)));
   await writeFixture(
-    join(OUT_DIR, "3-admin-building-shut-derived.json"),
+    join(OUT_DIR, "admin-building-shut-derived.json"),
     withRoster(shutDerived, {
       scenario: "admin-building-shut-derived",
       synthetic: true,
-      notes: `DERIVED from the same ${all.length}-row synthetic roster as 1-admin-building-shut.json, and deliberately its twin: same career, same shut facility, same rows, differing only in what the career model can now say about them. A row the source holds as refused by arms 2-9 keeps that verdict and its wording, marked activateVerdictSource=derived, because stock returns on its first refusal so an arm that fires off-screen would have fired on it. Every other row is unanswered with activateVerdictSource=none, naming arm 1: the concurrent-strategy cap compares a counter that exists only while that screen is up, and a pass is owed to every arm. Rendered beside fixture 1 this is the whole of the change from the operator's side: one silent heap becomes a real Locked list plus a much smaller unknown one, and every Activate button stays dark because KSP's own commitment runs inside that building either way.`,
+      notes: `DERIVED from the same ${all.length}-row synthetic roster as admin-building-shut.json, and deliberately its twin: same career, same shut facility, same rows, differing only in what the career model can now say about them. A row the source holds as refused by arms 2-9 keeps that verdict and its wording, marked activateVerdictSource=derived, because stock returns on its first refusal so an arm that fires off-screen would have fired on it. Every other row is unanswered with activateVerdictSource=none, naming arm 1: the concurrent-strategy cap compares a counter that exists only while that screen is up, and a pass is owed to every arm. Rendered beside fixture 1 this is the whole of the change from the operator's side: one silent heap becomes a real Locked list plus a much smaller unknown one, and every Activate button stays dark because KSP's own commitment runs inside that building either way.`,
     }),
   );
 
   console.log(
-    `Wrote full-admin-building.json (${all.length} rows), 1-admin-building-shut.json (${shut.length} rows), 2-three-buckets.json (${mixed.length} rows) and 3-admin-building-shut-derived.json (${shutDerived.length} rows)`,
+    `Wrote full-admin-building.json (${all.length} rows), admin-building-shut.json (${shut.length} rows), three-buckets.json (${mixed.length} rows) and admin-building-shut-derived.json (${shutDerived.length} rows)`,
   );
 }
 

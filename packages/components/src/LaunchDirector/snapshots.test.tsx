@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import awaiting from "./__fixtures__/awaiting.json";
-import inFlightAscent from "./__fixtures__/in-flight-ascent.json";
+import inFlightAscent from "./__fixtures__/in-flight-at-12-km.json";
 import inFlightCrash from "./__fixtures__/in-flight-crash.json";
 import inTrackingStation from "./__fixtures__/in-tracking-station.json";
 import padOccupied from "./__fixtures__/pad-occupied.json";
@@ -23,7 +23,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "pre-launch-off-kerbin": preLaunchOffKerbin,
   "pre-launch-insufficient-funds": preLaunchInsufficient,
   "pad-occupied": padOccupied,
-  "in-flight-ascent": inFlightAscent,
+  "in-flight-at-12-km": inFlightAscent,
   "in-flight-crash": inFlightCrash,
   "in-tracking-station": inTrackingStation,
 };

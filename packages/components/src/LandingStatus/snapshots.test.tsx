@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
+import highSpeed from "./__fixtures__/descending-too-fast-to-stop.json";
 import finalApproach from "./__fixtures__/final-approach-mun.json";
-import highSpeed from "./__fixtures__/high-speed-no-solution.json";
 import reentry from "./__fixtures__/kerbin-reentry-atmospheric.json";
 import landed from "./__fixtures__/landed-mun.json";
 import preBurn from "./__fixtures__/pre-burn-cruise.json";
@@ -17,7 +17,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "final-approach-mun": finalApproach,
   "landed-mun": landed,
   "kerbin-reentry-atmospheric": reentry,
-  "high-speed-no-solution": highSpeed,
+  "descending-too-fast-to-stop": highSpeed,
 };
 
 const config = getWidget("landing-status/descent-gif");

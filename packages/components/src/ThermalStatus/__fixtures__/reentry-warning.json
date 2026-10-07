@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "shows": "Atmospheric reentry with the 2.5 m heat shield at 1398 °C of its 2127 °C limit under moderate flux and the highest internal temperature aboard at 81% of its limit, so the panel reads warm, while the engine is cool.",
+    "shows": "Atmospheric reentry with the 2.5 m heat shield at 1671 °C of its 2127 °C limit under moderate flux and the highest internal temperature aboard at 81% of its limit, so the panel reads warm, while the engine is cool.",
     "scenario": "reentry-warning",
     "notes": "Atmospheric reentry \u2014 skin heating up to warning band (80% of max). Heat shield carrying significant flux. Engine is cool (throttled off for reentry)."
   },
   "therm.hottestPartName": "Heat Shield (2.5m)",
-  "therm.hottestPartTemp": 1670.9,
+  "therm.hottestPartTemp": 1944.0,
   "therm.hottestPartMaxTemp": 2400,
   "therm.hottestPartTempRatio": 0.81,
   "therm.hottestEngineTemp": 350.0,
@@ -22,9 +22,9 @@
           "maxSkinTempRatio": 0.81,
           "maxInternalTempRatio": 0.81,
           "hottestPart": {
-            "internalTemp": 1670.9,
+            "internalTemp": 1944.0,
             "maxTemp": 2400,
-            "skinTemp": 1670.9,
+            "skinTemp": 1944.0,
             "skinMaxTemp": 2400,
             "name": "Heat Shield (2.5m)"
           },

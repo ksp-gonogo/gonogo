@@ -11,6 +11,17 @@
     "pinnedUt": 0,
     "emits": [
       {
+        "channel": "time.calendar",
+        "value": {
+          "minuteSeconds": 60,
+          "hourSeconds": 3600,
+          "daySeconds": 86400,
+          "yearSeconds": 31536000,
+          "epoch": null,
+          "kerbinTime": false
+        }
+      },
+      {
         "channel": "system.bodies",
         "value": {
           "bodies": [

@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "shows": "A reentry with the heat shield at 1398 °C of its 2127 °C limit after the link drops, so the temperatures are marked as held while the temperature band labels and the header badge read unknown.",
+    "shows": "A reentry with the heat shield at 1671 °C of its 2127 °C limit after the link drops, so the temperatures are marked as held while the temperature band labels and the header badge read unknown.",
     "scenario": "reentry-link-lost",
     "notes": "The same reentry as reentry-warning, after the thermal record stops arriving. The wire is identical and the link then drops, so every temperature is HELD and the panel says so, while the band tags and the summary pill go to unknown because a band is read as the situation now. Rendering the two side by side is what shows the split at all. Before this the whole panel collapsed to one sentence and the heat-shield reading went with it."
   },
   "therm.hottestPartName": "Heat Shield (2.5m)",
-  "therm.hottestPartTemp": 1670.9,
+  "therm.hottestPartTemp": 1944.0,
   "therm.hottestPartMaxTemp": 2400,
   "therm.hottestPartTempRatio": 0.81,
   "therm.hottestEngineTemp": 350.0,
@@ -22,9 +22,9 @@
           "maxSkinTempRatio": 0.81,
           "maxInternalTempRatio": 0.81,
           "hottestPart": {
-            "internalTemp": 1670.9,
+            "internalTemp": 1944.0,
             "maxTemp": 2400,
-            "skinTemp": 1670.9,
+            "skinTemp": 1944.0,
             "skinMaxTemp": 2400,
             "name": "Heat Shield (2.5m)"
           },

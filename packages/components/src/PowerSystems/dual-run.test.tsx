@@ -9,7 +9,7 @@ import {
   topologyToVesselPartsWire,
 } from "../test/topologyToVesselPartsWire";
 import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
-import charging from "./__fixtures__/03-solar-charging-sunlight.json";
+import charging from "./__fixtures__/solar-charging-sunlight.json";
 import { PowerSystemsComponent } from "./index";
 
 /**

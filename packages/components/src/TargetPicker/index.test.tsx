@@ -598,7 +598,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
       expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
       expect(screen.getByText("Vessel")).toBeInTheDocument();
       expect(visibleText()).toContain("1.5 km");
-      expect(visibleText()).toContain("Δv -2.50 m/s");
+      expect(visibleText()).toContain("Closing -2.50 m/s");
     });
 
     await user.click(screen.getByRole("button", { name: "Clear target" }));
@@ -612,7 +612,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     });
   });
 
-  it("producer-consumer-T4: current-target kind/distance/Δv render off vessel.target's kind/Part TargetKind, with no other channel emitted", async () => {
+  it("producer-consumer-T4: current-target kind/distance/closing speed render off vessel.target's kind/Part TargetKind, with no other channel emitted", async () => {
     renderPicker(fixture);
     act(() => {
       // kind 4 is a Part (a docking port). The detail readout depends on `vessel.target` alone.

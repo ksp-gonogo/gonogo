@@ -5,7 +5,7 @@
     "vessel": "commsat (250 km LKO, Kerbin)",
     "body": "Kerbin",
     "provider": "principia-nbody",
-    "notes": "The same live Principia capture SystemView's integrated-arc-live carries, pointed at this widget: an integrating provider's elements with a bounded horizon. useOrbitTrajectory samples the osculating conic and stops it at that horizon, so the curve is an OPEN arc, not a closed ellipse. The emit carries no quality override, unlike SystemView's copy of the same capture, so it reads as a craft on rails."
+    "notes": "The same live Principia capture SystemView's partial-arc-n-body-prediction carries, pointed at this widget: an integrating provider's elements with a bounded horizon. useOrbitTrajectory samples the osculating conic and stops it at that horizon, so the curve is an OPEN arc, not a closed ellipse. The emit carries no quality override, unlike SystemView's copy of the same capture, so it reads as a craft on rails."
   },
   "_stream": {
     "pinnedUt": 315659.495086983,

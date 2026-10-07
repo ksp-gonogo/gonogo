@@ -51,6 +51,7 @@ import { ThemeProvider } from "styled-components";
 // Side-effect import: every widget self-registers on module load.
 import "../../src";
 import { AugmentAvailabilityFeeder } from "../../../app/src/telemetry/AugmentAvailabilityFeeder";
+import { KspCalendarObserver } from "../../../app/src/telemetry/KspCalendarObserver";
 import {
   AlarmsLauncherProvider,
   type PendingAlarmSummary,
@@ -599,6 +600,7 @@ async function mountInto(
               DomainAvailabilityProvider,
               null,
               createElement(AugmentAvailabilityFeeder, null),
+              createElement(KspCalendarObserver, null),
               wrapped(),
             ),
           )

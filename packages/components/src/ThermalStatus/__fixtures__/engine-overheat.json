@@ -5,9 +5,9 @@
     "notes": "Engine thermal stress: anyEnginesOverheating flag is true. Forces CRITICAL band via the flag path regardless of ratio. Hottest part is the engine itself."
   },
   "therm.hottestPartName": "LV-T45 'Swivel'",
-  "therm.hottestPartTemp": 2100.0,
+  "therm.hottestPartTemp": 2180.0,
   "therm.hottestPartMaxTemp": 2273,
-  "therm.hottestPartTempRatio": 0.94,
+  "therm.hottestPartTempRatio": 0.96,
   "therm.hottestEngineTemp": 2180.0,
   "therm.hottestEngineMaxTemp": 2273,
   "therm.hottestEngineTempRatio": 0.96,
@@ -19,12 +19,12 @@
       {
         "channel": "vessel.thermal",
         "value": {
-          "maxSkinTempRatio": 0.94,
-          "maxInternalTempRatio": 0.94,
+          "maxSkinTempRatio": 0.96,
+          "maxInternalTempRatio": 0.96,
           "hottestPart": {
-            "internalTemp": 2100.0,
+            "internalTemp": 2180.0,
             "maxTemp": 2273,
-            "skinTemp": 2100.0,
+            "skinTemp": 2180.0,
             "skinMaxTemp": 2273,
             "name": "LV-T45 'Swivel'"
           },

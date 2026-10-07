@@ -3,7 +3,7 @@ import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import escapeKerbin from "./__fixtures__/escape-kerbin.json";
 import jool from "./__fixtures__/jool-system.json";
-import ksync from "./__fixtures__/ksync-kerbin.json";
+import ksync from "./__fixtures__/kerbosynchronous-orbit.json";
 import lko from "./__fixtures__/lko-kerbin.json";
 import mun from "./__fixtures__/mun-orbit.json";
 import noData from "./__fixtures__/no-data.json";
@@ -16,7 +16,7 @@ import { SemiMajorAxisComponent } from "./index";
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "lko-kerbin": lko,
-  "ksync-kerbin": ksync,
+  "kerbosynchronous-orbit": ksync,
   "escape-kerbin": escapeKerbin,
   "mun-orbit": mun,
   "jool-system": jool,

@@ -76,7 +76,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
   {
     id: "core:comm-signal-no-signal-badge",
     widgetId: "comm-signal",
-    fixture: `${COMPONENTS}/CommSignal/__fixtures__/strong-direct-ksc-stopped-arriving.json`,
+    fixture: `${COMPONENTS}/CommSignal/__fixtures__/strong-direct-ksc-link-lost.json`,
     w: 8,
     h: 8,
   },
@@ -118,7 +118,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
   {
     id: "core:ship-map-part-meters",
     widgetId: "ship-map",
-    fixture: `${COMPONENTS}/ShipMap/__fixtures__/probe/01-builtin-drainable-meters.json`,
+    fixture: `${COMPONENTS}/ShipMap/__fixtures__/probe/fuel-tank-bars-only.json`,
     w: 8,
     h: 10,
   },
@@ -154,7 +154,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
   {
     id: "planted:ship-map-part-meters",
     widgetId: "ship-map",
-    fixture: `${COMPONENTS}/ShipMap/__fixtures__/probe/02-two-contributors.json`,
+    fixture: `${COMPONENTS}/ShipMap/__fixtures__/probe/fuel-and-life-support-bars.json`,
     w: 8,
     h: 10,
   },

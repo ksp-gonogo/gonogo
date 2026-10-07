@@ -1,13 +1,13 @@
 {
   "_meta": {
-    "shows": "An LV-T30 Reliant reported as the hottest part at 14 °C of its 1727 °C limit, the hottest engine at 577 °C of its 2000 °C limit, and no heat shield fitted.",
+    "shows": "An LV-T30 Reliant reported as the hottest part at 577 °C of its 2000 °C limit, the hottest engine at 577 °C of its 2000 °C limit, and no heat shield fitted.",
     "scenario": "cruise-nominal",
     "notes": "Cruising in upper atmosphere. All thermal readings nominal, parts and engines well below limits. No heat shield fitted."
   },
   "therm.hottestPartName": "LV-T30 'Reliant'",
-  "therm.hottestPartTemp": 287.5,
-  "therm.hottestPartMaxTemp": 2000,
-  "therm.hottestPartTempRatio": 0.22,
+  "therm.hottestPartTemp": 850.0,
+  "therm.hottestPartMaxTemp": 2273,
+  "therm.hottestPartTempRatio": 0.37,
   "therm.hottestEngineTemp": 850.0,
   "therm.hottestEngineMaxTemp": 2273,
   "therm.hottestEngineTempRatio": 0.37,
@@ -19,13 +19,13 @@
       {
         "channel": "vessel.thermal",
         "value": {
-          "maxSkinTempRatio": 0.22,
-          "maxInternalTempRatio": 0.22,
+          "maxSkinTempRatio": 0.37,
+          "maxInternalTempRatio": 0.37,
           "hottestPart": {
-            "internalTemp": 287.5,
-            "maxTemp": 2000,
-            "skinTemp": 287.5,
-            "skinMaxTemp": 2000,
+            "internalTemp": 850.0,
+            "maxTemp": 2273,
+            "skinTemp": 850.0,
+            "skinMaxTemp": 2273,
             "name": "LV-T30 'Reliant'"
           },
           "heatShieldTemp": 2.05,

@@ -42,7 +42,7 @@ export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
    * The first of the five, and the one with a wrong NUMBER on screen rather
    * than a blank: `CareerStrategy` declares `department` and no
    * `effectiveCostReputation` at all. One fixture,
-   * `new-wire-department-shape.json`, already carries the real shape; the
+   * `one-active-strategy-room-for-more.json`, already carries the real shape; the
    * other five in that directory do not, and the widget still normalises both
    * so that neither the render nor a test can tell them apart.
    */

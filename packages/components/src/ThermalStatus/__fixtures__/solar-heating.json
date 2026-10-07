@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "shows": "An OX-STAT solar panel at 447 °C of its 927 °C limit and the highest internal temperature aboard at 85% of its limit, so the panel reads warm, with no engine stress or heat shield.",
+    "shows": "An OX-STAT solar panel at 747 °C of its 927 °C limit and the highest internal temperature aboard at 85% of its limit, so the panel reads warm, with no engine stress or heat shield.",
     "scenario": "solar-heating",
     "notes": "Near Kerbol: solar radiation heating structural parts to warm band (85%). No engine thermal stress (station keeping only). No heat shield."
   },
   "therm.hottestPartName": "Solar Panel (OX-STAT)",
-  "therm.hottestPartTemp": 720.0,
+  "therm.hottestPartTemp": 1020.0,
   "therm.hottestPartMaxTemp": 1200,
   "therm.hottestPartTempRatio": 0.85,
   "therm.hottestEngineTemp": 290.0,
@@ -22,9 +22,9 @@
           "maxSkinTempRatio": 0.85,
           "maxInternalTempRatio": 0.85,
           "hottestPart": {
-            "internalTemp": 720.0,
+            "internalTemp": 1020.0,
             "maxTemp": 1200,
-            "skinTemp": 720.0,
+            "skinTemp": 1020.0,
             "skinMaxTemp": 1200,
             "name": "Solar Panel (OX-STAT)"
           },

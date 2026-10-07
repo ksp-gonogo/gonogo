@@ -6,7 +6,7 @@ import noSignalData from "./__fixtures__/no-signal-data.json";
 import noSignalOccluded from "./__fixtures__/no-signal-occluded.json";
 import relay from "./__fixtures__/relay-probe-network.json";
 import strong from "./__fixtures__/strong-direct-ksc.json";
-import weak from "./__fixtures__/weak-fading-occlusion.json";
+import weak from "./__fixtures__/weak-signal-partial-control.json";
 import { CommSignalComponent } from "./index";
 
 /**
@@ -17,7 +17,7 @@ import { CommSignalComponent } from "./index";
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "strong-direct-ksc": strong,
-  "weak-fading-occlusion": weak,
+  "weak-signal-partial-control": weak,
   "no-signal-occluded": noSignalOccluded,
   "relay-probe-network": relay,
   "deep-space-delay": deepSpace,

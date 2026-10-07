@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import rotatingControlFrame from "./__fixtures__/rotating-control-frame.json";
+import rotatingControlFrame from "./__fixtures__/kerbin-mun-rotating-frame.json";
 import { CurrentOrbitConfigForm } from "./CurrentOrbitConfigForm";
 import type { CurrentOrbitConfig } from "./config";
 

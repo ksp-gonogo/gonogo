@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
+import unknown from "./__fixtures__/body-with-no-gravity-data.json";
 import eve from "./__fixtures__/eve-orbit-high-gravity.json";
 import escapeTraj from "./__fixtures__/kerbin-escape-trajectory.json";
 import hko from "./__fixtures__/kerbin-hko-approaching-escape.json";
 import lko from "./__fixtures__/kerbin-lko-well-below-escape.json";
 import mun from "./__fixtures__/mun-surface-low-orbit.json";
-import unknown from "./__fixtures__/unknown-body-no-reference.json";
 import { EscapeProfileComponent } from "./index";
 
 /** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block; the harness reports a measured size, so the escape curve renders. */
@@ -17,7 +17,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "kerbin-escape-trajectory": escapeTraj,
   "mun-surface-low-orbit": mun,
   "eve-orbit-high-gravity": eve,
-  "unknown-body-no-reference": unknown,
+  "body-with-no-gravity-data": unknown,
 };
 
 const config = getWidget("escape-profile");

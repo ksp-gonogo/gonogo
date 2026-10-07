@@ -48,7 +48,7 @@ export function CurrentTargetSummary({
             {tarType && <span>{tarType}</span>}
             {typeof tarRelVel === "number" && Number.isFinite(tarRelVel) && (
               <span>
-                Δv <Unit value={closingRateR} decimals={2} />
+                Closing <Unit value={closingRateR} decimals={2} />
               </span>
             )}
             <Button onClick={onClear} type="button">

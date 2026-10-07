@@ -10,7 +10,7 @@ import { SystemViewComponent } from "./index";
 /**
  * Fixtures that differ only in what the trajectory provider says its trajectories are, driven through the real widget.
  *
- * `integrated-arc-live.json` is a recorded `vessel.orbit` frame from an integrating provider (`trajectoryKind = 2`, a bounded horizon); `analytic-conic-live.json` is the same payload with the provider fields an analytic horizon publishes. Anything that differs below is the provider.
+ * `partial-arc-n-body-prediction.json` is a recorded `vessel.orbit` frame from an integrating provider (`trajectoryKind = 2`, a bounded horizon); `full-orbit-ring-stock-solver.json` is the same payload with the provider fields an analytic horizon publishes. Anything that differs below is the provider.
  *
  * Pins that an integrating provider's elements are drawn as an open curve stopped at its horizon, and that the predicted patch chain, gated on `shape === "conic"`, is absent for it.
  */
@@ -121,7 +121,7 @@ function vesselCurveShare(container: HTMLElement): number {
 
 describe("SystemView under an integrating provider against an analytic one", () => {
   it("draws an open, multi-point arc when the provider integrates", async () => {
-    const container = await mountFixture("integrated-arc-live");
+    const container = await mountFixture("partial-arc-n-body-prediction");
     await waitFor(() => {
       if (vesselCurves(container).length === 0) {
         throw new Error("the vessel curve has not rendered yet");
@@ -139,7 +139,7 @@ describe("SystemView under an integrating provider against an analytic one", () 
   });
 
   it("draws a closed conic when the provider is analytic", async () => {
-    const container = await mountFixture("analytic-conic-live");
+    const container = await mountFixture("full-orbit-ring-stock-solver");
     await waitFor(() => {
       if (vesselCurves(container).length === 0) {
         throw new Error("the vessel curve has not rendered yet");
@@ -154,13 +154,13 @@ describe("SystemView under an integrating provider against an analytic one", () 
   });
 
   it("loses the predicted patch chain on the integrated answer and keeps it on the conic", async () => {
-    const analytic = await mountFixture("analytic-conic-live");
+    const analytic = await mountFixture("full-orbit-ring-stock-solver");
     await waitFor(() => {
       if (predictedPatchPaths(analytic).length === 0) {
         throw new Error("the predicted patch has not rendered yet");
       }
     });
-    const integrated = await mountFixture("integrated-arc-live");
+    const integrated = await mountFixture("partial-arc-n-body-prediction");
     await waitFor(() => {
       if (vesselCurves(integrated).length === 0) {
         throw new Error("the vessel curve has not rendered yet");
@@ -172,7 +172,10 @@ describe("SystemView under an integrating provider against an analytic one", () 
 
   it("renders the recorded system, not an empty diagram", async () => {
     // Both fixtures carry the recorded 17-body stock system, so a widget fed nothing cannot produce these.
-    for (const name of ["integrated-arc-live", "analytic-conic-live"]) {
+    for (const name of [
+      "partial-arc-n-body-prediction",
+      "full-orbit-ring-stock-solver",
+    ]) {
       const container = await mountFixture(name);
       await waitFor(() => {
         if (container.querySelectorAll("path[data-body-orbit]").length === 0) {
@@ -189,7 +192,10 @@ describe("SystemView under an integrating provider against an analytic one", () 
 
   it("draws no vessel curve at all when vessel.orbit is withheld", async () => {
     // The starve control: one emit dropped, the vessel curve must disappear, or the selectors match something the orbit payload does not feed.
-    const container = await mountFixture("integrated-arc-live", "vessel.orbit");
+    const container = await mountFixture(
+      "partial-arc-n-body-prediction",
+      "vessel.orbit",
+    );
     await waitFor(() => {
       if (container.querySelectorAll("path[data-body-orbit]").length === 0) {
         throw new Error("the bodies have not rendered yet");
@@ -222,7 +228,7 @@ describe("SystemView under an integrating provider against an analytic one", () 
 
   it("draws the live orbit too small to see, and the wide one large enough", async () => {
     // The live pair renders near-identically because the auto-fit extent is Minmus's apoapsis, which a 250 km orbit is under two percent of; the reconstructed pair makes the difference visible.
-    const live = await mountFixture("integrated-arc-live");
+    const live = await mountFixture("partial-arc-n-body-prediction");
     await waitFor(() => {
       if (vesselCurves(live).length === 0) {
         throw new Error("the vessel curve has not rendered yet");

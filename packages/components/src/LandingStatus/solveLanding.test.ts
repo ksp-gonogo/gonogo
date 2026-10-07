@@ -108,7 +108,7 @@ describe("solveSuicideBurn: where and when to ignite", () => {
 /** The rocket-equation engine model: deceleration rises as mass falls, so the stopping distance is shorter than a constant-`aMax` estimate, and the burn is capped at the available dV. */
 describe("solveSuicideBurn: rocket-equation engine model", () => {
   /*
-   * The `high-speed-no-solution` render fixture: Mun, 12 km AGL, 350 m/s down and 100 m/s horizontal, 18 kN over 5 t (dry 3 t), 900 m/s dV, local TWR about 2.48.
+   * The `descending-too-fast-to-stop` render fixture: Mun, 12 km AGL, 350 m/s down and 100 m/s horizontal, 18 kN over 5 t (dry 3 t), 900 m/s dV, local TWR about 2.48.
    * ve = 900 / ln(5/3) = 1761.85 m/s (Isp about 179.6 s), and burnoutMass is the stage's dry 3 t.
    */
   const HIGH_SPEED: SuicideBurnInputs = {

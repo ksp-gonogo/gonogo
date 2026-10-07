@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
-import fullBattery from "./__fixtures__/01-full-battery-launch.json";
-import draining from "./__fixtures__/02-battery-draining-high-load.json";
-import charging from "./__fixtures__/03-solar-charging-sunlight.json";
-import darkSide from "./__fixtures__/04-dark-side-drain.json";
-import nearZero from "./__fixtures__/05-near-zero-battery-alarm.json";
-import rtg from "./__fixtures__/06-rtg-steady-state.json";
+import draining from "./__fixtures__/battery-draining-high-load.json";
+import darkSide from "./__fixtures__/dark-side-drain.json";
+import fullBattery from "./__fixtures__/full-battery-launch.json";
+import nearZero from "./__fixtures__/near-zero-battery-alarm.json";
+import rtg from "./__fixtures__/rtg-steady-state.json";
+import charging from "./__fixtures__/solar-charging-sunlight.json";
 import { PowerSystemsComponent } from "./index";
 
 const FIXTURES = {
-  "01-full-battery-launch": fullBattery,
-  "02-battery-draining-high-load": draining,
-  "03-solar-charging-sunlight": charging,
-  "04-dark-side-drain": darkSide,
-  "05-near-zero-battery-alarm": nearZero,
-  "06-rtg-steady-state": rtg,
+  "full-battery-launch": fullBattery,
+  "battery-draining-high-load": draining,
+  "solar-charging-sunlight": charging,
+  "dark-side-drain": darkSide,
+  "near-zero-battery-alarm": nearZero,
+  "rtg-steady-state": rtg,
 };
 
 const config = getWidget("power-systems");

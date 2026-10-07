@@ -1,0 +1,107 @@
+{
+  "_meta": {
+    "shows": "A craft with a weak 23% signal, one bar and partial control, carried by a different route through Relay Alpha than the one it normally uses.",
+    "scenario": "weak-signal-partial-control",
+    "notes": "Partial signal during orbit-occlusion. Vessel is near the limb of Kerbin and signal is fading, 1 bar (ceil(0.23 x 4)), partial control state."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.23,
+  "comm.controlState": 1,
+  "comm.controlStateName": "Partial",
+  "comm.signalDelay": 0.012,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 0.012
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 0.23,
+          "controlState": 3
+        }
+      },
+      {
+        "channel": "comms.signal",
+        "value": {
+          "strength": 0.23,
+          "modelled": false,
+          "otherPath": true,
+          "measuredPath": {
+            "nodes": [
+              {
+                "id": "v1",
+                "displayName": "Active Vessel",
+                "kind": 1
+              },
+              {
+                "id": "relay-alpha",
+                "displayName": "Relay Alpha",
+                "kind": 1
+              },
+              {
+                "id": "KSC",
+                "displayName": "KSC",
+                "kind": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

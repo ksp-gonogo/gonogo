@@ -6,14 +6,14 @@ import engineOff from "./__fixtures__/engine-off-empty.json";
 import heavy from "./__fixtures__/heavy-lifter-warn.json";
 import pinned from "./__fixtures__/pinned-high.json";
 import standard from "./__fixtures__/standard-launch-ok.json";
-import vacuumLow from "./__fixtures__/vacuum-low-nogo.json";
+import vacuumLow from "./__fixtures__/vacuum-stage-below-1-twr.json";
 import { TwrComponent } from "./index";
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "standard-launch-ok": standard,
   "atmosphere-ascent-ok": atmosphereAscent,
   "heavy-lifter-warn": heavy,
-  "vacuum-low-nogo": vacuumLow,
+  "vacuum-stage-below-1-twr": vacuumLow,
   "pinned-high": pinned,
   "engine-off-empty": engineOff,
 };

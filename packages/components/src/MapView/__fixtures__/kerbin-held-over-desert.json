@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A re-entering craft over Kerbin's desert with the link down, its last-heard position shown as a held square with its outline against tan ground.",
     "scenario": "kerbin-held-over-desert",
-    "notes": "kerbin-reentry-held turned in longitude so the held craft is over the desert: the held square and its keyline on a tan ground."
+    "notes": "reentry-link-lost turned in longitude so the held craft is over the desert: the held square and its keyline on a tan ground."
   },
   "v.body": "Kerbin",
   "v.lat": -2.5,

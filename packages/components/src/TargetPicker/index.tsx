@@ -11,7 +11,7 @@ registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target from a suggested list or browse bodies, vessels and parts, or see your current target's type, distance and closing speed (shown as Δv) and clear it.",
+    "Pick a target from a suggested list or browse bodies, vessels and parts, or see your current target's type, distance and closing speed and clear it.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },

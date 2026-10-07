@@ -95,7 +95,12 @@ interface Scene {
 const scenes: Scene[] = [];
 for (const [path, mod] of Object.entries(MODULES)) {
   // A stale twin is its live twin's scene staged later, judged by `staleScenes.test.tsx`.
-  if (path.endsWith("-stopped-arriving.json")) continue;
+  if (
+    path.endsWith("-link-lost.json") &&
+    path.replace(/-link-lost\.json$/, ".json") in MODULES
+  ) {
+    continue;
+  }
   const emits = mod.default._stream?.emits;
   const ut = mod.default._stream?.pinnedUt;
   if (!emits || ut === undefined) continue;
@@ -206,8 +211,8 @@ describe("MapView fixtures describe scenes that can exist", () => {
       "kerbin-over-desert",
       "kerbin-plane-change-node",
       "kerbin-reentry",
-      "kerbin-reentry-held",
       "mun-polar-orbit",
+      "reentry-link-lost",
     ]);
   });
 
