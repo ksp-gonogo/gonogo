@@ -6077,17 +6077,28 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        if (job is DispatchCommandJob dispatch)
-                        {
-                            LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ex);
-                            FailDispatch(dispatch, ex);
-                        }
-                        else if (++_courierJobThrows == 1 || _courierJobThrows % 300 == 0)
-                        {
-                            LogHost("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far): " + ex);
-                        }
+                        ReportCourierJobThrow(job, ex);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// A job the Courier loop caught throwing. A dispatch is refused aloud
+        /// to the request that sent it; any other job is reported throttled,
+        /// since a broken tick would otherwise report once a tick.
+        /// </summary>
+        private void ReportCourierJobThrow(IEngineJob job, Exception ex)
+        {
+            if (job is DispatchCommandJob dispatch)
+            {
+                LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ex);
+                FailDispatch(dispatch, ex);
+                return;
+            }
+            if (++_courierJobThrows == 1 || _courierJobThrows % 300 == 0)
+            {
+                LogHost("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far): " + ex);
             }
         }
 
