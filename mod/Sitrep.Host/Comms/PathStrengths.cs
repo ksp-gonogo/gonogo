@@ -140,16 +140,19 @@ namespace Sitrep.Host.Comms
         /// <summary>One centre's signal and grading, and whether they are worked out.</summary>
         public readonly struct Told
         {
-            public Told(double strength, bool modelled, CommsDegrade? degrade, bool otherPath = false)
+            public Told(double strength, bool modelled, CommsDegrade? degrade, IReadOnlyList<RadioHop>? measuredOver = null)
             {
                 Strength = strength;
                 Modelled = modelled;
                 Degrade = degrade;
-                OtherPath = otherPath;
+                MeasuredOver = measuredOver;
             }
 
             /// <summary>The strength is the one the radio measured on a path that is not the centre's believed one.</summary>
-            public bool OtherPath { get; }
+            public bool OtherPath => MeasuredOver != null;
+
+            /// <summary>The hops the strength was measured over, where it is of another path; null otherwise.</summary>
+            public IReadOnlyList<RadioHop>? MeasuredOver { get; }
 
             public double Strength { get; }
 
@@ -177,7 +180,7 @@ namespace Sitrep.Host.Comms
             }
             // The radio reported on a path other than the believed one and nothing can be worked out.
             // A figure for another path is not this path's figure, so it is told as what it is.
-            return heard == null ? (Told?)null : new Told(heard.Strength, false, heard.Degrade, otherPath: true);
+            return heard == null ? (Told?)null : new Told(heard.Strength, false, heard.Degrade, heard.Hops);
         }
 
         private static bool SamePath(CommsPath believed, ContactRadio heard)

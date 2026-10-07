@@ -2445,8 +2445,15 @@ namespace Sitrep.Contract
         /// as the centre could say and the active vessel could have been told. No
         /// field moves; the bump is for what the field means, since a client built
         /// before it words every such age as a direct radio link's.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 20 -&gt; 21: a strength of another path
+        /// names the path.</b> <see cref="CommsSignal"/> gains
+        /// <see cref="CommsSignal.MeasuredPath"/>, the nodes of the path the
+        /// radio measured the strength on, set whenever
+        /// <see cref="CommsSignal.OtherPath"/> is true and null otherwise.
+        /// Additive: a client that does not know the field drops it.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 20;
+        public const int Minor = 21;
     }
 }

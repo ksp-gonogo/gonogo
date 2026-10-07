@@ -392,8 +392,8 @@ namespace Sitrep.Host.Comms
         private readonly BelievedPaths _believed = new BelievedPaths();
 
         /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at, and which kind of figure it was: measured on its path, worked out, or measured on another.</summary>
-        private readonly Dictionary<string, (long Strength, int Kind, string? GradedBy, long? Grade)> _signalSent =
-            new Dictionary<string, (long, int, string?, long?)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (long Strength, int Kind, string? GradedBy, long? Grade, string? MeasuredOn)> _signalSent =
+            new Dictionary<string, (long, int, string?, long?, string?)>(StringComparer.Ordinal);
         private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
@@ -1601,11 +1601,13 @@ namespace Sitrep.Host.Comms
                 return 0;
             }
             var degrade = told.Value.Degrade;
+            var measuredPath = told.Value.MeasuredOver == null ? null : MeasuredPath(centre, looked.ActiveCraft, told.Value.MeasuredOver);
             var said = (
                 Quanta(told.Value.Strength),
                 told.Value.Modelled ? 1 : told.Value.OtherPath ? 2 : 0,
                 degrade?.ModelId,
-                degrade?.Level == null ? (long?)null : Quanta(degrade.Level.Value));
+                degrade?.Level == null ? (long?)null : Quanta(degrade.Level.Value),
+                measuredPath == null ? null : ShapeOf(measuredPath));
             var news = !_signalSent.TryGetValue(centre, out var was) || !was.Equals(said);
             _signalSent[centre] = said;
             var to = ToItself(centre);
@@ -1614,7 +1616,13 @@ namespace Sitrep.Host.Comms
             {
                 _streams!.PublishAddressedTo(
                     SignalTopic,
-                    new CommsSignal { Strength = told.Value.Strength, Modelled = told.Value.Modelled, OtherPath = told.Value.OtherPath },
+                    new CommsSignal
+                    {
+                        Strength = told.Value.Strength,
+                        Modelled = told.Value.Modelled,
+                        OtherPath = told.Value.OtherPath,
+                        MeasuredPath = measuredPath,
+                    },
                     looked.Ut,
                     to);
                 frames++;
@@ -1628,6 +1636,44 @@ namespace Sitrep.Host.Comms
         }
 
         private static long Quanta(double value) => (long)Math.Round(value / ContactRadio.Quantum);
+
+        /// <summary>
+        /// The path a radio reading was measured over, as <paramref name="centre"/>
+        /// is sent it: the craft and then the far end of each of the reading's
+        /// own hops, with each craft named as that centre last heard it named.
+        /// Nothing is read of the game or of the centre's believed path, so it
+        /// is exactly as old as the reading.
+        /// </summary>
+        private CommsMeasuredPath MeasuredPath(string centre, string activeCraft, IReadOnlyList<RadioHop> measuredOver)
+        {
+            var craftId = CraftStateRecorder.GuidOf(activeCraft);
+            var nodes = new List<CommsNetworkNode>(measuredOver.Count + 1)
+            {
+                new CommsNetworkNode { Id = craftId, DisplayName = NameAt(centre, activeCraft) ?? craftId, Kind = CommsHopKind.Relay },
+            };
+            foreach (var hop in measuredOver)
+            {
+                var station = !hop.ToIsCraft;
+                nodes.Add(new CommsNetworkNode
+                {
+                    Id = hop.To,
+                    DisplayName = station ? hop.To : NameAt(centre, CraftStateRecorder.VesselPrefix + hop.To) ?? hop.To,
+                    Kind = station ? CommsHopKind.Home : CommsHopKind.Relay,
+                });
+            }
+            return new CommsMeasuredPath { Nodes = nodes };
+        }
+
+        /// <summary>A measured path's ends and names as one string, so a change of either is seen as news.</summary>
+        private static string ShapeOf(CommsMeasuredPath path)
+        {
+            var shape = new System.Text.StringBuilder();
+            foreach (var node in path.Nodes)
+            {
+                shape.Append(node.Id).Append('\u0001').Append(node.DisplayName).Append('\u0001');
+            }
+            return shape.ToString();
+        }
 
         /// <summary>The name <paramref name="centre"/> knows <paramref name="nodeId"/> by: a ground station's own, or a craft's as the centre last heard it. Courier thread only.</summary>
         private string? NameAt(string centre, string nodeId)

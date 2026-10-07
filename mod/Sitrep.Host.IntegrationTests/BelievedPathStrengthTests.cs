@@ -118,5 +118,89 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(0.95, Signal(view)!.Value.Strength, 6);
             Assert.False(Signal(view)!.Value.Modelled);
         }
+
+        private static ContactRadio ReportedOver(double strength, params RadioHop[] hops) => new ContactRadio(
+            ScriptedContactGame.Active,
+            true,
+            strength,
+            new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 1.0 - strength },
+            hops);
+
+        private static List<(string Id, string Name)>? MeasuredPath(CentreView view)
+        {
+            var payload = view.Latest(ContactPlanSource.SignalTopic);
+            if (payload == null)
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(payload);
+            var path = doc.RootElement.GetProperty("measuredPath");
+            if (path.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+            return path.GetProperty("nodes").EnumerateArray().Select(n => (n.GetProperty("id").GetString()!, n.GetProperty("displayName").GetString()!)).ToList();
+        }
+
+        /// <summary>
+        /// The backend here states no strength for any link, so the centre can
+        /// work nothing out for the path it believes in. The radio reports on
+        /// a path that is not that one: the centre is sent the radio's figure
+        /// marked as being of another path, with the nodes of the path it was
+        /// measured on and not the believed ones. The radio then reports
+        /// through the relay, and the centre goes on being sent the first
+        /// path until that reading has reached it, which is no sooner than
+        /// light from the relay could.
+        /// </summary>
+        [Fact]
+        public async Task ACentreSentAStrengthOfAnotherPathIsSentThePathItWasMeasuredOnAsOldAsTheStrength()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync(new ScriptedContactGame());
+            var home = world.Engine.HomeCentre();
+            var (client, view) = await world.SitDownAtAsync(home, Topics);
+            await using var seated = client;
+            world.Game.Radio = ReportedOver(0.95, new RadioHop(ScriptedContactGame.ActiveGuid, "Outback Station", false));
+            foreach (var ut in new[] { T0, T0 + 1.0, T0 + 5.0, T0 + 6.0 })
+            {
+                world.Tick(ut);
+            }
+            await ReckonedVantageWorld.SettleAsync(client, view);
+
+            using (var doc = JsonDocument.Parse(view.Latest(ContactPlanSource.SignalTopic)!))
+            {
+                Assert.True(doc.RootElement.GetProperty("otherPath").GetBoolean(), "the centre was not told the figure is of another path");
+            }
+            var believedEnds = Hops(view).Select(hop => hop.To).ToList();
+            var measured = MeasuredPath(view);
+            Assert.NotNull(measured);
+            Assert.Equal(new[] { ScriptedContactGame.ActiveGuid, "Outback Station" }, measured!.Select(node => node.Id).ToArray());
+            Assert.DoesNotContain("Outback Station", believedEnds);
+            Assert.Equal("Outback Station", measured[1].Name);
+
+            // The radio now reports through the relay. That reading says something of the relay, so it reaches the centre no sooner than the relay's light.
+            world.Game.Radio = ReportedOver(
+                0.95,
+                new RadioHop(ScriptedContactGame.ActiveGuid, ScriptedContactGame.RelayGuid, true),
+                new RadioHop(ScriptedContactGame.RelayGuid, "Outback Station", false));
+            foreach (var ut in new[] { T0 + 10.0, T0 + 11.0, T0 + 20.0, T0 + 21.0 })
+            {
+                world.Tick(ut);
+            }
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            Assert.Equal(new[] { ScriptedContactGame.ActiveGuid, "Outback Station" }, MeasuredPath(view)!.Select(node => node.Id).ToArray());
+
+            foreach (var ut in new[] { T0 + 700.0, T0 + 701.0, T0 + 702.0, T0 + 703.0 })
+            {
+                world.Tick(ut);
+            }
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            var later = MeasuredPath(view);
+            Assert.NotNull(later);
+            Assert.Equal(
+                new[] { ScriptedContactGame.ActiveGuid, ScriptedContactGame.RelayGuid, "Outback Station" },
+                later!.Select(node => node.Id).ToArray());
+            // The relay is named as the centre has heard it named.
+            Assert.Equal("Relay", later[1].Name);
+        }
     }
 }

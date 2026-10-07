@@ -167,6 +167,18 @@ namespace Sitrep.Host.Tests.Comms
             Assert.True(told.Value.OtherPath);
         }
 
+        /// <summary>The figure of another path comes with the path it is of, so it can be named; a figure of the centre's own path, or one worked out, names none.</summary>
+        [Fact]
+        public void AFigureOfAnotherPathCarriesTheHopsItWasMeasuredOverAndNoOtherFigureDoes()
+        {
+            var told = CentreSignal.For(Believed(("probe", "Crater Rim")), null, Heard(0.9, true, ("probe", "relay"), ("relay", "KSC")));
+
+            Assert.Equal(new[] { ("probe", "relay"), ("relay", "KSC") }, told!.Value.MeasuredOver!.Select(hop => (hop.From, hop.To)).ToArray());
+            Assert.Null(CentreSignal.For(Believed(("probe", "KSC")), 0.6, Heard(0.9, true, ("probe", "KSC")))!.Value.MeasuredOver);
+            Assert.Null(CentreSignal.For(Believed(("probe", "Crater Rim")), 0.6, Heard(0.9, true, ("probe", "KSC")))!.Value.MeasuredOver);
+            Assert.Null(CentreSignal.For(Believed(), null, Heard(0.9, true, ("probe", "KSC")))!.Value.MeasuredOver);
+        }
+
         /// <summary>A centre that believes in no path yet has none for the radio's to differ from: the radio's figure is the craft's own word and is told plainly.</summary>
         [Fact]
         public void ACentreThatBelievesInNoPathYetIsToldTheRadiosFigureAsMeasured()

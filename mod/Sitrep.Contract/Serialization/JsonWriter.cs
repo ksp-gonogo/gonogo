@@ -306,6 +306,9 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsSignal signal:
                     AppendCommsSignal(sb, signal);
                     break;
+                case Sitrep.Contract.CommsMeasuredPath measuredPath:
+                    AppendCommsMeasuredPath(sb, measuredPath);
+                    break;
                 case Sitrep.Contract.CommsControl control:
                     AppendCommsControl(sb, control);
                     break;
@@ -2168,6 +2171,40 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "otherPath");
             sb.Append(':');
             AppendBool(sb, s.OtherPath);
+            sb.Append(',');
+            AppendString(sb, "measuredPath");
+            sb.Append(':');
+            if (s.MeasuredPath == null)
+            {
+                sb.Append("null");
+            }
+            if (s.MeasuredPath != null)
+            {
+                AppendCommsMeasuredPath(sb, s.MeasuredPath);
+            }
+            sb.Append('}');
+        }
+
+        private static void AppendCommsMeasuredPath(StringBuilder sb, Sitrep.Contract.CommsMeasuredPath p)
+        {
+            sb.Append('{');
+            AppendString(sb, "nodes");
+            sb.Append(':');
+            sb.Append('[');
+            if (p.Nodes != null)
+            {
+                var first = true;
+                foreach (var node in p.Nodes)
+                {
+                    if (!first)
+                    {
+                        sb.Append(',');
+                    }
+                    first = false;
+                    AppendCommsNetworkNode(sb, node);
+                }
+            }
+            sb.Append(']');
             sb.Append('}');
         }
 

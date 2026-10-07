@@ -70,6 +70,40 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void SignalWithNoMeasuredPathSerializesItAsJsonNull()
+        {
+            var el = Write(new CommsSignal { Strength = 0.75 });
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("measuredPath").ValueKind);
+        }
+
+        [Fact]
+        public void SignalOfAnotherPathSerializesTheNodesOfThePathItWasMeasuredOn()
+        {
+            var el = Write(new CommsSignal
+            {
+                Strength = 0.75,
+                OtherPath = true,
+                MeasuredPath = new CommsMeasuredPath
+                {
+                    Nodes = new List<CommsNetworkNode>
+                    {
+                        new CommsNetworkNode { Id = "a", DisplayName = "Lander", Kind = CommsHopKind.Relay },
+                        new CommsNetworkNode { Id = "x", DisplayName = "Relay", Kind = CommsHopKind.Relay },
+                        new CommsNetworkNode { Id = "Crater Rim", DisplayName = "Crater Rim", Kind = CommsHopKind.Home },
+                    },
+                },
+            });
+
+            var path = el.GetProperty("measuredPath");
+            Assert.False(path.TryGetProperty("hops", out _));
+            var nodes = path.GetProperty("nodes");
+            Assert.Equal(3, nodes.GetArrayLength());
+            Assert.Equal("a", nodes[0].GetProperty("id").GetString());
+            Assert.Equal("Relay", nodes[1].GetProperty("displayName").GetString());
+            Assert.Equal((int)CommsHopKind.Home, nodes[2].GetProperty("kind").GetInt32());
+        }
+
+        [Fact]
         public void ControlReasonNullSerializesAsJsonNull()
         {
             var el = Write(new CommsControl

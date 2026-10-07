@@ -144,6 +144,7 @@ public static class RtConfig
                 // comms.* channels
                 typeof(CommsConnectivity),
                 typeof(CommsSignal),
+                typeof(CommsMeasuredPath),
                 typeof(CommsControl),
                 typeof(CommsPath),
                 typeof(CommsHop),

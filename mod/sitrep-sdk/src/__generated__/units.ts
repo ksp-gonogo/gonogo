@@ -2378,6 +2378,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     a: "CommsNodeView",
     b: "CommsNodeView",
   },
+  "CommsMeasuredPath": {
+    nodes: "CommsNetworkNode[]",
+  },
   "CommsNetwork": {
     edges: "CommsNetworkEdge[]",
     meta: "PayloadMeta",
@@ -2397,6 +2400,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CommsRoutes": {
     routes: "CommsRoute[]",
+  },
+  "CommsSignal": {
+    measuredPath: "CommsMeasuredPath",
   },
   "ControlFrame": {
     settableFrames: "ControlFrameOption[]",
@@ -2688,6 +2694,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "comms.route": {
     routes: "CommsRoute[]",
+  },
+  "comms.signal": {
+    measuredPath: "CommsMeasuredPath",
   },
   "crash.lastCrash": {
     flightStats: "CrashFlightStats",

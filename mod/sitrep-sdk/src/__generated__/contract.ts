@@ -1787,6 +1787,32 @@ export interface CommsSignal
 	* reported strength as it is.
 	*/
 	otherPath: boolean;
+	/**
+	* The path `CommsSignal.strength` was measured on, where that is not the path
+	* the receiving command centre believes in. Set whenever
+	* `CommsSignal.otherPath` is true and null otherwise, so a reader can name the
+	* route the figure belongs to beside the mark that says it is of another path.
+	* It is as old as the strength beside it, and names each vessel as the
+	* receiving centre last heard it named.
+	*/
+	measuredPath?: CommsMeasuredPath | null;
+}
+/**
+* A path a vessel's radio reported a strength on, as the nodes it runs
+* through. It is the path the game had the vessel on when the radio was read,
+* which a command centre may not believe in.
+*
+* @category Comms
+*/
+export interface CommsMeasuredPath
+{
+	/**
+	* The vessel first, then the far end of each hop in order. A ground station is
+	* named by its own name, and a vessel as the receiving command centre last
+	* heard it named. One node, the vessel alone, means the radio reported a
+	* strength and named no route.
+	*/
+	nodes: CommsNetworkNode[];
 }
 /**
 * What the active vessel can be commanded to do, for `CommsControl`. The
