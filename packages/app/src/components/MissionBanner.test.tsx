@@ -60,6 +60,8 @@ function setupTelemetryStream() {
 
   return {
     advanceTo: (ut: number) => clock.observeSample(ut, ut),
+    emitIdentity: (identity: unknown) =>
+      transport.emit("vessel.identity", identity),
     emitRoster: (roster: unknown) =>
       transport.emit("commandCentre.roster", roster, { vantage: KSC }),
     Provider,
@@ -158,6 +160,38 @@ describe("MissionBanner", () => {
 
     expect(screen.getByText("Y1 D1 00:00:02")).toBeInTheDocument();
     expect(commits - before).toBeLessThanOrEqual(frames / perSecond + 1);
+  });
+
+  it("names the active vessel beside the command centre, and nothing before it is known", async () => {
+    const fixture = setupTelemetryStream();
+    const { container } = render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    expect(screen.queryByText("Vessel")).toBeNull();
+
+    act(() => {
+      fixture.emitIdentity({ vesselId: "v1", name: "Kerbal X" });
+    });
+
+    expect(await screen.findByText("Kerbal X")).toBeInTheDocument();
+    expect(screen.getByText("Vessel")).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+
+  it("shows no vessel field for an empty name", async () => {
+    const fixture = setupTelemetryStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emitIdentity({ vesselId: "v1", name: "" });
+    });
+    await act(async () => {});
+    expect(screen.queryByText("Vessel")).toBeNull();
   });
 
   it("exposes the banner as a single labelled group, not a live region", () => {

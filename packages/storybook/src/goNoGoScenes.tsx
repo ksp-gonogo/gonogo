@@ -170,6 +170,7 @@ class ScenePeerClient implements PeerClient {
   getConnStatus = () => "connected" as const;
   onConnectionStatus = () => () => {};
   onHostHello = () => () => {};
+  getHostVersion = () => null;
   onHostRestart = () => () => {};
   getHostCommandCentre = () => null;
   onHostCommandCentreChange = () => () => {};

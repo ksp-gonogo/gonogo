@@ -17,6 +17,7 @@ import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
+import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
 import type { SettingDefinition } from "./registry";
@@ -86,18 +87,12 @@ export function SettingsModal({
           SettingsPersistenceState.Defaults
       : false;
 
-  const hasGeneral = settings.length > 0 || showConsent;
-
   const tabs: TabDescriptor[] = [];
-  if (hasGeneral) {
-    tabs.push({
-      id: "general",
-      label: "General",
-      content: (
-        <GeneralSettings settings={settings} showConsent={showConsent} />
-      ),
-    });
-  }
+  tabs.push({
+    id: "general",
+    label: "General",
+    content: <GeneralSettings settings={settings} showConsent={showConsent} />,
+  });
   tabs.push({
     id: "gonogo",
     label: "Gonogo",
@@ -241,6 +236,12 @@ function GeneralSettings({
           <AnalyticsConsentRow />
         </Stack>
       )}
+      <Stack as="section" gap="related-comfortable">
+        <SectionTitle as="h3" $rule>
+          About
+        </SectionTitle>
+        <AppVersion />
+      </Stack>
     </SectionStack>
   );
 }

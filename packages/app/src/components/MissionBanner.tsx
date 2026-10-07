@@ -1,4 +1,4 @@
-import { useGameContext } from "@ksp-gonogo/core";
+import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
 import { useGameStatus, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -28,6 +28,10 @@ import { VantageControl } from "./VantageControl";
  * matters when it does can still declare its own live region, and the station's
  * vantage readout is one.
  *
+ * The vessel name sits after the command centre, from the same
+ * `vessel.identity` the rest of the screen reads, so a player who has added no
+ * widget still sees which craft the numbers belong to.
+ *
  * The signal delay sits beside the command centre because on a command-centre
  * screen it is that centre's distance from the craft. A pilot's is the distance
  * back to the centre mission control stands at. Either way it is only there
@@ -42,6 +46,7 @@ export function MissionBanner() {
       <BannerField label="CC">
         <VantageControl />
       </BannerField>
+      <VesselField />
       <SignalDelayField />
       <GameStatusField />
     </Banner>
@@ -97,6 +102,19 @@ function BannerField({
   );
 }
 
+/** The active craft's name, and nothing while there is no craft or its name has not arrived. */
+function VesselField() {
+  const identity = useTelemetry("vessel.identity");
+  if (identity.state !== "observed" && identity.state !== "held") return null;
+  const name = identity.value.name.trim();
+  if (name === "") return null;
+  return (
+    <BannerField label="Vessel">
+      <VesselName>{name}</VesselName>
+    </BannerField>
+  );
+}
+
 /** No active vessel, no field: there is no craft for a delay to be measured to. */
 function SignalDelayField() {
   const { inFlight } = useGameContext();
@@ -136,6 +154,13 @@ function GameStatusField() {
     </GameStatus>
   );
 }
+
+const VesselName = styled.span`
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
 
 const GameStatus = styled.span`
   display: inline-flex;

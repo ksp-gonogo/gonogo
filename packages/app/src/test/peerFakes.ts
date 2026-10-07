@@ -37,6 +37,7 @@ export function idlePeerClient(): PeerClient {
     getConnStatus: () => "connected",
     onConnectionStatus: () => unsubscribe,
     onHostHello: () => unsubscribe,
+    getHostVersion: () => null,
     onHostRestart: () => unsubscribe,
     getHostCommandCentre: () => null,
     onHostCommandCentreChange: () => unsubscribe,

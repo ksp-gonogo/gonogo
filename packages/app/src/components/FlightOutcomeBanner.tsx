@@ -1,6 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
-import { useStream } from "@ksp-gonogo/sitrep-client";
+import { useStream, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import {
   type CrashReport,
   isValue,
@@ -18,7 +18,8 @@ import styled from "styled-components";
  * crash (`crash.lastCrash`). Both outcome kinds flow through this
  * single component so flight endings share the same UI slot.
  *
- * Auto-dismisses after VISIBLE_MS; tap to pin the detail modal.
+ * Auto-dismisses after VISIBLE_MS; tap to pin the detail modal. An outcome
+ * already older than STALE_AFTER_UT when it arrives is never announced.
  * On a new-flight transition, the announce baseline is reset to the
  * current sticky outcome's UT, so the previous flight's recovery
  * never re-triggers the banner: only an outcome captured after the
@@ -26,6 +27,14 @@ import styled from "styled-components";
  */
 
 const VISIBLE_MS = 10_000;
+
+/**
+ * How far behind the view clock an outcome may be and still count as news.
+ * The mod replays the last crash and the last recovery to every new
+ * connection, so an outcome older than this at the moment it first reaches the
+ * view is a record being read back, not a flight that just ended.
+ */
+const STALE_AFTER_UT = 60;
 
 // ── Reading the two payloads ─────────────────────────────────────────────
 
@@ -171,6 +180,7 @@ export function FlightOutcomeBanner() {
   const flightIdRef = useRef<string | null>(null);
   const [bannerExpiresAt, setBannerExpiresAt] = useState<number | null>(null);
   const modal = useModal();
+  const clock = useViewClockOptional();
 
   useEffect(() => {
     const nextFlightId = currentFlight?.id ?? null;
@@ -198,8 +208,12 @@ export function FlightOutcomeBanner() {
     const last = lastAnnouncedRef.current;
     if (last && last.kind === outcome.kind && last.ut === outcome.ut) return;
     lastAnnouncedRef.current = { kind: outcome.kind, ut: outcome.ut };
+    const nowUt = clock
+      ? Math.max(clock.viewUt(), clock.utNowEstimate())
+      : Number.NaN;
+    if (outcome.ut !== null && nowUt - outcome.ut > STALE_AFTER_UT) return;
     setBannerExpiresAt(Date.now() + VISIBLE_MS);
-  }, [outcome]);
+  }, [outcome, clock]);
 
   useEffect(() => {
     if (bannerExpiresAt === null) return;

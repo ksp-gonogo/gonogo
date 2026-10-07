@@ -12,6 +12,7 @@ export type PeerClient = Pick<
   | "getConnStatus"
   | "onConnectionStatus"
   | "onHostHello"
+  | "getHostVersion"
   | "onHostRestart"
   | "getHostCommandCentre"
   | "onHostCommandCentreChange"

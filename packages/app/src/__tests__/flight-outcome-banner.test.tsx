@@ -57,6 +57,7 @@ function setupOutcomeStream() {
   return {
     Provider,
     store,
+    clock,
     emit: (topic: string, payload: unknown) => transport.emit(topic, payload),
   };
 }
@@ -102,6 +103,44 @@ describe("FlightOutcomeBanner", () => {
 
     expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
     expect(screen.getByText("career-orbital-test")).toBeInTheDocument();
+  });
+
+  it("does not announce a crash that is read back from before the view's time", () => {
+    const fixture = setupOutcomeStream();
+    fixture.clock.scrubTo(SHIP_CRASH_SPLASHDOWN.ut + 3600);
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.queryByText(/VESSEL DESTROYED/)).toBeNull();
+  });
+
+  it("announces a crash that happened moments before the view's time", () => {
+    const fixture = setupOutcomeStream();
+    fixture.clock.scrubTo(SHIP_CRASH_SPLASHDOWN.ut + 5);
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
   });
 
   // Real re-entry burn-up (eventKind "Destroyed"): fires no onCrash in KSP, so
