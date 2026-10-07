@@ -13,7 +13,7 @@
  *   npm install             in client/
  *   uplink-tools codegen    then codegen --check
  *   npm run typecheck
- *   the page write, then npm test
+ *   npm run page, then npm test
  *   dotnet test mod-tests
  *   npm run release         bundle, bake, compile, verify, zip
  *
@@ -112,6 +112,8 @@ const env = {
   npm_config_update_notifier: "false",
   npm_config_fund: "false",
   npm_config_audit: "false",
+  // Always, on every machine: an author's own CI runs these same commands, and one of them once refused to run there while passing everywhere else.
+  CI: "true",
 };
 // The scaffold's projects must find KSP only when a step here says where it is.
 for (const name of Object.keys(env)) {
@@ -371,10 +373,7 @@ if (!published) {
   must("uplink-tools codegen", "npx", ["uplink-tools", "codegen"], {
     cwd: client,
   });
-  must("write the generated page", "npx", ["vitest", "run"], {
-    cwd: client,
-    env: { ...env, GONOGO_UPLINK_PAGE_UPDATE: "1" },
-  });
+  must("npm run page", "npm", ["run", "page"], { cwd: client });
 }
 
 // ── The author's own checks ─────────────────────────────────────────────────

@@ -160,6 +160,7 @@ describe("uplink-tools new", () => {
       bundle: "uplink-tools bundle",
       bake: "uplink-tools bake --bundle dist/widgets/widgets.client.js",
       release: "uplink-tools release",
+      page: "uplink-tools docs --no-assets",
     });
     expect(scripts.build).toBeUndefined();
   });
@@ -332,7 +333,9 @@ describe("uplink-tools new", () => {
     const out = said.join("\n");
     expect(out).toContain("npx uplink-tools codegen");
     expect(out).toContain("npm install");
-    expect(out).toContain("GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run");
+    // The first write goes through the generator. The test run's update switch is refused under CI, and a scaffold is often made there.
+    expect(out).toContain("npm run page");
+    expect(out).not.toContain("GONOGO_UPLINK_PAGE_UPDATE");
     expect(out).toContain("npm run release");
     expect(out).toContain("release refuses the placeholder");
     // Nothing an outside author cannot run: no repo-only script, no property to point at a reference set.

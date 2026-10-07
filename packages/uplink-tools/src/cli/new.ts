@@ -120,6 +120,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         bake: `uplink-tools bake --bundle dist/${id}/${id}.client.js`,
         release: "uplink-tools release",
         render: "uplink-tools render",
+        page: "uplink-tools docs --no-assets",
         docs: "uplink-tools docs",
         "docs:check": "uplink-tools docs --check",
       },
@@ -182,8 +183,8 @@ export default defineConfig({
 integrates and what someone has to install first.
 
 Everything else on the generated page is derived from your registrations, your
-contract slice and your fixtures. Run \`GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run\`
-(or \`npm run docs\`, which also renders the pictures) and commit what it writes.
+contract slice and your fixtures. Run \`npm run page\` (or \`npm run docs\`,
+which also renders the pictures) and commit what it writes.
 
 ## widget:${widgetId}
 
@@ -1024,7 +1025,6 @@ function shell(command: string, args: readonly string[], cwd: string): void {
   const result = spawnSync(command, args, {
     cwd,
     stdio: "inherit",
-    env: { ...process.env, GONOGO_UPLINK_PAGE_UPDATE: "1" },
     // npm and npx are batch files on Windows, which only a shell can start.
     shell: process.platform === "win32",
   });
@@ -1112,7 +1112,7 @@ export function newUplink(
   const clientDir = join(target, "client");
   const client = relative(cwd, clientDir) || ".";
   const inClient = (command: string) => `cd ${client} && ${command}`;
-  const pageCommand = inClient("GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run");
+  const pageCommand = inClient("npm run page");
   const unfinished: string[] = [];
   const note = (failure: string | undefined) => {
     if (failure !== undefined) unfinished.push(failure);
@@ -1139,13 +1139,13 @@ export function newUplink(
           () => shell("npm", ["install"], clientDir),
         ),
       );
-  // The page is written by the client's own test run, which needs the install and compiles the generated types.
+  // Written by the page generator, never through the test run's update switch: that switch is refused under CI, where a first write is as legitimate as anywhere. It needs the install and reads the generated types.
   const paged =
     generated &&
     installed &&
     note(
       attempt("write the generated page", pageCommand, () =>
-        shell("npx", ["vitest", "run"], clientDir),
+        shell("npm", ["run", "page"], clientDir),
       ),
     );
 
