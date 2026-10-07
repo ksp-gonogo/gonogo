@@ -229,8 +229,8 @@ export function readWireSurface(pkgDir: string): WireSurface {
         `uplink-tools docs: ${unitsPath} declares the channel "${id}" and ` +
           `${topicMapPath} does not say what payload it carries.\n` +
           "Both files come out of the same codegen run, so this is not an " +
-          "authoring mistake: either the two are from different runs (re-run " +
-          "`mod/codegen.sh`), or the emitted topic-map format has changed and " +
+          "authoring mistake: either the two are from different runs (run " +
+          "`uplink-tools codegen` again), or the emitted topic-map format has changed and " +
           "@ksp-gonogo/uplink-tools needs updating to read it.\n" +
           "It throws rather than printing a row with an empty payload, because " +
           "a channel table quietly missing its types is the kind of drift this " +

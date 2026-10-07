@@ -922,7 +922,11 @@ export interface ContributionDefinition<
   ) => readonly ContributionEntry<Slot>[] | null | undefined;
   /**
    * A Domain id. `compute` runs only while that Domain is present; while it is
-   * not, the contribution draws nothing.
+   * not, the contribution draws nothing. A Domain is present from the first
+   * value its `<domain>.available` Topic delivers, so naming `"example"` here
+   * needs a plugin that declares and publishes `example.available`. Leave it
+   * out when `deps` already says everything: with no value for a dep, `compute`
+   * is handed none and can return nothing.
    */
   requires?: string;
   /**
@@ -1095,7 +1099,11 @@ export interface AugmentDefinition<Slot extends string = string> {
   label?: string;
   /**
    * A Domain id. The augment renders only while the host reports that Domain
-   * present, so it stays hidden while its mod is not running.
+   * present, so it stays hidden while its mod is not running. A Domain is
+   * present from the first value its `<domain>.available` Topic delivers, so
+   * naming `"example"` here needs a plugin that declares and publishes
+   * `example.available`. An augment whose Uplink publishes no such Topic
+   * leaves this out and returns nothing until its own Topic has a value.
    */
   requires?: string;
   /**

@@ -550,6 +550,118 @@
     ],
     "additions": [
       {
+        "key": "uplink-tools . FixtureFile",
+        "note": "New: a fixture file as an author writes it, so the reference documents the format"
+      },
+      {
+        "key": "uplink-tools . FixtureFile#_meta?",
+        "note": "A field of the fixture file's FixtureFile block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureFile#_scene",
+        "note": "A field of the fixture file's FixtureFile block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureFile#_stream?",
+        "note": "A field of the fixture file's FixtureFile block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene",
+        "note": "New: the _scene block of a fixture file, the former private RawScene exported and documented"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#augment?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#before?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#caption?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#config?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#contribution?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#dataSourceId?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#expectsEmpty?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#hero?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#highlight?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#hostWidget?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#modes?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#motion?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#paints?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#size?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#slotProps?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#steps?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#unchangedWhenHeld?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureScene#widget?",
+        "note": "A field of the fixture file's FixtureScene block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureStream",
+        "note": "New: the _stream block of a fixture file, the former private RawStream exported and documented"
+      },
+      {
+        "key": "uplink-tools . FixtureStream#delaySeconds?",
+        "note": "A field of the fixture file's FixtureStream block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureStream#emits?",
+        "note": "A field of the fixture file's FixtureStream block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureStream#pinnedUt?",
+        "note": "A field of the fixture file's FixtureStream block, unchanged in meaning"
+      },
+      {
+        "key": "uplink-tools . FixtureStream#stopsArriving?",
+        "note": "A field of the fixture file's FixtureStream block, unchanged in meaning"
+      },
+      {
         "key": "uplink-tools . WIDGET_RECORDS_FILE",
         "note": "Where gonogo-uplink docs writes an Uplink's widget records: docs/widgets.json"
       },

@@ -292,37 +292,46 @@ export type { ${Id}Heartbeat };
 import { EmptyState, Panel, Section, Text, Unit } from "@ksp-gonogo/ui-kit";
 import { ${upper} } from "../uplink.js";
 
+/** Why there is no count to draw. Each is a different thing for an operator to do something about, so each has its own words. */
+const NO_VALUE = {
+  pending: "Waiting for the ${id} Uplink",
+  absent: "The ${id} Uplink reports no heartbeat",
+  unowned: "The ${id} Uplink is not installed",
+};
+
 /**
  * How many samples the ${o.name} Uplink has published, and the game time of the
- * latest. Until the first one arrives it says it is waiting, since a zero would
- * read as a count.
+ * latest. With no sample it says why there is none, since a zero would read as
+ * a count. When samples stop arriving it keeps the last count and marks it as
+ * held, since a stale number that looks current is worse than no number.
  */
 function HeartbeatWidget() {
   const heartbeat = useTelemetry("${topic}");
 
-  if (heartbeat.state !== "observed") {
+  if (heartbeat.state !== "observed" && heartbeat.state !== "held") {
     return (
       <Panel
         panelTitle="Heartbeat"
         sections={
           <Section>
-            <EmptyState>Waiting for the ${id} Uplink</EmptyState>
+            <EmptyState>{NO_VALUE[heartbeat.state]}</EmptyState>
           </Section>
         }
       />
     );
   }
 
+  // heartbeat.ticks and heartbeat.ut are readings of one field each, and <Unit> marks a held one. heartbeat.value.ticks is the bare number: the same figure with nothing to say it has gone stale.
   return (
     <Panel
       panelTitle="Heartbeat"
       sections={
         <Section>
           <Text>
-            Ticks <Unit value={heartbeat.value.ticks} />
+            Ticks <Unit value={heartbeat.ticks} />
           </Text>
           <Text>
-            UT <Unit value={heartbeat.value.ut} />
+            UT <Unit value={heartbeat.ut} />
           </Text>
         </Section>
       }
@@ -352,15 +361,86 @@ export { HeartbeatWidget };
 
   files.set(
     "client/src/Heartbeat/index.test.tsx",
-    `import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+    `import {
+  render,
+  screen,
+  setupStreamFixture,
+  stopArriving,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { act } from "react";
 import { describe, expect, it } from "vitest";
+import "../index.js";
 import { HeartbeatWidget } from "./index.js";
 
+/** The widget on a stream the test feeds by hand, pinned at the game time of the sample it sends. */
+function mounted() {
+  const stream = setupStreamFixture({ pinnedUt: 110 });
+  const view = render(
+    <stream.Provider>
+      <HeartbeatWidget />
+    </stream.Provider>,
+  );
+  return { stream, ...view };
+}
+
+/** The figures <Unit> has marked as held, which is how a stale number is told from a current one. */
+const heldFigures = (container: HTMLElement) =>
+  container.querySelectorAll("[data-held]").length;
+
 describe("HeartbeatWidget", () => {
-  it("says it is waiting rather than rendering a zero", () => {
-    render(<HeartbeatWidget />);
+  it("says it is waiting before the first sample, rather than drawing a zero", () => {
+    mounted();
 
     expect(screen.getByText(/waiting for the ${id} uplink/i)).toBeVisible();
+  });
+
+  it("draws a sample that has just arrived, with no mark on it", async () => {
+    const { stream, container } = mounted();
+
+    await act(async () => {
+      stream.emit("${topic}", { ut: 110, ticks: 20 }, { validAt: 110 });
+      stream.store.beginFrame();
+    });
+
+    expect(await screen.findByText(/Ticks/)).toHaveTextContent("20");
+    expect(heldFigures(container)).toBe(0);
+  });
+
+  it("keeps the last count when samples stop arriving, and marks it as held", async () => {
+    const { stream, container } = mounted();
+
+    await act(async () => {
+      stream.emit("${topic}", { ut: 110, ticks: 20 }, { validAt: 110 });
+      stream.store.beginFrame();
+      stopArriving(stream);
+    });
+
+    expect(await screen.findByText(/Ticks/)).toHaveTextContent("20");
+    expect(screen.queryByText(/waiting/i)).toBeNull();
+    // Both figures come from the same sample, so both are held.
+    expect(heldFigures(container)).toBe(2);
+  });
+
+  it("says the Uplink reports no heartbeat when the game confirms there is none", async () => {
+    const { stream } = mounted();
+
+    await act(async () => {
+      stream.emit("${topic}", null, { validAt: 110 });
+      stream.store.beginFrame();
+    });
+
+    expect(await screen.findByText(/reports no heartbeat/i)).toBeVisible();
+  });
+
+  it("says the Uplink is not installed when nothing will ever publish the Topic", async () => {
+    const { stream } = mounted();
+
+    await act(async () => {
+      stream.store.markTopicUnowned("${topic}");
+    });
+
+    expect(await screen.findByText(/is not installed/i)).toBeVisible();
+    expect(screen.queryByText(/waiting/i)).toBeNull();
   });
 });
 `,
@@ -697,10 +777,10 @@ namespace ${ns}
         }
 
         /// <summary>
-        /// The tick's UT, or null when it was not honestly read. Core fills
-        /// <see cref="KspSnapshot.Ut"/> with 0 when Planetarium throws, which is
-        /// live before any save has loaded, so a non-null snapshot can carry a UT
-        /// nobody read.
+        /// The tick's UT, or null when there is none worth publishing. Before a
+        /// save has loaded the snapshot exists and its
+        /// <see cref="KspSnapshot.Ut"/> is 0, which is not a game time anyone is
+        /// playing at, so 0 is treated as no reading.
         /// </summary>
         private static double? ReadableUt(KspSnapshot? snapshot)
         {
@@ -897,36 +977,64 @@ export { VesselWidget } from "./Vessel/index.js";
   files.set(
     "client/src/Vessel/index.tsx",
     `import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
+import {
+  EmptyState,
+  HeldBadge,
+  Panel,
+  Section,
+  Text,
+} from "@ksp-gonogo/ui-kit";
 import { ${upper} } from "../uplink.js";
+
+/** Why there is no name to draw. Each is a different thing for an operator to do something about, so each has its own words. */
+const NO_VALUE = {
+  pending: "Waiting for a vessel",
+  absent: "No vessel is being flown",
+  unowned: "Nothing installed reports the vessel",
+};
 
 /**
  * The name of the vessel being flown, read from \`vessel.identity\`, a Topic
- * Gonogo publishes itself. Until the game reports a vessel it says it is
- * waiting, since an empty name would read as a vessel with none.
+ * Gonogo publishes itself. With no vessel it says why there is none, since an
+ * empty name would read as a vessel with none. When the game stops reporting
+ * it keeps the last name and marks it as held, since a stale name that looks
+ * current is worse than no name.
  */
 function VesselWidget() {
   const identity = useTelemetry("vessel.identity");
 
-  if (identity.state !== "observed") {
+  if (identity.state !== "observed" && identity.state !== "held") {
     return (
       <Panel
         panelTitle="Vessel"
         sections={
           <Section>
-            <EmptyState>Waiting for a vessel</EmptyState>
+            <EmptyState>{NO_VALUE[identity.state]}</EmptyState>
           </Section>
         }
       />
     );
   }
 
+  // A number is marked as held by <Unit>. Text has no figure to hang a mark on, so a held name carries the badge that says why it stopped updating.
   return (
     <Panel
       panelTitle="Vessel"
       sections={
         <Section>
-          <Text>{identity.value.name}</Text>
+          <Text>
+            {identity.value.name}
+            {identity.state === "held" && (
+              <>
+                {" "}
+                <HeldBadge
+                  grade={identity.grade}
+                  subject="Vessel name"
+                  size="sm"
+                />
+              </>
+            )}
+          </Text>
         </Section>
       }
     />
@@ -954,15 +1062,91 @@ export { VesselWidget };
   );
   files.set(
     "client/src/Vessel/index.test.tsx",
-    `import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+    `import {
+  render,
+  screen,
+  setupStreamFixture,
+  stopArriving,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { VesselWidget } from "./index.js";
 
+const KERBAL_X = {
+  vesselId: "v1",
+  name: "Kerbal X",
+  vesselType: 0,
+  situation: 1,
+  parentBodyIndex: 1,
+  launchUt: null,
+};
+
+/** The widget on a stream the test feeds by hand, pinned at the game time of the sample it sends. */
+function mounted() {
+  const stream = setupStreamFixture({ pinnedUt: 110 });
+  render(
+    <stream.Provider>
+      <VesselWidget />
+    </stream.Provider>,
+  );
+  return stream;
+}
+
 describe("VesselWidget", () => {
-  it("says it is waiting rather than rendering an empty name", () => {
-    render(<VesselWidget />);
+  it("says it is waiting before the game reports a vessel, rather than drawing an empty name", () => {
+    mounted();
 
     expect(screen.getByText(/waiting for a vessel/i)).toBeVisible();
+  });
+
+  it("draws the name that has just arrived, with no badge on it", async () => {
+    const stream = mounted();
+
+    await act(async () => {
+      stream.emit("vessel.identity", KERBAL_X, { validAt: 110 });
+      stream.store.beginFrame();
+    });
+
+    expect(await screen.findByText(/Kerbal X/)).toBeVisible();
+    expect(screen.queryByText(/offline|held/i)).toBeNull();
+  });
+
+  it("keeps the last name when the game stops reporting, and marks it as held", async () => {
+    const stream = mounted();
+
+    await act(async () => {
+      stream.emit("vessel.identity", KERBAL_X, { validAt: 110 });
+      stream.store.beginFrame();
+      stopArriving(stream);
+    });
+
+    expect(await screen.findByText(/Kerbal X/)).toBeVisible();
+    expect(screen.queryByText(/waiting/i)).toBeNull();
+    // The fixture dropped the link, so the badge gives that as the reason.
+    expect(screen.getByText(/offline/i)).toBeVisible();
+  });
+
+  it("says no vessel is being flown when the game confirms there is none", async () => {
+    const stream = mounted();
+
+    await act(async () => {
+      stream.emit("vessel.identity", null, { validAt: 110 });
+      stream.store.beginFrame();
+    });
+
+    expect(await screen.findByText(/no vessel is being flown/i)).toBeVisible();
+  });
+
+  it("says nothing reports the vessel when nothing will ever publish the Topic", async () => {
+    const stream = mounted();
+
+    await act(async () => {
+      stream.store.markTopicUnowned("vessel.identity");
+    });
+
+    expect(
+      await screen.findByText(/nothing installed reports the vessel/i),
+    ).toBeVisible();
   });
 });
 `,

@@ -24,10 +24,48 @@ function sceneName(file: string): string {
   return base.endsWith(".json") ? base.slice(0, -".json".length) : base;
 }
 
-/** The `_scene` block, as an author writes it. */
-interface RawScene {
+/**
+ * A fixture file, as an author writes it: one JSON file under a registration's
+ * `__fixtures__/` folder, and one scene the harness mounts and draws.
+ *
+ * The harness feeds a scene nothing by default, so everything its target reads
+ * has to be sent in `_stream`.
+ *
+ * @example
+ * ```json
+ * {
+ *   "_scene": { "widget": "example-heartbeat", "hero": true, "caption": "42 ticks since load" },
+ *   "_stream": {
+ *     "pinnedUt": 1000000,
+ *     "emits": [{ "topic": "example.heartbeat", "payload": { "ut": 1000000, "ticks": 42 } }]
+ *   }
+ * }
+ * ```
+ *
+ * @category Scenes
+ */
+export interface FixtureFile {
+  /** Notes for whoever reads the file next. Nothing reads it. */
+  _meta?: { notes?: string };
+  /** What to mount and how to picture it. */
+  _scene: FixtureScene;
+  /** What arrives on the stream while it is mounted. */
+  _stream?: FixtureStream;
+}
+
+/**
+ * The `_scene` block of a {@link FixtureFile}: what the scene mounts, at which
+ * sizes, and what its picture is held to. Exactly one of `widget`, `augment`
+ * and `contribution` names the target.
+ *
+ * @category Scenes
+ */
+export interface FixtureScene {
+  /** The id of the registered widget to mount. */
   widget?: string;
+  /** The id of the registered augment to mount, in a stand-in panel unless `hostWidget` names a real one. */
   augment?: string;
+  /** The id of the registered contribution to mount. */
   contribution?: string;
   /**
    * A registered widget to mount this augment INSIDE, rather than the stand-in
@@ -44,9 +82,13 @@ interface RawScene {
    * an outline, which moves no layout, and absent entirely when unset.
    */
   highlight?: true;
+  /** What the picture shows, in a sentence. It is the image's alt text on the generated page. */
   caption?: string;
+  /** The widget's saved settings for this scene, as its config form would save them. */
   config?: Record<string, unknown>;
+  /** The props the host passes an augment's slot, for a scene with no real host to pass them. */
   slotProps?: Record<string, unknown>;
+  /** Which of the target's sizes to draw, by name, such as `"default"` and `"min"`. Absent, every size it declares. */
   modes?: string[];
   /**
    * The tile to render in, overriding what would be derived.
@@ -110,8 +152,11 @@ interface RawScene {
    * size narrows `_scene.modes`.
    */
   paints?: string[];
+  /** Things done to the mounted target before it is photographed. */
   before?: SceneAct[];
+  /** The steps of a motion scene, which is drawn as a GIF at its first size. */
   steps?: SceneStep[];
+  /** How a motion scene is played back: frames per second, and whether it runs forwards then backwards. */
   motion?: { fps?: number; pingPong?: boolean };
 }
 
@@ -136,12 +181,37 @@ export interface SceneAct {
   rest?: true;
 }
 
-interface RawStream {
+/**
+ * The `_stream` block of a {@link FixtureFile}: the wire the scene is fed
+ * from.
+ *
+ * @category Scenes
+ */
+export interface FixtureStream {
+  /**
+   * The operator's view time, which the scene is drawn at when it has no
+   * `delaySeconds`. Absent, `1000000`.
+   */
   pinnedUt?: number;
-  /** See `ScenePayload.delaySeconds`. Absent means no light time. */
+  /**
+   * A one-way light time between the craft and the screen, in seconds. Each
+   * emit is delivered that long after its `validAt`, the view time is the
+   * newest `validAt` delivered, and every reading is reckoned to the craft's
+   * present as it is in the app, so a scene can show a modelled figure beside
+   * the observed one. Absent or `0`, nothing is carried across.
+   */
   delaySeconds?: number;
+  /**
+   * What is sent, replayed once the scene has subscribed: in the order
+   * written, or in the order sent under `delaySeconds`. An entry with no
+   * `validAt` was sent at `pinnedUt`. A `payload` of `null` is the game
+   * confirming there is no value.
+   */
   emits?: SceneEmit[];
-  /** See `ScenePayload.stopsArriving`. Absent means a live scene. */
+  /**
+   * Drop the link once every emit has landed, so the picture is of figures
+   * that are held. Absent, the scene is live.
+   */
   stopsArriving?: boolean;
 }
 
@@ -212,14 +282,14 @@ export function sceneFromFixture(
         'or "augment" / "contribution" with the registered id.',
     );
   }
-  return oneScene(where, file, raw, sceneBlock as RawScene, inventory);
+  return oneScene(where, file, raw, sceneBlock as FixtureScene, inventory);
 }
 
 function oneScene(
   where: string,
   file: string,
   raw: Record<string, unknown>,
-  scene: RawScene,
+  scene: FixtureScene,
   inventory: UplinkInventory,
 ): Scene {
   if ("host" in scene) {
@@ -243,9 +313,9 @@ function oneScene(
   const target: SceneTarget = { kind, id };
 
   const streamBlock = raw._stream;
-  const stream: RawStream =
+  const stream: FixtureStream =
     typeof streamBlock === "object" && streamBlock !== null
-      ? (streamBlock as RawStream)
+      ? (streamBlock as FixtureStream)
       : {};
   const pinnedUt = stream.pinnedUt ?? DEFAULT_PINNED_UT;
   const emits = (stream.emits ?? []).map((e) => ({
@@ -374,8 +444,8 @@ function oneScene(
  */
 function delayFor(
   where: string,
-  stream: RawStream,
-  scene: RawScene,
+  stream: FixtureStream,
+  scene: FixtureScene,
 ): { delaySeconds?: number } {
   const delay = stream.delaySeconds;
   if (delay === undefined) return {};
@@ -403,8 +473,8 @@ function delayFor(
  */
 function unchangedWhenHeldFor(
   where: string,
-  scene: RawScene,
-  stream: RawStream,
+  scene: FixtureScene,
+  stream: FixtureStream,
 ): string | undefined {
   const why = scene.unchangedWhenHeld;
   if (why === undefined) return undefined;
@@ -431,7 +501,7 @@ function unchangedWhenHeldFor(
  * silently and read as a check nobody wrote. Refusing it here means the author
  * finds out before Chromium starts.
  */
-function paintsFor(where: string, scene: RawScene): string[] {
+function paintsFor(where: string, scene: FixtureScene): string[] {
   const paints = scene.paints ?? [];
   if (!Array.isArray(paints)) {
     throw new Error(
@@ -463,7 +533,7 @@ function paintsFor(where: string, scene: RawScene): string[] {
 }
 
 /** `_scene.before`, validated at parse time so a typo is not a silent no-op. */
-function beforeFor(where: string, scene: RawScene): SceneAct[] {
+function beforeFor(where: string, scene: FixtureScene): SceneAct[] {
   const acts = scene.before ?? [];
   if (!Array.isArray(acts)) {
     throw new Error(
@@ -647,7 +717,7 @@ function unknownTarget(
 
 function resolveAllModes(
   where: string,
-  scene: RawScene,
+  scene: FixtureScene,
   target: SceneTarget,
   inventory: UplinkInventory,
 ): InventoryMode[] {
@@ -684,7 +754,7 @@ function resolveAllModes(
 
 function modesFor(
   where: string,
-  scene: RawScene,
+  scene: FixtureScene,
   target: SceneTarget,
   inventory: UplinkInventory,
 ): InventoryMode[] {

@@ -2169,7 +2169,6 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * registerAugment({
  *   id: "example-cadence-section",
  *   augments: "space-center-status.sections",
- *   requires: "example",
  *   channels: ["example.heartbeat"],
  *   component: CadenceSection,
  *   owner: EXAMPLE,
@@ -2179,7 +2178,6 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   id: "cadence-badge",
  *   contributes: "space-center-status.badges",
  *   deps: ["example.heartbeat"],
- *   requires: "example",
  *   compute: (topics) =>
  *     topics["example.heartbeat"]
  *       ? [{ id: "cadence", label: "Publishing", tone: "info" as const }]

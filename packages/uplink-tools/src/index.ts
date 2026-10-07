@@ -50,6 +50,11 @@ export { buildProbePage, generateEntry } from "./render/page";
 /** The `globalThis` key the probe installs itself under. A driver that drives
  *  the probe from Node needs the name and nothing else from that module. */
 export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
+export type {
+  FixtureFile,
+  FixtureScene,
+  FixtureStream,
+} from "./render/sceneModel";
 export {
   assertEveryWidgetCovered,
   buildScenes,
