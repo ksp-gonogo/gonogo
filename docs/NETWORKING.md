@@ -27,8 +27,8 @@ If the main screen can't reach the KSP computer on the same WiFi, a firewall on 
 
 1. On the main screen, hover the **+** button (bottom-right) and press **Add station** (the broadcast symbol). The modal shows a four-character **share code** (e.g. `AB3K`), the same code as a link and a QR code, and the TURN indicator described [below](#checking-the-relay-works)
 2. On the other device, open the station page. Any of these work:
-   - Scan the QR code, or open the link from the modal. Both carry the code as `?host=<code>`, so the station connects on landing with nothing to type
-   - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app and it is what the QR points at
+   - Scan the QR code, or open a link from the modal. Both carry the code as `?host=<code>`, so the station connects on landing with nothing to type. The modal lists the address of your own main screen (for a device that can reach it) and, when the main screen is on localhost or a local address, the public build beside it (for a device on another network). The QR encodes the one a phone can reach: your own address on a local network, the public build when the main screen is on localhost
+   - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app, available once a release has been published
    - On the same WiFi, `http://<main-screen-computer-ip>:8080/station`, served by your own container. Running from a checkout it is `http://<main-screen-computer-ip>:5173/station`
 3. If you didn't arrive by QR or link, the station shows a **Connect to Mission Control** screen. Type the four-character code and press **Connect**
 4. A new main screen or station starts with no widgets and says so: press the **+** (Add component) at the bottom right to add one
@@ -69,7 +69,7 @@ Work down this list. The first three cover nearly every same-WiFi failure, and n
 
 A station on the same WiFi as the main screen connects directly, peer-to-peer, and never needs TURN or any port-forwarding. Everything below only applies when a station is on a different network, a phone on cellular, someone joining from their own home.
 
-Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. The link and QR in Add Station already point at the public build (`ksp-gonogo.github.io/app/station`) whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
+Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. Add Station lists the public build (`ksp-gonogo.github.io/app/station`) beside your own address whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
 
 For a cross-internet station to reach the main screen, two things must be in place:
 

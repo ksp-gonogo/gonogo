@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
+import { stationAddresses } from "./stationAddresses";
 
 /**
  * Station-link FAB: shows the host's peer ID + a QR code so a station
@@ -31,50 +32,6 @@ export function StationLinkFab() {
       </Fab>
     </Tooltip>
   );
-}
-
-/**
- * Canonical deployed station URL: used when the host is running on a
- * local-dev origin (localhost / LAN IP) so the QR a phone scans points
- * at the HTTPS GitHub Pages build instead of an unreachable
- * `http://192.168.x.x:5173`. Forks can override via VITE_STATION_URL.
- */
-const PROJECT_STATION_URL = "https://ksp-gonogo.github.io/app/station";
-
-function isLocalDevOrigin(origin: string): boolean {
-  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|\d+\.\d+\.\d+\.\d+)(?::\d+)?$/.test(
-    origin,
-  );
-}
-
-/**
- * Build the absolute station URL for this host.
- *
- * Priority:
- *  1. `VITE_STATION_URL` if set: explicit override for forks pointing at
- *     their own deploy.
- *  2. Page origin: when the host page itself is loaded from an HTTPS
- *     deploy, that's the right base for stations too.
- *  3. `PROJECT_STATION_URL`: fallback when the host is on a local-dev
- *     origin (localhost / LAN IP). Stations on phones / friends'
- *     machines can't reach those, so the QR points at the canonical
- *     deploy instead.
- *
- * The share code rides as `?host=` so the station screen can auto-connect
- * on landing without the user typing anything. The station derives the
- * host's broker peer id (`gonogo-host-<code>`) from it and connects directly.
- */
-function buildStationUrl(code: string): string {
-  const override = import.meta.env.VITE_STATION_URL;
-  if (override) {
-    return `${override.replace(/\/$/, "")}?host=${encodeURIComponent(code)}`;
-  }
-  const origin = globalThis.location.origin;
-  if (isLocalDevOrigin(origin)) {
-    return `${PROJECT_STATION_URL}?host=${encodeURIComponent(code)}`;
-  }
-  const base = import.meta.env.BASE_URL;
-  return `${origin}${base}station?host=${encodeURIComponent(code)}`;
 }
 
 function StationLinkPanel() {
@@ -109,7 +66,12 @@ function StationLinkPanel() {
     return <Empty>Connecting to peer network...</Empty>;
   }
 
-  const url = buildStationUrl(shareCode);
+  const { addresses, qr } = stationAddresses({
+    code: shareCode,
+    origin: globalThis.location.origin,
+    baseUrl: import.meta.env.BASE_URL,
+    override: import.meta.env.VITE_STATION_URL,
+  });
 
   return (
     <Wrap>
@@ -123,15 +85,23 @@ function StationLinkPanel() {
         <Label>Share code</Label>
         <Code>{shareCode}</Code>
       </Cluster>
-      <UrlRow>
-        <Label>Link</Label>
-        <UrlValue href={url} target="_blank" rel="noreferrer">
-          {url}
-        </UrlValue>
-      </UrlRow>
+      {addresses.map((address) => (
+        <UrlRow key={address.id}>
+          <Label>{address.label}</Label>
+          <UrlValue href={address.url} target="_blank" rel="noreferrer">
+            {address.url}
+          </UrlValue>
+          <UrlWhen>{address.when}</UrlWhen>
+        </UrlRow>
+      ))}
       <QrRow>
-        <QRCodeSVG value={url} size={160} />
+        <QRCodeSVG
+          value={qr.url}
+          size={160}
+          title={`QR code for ${qr.label}`}
+        />
       </QrRow>
+      {addresses.length > 1 && <UrlWhen>The QR code opens {qr.label}</UrlWhen>}
       <TurnStatus />
       <Hint>
         Scan to open <code>/station</code> on another device, it&apos;ll
@@ -286,6 +256,11 @@ const UrlValue = styled.a`
   &:hover {
     color: var(--color-text-primary);
   }
+`;
+
+const UrlWhen = styled.span`
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
 `;
 
 const Label = styled.span`
