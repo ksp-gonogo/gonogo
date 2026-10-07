@@ -50,8 +50,9 @@ name: release
 # release, no tag, no commit, no ledger freeze. Every package gets the same RC,
 # `<next release>-rc.<run number>`, applied to the packed tarball only; the next
 # release is what prepare-release.yml would cut (`scripts/release-packages.mjs`
-# says how), or the `version` input. npm gets it under the `rc` dist-tag and leaves an existing `latest`
-# alone (a package with no earlier version may see its first version, the RC,
+# says how), or the `version` input. npm gets it under the `rc` dist-tag, moved
+# for every package together once all of them exist, and leaves an existing
+# `latest` alone (a package with no earlier version may see its first version, the RC,
 # become `latest`, and the job summary says so); NuGet gets it as a SemVer
 # prerelease. Every gate the release runs before a publish runs on the
 # RC's own artifact. It runs only on refs/heads/staging, and only on dispatch.
@@ -78,6 +79,13 @@ on:
         description: >-
           Publish a release candidate of every package (npm dist-tag `rc`, NuGet
           prerelease) instead of a release. staging only; skips the app release.
+        type: boolean
+        default: false
+      tag_probe:
+        description: >-
+          Find out whether this workflow may move npm dist-tags, without moving
+          one anybody installs by: adds a throwaway tag to a version already on
+          npm and removes it again, for each package. Use it with dry_run.
         type: boolean
         default: false
       version:
@@ -285,15 +293,37 @@ jobs:
   # A version already on the registry is a re-run attempt (or a packages_only
   # dispatch of a released tree) and is skipped with a notice, once the fossil
   # check below has shown the published copy is this content.
+  #
+  # THE PACKAGES ARE PUBLISHED AS A SET. These jobs finish minutes apart, and
+  # while each moved its own dist-tag as it finished, an author installing in
+  # between got two packages at the new version and one at the old, which do not
+  # resolve together; a job that failed left the set mixed until someone ran it
+  # again. So the order is:
+  #
+  #   publish-nuget     push the C# package, which nuget.org accepts at once and
+  #                     lists up to twenty minutes later
+  #   nuget-listed      wait until it is listed; a scaffold restoring it before
+  #                     then fails, so nothing an author installs by moves first
+  #   publish-packages  publish each npm package under the `pending` tag, which
+  #                     nobody installs by: `rc` and `latest` stay where they are
+  #   packages-present  read each version back from the registry
+  #   move-tags         move `rc` (or `latest`) for all three, seconds apart, and
+  #                     put back the ones already moved if one cannot be
+  #
+  # A failure anywhere leaves every tag naming the previous set and the run red.
+  # Running the workflow again finishes the job: a version already published is
+  # skipped, and the tags are moved for whatever still needs it.
   publish-packages:
-    needs: [release, rc-plan]
+    needs: [release, rc-plan, nuget-listed]
     # `needs` alone would skip this whenever `release` is skipped, which is
     # exactly the packages_only case. Naming the results keeps a *failed*
     # release from publishing while letting a deliberately skipped one through.
     # An RC additionally needs its plan, which is where the staging-only refusal
-    # lives.
-    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
+    # lives. Nothing is published to npm until nuget.org lists the C# package.
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-listed.result == 'success' }}
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pkg.outputs.version }}
     env:
       RC: ${{ inputs.rc && 'true' || 'false' }}
       RC_PLAN: ${{ needs.rc-plan.outputs.plan }}
@@ -379,9 +409,7 @@ jobs:
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           VERSION='${{ steps.pkg.outputs.version }}'
-          if [ "$RC" = true ]; then
-            echo "latest=$(npm view "$NAME" dist-tags.latest)" >> "$GITHUB_OUTPUT"
-          fi
+          echo "latest=$(npm view "$NAME" dist-tags.latest 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
           # A non-zero exit is an E404 (not published) or a registry blip.
           # Both fall through to a publish attempt, and npm refuses to
           # overwrite an existing version anyway: the registry stays the
@@ -488,40 +516,35 @@ jobs:
         if: steps.published.outputs.skip == 'false' && !inputs.dry_run
         # No NODE_AUTH_TOKEN / NPM_TOKEN: npm detects OIDC from the
         # `id-token: write` permission and exchanges it with the registry.
-        run: |
-          if [ "$RC" = true ]; then
-            npm publish "$tarball" --access public --provenance --tag rc
-          else
-            npm publish "$tarball" --access public --provenance
-          fi
+        #
+        # Under the holding tag, for a release and a candidate alike: `move-tags`
+        # below is the only job that moves `rc` or `latest`.
+        run: npm publish "$tarball" --access public --provenance --tag pending
 
       - name: Publish (dry run)
         if: steps.published.outputs.skip == 'false' && inputs.dry_run
-        run: |
-          if [ "$RC" = true ]; then
-            npm publish "$tarball" --access public --provenance --tag rc --dry-run
-          else
-            npm publish "$tarball" --access public --provenance --dry-run
-          fi
+        run: npm publish "$tarball" --access public --provenance --tag pending --dry-run
 
-      # Cannot be undone from here, but a moved `latest` must not pass as green.
-      # A package whose first version this is had no `latest` to protect: npm may
-      # point it at the RC, so that case reports where it points and passes.
-      - name: The RC left npm's latest where it was
-        if: env.RC == 'true' && steps.published.outputs.skip == 'false' && !inputs.dry_run
+      # Publishing under `pending` must move nothing else, for a release too:
+      # its `latest` moves in `move-tags`, with the others. A package with no
+      # version before this one had no `latest` to protect: npm points it at the
+      # first version whatever the tag, so that case reports where it points and
+      # passes.
+      - name: Publishing left npm's latest where it was
+        if: steps.published.outputs.skip == 'false' && !inputs.dry_run
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
           BEFORE='${{ steps.published.outputs.latest }}'
           AFTER="$(npm view "$NAME" dist-tags.latest)"
-          if [ '${{ steps.pkg.outputs.first }}' = true ]; then
-            echo "$NAME had no earlier version, so its first version is this RC, and \`latest\` now points at ${AFTER:-nothing}." >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "$BEFORE" ]; then
+            echo "$NAME had no earlier version, so \`latest\` now points at ${AFTER:-nothing}, the version just published." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           if [ "$AFTER" != "$BEFORE" ]; then
             echo "::error::$NAME's latest moved from $BEFORE to $AFTER. Restore it: npm dist-tag add $NAME@$BEFORE latest"
             exit 1
           fi
-          echo "$NAME latest is still $BEFORE; the RC is under the rc dist-tag."
+          echo "$NAME latest is still $BEFORE; the new version is under the pending dist-tag."
 
       - name: Summary
         run: |
@@ -532,8 +555,92 @@ jobs:
           elif [ '${{ inputs.dry_run }}' = 'true' ]; then
             echo "🧪 $NAME@$VERSION: packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "📦 Published $NAME@$VERSION with provenance$([ "$RC" = true ] && echo ' under the rc dist-tag')." >> "$GITHUB_STEP_SUMMARY"
+            echo "📦 Published $NAME@$VERSION with provenance under the pending dist-tag; move-tags moves $([ "$RC" = true ] && echo rc || echo latest) for the set." >> "$GITHUB_STEP_SUMMARY"
             echo "https://www.npmjs.com/package/$NAME/v/$VERSION" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # Reads each version back from the registry before any tag moves, by the
+  # version's own document and a request for its tarball, with every cache asked
+  # for the registry's own answer: the packument a client resolves a tag from is
+  # cached and is exactly what must not be trusted here.
+  packages-present:
+    needs: [publish-packages]
+    if: ${{ !cancelled() && needs.publish-packages.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      names: ${{ steps.names.outputs.names }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      # From the tree's own manifests, the same list `release-packages.mjs` plans
+      # with, so a fourth published package is waited for without an edit here.
+      - name: Which packages are published
+        id: names
+        run: |
+          NAMES="$(node -e "import('./scripts/release-packages.mjs').then((m) => console.log(m.publishedPackages().map((p) => p.name).join(' ')))")"
+          echo "names=$NAMES" >> "$GITHUB_OUTPUT"
+
+      - name: The registry serves every package at this version
+        run: node scripts/release-tags.mjs npm-present '${{ needs.publish-packages.outputs.version }}' ${{ steps.names.outputs.names }} ${{ inputs.dry_run && '--dry-run' || '' }}
+
+  # The only job that moves a dist-tag anyone installs by. It needs "Allow npm
+  # dist-tag" ticked on each package's trusted publisher on npmjs.com, which is
+  # separate from the permission to publish, and npm 11.21.0 or later.
+  #
+  # A dry run prints the moves and makes none. Nothing it can READ shows whether
+  # the permission is there, because a public package's tags are readable by
+  # anyone, so `tag_probe` asks the one way that does: a throwaway tag added to
+  # a version already published and removed again.
+  move-tags:
+    needs: [publish-packages, packages-present]
+    if: ${{ !cancelled() && needs.packages-present.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ inputs.rc && 'rc' || 'latest' }}
+      VERSION: ${{ needs.publish-packages.outputs.version }}
+      NAMES: ${{ needs.packages-present.outputs.names }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure npm can move a dist-tag under OIDC (>= 11.21.0)
+        run: |
+          npm install -g npm@latest
+          node -e "
+            const [major, minor] = process.argv[1].split('.').map(Number);
+            if (major < 11 || (major === 11 && minor < 21)) {
+              console.error('::error::npm ' + process.argv[1] + ' cannot move a dist-tag under trusted publishing; 11.21.0 or later can.');
+              process.exit(1);
+            }
+          " "$(npm -v)"
+          npm -v
+
+      - name: This workflow may move dist-tags
+        if: inputs.tag_probe
+        run: node scripts/release-tags.mjs probe $NAMES
+
+      - name: Move the tag for every package together
+        run: node scripts/release-tags.mjs move "$TAG" "$VERSION" $NAMES ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Summary
+        run: |
+          if [ '${{ inputs.dry_run }}' = 'true' ]; then
+            echo "🧪 $TAG would move to $VERSION for: $NAMES (dry run, no tag moved)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "🏷 $TAG is $VERSION for: $NAMES." >> "$GITHUB_STEP_SUMMARY"
           fi
 
   # The C# half of the Uplink surface. nuget.org's trusted-publishing policy for
@@ -545,6 +652,9 @@ jobs:
   # the extraction probe building a real Uplink against it outside the repo, then
   # the plant proving the probe could have failed. The push sends that same file,
   # never a re-pack, so what shipped is what was tested.
+  #
+  # It is pushed FIRST, before any npm package, and `nuget-listed` then waits
+  # for it: see the note above `publish-packages`.
   publish-nuget:
     needs: [release, rc-plan]
     if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
@@ -552,6 +662,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      version: ${{ steps.pack.outputs.version }}
     env:
       RC: ${{ inputs.rc && 'true' || 'false' }}
       RC_PLAN: ${{ needs.rc-plan.outputs.plan }}
@@ -717,3 +829,24 @@ jobs:
             echo "📦 Published $PACKAGE_ID $VERSION." >> "$GITHUB_STEP_SUMMARY"
             echo "https://www.nuget.org/packages/$PACKAGE_ID/$VERSION" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  # nuget.org answers a push with "Your package was pushed" and lists the
+  # version only once it has validated and indexed it. One candidate was still
+  # unlisted twenty minutes after its push, while npm's tag already named it, and
+  # a scaffold made in that window failed to restore. So the npm half waits here.
+  nuget-listed:
+    needs: [publish-nuget]
+    if: ${{ !cancelled() && needs.publish-nuget.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: nuget.org lists the version
+        run: node scripts/release-tags.mjs nuget-listed KspGonogo.Sitrep.Contract '${{ needs.publish-nuget.outputs.version }}' --wait-minutes 45 ${{ inputs.dry_run && '--dry-run' || '' }}
