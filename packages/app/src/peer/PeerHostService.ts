@@ -26,6 +26,7 @@ import type { PeerMessage } from "./protocol";
 import { asPeerMessage } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { TypedListeners } from "./typedListeners";
+import { encodeWideNumbers } from "./wideNumbers";
 
 // The host's sole persisted identity. The PeerJS peer id is *derived* from
 // this code (`gonogo-host-<CODE>`) rather than persisted: stations derive the
@@ -1162,7 +1163,7 @@ export class PeerHostService {
   broadcastToVantage(vantage: string, msg: PeerMessage): void {
     for (const conn of this.connections) {
       if (this.vantageOf(conn) !== vantage) continue;
-      conn.send(msg);
+      this.transmit(conn, msg);
     }
   }
 
@@ -1256,7 +1257,7 @@ export class PeerHostService {
     // next frame is the only thing this station would otherwise see. Replay the
     // current one to it alone.
     const cached = this.sitrepSinks.get(vantage)?.cachedFrame(topic);
-    if (cached) conn.send(cached);
+    if (cached) this.transmit(conn, cached);
   }
 
   private releaseSitrepSub(conn: DataConnection, topic: string): void {
@@ -1375,7 +1376,38 @@ export class PeerHostService {
   sendToPeer(peerId: string, msg: PeerMessage): void {
     const conn = this.findConnByPeerId(peerId);
     if (!conn) return;
-    conn.send(msg);
+    this.transmit(conn, msg);
+  }
+
+  /**
+   * Send one message, repairing a relayed Sitrep frame the packer refuses.
+   *
+   * A number the packer cannot write would otherwise throw out of whatever
+   * listener was relaying, and the frame would never reach a station. The
+   * frame is retried with those numbers tagged (`wideNumbers.ts`) and the
+   * station restores them. A frame that still cannot be sent is logged with its
+   * topic rather than dropped silently; any other message keeps throwing.
+   */
+  private transmit(conn: DataConnection, msg: PeerMessage): void {
+    try {
+      conn.send(msg);
+      return;
+    } catch (err) {
+      if (msg.type !== "sitrep-frame") throw err;
+      try {
+        conn.send({
+          ...msg,
+          message: encodeWideNumbers(msg.message),
+          wide: true,
+        } satisfies PeerMessage);
+      } catch (retryErr) {
+        const topic = "topic" in msg.message ? msg.message.topic : undefined;
+        logger.error(
+          `[PeerHost] sitrep frame could not be sent to ${conn.peer}: topic=${topic ?? msg.message.type}`,
+          retryErr instanceof Error ? retryErr : new Error(String(retryErr)),
+        );
+      }
+    }
   }
 
   broadcast(msg: PeerMessage) {
@@ -1407,7 +1439,7 @@ export class PeerHostService {
       PEER_BROADCAST_BYTES_BUDGET.record(bytes * this.connections.size);
     }
     for (const conn of this.connections) {
-      conn.send(msg);
+      this.transmit(conn, msg);
     }
   }
 

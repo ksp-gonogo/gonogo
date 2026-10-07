@@ -98,6 +98,8 @@ export const SNAPSHOT = {
         index: KERBIN_INDEX,
         parentIndex: 0,
         radius: KERBIN_RADIUS,
+        // Stock Kerbin mass: a whole number past 2^64, which the PeerJS packer refuses unless the relay repairs it.
+        mass: 5.2915158e22,
         // Stock rails, as the mod's SystemViewProvider states it for every body.
         horizon: { kind: 1, untilUt: null, trajectoryKind: 1 },
       },

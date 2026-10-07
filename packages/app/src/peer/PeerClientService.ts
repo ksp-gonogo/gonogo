@@ -12,6 +12,7 @@ import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
 import { getStationKey, getStationPeerId } from "./stationPeerId";
 import { TypedListeners } from "./typedListeners";
+import { decodeWideNumbers } from "./wideNumbers";
 
 export type ConnStatus =
   | "idle"
@@ -1103,7 +1104,10 @@ export class PeerClientService {
       this.events.emit("analyticsConsent", msg.enabled);
     },
     "sitrep-frame": (msg) => {
-      this.events.emit("sitrepFrame", msg.message);
+      this.events.emit(
+        "sitrepFrame",
+        msg.wide ? decodeWideNumbers(msg.message) : msg.message,
+      );
     },
     "sitrep-reset": () => {
       this.events.emit("sitrepReset");
