@@ -5,6 +5,12 @@
  * Gonogo's: `Sitrep.Contract.dll` is GonogoCore's to provide, and a second copy
  * in another GameData folder is a second set of types that do not compare equal
  * to the first.
+ *
+ * Its one root is `GameData/<name>/`, which is what both ways of installing a
+ * mod expect: by hand the zip is unpacked over the game's own folder, and CKAN
+ * copies the path the netkan's install stanza names. The netkan is held to the
+ * zip here, because a stanza naming a path the zip does not hold installs
+ * nothing and reports no error.
  */
 
 import {
@@ -23,8 +29,10 @@ import { type ZipEntry, zipArchive } from "./zip";
 
 export const PACKAGE_USAGE = `uplink-tools package [options]
 
-  Lay the built plugin out as GameData/<name>/ and zip it, with the netkan
-  beside the zip. Build the mod in Release first; release does both in order.
+  Lay the built plugin out as GameData/<name>/ and zip it with that as the
+  zip's one root, with the netkan beside the zip. It refuses a netkan whose
+  install stanza names a path the zip does not hold. Build the mod in Release
+  first; release does both in order.
 
   --out <dir>      where the zip goes (default: dist/ in the Uplink)
   --uplink <dir>   the Uplink's directory, the one holding uplink.json
@@ -88,16 +96,68 @@ export function packageMod(uplinkDir: string, outDir: string): PackageResult {
     files.push(extra);
   }
 
-  const netkan = join(modDir, `${gamedata}.netkan`);
-  if (existsSync(netkan)) cpSync(netkan, join(outDir, `${gamedata}.netkan`));
-
   const entries: ZipEntry[] = files.sort().map((file) => ({
-    path: `${gamedata}/${file}`,
+    path: `GameData/${gamedata}/${file}`,
     bytes: readFileSync(join(staging, file)),
   }));
+
+  const netkan = join(modDir, `${gamedata}.netkan`);
+  if (existsSync(netkan)) {
+    const unmet = netkanInstallsMissingFrom(
+      netkan,
+      entries.map((entry) => entry.path),
+    );
+    if (unmet.length > 0) {
+      throw new Error(
+        `${netkan} installs ${unmet.join(" and ")}, and the mod zip holds no such path: its one root ` +
+          `is GameData/${gamedata}/. CKAN would install nothing. Make the install stanza ` +
+          `{ "file": "GameData/${gamedata}", "install_to": "GameData" }.`,
+      );
+    }
+    cpSync(netkan, join(outDir, `${gamedata}.netkan`));
+  }
   const zip = join(outDir, `${gamedata}.zip`);
   writeFileSync(zip, zipArchive(entries));
   return { id, zip, files };
+}
+
+/**
+ * The paths a netkan's install stanzas name that the zip does not hold. A
+ * `file` is a path from the zip's root; a `find` is a folder name anywhere in
+ * it. A stanza using anything else (`find_regexp`) is not judged.
+ */
+function netkanInstallsMissingFrom(
+  netkanPath: string,
+  zipPaths: readonly string[],
+): string[] {
+  const parsed: unknown = JSON.parse(readFileSync(netkanPath, "utf8"));
+  const install: unknown =
+    typeof parsed === "object" && parsed !== null
+      ? Reflect.get(parsed, "install")
+      : undefined;
+  const stanzas: unknown[] = Array.isArray(install) ? install : [];
+  const folders = new Set(
+    zipPaths.flatMap((path) => {
+      const parts = path.split("/").slice(0, -1);
+      return parts.map((_, index) => parts.slice(0, index + 1).join("/"));
+    }),
+  );
+  const missing: string[] = [];
+  for (const stanza of stanzas) {
+    if (typeof stanza !== "object" || stanza === null) continue;
+    const file: unknown = Reflect.get(stanza, "file");
+    const find: unknown = Reflect.get(stanza, "find");
+    if (typeof file === "string" && !folders.has(file.replace(/\/+$/, ""))) {
+      missing.push(`"file": "${file}"`);
+    }
+    if (
+      typeof find === "string" &&
+      ![...folders].some((folder) => folder.split("/").pop() === find)
+    ) {
+      missing.push(`"find": "${find}"`);
+    }
+  }
+  return missing;
 }
 
 export function packageCommand(

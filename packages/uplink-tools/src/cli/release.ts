@@ -22,6 +22,10 @@ export const RELEASE_USAGE = `uplink-tools release [options]
   plugin's sources, compile the plugin in Release, check the compiled DLL
   carries what was baked, and zip the GameData tree. Needs the .NET SDK.
 
+  An Uplink has one version and it is written in three places: client/package.json,
+  defineUplinkClient's version, and the version folder in uplink.json's
+  client.url. release refuses when they disagree.
+
   The client lands in client/dist/<id>/ and the mod zip in dist/, or both
   under --out: <out>/<id>/ for the client and <out>/ for the zip.
 
@@ -39,6 +43,55 @@ export const PLACEHOLDER_OWNER = "you";
 
 const isPlaceholderUrl = (url: string): boolean =>
   url.includes(`/gh/${PLACEHOLDER_OWNER}/`);
+
+/**
+ * The versions written in a URL's path, such as the `0.0.1` folder a release is
+ * published under or the `v0.0.1` of a tag. The host is not read, so an address
+ * of four numbers is never taken for one.
+ */
+export function versionsInUrlPath(url: string): string[] {
+  let path = url;
+  try {
+    path = new URL(url).pathname;
+  } catch {
+    // Not a URL the platform parses: read it whole.
+  }
+  return (
+    path.match(/(?<![\d.])\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?(?![\d.]*\d)/g) ?? []
+  );
+}
+
+/** Why a client URL cannot be released at this version, or nothing. A URL that names no version is not judged. */
+export function urlVersionFault(
+  url: string,
+  version: string,
+): string | undefined {
+  const named = versionsInUrlPath(url);
+  if (!version || named.length === 0 || named.includes(version)) {
+    return undefined;
+  }
+  return (
+    `uplink.json's client.url is for version ${named.join(" and ")} (${url}), and ` +
+    `client/package.json says this is ${version}. The plugin would send every install to ` +
+    "the other release's bundle, whose hash it does not vouch for, and the app would " +
+    "refuse it. Move the version in client.url with the one in package.json."
+  );
+}
+
+/** Why the built client's own version cannot be released beside package.json's, or nothing. */
+export function declaredVersionFault(
+  declared: string,
+  version: string,
+  manifestFile: string,
+): string | undefined {
+  if (!declared || declared === version) return undefined;
+  return (
+    `the client declares version ${declared} (defineUplinkClient, written to ` +
+    `${manifestFile}) and client/package.json says ${version}. The app shows the first ` +
+    "and the plugin is stamped with the second, so one release would carry two " +
+    "versions. Make them the same, then release."
+  );
+}
 
 export async function release(
   argv: readonly string[],
@@ -92,8 +145,15 @@ export async function release(
     );
   }
 
-  const step = (label: string) => console.log(`\n== ${label}`);
   const clientDir = join(uplinkDir, "client");
+  const versionFile = join(clientDir, "package.json");
+  const version = existsSync(versionFile)
+    ? str(field(JSON.parse(readFileSync(versionFile, "utf8")), "version"))
+    : "";
+  const wrongUrl = url && !devPath ? urlVersionFault(url, version) : undefined;
+  if (wrongUrl) throw new Error(wrongUrl);
+
+  const step = (label: string) => console.log(`\n== ${label}`);
   let bundlePath: string | undefined;
   if (url) {
     step("bundle the client");
@@ -103,11 +163,21 @@ export async function release(
       ...(outValue === undefined ? [] : ["--out", outDir]),
     ]);
     if (code !== 0) return code;
-    bundlePath = join(
+    const bundleDir = join(
       outValue === undefined ? join(clientDir, "dist") : outDir,
       id,
-      `${id}.client.js`,
     );
+    bundlePath = join(bundleDir, `${id}.client.js`);
+    const manifestFile = join(bundleDir, "gonogo-uplink.json");
+    const declaredVersion = existsSync(manifestFile)
+      ? str(field(JSON.parse(readFileSync(manifestFile, "utf8")), "version"))
+      : "";
+    const twoVersions = declaredVersionFault(
+      declaredVersion,
+      version,
+      manifestFile,
+    );
+    if (twoVersions) throw new Error(twoVersions);
   }
 
   step("bake what the plugin says about its client");

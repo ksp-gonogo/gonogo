@@ -10,6 +10,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  declaredVersionFault,
+  urlVersionFault,
+  versionsInUrlPath,
+} from "./release";
 
 /**
  * `bake` is exercised through the BIN, not the exported function, because the
@@ -135,6 +140,26 @@ describe("uplink-tools bake", () => {
     expect(out).toContain("DEV BUILD");
   });
 
+  it("says a dev path on this computer with no bundle loads unvouched, and one elsewhere is refused", () => {
+    const said = (devPath: string) =>
+      execFileSync(process.execPath, [BIN, "bake", "--dev-path", devPath], {
+        cwd: uplinkDir(),
+        encoding: "utf8",
+      });
+
+    for (const here of [
+      "http://localhost:5173/x.client.js",
+      "http://127.0.0.1:5173/x.client.js",
+      "http://[::1]:5173/x.client.js",
+    ]) {
+      expect(said(here)).toContain("unvouched development client");
+      expect(said(here)).not.toContain("refuses");
+    }
+    const elsewhere = said("http://192.168.1.20:5173/x.client.js");
+    expect(elsewhere).toContain("The app refuses this client");
+    expect(elsewhere).not.toContain("unvouched development client");
+  });
+
   it("announces no client for an Uplink that declares none", () => {
     const dir = uplinkDir({ client: undefined });
 
@@ -218,22 +243,58 @@ describe("uplink-tools package", () => {
       .split("\n")
       .filter(Boolean);
     expect(listed).toEqual([
-      "GonogoXUplink/LICENSE",
-      "GonogoXUplink/NOTICE-X.txt",
-      "GonogoXUplink/Plugins/GonogoXUplink.Contract.dll",
-      "GonogoXUplink/Plugins/GonogoXUplink.dll",
+      "GameData/GonogoXUplink/LICENSE",
+      "GameData/GonogoXUplink/NOTICE-X.txt",
+      "GameData/GonogoXUplink/Plugins/GonogoXUplink.Contract.dll",
+      "GameData/GonogoXUplink/Plugins/GonogoXUplink.dll",
     ]);
     // Read back through a real unzip, so the archive is one other tools open and its bytes survive.
     expect(
       execFileSync(
         "unzip",
-        ["-p", zip, "GonogoXUplink/Plugins/GonogoXUplink.dll"],
+        ["-p", zip, "GameData/GonogoXUplink/Plugins/GonogoXUplink.dll"],
         {
           encoding: "utf8",
         },
       ),
     ).toBe("plugin bytes");
     expect(existsSync(join(dir, "dist", "GonogoXUplink.netkan"))).toBe(true);
+  });
+
+  it("takes a netkan whose install stanza names the folder the zip holds", () => {
+    const dir = builtMod();
+    writeFileSync(
+      join(dir, "mod", "GonogoXUplink.netkan"),
+      JSON.stringify({
+        install: [{ file: "GameData/GonogoXUplink", install_to: "GameData" }],
+      }),
+    );
+    expect(runBin(["package"], dir).code).toBe(0);
+
+    writeFileSync(
+      join(dir, "mod", "GonogoXUplink.netkan"),
+      JSON.stringify({
+        install: [{ find: "GonogoXUplink", install_to: "GameData" }],
+      }),
+    );
+    expect(runBin(["package"], dir).code).toBe(0);
+  });
+
+  it.each([
+    ["file", "GonogoXUplink"],
+    ["file", "GameData/GonogoYUplink"],
+    ["find", "GonogoYUplink"],
+  ])("refuses a netkan that installs %s %s, which the zip does not hold", (key, value) => {
+    const dir = builtMod();
+    writeFileSync(
+      join(dir, "mod", "GonogoXUplink.netkan"),
+      JSON.stringify({ install: [{ [key]: value, install_to: "GameData" }] }),
+    );
+    const { code, out } = runBin(["package"], dir);
+    expect(code).toBe(1);
+    expect(out).toContain(`"${key}": "${value}"`);
+    expect(out).toContain("CKAN would install nothing");
+    expect(existsSync(join(dir, "dist", "GonogoXUplink.netkan"))).toBe(false);
   });
 
   it("gives the same archive for the same files", () => {
@@ -277,6 +338,59 @@ describe("uplink-tools release", () => {
 
     expect(code).toBe(1);
     expect(out).toContain("still the placeholder");
+    expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(false);
+  });
+});
+
+describe("the version in a client URL", () => {
+  it.each([
+    [
+      "https://cdn.jsdelivr.net/gh/o/r@releases/releases/x/0.0.1/x.client.js",
+      ["0.0.1"],
+    ],
+    [
+      "https://cdn.jsdelivr.net/gh/o/r@x-v1.2.3-rc.4/uplinks/x/release/x.client.js",
+      ["1.2.3-rc.4"],
+    ],
+    ["https://cdn.example.test/x/x.client.js", []],
+    ["http://127.0.0.1:5173/x.client.js", []],
+    ["http://10.0.0.12/builds/2.0.0/x.client.js", ["2.0.0"]],
+  ])("%s holds %j", (url, versions) => {
+    expect(versionsInUrlPath(url)).toEqual(versions);
+  });
+
+  it("is a fault only when it names a version and none is the client's own", () => {
+    const url = "https://cdn.example.test/x/1.3.0/x.client.js";
+    expect(urlVersionFault(url, "1.3.0")).toBeUndefined();
+    expect(urlVersionFault("https://cdn.example.test/x.js", "1.3.0")).toBe(
+      undefined,
+    );
+    expect(urlVersionFault(url, "1.4.0")).toContain("is for version 1.3.0");
+  });
+
+  it("is checked against the version the built client declares", () => {
+    expect(declaredVersionFault("1.4.0", "1.4.0", "m.json")).toBeUndefined();
+    expect(declaredVersionFault("", "1.4.0", "m.json")).toBeUndefined();
+    expect(declaredVersionFault("0.0.1", "1.4.0", "m.json")).toContain(
+      "declares version 0.0.1",
+    );
+  });
+
+  it("is refused by release when it is not the client's own version, before building anything", () => {
+    const dir = uplinkDir({
+      gamedata: "GonogoXUplink",
+      dll: "GonogoXUplink.dll",
+      client: {
+        url: "https://cdn.jsdelivr.net/gh/o/x@releases/releases/x/1.3.0/x.client.js",
+      },
+    });
+    writeFileSync(join(dir, "mod", "GonogoXUplink.csproj"), "<Project />");
+
+    const { code, out } = runBin(["release"], dir);
+
+    expect(code).toBe(1);
+    expect(out).toContain("is for version 1.3.0");
+    expect(out).toContain("says this is 1.4.0");
     expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(false);
   });
 });

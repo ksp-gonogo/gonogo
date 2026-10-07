@@ -90,6 +90,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         configurationMethod: `${ns}.${Id}RtConfig.Configure`,
         emits: {
           [`SITREP_${upper}_TOPICMAP_OUT`]: "topic-map.ts",
+          [`SITREP_${upper}_COMMANDMAP_OUT`]: "command-map.ts",
           [`SITREP_${upper}_UNITMAP_OUT`]: "units.ts",
           [`SITREP_${upper}_UNITJSON_OUT`]: "units.json",
         },
@@ -175,21 +176,6 @@ export default defineConfig({
     },
   },
 });
-`,
-  );
-
-  files.set(
-    "client/uplink.md",
-    `${o.name} is a new Uplink. Replace this with what it is for, which mod it
-integrates and what someone has to install first.
-
-Everything else on the generated page is derived from your registrations, your
-contract slice and your fixtures. Run \`npm run page\` (or \`npm run docs\`,
-which also renders the pictures) and commit what it writes.
-
-## widget:${widgetId}
-
-Publishes a tick count and the universal time of the last sample.
 `,
   );
 
@@ -510,6 +496,16 @@ public static class ${Id}RtConfig
         if (!string.IsNullOrEmpty(topicMapOut))
         {
             Sitrep.Contract.RtConfig.EmitTopicMap(topicMapOut!, typeof(${Id}RtConfig).Assembly);
+        }
+
+        // One row for every [SitrepCommand] in this slice, which is where the generated page and registerUplinkCommand's rail both read your commands from. It is empty until you declare one.
+        var commandMapOut = Environment.GetEnvironmentVariable("SITREP_${upper}_COMMANDMAP_OUT");
+        if (!string.IsNullOrEmpty(commandMapOut))
+        {
+            Sitrep.Contract.RtConfig.EmitCommandMap(
+                commandMapOut!,
+                typeof(${Id}RtConfig).Assembly,
+                resultImportFrom: "@ksp-gonogo/sitrep-sdk");
         }
 
         var unitMapOut = Environment.GetEnvironmentVariable("SITREP_${upper}_UNITMAP_OUT");
@@ -858,13 +854,6 @@ function applyCoreTopics(files: Map<string, string>, o: SeedOptions): void {
     }
     files.set(path, after);
   };
-  const cut = (text: string, from: string, to: string): string => {
-    const start = text.indexOf(from);
-    const end = text.indexOf(to, start + from.length);
-    return start === -1 || end === -1
-      ? text
-      : text.slice(0, start) + text.slice(end + to.length);
-  };
 
   for (const path of [...files.keys()]) {
     if (
@@ -891,11 +880,6 @@ function applyCoreTopics(files: Map<string, string>, o: SeedOptions): void {
     } = manifest.scripts;
     return json({ ...manifest, scripts });
   });
-  edit("client/uplink.md", (text) =>
-    cut(text, "## widget:", "last sample.\n").concat(
-      `## widget:${widgetId}\n\nThe name of the vessel being flown.\n`,
-    ),
-  );
   edit("client/src/uplink.ts", (text) =>
     text.replace(
       /description: "[^"]*",/,
@@ -1633,7 +1617,7 @@ export async function newUplink(
       : []),
   ];
   const yours = [
-    "say what it is for in client/uplink.md",
+    "say what it is for in the description in client/src/uplink.ts, which opens the generated page",
     ...(named || inheritedUrl
       ? []
       : [

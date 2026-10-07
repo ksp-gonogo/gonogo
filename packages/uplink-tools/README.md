@@ -35,10 +35,10 @@ Once it is in an Uplink's devDependencies the same commands answer to
 |---|---|
 | `new <id>` | scaffold an Uplink: contract slice, plugin, tests, one widget and its fixture, then generate its client types, install the client and write its page. In a repo with an `uplinks/` folder it goes to `uplinks/<id>/`; anywhere else the current directory becomes the Uplink |
 | `codegen` | generate `client/src/__generated__/` from the C# contract slice; `codegen --check` fails on drift |
-| `bundle` | build the client bundle the app loads, and the `gonogo-uplink.json` beside it |
+| `bundle` | build the client bundle the app loads, and the `gonogo-uplink.json` beside it; `--watch` rebuilds on every change and `--serve <port>` also serves it from this computer |
 | `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
-| `package` | lay the built plugin out as `GameData/<name>/` and zip it |
-| `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order |
+| `package` | lay the built plugin out as `GameData/<name>/` and zip it with that as the zip's one root, which is what a hand install and CKAN both expect; it refuses a netkan whose install stanza names a path the zip does not hold |
+| `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order. It refuses when the Uplink's version is not the same in `client/package.json`, in `defineUplinkClient` and in the version folder of `client.url` |
 | `page` | write `README.md`, `gonogo-uplink.json` and `docs/widgets.json` from what the client registers, with no browser |
 | `render` | render every scene to `renders/` |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
@@ -48,6 +48,27 @@ Uplink's client only when the plugin says where the bundle lives and vouches for
 its hash, so the bundle has to be built and hashed before the plugin is
 compiled. A plugin baked without its bundle builds, tests green, and shows no
 widget.
+
+### Working on the client without rebuilding the plugin
+
+A hash goes stale the moment the client changes, so a development loop uses a
+plugin that vouches for none. The app loads its client anyway on two conditions,
+both required: the plugin declares a dev path, and that path is on the computer
+the app is open on (`localhost`, `127.0.0.1` or `[::1]`). It says in words, on
+the Uplink's status page and on every widget the Uplink draws, that an unvouched
+development client is running.
+
+```sh
+cd client
+npx uplink-tools bundle --serve 5173        # leave running: rebuilds and serves on every change
+npx uplink-tools bake --dev-path http://localhost:5173/<id>.client.js
+dotnet build ../mod -c Release              # once, then copy the DLLs into GameData/<name>/Plugins
+```
+
+Reload the app after a change to the client. The plugin is compiled again only
+when the C# changes. A dev path anywhere else is refused with the reason, and so
+is a station, which takes its bundles from the main screen. `release` does not
+zip a plugin baked with a dev path unless it is told `--allow-dev-package`.
 
 Every command takes `--help`, and refuses a flag it does not read.
 
@@ -118,7 +139,7 @@ need the widget around it:
 ```json
 {
   "devDependencies": {
-    "@ksp-gonogo/uplink-tools": "^0.1.0"
+    "@ksp-gonogo/uplink-tools": "<the same version as your sitrep-sdk and ui-kit>"
   },
   "gonogo": {
     "renderWith": ["@ksp-gonogo/uplink-tools/widgets"]

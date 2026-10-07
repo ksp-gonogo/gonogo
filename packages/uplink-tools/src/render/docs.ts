@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   buildUplinkManifest,
   NO_BUNDLE_INTEGRITY_WARNING,
@@ -244,11 +244,21 @@ function table(
  *
  * The scene's caption goes in the alt, where a screen reader and a
  * broken-image placeholder both find it.
+ *
+ * A picture that has not been drawn is left out. `page` writes this text with
+ * no browser, so an Uplink that has never run `docs` has no pictures yet, and a
+ * link to one would be a broken image on the page's first day. `docs` draws
+ * them before it writes the page, so there they are always found.
  */
-function images(inputs: DocsInputs, assets: readonly PageAsset[]): string[] {
+export function imageLinks(
+  pkgDir: string,
+  assetDir: string,
+  assets: readonly PageAsset[],
+): string[] {
   const out: string[] = [];
   for (const asset of assets) {
-    const path = `${inputs.assetDir}/${asset.file}`;
+    const path = `${assetDir}/${asset.file}`;
+    if (!existsSync(join(pkgDir, path))) continue;
     out.push("", `![${altFor(asset)}](${path})`);
   }
   return out;
@@ -389,7 +399,13 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
       ["Scenes", String(scenesFor(inputs, "widget", widget.id).length)],
     ]),
   );
-  out.push(...images(inputs, heroAssetsFor(inputs, "widget", widget.id)));
+  out.push(
+    ...imageLinks(
+      inputs.pkg.dir,
+      inputs.assetDir,
+      heroAssetsFor(inputs, "widget", widget.id),
+    ),
+  );
   return out;
 }
 
@@ -424,7 +440,11 @@ function augmentTable(inputs: DocsInputs): string[] {
     "",
     ...table(["Augment", "Into", "Reads", "Presence", "Scenes", "Notes"], rows),
     ...inputs.inventory.augments.flatMap((augment) =>
-      images(inputs, heroAssetsFor(inputs, "augment", augment.id)),
+      imageLinks(
+        inputs.pkg.dir,
+        inputs.assetDir,
+        heroAssetsFor(inputs, "augment", augment.id),
+      ),
     ),
     "",
   ];
@@ -445,7 +465,11 @@ function contributionTable(inputs: DocsInputs): string[] {
     "",
     ...table(["Contribution", "Into", "Computed from", "Presence"], rows),
     ...inputs.inventory.contributions.flatMap((contribution) =>
-      images(inputs, heroAssetsFor(inputs, "contribution", contribution.id)),
+      imageLinks(
+        inputs.pkg.dir,
+        inputs.assetDir,
+        heroAssetsFor(inputs, "contribution", contribution.id),
+      ),
     ),
     "",
   ];

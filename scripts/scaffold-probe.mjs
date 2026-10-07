@@ -422,10 +422,24 @@ if (!published) {
 // ── The author's own checks ─────────────────────────────────────────────────
 
 console.log("scaffold-probe: the scaffold's own checks");
-for (const file of ["contract.ts", "topic-map.ts", "units.ts", "units.json"]) {
+for (const file of [
+  "contract.ts",
+  "topic-map.ts",
+  "command-map.ts",
+  "units.ts",
+  "units.json",
+]) {
   if (!existsSync(join(client, "src/__generated__", file))) {
     fail(`client/src/__generated__/${file} was not generated`);
   }
+}
+// The seed declares no command, and its map has to be a file the client still typechecks and lints: an import of nothing is neither.
+if (
+  /import type \{\s*\}/.test(
+    readFileSync(join(client, "src/__generated__/command-map.ts"), "utf8"),
+  )
+) {
+  fail("the seed's empty command map imports nothing from ./contract.js");
 }
 if (!existsSync(join(client, "README.md"))) {
   fail("the generated page, client/README.md, was not written");
@@ -493,8 +507,8 @@ const zipped = must("list the mod zip", "unzip", ["-Z1", zip])
   .filter(Boolean)
   .sort();
 const expectedZip = [
-  `${NS}/Plugins/${NS}.Contract.dll`,
-  `${NS}/Plugins/${NS}.dll`,
+  `GameData/${NS}/Plugins/${NS}.Contract.dll`,
+  `GameData/${NS}/Plugins/${NS}.dll`,
 ];
 if (zipped.join("\n") !== expectedZip.join("\n")) {
   fail(
@@ -677,7 +691,7 @@ if (!published) {
   ])
     .split("\n")
     .filter(Boolean);
-  if (coreZip.join("\n") !== `${coreNs}/Plugins/${coreNs}.dll`) {
+  if (coreZip.join("\n") !== `GameData/${coreNs}/Plugins/${coreNs}.dll`) {
     fail(
       `the core-Topics mod zip holds [${coreZip.join(", ")}], expected the plugin alone`,
     );

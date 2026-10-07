@@ -90,7 +90,8 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
 
   // Assets are the browser half's business, so the scene list is passed with no
   // rendered files behind it. That means the page's image blocks are compared as
-  // the LINKS they are: a fixture added or removed still moves the markdown, and
+  // the LINKS they are, and a link is written only for a picture that is on
+  // disk: a fixture whose picture has not been drawn yet moves nothing here, and
   // whether the bytes behind a link are current is a question this cannot ask.
   const inputs = {
     pkg,

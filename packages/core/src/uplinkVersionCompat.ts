@@ -42,7 +42,7 @@ export interface GonogoUplinkManifest {
   version: string;
   /**
    * One sentence saying what this Uplink is for, written by its author and
-   * generated into the manifest from the lede of `client/uplink.md`.
+   * generated into the manifest from the `description` its client declares.
    *
    * Optional, and checked by neither `isGonogoUplinkManifest` nor
    * `checkUplinkCompat`: an Uplink with nothing to say about itself still loads.

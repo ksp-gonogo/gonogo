@@ -171,9 +171,11 @@ const uplinkCommandRails = new Map<string, CommandRail>();
  * augmentation types `send`, and this call makes the id known at runtime.
  * Registering an id twice does nothing.
  *
- * `rail` is the command's row from the Uplink's generated command map, and
- * says how the command travels, such as whether a reply comes back. Without
- * it the command is drawn as a single command that gets a reply.
+ * `rail` says how the command travels, such as whether a reply comes back.
+ * Take it from `GENERATED_COMMAND_RAIL` in the `command-map.ts` that
+ * `uplink-tools codegen` writes beside your generated types, which has a row
+ * for every command your contract slice declares with `[SitrepCommand]`.
+ * Without it the command is drawn as a single command that gets a reply.
  *
  * @category Commands
  */

@@ -35,6 +35,7 @@ import { NEW_USAGE, newUplink } from "./new";
 import { PACKAGE_USAGE, packageCommand } from "./package";
 import { PAGE_USAGE, page } from "./page";
 import { RELEASE_USAGE, release } from "./release";
+import { serveDir } from "./serve";
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
 const WATCH_STATUS_FILE = "watch-status.json";
@@ -147,7 +148,13 @@ const BUNDLE_USAGE = `uplink-tools bundle [options]
   --watch          keep running: rebuild on every source change, and report
                    waiting, built or failed in <out>/<id>/watch-status.json.
                    A failed rebuild leaves the last good bundle in place.
-                   Stop it with Ctrl-C`;
+                   Stop it with Ctrl-C
+  --serve <port>   watch, and serve the bundle and its sidecar from this
+                   computer at http://localhost:<port>/<id>.client.js. That is
+                   the address to give bake --dev-path: the app loads a client
+                   from it with no hash to check, says on screen that it is an
+                   unvouched development client, and does so for a localhost
+                   address only`;
 
 async function bundle(argv: readonly string[]): Promise<number> {
   if (wantsHelp(argv)) {
@@ -157,7 +164,7 @@ async function bundle(argv: readonly string[]): Promise<number> {
   const { values, switches } = parseFlags(argv, {
     verb: "bundle",
     usage: BUNDLE_USAGE,
-    values: ["--client", "--entry", "--out"],
+    values: ["--client", "--entry", "--out", "--serve"],
     switches: ["--watch"],
   });
   const clientDir = resolve(values.get("--client") ?? process.cwd());
@@ -195,7 +202,15 @@ async function bundle(argv: readonly string[]): Promise<number> {
   const bundleDir = join(outDir, id);
   mkdirSync(bundleDir, { recursive: true });
   const outFile = join(bundleDir, `${id}.client.js`);
-  const watching = switches.has("--watch");
+  const serve = values.get("--serve");
+  const port = serve === undefined ? undefined : Number(serve);
+  if (
+    port !== undefined &&
+    !(Number.isInteger(port) && port > 0 && port < 65536)
+  ) {
+    throw new Error(`--serve takes a port number, and "${serve}" is not one`);
+  }
+  const watching = switches.has("--watch") || port !== undefined;
 
   /*
    * Output is held in memory and written only after the emitted bytes pass the
@@ -339,11 +354,24 @@ async function bundle(argv: readonly string[]): Promise<number> {
   });
   await ctx.watch();
   console.log(`  watching ${join(clientDir, "src")} ...`);
+  const server =
+    port === undefined ? undefined : await serveDir(bundleDir, port);
+  if (server) {
+    const url = `http://localhost:${port}/${id}.client.js`;
+    console.log(
+      `  serving  ${url}\n` +
+        "  For the app to load it, the installed plugin must name this address:\n" +
+        `    npx uplink-tools bake --dev-path ${url}\n` +
+        "  then compile the plugin and install it. The app loads it with no hash to\n" +
+        "  check and says on screen that it is an unvouched development client.",
+    );
+  }
   await new Promise<void>((done) => {
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
       process.once(signal, () => done());
     }
   });
+  server?.close();
   await ctx.dispose();
   return 0;
 }

@@ -17,6 +17,11 @@
  * The hash has to be of the bundle that ships, so the order is bundle, bake, then
  * compile the plugin. Baked without a bundle the hash is empty, and the app
  * refuses an outside client whose plugin vouches for none.
+ *
+ * With one exception, which is the development loop: a plugin baked with a dev
+ * path on this computer and no bundle is loaded by the app unvouched, and the
+ * app says so on screen. The client can then be rebuilt as often as its author
+ * likes without compiling the plugin again, since there is no hash to go stale.
  */
 
 import { createHash } from "node:crypto";
@@ -36,10 +41,13 @@ export const BAKE_USAGE = `uplink-tools bake [options]
 
   --bundle <file>    the built client bundle to hash. Without it the hash is
                      baked empty: the plugin builds and its tests run, and the
-                     app refuses its client
-  --dev-path <url>   where a dev server serves the bundle. The loader prefers
-                     it over the released URL, so never release a DLL baked
-                     with one (also read from GONOGO_UPLINK_DEV_PATH)
+                     app refuses its client unless --dev-path says otherwise
+  --dev-path <url>   where a dev server serves the bundle, as bundle --serve
+                     does. The loader prefers it over the released URL, so
+                     never release a DLL baked with one (also read from
+                     GONOGO_UPLINK_DEV_PATH). Given a localhost address and no
+                     --bundle, the app loads the client with no hash to check
+                     and says it is an unvouched development client
   --uplink <dir>     the Uplink's directory, the one holding uplink.json
                      (default: found by walking up from the current directory)`;
 
@@ -199,7 +207,8 @@ namespace ${namespace}
     `//
 // The sha256 of the client bundle this DLL was built alongside. Empty when it
 // was baked without a bundle, which leaves UplinkManifest.ExpectedClientHash
-// null, and the app refuses an outside client whose plugin vouches for no hash.
+// null, and the app refuses an outside client whose plugin vouches for no hash
+// unless its DevPath is on the same computer as the app.
 namespace ${namespace}
 {
     internal static class ExpectedClientHash
@@ -211,6 +220,15 @@ namespace ${namespace}
   );
 
   return { id, written, url, hash, devPath };
+}
+
+/** Whether a dev path is on this computer, by the same three names the app accepts. */
+function isLoopback(url: string): boolean {
+  try {
+    return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname);
+  } catch {
+    return false;
+  }
 }
 
 /** What a bake did, in the words an author needs before deciding to ship the DLL. */
@@ -232,12 +250,20 @@ export function describeBake(result: BakeResult): string {
       "  client to that address. Bake again without --dev-path before releasing.",
     );
   }
-  lines.push(
-    result.hash
-      ? `  Hash     ${result.hash}`
-      : "  Hash     (none) The plugin builds and its tests run, but the app refuses the client of a\n" +
-          "           plugin that vouches for no hash. Before installing it: bundle, then bake --bundle <file>.",
-  );
+  const noHash = (): string => {
+    if (!result.devPath) {
+      return (
+        "  Hash     (none) The plugin builds and its tests run, but the app refuses the client of a\n" +
+        "           plugin that vouches for no hash. Before installing it: bundle, then bake --bundle <file>."
+      );
+    }
+    return isLoopback(result.devPath)
+      ? "  Hash     (none) The app loads this client from DevPath with nothing to check it against,\n" +
+          "           and says on screen that it is an unvouched development client."
+      : "  Hash     (none) The app refuses this client: with no hash it loads only from a DevPath on\n" +
+          "           this computer (localhost, 127.0.0.1 or [::1]), and this one is somewhere else.";
+  };
+  lines.push(result.hash ? `  Hash     ${result.hash}` : noHash());
   return lines.join("\n");
 }
 

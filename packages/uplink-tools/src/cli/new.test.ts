@@ -57,6 +57,7 @@ describe("uplink-tools new", () => {
     );
     expect(Object.keys(declared.codegen.emits)).toEqual([
       "SITREP_WIDGETS_TOPICMAP_OUT",
+      "SITREP_WIDGETS_COMMANDMAP_OUT",
       "SITREP_WIDGETS_UNITMAP_OUT",
       "SITREP_WIDGETS_UNITJSON_OUT",
     ]);
@@ -77,6 +78,22 @@ describe("uplink-tools new", () => {
       // Nothing left over from an Uplink this seed was once copied from.
       expect(content).not.toMatch(/example[.-]|Example(Uplink|Heartbeat)/);
     }
+  });
+
+  it("emits a command map from the slice, so a command declared later reaches the page and the client", () => {
+    const config = seed().get("mod-contract/WidgetsRtConfig.cs") ?? "";
+    expect(config).toContain('"SITREP_WIDGETS_COMMANDMAP_OUT"');
+    expect(config).toMatch(
+      /EmitCommandMap\(\s+commandMapOut!,\s+typeof\(WidgetsRtConfig\)\.Assembly,\s+resultImportFrom: "@ksp-gonogo\/sitrep-sdk"\)/,
+    );
+  });
+
+  it("carries no prose file, because the page opens with the client's own description", () => {
+    const files = seed();
+    expect([...files.keys()].filter((path) => path.endsWith(".md"))).toEqual(
+      [],
+    );
+    expect(files.get("client/src/uplink.ts")).toContain("description:");
   });
 
   it("has the plugin announce its client, its author and one version, all from what bake writes", () => {

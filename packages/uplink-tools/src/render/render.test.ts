@@ -27,6 +27,7 @@ import {
 } from "./cli";
 import { resolveUplinkPackage } from "./context";
 import {
+  imageLinks,
   linkedAssets,
   README_GENERATED_MARKER,
   scenesAssertingNothing,
@@ -859,6 +860,25 @@ describe("fixtures become scenes", () => {
     ).toEqual([
       ["hot--default.gif", "motion"],
       ["hot--min.png", "still"],
+    ]);
+  });
+
+  it("links a picture on the page only once it has been drawn", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({ _scene: { widget: "reactor" } }),
+    );
+    const assets = linkedAssets(buildScenes(pkg, INVENTORY));
+    const names = assets.map((asset) => asset.file);
+    expect(names).toEqual(["hot--default.png", "hot--min.png"]);
+
+    // `page` runs with no browser, so on a new Uplink nothing has been drawn yet and a link would be a broken image.
+    expect(imageLinks(pkg.dir, "docs/assets", assets)).toEqual([]);
+
+    mkdirSync(join(pkg.dir, "docs/assets"), { recursive: true });
+    writeFileSync(join(pkg.dir, "docs/assets", names[0]), "drawn");
+    expect(imageLinks(pkg.dir, "docs/assets", assets)).toEqual([
+      "",
+      "![hot](docs/assets/hot--default.png)",
     ]);
   });
 
