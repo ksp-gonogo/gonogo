@@ -10,6 +10,7 @@ import {
   getSitrepHostConfig,
   getSitrepTransportStatus,
   onSitrepTransportStatusChange,
+  requestSitrepRetryNow,
   setSitrepHostConfig,
 } from "../telemetry/sitrepRuntime";
 
@@ -36,13 +37,13 @@ class SitrepStreamDataSource implements DataSource {
   }
 
   async connect(): Promise<void> {
-    // The stream is always mounted by `SitrepTelemetryProvider`, "connect"
-    // here means "force the live transport to rebuild", which only makes
-    // sense once it's actually given up (`WebSocketTransport` already
-    // retries drops on its own). Bumping unconditionally would tear down and
-    // rebuild a perfectly healthy socket every time this fires, including on
-    // every MainScreen mount (it calls `connect()` on every registered
-    // source once, alongside this one).
+    // The stream is always mounted by `SitrepTelemetryProvider`, and its
+    // transport retries on its own without ever stopping, so "connect" means
+    // "skip the wait on the next attempt". It is a no-op on a healthy or
+    // mid-attempt socket, which matters because MainScreen calls `connect()`
+    // once on every registered source at mount. With no transport mounted (the
+    // stream is switched off), bumping the nonce rebuilds one.
+    if (requestSitrepRetryNow()) return;
     if (getSitrepTransportStatus() === "disconnected") {
       bumpSitrepReconnect();
     }

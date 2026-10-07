@@ -1,5 +1,5 @@
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
-import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { Button, writeQuantity } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export interface SourceOfflineEntry {
@@ -9,6 +9,8 @@ export interface SourceOfflineEntry {
   status: string;
   /** Milliseconds since this source first transitioned to a non-OK status. */
   elapsedMs: number;
+  /** When given, the entry shows a "Retry now" button that calls it. */
+  onRetry?: () => void;
 }
 
 export interface SourceOfflineBannerProps {
@@ -29,6 +31,15 @@ export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {
             <EntryName>{e.name}</EntryName>
             <EntryStatus>{e.status}</EntryStatus>
             <EntryTime>{formatElapsed(e.elapsedMs)}</EntryTime>
+            {e.onRetry && (
+              <Button
+                size="sm"
+                onClick={e.onRetry}
+                aria-label={`Retry ${e.name} now`}
+              >
+                Retry now
+              </Button>
+            )}
           </Entry>
         ))}
       </List>

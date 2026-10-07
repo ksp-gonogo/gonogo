@@ -106,9 +106,23 @@ export function onSitrepTransportStatusChange(
 let reconnectNonce = 0;
 const nonceListeners = new Set<() => void>();
 
+let retryHandler: (() => void) | null = null;
+
+/** Called by `SitrepTelemetryProvider` with the owned transport's `retryNow`, and with `null` when that transport goes away. */
+export function setSitrepRetryHandler(handler: (() => void) | null): void {
+  retryHandler = handler;
+}
+
+/** Skip the wait on the live transport's backoff. Returns whether a transport was there to ask. */
+export function requestSitrepRetryNow(): boolean {
+  if (retryHandler === null) return false;
+  retryHandler();
+  return true;
+}
+
 /**
- * Bumped by the "Sitrep Stream" panel row's Reconnect action once the live
- * transport has given up (status === "disconnected"), included in
+ * Bumped by the "Sitrep Stream" panel row's Reconnect action when no live
+ * transport is mounted (status === "disconnected"), included in
  * `SitrepTelemetryProvider`'s transport-build effect deps so a bump forces a
  * fresh `WebSocketTransport` even when host/port haven't changed.
  */
@@ -140,4 +154,5 @@ export function resetSitrepRuntimeForTests(): void {
   cachedHostConfig = computeEffectiveHostConfig();
   transportStatus = "disconnected";
   reconnectNonce = 0;
+  retryHandler = null;
 }

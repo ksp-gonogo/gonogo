@@ -415,7 +415,6 @@ describe("WebSocketTransport", () => {
         url: SITREP_URL,
         retryIntervalMs: 100,
         maxRetryIntervalMs: 300,
-        retryTimeoutMs: 60_000,
         WebSocketImpl: RefusedSocket as never,
       });
       await vi.advanceTimersByTimeAsync(1_000);
@@ -427,45 +426,87 @@ describe("WebSocketTransport", () => {
     }
   });
 
-  it("gives up to disconnected once the retry timeout elapses without ever connecting", async () => {
-    // Give-up applies to an outage that never recovers: every socket fails to
-    // connect (fires `close` with no `open`, so the per-outage window is never
-    // reset), and a monotonically advancing clock pushes past the retry-timeout
-    // budget so the give-up branch fires.
+  it("never gives up: it keeps opening sockets long after the old retry budget", async () => {
     const fakes = makeFakeSocketCtor();
     let clock = 0;
     const transport = new WebSocketTransport({
       url: SITREP_URL,
       retryIntervalMs: 1,
-      retryTimeoutMs: 20,
+      maxRetryIntervalMs: 2,
       WebSocketImpl: fakes.ctor,
       now: () => {
-        clock += 15;
+        clock += 60_000;
         return clock;
       },
     });
 
-    // Fail the very first connect; the retry loop then opens fresh sockets that the loop below keeps failing until the budget is exhausted.
-    const failNext = () => {
-      const latest = fakes.instances.at(-1);
-      latest?.fire("close");
-    };
-    failNext();
-    await vi.waitFor(
-      () => {
-        failNext();
-        expect(transport.status).toBe("disconnected");
-      },
-      { timeout: WAIT_TIMEOUT_MS },
-    );
-    expect(transport.status).toBe("disconnected");
+    // Every attempt fails, and the clock has run an hour past any budget by the end.
+    for (let i = 0; i < 60; i++) {
+      const before = fakes.instances.length;
+      fakes.instances.at(-1)?.fire("close");
+      await vi.waitFor(
+        () => expect(fakes.instances.length).toBeGreaterThan(before),
+        { timeout: WAIT_TIMEOUT_MS },
+      );
+    }
+    expect(transport.status).toBe("reconnecting");
     transport.dispose();
   });
 
-  it("resets the give-up window per outage: a drop long after a successful reconnect still retries", async () => {
-    // Regression for the session-wide give-up clock. Track each connection so
-    // the test can close them on demand, and re-arm a close handle for every
-    // new connection.
+  it("retryNow opens the next socket at once instead of waiting out the backoff", async () => {
+    vi.useFakeTimers();
+    try {
+      const fakes = makeFakeSocketCtor();
+      const transport = new WebSocketTransport({
+        url: SITREP_URL,
+        retryIntervalMs: 30_000,
+        WebSocketImpl: fakes.ctor,
+      });
+      fakes.instances[0].fire("close");
+      expect(fakes.instances).toHaveLength(1);
+
+      transport.retryNow();
+      expect(fakes.instances).toHaveLength(2);
+
+      // Nothing is pending while that attempt is in flight, so a second press is a no-op.
+      transport.retryNow();
+      expect(fakes.instances).toHaveLength(2);
+      transport.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries at once when the page becomes visible or the network returns", async () => {
+    vi.useFakeTimers();
+    try {
+      const fakes = makeFakeSocketCtor();
+      const transport = new WebSocketTransport({
+        url: SITREP_URL,
+        retryIntervalMs: 30_000,
+        WebSocketImpl: fakes.ctor,
+      });
+      fakes.instances[0].fire("close");
+      expect(fakes.instances).toHaveLength(1);
+
+      window.dispatchEvent(new Event("online"));
+      expect(fakes.instances).toHaveLength(2);
+
+      fakes.instances[1].fire("close");
+      document.dispatchEvent(new Event("visibilitychange"));
+      expect(fakes.instances).toHaveLength(3);
+
+      transport.dispose();
+      fakes.instances[2].fire("close");
+      window.dispatchEvent(new Event("online"));
+      expect(fakes.instances).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a drop long after a successful reconnect still retries, with a fresh outage clock", async () => {
+    // Track each connection so the test can close them on demand, and re-arm a close handle for every new connection.
     const closers: Array<() => void> = [];
     server.use(
       link.addEventListener("connection", ({ client }) => {
@@ -473,12 +514,11 @@ describe("WebSocketTransport", () => {
       }),
     );
 
-    // A clock the test advances by hand. retryStart is only sampled inside the drop path, so driving `now` here fully controls the give-up arithmetic.
+    // A clock the test advances by hand: the outage start is only sampled inside the drop path.
     let clock = 0;
     const transport = new WebSocketTransport({
       url: SITREP_URL,
       retryIntervalMs: 5,
-      retryTimeoutMs: 1_000,
       now: () => clock,
     });
 
@@ -494,11 +534,10 @@ describe("WebSocketTransport", () => {
       timeout: WAIT_TIMEOUT_MS,
     });
 
-    // Hours pass while happily connected: wall clock jumps far past retryTimeoutMs measured from the FIRST-ever drop.
+    // Hours pass while happily connected.
     clock = 10_000;
 
-    // Second outage. With a session-wide clock this would give up with zero
-    // retries; with a per-outage window it must reconnect again.
+    // Second outage: it must reconnect again.
     closers[1]();
     await waitForStatus(transport, "reconnecting");
     await waitForStatus(transport, "connected");
@@ -514,7 +553,6 @@ describe("WebSocketTransport", () => {
     const transport = new WebSocketTransport({
       url: SITREP_URL,
       retryIntervalMs: 1,
-      retryTimeoutMs: 10_000,
       WebSocketImpl: fakes.ctor,
     });
     expect(fakes.instances).toHaveLength(1);
@@ -535,7 +573,6 @@ describe("WebSocketTransport", () => {
     const transport = new WebSocketTransport({
       url: SITREP_URL,
       retryIntervalMs: 1,
-      retryTimeoutMs: 10_000,
       WebSocketImpl: fakes.ctor,
     });
     const first = fakes.instances[0];
@@ -593,7 +630,6 @@ describe("WebSocketTransport outbound queue", () => {
     const transport = new WebSocketTransport({
       url: SITREP_URL,
       retryIntervalMs: 1,
-      retryTimeoutMs: 10_000,
       WebSocketImpl: fakes.ctor,
     });
     const socket = fakes.instances[0];
@@ -720,9 +756,9 @@ describe("WebSocketTransport outbound queue", () => {
   });
 
   /**
-   * A transport whose link never comes back: every socket fails to connect, and
-   * a monotonically advancing `now` walks past the retry budget so
-   * `scheduleRetry` reaches its give-up branch. `giveUp()` drives it there.
+   * A transport whose link stays down past the command-hold window: every
+   * socket fails to connect, and a monotonically advancing `now` walks past
+   * the hold. `giveUp()` drives enough failed attempts to get there.
    */
   function abandonedTransport() {
     const fakes = makeFakeSocketCtor();
@@ -730,25 +766,27 @@ describe("WebSocketTransport outbound queue", () => {
     const transport = new WebSocketTransport({
       url: SITREP_URL,
       retryIntervalMs: 1,
-      retryTimeoutMs: 20,
+      commandHoldMs: 20,
       WebSocketImpl: fakes.ctor,
       now: () => {
         elapsed += 15;
         return elapsed;
       },
     });
-    const giveUp = () =>
-      vi.waitFor(
-        () => {
-          fakes.instances.at(-1)?.fire("close");
-          expect(transport.status).toBe("disconnected");
-        },
-        { timeout: WAIT_TIMEOUT_MS },
-      );
+    const giveUp = async () => {
+      for (let i = 0; i < 4; i++) {
+        const before = fakes.instances.length;
+        fakes.instances.at(-1)?.fire("close");
+        await vi.waitFor(
+          () => expect(fakes.instances.length).toBeGreaterThan(before),
+          { timeout: WAIT_TIMEOUT_MS },
+        );
+      }
+    };
     return { transport, socket: fakes.instances[0], giveUp };
   }
 
-  it("reports every command left in the queue when it stops retrying", async () => {
+  it("reports every command left in the queue once the outage outlasts the hold window", async () => {
     const { transport, socket, giveUp } = abandonedTransport();
     const errors: Array<{ requestId?: string; code: string }> = [];
     const undelivered: Array<{ requestId: string; reason: string }> = [];
@@ -759,7 +797,7 @@ describe("WebSocketTransport outbound queue", () => {
 
     for (const id of ["r0", "r1", "r2"]) transport.send(commandRequest(id));
     await flush();
-    // Well under the cap: nothing is refused at the press, so the only thing that can ever account for these three is the give-up below.
+    // Well under the cap: nothing is refused at the press, so the only thing that can ever account for these three is the expiry below.
     expect(errors).toEqual([]);
 
     await giveUp();
@@ -791,7 +829,7 @@ describe("WebSocketTransport outbound queue", () => {
     transport.send(commandRequest("r0"));
     await giveUp();
     await flush();
-    // A second give-up (a late `close` on a socket the loop already abandoned) must not re-report a queue that is already empty.
+    // A second expiry pass must not re-report a queue that is already empty.
     await giveUp();
     await flush();
 
@@ -827,9 +865,9 @@ describe("WebSocketTransport outbound queue", () => {
     );
 
     /*
-     * The loss timer fires long before the transport gives up (a round trip
-     * here is 4s, the give-up budget is minutes), so this is the state the
-     * command is in when the link is abandoned.
+     * The loss timer fires long before the hold window ends (a round trip
+     * here is 4s, the window is minutes), so this is the state the command is
+     * in when the link is abandoned.
      */
     ut.advanceTo(4 + LOSS_MARGIN);
     expect(client.getCommand(requestId).phase).toBe("lost");
@@ -838,9 +876,9 @@ describe("WebSocketTransport outbound queue", () => {
     await giveUp();
     await flush();
 
-    // `lost` says WE DO NOT KNOW. Once the transport has stopped retrying we
-    // know: it is still in the queue, it never reached a socket, so nothing
-    // over there ran it. That is a stronger claim and it gets its own phase.
+    // `lost` says WE DO NOT KNOW. Once the hold window has passed we know: it
+    // was still in the queue, it never reached a socket, so nothing over there
+    // ran it. That is a stronger claim and it gets its own phase.
     expect(client.getCommand(requestId).phase).toBe("undelivered");
     // And emphatically not `found`, which asserts the mod received it.
     expect(client.getCommand(requestId).phase).not.toBe("found");
@@ -851,7 +889,7 @@ describe("WebSocketTransport outbound queue", () => {
 
   it("settles a command still in flight when the link is abandoned", async () => {
     const { transport, giveUp } = abandonedTransport();
-    // A clock that never advances: the loss timer is armed and never fires, so nothing but the give-up can end this dispatch's wait.
+    // A clock that never advances: the loss timer is armed and never fires, so nothing but the expiry can end this dispatch's wait.
     const client = new TelemetryClient(transport, new ManualClock(0));
     client.setDelaySource(() => 2);
 

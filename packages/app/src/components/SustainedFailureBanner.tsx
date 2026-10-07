@@ -1,16 +1,14 @@
-import { useDataSources } from "@ksp-gonogo/core";
+import { getDataSource, useDataSources } from "@ksp-gonogo/core";
 import { SourceOfflineBanner } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Surfaces data sources that have been disconnected or erroring for longer
- * than the sustained-failure threshold. Hidden while everything's healthy or
- * while a transient blip clears within `THRESHOLD_MS`. Motivated by silent
- * indefinite reconnect loops: without this banner they happen with no UI.
- *
- * Click-through is intentionally deferred, the visible banner is the
- * affordance; opening a panel from here would compete with the existing
- * Data Source Status widget which surfaces the same info in detail.
+ * Surfaces data sources that have been disconnected, reconnecting or erroring
+ * for longer than the sustained-failure threshold. Hidden while everything's
+ * healthy or while a transient blip clears within `THRESHOLD_MS`. Motivated by
+ * silent indefinite reconnect loops: without this banner they happen with no
+ * UI. Each entry carries a "Retry now" button that asks the source to connect
+ * again at once.
  */
 
 const THRESHOLD_MS = 15_000;
@@ -30,8 +28,7 @@ export function SustainedFailureBanner() {
   // an effect-based update would let one render cycle slip past unmarked.
   const now = Date.now();
   for (const s of all) {
-    const ok = s.status === "connected" || s.status === "reconnecting";
-    if (ok) {
+    if (s.status === "connected") {
       sinceRef.current.delete(s.id);
       continue;
     }
@@ -53,6 +50,9 @@ export function SustainedFailureBanner() {
       name: s.name,
       status: s.status,
       elapsedMs: now - (sinceRef.current.get(s.id) ?? now),
+      onRetry: () => {
+        void getDataSource(s.id)?.connect();
+      },
     }));
 
   // Re-render once per second so a source that crosses THRESHOLD_MS

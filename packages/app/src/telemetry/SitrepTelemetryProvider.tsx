@@ -19,6 +19,7 @@ import {
   getSitrepHostConfig,
   getSitrepReconnectNonce,
   reportSitrepTransportStatus,
+  setSitrepRetryHandler,
   subscribeSitrepHostConfig,
   subscribeSitrepReconnectNonce,
 } from "./sitrepRuntime";
@@ -209,7 +210,7 @@ export function SitrepTelemetryProvider({
   const [vantageRefused, setVantageRefused] = useState(false);
   const clearVantageRefused = useCallback(() => setVantageRefused(false), []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reconnectNonce has no direct use in the body, bumping it (the panel's Reconnect action, once the transport has given up) must force this effect to tear down and rebuild even when host/port are unchanged.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reconnectNonce has no direct use in the body, bumping it (the panel's Reconnect action, when no transport is mounted) must force this effect to tear down and rebuild even when host/port are unchanged.
   useEffect(() => {
     if (!enabled) {
       setTransport(null);
@@ -243,6 +244,9 @@ export function SitrepTelemetryProvider({
       }
     });
     if (ownedTransport) reportSitrepTransportStatus(ownedTransport.status);
+    setSitrepRetryHandler(
+      ownedTransport ? () => ownedTransport.retryNow() : null,
+    );
     logger.tag("sitrep").info("live stream transport mounted", {
       host: resolvedHost,
       port: resolvedPort,
@@ -251,6 +255,7 @@ export function SitrepTelemetryProvider({
     setTransport(injectedTransport ?? ownedTransport ?? null);
     return () => {
       unsubStatus?.();
+      setSitrepRetryHandler(null);
       ownedTransport?.dispose();
       setTransport(null);
     };

@@ -327,7 +327,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/use-route-commands.test.tsx": 2,
   "packages/sitrep-client/src/use-stream.test.tsx": 1,
   "packages/sitrep-client/src/view-clock.test.ts": 1,
-  "packages/sitrep-client/src/websocket-transport.test.ts": 2,
+  "packages/sitrep-client/src/websocket-transport.test.ts": 1,
   "packages/sitrep-client/vitest.config.ts": 1,
   "packages/ui-kit/tsup.config.ts": 2,
   "packages/ui/vitest.config.ts": 1,

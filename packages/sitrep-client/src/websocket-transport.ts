@@ -92,8 +92,13 @@ export interface WebSocketTransportOptions {
   silenceTimeoutMs?: number;
   /** How long the answer to a liveness probe may take before the socket is dropped, ms (default 5000). */
   probeTimeoutMs?: number;
-  /** Give up (settle to `disconnected`) after this long retrying, ms (default 5 min). */
-  retryTimeoutMs?: number;
+  /**
+   * How long a command may wait for a link that is down before it is handed
+   * back through `onUndelivered`, ms (default 5 min). The transport itself
+   * never stops retrying: this bounds only how stale a queued command may be
+   * when the link finally returns.
+   */
+  commandHoldMs?: number;
   /**
    * Called once per delivered `stream-data` frame: the perf-budget seam.
    * `@ksp-gonogo/sitrep-client` deliberately does NOT depend on `@ksp-gonogo/core`
@@ -114,7 +119,7 @@ export interface WebSocketTransportOptions {
   onBinaryFrame?: (info: BinaryFrameInfo) => void;
   /** Inject a `WebSocket` constructor (default: the ambient global). Tests that don't use MSW can pass a fake. */
   WebSocketImpl?: WebSocketCtor;
-  /** Wall-clock source for the retry-timeout budget (default `Date.now`). Injectable for deterministic tests. */
+  /** Wall-clock source for the command-hold budget (default `Date.now`). Injectable for deterministic tests. */
   now?: () => number;
 }
 
@@ -169,7 +174,7 @@ function decodeFrame(data: unknown): DecodedFrame | null {
 
 const DEFAULT_PORT = 8090;
 const DEFAULT_RETRY_INTERVAL_MS = 5_000;
-const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_COMMAND_HOLD_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_RETRY_INTERVAL_MS = 30_000;
 const DEFAULT_SILENCE_TIMEOUT_MS = 30_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
@@ -199,8 +204,8 @@ export const MAX_PENDING_COMMANDS = 64;
 export const SEND_QUEUE_FULL = FaultCode.SendQueueFull;
 
 /**
- * What the operator is told about a command that was still queued when this
- * connection stopped retrying.
+ * What the operator is told about a command that was still queued when the
+ * outage outlasted the hold window.
  *
  * Says the thing that is TRUE and useful, and stops there: it never left, so
  * nothing over there ran it, so sending it again cannot do it twice. That last
@@ -208,9 +213,8 @@ export const SEND_QUEUE_FULL = FaultCode.SendQueueFull;
  * the opposite advice for the opposite reason.
  */
 export const UNDELIVERED_REASON =
-  "not sent: the link never came back and this connection has stopped " +
-  "retrying. It never left this machine, so nothing ran it. Reconnect and " +
-  "send it again.";
+  "not sent: the link did not come back in time. It never left this " +
+  "machine, so nothing ran it. Send it again once the link is back.";
 
 /**
  * A live `Transport` over a Sitrep mod WebSocket (`ws://<host>:<port>`,
@@ -218,7 +222,7 @@ export const UNDELIVERED_REASON =
  *
  * Owns its own socket lifecycle (opens in the constructor, like
  * `ReplayTransport`) and is robust the same way the retired legacy WS
- * client was: fixed-interval reconnect with an overall give-up timeout, clean
+ * client was: capped-backoff reconnect that never gives up, clean
  * `connected`/`reconnecting`/`disconnected`/`error` status transitions, and
  * re-subscription of every still-active topic on every fresh connection.
  *
@@ -243,7 +247,7 @@ export class WebSocketTransport implements Transport {
   private readonly maxRetryIntervalMs: number;
   private readonly silenceTimeoutMs: number;
   private readonly probeTimeoutMs: number;
-  private readonly retryTimeoutMs: number;
+  private readonly commandHoldMs: number;
   private readonly onStreamFrame?: (info: StreamFrameInfo) => void;
   private readonly onBinaryFrame?: (info: BinaryFrameInfo) => void;
   private readonly WebSocketImpl: WebSocketCtor;
@@ -254,6 +258,7 @@ export class WebSocketTransport implements Transport {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryStart: number | null = null;
   private failedAttempts = 0;
+  private unwatchEnvironment: (() => void) | null = null;
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
   private probeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -295,7 +300,7 @@ export class WebSocketTransport implements Transport {
       options.url ??
       `ws://${options.host ?? "localhost"}:${options.port ?? DEFAULT_PORT}`;
     this.retryIntervalMs = options.retryIntervalMs ?? DEFAULT_RETRY_INTERVAL_MS;
-    this.retryTimeoutMs = options.retryTimeoutMs ?? DEFAULT_RETRY_TIMEOUT_MS;
+    this.commandHoldMs = options.commandHoldMs ?? DEFAULT_COMMAND_HOLD_MS;
     this.maxRetryIntervalMs =
       options.maxRetryIntervalMs ?? DEFAULT_MAX_RETRY_INTERVAL_MS;
     this.silenceTimeoutMs =
@@ -309,6 +314,7 @@ export class WebSocketTransport implements Transport {
       options.WebSocketImpl ?? (globalThis.WebSocket as WebSocketCtor);
     this.now = options.now ?? (() => Date.now());
 
+    this.watchEnvironment();
     this.open();
   }
 
@@ -420,6 +426,8 @@ export class WebSocketTransport implements Transport {
     this.disposed = true;
     this.stopRetrying();
     this.stopSilenceWatch();
+    this.unwatchEnvironment?.();
+    this.unwatchEnvironment = null;
     const ws = this.ws;
     this.ws = null;
     ws?.close();
@@ -455,12 +463,7 @@ export class WebSocketTransport implements Transport {
 
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
-      // Reset the give-up window: it measures the CURRENT outage, not the whole
-      // session. A successful open means we're healthy again, so the next drop
-      // starts a fresh `retryTimeoutMs` budget. Without this, `retryStart` is
-      // pinned to the first-ever drop and any later drop more than
-      // `retryTimeoutMs` of wall-clock after it would give up with zero
-      // retries: fatal for hours-long sessions.
+      // The outage clock measures the CURRENT outage, not the whole session: a successful open starts the next drop's command-hold window afresh.
       this.retryStart = null;
       this.failedAttempts = 0;
       this.setStatus("connected");
@@ -512,29 +515,64 @@ export class WebSocketTransport implements Transport {
   private scheduleRetry(): void {
     if (this.disposed) return;
     if (this.retryStart === null) this.retryStart = this.now();
-
-    if (this.now() - this.retryStart >= this.retryTimeoutMs) {
-      this.retryStart = null;
-      /*
-       * Say so BEFORE the status change, so a listener that reacts to
-       * `disconnected` by tearing the client down finds the queue already
-       * accounted for rather than silently disposed with commands in it.
-       */
-      this.abandonQueue();
-      this.setStatus("disconnected"); // gave up: a manual reconnect is needed
-      return;
-    }
+    this.expireStaleCommands();
 
     this.setStatus("reconnecting");
     const delay = Math.min(
       this.retryIntervalMs * 2 ** this.failedAttempts,
       Math.max(this.maxRetryIntervalMs, this.retryIntervalMs),
     );
-    this.failedAttempts++;
+    // Capped well below the exponent's overflow: the delay is already pinned to the ceiling long before this stops growing.
+    this.failedAttempts = Math.min(this.failedAttempts + 1, 30);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
       this.open();
     }, delay);
+  }
+
+  /**
+   * Skip the wait: if a retry is pending, open the next socket now and start
+   * the backoff over. A no-op while connected, while an attempt is already in
+   * flight, and after `dispose`.
+   */
+  retryNow(): void {
+    if (this.disposed || this.retryTimer === null) return;
+    this.stopRetrying();
+    this.failedAttempts = 0;
+    this.open();
+  }
+
+  /**
+   * A tab that comes back to the foreground, or a network that comes back, is
+   * the moment a wait on a long backoff is most likely to be wasted, so both
+   * retry at once.
+   */
+  private watchEnvironment(): void {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+    const onVisible = () => {
+      if (document.visibilityState === "visible") this.retryNow();
+    };
+    const onOnline = () => this.retryNow();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    this.unwatchEnvironment = () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+    };
+  }
+
+  /**
+   * Hand back the queued commands once the outage has outlasted
+   * {@link WebSocketTransportOptions.commandHoldMs}. A command is an event that
+   * happened once, and one that fires minutes later, when the game finally
+   * returns, does something the operator no longer expects.
+   */
+  private expireStaleCommands(): void {
+    if (this.retryStart === null) return;
+    if (this.now() - this.retryStart < this.commandHoldMs) return;
+    this.abandonQueue();
   }
 
   /**
@@ -574,18 +612,16 @@ export class WebSocketTransport implements Transport {
   }
 
   /**
-   * Hand back every command still waiting for a link that is not coming back.
+   * Hand back every command still waiting for a link that has stayed down
+   * past the hold window.
    *
    * The queue is bounded, so nothing grows without limit; what it was still
-   * missing is an END. Nothing reopens a socket after the give-up branch
-   * (`open` is only ever reached from `scheduleRetry`, and `dispose` is final),
-   * so a command left here would sit in memory for the life of the tab, never
-   * sent and never mentioned. The operator would have been told, minutes
-   * earlier, that it was `lost`, which says the far side MIGHT have run it: the
-   * exact opposite of what is true.
+   * missing is an END. A command left here for hours would fire whenever the
+   * game finally returns, long after the operator stopped expecting it, and
+   * would never have been mentioned in between.
    *
    * Drained rather than kept, because holding what has already been accounted
-   * for is how a second give-up reports the same command twice.
+   * for is how a later expiry reports the same command twice.
    *
    * Not called from `dispose()`, which is the other permanent end and is
    * already answered: `TelemetryClient.dispose` rejects every command still in
