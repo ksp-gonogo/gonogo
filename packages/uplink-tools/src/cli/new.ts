@@ -4,9 +4,9 @@
  * It emits only what an author writes. Everything a generator owns is left to
  * that generator, so the scaffold cannot drift from the toolchain: the contract,
  * topic map and unit map come from the codegen twin, the page from `docs`, and
- * the client source and hash `.g.cs` files from the release bake. The one
- * generator the scaffold runs itself, when the repo carries it, is
- * `tooling/codegen-uplink.mjs`.
+ * the three `.g.cs` files the plugin announces its client with from `bake`. The
+ * scaffold runs `bake` itself, since the plugin does not compile without them,
+ * and `tooling/codegen-uplink.mjs` when the repo carries it.
  *
  * The widget is deliberately minimal. Copying a finished Uplink hands an author
  * someone else's demo to delete; an empty one that builds is a better start.
@@ -22,6 +22,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { bakeUplink, describeBake } from "./bake";
 import { parseFlags } from "./flags";
 
 export interface SeedOptions {
@@ -102,6 +103,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         typecheck:
           "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.nodenext.json",
         bundle: "uplink-tools bundle",
+        bake: `uplink-tools bake --bundle dist/${id}/${id}.client.js`,
         render: "uplink-tools render",
         docs: "uplink-tools docs",
         "docs:check": "uplink-tools docs --check",
@@ -515,6 +517,14 @@ public static class ${Id}RtConfig
   <ItemGroup>
     <ProjectReference Include="..\\mod-contract\\${ns}.Contract.csproj" />
   </ItemGroup>
+
+  <!-- Provenance, ClientSource and ExpectedClientHash are generated and kept out
+       of git, because one of them can name the machine that baked it. -->
+  <Target Name="RequireBakedClientSource" BeforeTargets="CoreCompile">
+    <Error
+      Condition="!Exists('$(MSBuildProjectDirectory)\\Provenance.g.cs') Or !Exists('$(MSBuildProjectDirectory)\\ClientSource.g.cs') Or !Exists('$(MSBuildProjectDirectory)\\ExpectedClientHash.g.cs')"
+      Text="mod/ is missing the files this plugin announces its client with. Write them with: npx uplink-tools bake" />
+  </Target>
 </Project>
 `,
   );
@@ -557,7 +567,20 @@ namespace ${ns}
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "${id}",
-            Version = "1.0.0",
+            // Provenance, ClientSource and ExpectedClientHash are written by \`uplink-tools bake\`, and one version covers both halves of the Uplink.
+            Version = Provenance.Version,
+            Name = Provenance.Name,
+            Author = Provenance.Author,
+            Repo = Provenance.Repo,
+            // The app loads a client only for a plugin that says where the bundle lives, and refuses one that vouches for no hash.
+            ExpectedClientHash = string.IsNullOrEmpty(ExpectedClientHash.Value)
+                ? null
+                : ExpectedClientHash.Value,
+            ClientSource = new UplinkClientSource
+            {
+                Url = ClientSource.Url,
+                DevPath = string.IsNullOrEmpty(ClientSource.DevPath) ? null : ClientSource.DevPath,
+            },
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
@@ -651,7 +674,7 @@ namespace ${ns}
   <!-- The plugin targets net48 and this targets net10.0, so its sources are
        compiled in rather than referenced. -->
   <ItemGroup>
-    <Compile Include="..\\mod\\${Id}Uplink.cs" />
+    <Compile Include="..\\mod\\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -664,6 +687,12 @@ namespace ${ns}
     </Reference>
     <PackageReference Include="xunit.assert" Version="2.9.2" />
   </ItemGroup>
+
+  <Target Name="RequireBakedClientSource" BeforeTargets="CoreCompile">
+    <Error
+      Condition="!Exists('$(MSBuildProjectDirectory)\\..\\mod\\Provenance.g.cs') Or !Exists('$(MSBuildProjectDirectory)\\..\\mod\\ClientSource.g.cs') Or !Exists('$(MSBuildProjectDirectory)\\..\\mod\\ExpectedClientHash.g.cs')"
+      Text="mod/ is missing the files the plugin announces its client with. Write them with: npx uplink-tools bake" />
+  </Target>
 </Project>
 `,
   );
@@ -687,6 +716,20 @@ namespace ${ns}.Tests
             var channel = Assert.Single(manifest.Channels);
             Assert.Equal(${Id}Uplink.HeartbeatTopic, channel.Topic);
             Assert.Equal(DelayRole.TrueNow, channel.Delay);
+        }
+
+        [Fact]
+        public void AnnouncesItsClientSoTheAppCanFindIt()
+        {
+            var manifest = new ${Id}Uplink().Manifest;
+
+            Assert.NotNull(manifest.ClientSource);
+            Assert.NotEqual("", manifest.ClientSource!.Url);
+            Assert.NotEqual("", manifest.Version);
+            // Null until \`uplink-tools bake --bundle\` has hashed a built bundle, and never a malformed value.
+            Assert.True(
+                manifest.ExpectedClientHash == null
+                    || manifest.ExpectedClientHash.StartsWith("sha256-"));
         }
 
         [Fact]
@@ -812,7 +855,8 @@ export const NEW_USAGE = `uplink-tools new <id> [options]
 
   Scaffold a fresh Uplink: the hand-written seed only (contract slice, plugin,
   tests, a minimal widget and its fixture). Generated files are left to their
-  generators, so nothing here can drift from the toolchain.
+  generators, so nothing here can drift from the toolchain. It runs bake once,
+  because the plugin does not compile without the files bake writes.
 
   Where it goes:
     in a repo with an uplinks/ folder   uplinks/<id>/, pinned like its siblings
@@ -844,12 +888,13 @@ function placement(cwd: string, dirFlag: string | undefined, id: string) {
   return { target: root, uplinksDir: undefined, repoRoot: root };
 }
 
-/** What a repo that IS one Uplink keeps out of git: installs, builds, local renders and the .NET output. */
+/** What a repo that IS one Uplink keeps out of git: installs, builds, local renders, the .NET output and what bake writes. */
 const SINGLE_REPO_GITIGNORE = `node_modules/
 dist/
 renders/
 bin/
 obj/
+*.g.cs
 `;
 
 export function newUplink(
@@ -915,6 +960,7 @@ export function newUplink(
     writeFileSync(out, content);
   }
   console.log(`${id}: wrote ${files.size} files to ${target}`);
+  console.log(describeBake(bakeUplink({ uplinkDir: target })));
 
   const codegen = join(repoRoot, "tooling", "codegen-uplink.mjs");
   const generated = !switches.has("--no-generate") && existsSync(codegen);
@@ -936,6 +982,7 @@ export function newUplink(
         ]),
     `install the client's dependencies: cd ${client} && npm install`,
     "write the generated page: `GONOGO_UPLINK_PAGE_UPDATE=1 npx vitest run` (no browser) or `npm run docs` (also renders the pictures), then commit what it writes",
+    `before installing the plugin in a game: \`npm run bundle\` then \`npm run bake\` in ${client}, and only then build mod/ in Release, so the plugin vouches for the bundle that ships`,
   ];
   console.log(`\nNext:\n${todo.map((step) => `  - ${step}`).join("\n")}`);
   return 0;

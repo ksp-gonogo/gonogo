@@ -22,7 +22,7 @@ Once it is in an Uplink's devDependencies the same commands answer to
 |---|---|
 | `new <id>` | scaffold the hand-written seed of an Uplink: contract slice, plugin, tests, one widget and its fixture. In a repo with an `uplinks/` folder it goes to `uplinks/<id>/`; anywhere else the current directory becomes the Uplink |
 | `bundle` | build the client bundle the app loads, and the `gonogo-uplink.json` beside it |
-| `bake-hash` | write a bundle's sha256 into a C# const, so the mod can vouch for the client it shipped with |
+| `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
 | `render` | render every scene to `renders/` |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
 

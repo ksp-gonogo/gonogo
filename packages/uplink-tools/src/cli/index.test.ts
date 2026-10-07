@@ -12,10 +12,9 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 /**
- * `bake-hash` is exercised through the BIN, not the exported function, because
- * the bin is what an author's release script calls and what a template's
- * getting-started names. A test that imports `run` would pass with a broken
- * shim, an absent `bin` entry, or a dist that does not load.
+ * `bake` is exercised through the BIN, not the exported function, because the
+ * bin is what an author's release script calls. A test that imports `run` would
+ * pass with a broken shim, an absent `bin` entry, or a dist that does not load.
  */
 const BIN = join(import.meta.dirname, "../../bin/uplink-tools.mjs");
 const scratch: string[] = [];
@@ -28,53 +27,6 @@ const workdir = () => {
 afterEach(() => {
   for (const dir of scratch.splice(0))
     rmSync(dir, { recursive: true, force: true });
-});
-
-describe("uplink-tools bake-hash", () => {
-  it("writes the bundle's sha256 into a C# const the mod can vouch with", () => {
-    const dir = workdir();
-    const bundle = join(dir, "x.client.js");
-    writeFileSync(bundle, "export const marker = 1;\n");
-    const out = join(dir, "ExpectedClientHash.g.cs");
-
-    execFileSync(process.execPath, [
-      BIN,
-      "bake-hash",
-      "--bundle",
-      bundle,
-      "--out",
-      out,
-      "--namespace",
-      "Gonogo.X",
-    ]);
-
-    const written = readFileSync(out, "utf8");
-    expect(written).toContain("namespace Gonogo.X");
-    // The value the loader compares against, so its SHAPE is the contract: an `sha256-<64 hex>` it can match, never a bare digest or an empty string.
-    expect(written).toMatch(
-      /public const string Value = "sha256-[0-9a-f]{64}";/,
-    );
-  });
-
-  it("refuses a bundle that does not exist rather than baking a hash of nothing", () => {
-    const dir = workdir();
-    expect(() =>
-      execFileSync(
-        process.execPath,
-        [
-          BIN,
-          "bake-hash",
-          "--bundle",
-          join(dir, "absent.js"),
-          "--out",
-          join(dir, "out.cs"),
-          "--namespace",
-          "Gonogo.X",
-        ],
-        { stdio: "pipe" },
-      ),
-    ).toThrow();
-  });
 });
 
 const runBin = (args: readonly string[], cwd?: string) => {
@@ -99,11 +51,126 @@ const runBin = (args: readonly string[], cwd?: string) => {
   }
 };
 
+/** An Uplink's directory as far as bake reads it: the declaration, the client's version and a mod folder. */
+const uplinkDir = (declared: Record<string, unknown> = {}) => {
+  const dir = workdir();
+  mkdirSync(join(dir, "mod"));
+  mkdirSync(join(dir, "client", "src"), { recursive: true });
+  writeFileSync(
+    join(dir, "uplink.json"),
+    JSON.stringify({
+      id: "x",
+      name: "X",
+      author: 'Jo "the hat" Kerman',
+      repo: "https://example.test/x",
+      csharpNamespace: "Gonogo.X",
+      client: { url: "https://cdn.example.test/x/x.client.js" },
+      ...declared,
+    }),
+  );
+  writeFileSync(
+    join(dir, "client", "package.json"),
+    JSON.stringify({ name: "x", version: "1.4.0" }),
+  );
+  return dir;
+};
+
+const baked = (dir: string, file: string) =>
+  readFileSync(join(dir, "mod", file), "utf8");
+
+describe("uplink-tools bake", () => {
+  it("writes where the client lives, who wrote it and the bundle's hash, from inside the Uplink", () => {
+    const dir = uplinkDir();
+    const bundle = join(dir, "x.client.js");
+    writeFileSync(bundle, "export const marker = 1;\n");
+
+    // Run from client/src, since an author runs it from wherever they are.
+    execFileSync(process.execPath, [BIN, "bake", "--bundle", bundle], {
+      cwd: join(dir, "client", "src"),
+    });
+
+    const provenance = baked(dir, "Provenance.g.cs");
+    expect(provenance).toContain("namespace Gonogo.X");
+    expect(provenance).toContain('Name = "X";');
+    expect(provenance).toContain('Author = "Jo \\"the hat\\" Kerman";');
+    expect(provenance).toContain('Repo = "https://example.test/x";');
+    // One version for both halves: the client's package.json is where it is written.
+    expect(provenance).toContain('Version = "1.4.0";');
+
+    const source = baked(dir, "ClientSource.g.cs");
+    expect(source).toContain('Url = "https://cdn.example.test/x/x.client.js";');
+    expect(source).toContain('DevPath = "";');
+
+    // The value the loader compares against, so its SHAPE is the contract: an `sha256-<64 hex>` it can match, never a bare digest.
+    expect(baked(dir, "ExpectedClientHash.g.cs")).toMatch(
+      /public const string Value = "sha256-[0-9a-f]{64}";/,
+    );
+  });
+
+  it("bakes an empty hash without a bundle, and says the app will refuse the client", () => {
+    const dir = uplinkDir();
+
+    const out = execFileSync(process.execPath, [BIN, "bake"], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+
+    expect(baked(dir, "ExpectedClientHash.g.cs")).toContain('Value = "";');
+    expect(out).toMatch(/refuses the client/);
+    expect(out).toContain("bake --bundle");
+  });
+
+  it("carries a dev path only when one was given, and says it must not ship", () => {
+    const dir = uplinkDir();
+
+    const out = execFileSync(
+      process.execPath,
+      [BIN, "bake", "--dev-path", "http://localhost:5173/x.client.js"],
+      { cwd: dir, encoding: "utf8" },
+    );
+
+    expect(baked(dir, "ClientSource.g.cs")).toContain(
+      'DevPath = "http://localhost:5173/x.client.js";',
+    );
+    expect(out).toContain("DEV BUILD");
+  });
+
+  it("announces no client for an Uplink that declares none", () => {
+    const dir = uplinkDir({ client: undefined });
+
+    const out = execFileSync(process.execPath, [BIN, "bake"], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+
+    expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(true);
+    expect(existsSync(join(dir, "mod", "ClientSource.g.cs"))).toBe(false);
+    expect(out).toContain("announces no client");
+  });
+
+  it("refuses a bundle that does not exist rather than baking a hash of nothing", () => {
+    const dir = uplinkDir();
+    const { code, out } = runBin(
+      ["bake", "--bundle", join(dir, "absent.js")],
+      dir,
+    );
+    expect(code).toBe(1);
+    expect(out).toContain("does not exist");
+    expect(existsSync(join(dir, "mod", "ExpectedClientHash.g.cs"))).toBe(false);
+  });
+
+  it("refuses to run outside an Uplink, naming what it looked for", () => {
+    const { code, out } = runBin(["bake"], workdir());
+    expect(code).toBe(1);
+    expect(out).toContain("no uplink.json");
+  });
+});
+
 describe("the top-level help", () => {
   it("names every command and how to run one without an install", () => {
     const { code, out } = runBin(["--help"]);
     expect(code).toBe(0);
-    for (const verb of ["new", "bundle", "bake-hash", "render", "docs"]) {
+    for (const verb of ["new", "bundle", "bake", "render", "docs"]) {
       expect(out).toMatch(new RegExp(`^  ${verb} `, "m"));
     }
     expect(out).toContain("npx @ksp-gonogo/uplink-tools <command>");
@@ -122,7 +189,7 @@ describe("the top-level help", () => {
  * flag parser with `--help` as an unknown flag.
  */
 describe("every command answers --help", () => {
-  for (const verb of ["new", "bundle", "bake-hash", "render", "docs"]) {
+  for (const verb of ["new", "bundle", "bake", "render", "docs"]) {
     it(`${verb} prints its own options rather than running`, () => {
       const { code, out } = runBin([verb, "--help"]);
       expect(code).toBe(0);
@@ -140,7 +207,7 @@ describe("every command refuses a flag it does not read", () => {
   const cases: ReadonlyArray<[string, string[]]> = [
     ["new", ["new", "fresh", "--scene", "x"]],
     ["bundle", ["bundle", "--check"]],
-    ["bake-hash", ["bake-hash", "--watch"]],
+    ["bake", ["bake", "--watch"]],
     ["render", ["render", "--check"]],
     ["docs", ["docs", "--scene", "x"]],
   ];

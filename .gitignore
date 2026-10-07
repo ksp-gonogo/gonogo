@@ -60,3 +60,6 @@ renders/
 # committed file so a CI log can diff the two. The committed `asyncapi.yaml` is
 # tracked; this one is scratch from a failing check.
 asyncapi.yaml.actual
+
+# What scripts/scaffold-probe.mjs has the app import, removed after each run
+packages/app/.scaffold-probe/

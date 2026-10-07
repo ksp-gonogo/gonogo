@@ -39,7 +39,8 @@ Contract codegen is buildable and its committed output is current|same:Every gen
 Pack and gate KspGonogo.Sitrep.Contract|mod:pack
 Upload the NuGet package|ci:uploads the packed file as a run artifact and checks nothing
 An Uplink builds against the packed contract|mod:probe
-Which Uplinks build against the packed contract|ci:continue-on-error in the job, a report on each Uplink rather than a gate, so failing a push on it would hold the push to more than CI does'
+Which Uplinks build against the packed contract|ci:continue-on-error in the job, a report on each Uplink rather than a gate, so failing a push on it would hold the push to more than CI does
+A scaffolded Uplink is announced by its plugin and loaded by the app|always:scaffold_probe'
 
 # `mod/` because every C# test that reads the tree roots itself at
 # mod/Gonogo.sln and walks only inside mod/, and the `packages/` paths in
@@ -245,6 +246,26 @@ step_probe() {
   set -- "$WORK"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
   quiet node "$ROOT/scripts/nuget-extraction-probe.mjs" --nupkg "$1" --uplink GonogoProbeUplink || return 1
   quiet node "$ROOT/scripts/nuget-extraction-probe.mjs" --nupkg "$1" --plant --uplink GonogoProbeUplink
+}
+
+# What the probe follows from end to end lies outside MOD_TRIGGER as well as in
+# it: the scaffold and the commands are uplink-tools, the loader is the app's,
+# and the client is built on the sdk. So it is listed as `always` and decides
+# here, declining by name when the push changes none of them.
+SCAFFOLD_TRIGGER="packages/uplink-tools packages/app/src/uplinks mod/sitrep-sdk/src"
+
+step_scaffold_probe() {
+  if [ "$NO_DOTNET" = "1" ]; then
+    DECLINED="\`dotnet\` is not on PATH, and the probe builds the scaffolded plugin with it"
+    return 2
+  fi
+  # shellcheck disable=SC2086  # SCAFFOLD_TRIGGER is a list of pathspecs
+  if [ "$RUN_MOD" = "0" ] && git diff --quiet "$BASE" HEAD -- $SCAFFOLD_TRIGGER; then
+    DECLINED="no changes under $MOD_TRIGGER or $SCAFFOLD_TRIGGER vs $(echo "$BASE" | cut -c1-9)"
+    return 2
+  fi
+  quiet pnpm --filter "@ksp-gonogo/uplink-tools..." --filter "@ksp-gonogo/app^..." build || return 1
+  quiet node "$ROOT/scripts/scaffold-probe.mjs"
 }
 
 RAN=0

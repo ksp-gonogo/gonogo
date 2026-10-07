@@ -39,6 +39,7 @@
     "uplink-shape-gate": "node scripts/uplink-shape-gate.mjs",
     "uplink-shape-engines": "node scripts/uplink-shape-engines.mjs",
     "published-packages-probe": "node scripts/published-packages-probe.mjs",
+    "scaffold-probe": "node scripts/scaffold-probe.mjs",
     "push": "node scripts/safe-push.mjs",
     "review-sheet": "pnpm --filter @ksp-gonogo/storybook review-sheet"
   },

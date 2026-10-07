@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Run by scripts/scaffold-probe.mjs and never shipped: the real Uplink
+       discovery and the real stream engine, with no game, so a plugin built from
+       a fresh scaffold can be asked what it tells the app. net10.0 because it is
+       a console tool on the build machine, as Sitrep.LoadProbe is. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ScaffoldProbeHost</RootNamespace>
+    <AssemblyName>ScaffoldProbeHost</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\mod\Sitrep.Host\Sitrep.Host.csproj" />
+  </ItemGroup>
+</Project>

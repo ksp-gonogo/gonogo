@@ -72,6 +72,47 @@ describe("uplink-tools new", () => {
     }
   });
 
+  it("has the plugin announce its client, its author and one version, all from what bake writes", () => {
+    const plugin = seed().get("mod/WidgetsUplink.cs") ?? "";
+    for (const line of [
+      "Version = Provenance.Version,",
+      "Name = Provenance.Name,",
+      "Author = Provenance.Author,",
+      "Repo = Provenance.Repo,",
+      "ClientSource = new UplinkClientSource",
+      "Url = ClientSource.Url,",
+    ]) {
+      expect(plugin).toContain(line);
+    }
+    expect(plugin).toMatch(
+      /ExpectedClientHash = string\.IsNullOrEmpty\(ExpectedClientHash\.Value\)\s+\? null/,
+    );
+    // A hand-typed version in the plugin is a second statement of the client's.
+    expect(plugin).not.toMatch(/Version = "/);
+  });
+
+  it("stops both C# builds with the command to run when the baked files are absent", () => {
+    const files = seed();
+    for (const path of [
+      "mod/GonogoWidgetsUplink.csproj",
+      "mod-tests/GonogoWidgetsUplink.Tests.csproj",
+    ]) {
+      const project = files.get(path) ?? "";
+      for (const file of [
+        "Provenance.g.cs",
+        "ClientSource.g.cs",
+        "ExpectedClientHash.g.cs",
+      ]) {
+        expect(project, path).toContain(file);
+      }
+      expect(project, path).toContain("npx uplink-tools bake");
+    }
+    // The tests compile the plugin's sources in, so they need the baked ones too.
+    expect(files.get("mod-tests/GonogoWidgetsUplink.Tests.csproj")).toContain(
+      '<Compile Include="..\\mod\\*.cs" />',
+    );
+  });
+
   it("refuses an id that cannot name a namespace", () => {
     expect(validateUplinkId("my-uplink")).toMatch(/not a usable/);
     expect(validateUplinkId("1abc")).toMatch(/not a usable/);
@@ -164,6 +205,20 @@ describe("uplink-tools new", () => {
       expect(existsSync(join(repo, path)), path).toBe(true);
     }
     expect(existsSync(join(repo, "uplinks"))).toBe(false);
+    // Baked once by new, so the plugin compiles at once, and kept out of git.
+    const provenance = readFileSync(
+      join(repo, "mod", "Provenance.g.cs"),
+      "utf8",
+    );
+    expect(provenance).toContain("namespace GonogoSoloUplink");
+    expect(provenance).toContain('Version = "0.0.1";');
+    expect(
+      readFileSync(join(repo, "mod", "ClientSource.g.cs"), "utf8"),
+    ).toContain("solo.client.js");
+    expect(
+      readFileSync(join(repo, "mod", "ExpectedClientHash.g.cs"), "utf8"),
+    ).toContain('Value = "";');
+    expect(readFileSync(join(repo, ".gitignore"), "utf8")).toContain("*.g.cs");
     const declared = JSON.parse(
       readFileSync(join(repo, "uplink.json"), "utf8"),
     );

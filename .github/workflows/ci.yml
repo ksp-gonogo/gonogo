@@ -1028,6 +1028,18 @@ jobs:
           fi
           node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
 
+      # Whether an Uplink started with `uplink-tools new` reaches the dashboard.
+      # The scaffold is bundled, baked and built outside the repo, its plugin is
+      # loaded by the mod's own scan into a real stream engine, and the app reads
+      # that stream's roster and loads the client it names. Two planted faults
+      # must fail or the probe exits BLIND. The script's header has the rest.
+      - name: A scaffolded Uplink is announced by its plugin and loaded by the app
+        run: |
+          set -euo pipefail
+          # The command the probe runs, and every package the app's test run imports from a build.
+          pnpm --filter "@ksp-gonogo/uplink-tools..." --filter "@ksp-gonogo/app^..." build
+          pnpm scaffold-probe
+
   e2e:
     runs-on: ubuntu-latest
     strategy:
