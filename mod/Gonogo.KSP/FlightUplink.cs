@@ -102,33 +102,8 @@ namespace Gonogo.KSP
             GameEvents.onCrashSplashdown.Add(OnCrashSplashdown);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
             GameEvents.onVesselRecoveryProcessingComplete.Add(OnRecoveryComplete);
-            // Same process-wide-lifetime rationale as CrashUplink/RecoveryUplink
-            // (this uplink's host addon is KSPAddon(once) + DontDestroyOnLoad):
-            // unsubscribe only on a return to the main menu.
-            GameEvents.onGameSceneLoadRequested.Add(OnSceneUnload);
-        }
-
-        private void OnSceneUnload(GameScenes scene)
-        {
-            if (scene == GameScenes.MAINMENU)
-            {
-                UnhookGameEvents();
-            }
-        }
-
-        private void UnhookGameEvents()
-        {
-            if (!_subscribed)
-            {
-                return;
-            }
-            _subscribed = false;
-
-            GameEvents.onCrash.Remove(OnCrash);
-            GameEvents.onCrashSplashdown.Remove(OnCrashSplashdown);
-            GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
-            GameEvents.onVesselRecoveryProcessingComplete.Remove(OnRecoveryComplete);
-            GameEvents.onGameSceneLoadRequested.Remove(OnSceneUnload);
+            // The hooks live for the whole process: Register runs once, before the
+            // main menu, and a flight can end in any scene the player reaches.
         }
 
         private void OnCrash(EventReport report) =>

@@ -103,33 +103,8 @@ namespace Gonogo.KSP
             _subscribed = true;
 
             GameEvents.onVesselRecoveryProcessingComplete.Add(OnRecoveryComplete);
-            // The addon that hosts this uplink is KSPAddon(once) +
-            // DontDestroyOnLoad, so Register runs once for the whole process
-            // and this handler is meant to live process-wide (recovery can
-            // happen after any flight). Unsubscribe on scene teardown anyway
-            // so a hypothetical re-Register can't double-hook, mirrors
-            // CrashUplink's own scene-unload guard.
-            GameEvents.onGameSceneLoadRequested.Add(OnSceneUnload);
-        }
-
-        private void OnSceneUnload(GameScenes scene)
-        {
-            if (scene == GameScenes.MAINMENU)
-            {
-                UnhookGameEvents();
-            }
-        }
-
-        private void UnhookGameEvents()
-        {
-            if (!_subscribed)
-            {
-                return;
-            }
-            _subscribed = false;
-
-            GameEvents.onVesselRecoveryProcessingComplete.Remove(OnRecoveryComplete);
-            GameEvents.onGameSceneLoadRequested.Remove(OnSceneUnload);
+            // The hook lives for the whole process: Register runs once, before the
+            // main menu, and recovery can happen after any flight.
         }
 
         /// <summary>

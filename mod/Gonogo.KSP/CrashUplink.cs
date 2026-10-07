@@ -140,39 +140,9 @@ namespace Gonogo.KSP
             GameEvents.onLaunch.Add(OnLaunch);
             GameEvents.onStageSeparation.Add(OnStageSeparation);
             GameEvents.onPartDie.Add(OnPartDie);
-            // The addon that hosts this uplink is KSPAddon(once) +
-            // DontDestroyOnLoad, so Register runs once for the whole process and
-            // these handlers are meant to live process-wide (crash detection
-            // must span every flight). Unsubscribe on scene teardown anyway so a
-            // hypothetical re-Register can't double-hook.
-            GameEvents.onGameSceneLoadRequested.Add(OnSceneUnload);
-        }
-
-        private void OnSceneUnload(GameScenes scene)
-        {
-            // Only tear down when leaving flight back to a non-flight scene;
-            // staying subscribed across ordinary flight scene work is intended.
-            if (scene == GameScenes.MAINMENU)
-            {
-                UnhookGameEvents();
-            }
-        }
-
-        private void UnhookGameEvents()
-        {
-            if (!_subscribed)
-            {
-                return;
-            }
-            _subscribed = false;
-
-            GameEvents.onCrash.Remove(OnCrash);
-            GameEvents.onCrashSplashdown.Remove(OnCrashSplashdown);
-            GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
-            GameEvents.onLaunch.Remove(OnLaunch);
-            GameEvents.onStageSeparation.Remove(OnStageSeparation);
-            GameEvents.onPartDie.Remove(OnPartDie);
-            GameEvents.onGameSceneLoadRequested.Remove(OnSceneUnload);
+            // The hooks live for the whole process: the addon that hosts this
+            // uplink is KSPAddon(once) + DontDestroyOnLoad, so Register runs once,
+            // before the main menu, and crash detection must span every flight.
         }
 
         private void OnLaunch(EventReport report)
