@@ -19,6 +19,7 @@ namespace Sitrep.Contract;
 /// <para>On the wire a refusal is its root's id in <c>errorCode</c>, and a
 /// refinement's own id in <c>reason</c>.</para>
 /// </summary>
+/// <category>Stream messages</category>
 public sealed class RefusalCode : IEquatable<RefusalCode>
 {
     private static readonly Regex RootId = new Regex("^[a-z][a-zA-Z0-9]*$", RegexOptions.CultureInvariant);

@@ -25,8 +25,9 @@ namespace Sitrep.Contract
     /// object, and where it matters a <see cref="PropagationFrame"/> and a UT. A
     /// provider backed by different physics resolves the target against its own
     /// model and need not reason in conics. The default provider is a two-body
-    /// analytic solver, and an n-body install registers its own; Gonogo resolves
-    /// this interface and never asks which is installed.</para>
+    /// analytic solver, and an n-body install registers its own.
+    /// <internal>Gonogo resolves this interface and never asks which is
+    /// installed.</internal></para>
     ///
     /// <para>Replacing the provider replaces every member: the period, the radius
     /// extremes, the batch solve and the closest approach, as well as

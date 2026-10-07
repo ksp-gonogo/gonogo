@@ -279,7 +279,7 @@ export interface ScenePayload {
   /**
    * Outline what the target augment draws inside its host. The augment renders
    * inside a wrapper with no box of its own, so layout, the measured signature
-   * and every other scene are unchanged; see {@link markSupplied}.
+   * and every other scene are unchanged; see {@link RenderProbeApi.markSupplied}.
    */
   highlight?: true;
   /** Legacy `DataSource` keys, by source id. */
@@ -304,7 +304,7 @@ export interface ScenePayload {
    */
   withhold?: SceneTarget;
   /**
-   * Leave the drop and the clock seal to {@link finishScene}, so the driver can
+   * Leave the drop and the clock seal to {@link RenderProbeApi.finishScene}, so the driver can
    * press through `_scene.before` while the link is still up.
    */
   holdDrop?: boolean;
@@ -335,7 +335,7 @@ export interface SceneReport {
   signature: string;
   /**
    * One line per element the subject drew: its tag, every attribute and its
-   * own text, with React ids folded. See {@link describeElements}.
+   * own text, with React ids folded. See {@link RenderProbeApi.describeElements}.
    */
   elements: string[];
   /** Emitted topics the target's registration never declared. Informational. */
@@ -791,19 +791,19 @@ interface Mounted {
   root: Root | null;
   fixture: StreamFixture | null;
   sources: MockDataSource[];
-  /** What the mount found unread, for the report {@link finishScene} returns. */
+  /** What the mount found unread, for the report {@link RenderProbeApi.finishScene} returns. */
   unread: UnreadTopics;
   /**
    * The emits that had no subscriber when the mount stopped growing.
    *
    * Held rather than discarded because a press can open one: content behind a tab
    * is not mounted until the tab is selected, and `_scene.before` runs after the
-   * feed. See {@link refeedScene}.
+   * feed. See {@link RenderProbeApi.refeedScene}.
    */
   pending: SceneEmit[];
-  /** The topics the target's registration declares, for {@link refeedScene}. */
+  /** The topics the target's registration declares, for {@link RenderProbeApi.refeedScene}. */
   declared: string[];
-  /** Puts back what {@link withhold} took out for this mount. */
+  /** Puts back what {@link ScenePayload.withhold} took out for this mount. */
   restoreWithheld: () => void;
   /** The scene's current pinned instant, moved only by an `advanceUt` step. */
   ut: number;
@@ -921,7 +921,7 @@ function markSupplied<Augment extends AnyAugment>(def: Augment): Augment {
 
 /**
  * Draw one augment inside the outlined wrapper for the life of a mount, by the
- * same empty-and-refill of the registry that {@link withhold} uses.
+ * same empty-and-refill of the registry that {@link ScenePayload.withhold} uses.
  */
 function highlight(target: SceneTarget): () => void {
   if (target.kind !== "augment") return () => {};
@@ -1173,7 +1173,7 @@ async function unmountScene(): Promise<void> {
 
 /**
  * Drop the link if the mounted scene stops arriving, seal the scene clock when
- * the mount owns it, and read the render. {@link renderScene} runs it itself
+ * the mount owns it, and read the render. {@link RenderProbeApi.renderScene} runs it itself
  * unless the payload holds the drop.
  */
 async function finishScene(mounted: Mounted): Promise<SceneReport> {
@@ -1698,9 +1698,9 @@ export interface RenderProbeApi {
   readInventory: (uplinkId?: string) => UplinkInventory;
   renderScene: (scene: ScenePayload) => Promise<SceneReport>;
   /** Feed whatever a `_scene.before` press has just mounted, and report the
-   *  topics still unread. See {@link refeedScene}. */
+   *  topics still unread. See {@link RenderProbeApi.refeedScene}. */
   refeedScene: () => Promise<UnreadTopics>;
-  /** Complete a mount whose payload held the drop. See {@link finishScene}. */
+  /** Complete a mount whose payload held the drop. See {@link RenderProbeApi.finishScene}. */
   finishScene: () => Promise<SceneReport>;
   /** The mounted render as it stands, with nothing done to it. */
   readScene: () => SceneReport;
@@ -1711,7 +1711,7 @@ export interface RenderProbeApi {
    * time and has to leave nothing behind between them.
    */
   unmountScene: () => Promise<void>;
-  /** Mount a scene into an element of its own, beside the driver's and any other. See {@link mountScene}. */
+  /** Mount a scene into an element of its own, beside the driver's and any other. See {@link RenderProbeApi.mountScene}. */
   mountScene: (el: HTMLElement, scene: ScenePayload) => SceneMount;
   /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
    *  Separate from `renderScene`'s report because the driver GROWS the mount

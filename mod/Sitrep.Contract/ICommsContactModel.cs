@@ -13,7 +13,7 @@ namespace Sitrep.Contract
     /// contact.</para>
     ///
     /// <para><b>Called on the main thread, evaluated on any thread.</b>
-    /// <see cref="LinkModel"/> reads live game state, so it is asked where every
+    /// The <see cref="LinkModel"/> member reads live game state, so it is asked where every
     /// other backend read is. The <see cref="IContactLinkModel"/> it returns holds
     /// everything it needs as captured data, aims included, and is evaluated by the
     /// contact planner off the main thread for hours of game time ahead.</para>

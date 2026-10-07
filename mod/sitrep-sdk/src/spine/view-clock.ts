@@ -15,6 +15,8 @@ export type {
 /**
  * The light-time below which SCET and the received clock are the same instant as
  * far as anything on screen can show: instants are printed to the whole second.
+ *
+ * @category Stream fixture
  */
 export const VISIBLE_GAP_SECONDS = 1;
 

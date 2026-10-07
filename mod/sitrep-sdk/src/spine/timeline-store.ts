@@ -1240,7 +1240,7 @@ export class TimelineStore {
    * widget reading `vessel.orbit` drew one. Whether a model runs is not
    * supposed to be a fact about the rest of the dashboard.
    *
-   * The ladder is {@link rawReckonedWalk}'s, deliberately: the topic's own
+   * The ladder is `rawReckonedWalk`'s, deliberately: the topic's own
    * registration, else the record's where `topic` is a field of one. Read
    * through `getReckoner` rather than off any list here, so an Uplink-owned
    * model is served exactly as core's is.

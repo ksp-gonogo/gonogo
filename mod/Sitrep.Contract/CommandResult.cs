@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// <see cref="RefusalCode.Refine"/>); the root still travels, so nothing a client
 /// does with a root depends on knowing the refinement.</para>
 /// </summary>
+/// <category>Stream messages</category>
 public static class CommandErrorCode
 {
     /// <summary>There is no active vessel to act on.</summary>
