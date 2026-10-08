@@ -33,14 +33,15 @@
     "./guards": {
       "types": "./dist/guards.d.ts",
       "import": "./dist/guards.js"
-    }
+    },
+    "./reads-index.json": "./dist/reads-index.json"
   },
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup && node scripts/extend-package-specifiers.mjs && cp node_modules/@ksp-gonogo/theme/dist/tokens.css dist/tokens.css",
+    "build": "tsup && node scripts/extend-package-specifiers.mjs && cp node_modules/@ksp-gonogo/theme/dist/tokens.css dist/tokens.css && node ../../scripts/build-reads-index.mjs @ksp-gonogo/ui-kit src/index.ts,src/guards.ts,src/gridUnits.ts",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
     "render:markers": "node scripts/render-markers.ts",

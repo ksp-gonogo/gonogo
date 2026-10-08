@@ -27,6 +27,9 @@
  *     recorded reason in `RUNTIME_IMPORT_EXEMPT` below
  *  4. every published bin RUNS: the link npm made for it answers `--help` with
  *     exit 0, which is what `npx <package> --help` reaches
+ *  5. the sdk and the kit each ship the reads index their export map names, as
+ *     a file that parses and lists their exports. `uplink-tools check` reads
+ *     the Topics a published hook reads from it, since a client sees only `dist`
  *
  * ## Why (3) is bare node and not a typecheck or vitest
  *
@@ -387,6 +390,66 @@ function selfTest(tarballs, workRoot) {
 
   runtimeImports(specs, work);
   binsRun(Object.keys(tarballs), work);
+  readsIndexesShip(work);
+}
+
+/** The published packages that carry a reads index. */
+const PACKAGES_WITH_READS_INDEX = [
+  "@ksp-gonogo/sitrep-sdk",
+  "@ksp-gonogo/ui-kit",
+];
+
+/** What is wrong with the reads index `name` ships in the install at `work`, or undefined. */
+function readsIndexFault(name, work) {
+  const dir = join(work, "node_modules", name);
+  const manifest = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+  const target = manifest.exports?.["./reads-index.json"];
+  if (typeof target !== "string") {
+    return "its export map has no ./reads-index.json";
+  }
+  const file = join(dir, target);
+  if (!existsSync(file)) return `${target} is not in the package`;
+  let index;
+  try {
+    index = JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return `${target} is not valid JSON`;
+  }
+  if (index.version !== 1 || index.package !== name) {
+    return `${target} is not the version 1 index of ${name}`;
+  }
+  if (Object.keys(index.entries ?? {}).length === 0) {
+    return `${target} lists no exports`;
+  }
+  return undefined;
+}
+
+/**
+ * Requirement (5), with a planted fault: an installed package that exports no
+ * index must be reported, or this is not reading what it says it reads.
+ */
+function readsIndexesShip(work) {
+  const failed = PACKAGES_WITH_READS_INDEX.flatMap((name) => {
+    const fault = readsIndexFault(name, work);
+    return fault ? [`${name}: ${fault}`] : [];
+  });
+  if (failed.length > 0) {
+    console.error(
+      `✖ ${failed.length} published package(s) do not ship a usable reads index:\n` +
+        `${failed.map((entry) => `    ${entry}`).join("\n")}`,
+    );
+    process.exit(1);
+  }
+  if (!readsIndexFault("@ksp-gonogo/uplink-tools", work)) {
+    console.error(
+      "✖ BLIND: a package that exports no reads index was reported as having one, so\n" +
+        "  this check cannot see a missing index.",
+    );
+    process.exit(1);
+  }
+  console.log(
+    `reads index: ${PACKAGES_WITH_READS_INDEX.join(" and ")} each ship one that lists their exports.`,
+  );
 }
 
 /**

@@ -197,7 +197,12 @@ describe("--fix", () => {
 });
 
 describe("runCheck", () => {
-  const emptyScan: ClientScan = { widgets: [], directives: [], typeErrors: 0 };
+  const emptyScan: ClientScan = {
+    widgets: [],
+    indexMissing: [],
+    directives: [],
+    typeErrors: 0,
+  };
   const finding = (severity: "error" | "warning"): FixableFinding => ({
     rule: "g/r",
     severity,

@@ -73,4 +73,32 @@ export const staleRule: Rule = {
   },
 };
 
-export const declarationRules: Rule[] = [unresolvedRule, staleRule];
+export const indexMissingRule: Rule = {
+  id: "declarations/index-missing",
+  group: GROUP,
+  check({ scan }: CheckContext): FixableFinding[] {
+    const seen = new Set<string>();
+    const out: FixableFinding[] = [];
+    for (const miss of scan.indexMissing) {
+      const key = `${miss.file}:${miss.line}:${miss.name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        rule: "declarations/index-missing",
+        severity: "error",
+        file: miss.file,
+        line: miss.line,
+        message: `${miss.name}() from ${miss.specifier} reads Topics the scan cannot list: ${miss.reason}.`,
+        fixable: false,
+        fix: `Install a release of ${miss.specifier} that ships reads-index.json, or write \`// gonogo:reads <topic id or family pattern>\` above the call.`,
+      });
+    }
+    return out;
+  },
+};
+
+export const declarationRules: Rule[] = [
+  unresolvedRule,
+  staleRule,
+  indexMissingRule,
+];

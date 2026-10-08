@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // The reads index is built by the `uplink-tools check` scanner, so a change
+    // to the scanner changes the output.
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/uplink-tools/src/check/**",
+        "!$TURBO_ROOT$/packages/uplink-tools/src/check/**/*.test.ts",
+        "$TURBO_ROOT$/scripts/build-reads-index.mjs"
+      ],
+      "outputs": ["dist/**"]
+    }
+  }
+}

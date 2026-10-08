@@ -40,6 +40,8 @@ export interface ReadRecord {
   line: number;
   /** Set when a `// gonogo:reads` directive supplied it. */
   directive?: boolean;
+  /** Set when the read arrives through a processor's inputs rather than the call itself. */
+  via?: "processor";
 }
 
 export interface UnresolvedRecord {
@@ -79,8 +81,18 @@ export interface WidgetScan {
   readsFromConfig: boolean;
 }
 
+/** A hook from a published package that its reads index does not describe. */
+export interface IndexMissingRecord {
+  name: string;
+  specifier: string;
+  file: string;
+  line: number;
+  reason: string;
+}
+
 export interface ClientScan {
   widgets: WidgetScan[];
+  indexMissing: IndexMissingRecord[];
   directives: DirectiveRecord[];
   /** Type errors in the program, which can hide a read. */
   typeErrors: number;

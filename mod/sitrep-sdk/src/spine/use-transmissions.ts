@@ -49,6 +49,7 @@ const REREAD_MS = 1000;
  * answered, so its row ends at arrival and never becomes an outcome.
  */
 export function useTransmissions(): UseTransmissionsResult {
+  // gonogo:reads none
   const store = useTelemetryStoreOptional();
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
   const oneWay = liveOneWaySeconds(commsDelay);

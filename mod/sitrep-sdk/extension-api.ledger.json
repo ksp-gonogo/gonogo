@@ -9257,6 +9257,10 @@
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
+        "key": "sitrep-sdk . FRAMEWORK_READS",
+        "note": "The Topics the framework reads for a widget, keyed by the hook or component that reads them, which a scan of a widget's reads leaves out"
+      },
+      {
         "key": "sitrep-sdk . MapViewScope",
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },

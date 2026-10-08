@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { findUplinkDir } from "../cli/bake";
 import { parseFlags } from "../cli/flags";
+import { createIndexReader } from "./index-reader";
 import {
   CheckUnableError,
   createClientProgram,
@@ -65,12 +66,16 @@ export async function check(
       );
     }
     const ts = await loadTypeScript(clientDir);
+    const indexes = createIndexReader();
     const result = runCheck({
       rules: RULES,
       groups: GROUPS,
       clientDir,
       scan: () =>
-        scanClient(ts, createClientProgram(ts, clientDir), { clientDir }),
+        scanClient(ts, createClientProgram(ts, clientDir), {
+          clientDir,
+          indexes,
+        }),
       fix: switches.has("--fix"),
       only: list(values.get("--only")),
       skip: list(values.get("--skip")),

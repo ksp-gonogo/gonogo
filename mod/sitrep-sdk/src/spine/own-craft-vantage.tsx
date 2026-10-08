@@ -69,6 +69,7 @@ function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
  * vantage is reading live frames too and must be told so.
  */
 export function useOwnCraftVantage(): boolean {
+  // gonogo:reads none
   const client = useTelemetryClientOptional();
   const selectedVantage = useSelectedVantage();
   const subjectId = subjectOf(useStream<VesselOrbit>("vessel.orbit"));

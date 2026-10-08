@@ -1,23 +1,56 @@
 import { sep } from "node:path";
 import type * as TS from "typescript";
+import type {
+  ArgumentKind,
+  IndexedArgument,
+  IndexReader,
+} from "./index-reader";
 import type { TypeScript } from "./program";
-import { createResolver, isValidFamily, type Resolver } from "./resolve";
+import {
+  CALL_SITE_DEPTH,
+  createResolver,
+  isValidFamily,
+  type Resolution,
+  type Resolver,
+} from "./resolve";
 import type {
   ClientScan,
   DirectiveRecord,
+  IndexMissingRecord,
   Registration,
   WidgetScan,
 } from "./types";
 
-/** Hooks whose first argument names a Topic the widget reads. */
-const TOPIC_READERS = new Set([
-  "useTelemetry",
-  "useStream",
-  "useStreamOptional",
+/**
+ * The hooks that read by themselves, and what their first argument names.
+ * Their bodies are never entered: what they subscribe to on the caller's
+ * behalf is the framework's, not the widget's.
+ */
+/**
+ * Calls that reach the telemetry store, the client or the host without naming
+ * a Topic. What a hook reads through them is for its author to state, since
+ * the scan cannot see it.
+ */
+export const OPAQUE_CALLS: ReadonlySet<string> = new Set([
+  "getHost",
+  "getActiveTelemetryClient",
+  "useTelemetryClient",
+  "useTelemetryClientOptional",
+  "useTelemetryStore",
+  "useTelemetryStoreOptional",
 ]);
 
-/** Hooks whose first argument names a command the widget sends. */
-const COMMAND_SENDERS = new Set(["useCommand"]);
+export const LEAF_ARGUMENTS: Readonly<Record<string, ArgumentKind>> = {
+  useTelemetry: "topic",
+  useStream: "topic",
+  useStreamOptional: "topic",
+  useStreamEvent: "topic",
+  useLatestValue: "topic",
+  useCommand: "command",
+  useProcessor: "processor",
+  useSeriesReadings: "handle",
+  useDataSeries: "series-key",
+};
 
 const DIRECTIVE = /\/\/\s*gonogo:reads\s+(.+?)\s*$/;
 const TOPIC_ID = /^[A-Za-z0-9_]+(\.[A-Za-z0-9_-]+)*$/;
@@ -25,6 +58,44 @@ const TOPIC_ID = /^[A-Za-z0-9_]+(\.[A-Za-z0-9_-]+)*$/;
 export interface ScanOptions {
   /** Absolute directory of the client; registrations outside it are not widgets of this client. */
   clientDir: string;
+  /** Where the reads of a published package's hooks come from when its source is not in the program. */
+  indexes?: IndexReader;
+  /** Hook or component name to the Topics it reads on the framework's behalf. Defaults to what the installed sdk lists. */
+  frameworkReads?: Readonly<Record<string, readonly string[]>>;
+}
+
+/** Where the reads of one scan accumulate: a widget, or one exported function of a package. */
+interface Sink {
+  reads: WidgetScan["reads"];
+  commands: WidgetScan["commands"];
+  unresolved: WidgetScan["unresolved"];
+  readsFromConfig: boolean;
+  /** Present when the scan is of one function, whose own parameters may be forwarded to a read. */
+  forwarded?: IndexedArgument[];
+}
+
+export interface FunctionScan {
+  reads: WidgetScan["reads"];
+  commands: WidgetScan["commands"];
+  unresolved: WidgetScan["unresolved"];
+  forwarded: IndexedArgument[];
+}
+
+export interface Scanner {
+  scanClient(): ClientScan;
+  /**
+   * What calling or mounting `decl` reads, with its own parameters named when
+   * forwarded. With `hostIsOpaque`, a call that reaches the host or the telemetry
+   * store is a read the scan cannot see, which only a `// gonogo:reads`
+   * directive can name.
+   */
+  scanFunction(
+    decl: TS.Node,
+    scanOptions?: { hostIsOpaque?: boolean },
+  ): FunctionScan;
+  /** The function, class or arrow behind a declaration, wrappers such as `memo` removed. */
+  functionOf(decl: TS.Node | undefined): TS.Node | undefined;
+  resolver: Resolver;
 }
 
 const inNodeModules = (fileName: string) =>
@@ -41,6 +112,14 @@ export function scanClient(
   program: TS.Program,
   options: ScanOptions,
 ): ClientScan {
+  return createScanner(ts, program, options).scanClient();
+}
+
+export function createScanner(
+  ts: TypeScript,
+  program: TS.Program,
+  options: ScanOptions,
+): Scanner {
   const clientRoot = options.clientDir.endsWith(sep)
     ? options.clientDir
     : options.clientDir + sep;
@@ -81,11 +160,7 @@ export function scanClient(
       : ts.isPropertyAccessExpression(callee)
         ? callee.name.text
         : undefined;
-    if (
-      written === undefined ||
-      TOPIC_READERS.has(written) ||
-      COMMAND_SENDERS.has(written)
-    ) {
+    if (written === undefined || Object.hasOwn(LEAF_ARGUMENTS, written)) {
       return written;
     }
     const declared = resolver.declarationOf(callee);
@@ -145,93 +220,6 @@ export function scanClient(
     readsFromConfig: false,
   });
 
-  const record = (
-    widget: WidgetScan,
-    call: TS.CallExpression,
-    kind: "read" | "command",
-    name: string,
-  ) => {
-    const file = call.getSourceFile();
-    const line = lineOf(call, file);
-    const where = { call: name, file: file.fileName, line: line + 1 };
-    const arg = call.arguments[0];
-    const resolved = arg
-      ? resolver.resolve(arg)
-      : ({ ok: false, reason: `${name}() has no argument` } as const);
-
-    const stmtLine = lineOf(statementOf(call), file);
-    let directive: DirectiveRecord | undefined;
-    for (const candidate of [line, line - 1, stmtLine, stmtLine - 1]) {
-      directive = candidate >= 0 ? directiveAt(file, candidate) : undefined;
-      if (directive) break;
-    }
-    const target = kind === "read" ? widget.reads : widget.commands;
-
-    if (directive) {
-      directive.attached = true;
-      if (!resolved.ok) directive.needed = true;
-      for (const value of directive.values) {
-        if (value === "config") {
-          widget.readsFromConfig = true;
-          continue;
-        }
-        const isFamily = value.includes("<") || value.includes(">");
-        if (isFamily && isValidFamily(value)) {
-          target.push({ ...where, family: value, directive: true });
-          continue;
-        }
-        if (!isFamily && TOPIC_ID.test(value)) {
-          target.push({ ...where, id: value, directive: true });
-          continue;
-        }
-        widget.unresolved.push({
-          ...where,
-          reason: `the directive names "${value}", which is not a Topic id, a family pattern with whole-segment <name> placeholders, or config`,
-        });
-      }
-      return;
-    }
-
-    if (!resolved.ok) {
-      widget.unresolved.push({ ...where, reason: resolved.reason });
-      return;
-    }
-    for (const id of resolved.ids) target.push({ ...where, id });
-    for (const family of resolved.families) target.push({ ...where, family });
-  };
-
-  const kindOf = (name: string): "read" | "command" | undefined => {
-    if (TOPIC_READERS.has(name)) return "read";
-    return COMMAND_SENDERS.has(name) ? "command" : undefined;
-  };
-
-  const walkWidget = (widget: WidgetScan, root: TS.Node) => {
-    const visited = new Set<TS.Node>();
-    const enter = (decl: TS.Node | undefined) => {
-      const body = bodyOf(decl);
-      if (!body || visited.has(body)) return;
-      const file = body.getSourceFile();
-      if (file.isDeclarationFile || inNodeModules(file.fileName)) return;
-      visited.add(body);
-      visit(body);
-    };
-    const visit = (node: TS.Node): void => {
-      if (ts.isCallExpression(node)) {
-        const name = calleeName(node);
-        const kind = name ? kindOf(name) : undefined;
-        if (name && kind) record(widget, node, kind, name);
-        if (!kind) enter(resolver.declarationOf(node.expression));
-      }
-      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-        if (ts.isIdentifier(node.tagName)) {
-          enter(resolver.declarationOf(node.tagName));
-        }
-      }
-      ts.forEachChild(node, visit);
-    };
-    enter(root);
-  };
-
   const propertyOf = (
     object: TS.ObjectLiteralExpression,
     name: string,
@@ -249,6 +237,486 @@ export function scanClient(
       }
     }
     return undefined;
+  };
+
+  const strip = (expr: TS.Expression): TS.Expression => {
+    let node = expr;
+    while (
+      ts.isParenthesizedExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isNonNullExpression(node) ||
+      ts.isSatisfiesExpression(node)
+    ) {
+      node = node.expression;
+    }
+    return node;
+  };
+
+  const constInitializer = (expr: TS.Expression): TS.Expression | undefined => {
+    const node = strip(expr);
+    if (!ts.isIdentifier(node)) return undefined;
+    const decl = resolver.declarationOf(node);
+    return decl &&
+      ts.isVariableDeclaration(decl) &&
+      decl.initializer &&
+      ts.isVariableDeclarationList(decl.parent) &&
+      decl.parent.flags & ts.NodeFlags.Const
+      ? decl.initializer
+      : undefined;
+  };
+
+  type ArgumentResolution =
+    | { ok: true; ids: string[]; families: string[]; via?: "processor" }
+    | { ok: false; reason: string };
+
+  /** A handle is an object with a `topic` member; the Topic is what that member resolves to. */
+  const resolveHandle = (expr: TS.Expression, depth = 0): Resolution => {
+    const node = strip(expr);
+    if (ts.isObjectLiteralExpression(node)) {
+      const topic = propertyOf(node, "topic");
+      return topic
+        ? resolver.resolve(topic)
+        : { ok: false, reason: "the handle has no topic member" };
+    }
+    const next = depth < 4 ? constInitializer(node) : undefined;
+    return next
+      ? resolveHandle(next, depth + 1)
+      : {
+          ok: false,
+          reason: "the handle is not an object literal in this program",
+        };
+  };
+
+  /** A processor's inputs are the literal dependency list of its `defineProcessor` call. */
+  const resolveProcessor = (expr: TS.Expression): ArgumentResolution => {
+    const init = constInitializer(expr);
+    const call = init && strip(init);
+    if (!call || !ts.isCallExpression(call)) {
+      return {
+        ok: false,
+        reason: "the processor handle is not a constant in this program",
+      };
+    }
+    const maker = ts.isIdentifier(call.expression)
+      ? call.expression.text
+      : undefined;
+    const def = call.arguments[0] && strip(call.arguments[0]);
+    if (
+      maker !== "defineProcessor" ||
+      !def ||
+      !ts.isObjectLiteralExpression(def)
+    ) {
+      return {
+        ok: false,
+        reason: `the processor's inputs are not declared here${maker ? ` (it comes from ${maker})` : ""}`,
+      };
+    }
+    const depsExpr = propertyOf(def, "deps");
+    const deps = depsExpr && strip(depsExpr);
+    const list = deps && ts.isIdentifier(deps) ? constInitializer(deps) : deps;
+    const array = list && strip(list);
+    if (!array || !ts.isArrayLiteralExpression(array)) {
+      return {
+        ok: false,
+        reason: "the processor's deps are not a literal list",
+      };
+    }
+    const ids = new Set<string>();
+    const families = new Set<string>();
+    for (const element of array.elements) {
+      const node = strip(element);
+      const topic =
+        ts.isObjectLiteralExpression(node) && propertyOf(node, "reading");
+      const got = resolver.resolve(topic || node);
+      if (!got.ok) {
+        return {
+          ok: false,
+          reason: `a processor input cannot be named: ${got.reason}`,
+        };
+      }
+      for (const id of got.ids) ids.add(id);
+      for (const family of got.families) families.add(family);
+    }
+    return {
+      ok: true,
+      ids: [...ids],
+      families: [...families],
+      via: "processor",
+    };
+  };
+
+  const resolveArgument = (
+    kind: ArgumentKind,
+    name: string,
+    expr: TS.Expression | undefined,
+  ): ArgumentResolution => {
+    if (!expr) return { ok: false, reason: `${name}() has no argument` };
+    if (kind === "series-key") {
+      return {
+        ok: false,
+        reason: `${name}() takes a series key, which names a field (<topic>.<field>) and not a Topic`,
+      };
+    }
+    if (kind === "processor") return resolveProcessor(expr);
+    return kind === "handle" ? resolveHandle(expr) : resolver.resolve(expr);
+  };
+
+  let entryParams: readonly TS.ParameterDeclaration[] = [];
+  let opaqueHost = false;
+  const suppressed: Set<string>[] = [];
+  const frameworkReads =
+    options.frameworkReads ??
+    options.indexes?.frameworkReads(options.clientDir) ??
+    {};
+  const indexMissing: IndexMissingRecord[] = [];
+
+  const isSuppressed = (id: string) => suppressed.some((set) => set.has(id));
+
+  /** The directive attached to a call, looked for on its line, the one above, and its statement's. */
+  const directiveFor = (
+    call: TS.Node,
+    file: TS.SourceFile,
+  ): DirectiveRecord | undefined => {
+    const line = lineOf(call, file);
+    const stmtLine = lineOf(statementOf(call), file);
+    for (const candidate of [line, line - 1, stmtLine, stmtLine - 1]) {
+      const found = candidate >= 0 ? directiveAt(file, candidate) : undefined;
+      if (found) return found;
+    }
+    return undefined;
+  };
+
+  type Where = { call: string; file: string; line: number };
+
+  /** The read a directive value names: a family pattern or a Topic id, and nothing else. */
+  const directiveRead = (
+    value: string,
+    where: Where,
+  ): WidgetScan["reads"][number] | undefined => {
+    if (value.includes("<") || value.includes(">")) {
+      return isValidFamily(value)
+        ? { ...where, family: value, directive: true }
+        : undefined;
+    }
+    return TOPIC_ID.test(value)
+      ? { ...where, id: value, directive: true }
+      : undefined;
+  };
+
+  /** The directive's say replaces what the scanner could not read. */
+  const applyDirective = (
+    sink: Sink,
+    directive: DirectiveRecord,
+    where: Where,
+    target: WidgetScan["reads"],
+  ) => {
+    for (const value of directive.values) {
+      if (value === "none") continue;
+      if (value === "config") {
+        sink.readsFromConfig = true;
+        continue;
+      }
+      const record = directiveRead(value, where);
+      if (record) {
+        target.push(record);
+        continue;
+      }
+      sink.unresolved.push({
+        ...where,
+        reason: `the directive names "${value}", which is not a Topic id, a family pattern with whole-segment <name> placeholders, or config`,
+      });
+    }
+  };
+
+  const whereOf = (call: TS.Node, name: string): Where => {
+    const file = call.getSourceFile();
+    return { call: name, file: file.fileName, line: lineOf(call, file) + 1 };
+  };
+
+  const parameterIndexOf = (expr: TS.Expression): number | undefined => {
+    const node = strip(expr);
+    if (!ts.isIdentifier(node)) return undefined;
+    const decl = resolver.declarationOf(node);
+    if (!decl || !ts.isParameter(decl)) return undefined;
+    const index = entryParams.indexOf(decl);
+    return index >= 0 ? index : undefined;
+  };
+
+  interface Traced {
+    ids: string[];
+    families: string[];
+    /** Parameters of the scanned function that the value comes from. */
+    forwarded: number[];
+    reason?: string;
+  }
+
+  /**
+   * Where a value comes from when the scan is of one function: its own
+   * parameters, which the caller will supply, and whatever its helpers are
+   * called with from inside the program. A value with no parameter of the
+   * function in it is left to the resolver.
+   */
+  const traceToEntry = (expr: TS.Expression, level: number): Traced => {
+    const own = parameterIndexOf(expr);
+    if (own !== undefined) return { ids: [], families: [], forwarded: [own] };
+    const node = strip(expr);
+    const decl = ts.isIdentifier(node)
+      ? resolver.declarationOf(node)
+      : undefined;
+    if (
+      decl &&
+      ts.isParameter(decl) &&
+      ts.isIdentifier(decl.name) &&
+      level < CALL_SITE_DEPTH
+    ) {
+      const fn = decl.parent;
+      const index = fn.parameters.indexOf(decl);
+      const merged: Traced = { ids: [], families: [], forwarded: [] };
+      const calls = resolver.callSites(fn);
+      for (const call of calls) {
+        const source = call.arguments[index] ?? decl.initializer;
+        if (!source)
+          return { ...merged, reason: "a call passes the parameter nothing" };
+        const got = traceToEntry(source, level + 1);
+        merged.ids.push(...got.ids);
+        merged.families.push(...got.families);
+        merged.forwarded.push(...got.forwarded);
+        if (got.reason !== undefined) merged.reason = got.reason;
+      }
+      if (calls.length > 0) return merged;
+    }
+    const resolved = resolver.resolve(expr);
+    return resolved.ok
+      ? { ids: resolved.ids, families: resolved.families, forwarded: [] }
+      : { ids: [], families: [], forwarded: [], reason: resolved.reason };
+  };
+
+  const recordArgument = (
+    sink: Sink,
+    call: TS.CallExpression,
+    name: string,
+    argument: IndexedArgument,
+  ) => {
+    const where = whereOf(call, name);
+    const expr = call.arguments[argument.index];
+    const directive = directiveFor(call, call.getSourceFile());
+    const target = argument.kind === "command" ? sink.commands : sink.reads;
+
+    if (directive) {
+      directive.attached = true;
+      if (!resolveArgument(argument.kind, name, expr).ok) {
+        directive.needed = true;
+      }
+      applyDirective(sink, directive, where, target);
+      return;
+    }
+    if (
+      sink.forwarded &&
+      expr &&
+      (argument.kind === "topic" || argument.kind === "command")
+    ) {
+      const traced = traceToEntry(expr, 0);
+      if (traced.forwarded.length > 0 || traced.reason !== undefined) {
+        for (const index of traced.forwarded) {
+          sink.forwarded.push({ index, kind: argument.kind });
+        }
+        if (traced.reason !== undefined) {
+          sink.unresolved.push({ ...where, reason: traced.reason });
+        }
+        for (const id of traced.ids) {
+          if (!isSuppressed(id)) target.push({ ...where, id });
+        }
+        for (const family of traced.families) target.push({ ...where, family });
+        return;
+      }
+    }
+    const resolved = resolveArgument(argument.kind, name, expr);
+    if (!resolved.ok) {
+      sink.unresolved.push({ ...where, reason: resolved.reason });
+      return;
+    }
+    const via = "via" in resolved ? { via: resolved.via } : {};
+    for (const id of resolved.ids) {
+      if (!isSuppressed(id)) target.push({ ...where, id, ...via });
+    }
+    for (const family of resolved.families) {
+      target.push({ ...where, family, ...via });
+    }
+  };
+
+  /** A call into the host, whose implementation is not in this program. */
+  const recordOpaque = (sink: Sink, call: TS.CallExpression, name: string) => {
+    const where = whereOf(call, name);
+    const directive = directiveFor(call, call.getSourceFile());
+    if (directive) {
+      directive.attached = true;
+      directive.needed = true;
+      applyDirective(sink, directive, where, sink.reads);
+      return;
+    }
+    sink.unresolved.push({
+      ...where,
+      reason: `${name}() reaches what the scan cannot see into, so what it reads is not known`,
+    });
+  };
+
+  /** `{ specifier, name }` of an `@ksp-gonogo/*` import the callee was made through. */
+  const importedFrom = (
+    callee: TS.Expression,
+  ): { specifier: string; name: string } | undefined => {
+    const checker = program.getTypeChecker();
+    const target = ts.isPropertyAccessExpression(callee)
+      ? callee.expression
+      : callee;
+    const decl = checker.getSymbolAtLocation(target)?.declarations?.[0];
+    if (!decl) return undefined;
+    const importDecl = ts.findAncestor(decl, ts.isImportDeclaration);
+    if (!importDecl || !ts.isStringLiteral(importDecl.moduleSpecifier)) {
+      return undefined;
+    }
+    const specifier = importDecl.moduleSpecifier.text;
+    if (!specifier.startsWith("@ksp-gonogo/")) return undefined;
+    if (ts.isImportSpecifier(decl)) {
+      return { specifier, name: (decl.propertyName ?? decl.name).text };
+    }
+    if (ts.isNamespaceImport(decl) && ts.isPropertyAccessExpression(callee)) {
+      return { specifier, name: callee.name.text };
+    }
+    return undefined;
+  };
+
+  const HOOK = /^use[A-Z]/;
+
+  /** Takes what a published package's index says a call or element reads, or reports that it says nothing. */
+  const readFromIndex = (
+    sink: Sink,
+    node: TS.CallExpression | TS.JsxOpeningLikeElement,
+    callee: TS.Expression,
+  ) => {
+    if (!options.indexes) return;
+    const imported = importedFrom(callee);
+    if (!imported) return;
+    const file = node.getSourceFile();
+    const where = whereOf(node, imported.name);
+    const { index, problem } = options.indexes.lookup(
+      imported.specifier,
+      file.fileName,
+    );
+    const entry = index?.entries[imported.name];
+    if (!entry) {
+      if (!HOOK.test(imported.name)) return;
+      const directive = directiveFor(node, file);
+      if (directive) {
+        directive.attached = true;
+        directive.needed = true;
+        applyDirective(sink, directive, where, sink.reads);
+        return;
+      }
+      indexMissing.push({
+        name: imported.name,
+        specifier: imported.specifier,
+        file: where.file,
+        line: where.line,
+        reason: problem ?? `its index has no entry for ${imported.name}`,
+      });
+      return;
+    }
+    for (const id of entry.reads) {
+      if (!isSuppressed(id)) sink.reads.push({ ...where, id });
+    }
+    for (const family of entry.families) sink.reads.push({ ...where, family });
+    for (const id of entry.commands) sink.commands.push({ ...where, id });
+    if (!ts.isCallExpression(node)) return;
+    for (const argument of entry.arguments) {
+      recordArgument(sink, node, imported.name, argument);
+    }
+  };
+
+  const nameOfDeclaration = (decl: TS.Node | undefined): string | undefined => {
+    const name = decl && ts.getNameOfDeclaration(decl as TS.Declaration);
+    return name && ts.isIdentifier(name) ? name.text : undefined;
+  };
+
+  const walk = (sink: Sink, root: TS.Node, direct = false) => {
+    const visited = new Set<TS.Node>();
+    const enter = (decl: TS.Node | undefined) => {
+      const body = bodyOf(decl);
+      if (!body || visited.has(body)) return;
+      const file = body.getSourceFile();
+      if (file.isDeclarationFile || inNodeModules(file.fileName)) return;
+      visited.add(body);
+      const name = nameOfDeclaration(decl);
+      const hidden = name === undefined ? undefined : frameworkReads[name];
+      if (hidden) suppressed.push(new Set(hidden));
+      visit(body);
+      if (hidden) suppressed.pop();
+    };
+    const callInto = (
+      node: TS.CallExpression | TS.JsxOpeningLikeElement,
+      callee: TS.Expression,
+    ) => {
+      const decl = resolver.declarationOf(callee);
+      const body = bodyOf(decl);
+      const file = body?.getSourceFile();
+      if (
+        body &&
+        file &&
+        !file.isDeclarationFile &&
+        !inNodeModules(file.fileName)
+      ) {
+        enter(decl);
+        return;
+      }
+      readFromIndex(sink, node, callee);
+    };
+    const visitCall = (node: TS.CallExpression) => {
+      const name = calleeName(node);
+      if (name !== undefined && Object.hasOwn(LEAF_ARGUMENTS, name)) {
+        recordArgument(sink, node, name, {
+          index: 0,
+          kind: LEAF_ARGUMENTS[name],
+        });
+        return;
+      }
+      if (opaqueHost && name !== undefined && OPAQUE_CALLS.has(name)) {
+        recordOpaque(sink, node, name);
+        return;
+      }
+      callInto(node, node.expression);
+    };
+    const visit = (node: TS.Node): void => {
+      if (ts.isCallExpression(node)) visitCall(node);
+      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+        if (ts.isIdentifier(node.tagName)) callInto(node, node.tagName);
+      }
+      ts.forEachChild(node, visit);
+    };
+    if (direct) visit(root);
+    else enter(root);
+  };
+
+  const scanFunction: Scanner["scanFunction"] = (decl, scanOptions) => {
+    const sink: Sink & { forwarded: IndexedArgument[] } = {
+      reads: [],
+      commands: [],
+      unresolved: [],
+      readsFromConfig: false,
+      forwarded: [],
+    };
+    const fn = bodyOf(decl);
+    entryParams =
+      fn && "parameters" in fn
+        ? (fn as TS.SignatureDeclaration).parameters
+        : [];
+    opaqueHost = scanOptions?.hostIsOpaque === true;
+    // A hook that is a value rather than a function, such as a store, is read from its initializer.
+    const initializer =
+      !fn && ts.isVariableDeclaration(decl) ? decl.initializer : undefined;
+    if (initializer) walk(sink, initializer, true);
+    else walk(sink, decl);
+    entryParams = [];
+    opaqueHost = false;
+    return sink;
   };
 
   const hasProperty = (object: TS.ObjectLiteralExpression, name: string) =>
@@ -358,56 +826,66 @@ export function scanClient(
         .join("; ");
       return widget;
     }
-    walkWidget(widget, root);
+    walk(widget, root);
     return widget;
   };
 
-  const widgets: WidgetScan[] = [];
-  for (const file of program.getSourceFiles()) {
-    if (!isOwnSource(file)) continue;
-    const find = (node: TS.Node): void => {
-      if (
-        ts.isCallExpression(node) &&
-        calleeName(node) === "registerComponent"
-      ) {
-        const arg = node.arguments[0];
-        const base = {
-          file: file.fileName,
-          line: lineOf(node, file) + 1,
-        };
-        if (!arg || !ts.isObjectLiteralExpression(arg)) {
-          widgets.push(
-            widgetOf({
-              id: "",
-              ...base,
-              hasDataRequirements: false,
-              opaque: "the registration is not an object literal",
-            }),
-          );
-        } else {
-          widgets.push(scanRegistration(arg, base));
+  const scanClient = (): ClientScan => {
+    const widgets: WidgetScan[] = [];
+    for (const file of program.getSourceFiles()) {
+      if (!isOwnSource(file)) continue;
+      const find = (node: TS.Node): void => {
+        if (
+          ts.isCallExpression(node) &&
+          calleeName(node) === "registerComponent"
+        ) {
+          const arg = node.arguments[0];
+          const base = {
+            file: file.fileName,
+            line: lineOf(node, file) + 1,
+          };
+          if (!arg || !ts.isObjectLiteralExpression(arg)) {
+            widgets.push(
+              widgetOf({
+                id: "",
+                ...base,
+                hasDataRequirements: false,
+                opaque: "the registration is not an object literal",
+              }),
+            );
+          } else {
+            widgets.push(scanRegistration(arg, base));
+          }
         }
-      }
-      ts.forEachChild(node, find);
+        ts.forEachChild(node, find);
+      };
+      find(file);
+    }
+
+    for (const file of program.getSourceFiles()) {
+      if (isOwnSource(file)) directiveAt(file, 0);
+    }
+
+    let typeErrors = 0;
+    for (const file of program.getSourceFiles()) {
+      if (!isOwnSource(file)) continue;
+      typeErrors += program
+        .getSemanticDiagnostics(file)
+        .filter((d) => d.category === ts.DiagnosticCategory.Error).length;
+    }
+
+    return {
+      widgets,
+      indexMissing,
+      directives: [...directives.values()],
+      typeErrors,
     };
-    find(file);
-  }
-
-  for (const file of program.getSourceFiles()) {
-    if (isOwnSource(file)) directiveAt(file, 0);
-  }
-
-  let typeErrors = 0;
-  for (const file of program.getSourceFiles()) {
-    if (!isOwnSource(file)) continue;
-    typeErrors += program
-      .getSemanticDiagnostics(file)
-      .filter((d) => d.category === ts.DiagnosticCategory.Error).length;
-  }
+  };
 
   return {
-    widgets,
-    directives: [...directives.values()],
-    typeErrors,
+    scanClient,
+    scanFunction,
+    functionOf: bodyOf,
+    resolver,
   };
 }

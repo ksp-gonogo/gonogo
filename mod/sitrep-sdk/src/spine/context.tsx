@@ -406,6 +406,7 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 export function useStreamRecorder(
   options?: StreamRecorderOptions,
 ): StreamRecorder | undefined {
+  // gonogo:reads none
   const client = useTelemetryClientOptional();
   const recordAllTopics = options?.recordAllTopics ?? false;
   return useMemo(
@@ -534,6 +535,7 @@ function removeLast<Item>(stack: Item[], item: Item): void {
 }
 
 export function useViewClock(): ViewClockView {
+  // gonogo:reads none
   return useTelemetryStore().clock;
 }
 
@@ -546,6 +548,7 @@ export function useViewClock(): ViewClockView {
  * provider being in the tree.
  */
 export function useViewClockOptional(): ViewClockView | undefined {
+  // gonogo:reads none
   return useTelemetryStoreOptional()?.clock;
 }
 
@@ -652,6 +655,7 @@ function useFrameInstant(
  * predicted" distinction to wait out.
  */
 export function useUtNow(): number | undefined {
+  // gonogo:reads none
   const store = useTelemetryStoreOptional();
   const clock = store?.clock;
   const [utNow, setUtNow] = useState<number | undefined>(() => {

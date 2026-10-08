@@ -12,6 +12,7 @@ import { useTelemetryClientOptional } from "./context";
  * `useObservedVantage` to learn where that is.
  */
 export function useSelectedVantage(): string | undefined {
+  // gonogo:reads none
   const client = useTelemetryClientOptional();
   const subscribe = useCallback(
     (onChange: () => void) =>

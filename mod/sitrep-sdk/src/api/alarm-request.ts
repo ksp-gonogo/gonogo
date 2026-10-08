@@ -149,5 +149,6 @@ export interface UplinkAlarmRequest {
 export function useAlarmRequest(
   owner: UplinkClientHandle,
 ): (request: UplinkAlarmRequest) => void {
+  // gonogo:reads none
   return getHost().useAlarmRequest(owner);
 }

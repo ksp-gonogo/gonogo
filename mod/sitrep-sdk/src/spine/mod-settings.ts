@@ -19,6 +19,7 @@ export function modSettingsTopic(uplinkId: string): string {
 export function useModSettings(
   uplinkId: string,
 ): TopicReading<ModSettingsModel> {
+  // gonogo:reads settings.<uplinkId>
   return useStream<ModSettingsModel>(modSettingsTopic(uplinkId));
 }
 

@@ -91,6 +91,7 @@ export interface HeldCommandActions {
  * game load is refused rather than applied to a different game.
  */
 export function useHeldCommandActions(): HeldCommandActions {
+  // gonogo:reads none
   const client = useTelemetryClientOptional();
   const journeyPayload = useLatestValue<unknown>(JOURNEY_TOPIC);
   const epoch = useMemo(

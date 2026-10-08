@@ -67,6 +67,7 @@ export interface LateTelemetrySubscribe {
  * `*Optional`-shaped hook in this package.
  */
 export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
+  // gonogo:reads none
   const client = useTelemetryClientOptional();
   // Read fresh at call time (see the doc comment above): `subscribe` may be
   // invoked long after the render that captured this hook's return value,

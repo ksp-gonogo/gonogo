@@ -97,6 +97,7 @@ export type {
   SystemViewProjection,
   SystemViewVesselStatusEntry,
 } from "./contribution-slots";
+export { FRAMEWORK_READS } from "./framework-reads";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type { LogContext, Logger, TaggedLogger } from "./logger-contract";
@@ -781,6 +782,7 @@ export function sendTogether(build: () => void): CommandGroupHandle {
  * @category Host and runtime
  */
 export function useUplinkRelay(uplinkId: string) {
+  // gonogo:reads none
   return getHost().useUplinkRelay(uplinkId);
 }
 
@@ -811,6 +813,7 @@ export function useUplinkRelay(uplinkId: string) {
  * @category Host and runtime
  */
 export function useHostIceServers() {
+  // gonogo:reads none
   return getHost().useHostIceServers();
 }
 
