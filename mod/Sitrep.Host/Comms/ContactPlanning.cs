@@ -18,8 +18,10 @@ namespace Sitrep.Host.Comms
             int frameBodyIndex,
             double fromUt,
             double horizonSeconds,
-            IReadOnlyCollection<string>? unsettled = null)
+            IReadOnlyCollection<string>? unsettled = null,
+            IRetargetModel? retarget = null)
         {
+            Retarget = retarget;
             Nodes = nodes;
             Pairs = pairs;
             Propagator = propagator;
@@ -32,6 +34,9 @@ namespace Sitrep.Host.Comms
         public IReadOnlyList<PlanNode> Nodes { get; }
 
         public IReadOnlyList<PlanPair> Pairs { get; }
+
+        /// <summary>What turning each craft's idle dishes could do, from the states the plan was made of, or null when no craft would turn one.</summary>
+        public IRetargetModel? Retarget { get; }
 
         public IPropagationProvider Propagator { get; }
 
@@ -53,6 +58,10 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public bool Matches(ContactPlanRequest other)
         {
+            if (!SameRetarget(Retarget, other.Retarget))
+            {
+                return false;
+            }
             if (Nodes.Count != other.Nodes.Count
                 || Pairs.Count != other.Pairs.Count
                 || FrameBodyIndex != other.FrameBodyIndex
@@ -81,6 +90,26 @@ namespace Sitrep.Host.Comms
             return true;
         }
 
+        private static bool SameRetarget(IRetargetModel? a, IRetargetModel? b)
+        {
+            if (ReferenceEquals(a, b))
+            {
+                return true;
+            }
+            if (!(a is CompositeRetargetModel x) || !(b is CompositeRetargetModel y) || x.Models.Count != y.Models.Count)
+            {
+                return false;
+            }
+            foreach (var entry in x.Models)
+            {
+                if (!y.Models.TryGetValue(entry.Key, out var other) || !ReferenceEquals(entry.Value, other))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>The grid step this plan would choose for itself.</summary>
         public double Step() => ContactPlanner.StepFor(Nodes, Propagator, HorizonSeconds);
 
@@ -95,7 +124,7 @@ namespace Sitrep.Host.Comms
             var step = remembered?.StepSeconds ?? Step();
             var fromUt = remembered == null ? FromUt : ContactPlanner.OnGrid(FromUt, step);
             return ContactPlanner.Plan(
-                Nodes, Pairs, Propagator, FrameBodyIndex, fromUt, HorizonSeconds, step, ContactPlanSchedule.EdgeToleranceSeconds, remembered);
+                Nodes, Pairs, Propagator, FrameBodyIndex, fromUt, HorizonSeconds, step, ContactPlanSchedule.EdgeToleranceSeconds, remembered, Retarget);
         }
     }
 
@@ -370,7 +399,11 @@ namespace Sitrep.Host.Comms
                 };
                 foreach (var window in pair.Windows)
                 {
-                    wire.Windows.Add(new CommsContactWindow { OpenUt = window.OpenUt, CloseUt = window.CloseUt });
+                    wire.Windows.Add(new CommsContactWindow { OpenUt = window.OpenUt, CloseUt = window.CloseUt, FromDish = window.FromDish, ToDish = window.ToDish });
+                }
+                foreach (var turn in pair.RetargetWindows)
+                {
+                    wire.RetargetWindows.Add(new CommsRetargetWindow { Node = turn.NodeId, Dish = turn.DishId, Peer = turn.PeerId, OpenUt = turn.OpenUt, CloseUt = turn.CloseUt });
                 }
                 payload.Pairs.Add(wire);
             }

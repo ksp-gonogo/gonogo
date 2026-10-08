@@ -378,7 +378,9 @@
     },
     "CommsContactWindow": {
       "closeUt": "ut",
-      "openUt": "ut"
+      "fromDish": "id",
+      "openUt": "ut",
+      "toDish": "id"
     },
     "CommsContacts": {
       "horizonUt": "ut"
@@ -443,6 +445,13 @@
       "name": "text",
       "occludingRadiusMeters": "m",
       "radiusMeters": "m"
+    },
+    "CommsRetargetWindow": {
+      "closeUt": "ut",
+      "dish": "id",
+      "node": "id",
+      "openUt": "ut",
+      "peer": "id"
     },
     "CommsRoute": {
       "arrivalUt": "ut",
@@ -2293,6 +2302,7 @@
       "author": "CommcastAuthor"
     },
     "CommsContactPair": {
+      "retargetWindows": "CommsRetargetWindow[]",
       "windows": "CommsContactWindow[]"
     },
     "CommsContacts": {

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.23.0
+  version: 29.24.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -11132,6 +11132,7 @@ components:
         - b
         - horizonUt
         - windows
+        - retargetWindows
         - lowConfidence
       properties:
         a:
@@ -11157,6 +11158,16 @@ components:
           description: |-
             Every window of contact up to `CommsContactPair.horizonUt`, in time order.
             Empty when none is predicted.
+        retargetWindows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsRetargetWindow"
+          description: |-
+            The stretches in which either end could turn an idle dish to the other and
+            carry a message, in time order: the dish has no contact on its own aim then,
+            the turned dish would close the link, and the other end could already
+            receive. A message held at the turning node may use one; nothing else does.
+            Empty when no dish would be turned or the backend turns none.
         lowConfidence:
           type: boolean
           x-sitrep-unit: flag
@@ -11180,6 +11191,23 @@ components:
             - "null"
           x-sitrep-unit: ut
           description: When contact ends, or `null` when it is still open at the pair's horizon.
+        fromDish:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The dish on the pair's `CommsContactPair.a` end that carries this stretch of
+            contact, as `"<nodeId>#<partPersistentId>/<ordinal>"`, or absent when that
+            end has no steered dish on it.
+        toDish:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The dish on the pair's `CommsContactPair.b` end that carries this stretch,
+            or absent.
     CommsContacts:
       type: object
       description: |-
@@ -11904,6 +11932,38 @@ components:
             The hops in order, the first starting at the active vessel and the last
             ending at the receiving centre, or at a ground station for the home centre.
             Empty when the centre knows of no open path, never null.
+    CommsRetargetWindow:
+      type: object
+      description: |-
+        A stretch in which a node could turn an idle dish to a peer to carry a
+        message.
+      required:
+        - node
+        - dish
+        - peer
+        - openUt
+        - closeUt
+      properties:
+        node:
+          type: string
+          x-sitrep-unit: id
+          description: The node that would turn, in the `commandCentre.roster` vocabulary.
+        dish:
+          type: string
+          x-sitrep-unit: id
+          description: The dish it would turn, as `"<nodeId>#<partPersistentId>/<ordinal>"`.
+        peer:
+          type: string
+          x-sitrep-unit: id
+          description: The node it would turn the dish to.
+        openUt:
+          type: number
+          x-sitrep-unit: ut
+          description: When the turn may start.
+        closeUt:
+          type: number
+          x-sitrep-unit: ut
+          description: When the turned dish must be back on its own aim.
     CommsRoute:
       type: object
       description: |-

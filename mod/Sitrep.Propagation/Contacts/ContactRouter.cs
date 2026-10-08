@@ -1,13 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Sitrep.Propagation.Contacts
 {
     /// <summary>One hop of a route: light leaves one node and lands on the next.</summary>
     public sealed class RouteHop
     {
-        public RouteHop(string from, string to, double departUt, double arriveUt, double windowCloseUt, double distanceMeters = double.NaN)
+        public RouteHop(
+            string from,
+            string to,
+            double departUt,
+            double arriveUt,
+            double windowCloseUt,
+            double distanceMeters = double.NaN,
+            string? fromDish = null,
+            string? toDish = null,
+            string? retargetDish = null,
+            double turnUt = double.NaN)
         {
+            FromDish = fromDish;
+            ToDish = toDish;
+            RetargetDish = retargetDish;
+            TurnUt = turnUt;
             DistanceMeters = distanceMeters;
             From = from;
             To = to;
@@ -20,6 +35,18 @@ namespace Sitrep.Propagation.Contacts
 
         public string To { get; }
 
+        /// <summary>The dish on <see cref="From"/> that carries the hop, when the link model names one. For a retarget hop, the dish turned to carry it.</summary>
+        public string? FromDish { get; }
+
+        /// <summary>The dish on <see cref="To"/> the light lands on, when the link model names one.</summary>
+        public string? ToDish { get; }
+
+        /// <summary>The dish of <see cref="From"/> that is turned to the next node to carry this hop, or null for a hop on a dish's own aim.</summary>
+        public string? RetargetDish { get; }
+
+        /// <summary>When the turn starts for a retarget hop, or NaN.</summary>
+        public double TurnUt { get; }
+
         /// <summary>When the message leaves <see cref="From"/>; later than its arrival there by the time it waits.</summary>
         public double DepartUt { get; }
 
@@ -31,6 +58,29 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>How far the light crosses, in metres: the separation when it lands. NaN for a hop built without one.</summary>
         public double DistanceMeters { get; }
+    }
+
+    /// <summary>
+    /// How a route may use a node's retarget windows: a message held at its
+    /// source can wait for an idle dish to be turned to the next node.
+    /// </summary>
+    public sealed class RetargetRouting
+    {
+        public RetargetRouting(double linkUpSeconds, double awayMarginSeconds, IReadOnlyCollection<string>? onlyAtNodes = null)
+        {
+            LinkUpSeconds = linkUpSeconds;
+            AwayMarginSeconds = awayMarginSeconds;
+            OnlyAtNodes = onlyAtNodes;
+        }
+
+        /// <summary>How long after the turn starts the link is up.</summary>
+        public double LinkUpSeconds { get; }
+
+        /// <summary>The time a window must have left after the link is up for the message to be sent and the dish turned back.</summary>
+        public double AwayMarginSeconds { get; }
+
+        /// <summary>The only nodes whose retarget windows may be used, or null for the route's sources.</summary>
+        public IReadOnlyCollection<string>? OnlyAtNodes { get; }
     }
 
     /// <summary>The earliest-arriving route from one node to another for a message sent at one instant.</summary>
@@ -144,7 +194,8 @@ namespace Sitrep.Propagation.Contacts
             IReadOnlyCollection<string> destinations,
             double sentUt,
             double? mustArriveByUt = null,
-            double lightFactor = 1.0)
+            double lightFactor = 1.0,
+            RetargetRouting? retarget = null)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             if (sources == null) throw new ArgumentNullException(nameof(sources));
@@ -202,6 +253,14 @@ namespace Sitrep.Propagation.Contacts
                         continue;
                     }
                     var hop = FirstAdmissibleHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor);
+                    if (retarget != null && at.Hops == 0 && (retarget.OnlyAtNodes == null || retarget.OnlyAtNodes.Contains(current)))
+                    {
+                        var turned = FirstRetargetHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor, retarget);
+                        if (turned != null && (hop == null || turned.ArriveUt < hop.ArriveUt - Tolerance))
+                        {
+                            hop = turned;
+                        }
+                    }
                     if (hop == null)
                     {
                         continue;
@@ -255,7 +314,49 @@ namespace Sitrep.Propagation.Contacts
                 {
                     continue;
                 }
-                return new RouteHop(from, to, depart, arrive, close, crossing.Value.Meters);
+                var forward = string.Equals(from, pair.A, StringComparison.Ordinal);
+                return new RouteHop(
+                    from, to, depart, arrive, close, crossing.Value.Meters,
+                    forward ? window.FromDish : window.ToDish,
+                    forward ? window.ToDish : window.FromDish);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The earliest hop across <paramref name="pair"/> that leaves
+        /// <paramref name="from"/> on an idle dish turned to <paramref name="to"/>:
+        /// the turn starts at the window's opening or when the message is ready,
+        /// the link is up <see cref="RetargetRouting.LinkUpSeconds"/> later, and the
+        /// window must still have <see cref="RetargetRouting.AwayMarginSeconds"/>
+        /// left. Null when the pair has no such window.
+        /// </summary>
+        public static RouteHop? FirstRetargetHop(
+            ContactPlan plan, PairPlan pair, string from, string to, double readyUt, double? mustArriveByUt, double lightFactor, RetargetRouting retarget)
+        {
+            foreach (var window in pair.RetargetWindows)
+            {
+                if (!string.Equals(window.NodeId, from, StringComparison.Ordinal) || !string.Equals(window.PeerId, to, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                var turn = Math.Max(window.OpenUt, readyUt);
+                var depart = turn + retarget.LinkUpSeconds;
+                if (depart + retarget.AwayMarginSeconds > window.CloseUt)
+                {
+                    continue;
+                }
+                var crossing = Crossing(pair, depart, lightFactor);
+                if (crossing == null)
+                {
+                    continue;
+                }
+                var arrive = depart + crossing.Value.Seconds;
+                if (mustArriveByUt != null && arrive > mustArriveByUt.Value + Tolerance)
+                {
+                    return null;
+                }
+                return new RouteHop(from, to, depart, arrive, window.CloseUt, crossing.Value.Meters, window.DishId, null, window.DishId, turn);
             }
             return null;
         }

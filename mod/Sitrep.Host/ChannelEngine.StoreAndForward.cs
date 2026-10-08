@@ -135,10 +135,68 @@ namespace Sitrep.Host
                 }
                 var home = _engine.HomeCentre();
                 // Every ground station is home's own antenna, and no other centre's.
+                var retarget = _engine._dishBackend == null
+                    ? null
+                    : new RetargetRouting(_engine.DishOptions.LinkUpSeconds, _engine.DishOptions.SendSeconds);
                 return centre == home
-                    ? new PlanRoutes(plan, _engine._deliveryInputs.LightFactor, home, _engine._activeGroundIds)
-                    : new PlanRoutes(plan, _engine._deliveryInputs.LightFactor);
+                    ? new PlanRoutes(plan, _engine._deliveryInputs.LightFactor, home, _engine._activeGroundIds, retarget)
+                    : new PlanRoutes(plan, _engine._deliveryInputs.LightFactor, null, null, retarget);
             }
+        }
+
+        /// <summary>
+        /// The dish backend the delivery network turns dishes through: the elected
+        /// comms backend when it can. Looked for each tick, since the election can
+        /// change while the game runs.
+        /// </summary>
+        private ICommsRetargetBackend? _dishBackend;
+
+        /// <summary>The limits a dish turn keeps to. One network refresh brings the link up.</summary>
+        internal RetargetOptions DishOptions { get; set; } = new RetargetOptions();
+
+        private void EnsureRetargeting()
+        {
+            var backend = CommsElection.RetargetBackend(_kernel);
+            if (ReferenceEquals(backend, _dishBackend))
+            {
+                return;
+            }
+            _dishBackend = backend;
+            if (backend != null)
+            {
+                _delivery.SetRetargeting(new BackendDishActuator(this, backend), DishOptions, backend.AutoRetargetAllowed);
+            }
+        }
+
+        /// <summary>Runs on the game's main thread and waits, or inline where commands run inline.</summary>
+        private T OnMainThread<T>(Func<T> work)
+        {
+            if (!_executeCommandsOnMainThread)
+            {
+                return work();
+            }
+            T result = default!;
+            RunOnMainThreadAndWait(() => result = work());
+            return result;
+        }
+
+        /// <summary>Turns and restores dishes through the elected backend, on the game's main thread.</summary>
+        private sealed class BackendDishActuator : IDishActuator
+        {
+            private readonly ChannelEngine _engine;
+            private readonly ICommsRetargetBackend _backend;
+
+            public BackendDishActuator(ChannelEngine engine, ICommsRetargetBackend backend)
+            {
+                _engine = engine;
+                _backend = backend;
+            }
+
+            public string? Turn(string node, string dishId, string peer, double ut) =>
+                _engine.OnMainThread(() => _backend.TurnDish(node, dishId, peer, ut));
+
+            public bool Restore(string recordId, double ut) =>
+                _engine.OnMainThread(() => _backend.RestoreDish(recordId, ut));
         }
 
         private ISenderPlans SenderPlans => _senderPlans ??= new EngineSenderPlans(this);
@@ -972,6 +1030,7 @@ namespace Sitrep.Host
                 _seenPlanVersion = version;
                 _delivery.PlanChanged();
             }
+            EnsureRetargeting();
             _delivery.Tick(ut);
         }
 
@@ -1080,7 +1139,7 @@ namespace Sitrep.Host
         /// timed exactly as a command that is never held; between any other two
         /// nodes, the live link graph.
         /// </summary>
-        private sealed class EngineDeliveryLinks : IDeliveryLinks
+        private sealed class EngineDeliveryLinks : IDeliveryLinks, IReceiveCheck
         {
             private readonly ChannelEngine _engine;
 
@@ -1099,6 +1158,9 @@ namespace Sitrep.Host
                 var links = _engine._deliveryInputs.Links;
                 return GroundNetwork.Shortest(from, to, _engine.HomeCentre(), _engine._activeGroundIds, links.LivePath);
             }
+
+            public bool PeerCanReceive(string from, string to) =>
+                _engine._dishBackend?.PeerCanReceive(to, from, _engine._clock.Now()) ?? true;
 
             public double? LiveLink(string from, string to)
             {

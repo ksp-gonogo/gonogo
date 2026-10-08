@@ -45,7 +45,10 @@ namespace Sitrep.Host.Comms
                     ["arriveUt"] = Number(f.ArriveUt),
                     ["endToEnd"] = f.EndToEnd,
                     ["reportedHeld"] = f.ReportedHeld,
+                    ["toDish"] = f.ToDish,
+                    ["retargeted"] = f.Retargeted,
                 }).ToList(),
+                ["retargets"] = Retargets(snapshot.Retargets),
                 ["storedCancels"] = snapshot.StoredCancels.Select(c => (object?)new Dictionary<string, object?>
                 {
                     ["node"] = c.Node,
@@ -121,7 +124,10 @@ namespace Sitrep.Host.Comms
                     ArriveUt = NumberFrom(f["arriveUt"]),
                     EndToEnd = f["endToEnd"] is true,
                     ReportedHeld = Get(f, "reportedHeld") is true,
+                    ToDish = Get(f, "toDish") as string,
+                    Retargeted = Get(f, "retargeted") is true,
                 }).ToList(),
+                Retargets = RetargetsFrom(Get(root, "retargets") as Dictionary<string, object?>),
                 StoredCancels = Items(root, "storedCancels").Select(c => new StoredCancelRecord
                 {
                     Node = (string)c["node"]!,
@@ -273,12 +279,68 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>The hops a message carries. Its plan is not saved: a plan is made of what a centre had heard, and that is not saved either.</summary>
+        private static Dictionary<string, object?> Retargets(RetargetSnapshot snapshot) => new Dictionary<string, object?>
+        {
+            ["events"] = snapshot.Events.Select(e => (object?)new Dictionary<string, object?>
+            {
+                ["id"] = e.Id,
+                ["node"] = e.Node,
+                ["dish"] = e.Dish,
+                ["peer"] = e.Peer,
+                ["phase"] = (double)(int)e.Phase,
+                ["announcedUt"] = Number(e.AnnouncedUt),
+                ["turnUt"] = Number(e.TurnUt),
+                ["backUt"] = Number(e.BackUt),
+                ["turnedUt"] = Number(e.TurnedUt),
+                ["endedUt"] = Number(e.EndedUt),
+                ["record"] = e.Record,
+                ["waiting"] = e.Waiting.Select(w => (object?)w).ToList(),
+            }).ToList(),
+            ["rests"] = snapshot.Rests.Select(r => (object?)new List<object?> { r.Dish, Number(r.UntilUt) }).ToList(),
+        };
+
+        private static RetargetSnapshot RetargetsFrom(Dictionary<string, object?>? map)
+        {
+            var snapshot = new RetargetSnapshot();
+            if (map == null)
+            {
+                return snapshot;
+            }
+            snapshot.Events = Items(map, "events").Select(e => new RetargetEventRecord
+            {
+                Id = (string)e["id"]!,
+                Node = (string)e["node"]!,
+                Dish = (string)e["dish"]!,
+                Peer = (string)e["peer"]!,
+                Phase = (RetargetPhase)(int)NumberFrom(e["phase"]),
+                AnnouncedUt = NumberFrom(e["announcedUt"]),
+                TurnUt = NumberFrom(e["turnUt"]),
+                BackUt = NumberFrom(e["backUt"]),
+                TurnedUt = NumberFrom(Get(e, "turnedUt")),
+                EndedUt = NumberFrom(Get(e, "endedUt")),
+                Record = Get(e, "record") as string,
+                Waiting = (Get(e, "waiting") as List<object?>)?.OfType<string>().ToList() ?? new List<string>(),
+            }).ToList();
+            snapshot.Rests = (Get(map, "rests") as List<object?> ?? new List<object?>())
+                .OfType<List<object?>>()
+                .Select(r => new RetargetRestRecord { Dish = (string)r[0]!, UntilUt = NumberFrom(r[1]) })
+                .ToList();
+            return snapshot;
+        }
+
         private static List<object?> Route(List<PlannedHop> route) =>
-            route.Select(hop => (object?)new List<object?> { hop.To, Number(hop.DepartUt), Number(hop.ArriveUt) }).ToList();
+            route.Select(hop => (object?)new List<object?> { hop.To, Number(hop.DepartUt), Number(hop.ArriveUt), hop.FromDish, hop.ToDish, hop.RetargetDish, Number(hop.TurnUt) }).ToList();
 
         private static List<PlannedHop> RouteFrom(object? value) =>
             value is List<object?> list
-                ? list.OfType<List<object?>>().Select(hop => new PlannedHop((string)hop[0]!, NumberFrom(hop[1]), NumberFrom(hop[2]))).ToList()
+                ? list.OfType<List<object?>>().Select(hop => new PlannedHop(
+                    (string)hop[0]!,
+                    NumberFrom(hop[1]),
+                    NumberFrom(hop[2]),
+                    hop.Count > 3 ? hop[3] as string : null,
+                    hop.Count > 4 ? hop[4] as string : null,
+                    hop.Count > 5 ? hop[5] as string : null,
+                    hop.Count > 6 ? NumberFrom(hop[6]) : double.NaN)).ToList()
                 : new List<PlannedHop>();
 
         /// <summary>A number the JSON can carry: a non-finite value becomes null and reads back as not-a-number.</summary>

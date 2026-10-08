@@ -385,7 +385,7 @@ namespace Sitrep.Host.Comms
                 // Its crew, its situation or its name changed and its orbit did
                 // not: the same craft going the same way, listed as it is now.
                 var fresh = StateOf(node, look, ut, kernel);
-                var relisted = last.State.ReadAgain(ut, fresh.ValidUntilUt, fresh.Plannable, fresh.Links).Named(fresh.Name).Listed(listed);
+                var relisted = last.State.ReadAgain(ut, fresh.ValidUntilUt, fresh.Plannable, fresh.Links).WithRetarget(fresh.Retarget).Named(fresh.Name).Listed(listed);
                 if (!last.State.Settled)
                 {
                     relisted = relisted.Unsettled();
@@ -397,7 +397,7 @@ namespace Sitrep.Host.Comms
             // one is read afresh each time.
             var read = StateOf(node, look, ut, kernel);
             var afresh = read.Secular != null || last.State.Secular != null;
-            var again = (afresh ? read : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links).Named(read.Name))
+            var again = (afresh ? read : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links).WithRetarget(read.Retarget).Named(read.Name))
                 .Listed(listed);
             _read[node.Id] = new Read(afresh ? node : last.Node, again);
             return again;
@@ -460,9 +460,10 @@ namespace Sitrep.Host.Comms
                     CommsElection.LinkModel(kernel, node.Radio, other.Radio, ut),
                     CommsElection.LinkStrength(kernel, node.Radio, other.Radio, ut));
             }
+            var retarget = CommsElection.RetargetModel(kernel, node.Radio, ut);
             if (node.Surface != null)
             {
-                return CraftState.Landed(node.Id, ut, node.BodyIndex, node.Surface.Value, links);
+                return CraftState.Landed(node.Id, ut, node.BodyIndex, node.Surface.Value, links).WithRetarget(retarget);
             }
 
             // A craft with a secular seed is bounded by the seed's own span, not by
@@ -471,7 +472,7 @@ namespace Sitrep.Host.Comms
             var seed = ContactSeeds.Read(PropagationElection.Secular(kernel), target, ut);
             if (seed != null)
             {
-                return CraftState.Orbiting(node.Id, ut, node.BodyIndex, node.Orbit.Value, seed, null, true, links);
+                return CraftState.Orbiting(node.Id, ut, node.BodyIndex, node.Orbit.Value, seed, null, true, links).WithRetarget(retarget);
             }
             var horizon = PropagationElection.HorizonFor(kernel, target, ut);
             return CraftState.Orbiting(
@@ -482,7 +483,7 @@ namespace Sitrep.Host.Comms
                 null,
                 horizon.Kind == PropagationHorizonKind.Until ? horizon.UntilUt : null,
                 horizon.Kind != PropagationHorizonKind.Unspecified,
-                links);
+                links).WithRetarget(retarget);
         }
     }
 }

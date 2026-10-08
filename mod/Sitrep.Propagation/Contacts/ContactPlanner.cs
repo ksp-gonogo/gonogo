@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Propagation.Visibility;
 
@@ -114,10 +115,12 @@ namespace Sitrep.Propagation.Contacts
     /// <summary>One predicted stretch of contact between a pair.</summary>
     public readonly struct ContactWindow
     {
-        public ContactWindow(double? openUt, double? closeUt)
+        public ContactWindow(double? openUt, double? closeUt, string? fromDish = null, string? toDish = null)
         {
             OpenUt = openUt;
             CloseUt = closeUt;
+            FromDish = fromDish;
+            ToDish = toDish;
         }
 
         /// <summary>When contact begins, or null when it is already open at the start of the plan.</summary>
@@ -125,6 +128,42 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>When contact ends, or null when it is still open at the end of the pair's horizon.</summary>
         public double? CloseUt { get; }
+
+        /// <summary>The dish on the pair's <c>A</c> end that carries this stretch of contact, when the link model names one.</summary>
+        public string? FromDish { get; }
+
+        /// <summary>The dish on the pair's <c>B</c> end that carries this stretch of contact, when the link model names one.</summary>
+        public string? ToDish { get; }
+    }
+
+    /// <summary>
+    /// A stretch of time in which one node could turn an idle dish to a peer and
+    /// carry a message the peer can already receive: no contact on the dish's
+    /// own aim, and the turned dish would close the link.
+    /// </summary>
+    public readonly struct RetargetWindow
+    {
+        public RetargetWindow(string nodeId, string dishId, string peerId, double openUt, double closeUt)
+        {
+            NodeId = nodeId;
+            DishId = dishId;
+            PeerId = peerId;
+            OpenUt = openUt;
+            CloseUt = closeUt;
+        }
+
+        /// <summary>The node that turns.</summary>
+        public string NodeId { get; }
+
+        /// <summary>The dish it would turn.</summary>
+        public string DishId { get; }
+
+        /// <summary>The node the dish would be turned to.</summary>
+        public string PeerId { get; }
+
+        public double OpenUt { get; }
+
+        public double CloseUt { get; }
     }
 
     /// <summary>A pair's predicted windows over its horizon.</summary>
@@ -149,12 +188,14 @@ namespace Sitrep.Propagation.Contacts
             IReadOnlyList<ContactWindow> windows,
             double fromUt = 0.0,
             double stepSeconds = 0.0,
-            double[]? separationMeters = null)
+            double[]? separationMeters = null,
+            IReadOnlyList<RetargetWindow>? retargetWindows = null)
         {
             A = a;
             B = b;
             HorizonUt = horizonUt;
             Windows = windows;
+            RetargetWindows = retargetWindows ?? new RetargetWindow[0];
             _fromUt = fromUt;
             _stepSeconds = stepSeconds;
             _separation = separationMeters ?? new double[0];
@@ -184,6 +225,10 @@ namespace Sitrep.Propagation.Contacts
             return _separation[below] + ((_separation[below + 1] - _separation[below]) * fraction);
         }
 
+        /// <summary>This plan with <paramref name="retargets"/> as its retarget windows.</summary>
+        internal PairPlan WithRetargetWindows(IReadOnlyList<RetargetWindow> retargets) =>
+            new PairPlan(A, B, HorizonUt, Windows, _fromUt, _stepSeconds, _separation, retargets);
+
         public string A { get; }
 
         public string B { get; }
@@ -193,6 +238,12 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>Every window of contact up to <see cref="HorizonUt"/>, in time order. Empty when the pair never has contact in that span.</summary>
         public IReadOnlyList<ContactWindow> Windows { get; }
+
+        /// <summary>
+        /// The stretches in which either end could turn an idle dish to the other and
+        /// carry a message, in time order. Empty without a retarget model.
+        /// </summary>
+        public IReadOnlyList<RetargetWindow> RetargetWindows { get; }
     }
 
     /// <summary>The predicted contact windows for every pair asked about, and what it cost to work them out.</summary>
@@ -467,7 +518,8 @@ namespace Sitrep.Propagation.Contacts
             double horizonSeconds,
             double stepSeconds,
             double refinementToleranceSeconds,
-            PlanPositions? remembered = null)
+            PlanPositions? remembered = null,
+            IRetargetModel? retarget = null)
         {
             if (propagator == null) throw new ArgumentNullException(nameof(propagator));
             if (!(stepSeconds > 0.0) || double.IsInfinity(stepSeconds))
@@ -488,6 +540,7 @@ namespace Sitrep.Propagation.Contacts
                 remembered != null && remembered.Fits(frameBodyIndex, fromUt, stepSeconds) ? remembered : null);
 
             var plans = new List<PairPlan>();
+            var geometries = new Dictionary<PlanPair, PairGeometry>();
             foreach (var pair in pairs)
             {
                 if (!cache.Has(pair.A) || !cache.Has(pair.B))
@@ -515,9 +568,19 @@ namespace Sitrep.Propagation.Contacts
                 {
                     separation[g] = geometry.SeparationAt(fromUt + (g * stepSeconds));
                 }
-                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, WindowsOf(result), fromUt, stepSeconds, separation));
+                var windows = WindowsOf(result);
+                if (pair.Link is IAttributedContactLinkModel attributed)
+                {
+                    windows = Attributed(windows, attributed, cache, pair, fromUt, sweepEnd, stepSeconds);
+                }
+                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, windows, fromUt, stepSeconds, separation));
+                geometries[pair] = geometry;
             }
 
+            if (retarget != null)
+            {
+                plans = WithRetargets(plans, pairs, geometries, retarget, cache, fromUt, stepSeconds, refinementToleranceSeconds);
+            }
             return new ContactPlan(fromUt, horizonUt, stepSeconds, plans, cache.Solves, cache.MarginEvaluations);
         }
 
@@ -573,6 +636,185 @@ namespace Sitrep.Propagation.Contacts
                 windows.Add(new ContactWindow(openedAt, null));
             }
             return windows;
+        }
+
+        /// <summary>
+        /// <paramref name="windows"/> with the dishes the link model names at each
+        /// stretch. A window is split where the dishes change, at the grid point
+        /// that first sees the change, so one window is one pair of dishes.
+        /// </summary>
+        private static IReadOnlyList<ContactWindow> Attributed(
+            IReadOnlyList<ContactWindow> windows, IAttributedContactLinkModel link, PositionCache cache, PlanPair pair,
+            double fromUt, double endUt, double stepSeconds)
+        {
+            var result = new List<ContactWindow>();
+            foreach (var window in windows)
+            {
+                var open = window.OpenUt ?? fromUt;
+                var close = window.CloseUt ?? endUt;
+                var segmentOpen = window.OpenUt;
+                // Sampled at the middle of each step, since the edge itself is a bisection away
+                // from the instant the dishes changed and may read the dishes of the other side.
+                var current = DishesIn(link, cache, pair, Math.Min(open + (stepSeconds / 2.0), (open + close) / 2.0));
+                var t = open + stepSeconds;
+                while (t < close)
+                {
+                    var at = DishesIn(link, cache, pair, Math.Min(t + (stepSeconds / 2.0), (t + close) / 2.0));
+                    if (!Same(at, current))
+                    {
+                        result.Add(new ContactWindow(segmentOpen, t, current.FromDish, current.ToDish));
+                        segmentOpen = t;
+                        current = at;
+                    }
+                    t += stepSeconds;
+                }
+                result.Add(new ContactWindow(segmentOpen, window.CloseUt, current.FromDish, current.ToDish));
+            }
+            return result;
+        }
+
+        private static bool Same(DishPair a, DishPair b) =>
+            string.Equals(a.FromDish, b.FromDish, StringComparison.Ordinal) && string.Equals(a.ToDish, b.ToDish, StringComparison.Ordinal);
+
+        private static DishPair DishesIn(IAttributedContactLinkModel link, PositionCache cache, PlanPair pair, double ut)
+        {
+            try
+            {
+                return link.DishesAt(ut, cache.NodeAt(pair.A, ut), cache.NodeAt(pair.B, ut), cache);
+            }
+            catch (Exception)
+            {
+                return default;
+            }
+        }
+
+        /// <summary>
+        /// Adds each pair's retarget windows: where either end could turn an idle
+        /// dish to the other, the turned dish would close the link, and the other end
+        /// could already receive. A dish is idle where no window of any pair names it.
+        /// </summary>
+        private static List<PairPlan> WithRetargets(
+            List<PairPlan> plans, IReadOnlyList<PlanPair> pairs, Dictionary<PlanPair, PairGeometry> geometries,
+            IRetargetModel retarget, PositionCache cache, double fromUt, double stepSeconds, double toleranceSeconds)
+        {
+            var busy = new Dictionary<string, List<(double Open, double Close)>>(StringComparer.Ordinal);
+            foreach (var plan in plans)
+            {
+                foreach (var window in plan.Windows)
+                {
+                    foreach (var dish in new[] { window.FromDish, window.ToDish })
+                    {
+                        if (dish == null)
+                        {
+                            continue;
+                        }
+                        if (!busy.TryGetValue(dish, out var list))
+                        {
+                            list = new List<(double, double)>();
+                            busy[dish] = list;
+                        }
+                        list.Add((window.OpenUt ?? fromUt, window.CloseUt ?? plan.HorizonUt));
+                    }
+                }
+            }
+
+            var result = new List<PairPlan>(plans.Count);
+            foreach (var plan in plans)
+            {
+                var pair = pairs.FirstOrDefault(p => p.A == plan.A && p.B == plan.B);
+                if (pair == null || !geometries.TryGetValue(pair, out var geometry))
+                {
+                    result.Add(plan);
+                    continue;
+                }
+                var windows = new List<RetargetWindow>();
+                foreach (var (turning, peer) in new[] { (plan.A, plan.B), (plan.B, plan.A) })
+                {
+                    if (!retarget.AutoRetargetAllowed(turning))
+                    {
+                        continue;
+                    }
+                    foreach (var dish in retarget.DishesOf(turning))
+                    {
+                        var margin = new RetargetGeometry(geometry, retarget, cache, dish.DishId, turning, peer);
+                        var sweep = VisibilitySweep.Run(margin, fromUt, plan.HorizonUt, stepSeconds, toleranceSeconds);
+                        busy.TryGetValue(dish.DishId, out var idleFrom);
+                        foreach (var open in WindowsOf(sweep))
+                        {
+                            foreach (var (o, c) in Subtract(open.OpenUt ?? fromUt, open.CloseUt ?? plan.HorizonUt, idleFrom))
+                            {
+                                windows.Add(new RetargetWindow(turning, dish.DishId, peer, o, c));
+                            }
+                        }
+                    }
+                }
+                windows.Sort((x, y) => x.OpenUt.CompareTo(y.OpenUt));
+                result.Add(plan.WithRetargetWindows(windows));
+            }
+            return result;
+        }
+
+        private static IEnumerable<(double Open, double Close)> Subtract(double open, double close, List<(double Open, double Close)>? busy)
+        {
+            var pieces = new List<(double Open, double Close)> { (open, close) };
+            if (busy != null)
+            {
+                foreach (var (bo, bc) in busy)
+                {
+                    var next = new List<(double, double)>();
+                    foreach (var (po, pc) in pieces)
+                    {
+                        if (bc <= po || bo >= pc)
+                        {
+                            next.Add((po, pc));
+                            continue;
+                        }
+                        if (bo > po)
+                        {
+                            next.Add((po, bo));
+                        }
+                        if (bc < pc)
+                        {
+                            next.Add((bc, pc));
+                        }
+                    }
+                    pieces = next;
+                }
+            }
+            return pieces;
+        }
+
+        /// <summary>The margin of a turned dish carrying a message: occlusion and range as the pair has them, the turned dish's beam, and the peer's own reception.</summary>
+        private sealed class RetargetGeometry : IVisibilityGeometry
+        {
+            private readonly PairGeometry _pair;
+            private readonly IRetargetModel _model;
+            private readonly PositionCache _cache;
+            private readonly string _dish;
+            private readonly string _node;
+            private readonly string _peer;
+
+            public RetargetGeometry(PairGeometry pair, IRetargetModel model, PositionCache cache, string dish, string node, string peer)
+            {
+                _pair = pair;
+                _model = model;
+                _cache = cache;
+                _dish = dish;
+                _node = node;
+                _peer = peer;
+            }
+
+            public double MarginAt(double ut)
+            {
+                var node = _cache.NodeAt(_node, ut);
+                var peer = _cache.NodeAt(_peer, ut);
+                var turned = _model.MarginIfAimedAt(_dish, _peer, ut, node, peer, _cache);
+                var receives = _model.PeerReceiveMargin(_peer, _node, ut, peer, node, _cache);
+                var geometry = _pair.OcclusionMarginAt(ut);
+                return Math.Min(Math.Min(turned, receives), geometry);
+            }
+
+            public double SeparationAt(double ut) => _pair.SeparationAt(ut);
         }
 
         /// <summary>
@@ -751,6 +993,23 @@ namespace Sitrep.Propagation.Contacts
             }
 
             public double SeparationAt(double ut) => (_cache.NodeAt(_pair.A, ut) - _cache.NodeAt(_pair.B, ut)).Magnitude();
+
+            /// <summary>The pair's line-of-sight margin alone: the worst occluder's, or 1 when nothing can come between.</summary>
+            public double OcclusionMarginAt(double ut)
+            {
+                var a = _cache.NodeAt(_pair.A, ut);
+                var b = _cache.NodeAt(_pair.B, ut);
+                var margin = double.PositiveInfinity;
+                foreach (var occluder in _pair.Occluders)
+                {
+                    var m = ChordOcclusion.HorizonMargin(a, b, _cache.BodyAt(occluder.BodyIndex, ut), occluder.OccludingRadiusMeters);
+                    if (m < margin)
+                    {
+                        margin = m;
+                    }
+                }
+                return double.IsPositiveInfinity(margin) ? 1.0 : margin;
+            }
 
             /// <summary>
             /// The backend's link margin, or null to fall back to reach. A link model

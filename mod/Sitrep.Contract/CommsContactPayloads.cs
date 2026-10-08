@@ -74,6 +74,15 @@ public class CommsContactPair
     public List<CommsContactWindow> Windows { get; set; } = new List<CommsContactWindow>();
 
     /// <summary>
+    /// The stretches in which either end could turn an idle dish to the other and
+    /// carry a message, in time order: the dish has no contact on its own aim then,
+    /// the turned dish would close the link, and the other end could already
+    /// receive. A message held at the turning node may use one; nothing else does.
+    /// Empty when no dish would be turned or the backend turns none.
+    /// </summary>
+    public List<CommsRetargetWindow> RetargetWindows { get; set; } = new List<CommsRetargetWindow>();
+
+    /// <summary>
     /// True while either end was last heard of with its orbit still changing.
     /// It is reckoned on the orbit it reported mid-burn, which it has since
     /// left, so these windows are a rough guide until its next report.
@@ -97,4 +106,47 @@ public class CommsContactWindow
     /// <summary>When contact ends, or <c>null</c> when it is still open at the pair's horizon.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? CloseUt { get; set; }
+
+    /// <summary>
+    /// The dish on the pair's <see cref="CommsContactPair.A"/> end that carries
+    /// this stretch of contact, as <c>"&lt;nodeId&gt;#&lt;partPersistentId&gt;/&lt;ordinal&gt;"</c>,
+    /// or absent when that end has no steered dish on it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    [SitrepOmittedWhenNull]
+    public string? FromDish { get; set; }
+
+    /// <summary>The dish on the pair's <see cref="CommsContactPair.B"/> end that carries this stretch, or absent.</summary>
+    [SitrepUnit(Units.Id)]
+    [SitrepOmittedWhenNull]
+    public string? ToDish { get; set; }
+}
+
+/// <summary>A stretch in which a node could turn an idle dish to a peer to carry a message.</summary>
+/// <category>Comms</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommsRetargetWindow
+{
+    /// <summary>The node that would turn, in the <c>commandCentre.roster</c> vocabulary.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Node { get; set; } = "";
+
+    /// <summary>The dish it would turn, as <c>"&lt;nodeId&gt;#&lt;partPersistentId&gt;/&lt;ordinal&gt;"</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Dish { get; set; } = "";
+
+    /// <summary>The node it would turn the dish to.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Peer { get; set; } = "";
+
+    /// <summary>When the turn may start.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double OpenUt { get; set; }
+
+    /// <summary>When the turned dish must be back on its own aim.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double CloseUt { get; set; }
 }

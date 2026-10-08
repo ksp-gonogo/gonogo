@@ -74,6 +74,7 @@ namespace Sitrep.Host.Comms
             var craft = new List<CraftState>();
             var nodes = new List<PlanNode>();
             var unsettled = new List<string>();
+            var retargets = new Dictionary<string, IRetargetModel>(StringComparer.Ordinal);
             foreach (var state in heard)
             {
                 var node = state.ToPlanNode();
@@ -82,6 +83,10 @@ namespace Sitrep.Host.Comms
                     continue;
                 }
                 craft.Add(state);
+                if (state.Retarget != null)
+                {
+                    retargets[state.Id] = state.Retarget;
+                }
                 nodes.Add(node.RememberedAs(state.Motion));
                 if (!state.Settled)
                 {
@@ -108,7 +113,8 @@ namespace Sitrep.Host.Comms
             }
 
             return new ContactPlanRequest(
-                nodes, pairs, new KeplerProvider(ground.Bodies), ground.FrameBodyIndex, fromUt, horizonSeconds, unsettled);
+                nodes, pairs, new KeplerProvider(ground.Bodies), ground.FrameBodyIndex, fromUt, horizonSeconds, unsettled,
+                retargets.Count == 0 ? null : new CompositeRetargetModel(retargets));
         }
 
         private static void AddPair(List<PlanPair> pairs, CraftState from, string toId, int toBodyIndex, PlanGround ground)

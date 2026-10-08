@@ -188,6 +188,34 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// The elected backend's retarget model for one node, or null when it has
+        /// none: the backend does not turn dishes, the node has none it would turn,
+        /// or asking it threw.
+        ///
+        /// <para>THREADING: main thread only, as every other backend read at this
+        /// seam; the model it returns is pure.</para>
+        /// </summary>
+        public static IRetargetModel? RetargetModel(Kernel? kernel, object? node, double ut)
+        {
+            if (kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                return (Elected(kernel) as ICommsRetargetBackend)?.RetargetModel(node, ut);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The elected backend as something that turns dishes, or null when it is not one.</summary>
+        public static ICommsRetargetBackend? RetargetBackend(Kernel? kernel) =>
+            kernel == null ? null : Elected(kernel) as ICommsRetargetBackend;
+
+        /// <summary>
         /// The elected backend's strength model for a pair of nodes, or null
         /// when it states none: the backend is not an
         /// <see cref="ICommsPathStrength"/>, it has nothing for this pair, or

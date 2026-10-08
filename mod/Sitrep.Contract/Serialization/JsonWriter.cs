@@ -256,6 +256,9 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsContactWindow contactWindow:
                     AppendCommsContactWindow(sb, contactWindow);
                     break;
+                case Sitrep.Contract.CommsRetargetWindow retargetWindow:
+                    AppendCommsRetargetWindow(sb, retargetWindow);
+                    break;
                 case Sitrep.Contract.CommsRoutes routes:
                     AppendCommsRoutes(sb, routes);
                     break;
@@ -1606,6 +1609,21 @@ namespace Sitrep.Contract.Serialization
             }
             sb.Append(']');
             sb.Append(',');
+            AppendString(sb, "retargetWindows");
+            sb.Append(':');
+            sb.Append('[');
+            var firstRetarget = true;
+            if (p.RetargetWindows != null)
+            {
+                foreach (var w in p.RetargetWindows)
+                {
+                    if (!firstRetarget) sb.Append(',');
+                    firstRetarget = false;
+                    AppendCommsRetargetWindow(sb, w);
+                }
+            }
+            sb.Append(']');
+            sb.Append(',');
             AppendString(sb, "lowConfidence");
             sb.Append(':');
             AppendBool(sb, p.LowConfidence);
@@ -1801,6 +1819,46 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "closeUt");
             sb.Append(':');
             AppendNullableNumber(sb, w.CloseUt);
+            if (w.FromDish != null)
+            {
+                sb.Append(',');
+                AppendString(sb, "fromDish");
+                sb.Append(':');
+                AppendString(sb, w.FromDish);
+            }
+            if (w.ToDish != null)
+            {
+                sb.Append(',');
+                AppendString(sb, "toDish");
+                sb.Append(':');
+                AppendString(sb, w.ToDish);
+            }
+            sb.Append('}');
+        }
+
+        private static void AppendCommsRetargetWindow(
+            StringBuilder sb, Sitrep.Contract.CommsRetargetWindow w)
+        {
+            sb.Append('{');
+            AppendString(sb, "node");
+            sb.Append(':');
+            AppendString(sb, w.Node ?? "");
+            sb.Append(',');
+            AppendString(sb, "dish");
+            sb.Append(':');
+            AppendString(sb, w.Dish ?? "");
+            sb.Append(',');
+            AppendString(sb, "peer");
+            sb.Append(':');
+            AppendString(sb, w.Peer ?? "");
+            sb.Append(',');
+            AppendString(sb, "openUt");
+            sb.Append(':');
+            AppendNumber(sb, w.OpenUt);
+            sb.Append(',');
+            AppendString(sb, "closeUt");
+            sb.Append(':');
+            AppendNumber(sb, w.CloseUt);
             sb.Append('}');
         }
 

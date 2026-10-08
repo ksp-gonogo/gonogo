@@ -2276,6 +2276,14 @@ export interface CommsContactPair
 	*/
 	windows: CommsContactWindow[];
 	/**
+	* The stretches in which either end could turn an idle dish to the other and
+	* carry a message, in time order: the dish has no contact on its own aim then,
+	* the turned dish would close the link, and the other end could already
+	* receive. A message held at the turning node may use one; nothing else does.
+	* Empty when no dish would be turned or the backend turns none.
+	*/
+	retargetWindows: CommsRetargetWindow[];
+	/**
 	* True while either end was last heard of with its orbit still changing. It is
 	* reckoned on the orbit it reported mid-burn, which it has since left, so
 	* these windows are a rough guide until its next report.
@@ -2293,6 +2301,36 @@ export interface CommsContactWindow
 	openUt?: Value<"ut"> | null;
 	/** When contact ends, or `null` when it is still open at the pair's horizon. */
 	closeUt?: Value<"ut"> | null;
+	/**
+	* The dish on the pair's `CommsContactPair.a` end that carries this stretch of
+	* contact, as `"<nodeId>#<partPersistentId>/<ordinal>"`, or absent when that
+	* end has no steered dish on it.
+	*/
+	fromDish?: string;
+	/**
+	* The dish on the pair's `CommsContactPair.b` end that carries this stretch,
+	* or absent.
+	*/
+	toDish?: string;
+}
+/**
+* A stretch in which a node could turn an idle dish to a peer to carry a
+* message.
+*
+* @category Comms
+*/
+export interface CommsRetargetWindow
+{
+	/** The node that would turn, in the `commandCentre.roster` vocabulary. */
+	node: string;
+	/** The dish it would turn, as `"<nodeId>#<partPersistentId>/<ordinal>"`. */
+	dish: string;
+	/** The node it would turn the dish to. */
+	peer: string;
+	/** When the turn may start. */
+	openUt: Value<"ut">;
+	/** When the turned dish must be back on its own aim. */
+	closeUt: Value<"ut">;
 }
 /**
 * The `comms.degrade` payload: how degraded the active vessel's link home is

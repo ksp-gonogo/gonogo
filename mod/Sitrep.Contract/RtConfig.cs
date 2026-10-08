@@ -393,6 +393,7 @@ public static class RtConfig
                 typeof(CommsContacts),
                 typeof(CommsContactPair),
                 typeof(CommsContactWindow),
+                typeof(CommsRetargetWindow),
                 // comms.route: the predicted route each way between every centre and the active craft
                 typeof(CommsRoutes),
                 typeof(CommsRoute),

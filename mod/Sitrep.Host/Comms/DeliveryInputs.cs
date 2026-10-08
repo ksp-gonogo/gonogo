@@ -175,13 +175,16 @@ namespace Sitrep.Host.Comms
         private readonly double _lightFactor;
         private readonly string? _home;
         private readonly IReadOnlyCollection<string>? _antennas;
+        private readonly RetargetRouting? _retarget;
 
         /// <param name="plan">The plan, or null for no plan at all, which predicts no route.</param>
         /// <param name="lightFactor">What each hop's real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         /// <param name="home">The home centre, when the plan is its own, or null.</param>
         /// <param name="antennas">Every ground station, each of which is the home centre's own antenna: see <see cref="GroundNetwork"/>.</param>
-        public PlanRoutes(ContactPlan? plan, double lightFactor = 1.0, string? home = null, IReadOnlyCollection<string>? antennas = null)
+        /// <param name="retarget">How a route may use the plan's retarget windows, or null to route on the dishes' own aims alone.</param>
+        public PlanRoutes(ContactPlan? plan, double lightFactor = 1.0, string? home = null, IReadOnlyCollection<string>? antennas = null, RetargetRouting? retarget = null)
         {
+            _retarget = retarget;
             _plan = plan;
             _lightFactor = lightFactor;
             _home = home;
@@ -203,7 +206,8 @@ namespace Sitrep.Host.Comms
                 GroundNetwork.EndsOf(to, _home, _antennas),
                 readyUt,
                 double.IsInfinity(deadlineUt) ? (double?)null : deadlineUt,
-                _lightFactor);
+                _lightFactor,
+                _retarget);
             if (route == null)
             {
                 return null;
@@ -214,7 +218,7 @@ namespace Sitrep.Host.Comms
                 var hop = route.Hops[i];
                 // Light that lands at any of home's antennas has landed at home.
                 var landsAt = i == route.Hops.Count - 1 && to == _home ? to : hop.To;
-                hops.Add(new PlannedHop(landsAt, hop.DepartUt, hop.ArriveUt));
+                hops.Add(new PlannedHop(landsAt, hop.DepartUt, hop.ArriveUt, hop.FromDish, hop.ToDish, hop.RetargetDish, hop.TurnUt));
             }
             return hops;
         }

@@ -14,17 +14,53 @@ namespace Sitrep.Core.StoreAndForward
         double? LiveLink(string from, string to);
     }
 
+    /// <summary>
+    /// A links source that can also say whether a peer can receive light from a
+    /// node that has since turned its dish away. Light already emitted travels on
+    /// whatever its sender then aims at, so the landing of a hop sent on a turned
+    /// dish is judged on the receiver alone. A links source without it lets such
+    /// a hop land.
+    /// </summary>
+    public interface IReceiveCheck
+    {
+        /// <summary>Whether <paramref name="to"/> can receive light a node <paramref name="from"/> sent it, with nothing changed on the receiving end.</summary>
+        bool PeerCanReceive(string from, string to);
+    }
+
     /// <summary>One hop the contact plan predicts.</summary>
     public readonly struct PlannedHop
     {
-        public PlannedHop(string to, double departUt, double arriveUt)
+        public PlannedHop(
+            string to,
+            double departUt,
+            double arriveUt,
+            string? fromDish = null,
+            string? toDish = null,
+            string? retargetDish = null,
+            double turnUt = double.NaN)
         {
             To = to;
             DepartUt = departUt;
             ArriveUt = arriveUt;
+            FromDish = fromDish;
+            ToDish = toDish;
+            RetargetDish = retargetDish;
+            TurnUt = turnUt;
         }
 
         public string To { get; }
+
+        /// <summary>The dish the hop leaves on, when the plan names one.</summary>
+        public string? FromDish { get; }
+
+        /// <summary>The dish the light lands on, when the plan names one.</summary>
+        public string? ToDish { get; }
+
+        /// <summary>The idle dish of the sending node that must be turned to the next node to carry this hop, or null for a hop on a dish's own aim.</summary>
+        public string? RetargetDish { get; }
+
+        /// <summary>When that turn is planned to start, or NaN.</summary>
+        public double TurnUt { get; }
 
         public double DepartUt { get; }
 
@@ -88,7 +124,7 @@ namespace Sitrep.Core.StoreAndForward
     /// <para>One lock guards everything, so a save can snapshot it from another
     /// thread.</para>
     /// </summary>
-    public sealed class DeliveryNetwork
+    public sealed partial class DeliveryNetwork
     {
         /// <summary>The lifetime of every delayed command, in game seconds.</summary>
         public const double CommandLifetimeSeconds = 3600.0;
@@ -157,6 +193,7 @@ namespace Sitrep.Core.StoreAndForward
             lock (_gate)
             {
                 _planVersion++;
+                PlanChangedRetargets();
                 foreach (var held in _held.Values.SelectMany(h => h))
                 {
                     held.Excluded = null;
@@ -366,6 +403,7 @@ namespace Sitrep.Core.StoreAndForward
                     {
                         Depart(node, nowUt);
                     }
+                    TickRetargets(nowUt);
                 }
             }
             finally
@@ -408,6 +446,8 @@ namespace Sitrep.Core.StoreAndForward
                         ArriveUt = f.ArriveUt,
                         EndToEnd = f.EndToEnd,
                         ReportedHeld = f.Custody != null && f.Custody.ReportedHeld,
+                        ToDish = f.ToDish,
+                        Retargeted = f.Retargeted,
                     }).ToList(),
                     StoredCancels = _storedCancels.SelectMany(n => n.Value.Select(c => new StoredCancelRecord { Node = n.Key, Cancel = c })).ToList(),
                     Senders = _senders.Select(s => new SenderRecord { Lane = s.Key, NextSeq = s.Value.NextSeq, Unresolved = s.Value.Unresolved.ToList() }).ToList(),
@@ -425,6 +465,7 @@ namespace Sitrep.Core.StoreAndForward
                     }).ToList(),
                     SentCommands = _sentCommands.Values.ToList(),
                     NextId = _nextId,
+                    Retargets = SnapshotRetargets(),
                 };
             }
         }
@@ -452,6 +493,7 @@ namespace Sitrep.Core.StoreAndForward
                 _senders.Clear();
                 _sentCommands.Clear();
                 _leftSender.Clear();
+                ResetRetargets();
             }
         }
 
@@ -512,7 +554,7 @@ namespace Sitrep.Core.StoreAndForward
                             ReportedHeld = record.ReportedHeld,
                         };
                         List(_held, record.From).Add(custody);
-                        Fly(new Flight(message, record.From, record.To, record.DepartUt, record.ArriveUt, record.EndToEnd) { Custody = custody });
+                        Fly(new Flight(message, record.From, record.To, record.DepartUt, record.ArriveUt, record.EndToEnd) { Custody = custody, ToDish = record.ToDish, Retargeted = record.Retargeted });
                         WatchCustody(record.From, custody);
                     }
                     foreach (var stored in snapshot.StoredCancels)
@@ -560,6 +602,7 @@ namespace Sitrep.Core.StoreAndForward
                         CopiesOut(copy.Lane, copy.LaneSeq).Add(copy.Id);
                     }
                     _nextId = Math.Max(_nextId, snapshot.NextId);
+                    RestoreRetargets(snapshot.Retargets ?? new RetargetSnapshot(), _clock.Now());
                 }
             }
             finally
@@ -621,6 +664,13 @@ namespace Sitrep.Core.StoreAndForward
 
         private void RunQueued()
         {
+            RunActuations();
+            RunQueuedCommands();
+            RunActuations();
+        }
+
+        private void RunQueuedCommands()
+        {
             while (true)
             {
                 (CommandMessage Command, double AtUt) next;
@@ -679,6 +729,11 @@ namespace Sitrep.Core.StoreAndForward
                 || (flight.EndToEnd
                     ? _links.LivePath(flight.From, flight.To) != null
                     : _links.LiveLink(flight.From, flight.To) != null);
+            if (!stillLinked && flight.Retargeted)
+            {
+                // The sender has put its dish back since: the light left on the turned one and travels on.
+                stillLinked = !(_links is IReceiveCheck check) || check.PeerCanReceive(flight.From, flight.To);
+            }
             if (!stillLinked)
             {
                 return;
@@ -1023,6 +1078,15 @@ namespace Sitrep.Core.StoreAndForward
             {
                 return next.DepartUt > nowUt + Tolerance ? next.DepartUt : (double?)null;
             }
+            var clearAt = AfterAnnouncedWindow(node, next, nowUt);
+            if (clearAt != null)
+            {
+                return clearAt;
+            }
+            if (next.RetargetDish != null)
+            {
+                NoteRetargetNeeded(node, held, next, nowUt);
+            }
             if (!own)
             {
                 TryOwnLink(node, held, next.To, nowUt, route);
@@ -1043,11 +1107,11 @@ namespace Sitrep.Core.StoreAndForward
                 // nothing back.
                 var believed = route[route.Count - 1].ArriveUt - nowUt;
                 var real = _links.LivePath(node, destination);
-                Launch(node, held, destination, nowUt, real ?? believed, endToEnd: true, expectedLight: believed);
+                Launch(node, held, destination, nowUt, real ?? believed, endToEnd: true, expectedLight: believed, toDish: route[route.Count - 1].ToDish);
                 return null;
             }
             var hopBelieved = next.ArriveUt - next.DepartUt;
-            Launch(node, held, next.To, nowUt, _links.LiveLink(node, next.To) ?? hopBelieved, endToEnd: false, expectedLight: hopBelieved);
+            Launch(node, held, next.To, nowUt, _links.LiveLink(node, next.To) ?? hopBelieved, endToEnd: false, expectedLight: hopBelieved, toDish: next.ToDish);
             return null;
         }
 
@@ -1060,7 +1124,7 @@ namespace Sitrep.Core.StoreAndForward
                 return;
             }
             held.Message.Route = route.ToList();
-            Launch(node, held, to, nowUt, light.Value, endToEnd: false);
+            Launch(node, held, to, nowUt, light.Value, endToEnd: false, toDish: route.Count > 0 && string.Equals(route[0].To, to, StringComparison.Ordinal) ? route[0].ToDish : null);
         }
 
         /// <summary>Whether <paramref name="node"/> is the command centre that sent <paramref name="message"/>: true only for a command or a cancel still at its own lane's centre.</summary>
@@ -1120,7 +1184,7 @@ namespace Sitrep.Core.StoreAndForward
         /// </summary>
         /// <param name="light">How long the light really takes, which is when it lands and what custody is timed by.</param>
         /// <param name="expectedLight">How long the node sending it expects the light to take, which is all its report may say: a centre sending on its plan knows only what the plan says. Null when the node measured the link itself.</param>
-        private void Launch(string node, Held held, string to, double nowUt, double light, bool endToEnd, double? expectedLight = null)
+        private void Launch(string node, Held held, string to, double nowUt, double light, bool endToEnd, double? expectedLight = null, string? toDish = null)
         {
             if (held.Message is CommandMessage sent && string.Equals(node, sent.Lane.Vantage, StringComparison.Ordinal))
             {
@@ -1128,9 +1192,11 @@ namespace Sitrep.Core.StoreAndForward
             }
             if (held.ReportedHeld && held.Message is CommandMessage command)
             {
-                Report(node, command, JourneyKind.Departed, nowUt, until: nowUt + (expectedLight ?? light));
+                Report(node, command, JourneyKind.Departed, nowUt, detail: RetargetDetail(node, to, nowUt), until: nowUt + (expectedLight ?? light));
             }
-            var flight = new Flight(held.Message, node, to, nowUt, nowUt + light, endToEnd) { CameFrom = held.CameFrom, Custody = held };
+            var retargeted = IsRetargetedFlight(node, to);
+            NoteLaunched(node, held, nowUt);
+            var flight = new Flight(held.Message, node, to, nowUt, nowUt + light, endToEnd) { CameFrom = held.CameFrom, Custody = held, ToDish = toDish, Retargeted = retargeted };
             held.Away = to;
             held.Landed = false;
             // Twice the time the light really takes where there is a real path,
@@ -1514,6 +1580,12 @@ namespace Sitrep.Core.StoreAndForward
 
             public string? CameFrom { get; set; }
 
+            /// <summary>The dish the light lands on, when the route names one: an arrival booked onto it.</summary>
+            public string? ToDish { get; set; }
+
+            /// <summary>Whether the light left on a dish turned for it.</summary>
+            public bool Retargeted { get; set; }
+
             public Action? Cancel { get; set; }
 
             /// <summary>The copy the sending node keeps until custody ends.</summary>
@@ -1537,6 +1609,9 @@ namespace Sitrep.Core.StoreAndForward
         public List<CommandMessage> SentCommands { get; set; } = new List<CommandMessage>();
 
         public long NextId { get; set; }
+
+        /// <summary>The dish turns under way and the windows announced for them.</summary>
+        public RetargetSnapshot Retargets { get; set; } = new RetargetSnapshot();
     }
 
     public sealed class HeldRecord
@@ -1583,6 +1658,12 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>Whether the node it left had reported holding it.</summary>
         public bool ReportedHeld { get; set; }
+
+        /// <summary>The dish the light lands on, when the route named one.</summary>
+        public string? ToDish { get; set; }
+
+        /// <summary>Whether the light left on a dish turned for it.</summary>
+        public bool Retargeted { get; set; }
     }
 
     public sealed class StoredCancelRecord

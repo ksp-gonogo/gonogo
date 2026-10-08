@@ -2465,8 +2465,17 @@ namespace Sitrep.Contract
         /// was not sent or did not run. <see cref="PendingUplink.Members"/> now lists the
         /// members of a group. Additive: a client that never sends the frame is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 23 -&gt; 24: dish turns.</b> A plan names the
+        /// dishes that carry a stretch of contact (<see cref="CommsContactWindow.FromDish"/>
+        /// and <see cref="CommsContactWindow.ToDish"/>) and the stretches in which an idle
+        /// dish could be turned to carry a message (<see cref="CommsRetargetWindow"/>). A
+        /// comms backend with steered dishes states them through
+        /// <see cref="IAttributedContactLinkModel"/> and <see cref="ICommsRetargetBackend"/>.
+        /// Additive: a backend that implements neither, and a client that reads neither
+        /// field, are unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 23;
+        public const int Minor = 24;
     }
 }

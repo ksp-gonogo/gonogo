@@ -418,7 +418,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommsContactWindow": {
     closeUt: "ut",
+    fromDish: "id",
     openUt: "ut",
+    toDish: "id",
   },
   "CommsContacts": {
     horizonUt: "ut",
@@ -483,6 +485,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     name: "text",
     occludingRadiusMeters: "m",
     radiusMeters: "m",
+  },
+  "CommsRetargetWindow": {
+    closeUt: "ut",
+    dish: "id",
+    node: "id",
+    openUt: "ut",
+    peer: "id",
   },
   "CommsRoute": {
     arrivalUt: "ut",
@@ -2367,6 +2376,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     author: "CommcastAuthor",
   },
   "CommsContactPair": {
+    retargetWindows: "CommsRetargetWindow[]",
     windows: "CommsContactWindow[]",
   },
   "CommsContacts": {
