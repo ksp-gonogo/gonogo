@@ -19,6 +19,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { scopeWidgets, widgetFlag } from "./gateScope";
 import { renderWidgets } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
 
@@ -30,12 +31,14 @@ import { listWidgets } from "./widgets";
 const MIN_WIDGETS = 30;
 
 async function main(): Promise<void> {
-  const widgets = listWidgets();
-  if (widgets.length < MIN_WIDGETS) {
-    console.error(
-      `\nfont-gate: only ${widgets.length} widget config(s) found, expected at ` +
-        `least ${MIN_WIDGETS}. Refusing to report a clean run over a set this small.`,
-    );
+  const { widgets, refusal } = scopeWidgets(
+    listWidgets(),
+    widgetFlag(process.argv.slice(2)),
+    "font-gate",
+    MIN_WIDGETS,
+  );
+  if (refusal) {
+    console.error(refusal);
     process.exit(1);
   }
 
