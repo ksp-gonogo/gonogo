@@ -119,6 +119,14 @@ interface Subscription {
  * notifies, while the nulled `resolve`/`reject` keep the promise exactly as it
  * was.
  */
+/**
+ * What `getCommand` answers for an id this client never saw. One shared object,
+ * because a hook that still holds an id from a client since replaced reads it
+ * on every render, and `useSyncExternalStore` treats a fresh object each time as
+ * a snapshot that never settles.
+ */
+const UNKNOWN_COMMAND: CommandStatus = Object.freeze({ phase: "idle" });
+
 interface PendingCommand {
   /**
    * What was dispatched, kept so a refusal can NAME it. Without these three a
@@ -919,7 +927,7 @@ export class TelemetryClient {
 
   /** Current lifecycle status for a dispatched command, or `idle` if unknown. */
   getCommand(requestId: string): CommandStatus {
-    return this.commands.get(requestId)?.status ?? { phase: "idle" };
+    return this.commands.get(requestId)?.status ?? UNKNOWN_COMMAND;
   }
 
   /**
