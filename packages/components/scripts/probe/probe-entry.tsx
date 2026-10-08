@@ -278,6 +278,8 @@ export interface ProbeMount {
   ready: Promise<void>;
   /** Emits one sample onto this scene's own stream; a scene with no `_stream` block has none, and throws. */
   emit: (channel: string, value: unknown, meta?: Partial<Meta>) => void;
+  /** Moves the scene's view clock to `ut`, so bodies and conics play forward; throws without a stream. */
+  scrubTo: (ut: number) => void;
   /** Unmounts this widget alone and drops its data source; safe before `ready` settles. */
   unmount: () => void;
 }
@@ -380,6 +382,14 @@ function startMount(
         );
       }
       state.stream.emit(channel, value, meta);
+    },
+    scrubTo: (ut) => {
+      if (!state.stream) {
+        throw new Error(
+          `Probe: "${payload.widgetId}" has no stream to scrub: its fixture carries no _stream block, or it is unmounted`,
+        );
+      }
+      state.stream.scrubTo(ut);
     },
     unmount: () => teardownMount(state),
   };

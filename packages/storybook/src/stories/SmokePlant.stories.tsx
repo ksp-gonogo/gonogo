@@ -80,6 +80,7 @@ function SlotScene({ widgetId, fixture, w, h, onMounted }: WidgetSceneProps) {
           mounted.current?.({
             ready: Promise.resolve(),
             emit: () => {},
+            scrubTo: () => {},
             unmount: unmountProbe,
           }),
         )

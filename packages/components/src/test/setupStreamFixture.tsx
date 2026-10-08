@@ -64,6 +64,8 @@ export interface StreamFixture {
   ) => void;
   /** Mint one frame synchronously, clock and store both, the manual half of `suspendFrames`. */
   emitFrame: () => void;
+  /** Move the pinned view clock to `ut` and mint the frame that shows it, so a scene can play time forward. */
+  scrubTo: (ut: number) => void;
 }
 
 export function setupStreamFixture(
@@ -130,6 +132,10 @@ export function setupStreamFixture(
       if (framesSuspended) mintFrame();
     },
     emitFrame: mintFrame,
+    scrubTo: (ut) => {
+      clock.scrubTo(ut);
+      mintFrame();
+    },
   };
 }
 
