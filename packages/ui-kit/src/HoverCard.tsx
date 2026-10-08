@@ -124,7 +124,7 @@ const HoverCard__Trigger = styled.button`
   background: none;
   color: inherit;
   font: inherit;
-  cursor: help;
+  cursor: default;
 
   ${focusRing}
 `;

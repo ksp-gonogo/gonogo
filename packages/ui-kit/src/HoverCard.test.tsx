@@ -26,6 +26,12 @@ describe("HoverCard", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
+  it("keeps the ordinary cursor on its trigger, whatever the card says", () => {
+    mount();
+    const trigger = screen.getByRole("button", { name: "Probe signal" });
+    expect(getComputedStyle(trigger).cursor).toBe("default");
+  });
+
   it("draws the card outside the widget, so the widget's clipping cannot cut it off", () => {
     mount();
     act(() => screen.getByRole("button", { name: "Probe signal" }).focus());
