@@ -421,6 +421,12 @@ namespace Sitrep.Host.Comms
         private Restore? _restore;
         private int _plansVersion;
 
+        /// <summary>Each centre's plan as it stood when the timeline last reset, until its next plan arrives.</summary>
+        private Dictionary<string, ContactPlan> _plansBeforeReset = new Dictionary<string, ContactPlan>(StringComparer.Ordinal);
+
+        /// <summary>How far a window edge may move between rounds and still be the same contact: the refinement of a crossing is not exact.</summary>
+        private const double SameContactToleranceSeconds = 2.0;
+
         /// <param name="game">The game the plan is made of.</param>
         /// <param name="wallSeconds">Wall time in seconds, for pacing how often the game is looked at.</param>
         /// <param name="warn">Where a plan that threw is reported.</param>
@@ -718,6 +724,7 @@ namespace Sitrep.Host.Comms
                     _hearing.Restore(carried);
                 }
                 _heardNowNews = -1;
+                _plansBeforeReset = new Dictionary<string, ContactPlan>(_plans, StringComparer.Ordinal);
                 _plans.Clear();
                 _planned.Clear();
                 _unsettled.Clear();
@@ -737,7 +744,8 @@ namespace Sitrep.Host.Comms
                 _rosterMemory.Clear();
                 _unreachableSent.Clear();
                 _vesselsNews.Clear();
-                System.Threading.Interlocked.Increment(ref _plansVersion);
+                // The version does not move here: the first plan after the reset is judged against the
+                // one it replaces, so a load that finds the same contacts is not a change to them.
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
                 // A round still running was made of the old timeline; it is
                 // taken and dropped when it finishes, by the FromUt check below.
@@ -1250,11 +1258,25 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
+                // Only a plan that predicts different contacts is a change a held
+                // message needs to hear of: a round that finds the same windows
+                // further on leaves what was excluded after a catch excluded.
+                // After a reset the first plan of a centre is judged against the one it replaced,
+                // so a load that finds the same contacts changes nothing a held message was excluded under.
+                if (!_plans.TryGetValue(entry.Key, out var before) && _plansBeforeReset.TryGetValue(entry.Key, out var beforeReset))
+                {
+                    before = beforeReset;
+                }
+                _plansBeforeReset.Remove(entry.Key);
+                var changed = before == null || !before.SameContactsAs(entry.Value, SameContactToleranceSeconds);
                 _plans[entry.Key] = entry.Value;
                 _planned[entry.Key] = from;
                 _unsettled[entry.Key] = from.Request.Unsettled;
                 _unpublished.Add(entry.Key);
-                System.Threading.Interlocked.Increment(ref _plansVersion);
+                if (changed)
+                {
+                    System.Threading.Interlocked.Increment(ref _plansVersion);
+                }
             }
         }
 

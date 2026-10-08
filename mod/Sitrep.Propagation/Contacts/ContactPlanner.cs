@@ -217,6 +217,81 @@ namespace Sitrep.Propagation.Contacts
 
         public IReadOnlyList<PairPlan> Pairs { get; }
 
+        /// <summary>
+        /// Whether <paramref name="other"/> predicts the same contacts as this plan
+        /// over the span both cover: every pair has the same windows, their edges
+        /// within <paramref name="toleranceSeconds"/>. A later start, a later
+        /// horizon or a window past the shorter horizon is not a difference, since
+        /// each round plans from where it was asked and a held message was routed
+        /// by what the plan said of the span they share.
+        /// </summary>
+        public bool SameContactsAs(ContactPlan other, double toleranceSeconds)
+        {
+            var lo = Math.Max(FromUt, other.FromUt);
+            var windowsOf = new Dictionary<(string, string), PairPlan>();
+            foreach (var pair in Pairs)
+            {
+                windowsOf[(pair.A, pair.B)] = pair;
+            }
+            var seen = new HashSet<(string, string)>();
+            foreach (var pair in other.Pairs)
+            {
+                var key = (pair.A, pair.B);
+                seen.Add(key);
+                windowsOf.TryGetValue(key, out var mine);
+                if (!SameWindows(mine, pair, lo, toleranceSeconds))
+                {
+                    return false;
+                }
+            }
+            foreach (var pair in Pairs)
+            {
+                if (!seen.Contains((pair.A, pair.B)) && !SameWindows(pair, null, lo, toleranceSeconds))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool SameWindows(PairPlan? a, PairPlan? b, double lo, double tolerance)
+        {
+            var hi = Math.Min(a?.HorizonUt ?? double.PositiveInfinity, b?.HorizonUt ?? double.PositiveInfinity);
+            var left = Clip(a, lo, hi);
+            var right = Clip(b, lo, hi);
+            if (left.Count != right.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < left.Count; i++)
+            {
+                if (Math.Abs(left[i].Open - right[i].Open) > tolerance || Math.Abs(left[i].Close - right[i].Close) > tolerance)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static List<(double Open, double Close)> Clip(PairPlan? pair, double lo, double hi)
+        {
+            var clipped = new List<(double Open, double Close)>();
+            if (pair == null || hi <= lo)
+            {
+                return clipped;
+            }
+            foreach (var window in pair.Windows)
+            {
+                var open = Math.Max(window.OpenUt ?? lo, lo);
+                var close = Math.Min(window.CloseUt ?? hi, hi);
+                if (close > open)
+                {
+                    clipped.Add((open, close));
+                }
+            }
+            return clipped;
+        }
+
         /// <summary>How many positions were solved through the propagator, the term that dominates the cost.</summary>
         public long PositionSolves { get; }
 

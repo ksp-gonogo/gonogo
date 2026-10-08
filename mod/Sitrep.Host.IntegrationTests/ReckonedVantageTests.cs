@@ -213,6 +213,47 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A command whose first hop was caught is not sent back into the same
+        /// dead contact until its plan's contacts change, and neither a later plan
+        /// round that finds the same windows nor a save and a load changes that.
+        /// </summary>
+        [Fact]
+        public async Task ACaughtCommandIsNotSentBackIntoTheSameDeadContactAcrossPlanRoundsAndALoad()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            await HasHeardOfTheRelayAsync(world);
+            world.Game.RelayConnected = false;
+            world.Tick(T0);
+            double? accepted = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.RelayCommand, "x", Home, _ => { }, TestBudgets.Op, onAccepted: seconds => accepted = seconds);
+            var light = accepted!.Value;
+            var caught = T0 + (2.0 * light);
+
+            world.Tick(caught + 5.0);
+            await world.SettleAsync();
+            world.Tick(caught + 20.0);
+            await world.SettleAsync();
+            world.Tick(caught + 40.0);
+            Assert.DoesNotContain(Journey(world), e => e.Kind == JourneyEventKind.Departed);
+
+            var saved = world.Engine.DeliverySnapshotNow();
+            Assert.NotNull(Assert.Single(saved.Held).Excluded);
+            var delivery = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(saved));
+            var heard = HeardSnapshotCodec.Decode(HeardSnapshotCodec.Encode(world.Engine.HeardSnapshotNow()!));
+            world.Engine.NoteGameLoaded(delivery, heard, savedUt: caught + 40.0);
+            foreach (var ut in new[] { caught + 50.0, caught + 60.0, caught + 90.0 })
+            {
+                world.Tick(ut);
+                await world.SettleAsync();
+            }
+
+            Assert.DoesNotContain(Journey(world), e => e.Kind == JourneyEventKind.Departed);
+            Assert.Single(Pending(world));
+            Assert.Equal(0, world.Uplink.HandledCount);
+        }
+
+        /// <summary>
         /// Between the hop's light landing and twice its light time, the centre
         /// cannot know whether the command was received. A cancel pressed then is
         /// sent, and says so, and the centre's screen is the same whether the hop
