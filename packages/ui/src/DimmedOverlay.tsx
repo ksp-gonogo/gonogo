@@ -23,7 +23,7 @@ export function DimmedOverlay({
   }
   return (
     <Wrap>
-      <DimmedLayer aria-hidden="true">{children}</DimmedLayer>
+      <DimmedLayer {...INERT}>{children}</DimmedLayer>
       <Banner role="status" aria-live="polite">
         <BannerMessage>{message}</BannerMessage>
         {hint && <BannerHint>{hint}</BannerHint>}
@@ -31,6 +31,9 @@ export function DimmedOverlay({
     </Wrap>
   );
 }
+
+/** React 18 only passes `inert` through as the string form, and its types do not know the attribute. */
+const INERT = { inert: "" } as Record<string, string>;
 
 const Wrap = styled.div`
   position: relative;

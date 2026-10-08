@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "shows": "The game in a scene time warp does not run in, so the controls sit dimmed under a No active save banner.",
+    "scenario": "editor-no-active-save",
+    "notes": "KSP is in the Editor, not Flight, Space Center or Tracking Station. DimmedOverlay fires with its message alone."
+  },
+  "_stream": {
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Editor"
+        }
+      }
+    ]
+  }
+}
