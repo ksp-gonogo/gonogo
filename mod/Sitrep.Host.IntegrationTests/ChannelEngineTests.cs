@@ -998,7 +998,7 @@ namespace Sitrep.Host.IntegrationTests
         /// evaluation.
         /// </summary>
         [Fact]
-        public void SamplingCommandGatesTwiceInAFrameEvaluatesOnce()
+        public async Task SamplingCommandGatesTwiceInAFrameEvaluatesOnce()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
             var uplink = new GateSampleProbeUplink();
@@ -1006,6 +1006,9 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
+
                 engine.SampleCommandGates();
                 engine.SampleCommandGates();
                 engine.SampleCommandGates();

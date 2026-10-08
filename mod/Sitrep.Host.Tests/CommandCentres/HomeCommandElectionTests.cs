@@ -19,7 +19,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         private static readonly IReadOnlyList<ICommandCentre> NoCentres = new ICommandCentre[0];
 
         private static HomeCommand StockAnswer(IReadOnlyList<HomeNodeFacts> homes) =>
-            new StockHomeCommandProvider(() => homes).Identify(NoCentres);
+            new StockHomeCommandProvider(() => homes, () => null).Identify(NoCentres);
 
         [Fact]
         public void Stock_OneFlaggedHome_IsHome_UnderTheIdTheRegistryMintsForIt()
@@ -54,6 +54,65 @@ namespace Sitrep.Host.Tests.CommandCentres
 
             Assert.False(answer.IsIdentified);
             Assert.Null(answer.CentreId);
+            Assert.Same(HomeCommand.NotIdentified, answer);
+        }
+
+        private static readonly SurfaceSite SpaceCentre = new SurfaceSite(28.6083, -80.6041);
+
+        private static HomeCommand StockAnswerAt(IReadOnlyList<HomeNodeFacts> homes, SurfaceSite? spaceCentre) =>
+            new StockHomeCommandProvider(() => homes, () => spaceCentre).Identify(NoCentres);
+
+        /// <summary>
+        /// Every station flagged, one of them standing at the space centre: that one is home,
+        /// and the others, whatever they sort as, are not.
+        /// </summary>
+        [Fact]
+        public void Stock_EveryHomeFlagged_TheOneAtTheSpaceCentreIsHome()
+        {
+            var answer = StockAnswerAt(new[]
+            {
+                new HomeNodeFacts(true, "ASF - Alaska Satellite Facility", 64.86, -147.85),
+                new HomeNodeFacts(true, "Cape Canaveral", 28.5, -80.57),
+                new HomeNodeFacts(true, "DSS 14 - Goldstone", 35.43, -116.89),
+            }, SpaceCentre);
+
+            Assert.True(answer.IsIdentified);
+            Assert.Equal("ground:Cape Canaveral", answer.CentreId);
+        }
+
+        [Fact]
+        public void Stock_EveryHomeFlagged_NoneAtTheSpaceCentre_IsNotIdentified()
+        {
+            var answer = StockAnswerAt(new[]
+            {
+                new HomeNodeFacts(true, "ASF - Alaska Satellite Facility", 64.86, -147.85),
+                new HomeNodeFacts(true, "DSS 14 - Goldstone", 35.43, -116.89),
+            }, SpaceCentre);
+
+            Assert.Same(HomeCommand.NotIdentified, answer);
+        }
+
+        [Fact]
+        public void Stock_EveryHomeFlagged_TwoAtTheSpaceCentre_IsNotIdentified()
+        {
+            var answer = StockAnswerAt(new[]
+            {
+                new HomeNodeFacts(true, "Pad A", 28.6, -80.6),
+                new HomeNodeFacts(true, "Pad B", 28.61, -80.61),
+            }, SpaceCentre);
+
+            Assert.Same(HomeCommand.NotIdentified, answer);
+        }
+
+        [Fact]
+        public void Stock_EveryHomeFlagged_SpaceCentreUnknown_IsNotIdentified()
+        {
+            var answer = StockAnswerAt(new[]
+            {
+                new HomeNodeFacts(true, "Cape Canaveral", 28.5, -80.57),
+                new HomeNodeFacts(true, "DSS 14 - Goldstone", 35.43, -116.89),
+            }, null);
+
             Assert.Same(HomeCommand.NotIdentified, answer);
         }
 
@@ -102,7 +161,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         private static Kernel KernelWith(params (string Id, double Priority)[] claimants)
         {
             var kernel = new Kernel();
-            HomeCommandElection.RegisterCapability(kernel, () => StockHomes);
+            HomeCommandElection.RegisterCapability(kernel, () => StockHomes, () => null);
             foreach (var (id, priority) in claimants)
             {
                 kernel.RegisterProvider(new ProviderRegistration

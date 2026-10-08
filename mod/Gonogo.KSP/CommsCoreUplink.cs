@@ -458,7 +458,7 @@ namespace Gonogo.KSP
             CommsElection.RegisterCapability(kernel, _ => new CommNetBackend());
 
             var stockHomes = new StockHomeNodeSource();
-            HomeCommandElection.RegisterCapability(kernel, stockHomes.HomeFacts);
+            HomeCommandElection.RegisterCapability(kernel, stockHomes.HomeFacts, SpaceCentreSite.Current);
         }
 
         public void Register(IUplinkHost host)

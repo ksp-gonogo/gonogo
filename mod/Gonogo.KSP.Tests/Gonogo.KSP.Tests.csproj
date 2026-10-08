@@ -424,6 +424,7 @@
          Both are CommNet-level types on the same headless reference-DLL contract
          as KspCommandCentre above, and neither reads the scene until asked. -->
     <Compile Include="..\Gonogo.KSP\CommandCentres\StockHomeNodeSource.cs" />
+    <Compile Include="..\Gonogo.KSP\CommandCentres\SpaceCentreSite.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommNetHomeAccess.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />

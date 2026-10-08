@@ -13,7 +13,7 @@ namespace Sitrep.Host.CommandCentres
     ///
     /// <list type="bullet">
     /// <item><b><see cref="StockHomeCommandProvider"/> is the capability's
-    /// Vanilla</b>: the sole <c>isKSC</c> home, or not identified. Every install
+    /// Vanilla</b>: the sole <c>isKSC</c> home, or the flagged one standing at the space centre, or not identified. Every install
     /// has it.</item>
     /// <item><b>A mod with its own idea of home registers as a provider</b> from
     /// its own uplink's Register, only when its presence probe confirms the mod is
@@ -42,17 +42,20 @@ namespace Sitrep.Host.CommandCentres
         /// Reads every CommNet home in the scene. Passed in so this assembly stays
         /// KSP-free and a test can elect the stock claimant over fixed homes.
         /// </param>
-        public static void RegisterCapability(Kernel kernel, Func<IReadOnlyList<HomeNodeFacts>> stockHomes)
+        /// <param name="spaceCentre">Where the space centre stands, or null while it is not known.</param>
+        public static void RegisterCapability(
+            Kernel kernel, Func<IReadOnlyList<HomeNodeFacts>> stockHomes, Func<SurfaceSite?> spaceCentre)
         {
             if (kernel == null) throw new ArgumentNullException(nameof(kernel));
             if (stockHomes == null) throw new ArgumentNullException(nameof(stockHomes));
+            if (spaceCentre == null) throw new ArgumentNullException(nameof(spaceCentre));
 
             kernel.RegisterCapability(new CapabilityDescriptor
             {
                 Id = CapabilityId,
                 Exclusive = true,
                 SpineCritical = false,
-                Vanilla = _ => new StockHomeCommandProvider(stockHomes),
+                Vanilla = _ => new StockHomeCommandProvider(stockHomes, spaceCentre),
             });
         }
 

@@ -384,10 +384,18 @@ namespace Gonogo.KSP.CommandCentres
         {
             var id = FreshConnectionVantage.Choose(
                 centres.Select(c => c.Id).ToList(),
-                centres.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(c => c.Id),
-                home);
+                centres.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(GroundSiteOf),
+                home,
+                SpaceCentreSite.Current());
             return id == FreshConnectionVantage.None ? null : id;
         }
+
+        internal static GroundSite GroundSiteOf(ICommandCentre centre) =>
+            new GroundSite(
+                centre.Id,
+                centre.Latitude.HasValue && centre.Longitude.HasValue
+                    ? new SurfaceSite(centre.Latitude.Value, centre.Longitude.Value)
+                    : (SurfaceSite?)null);
 
         /// <summary>
         /// One-way seconds between two command centres, over the route the

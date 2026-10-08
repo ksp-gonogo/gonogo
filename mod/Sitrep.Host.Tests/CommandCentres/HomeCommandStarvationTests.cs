@@ -77,7 +77,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0");
             engine.RegisterCommandCentreSource(new OneGroundStation());
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => Array.Empty<HomeNodeFacts>());
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => Array.Empty<HomeNodeFacts>(), () => null);
             engine.RegisterUplink(uplink);
             engine.ResolveCapabilities();
             engine.Start();

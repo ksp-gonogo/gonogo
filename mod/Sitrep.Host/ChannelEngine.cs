@@ -338,10 +338,25 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The ground stations among <see cref="_activeCentreIds"/>, published by the same
-        /// capture and under the same rule. What <see cref="CommandCentres.FreshConnectionVantage"/>
-        /// falls back to when no home is identified.
+        /// capture and under the same rule.
         /// </summary>
         private volatile HashSet<string> _activeGroundIds = NoActiveCentreIds;
+
+        /// <summary>
+        /// The same ground stations with where each stands, which
+        /// <see cref="CommandCentres.FreshConnectionVantage"/> falls back across when
+        /// no home is identified.
+        /// </summary>
+        private volatile IReadOnlyList<CommandCentres.GroundSite> _activeGroundSites = Array.Empty<CommandCentres.GroundSite>();
+
+        private Func<CommandCentres.SurfaceSite?> _spaceCentre = () => null;
+
+        /// <summary>
+        /// Where the space centre stands, read on the main thread each tick. With no
+        /// home identified, the ground station nearest it stands in for home.
+        /// </summary>
+        public void SetSpaceCentre(Func<CommandCentres.SurfaceSite?> spaceCentre) =>
+            _spaceCentre = spaceCentre ?? throw new ArgumentNullException(nameof(spaceCentre));
 
         /// <summary>
         /// Where a connection that has never chosen a vantage is, as
@@ -412,6 +427,16 @@ namespace Sitrep.Host
         private double _lastGateSampleAtSec = double.NegativeInfinity;
         private PerfBudget? _commandGateBudget;
 
+        // Set from the Courier thread when someone starts watching a topic the
+        // sampler feeds, so the first verdicts do not wait out the throttle.
+        private int _gateSampleDue;
+
+        // Main-thread only: the non-passing verdicts the item windows have found,
+        // by command then item, and where the next window starts.
+        private readonly Dictionary<string, Dictionary<string, GateVerdict>> _itemVerdicts =
+            new Dictionary<string, Dictionary<string, GateVerdict>>(StringComparer.Ordinal);
+        private int _itemCursor;
+
         /// <summary>
         /// How often <see cref="SampleCommandGates"/> actually re-reads the
         /// game, however often it is called.
@@ -446,6 +471,20 @@ namespace Sitrep.Host
         /// which are the two ways this becomes a main-thread cost.</para>
         /// </summary>
         internal const double GateEvaluationBudget = 100;
+
+        /**
+         * How many per-item verdicts one pass re-asks, three fifths of what the
+         * budget allows a pass; the argument-free requirements, one call per
+         * distinct requirement, have the rest.
+         *
+         * A career install names hundreds of items (every researchable node,
+         * every strategy), so asking all of them each pass is a cost set by the
+         * save rather than by anything being watched. Past this many the walk
+         * takes a window of them per pass, round-robin, and the rest keep the
+         * verdict the last window gave them: an item's published verdict is at
+         * most a full lap old, and the dispatch re-asks live in any case.
+         */
+        internal const int GateItemsPerPass = (int)(GateEvaluationBudget * GateSampleIntervalSec * 0.6);
 
         /*
          * The last built system.channels roster, and when it was built.
@@ -1241,6 +1280,20 @@ namespace Sitrep.Host
         // cross-thread window onto the same fact. Keyed by full concrete topic
         // (dynamic sub-topics included), value byte is unused.
         private readonly ConcurrentDictionary<string, byte> _subscribedTopics = new ConcurrentDictionary<string, byte>();
+
+        /// <summary>
+        /// Records a 0 -> 1 subscription in the mirror. A topic the gate sampler
+        /// feeds also makes the next frame's sample due at once, because it has
+        /// published nothing for a topic nobody was reading.
+        /// </summary>
+        private void NoteTopicSubscribed(string topic)
+        {
+            _subscribedTopics[topic] = 0;
+            if (topic == UplinkGatesTopic || _fieldRequirements.ContainsKey(topic))
+            {
+                Volatile.Write(ref _gateSampleDue, 1);
+            }
+        }
 
         /// <summary>
         /// Who holds a standing subscription on each topic, by topic. Courier
@@ -3169,18 +3222,25 @@ namespace Sitrep.Host
                 var active = _commandCentres.EnumerateActive();
                 var ids = new HashSet<string>(StringComparer.Ordinal);
                 var groundIds = new HashSet<string>(StringComparer.Ordinal);
+                var groundSites = new List<CommandCentres.GroundSite>();
                 foreach (var centre in active)
                 {
                     ids.Add(centre.Id);
                     if (centre.Kind == CommandCentreKind.GroundStation)
                     {
                         groundIds.Add(centre.Id);
+                        groundSites.Add(new CommandCentres.GroundSite(
+                            centre.Id,
+                            centre.Latitude.HasValue && centre.Longitude.HasValue
+                                ? new CommandCentres.SurfaceSite(centre.Latitude.Value, centre.Longitude.Value)
+                                : (CommandCentres.SurfaceSite?)null));
                     }
                 }
 
                 _activeCentres = active;
                 _activeCentreIds = ids;
                 _activeGroundIds = groundIds;
+                _activeGroundSites = groundSites;
                 _consecutiveCentreCaptureThrows = 0;
             }
             catch (Exception ex)
@@ -3212,8 +3272,8 @@ namespace Sitrep.Host
         private void SettleFreshConnectionVantageOnMain()
         {
             var home = _homeCommand;
-            var ground = _activeGroundIds;
-            var next = CommandCentres.FreshConnectionVantage.Choose(_activeCentreIds, ground, home);
+            var ground = _activeGroundSites;
+            var next = CommandCentres.FreshConnectionVantage.Choose(_activeCentreIds, ground, home, ReadSpaceCentre());
 
             var homeState = (home.IsIdentified ? "home " + home.CentreId : "not identified") + " @ " + next;
             if (homeState != _loggedHomeState)
@@ -3231,6 +3291,19 @@ namespace Sitrep.Host
             EnqueueJob(new FreshConnectionVantageMovedJob());
         }
 
+        private CommandCentres.SurfaceSite? ReadSpaceCentre()
+        {
+            try
+            {
+                return _spaceCentre();
+            }
+            catch (Exception ex)
+            {
+                LogHost("the space centre's position could not be read: " + SafeExceptionMessage(ex));
+                return null;
+            }
+        }
+
         private void LogFreshConnectionVantage(HomeCommand home, int groundCount, string next)
         {
             if (home.IsIdentified && next == home.CentreId)
@@ -3243,7 +3316,7 @@ namespace Sitrep.Host
             LogHost("home command " + (home.IsIdentified
                     ? "'" + home.CentreId + "' is not an active command centre"
                     : "not identified")
-                + " among " + groundCount + " ground station(s); '" + next + "', the first ground station by id,"
+                + " among " + groundCount + " ground station(s); '" + next + "', the ground station nearest the space centre,"
                 + " is marked home in its place, and a connection that has not chosen a vantage starts there");
         }
 
@@ -3742,80 +3815,43 @@ namespace Sitrep.Host
         /// cadence: putting the throttle here rather than at the call site means
         /// a second caller cannot double the main-thread cost by accident.</para>
         ///
+        /// <para>Samples only what is read: the report when
+        /// <c>system.uplink.gates</c> is subscribed, and a channel's field locks
+        /// when that channel is. With nothing subscribed it evaluates nothing, so
+        /// the cost follows the viewers rather than the save. A subscription to
+        /// either makes the next call sample regardless of the throttle.</para>
+        ///
         /// <para>Never throws. A sampler that could break the frame would be a
         /// worse bargain than a stale verdict.</para>
         /// </summary>
-        public void SampleCommandGates()
+        public void SampleCommandGates() => SampleCommandGatesAt(_gateSampleClock.Elapsed.TotalSeconds);
+
+        /// <summary><see cref="SampleCommandGates"/> against an explicit wall-clock reading, so a test can run many passes without waiting out the throttle.</summary>
+        internal void SampleCommandGatesAt(double nowSec)
         {
-            var nowSec = _gateSampleClock.Elapsed.TotalSeconds;
-            if (nowSec - _lastGateSampleAtSec < GateSampleIntervalSec) return;
+            var due = Interlocked.Exchange(ref _gateSampleDue, 0) == 1;
+            if (!due && nowSec - _lastGateSampleAtSec < GateSampleIntervalSec) return;
+
+            // Only what someone is reading is sampled. The report is one topic
+            // and a field lock is read only through its own channel's frames, so
+            // with neither subscribed nothing here has a reader, and the cost
+            // would be set by the save (its stations, strategies, tech nodes)
+            // rather than by anything on screen.
+            var reportWanted = _subscribedTopics.ContainsKey(UplinkGatesTopic);
+            var lockChannels = _fieldRequirements.Where(c => _subscribedTopics.ContainsKey(c.Key)).ToList();
+            if (!reportWanted && lockChannels.Count == 0) return;
             _lastGateSampleAtSec = nowSec;
 
             var gates = new List<CommandGate>();
+            var channels = new List<ChannelGate>();
             var memo = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
             var itemEvaluations = 0;
-            try
-            {
-                foreach (var pair in _commandDeclarations)
-                {
-                    // RequirementsFor, not the declaration's own array: a command
-                    // an installed mod has constrained is gated whether or not
-                    // core declared anything about it, and leaving it out would
-                    // publish it as having nothing to say about itself.
-                    if (RequirementsFor(pair.Key).Length == 0) continue;
-                    // Deliberately GateArguments.None: this is the
-                    // addressability question, so an argument-dependent
-                    // requirement abstains rather than guessing, and the
-                    // client renders an Abstain as "no answer in advance".
-                    var verdict = EvaluateGatesHere(pair.Key, GateArguments.None, memo);
-                    var items = new List<CommandGateItem>();
-                    var itemArgument = verdict.Outcome == GateOutcome.Abstain
-                        ? SampleItems(pair.Key, memo, items, ref itemEvaluations)
-                        : "";
-                    gates.Add(new CommandGate
-                    {
-                        Command = pair.Key,
-                        Verdict = verdict,
-                        ItemArgument = itemArgument,
-                        Items = items,
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                // EvaluateGatesHere already fail-softs a throwing evaluator, so
-                // reaching here means the walk itself broke. Keep the previous
-                // report rather than publishing a half-built one: a partial set
-                // would read as "these commands are no longer gated".
-                LogHost("gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
-                return;
-            }
-
-            var channels = new List<ChannelGate>();
-            try
-            {
-                foreach (var pair in ChannelRequirementSets())
-                {
-                    channels.Add(new ChannelGate
-                    {
-                        Topic = pair.Key,
-                        Verdict = EvaluateRequirementsHere(pair.Key, pair.Value, GateArguments.None, memo),
-                    });
-                }
-                SampleSubTopicGates(channels, memo);
-            }
-            catch (Exception ex)
-            {
-                // Same reasoning as the command walk above: a half-built set
-                // would read as "these channels are no longer gated".
-                LogHost("channel gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
-                return;
-            }
+            if (reportWanted && !SampleReport(gates, channels, memo, ref itemEvaluations)) return;
 
             var lockedFields = new Dictionary<string, Dictionary<string, List<MissingUnlock>>>(StringComparer.Ordinal);
             try
             {
-                foreach (var channel in _fieldRequirements)
+                foreach (var channel in lockChannels)
                 {
                     foreach (var field in channel.Value)
                     {
@@ -3843,9 +3879,88 @@ namespace Sitrep.Host
 
             // memo.Count is exactly the number of argument-free evaluator calls
             // this pass made, a repeated requirement being answered from the
-            // memo without one; every item is a pass over the command of its own.
+            // memo without one; itemEvaluations is the per-item calls on top.
             _commandGateBudget?.Record(memo.Count + itemEvaluations, nowSec);
-            Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = channels });
+            if (reportWanted)
+            {
+                Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = channels });
+            }
+        }
+
+        /// <summary>
+        /// Builds the command and channel halves of <c>system.uplink.gates</c>
+        /// into <paramref name="gates"/> and <paramref name="channels"/>.
+        /// </summary>
+        /// <returns>False when the walk itself broke, in which case the caller keeps the previous report.</returns>
+        private bool SampleReport(
+            List<CommandGate> gates,
+            List<ChannelGate> channels,
+            Dictionary<string, GateVerdict> memo,
+            ref int itemEvaluations)
+        {
+            var walks = new List<ItemWalk>();
+            try
+            {
+                foreach (var pair in _commandDeclarations)
+                {
+                    // RequirementsFor, not the declaration's own array: a command
+                    // an installed mod has constrained is gated whether or not
+                    // core declared anything about it, and leaving it out would
+                    // publish it as having nothing to say about itself.
+                    if (RequirementsFor(pair.Key).Length == 0) continue;
+                    // Deliberately GateArguments.None: this is the
+                    // addressability question, so an argument-dependent
+                    // requirement abstains rather than guessing, and the
+                    // client renders an Abstain as "no answer in advance".
+                    var verdict = EvaluateGatesHere(pair.Key, GateArguments.None, memo);
+                    var items = new List<CommandGateItem>();
+                    var itemArgument = "";
+                    if (verdict.Outcome == GateOutcome.Abstain)
+                    {
+                        itemArgument = NameItems(pair.Key, out var values);
+                        if (itemArgument.Length > 0) walks.Add(new ItemWalk(pair.Key, itemArgument, values, items));
+                    }
+                    gates.Add(new CommandGate
+                    {
+                        Command = pair.Key,
+                        Verdict = verdict,
+                        ItemArgument = itemArgument,
+                        Items = items,
+                    });
+                }
+                itemEvaluations = EvaluateItemWindow(walks, memo);
+            }
+            catch (Exception ex)
+            {
+                // EvaluateGatesHere already fail-softs a throwing evaluator, so
+                // reaching here means the walk itself broke. Keep the previous
+                // report rather than publishing a half-built one: a partial set
+                // would read as "these commands are no longer gated".
+                LogHost("gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
+                return false;
+            }
+
+            try
+            {
+                foreach (var pair in ChannelRequirementSets())
+                {
+                    channels.Add(new ChannelGate
+                    {
+                        Topic = pair.Key,
+                        Verdict = EvaluateRequirementsHere(pair.Key, pair.Value, GateArguments.None, memo),
+                    });
+                }
+                SampleSubTopicGates(channels, memo);
+            }
+            catch (Exception ex)
+            {
+                // Same reasoning as the command walk above: a half-built set
+                // would read as "these channels are no longer gated".
+                LogHost("channel gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -3965,19 +4080,15 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Collects <paramref name="command"/>'s per-item verdicts into
-        /// <paramref name="items"/>: every item an <see cref="ICommandGateItems"/>
-        /// evaluator names for one of the command's requirements, each evaluated
-        /// over the WHOLE requirement set with that one argument supplied, exactly
-        /// as a dispatch naming it would be. Only the verdicts that are not a Pass
-        /// are kept, and <paramref name="evaluated"/> counts every item asked.
+        /// Every item an <see cref="ICommandGateItems"/> evaluator names for one of
+        /// <paramref name="command"/>'s requirements, in the order named and
+        /// without repeats.
         /// </summary>
         /// <returns>The argument the items are keyed on, or empty when the command names none.</returns>
-        private string SampleItems(
-            string command, Dictionary<string, GateVerdict> memo, List<CommandGateItem> items, ref int evaluated)
+        private string NameItems(string command, out List<string> values)
         {
             string? argument = null;
-            var values = new List<string>();
+            values = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var requirement in RequirementsFor(command))
             {
@@ -4005,17 +4116,89 @@ namespace Sitrep.Host
                     if (!string.IsNullOrEmpty(value) && seen.Add(value)) values.Add(value);
                 }
             }
-            if (argument == null) return "";
+            return argument ?? "";
+        }
 
-            foreach (var value in values)
+        /// <summary>One command's named items, and the list its non-passing verdicts are published into.</summary>
+        private sealed class ItemWalk
+        {
+            public ItemWalk(string command, string argument, List<string> values, List<CommandGateItem> items)
             {
-                var bag = new Dictionary<string, object> { [argument] = value };
-                var verdict = EvaluateGatesHere(command, new GateArguments(bag), memo);
-                if (verdict.Outcome == GateOutcome.Pass || verdict.Outcome == GateOutcome.Abstain) continue;
-                items.Add(new CommandGateItem { Value = value, Verdict = verdict });
+                Command = command;
+                Argument = argument;
+                Values = values;
+                Items = items;
             }
-            evaluated += values.Count;
-            return argument;
+
+            public string Command { get; }
+            public string Argument { get; }
+            public List<string> Values { get; }
+            public List<CommandGateItem> Items { get; }
+        }
+
+        /// <summary>
+        /// Re-asks one window of at most <see cref="GateItemsPerPass"/> items
+        /// across every command in <paramref name="walks"/>, each evaluated over
+        /// the WHOLE requirement set with that one argument supplied, exactly as a
+        /// dispatch naming it would be, and publishes into each walk's
+        /// <see cref="ItemWalk.Items"/> every item whose last verdict was not a
+        /// Pass. When everything fits in one window every item is re-asked every
+        /// pass; otherwise the window moves on each pass so every item is reached
+        /// in turn.
+        /// </summary>
+        /// <returns>How many items were asked this pass.</returns>
+        private int EvaluateItemWindow(List<ItemWalk> walks, Dictionary<string, GateVerdict> memo)
+        {
+            foreach (var command in _itemVerdicts.Keys.Where(k => walks.All(w => w.Command != k)).ToList())
+            {
+                _itemVerdicts.Remove(command);
+            }
+
+            var total = walks.Sum(w => w.Values.Count);
+            var windowSize = Math.Min(total, GateItemsPerPass);
+            var start = total <= GateItemsPerPass ? 0 : _itemCursor % total;
+            _itemCursor = total == 0 ? 0 : (start + windowSize) % total;
+
+            var position = 0;
+            var asked = 0;
+            foreach (var walk in walks)
+            {
+                if (!_itemVerdicts.TryGetValue(walk.Command, out var known))
+                {
+                    known = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
+                    _itemVerdicts[walk.Command] = known;
+                }
+                var named = new HashSet<string>(walk.Values, StringComparer.Ordinal);
+                foreach (var gone in known.Keys.Where(k => !named.Contains(k)).ToList())
+                {
+                    known.Remove(gone);
+                }
+
+                foreach (var value in walk.Values)
+                {
+                    var inWindow = (position - start + total) % total < windowSize;
+                    position++;
+                    if (inWindow)
+                    {
+                        asked++;
+                        var bag = new Dictionary<string, object> { [walk.Argument] = value };
+                        var verdict = EvaluateGatesHere(walk.Command, new GateArguments(bag), memo);
+                        if (verdict.Outcome == GateOutcome.Pass || verdict.Outcome == GateOutcome.Abstain)
+                        {
+                            known.Remove(value);
+                        }
+                        else
+                        {
+                            known[value] = verdict;
+                        }
+                    }
+                    if (known.TryGetValue(value, out var last))
+                    {
+                        walk.Items.Add(new CommandGateItem { Value = value, Verdict = last });
+                    }
+                }
+            }
+            return asked;
         }
 
         private static bool HasAllNeeds(CommandRequirement requirement, IGateArguments arguments)
@@ -8206,7 +8389,7 @@ namespace Sitrep.Host
             // which announces a viewer to repaint for and there is none.
             if (_subscriptions.Subscribe(topic))
             {
-                _subscribedTopics[topic] = 0;
+                NoteTopicSubscribed(topic);
                 _emitter.NotifySubscribed(topic);
             }
         }
@@ -8275,7 +8458,7 @@ namespace Sitrep.Host
             // the keyframe cadence remains.
             if (_subscriptions.Subscribe(topic))
             {
-                _subscribedTopics[topic] = 0;
+                NoteTopicSubscribed(topic);
                 _emitter.NotifySubscribed(topic);
             }
 

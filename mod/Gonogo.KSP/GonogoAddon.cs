@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Gonogo.KSP.CommandCentres;
 using Sitrep.Host;
 using Sitrep.Host.Crew;
 using Sitrep.Host.Maneuver;
@@ -127,6 +128,7 @@ namespace Gonogo.KSP
                 // capture-throw would be invisible in the live log; this sink
                 // makes the whole fail-soft class visible at [WRN] level.
                 _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
+                _engine.SetSpaceCentre(SpaceCentreSite.Current);
 
                 // The same sink for the command-delay catalog's assembly scan,
                 // for the same reason. Its failure is the quietest one in this

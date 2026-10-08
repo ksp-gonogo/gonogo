@@ -31,7 +31,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var homes = new MainThreadOnlyHomes(Homes);
-            HomeCommandElection.RegisterCapability(engine.Kernel, homes.Read);
+            HomeCommandElection.RegisterCapability(engine.Kernel, homes.Read, () => null);
             engine.ResolveCapabilities();
             engine.Start();
             try
@@ -51,7 +51,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var homes = new MainThreadOnlyHomes(Homes);
-            HomeCommandElection.RegisterCapability(engine.Kernel, homes.Read);
+            HomeCommandElection.RegisterCapability(engine.Kernel, homes.Read, () => null);
             engine.ResolveCapabilities();
             engine.Start();
             using var main = new MainThreadTicker(engine, homes);
@@ -91,7 +91,7 @@ namespace Sitrep.Host.IntegrationTests
                 new FixedCentre("vessel:crewed", CommandCentreKind.CrewedVessel),
                 new FixedCentre("ground:Relay", CommandCentreKind.GroundStation),
                 new FixedCentre("ground:Relay#2", CommandCentreKind.GroundStation)));
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes, () => null);
             engine.Kernel.RegisterProvider(new ProviderRegistration
             {
                 Capability = HomeCommandCapability.Id,

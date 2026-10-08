@@ -34,14 +34,15 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.Null(((KspCommandCentre)centre).Node);
 
             var active = source.Enumerate().ToList();
-            var home = new StockHomeCommandProvider(source.HomeFacts).Identify(active);
+            var home = new StockHomeCommandProvider(source.HomeFacts, () => null).Identify(active);
             Assert.True(home.IsIdentified);
             Assert.Equal(Ksc, home.CentreId);
 
             var vantage = FreshConnectionVantage.Choose(
                 active.Select(c => c.Id).ToList(),
-                active.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(c => c.Id),
-                home);
+                active.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(CommandCentreDelayUplink.GroundSiteOf),
+                home,
+                null);
             Assert.Equal(Ksc, vantage);
         }
 

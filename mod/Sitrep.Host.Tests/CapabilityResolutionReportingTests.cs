@@ -59,7 +59,7 @@ namespace Sitrep.Host.Tests
             using var engine = new ChannelEngine("ws://127.0.0.1:0");
             engine.SetDiagnosticLog(diagnostics.Enqueue);
 
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes, () => null);
             Claim(engine.Kernel, "comms-claimant", 10.0);
             Claim(engine.Kernel, "overhaul-claimant", 10.0);
             engine.Kernel.RegisterCapability(new CapabilityDescriptor { Id = "unrelated", Exclusive = true });
@@ -102,7 +102,7 @@ namespace Sitrep.Host.Tests
             using var engine = new ChannelEngine("ws://127.0.0.1:0");
             engine.SetDiagnosticLog(diagnostics.Enqueue);
 
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes, () => null);
             Claim(engine.Kernel, "comms-claimant", 10.0);
             Claim(engine.Kernel, "overhaul-claimant", 20.0);
 

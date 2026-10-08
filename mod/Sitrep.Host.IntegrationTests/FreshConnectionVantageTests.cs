@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Contract.Serialization;
@@ -12,8 +13,9 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Where a connection that has never sent set-vantage observes and dispatches
-    /// from: home, as the elected claimant names it; otherwise the first ground
-    /// station by id, with the absence of a home logged; otherwise nowhere. Each
+    /// from: home, as the elected claimant names it; otherwise the ground
+    /// station nearest the space centre (the first by id when no position is known),
+    /// with the absence of a home logged; otherwise nowhere. Each
     /// is read off the wire, through the vantage a command response is stamped with.
     /// </summary>
     public class FreshConnectionVantageTests
@@ -33,7 +35,7 @@ namespace Sitrep.Host.IntegrationTests
             };
             var ids = HomeCentreIds.Mint(homes);
             engine.RegisterCommandCentreSource(new GroundSource(ids));
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => null);
             engine.RegisterUplink(new EchoUplink());
             engine.ResolveCapabilities();
             engine.Start();
@@ -63,7 +65,7 @@ namespace Sitrep.Host.IntegrationTests
         /// the operator can see in the log that it is a fallback rather than home.
         /// </summary>
         [Fact]
-        public async Task NoHomeIdentified_AFreshConnectionStartsAtTheFirstGroundStationById_AndTheLogSaysSo()
+        public async Task NoHomeIdentifiedAndNoPositionKnown_AFreshConnectionStartsAtTheFirstGroundStationById_AndTheLogSaysSo()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var log = new List<string>();
@@ -75,7 +77,7 @@ namespace Sitrep.Host.IntegrationTests
                 new HomeNodeFacts(true, "DSS 43 - Canberra"),
             };
             engine.RegisterCommandCentreSource(new GroundSource(HomeCentreIds.Mint(homes)));
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => null);
             engine.RegisterUplink(new EchoUplink());
             engine.ResolveCapabilities();
             engine.Start();
@@ -101,6 +103,86 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        private static readonly (string Name, double Lat, double Lon)[] Network =
+        {
+            ("ASF - Alaska Satellite Facility", 64.86, -147.85),
+            ("Cape Canaveral", 28.5, -80.57),
+            ("DSS 14 - Goldstone", 35.43, -116.89),
+            ("DSS 63 - Madrid", 40.43, -4.25),
+        };
+
+        private static readonly SurfaceSite SpaceCentre = new SurfaceSite(28.6083, -80.6041);
+
+        /// <summary>
+        /// The comms-mod shape: every station flagged, one sorting first by name. Home is
+        /// the flagged station that stands at the space centre, never the alphabetical first.
+        /// </summary>
+        [Fact]
+        public async Task EveryStationFlagged_HomeIsTheOneAtTheSpaceCentre_NotTheAlphabeticalFirst()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var log = new List<string>();
+            engine.SetDiagnosticLog(msg => { lock (log) { log.Add(msg); } });
+            var homes = Network.Select(n => new HomeNodeFacts(true, n.Name, n.Lat, n.Lon)).ToArray();
+            engine.RegisterCommandCentreSource(new PlacedGroundSource(homes, HomeCentreIds.Mint(homes)));
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => SpaceCentre);
+            engine.SetSpaceCentre(() => SpaceCentre);
+            engine.RegisterUplink(new EchoUplink());
+            engine.ResolveCapabilities();
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            engine.TickAndWait(1.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                var response = await DispatchAsync(client, "r0");
+
+                Assert.Equal("ground:Cape Canaveral", engine.CurrentHomeCommand.CentreId);
+                Assert.Equal("ground:Cape Canaveral", response.Meta.Vantage);
+                lock (log)
+                {
+                    Assert.DoesNotContain(log, m => m.Contains("not identified"));
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A claimant that names nobody still leaves the stand-in at the space centre's end of
+        /// the network, since which station is home is something the game's geography answers.
+        /// </summary>
+        [Fact]
+        public async Task NoHomeIdentified_TheStandInIsTheStationNearestTheSpaceCentre()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var homes = Network.Select(n => new HomeNodeFacts(true, n.Name, n.Lat, n.Lon)).ToArray();
+            engine.RegisterCommandCentreSource(new PlacedGroundSource(homes, HomeCentreIds.Mint(homes)));
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => null);
+            engine.SetSpaceCentre(() => SpaceCentre);
+            engine.RegisterUplink(new EchoUplink());
+            engine.ResolveCapabilities();
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            engine.TickAndWait(1.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                var response = await DispatchAsync(client, "r0");
+
+                Assert.Same(HomeCommand.NotIdentified, engine.CurrentHomeCommand);
+                Assert.Equal("ground:Cape Canaveral", response.Meta.Vantage);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>
         /// The socket is up from the main menu, before any centre exists. A connection made
         /// there, which subscribed at no vantage, must be re-pointed at home once a save
@@ -113,7 +195,7 @@ namespace Sitrep.Host.IntegrationTests
             var source = new GroundSource();
             var homes = new List<HomeNodeFacts>();
             engine.RegisterCommandCentreSource(source);
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => null);
             engine.RegisterUplink(new EchoUplink());
             engine.ResolveCapabilities();
             engine.Start();
@@ -154,7 +236,7 @@ namespace Sitrep.Host.IntegrationTests
             };
             var source = new GroundSource(HomeCentreIds.Mint(homes));
             engine.RegisterCommandCentreSource(source);
-            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => null);
             engine.RegisterUplink(new EchoUplink());
             engine.ResolveCapabilities();
             engine.Start();
@@ -224,6 +306,46 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>Ground stations under whatever ids the test last set, re-read every pass.</summary>
+        private sealed class PlacedGroundSource : ICommandCentreSource
+        {
+            private readonly HomeNodeFacts[] _homes;
+            private readonly string[] _ids;
+
+            public PlacedGroundSource(HomeNodeFacts[] homes, string[] ids)
+            {
+                _homes = homes;
+                _ids = ids;
+            }
+
+            public string ProviderId => "placed-ground-test";
+
+            public IEnumerable<ICommandCentre> Enumerate()
+            {
+                for (var i = 0; i < _ids.Length; i++)
+                {
+                    yield return new Centre(_ids[i], _homes[i].Latitude, _homes[i].Longitude);
+                }
+            }
+
+            private sealed class Centre : ICommandCentre
+            {
+                public Centre(string id, double? latitude, double? longitude)
+                {
+                    Id = id;
+                    Latitude = latitude;
+                    Longitude = longitude;
+                }
+
+                public string Id { get; }
+                public string DisplayName => Id;
+                public CommandCentreKind Kind => CommandCentreKind.GroundStation;
+                public int? BodyIndex => null;
+                public double? Latitude { get; }
+                public double? Longitude { get; }
+                public bool IsActiveNow() => true;
+            }
+        }
+
         private sealed class GroundSource : ICommandCentreSource
         {
             public GroundSource(params string[] ids) => Ids = ids;

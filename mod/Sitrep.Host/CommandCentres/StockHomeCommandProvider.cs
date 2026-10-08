@@ -9,11 +9,12 @@ namespace Sitrep.Host.CommandCentres
     /// <see cref="HomeCommandElection"/>: home is the CommNet home that ALONE
     /// carries <c>isKSC</c>.
     ///
-    /// <para>No flagged home, or more than one, is
-    /// <see cref="HomeCommand.NotIdentified"/>. A comms mod can flag every
-    /// station it configures, and a flag every station carries names none of
-    /// them; choosing among them is that mod's claimant's job, not a guess this
-    /// one makes.</para>
+    /// <para>No flagged home is <see cref="HomeCommand.NotIdentified"/>. A comms
+    /// mod can flag every station it configures, and a flag every station
+    /// carries names none of them. Among several, the one standing at the space
+    /// centre is home, since that is the one place the game itself says the
+    /// career is run from; if none stands there, or two do, the claimant does
+    /// not guess and choosing among them is that mod's claimant's job.</para>
     ///
     /// <para>The answer is the id <see cref="HomeCentreIds.Mint"/> gives that
     /// home across the same set of homes, so it is always the id the command
@@ -26,14 +27,28 @@ namespace Sitrep.Host.CommandCentres
     {
         public const string Id = "stock";
 
+        /// <summary>
+        /// How far from the space centre a flagged home may stand and still be it,
+        /// in degrees of arc: about 28 km on an Earth-sized home world and under
+        /// 3 km on Kerbin. Wide enough for a configured station that sits
+        /// beside the launch site rather than on it, narrow enough that a
+        /// neighbouring station does not qualify.
+        /// </summary>
+        public const double SpaceCentreToleranceDegrees = 0.25;
+
         private readonly Func<IReadOnlyList<HomeNodeFacts>> _homes;
+        private readonly Func<SurfaceSite?> _spaceCentre;
 
         /// <param name="homes">
         /// Every CommNet home in the scene, read live. Called from
         /// <see cref="Identify"/>, so on the main thread only.
         /// </param>
-        public StockHomeCommandProvider(Func<IReadOnlyList<HomeNodeFacts>> homes) =>
+        /// <param name="spaceCentre">Where the space centre stands, or null while it is not known.</param>
+        public StockHomeCommandProvider(Func<IReadOnlyList<HomeNodeFacts>> homes, Func<SurfaceSite?> spaceCentre)
+        {
             _homes = homes ?? throw new ArgumentNullException(nameof(homes));
+            _spaceCentre = spaceCentre ?? throw new ArgumentNullException(nameof(spaceCentre));
+        }
 
         public string ProviderId => Id;
 
@@ -50,25 +65,36 @@ namespace Sitrep.Host.CommandCentres
                 return HomeCommand.NotIdentified;
             }
 
-            var home = -1;
+            var flagged = new List<int>();
             for (var i = 0; i < homes.Count; i++)
             {
-                if (!homes[i].IsKsc)
-                {
-                    continue;
-                }
-
-                if (home >= 0)
-                {
-                    return HomeCommand.NotIdentified;
-                }
-
-                home = i;
+                if (homes[i].IsKsc) flagged.Add(i);
             }
+
+            var home = flagged.Count == 1 ? flagged[0] : flagged.Count == 0 ? -1 : AtSpaceCentre(homes, flagged);
 
             return home < 0
                 ? HomeCommand.NotIdentified
                 : HomeCommand.Identified(HomeCentreIds.Mint(homes)[home]);
+        }
+
+        /// <summary>The one flagged home within tolerance of the space centre, or -1 when none or more than one is.</summary>
+        private int AtSpaceCentre(IReadOnlyList<HomeNodeFacts> homes, List<int> flagged)
+        {
+            var centre = _spaceCentre();
+            if (!centre.HasValue) return -1;
+
+            var found = -1;
+            foreach (var i in flagged)
+            {
+                if (!homes[i].Latitude.HasValue || !homes[i].Longitude.HasValue) continue;
+                var site = new SurfaceSite(homes[i].Latitude!.Value, homes[i].Longitude!.Value);
+                if (centre.Value.AngleTo(site) > SpaceCentreToleranceDegrees) continue;
+                if (found >= 0) return -1;
+                found = i;
+            }
+
+            return found;
         }
     }
 }
