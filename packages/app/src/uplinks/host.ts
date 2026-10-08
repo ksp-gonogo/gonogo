@@ -33,6 +33,7 @@ import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
+  sendTogether,
   useCommand,
   useLatestValue,
   useLateTelemetrySubscribe,
@@ -80,6 +81,7 @@ export function buildGonogoHost(): GonogoHost {
      */
     useCommand: ((command: string, options?: { vantage?: string }) =>
       useCommand(command, options)) as GonogoHost["useCommand"],
+    sendTogether,
     useUplinkRelay: (uplinkId) => useUplinkRelay(uplinkId),
     useHostIceServers: () => useHostIceServers(),
     useRouteCommands: (topic) =>

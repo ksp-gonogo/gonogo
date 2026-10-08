@@ -8115,12 +8115,20 @@
         "note": "The constant follows the contract from 14 to 18 (the hello, ping and pong envelopes, the departure envelope on the orbit horizon, the Commcast send receipt, then the target list\\u0027s unchanged-to time). Its type is now `number` rather than the literal, so this is the last Minor bump that reads as a retype; a caller compares it or prints it, and is unaffected."
       },
       {
+        "key": "sitrep-sdk . ClientMessage",
+        "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#augmentSlots?",
         "note": "Typed as the slot ids SlotRegistry declares rather than any string, so a widget cannot list a slot nothing declares; an Uplink listing its own slot declares it with declare module first, as every bundled Uplink already does"
       },
       {
         "key": "sitrep-sdk . EXTENSION_API_VERSION",
         "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
+      },
+      {
+        "key": "sitrep-sdk . GonogoHost#sendTogether",
+        "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
       },
       {
         "key": "sitrep-sdk . GonogoHost#useDataSources",
@@ -8267,6 +8275,10 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#dispatchGroup",
+        "note": "New: sends several commands as one command-group frame"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#gameStatus",
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
@@ -8285,6 +8297,10 @@
       {
         "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ClientMessage",
+        "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
       },
       {
         "key": "sitrep-sdk ./spine ~ServerMessage",
@@ -8319,6 +8335,10 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk ./testing StubTransport#sentGroups",
+        "note": "New: the groups the stub was asked to send, beside the commands that were its members"
+      },
+      {
         "key": "sitrep-sdk ./testing TimelineStore#gameStatus",
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
@@ -8329,6 +8349,14 @@
       {
         "key": "sitrep-sdk ./testing TimelineStore#subscribeGameStatus",
         "note": "New: listens for a change in what the game is doing"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ClientMessage",
+        "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#sendTogether",
+        "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useDataSources",
@@ -8377,6 +8405,10 @@
       {
         "key": "sitrep-sdk ./testing ~StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
+        "note": "New: sends several commands as one command-group frame"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
@@ -8717,6 +8749,34 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk . CommandGroupHandle",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandGroupHandle#cancel",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandGroupHandle#id",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandGroupHandle#requestIds",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandGroupHandle#result",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandGroupHandle#status",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandGroupPhase",
+        "note": "New with command groups"
+      },
+      {
         "key": "sitrep-sdk . ConicShape",
         "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
       },
@@ -8785,6 +8845,10 @@
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
       {
+        "key": "sitrep-sdk . PendingEntry#members?",
+        "note": "New optional field: the request ids a group's one entry stands for"
+      },
+      {
         "key": "sitrep-sdk . PowerSystemsScope",
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
@@ -8829,6 +8893,10 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk . sendTogether",
+        "note": "New: sends the commands made inside its callback as one message"
+      },
+      {
         "key": "sitrep-sdk . solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
       },
@@ -8843,6 +8911,26 @@
       {
         "key": "sitrep-sdk . ~CommandFailure#reason",
         "note": "what the mod said of it, in its own words"
+      },
+      {
+        "key": "sitrep-sdk . ~UplinkActionOutcome",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~UplinkActionOutcome#expiresAtUt?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~UplinkActionOutcome#id?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~UplinkActionOutcome#refusal?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~UplinkActionOutcome#throughSeq?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotContext",
@@ -9697,6 +9785,42 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk ./spine CapturedSend",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#args",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#client",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#command",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#instant",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#label?",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#topic?",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#track",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine CapturedSend#vantage?",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
         "key": "sitrep-sdk ./spine CommandFailure",
         "note": "one dispatch the mod answered with a fault rather than a reply, as useCommand's failures holds it"
       },
@@ -9707,6 +9831,34 @@
       {
         "key": "sitrep-sdk ./spine CommandFailure#reason",
         "note": "what the mod said of it, in its own words"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupHandle",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupHandle#cancel",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupHandle#id",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupHandle#requestIds",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupHandle#result",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupHandle#status",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandGroupPhase",
+        "note": "New with command groups"
       },
       {
         "key": "sitrep-sdk ./spine ConicShape",
@@ -9765,8 +9917,48 @@
         "note": "New: a field of the game status"
       },
       {
+        "key": "sitrep-sdk ./spine GroupMember",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine GroupMember#args?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine GroupMember#command",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine GroupMember#label?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine GroupMember#requestId?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine GroupMember#topic?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
         "key": "sitrep-sdk ./spine assertSizeDelta",
         "note": "Registration check for an extension's sizeDelta (whole numbers, zero or more), shared by the augment and contribution registries"
+      },
+      {
+        "key": "sitrep-sdk ./spine openCommandGroup",
+        "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine readPendingLane",
+        "note": "New spine helper behind a held command's cancel, shared by the hook and by a group"
+      },
+      {
+        "key": "sitrep-sdk ./spine sendTogether",
+        "note": "New: sends the commands made inside its callback as one message"
+      },
+      {
+        "key": "sitrep-sdk ./spine sendUplinkAction",
+        "note": "New spine helper behind a held command's cancel, shared by the hook and by a group"
       },
       {
         "key": "sitrep-sdk ./spine solveConic",
@@ -9783,6 +9975,10 @@
       {
         "key": "sitrep-sdk ./spine ~DataSourceStatus",
         "note": "reachable through the spine's DataSourceState"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingEntry#members?",
+        "note": "New optional field: the request ids a group's one entry stands for"
       },
       {
         "key": "sitrep-sdk ./spine ~SizeDelta",
@@ -9811,6 +10007,34 @@
       {
         "key": "sitrep-sdk ./testing ~CommandFailure#reason",
         "note": "what the mod said of it, in its own words"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupHandle",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupHandle#cancel",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupHandle#id",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupHandle#requestIds",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupHandle#result",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupHandle#status",
+        "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandGroupPhase",
+        "note": "New with command groups"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
@@ -9845,6 +10069,30 @@
         "note": "New: a field of the game status"
       },
       {
+        "key": "sitrep-sdk ./testing ~GroupMember",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GroupMember#args?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GroupMember#command",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GroupMember#label?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GroupMember#requestId?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GroupMember#topic?",
+        "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
         "key": "sitrep-sdk ./testing ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -9855,6 +10103,26 @@
       {
         "key": "sitrep-sdk ./testing ~SizeDelta#w?",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkActionOutcome",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkActionOutcome#expiresAtUt?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkActionOutcome#id?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkActionOutcome#refusal?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkActionOutcome#throughSeq?",
+        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration",

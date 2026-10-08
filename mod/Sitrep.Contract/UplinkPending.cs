@@ -166,7 +166,14 @@ public class PendingUplink
     [SitrepUnit(Units.Count)]
     public int Attempts { get; set; } = 1;
 
-    /// <summary>The <see cref="Id"/> of every command sent together with this one, itself included. Currently always one entry, its own.</summary>
+    /// <summary>
+    /// The commands this entry stands for. A command sent alone lists its own
+    /// <see cref="Id"/>. A group sent with <c>command-group</c> is one entry on
+    /// one lane number and lists the <c>requestId</c> of each member as the
+    /// client sent it, in the order they run, with the first also on
+    /// <see cref="ClientRequestId"/>; its <see cref="Label"/> joins the members'
+    /// labels.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> Members { get; set; } = new List<string>();
 }

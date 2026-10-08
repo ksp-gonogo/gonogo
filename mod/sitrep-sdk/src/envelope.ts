@@ -2,6 +2,7 @@
 
 import type {
   CommandAccepted,
+  CommandGroupRequest,
   CommandRequest,
   CommandResponse,
   ErrorMsg,
@@ -42,4 +43,5 @@ export type ClientMessage =
   | Subscribe
   | Unsubscribe
   | SetVantage
-  | CommandRequest<unknown>;
+  | CommandRequest<unknown>
+  | CommandGroupRequest;

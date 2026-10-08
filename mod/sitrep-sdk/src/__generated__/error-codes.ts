@@ -300,6 +300,19 @@ export const FaultCode = {
    */
   CommandExpired: "commandExpired",
   /**
+   * A command sent in a group was not sent because another command in the same
+   * group was refused, or because the group itself could not be sent. A group
+   * goes whole or not at all, so every member is refused with this one, and the
+   * message names the member that decided it.
+   */
+  GroupRefused: "groupRefused",
+  /**
+   * A command sent in a group did not run because an earlier command in the same
+   * group failed at the craft. The earlier commands stay done, since a game
+   * action cannot be taken back; the message says which ran.
+   */
+  GroupStopped: "groupStopped",
+  /**
    * A cancel stopped the command before it ran.
    */
   CommandCancelled: "commandCancelled",
@@ -613,6 +626,22 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     origin: "mod",
     sentence: "it expired before it could run",
     meaning: "A held command reached its expiry, or its place on the lane passed, before it could run.",
+  },
+  {
+    id: "groupRefused",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "a command sent with it was refused, so none of them were sent",
+    meaning: "A command sent in a group was not sent because another command in the same group was refused, or because the group itself could not be sent. A group goes whole or not at all, so every member is refused with this one, and the message names the member that decided it.",
+  },
+  {
+    id: "groupStopped",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "an earlier command sent with it failed, so it did not run",
+    meaning: "A command sent in a group did not run because an earlier command in the same group failed at the craft. The earlier commands stay done, since a game action cannot be taken back; the message says which ran.",
   },
   {
     id: "commandCancelled",

@@ -50,6 +50,7 @@ import {
   LATE_ARRIVAL_ERROR_CODE,
 } from "./arrival-deadline";
 import { type CommandGateStatus, selectCommandGate } from "./command-gate";
+import { openCommandGroup } from "./command-group";
 import {
   type CommsLinkLike,
   ConnectivityHistory,
@@ -359,6 +360,13 @@ function resolveTracked(
 ): TrackedResolution {
   /* Matched on the requestId the queue echoes back, never on `entry.id`, which is the engine's own counter and collides with this client's. */
   const found = queue?.pending.find((entry) => entry.clientRequestId === id);
+  /*
+   * A group is one entry, found by its first member. The others are covered by
+   * it: they stay tracked while it is queued and draw no row of their own.
+   */
+  if (!found && queue?.pending.some((entry) => entry.members?.includes(id))) {
+    return { kind: "waiting" };
+  }
   // Re-keyed to the tracked id so the rail row keeps the id the caller holds.
   const inQueue = found && { ...found, id };
   if (inQueue) cache.set(id, inQueue);
@@ -873,12 +881,12 @@ export function useCommand(
       // already answers it the same way on `dispose()`. A rejection is what the
       // controls are built to read.
       if (!client) {
-        const unsent = Promise.reject<AnyCommandReply>(
-          new CommandError(
-            COMMAND_LOST,
-            `command ${JSON.stringify(command)} was not dispatched: no telemetry provider is mounted`,
-          ),
+        const notMounted = new CommandError(
+          COMMAND_LOST,
+          `command ${JSON.stringify(command)} was not dispatched: no telemetry provider is mounted`,
         );
+        openCommandGroup()?.poison(notMounted);
+        const unsent = Promise.reject<AnyCommandReply>(notMounted);
         // Marked handled without being consumed, exactly as the dispatched
         // promise is below and for the same reason: a `void cmd.send(...)` call
         // site would otherwise raise an unhandled rejection every time it ran
@@ -911,14 +919,15 @@ export function useCommand(
           detail: verdict.detail,
         };
         setRefusals((prev) => [...prev, refusal]);
-        const refused = Promise.reject<AnyCommandReply>(
-          new CommandError(
-            COMMAND_REFUSED,
-            `command ${JSON.stringify(command)} was not dispatched: ${reason}`,
-            verdict.errorCode,
-            refusal,
-          ),
+        const error = new CommandError(
+          COMMAND_REFUSED,
+          `command ${JSON.stringify(command)} was not dispatched: ${reason}`,
+          verdict.errorCode,
+          refusal,
         );
+        // A group goes whole or not at all, so one refused member refuses it.
+        openCommandGroup()?.poison(error);
+        const refused = Promise.reject<AnyCommandReply>(error);
         refused.catch(() => undefined);
         return refused;
       };
@@ -937,6 +946,128 @@ export function useCommand(
           LATE_ARRIVAL_DETAIL,
         );
       }
+      /*
+       * Everything a dispatch needs once it has a request id: the tracking, and
+       * the handling of its rejection. Run straight away for a send of its own,
+       * and by `sendTogether` when the group it joined has gone.
+       */
+      const track = (
+        newRequestId: string,
+        result: Promise<unknown>,
+      ): Promise<AnyCommandReply> => {
+        setRequestId(newRequestId);
+        firstSeenAtRef.current.set(newRequestId, nowUtRef.current);
+        setDispatchedIds((prev) => [...prev, newRequestId]);
+        // Schedule the dev-only rail check on the first unverified dispatch (see the effect above).
+        if (process.env.NODE_ENV !== "production" && !railVerifiedRef.current) {
+          setDispatchTick((tick) => tick + 1);
+        }
+        // Mark the dispatch's own rejection as HANDLED without consuming it.
+        //
+        // Now that a dropped command rejects, a `void`ed dispatch would raise an unhandled rejection on every lost command.
+        //
+        // Attaching a no-op handler here marks `result` handled while leaving the
+        // rejection fully observable to anyone who awaits it: `ManeuverPlanner`'s
+        // `try/catch` around `dispatchPlanBurns` still sees the throw. Swallowing it
+        // instead (returning a never-rejecting promise) would have been the wrong fix,
+        // because that caller is the one that NEEDS the rejection.
+        result.catch((err: unknown) => {
+          // ONLY a refusal. `lost` decided nothing and the command may well have
+          // executed; `failed` is the machinery, which the queue and the link
+          // indicators already speak for. Calling either of them a refusal would
+          // be a confident wrong answer about what the game said.
+          const rejection = classifyCommandRejection(err);
+          // No answer arrived. Kept because the queue CANNOT show this one: a
+          // comms-loss drop is refused a `PendingUplink` before it is dispatched,
+          // so `inFlight` is empty and there is nothing else that knows the
+          // command existed. The loss carries the command and args from this
+          // closure, since a `lost` rejection has no reply to name them from.
+          if (rejection.kind === "lost") {
+            setLosses((prev) => [
+              ...prev,
+              {
+                id: newRequestId,
+                command,
+                args,
+                label: opts?.label ?? "",
+              },
+            ]);
+            return;
+          }
+          // It never left this machine: the transport gave up on the link while
+          // this was still waiting on it. Collected here rather than in the sweep
+          // because there is no loss to promote, the deadline having never come
+          // round (or never been armed). Classified `failed`, so this reads the
+          // code, since nothing was decided over there and so it is not a `kind` of its own.
+          if (
+            rejection.kind === "failed" &&
+            rejection.code === FaultCode.Undelivered
+          ) {
+            setUndelivered((prev) => [
+              ...prev,
+              {
+                id: newRequestId,
+                command,
+                args,
+                label: opts?.label ?? "",
+                reason: rejection.message,
+              },
+            ]);
+            return;
+          }
+          // A fault the mod answered with names what became of the command, so it is kept to be said rather than dropped with the promise.
+          if (rejection.kind === "failed" && isModFault(rejection.code)) {
+            setFailures((prev) => [
+              ...prev,
+              {
+                id: newRequestId,
+                command,
+                args,
+                label: opts?.label ?? "",
+                code: rejection.code,
+                reason: rejection.message,
+              },
+            ]);
+            return;
+          }
+          if (rejection.kind !== "refused") return;
+          setRefusals((prev) => [
+            ...prev,
+            {
+              id: newRequestId,
+              errorCode: rejection.errorCode,
+              reason: rejection.reason,
+              command: rejection.command ?? command,
+              args: rejection.args ?? args,
+              label: rejection.label ?? opts?.label ?? "",
+              breach: rejection.breach,
+              detail: rejection.detail,
+            },
+          ]);
+        });
+        // The one place the wire's guarantee is asserted, and the layer entitled
+        // to assert it. `TelemetryClient` is transport-level and deliberately
+        // knows nothing about the command contract, so it resolves `unknown`;
+        // this hook is keyed on the generated command map and does. Everything
+        // above this line reads the reply through `AnyCommandReply` or through a
+        // named command's own type, so the assertion is made once here instead of
+        // being re-made, undocumented, at every call site that wanted to read
+        // something.
+        return result as Promise<AnyCommandReply>;
+      };
+      const group = openCommandGroup();
+      if (group) {
+        return group.capture({
+          client,
+          command,
+          args,
+          label: opts?.label,
+          topic: opts?.topic,
+          vantage,
+          instant: isInstantRef.current,
+          track,
+        });
+      }
       const { requestId: newRequestId, result } = client.dispatch(
         command,
         args,
@@ -944,105 +1075,7 @@ export function useCommand(
         opts?.topic,
         vantage,
       );
-      setRequestId(newRequestId);
-      firstSeenAtRef.current.set(newRequestId, nowUtRef.current);
-      setDispatchedIds((prev) => [...prev, newRequestId]);
-      // Schedule the dev-only rail check on the first unverified dispatch (see the effect above).
-      if (process.env.NODE_ENV !== "production" && !railVerifiedRef.current) {
-        setDispatchTick((tick) => tick + 1);
-      }
-      // Mark the dispatch's own rejection as HANDLED without consuming it.
-      //
-      // Now that a dropped command rejects, a `void`ed dispatch would raise an unhandled rejection on every lost command.
-      //
-      // Attaching a no-op handler here marks `result` handled while leaving the
-      // rejection fully observable to anyone who awaits it: `ManeuverPlanner`'s
-      // `try/catch` around `dispatchPlanBurns` still sees the throw. Swallowing it
-      // instead (returning a never-rejecting promise) would have been the wrong fix,
-      // because that caller is the one that NEEDS the rejection.
-      result.catch((err: unknown) => {
-        // ONLY a refusal. `lost` decided nothing and the command may well have
-        // executed; `failed` is the machinery, which the queue and the link
-        // indicators already speak for. Calling either of them a refusal would
-        // be a confident wrong answer about what the game said.
-        const rejection = classifyCommandRejection(err);
-        // No answer arrived. Kept because the queue CANNOT show this one: a
-        // comms-loss drop is refused a `PendingUplink` before it is dispatched,
-        // so `inFlight` is empty and there is nothing else that knows the
-        // command existed. The loss carries the command and args from this
-        // closure, since a `lost` rejection has no reply to name them from.
-        if (rejection.kind === "lost") {
-          setLosses((prev) => [
-            ...prev,
-            {
-              id: newRequestId,
-              command,
-              args,
-              label: opts?.label ?? "",
-            },
-          ]);
-          return;
-        }
-        // It never left this machine: the transport gave up on the link while
-        // this was still waiting on it. Collected here rather than in the sweep
-        // because there is no loss to promote, the deadline having never come
-        // round (or never been armed). Classified `failed`, so this reads the
-        // code, since nothing was decided over there and so it is not a `kind` of its own.
-        if (
-          rejection.kind === "failed" &&
-          rejection.code === FaultCode.Undelivered
-        ) {
-          setUndelivered((prev) => [
-            ...prev,
-            {
-              id: newRequestId,
-              command,
-              args,
-              label: opts?.label ?? "",
-              reason: rejection.message,
-            },
-          ]);
-          return;
-        }
-        // A fault the mod answered with names what became of the command, so it is kept to be said rather than dropped with the promise.
-        if (rejection.kind === "failed" && isModFault(rejection.code)) {
-          setFailures((prev) => [
-            ...prev,
-            {
-              id: newRequestId,
-              command,
-              args,
-              label: opts?.label ?? "",
-              code: rejection.code,
-              reason: rejection.message,
-            },
-          ]);
-          return;
-        }
-        if (rejection.kind !== "refused") return;
-        setRefusals((prev) => [
-          ...prev,
-          {
-            id: newRequestId,
-            errorCode: rejection.errorCode,
-            reason: rejection.reason,
-            command: rejection.command ?? command,
-            args: rejection.args ?? args,
-            label: rejection.label ?? opts?.label ?? "",
-            breach: rejection.breach,
-            detail: rejection.detail,
-          },
-        ]);
-      });
-      // The one place the wire's guarantee is asserted, and the layer entitled
-      // to assert it. `TelemetryClient` is transport-level and deliberately
-      // knows nothing about the command contract, so it resolves `unknown`;
-      // this hook is keyed on the generated command map and does. Everything
-      // above this line reads the reply through `AnyCommandReply` or through a
-      // named command's own type, so the assertion is made once here instead of
-      // being re-made, undocumented, at every call site that wanted to read
-      // something.
-      return result as Promise<AnyCommandReply>;
+      return track(newRequestId, result);
     },
     [client, command, vantage],
   );

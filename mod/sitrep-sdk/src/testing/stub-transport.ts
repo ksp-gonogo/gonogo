@@ -122,6 +122,9 @@ export class StubTransport implements Transport {
    */
   readonly sentCommands: SentCommand[] = [];
 
+  /** Every group this transport was asked to send, with the request id of each member in order. Its members are also in {@link sentCommands}. */
+  readonly sentGroups: { groupId: string; requestIds: string[] }[] = [];
+
   send(message: ClientMessage): void {
     switch (message.type) {
       case "subscribe":
@@ -130,61 +133,72 @@ export class StubTransport implements Transport {
       case "unsubscribe":
         this.subscribedTopics.delete(message.topic);
         break;
-      case "command-request": {
-        this.sentCommands.push({
-          requestId: message.requestId,
-          command: message.command,
-          args: message.args,
-          label: message.label,
-          topic: message.topic,
-          vantage: message.vantage ?? "",
-        });
-        // Answer on a later microtask, not inline within this `send()` call.
-        // Even at zero simulated latency, a command response must not
-        // settle synchronously in the same call stack as the request, that
-        // would let it race ahead of the caller's own `dispatch()` return,
-        // skipping the observable `in-flight` phase. A real transport never
-        // resolves in the same tick as the send, so the stub shouldn't either.
-        const answer = () => {
-          try {
-            const result = this.commandHandler?.(message.command, message.args);
-            this.deliver({
-              type: "command-response",
-              requestId: message.requestId,
-              result,
-              meta: makeMeta(),
-            });
-          } catch (error) {
-            /* A handler may throw an `Error` or a plain refusal bag, and both
-               carry the two fields the error frame needs. */
-            const raw: unknown = error;
-            const named =
-              typeof raw === "object" && raw !== null ? raw : undefined;
-            const thrownCode: unknown = named
-              ? Reflect.get(named, "code")
-              : undefined;
-            const thrownMessage: unknown = named
-              ? Reflect.get(named, "message")
-              : undefined;
-            const code =
-              typeof thrownCode === "string"
-                ? (thrownCode as FaultCode)
-                : FaultCode.CommandUnavailable;
-            const errMessage =
-              typeof thrownMessage === "string" ? thrownMessage : String(raw);
-            this.deliver({
-              type: "error",
-              requestId: message.requestId,
-              code,
-              message: errMessage,
-            });
-          }
-        };
-        if (this.holdingCommands) this.heldCommands.push(answer);
-        else queueMicrotask(answer);
+      case "command-request":
+        this.answerCommand(message);
         break;
-      }
+      case "command-group":
+        this.sentGroups.push({
+          groupId: message.groupId,
+          requestIds: message.members.map((member) => member.requestId),
+        });
+        for (const member of message.members) this.answerCommand(member);
+        break;
     }
+  }
+
+  private answerCommand(
+    message: Extract<ClientMessage, { type: "command-request" }>,
+  ): void {
+    this.sentCommands.push({
+      requestId: message.requestId,
+      command: message.command,
+      args: message.args,
+      label: message.label,
+      topic: message.topic,
+      vantage: message.vantage ?? "",
+    });
+    // Answer on a later microtask, not inline within this `send()` call.
+    // Even at zero simulated latency, a command response must not
+    // settle synchronously in the same call stack as the request, that
+    // would let it race ahead of the caller's own `dispatch()` return,
+    // skipping the observable `in-flight` phase. A real transport never
+    // resolves in the same tick as the send, so the stub shouldn't either.
+    const answer = () => {
+      try {
+        const result = this.commandHandler?.(message.command, message.args);
+        this.deliver({
+          type: "command-response",
+          requestId: message.requestId,
+          result,
+          meta: makeMeta(),
+        });
+      } catch (error) {
+        /* A handler may throw an `Error` or a plain refusal bag, and both
+           carry the two fields the error frame needs. */
+        const raw: unknown = error;
+        const named = typeof raw === "object" && raw !== null ? raw : undefined;
+        const thrownCode: unknown = named
+          ? Reflect.get(named, "code")
+          : undefined;
+        const thrownMessage: unknown = named
+          ? Reflect.get(named, "message")
+          : undefined;
+        const code =
+          typeof thrownCode === "string"
+            ? (thrownCode as FaultCode)
+            : FaultCode.CommandUnavailable;
+        const errMessage =
+          typeof thrownMessage === "string" ? thrownMessage : String(raw);
+        this.deliver({
+          type: "error",
+          requestId: message.requestId,
+          code,
+          message: errMessage,
+        });
+      }
+    };
+    if (this.holdingCommands) this.heldCommands.push(answer);
+    else queueMicrotask(answer);
   }
 
   onMessage(listener: (message: ServerMessage) => void): () => void {

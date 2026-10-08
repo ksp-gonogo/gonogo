@@ -1527,6 +1527,9 @@ export class PeerHostService {
     "sitrep-command-request": (msg, conn) => {
       void this.handleSitrepCommand(msg, conn);
     },
+    "sitrep-command-group": (msg, conn) => {
+      void this.handleSitrepCommandGroup(msg, conn);
+    },
     "sitrep-subscribe": (msg, conn) => {
       this.retainSitrepSub(conn, msg.topic);
     },
@@ -2012,28 +2015,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "sitrep-command-request" }>,
     conn: DataConnection,
   ): Promise<void> {
-    const client = getActiveTelemetryClient();
-    if (!client) {
-      conn.send({
-        type: "sitrep-command-error",
-        requestId: msg.requestId,
-        code: FaultCode.NoClient,
-        message: "host has no live telemetry client",
-      } satisfies PeerMessage);
-      return;
-    }
-    const placeholderMeta = {
-      source: "sitrep-command-rpc",
-      validAt: 0,
-      seq: 0,
-      deliveredAt: 0,
-      vantage: "peer-relay",
-      quality: Quality.OnRails,
-      active: false,
-      staleness: Staleness.Fresh,
-      timelineEpoch: 0,
-    };
-    try {
+    await this.relaySitrepCommand(msg, conn, (client) => {
       /*
        * The address the command is dispatched under, in priority order: the
        * sender's own per-call override, then the vantage that CONNECTION is
@@ -2056,7 +2038,7 @@ export class PeerHostService {
        * exactly what it sent before, so nothing about a plain station changes.
        */
       const connVantage = this.vantageOf(conn);
-      const { result } = client.dispatch(
+      return client.dispatch(
         msg.command,
         msg.args,
         msg.label ?? "",
@@ -2069,8 +2051,100 @@ export class PeerHostService {
          * collide.
          */
         msg.requestId,
+      ).result;
+    });
+  }
+
+  /**
+   * A station's command group: dispatched as one `command-group` through the
+   * host's client, so it stays one message to the mod, and each member's answer
+   * is relayed under the station's own request id as a command sent alone is.
+   */
+  private async handleSitrepCommandGroup(
+    msg: Extract<PeerMessage, { type: "sitrep-command-group" }>,
+    conn: DataConnection,
+  ): Promise<void> {
+    const client = getActiveTelemetryClient();
+    const refuseAll = (code: string, message: string) => {
+      for (const member of msg.members) {
+        conn.send({
+          type: "sitrep-command-error",
+          requestId: member.requestId,
+          code,
+          message,
+        } satisfies PeerMessage);
+      }
+    };
+    if (!client) {
+      refuseAll(FaultCode.NoClient, "host has no live telemetry client");
+      return;
+    }
+    let dispatched: ReturnType<typeof client.dispatchGroup>;
+    try {
+      const connVantage = this.vantageOf(conn);
+      dispatched = client.dispatchGroup(
+        msg.members.map((member) => ({
+          command: member.command,
+          args: member.args,
+          label: member.label,
+          topic: member.topic,
+          requestId: member.requestId,
+        })),
+        msg.vantage || (connVantage === HOST_SESSION ? "" : connVantage),
+        msg.groupId,
       );
-      const value = await result;
+    } catch (err) {
+      refuseAll(
+        FaultCode.Unclassified,
+        err instanceof Error ? err.message : String(err),
+      );
+      return;
+    }
+    await Promise.all(
+      dispatched.members.map((member, index) =>
+        this.relaySitrepCommand(
+          {
+            requestId: member.requestId,
+            command: msg.members[index]?.command ?? "",
+          },
+          conn,
+          () => member.result,
+        ),
+      ),
+    );
+  }
+
+  /** Answers a station's command on `conn` with whatever `start` dispatches settles to. */
+  private async relaySitrepCommand(
+    msg: { requestId: string; command: string },
+    conn: DataConnection,
+    start: (
+      client: NonNullable<ReturnType<typeof getActiveTelemetryClient>>,
+    ) => Promise<unknown>,
+  ): Promise<void> {
+    const client = getActiveTelemetryClient();
+    if (!client) {
+      conn.send({
+        type: "sitrep-command-error",
+        requestId: msg.requestId,
+        code: FaultCode.NoClient,
+        message: "host has no live telemetry client",
+      } satisfies PeerMessage);
+      return;
+    }
+    const placeholderMeta = {
+      source: "sitrep-command-rpc",
+      validAt: 0,
+      seq: 0,
+      deliveredAt: 0,
+      vantage: "peer-relay",
+      quality: Quality.OnRails,
+      active: false,
+      staleness: Staleness.Fresh,
+      timelineEpoch: 0,
+    };
+    try {
+      const value = await start(client);
       conn.send({
         type: "sitrep-command-response",
         requestId: msg.requestId,

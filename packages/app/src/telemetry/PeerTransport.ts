@@ -252,6 +252,37 @@ export class PeerTransport implements Transport {
       );
       return;
     }
+    if (message.type === "command-group") {
+      if (this._status !== "connected") {
+        // Refused at the press for the reason a single command is, once per member.
+        for (const { requestId } of message.members) {
+          queueMicrotask(() =>
+            this.deliver({
+              type: "error",
+              requestId,
+              code: FaultCode.PeerDisconnected,
+              message: "no active peer connection to the host",
+            }),
+          );
+        }
+        return;
+      }
+      for (const { requestId } of message.members) {
+        this.pendingCommandIds.add(requestId);
+      }
+      this.client.sendSitrepCommandGroup(
+        message.groupId,
+        message.members.map((member) => ({
+          requestId: member.requestId,
+          command: member.command,
+          label: member.label,
+          topic: member.topic,
+          args: member.args,
+        })),
+        message.members[0]?.vantage,
+      );
+      return;
+    }
     if (message.type === "subscribe") {
       this.subscribedTopics.add(message.topic);
       this.client.sendSitrepSubscribe(message.topic);

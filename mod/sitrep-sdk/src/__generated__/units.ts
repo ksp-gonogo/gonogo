@@ -307,6 +307,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommandGateItem": {
     value: "id",
   },
+  "CommandGroupRequest": {
+    groupId: "id",
+    type: "id",
+  },
   "CommandRequest": {
     command: "id",
     label: "text",
@@ -2328,6 +2332,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommandGateReport": {
     channels: "ChannelGate[]",
     gates: "CommandGate[]",
+  },
+  "CommandGroupRequest": {
+    members: "CommandRequest[]",
   },
   "CommandResponse": {
     meta: "Meta",

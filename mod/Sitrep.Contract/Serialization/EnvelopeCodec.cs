@@ -374,9 +374,11 @@ namespace Sitrep.Contract.Serialization
         /// <exception cref="FormatException">The text is not a
         /// <c>command-request</c> envelope, or <c>requestId</c>, <c>command</c> or
         /// <c>sentAt</c> is missing or has the wrong type.</exception>
-        public static CommandRequest<object?> ParseCommandRequest(string json)
+        public static CommandRequest<object?> ParseCommandRequest(string json) =>
+            ParseCommandRequest(ExpectObject(JsonReader.Parse(json)));
+
+        private static CommandRequest<object?> ParseCommandRequest(Dictionary<string, object?> raw)
         {
-            var raw = ExpectObject(JsonReader.Parse(json));
             RequireType(raw, "command-request");
             return new CommandRequest<object?>
             {
@@ -391,6 +393,63 @@ namespace Sitrep.Contract.Serialization
                 Vantage = TryGetString(raw, "vantage") ?? "",
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
+            };
+        }
+
+        /// <summary>Serializes a <c>command-group</c> envelope: the group id and each
+        /// member as the <c>command-request</c> it would be alone.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WriteCommandGroup(CommandGroupRequest msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "groupId");
+            JsonWriter.AppendString(sb, msg.GroupId);
+
+            AppendField(sb, "members");
+            sb.Append('[');
+            for (var i = 0; i < msg.Members.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                sb.Append(WriteCommandRequest(msg.Members[i]));
+            }
+            sb.Append(']');
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        /// <summary>Parses a <c>command-group</c> envelope. Each member is read as a
+        /// <c>command-request</c>; an empty member list parses, and is refused by the
+        /// engine rather than here, so the refusal can name every member.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>command-group</c>
+        /// envelope, or a member is not a <c>command-request</c>.</exception>
+        public static CommandGroupRequest ParseCommandGroup(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "command-group");
+            var members = new List<CommandRequest<object?>>();
+            if (!raw.TryGetValue("members", out var rawMembers) || !(rawMembers is List<object?> list))
+            {
+                throw new FormatException("command-group needs a members array.");
+            }
+            foreach (var member in list)
+            {
+                members.Add(ParseCommandRequest(ExpectObject(member)));
+            }
+            return new CommandGroupRequest
+            {
+                Type = "command-group",
+                GroupId = RequireString(raw, "groupId"),
+                Members = members,
             };
         }
 
@@ -780,7 +839,7 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
         /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/>,
-        /// <see cref="Ping"/> or <c>CommandRequest&lt;object?&gt;</c>), dispatching on the
+        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c> or <see cref="CommandGroupRequest"/>), dispatching on the
         /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
@@ -807,6 +866,7 @@ namespace Sitrep.Contract.Serialization
                     "set-vantage" => ParseSetVantage(json),
                     "ping" => ParsePing(json),
                     "command-request" => ParseCommandRequest(json),
+                    "command-group" => ParseCommandGroup(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };

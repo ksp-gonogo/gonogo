@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.22.0
+  version: 29.23.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
@@ -13753,6 +13753,21 @@ components:
             A held command reached its expiry, or its place on the lane passed, before
             it could run.
           x-sitrep-sentence: it expired before it could run
+        - const: groupRefused
+          title: GroupRefused
+          description: |-
+            A command sent in a group was not sent because another command in the same
+            group was refused, or because the group itself could not be sent. A group
+            goes whole or not at all, so every member is refused with this one, and the
+            message names the member that decided it.
+          x-sitrep-sentence: a command sent with it was refused, so none of them were sent
+        - const: groupStopped
+          title: GroupStopped
+          description: |-
+            A command sent in a group did not run because an earlier command in the same
+            group failed at the craft. The earlier commands stay done, since a game
+            action cannot be taken back; the message says which ran.
+          x-sitrep-sentence: an earlier command sent with it failed, so it did not run
         - const: commandCancelled
           title: CommandCancelled
           description: A cancel stopped the command before it ran.

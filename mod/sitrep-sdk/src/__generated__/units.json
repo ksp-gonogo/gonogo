@@ -267,6 +267,10 @@
     "CommandGateItem": {
       "value": "id"
     },
+    "CommandGroupRequest": {
+      "groupId": "id",
+      "type": "id"
+    },
     "CommandRequest": {
       "command": "id",
       "label": "text",
@@ -2254,6 +2258,9 @@
     "CommandGateReport": {
       "channels": "ChannelGate[]",
       "gates": "CommandGate[]"
+    },
+    "CommandGroupRequest": {
+      "members": "CommandRequest[]"
     },
     "CommandResponse": {
       "meta": "Meta"

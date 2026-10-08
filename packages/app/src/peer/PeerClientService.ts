@@ -730,6 +730,30 @@ export class PeerClientService {
   }
 
   /**
+   * Forward a `TelemetryClient.dispatchGroup()` frame to the host as one peer
+   * message, so the host sends the members to the mod as one group. Each member
+   * carries the station's own request id, as in {@link sendSitrepCommand}.
+   */
+  sendSitrepCommandGroup(
+    groupId: string,
+    members: {
+      requestId: string;
+      command: string;
+      label: string;
+      topic: string;
+      args: unknown;
+    }[],
+    vantage?: string,
+  ): void {
+    this.conn?.send({
+      type: "sitrep-command-group",
+      groupId,
+      vantage,
+      members,
+    } satisfies PeerMessage);
+  }
+
+  /**
    * Tell the host this station is reading `topic`, so it holds a matching
    * subscription on its own client. Silently does nothing with no live
    * connection: `PeerTransport` re-sends its whole live set on every fresh

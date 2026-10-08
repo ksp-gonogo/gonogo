@@ -2457,8 +2457,16 @@ namespace Sitrep.Contract
         /// <c>undoneByLoad</c>. A command still on its way when a game load starts
         /// a new timeline that does not carry it is now refused with it, where its
         /// request was left with no answer at all. Additive on the wire.</para>
+        ///
+        /// <para><b>Major-29 line, Bumped 22 -&gt; 23: command groups.</b> The
+        /// <c>command-group</c> frame (<see cref="CommandGroupRequest"/>) sends several
+        /// delayed commands to one craft as one message on one lane number, and the
+        /// <c>groupRefused</c> and <c>groupStopped</c> fault codes answer a member that
+        /// was not sent or did not run. <see cref="PendingUplink.Members"/> now lists the
+        /// members of a group. Additive: a client that never sends the frame is
+        /// unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 22;
+        public const int Minor = 23;
     }
 }

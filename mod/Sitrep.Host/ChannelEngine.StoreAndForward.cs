@@ -363,7 +363,7 @@ namespace Sitrep.Host
                 // What a switch on a control channel asked for, as the live path carries it for a throttle.
                 CommandedValue = CommandedScalar(job),
                 Attempts = 1,
-                Members = new List<string> { requestId },
+                Members = job.GroupMembers?.Select(member => member.ClientRequestId).ToList() ?? new List<string> { requestId },
             });
             if (job.OnAcceptedHeld != null)
             {
@@ -535,6 +535,11 @@ namespace Sitrep.Host
         /// </summary>
         private double? ArriveBeforeUt(DispatchCommandJob job)
         {
+            if (job.GroupMembers != null)
+            {
+                // A deadline on one member binds the whole group.
+                return job.GroupMembers.Select(ArriveBeforeUt).Where(ut => ut != null).Min();
+            }
             if (!_commandArgTypes.TryGetValue(job.Command, out var argsType))
             {
                 return null;
@@ -696,6 +701,10 @@ namespace Sitrep.Host
             if (string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal) && !_activeCraftLoaded)
             {
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the craft it was sent to was not loaded when it arrived, so the game could not apply it");
+            }
+            if (string.Equals(message.Command, GroupCommandId, StringComparison.Ordinal))
+            {
+                return ExecuteGroupDelivered(message);
             }
             return InvokeCommandHandler(message.Command, message.Args, message.Lane.Vantage);
         }

@@ -76,6 +76,12 @@ export interface PendingEntry {
   expiresAtUt?: Value<"ut"> | null;
   /** For a held command, its lane number; absent or null for a command on no lane. */
   laneSeq?: Value<"count"> | null;
+  /**
+   * The request ids of the commands the entry stands for. A group sent with
+   * `sendTogether` is one entry that lists each member's request id, with the
+   * first also in `clientRequestId`.
+   */
+  members?: readonly string[];
 }
 
 /**

@@ -77,6 +77,12 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     topic: string;
   }> = [];
 
+  const sentGroups: Array<{
+    groupId: string;
+    members: Array<{ requestId: string; command: string }>;
+    vantage?: string;
+  }> = [];
+
   const sentSubscribes: Array<{
     op: "subscribe" | "unsubscribe";
     topic: string;
@@ -114,6 +120,13 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     ) => {
       sentCommands.push({ requestId, command, args, label, topic });
     },
+    sendSitrepCommandGroup: (
+      groupId: string,
+      members: Array<{ requestId: string; command: string }>,
+      vantage?: string,
+    ) => {
+      sentGroups.push({ groupId, members, vantage });
+    },
     sendSitrepSubscribe: (topic: string) => {
       sentSubscribes.push({ op: "subscribe", topic });
     },
@@ -138,6 +151,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
       for (const cb of statusListeners) cb(next);
     },
     sentCommands,
+    sentGroups,
     sentSubscribes,
     sentVantages,
   };
@@ -424,6 +438,69 @@ describe("PeerTransport", () => {
         topic: "",
       },
     ]);
+  });
+
+  it("send() routes a command-group to client.sendSitrepCommandGroup as one message", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const member = (requestId: string, group: number) => ({
+      type: "command-request" as const,
+      requestId,
+      command: "vessel.control.setActionGroup",
+      label: "",
+      topic: "",
+      vantage: "ksc",
+      args: { group, state: true },
+      sentAt: 0,
+    });
+
+    transport.send({
+      type: "command-group",
+      groupId: "g1",
+      members: [member("c1", 1), member("c2", 2), member("c3", 3)],
+    });
+
+    expect(client.sentCommands).toEqual([]);
+    expect(client.sentGroups).toEqual([
+      {
+        groupId: "g1",
+        members: [
+          expect.objectContaining({ requestId: "c1" }),
+          expect.objectContaining({ requestId: "c2" }),
+          expect.objectContaining({ requestId: "c3" }),
+        ],
+        vantage: "ksc",
+      },
+    ]);
+  });
+
+  it("refuses every member of a command-group when there is no peer connection", async () => {
+    const client = makeFakeClient("disconnected");
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    transport.onMessage((m) => received.push(m));
+    const member = (requestId: string) => ({
+      type: "command-request" as const,
+      requestId,
+      command: "vessel.control.setSas",
+      label: "",
+      topic: "",
+      args: {},
+      sentAt: 0,
+    });
+
+    transport.send({
+      type: "command-group",
+      groupId: "g1",
+      members: [member("c1"), member("c2")],
+    });
+
+    expect(client.sentGroups).toEqual([]);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(received.map((m) => (m as { requestId: string }).requestId)).toEqual(
+      ["c1", "c2"],
+    );
   });
 
   it("send() forwards label and topic from the command-request envelope", () => {

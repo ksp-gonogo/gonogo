@@ -58,6 +58,7 @@ export * from "./client-reading";
 export * from "./client-timeline";
 export * from "./clock";
 export * from "./command-gate";
+export * from "./command-group";
 export * from "./comms-delay-reckoning";
 export * from "./comms-journey";
 export * from "./comms-path-geometry";

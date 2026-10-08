@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { GonogoHost } from "../api/host";
 import { getUplinkHandle } from "../api/uplink-handles";
 import { PerfBudget } from "../perf/PerfBudget";
+import { sendTogether } from "../spine/command-group";
 import {
   getActiveTelemetryClient,
   useTelemetryClientOptional,
@@ -98,6 +99,7 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     useViewUt: () => useViewUt(),
     useCommand: ((command: string, options?: { vantage?: string }) =>
       useCommand(command, options)) as GonogoHost["useCommand"],
+    sendTogether,
     // An Uplink's own test run has no peer client, so a call goes straight to
     // the handle, which is what the main screen does too. The station's relayed
     // route is the app's to supply.

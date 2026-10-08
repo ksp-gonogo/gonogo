@@ -3,7 +3,7 @@ import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
 import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import { wrapCommandReply } from "../command-reply-units";
-import type { ServerMessage } from "../envelope";
+import type { ClientMessage, ServerMessage } from "../envelope";
 import { PerfBudget } from "../perf/PerfBudget";
 import { dehydrateArgs } from "../wrap-units";
 import { warnChannelError } from "./channel-error-warning";
@@ -210,6 +210,16 @@ function refusalOf(result: unknown): {
         ? candidate.detail
         : undefined,
   };
+}
+
+/** One command of a group sent with {@link TelemetryClient.dispatchGroup}. */
+export interface GroupMember {
+  command: string;
+  args?: unknown;
+  label?: string;
+  topic?: string;
+  /** A request id the caller already holds, as {@link TelemetryClient.dispatch} takes. */
+  requestId?: string;
 }
 
 /** Construction options for {@link TelemetryClient}. */
@@ -745,6 +755,82 @@ export class TelemetryClient {
     vantage?: string,
     requestIdOverride?: string,
   ): { requestId: string; result: Promise<unknown> } {
+    const { requestId, result, frame } = this.register(
+      command,
+      args,
+      label,
+      topic,
+      vantage,
+      requestIdOverride,
+    );
+    this.transport.send(frame);
+    return { requestId, result };
+  }
+
+  /**
+   * Dispatch several commands as one `command-group` frame: they travel as one
+   * message, arrive whole or not at all, are refused whole, and run in order in
+   * one physics tick. Each member is tracked, answered and lost exactly as a
+   * command sent alone, under its own request id.
+   *
+   * `vantage` applies to the whole group, since a group is sent from one command
+   * centre. An empty group is refused here, before anything is registered.
+   */
+  dispatchGroup(
+    members: readonly GroupMember[],
+    vantage?: string,
+    groupId?: string,
+  ): {
+    groupId: string;
+    members: { requestId: string; result: Promise<unknown> }[];
+  } {
+    if (members.length === 0) {
+      throw new Error("a command group needs at least one command");
+    }
+    const overrides = members.flatMap((m) =>
+      m.requestId === undefined ? [] : [m.requestId],
+    );
+    if (
+      new Set(overrides).size !== overrides.length ||
+      overrides.some((id) => this.commands.has(id))
+    ) {
+      throw new Error("a request id in the group is already in use");
+    }
+    const registered = members.map((m) =>
+      this.register(m.command, m.args, m.label, m.topic, vantage, m.requestId),
+    );
+    const id = groupId ?? `${this.idPrefix}-g${this.nextRequestId++}`;
+    this.transport.send({
+      type: "command-group",
+      groupId: id,
+      members: registered.map((r) => r.frame),
+    });
+    return {
+      groupId: id,
+      members: registered.map(({ requestId, result }) => ({
+        requestId,
+        result,
+      })),
+    };
+  }
+
+  /**
+   * Starts tracking one command and builds the frame that carries it, without
+   * sending it: {@link dispatch} sends it alone and {@link dispatchGroup} sends
+   * several in one frame.
+   */
+  private register(
+    command: string,
+    args: unknown,
+    label: string | undefined,
+    topic: string | undefined,
+    vantage: string | undefined,
+    requestIdOverride: string | undefined,
+  ): {
+    requestId: string;
+    result: Promise<unknown>;
+    frame: Extract<ClientMessage, { type: "command-request" }>;
+  } {
     if (
       requestIdOverride !== undefined &&
       this.commands.has(requestIdOverride)
@@ -814,18 +900,21 @@ export class TelemetryClient {
     }
 
     this.notifyStore();
-    this.transport.send({
-      type: "command-request",
+    return {
       requestId,
-      command,
-      label: label ?? "",
-      topic: topic ?? "",
-      // Per-call vantage override (delay-UX): "" ⇒ the server uses the session vantage; "meta" pins a program-meta command to instant dispatch.
-      vantage: vantage ?? "",
-      args: wireArgs,
-      sentAt: 0,
-    });
-    return { requestId, result };
+      result,
+      frame: {
+        type: "command-request",
+        requestId,
+        command,
+        label: label ?? "",
+        topic: topic ?? "",
+        // Per-call vantage override (delay-UX): "" ⇒ the server uses the session vantage; "meta" pins a program-meta command to instant dispatch.
+        vantage: vantage ?? "",
+        args: wireArgs,
+        sentAt: 0,
+      },
+    };
   }
 
   /** Current lifecycle status for a dispatched command, or `idle` if unknown. */

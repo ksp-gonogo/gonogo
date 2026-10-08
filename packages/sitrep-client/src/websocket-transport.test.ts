@@ -611,7 +611,9 @@ describe("WebSocketTransport", () => {
  */
 describe("WebSocketTransport outbound queue", () => {
   /** A command-request envelope, distinguishable by `requestId`. */
-  function commandRequest(requestId: string): ClientMessage {
+  function commandRequest(
+    requestId: string,
+  ): Extract<ClientMessage, { type: "command-request" }> {
     return {
       type: "command-request",
       requestId,
@@ -818,6 +820,28 @@ describe("WebSocketTransport outbound queue", () => {
      */
     expect(errors).toEqual([]);
 
+    transport.dispose();
+  });
+
+  it("holds a command group as one queue slot and reports each member when the outage outlasts the hold window", async () => {
+    const { transport, socket, giveUp } = abandonedTransport();
+    const undelivered: string[] = [];
+    transport.onUndelivered((command) => undelivered.push(command.requestId));
+
+    transport.send({
+      type: "command-group",
+      groupId: "g0",
+      members: [
+        commandRequest("r0"),
+        commandRequest("r1"),
+        commandRequest("r2"),
+      ],
+    });
+    await giveUp();
+    await flush();
+
+    expect(undelivered).toEqual(["r0", "r1", "r2"]);
+    expect(deliveredRequestIds(socket)).toEqual([]);
     transport.dispose();
   });
 

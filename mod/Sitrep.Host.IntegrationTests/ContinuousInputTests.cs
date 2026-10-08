@@ -196,6 +196,50 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(1, world.Uplink.LitCount);
         }
 
+        /// <summary>
+        /// Sent together with a switch, a throttle is part of one message the
+        /// operator chose to keep whole, so it is held and forwarded with it
+        /// where the same throttle sent alone is dropped.
+        /// </summary>
+        [Fact]
+        public async Task AThrottleSentInAGroupIsHeldAndRunsWithTheRestWhereAloneItWouldBeDropped()
+        {
+            await using var world = await RisingAsync();
+            Assert.Equal(FaultCode.ContinuousInputWouldWait, Throttle(world).Code);
+
+            FaultCode? refused = null;
+            world.Engine.DispatchGroupAndWait(
+                Home,
+                new[]
+                {
+                    new ChannelEngine.GroupMemberDispatch
+                    {
+                        Command = ScriptedContactUplink.LightsCommand,
+                        Args = new Dictionary<string, object?> { ["enabled"] = true },
+                        ClientRequestId = "lights",
+                        OnRefused = (c, _) => refused = c,
+                    },
+                    new ChannelEngine.GroupMemberDispatch
+                    {
+                        Command = ScriptedContactUplink.ThrottleCommand,
+                        Args = new Dictionary<string, object?> { ["value"] = 1.0 },
+                        ClientRequestId = "throttle",
+                        OnRefused = (c, _) => refused = c,
+                    },
+                },
+                TestBudgets.Op);
+
+            Assert.Null(refused);
+            var entry = Assert.Single(Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending);
+            Assert.Equal(new[] { "lights", "throttle" }, entry.Members);
+            Assert.Equal(Home, entry.PredictedHeldAt);
+
+            world.Tick(entry.PredictedHeldUntilUt!.Value + 1.0);
+            world.Tick(entry.PredictedArrivalUt!.Value + 5.0);
+            Assert.Equal(1, world.Uplink.LitCount);
+            Assert.Equal(1, world.Uplink.ThrottledCount);
+        }
+
         [Fact]
         public async Task TheFlyByWireAxesAreAContinuousInputAndAreDroppedAcrossAHold()
         {

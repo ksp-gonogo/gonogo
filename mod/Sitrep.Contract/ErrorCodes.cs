@@ -210,6 +210,21 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// <summary>A held command reached its expiry, or its place on the lane passed, before it could run.</summary>
     public static readonly FaultCode CommandExpired = Mod("commandExpired", "it expired before it could run");
 
+    /// <summary>
+    /// A command sent in a group was not sent because another command in the same
+    /// group was refused, or because the group itself could not be sent. A group
+    /// goes whole or not at all, so every member is refused with this one, and the
+    /// message names the member that decided it.
+    /// </summary>
+    public static readonly FaultCode GroupRefused = Mod("groupRefused", "a command sent with it was refused, so none of them were sent");
+
+    /// <summary>
+    /// A command sent in a group did not run because an earlier command in the
+    /// same group failed at the craft. The earlier commands stay done, since a
+    /// game action cannot be taken back; the message says which ran.
+    /// </summary>
+    public static readonly FaultCode GroupStopped = Mod("groupStopped", "an earlier command sent with it failed, so it did not run");
+
     /// <summary>A cancel stopped the command before it ran.</summary>
     public static readonly FaultCode CommandCancelled = Mod("commandCancelled", "it was cancelled before it ran");
 

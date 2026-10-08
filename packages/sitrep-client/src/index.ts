@@ -448,7 +448,9 @@ export {
 } from "./use-body-states";
 export { useCertainty } from "./use-certainty";
 export {
+  type CommandGroupHandle,
   META_VANTAGE,
+  sendTogether,
   type UseCommandResult,
   useCommand,
 } from "./use-command";

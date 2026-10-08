@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 #if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
@@ -149,6 +150,43 @@ public class CommandRequest<TArgs>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double SentAt { get; set; }
+}
+
+/// <summary>
+/// Several commands the client sends as one message: they travel together,
+/// arrive whole or not at all, are refused together, and run in order within a
+/// single physics tick. Each member is an ordinary <see cref="CommandRequest{TArgs}"/>
+/// with its own <c>requestId</c>, and each is answered under that id as if it
+/// had been sent alone.
+///
+/// <para>Every member must be a delayed command addressed to the same craft and
+/// sent from the same command centre. A group that breaks either rule, or is
+/// empty, is refused whole. If any member is refused for any reason, none is
+/// sent.</para>
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommandGroupRequest
+{
+    /// <summary>The frame type, always <c>"command-group"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"command-group\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "command-group";
+
+    /// <summary>An id the client chooses for the group as a whole.</summary>
+    [SitrepUnit(Units.Id)]
+    public string GroupId { get; set; } = "";
+
+    /// <summary>The commands, in the order they run.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "CommandRequest<unknown>[]")]
+#endif
+    public List<CommandRequest<object?>> Members { get; set; } = new List<CommandRequest<object?>>();
 }
 
 /// <summary>

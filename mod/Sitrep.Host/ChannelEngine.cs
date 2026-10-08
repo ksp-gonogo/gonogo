@@ -4991,7 +4991,7 @@ namespace Sitrep.Host
         /// unavailable while a delayed dispatch was in flight is answered the same
         /// way, because it did not run.</para>
         /// </summary>
-        internal object? InvokeCommandHandler(string command, object? args, string vantage)
+        internal object? InvokeCommandHandler(string command, object? args, string vantage, bool onThisThread = false)
         {
             if (!IsCommandAvailable(command))
             {
@@ -5005,7 +5005,7 @@ namespace Sitrep.Host
             {
                 try
                 {
-                    return GuardRefinement(command, _executeCommandsOnMainThread
+                    return GuardRefinement(command, _executeCommandsOnMainThread && !onThisThread
                         ? RunOnMainThread(a => vantageHandler(a, vantage), args)
                         : vantageHandler(args, vantage));
                 }
@@ -5030,7 +5030,7 @@ namespace Sitrep.Host
                 // else inline on the Courier thread (headless). A marshaled
                 // throw is captured on the main thread and re-surfaced here by
                 // RunOnMainThread, so both are handled identically.
-                return GuardRefinement(command, _executeCommandsOnMainThread
+                return GuardRefinement(command, _executeCommandsOnMainThread && !onThisThread
                     ? RunOnMainThread(handler, args)
                     : handler(args));
             }
@@ -5961,7 +5961,10 @@ namespace Sitrep.Host
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
         public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double?, double?, double?, string?>? onAcceptedHeld = null) =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnAcceptedHeld = onAcceptedHeld });
+            EnqueueJob(MakeDispatchJob(command, args, vantage, onResult, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId, onAcceptedHeld));
+
+        private static DispatchCommandJob MakeDispatchJob(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double?, double?, double?, string?>? onAcceptedHeld = null) =>
+            new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnAcceptedHeld = onAcceptedHeld };
 
         /// <summary>
         /// Test-only deterministic variant of <see cref="DispatchCommand"/>: blocks
@@ -6062,6 +6065,9 @@ namespace Sitrep.Host
                             case DispatchCommandJob dispatch:
                                 ProcessDispatchCommand(dispatch);
                                 break;
+                            case DispatchGroupJob group:
+                                ProcessDispatchGroup(group);
+                                break;
                             case SubscribeJob subscribe:
                                 ProcessSubscribe(subscribe.Session, subscribe.Topic);
                                 break;
@@ -6098,6 +6104,12 @@ namespace Sitrep.Host
             {
                 LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ex);
                 FailDispatch(dispatch, ex);
+                return;
+            }
+            if (job is DispatchGroupJob group)
+            {
+                LogHost("dispatch of group \"" + group.GroupId + "\" threw: " + ex);
+                FailGroup(group, ex);
                 return;
             }
             if (++_courierJobThrows == 1 || _courierJobThrows % 300 == 0)
@@ -8637,6 +8649,184 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Builds the dispatch a <c>command-request</c> from <paramref name="session"/>
+        /// stands for, with the callbacks that answer it on that session. Null when
+        /// the request was refused here, for a command centre that is not active.
+        /// </summary>
+        private DispatchCommandJob? BuildRequestJob(ClientSession session, CommandRequest<object?> req)
+        {
+            // Per-call vantage override (delay-UX): a command may pin its
+            // own dispatch vantage (e.g. "meta" for program-meta acts that
+            // must stay instant regardless of the selected centre); empty
+            // falls back to the connection's session vantage.
+            //
+            // An override is checked against the same rule the set-vantage
+            // message answers to, plus MetaVantage, which is dispatch-only.
+            // Only the override is checked: an empty field resolves to
+            // the session vantage, which HandleSetVantage validated when it was
+            // chosen (or the engine chose itself), and re-checking it here would
+            // start refusing ordinary commands the moment the centre a session is
+            // sitting at went inactive.
+            if (!string.IsNullOrEmpty(req.Vantage)
+                && req.Vantage != MetaVantage
+                && !IsSelectableVantage(req.Vantage!))
+            {
+                // Refused rather than quietly demoted to the session vantage.
+                // A fallback would dispatch from somewhere the client did not
+                // ask for, under a delay it did not expect, and say nothing,
+                // so the client would read its own response as success. It is
+                // the shape buildArmArgs already refuses for alarm subjects:
+                // accepted, then not the thing that was asked for. An ErrorMsg
+                // carrying the RequestId lands the dispatch in `failed` with a
+                // code, the same as an unavailable command, so the operator
+                // learns the command did not go.
+                var vantageError = new ErrorMsg
+                {
+                    RequestId = req.RequestId,
+                    Code = FaultCode.UnknownVantage,
+                    Message = $"'{req.Vantage}' is not an active command centre",
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(vantageError)));
+                return null;
+            }
+
+            return MakeDispatchJob(
+                req.Command,
+                req.Args,
+                string.IsNullOrEmpty(req.Vantage) ? VantageOf(session) : req.Vantage,
+                result =>
+            {
+                // C2-4: `result` is whatever the uplink's
+                // command handler returned -- uplink-owned,
+                // same as a channel payload. This serialization
+                // sits OUTSIDE InvokeCommandHandler's guard: it
+                // runs here, in the RESULT callback, not inside the
+                // handler call itself, so unguarded an
+                // unserializable result throws unattributed and the
+                // client gets no response at all, not even an
+                // error, which is true silence. Guarded the same way
+                // as every other uplink-value touch point:
+                // refuse that command from now on and send an
+                // explicit error response rather than dropping the
+                // reply on the floor.
+                try
+                {
+                    var response = new CommandResponse<object?>
+                    {
+                        RequestId = req.RequestId,
+                        Result = result,
+                        Meta = new Meta
+                        {
+                            Source = NodeId,
+                            Vantage = VantageOf(session),
+                            ValidAt = req.SentAt,
+                            DeliveredAt = _clock.Now(),
+                            Seq = Interlocked.Increment(ref _ackSeq),
+                            Quality = Quality.OnRails,
+                            Active = true,
+                            Staleness = Staleness.Fresh,
+                            // Defect B fix: this callback runs
+                            // synchronously, on the Courier
+                            // thread, at the exact instant the
+                            // command resolved (either the
+                            // same job-processing step for a
+                            // delayed:false command, or the
+                            // Courier's own ConfirmUt callback
+                            // for a delayed:true one) -- so
+                            // _courier.CurrentEpoch read HERE is
+                            // guaranteed to match whatever epoch
+                            // was current when the Courier
+                            // itself resolved this command (a
+                            // rewind can never race in between:
+                            // ResetTimeline drops every in-flight
+                            // PendingCommand, so this callback
+                            // could not still be about to fire
+                            // for an abandoned-timeline
+                            // dispatch). Reading the epoch off the
+                            // Courier rather than hand-rolling this
+                            // Meta is what keeps it off the wire
+                            // default of 0, which is what a
+                            // hand-rolled one carries even after a
+                            // rewind has bumped the Courier
+                            // forward.
+                            TimelineEpoch = _courier.CurrentEpoch,
+                        },
+                    };
+                    session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandResponse(response)));
+                }
+                catch (Exception ex)
+                {
+                    var error = new ErrorMsg
+                    {
+                        RequestId = req.RequestId,
+                        Code = FaultCode.ResultSerializationError,
+                        Message = FailSoftCommand(req.Command, "its result could not be serialized", ex),
+                    };
+                    session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                }
+            }, req.Label, req.Topic, onRefused: (code, reason) =>
+            {
+                // The dispatch never reached a handler (unknown
+                // command, or its uplink has fail-softed). An
+                // ErrorMsg rather than a CommandResponse carrying a
+                // failure, because no handler ran: the same category
+                // as PeerTransport's peerDisconnected, a dispatch
+                // that could not be carried. It lands the client in
+                // `failed` with a code, instead of `confirmed` with a
+                // refusal buried in a payload, and it cancels the
+                // loss timer so the promise never rejects as
+                // "signal-lost" for a link that was up the whole time.
+                var error = new ErrorMsg
+                {
+                    RequestId = req.RequestId,
+                    Code = code,
+                    Message = reason,
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt, warning) =>
+            {
+                // A held command: the reply may come long after twice the
+                // one-way time, so the client sizes its loss deadline from
+                // the predicted reply and the expiry instead.
+                var held = new CommandAccepted
+                {
+                    RequestId = req.RequestId,
+                    OneWaySeconds = oneWaySeconds,
+                    PredictedReplyUt = predictedReplyUt,
+                    ExpiresAtUt = expiresAtUt,
+                    Warning = warning,
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(held)));
+            }, onAccepted: oneWaySeconds =>
+            {
+                // The command is in flight and this is when to
+                // expect an answer. Sent only on the delayed path,
+                // so a client that never receives one is looking at
+                // a command with no flight to wait out, not at a
+                // failure.
+                var accepted = new CommandAccepted
+                {
+                    RequestId = req.RequestId,
+                    OneWaySeconds = oneWaySeconds,
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(accepted)));
+            }, onMalformed: reason =>
+            {
+                // The request was carried but its args do not fit
+                // the command, so it is refused as an unreadable
+                // request rather than as an unavailable command:
+                // nothing is wrong with the command itself.
+                var error = new ErrorMsg
+                {
+                    RequestId = req.RequestId,
+                    Code = FaultCode.InvalidEnvelope,
+                    Message = "command-request envelope could not be read: " + reason,
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }, clientRequestId: req.RequestId, sessionId: session.Connection.Id);
+        }
+
         private void OnMessageReceived(ClientSession session, ArraySegment<byte> payload)
         {
             // The binary lane runs SERVER -> CLIENT only. Inbound is still
@@ -8682,175 +8872,13 @@ namespace Sitrep.Host
                         RefuseUnhandledEnvelope(session, msg);
                         break;
                     case CommandRequest<object?> req:
-                        // Per-call vantage override (delay-UX): a command may pin its
-                        // own dispatch vantage (e.g. "meta" for program-meta acts that
-                        // must stay instant regardless of the selected centre); empty
-                        // falls back to the connection's session vantage.
-                        //
-                        // An override is checked against the same rule the set-vantage
-                        // message answers to, plus MetaVantage, which is dispatch-only.
-                        // Only the override is checked: an empty field resolves to
-                        // the session vantage, which HandleSetVantage validated when it was
-                        // chosen (or the engine chose itself), and re-checking it here would
-                        // start refusing ordinary commands the moment the centre a session is
-                        // sitting at went inactive.
-                        if (!string.IsNullOrEmpty(req.Vantage)
-                            && req.Vantage != MetaVantage
-                            && !IsSelectableVantage(req.Vantage!))
+                        if (BuildRequestJob(session, req) is { } requestJob)
                         {
-                            // Refused rather than quietly demoted to the session vantage.
-                            // A fallback would dispatch from somewhere the client did not
-                            // ask for, under a delay it did not expect, and say nothing,
-                            // so the client would read its own response as success. It is
-                            // the shape buildArmArgs already refuses for alarm subjects:
-                            // accepted, then not the thing that was asked for. An ErrorMsg
-                            // carrying the RequestId lands the dispatch in `failed` with a
-                            // code, the same as an unavailable command, so the operator
-                            // learns the command did not go.
-                            var vantageError = new ErrorMsg
-                            {
-                                RequestId = req.RequestId,
-                                Code = FaultCode.UnknownVantage,
-                                Message = $"'{req.Vantage}' is not an active command centre",
-                            };
-                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(vantageError)));
-                            break;
+                            EnqueueJob(requestJob);
                         }
-
-                        DispatchCommand(
-                            req.Command,
-                            req.Args,
-                            string.IsNullOrEmpty(req.Vantage) ? VantageOf(session) : req.Vantage,
-                            result =>
-                        {
-                            // C2-4: `result` is whatever the uplink's
-                            // command handler returned -- uplink-owned,
-                            // same as a channel payload. This serialization
-                            // sits OUTSIDE InvokeCommandHandler's guard: it
-                            // runs here, in the RESULT callback, not inside the
-                            // handler call itself, so unguarded an
-                            // unserializable result throws unattributed and the
-                            // client gets no response at all, not even an
-                            // error, which is true silence. Guarded the same way
-                            // as every other uplink-value touch point:
-                            // refuse that command from now on and send an
-                            // explicit error response rather than dropping the
-                            // reply on the floor.
-                            try
-                            {
-                                var response = new CommandResponse<object?>
-                                {
-                                    RequestId = req.RequestId,
-                                    Result = result,
-                                    Meta = new Meta
-                                    {
-                                        Source = NodeId,
-                                        Vantage = VantageOf(session),
-                                        ValidAt = req.SentAt,
-                                        DeliveredAt = _clock.Now(),
-                                        Seq = Interlocked.Increment(ref _ackSeq),
-                                        Quality = Quality.OnRails,
-                                        Active = true,
-                                        Staleness = Staleness.Fresh,
-                                        // Defect B fix: this callback runs
-                                        // synchronously, on the Courier
-                                        // thread, at the exact instant the
-                                        // command resolved (either the
-                                        // same job-processing step for a
-                                        // delayed:false command, or the
-                                        // Courier's own ConfirmUt callback
-                                        // for a delayed:true one) -- so
-                                        // _courier.CurrentEpoch read HERE is
-                                        // guaranteed to match whatever epoch
-                                        // was current when the Courier
-                                        // itself resolved this command (a
-                                        // rewind can never race in between:
-                                        // ResetTimeline drops every in-flight
-                                        // PendingCommand, so this callback
-                                        // could not still be about to fire
-                                        // for an abandoned-timeline
-                                        // dispatch). Reading the epoch off the
-                                        // Courier rather than hand-rolling this
-                                        // Meta is what keeps it off the wire
-                                        // default of 0, which is what a
-                                        // hand-rolled one carries even after a
-                                        // rewind has bumped the Courier
-                                        // forward.
-                                        TimelineEpoch = _courier.CurrentEpoch,
-                                    },
-                                };
-                                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandResponse(response)));
-                            }
-                            catch (Exception ex)
-                            {
-                                var error = new ErrorMsg
-                                {
-                                    RequestId = req.RequestId,
-                                    Code = FaultCode.ResultSerializationError,
-                                    Message = FailSoftCommand(req.Command, "its result could not be serialized", ex),
-                                };
-                                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                            }
-                        }, req.Label, req.Topic, onRefused: (code, reason) =>
-                        {
-                            // The dispatch never reached a handler (unknown
-                            // command, or its uplink has fail-softed). An
-                            // ErrorMsg rather than a CommandResponse carrying a
-                            // failure, because no handler ran: the same category
-                            // as PeerTransport's peerDisconnected, a dispatch
-                            // that could not be carried. It lands the client in
-                            // `failed` with a code, instead of `confirmed` with a
-                            // refusal buried in a payload, and it cancels the
-                            // loss timer so the promise never rejects as
-                            // "signal-lost" for a link that was up the whole time.
-                            var error = new ErrorMsg
-                            {
-                                RequestId = req.RequestId,
-                                Code = code,
-                                Message = reason,
-                            };
-                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                        }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt, warning) =>
-                        {
-                            // A held command: the reply may come long after twice the
-                            // one-way time, so the client sizes its loss deadline from
-                            // the predicted reply and the expiry instead.
-                            var held = new CommandAccepted
-                            {
-                                RequestId = req.RequestId,
-                                OneWaySeconds = oneWaySeconds,
-                                PredictedReplyUt = predictedReplyUt,
-                                ExpiresAtUt = expiresAtUt,
-                                Warning = warning,
-                            };
-                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(held)));
-                        }, onAccepted: oneWaySeconds =>
-                        {
-                            // The command is in flight and this is when to
-                            // expect an answer. Sent only on the delayed path,
-                            // so a client that never receives one is looking at
-                            // a command with no flight to wait out, not at a
-                            // failure.
-                            var accepted = new CommandAccepted
-                            {
-                                RequestId = req.RequestId,
-                                OneWaySeconds = oneWaySeconds,
-                            };
-                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(accepted)));
-                        }, onMalformed: reason =>
-                        {
-                            // The request was carried but its args do not fit
-                            // the command, so it is refused as an unreadable
-                            // request rather than as an unavailable command:
-                            // nothing is wrong with the command itself.
-                            var error = new ErrorMsg
-                            {
-                                RequestId = req.RequestId,
-                                Code = FaultCode.InvalidEnvelope,
-                                Message = "command-request envelope could not be read: " + reason,
-                            };
-                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                        }, clientRequestId: req.RequestId, sessionId: session.Connection.Id);
+                        break;
+                    case CommandGroupRequest group:
+                        HandleCommandGroup(session, group);
                         break;
                 }
             }
@@ -9169,6 +9197,9 @@ namespace Sitrep.Host
             /// <summary>The id of the pending entry this dispatch put on <see cref="UplinkPendingTopic"/>, once it has put one there.</summary>
             public string? PendingId { get; set; }
 
+            /// <summary>For the carrier of a group, the dispatch of each member in the order they run; null for a command sent alone.</summary>
+            public IReadOnlyList<DispatchCommandJob>? GroupMembers { get; set; }
+
             public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
             {
                 SessionId = sessionId;
@@ -9183,6 +9214,23 @@ namespace Sitrep.Host
                 Label = label;
                 Topic = topic;
                 ClientRequestId = clientRequestId;
+            }
+        }
+
+        /// <summary>The members of one <c>command-group</c>, each already built as the dispatch it would be alone.</summary>
+        private sealed class DispatchGroupJob : IEngineJob
+        {
+            public readonly string GroupId;
+            public readonly IReadOnlyList<DispatchCommandJob> Members;
+            public readonly string Vantage;
+            public readonly ManualResetEventSlim? Done;
+
+            public DispatchGroupJob(string groupId, IReadOnlyList<DispatchCommandJob> members, string vantage, ManualResetEventSlim? done = null)
+            {
+                GroupId = groupId;
+                Members = members;
+                Vantage = vantage;
+                Done = done;
             }
         }
 

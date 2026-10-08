@@ -25,6 +25,7 @@ import type {
 } from "../commands";
 import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
+import type { CommandGroupHandle } from "../spine/command-group";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import { getHost } from "./host";
@@ -60,6 +61,10 @@ import type {
   UseRouteCommandsResult,
 } from "./types";
 
+export type {
+  CommandGroupHandle,
+  CommandGroupPhase,
+} from "../spine/command-group";
 // The alarm request surface: an Uplink asks the app to create an alarm and the
 // app owns the result. See `./alarm-request.ts` for why it cannot arm one for
 // itself.
@@ -683,6 +688,44 @@ export function useCommand(
   options?: UseCommandOptions,
 ): UseCommandResult {
   return getHost().useCommand(command, options);
+}
+
+/**
+ * Sends the commands the callback makes as one group. Every `send` on a
+ * `useCommand` handle made while the callback runs is held back, and when it
+ * returns they go to the game as a single message: one place in the craft's
+ * command order, delivered whole or not at all, refused whole if any one of them
+ * is, and run in order in one physics tick.
+ *
+ * Each handle's own promise still settles with its own command's reply, so a
+ * widget that already reads a handle needs no change.
+ *
+ * The callback must be synchronous and cannot nest: an `await` inside it would
+ * let a send from somewhere else fall into the group. All the commands must go to
+ * the same craft, from the same command centre, and none can be instant.
+ * Breaking those rules throws, and nothing is sent.
+ *
+ * The game cannot take an action back. If a command in a group fails after the
+ * ones before it ran, those stay done and the ones after it do not run; the
+ * replies say which.
+ *
+ * @example
+ * ```ts
+ * const ag = useCommand("vessel.control.setActionGroup");
+ * const sas = useCommand("vessel.control.setSas");
+ *
+ * const group = sendTogether(() => {
+ *   void ag.send({ group: 1, state: true });
+ *   void ag.send({ group: 2, state: true });
+ *   void sas.send({ enabled: true });
+ * });
+ * await group.result;
+ * ```
+ *
+ * @category Commands
+ */
+export function sendTogether(build: () => void): CommandGroupHandle {
+  return getHost().sendTogether(build);
 }
 
 /**

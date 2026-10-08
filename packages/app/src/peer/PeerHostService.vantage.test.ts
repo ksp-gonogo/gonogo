@@ -414,6 +414,42 @@ describe("a peer's command address", () => {
     host.stop();
   });
 
+  it("dispatches a station's command group upstream as one group under the station's own request ids", async () => {
+    const host = await startedHost();
+    const transport = new StubTransport();
+    const client = createTestTelemetryClient(transport);
+    client.setDelaySource(() => 0);
+    setActiveTelemetryClientForTests(client);
+    const station = await connectStation(host, "station-a");
+
+    station.emit("data", {
+      type: "sitrep-command-group",
+      groupId: "station-a-g0",
+      members: [
+        {
+          requestId: "station-a-0",
+          command: "ag",
+          label: "",
+          topic: "",
+          args: { n: 1 },
+        },
+        {
+          requestId: "station-a-1",
+          command: "ag",
+          label: "",
+          topic: "",
+          args: { n: 2 },
+        },
+      ],
+    });
+    await Promise.resolve();
+
+    expect(transport.sentGroups).toEqual([
+      { groupId: "station-a-g0", requestIds: ["station-a-0", "station-a-1"] },
+    ]);
+    host.stop();
+  });
+
   it("dispatches a station's command upstream under the station's own request id", async () => {
     /*
      * The mod stamps the id it receives on the pending queue, and a station's

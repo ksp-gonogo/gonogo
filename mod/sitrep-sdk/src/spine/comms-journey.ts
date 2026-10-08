@@ -254,3 +254,32 @@ export function heldCommandOf(entry: unknown): HeldCommand | undefined {
     members,
   };
 }
+
+/**
+ * The craft and lane number of the pending entry a request belongs to, matched
+ * on the `requestId` the sending client gave it, or on the members a group
+ * entry lists. Null when no entry names it or the entry is on no lane.
+ */
+export function readPendingLane(
+  payload: unknown,
+  clientRequestId: string,
+): { craft: string; laneSeq: Value<"count"> } | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const pending = "pending" in payload ? payload.pending : undefined;
+  if (!Array.isArray(pending)) return null;
+  for (const entry of pending) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const mine =
+      ("clientRequestId" in entry &&
+        entry.clientRequestId === clientRequestId) ||
+      ("members" in entry &&
+        Array.isArray(entry.members) &&
+        entry.members.includes(clientRequestId));
+    const craft = "craft" in entry ? entry.craft : undefined;
+    const laneSeq = readCount("laneSeq" in entry ? entry.laneSeq : undefined);
+    if (mine && typeof craft === "string" && laneSeq !== undefined) {
+      return { craft, laneSeq };
+    }
+  }
+  return null;
+}

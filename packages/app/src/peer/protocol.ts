@@ -395,6 +395,24 @@ export type PeerMessage =
       vantage?: string;
       args: unknown;
     }
+  // Station -> host: several commands sent together, which the host dispatches
+  // as one `command-group` so they stay one message to the mod. Each member
+  // keeps the station's own request id and is answered under it by the same
+  // `sitrep-command-response` and `sitrep-command-error` frames a command sent
+  // alone is.
+  | {
+      type: "sitrep-command-group";
+      groupId: string;
+      /** The vantage every member is sent from, as on `sitrep-command-request`. */
+      vantage?: string;
+      members: {
+        requestId: string;
+        command: string;
+        label: string;
+        topic: string;
+        args: unknown;
+      }[];
+    }
   | {
       /**
        * Carries a REFUSAL as well as a success, in the mod's own shape

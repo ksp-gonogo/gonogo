@@ -3208,6 +3208,28 @@ export interface CommandRequest<Args>
 	sentAt: number;
 }
 /**
+* Several commands the client sends as one message: they travel together,
+* arrive whole or not at all, are refused together, and run in order within a
+* single physics tick. Each member is an ordinary `CommandRequest` with its
+* own `requestId`, and each is answered under that id as if it had been sent
+* alone.
+*
+* Every member must be a delayed command addressed to the same craft and sent
+* from the same command centre. A group that breaks either rule, or is empty,
+* is refused whole. If any member is refused for any reason, none is sent.
+*
+* @category Stream messages
+*/
+export interface CommandGroupRequest
+{
+	/** The frame type, always `"command-group"`. */
+	type: "command-group";
+	/** An id the client chooses for the group as a whole. */
+	groupId: string;
+	/** The commands, in the order they run. */
+	members: CommandRequest<unknown>[];
+}
+/**
 * The server's reply to a `CommandRequest`, matched to it by
 * `CommandResponse.requestId`.
 *
@@ -8442,8 +8464,12 @@ export interface PendingUplink
 	*/
 	attempts: Value<"count">;
 	/**
-	* The `PendingUplink.id` of every command sent together with this one, itself
-	* included. Currently always one entry, its own.
+	* The commands this entry stands for. A command sent alone lists its own
+	* `PendingUplink.id`. A group sent with `command-group` is one entry on one
+	* lane number and lists the `requestId` of each member as the client sent it,
+	* in the order they run, with the first also on
+	* `PendingUplink.clientRequestId`; its `PendingUplink.label` joins the
+	* members' labels.
 	*/
 	members: string[];
 }

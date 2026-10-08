@@ -216,6 +216,18 @@ export const UNDELIVERED_REASON =
   "not sent: the link did not come back in time. It never left this " +
   "machine, so nothing ran it. Send it again once the link is back.";
 
+/** The request ids a queued frame answers for: a group's frame is one queue slot and answers for each member. */
+function requestIdsOf(
+  message: Extract<
+    ClientMessage,
+    { type: "command-request" | "command-group" }
+  >,
+): string[] {
+  return message.type === "command-group"
+    ? message.members.map((member) => member.requestId)
+    : [message.requestId];
+}
+
 /**
  * A live `Transport` over a Sitrep mod WebSocket (`ws://<host>:<port>`,
  * default port 8090: the `GonogoAddon`/Fleck server).
@@ -280,7 +292,7 @@ export class WebSocketTransport implements Transport {
    * to the one that does not fit.
    */
   private readonly pendingCommands: Array<
-    Extract<ClientMessage, { type: "command-request" }>
+    Extract<ClientMessage, { type: "command-request" | "command-group" }>
   > = [];
   /**
    * The vantage this connection has selected, replayed on every fresh open.
@@ -370,7 +382,9 @@ export class WebSocketTransport implements Transport {
     }
     if (this.sendRaw(message)) return;
     if (this.pendingCommands.length >= MAX_PENDING_COMMANDS) {
-      this.refuseCommand(message.requestId);
+      for (const requestId of requestIdsOf(message)) {
+        this.refuseCommand(requestId);
+      }
       return;
     }
     this.pendingCommands.push(message);
@@ -630,13 +644,10 @@ export class WebSocketTransport implements Transport {
    */
   private abandonQueue(): void {
     const stranded = this.pendingCommands.splice(0);
-    for (const message of stranded) {
+    for (const requestId of stranded.flatMap(requestIdsOf)) {
       for (const listener of this.undeliveredListeners) {
         try {
-          listener({
-            requestId: message.requestId,
-            reason: UNDELIVERED_REASON,
-          });
+          listener({ requestId, reason: UNDELIVERED_REASON });
         } catch (error) {
           // One throwing listener must not strand the commands behind it, the same isolation contract `deliver` holds for message fan-out.
           console.error(

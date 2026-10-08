@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { isUnit } from "../unit-system/guards";
 import { isValue, type Value } from "../unit-system/value";
+import type { TelemetryClient } from "./client";
 import { type HeldCommand, JOURNEY_TOPIC, readJourney } from "./comms-journey";
 import { useTelemetryClientOptional } from "./context";
 import { useLatestValue } from "./use-stream";
@@ -58,6 +59,21 @@ export function readUplinkActionReply(result: unknown): UplinkActionOutcome {
   };
 }
 
+/** Sends a cancel or a send again for timeline `epoch`, and reads the reply. */
+export async function sendUplinkAction(
+  client: TelemetryClient,
+  epoch: Value<"count">,
+  command: string,
+  args: Record<string, unknown>,
+): Promise<UplinkActionOutcome> {
+  const { result } = client.dispatch(command, { epoch, ...args });
+  try {
+    return readUplinkActionReply(await result);
+  } catch (error) {
+    return { refusal: error instanceof Error ? error.message : "refused" };
+  }
+}
+
 /** The two actions a held command offers, bound to this session's client and the current timeline. */
 export interface HeldCommandActions {
   /** Cancels the command, or it and every later command on its lane. */
@@ -90,12 +106,7 @@ export function useHeldCommandActions(): HeldCommandActions {
       if (!client || epoch === undefined) {
         return { refusal: "not connected" };
       }
-      const { result } = client.dispatch(command, { epoch, ...args });
-      try {
-        return readUplinkActionReply(await result);
-      } catch (error) {
-        return { refusal: error instanceof Error ? error.message : "refused" };
-      }
+      return sendUplinkAction(client, epoch, command, args);
     },
     [client, epoch],
   );
