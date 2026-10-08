@@ -9,13 +9,19 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
-import { CONTRACT_READER_DEBT } from "./contract-reader-coverage.debt";
+import {
+  CONTRACT_READER_ADDED_WITH_TICKET,
+  CONTRACT_READER_DEBT,
+} from "./contract-reader-coverage.debt";
 import {
   contractCommandIds,
   contractFields,
   contractTopicIds,
+  creditWholeObjectReads,
+  membersReadOff,
   scanContractReaderCoverage,
 } from "./contract-reader-coverage.scan";
+import { debtListProblems } from "./contract-reader-debt.check";
 import {
   ratchetBaseRef,
   ratchetRepoRoot,
@@ -151,6 +157,43 @@ describe("the scan can be seen to work", () => {
         "vessel.orbit.sma must still be a real contract field",
       ).toBeDefined();
       expect(planted.fieldReaders.has(scmaKey as string)).toBe(false);
+      expect(planted.commandReaders.has("vessel.control.stage")).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("gives no credit to a field named only by a story or a test helper", () => {
+    const root = plantedRoot();
+    try {
+      for (const pkg of ["storybook", "test-utils"]) {
+        mkdirSync(join(root, `packages/${pkg}/src`), { recursive: true });
+        writeFileSync(
+          join(root, `packages/${pkg}/src/Scene.tsx`),
+          [
+            'import { registerComponent } from "@ksp-gonogo/sitrep-sdk";',
+            'import { useCommand } from "@ksp-gonogo/sitrep-client";',
+            "",
+            "function Scene() {",
+            '  const stageCmd = useCommand("vessel.control.stage");',
+            "  return null;",
+            "}",
+            "",
+            "registerComponent({",
+            '  id: "planted-scene",',
+            '  channels: ["vessel.orbit"],',
+            '  fields: ["vessel.orbit.sma"],',
+            "  component: Scene,",
+            "});",
+            "",
+          ].join("\n"),
+        );
+      }
+
+      const planted = scanContractReaderCoverage(root);
+      const scmaKey = planted.fields.find((f) => f.path === "sma")
+        ?.key as string;
+      expect(planted.fieldReaders.has(scmaKey)).toBe(false);
       expect(planted.commandReaders.has("vessel.control.stage")).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -386,7 +429,11 @@ describe("the scan can be seen to work", () => {
 
 describe("the debt list only ever shrinks", () => {
   function baseDebt():
-    | { ref: string; list: Record<string, string> }
+    | {
+        ref: string;
+        list: Record<string, string>;
+        allowance: ReadonlySet<string> | undefined;
+      }
     | undefined {
     const at = ratchetBaseRef();
     if (!at) return undefined;
@@ -402,9 +449,14 @@ describe("the debt list only ever shrinks", () => {
       Object.values(list as Record<string, unknown>).every(
         (v) => typeof v === "string",
       );
+    const added = module_.exports.CONTRACT_READER_ADDED_WITH_TICKET;
     return {
       ref: at.ref,
       list: isReasonMap ? (list as Record<string, string>) : {},
+      allowance:
+        typeof added === "object" && added !== null
+          ? new Set(Object.keys(added))
+          : undefined,
     };
   }
 
@@ -412,18 +464,20 @@ describe("the debt list only ever shrinks", () => {
     const at = baseDebt();
     if (!at) return;
 
-    const before = new Set(Object.keys(at.list));
-    const arrived = [...debtKeys].filter((key) => !before.has(key));
+    const problems = debtListProblems({
+      baseDebt: new Set(Object.keys(at.list)),
+      debt: debtKeys,
+      allowance: CONTRACT_READER_ADDED_WITH_TICKET,
+      baseAllowance: at.allowance,
+    });
 
     expect(
-      arrived,
-      `New debt entries vs ${at.ref}. The list is shrink-only: a field or ` +
-        "command lands with its reader, so there is nothing new to record here.",
+      problems,
+      `Debt list vs ${at.ref}. The list is shrink-only: a field or command ` +
+        "lands with its reader. A key added with the operator's approval goes " +
+        "on CONTRACT_READER_ADDED_WITH_TICKET with the Saga ticket that owns " +
+        "its reader.",
     ).toEqual([]);
-    expect(
-      debtKeys.size,
-      `Debt total rose vs ${at.ref} (${before.size} -> ${debtKeys.size}).`,
-    ).toBeLessThanOrEqual(before.size);
   });
 
   it("is registered as a shrink-only list", async () => {
@@ -433,5 +487,139 @@ describe("the debt list only ever shrinks", () => {
       "the base-ref check walks a hand-maintained list; a debt file missing " +
         "from it is shrink-only in its header and nowhere else",
     ).toContain(DEBT_PATH);
+  });
+});
+
+describe("the debt allowance can be seen to work", () => {
+  const base = new Set(["field:a.b"]);
+
+  it("passes a list that only shrinks", () => {
+    expect(
+      debtListProblems({
+        baseDebt: base,
+        debt: new Set(),
+        allowance: {},
+        baseAllowance: undefined,
+      }),
+    ).toEqual([]);
+  });
+
+  it("fails a key added to the debt that is not on the allowance", () => {
+    const problems = debtListProblems({
+      baseDebt: base,
+      debt: new Set(["field:a.b", "field:c.d"]),
+      allowance: {},
+      baseAllowance: undefined,
+    });
+    expect(problems.join("\n")).toContain("field:c.d is new debt");
+  });
+
+  it("fails an allowed key whose ticket is a placeholder", () => {
+    const problems = debtListProblems({
+      baseDebt: base,
+      debt: new Set(["field:a.b", "field:c.d"]),
+      allowance: { "field:c.d": "Saga TBD-1" },
+      baseAllowance: undefined,
+    });
+    expect(problems.join("\n")).toContain("without a ticket");
+  });
+
+  it("fails an allowed key that carries no ticket", () => {
+    const problems = debtListProblems({
+      baseDebt: base,
+      debt: new Set(["field:a.b", "field:c.d"]),
+      allowance: { "field:c.d": "" },
+      baseAllowance: undefined,
+    });
+    expect(problems.join("\n")).toContain("without a ticket");
+  });
+
+  it("fails an allowed key that is not debt any more", () => {
+    const problems = debtListProblems({
+      baseDebt: base,
+      debt: new Set(["field:a.b"]),
+      allowance: { "field:c.d": "Saga 1" },
+      baseAllowance: undefined,
+    });
+    expect(problems.join("\n")).toContain("not debt any more");
+  });
+
+  it("fails a key added to an allowance the base already carries", () => {
+    const problems = debtListProblems({
+      baseDebt: base,
+      debt: new Set(["field:a.b", "field:c.d"]),
+      allowance: { "field:c.d": "Saga 1" },
+      baseAllowance: new Set(),
+    });
+    expect(problems.join("\n")).toContain("only shrinks");
+  });
+
+  it("accepts an added key with a ticket", () => {
+    for (const ticket of ["Saga 921", "Saga 1"]) {
+      expect(
+        debtListProblems({
+          baseDebt: base,
+          debt: new Set(["field:a.b", "field:c.d"]),
+          allowance: { "field:c.d": ticket },
+          baseAllowance: undefined,
+        }),
+      ).toEqual([]);
+    }
+  });
+});
+
+describe("the whole-orbit credit stays inside what the solve reads", () => {
+  const SOLVE = [
+    "function solveOrbitAt(orbit: Orbit) {",
+    "  return orbit.sma + orbit.epoch;",
+    "}",
+    "function other(orbit: Orbit) { return orbit.encounter; }",
+  ].join("\n");
+
+  it("takes only the members the named function reads off its parameter", () => {
+    expect([...membersReadOff(SOLVE, "solveOrbitAt", "orbit")].sort()).toEqual([
+      "epoch",
+      "sma",
+    ]);
+  });
+
+  it("credits a file that fetches and solves, and only for those members", () => {
+    const root = mkdtempSync(join(tmpdir(), "orbit-credit-"));
+    try {
+      mkdirSync(join(root, "mod/sitrep-sdk/src/spine"), { recursive: true });
+      writeFileSync(
+        join(root, "mod/sitrep-sdk/src/spine/orbital-solve.ts"),
+        SOLVE,
+      );
+      const credited: string[] = [];
+      const texts = new Map([
+        ["packages/app/Hands.ts", "solveOrbit(getVesselTarget()?.orbit)"],
+        ["packages/app/Fetches.ts", "getVesselTarget()"],
+        ["packages/app/Solves.ts", "solveOrbit(x)"],
+      ]);
+      creditWholeObjectReads(root, texts, (key, hit) =>
+        credited.push(`${key} <- ${hit.file}`),
+      );
+      expect(credited.sort()).toEqual([
+        "vessel.target.orbit.epoch <- packages/app/Hands.ts",
+        "vessel.target.orbit.sma <- packages/app/Hands.ts",
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("never credits a field the real solve does not read", () => {
+    const real = scanContractReaderCoverage();
+    for (const key of [
+      "vessel.target.orbit.encounter.bodyIndex",
+      "vessel.target.orbit.horizon.kind",
+      "vessel.target.orbit.patches",
+    ]) {
+      const fromSolve = real.fieldReaders
+        .get(key)
+        ?.filter((h) => h.file.endsWith("ManeuverTriggerHostService.ts"));
+      expect(fromSolve ?? []).toEqual([]);
+    }
   });
 });

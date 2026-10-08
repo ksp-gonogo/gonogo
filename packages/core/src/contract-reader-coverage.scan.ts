@@ -404,24 +404,39 @@ function findWidgetDeclarations(
 function collectTokens(sf: ts.SourceFile): {
   identifiers: Set<string>;
   members: Set<string>;
+  fieldNames: Set<string>;
   strings: Set<string>;
 } {
   const identifiers = new Set<string>();
   const members = new Set<string>();
+  const fieldNames = new Set<string>();
   const strings = new Set<string>();
   const visit = (node: ts.Node): void => {
     if (ts.isExportDeclaration(node)) return;
     if (ts.isIdentifier(node)) identifiers.add(node.text);
-    if (ts.isPropertyAccessExpression(node)) members.add(node.name.text);
+    if (ts.isPropertyAccessExpression(node)) {
+      members.add(node.name.text);
+      fieldNames.add(node.name.text);
+    }
     if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
       const named = node.propertyName ?? node.name;
-      if (ts.isIdentifier(named)) members.add(named.text);
+      if (ts.isIdentifier(named)) {
+        members.add(named.text);
+        fieldNames.add(named.text);
+      }
     }
+    if (
+      (ts.isPropertyAssignment(node) || ts.isPropertySignature(node)) &&
+      ts.isIdentifier(node.name)
+    ) {
+      fieldNames.add(node.name.text);
+    }
+    if (ts.isShorthandPropertyAssignment(node)) fieldNames.add(node.name.text);
     if (ts.isStringLiteral(node)) strings.add(node.text);
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(sf, visit);
-  return { identifiers, members, strings };
+  return { identifiers, members, fieldNames, strings };
 }
 
 const EXPORTED_CONST_STRING_RE =
@@ -465,12 +480,25 @@ function collectAliases(
 }
 
 /**
- * Every root the gate walks: the published/private package tree plus every
- * `mod/*` root with its own `tsconfig.json`, shared with `unknown-cast.scan`
- * so a package added there is covered here on the same day.
+ * Packages that never ship to a player or an Uplink author: stories and test
+ * helpers build the Topics they show themselves, so naming a field there says
+ * nothing about whether the product reads it.
+ */
+export const NON_SHIPPING_PACKAGE_ROOTS: ReadonlySet<string> = new Set([
+  "packages/storybook",
+  "packages/test-utils",
+]);
+
+/**
+ * Every root the gate walks: the shipping package tree plus every `mod/*` root
+ * with its own `tsconfig.json`, shared with `unknown-cast.scan` so a package
+ * added there is covered here on the same day.
  */
 export function readerScanRoots(repoRoot: string): string[] {
-  return [...SCANNED_PACKAGE_ROOTS, ...modTsRoots(repoRoot)];
+  return [
+    ...SCANNED_PACKAGE_ROOTS.filter((r) => !NON_SHIPPING_PACKAGE_ROOTS.has(r)),
+    ...modTsRoots(repoRoot),
+  ];
 }
 
 export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
@@ -594,7 +622,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
     }
 
     if (mightTouchContract) {
-      const { identifiers, members, strings } = collectTokens(sf);
+      const { identifiers, members, fieldNames, strings } = collectTokens(sf);
       const touchesId = (
         id: string,
         aliases: Map<string, Set<string>>,
@@ -616,7 +644,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
         for (const f of fieldsByTopic.get(topic) ?? []) {
           const segments = f.path.split(".");
           const leaf = segments[segments.length - 1];
-          const namedWhole = segments.every((s) => identifiers.has(s));
+          const namedWhole = segments.every((s) => fieldNames.has(s));
           const readThroughElement = hasUniqueLeaf(f) && members.has(leaf);
           if (namedWhole || readThroughElement) {
             addField(f.key, { via: "field-access", file: rel });
@@ -658,9 +686,106 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
     }
   }
 
+  creditWholeObjectReads(root, texts, addField);
+
   scanCsharpReaders(root, topics, fieldsByTopic, addField, filesParsed);
 
   return { fields, commands, fieldReaders, commandReaders, filesParsed };
+}
+
+/**
+ * The orbit functions whose own reads of their orbit argument are credited to
+ * whoever hands them an orbit. Each names the file, the function and the
+ * parameter the orbit arrives in; the fields are read off the code, so a field
+ * the solve starts or stops reading moves the credit with it.
+ */
+const ORBIT_SOLVE_READERS: readonly {
+  file: string;
+  fn: string;
+  param: string;
+}[] = [
+  {
+    file: "mod/sitrep-sdk/src/spine/orbital-solve.ts",
+    fn: "solveOrbitAt",
+    param: "orbit",
+  },
+  {
+    file: "mod/sitrep-sdk/src/spine/orbital-solve.ts",
+    fn: "conicApsides",
+    param: "orbit",
+  },
+  {
+    file: "mod/sitrep-sdk/src/spine/kepler-reckoning.ts",
+    fn: "buildElements",
+    param: "o",
+  },
+];
+
+/** What a shipping file must call to be credited, and the orbit Topic that call carries. */
+const ORBIT_SOURCES: readonly { getter: string; topic: string }[] = [
+  { getter: "getVesselTarget()", topic: "vessel.target.orbit" },
+  { getter: "getVesselOrbit()", topic: "vessel.orbit" },
+];
+
+/** The members `fn` reads off `param`, taken from the source of the function. */
+export function membersReadOff(
+  text: string,
+  fn: string,
+  param: string,
+): Set<string> {
+  const read = new Set<string>();
+  const sf = ts.createSourceFile(fn, text, ts.ScriptTarget.Latest, true);
+  const visit = (node: ts.Node): void => {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === fn) {
+      const walk = (inner: ts.Node): void => {
+        if (
+          ts.isPropertyAccessExpression(inner) &&
+          ts.isIdentifier(inner.expression) &&
+          inner.expression.text === param
+        ) {
+          read.add(inner.name.text);
+        }
+        ts.forEachChild(inner, walk);
+      };
+      ts.forEachChild(node, walk);
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return read;
+}
+
+/**
+ * A file that hands the whole orbit it fetched to `solveOrbit` reads, through
+ * it, exactly the fields the solve reads off its argument: no line names them.
+ * Credited only to a shipping file that fetches the orbit and calls the solve,
+ * and only for the fields {@link membersReadOff} finds in the solve's own code.
+ */
+export function creditWholeObjectReads(
+  root: string,
+  texts: ReadonlyMap<string, string>,
+  addField: (key: string, hit: ReaderHit) => void,
+): void {
+  const read = new Set<string>();
+  for (const { file, fn, param } of ORBIT_SOLVE_READERS) {
+    let source: string;
+    try {
+      source = readFileSync(join(root, file), "utf8");
+    } catch {
+      continue;
+    }
+    for (const member of membersReadOff(source, fn, param)) read.add(member);
+  }
+  for (const [rel, text] of texts) {
+    if (!text.includes("solveOrbit(")) continue;
+    for (const { getter, topic } of ORBIT_SOURCES) {
+      if (!text.includes(getter)) continue;
+      for (const member of read) {
+        addField(`${topic}.${member}`, { via: "field-access", file: rel });
+      }
+    }
+  }
 }
 
 const CSHARP_SKIP_DIRS = new Set(["node_modules", "obj", "bin"]);

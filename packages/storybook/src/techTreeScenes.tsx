@@ -50,6 +50,8 @@ function careerEmit(frame: CareerFrame): Emit {
       ...BASE_STATUS,
       balances: { ...BASE_STATUS.balances, science: frame.science },
       tech: {
+        unlockedCount: frame.ownedIds.length,
+        unlockedIds: frame.ownedIds,
         nodes: nodesAt(TREE, frame),
       },
     },
