@@ -1,9 +1,10 @@
 import {
   asDeterministic,
   type CelestialBody,
-  type CelestialFacts,
-  type Reading,
+  poseAtIndex,
+  type SystemPoses,
   type Value,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { UnitValue } from "./readingCurrency";
 
@@ -21,15 +22,16 @@ export type EphemerisFigure = <Unit extends string>(
 /**
  * The figure-maker for quantities computed from `bodies`' orbits and the clock
  * alone: a phase angle between two planets, a transfer window between them, a
- * pair's separation. Pass the catalogue reading and the bodies the figure rests
- * on.
+ * pair's separation. Pass the poses `useSystemInstant` returns and the bodies
+ * the figure rests on.
  *
- * Where every one of those bodies is deterministic (a fixed conic, which is
- * every body of a stock install) the figure is stamped deterministic and takes
- * no mark, however long ago the catalogue last arrived: it is exact at the
- * instant it is drawn for. Where any is not (an n-body install, whose bodies
- * drift like craft) the figure is only as current as the catalogue, and a held
- * catalogue hands it over as held.
+ * The figure is as current as the least current pose it rests on. Where every
+ * one of those poses is `exact` (a fixed conic, which is every body of a stock
+ * install) the figure is stamped deterministic and takes no mark, however long
+ * ago the catalogue last arrived. Where any is `held`, because the instant is
+ * past its provider's horizon or the catalogue stopped arriving under a body
+ * that drifts, the figure comes back held as of the oldest of them. A `modelled`
+ * pose claims no exactness and takes no mark.
  *
  * A figure that also rests on the craft does not come through here: give it
  * the craft's mark with {@link derivedMarking}, since one inexact input makes
@@ -38,19 +40,26 @@ export type EphemerisFigure = <Unit extends string>(
  * @category Unit
  */
 export function ephemerisFigureOf(
-  catalogue: Reading<CelestialFacts> | undefined,
+  poses: SystemPoses | undefined,
   bodies: readonly (CelestialBody | null | undefined)[],
 ): EphemerisFigure {
+  const resting = bodies.map((body) =>
+    body == null ? null : poseAtIndex(poses, body.index),
+  );
   const exact =
-    bodies.length > 0 && bodies.every((body) => body?.deterministic === true);
+    resting.length > 0 && resting.every((pose) => pose?.currency === "exact");
+  const heldAt = resting.reduce<number | null>((oldest, pose) => {
+    if (pose?.currency !== "held" || pose.asOfUt === null) return oldest;
+    return oldest === null ? pose.asOfUt : Math.min(oldest, pose.asOfUt);
+  }, null);
   return (figure) => {
     const drawn = exact ? asDeterministic(figure) : figure;
-    if (catalogue?.state !== "held") return drawn;
+    if (heldAt === null) return drawn;
     return {
       state: "held",
       value: drawn,
-      asOfUt: catalogue.asOfUt,
-      grade: catalogue.grade,
+      asOfUt: value("ut", heldAt) as Value<"ut">,
+      grade: "held",
       reckoning: { status: "none" },
     };
   };

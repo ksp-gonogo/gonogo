@@ -10,7 +10,8 @@ import { TransferWindowComponent } from "./index";
  * clock alone. Under stock physics those orbits are fixed conics, so the angle
  * is exact however long ago the catalogue arrived and takes no mark. Under an
  * n-body install a body's horizon is bounded, its elements drift, and the same
- * angle is only as current as the catalogue: it is marked held with it.
+ * angle is only as current as the poses it rests on: it is marked held with
+ * the catalogue, and held as of a body's horizon once the instant passes it.
  */
 
 const DEG = Math.PI / 180;
@@ -95,8 +96,8 @@ afterEach(() => {
   clearRegistry();
 });
 
-function setup(earthHorizon: Horizon, marsHorizon: Horizon) {
-  const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+function setup(earthHorizon: Horizon, marsHorizon: Horizon, pinnedUt = 0) {
+  const fixture = setupStreamFixture({ pinnedUt, suspendFrames: true });
   const view = renderTracked(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "transfer-exact" }}>
@@ -108,9 +109,12 @@ function setup(earthHorizon: Horizon, marsHorizon: Horizon) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", {
-      bodies: [SUN, earth(earthHorizon), mars(marsHorizon)],
-    });
+    // The catalogue's last sample is for UT 0, so a later view instant is past it.
+    fixture.emit(
+      "system.bodies",
+      { bodies: [SUN, earth(earthHorizon), mars(marsHorizon)] },
+      { validAt: 0 },
+    );
     fixture.emit("vessel.orbit", LEO);
   });
   return { fixture, view };
@@ -172,7 +176,7 @@ describe("TransferWindow's planet-to-planet phase angle", () => {
   });
 
   it("is marked held with the catalogue once a body's horizon is bounded", async () => {
-    const { fixture } = setup(INTEGRATED, INTEGRATED);
+    const { fixture } = setup(INTEGRATED, INTEGRATED, 1_000);
     await currentPhase();
     loseTheLink(fixture);
     await waitFor(async () =>
@@ -181,11 +185,24 @@ describe("TransferWindow's planet-to-planet phase angle", () => {
   });
 
   it("takes one drifting body to lose the exactness, whichever of the two it is", async () => {
-    const { fixture } = setup(ANALYTIC, INTEGRATED);
+    const { fixture } = setup(ANALYTIC, INTEGRATED, 1_000);
     await currentPhase();
     loseTheLink(fixture);
     await waitFor(async () =>
       expect(isMarked(await currentPhase())).toBe(true),
     );
+  });
+
+  it("is marked held, link up, once the instant is past a body's horizon", async () => {
+    setup(ANALYTIC, INTEGRATED, 200_000);
+    const figure = await currentPhase();
+    expect(isMarked(figure)).toBe(true);
+  });
+
+  it("stays exact past the same instant under stock, which has no horizon to pass", async () => {
+    setup(ANALYTIC, ANALYTIC, 200_000);
+    const figure = await currentPhase();
+    expect(isMarked(figure)).toBe(false);
+    expect(figure).toHaveAttribute("data-figure", "deterministic");
   });
 });

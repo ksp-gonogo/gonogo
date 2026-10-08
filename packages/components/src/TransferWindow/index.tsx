@@ -168,8 +168,8 @@ function TransferWindowComponent({
   );
   // The phase angles and window figures are functions of the two bodies' orbits and the clock, nothing else.
   const ephemerisFigure = useMemo(
-    () => ephemerisFigureOf(factsReading, [origin, dest]),
-    [factsReading, origin, dest],
+    () => ephemerisFigureOf(poses, [origin, dest]),
+    [poses, origin, dest],
   );
 
   const cycleDestination = () => {

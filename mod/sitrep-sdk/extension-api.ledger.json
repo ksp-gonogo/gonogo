@@ -9051,6 +9051,10 @@
         "note": "removed: an identity function over an unused kind"
       },
       {
+        "key": "ui-kit . ephemerisFigureOf",
+        "note": "Takes the poses useSystemInstant returns instead of the catalogue reading, so a figure is as current as the least current body it rests on: held past a body's horizon as well as on a catalogue that stopped arriving. One source of truth for whether a body's place is current"
+      },
+      {
         "key": "ui-kit . paintVesselKeyline",
         "note": "Removed. It painted the keyline on a separate blended canvas; the keyline is now plain paint drawn with the mark, by passing keyline: true to paintVesselMark or paintVesselPositions. It was added on 2026-10-05 and its one caller was MapView"
       },
