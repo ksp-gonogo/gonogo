@@ -1,8 +1,9 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
+import read from "./comm-signal.declarations.g";
 
 export const commSignalTopics = defineTopicManifest({
   channels: ["comms.link", "vessel.comms", "comms.signal", "comms.delay"],
-  optionalChannels: ["comms.commandCentre", "comms.path", "vessel.identity"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "comms.link.connected",
     "vessel.comms.signalStrength",

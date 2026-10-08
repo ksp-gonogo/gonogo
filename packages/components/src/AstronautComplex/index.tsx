@@ -1,5 +1,6 @@
 import { registerComponent } from "@ksp-gonogo/core";
 import { AstronautComplexComponent } from "./AstronautComplexView";
+import read from "./astronaut-complex.declarations.g";
 import { type AstronautComplexConfig, astronautComplexActions } from "./config";
 import {
   ASTRONAUT_COMPLEX_CREW_BADGE_SLOT,
@@ -18,9 +19,9 @@ registerComponent<AstronautComplexConfig>({
   tags: ["career", "crew", "kc"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
-  commands: ["career.crew.hire", "career.crew.fire"],
   component: AstronautComplexComponent,
   channels: astronautComplexTopics.channels,
+  ...read,
   fields: astronautComplexTopics.fields,
   defaultConfig: {},
   actions: astronautComplexActions,

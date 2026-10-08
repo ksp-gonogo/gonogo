@@ -1,6 +1,7 @@
 import { registerComponent } from "@ksp-gonogo/core";
 import { ContractManagerComponent } from "./ContractManagerView";
 import type { ContractManagerConfig } from "./config";
+import read from "./contract-manager.declarations.g";
 import { contractManagerTopics } from "./topics";
 import { useContractEssentials } from "./useContractEssentials";
 
@@ -20,17 +21,13 @@ registerComponent<ContractManagerConfig>({
   tags: ["career", "contracts"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },
-  commands: [
-    "career.contract.accept",
-    "career.contract.decline",
-    "career.contract.cancel",
-  ],
   component: ContractManagerComponent,
   tiny: {
     title: "CONTRACT",
     useEssentials: useContractEssentials,
   },
   channels: contractManagerTopics.channels,
+  ...read,
   fields: contractManagerTopics.fields,
   defaultConfig: {},
   actions: [],

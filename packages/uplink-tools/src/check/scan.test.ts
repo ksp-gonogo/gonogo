@@ -205,10 +205,10 @@ describe("registration", () => {
 
   it("allows a spread of the generated declarations and calls any other spread opaque", () => {
     const generated = only({
-      "w.declarations.g.ts": `export const commands = [] as const;`,
+      "w.declarations.g.ts": `export default { commands: [] } as const;`,
       "w.tsx": widget(
         "",
-        `import * as read from "./w.declarations.g";`,
+        `import read from "./w.declarations.g";`,
         ", ...read",
       ),
     });
@@ -278,6 +278,54 @@ describe("gonogo:reads directives", () => {
     const [onCall, lonely] = scan.directives;
     expect(onCall).toMatchObject({ needed: false, attached: true });
     expect(lonely).toMatchObject({ attached: false });
+  });
+
+  it("states what an element reads, and the scan does not go into it", () => {
+    const { scan, w } = only({
+      "w.tsx": `import { registerComponent, useStream } from "./hooks";
+function Chart(props: { source: { topic: string } }) {
+  useStream(props.source.topic);
+  return null;
+}
+function Widget() {
+  return (
+    // gonogo:reads vessel.flight
+    <Chart source={{ topic: "vessel.flight" }} />
+  );
+}
+registerComponent({ id: "w", component: Widget });
+`,
+    });
+    expect(w.unresolved).toEqual([]);
+    expect(ids(w.reads)).toEqual(["vessel.flight"]);
+    expect(scan.directives).toMatchObject([{ needed: true, attached: true }]);
+  });
+
+  it("takes a JSX comment as a directive, and none above an element reaches its siblings", () => {
+    const { w } = only({
+      "w.tsx": `import { registerComponent, useStream } from "./hooks";
+function Chart() {
+  useStream("a.chart");
+  return null;
+}
+function Other() {
+  useStream("a.other");
+  return null;
+}
+function Widget() {
+  return (
+    <>
+      {/* gonogo:reads config */}
+      <Chart />
+      <Other />
+    </>
+  );
+}
+registerComponent({ id: "w", component: Widget });
+`,
+    });
+    expect(ids(w.reads)).toEqual(["a.other"]);
+    expect(w.readsFromConfig).toBe(true);
   });
 
   it("is validated like a resolved read", () => {

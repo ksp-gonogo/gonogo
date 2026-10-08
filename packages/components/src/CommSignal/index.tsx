@@ -1,5 +1,6 @@
 import { registerComponent } from "@ksp-gonogo/core";
 import { CommSignalComponent } from "./CommSignalView";
+import read from "./comm-signal.declarations.g";
 import type { CommSignalConfig } from "./config";
 import { commSignalTopics } from "./topics";
 import { useCommSignalEssentials } from "./useSignalVerdict";
@@ -24,7 +25,7 @@ registerComponent<CommSignalConfig>({
   contributionSlots: ["comm-signal.hop-rates"],
   // Connectivity is the freeze-exempt `comms.link`; `vessel.comms` holds its last value through a blackout.
   channels: commSignalTopics.channels,
-  optionalChannels: commSignalTopics.optionalChannels,
+  ...read,
   fields: commSignalTopics.fields,
   defaultConfig: {},
   actions: [],

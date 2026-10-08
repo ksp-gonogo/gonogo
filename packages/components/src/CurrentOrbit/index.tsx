@@ -42,6 +42,7 @@ import {
   type CurrentOrbitConfig,
   currentOrbitActions,
 } from "./config";
+import read from "./current-orbit.declarations.g";
 import { OrbitReadoutGrid } from "./OrbitReadouts";
 import { currentOrbitFrame } from "./readFrame";
 
@@ -49,7 +50,7 @@ export type { CurrentOrbitActions } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
-  optionalChannels: ["system.frame"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -297,7 +298,7 @@ registerComponent<CurrentOrbitConfig>({
   configComponent: CurrentOrbitConfigForm,
   // Per field so an alarm lands on the widget that draws that value; the solved apsides, countdowns and period ride the channel entry.
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   defaultConfig: { showDiagram: true },
   actions: currentOrbitActions,

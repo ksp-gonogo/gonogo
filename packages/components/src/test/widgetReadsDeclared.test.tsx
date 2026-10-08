@@ -131,12 +131,6 @@ const UNREACHED_COMMANDS: readonly {
     reason:
       "sent only for the Stage group, which no fixture's configuration holds",
   },
-  {
-    widgetId: "map-view",
-    command: "vessel.target.set",
-    reason:
-      "sent by the space-centre point-of-interest provider's hook, which no fixture mounts",
-  },
 ];
 
 /**
@@ -153,11 +147,6 @@ const UNOBSERVED_FAMILIES: readonly {
     widgetId: "ship-map",
     pattern: "vessel.partActions.<flightId>",
     reason: "read only once a part's action menu is open",
-  },
-  {
-    widgetId: "fleet-roster",
-    pattern: "fleet.<vessel>.contact",
-    reason: "one set per fleet vessel row",
   },
   {
     widgetId: "map-view",
@@ -287,6 +276,9 @@ function recorder(): { scope: LockScopeRegistry; claimed: Set<Capability> } {
       claim(capability) {
         claimed.add(capability);
         return () => {};
+      },
+      observe(capability) {
+        claimed.add(capability);
       },
     },
   };

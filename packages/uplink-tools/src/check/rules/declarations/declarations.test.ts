@@ -1,5 +1,11 @@
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { declarationsOf as declarationsFor, normalizeFamily } from "../../emit";
+import {
+  declarationsOf as declarationsFor,
+  emitDeclarations,
+  normalizeFamily,
+} from "../../emit";
 import { scanFiles } from "../../fixture";
 import { loadTypeScript, type TypeScript } from "../../program";
 import { declarationRules } from ".";
@@ -64,6 +70,15 @@ describe("required-unread", () => {
     const found = run(
       "required-unread",
       `useStream(props.topic);`,
+      `channels: ["vessel.flight"]`,
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("says nothing for a widget whose reads follow its settings, which the scan cannot list", () => {
+    const found = run(
+      "required-unread",
+      `// gonogo:reads config\n  useStream(props.topic);`,
       `channels: ["vessel.flight"]`,
     );
     expect(found).toEqual([]);
@@ -291,5 +306,41 @@ registerComponent({ id: "w", channelFamilies: ["fleet.<vessel>.contact"], compon
     expect(declarationsFor(scan.widgets[0]).optionalChannelFamilies).toEqual([
       "silence.<a>.state",
     ]);
+  });
+
+  it("writes a file biome's formatter leaves alone, short lists and long ones", () => {
+    const scan = scanFiles(ts, {
+      "w.tsx": `import { registerComponent, useTelemetry } from "./hooks";
+function Widget() {
+  useTelemetry("vessel.identity");
+  useTelemetry("vessel.flight");
+  useTelemetry("vessel.orbit");
+  useTelemetry("vessel.propulsion");
+  useTelemetry("system.bodies");
+  return null;
+}
+registerComponent({ id: "w", component: Widget });
+`,
+    });
+    const short = scanFiles(ts, {
+      "w.tsx": `import { registerComponent, useTelemetry } from "./hooks";
+function Widget() {
+  useTelemetry("vessel.identity");
+  return null;
+}
+registerComponent({ id: "w", component: Widget });
+`,
+    });
+    const root = resolve(import.meta.dirname, "../../../../../..");
+    for (const widget of [scan.widgets[0], short.widgets[0]]) {
+      const text = emitDeclarations(widget);
+      const formatted = execFileSync(
+        resolve(root, "node_modules/.bin/biome"),
+        ["format", "--stdin-file-path=w.declarations.g.ts"],
+        { cwd: root, input: text, encoding: "utf8" },
+      );
+      expect(formatted).toBe(text);
+    }
+    expect(emitDeclarations(scan.widgets[0])).toContain('[\n    "');
   });
 });

@@ -134,6 +134,7 @@ function AtmosphereProfileComponent({
   return (
     <Fill>
       <Fill grow>
+        {/* gonogo:reads vessel.flight */}
         <GraphView
           config={graphConfig}
           thresholds={thresholds}

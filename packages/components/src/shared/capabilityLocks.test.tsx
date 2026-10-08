@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
 import { UnlockKind } from "@ksp-gonogo/sitrep-sdk";
+import { LockScopeContext } from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { AugmentSlot, LockScope, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
@@ -111,6 +112,42 @@ describe("capability locks", () => {
     expect(screen.getByText("node list")).toBeTruthy();
     expect(screen.getByText("New maneuver")).toBeTruthy();
     expect(screen.getByText("Mission Control")).toBeTruthy();
+    expect(screen.queryByText("plan controls")).toBeNull();
+  });
+
+  it("tells a recording scope what a section's content uses, and leaves the lock with the section", () => {
+    const fixture = setupStreamFixture();
+    const heard: string[] = [];
+    const recorder = {
+      claim: () => () => {},
+      observe: (c: { kind: string; id: string }) => heard.push(c.id),
+    };
+    render(
+      <fixture.Provider>
+        <LockScopeContext.Provider value={recorder}>
+          <Panel
+            panelTitle="PLANNER"
+            sections={[
+              <Section key="nodes" title="Planned nodes">
+                <p>node list</p>
+              </Section>,
+              <Section key="plan" title="New maneuver">
+                <PlanControls />
+              </Section>,
+            ]}
+          />
+        </LockScopeContext.Provider>
+      </fixture.Provider>,
+    );
+    expect(heard).toContain("vessel.maneuver.add");
+    act(() => {
+      fixture.emit("system.uplink.gates", {
+        gates: [
+          { command: "vessel.maneuver.add", verdict: locked(MISSION_CONTROL) },
+        ],
+      });
+    });
+    expect(screen.getByText("node list")).toBeTruthy();
     expect(screen.queryByText("plan controls")).toBeNull();
   });
 

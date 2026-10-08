@@ -7,6 +7,7 @@ import {
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { ActionGroupConfigForm } from "./ActionGroupConfigForm";
 import { ActionGroupView } from "./ActionGroupView";
+import read from "./action-group.declarations.g";
 import { type ActionGroupConfig, actionGroupActions } from "./config";
 import { groupStateOf } from "./groupState";
 import "./slots";
@@ -78,16 +79,6 @@ registerComponent<ActionGroupConfig>({
   defaultSize: { w: 6, h: 6 },
   minSize: { w: 5, h: 4 },
   mobileWidth: "half",
-  commands: [
-    "vessel.control.setActionGroup",
-    "vessel.control.stage",
-    "vessel.control.setSas",
-    "vessel.control.setRcs",
-    "vessel.control.setLights",
-    "vessel.control.setGear",
-    "vessel.control.setBrakes",
-    "vessel.control.setAbort",
-  ],
   component: ActionGroupComponent,
   tiny: {
     title: "ACTION GROUP",
@@ -95,12 +86,8 @@ registerComponent<ActionGroupConfig>({
     useEssentials: useActionGroupEssentials,
   },
   configComponent: ActionGroupConfigForm,
-  dataRequirements: [
-    "vessel.control",
-    "vessel.structure",
-    "time.warp",
-    "comms.link",
-  ],
+  channels: ["vessel.control"],
+  ...read,
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
   augmentSlots: ["action-group.subsystem"],

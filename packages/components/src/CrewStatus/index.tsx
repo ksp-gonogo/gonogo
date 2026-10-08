@@ -2,6 +2,7 @@ import { registerComponent } from "@ksp-gonogo/core";
 import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { CrewStatusComponent } from "./CrewStatusView";
 import type { CrewStatusConfig } from "./config";
+import read from "./crew-status.declarations.g";
 import { crewStatusTopics } from "./topics";
 // Registers the header headcount badge.
 import "./badge";
@@ -43,7 +44,7 @@ registerComponent<CrewStatusConfig>({
   contributionSlots: ["crew-status.row-tone", "crew-status.meters"],
   channels: crewStatusTopics.channels,
   fields: crewStatusTopics.fields,
-  optionalChannels: crewStatusTopics.optionalChannels,
+  ...read,
   defaultConfig: {},
   actions: [],
   pushable: true,

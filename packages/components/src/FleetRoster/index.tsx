@@ -8,6 +8,7 @@ import { Meter } from "@ksp-gonogo/ui";
 import { Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
 import { commsRollup } from "./comms";
 import { useFleet } from "./fleet";
+import read from "./fleet-roster.declarations.g";
 import { RosterTable } from "./RosterTable";
 import { fleetRosterTopics } from "./topics";
 import { useFleetEssentials } from "./useFleetEssentials";
@@ -80,6 +81,7 @@ registerComponent<FleetRosterConfig>({
     useEssentials: useFleetEssentials,
   },
   channels: fleetRosterTopics.channels,
+  ...read,
   /* Mission control only by declaration: nothing read is ground-only, so derivation alone would put it on a pilot's screen. */
   seats: ["mission-control"],
   defaultConfig: {},

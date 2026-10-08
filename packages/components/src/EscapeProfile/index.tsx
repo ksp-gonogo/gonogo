@@ -103,6 +103,7 @@ function EscapeProfileComponent({
     undefined;
 
   return (
+    // gonogo:reads vessel.flight
     <GraphView
       config={graphConfig}
       referenceCurves={referenceCurve ? [referenceCurve] : undefined}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 import type {
   ChannelGate,
   CommandGateReport,
@@ -7,7 +7,11 @@ import type {
 } from "../__generated__/contract";
 import { GateOutcome, UnlockKind } from "../__generated__/contract";
 import { CommandErrorCode } from "../__generated__/error-codes";
-import type { Capability, LockScopeRegistry } from "./lock-scope";
+import {
+  type Capability,
+  LockScopeContext,
+  type LockScopeRegistry,
+} from "./lock-scope";
 import { useLatestValue } from "./use-stream";
 
 /**
@@ -170,9 +174,14 @@ export function useLockScope(): {
    * recomputed from the ref then.
    */
   const [, setVersion] = useState(0);
+  const parent = useContext(LockScopeContext);
   const scope = useMemo<LockScopeRegistry>(
     () => ({
+      observe(capability) {
+        parent?.observe?.(capability);
+      },
       claim(capability) {
+        parent?.observe?.(capability);
         const key = keyOf(capability);
         const entry = claims.current.get(key);
         claims.current.set(key, {
@@ -193,7 +202,7 @@ export function useLockScope(): {
         };
       },
     }),
-    [],
+    [parent],
   );
 
   const held = useRef<ReadonlyMap<string, Capability>>(new Map());

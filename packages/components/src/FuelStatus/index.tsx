@@ -22,6 +22,7 @@ import {
 } from "./config";
 import { budgetFigure, maxStageDeltaV, NO_STAGES, pickTotal } from "./deltaV";
 import { FuelStatusConfigForm } from "./FuelStatusConfigForm";
+import read from "./fuel-status.declarations.g";
 import { ResourceListSection } from "./ResourceListSection";
 import { useResourceRows } from "./resources";
 import { StageStackSection } from "./StageStackSection";
@@ -176,7 +177,8 @@ registerComponent<FuelStatusConfig>({
   },
   configComponent: FuelStatusConfigForm,
   // The three resource channels rather than per-resource paths: the component reads each map whole, and every `r.resource[X]` alarm target lies inside one of them.
-  dataRequirements: [
+  channels: ["vessel.resources"],
+  fields: [
     "vessel.structure.currentStage",
     "dv.summary.stageCount",
     "dv.summary.totalDvVac",
@@ -188,6 +190,7 @@ registerComponent<FuelStatusConfig>({
     "dv.currentStageResource",
     "dv.currentStageResourceMax",
   ],
+  ...read,
   defaultConfig: { deltaVMode: "actual" },
   actions: [],
   augmentSlots: ["fuel-status.sections"],

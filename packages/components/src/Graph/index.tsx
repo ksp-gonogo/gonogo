@@ -22,6 +22,7 @@ function GraphComponent({
     () => graphThresholdsOf(config, catalog),
     [config, catalog],
   );
+  // gonogo:reads config
   return <GraphView config={view} thresholds={thresholds} w={w} h={h} />;
 }
 
@@ -38,7 +39,6 @@ registerComponent<GraphConfig>({
   component: GraphComponent,
   configComponent: GraphConfigComponent,
   openConfigOnAdd: true,
-  dataRequirements: [],
   channelsFromConfig: graphTopicsOf,
   defaultConfig: { series: [], windowSec: 300 },
   actions: [],

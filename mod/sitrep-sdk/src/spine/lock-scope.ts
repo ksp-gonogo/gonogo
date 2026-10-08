@@ -18,6 +18,12 @@ export type Capability =
 export interface LockScopeRegistry {
   /** Records a capability as used here. Returns its release. */
   claim(capability: Capability): () => void;
+  /**
+   * Hears a capability claimed in a scope nested inside this one, without
+   * counting it toward this scope's lock. Only a scope that records what a
+   * subtree uses needs it, so a scope may leave it out.
+   */
+  observe?(capability: Capability): void;
 }
 
 /** The nearest lock scope, or `null` where none is mounted. */

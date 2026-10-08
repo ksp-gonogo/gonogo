@@ -10873,6 +10873,10 @@
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
       },
       {
+        "key": "sitrep-sdk ./spine LockScopeRegistry#observe?",
+        "note": "New: an optional hook that hears a claim made in a scope nested inside, without counting it toward the lock"
+      },
+      {
         "key": "sitrep-sdk ./spine ORBIT_RING_SAMPLES",
         "note": "New: how many points a closed orbit ring is sampled into"
       },

@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { widgetDeclaredTopics } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -151,7 +152,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     await screen.findByText("AGL");
 
     // The declaration drives alarm attribution: an alarm on the withheld datum has to reach this widget.
-    expect(getComponent("landing-status")?.dataRequirements).toContain(
+    expect(widgetDeclaredTopics(getComponent("landing-status"))).toContain(
       "vessel.surface",
     );
 

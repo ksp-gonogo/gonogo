@@ -26,6 +26,7 @@ import {
   HeightSection,
   VelocitySection,
 } from "./DescentSections";
+import read from "./landing-status.declarations.g";
 import { TerrainReadout, VerdictBanner } from "./SiteReadouts";
 import { SolutionReadouts } from "./SolutionReadouts";
 import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
@@ -86,7 +87,7 @@ function LandingStatusComponent({
     (board === "vacuum-solved" || landed || atmosphericPlotsShown) && showScope;
 
   // Contributed plots: each decides for itself whether it has anything to say, and the board lays out what comes back.
-  const contributedPlots = <PlotBoard />;
+  const contributedPlots = <PlotBoard />; // gonogo:reads none
 
   const comDatumNote = <ComDatumNote model={model} />;
   const readoutsStack = (
@@ -286,20 +287,8 @@ registerComponent<LandingStatusConfig>({
     title: "LANDING",
     useEssentials: useLandingEssentials,
   },
-  dataRequirements: [
-    "vessel.orbit",
-    "vessel.identity",
-    "system.bodies",
-    "vessel.target",
-    "vessel.flight",
-    "vessel.surface",
-    "vessel.propulsion",
-    "vessel.landing",
-    "dv.summary",
-    "dv.stages",
-    "vessel.structure",
-    "comms.delay",
-  ],
+  channels: ["vessel.flight", "vessel.landing"],
+  ...read,
   defaultConfig: {},
   augmentSlots: ["landing-status.sections", "landing-status.actions"],
   // Declaring the slot is the whole opt-in; the widget's own descent envelope arrives through it too.

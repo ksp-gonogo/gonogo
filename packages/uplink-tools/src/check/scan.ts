@@ -53,7 +53,7 @@ export const LEAF_ARGUMENTS: Readonly<Record<string, ArgumentKind>> = {
   useDataSeries: "series-key",
 };
 
-const DIRECTIVE = /\/\/\s*gonogo:reads\s+(.+?)\s*$/;
+const DIRECTIVE = /(?:\/\/|\/\*)\s*gonogo:reads\s+(.+?)\s*(?:\*\/\}?)?\s*$/;
 const TOPIC_ID = /^[A-Za-z0-9_]+(\.[A-Za-z0-9_-]+)*$/;
 
 export interface ScanOptions {
@@ -525,6 +525,21 @@ export function createScanner(
     return undefined;
   };
 
+  /**
+   * The directive written on the line of a call or element, or the line above
+   * it, and nowhere further: it states what that one subtree reads, so it must
+   * not reach the other calls of a multi-line statement the way a leaf
+   * read's directive does.
+   */
+  const statedReads = (node: TS.Node): DirectiveRecord | undefined => {
+    const file = node.getSourceFile();
+    const line = lineOf(node, file);
+    return (
+      directiveAt(file, line) ??
+      (line > 0 ? directiveAt(file, line - 1) : undefined)
+    );
+  };
+
   type Where = { call: string; file: string; line: number };
 
   /** The read a directive value names: a family pattern or a Topic id, and nothing else. */
@@ -829,6 +844,18 @@ export function createScanner(
         !file.isDeclarationFile &&
         !inNodeModules(file.fileName)
       ) {
+        const stated = statedReads(node);
+        if (stated) {
+          stated.attached = true;
+          stated.needed = true;
+          applyDirective(
+            sink,
+            stated,
+            whereOf(node, nameOfDeclaration(decl) ?? "element"),
+            sink.reads,
+          );
+          return;
+        }
         enter(decl);
         return;
       }

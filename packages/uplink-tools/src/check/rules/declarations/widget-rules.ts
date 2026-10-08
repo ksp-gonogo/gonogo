@@ -32,7 +32,7 @@ export const requiredUnreadRule: Rule = {
   check({ scan }: CheckContext): FixableFinding[] {
     const out: FixableFinding[] = [];
     for (const widget of scan.widgets) {
-      if (!provable(widget)) continue;
+      if (!provable(widget) || widget.readsFromConfig) continue;
       const { registration } = widget;
       const ids = new Set(widget.reads.flatMap((r) => (r.id ? [r.id] : [])));
       const families = new Set(

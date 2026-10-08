@@ -16,6 +16,7 @@ import {
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
+import read from "./kepler-period.declarations.g";
 
 const topics = defineTopicManifest({
   // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
@@ -151,6 +152,7 @@ function KeplerPeriodComponent({
     undefined;
 
   return (
+    // gonogo:reads vessel.orbit
     <GraphView
       config={graphConfig}
       computedSeries={computedSeries}
@@ -172,6 +174,7 @@ registerComponent<KeplerPeriodConfig>({
   mobileHeight: 280,
   component: KeplerPeriodComponent,
   channels: topics.channels,
+  ...read,
   fields: topics.fields,
   defaultConfig: { windowSec: 60 },
   actions: [],
