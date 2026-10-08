@@ -273,5 +273,29 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Empty(rig.Delivered);
             Assert.Equal(Relay, Assert.Single(rig.Network.Spans()).Node);
         }
+
+        [Fact]
+        public void ARelayHeldSpanTakesADirectContactThatOpensAfterItWasToldToGoByAnotherRelay()
+        {
+            var plan = new Moving();
+            plan.Routes[Lander] = new[] { new PlannedHop(Relay, 0, 5), new PlannedHop(Other, 400, 405), new PlannedHop(Ksc, 405, 415) };
+            plan.Routes[Relay] = new[] { new PlannedHop(Other, 400, 405), new PlannedHop(Ksc, 405, 415) };
+            var rig = new Rig(plan);
+            rig.Links.Up(Lander, Relay, 5.0);
+            rig.Tick(1.0);
+            rig.Add(1.0);
+            rig.Tick(8.0);
+            Assert.Equal(Relay, Assert.Single(rig.Network.Spans()).Node);
+
+            // The relay's own dish comes to see the centre long before the relay it was told to wait for.
+            rig.Links.Up(Relay, Ksc, 10.0);
+            plan.Routes[Relay] = new[] { new PlannedHop(Ksc, 20, 30) };
+            rig.Network.PlanChanged();
+            rig.Tick(21.0);
+            rig.Tick(40.0);
+
+            var (_, at) = Assert.Single(rig.Delivered);
+            Assert.Equal(31.0, at);
+        }
     }
 }
