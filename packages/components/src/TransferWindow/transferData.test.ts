@@ -1,5 +1,9 @@
 import type { PorkchopGrid, TransferSolution } from "@ksp-gonogo/core";
-import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
+import {
+  ANALYTIC_BODY_HORIZON,
+  type OrbitElements,
+  solve,
+} from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
 import { placedAt, posesOf } from "../test/bodyPoses";
@@ -132,7 +136,35 @@ describe("transferData bridge", () => {
     expect(phaseAngleDeg(earth, mars, poses)).toBeCloseTo(44.3, 6);
   });
 
-  it("celestialToOrbitElements carries the parent μ + raw (radian) elements", () => {
+  it("celestialToOrbitElements converts the catalogue's degrees to the radians the solver takes", () => {
+    const tilted = mkBody({
+      ...mars,
+      inclination: 5.1,
+      lan: 49.6,
+      argumentOfPeriapsis: 286.5,
+    });
+    const el = celestialToOrbitElements(tilted, bodies);
+    expect(el?.inc).toBeCloseTo(5.1 * DEG, 9);
+    expect(el?.lan).toBeCloseTo(49.6 * DEG, 9);
+    expect(el?.argPe).toBeCloseTo(286.5 * DEG, 9);
+  });
+
+  it("the grid's default propagation puts a tilted body where its elements do", () => {
+    const tilted = mkBody({
+      ...mars,
+      inclination: 30,
+      lan: 90,
+      argumentOfPeriapsis: 0,
+      meanAnomalyAtEpoch: 0,
+    });
+    const el = celestialToOrbitElements(tilted, bodies);
+    const state = solve(el as OrbitElements, 0);
+    // At periapsis with the node at 90 degrees the body sits on the +y axis of its plane.
+    expect(state.position[0]).toBeCloseTo(0, 0);
+    expect(state.position[1]).toBeCloseTo(tilted.semiMajorAxis as number, -3);
+  });
+
+  it("celestialToOrbitElements carries the parent μ and the epoch", () => {
     const el = celestialToOrbitElements(mars, bodies);
     expect(el).not.toBeNull();
     if (!el) return;

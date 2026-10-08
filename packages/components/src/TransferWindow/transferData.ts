@@ -20,6 +20,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
 
+const degToRad = (deg: number): number => (deg * Math.PI) / 180;
 const wrap360 = (deg: number): number => ((deg % 360) + 360) % 360;
 
 /** The parent body's μ for `body` (looked up by `referenceBody` name). */
@@ -63,7 +64,7 @@ export function phaseAngleDeg(
   return angleDelta(ld, lo);
 }
 
-/** Build a Keplerian `OrbitElements` (for `solve`) from a body + its parent μ. */
+/** Build a Keplerian `OrbitElements` (for `solve`) from a body + its parent μ. The catalogue states inclination, node and periapsis in degrees; the solver takes radians. */
 export function celestialToOrbitElements(
   body: CelestialBody,
   bodies: CelestialBody[],
@@ -84,9 +85,9 @@ export function celestialToOrbitElements(
   return {
     sma: body.semiMajorAxis,
     ecc: body.eccentricity,
-    inc: body.inclination,
-    lan: body.lan,
-    argPe: body.argumentOfPeriapsis,
+    inc: degToRad(body.inclination),
+    lan: degToRad(body.lan),
+    argPe: degToRad(body.argumentOfPeriapsis),
     meanAnomalyAtEpoch: body.meanAnomalyAtEpoch,
     epoch: body.epoch,
     mu,
