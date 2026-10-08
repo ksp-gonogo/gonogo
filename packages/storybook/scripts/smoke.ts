@@ -15,11 +15,14 @@
  * text the design system's own rules missed, such as a control whose words
  * came from a browser default. Words drawn through opacity fail on their own,
  * since axe passes some of them that read below contrast; a disabled control
- * is exempt, as WCAG exempts inactive components.
+ * and the content of an inert region are exempt, as WCAG exempts inactive
+ * components.
  *
  * Before it trusts a clean run it mounts the planted stories (`Smoke plant`),
- * which fail on purpose, and fails as BLIND if either is reported clean: a
- * checker that cannot see a failure reports every story clean.
+ * which fail on purpose, and fails as BLIND if any is reported clean: a
+ * checker that cannot see a failure reports every story clean. One planted
+ * story must come back clean, the dimmed words inside an inert region, so the
+ * inert exemption cannot grow wider unseen.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -47,6 +50,8 @@ const PLANTS: Record<string, string> = {
   "smoke-plant--dimmed-words": "opacity: #planted-dimmed",
 };
 const PLANT_IDS = Object.keys(PLANTS);
+/** Each planted story that must be reported clean, which proves an exemption is not wider than it says. */
+const CLEAN_PLANTS = ["smoke-plant--inert-dimmed-words"];
 const STORY_TIMEOUT_MS = 30_000;
 
 declare global {
@@ -95,7 +100,7 @@ async function dimmedWords(page: Page): Promise<string[]> {
       const el = node.parentElement;
       if (text === "" || el === null || checked.has(el)) continue;
       checked.add(el);
-      if (el.closest(":disabled, [aria-disabled='true']")) continue;
+      if (el.closest(":disabled, [aria-disabled='true'], [inert]")) continue;
       if (el.getClientRects().length === 0) continue;
       if (getComputedStyle(el).visibility !== "visible") continue;
       let alpha = 1;
@@ -346,7 +351,9 @@ async function main(): Promise<void> {
     const entries = await storyEntries(base);
     const all = entries.map((entry) => entry.id);
     const titles = new Map(entries.map((entry) => [entry.id, entry.title]));
-    const missing = PLANT_IDS.filter((id) => !all.includes(id));
+    const missing = [...PLANT_IDS, ...CLEAN_PLANTS].filter(
+      (id) => !all.includes(id),
+    );
     if (missing.length > 0) {
       throw new Error(
         `BLIND: the planted stories ${missing.join(", ")} are not in the index.`,
@@ -361,8 +368,26 @@ async function main(): Promise<void> {
       console.log(`smoke: plant ${plant.id} seen (${plant.errors[0]})`);
     }
 
+    for (const plant of await runAll(
+      browser,
+      base,
+      CLEAN_PLANTS,
+      titles,
+      true,
+    )) {
+      if (plant.errors.length > 0) {
+        throw new Error(
+          `BLIND: the planted story ${plant.id} must be reported clean and was not (${plant.errors.join("; ")}), so the exemption it guards is too narrow to trust.`,
+        );
+      }
+      console.log(`smoke: plant ${plant.id} reported clean`);
+    }
+
     const ids = all.filter(
-      (id) => !PLANT_IDS.includes(id) && (!only || id.includes(only)),
+      (id) =>
+        !PLANT_IDS.includes(id) &&
+        !CLEAN_PLANTS.includes(id) &&
+        (!only || id.includes(only)),
     );
     if (!only && ids.length < MIN_STORIES) {
       throw new Error(

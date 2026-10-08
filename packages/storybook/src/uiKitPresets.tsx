@@ -5,9 +5,11 @@ import type {
   CommandGroup,
   Countdown,
   Dial,
+  IconButton,
   LineGraph,
   MissionDate,
   ReadOnlyField,
+  Readout,
   ReckonedUnit,
   Stepper,
   Tape,
@@ -31,6 +33,13 @@ const IDLE_HANDLE: CommandButtonHandle = {
   tags: railTagsForCommand("vessel.control.stage"),
   effectiveDelaySeconds: 0,
 };
+
+/** A plain cross, so the preset needs no runtime import from the kit. */
+const GLYPH = () => (
+  <svg viewBox="0 0 12 12" width={12} height={12} aria-hidden="true">
+    <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.5} />
+  </svg>
+);
 
 const RANGE = { min: value("1", 0), max: value("1", 3) };
 
@@ -188,6 +197,33 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof CommandGroup>>,
+  IconButton: [
+    {
+      name: "At rest",
+      args: { "aria-label": "Close", children: <GLYPH /> },
+    },
+    {
+      name: "Pressed",
+      args: { "aria-label": "Close", pressed: true, children: <GLYPH /> },
+    },
+  ] satisfies Presets<ComponentProps<typeof IconButton>>,
+  Readout: [
+    {
+      name: "Inline",
+      args: { children: "1,240" },
+    },
+    {
+      name: "Hero",
+      args: { size: "hero", children: "1,240" },
+    },
+    {
+      name: "Warning tone",
+      args: {
+        tone: "warn",
+        children: "1,240",
+      },
+    },
+  ] satisfies Presets<ComponentProps<typeof Readout>>,
   CommandButton: [
     { name: "Ready", args: { handle: IDLE_HANDLE, label: "Stage" } },
     {

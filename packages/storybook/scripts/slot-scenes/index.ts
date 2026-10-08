@@ -2,6 +2,7 @@ import type { ExtensionScene } from "../coverage";
 import { SCENES as actionGroup } from "./action-group";
 import { SCENES as astronautComplex } from "./astronaut-complex";
 import { SCENES as commSignal } from "./comm-signal";
+import { SCENES as contractManager } from "./contract-manager";
 import { SCENES as crewStatus } from "./crew-status";
 import { SCENES as deployedScience } from "./deployed-science";
 import { SCENES as experiments } from "./experiments";
@@ -13,6 +14,7 @@ import { SCENES as maneuverPlanner } from "./maneuver-planner";
 import { SCENES as mapView } from "./map-view";
 import { SCENES as orbitView } from "./orbit-view";
 import { SCENES as powerSystems } from "./power-systems";
+import { SCENES as resourceOps } from "./resource-ops";
 import { SCENES as scienceData } from "./science-data";
 import { SCENES as shipMap } from "./ship-map";
 import { SCENES as spaceCenterStatus } from "./space-center-status";
@@ -21,6 +23,7 @@ import { SCENES as systemView } from "./system-view";
 import { SCENES as targetPicker } from "./target-picker";
 import { SCENES as targeting } from "./targeting";
 import { SCENES as techTree } from "./tech-tree";
+import { SCENES as transferWindow } from "./transfer-window";
 import { SCENES as warpControl } from "./warp-control";
 
 /**
@@ -32,6 +35,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...actionGroup,
   ...astronautComplex,
   ...commSignal,
+  ...contractManager,
   ...crewStatus,
   ...deployedScience,
   ...experiments,
@@ -43,6 +47,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...mapView,
   ...orbitView,
   ...powerSystems,
+  ...resourceOps,
   ...scienceData,
   ...shipMap,
   ...spaceCenterStatus,
@@ -50,6 +55,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...systemView,
   ...targetPicker,
   ...targeting,
+  ...transferWindow,
   ...techTree,
   ...warpControl,
 ];

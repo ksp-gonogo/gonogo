@@ -442,6 +442,7 @@ async function writeExtensionScenes(opts: {
     const mode = {
       ...(e.config ? { config: e.config } : {}),
       ...(e.clicks ? { clicks: e.clicks } : {}),
+      ...(e.hovers ? { hovers: e.hovers } : {}),
     };
     return `
 /** ${e.lights ? `The stubs on \`${e.lights.join("` and `")}\`, ${e.combined ? "together" : "alone"},` : `\`${e.id}\` switched on`} in \`${e.widgetId}\`. Untick \`enabled\` to see the host without it. */

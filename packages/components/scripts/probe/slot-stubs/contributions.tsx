@@ -3,7 +3,6 @@ import {
   type PlotEntry,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { projectionsForBody } from "../../../src/SystemView/projection";
 import { plantContribution } from "./stub";
 
 /*
@@ -180,16 +179,28 @@ plantContribution("system-view.vessel-status", {
   },
 });
 
+/**
+ * One projection of its own per body that has a parent, with an id the host's
+ * stock entries never use, so a scene can pin it by id and the frame it draws
+ * in is the one thing that differs from the host without it.
+ */
 plantContribution("system-view.projection", {
   deps: ["system.bodies"],
   compute: (topics) =>
     topics["system.bodies"]?.bodies.flatMap((body) =>
-      projectionsForBody(
-        body.index,
-        body.parentIndex != null && body.parentIndex !== body.index,
-      ).map((projection) => ({
-        ...projection,
-        label: `system-view.projection: ${projection.label}`,
-      })),
+      body.parentIndex != null && body.parentIndex !== body.index
+        ? [
+            {
+              id: `planted-slot-projection:${body.index}`,
+              label: "system-view.projection",
+              choice: {
+                kind: "parent-direction" as const,
+                bodyIndex: body.index,
+              },
+              extent: { kind: "auto-fit-metres" as const },
+              frameBodyIndex: body.index,
+            },
+          ]
+        : [],
     ) ?? null,
 });

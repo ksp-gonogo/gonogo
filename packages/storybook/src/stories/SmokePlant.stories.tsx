@@ -20,7 +20,9 @@ import { WidgetScene, type WidgetSceneProps } from "../WidgetScene";
  * story that draws nothing or only its own title's name, words drawn in a
  * browser's default button colour on the dark panel, and words dimmed by
  * opacity.
- * `scripts/smoke.ts` fails as BLIND if any is reported clean.
+ * `scripts/smoke.ts` fails as BLIND if any is reported clean. The one story
+ * that must come back clean, dimmed words inside an inert region, holds the
+ * exemption for inactive content to that and no wider.
  */
 function Throws(): never {
   throw new Error("planted: this story throws on purpose");
@@ -123,6 +125,18 @@ export const DimmedWords: StoryObj = {
   render: () => (
     <div style={{ opacity: 0.5 }}>
       <span id="planted-dimmed">Burn duration</span>
+    </div>
+  ),
+};
+
+/** The same dimmed words inside an inert region, which no one can reach or read out and WCAG exempts as inactive. */
+export const InertDimmedWords: StoryObj = {
+  render: () => (
+    <div
+      style={{ opacity: 0.5 }}
+      {...({ inert: "" } as Record<string, string>)}
+    >
+      <span id="planted-inert-dimmed">Burn duration</span>
     </div>
   ),
 };

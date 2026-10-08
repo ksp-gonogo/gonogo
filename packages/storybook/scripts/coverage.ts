@@ -47,6 +47,8 @@ export interface ExtensionScene {
   underInstall?: boolean;
   /** Clicks that open the part of the host the extension draws in, as a render mode's `clicks`. */
   clicks?: readonly { selector: string; awaitMs?: number }[];
+  /** Pointer entries that open a surface only the pointer shows, such as a part's tooltip, as a render mode's `hovers`. */
+  hovers?: readonly { selector: string; awaitMs?: number }[];
   /** The story's name, where it is not the id. */
   name?: string;
   /** The extension points whose stubs the scene lights, by announcing each stub's Domain. */

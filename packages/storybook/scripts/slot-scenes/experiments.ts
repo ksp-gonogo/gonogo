@@ -26,4 +26,12 @@ export const SCENES: readonly ExtensionScene[] = [
     w: 10,
     h: 8,
   },
+  {
+    // The stub follows the instrument list, which fills the tile before it.
+    id: "planted-slot:experiments.sections",
+    widgetId: "experiments",
+    fixture: FIXTURE,
+    w: 12,
+    h: 18,
+  },
 ];
