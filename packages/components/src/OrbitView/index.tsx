@@ -6,11 +6,7 @@ import {
   useOrbitSolve,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  conicApsides,
-  type OrbitTrajectory,
-  useOrbitTrajectory,
-} from "@ksp-gonogo/sitrep-client";
+import { conicApsides, type OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -18,6 +14,7 @@ import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { usePastTrack } from "../shared/usePastTrack";
 import { useStreamBody } from "../shared/useStreamBody";
 import {
@@ -106,7 +103,7 @@ function OrbitViewComponent({
   const periapsisR = apsisShape?.periapsisRadius;
 
   // The trajectory shape comes from the propagation seam, never from `sma` and `ecc` here, so an integrating provider changes what is drawn.
-  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const trajectory: OrbitTrajectory | null = useOrbitPlaneTrajectory(orbit);
 
   const { isOrbiting } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
   // Single-body subscription, avoiding the all-bodies fanout of useCelestialBodies.

@@ -1,10 +1,9 @@
+import { orbitRing } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import GOLDEN from "./__fixtures__/orbitGeometry-golden.json";
-import {
-  orbitPointAt,
-  orbitRingPoints,
-  perifocalToParent,
-} from "./orbitGeometry";
+import { orbitPointAt, perifocalToParent } from "./orbitGeometry";
+
+const RAD = Math.PI / 180;
 
 const ANGLES: readonly (readonly [lan: number, argPe: number, inc: number])[] =
   [
@@ -54,14 +53,23 @@ describe("SystemView orbit geometry keeps its numbers", () => {
     expectSameMetres(actual, GOLDEN.perifocalToParent);
   });
 
-  it("orbitPointAt and orbitRingPoints", () => {
+  it("orbitPointAt and the SDK ring", () => {
     const at = ANGLES.flatMap(([lan, argPe, inc]) =>
       [0, 77, 180, 291].map((nu) =>
         orbitPointAt(900_000, 0.35, lan, argPe, inc, nu),
       ),
     );
     const ring = ANGLES.map(([lan, argPe, inc]) =>
-      orbitRingPoints(900_000, 0.35, lan, argPe, inc, 8),
+      orbitRing(
+        {
+          sma: 900_000,
+          ecc: 0.35,
+          inc: inc * RAD,
+          lan: lan * RAD,
+          argPe: argPe * RAD,
+        },
+        8,
+      ),
     );
     expectSameMetres(
       [at, ring],

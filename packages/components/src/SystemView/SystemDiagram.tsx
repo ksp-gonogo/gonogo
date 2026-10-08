@@ -21,6 +21,7 @@ import {
   type VesselOrbit,
 } from "./diagramGeometry";
 import {
+  ArcFarEndMark,
   DepthGradient,
   EncounterMarker,
   PredictedPatchArc,
@@ -141,8 +142,8 @@ export function SystemDiagram({
 
   // Memoised on the projection and not on zoom: this re-renders every frame, and a wheel gesture must not replace thousands of placements.
   const placedBodies = useMemo(
-    () => placeBodies({ children, poses, placement, plotScale }),
-    [children, poses, placement, plotScale],
+    () => placeBodies({ parent, children, poses, placement, plotScale }),
+    [parent, children, poses, placement, plotScale],
   );
   const vesselHere =
     vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
@@ -319,6 +320,17 @@ export function SystemDiagram({
           ),
         )}
 
+        {placed.bodies.map((p) =>
+          p.ringEnd === null ? null : (
+            <ArcFarEndMark
+              key={`orbit-end-${p.body.index}`}
+              end={p.ringEnd}
+              zoom={zoom}
+              bodyName={p.body.name ?? ""}
+            />
+          ),
+        )}
+
         {/* Patch arcs sit under the body dots and the vessel marker. */}
         {placedPatches?.patches.map(({ patch, points }) => (
           <PredictedPatchArc
@@ -332,7 +344,6 @@ export function SystemDiagram({
 
         {showVessel && (
           <VesselOrbitPath
-            vessel={vessel}
             trajectory={vesselTrajectory}
             conicRing={placed.vessel?.ring ?? null}
             placement={placement}

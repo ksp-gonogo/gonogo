@@ -263,6 +263,9 @@ export type {
   Vec3Tuple,
 } from "./kepler";
 export {
+  arcInOrbitPlane,
+  bodyOrbitCurve,
+  bodyOrbitInput,
   CONTROL_FRAME_TOPIC,
   canPropagate,
   controlFrameToReadFrameChoice,
@@ -282,6 +285,8 @@ export {
   librationPairsOf,
   librationPositionsFor,
   meanAnomalyAt,
+  ORBIT_RING_SAMPLES,
+  orbitRing,
   orbitTrajectory,
   PropagationHorizonKindLike,
   pastTrack,
@@ -302,6 +307,7 @@ export {
   trajectoryFrameKindFor,
   trajectoryFrameLabel,
   trueAnomalyFromEccentric,
+  useOrbitCurve,
   useOrbitTrajectory,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";

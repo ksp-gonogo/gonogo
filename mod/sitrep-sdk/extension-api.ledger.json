@@ -9709,8 +9709,32 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
+        "key": "sitrep-sdk ./frames ORBIT_RING_SAMPLES",
+        "note": "New: how many points a closed orbit ring is sampled into"
+      },
+      {
+        "key": "sitrep-sdk ./frames OrbitCurveSubject",
+        "note": "New: whose path useOrbitCurve answers for, a catalogue body or elements already held"
+      },
+      {
         "key": "sitrep-sdk ./frames Vec3Tuple",
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
+      },
+      {
+        "key": "sitrep-sdk ./frames arcInOrbitPlane",
+        "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
+      },
+      {
+        "key": "sitrep-sdk ./frames bodyOrbitCurve",
+        "note": "New: how a catalogue body's path may be drawn, asked per body without a hook"
+      },
+      {
+        "key": "sitrep-sdk ./frames bodyOrbitInput",
+        "note": "New: a catalogue body's orbit as the input orbitTrajectory takes, with its own horizon"
+      },
+      {
+        "key": "sitrep-sdk ./frames orbitRing",
+        "note": "New: the closed ring of an orbit in the parent's inertial axes, the one sampler every diagram draws a conic with"
       },
       {
         "key": "sitrep-sdk ./frames rotatePerifocalToInertial",
@@ -9719,6 +9743,50 @@
       {
         "key": "sitrep-sdk ./frames trueAnomalyFromEccentric",
         "note": "Published on /frames beside the frame arithmetic: it gives the true anomaly for an eccentric anomaly"
+      },
+      {
+        "key": "sitrep-sdk ./frames useOrbitCurve",
+        "note": "New: a catalogue body's or held orbit's path as a conic, an arc to its horizon or a refusal, held per UT second"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#argPe",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#ecc",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#epoch",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#inc",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#lan",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#meanAnomalyAtEpoch",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#mu",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~OrbitElements#sma",
+        "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~TrajectoryArcAnswer",
+        "note": "Reachable through arcInOrbitPlane now; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotContext",
@@ -10801,6 +10869,14 @@
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
       },
       {
+        "key": "sitrep-sdk ./spine ORBIT_RING_SAMPLES",
+        "note": "New: how many points a closed orbit ring is sampled into"
+      },
+      {
+        "key": "sitrep-sdk ./spine OrbitCurveSubject",
+        "note": "New: whose path useOrbitCurve answers for, a catalogue body or elements already held"
+      },
+      {
         "key": "sitrep-sdk ./spine PropagablePatch",
         "note": "A patch with lan, argPe and meanAnomalyAtEpoch present, which the propagation reads"
       },
@@ -10825,8 +10901,20 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
+        "key": "sitrep-sdk ./spine arcInOrbitPlane",
+        "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
+      },
+      {
         "key": "sitrep-sdk ./spine assertSizeDelta",
         "note": "Registration check for an extension's sizeDelta (whole numbers, zero or more), shared by the augment and contribution registries"
+      },
+      {
+        "key": "sitrep-sdk ./spine bodyOrbitCurve",
+        "note": "New: how a catalogue body's path may be drawn, asked per body without a hook"
+      },
+      {
+        "key": "sitrep-sdk ./spine bodyOrbitInput",
+        "note": "New: a catalogue body's orbit as the input orbitTrajectory takes, with its own horizon"
       },
       {
         "key": "sitrep-sdk ./spine canPropagatePatch",
@@ -10835,6 +10923,10 @@
       {
         "key": "sitrep-sdk ./spine openCommandGroup",
         "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine orbitRing",
+        "note": "New: the closed ring of an orbit in the parent's inertial axes, the one sampler every diagram draws a conic with"
       },
       {
         "key": "sitrep-sdk ./spine poseAtIndex",
@@ -10859,6 +10951,10 @@
       {
         "key": "sitrep-sdk ./spine systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
+      },
+      {
+        "key": "sitrep-sdk ./spine useOrbitCurve",
+        "note": "New: a catalogue body's or held orbit's path as a conic, an arc to its horizon or a refusal, held per UT second"
       },
       {
         "key": "sitrep-sdk ./spine useSystemInstant",

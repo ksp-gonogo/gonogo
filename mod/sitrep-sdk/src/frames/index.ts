@@ -137,7 +137,12 @@ export {
   librationPairsOf,
 } from "../spine/lagrange";
 export {
+  arcInOrbitPlane,
+  bodyOrbitCurve,
+  bodyOrbitInput,
+  ORBIT_RING_SAMPLES,
   type OrbitTrajectory,
+  orbitRing,
   type TrajectoryFrame,
   TrajectoryFrameKindLike,
   trajectoryFrameLabel,
@@ -158,6 +163,10 @@ export {
   type TrajectoryScaleConvention,
   toFrame,
 } from "../spine/reference-frame";
+export {
+  type OrbitCurveSubject,
+  useOrbitCurve,
+} from "../spine/use-orbit-curve";
 export { useOrbitTrajectory } from "../spine/use-orbit-trajectory";
 
 /**

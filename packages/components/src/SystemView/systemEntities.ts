@@ -8,7 +8,7 @@ import type {
   SystemEntityShape,
   SystemEntityStyle,
 } from "@ksp-gonogo/sitrep-sdk";
-import { orbitPointAt, orbitRingPoints } from "./orbitGeometry";
+import { orbitPointAt, orbitRingOf } from "./orbitGeometry";
 import { INERTIAL_PLACEMENT, type Placement } from "./projection";
 
 export type {
@@ -96,7 +96,7 @@ export function projectOrbitRing(
   if (!sameParent(orbit.parentName, ctx.parentName)) return null;
   if (!(orbit.sma > 0) || !Number.isFinite(orbit.sma)) return null;
   const placement = ctx.placement ?? INERTIAL_PLACEMENT;
-  const points = orbitRingPoints(
+  const points = orbitRingOf(
     orbit.sma,
     orbit.ecc,
     orbit.lan,

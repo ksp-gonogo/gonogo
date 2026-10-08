@@ -8,7 +8,7 @@ import {
   depthColour,
   depthStrength,
 } from "./depthCues";
-import { liftArc, openPath, type VesselOrbit } from "./diagramGeometry";
+import { arcMetres, openPath, type PlacedRingEnd } from "./diagramGeometry";
 import type { ProjectedPatch } from "./predictedTrajectory";
 import type { Placement } from "./projection";
 
@@ -80,13 +80,11 @@ export function DepthRing({
  * The vessel's trajectory, drawn as the propagation seam authorised it, through the same placement as the bodies so both share one frame.
  *
  * - CONIC: the elements are the curve, sampled in three dimensions like a body's ring
- * - PERIFOCAL: lifted from the orbit's plane to parent-centred metres by the elements' rotation
- * - BODY-CENTRED-INERTIAL: already in parent-centred metres
+ * - ARC: already in parent-centred inertial metres
  *
  * Any other frame, or a refusal, draws nothing: an empty path and no trajectory look identical and mean opposite things.
  */
 export function VesselOrbitPath({
-  vessel,
   trajectory,
   conicRing,
   placement,
@@ -95,7 +93,6 @@ export function VesselOrbitPath({
   hasGradient,
   zoom,
 }: Readonly<{
-  vessel: VesselOrbit;
   trajectory: OrbitTrajectory | null;
   conicRing: string | null;
   placement: Placement;
@@ -104,20 +101,16 @@ export function VesselOrbitPath({
   hasGradient: boolean;
   zoom: number;
 }>) {
-  const { lan, argPe, inclination } = vessel;
-  /*
-   * The placed arc is held on the answer's identity, so a render that carries the same held trajectory re-places nothing.
-   * Only the plane's rotation enters the lift, never where the craft is on it, so the craft moving does not invalidate it.
-   */
+  // The placed arc is held on the answer's identity, so a render carrying the same held trajectory re-places nothing.
   const arcPath = useMemo(() => {
     if (trajectory === null || trajectory.shape !== "arc") return null;
-    const lifted = liftArc(trajectory, { lan, argPe, inclination });
-    if (lifted === null) return null;
+    const metres = arcMetres(trajectory);
+    if (metres === null) return null;
     return openPath(
-      lifted.map((p) => placement.place(p)),
+      metres.map((p) => placement.place(p)),
       plotScale,
     );
-  }, [trajectory, lan, argPe, inclination, placement, plotScale]);
+  }, [trajectory, placement, plotScale]);
   if (trajectory === null || trajectory.shape === "withheld") return null;
   // Screen-constant stroke and dashes.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
@@ -149,6 +142,35 @@ export function VesselOrbitPath({
       strokeDasharray={dashes}
       pointerEvents="none"
     />
+  );
+}
+
+/** A stop bar across the far end of a body's open arc, perpendicular to the way it was heading: nothing is drawn past it because nothing vouches for it. */
+export function ArcFarEndMark({
+  end,
+  zoom,
+  bodyName,
+}: Readonly<{ end: PlacedRingEnd; zoom: number; bodyName: string }>) {
+  const half = 4 / zoom;
+  const nx = -end.headingY * half;
+  const ny = end.headingX * half;
+  return (
+    <line
+      data-trajectory-mark="horizon"
+      data-body-orbit-end={bodyName}
+      x1={end.x - nx}
+      y1={end.y - ny}
+      x2={end.x + nx}
+      y2={end.y + ny}
+      stroke="var(--color-warn-mark)"
+      strokeWidth={1.6 / zoom}
+      strokeLinecap="butt"
+      pointerEvents="none"
+    >
+      <title>
+        {`${bodyName}: the path is drawn to the last instant its provider vouches for`}
+      </title>
+    </line>
   );
 }
 

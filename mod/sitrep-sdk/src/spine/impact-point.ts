@@ -24,12 +24,7 @@ import {
   Quality,
 } from "../__generated__/contract";
 import { magnitudeOr, type Quantityish } from "../magnitude";
-import {
-  canPropagate,
-  rotatePerifocalToInertial,
-  type Vec3Tuple,
-} from "./kepler";
-import { buildElements } from "./kepler-reckoning";
+import { canPropagate, type Vec3Tuple } from "./kepler";
 import {
   groundTrackSamples,
   type PatchSpan,
@@ -332,10 +327,9 @@ function lerpPoint(
  * bound.
  *
  * A latitude and longitude need the point in a frame whose z axis is the
- * body's spin axis and whose centre is the body itself. The two frames an arc
- * can arrive in that give that are the perifocal frame of these elements, which
- * the elements' own rotation lifts back into the body-centred inertial frame
- * they are measured in, and that inertial frame directly. Any other frame, a
+ * body's spin axis and whose centre is the body itself. The one frame an arc
+ * can arrive in that gives that is the body-centred inertial frame the elements
+ * are measured in. Any other frame, a
  * different centre, or lengths that are not metres answers no impact rather
  * than a guess, and never falls back to a conic the provider did not offer.
  *
@@ -361,29 +355,8 @@ function arcImpact(
   ) {
     return null;
   }
-  const resolveLift = (): ((p: TrajectoryPoint) => Vec3Tuple) | null => {
-    if (frame.kind === TrajectoryFrameKindLike.BodyCentredInertial) {
-      return (p) => [p.x, p.y, p.z];
-    }
-    if (frame.kind === TrajectoryFrameKindLike.Perifocal) {
-      const { inc, lan, argPe } = buildElements(orbit);
-      const pHat = rotatePerifocalToInertial(1, 0, inc, lan, argPe);
-      const qHat = rotatePerifocalToInertial(0, 1, inc, lan, argPe);
-      const wHat: Vec3Tuple = [
-        pHat[1] * qHat[2] - pHat[2] * qHat[1],
-        pHat[2] * qHat[0] - pHat[0] * qHat[2],
-        pHat[0] * qHat[1] - pHat[1] * qHat[0],
-      ];
-      return (p) => [
-        p.x * pHat[0] + p.y * qHat[0] + p.z * wHat[0],
-        p.x * pHat[1] + p.y * qHat[1] + p.z * wHat[1],
-        p.x * pHat[2] + p.y * qHat[2] + p.z * wHat[2],
-      ];
-    }
-    return null;
-  };
-  const lift = resolveLift();
-  if (!lift) return null;
+  if (frame.kind !== TrajectoryFrameKindLike.BodyCentredInertial) return null;
+  const lift = (p: TrajectoryPoint): Vec3Tuple => [p.x, p.y, p.z];
 
   const surface = bodyRadius + MIN_IMPACT_ALT_M;
   const endUt = ref.ut + walkSec;

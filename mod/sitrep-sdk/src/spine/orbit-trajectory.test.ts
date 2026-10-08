@@ -5,8 +5,12 @@ import {
   TrajectoryKindLike as Shape,
 } from "./kepler";
 import {
+  arcInOrbitPlane,
+  bodyOrbitCurve,
   TrajectoryFrameKindLike as Frame,
   frameCoordinatesArePulsating,
+  ORBIT_RING_SAMPLES,
+  orbitRing,
   orbitTrajectory,
   trajectoryFrameLabel,
 } from "./orbit-trajectory";
@@ -223,15 +227,23 @@ describe("orbitTrajectory: what the far end of a sampled conic means", () => {
     expect(answer.farEnd).toBe("horizon");
   });
 
-  it("gives a conic a real zero out of plane, not an unfilled field", () => {
+  it("answers every arc in the parent's inertial frame, named for the body it is measured against", () => {
     const answer = orbitTrajectory({
-      orbit: lko({ horizon: INTEGRATED }),
+      orbit: lko({
+        inc: { magnitude: 63 },
+        lan: { magnitude: 40 },
+        argPe: { magnitude: 110 },
+        horizon: INTEGRATED,
+      }),
       viewUt: 0,
     });
     expect(answer.shape).toBe("arc");
     if (answer.shape !== "arc") return;
-    for (const p of answer.points) expect(p.z).toBe(0);
-    expect(answer.frame.kind).toBe(Frame.Perifocal);
+    expect(answer.frame.kind).toBe(Frame.BodyCentredInertial);
+    // The orbit is tilted, so the path leaves the reference plane.
+    expect(
+      Math.max(...answer.points.map((p) => Math.abs(p.z))),
+    ).toBeGreaterThan(100_000);
   });
 });
 
@@ -361,8 +373,8 @@ describe("orbitTrajectory read frames", () => {
       viewUt: 0,
       samples: 16,
     });
-    if (perifocal.shape !== "arc") throw new Error("expected a perifocal arc");
-    expect(perifocal.frame.kind).toBe(Frame.Perifocal);
+    if (perifocal.shape !== "arc") throw new Error("expected an arc");
+    expect(perifocal.frame.kind).toBe(Frame.BodyCentredInertial);
     expect(turned.points[8].x).not.toBeCloseTo(perifocal.points[8].x, -3);
   });
 
@@ -481,5 +493,128 @@ describe("trajectoryFrameLabel", () => {
         SYSTEM,
       ),
     ).toBe("orbit plane");
+  });
+});
+
+describe("arcInOrbitPlane", () => {
+  const TILTED = lko({
+    sma: { magnitude: 900_000 },
+    ecc: { magnitude: 0.3 },
+    inc: { magnitude: 63 },
+    lan: { magnitude: 40 },
+    argPe: { magnitude: 110 },
+    meanAnomalyAtEpoch: { magnitude: 1.1 },
+    horizon: INTEGRATED,
+  });
+
+  it("puts an inclined orbit's path back on its own ellipse, flat in the plane", () => {
+    const arc = orbitTrajectory({ orbit: TILTED, viewUt: 0, samples: 64 });
+    if (arc.shape !== "arc") throw new Error("expected an arc");
+    const flat = arcInOrbitPlane(arc, TILTED);
+    if (flat === null) throw new Error("expected an in-plane arc");
+    const a = 900_000;
+    const e = 0.3;
+    const b = a * Math.sqrt(1 - e * e);
+    for (const p of flat.points) {
+      expect(Math.abs(p.z)).toBeLessThan(1e-6);
+      expect(((p.x + a * e) / a) ** 2 + (p.y / b) ** 2).toBeCloseTo(1, 9);
+    }
+    expect(flat.frame.kind).toBe(Frame.Perifocal);
+    expect(trajectoryFrameLabel(flat.frame, SYSTEM)).toBe("orbit plane");
+  });
+
+  it("is the exact inverse of the lift, point by point", () => {
+    const arc = orbitTrajectory({ orbit: TILTED, viewUt: 0, samples: 8 });
+    if (arc.shape !== "arc") throw new Error("expected an arc");
+    const flat = arcInOrbitPlane(arc, TILTED);
+    if (flat === null) throw new Error("expected an in-plane arc");
+    flat.points.forEach((p, i) => {
+      expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(
+        Math.hypot(arc.points[i].x, arc.points[i].y, arc.points[i].z),
+        6,
+      );
+    });
+  });
+
+  it("refuses an arc that was moved into a read frame", () => {
+    const arc = orbitTrajectory({
+      orbit: homeOrbit({ horizon: INTEGRATED }),
+      viewUt: 0,
+      samples: 16,
+      readFrame: {
+        choice: { kind: "parent-direction", bodyIndex: 1 },
+        facts: SYSTEM,
+      },
+    });
+    if (arc.shape !== "arc") throw new Error("expected an arc");
+    expect(arcInOrbitPlane(arc, homeOrbit())).toBeNull();
+  });
+});
+
+describe("orbitRing", () => {
+  it("closes on its first point and keeps every point on the ellipse", () => {
+    const ring = orbitRing(
+      {
+        sma: 900_000,
+        ecc: 0.35,
+        inc: (63 * Math.PI) / 180,
+        lan: 0.7,
+        argPe: 1.9,
+      },
+      ORBIT_RING_SAMPLES,
+    );
+    expect(ring).toHaveLength(ORBIT_RING_SAMPLES + 1);
+    expect(ring[ORBIT_RING_SAMPLES][0]).toBeCloseTo(ring[0][0], 6);
+    expect(ring[ORBIT_RING_SAMPLES][2]).toBeCloseTo(ring[0][2], 6);
+    for (const p of ring) {
+      const r = Math.hypot(...p);
+      expect(r).toBeGreaterThan(900_000 * 0.65 - 1);
+      expect(r).toBeLessThan(900_000 * 1.35 + 1);
+    }
+  });
+});
+
+describe("bodyOrbitCurve", () => {
+  const integratedMoon = {
+    ...SYSTEM,
+    bodies: SYSTEM.bodies.map((b) =>
+      b.index === 2
+        ? {
+            ...b,
+            horizon: {
+              kind: Reach.Until,
+              untilUt: 5_000,
+              trajectoryKind: Shape.Integrated,
+            },
+          }
+        : b,
+    ),
+  };
+
+  it("answers an integrating provider's body with an open arc stopped at its horizon", () => {
+    const answer = bodyOrbitCurve(
+      integratedMoon.bodies[2],
+      integratedMoon.bodies[1],
+      0,
+    );
+    expect(answer?.shape).toBe("arc");
+    if (answer?.shape !== "arc") return;
+    expect(answer.farEnd).toBe("horizon");
+    expect(answer.toUt).toBe(5_000);
+    expect(answer.frame.centreBodyIndex).toBe(1);
+    expect(answer.frame.kind).toBe(Frame.BodyCentredInertial);
+    for (const p of answer.points) {
+      expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(LUNAR_DISTANCE, -2);
+    }
+  });
+
+  it("answers an analytic body with the conic", () => {
+    expect(bodyOrbitCurve(SYSTEM.bodies[2], SYSTEM.bodies[1], 0)?.shape).toBe(
+      "conic",
+    );
+  });
+
+  it("has no curve for the root star", () => {
+    expect(bodyOrbitCurve(SYSTEM.bodies[0], null, 0)).toBeNull();
   });
 });

@@ -1,11 +1,11 @@
-import type { OrbitTrajectory, SystemPoses } from "@ksp-gonogo/sitrep-client";
-import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
-import { type DepthGradientAxis, depthGradientAxis } from "./depthCues";
 import {
-  orbitPointAt,
-  orbitRingPoints,
-  perifocalToParent,
-} from "./orbitGeometry";
+  bodyOrbitCurve,
+  type OrbitTrajectory,
+  type SystemPoses,
+  TrajectoryFrameKindLike,
+} from "@ksp-gonogo/sitrep-client";
+import { type DepthGradientAxis, depthGradientAxis } from "./depthCues";
+import { orbitPointAt, orbitRingOf } from "./orbitGeometry";
 import type { Placement } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
 
@@ -34,17 +34,26 @@ export interface PlacedPoint {
   depthUnits: number;
 }
 
-export interface PlacedBody extends PlacedPoint {
+export interface PlacedBody extends PlacedPoint, PlacedRing {
   body: CelestialBody;
-  /** The whole ring as an SVG path in plot units, or null when there is none. */
-  ring: string | null;
-  ringDepth: DepthGradientAxis | null;
+}
+
+/** Where an open arc stops, in plot units, and the way it was heading there. */
+export interface PlacedRingEnd {
+  x: number;
+  y: number;
+  headingX: number;
+  headingY: number;
 }
 
 export interface PlacedRing {
   ring: string | null;
   ringDepth: DepthGradientAxis | null;
+  /** Set for an open arc only; a closed ring has no end. */
+  ringEnd: PlacedRingEnd | null;
 }
+
+const NO_RING: PlacedRing = { ring: null, ringDepth: null, ringEnd: null };
 
 export interface PlacedDiagram {
   /** The frame body. At the origin under the inertial projection, elsewhere otherwise. */
@@ -59,6 +68,7 @@ export interface PlacedDiagram {
  * Body positions are the wire's measurement while a rotating frame is a Kepler model at the same instant, so any disagreement shows as a small rotation of the frame rather than moving every body.
  */
 export function placeDiagram({
+  parent,
   children,
   poses,
   vessel,
@@ -66,6 +76,7 @@ export function placeDiagram({
   placement,
   plotScale,
 }: {
+  parent: CelestialBody | null;
   children: readonly CelestialBody[];
   poses: SystemPoses | undefined;
   vessel: VesselOrbit | null | undefined;
@@ -76,7 +87,7 @@ export function placeDiagram({
   const vesselHere =
     vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
   return {
-    ...placeBodies({ children, poses, placement, plotScale }),
+    ...placeBodies({ parent, children, poses, placement, plotScale }),
     vessel:
       vesselHere === null
         ? null
@@ -109,23 +120,79 @@ function placedRingOf(
   argPe: number,
   inclination: number,
 ): PlacedRing {
-  if (!(sma > 0)) return { ring: null, ringDepth: null };
-  const points = orbitRingPoints(sma, ecc, lan, argPe, inclination).map((p) =>
+  if (!(sma > 0)) return NO_RING;
+  const points = orbitRingOf(sma, ecc, lan, argPe, inclination).map((p) =>
     placement.place(p),
   );
   return {
     ring: closedPath(points, plotScale),
     ringDepth: depthGradientAxis(points, plotScale),
+    ringEnd: null,
+  };
+}
+
+/**
+ * A body's path as its provider answered it: the closed ring for a conic, the open arc to its horizon for an integrating provider, nothing for a refusal.
+ * An arc is already in the parent's inertial metres, so it goes through the placement like any other point.
+ */
+function placedBodyRing(
+  placement: Placement,
+  plotScale: number,
+  body: CelestialBody,
+  parent: CelestialBody | null,
+  viewUt: number,
+): PlacedRing {
+  const curve = bodyOrbitCurve(body, parent, viewUt);
+  if (curve === null || curve.shape === "withheld") return NO_RING;
+  if (curve.shape === "conic") {
+    return placedRingOf(
+      placement,
+      plotScale,
+      body.semiMajorAxis ?? 0,
+      body.eccentricity ?? 0,
+      body.lan ?? 0,
+      body.argumentOfPeriapsis ?? 0,
+      body.inclination ?? 0,
+    );
+  }
+  const metres = arcMetres(curve);
+  if (metres === null) return NO_RING;
+  const points = metres.map((p) => placement.place(p));
+  return {
+    ring: openPath(points, plotScale),
+    ringDepth: depthGradientAxis(points, plotScale),
+    ringEnd: ringEndOf(points, plotScale),
+  };
+}
+
+function ringEndOf(
+  points: readonly (readonly [number, number, number])[],
+  plotScale: number,
+): PlacedRingEnd | null {
+  if (points.length < 2) return null;
+  const end = points[points.length - 1];
+  const before = points[points.length - 2];
+  const dx = (end[0] - before[0]) * plotScale;
+  const dy = (end[1] - before[1]) * plotScale;
+  const length = Math.hypot(dx, dy);
+  if (!(length > 0)) return null;
+  return {
+    x: end[0] * plotScale,
+    y: end[1] * plotScale,
+    headingX: dx / length,
+    headingY: dy / length,
   };
 }
 
 /** The frame body and every drawn child with its ring: independent of the vessel, so a vessel tick does not re-place them. */
 export function placeBodies({
+  parent: parentBody,
   children,
   poses,
   placement,
   plotScale,
 }: {
+  parent: CelestialBody | null;
   children: readonly CelestialBody[];
   poses: SystemPoses | undefined;
   placement: Placement;
@@ -153,15 +220,7 @@ export function placeBodies({
             poses?.poseByIndex[c.index]?.trueAnomaly ?? 0,
           ),
         ),
-        ...placedRingOf(
-          placement,
-          plotScale,
-          sma,
-          ecc,
-          lan,
-          argPe,
-          inclination,
-        ),
+        ...placedBodyRing(placement, plotScale, c, parentBody, poses?.ut ?? 0),
       };
     }),
   };
@@ -231,31 +290,15 @@ export function openPath(
 }
 
 /**
- * A sampled arc in the frame it arrived in, put into parent-centred inertial
- * metres, or null when the frame it arrived in is not one this diagram can lift
- * from.
+ * A sampled arc's points as parent-centred inertial metres, or null when it arrived in any other frame: this diagram places metres, and an arc already moved into a read frame is not.
  */
-export function liftArc(
+export function arcMetres(
   trajectory: Extract<OrbitTrajectory, { shape: "arc" }>,
-  vessel: Pick<VesselOrbit, "lan" | "argPe" | "inclination">,
 ): (readonly [number, number, number])[] | null {
-  switch (trajectory.frame.kind) {
-    case TrajectoryFrameKindLike.Perifocal:
-      return trajectory.points.map((p) =>
-        perifocalToParent(
-          p.x,
-          p.y,
-          vessel.lan,
-          vessel.argPe,
-          vessel.inclination,
-          p.z,
-        ),
-      );
-    case TrajectoryFrameKindLike.BodyCentredInertial:
-      return trajectory.points.map((p) => [p.x, p.y, p.z]);
-    default:
-      return null;
+  if (trajectory.frame.kind !== TrajectoryFrameKindLike.BodyCentredInertial) {
+    return null;
   }
+  return trajectory.points.map((p) => [p.x, p.y, p.z]);
 }
 
 export function organise(

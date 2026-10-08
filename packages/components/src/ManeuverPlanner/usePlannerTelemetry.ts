@@ -7,7 +7,6 @@ import {
   type OrbitTrajectory,
   type ReckonableReading,
   solveOrbit,
-  useOrbitTrajectory,
   useProcessor,
   useStream,
   useViewUt,
@@ -18,6 +17,7 @@ import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
+import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { buildCurrentOrbit, computeMu } from "./planning";
 
 /**
@@ -69,7 +69,8 @@ export function usePlannerTelemetry() {
       }
     : undefined;
   // The current orbit's curve is the propagation seam's answer, never a diagram's own choice.
-  const currentTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const currentTrajectory: OrbitTrajectory | null =
+    useOrbitPlaneTrajectory(orbit);
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
   const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
   // Answers nothing wherever a conic through these elements would be wrong, which is what withholds the plan.

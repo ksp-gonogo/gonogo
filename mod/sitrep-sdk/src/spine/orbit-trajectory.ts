@@ -32,7 +32,8 @@
  */
 
 import { PerfBudget } from "../perf/PerfBudget";
-import type { CelestialFacts } from "./celestial-facts";
+import { finite } from "./catalogue-elements";
+import type { CelestialBody, CelestialFacts } from "./celestial-facts";
 import {
   canPropagate,
   horizonUtOf,
@@ -301,11 +302,12 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
       horizon,
       viewUt,
       input.samples,
+      orbit.referenceBodyIndex,
     );
     if (sampled === null) {
       return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
     }
-    return reframeArc(sampled, buildElements(orbit), orbit, reframing, viewUt);
+    return reframeArc(sampled, orbit, reframing, viewUt);
   }
   if (trajectoryKind !== TrajectoryKindLike.Integrated) {
     // `Unspecified`, or absent entirely. Both are what a producer that never
@@ -319,12 +321,18 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
   // stopped at the provider's horizon: never a closed ellipse, which would
   // claim a path the craft will not fly.
   const elements = buildElements(orbit);
-  const arc = sampleArc(elements, horizon, viewUt, input.samples);
+  const arc = sampleArc(
+    elements,
+    horizon,
+    viewUt,
+    input.samples,
+    orbit.referenceBodyIndex,
+  );
   if (arc === null) {
     return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
   }
   if (reframing === null) return arc;
-  return reframeArc(arc, elements, orbit, reframing, viewUt);
+  return reframeArc(arc, orbit, reframing, viewUt);
 }
 
 /**
@@ -347,9 +355,8 @@ function wantsReframing(
  * A curve moved into the frame the caller asked for.
  *
  * The two steps are separate on purpose. First the points are lifted out of
- * whatever frame they were computed in and into the system: perifocal points
- * are un-rotated by the elements that built them, body-centred points already
- * are, and the centre body's own position at each point's OWN instant is added.
+ * the body-centred inertial frame they were sampled in and into the system: the
+ * centre body's own position at each point's OWN instant is added.
  * Only then does the frame transform run. A curve lifted at one instant and
  * transformed at another is a curve that never existed.
  *
@@ -359,7 +366,6 @@ function wantsReframing(
  */
 function reframeArc(
   arc: TrajectoryArcAnswer,
-  elements: OrbitElements,
   orbit: OrbitTrajectoryInput["orbit"],
   readFrame: { choice: ReadFrameChoice; facts: CelestialFacts },
   viewUt: number,
@@ -370,40 +376,13 @@ function reframeArc(
   };
   const centreIndex = orbit.referenceBodyIndex ?? arc.frame.centreBodyIndex;
   if (centreIndex === undefined) return unavailable;
-  const sourceKind = arc.frame.kind;
-  if (
-    sourceKind !== TrajectoryFrameKindLike.Perifocal &&
-    sourceKind !== TrajectoryFrameKindLike.BodyCentredInertial
-  ) {
+  if (arc.frame.kind !== TrajectoryFrameKindLike.BodyCentredInertial) {
     return unavailable;
   }
   const sides = frameSides(readFrame.facts, readFrame.choice);
   if (sides === null) return unavailable;
   const kind = trajectoryFrameKindFor(readFrame.choice.kind);
   if (kind === TrajectoryFrameKindLike.Unspecified) return unavailable;
-
-  // The perifocal frame's own axes in inertial components, built once rather
-  // than per point. The third is the orbit normal, which the two-dimensional
-  // rotation cannot give and which a point's out-of-plane component needs.
-  const pHat = rotatePerifocalToInertial(
-    1,
-    0,
-    elements.inc,
-    elements.lan,
-    elements.argPe,
-  );
-  const qHat = rotatePerifocalToInertial(
-    0,
-    1,
-    elements.inc,
-    elements.lan,
-    elements.argPe,
-  );
-  const wHat: Vec3Tuple = [
-    pHat[1] * qHat[2] - pHat[2] * qHat[1],
-    pHat[2] * qHat[0] - pHat[0] * qHat[2],
-    pHat[0] * qHat[1] - pHat[1] * qHat[0],
-  ];
 
   const points: TrajectoryPoint[] = [];
   let unitLengthAtView: number | undefined;
@@ -424,19 +403,11 @@ function reframeArc(
     if (unitLengthAtView === undefined || p.ut <= viewUt) {
       unitLengthAtView = instant.unitLength;
     }
-    const local: Vec3Tuple =
-      sourceKind === TrajectoryFrameKindLike.Perifocal
-        ? [
-            p.x * pHat[0] + p.y * qHat[0] + p.z * wHat[0],
-            p.x * pHat[1] + p.y * qHat[1] + p.z * wHat[1],
-            p.x * pHat[2] + p.y * qHat[2] + p.z * wHat[2],
-          ]
-        : [p.x, p.y, p.z];
     TRAJECTORY_TRANSFORM_BUDGET.record();
     const moved = toFrame(instant, [
-      local[0] + centre[0],
-      local[1] + centre[1],
-      local[2] + centre[2],
+      p.x + centre[0],
+      p.y + centre[1],
+      p.z + centre[2],
     ]);
     points.push({
       x: moved.position[0],
@@ -506,6 +477,7 @@ function sampleArc(
   horizon: PropagationHorizonLike | undefined,
   viewUt: number,
   samples: number | undefined,
+  centreBodyIndex: number | undefined,
 ): TrajectoryArcAnswer | null {
   // `solveAnomalies` refuses outside `[0, 1)`, so an unbound osculating set has no arc rather than a thrown render.
   if (!(elements.ecc >= 0 && elements.ecc < 1)) return null;
@@ -525,20 +497,26 @@ function sampleArc(
     const radius =
       elements.sma * (1 - elements.ecc * Math.cos(eccentricAnomaly));
     if (!Number.isFinite(radius)) return null;
-    points.push({
-      x: radius * Math.cos(trueAnomaly),
-      y: radius * Math.sin(trueAnomaly),
-      // A conic is flat in its own plane by construction, so the out-of-plane component is a real zero rather than an unfilled field.
-      z: 0,
-      ut,
-    });
+    // A conic is flat in its own plane by construction, so the plane's normal component is a real zero rather than an unfilled field.
+    const [x, y, z] = rotatePerifocalToInertial(
+      radius * Math.cos(trueAnomaly),
+      radius * Math.sin(trueAnomaly),
+      elements.inc,
+      elements.lan,
+      elements.argPe,
+    );
+    points.push({ x, y, z, ut });
   }
   return {
     shape: "arc",
     points,
     fromUt: viewUt,
     toUt,
-    frame: { kind: TrajectoryFrameKindLike.Perifocal, lengthsPulsate: false },
+    frame: {
+      kind: TrajectoryFrameKindLike.BodyCentredInertial,
+      centreBodyIndex,
+      lengthsPulsate: false,
+    },
     farEnd: toUt < revolutionUt ? "horizon" : "revolution",
   };
 }
@@ -633,4 +611,141 @@ export function drawnFrame(
     };
   }
   return null;
+}
+
+/**
+ * An arc re-expressed in the plane of the orbit it was sampled from, periapsis
+ * on `+x` and motion toward `+y`, for a diagram that draws that plane flat.
+ *
+ * `z` is the part along the orbit normal: zero for a conic, nonzero where an
+ * integrated path leaves the plane. The frame on the answer is named the orbit
+ * plane, so the picture and its caption agree.
+ *
+ * Null when the arc is not in a body-centred inertial frame, because the plane
+ * of an orbit is only defined against the axes it was measured in.
+ *
+ * @category Frames of reference
+ */
+export function arcInOrbitPlane(
+  arc: TrajectoryArcAnswer,
+  orbit: WireOrbitElements,
+): TrajectoryArcAnswer | null {
+  if (arc.frame.kind !== TrajectoryFrameKindLike.BodyCentredInertial) {
+    return null;
+  }
+  const { inc, lan, argPe } = buildElements(orbit);
+  const pHat = rotatePerifocalToInertial(1, 0, inc, lan, argPe);
+  const qHat = rotatePerifocalToInertial(0, 1, inc, lan, argPe);
+  const wHat: Vec3Tuple = [
+    pHat[1] * qHat[2] - pHat[2] * qHat[1],
+    pHat[2] * qHat[0] - pHat[0] * qHat[2],
+    pHat[0] * qHat[1] - pHat[1] * qHat[0],
+  ];
+  return {
+    ...arc,
+    points: arc.points.map((p) => ({
+      x: p.x * pHat[0] + p.y * pHat[1] + p.z * pHat[2],
+      y: p.x * qHat[0] + p.y * qHat[1] + p.z * qHat[2],
+      z: p.x * wHat[0] + p.y * wHat[1] + p.z * wHat[2],
+      ut: p.ut,
+    })),
+    frame: {
+      kind: TrajectoryFrameKindLike.Perifocal,
+      centreBodyIndex: arc.frame.centreBodyIndex,
+      lengthsPulsate: false,
+    },
+  };
+}
+
+/**
+ * How many points a closed orbit ring is sampled into.
+ *
+ * @category Orbits and trajectories
+ */
+export const ORBIT_RING_SAMPLES = 96;
+
+/**
+ * The whole closed ring of an orbit about its parent, in the parent's inertial
+ * axes, metres: `samples + 1` points, the last equal to the first.
+ *
+ * Sampled uniformly in eccentric anomaly so points spread along the curve
+ * instead of piling up at apoapsis. Eccentricity is held below 1, so an
+ * unbound set draws its widest ellipse rather than failing.
+ *
+ * @category Orbits and trajectories
+ */
+export function orbitRing(
+  orbit: Pick<OrbitElements, "sma" | "ecc" | "inc" | "lan" | "argPe">,
+  samples: number = ORBIT_RING_SAMPLES,
+): Vec3Tuple[] {
+  const ecc = Math.min(Math.max(orbit.ecc, 0), 0.999);
+  const semiMinor = orbit.sma * Math.sqrt(1 - ecc * ecc);
+  const points: Vec3Tuple[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const anomaly = (2 * Math.PI * i) / samples;
+    points.push(
+      rotatePerifocalToInertial(
+        orbit.sma * (Math.cos(anomaly) - ecc),
+        semiMinor * Math.sin(anomaly),
+        orbit.inc,
+        orbit.lan,
+        orbit.argPe,
+      ),
+    );
+  }
+  return points;
+}
+
+/**
+ * A catalogue body's orbit about `parent` as an {@link OrbitTrajectoryInput}
+ * `orbit`, carrying the horizon its own provider stated, or null for a body with
+ * no orbit about anything: the root star, or one whose size and shape the
+ * catalogue has not filled.
+ *
+ * The anchor of the orbit in time (mean anomaly, epoch) and the parent's pull
+ * are filled with `NaN` when the catalogue lacks them. That is enough to answer
+ * the shape question and to draw a closed conic, which needs neither, and an
+ * arc that has to place the body in time refuses instead of guessing.
+ *
+ * @category Frames of reference
+ */
+export function bodyOrbitInput(
+  body: CelestialBody,
+  parent: CelestialBody | null,
+): OrbitTrajectoryInput["orbit"] | null {
+  if (!finite(body.semiMajorAxis) || !finite(body.eccentricity)) return null;
+  return {
+    sma: body.semiMajorAxis,
+    ecc: body.eccentricity,
+    inc: body.inclination ?? 0,
+    lan: body.lan ?? 0,
+    argPe: body.argumentOfPeriapsis ?? 0,
+    meanAnomalyAtEpoch: body.meanAnomalyAtEpoch ?? Number.NaN,
+    epoch: body.epoch ?? Number.NaN,
+    mu: parent?.gravParameter ?? Number.NaN,
+    horizon: body.horizon,
+    referenceBodyIndex: parent?.index,
+  };
+}
+
+/**
+ * How a catalogue body's path may be drawn at `viewUt`, as
+ * {@link orbitTrajectory} answers it for a craft: a conic where its provider
+ * says the elements are the curve, the arc to its horizon where it integrates,
+ * a refusal where it vouches for nothing.
+ *
+ * Null where {@link bodyOrbitInput} is. Not a hook, so a diagram can ask for
+ * every child body in one pass.
+ *
+ * @category Frames of reference
+ */
+export function bodyOrbitCurve(
+  body: CelestialBody,
+  parent: CelestialBody | null,
+  viewUt: number,
+  options?: Pick<OrbitTrajectoryInput, "samples" | "readFrame">,
+): OrbitTrajectory | null {
+  const orbit = bodyOrbitInput(body, parent);
+  if (orbit === null) return null;
+  return orbitTrajectory({ orbit, viewUt, ...options });
 }

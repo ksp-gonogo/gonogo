@@ -13,7 +13,6 @@ import {
   conicApsides,
   controlFrameToReadFrameChoice,
   type OrbitTrajectory,
-  useOrbitTrajectory,
   useProcessor,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
@@ -35,6 +34,7 @@ import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { useStreamBody } from "../shared/useStreamBody";
 import { CurrentOrbitConfigForm } from "./CurrentOrbitConfigForm";
 import {
@@ -144,7 +144,7 @@ function CurrentOrbitComponent({
     orbitCurrent ? (v ?? undefined) : undefined;
   const bodyName = useBodyName(useParentBodyIndex());
   // A trajectory refusal also takes the apsides, which are derived at view time; the measured elements still render.
-  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const trajectory: OrbitTrajectory | null = useOrbitPlaneTrajectory(orbit);
   const withheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
 

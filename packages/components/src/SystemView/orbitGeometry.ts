@@ -1,16 +1,10 @@
 import {
+  orbitRing,
   rotatePerifocalToInertial,
   type Vec3Tuple,
 } from "@ksp-gonogo/sitrep-client";
 
 /** Keplerian orbit geometry in the parent's inertial frame, metres. */
-
-/**
- * How many points a drawn orbit ring is sampled into.
- *
- * Every ring is a sampled polyline, even under the identity projection: a projected or rotating-frame orbit is not an ellipse `cx`/`cy` can express. At 96 samples the polyline departs from the true curve by about `(pi/96)^2 / 2` of the semi-major axis, 0.16px on a 300px orbit.
- */
-export const ORBIT_RING_SAMPLES = 96;
 
 const RAD = Math.PI / 180;
 
@@ -58,29 +52,23 @@ export function perifocalToParent(
   );
 }
 
-/** The whole ring of an orbit in the parent's inertial frame, metres, sampled uniformly in eccentric anomaly so points spread along the arc instead of piling up at apoapsis. */
-export function orbitRingPoints(
+/** The closed ring of an orbit held in degrees, in the parent's inertial frame, metres, sampled by the SDK so every widget draws the same curve. */
+export function orbitRingOf(
   sma: number,
   eccentricity: number,
   lanDeg: number,
   argPeDeg: number,
   inclinationDeg: number,
-  samples: number = ORBIT_RING_SAMPLES,
+  samples?: number,
 ): Vec3Tuple[] {
-  const e = clampEcc(eccentricity);
-  const b = sma * Math.sqrt(1 - e * e);
-  const points: Vec3Tuple[] = [];
-  for (let i = 0; i <= samples; i++) {
-    const anomaly = (2 * Math.PI * i) / samples;
-    points.push(
-      perifocalToParent(
-        sma * (Math.cos(anomaly) - e),
-        b * Math.sin(anomaly),
-        lanDeg,
-        argPeDeg,
-        inclinationDeg,
-      ),
-    );
-  }
-  return points;
+  return orbitRing(
+    {
+      sma,
+      ecc: eccentricity,
+      inc: inclinationDeg * RAD,
+      lan: lanDeg * RAD,
+      argPe: argPeDeg * RAD,
+    },
+    samples,
+  );
 }

@@ -1,3 +1,4 @@
+import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -162,8 +163,10 @@ describe("SystemView vessel curve", () => {
       if (found === null) throw new Error("no arc drawn yet");
       return found;
     });
-    // `Perifocal`: the diagram lifts the points with the elements' full three-dimensional rotation.
-    expect(path.getAttribute("data-trajectory-frame")).toBe("1");
+    // The SDK lifts the sampled orbit into the parent's inertial axes, so the diagram places the points as they are.
+    expect(path.getAttribute("data-trajectory-frame")).toBe(
+      String(TrajectoryFrameKindLike.BodyCentredInertial),
+    );
     expect(path.getAttribute("transform")).toBeNull();
     expect(path.parentElement?.getAttribute("transform")).toBeNull();
     await act(async () => {});

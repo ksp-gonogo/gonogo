@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
+import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -129,8 +130,10 @@ describe("SystemView under an integrating provider against an analytic one", () 
     });
     expect(vesselCurves(container)).toEqual(["arc"]);
     const arc = container.querySelector('path[data-vessel-trajectory="arc"]');
-    // The osculating conic sampled in its own plane, so it names perifocal (1).
-    expect(arc?.getAttribute("data-trajectory-frame")).toBe("1");
+    // The osculating conic sampled and lifted into the parent's inertial axes.
+    expect(arc?.getAttribute("data-trajectory-frame")).toBe(
+      String(TrajectoryFrameKindLike.BodyCentredInertial),
+    );
     const d = arc?.getAttribute("d") ?? "";
     // Open: it stops at the provider's horizon.
     expect(d).not.toMatch(/z/i);
