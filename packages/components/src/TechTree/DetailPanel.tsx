@@ -1,133 +1,76 @@
 import {
   CloseIcon,
-  CommandButton,
   type CommandButtonHandle,
-  ExpandableText,
   IconButton,
   NULL_DISPLAY,
-  Tooltip,
+  Stack,
+  SubjectHeading,
+  Text,
   Unit,
+  type UnitValue,
 } from "@ksp-gonogo/ui-kit";
-import {
-  Cost,
-  Description,
-  Detail,
-  DetailHead,
-  DetailMeta,
-  DetailTitle,
-  NodeId,
-  ParentChip,
-  ParentsInline,
-  PartCategory,
-  PartMeta,
-  PartPurchased,
-  PartRow,
-  Parts,
-  PartsLabel,
-  PartsList,
-  PartTitle,
-  UnlockRow,
-} from "./styles";
+import { NodeDescription, NodeParts, NodeRequires } from "./NodeFacts";
+import { UnlockControl } from "./UnlockControl";
 import type { UnlockHandlers } from "./unlock";
 import type { TechNode } from "./wire";
 
+/** The most parts the pane lists before collapsing the rest into a count. */
+const PARTS_LISTED = 6;
+
 interface DetailPanelProps {
-  node: TechNode | null;
+  node: TechNode;
   onClose: () => void;
-  /**
-   * The shared unlock handle. The control's own `CommandButton` holds its arm
-   * and in-flight state, so no armed-id or pending-id travels down here.
-   */
   unlockCmd: CommandButtonHandle;
-  unlock: UnlockHandlers | null;
+  unlock: UnlockHandlers;
+  scienceShown: UnitValue<"science">;
+  chargesScience: boolean;
 }
 
+/** The selected node's facts, for `Panel`'s sidebar. */
 export function DetailPanel({
   node,
   onClose,
   unlockCmd,
   unlock,
+  scienceShown,
+  chargesScience,
 }: Readonly<DetailPanelProps>) {
-  if (!node) return null;
   return (
-    <Detail role="dialog" aria-label={`${node.title} details`}>
-      <DetailHead>
-        <DetailTitle>
-          {node.title}
-          <NodeId>({node.id})</NodeId>
-        </DetailTitle>
-        <IconButton type="button" onClick={onClose} aria-label="Close details">
-          <CloseIcon size={14} aria-hidden="true" />
-        </IconButton>
-      </DetailHead>
-      {node.description && (
-        <Description>
-          <ExpandableText subject={node.title}>
-            {node.description}
-          </ExpandableText>
-        </Description>
+    <Stack as="section" aria-label={`${node.title} details`}>
+      <SubjectHeading
+        status={
+          <IconButton
+            type="button"
+            onClick={onClose}
+            aria-label="Close details"
+          >
+            <CloseIcon size={14} aria-hidden="true" />
+          </IconButton>
+        }
+      >
+        <Text weight="semibold">{node.title}</Text>
+        <Text level="faint" size="xs">
+          ({node.id})
+        </Text>
+      </SubjectHeading>
+      <NodeDescription node={node} />
+      {node.state !== "Available" && !unlock.isResearchable && (
+        <Text level="muted" size="sm">
+          {node.scienceCost ?? NULL_DISPLAY}
+          <Unit>science</Unit>
+        </Text>
       )}
-      <DetailMeta>
-        {node.state !== "Available" && (
-          <Cost>
-            {node.scienceCost ?? NULL_DISPLAY}
-            <Unit>science</Unit>
-          </Cost>
-        )}
-        {node.parents.length > 0 && (
-          <ParentsInline>
-            requires{" "}
-            {node.parents.map((p, i) => (
-              <span key={p}>
-                {i > 0 && ", "}
-                <ParentChip>{p}</ParentChip>
-              </span>
-            ))}
-          </ParentsInline>
-        )}
-      </DetailMeta>
-      {node.parts.length > 0 && (
-        <Parts>
-          <PartsLabel>Parts ({node.parts.length})</PartsLabel>
-          <PartsList>
-            {node.parts.slice(0, 6).map((p) => (
-              <PartRow key={p.name} $purchased={p.purchased}>
-                <Tooltip text={p.manufacturer || undefined} focusable>
-                  <PartTitle>{p.title}</PartTitle>
-                </Tooltip>
-                <PartMeta>
-                  {p.category && <PartCategory>{p.category}</PartCategory>}
-                  {p.purchased && <PartPurchased>✓</PartPurchased>}
-                </PartMeta>
-              </PartRow>
-            ))}
-            {node.parts.length > 6 && (
-              <PartRow $purchased={false}>
-                <PartTitle>+{node.parts.length - 6} more...</PartTitle>
-                <PartMeta />
-              </PartRow>
-            )}
-          </PartsList>
-        </Parts>
+      <NodeRequires node={node} />
+      <NodeParts node={node} limit={PARTS_LISTED} />
+      {unlock.isResearchable && (
+        <UnlockControl
+          node={node}
+          unlockCmd={unlockCmd}
+          unlock={unlock}
+          scienceShown={scienceShown}
+          chargesScience={chargesScience}
+        />
       )}
-      {unlock?.isResearchable && (
-        <UnlockRow>
-          <CommandButton
-            handle={unlockCmd}
-            args={{ techId: node.id }}
-            commandLabel={`Unlock ${node.title}`}
-            size="sm"
-            label="Unlock"
-            confirmLabel={
-              <>
-                Confirm unlock: {node.scienceCost ?? NULL_DISPLAY}
-                <Unit>science</Unit>
-              </>
-            }
-            pendingLabel="Unlocking..."
-          />
-        </UnlockRow>
-      )}
-    </Detail>
+    </Stack>
   );
 }

@@ -41,7 +41,7 @@ export const ABSENCE_SCENES: AbsenceScene[] = [
       "the reference behaviour for the whole family: the widget already " +
       "separates a balance that never arrived from one it has stopped " +
       "vouching for, and refuses the spend on either",
-    withholds: ["researchable"],
+    withholds: ["Researchable"],
     showsMore: ["Awaiting tech telemetry"],
   },
   {

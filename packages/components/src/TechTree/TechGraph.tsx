@@ -23,8 +23,8 @@ interface TechGraphProps {
   nodes: TechNode[];
   tiers: Map<string, number>;
   researchable: Set<string>;
-  matches: (n: TechNode) => boolean;
-  query: string;
+  /** Whether a search has filtered this node out. */
+  dimmed: (n: TechNode) => boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
@@ -33,8 +33,7 @@ export function TechGraph({
   nodes,
   tiers,
   researchable,
-  matches,
-  query,
+  dimmed: isDimmed,
   selectedId,
   onSelect,
 }: Readonly<TechGraphProps>) {
@@ -108,7 +107,7 @@ export function TechGraph({
         </EdgeLayer>
         {placed.map((p) => {
           const ds = displayState(p.node, researchable);
-          const dimmed = query !== "" && !matches(p.node);
+          const dimmed = isDimmed(p.node);
           return (
             <GraphCard
               key={p.node.id}

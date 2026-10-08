@@ -1,39 +1,20 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CommandButton,
+  Badge,
+  Card,
+  Cluster,
   type CommandButtonHandle,
-  ExpandableText,
   NULL_DISPLAY,
   Row,
-  Tooltip,
+  RowName,
+  Stack,
+  Text,
   Unit,
+  type UnitValue,
 } from "@ksp-gonogo/ui-kit";
-import type { DisplayState } from "./graph-layout";
-import {
-  Cost,
-  Description,
-  NodeBody,
-  NodeId,
-  NodeMeta,
-  NodeRowWrap,
-  NodeTitle,
-  NodeTitleText,
-  ParentChip,
-  Parents,
-  ParentsLabel,
-  ParentsList,
-  PartCategory,
-  PartCost,
-  PartMeta,
-  PartPurchased,
-  PartRow,
-  Parts,
-  PartsLabel,
-  PartsList,
-  PartTitle,
-  StateBadge,
-  UnlockRow,
-} from "./styles";
+import { type DisplayState, displayTone } from "./graph-layout";
+import { NodeDescription, NodeParts, NodeRequires } from "./NodeFacts";
+import { UnlockControl } from "./UnlockControl";
+import type { UnlockHandlers } from "./unlock";
 import type { TechNode } from "./wire";
 
 interface NodeRowProps {
@@ -43,28 +24,23 @@ interface NodeRowProps {
   onToggleExpand: () => void;
   /** See `DetailPanelProps.unlockCmd`. */
   unlockCmd: CommandButtonHandle;
-  canAfford: boolean;
-  /** Whether the balance decides this unlock at all; false where the command is refused outright or nothing charges science. */
-  moneyDecides: boolean;
+  unlock: UnlockHandlers;
+  scienceShown: UnitValue<"science">;
+  chargesScience: boolean;
 }
 
-function stateBadge(display: DisplayState): {
-  tone: "go" | "accent" | "muted";
-  label: string;
-} {
-  if (display === "owned") return { tone: "go", label: "Owned" };
-  if (display === "researchable")
-    return { tone: "accent", label: "Researchable" };
-  return { tone: "muted", label: "Locked" };
-}
+const STATE_LABEL: Record<DisplayState, string> = {
+  owned: "Owned",
+  researchable: "Researchable",
+  locked: "Locked",
+};
 
 function affordDataAttr(
   display: DisplayState,
-  moneyDecides: boolean,
-  canAfford: boolean,
+  unlock: UnlockHandlers,
 ): "yes" | "no" | undefined {
-  if (display !== "researchable" || !moneyDecides) return undefined;
-  return canAfford ? "yes" : "no";
+  if (display !== "researchable" || !unlock.moneyDecides) return undefined;
+  return unlock.canAfford ? "yes" : "no";
 }
 
 export function NodeRow({
@@ -73,15 +49,20 @@ export function NodeRow({
   expanded,
   onToggleExpand,
   unlockCmd,
-  canAfford,
-  moneyDecides,
+  unlock,
+  scienceShown,
+  chargesScience,
 }: Readonly<NodeRowProps>) {
-  const { tone: stateBadgeTone, label: badgeLabel } = stateBadge(display);
-  // Researchable but unaffordable: grey the row and recolour the cost.
-  const unaffordable = display === "researchable" && moneyDecides && !canAfford;
+  // Researchable but unaffordable: dim the row and colour the price.
+  const unaffordable =
+    display === "researchable" && unlock.moneyDecides && !unlock.canAfford;
 
   return (
-    <NodeRowWrap $display={display} $unaffordable={unaffordable}>
+    <Card
+      as="li"
+      tone={unaffordable ? "neutral" : displayTone(display)}
+      dimmed={display === "locked" || unaffordable}
+    >
       <Row
         as="button"
         type="button"
@@ -90,87 +71,46 @@ export function NodeRow({
         onClick={onToggleExpand}
         aria-expanded={expanded}
       >
-        <NodeTitle>
-          <NodeTitleText>{node.title}</NodeTitleText>
-          <NodeId>({node.id})</NodeId>
-        </NodeTitle>
-        <NodeMeta>
+        <RowName>
+          <Text weight="semibold">{node.title}</Text>{" "}
+          <Text level="faint" size="xs">
+            ({node.id})
+          </Text>
+        </RowName>
+        <Cluster gap="related" wrap>
           {display !== "owned" && (
-            <Cost
-              $display={display}
-              $insufficient={unaffordable}
+            <Text
+              tone={unaffordable ? "nogo" : undefined}
+              level={display === "locked" ? "faint" : undefined}
+              size="sm"
               // Exposed so the verdict can be asserted rather than read off a colour; absent where money decides nothing.
-              data-afford={affordDataAttr(display, moneyDecides, canAfford)}
+              data-afford={affordDataAttr(display, unlock)}
             >
               {node.scienceCost ?? NULL_DISPLAY}
               <Unit>science</Unit>
-            </Cost>
+            </Text>
           )}
-          <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
-        </NodeMeta>
+          <Badge tone={displayTone(display)} size="sm">
+            {STATE_LABEL[display]}
+          </Badge>
+        </Cluster>
       </Row>
       {expanded && (
-        <NodeBody>
-          {node.description && (
-            <Description>
-              <ExpandableText subject={node.title}>
-                {node.description}
-              </ExpandableText>
-            </Description>
-          )}
-          {node.parents.length > 0 && (
-            <Parents>
-              <ParentsLabel>Requires</ParentsLabel>
-              <ParentsList>
-                {node.parents.map((p) => (
-                  <ParentChip key={p}>{p}</ParentChip>
-                ))}
-              </ParentsList>
-            </Parents>
-          )}
-          {node.parts.length > 0 && (
-            <Parts>
-              <PartsLabel>Parts ({node.parts.length})</PartsLabel>
-              <PartsList>
-                {node.parts.map((p) => (
-                  <PartRow key={p.name} $purchased={p.purchased}>
-                    <Tooltip text={p.manufacturer || undefined} focusable>
-                      <PartTitle>{p.title}</PartTitle>
-                    </Tooltip>
-                    <PartMeta>
-                      {p.category && <PartCategory>{p.category}</PartCategory>}
-                      {p.entryCost > 0 && !p.purchased && (
-                        <PartCost>
-                          <Unit value={value("funds", p.entryCost)} />
-                        </PartCost>
-                      )}
-                      {p.purchased && <PartPurchased>✓</PartPurchased>}
-                    </PartMeta>
-                  </PartRow>
-                ))}
-              </PartsList>
-            </Parts>
-          )}
+        <Stack gap="section">
+          <NodeDescription node={node} />
+          <NodeRequires node={node} />
+          <NodeParts node={node} showEntryCost />
           {display === "researchable" && (
-            <UnlockRow>
-              <CommandButton
-                handle={unlockCmd}
-                args={{ techId: node.id }}
-                commandLabel={`Unlock ${node.title}`}
-                size="sm"
-                label="Unlock"
-                confirmLabel={
-                  <>
-                    Confirm unlock: {node.scienceCost ?? NULL_DISPLAY}
-                    <Unit>science</Unit>
-                  </>
-                }
-                pendingLabel="Unlocking..."
-              />
-            </UnlockRow>
+            <UnlockControl
+              node={node}
+              unlockCmd={unlockCmd}
+              unlock={unlock}
+              scienceShown={scienceShown}
+              chargesScience={chargesScience}
+            />
           )}
-        </NodeBody>
+        </Stack>
       )}
-    </NodeRowWrap>
+    </Card>
   );
 }

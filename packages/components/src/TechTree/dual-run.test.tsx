@@ -54,16 +54,16 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
 
     await waitFor(() => {
       // Science reads as a glyph rather than a "sci" suffix, so the number is all a sighted reader sees.
-      if (!visibleText(container).includes("4854")) {
+      if (!visibleText(container).includes("4,854")) {
         throw new Error("stream leg has not rendered science yet");
       }
     });
-    expect(container.textContent).toContain("4854 science");
+    expect(container.textContent).toContain("4,854");
 
     // 3 unlocked and 2 researchable-now (parents unlocked, affordable at 4854): every fixture node rendered.
-    expect(
-      screen.getByText(/3\/5 unlocked · 2 researchable/i),
-    ).toBeInTheDocument();
+    const stats = screen.getByRole("status").textContent ?? "";
+    expect(stats).toContain("Unlocked3/5");
+    expect(stats).toContain("Researchable2");
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     expect(screen.getByText("General Rocketry")).toBeInTheDocument();
     expect(screen.getByText("Survivability")).toBeInTheDocument();

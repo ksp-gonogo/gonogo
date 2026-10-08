@@ -32,12 +32,11 @@ type TechTreeConfig = Record<string, never>;
  * One record, two currency decisions. The node list is a fact (nobody can spend down a link that is not delivering), so a held tree is still the tree.
  * The science balance feeds the price readout's `canAfford`, a claim about now, so only a current balance colours it. Whether Unlock is available is the command's per-node gate.
  */
-function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
+function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
   const career = topics.useTelemetry("career.status");
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
   const careerScience =
     career.state === "observed" ? career.value.balances?.science : undefined;
-  const careerHeld = career.state === "held";
   // The balance as drawn: a held one stays on screen and Unit marks it.
   const scienceShown = readingOf(
     career,
@@ -56,11 +55,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   return (
     <TechTreeView
       w={w}
-      h={h}
       allNodes={allNodes}
       sciAvailable={sciAvailable}
       science={careerScience}
-      careerHeld={careerHeld}
       scienceShown={scienceShown}
       chargesScience={chargesScience}
       unlockCmd={unlockCmd}

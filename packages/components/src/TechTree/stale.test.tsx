@@ -1,10 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import {
-  getByTip,
-  renderWidget,
-  visibleText,
-} from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -88,7 +84,7 @@ describe("TechTree when the career record is held", () => {
     await user.click(screen.getByText("Pricey Tech"));
 
     expect(screen.getByRole("button", { name: "Unlock" })).toBeEnabled();
-    expect(screen.getByRole("status").textContent).toContain("5000");
+    expect(screen.getByRole("status").textContent).toContain("5,000");
     expect(document.querySelector("[data-held]")).toBeNull();
   });
 
@@ -126,9 +122,7 @@ describe("TechTree when the career record is held", () => {
 
     await waitFor(() =>
       expect(
-        getByTip(document.body, "Available science").querySelector(
-          "[data-held]",
-        ),
+        screen.getByRole("status").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     // A held balance marks the figure; whether the node can be researched is the command's to say.
@@ -137,20 +131,18 @@ describe("TechTree when the career record is held", () => {
     expect(unlock).not.toHaveAttribute("aria-disabled");
   });
 
-  it("keeps the held balance in the subtitle, marked by Unit rather than captioned", async () => {
+  it("keeps the held balance in the stats strip, marked by Unit rather than captioned", async () => {
     renderTree();
     emitAffordableCareer();
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toContain("5000"),
+      expect(screen.getByRole("status").textContent).toContain("5,000"),
     );
 
     goHeld();
 
     await waitFor(() =>
       expect(
-        getByTip(document.body, "Available science").querySelector(
-          "[data-held]",
-        ),
+        screen.getByRole("status").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     const status = screen.getByRole("status").textContent ?? "";
@@ -171,9 +163,7 @@ describe("TechTree when the career record is held", () => {
 
     await waitFor(() =>
       expect(
-        getByTip(document.body, "Available science").querySelector(
-          "[data-held]",
-        ),
+        screen.getByRole("status").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     // The last balance covered the price, but a held figure can say neither yes nor no.

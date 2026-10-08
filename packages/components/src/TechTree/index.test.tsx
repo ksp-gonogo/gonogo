@@ -120,7 +120,7 @@ describe("TechTreeComponent", () => {
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
   });
 
-  it("draws a locked node's words at the faint text level rather than through opacity", async () => {
+  it("draws a locked node's words at the muted text tier rather than through opacity", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -137,7 +137,7 @@ describe("TechTreeComponent", () => {
     const style = getComputedStyle(locked);
     expect(["", "1"]).toContain(style.opacity);
     expect(style.getPropertyValue("--color-text-primary").trim()).toBe(
-      "var(--color-text-faint)",
+      "var(--color-text-muted)",
     );
   });
 
@@ -209,7 +209,7 @@ describe("TechTreeComponent", () => {
     });
   });
 
-  it("renders the tiered graph at wide sizes and opens a detail dialog on click", async () => {
+  it("renders the tiered graph at wide sizes and opens a detail pane on click", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -228,8 +228,8 @@ describe("TechTreeComponent", () => {
     // Graph cards are buttons labelled with title + state + cost.
     const card = await screen.findByRole("button", { name: /Basic Rocketry/ });
     await user.click(card);
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toBeInTheDocument();
+    const pane = screen.getByRole("region", { name: "Basic Rocketry details" });
+    expect(pane).toBeInTheDocument();
     // Detail surfaces the description and the unlock control.
     expect(
       screen.getByText("How hard can Rocket Science be anyway?"),

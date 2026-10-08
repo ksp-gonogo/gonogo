@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -244,7 +245,7 @@ describe("TechTree: an absent balances.science", () => {
     ).toBe("no");
   });
 
-  it("reports the science balance as unknown in the subtitle rather than omitting it", async () => {
+  it("reports the science balance as unknown in the stats strip rather than omitting it", async () => {
     const fixture = newFixture();
     renderTree(fixture);
 
@@ -256,7 +257,7 @@ describe("TechTree: an absent balances.science", () => {
       expect(screen.getByText("Pricey Tech")).toBeInTheDocument(),
     );
     expect(screen.getByRole("status").textContent).toBe(
-      "0/1 unlocked · 1 researchable · science unknown",
+      `Unlocked0/1Researchable1Science${NULL_DISPLAY}`,
     );
   });
 });
@@ -279,7 +280,7 @@ describe("TechTree: computeResearchable's own science gate", () => {
     );
     // Counted, and the missing balance is named in the same line, so the count reads as "reachable" rather than as "affordable".
     expect(screen.getByRole("status").textContent).toBe(
-      "1/2 unlocked · 1 researchable · science unknown",
+      `Unlocked1/2Researchable1Science${NULL_DISPLAY}`,
     );
   });
 
@@ -302,6 +303,6 @@ describe("TechTree: computeResearchable's own science gate", () => {
       expect(screen.getByText("Derived Tech")).toBeInTheDocument(),
     );
     // The other side of the same gate.
-    expect(screen.getByRole("status").textContent).toContain("0 researchable");
+    expect(screen.getByRole("status").textContent).toContain("Researchable0");
   });
 });

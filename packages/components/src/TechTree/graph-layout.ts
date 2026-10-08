@@ -1,4 +1,5 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Tone, Value } from "@ksp-gonogo/sitrep-sdk";
+import { TONE_TEXT } from "@ksp-gonogo/ui-kit";
 import type { TechNode } from "./wire";
 import { sortCost } from "./wire";
 
@@ -22,10 +23,16 @@ export function displayState(
   return "locked";
 }
 
+/** The kit tone each state is drawn in, by the legend, the badges, the list cards and the graph cards alike. */
+export function displayTone(ds: DisplayState): Tone {
+  if (ds === "owned") return "go";
+  if (ds === "researchable") return "info";
+  return "neutral";
+}
+
 export function dsBorder(ds: DisplayState): string {
-  if (ds === "owned") return "var(--color-go-text)";
-  if (ds === "researchable") return "var(--color-accent-fg)";
-  return "var(--color-text-faint)";
+  if (ds === "locked") return "var(--color-text-faint)";
+  return TONE_TEXT[displayTone(ds)];
 }
 
 // A card the search filtered out drops its state's fill and edge, so the matches are the only cards still drawn in a state.

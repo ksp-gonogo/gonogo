@@ -1075,6 +1075,29 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "wide-16x10", w: 16, h: 10 },
       // large: generous room for a node-graph layout.
       { name: "xl-18x16", w: 18, h: 16 },
+      // the graph with a researchable node picked: its detail pane and Unlock.
+      {
+        name: "graph-selected-16x10",
+        w: 16,
+        h: 10,
+        clicks: [
+          { selector: 'button[aria-label^="General Rocketry"]', awaitMs: 200 },
+        ],
+      },
+      // the list with the first researchable node opened: Unlock beside its price.
+      {
+        name: "list-open-6x9",
+        w: 6,
+        h: 9,
+        clicks: [{ selector: 'button[aria-expanded="false"]', awaitMs: 200 }],
+      },
+      // the smallest list tile with a node opened.
+      {
+        name: "list-open-5x4",
+        w: 5,
+        h: 4,
+        clicks: [{ selector: 'button[aria-expanded="false"]', awaitMs: 200 }],
+      },
     ],
   },
   {

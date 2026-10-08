@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TechTreeComponent } from "./index";
@@ -58,8 +58,9 @@ describe("TechTree: genuinely runs off the stream", () => {
     });
 
     // `getByText` sees only direct text nodes; the full `textContent` is what a screen reader hears, and the glyph is aria-hidden, so the hidden word must be there.
-    const sci = await screen.findByText("· 4854");
-    expect(sci.textContent).toBe("· 4854 science");
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain("Science4,854"),
+    );
     expect(screen.getByText("General Rocketry")).toBeTruthy();
   });
 });

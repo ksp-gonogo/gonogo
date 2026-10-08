@@ -51,10 +51,7 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {
  * Pairs the scan forms that the component never draws, each with what decides
  * the real ground and that the scan cannot see.
  */
-const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
-  "components/TechTree/styles.ts StateBadge: text-faint color on go-status":
-    "the badge is faint only for its muted tone, which paints no fill; the scan does not pair two helpers keyed on the same $tone",
-};
+const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {};
 
 /** Token literals the scan cannot follow to what paints them, each with why. */
 const UNTRACED: Readonly<Record<string, string>> = {

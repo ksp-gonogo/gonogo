@@ -1,46 +1,40 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
 import {
+  Badge,
+  Cluster,
+  EmptyState,
   FilterChip,
+  FramedDisplay,
+  Grid,
   Panel,
-  SearchBox,
   Section,
-  Tooltip,
+  Stack,
+  Stat,
   Unit,
+  useRowFilter,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { DetailPanel } from "./DetailPanel";
 import {
   computeResearchable,
   computeTiers,
+  type DisplayState,
   displayState,
+  displayTone,
   GRAPH_MIN_COLS,
 } from "./graph-layout";
 import { NodeRow } from "./NodeRow";
-import {
-  Controls,
-  Empty,
-  FilterBar,
-  GraphToolbar,
-  Legend,
-  LegendItem,
-  NodeList,
-  SciReadout,
-  Swatch,
-  TechMeta,
-} from "./styles";
 import { TechGraph } from "./TechGraph";
 import { unlockHandlersFor } from "./unlock";
 import { sortNodes, type TechNode } from "./wire";
 
 export interface TechTreeViewProps {
   w?: number;
-  h?: number;
   allNodes: TechNode[] | null;
   sciAvailable: number | null;
   /** The current balance the researchable count is judged against. */
   science: Value<"science"> | null | undefined;
-  careerHeld: boolean;
   /** The science balance as drawn, held included so Unit can mark it. */
   scienceShown: UnitValue<"science">;
   chargesScience: boolean;
@@ -48,66 +42,73 @@ export interface TechTreeViewProps {
   unlockBlocked: boolean;
 }
 
-/** The subtitle's science balance; it stays on screen when missing, since that is when the Unlocks refuse. */
-function ScienceBalance({
-  sciAvailable,
-  careerHeld,
+const LEGEND: readonly { display: DisplayState; label: string }[] = [
+  { display: "owned", label: "Owned" },
+  { display: "researchable", label: "Researchable" },
+  { display: "locked", label: "Locked" },
+];
+
+type ListFilter = "all" | "researchable" | "unlocked";
+
+function searchText(n: TechNode): string {
+  return `${n.title} ${n.id} ${n.description}`;
+}
+
+/**
+ * The core figures. The balance stays on screen when missing, since that is when Unlock refuses; it is drawn wherever science is charged or a balance has arrived.
+ */
+function TechStats({
+  unlocked,
+  total,
+  researchable,
+  showScience,
   scienceShown,
-  chargesScience,
-}: {
-  sciAvailable: number | null;
-  careerHeld: boolean;
+}: Readonly<{
+  unlocked: number;
+  total: number;
+  researchable: number;
+  showScience: boolean;
   scienceShown: UnitValue<"science">;
-  chargesScience: boolean;
-}) {
-  if (sciAvailable !== null) {
-    return (
-      <Tooltip text="Available science" focusable>
-        <SciReadout>
-          · {Math.round(sciAvailable)}
-          <Unit>science</Unit>
-        </SciReadout>
-      </Tooltip>
-    );
-  }
-  if (!chargesScience) return null;
-  if (careerHeld) {
-    return (
-      <Tooltip text="Available science" focusable>
-        <SciReadout>
-          · <Unit value={scienceShown} decimals={0} />
-        </SciReadout>
-      </Tooltip>
-    );
-  }
+}>) {
   return (
-    <Tooltip text="No science balance has arrived" focusable>
-      <SciReadout>· science unknown</SciReadout>
-    </Tooltip>
+    <Grid
+      role="status"
+      aria-live="polite"
+      minColWidth="7rem"
+      fit
+      align="stretch"
+      gap="related-compact"
+    >
+      <Stat label="Unlocked">
+        {unlocked}/{total}
+      </Stat>
+      <Stat label="Researchable">{researchable}</Stat>
+      {showScience && (
+        <Stat label="Science">
+          <Unit value={scienceShown} decimals={0} />
+        </Stat>
+      )}
+    </Grid>
   );
 }
 
 export function TechTreeView({
   w,
-  h,
   allNodes,
   sciAvailable,
   science,
-  careerHeld,
   scienceShown,
   chargesScience,
   unlockCmd,
   unlockBlocked,
 }: Readonly<TechTreeViewProps>) {
-  const [filter, setFilter] = useState<"all" | "researchable" | "unlocked">(
-    "all",
-  );
-  const [query, setQuery] = useState("");
+  const [listFilter, setListFilter] = useState<ListFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const rows = h ?? 8;
-  const showSubtitle = rows >= 4;
+  const filter = useRowFilter({
+    label: "Search tech nodes",
+    placeholder: "Search by name or description...",
+  });
 
   const researchable = useMemo(
     () => computeResearchable(allNodes ?? [], science),
@@ -122,7 +123,7 @@ export function TechTreeView({
         compactTitle={["TECH"]}
         sections={
           <Section full>
-            <Empty>Awaiting tech telemetry</Empty>
+            <EmptyState>Awaiting tech telemetry</EmptyState>
           </Section>
         }
       />
@@ -135,16 +136,14 @@ export function TechTreeView({
         compactTitle={["TECH"]}
         sections={
           <Section full>
-            <Empty>No tech nodes loaded</Empty>
+            <EmptyState>No tech nodes loaded</EmptyState>
           </Section>
         }
       />
     );
   }
 
-  const counts = { unlocked: 0, researchable: researchable.size };
-  for (const n of allNodes) if (n.state === "Available") counts.unlocked++;
-
+  const unlocked = allNodes.filter((n) => n.state === "Available").length;
   const unlockContext = {
     researchable,
     chargesScience,
@@ -152,171 +151,133 @@ export function TechTreeView({
     sciAvailable,
   };
 
-  const subtitle = showSubtitle ? (
-    <span role="status" aria-live="polite">
-      {counts.unlocked}/{allNodes.length} unlocked · {counts.researchable}{" "}
-      researchable{" "}
-      <ScienceBalance
-        sciAvailable={sciAvailable}
-        careerHeld={careerHeld}
+  const stats = (
+    <Section key="stats" full>
+      <TechStats
+        unlocked={unlocked}
+        total={allNodes.length}
+        researchable={researchable.size}
+        showScience={chargesScience || sciAvailable !== null}
         scienceShown={scienceShown}
-        chargesScience={chargesScience}
       />
-    </span>
-  ) : undefined;
+    </Section>
+  );
 
-  const useGraph = w !== undefined && w >= GRAPH_MIN_COLS;
-  if (useGraph) {
-    const q = query.trim().toLowerCase();
-    const matches = (n: TechNode) =>
-      !q ||
-      n.title.toLowerCase().includes(q) ||
-      n.id.toLowerCase().includes(q) ||
-      n.description.toLowerCase().includes(q);
-
+  if (w !== undefined && w >= GRAPH_MIN_COLS) {
     const selectedNode = allNodes.find((n) => n.id === selectedId) ?? null;
-    const selectedUnlock = selectedNode
-      ? unlockHandlersFor(selectedNode, unlockContext)
-      : null;
 
     return (
       <Panel
         panelTitle="TECH TREE"
         compactTitle={["TECH"]}
-        sections={[
-          <Section key="meta" full>
-            {subtitle && <TechMeta>{subtitle}</TechMeta>}
-            <GraphToolbar>
-              <Legend aria-hidden="true">
-                <LegendItem>
-                  <Swatch $kind="owned" /> Owned
-                </LegendItem>
-                <LegendItem>
-                  <Swatch $kind="researchable" /> Researchable
-                </LegendItem>
-                <LegendItem>
-                  <Swatch $kind="locked" /> Locked
-                </LegendItem>
-              </Legend>
-              <SearchBox
-                placeholder="Highlight by name..."
-                value={query}
-                onChange={setQuery}
-                aria-label="Highlight tech nodes by text"
-              />
-            </GraphToolbar>
-          </Section>,
-          <Section key="graph" fill>
-            <TechGraph
-              nodes={allNodes}
-              tiers={tiers}
-              researchable={researchable}
-              matches={matches}
-              query={q}
-              selectedId={selectedId}
-              onSelect={(id) =>
-                setSelectedId((cur) => (cur === id ? null : id))
-              }
+        panelToolbar={
+          <Cluster justify="start" gap="related" wrap aria-hidden="true">
+            {LEGEND.map(({ display, label }) => (
+              <Badge key={display} tone={displayTone(display)} size="sm">
+                {label}
+              </Badge>
+            ))}
+          </Cluster>
+        }
+        panelFilter={filter}
+        panelSidebar={
+          selectedNode ? (
+            <DetailPanel
+              node={selectedNode}
+              onClose={() => setSelectedId(null)}
+              unlockCmd={unlockCmd}
+              unlock={unlockHandlersFor(selectedNode, unlockContext)}
+              scienceShown={scienceShown}
+              chargesScience={chargesScience}
             />
-          </Section>,
-          <Section key="detail" full>
-            {selectedId && (
-              <DetailPanel
-                node={selectedNode}
-                onClose={() => setSelectedId(null)}
-                unlockCmd={unlockCmd}
-                unlock={selectedUnlock}
+          ) : undefined
+        }
+        sections={[
+          stats,
+          <Section key="graph" fill>
+            <FramedDisplay>
+              <TechGraph
+                nodes={allNodes}
+                tiers={tiers}
+                researchable={researchable}
+                dimmed={(n) => !filter.matches(searchText(n))}
+                selectedId={selectedId}
+                onSelect={(id) =>
+                  setSelectedId((cur) => (cur === id ? null : id))
+                }
               />
-            )}
+            </FramedDisplay>
           </Section>,
         ]}
       />
     );
   }
 
-  const q = query.trim().toLowerCase();
-  const filtered = allNodes
-    .filter((n) => {
-      if (filter === "researchable") return researchable.has(n.id);
-      if (filter === "unlocked") return n.state === "Available";
-      return true;
-    })
-    .filter((n) => {
-      if (!q) return true;
-      return (
-        n.title.toLowerCase().includes(q) ||
-        n.id.toLowerCase().includes(q) ||
-        n.description.toLowerCase().includes(q)
-      );
-    });
-
-  const sorted = sortNodes(filtered, researchable);
+  const sorted = sortNodes(
+    allNodes
+      .filter((n) => {
+        if (listFilter === "researchable") return researchable.has(n.id);
+        if (listFilter === "unlocked") return n.state === "Available";
+        return true;
+      })
+      .filter((n) => filter.matches(searchText(n))),
+    researchable,
+  );
 
   return (
     <Panel
       panelTitle="TECH TREE"
       compactTitle={["TECH"]}
-      /* The filter pills and search box are a full-width control row, pinned under the header outside the scroller. */
       panelToolbar={
-        <Controls>
-          <FilterBar role="group" aria-label="Filter tech nodes">
-            <FilterChip
-              label="All"
-              selected={filter === "all"}
-              onToggle={() => setFilter("all")}
-            />
-            <FilterChip
-              label="Researchable"
-              selected={filter === "researchable"}
-              onToggle={() => setFilter("researchable")}
-            />
-            <FilterChip
-              label="Unlocked"
-              selected={filter === "unlocked"}
-              onToggle={() => setFilter("unlocked")}
-            />
-          </FilterBar>
-          <SearchBox
-            placeholder="Filter by name or description..."
-            value={query}
-            onChange={setQuery}
-            aria-label="Filter tech nodes by text"
+        <Cluster
+          role="group"
+          aria-label="Filter tech nodes"
+          justify="start"
+          gap="related"
+          wrap
+        >
+          <FilterChip
+            label="All"
+            selected={listFilter === "all"}
+            onToggle={() => setListFilter("all")}
           />
-        </Controls>
+          <FilterChip
+            label="Researchable"
+            selected={listFilter === "researchable"}
+            onToggle={() => setListFilter("researchable")}
+          />
+          <FilterChip
+            label="Unlocked"
+            selected={listFilter === "unlocked"}
+            onToggle={() => setListFilter("unlocked")}
+          />
+        </Cluster>
       }
-      /* No ScrollArea here: Panel's body is already the scroller. */
+      panelFilter={filter}
       sections={[
-        subtitle && (
-          <Section key="meta" full>
-            <TechMeta>{subtitle}</TechMeta>
-          </Section>
-        ),
+        stats,
         <Section key="nodes" full>
-          <NodeList>
-            {sorted.length === 0 ? (
-              <Empty>No nodes match</Empty>
-            ) : (
-              sorted.map((n) => {
-                const u = unlockHandlersFor(n, unlockContext);
-                return (
-                  <NodeRow
-                    key={n.id}
-                    node={n}
-                    display={displayState(n, researchable)}
-                    expanded={expandedId === n.id}
-                    onToggleExpand={() =>
-                      setExpandedId((current) =>
-                        current === n.id ? null : n.id,
-                      )
-                    }
-                    unlockCmd={unlockCmd}
-                    canAfford={u.canAfford}
-                    moneyDecides={u.moneyDecides}
-                  />
-                );
-              })
-            )}
-          </NodeList>
+          {sorted.length === 0 ? (
+            <EmptyState>No nodes match</EmptyState>
+          ) : (
+            <Stack as="ul">
+              {sorted.map((n) => (
+                <NodeRow
+                  key={n.id}
+                  node={n}
+                  display={displayState(n, researchable)}
+                  expanded={expandedId === n.id}
+                  onToggleExpand={() =>
+                    setExpandedId((current) => (current === n.id ? null : n.id))
+                  }
+                  unlockCmd={unlockCmd}
+                  unlock={unlockHandlersFor(n, unlockContext)}
+                  scienceShown={scienceShown}
+                  chargesScience={chargesScience}
+                />
+              ))}
+            </Stack>
+          )}
         </Section>,
       ]}
     />
