@@ -176,12 +176,12 @@ describe("LandingStatusComponent", () => {
       });
     });
 
-    expect(await screen.findByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
+    expect(await screen.findByText("BEST-BURN IMPACT")).toBeInTheDocument();
     // The horizontal component, from the Velocity readout; this scenario has no terrain patch, so the cross-section contributes nothing.
     expect(visibleText()).toMatch(/538/);
     // Burn-now touchdown is a large nonzero speed, led under the hero as well as in the readout grid.
     expect(visibleText()).toMatch(/328 m\/s/);
-    expect(screen.getByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
+    expect(screen.getByText("BEST-BURN IMPACT")).toBeInTheDocument();
     // No viable safe trajectory exists, so the hero reads NO LANDING VECTOR.
     expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
   });
@@ -201,7 +201,7 @@ describe("LandingStatusComponent", () => {
       });
     });
     // Horizontal (538) dominates the 50 m/s descent, read from the readout pair.
-    await screen.findByText(/UNAVOIDABLE IMPACT|SUICIDE BURN|BURN GO IN/);
+    await screen.findByText(/BEST-BURN IMPACT|SUICIDE BURN|BURN GO IN/);
     expect(visibleText()).toMatch(/538/);
     expect(visibleText()).toMatch(/50\.0/);
   });

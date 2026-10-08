@@ -21,6 +21,9 @@ const MAX_TALLNESS = 1.6;
 /** Sky above the vessel, so it is not drawn on the frame's own edge. */
 const VESSEL_HEADROOM = 1.12;
 
+/** How far in from the frame's edge a vessel outside the window is held, as a fraction of the half-span. */
+const EDGE_HOLD = 0.92;
+
 /** Samples along the slice; the patch is bilinear-interpolated, so this is drawing resolution. */
 const SLICE_STEPS = 48;
 
@@ -235,6 +238,37 @@ export function buildCrossSectionPlot(
       })} above terrain`,
     },
   ];
+
+  /*
+   * A vessel outside the window is still on the plot: held on the nearest edge, with its real height and distance beside it, so a fall that takes kilometres shows as figures running down rather than as a picture that never changes.
+   */
+  const top = floor + span;
+  if (vesselY > top || Math.abs(vesselX) > halfWide) {
+    layers.push({
+      kind: "marker",
+      id: "vessel-edge",
+      at: {
+        x: Math.max(-halfWide, Math.min(halfWide, vesselX)) * EDGE_HOLD,
+        y: top - span * (1 - EDGE_HOLD),
+      },
+      shape: "chevron-up",
+      tone: "go",
+      description: `vessel above the window, ${writeQuantity(
+        value("m", aglMeters),
+        { decimals: 0 },
+      )} above terrain`,
+    });
+    layers.push({
+      kind: "caption",
+      id: "vessel-range",
+      anchor: "bottom-left",
+      text: `↑ ${writeQuantity(value("m", aglMeters), { decimals: 1 })}`,
+      caption: `${writeQuantity(value("m", Math.abs(vesselX)), {
+        decimals: 1,
+      })} ${vesselX < 0 ? "uprange" : "downrange"}`,
+      tone: "go",
+    });
+  }
 
   // A ten-second projection, drawn only when there is motion, so a stationary vessel gets no zero-length mark.
   const vDown = verticalSpeed != null && verticalSpeed > 0 ? verticalSpeed : 0;

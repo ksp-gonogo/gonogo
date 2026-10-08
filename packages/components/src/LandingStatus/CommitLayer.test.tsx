@@ -1,4 +1,5 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { CommitLayer } from "./CommitLayer";
@@ -108,6 +109,70 @@ describe("CommitLayer", () => {
     expect(screen.getByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
     expect(screen.queryByText(/BURN GO IN/i)).toBeNull();
+  });
+
+  describe("the best-burn impact line", () => {
+    const states = {
+      "burn go clock": { ...delayedDescent },
+      "burn locked": {
+        ...delayedDescent,
+        commitInSeconds: -2,
+        committed: true,
+      },
+      "no landing vector": {
+        ...delayedDescent,
+        commitInSeconds: -2,
+        committed: true,
+        noLandingVector: true,
+      },
+      "ignition countdown": { ...live },
+      landed: { ...delayedDescent, landed: true },
+    };
+
+    it.each(
+      Object.entries(states),
+    )("is present in the %s state, so the block never changes height", (_name, props) => {
+      render(<CommitLayer {...props} impactSpeed={null} />);
+      expect(screen.getAllByText("BEST-BURN IMPACT")).toHaveLength(1);
+    });
+
+    it("holds the absent-value token while there is no figure, and the speed once there is", () => {
+      const { rerender } = render(
+        <CommitLayer {...states["burn locked"]} impactSpeed={null} />,
+      );
+      expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+      rerender(<CommitLayer {...states["burn locked"]} impactSpeed={14} />);
+      expect(screen.getByText(/14/)).toBeInTheDocument();
+    });
+
+    it("withholds the figure while any input to the burn solve is dated", () => {
+      render(
+        <CommitLayer
+          {...states["no landing vector"]}
+          mayInstruct={false}
+          impactSpeed={14}
+        />,
+      );
+      expect(screen.getByText("BEST-BURN IMPACT")).toBeInTheDocument();
+      expect(screen.queryByText(/14/)).toBeNull();
+    });
+
+    it("lays both rows out the same way in every state", () => {
+      const rows = (props: object) => {
+        const { container, unmount } = render(
+          <CommitLayer {...(props as typeof live)} impactSpeed={null} />,
+        );
+        const region = container.querySelector("[aria-live]") as HTMLElement;
+        const shape = Array.from(region.querySelectorAll("*")).filter((el) =>
+          el.textContent?.includes("BEST-BURN IMPACT"),
+        ).length;
+        const parentTag = region.firstElementChild?.tagName;
+        unmount();
+        return `${parentTag}:${shape}`;
+      };
+      const shapes = new Set(Object.values(states).map(rows));
+      expect(shapes.size).toBe(1);
+    });
   });
 
   it("holds no command controls, Landing is an instrument, not a command surface", () => {

@@ -119,12 +119,54 @@ describe("cross-section plot", () => {
   });
 
   it("says both speeds inside the frame, because a map has no gutter", () => {
-    const plot = buildCrossSectionPlot(crossSection());
+    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
     const captions = plot?.layers.filter((l) => l.kind === "caption") ?? [];
     expect(captions.map((c) => c.id).sort()).toEqual([
       "descent-rate",
       "ground-speed",
     ]);
+  });
+
+  describe("a vessel above the window", () => {
+    const high = (over: Partial<CrossSectionInputs>) =>
+      buildCrossSectionPlot(
+        crossSection({ aglMeters: 6000, driftMeters: 5000, ...over }),
+      );
+    const edgeOf = (plot: PlotEntry | null) => {
+      const edge = plot?.layers.find((l) => l.id === "vessel-edge");
+      if (edge?.kind !== "marker") throw new Error("expected an edge marker");
+      return edge;
+    };
+
+    it("is held on the top edge of the frame, inside it, so the craft is always on the plot", () => {
+      const plot = high({});
+      const [xLo, xHi] = frameOf(plot).xDomain;
+      const [, yHi] = frameOf(plot).yDomain;
+      const edge = edgeOf(plot);
+      expect(edge.shape).toBe("chevron-up");
+      expect(edge.at.y).toBeLessThanOrEqual(yHi);
+      expect(edge.at.y).toBeGreaterThan(yHi - (xHi - xLo) / 4);
+      expect(edge.at.x).toBeGreaterThanOrEqual(xLo);
+      expect(edge.at.x).toBeLessThanOrEqual(xHi);
+    });
+
+    it("says how high and how far upwind it really is, and the figures follow the fall", () => {
+      const caption = (plot: PlotEntry | null) => {
+        const c = plot?.layers.find((l) => l.id === "vessel-range");
+        if (c?.kind !== "caption") throw new Error("expected a caption");
+        return `${c.text} ${c.caption ?? ""}`;
+      };
+      const before = caption(high({ aglMeters: 6000, driftMeters: 5000 }));
+      const after = caption(high({ aglMeters: 3000, driftMeters: 2500 }));
+      expect(before).not.toBe(after);
+      expect(before).toMatch(/6(\.0+)? km/);
+    });
+
+    it("hands over to the real marker once the vessel is inside the window", () => {
+      const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
+      expect(plot?.layers.some((l) => l.id === "vessel-edge")).toBe(false);
+      expect(plot?.layers.some((l) => l.id === "vessel-range")).toBe(false);
+    });
   });
 
   it("puts the vessel at its real downrange displacement, upwind of the site", () => {

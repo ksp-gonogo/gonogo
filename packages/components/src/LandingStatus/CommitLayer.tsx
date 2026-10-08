@@ -14,6 +14,7 @@ import {
   Readout,
   ReadoutCaption,
   Section,
+  Stack,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -51,7 +52,7 @@ export interface CommitLayerProps {
   landed?: boolean;
   /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
   noLandingVector?: boolean;
-  /** The unavoidable touchdown speed (`bestSpeedAtImpact`, m/s), led under a NO LANDING VECTOR hero. */
+  /** The touchdown speed of the best burn started now (`bestSpeedAtImpact`, m/s); the row holds the absent-value token when there is none. */
   impactSpeed?: number | null;
 }
 
@@ -125,6 +126,9 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
     urgent,
   } = resolveHero(props);
 
+  // A figure from the burn solve is withheld like the hero's instruction while any input to it is dated.
+  const showImpact = impactSpeed != null && !props.landed && props.mayInstruct;
+
   // The ignition cue and a no-landing-vector are ABORT-class, so assertive; every other state is polite.
   const alarmed = urgent || noLandingVector;
 
@@ -133,18 +137,21 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
       role={alarmed ? "alert" : "status"}
       aria-live={alarmed ? "assertive" : "polite"}
     >
-      <Readout tone={heroTone}>
-        {heroValue}
-        {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
-      </Readout>
-
-      {/* Under NO LANDING VECTOR the unavoidable touchdown speed is the one number that matters. */}
-      {noLandingVector && impactSpeed != null && (
-        <Readout tone="nogo">
-          <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
-          <ReadoutCaption>UNAVOIDABLE IMPACT</ReadoutCaption>
+      {/* Two rows in every state, so a state change never moves what sits below the block. */}
+      <Stack>
+        <Readout tone={heroTone}>
+          {heroValue}
+          {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
         </Readout>
-      )}
+        <Readout tone={noLandingVector ? "nogo" : "neutral"}>
+          {showImpact ? (
+            <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
+          ) : (
+            NULL_DISPLAY
+          )}
+          <ReadoutCaption>BEST-BURN IMPACT</ReadoutCaption>
+        </Readout>
+      </Stack>
     </Section>
   );
 }
