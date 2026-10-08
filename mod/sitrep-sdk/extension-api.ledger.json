@@ -8619,6 +8619,14 @@
         "note": "Removed with bodyMinSize: a tiny widget's body tile is its registered minSize; only the minsize probe used it"
       },
       {
+        "key": "ui-kit . widgetDeclaredTopics",
+        "note": "Takes the tile's config as an optional second argument so the Topics channelsFromConfig names join the list"
+      },
+      {
+        "key": "ui-kit . widgetDrawnFields",
+        "note": "Takes the tile's config as an optional second argument so the Topics channelsFromConfig names join the list"
+      },
+      {
         "key": "ui-kit . ~CommandListCommonProps#ariaLabel?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -8749,6 +8757,10 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk . ChannelFamily",
+        "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
+      },
+      {
         "key": "sitrep-sdk . CommandGroupHandle",
         "note": "New with command groups"
       },
@@ -8775,6 +8787,18 @@
       {
         "key": "sitrep-sdk . CommandGroupPhase",
         "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . ComponentDefinition#channelFamilies?",
+        "note": "Families of runtime-built Topics the widget needs, claimed and health-checked by their literal prefix"
+      },
+      {
+        "key": "sitrep-sdk . ComponentDefinition#channelsFromConfig?",
+        "note": "Concrete Topic ids a tile's saved settings name, with optional-channel semantics"
+      },
+      {
+        "key": "sitrep-sdk . ComponentDefinition#optionalChannelFamilies?",
+        "note": "Families of runtime-built Topics the widget reads but can do without"
       },
       {
         "key": "sitrep-sdk . ConicShape",
@@ -8893,12 +8917,20 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk . familyPrefix",
+        "note": "The literal text before a family's first placeholder, empty when it starts with one"
+      },
+      {
         "key": "sitrep-sdk . sendTogether",
         "note": "New: sends the commands made inside its callback as one message"
       },
       {
         "key": "sitrep-sdk . solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
+      },
+      {
+        "key": "sitrep-sdk . topicMatchesFamily",
+        "note": "Whether a Topic id is a member of a family, segment by segment"
       },
       {
         "key": "sitrep-sdk . ~CommandFailure",
@@ -8971,6 +9003,22 @@
       {
         "key": "sitrep-sdk ./registry ~AstronautComplexCrewContext#standing",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ChannelFamily",
+        "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#channelFamilies?",
+        "note": "Families of runtime-built Topics the widget needs, claimed and health-checked by their literal prefix"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#channelsFromConfig?",
+        "note": "Concrete Topic ids a tile's saved settings name, with optional-channel semantics"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#optionalChannelFamilies?",
+        "note": "Families of runtime-built Topics the widget reads but can do without"
       },
       {
         "key": "sitrep-sdk ./registry ~ContributionDefinition#sizeDelta?",
@@ -10373,6 +10421,18 @@
         "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is (decision 77)"
       },
       {
+        "key": "ui-kit . WidgetTopicDeclaration#channelFamilies?",
+        "note": "Reads the required families off a widget definition"
+      },
+      {
+        "key": "ui-kit . WidgetTopicDeclaration#channelsFromConfig?",
+        "note": "Reads the config-derived Topics off a widget definition"
+      },
+      {
+        "key": "ui-kit . WidgetTopicDeclaration#optionalChannelFamilies?",
+        "note": "Reads the optional families off a widget definition"
+      },
+      {
         "key": "ui-kit . gridFloor",
         "note": "The smallest tile the dashboard gives a widget: the tiny size for a widget with a tiny mode, else its minSize"
       },
@@ -10383,6 +10443,10 @@
       {
         "key": "ui-kit . useSizeDeltaFor",
         "note": "Hook returning sizeDeltaFor against live Domain presence, new identity when an augment, contribution or Domain changes"
+      },
+      {
+        "key": "ui-kit . widgetDrawnFamilies",
+        "note": "Every family a widget declares, required and optional, for matching alarms"
       },
       {
         "key": "ui-kit . withSizeDelta",

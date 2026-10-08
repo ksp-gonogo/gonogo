@@ -476,6 +476,48 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
 }
 
 /**
+ * A family of Topics whose id is built at runtime, written the way the docs
+ * write it: `vessel.partActions.<flightId>`, `fleet.<vessel>.contact`,
+ * `<domain>.available`. Each `<name>` stands for exactly one dotted segment and
+ * must fill a whole segment. A widget lists them in `channelFamilies` and
+ * `optionalChannelFamilies`.
+ *
+ * @category Reading telemetry
+ */
+export type ChannelFamily = `${string}<${string}>${string}`;
+
+/**
+ * The literal text before the first placeholder of a family, such as
+ * `"fleet."` for `fleet.<vessel>.contact`. It is empty when the pattern starts
+ * with a placeholder, as `<domain>.available` does.
+ *
+ * @category Reading telemetry
+ */
+export function familyPrefix(family: ChannelFamily): string {
+  return family.slice(0, family.indexOf("<"));
+}
+
+/**
+ * Returns whether `topic` is a member of `family`: the same number of dotted
+ * segments, every literal segment equal and every placeholder segment
+ * non-empty.
+ *
+ * @category Reading telemetry
+ */
+export function topicMatchesFamily(
+  topic: string,
+  family: ChannelFamily,
+): boolean {
+  const have = topic.split(".");
+  const want = family.split(".");
+  if (have.length !== want.length) return false;
+  return want.every((segment, index) => {
+    const isPlaceholder = segment.startsWith("<") && segment.endsWith(">");
+    return isPlaceholder ? have[index] !== "" : have[index] === segment;
+  });
+}
+
+/**
  * One thing a widget draws: a whole channel, or a field inside one, such as
  * `"vessel.flight.altitudeAsl"`, as listed in {@link ComponentDefinition.fields}.
  *

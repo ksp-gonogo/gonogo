@@ -152,6 +152,74 @@ describe("useWidgetStreamStatus", () => {
     );
   });
 
+  it("badges the Topics channelsFromConfig names for the config, and drops them when the config does", async () => {
+    const transport = new StubTransport();
+    const def = {
+      channelsFromConfig: (config: { keys: string[] }) => config.keys,
+    };
+    function ConfigProbe({ keys }: { keys: string[] }) {
+      const status = useWidgetStreamStatus(def, { keys });
+      return (
+        <>
+          {keys.map((topic) => (
+            <Reads key={topic} topic={topic} />
+          ))}
+          <div>status:{status ?? "none"}</div>
+        </>
+      );
+    }
+    const view = render(
+      <Host transport={transport}>
+        <ConfigProbe keys={["vessel.orbit"]} />
+      </Host>,
+    );
+    act(() => {
+      transport.emit(
+        "vessel.orbit",
+        { sma: 680_000 },
+        { staleness: Staleness.Recorded },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByText("status:recorded")).toBeTruthy(),
+    );
+    view.rerender(
+      <Host transport={transport}>
+        <ConfigProbe keys={[]} />
+      </Host>,
+    );
+    expect(screen.getByText("status:none")).toBeTruthy();
+  });
+
+  it("ignores families: one dark craft must not badge a widget that spans them all", async () => {
+    const transport = new StubTransport();
+    function FamilyProbe() {
+      const status = useWidgetStreamStatus({
+        channelFamilies: ["vessel.<name>"],
+      });
+      return (
+        <>
+          <Reads topic="vessel.orbit" />
+          <div>status:{status ?? "none"}</div>
+        </>
+      );
+    }
+    render(
+      <Host transport={transport}>
+        <FamilyProbe />
+      </Host>,
+    );
+    act(() => {
+      transport.emit(
+        "vessel.orbit",
+        { sma: 680_000 },
+        { staleness: Staleness.Recorded },
+      );
+    });
+    await screen.findByText("vessel.orbit:held");
+    expect(screen.getByText("status:none")).toBeTruthy();
+  });
+
   it("reports nothing with no telemetry provider mounted", () => {
     render(<Probe topics={["vessel.orbit"]} />);
     expect(screen.getByText("status:none")).toBeTruthy();

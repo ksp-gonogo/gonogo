@@ -20,6 +20,7 @@ import {
   Tooltip,
   useSizeDeltaFor,
   WidgetBody,
+  widgetDrawnFamilies,
   widgetDrawnFields,
   withSizeDelta,
 } from "@ksp-gonogo/ui-kit";
@@ -133,6 +134,7 @@ export const GridItemContent = memo(function GridItemContent({
   if (!def) return null;
   // The room the extensions rendering here ask for moves where the widget stops showing its tiny form.
   const sizedDef = withSizeDelta(def, sizeDeltaFor(def));
+  const declaredConfig = item.config ?? def.defaultConfig ?? {};
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
 
@@ -153,17 +155,22 @@ export const GridItemContent = memo(function GridItemContent({
         {/* Folds active alarms attributed to this widget's subject into the same
           store, so a firing alarm lights the widget's summary with its own name.
           Renders nothing; no-op where no alarm host is mounted. */}
-        <AlarmStatusBridge declaredTopics={widgetDrawnFields(def)} />
+        <AlarmStatusBridge
+          declaredTopics={widgetDrawnFields(def, declaredConfig)}
+          declaredFamilies={widgetDrawnFamilies(def)}
+        />
         {/* Folds the widget's own blackout grade into the same store, so a
           panel says RECORDED or BLACKOUT with the widget wiring nothing. Only
           the two SUBJECT-wide grades: see `useWidgetStreamStatus` for why the
           rest stay opt-in through `panelStatus`. */}
-        <WidgetStreamStatusBridge def={def} />
+        <WidgetStreamStatusBridge def={def} config={declaredConfig} />
         {/* Folds the trajectory's own propagation horizon into the same store,
           so a widget drawing orbital numbers says whether they can answer for
           the instant on screen. Mounts a subscribing child only for widgets that
           read the trajectory; renders nothing otherwise. */}
-        <TrajectoryCurrencyBridge declaredTopics={widgetDrawnFields(def)} />
+        <TrajectoryCurrencyBridge
+          declaredTopics={widgetDrawnFields(def, declaredConfig)}
+        />
         {/* Folds in that the Uplink drawing this widget is running a development
           client nobody vouched for, so the panel says so on every widget it owns. */}
         <UnvouchedDevClientBridge ownerId={def.owner?.id} />
@@ -204,6 +211,11 @@ export const GridItemContent = memo(function GridItemContent({
                       <RequiresGuard
                         requires={def.requires}
                         channels={def.channels}
+                        families={def.channelFamilies}
+                        optionalFamilies={def.optionalChannelFamilies}
+                        configChannels={def.channelsFromConfig?.(
+                          declaredConfig,
+                        )}
                         title={def.name}
                         compact={
                           sizedDef.tiny !== undefined &&

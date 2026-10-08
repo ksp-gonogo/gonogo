@@ -1,4 +1,14 @@
 import type { ComponentDefinition, Seat } from "@ksp-gonogo/core";
+import { type ChannelFamily, familyPrefix } from "@ksp-gonogo/sitrep-sdk";
+
+type SeatDeclaration = Pick<
+  ComponentDefinition,
+  | "channels"
+  | "optionalChannels"
+  | "channelFamilies"
+  | "optionalChannelFamilies"
+  | "dataRequirements"
+>;
 
 /** Domains describing the ground establishment, which a pilot aboard cannot act on. */
 const GROUND_DOMAINS: ReadonlySet<string> = new Set([
@@ -15,26 +25,25 @@ const ADDRESSING_TOPICS: ReadonlySet<string> = new Set([
 ]);
 
 /** Every topic domain a widget declares, including through `dataRequirements`, which carries the same prefixes. */
-export function declaredDomains(
-  def: Pick<
-    ComponentDefinition,
-    "channels" | "optionalChannels" | "dataRequirements"
-  >,
-): ReadonlySet<string> {
+export function declaredDomains(def: SeatDeclaration): ReadonlySet<string> {
   return domainsOf(declaredTopics(def));
 }
 
-function declaredTopics(
-  def: Pick<
-    ComponentDefinition,
-    "channels" | "optionalChannels" | "dataRequirements"
-  >,
-): readonly string[] {
+function declaredTopics(def: SeatDeclaration): readonly string[] {
   return [
     ...(def.channels ?? []),
     ...(def.optionalChannels ?? []),
     ...(def.dataRequirements ?? []),
+    ...familyPrefixes(def.channelFamilies),
+    ...familyPrefixes(def.optionalChannelFamilies),
   ];
+}
+
+/** A family that starts with a placeholder names no domain, so it adds none. */
+function familyPrefixes(
+  families: readonly ChannelFamily[] | undefined,
+): readonly string[] {
+  return (families ?? []).map(familyPrefix).filter((prefix) => prefix !== "");
 }
 
 function domainsOf(topics: readonly string[]): ReadonlySet<string> {
@@ -53,10 +62,7 @@ function domainsOf(topics: readonly string[]): ReadonlySet<string> {
  * draw ground data when it arrives is still a ground instrument.
  */
 export function availableAtSeat(
-  def: Pick<
-    ComponentDefinition,
-    "channels" | "optionalChannels" | "dataRequirements" | "seats"
-  >,
+  def: SeatDeclaration & Pick<ComponentDefinition, "seats">,
   seat: Seat,
 ): boolean {
   if (def.seats) return def.seats.includes(seat);
@@ -65,12 +71,7 @@ export function availableAtSeat(
 }
 
 /** Which of a widget's declared domains keep it off the pilot's screen. */
-export function groundDomainsOf(
-  def: Pick<
-    ComponentDefinition,
-    "channels" | "optionalChannels" | "dataRequirements"
-  >,
-): readonly string[] {
+export function groundDomainsOf(def: SeatDeclaration): readonly string[] {
   const topics = declaredTopics(def).filter((t) => !ADDRESSING_TOPICS.has(t));
   return [...domainsOf(topics)].filter((d) => GROUND_DOMAINS.has(d)).sort();
 }

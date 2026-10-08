@@ -202,7 +202,15 @@ const MobileItemContent = memo(function MobileItemContent({
         <DashboardItemContext.Provider value={itemContext}>
           <ErrorBoundary fallback={renderErrorFallback}>
             <SeatGuard def={def}>
-              <RequiresGuard requires={def.requires} channels={def.channels}>
+              <RequiresGuard
+                requires={def.requires}
+                channels={def.channels}
+                families={def.channelFamilies}
+                optionalFamilies={def.optionalChannelFamilies}
+                configChannels={def.channelsFromConfig?.(
+                  item.config ?? def.defaultConfig ?? {},
+                )}
+              >
                 <Comp
                   id={item.i}
                   config={item.config}

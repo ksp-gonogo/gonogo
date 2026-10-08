@@ -53,12 +53,24 @@ const WIDGET_WIDE_GRADES: ReadonlySet<StreamStatusValue> =
  * here would put real traffic on the wire for every topic a widget merely
  * DECLARES, and it would buy nothing: an unsubscribed topic reads `resyncing`,
  * which is not a blackout grade and contributes nothing.
+ *
+ * A widget's families of runtime-built Topics are not part of this: the store
+ * cannot list their members, and blackout is per craft, so one pill for a
+ * family that spans every craft (the fleet roster's rows) would mark the whole
+ * widget for one dark vessel. The Topics `channelsFromConfig` names for
+ * `config` are included, since a tile's series are one craft's by construction.
  */
 export function useWidgetStreamStatus(
   def: WidgetTopicDeclaration | undefined,
+  config?: unknown,
 ): StreamStatusValue | null {
   const store = useTelemetryStoreOptional();
-  const topics = useMemo(() => widgetDeclaredTopics(def), [def]);
+  // Keyed on the ids themselves: a config object changes identity on every edit.
+  const topicKey = widgetDeclaredTopics(def, config).join("\n");
+  const topics = useMemo(
+    () => (topicKey === "" ? [] : topicKey.split("\n")),
+    [topicKey],
+  );
 
   const subscribe = useCallback(
     (onStoreChange: () => void) =>
@@ -91,10 +103,12 @@ export function useWidgetStreamStatus(
  */
 export function WidgetStreamStatusBridge({
   def,
+  config,
 }: {
   def: WidgetTopicDeclaration | undefined;
+  config?: unknown;
 }) {
-  const status = useWidgetStreamStatus(def);
+  const status = useWidgetStreamStatus(def, config);
   useStatusContribution(
     status !== null
       ? {

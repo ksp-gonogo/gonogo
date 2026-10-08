@@ -733,6 +733,7 @@ export {
 export {
   type WidgetTopicDeclaration,
   widgetDeclaredTopics,
+  widgetDrawnFamilies,
   widgetDrawnFields,
 } from "./widgetDeclaredTopics";
 export * from "./widgetSize";

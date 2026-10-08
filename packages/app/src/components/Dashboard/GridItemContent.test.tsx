@@ -42,6 +42,9 @@ const guardCapture = vi.hoisted(() => ({
     requires?: readonly string[];
     channels?: readonly string[];
     optionalChannels?: readonly string[];
+    families?: readonly string[];
+    optionalFamilies?: readonly string[];
+    configChannels?: readonly string[];
   } | null,
 }));
 vi.mock("@ksp-gonogo/components", () => ({
@@ -59,8 +62,14 @@ vi.mock("@ksp-gonogo/components", () => ({
     requires?: readonly string[];
     channels?: readonly string[];
     optionalChannels?: readonly string[];
+    families?: readonly string[];
+    optionalFamilies?: readonly string[];
+    configChannels?: readonly string[];
   }) => {
     guardCapture.last = {
+      families: props.families,
+      optionalFamilies: props.optionalFamilies,
+      configChannels: props.configChannels,
       requires: props.requires,
       channels: props.channels,
       optionalChannels: props.optionalChannels,
@@ -199,6 +208,41 @@ describe("GridItemContent: draggableCancel structural guard", () => {
       optionalChannels: ["vessel.orbit"],
     });
     expect(screen.getByTestId("stub-widget")).toBeInTheDocument();
+  });
+
+  it("hands the render-gate the widget's families and the Topics its config names", () => {
+    registerComponent({
+      id: "family-stub",
+      name: "Family Stub",
+      description: "declares families and a config-derived read",
+      tags: [],
+      component: StubWidget,
+      channelFamilies: ["fleet.<vessel>.contact"],
+      optionalChannelFamilies: ["vessel.partActions.<flightId>"],
+      channelsFromConfig: (config: { key?: string }) =>
+        config.key ? [config.key] : [],
+    });
+
+    render(
+      <GridItemContent
+        item={{
+          i: "w4",
+          componentId: "family-stub",
+          config: { key: "vessel.flight" },
+        }}
+        w={3}
+        h={3}
+        updateItemConfig={vi.fn()}
+        updateItemMappings={vi.fn()}
+        removeItem={vi.fn()}
+      />,
+    );
+
+    expect(guardCapture.last).toMatchObject({
+      families: ["fleet.<vessel>.contact"],
+      optionalFamilies: ["vessel.partActions.<flightId>"],
+      configChannels: ["vessel.flight"],
+    });
   });
 
   it("wraps a rendered widget in WidgetMetaContext + ContributionsProvider so useContributions works with zero widget-side setup", () => {

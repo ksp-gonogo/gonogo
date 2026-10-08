@@ -95,6 +95,56 @@ describe("alarmSubjectKey / alarmMatchesWidget", () => {
   });
 });
 
+describe("alarmMatchesWidget with families", () => {
+  const contact = makeAlarm(
+    "c",
+    "CONTACT",
+    "firing",
+    threshold("fleet.abc.contact"),
+  );
+  const families = ["fleet.<vessel>.contact"];
+
+  it("matches an alarm on a member of a declared family", () => {
+    expect(alarmMatchesWidget(contact, [], families)).toBe(true);
+  });
+
+  it("matches an alarm on a field beneath a member", () => {
+    const field = makeAlarm(
+      "f",
+      "LINKED",
+      "firing",
+      threshold("fleet.abc.contact.linked"),
+    );
+    expect(alarmMatchesWidget(field, [], families)).toBe(true);
+  });
+
+  it("does not match a sibling member kind, a shorter subject or no family", () => {
+    const delay = makeAlarm(
+      "d",
+      "DELAY",
+      "firing",
+      threshold("fleet.abc.delay"),
+    );
+    const bare = makeAlarm("b", "BARE", "firing", threshold("fleet.abc"));
+    expect(alarmMatchesWidget(delay, [], families)).toBe(false);
+    expect(alarmMatchesWidget(bare, [], families)).toBe(false);
+    expect(alarmMatchesWidget(contact, [], undefined)).toBe(false);
+  });
+
+  it("lights a widget summary through the bridge", () => {
+    render(
+      withAlarms(
+        snapshotOf([contact]),
+        <>
+          <AlarmStatusBridge declaredTopics={[]} declaredFamilies={families} />
+          <SummaryProbe />
+        </>,
+      ),
+    );
+    expect(screen.getByTestId("summary")).toHaveTextContent("nogo:CONTACT");
+  });
+});
+
 /**
  * The properties a widget's `dataRequirements` migration off the legacy
  * vocabulary has to preserve: swapping in the modern topic a widget actually

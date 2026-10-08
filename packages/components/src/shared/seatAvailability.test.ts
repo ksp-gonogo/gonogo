@@ -29,6 +29,31 @@ describe("declaredDomains", () => {
   });
 });
 
+describe("families", () => {
+  it("count by their literal prefix's domain", () => {
+    expect(
+      [
+        ...declaredDomains({
+          channelFamilies: ["fleet.<vessel>.contact"],
+          optionalChannelFamilies: ["vessel.partActions.<flightId>"],
+        }),
+      ].sort(),
+    ).toEqual(["fleet", "vessel"]);
+  });
+
+  it("add no domain for a family that starts with a placeholder", () => {
+    expect([
+      ...declaredDomains({ optionalChannelFamilies: ["<domain>.available"] }),
+    ]).toEqual([]);
+  });
+
+  it("keep a widget off the pilot seat when the prefix is a ground domain", () => {
+    const def = { channelFamilies: ["career.<x>.state" as const] };
+    expect(availableAtSeat(def, "pilot")).toBe(false);
+    expect(groundDomainsOf(def)).toEqual(["career"]);
+  });
+});
+
 describe("availableAtSeat", () => {
   const ground = { channels: ["career.status" as never] };
   const aboard = { channels: ["vessel.orbit" as never] };

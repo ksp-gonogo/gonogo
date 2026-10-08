@@ -1,5 +1,6 @@
 import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import type {
+  ChannelFamily,
   ReckonableFields,
   ReckonableReading,
   ReckonableTopic,
@@ -127,9 +128,20 @@ export interface TopicManifest<
   RequiredChannels extends readonly WidgetChannelId[],
   OptionalChannels extends readonly WidgetChannelId[],
   Fields extends readonly WidgetFieldPath[],
+  Families extends readonly ChannelFamily[] = readonly ChannelFamily[],
+  OptionalFamilies extends readonly ChannelFamily[] = readonly ChannelFamily[],
 > {
   readonly channels: RequiredChannels;
   readonly optionalChannels: OptionalChannels;
+  /**
+   * Families of runtime-built Topic ids the widget requires, spread straight
+   * into `registerComponent`'s `channelFamilies`. Empty when none were declared.
+   * A family has no `TopicId`, so it is read with `useStream`, not the bound
+   * hook.
+   */
+  readonly channelFamilies: Families;
+  /** The optional kind of {@link TopicManifest.channelFamilies}. */
+  readonly optionalChannelFamilies: OptionalFamilies;
   /**
    * What the widget draws, spread straight into `registerComponent`'s `fields`.
    * An empty array when the manifest declared none, which `registerComponent`
@@ -167,15 +179,28 @@ export function defineTopicManifest<
   const RequiredChannels extends readonly WidgetChannelId[],
   const OptionalChannels extends readonly WidgetChannelId[] = readonly [],
   const Fields extends readonly WidgetFieldPath[] = readonly [],
+  const Families extends readonly ChannelFamily[] = readonly [],
+  const OptionalFamilies extends readonly ChannelFamily[] = readonly [],
 >(manifest: {
   channels: RequiredChannels;
   optionalChannels?: OptionalChannels;
+  channelFamilies?: Families;
+  optionalChannelFamilies?: OptionalFamilies;
   fields?: Fields;
-}): TopicManifest<RequiredChannels, OptionalChannels, Fields> {
+}): TopicManifest<
+  RequiredChannels,
+  OptionalChannels,
+  Fields,
+  Families,
+  OptionalFamilies
+> {
   const channels = manifest.channels;
   const optionalChannels = (manifest.optionalChannels ??
     []) as OptionalChannels;
   const fields = (manifest.fields ?? []) as Fields;
+  const channelFamilies = (manifest.channelFamilies ?? []) as Families;
+  const optionalChannelFamilies = (manifest.optionalChannelFamilies ??
+    []) as OptionalFamilies;
 
   const boundHook = ((topic: TopicId) =>
     useTelemetry(topic)) as unknown as BoundTelemetryHook<
@@ -183,5 +208,12 @@ export function defineTopicManifest<
     OptionalChannels
   >;
 
-  return { channels, optionalChannels, fields, useTelemetry: boundHook };
+  return {
+    channels,
+    optionalChannels,
+    channelFamilies,
+    optionalChannelFamilies,
+    fields,
+    useTelemetry: boundHook,
+  };
 }

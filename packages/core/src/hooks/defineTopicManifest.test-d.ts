@@ -245,3 +245,20 @@ defineTopicManifest({
   // @ts-expect-error a field path off a channel that does not exist
   fields: ["notachannel.field"],
 });
+
+const familyManifest = defineTopicManifest({
+  channels: ["vessel.orbit"],
+  channelFamilies: ["fleet.<vessel>.contact"],
+  optionalChannelFamilies: ["vessel.partActions.<flightId>"],
+});
+
+export const _familiesAssignable: ComponentDefinition["channelFamilies"] =
+  familyManifest.channelFamilies;
+export const _optionalFamiliesAssignable: ComponentDefinition["optionalChannelFamilies"] =
+  familyManifest.optionalChannelFamilies;
+
+defineTopicManifest({
+  channels: ["vessel.orbit"],
+  // @ts-expect-error a family needs a placeholder
+  channelFamilies: ["fleet.abc.contact"],
+});

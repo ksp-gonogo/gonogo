@@ -4,12 +4,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 import {
+  familyPrefix,
   getAllKnownTopicIds,
   isTopicId,
   registerBarePrimitiveTopic,
   TOPIC_IDS,
   type TopicPayload,
   type TopicPayloadMap,
+  topicMatchesFamily,
 } from "./topics";
 
 /**
@@ -193,5 +195,48 @@ describe("typed Topic registry", () => {
       const all = new Set(getAllKnownTopicIds());
       for (const id of TOPIC_IDS) expect(all.has(id)).toBe(true);
     });
+  });
+});
+
+describe("channel families", () => {
+  it("takes the literal text before the first placeholder as the prefix", () => {
+    expect(familyPrefix("fleet.<vessel>.contact")).toBe("fleet.");
+    expect(familyPrefix("vessel.partActions.<flightId>")).toBe(
+      "vessel.partActions.",
+    );
+    expect(familyPrefix("<domain>.available")).toBe("");
+  });
+
+  it("matches a member with one segment in each placeholder", () => {
+    expect(
+      topicMatchesFamily("fleet.abc.contact", "fleet.<vessel>.contact"),
+    ).toBe(true);
+    expect(
+      topicMatchesFamily(
+        "vessel.partActions.4294",
+        "vessel.partActions.<flightId>",
+      ),
+    ).toBe(true);
+    expect(topicMatchesFamily("mapview.available", "<domain>.available")).toBe(
+      true,
+    );
+  });
+
+  it("refuses a different literal, a missing, extra or empty segment", () => {
+    expect(
+      topicMatchesFamily("fleet.abc.delay", "fleet.<vessel>.contact"),
+    ).toBe(false);
+    expect(topicMatchesFamily("fleet.contact", "fleet.<vessel>.contact")).toBe(
+      false,
+    );
+    expect(
+      topicMatchesFamily("fleet.a.b.contact", "fleet.<vessel>.contact"),
+    ).toBe(false);
+    expect(topicMatchesFamily("fleet..contact", "fleet.<vessel>.contact")).toBe(
+      false,
+    );
+    expect(
+      topicMatchesFamily("fleet.abc.contact.x", "fleet.<vessel>.contact"),
+    ).toBe(false);
   });
 });

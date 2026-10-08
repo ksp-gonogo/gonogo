@@ -472,8 +472,10 @@ export {
   type TopicFieldKind,
 } from "./topic-fields";
 export {
+  type ChannelFamily,
   DERIVED_CHANNEL_IDS,
   type DerivedChannelId,
+  familyPrefix,
   getAllKnownTopicIds,
   isCollectionTopic,
   isDerivedChannelId,
@@ -485,6 +487,7 @@ export {
   type TopicId,
   type TopicPayload,
   type TopicPayloadMap,
+  topicMatchesFamily,
   type WidgetChannelId,
   type WidgetFieldPath,
 } from "./topics";

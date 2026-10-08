@@ -811,6 +811,11 @@ function guarded(
   return (
     <RequiresGuard
       channels={def.channels}
+      families={def.channelFamilies}
+      optionalFamilies={def.optionalChannelFamilies}
+      configChannels={def.channelsFromConfig?.(
+        payload.config ?? def.defaultConfig ?? {},
+      )}
       title={def.name}
       compact={
         def.tiny !== undefined && showsTiny(def, payload.w, payload.h)

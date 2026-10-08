@@ -1,6 +1,7 @@
 // Core shared types: expand as features are built
 
 import type {
+  ChannelFamily,
   Seat,
   SlotId,
   TinyMode,
@@ -252,6 +253,35 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * Authored via {@link defineTopicManifest} (`optionalChannels`).
    */
   optionalChannels?: readonly WidgetChannelId[];
+  /**
+   * Families of Topics this widget REQUIRES whose ids are built at runtime,
+   * written as the docs write them (`fleet.<vessel>.contact`). Claimed and
+   * health-checked like `channels` through the literal prefix before the first
+   * placeholder; a family that starts with a placeholder has no prefix and is
+   * neither. A family with no members is not a failure. Authored via
+   * {@link defineTopicManifest} (`channelFamilies`).
+   *
+   * Families never feed the blackout badge: blackout is per craft and the
+   * store cannot list the members of a family.
+   *
+   * A claim of the prefix asks whether anything under it is locked, so a gate
+   * entry naming one concrete member is not seen by it.
+   */
+  channelFamilies?: readonly ChannelFamily[];
+  /**
+   * Families of Topics this widget reads but can do without
+   * (`vessel.partActions.<flightId>`). Read as `optionalChannels` are: they
+   * never claim, lock or replace the widget. Authored via
+   * {@link defineTopicManifest} (`optionalChannelFamilies`).
+   */
+  optionalChannelFamilies?: readonly ChannelFamily[];
+  /**
+   * Concrete Topic ids that depend on the tile's saved settings, such as the
+   * series a graph plots. Optional kind: claimed with the lock scope, counted
+   * for the "No telemetry host" placeholder, shown on the blackout badge and
+   * matched by alarms, never health-gating.
+   */
+  channelsFromConfig?: (config: Config) => readonly string[];
   /**
    * What this widget DRAWS, when that is narrower than what it mounts on.
    *

@@ -27,6 +27,7 @@ import type { RailDirection, RailTags } from "../rail-tags";
 import type { HeldGrade, Reading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
+  ChannelFamily,
   TopicId,
   TopicPayload,
   WidgetChannelId,
@@ -371,6 +372,29 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * `channels` are; an unhealthy Uplink serving one never replaces the widget.
    */
   optionalChannels?: readonly WidgetChannelId[];
+  /**
+   * Families of Topics the widget needs whose ids are built at runtime, such as
+   * `"fleet.<vessel>.contact"`. They are claimed and health-checked like
+   * `channels`, by the literal prefix before the first placeholder (a family
+   * that starts with a placeholder has none, so it is neither claimed nor
+   * health-checked). A family with no members yet is not a failure. They do not
+   * feed the blackout badge, because blackout is per craft.
+   */
+  channelFamilies?: readonly ChannelFamily[];
+  /**
+   * Families of Topics the widget reads but can do without, such as
+   * `"vessel.partActions.<flightId>"`. They are read as `optionalChannels` are
+   * and never replace the widget.
+   */
+  optionalChannelFamilies?: readonly ChannelFamily[];
+  /**
+   * Topics the widget reads that depend on how the tile is set up, such as the
+   * series a graph plots, as concrete Topic ids. They count as optional
+   * channels: claimed with the lock scope, counted for the "No telemetry host"
+   * placeholder, shown on the blackout badge and matched by alarms, but an
+   * unhealthy Uplink serving one never replaces the widget.
+   */
+  channelsFromConfig?: (config: Config) => readonly string[];
   /**
    * The fields the widget draws, when that is fewer than the Topics it lists
    * carry. Absent means it draws everything they carry. The app reads it to

@@ -96,4 +96,20 @@ describe("defineTopicManifest", () => {
       reckoning: { status: "none" },
     });
   });
+
+  it("returns the families it was given, and empty arrays when it was given none", () => {
+    const withFamilies = defineTopicManifest({
+      channels: ["vessel.orbit"],
+      channelFamilies: ["fleet.<vessel>.contact"],
+      optionalChannelFamilies: ["vessel.partActions.<flightId>"],
+    });
+    expect(withFamilies.channelFamilies).toEqual(["fleet.<vessel>.contact"]);
+    expect(withFamilies.optionalChannelFamilies).toEqual([
+      "vessel.partActions.<flightId>",
+    ]);
+
+    const without = defineTopicManifest({ channels: ["vessel.orbit"] });
+    expect(without.channelFamilies).toEqual([]);
+    expect(without.optionalChannelFamilies).toEqual([]);
+  });
 });

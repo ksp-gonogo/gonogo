@@ -5,6 +5,7 @@ import {
   useTelemetryHostDown,
   useUplinkHealthFor,
 } from "@ksp-gonogo/core";
+import { type ChannelFamily, familyPrefix } from "@ksp-gonogo/sitrep-sdk";
 import { useClaimCapability } from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
@@ -21,6 +22,19 @@ export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
   /** The widget's required channels only; optional channels never gate. */
   channels?: readonly string[];
+  /**
+   * The widget's required families of runtime-built Topics. Each is claimed and
+   * health-checked through the literal prefix before its first placeholder, and
+   * a family that starts with a placeholder has none, so it is neither.
+   */
+  families?: readonly ChannelFamily[];
+  /** The widget's optional families: they only count towards the missing-host check. */
+  optionalFamilies?: readonly ChannelFamily[];
+  /**
+   * The Topics the widget's saved settings name. They are claimed and count
+   * towards the missing-host check, and never gate on Uplink health.
+   */
+  configChannels?: readonly string[];
   /** The widget's name, kept as the panel heading while its body is refused. */
   title?: string;
   /**
@@ -46,17 +60,36 @@ export interface RequiresGuardProps {
 export function RequiresGuard({
   requires,
   channels,
+  families,
+  optionalFamilies,
+  configChannels,
   title,
   compact,
   children,
 }: RequiresGuardProps) {
   const hostDown = useTelemetryHostDown();
-  // A channel-less widget has nothing a missing host can block.
-  if (hostDown && channels && channels.length > 0) {
+  // A widget that declares nothing has nothing a missing host can block.
+  const readsTopics =
+    (channels?.length ?? 0) +
+      (families?.length ?? 0) +
+      (optionalFamilies?.length ?? 0) +
+      (configChannels?.length ?? 0) >
+    0;
+  if (hostDown && readsTopics) {
     return (
       <GuardPlaceholder title={title} message={NO_TELEMETRY_HOST_MESSAGE} />
     );
   }
+
+  const claimed = [
+    ...(channels ?? []),
+    ...(families ?? []).map(familyPrefix).filter((prefix) => prefix !== ""),
+    ...(configChannels ?? []),
+  ];
+  const healthChecked = [
+    ...(channels ?? []),
+    ...(families ?? []).map(familyPrefix).filter((prefix) => prefix !== ""),
+  ];
 
   return (
     <LockScope
@@ -72,10 +105,10 @@ export function RequiresGuard({
         )
       }
     >
-      {channels?.map((topic) => (
+      {[...new Set(claimed)].map((topic) => (
         <ChannelClaim key={topic} topic={topic} />
       ))}
-      <ReadinessGate requires={requires} channels={channels} title={title}>
+      <ReadinessGate requires={requires} channels={healthChecked} title={title}>
         {children}
       </ReadinessGate>
     </LockScope>

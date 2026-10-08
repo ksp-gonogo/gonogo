@@ -185,6 +185,11 @@ function PushedItem({
                 <RequiresGuard
                   requires={def.requires}
                   channels={def.channels}
+                  families={def.channelFamilies}
+                  optionalFamilies={def.optionalChannelFamilies}
+                  configChannels={def.channelsFromConfig?.(
+                    placement.widget.config,
+                  )}
                   title={def.name}
                 >
                   <WidgetBody

@@ -1,3 +1,4 @@
+import { type ChannelFamily, topicMatchesFamily } from "@ksp-gonogo/sitrep-sdk";
 import type { Severity } from "@ksp-gonogo/ui-kit";
 import { useStatusContribution } from "@ksp-gonogo/ui-kit";
 import { useAlarmSnapshotOptional } from "./AlarmHostContext";
@@ -61,10 +62,14 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
  * to that channel's inputs. A derived field resolves to every input of its
  * channel, so an upward walk would light a widget for an alarm on a quantity it
  * never draws: a loud false positive traded for a silent miss.
+ *
+ * `declaredFamilies` are patterns such as `fleet.<vessel>.contact`; an alarm
+ * on a member of one, or a field beneath a member, lights the widget.
  */
 export function alarmMatchesWidget(
   alarm: Alarm,
   declaredTopics: readonly string[] | undefined,
+  declaredFamilies?: readonly string[],
 ): boolean {
   const subject = alarmSubjectKey(alarm);
   if (subject === null) return false;
@@ -72,7 +77,12 @@ export function alarmMatchesWidget(
     if (requirement === subject) return true;
     if (subject.startsWith(`${requirement}.`)) return true;
   }
-  return false;
+  const segments = subject.split(".");
+  return (declaredFamilies ?? []).some((family) => {
+    // A family member matches like a declared Topic: the member itself or a field beneath it.
+    const member = segments.slice(0, family.split(".").length).join(".");
+    return topicMatchesFamily(member, family as ChannelFamily);
+  });
 }
 
 /**
@@ -88,14 +98,16 @@ export function alarmMatchesWidget(
  */
 export function AlarmStatusBridge({
   declaredTopics,
+  declaredFamilies,
 }: {
   declaredTopics: readonly string[] | undefined;
+  declaredFamilies?: readonly string[];
 }) {
   const snapshot = useAlarmSnapshotOptional();
   const matched = (snapshot?.alarms ?? []).filter(
     (alarm) =>
       severityFromAlarmState(alarm.state) !== null &&
-      alarmMatchesWidget(alarm, declaredTopics),
+      alarmMatchesWidget(alarm, declaredTopics, declaredFamilies),
   );
   return (
     <>
