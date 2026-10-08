@@ -5,11 +5,7 @@ import {
   wrapTypePayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import {
-  nextEncounter,
-  type PatchPoint,
-  predictTrajectory,
-} from "./predictedTrajectory";
+import { nextEncounter, predictTrajectory } from "./predictedTrajectory";
 
 function patch(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
   return wrapTypePayload<OrbitPatch>("OrbitPatch", {
@@ -35,7 +31,7 @@ function patch(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
   });
 }
 
-const NO_CHILDREN: ReadonlyMap<string, PatchPoint> = new Map();
+const NO_BODIES = () => null;
 
 describe("predictTrajectory", () => {
   it("returns nothing without patches", () => {
@@ -44,7 +40,7 @@ describe("predictTrajectory", () => {
         patches: [],
         parentName: "Kerbin",
         ut: 0,
-        childOffsets: NO_CHILDREN,
+        offsetAt: NO_BODIES,
       }).patches,
     ).toEqual([]);
   });
@@ -54,7 +50,7 @@ describe("predictTrajectory", () => {
       patches: [patch({ startUt: 0, endUt: 100 })],
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(patches).toHaveLength(1);
     const pts = patches[0].points;
@@ -71,7 +67,7 @@ describe("predictTrajectory", () => {
       patches: [patch({ inc: 30, startUt: 0, endUt: 100 })],
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     // `patchStateAt` answers in three dimensions, and depth is kept.
     const depths = patches[0].points.map((p) => p.z);
@@ -85,7 +81,7 @@ describe("predictTrajectory", () => {
       patches: [patch({ startUt: 0, endUt: 100 })],
       parentName: "Kerbin",
       ut: 25,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(patches).toHaveLength(1);
     expect(patches[0].isCurrent).toBe(true);
@@ -97,7 +93,6 @@ describe("predictTrajectory", () => {
 
   it("draws an encounter patch offset to the child body position and records the marker", () => {
     const munOffset = { x: 120e5, y: 0, z: 0 };
-    const childOffsets = new Map<string, PatchPoint>([["Mun", munOffset]]);
     const patches = [
       patch({
         startUt: 0,
@@ -119,7 +114,7 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      childOffsets,
+      offsetAt: (body) => (body === "Mun" ? munOffset : null),
     });
     expect(projected).toHaveLength(2);
     const munPatch = projected.find((p) => p.referenceBody === "Mun");
@@ -151,7 +146,7 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(encounters).toHaveLength(1);
     expect(encounters[0].kind).toBe("escape");
@@ -166,7 +161,7 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(projected).toHaveLength(1);
     expect(projected[0].referenceBody).toBe("Kerbin");
@@ -181,7 +176,7 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(projected).toHaveLength(1);
     expect(projected[0].referenceBody).toBe("Kerbin");
@@ -192,7 +187,7 @@ describe("predictTrajectory", () => {
       patches: [patch({ referenceBody: " kerbin " })],
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(patches).toHaveLength(1);
   });
@@ -204,15 +199,12 @@ describe("nextEncounter", () => {
       patches: [patch()],
       parentName: "Kerbin",
       ut: 0,
-      childOffsets: NO_CHILDREN,
+      offsetAt: NO_BODIES,
     });
     expect(nextEncounter(traj, 0)).toBeNull();
   });
 
   it("picks the earliest encounter after ut", () => {
-    const childOffsets = new Map<string, PatchPoint>([
-      ["Mun", { x: 100e5, y: 0, z: 0 }],
-    ]);
     const patches = [
       patch({ startUt: 0, endUt: 50 }),
       patch({
@@ -228,12 +220,72 @@ describe("nextEncounter", () => {
       patches,
       parentName: "Kerbin",
       ut: 10,
-      childOffsets,
+      offsetAt: (body) => (body === "Mun" ? { x: 100e5, y: 0, z: 0 } : null),
     });
     const next = nextEncounter(traj, 10);
     expect(next).not.toBeNull();
     expect(next?.body).toBe("Mun");
     expect(next?.kind).toBe("encounter");
     expect(next?.ut.magnitude).toBe(50);
+  });
+
+  it("asks where a body is at the instant the patch around it begins, not at the instant on screen", () => {
+    const asked: Array<[string, number]> = [];
+    const patches = [
+      patch({ startUt: 0, endUt: 50 }),
+      patch({
+        startUt: 50,
+        endUt: 100,
+        patchStartTransition: TransitionType.Encounter,
+        referenceBody: "Mun",
+        sma: 200_000,
+        period: 60,
+      }),
+    ];
+    predictTrajectory({
+      patches,
+      parentName: "Kerbin",
+      ut: 10,
+      offsetAt: (body, ut) => {
+        asked.push([body, ut]);
+        return { x: ut * 1e5, y: 0, z: 0 };
+      },
+    });
+    expect(asked).toEqual([["Mun", 50]]);
+  });
+
+  it("centres the arc about the body where it is when the patch begins", () => {
+    const patches = [
+      patch({
+        startUt: 50,
+        endUt: 100,
+        patchStartTransition: TransitionType.Encounter,
+        referenceBody: "Mun",
+        sma: 200_000,
+        period: 60,
+      }),
+    ];
+    const { patches: projected } = predictTrajectory({
+      patches,
+      parentName: "Kerbin",
+      ut: 0,
+      offsetAt: (_body, ut) => ({ x: ut * 1e5, y: 0, z: 0 }),
+    });
+    for (const p of projected[0]?.points ?? []) {
+      expect(Math.hypot(p.x - 50e5, p.y)).toBeCloseTo(200_000, -2);
+    }
+  });
+
+  it("leaves out a patch that ended before the instant on screen", () => {
+    const { patches: projected } = predictTrajectory({
+      patches: [
+        patch({ startUt: 0, endUt: 50 }),
+        patch({ startUt: 50, endUt: 100 }),
+      ],
+      parentName: "Kerbin",
+      ut: 70,
+      offsetAt: NO_BODIES,
+    });
+    expect(projected.map((p) => p.patchIndex)).toEqual([1]);
   });
 });

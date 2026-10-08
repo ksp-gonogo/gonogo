@@ -20,7 +20,7 @@ import {
   useSystemInstant,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { type ControlFrame, value } from "@ksp-gonogo/sitrep-sdk";
+import type { ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -35,8 +35,8 @@ import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
 import { encounterDirectionOf } from "./encounter";
 import { frameCaption, resolveFrame } from "./frame";
-import { conicPatches } from "./orbitPatches";
 import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
+import { bodyOffsetAt } from "./patchOffsets";
 import type { TrajectoryPatch } from "./predictedTrajectory";
 import {
   followControlFrameProjection,
@@ -83,6 +83,8 @@ function useHeldChoice(choice: ReadFrameChoice | null): ReadFrameChoice | null {
   if (!same) held.current = choice;
   return held.current;
 }
+
+const NO_PATCHES: readonly TrajectoryPatch[] = [];
 
 function SystemViewComponent({
   config,
@@ -198,9 +200,6 @@ function SystemViewComponent({
     encounter?.bodyIndex != null
       ? (nameByIndex.get(encounter.bodyIndex) ?? null)
       : null;
-  const encounterTimeUt = encounter?.transitionUt.isFinite()
-    ? encounter.transitionUt.magnitude
-    : null;
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody);
 
@@ -248,42 +247,30 @@ function SystemViewComponent({
     typeof universalTime === "number" ? universalTime : undefined,
     performance.now(),
   );
-  // Built only on the CONIC answer: an integrating provider must not be handed a conic prediction, so on an arc answer the diagram draws the sampled path instead.
-  const orbitPatches = useMemo<TrajectoryPatch[]>(() => {
-    if (!orbit || vesselBody == null || utBucket == null) return [];
-    if (vesselTrajectory?.shape !== "conic") return [];
-    return conicPatches({
-      // An undefined node or apsis (near-equatorial, near-circular) is measured from zero, as the propagator does everywhere.
-      elements: {
-        inc: orbit.inc,
-        ecc: orbit.ecc,
-        epoch: orbit.epoch,
-        argPe: orbit.argPe ?? value("°", 0),
-        sma: orbit.sma,
-        lan: orbit.lan ?? value("°", 0),
-        meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
-      },
-      referenceBody: vesselBody,
-      startUt: utBucket,
-      period: derived?.period,
-      encounterDirection,
-      encounterTimeUt,
-    });
-  }, [
-    orbit,
-    vesselBody,
-    utBucket,
-    derived,
-    vesselTrajectory,
-    encounterDirection,
-    encounterTimeUt,
-  ]);
+  // The chain the game published, drawn only on the CONIC answer: its patches are the game's own conics, which an integrating provider contradicts, so on an arc answer the diagram draws the sampled path instead.
+  const orbitPatches = useMemo<readonly TrajectoryPatch[]>(() => {
+    if (vesselTrajectory?.shape !== "conic") return NO_PATCHES;
+    return orbitObserved?.patches ?? NO_PATCHES;
+  }, [orbitObserved, vesselTrajectory]);
+  const catalogueAsOfUt = catalogueHeld?.asOfUt.valueOf() ?? null;
+  const offsetAt = useCallback(
+    (bodyName: string, ut: number) =>
+      parentName !== null && facts !== undefined
+        ? bodyOffsetAt(facts, parentName, bodyName, ut, catalogueAsOfUt)
+        : null,
+    [facts, parentName, catalogueAsOfUt],
+  );
   const predicted = useMemo(
     () =>
       orbitPatches.length > 0 && utBucket != null
-        ? { orbitPatches, ut: utBucket }
+        ? {
+            orbitPatches,
+            // The chain begins at the observation, so an instant earlier than its first patch (the bucket floors to the second) is the chain's start.
+            ut: Math.max(utBucket, orbitPatches[0].startUt.valueOf()),
+            offsetAt,
+          }
         : null,
-    [orbitPatches, utBucket],
+    [orbitPatches, utBucket, offsetAt],
   );
 
   // Only the drawn children subscribe to phase angles, so the subscription count tracks what is on screen.

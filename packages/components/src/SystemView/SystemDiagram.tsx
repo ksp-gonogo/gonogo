@@ -28,7 +28,7 @@ import {
   VesselOrbitPath,
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
-import type { TrajectoryPatch } from "./predictedTrajectory";
+import type { PatchPoint, TrajectoryPatch } from "./predictedTrajectory";
 import {
   INERTIAL_PLACEMENT,
   type Placement,
@@ -78,7 +78,11 @@ export interface SystemDiagramProps {
   /** Fires when the vessel marker is pressed. Absent leaves the marker inert. */
   onVesselActivate?: () => void;
   /** Multi-SOI predicted trajectory; `ut` locates the live patch. */
-  predicted?: { orbitPatches: readonly TrajectoryPatch[]; ut: number } | null;
+  predicted?: {
+    orbitPatches: readonly TrajectoryPatch[];
+    ut: number;
+    offsetAt: (bodyName: string, ut: number) => PatchPoint | null;
+  } | null;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
   projection?: ResolvedProjection | null;
   width: number;
@@ -224,8 +228,6 @@ export function SystemDiagram({
 
   const placedPatches = usePlacedPrediction({
     predicted,
-    children,
-    poses,
     parentName,
     plotScale,
     placement,

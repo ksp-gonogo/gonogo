@@ -98,8 +98,8 @@ export interface PredictTrajectoryArgs {
   parentName: string;
   /** Current universal time: identifies the live patch. */
   ut: number;
-  /** The frame's children in parent-centred metres, keyed by name, for offsetting encounter arcs; the frame body is the origin. */
-  childOffsets: ReadonlyMap<string, PatchPoint>;
+  /** Where a body sits relative to the frame body at a UT, in metres, or null when it has no place then. Asked at a patch's own start, since its arc is drawn about the body where it is when the patch begins. */
+  offsetAt: (bodyName: string, ut: number) => PatchPoint | null;
   /** Samples per patch arc. Capped to bound work; defaults to 64. */
   samplesPerPatch?: number;
 }
@@ -113,17 +113,14 @@ function sameBody(a: string | null, b: string | null): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/** Where a patch's reference body sits on this frame, or `null` when the frame does not draw it. */
+/** Where a patch's reference body sits on this frame when the patch begins, or `null` when the frame does not draw it. */
 function frameOffset(
-  referenceBody: string,
+  patch: TrajectoryPatch,
   parentName: string,
-  childOffsets: ReadonlyMap<string, PatchPoint>,
+  offsetAt: PredictTrajectoryArgs["offsetAt"],
 ): PatchPoint | null {
-  if (sameBody(referenceBody, parentName)) return { x: 0, y: 0, z: 0 };
-  for (const [name, pos] of childOffsets) {
-    if (sameBody(name, referenceBody)) return pos;
-  }
-  return null;
+  if (sameBody(patch.referenceBody, parentName)) return { x: 0, y: 0, z: 0 };
+  return offsetAt(patch.referenceBody, patch.startUt.valueOf());
 }
 
 /** Samples every patch around the frame parent or a drawn child; a patch around an off-screen body belongs to another frame and is skipped. */
@@ -131,7 +128,7 @@ export function predictTrajectory({
   patches,
   parentName,
   ut,
-  childOffsets,
+  offsetAt,
   samplesPerPatch = DEFAULT_SAMPLES,
 }: PredictTrajectoryArgs): PredictedTrajectory {
   const out: ProjectedPatch[] = [];
@@ -158,8 +155,10 @@ export function predictTrajectory({
   for (let i = 0; i < patches.length; i++) {
     const patch = patches[i];
     if (!canPropagatePatch(patch)) continue;
+    // A patch that ended before the instant on screen is behind the craft.
+    if (patch.endUt.lessThan(value("ut", ut))) continue;
 
-    const offset = frameOffset(patch.referenceBody, parentName, childOffsets);
+    const offset = frameOffset(patch, parentName, offsetAt);
     if (offset === null) continue;
 
     // The live patch draws from `ut` forward; the live-orbit ellipse already shows the full loop.

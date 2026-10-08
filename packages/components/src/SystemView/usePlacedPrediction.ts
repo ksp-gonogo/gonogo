@@ -1,60 +1,43 @@
-import type { SystemPoses } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
-import { orbitPointAt } from "./orbitGeometry";
+import type { PatchPoint } from "./predictedTrajectory";
 import {
-  type PatchPoint,
   type PredictedTrajectory,
   predictTrajectory,
   type TrajectoryPatch,
 } from "./predictedTrajectory";
 import type { Placement } from "./projection";
-import type { CelestialBody } from "./useCelestialBodies";
 
-/** The predicted SOI chain sampled around the frame's parent and its drawn children, then placed through the diagram's projection. */
+/** The predicted SOI chain sampled around the frame's parent and the bodies it passes, then placed through the diagram's projection. */
 export function usePlacedPrediction({
   predicted,
-  children,
-  poses,
   parentName,
   plotScale,
   placement,
 }: {
   predicted:
-    | { orbitPatches: readonly TrajectoryPatch[]; ut: number }
+    | {
+        orbitPatches: readonly TrajectoryPatch[];
+        ut: number;
+        offsetAt: (bodyName: string, ut: number) => PatchPoint | null;
+      }
     | null
     | undefined;
-  children: readonly CelestialBody[];
-  poses: SystemPoses | undefined;
   parentName: string;
   plotScale: number;
   placement: Placement;
 }) {
-  // Child offsets compose in parent-centred metres and are placed once, because offsetting after placement would add a translation the frame already accounted for.
+  // Body offsets compose in parent-centred metres and are placed once, because offsetting after placement would add a translation the frame already accounted for.
   const trajectory = useMemo<PredictedTrajectory | null>(() => {
     if (!predicted || predicted.orbitPatches.length === 0 || plotScale <= 0) {
       return null;
-    }
-    const childOffsets = new Map<string, PatchPoint>();
-    for (const c of children) {
-      const sma = c.semiMajorAxis ?? 0;
-      if (sma <= 0 || c.name === null) continue;
-      const at = orbitPointAt(
-        sma,
-        c.eccentricity ?? 0,
-        c.lan ?? 0,
-        c.argumentOfPeriapsis ?? 0,
-        c.inclination ?? 0,
-        poses?.poseByIndex[c.index]?.trueAnomaly ?? 0,
-      );
-      childOffsets.set(c.name, { x: at[0], y: at[1], z: at[2] });
     }
     return predictTrajectory({
       patches: predicted.orbitPatches,
       parentName,
       ut: predicted.ut,
-      childOffsets,
+      offsetAt: predicted.offsetAt,
     });
-  }, [predicted, plotScale, children, poses, parentName]);
+  }, [predicted, plotScale, parentName]);
 
   // Split from the propagation so a projection change does not re-solve Kepler.
   const placedPatches = useMemo(

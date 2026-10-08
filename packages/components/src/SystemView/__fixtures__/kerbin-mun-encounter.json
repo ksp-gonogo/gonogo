@@ -116,7 +116,29 @@
             "transitionType": 2,
             "transitionUt": 26100,
             "bodyIndex": 2
-          }
+          },
+          "patches": [
+            {
+              "startUt": 0,
+              "endUt": 26100,
+              "patchStartTransition": 0,
+              "patchEndTransition": 2,
+              "sma": 6350000,
+              "ecc": 0.88976378,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 0,
+              "period": 53500.11335814783,
+              "peA": 699999.997,
+              "apA": 12000000.003,
+              "semiLatusRectum": 1322834.6403307088,
+              "semiMinorAxis": 2898275.3433895824,
+              "referenceBody": "Kerbin",
+              "closestEncounterBody": null
+            }
+          ]
         },
         "meta": {
           "quality": 1

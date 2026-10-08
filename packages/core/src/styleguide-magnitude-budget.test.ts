@@ -242,7 +242,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * numbers and put a `Value` into `toFixed` the moment they were not.
    */
   "packages/components/src/shared/dockAngles.ts": 3,
-  "packages/components/src/SystemView/index.tsx": 8,
+  "packages/components/src/SystemView/index.tsx": 7,
   /*
    * TWO, and each is a boundary rather than arithmetic: a stream field that
    * arrives as a bare number, and a dot product handed to a reticle that draws
