@@ -121,10 +121,14 @@ export function page(
 }
 
 /** The three files the page check writes, relative to the client. */
-const PAGE_FILES = ["README.md", "gonogo-uplink.json", "docs/widgets.json"];
+export const PAGE_FILES = [
+  "README.md",
+  "gonogo-uplink.json",
+  "docs/widgets.json",
+];
 
 /** The test files under `dir` that call the page check, which are the only ones `page` runs. */
-function pageCheckFiles(dir: string): string[] {
+export function pageCheckFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   const found: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

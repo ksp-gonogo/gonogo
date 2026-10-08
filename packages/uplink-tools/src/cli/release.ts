@@ -44,6 +44,16 @@ export const PLACEHOLDER_OWNER = "you";
 const isPlaceholderUrl = (url: string): boolean =>
   url.includes(`/gh/${PLACEHOLDER_OWNER}/`);
 
+/** Why a client URL cannot be released, or nothing when it is a real address. */
+export function placeholderUrlFault(url: string): string | undefined {
+  if (!url || !isPlaceholderUrl(url)) return undefined;
+  return (
+    `uplink.json's client.url is still the placeholder (${url}). A released plugin tells ` +
+    "every install to fetch its client from there, and nothing is served there. Set " +
+    '"repo" and "client.url" to where the bundle will really be published, then release.'
+  );
+}
+
 /**
  * The versions written in a URL's path, such as the `0.0.1` folder a release is
  * published under or the `v0.0.1` of a tag. The host is not read, so an address
@@ -137,13 +147,8 @@ export async function release(
     );
   }
 
-  if (url && !devPath && isPlaceholderUrl(url)) {
-    throw new Error(
-      `uplink.json's client.url is still the placeholder (${url}). A released plugin tells ` +
-        "every install to fetch its client from there, and nothing is served there. Set " +
-        '"repo" and "client.url" to where the bundle will really be published, then release.',
-    );
-  }
+  const placeholder = devPath ? undefined : placeholderUrlFault(url);
+  if (placeholder) throw new Error(placeholder);
 
   const clientDir = join(uplinkDir, "client");
   const versionFile = join(clientDir, "package.json");

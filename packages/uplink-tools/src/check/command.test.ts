@@ -163,10 +163,10 @@ describe("exit codes", () => {
   });
 
   it("reports a group with no rule as not checked rather than green", async () => {
-    const { code, out } = await runIn(client(), ["--only", "page"]);
+    const { code, out } = await runIn(client(), ["--only", "docs-prose"]);
     expect(code).toBe(0);
     expect(out).toContain("Not checked");
-    expect(out).toContain("page");
+    expect(out).toContain("docs-prose");
   });
 
   it("leaves a skipped group out", async () => {
