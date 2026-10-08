@@ -907,6 +907,8 @@ namespace Sitrep.Host.IntegrationTests
         public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null)
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var wall = 0.0;
+            engine.SetReleaseClockForTests(() => wall += 0.05);
             var game = scripted ?? new ScriptedContactGame();
             engine.RegisterCommandCentreSource(new Grounds(ScriptedContactGame.Home, ScriptedContactGame.Far));
             var uplink = new ScriptedContactUplink(game, engine);

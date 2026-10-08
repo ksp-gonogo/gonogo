@@ -33,7 +33,7 @@ export interface ClientTimelineOptions {
    * dump survives ingest whatever its width.
    *
    * Drop-oldest matches the server-side recorder's own overrun policy
-   * (`ChannelEngine.RecorderCapacityPerTopic`) so the two do not fight: the
+   * (`ChannelEngine.RecorderBudgetBytes`) so the two do not fight: the
    * span nearest the live edge is the one both keep. What a drop cost is
    * readable off `droppedThroughUt` rather than left to be inferred from a
    * hole.

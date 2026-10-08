@@ -1014,6 +1014,42 @@ namespace Sitrep.Host
         // Courier-thread-only.
         private readonly Dictionary<string, double> _pendingGapSinceUt = new Dictionary<string, double>();
 
+        // What each craft's topics took while it was out of contact, oldest first,
+        // held until the link returns and the release hands it to the Courier. Kept
+        // apart from _revealBuffer, whose entries all mature on a finite horizon.
+        // Courier-thread-only.
+        private readonly Dictionary<string, Recording> _recordings = new Dictionary<string, Recording>();
+
+        // Heap held by _recordings, as HeldSampleSize counts it.
+        private long _recordedBytes;
+
+        // Per topic, the bytes one UNPACKED sample costs, re-measured every
+        // HeldSampleRemeasureEvery samples: walking a 60 KB tree on each of the
+        // samples a dark craft takes would cost more than holding them. Only a
+        // tree the codec cannot pack is counted this way.
+        private readonly HeldSampleCodec _heldSampleCodec = new HeldSampleCodec();
+
+        private readonly Dictionary<string, (long Bytes, int Since)> _heldSampleBytes = new Dictionary<string, (long, int)>();
+
+        private const int HeldSampleRemeasureEvery = 32;
+
+        private const long UnsizedSampleBytes = 64 * 1024;
+
+        // What an unpacked tree weighs in heap against its wire size, measured on
+        // vessel.parts, comms.contacts and a flat scalar topic (5.0, 3.5 and 4.0).
+        private const int HeldTreeToWireRatio = 4;
+
+        // Craft whose recording is still being released, and the release's
+        // allowance: bytes and samples earned since it last spent any, never more
+        // than one burst. See ReleaseBytesPerSecond.
+        private readonly HashSet<string> _releasing = new HashSet<string>();
+        private double _releaseBytesCredit = ReleaseBurstBytes;
+        private double _releaseSamplesCredit = ReleaseSamplesPerSecond;
+        private double _releaseCreditAtSec = double.NaN;
+        private Func<double>? _releaseClock;
+
+        private double _nowReleaseSec() => (_releaseClock ?? _nowRealSec)();
+
         // Per-subject UT of the current outage's start, held for as long as it
         // runs so the Courier's link-down mark can be re-applied at the ORIGINAL
         // instant on every disconnected tick rather than drifting forward.
@@ -1036,59 +1072,71 @@ namespace Sitrep.Host
         private readonly HashSet<string> _fleetVesselsThisTick = new HashSet<string>();
 
         /// <summary>
-        /// How many in-blackout samples the recorder holds PER TOPIC before the
-        /// oldest are dropped to make room (see <see cref="Emit"/>).
+        /// The most managed heap, in bytes, the recorder may hold across every
+        /// craft and topic at once. There is no count cap and no per-topic or
+        /// per-craft share inside it: when it is passed, the oldest held samples
+        /// go first, across all of them (see <see cref="ShedOldestRecordings"/>).
         ///
-        /// <para>A cap is not optional: an outage has no upper bound in UT (a
-        /// Jool transfer's occultation, a probe abandoned for a career year) and
-        /// a channel emitting through it every tick would grow this without
-        /// limit. The old policy could not leak because it dropped the window
-        /// whole; holding it is what makes a bound necessary.</para>
+        /// <para>1 GiB, of samples packed by <see cref="HeldSampleCodec"/>. A held
+        /// sample is the flattened tree a channel source returns, which costs about
+        /// five times its wire size as a tree (a 68 part <c>vessel.parts</c> sample
+        /// is 60 KB on the wire and 301 KB as a tree) and about a seventh of it
+        /// packed (8 KB on measured shapes, 8 to 15 KB on a real craft). At the
+        /// roughly 4 changes a second the old per-topic cap assumed, one craft's
+        /// parts take 120 to 200 MB per hour at 1x and the rest of its topics add
+        /// a quarter, so 1 GiB is about five craft-hours of full telemetry at 1x.
+        /// Under warp the rate is per real second, not per game second: a three
+        /// day outage at 1000x is 260 real seconds, 1200 samples of each topic and
+        /// about 25 MB for the whole craft, so a constellation of forty craft dark
+        /// for three days fits.</para>
         ///
-        /// <para>Drop-OLDEST rather than refuse-newest, and neither decimation
-        /// nor a UT window. Drop-oldest keeps the span ADJACENT to reacquisition,
-        /// which is the half that still describes a live craft and the half a
-        /// chart's window is looking at; refuse-newest would fill the recorder in
-        /// the first minutes of a long outage and then record none of the
-        /// approach. Decimation was the other candidate and is rejected because
-        /// these channels are already change-gated: dropping every other sample
-        /// of a deadbanded series discards real transitions and leaves a series
-        /// that looks complete and is not, whereas a stated hole is a fact an
-        /// operator can act on. Whatever a drop costs is named on the wire as
-        /// <see cref="Meta.GapSinceUt"/> rather than left to be inferred.</para>
-        ///
-        /// <para>1200 entries. At the ~4 Hz a Delayed channel emits when
-        /// something is actually changing that is five minutes of continuous
-        /// full-rate recording per topic, and far longer for the change-gated
-        /// majority; under time warp, where the long outages happen, a tick
-        /// covers a large UT stride and the count for a given UT span collapses.
-        /// It is a COUNT rather than a UT window on purpose: memory is what is
-        /// being bounded, and a UT window bounds memory only if you assume a
-        /// sample rate, which is the assumption the client-side twin of this
-        /// guard was making (see <c>ClientTimelineOptions</c>).</para>
+        /// <para>It is a bound on what the process may pile up while waiting for a
+        /// link, not a share of memory the mod expects to use: nothing is held
+        /// while links are up.</para>
         /// </summary>
-        internal const int RecorderCapacityPerTopic = 1200;
+        internal const long RecorderBudgetBytes = 1L << 30;
 
         /// <summary>
-        /// Soft cap on samples the blackout recorder dumps into the Courier per
-        /// second of UT, across every topic and subject.
-        ///
-        /// <para>A dump is the one place in this class where a single tick hands
-        /// the Courier an unbounded-looking burst instead of one sample per topic,
-        /// so it is the path that needs watching. Steady state is ZERO: nothing is
-        /// recorded while the link is up, and a dump is a discrete event at a
-        /// reacquisition edge, seconds or hours apart.</para>
-        ///
-        /// <para>4000 per UT second. One subject reacquiring with every topic's
-        /// recorder full is about 40 x <see cref="RecorderCapacityPerTopic"/>, and
-        /// that is a legitimate one-off, so the threshold is set to catch the
-        /// shapes that are NOT one-off: a link flapping across the edge every
-        /// tick (which would dump, re-record and re-dump), or a subject whose
-        /// recorder is being drained without being emptied. Both show up as this
-        /// rate staying high across consecutive seconds rather than spiking
-        /// once.</para>
+        /// Heap the recorder may hold, after
+        /// <see cref="SetRecorderBudgetForTests"/>.
         /// </summary>
-        internal const double BlackoutReplayBudget = 4000;
+        private long _recorderBudgetBytes = RecorderBudgetBytes;
+
+        /// <summary>
+        /// The pace a recording is released at, in bytes of the sample's packed
+        /// form before deflate (within a tenth of its wire size) per second,
+        /// across every craft: 1 MiB. That is ten times the live stream's 97 KB/s
+        /// on one client and nine times under the 9 MB in one second an unpaced
+        /// three day release put on the wire. A 27 MB release (the rig's three
+        /// day outage) takes under half a minute, and an hour of one craft at 1x
+        /// (about 1 GB of wire) takes 16 minutes, over which the client keeps
+        /// the part its chart can show.
+        /// </summary>
+        internal const long ReleaseBytesPerSecond = 1L << 20;
+
+        /// <summary>The most a single moment of a release may carry: the first lump of a reacquisition, and the ceiling idle credit builds up to.</summary>
+        internal const long ReleaseBurstBytes = 4L << 20;
+
+        /// <summary>
+        /// Samples released per second, across every topic and craft. Held under
+        /// <see cref="BlackoutReplayBudget"/> with room to spare, because that
+        /// budget counts per UT second and a UT second is never shorter than a
+        /// real one at the 1x where it is tightest.
+        /// </summary>
+        internal const int ReleaseSamplesPerSecond = 2000;
+
+        /// <summary>
+        /// Soft cap on samples a release hands the Courier per second of UT,
+        /// across every topic and subject.
+        ///
+        /// <para>A release is paced (see <see cref="ReleaseSamplesPerSecond"/>),
+        /// so steady state is zero and a long outage's recovery is a flat run at
+        /// the pacing rate for as long as it takes. The threshold is that rate
+        /// with a margin, set to catch the shapes that are NOT a paced release: a
+        /// link flapping across the edge every tick, or a recording being drained
+        /// without being emptied.</para>
+        /// </summary>
+        internal const double BlackoutReplayBudget = ReleaseSamplesPerSecond * 2;
 
         private PerfBudget? _blackoutReplayBudget;
 
@@ -6358,15 +6406,7 @@ namespace Sitrep.Host
                     return;
                 }
 
-                var recorder = BufferFor(topic);
-                if (recorder.Count >= RecorderCapacityPerTopic)
-                {
-                    // Storage bound reached: the oldest held sample makes room
-                    // for this one. See RecorderCapacityPerTopic for why oldest.
-                    recorder.RemoveAt(0);
-                    OpenGap(topic);
-                }
-                recorder.Add(new BufferedReveal(ut, value, delay));
+                Hold(topic, value, ut);
                 return;
             }
 
@@ -6957,18 +6997,11 @@ namespace Sitrep.Host
         internal int RecordedCountForSubject(string node)
         {
             var held = 0;
-            foreach (var kv in _revealBuffer)
+            foreach (var kv in _recordings)
             {
-                if (NodeFor(kv.Key) != node)
+                if (NodeFor(kv.Key) == node)
                 {
-                    continue;
-                }
-                foreach (var entry in kv.Value)
-                {
-                    if (double.IsInfinity(entry.Delay))
-                    {
-                        held++;
-                    }
+                    held += kv.Value.Count;
                 }
             }
             return held;
@@ -7029,35 +7062,26 @@ namespace Sitrep.Host
         /// <summary>
         /// Drop subject <paramref name="node"/>'s in-blackout recording unsent:
         /// the counterpart of <see cref="ReplayInBlackoutBacklog"/> for a subject
-        /// that will never reacquire. Takes the same entries that method would
-        /// have dumped (infinite horizon, this subject's non-exempt topics) and
-        /// leaves the in-flight tail alone to mature on its own light-time,
-        /// because that tail was already transmitted.
+        /// that will never reacquire. Takes the whole recording that method would
+        /// have released, and leaves the in-flight tail in the reveal buffer to
+        /// mature on its own light-time, because that tail was already
+        /// transmitted.
         /// </summary>
         private void DiscardInBlackoutBacklog(string node)
         {
-            foreach (var topic in new List<string>(_revealBuffer.Keys))
+            _releasing.Remove(node);
+            var topics = new HashSet<string>(_recordings.Keys);
+            topics.UnionWith(_pendingGapSinceUt.Keys);
+            foreach (var topic in topics)
             {
                 if (IsFreezeExempt(topic) || NodeFor(topic) != node)
                 {
                     continue;
                 }
-                var list = _revealBuffer[topic];
-                var kept = 0;
-                for (var i = 0; i < list.Count; i++)
+                if (_recordings.TryGetValue(topic, out var run))
                 {
-                    if (!double.IsInfinity(list[i].Delay))
-                    {
-                        list[kept++] = list[i];
-                    }
-                }
-                if (kept < list.Count)
-                {
-                    list.RemoveRange(kept, list.Count - kept);
-                }
-                if (list.Count == 0)
-                {
-                    _revealBuffer.Remove(topic);
+                    _recordedBytes -= run.Bytes;
+                    _recordings.Remove(topic);
                 }
                 // The owed gap goes with the recording it described. Left behind,
                 // the next sample on this topic would claim a hole running back
@@ -7111,6 +7135,10 @@ namespace Sitrep.Host
             // later.
             MarkSubjectLink(node, connected, ut);
 
+            if (!connected)
+            {
+                _releasing.Remove(node);
+            }
             if (!wasConnected && connected)
             {
                 ReplayInBlackoutBacklog(node, ut);
@@ -7167,70 +7195,171 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Hand subject <paramref name="node"/>'s in-blackout recording to the
-        /// Courier as one dump transmitted from <paramref name="reacquiredAtUt"/>:
-        /// every buffered entry on that subject's topics carrying an infinite
-        /// horizon, which is exactly the set emitted while its link was down (see
-        /// <see cref="RevealDelayFor"/>). Freeze-exempt entries carry a finite
-        /// horizon and stay in the buffer to mature normally, as do the
-        /// pre-outage in-flight tail's. Other subjects' buffers are untouched
+        /// Start handing subject <paramref name="node"/>'s in-blackout recording
+        /// to the Courier, from <paramref name="reacquiredAtUt"/>: every sample
+        /// its topics took while its link was down, released in lumps (see
+        /// <see cref="ReleaseRecorded"/>) and not in one tick. Freeze-exempt
+        /// entries were never recorded and the pre-outage in-flight tail stays in
+        /// the reveal buffer to mature normally, as do other subjects' buffers
         /// (Plan 2b per-subject reacquisition).
         ///
-        /// <para>The dump's flight time is the light-time at the REACQUISITION
-        /// geometry, not at loss of signal, and this method does not compute it:
-        /// it hands the Courier the instant of transmission and the Courier
-        /// applies <c>DelayTo(vantage, node)</c> at that instant, which by now is
-        /// this tick's fresh value (the connectivity refresh runs after the delay
-        /// refresh, see <see cref="ProcessTick"/>). The two differ by however far
-        /// the craft moved during the outage, and telling them apart is the whole
-        /// point: a recording does not travel until the link is back.</para>
+        /// <para>A lump's flight time is the light-time at the geometry of the
+        /// moment it is released, which the Courier applies on
+        /// <c>DelayTo(vantage, node)</c> at that instant: a recording does not
+        /// travel until the link is back, and a lump that waits its turn leaves
+        /// later and lands later. The first lump leaves at the reacquisition
+        /// instant, so a recording that fits in one burst lands exactly as an
+        /// unpaced dump would.</para>
         ///
         /// <para>Delivered here rather than left to mature in the reveal buffer
         /// because the buffer's per-entry horizon is a statement about ONE
-        /// sample's own light-time, and a dump is the opposite shape: many
-        /// samples, one transmission, one arrival. Encoding that as a re-stamped
-        /// per-entry delay would have every entry carry a different number
-        /// meaning the same instant.</para>
+        /// sample's own light-time, and a release is the opposite shape: many
+        /// samples, few transmissions.</para>
         /// </summary>
         private void ReplayInBlackoutBacklog(string node, double reacquiredAtUt)
         {
-            foreach (var topic in new List<string>(_revealBuffer.Keys))
+            var heldSamples = 0;
+            var heldBytes = 0L;
+            var heaviest = new List<KeyValuePair<string, long>>();
+            foreach (var kv in _recordings)
             {
-                if (IsFreezeExempt(topic) || NodeFor(topic) != node)
+                if (NodeFor(kv.Key) != node || kv.Value.Count == 0)
                 {
                     continue;
                 }
-                var list = _revealBuffer[topic];
+                heldSamples += kv.Value.Count;
+                heldBytes += kv.Value.Bytes;
+                heaviest.Add(new KeyValuePair<string, long>(kv.Key, kv.Value.Bytes));
+            }
+            if (heldSamples == 0)
+            {
+                return;
+            }
 
-                var recorded = new List<ArchiveSample>();
-                var kept = 0;
-                for (var i = 0; i < list.Count; i++)
+            heaviest.Sort((x, y) => y.Value.CompareTo(x.Value));
+            var breakdown = new System.Text.StringBuilder();
+            for (var i = 0; i < heaviest.Count && i < 5; i++)
+            {
+                var run = _recordings[heaviest[i].Key];
+                breakdown.Append(i == 0 ? "" : ", ")
+                    .Append(heaviest[i].Key).Append(' ')
+                    .Append(FormatBytes(heaviest[i].Value)).Append(" (")
+                    .Append(run.Count).Append(" x ").Append(FormatBytes(heaviest[i].Value / run.Count)).Append(')');
+            }
+            LogHost(
+                "recorder: " + node + " reacquired at UT " + reacquiredAtUt.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                + ", releasing " + heldSamples + " samples, " + FormatBytes(heldBytes) + " held across " + heaviest.Count
+                + " topics (" + breakdown + "); the recorder holds " + FormatBytes(_recordedBytes) + " of " + FormatBytes(_recorderBudgetBytes));
+
+            _releasing.Add(node);
+            RefillReleaseCredit();
+            ReleaseRecorded(node, reacquiredAtUt);
+        }
+
+        /// <summary>
+        /// Hand the Courier the next lump of every recording still being
+        /// released, as far as the release's allowance reaches this tick.
+        /// </summary>
+        private void ContinueReleases(double ut)
+        {
+            if (_releasing.Count == 0)
+            {
+                return;
+            }
+            RefillReleaseCredit();
+            foreach (var node in new List<string>(_releasing))
+            {
+                ReleaseRecorded(node, ut);
+            }
+        }
+
+        private void RefillReleaseCredit()
+        {
+            var now = _nowReleaseSec();
+            if (!double.IsNaN(_releaseCreditAtSec))
+            {
+                var elapsed = Math.Max(0.0, now - _releaseCreditAtSec);
+                _releaseBytesCredit = Math.Min(ReleaseBurstBytes, _releaseBytesCredit + elapsed * ReleaseBytesPerSecond);
+                _releaseSamplesCredit = Math.Min(ReleaseSamplesPerSecond, _releaseSamplesCredit + elapsed * ReleaseSamplesPerSecond);
+            }
+            _releaseCreditAtSec = now;
+        }
+
+        /// <summary>
+        /// Release subject <paramref name="node"/>'s recording, oldest sample
+        /// first across all its topics, until the allowance is spent: a lump per
+        /// topic, each transmitted at <paramref name="ut"/>. Oldest first across
+        /// topics keeps every chart on the craft filling in over the same UT
+        /// range, rather than one topic arriving whole while another has not
+        /// begun. A sample is always taken while any allowance remains, so a
+        /// sample bigger than the allowance still goes.
+        ///
+        /// <para>The owed <see cref="Meta.GapSinceUt"/> rides the first sample
+        /// released on its topic, which is the oldest, where the hole is.</para>
+        /// </summary>
+        private void ReleaseRecorded(string node, double ut)
+        {
+            var runs = new List<KeyValuePair<string, Recording>>();
+            foreach (var kv in _recordings)
+            {
+                if (kv.Value.Count > 0 && NodeFor(kv.Key) == node)
                 {
-                    var entry = list[i];
-                    if (double.IsInfinity(entry.Delay))
+                    runs.Add(kv);
+                }
+            }
+
+            var lumps = new Dictionary<string, List<ArchiveSample>>();
+            var epoch = _courier.CurrentEpoch;
+            while (_releaseBytesCredit > 0 && _releaseSamplesCredit > 0)
+            {
+                var next = -1;
+                var nextUt = double.PositiveInfinity;
+                var runnerUpUt = double.PositiveInfinity;
+                for (var i = 0; i < runs.Count; i++)
+                {
+                    if (runs[i].Value.Count == 0)
                     {
-                        recorded.Add(new ArchiveSample(entry.Value, entry.Ut, _courier.CurrentEpoch));
+                        continue;
                     }
-                    else
+                    var headUt = runs[i].Value.HeadUt;
+                    if (headUt < nextUt)
                     {
-                        list[kept++] = entry;
+                        runnerUpUt = nextUt;
+                        nextUt = headUt;
+                        next = i;
+                        continue;
                     }
+                    runnerUpUt = Math.Min(runnerUpUt, headUt);
                 }
-                if (kept < list.Count)
+                if (next < 0)
                 {
-                    list.RemoveRange(kept, list.Count - kept);
-                }
-                if (list.Count == 0)
-                {
-                    _revealBuffer.Remove(topic);
+                    break;
                 }
 
-                if (recorded.Count == 0)
+                var topic = runs[next].Key;
+                var run = runs[next].Value;
+                if (!lumps.TryGetValue(topic, out var lump))
                 {
-                    continue;
+                    lump = new List<ArchiveSample>();
+                    lumps[topic] = lump;
                 }
+                do
+                {
+                    var sample = run.TakeHead();
+                    _recordedBytes -= sample.Bytes;
+                    _releaseBytesCredit -= sample.ReleaseCost;
+                    _releaseSamplesCredit -= 1;
+                    lump.Add(new ArchiveSample(sample.Packed != null ? _heldSampleCodec.Unpack(sample.Packed) : sample.Value, sample.Ut, epoch));
+                }
+                while (run.Count > 0 && run.HeadUt <= runnerUpUt && _releaseBytesCredit > 0 && _releaseSamplesCredit > 0);
+            }
 
-                _blackoutReplayBudget?.Record(recorded.Count, reacquiredAtUt);
+            var releasedSamples = 0;
+            foreach (var kv in lumps)
+            {
+                var topic = kv.Key;
+                var recorded = kv.Value;
+                releasedSamples += recorded.Count;
 
                 double? gap = null;
                 if (_pendingGapSinceUt.TryGetValue(topic, out var gapSince))
@@ -7238,11 +7367,164 @@ namespace Sitrep.Host
                     gap = gapSince;
                     _pendingGapSinceUt.Remove(topic);
                 }
-                _lastRecordedUt[topic] = recorded[recorded.Count - 1].ValidAt;
+                var lastUt = recorded[recorded.Count - 1].ValidAt;
+                if (!_lastRecordedUt.TryGetValue(topic, out var knownUt) || lastUt > knownUt)
+                {
+                    _lastRecordedUt[topic] = lastUt;
+                }
 
-                _courier.ReplayRecorded(node, topic, recorded, reacquiredAtUt, gap);
+                _courier.ReplayRecorded(node, topic, recorded, ut, gap);
+            }
+            if (releasedSamples > 0)
+            {
+                _blackoutReplayBudget?.Record(releasedSamples, ut);
+            }
+
+            var remaining = 0;
+            foreach (var kv in runs)
+            {
+                if (kv.Value.Count == 0)
+                {
+                    _recordings.Remove(kv.Key);
+                    continue;
+                }
+                remaining += kv.Value.Count;
+            }
+            if (remaining == 0)
+            {
+                _releasing.Remove(node);
+                LogHost("recorder: " + node + " release finished, " + FormatBytes(_recordedBytes) + " still held for other craft");
             }
         }
+
+        /// <summary>Hold one sample taken while the craft is out of contact, shedding the oldest held samples if that takes the recorder over its budget.</summary>
+        private void Hold(string topic, object? value, double ut)
+        {
+            RecordedSample sample;
+            if (_heldSampleCodec.TryPack(value, out var packed, out var unpackedLength))
+            {
+                sample = new RecordedSample(ut, null, packed, packed!.Length + 24 + RecordedSample.SlotBytes, unpackedLength);
+            }
+            else
+            {
+                var held = HeldBytesFor(topic, value);
+                sample = new RecordedSample(ut, value, null, held, held / HeldTreeToWireRatio);
+            }
+            if (!_recordings.TryGetValue(topic, out var run))
+            {
+                run = new Recording();
+                _recordings[topic] = run;
+            }
+            var bytes = sample.Bytes;
+            run.Add(sample);
+            _recordedBytes += bytes;
+            if (_recordedBytes > _recorderBudgetBytes)
+            {
+                ShedOldestRecordings();
+            }
+        }
+
+        private long HeldBytesFor(string topic, object? value)
+        {
+            if (_heldSampleBytes.TryGetValue(topic, out var known) && known.Since < HeldSampleRemeasureEvery)
+            {
+                _heldSampleBytes[topic] = (known.Bytes, known.Since + 1);
+                return known.Bytes;
+            }
+            long bytes;
+            try
+            {
+                bytes = HeldSampleSize.Of(value) + RecordedSample.SlotBytes;
+            }
+            catch (Exception ex)
+            {
+                // A shape the walk cannot size must not take the owning uplink down
+                // through the sampled source that emitted it.
+                LogHost("recorder: could not size a sample of \"" + topic + "\" (charged " + FormatBytes(UnsizedSampleBytes) + "): " + SafeExceptionMessage(ex));
+                bytes = UnsizedSampleBytes;
+            }
+            _heldSampleBytes[topic] = (bytes, 1);
+            return bytes;
+        }
+
+        /// <summary>
+        /// Drop the oldest held samples, across every craft and topic, until the
+        /// recorder is a hundredth under its budget, so the walk happens once per
+        /// hundredth of budget and not once per sample. Each topic that lost
+        /// samples owes the hole as <see cref="Meta.GapSinceUt"/> on its next
+        /// delivered sample, and the drop is logged with the span it took.
+        /// </summary>
+        private void ShedOldestRecordings()
+        {
+            var target = _recorderBudgetBytes - _recorderBudgetBytes / 100;
+            var shedSamples = 0;
+            var shedBytes = 0L;
+            var fromUt = double.PositiveInfinity;
+            var toUt = double.NegativeInfinity;
+            var topics = new HashSet<string>();
+            var nodes = new HashSet<string>();
+
+            while (_recordedBytes > target)
+            {
+                string? oldest = null;
+                var oldestUt = double.PositiveInfinity;
+                foreach (var kv in _recordings)
+                {
+                    if (kv.Value.Count > 0 && kv.Value.HeadUt < oldestUt)
+                    {
+                        oldestUt = kv.Value.HeadUt;
+                        oldest = kv.Key;
+                    }
+                }
+                if (oldest == null)
+                {
+                    break;
+                }
+
+                var dropped = _recordings[oldest].TakeHead();
+                _recordedBytes -= dropped.Bytes;
+                OpenGap(oldest);
+                shedSamples++;
+                shedBytes += dropped.Bytes;
+                fromUt = Math.Min(fromUt, dropped.Ut);
+                toUt = Math.Max(toUt, dropped.Ut);
+                topics.Add(oldest);
+                nodes.Add(NodeFor(oldest));
+            }
+
+            foreach (var topic in topics)
+            {
+                if (_recordings[topic].Count == 0)
+                {
+                    _recordings.Remove(topic);
+                }
+            }
+
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            LogHost(
+                "recorder: over its " + FormatBytes(_recorderBudgetBytes) + " budget, dropped the oldest " + shedSamples + " samples ("
+                + FormatBytes(shedBytes) + ", UT " + fromUt.ToString("F1", ic) + " to " + toUt.ToString("F1", ic) + ") on "
+                + topics.Count + " topics of " + string.Join(", ", nodes) + "; each states the hole on its next delivered sample");
+        }
+
+        private static string FormatBytes(long bytes) =>
+            bytes >= 1L << 20
+                ? (bytes / (double)(1L << 20)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + " MB"
+                : bytes >= 1L << 10
+                    ? (bytes / 1024.0).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + " KB"
+                    : bytes + " B";
+
+        /// <summary>Test hook: the clock a release earns its allowance by, apart from the real clock the emitter's keyframe floor also reads.</summary>
+        internal void SetReleaseClockForTests(Func<double> nowSec) => _releaseClock = nowSec;
+
+        /// <summary>Test hook: replace the recorder's budget, in bytes.</summary>
+        internal void SetRecorderBudgetForTests(long bytes) => _recorderBudgetBytes = bytes;
+
+        /// <summary>Test hook: the heap the recorder holds now, as <see cref="HeldSampleSize"/> counts it.</summary>
+        internal long RecordedBytes => _recordedBytes;
+
+        /// <summary>Test hook: the budget the recorder is enforcing now.</summary>
+        internal long RecorderBudgetBytesNow => _recorderBudgetBytes;
 
         /// <summary>
         /// Prune EVERY subject's connectivity history to the reveal window
@@ -7344,15 +7626,14 @@ namespace Sitrep.Host
                 return;
             }
 
-            // Freeze-on-disconnect is now PER-ENTRY, not a global early-return.
             // The pre-outage in-flight tail (finite horizon, captured while the
             // link was up) MUST still reveal as the advancing clock overtakes it,
             // that is the "last delaySeconds of pre-outage telemetry arrives,
-            // THEN freezes" behaviour. Only samples captured DURING the blackout
-            // are withheld: they carry an infinite horizon (RevealDelayFor's
-            // !_commsConnected branch) so they never mature, and the
-            // connectivity gate below is the belt-and-braces guard. The
-            // freeze-exempt topics are never in this buffer, see Emit.
+            // THEN freezes" behaviour. Samples captured DURING the blackout are
+            // not here at all: they are held in _recordings until the link
+            // returns (see Hold), and the connectivity gate below is the
+            // belt-and-braces guard for an entry buffered just before the cut.
+            // The freeze-exempt topics are never in this buffer, see Emit.
             foreach (var topic in new List<string>(_revealBuffer.Keys))
             {
                 var list = _revealBuffer[topic];
@@ -7439,6 +7720,10 @@ namespace Sitrep.Host
                 // new one (the reveal-gate analogue of ResetTimeline dropping
                 // in-flight Courier deliveries: §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
+                _recordings.Clear();
+                _recordedBytes = 0;
+                _heldSampleBytes.Clear();
+                _releasing.Clear();
                 // Including the recorder's own bookkeeping: a held recording
                 // describes the abandoned timeline, and both a "last delivered
                 // UT" and an owed gap are statements about a record that no
@@ -7728,6 +8013,7 @@ namespace Sitrep.Host
             // has now overtaken, BEFORE AdvanceTo so the freed deliveries the
             // Courier schedules fire within this same clock advance (§7.3 Step 1/3).
             FlushReveal(tick.Ut);
+            ContinueReleases(tick.Ut);
             PruneAllConnectivityHistory();
 
             // Before the clock moves: a command that lands during this advance is
@@ -9283,6 +9569,73 @@ namespace Sitrep.Host
                 Ut = ut;
                 Value = value;
                 Delay = delay;
+            }
+        }
+
+        /// <summary>One sample a craft took while out of contact, with the heap it was charged. Packed when it can be.</summary>
+        private readonly struct RecordedSample
+        {
+            /// <summary>What the list slot holding the sample costs: the UT, the two references and the charge.</summary>
+            public const int SlotBytes = 32;
+
+            public readonly double Ut;
+
+            /// <summary>The sample itself, for a tree the codec cannot pack.</summary>
+            public readonly object? Value;
+
+            /// <summary>The packed sample, otherwise.</summary>
+            public readonly byte[]? Packed;
+
+            /// <summary>The heap the sample holds.</summary>
+            public readonly long Bytes;
+
+            /// <summary>What releasing the sample costs against the release's allowance: about its size on the wire.</summary>
+            public readonly long ReleaseCost;
+
+            public RecordedSample(double ut, object? value, byte[]? packed, long bytes, long releaseCost)
+            {
+                Ut = ut;
+                Value = value;
+                Packed = packed;
+                Bytes = bytes;
+                ReleaseCost = releaseCost;
+            }
+        }
+
+        /// <summary>
+        /// One topic's samples from an outage, oldest first, taken from the front.
+        /// The front moves up rather than the list shifting down, so a long
+        /// release does not copy the rest of the recording once per sample.
+        /// </summary>
+        private sealed class Recording
+        {
+            private readonly List<RecordedSample> _items = new List<RecordedSample>();
+            private int _head;
+
+            public int Count => _items.Count - _head;
+
+            public long Bytes { get; private set; }
+
+            public double HeadUt => _items[_head].Ut;
+
+            public void Add(RecordedSample sample)
+            {
+                _items.Add(sample);
+                Bytes += sample.Bytes;
+            }
+
+            public RecordedSample TakeHead()
+            {
+                var sample = _items[_head];
+                _items[_head] = default;
+                _head++;
+                Bytes -= sample.Bytes;
+                if (_head >= 1024 && _head * 2 >= _items.Count)
+                {
+                    _items.RemoveRange(0, _head);
+                    _head = 0;
+                }
+                return sample;
             }
         }
 

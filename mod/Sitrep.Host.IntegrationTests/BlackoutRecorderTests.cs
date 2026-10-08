@@ -159,17 +159,16 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The recorder's storage bound: a recording longer than
-        /// <see cref="ChannelEngine.RecorderCapacityPerTopic"/> keeps the span
-        /// ADJACENT to reacquisition, drops the oldest, and states what it
-        /// dropped rather than presenting a truncated recording as a whole one.
+        /// The recorder's byte budget: a recording that outgrows it keeps the span
+        /// ADJACENT to reacquisition, drops the oldest, and states what it dropped
+        /// rather than presenting a truncated recording as a whole one.
         ///
-        /// <para>Runs against a capacity-sized outage rather than a shrunken test
-        /// constant, because the constant is what production runs with and a
-        /// test-only capacity would prove the arithmetic and not the policy.</para>
+        /// <para>The budget is shrunk to a thousand samples' worth so the test can
+        /// outgrow it; what is under test is the policy, and the production budget
+        /// is checked separately to be the one a new engine starts with.</para>
         /// </summary>
         [Fact]
-        public async Task ARecordingThatOverrunsItsBoundKeepsTheNewestSpanAndStatesTheDrop()
+        public async Task ARecordingThatOutgrowsItsBudgetKeepsTheNewestSpanAndStatesTheDrop()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new BlackoutRecorderTestUplink());
@@ -183,42 +182,193 @@ namespace Sitrep.Host.IntegrationTests
                 Tick(engine, Snap(0.0, connected: true, delay: 0.0));
                 Tick(engine, Snap(1.0, connected: true, delay: 0.0, onboard: 1.0));
 
-                // One sample per UT second of outage, three more than the
-                // recorder holds.
-                var overrun = 3;
-                var firstOutageUt = 2.0;
-                var lastOutageUt = firstOutageUt + ChannelEngine.RecorderCapacityPerTopic + overrun - 1;
-                for (var ut = firstOutageUt; ut <= lastOutageUt; ut += 1.0)
+                // What one held sample costs, read off the first two, so the
+                // budget below is a count of samples whatever the sample weighs.
+                Tick(engine, Snap(2.0, connected: false, delay: 0.0, onboard: 2.0));
+                Tick(engine, Snap(3.0, connected: false, delay: 0.0, onboard: 3.0));
+                var perSample = engine.RecordedBytes / 2;
+                Assert.True(perSample > 0);
+                var capacity = 1000;
+                engine.SetRecorderBudgetForTests(perSample * capacity);
+
+                var lastOutageUt = 3.0 + capacity + 50;
+                for (var ut = 4.0; ut <= lastOutageUt; ut += 1.0)
                 {
                     Tick(engine, Snap(ut, connected: false, delay: 0.0, onboard: ut));
                 }
+                Assert.True(engine.RecordedBytes <= perSample * capacity);
 
                 var reacquiredAt = lastOutageUt + 1.0;
                 Tick(engine, Snap(reacquiredAt, connected: true, delay: 0.0, onboard: reacquiredAt));
 
                 var dump = On(await DrainAllStreamDataAsync(client, Quiet), BlackoutRecorderTestUplink.OnboardTopic)
                     .Where(f => f.Meta.Staleness == Staleness.Recorded)
+                    .OrderBy(f => f.Meta.ValidAt)
                     .ToList();
 
-                Assert.Equal(ChannelEngine.RecorderCapacityPerTopic, dump.Count);
-
-                // The oldest `overrun` samples went, not the newest: the span
-                // that still describes a live craft survives.
-                Assert.DoesNotContain(dump, f => Value(f) < firstOutageUt + overrun);
-                Assert.Equal(firstOutageUt + overrun, dump.Min(Value));
+                // The newest span survives whole and the oldest went.
+                Assert.InRange(dump.Count, capacity - capacity / 50, capacity);
                 Assert.Equal(lastOutageUt, dump.Max(Value));
+                Assert.Equal(dump.Count, dump.Select(Value).Distinct().Count());
+                Assert.Equal(dump.Max(Value) - dump.Min(Value) + 1, dump.Count);
+                Assert.True(dump.Min(Value) > 2.0);
 
                 // The drop is STATED, on the first sample of the dump, running
                 // back to UT 1: the last sample the ground actually received.
-                var first = dump.OrderBy(f => f.Meta.ValidAt).First();
-                Assert.Equal(1.0, first.Meta.GapSinceUt);
+                Assert.Equal(1.0, dump[0].Meta.GapSinceUt);
                 Assert.All(dump.Skip(1), f => Assert.Null(f.Meta.GapSinceUt));
+                Assert.Equal(0, engine.RecordedBytes);
             }
             finally
             {
                 engine.Stop();
             }
         }
+
+        /// <summary>
+        /// A new engine starts with the production budget and not a test's.
+        /// </summary>
+        [Fact]
+        public void ANewEngineHoldsTheProductionBudget()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.Start();
+            try
+            {
+                Assert.Equal(ChannelEngine.RecorderBudgetBytes, engine.RecorderBudgetBytesNow);
+                Assert.True(ChannelEngine.RecorderBudgetBytes >= 256L << 20);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A recording longer than one burst is released over several ticks, oldest
+        /// first and in order, each tick carrying no more than the release's
+        /// allowance, and none of it is dropped: the whole outage arrives, with no
+        /// gap stated.
+        /// </summary>
+        [Fact]
+        public async Task ALongRecordingIsReleasedInLumpsOldestFirstAndLosesNothing()
+        {
+            var wall = 0.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.SetReleaseClockForTests(() => wall);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                Tick(engine, Snap(0.0, connected: true, delay: 0.0));
+                Tick(engine, Snap(1.0, connected: true, delay: 0.0, onboard: 1.0));
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                var outage = ChannelEngine.ReleaseSamplesPerSecond * 5 / 2;
+                for (var ut = 2.0; ut < 2.0 + outage; ut += 1.0)
+                {
+                    Tick(engine, Snap(ut, connected: false, delay: 0.0, onboard: ut));
+                }
+                var reacquiredAt = 2.0 + outage;
+
+                var lumps = new List<List<StreamData>>();
+                Tick(engine, Snap(reacquiredAt, connected: true, delay: 0.0, onboard: reacquiredAt));
+                lumps.Add(Recorded(await DrainAllStreamDataAsync(client, Quiet)));
+                for (var i = 1; i <= 4; i++)
+                {
+                    wall += 1.0;
+                    Tick(engine, Snap(reacquiredAt + i, connected: true, delay: 0.0, onboard: reacquiredAt + i));
+                    lumps.Add(Recorded(await DrainAllStreamDataAsync(client, Quiet)));
+                }
+
+                // More than one lump, none over the allowance (plus the one sample
+                // that may overdraw it).
+                Assert.True(lumps.Count(l => l.Count > 0) >= 2);
+                Assert.All(lumps, l => Assert.True(l.Count <= ChannelEngine.ReleaseSamplesPerSecond + 1, "lump of " + l.Count));
+
+                // Every sample of the outage arrived, once, in UT order across
+                // the lumps, and the first lump's first sample is the oldest.
+                var all = lumps.SelectMany(l => l).ToList();
+                Assert.Equal(outage, all.Count);
+                Assert.Equal(all.OrderBy(f => f.Meta.ValidAt).Select(Value), all.Select(Value));
+                Assert.Equal(2.0, Value(all[0]));
+                Assert.Equal(reacquiredAt - 1.0, Value(all[all.Count - 1]));
+                Assert.All(all, f => Assert.Null(f.Meta.GapSinceUt));
+                Assert.Equal(0, engine.RecordedBytes);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A link lost again part way through a release stops it where it is: what
+        /// was not yet sent stays held, ahead of what the new outage records, and
+        /// the next reacquisition sends all of it in order.
+        /// </summary>
+        [Fact]
+        public async Task AReleaseCutShortByAnotherOutageResumesInOrderAtTheNextReacquisition()
+        {
+            var wall = 0.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.SetReleaseClockForTests(() => wall);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                Tick(engine, Snap(0.0, connected: true, delay: 0.0));
+                Tick(engine, Snap(1.0, connected: true, delay: 0.0, onboard: 1.0));
+
+                var outage = ChannelEngine.ReleaseSamplesPerSecond * 3 / 2;
+                var ut = 2.0;
+                for (var i = 0; i < outage; i++, ut += 1.0)
+                {
+                    Tick(engine, Snap(ut, connected: false, delay: 0.0, onboard: ut));
+                }
+
+                // Back for one tick: the first burst goes. Down again at once.
+                Tick(engine, Snap(ut, connected: true, delay: 0.0, onboard: ut));
+                ut += 1.0;
+                var first = Recorded(await DrainAllStreamDataAsync(client, Quiet));
+                Assert.InRange(first.Count, 1, outage - 1);
+                Assert.True(engine.RecordedBytes > 0);
+
+                Tick(engine, Snap(ut, connected: false, delay: 0.0, onboard: ut));
+                ut += 1.0;
+                Assert.Empty(Recorded(await DrainAllStreamDataAsync(client, Quiet)));
+
+                // Back for good, and the wall clock runs.
+                for (var i = 0; i < 6; i++)
+                {
+                    wall += 1.0;
+                    Tick(engine, Snap(ut, connected: true, delay: 0.0, onboard: ut));
+                    ut += 1.0;
+                }
+                var rest = Recorded(await DrainAllStreamDataAsync(client, Quiet));
+
+                var all = first.Concat(rest).ToList();
+                Assert.Equal(all.OrderBy(f => f.Meta.ValidAt).Select(Value), all.Select(Value));
+                Assert.Equal(all.Count, all.Select(Value).Distinct().Count());
+                Assert.Equal(outage + 1, all.Count);
+                Assert.Equal(0, engine.RecordedBytes);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static List<StreamData> Recorded(IEnumerable<StreamData> frames) =>
+            On(frames, BlackoutRecorderTestUplink.OnboardTopic).Where(f => f.Meta.Staleness == Staleness.Recorded).ToList();
 
         /// <summary>
         /// A subscriber that joins DURING the outage is served the last sample
