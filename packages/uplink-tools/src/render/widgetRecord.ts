@@ -25,6 +25,8 @@ export interface WidgetRecord {
   channels: string[];
   /** The Topics the widget reads when they are present and draws without otherwise. */
   optionalChannels: string[];
+  /** The commands the widget's controls can send, as the registration lists them. */
+  commands: string[];
   /** The flat data keys an older widget declares instead of `channels`. */
   dataRequirements: string[];
   /** The fields of its Topics the widget draws. */
@@ -62,6 +64,7 @@ export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
     tags: [...def.tags],
     channels: [...(def.channels ?? [])],
     optionalChannels: [...(def.optionalChannels ?? [])],
+    commands: [...(def.commands ?? [])],
     dataRequirements: (def.dataRequirements ?? []).map((r) => String(r)),
     fields: [...(def.fields ?? [])].map((f) => String(f)),
     actions: (def.actions ?? []).map((a) => ({ id: a.id, label: a.label })),

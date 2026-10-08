@@ -238,6 +238,7 @@ registerComponent<WarpControlConfig>({
   defaultSize: { w: 6, h: 5 },
   // Below it the ladder has no room.
   minSize: { w: 4, h: 4 },
+  commands: ["time.setWarpIndex", "time.setPaused"],
   component: WarpControlComponent,
   tiny: {
     title: "WARP",

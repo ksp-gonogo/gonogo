@@ -397,6 +397,7 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
           ? list(widget.optionalChannels)
           : undefined,
       ],
+      ["Sends", widget.commands.length > 0 ? list(widget.commands) : undefined],
       [
         "Actions",
         widget.actions.length > 0

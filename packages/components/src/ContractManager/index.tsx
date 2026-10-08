@@ -20,6 +20,11 @@ registerComponent<ContractManagerConfig>({
   tags: ["career", "contracts"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },
+  commands: [
+    "career.contract.accept",
+    "career.contract.decline",
+    "career.contract.cancel",
+  ],
   component: ContractManagerComponent,
   tiny: {
     title: "CONTRACT",

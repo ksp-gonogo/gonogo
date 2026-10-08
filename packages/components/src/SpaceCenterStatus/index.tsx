@@ -138,6 +138,7 @@ registerComponent<SpaceCenterStatusConfig>({
   // A real balance does not fit two columns, and the pad word needs a fourth row under it.
   // At four rows the facility grid's empty state sits under the scroll edge's fade.
   minSize: { w: 5, h: 5 },
+  commands: ["career.facility.upgrade"],
   component: SpaceCenterStatusComponent,
   tiny: {
     title: "KSC",

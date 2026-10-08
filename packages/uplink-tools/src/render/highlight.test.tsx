@@ -56,6 +56,7 @@ const INVENTORY: UplinkInventory = {
       tags: [],
       channels: [],
       optionalChannels: [],
+      commands: [],
       dataRequirements: [],
       actions: [],
       augmentSlots: [SLOT],

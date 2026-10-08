@@ -401,6 +401,18 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   channelsFromConfig?: (config: Config) => readonly string[];
   /**
+   * The commands the widget's controls can send. A command is a request that
+   * changes the game or the dashboard, sent through {@link useCommand} (staging
+   * a maneuver node, setting a warp rate, accepting a contract). List every one
+   * a control of the widget can send, not only the ones a default tile shows.
+   *
+   * It is documentation and a checked promise: the widget's reference page
+   * lists these as what its controls do, and the repository's tests fail when a
+   * widget sends a command it does not list or lists one it never sends. It
+   * does not lock or replace the widget the way a required channel does.
+   */
+  commands?: readonly CommandId[];
+  /**
    * The fields the widget draws, when that is fewer than the Topics it lists
    * carry. Absent means it draws everything they carry. The app reads it to
    * tell which widget shows a figure; it changes nothing about what the widget

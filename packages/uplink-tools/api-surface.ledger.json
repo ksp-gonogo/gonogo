@@ -682,6 +682,10 @@
         "note": "Carried from InventoryWidget"
       },
       {
+        "key": "uplink-tools . WidgetRecord#commands",
+        "note": "The commands a widget's registration lists, so a reference page can say what its controls send"
+      },
+      {
         "key": "uplink-tools . WidgetRecord#contributionSlots",
         "note": "Carried from InventoryWidget"
       },
@@ -760,6 +764,10 @@
       {
         "key": "uplink-tools ./render-probe WidgetRecord#channels",
         "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#commands",
+        "note": "The commands a widget's registration lists, so a reference page can say what its controls send"
       },
       {
         "key": "uplink-tools ./render-probe WidgetRecord#contributionSlots",

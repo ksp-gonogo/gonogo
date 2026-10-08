@@ -60,6 +60,7 @@ const INVENTORY: UplinkInventory = {
       tags: [],
       channels: ["probe.tank"],
       optionalChannels: [],
+      commands: [],
       dataRequirements: [],
       actions: [],
       augmentSlots: [],

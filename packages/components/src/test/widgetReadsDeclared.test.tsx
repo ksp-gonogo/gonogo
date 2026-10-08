@@ -5,6 +5,7 @@ import {
   PerfBudget,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   DERIVED_CHANNEL_IDS,
   getAllKnownTopicIds,
@@ -67,6 +68,66 @@ const DEBT: readonly Debt[] = [
     prefix: true,
     reason:
       "one silence.<vesselId>.state per fleet vessel it draws, an id the manifest has no form for",
+  },
+];
+
+/**
+ * Commands a widget declares that no fixture reaches, each with the reason.
+ * Shrink-only: an entry a fixture now reaches fails the gate, so the list can
+ * only lose lines.
+ */
+const UNREACHED_COMMANDS: readonly {
+  widgetId: string;
+  command: string;
+  reason: string;
+}[] = [
+  {
+    widgetId: "action-group",
+    command: "vessel.control.setAbort",
+    reason:
+      "sent only for the named group of that kind, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "action-group",
+    command: "vessel.control.setBrakes",
+    reason:
+      "sent only for the named group of that kind, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "action-group",
+    command: "vessel.control.setGear",
+    reason:
+      "sent only for the named group of that kind, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "action-group",
+    command: "vessel.control.setLights",
+    reason:
+      "sent only for the named group of that kind, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "action-group",
+    command: "vessel.control.setRcs",
+    reason:
+      "sent only for the named group of that kind, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "action-group",
+    command: "vessel.control.setSas",
+    reason:
+      "sent only for the named group of that kind, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "action-group",
+    command: "vessel.control.stage",
+    reason:
+      "sent only for the Stage group, which no fixture's configuration holds",
+  },
+  {
+    widgetId: "map-view",
+    command: "vessel.target.set",
+    reason:
+      "sent by the space-centre point-of-interest provider's hook, which no fixture mounts",
   },
 ];
 
@@ -155,6 +216,34 @@ function undeclaredReads(
     .sort();
 }
 
+/** The claimed commands the widget does not list in `commands`. */
+function undeclaredCommands(
+  claimed: ReadonlySet<Capability>,
+  declared: ReadonlySet<string>,
+): string[] {
+  return [
+    ...new Set(
+      [...claimed].filter((c) => c.kind === "command").map((c) => c.id),
+    ),
+  ]
+    .filter((id) => id !== "" && !declared.has(id))
+    .sort();
+}
+
+/** The listed commands no claim names, other than those in `unreached`. */
+function unclaimedCommands(
+  claimed: ReadonlySet<Capability>,
+  declared: ReadonlySet<string>,
+  unreached: ReadonlySet<string>,
+): string[] {
+  const sent = new Set(
+    [...claimed].filter((c) => c.kind === "command").map((c) => c.id),
+  );
+  return [...declared]
+    .filter((id) => !sent.has(id) && !unreached.has(id))
+    .sort();
+}
+
 function recorder(): { scope: LockScopeRegistry; claimed: Set<Capability> } {
   const claimed = new Set<Capability>();
   return {
@@ -208,6 +297,16 @@ async function claimsOf(widgetId: string): Promise<Set<Capability>> {
   return claimed;
 }
 
+const claimCache = new Map<string, Promise<Set<Capability>>>();
+
+function claimsOnce(widgetId: string): Promise<Set<Capability>> {
+  const cached = claimCache.get(widgetId);
+  if (cached) return cached;
+  const claims = claimsOf(widgetId);
+  claimCache.set(widgetId, claims);
+  return claims;
+}
+
 const KNOWN = [...getAllKnownTopicIds(), ...DERIVED_CHANNEL_IDS];
 
 describe("a widget reads only the Topics it declares", () => {
@@ -230,6 +329,41 @@ describe("a widget reads only the Topics it declares", () => {
     ).toEqual(["vessel.control"]);
     expect(
       undeclaredReads(claimed, new Set(["vessel.control"]), [], "planted"),
+    ).toEqual([]);
+  });
+
+  it("sees a command a widget sends and does not declare, and one it declares and never sends", async () => {
+    function Planted(_props: ComponentProps) {
+      useCommand("time.setPaused");
+      return null;
+    }
+    const { scope, claimed } = recorder();
+    const { teardown } = await renderWidgetMode({
+      Widget: Planted,
+      fixture: {},
+      mode: { name: "planted", w: 4, h: 4 },
+      wrapper: scopeWrapper(scope),
+    });
+    teardown();
+    expect(undeclaredCommands(claimed, new Set(["time.setWarpIndex"]))).toEqual(
+      ["time.setPaused"],
+    );
+    expect(undeclaredCommands(claimed, new Set(["time.setPaused"]))).toEqual(
+      [],
+    );
+    expect(
+      unclaimedCommands(
+        claimed,
+        new Set(["time.setPaused", "time.setWarpIndex"]),
+        new Set(),
+      ),
+    ).toEqual(["time.setWarpIndex"]);
+    expect(
+      unclaimedCommands(
+        claimed,
+        new Set(["time.setPaused", "time.setWarpIndex"]),
+        new Set(["time.setWarpIndex"]),
+      ),
     ).toEqual([]);
   });
 
@@ -263,12 +397,49 @@ describe("a widget reads only the Topics it declares", () => {
     it(`${widgetId} declares what it reads`, async () => {
       const def = getComponents().find((d) => d.id === widgetId);
       if (!def) throw new Error(widgetId);
-      const claimed = await claimsOf(widgetId);
+      const claimed = await claimsOnce(widgetId);
       expect(
         undeclaredReads(claimed, declaredTopics(def, KNOWN), DEBT, widgetId),
       ).toEqual([]);
     });
   }
+
+  for (const widgetId of widgetIds) {
+    it(`${widgetId} declares the commands it sends`, async () => {
+      const def = getComponents().find((d) => d.id === widgetId);
+      if (!def) throw new Error(widgetId);
+      const claimed = await claimsOnce(widgetId);
+      const declared = new Set<string>(def.commands ?? []);
+      const unreached = new Set(
+        UNREACHED_COMMANDS.filter((u) => u.widgetId === widgetId).map(
+          (u) => u.command,
+        ),
+      );
+      expect({
+        undeclared: undeclaredCommands(claimed, declared),
+        neverSent: unclaimedCommands(claimed, declared, unreached),
+      }).toEqual({ undeclared: [], neverSent: [] });
+    });
+  }
+
+  it("lists no unreached command a fixture now sends", async () => {
+    const stale: string[] = [];
+    for (const entry of UNREACHED_COMMANDS) {
+      const def = getComponents().find((d) => d.id === entry.widgetId);
+      if (!def) {
+        stale.push(`${entry.widgetId}: not a registered widget`);
+        continue;
+      }
+      const claimed = await claimsOnce(entry.widgetId);
+      const sent = [...claimed].some(
+        (c) => c.kind === "command" && c.id === entry.command,
+      );
+      if (sent || !(def.commands ?? []).includes(entry.command as never)) {
+        stale.push(`${entry.widgetId}: ${entry.command}`);
+      }
+    }
+    expect(stale).toEqual([]);
+  });
 
   it("lists no debt a widget has paid off", async () => {
     const stale: string[] = [];
@@ -278,7 +449,7 @@ describe("a widget reads only the Topics it declares", () => {
         stale.push(`${debt.widgetId}: not a registered widget`);
         continue;
       }
-      const claimed = await claimsOf(debt.widgetId);
+      const claimed = await claimsOnce(debt.widgetId);
       const still = undeclaredReads(
         claimed,
         declaredTopics(def, KNOWN),

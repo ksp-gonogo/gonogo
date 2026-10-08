@@ -78,6 +78,16 @@ registerComponent<ActionGroupConfig>({
   defaultSize: { w: 6, h: 6 },
   minSize: { w: 5, h: 4 },
   mobileWidth: "half",
+  commands: [
+    "vessel.control.setActionGroup",
+    "vessel.control.stage",
+    "vessel.control.setSas",
+    "vessel.control.setRcs",
+    "vessel.control.setLights",
+    "vessel.control.setGear",
+    "vessel.control.setBrakes",
+    "vessel.control.setAbort",
+  ],
   component: ActionGroupComponent,
   tiny: {
     title: "ACTION GROUP",

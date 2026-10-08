@@ -227,6 +227,7 @@ registerComponent<ShipMapConfig>({
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },
+  commands: ["vessel.invokePartAction"],
   component: ShipMapComponent,
   augmentSlots: ["ship-map.overlay"],
   // The built-in contribution always fills part-meters; an Uplink may fill both.

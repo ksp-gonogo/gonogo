@@ -22,6 +22,11 @@ registerComponent<ManeuverPlannerConfig>({
   defaultSize: { w: 10, h: 18 },
   // Seven columns so the preset picker shows its longest label in full.
   minSize: { w: 7, h: 9 },
+  commands: [
+    "vessel.maneuver.add",
+    "vessel.maneuver.update",
+    "vessel.maneuver.remove",
+  ],
   component: ManeuverPlannerComponent,
   tiny: {
     title: "MANEUVER",

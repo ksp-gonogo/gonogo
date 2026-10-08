@@ -242,6 +242,7 @@ registerComponent<ExperimentsConfig>({
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
+  commands: ["science.experiment.deploy", "science.experiment.transmit"],
   component: ExperimentsComponent,
   dataRequirements: [
     "science.instruments",

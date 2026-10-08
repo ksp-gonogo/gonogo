@@ -9509,6 +9509,10 @@
         "note": "Concrete Topic ids a tile's saved settings name, with optional-channel semantics"
       },
       {
+        "key": "sitrep-sdk . ComponentDefinition#commands?",
+        "note": "Optional list of the commands a widget's controls can send, checked against what the widget sends; it never locks or replaces the widget"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#optionalChannelFamilies?",
         "note": "Families of runtime-built Topics the widget reads but can do without"
       },
@@ -9761,12 +9765,24 @@
         "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
       },
       {
+        "key": "sitrep-sdk ./registry ~CommandArgsMap",
+        "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandId",
+        "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#channelFamilies?",
         "note": "Families of runtime-built Topics the widget needs, claimed and health-checked by their literal prefix"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#channelsFromConfig?",
         "note": "Concrete Topic ids a tile's saved settings name, with optional-channel semantics"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#commands?",
+        "note": "Optional list of the commands a widget's controls can send, checked against what the widget sends; it never locks or replaces the widget"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#optionalChannelFamilies?",
@@ -10167,6 +10183,10 @@
       {
         "key": "sitrep-sdk ./registry ~ScienceDataAboardRowContext#subjectId",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SdkOwnedCommandArgsMap",
+        "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapBounds",

@@ -30,6 +30,15 @@ registerComponent<LaunchDirectorConfig>({
   tags: ["career", "launch"],
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
+  commands: [
+    "ksp.launch",
+    "ksp.recover",
+    "ksp.revertToLaunch",
+    "ksp.revertToEditor",
+    "ksp.toTrackingStation",
+    "ksp.toSpaceCenter",
+    "ksp.switchVessel",
+  ],
   component: LaunchDirectorComponent,
   augmentSlots: ["launch-director.pad", "launch-director.preflight"],
   dataRequirements: [

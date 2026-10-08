@@ -2,6 +2,7 @@
 
 import type {
   ChannelFamily,
+  CommandId,
   Seat,
   SlotId,
   TinyMode,
@@ -282,6 +283,14 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * matched by alarms, never health-gating.
    */
   channelsFromConfig?: (config: Config) => readonly string[];
+  /**
+   * The commands this widget's controls can send through `useCommand`: every
+   * one a control can send, not only those a default tile shows. Declaration
+   * and documentation only: unlike a required channel it never locks or
+   * replaces the widget. A test fails when a widget sends a command it does not
+   * list or lists one no fixture ever sends.
+   */
+  commands?: readonly CommandId[];
   /**
    * What this widget DRAWS, when that is narrower than what it mounts on.
    *

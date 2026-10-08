@@ -304,6 +304,14 @@ registerComponent<NavballConfig>({
   defaultSize: { w: 8, h: 11 },
   // 4x5 is where the stacked readout stops clipping vertically.
   minSize: { w: 4, h: 5 },
+  commands: [
+    "vessel.control.setSas",
+    "vessel.control.setRcs",
+    "vessel.control.setSasMode",
+    "vessel.control.setFlyByWire",
+    "vessel.control.setAxes",
+    "vessel.control.setThrottle",
+  ],
   component: NavballComponent,
   configComponent: NavballConfigForm,
   channels: topics.channels,

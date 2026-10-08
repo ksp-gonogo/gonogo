@@ -18,6 +18,7 @@ registerComponent<AstronautComplexConfig>({
   tags: ["career", "crew", "kc"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
+  commands: ["career.crew.hire", "career.crew.fire"],
   component: AstronautComplexComponent,
   channels: astronautComplexTopics.channels,
   fields: astronautComplexTopics.fields,

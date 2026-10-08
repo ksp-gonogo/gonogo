@@ -15,6 +15,7 @@ registerComponent<TargetPickerConfig>({
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },
+  commands: ["vessel.target.set", "vessel.target.clear"],
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigForm,
   augmentSlots: ["target-picker.sections"],

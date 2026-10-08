@@ -64,6 +64,7 @@ const INVENTORY: UplinkInventory = {
       tags: [],
       channels: ["probe.late"],
       optionalChannels: [],
+      commands: [],
       dataRequirements: [],
       actions: [],
       augmentSlots: [],

@@ -425,6 +425,7 @@ registerComponent<TransferWindowConfig>({
   tags: ["telemetry", "planning"],
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },
+  commands: ["system.bodies.statesAt"],
   component: TransferWindowComponent,
   channels: topics.channels,
   optionalChannels: topics.optionalChannels,

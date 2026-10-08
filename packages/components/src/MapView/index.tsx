@@ -473,6 +473,7 @@ registerComponent<MapViewConfig>({
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
   minSize: { w: 3, h: 4 },
+  commands: ["vessel.target.set"],
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
   // `vessel.orbit` is read by `OrbitalEventChips` inside this widget, so it is declared here.
