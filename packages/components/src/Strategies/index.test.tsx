@@ -30,7 +30,7 @@ const SAMPLE_ACTIVE = {
   id: "AgressiveNegotiations",
   title: "Aggressive Negotiations",
   description: "Push harder on every deal.",
-  departmentName: "Operations",
+  department: "Operations",
   isActive: true,
   factor: 0.05,
   dateActivated: 33246,
@@ -38,7 +38,6 @@ const SAMPLE_ACTIVE = {
   initialCostFunds: 0,
   initialCostScience: 0,
   initialCostReputation: 14.5,
-  effectiveCostReputation: 27.65,
   hasFactorSlider: true,
   factorSliderDefault: 0.05,
   factorSliderSteps: 20,
@@ -55,7 +54,7 @@ const SAMPLE_BLOCKED = {
   id: "FundraisingCampaignCfg",
   title: "Fundraising Campaign",
   description: "Beg for money.",
-  departmentName: "Finances",
+  department: "Finances",
   isActive: false,
   factor: 0.05,
   dateActivated: 0,
@@ -63,7 +62,6 @@ const SAMPLE_BLOCKED = {
   initialCostFunds: 0,
   initialCostScience: 0,
   initialCostReputation: 7.3,
-  effectiveCostReputation: 13.97,
   hasFactorSlider: true,
   factorSliderDefault: 0.05,
   factorSliderSteps: 20,
@@ -80,7 +78,7 @@ const SAMPLE_LOCKED = {
   id: "PatriotismDriveCfg",
   title: "Patriotism Drive",
   description: "Wave the flag.",
-  departmentName: "Public Relations",
+  department: "Public Relations",
   isActive: false,
   factor: 0.05,
   dateActivated: 0,
@@ -88,7 +86,6 @@ const SAMPLE_LOCKED = {
   initialCostFunds: 0,
   initialCostScience: 0,
   initialCostReputation: 0,
-  effectiveCostReputation: 0,
   hasFactorSlider: false,
   factorSliderDefault: 0.05,
   factorSliderSteps: 1,
@@ -136,12 +133,6 @@ describe("parseStrategies", () => {
     const result = parseStrategies([{ title: "no id" }, SAMPLE_ACTIVE]);
     expect(result).toHaveLength(1);
     expect(result?.[0].id).toBe("AgressiveNegotiations");
-  });
-
-  it("falls back to nominal rep cost when effectiveCostReputation missing", () => {
-    const { effectiveCostReputation: _unused, ...withoutEff } = SAMPLE_ACTIVE;
-    const result = parseStrategies([withoutEff]);
-    expect(result?.[0].effectiveCostReputation).toBe(14.5);
   });
 });
 

@@ -19,8 +19,6 @@ describe("Experiments: stream render golden (delay=0)", () => {
       pinnedUt: 10,
     });
 
-    const [legacyInstrument] = mobileLabIdle["sci.instruments"];
-
     const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-dual" }}>
@@ -32,13 +30,8 @@ describe("Experiments: stream render golden (delay=0)", () => {
     act(() => {
       streamFixture.emit("science.instruments", [
         {
-          partId: String(legacyInstrument.partId),
-          partName: legacyInstrument.partTitle,
-          experimentId: legacyInstrument.expId,
-          deployed: legacyInstrument.deployed,
-          inoperable: legacyInstrument.inoperable,
-          rerunnable: legacyInstrument.rerunnable,
-          dataIsCollectable: legacyInstrument.hasData,
+          ...mobileLabIdle["sci.instruments"][0],
+          partId: String(mobileLabIdle["sci.instruments"][0].partId),
         },
       ]);
       streamFixture.emit("science.lab", mobileLabIdle["science.lab"]);

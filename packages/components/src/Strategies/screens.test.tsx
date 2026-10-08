@@ -18,6 +18,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
+import { parseStrategies } from "./parsing";
 import { resolveScreens, type StrategiesScreenEntry } from "./screens";
 
 /**
@@ -35,7 +36,7 @@ const strategy = (
   id,
   title: id,
   description: "",
-  departmentName: department,
+  department,
   isActive: false,
   factor: 0,
   dateActivated: 0,
@@ -43,7 +44,6 @@ const strategy = (
   initialCostFunds: 0,
   initialCostScience: 0,
   initialCostReputation: 0,
-  effectiveCostReputation: 0,
   hasFactorSlider: false,
   factorSliderDefault: 0,
   factorSliderSteps: 1,
@@ -59,7 +59,10 @@ const parsed = (
   id: string,
   department: string,
   overrides: Record<string, unknown> = {},
-) => strategy(id, department, overrides) as never;
+) => {
+  const [entry] = parseStrategies([strategy(id, department, overrides)]) ?? [];
+  return entry;
+};
 
 /** A strategy row's `isActive`, and `undefined` when the row does not carry one. */
 function activeFlag(row: unknown): boolean | undefined {
@@ -613,7 +616,6 @@ describe("Strategies: the screen contribution slot", () => {
     });
     const priced = {
       initialCostReputation: 23.5,
-      effectiveCostReputation: 23.5,
       hasFactorSlider: true,
       factorSliderDefault: 0.05,
       factorSliderSteps: 20,

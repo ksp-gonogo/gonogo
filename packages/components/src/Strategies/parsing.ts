@@ -1,11 +1,5 @@
-import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOr } from "../shared/magnitude";
 import type { Strategy } from "./types";
-
-function resolveDepartmentName(e: Record<string, unknown>): string {
-  if (typeof e.departmentName === "string") return e.departmentName;
-  if (typeof e.department === "string") return e.department;
-  return "";
-}
 
 // A career model that sends no source only ever answered from inside the building, so its verdicts are screened.
 function resolveActivateVerdictSource(
@@ -16,10 +10,7 @@ function resolveActivateVerdictSource(
   return "screened";
 }
 
-/**
- * Parses the strategy list, accepting `department` or `departmentName`. An
- * absent `effectiveCostReputation` falls back to `initialCostReputation`.
- */
+/** Parses the strategy list; the wire's `department` becomes `departmentName`. */
 export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -34,7 +25,7 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
       id,
       title: typeof e.title === "string" ? e.title : id,
       description: typeof e.description === "string" ? e.description : "",
-      departmentName: resolveDepartmentName(e),
+      departmentName: typeof e.department === "string" ? e.department : "",
       isActive: e.isActive === true,
       factor: magnitudeOr(asQuantityish(e.factor), 0),
       dateActivated: magnitudeOr(asQuantityish(e.dateActivated), 0),
@@ -45,9 +36,6 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
         asQuantityish(e.initialCostReputation),
         0,
       ),
-      effectiveCostReputation:
-        magnitudeOf(asQuantityish(e.effectiveCostReputation)) ??
-        magnitudeOr(asQuantityish(e.initialCostReputation), 0),
       hasFactorSlider: e.hasFactorSlider === true,
       factorSliderDefault: magnitudeOr(asQuantityish(e.factorSliderDefault), 0),
       factorSliderSteps: magnitudeOr(asQuantityish(e.factorSliderSteps), 1),

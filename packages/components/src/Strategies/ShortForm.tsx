@@ -1,7 +1,6 @@
 import type { CarriedCurrency } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Button,
   CommandButton,
   type CommandButtonHandle,
   Inline,
@@ -11,6 +10,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { StrategyCost } from "./AvailableRow";
+import { StrategyName } from "./styles";
 import type { Strategy } from "./types";
 
 /** The widget is drawn short below this many rows; a tall tile has room for the full cards. */
@@ -91,14 +91,14 @@ export function ShortRow({
     <Stack as="li" style={{ listStyle: "none" }}>
       <Row as="div" wrap>
         <Row.Name>
-          <Button
+          <StrategyName
             type="button"
             variant="text"
             onClick={onToggleExpanded}
             aria-expanded={expanded}
           >
             {s.title}
-          </Button>
+          </StrategyName>
         </Row.Name>
         <Inline>
           {badge}

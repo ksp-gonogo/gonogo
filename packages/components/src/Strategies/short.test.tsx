@@ -14,7 +14,6 @@ const BASE = {
   initialCostFunds: 0,
   initialCostScience: 0,
   initialCostReputation: 0,
-  effectiveCostReputation: 0,
   hasFactorSlider: false,
   factorSliderDefault: 0.05,
   factorSliderSteps: 1,
@@ -27,7 +26,7 @@ const ACTIVE = {
   ...BASE,
   id: "active",
   title: "Aggressive Negotiations",
-  departmentName: "Operations",
+  department: "Operations",
   isActive: true,
   canActivate: false,
   activateBlockedReason: "",
@@ -38,7 +37,7 @@ const OPEN = {
   ...BASE,
   id: "open",
   title: "Open Source",
-  departmentName: "Science",
+  department: "Science",
   isActive: false,
   initialCostFunds: 12000,
   canActivate: true,
@@ -49,7 +48,7 @@ const LOCKED = {
   ...BASE,
   id: "locked",
   title: "Patriotism Drive",
-  departmentName: "Public Relations",
+  department: "Public Relations",
   isActive: false,
   canActivate: false,
   activateBlockedReason:
@@ -110,6 +109,14 @@ describe("Strategies short form", () => {
     expect(
       within(row).getByText(/Funds Off on Launch Costs/),
     ).toBeInTheDocument();
+  });
+
+  it("lets a long strategy name wrap rather than clip", async () => {
+    await renderShort(5);
+    const name = screen.getByRole("button", {
+      name: "Aggressive Negotiations",
+    });
+    expect(getComputedStyle(name).whiteSpace).toBe("normal");
   });
 
   it("keeps the full cards from 7 rows up", async () => {

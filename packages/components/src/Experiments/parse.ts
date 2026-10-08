@@ -5,18 +5,6 @@ import type { TitledInstrument } from "./instrument";
 export const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
 export const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
 
-/** The first of `keys` the entry carries as a string. */
-function firstString(
-  e: Record<string, unknown>,
-  keys: readonly string[],
-): string | undefined {
-  for (const key of keys) {
-    const field = e[key];
-    if (typeof field === "string") return field;
-  }
-  return undefined;
-}
-
 function partIdOf(raw: unknown): string | null {
   if (typeof raw === "string") return raw;
   if (typeof raw === "number") return String(raw);
@@ -24,8 +12,8 @@ function partIdOf(raw: unknown): string | null {
 }
 
 /**
- * Two wire shapes land here, so each field reads through a fallback pair:
- * `partName`/`experimentId`/`dataIsCollectable` or `partTitle`/`expId`/`hasData`.
+ * Parses `science.instruments`. The wire's `partName`, `experimentId` and
+ * `dataIsCollectable` become the widget's `partTitle`, `expId` and `hasData`;
  * `partId` normalises to a string.
  */
 export function parseInstruments(raw: unknown): TitledInstrument[] | null {
@@ -40,14 +28,11 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
     if (partId === null) continue;
     out.push({
       partId,
-      partTitle: firstString(e, ["partName", "partTitle"]) ?? "Unknown part",
-      expId: firstString(e, ["experimentId", "expId"]) ?? "",
-      expTitle: firstString(e, ["title", "expTitle"]) || undefined,
+      partTitle: typeof e.partName === "string" ? e.partName : "Unknown part",
+      expId: typeof e.experimentId === "string" ? e.experimentId : "",
+      expTitle: typeof e.title === "string" && e.title ? e.title : undefined,
       deployed: e.deployed === true,
-      hasData:
-        typeof e.dataIsCollectable === "boolean"
-          ? e.dataIsCollectable
-          : e.hasData === true,
+      hasData: e.dataIsCollectable === true,
       rerunnable: e.rerunnable === true,
       inoperable: e.inoperable === true,
     });

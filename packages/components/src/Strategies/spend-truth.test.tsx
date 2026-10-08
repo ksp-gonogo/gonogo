@@ -16,7 +16,7 @@ const PROGRAM = {
   id: "SurveysHighAltitude",
   title: "High Altitude Survey",
   description: "Fly high and fast.",
-  departmentName: "Surveys",
+  department: "Surveys",
   isActive: false,
   factor: 0,
   dateActivated: 0,
@@ -24,7 +24,6 @@ const PROGRAM = {
   initialCostFunds: 0,
   initialCostScience: 0,
   initialCostReputation: 0,
-  effectiveCostReputation: 0,
   hasFactorSlider: false,
   factorSliderDefault: 0,
   factorSliderSteps: 1,
@@ -40,9 +39,8 @@ const PRICED = {
   ...PROGRAM,
   id: "FundraisingCampaignCfg",
   title: "Fundraising Campaign",
-  departmentName: "Finances",
+  department: "Finances",
   initialCostReputation: 7.3,
-  effectiveCostReputation: 13.97,
 };
 
 describe("Strategies: what a card claims activating it costs", () => {
@@ -85,7 +83,7 @@ describe("Strategies: what a card claims activating it costs", () => {
     await screen.findByText("Fundraising Campaign");
     const text = container.textContent ?? "";
     // Reputation's own precision is one decimal, and the currency reads as the word beside the glyph.
-    expect(text).toContain("14.0");
+    expect(text).toContain("7.3");
     expect(text).toContain("reputation");
   });
 

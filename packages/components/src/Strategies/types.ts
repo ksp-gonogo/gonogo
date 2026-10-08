@@ -10,8 +10,6 @@ export interface Strategy {
   initialCostFunds: number;
   initialCostScience: number;
   initialCostReputation: number;
-  /** Reputation cost after KSP's nonlinear rep curve; what the player actually loses. */
-  effectiveCostReputation: number;
   hasFactorSlider: boolean;
   factorSliderDefault: number;
   factorSliderSteps: number;

@@ -8,10 +8,10 @@
   "sci.instruments": [
     {
       "partId": 1,
-      "partTitle": "Mystery Goo\u2122 Containment Unit",
-      "expId": "mysteryGoo",
+      "partName": "Mystery Goo\u2122 Containment Unit",
+      "experimentId": "mysteryGoo",
       "deployed": false,
-      "hasData": false,
+      "dataIsCollectable": false,
       "rerunnable": false,
       "inoperable": false
     }
@@ -37,10 +37,10 @@
         "value": [
           {
             "partId": 1,
-            "partTitle": "Mystery Goo\u2122 Containment Unit",
-            "expId": "mysteryGoo",
+            "partName": "Mystery Goo\u2122 Containment Unit",
+            "experimentId": "mysteryGoo",
             "deployed": false,
-            "hasData": false,
+            "dataIsCollectable": false,
             "rerunnable": false,
             "inoperable": false
           }

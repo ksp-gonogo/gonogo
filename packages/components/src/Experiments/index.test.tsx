@@ -81,28 +81,28 @@ describe("ExperimentsComponent", () => {
       fixture.emit("science.instruments", [
         {
           partId: 1,
-          partTitle: "Mystery Goo",
-          expId: "mysteryGoo",
+          partName: "Mystery Goo",
+          experimentId: "mysteryGoo",
           deployed: true,
-          hasData: true,
+          dataIsCollectable: true,
           rerunnable: false,
           inoperable: false,
         },
         {
           partId: 2,
-          partTitle: "Mystery Goo",
-          expId: "mysteryGoo",
+          partName: "Mystery Goo",
+          experimentId: "mysteryGoo",
           deployed: false,
-          hasData: false,
+          dataIsCollectable: false,
           rerunnable: false,
           inoperable: true,
         },
         {
           partId: 3,
-          partTitle: "Thermometer",
-          expId: "temperatureScan",
+          partName: "Thermometer",
+          experimentId: "temperatureScan",
           deployed: false,
-          hasData: false,
+          dataIsCollectable: false,
           rerunnable: true,
           inoperable: false,
         },
@@ -130,10 +130,10 @@ describe("ExperimentsComponent", () => {
       fixture.emit("science.instruments", [
         {
           partId: 1,
-          partTitle: "Mystery Goo",
-          expId: "mysteryGoo",
+          partName: "Mystery Goo",
+          experimentId: "mysteryGoo",
           deployed: true,
-          hasData: true,
+          dataIsCollectable: true,
           rerunnable: false,
           inoperable: false,
         },
@@ -155,10 +155,10 @@ describe("ExperimentsComponent", () => {
       fixture.emit("science.instruments", [
         {
           partId: 42,
-          partTitle: "Mystery Goo",
-          expId: "mysteryGoo",
+          partName: "Mystery Goo",
+          experimentId: "mysteryGoo",
           deployed: false,
-          hasData: false,
+          dataIsCollectable: false,
           rerunnable: true,
           inoperable: false,
         },
@@ -184,10 +184,10 @@ describe("ExperimentsComponent", () => {
       fixture.emit("science.instruments", [
         {
           partId: 99,
-          partTitle: "Thermometer",
-          expId: "temperatureScan",
+          partName: "Thermometer",
+          experimentId: "temperatureScan",
           deployed: true,
-          hasData: true,
+          dataIsCollectable: true,
           rerunnable: true,
           inoperable: false,
         },
@@ -251,10 +251,10 @@ describe("ExperimentsComponent", () => {
       fixture.emit("science.instruments", [
         {
           partId: 99,
-          partTitle: "Thermometer",
-          expId: "temperatureScan",
+          partName: "Thermometer",
+          experimentId: "temperatureScan",
           deployed: true,
-          hasData: true,
+          dataIsCollectable: true,
           rerunnable: true,
           inoperable: false,
         },
@@ -297,10 +297,10 @@ describe("ExperimentsComponent", () => {
       fixture.emit("science.instruments", [
         {
           partId: 1,
-          partTitle: "Burned Sensor",
-          expId: "x",
+          partName: "Burned Sensor",
+          experimentId: "x",
           deployed: false,
-          hasData: false,
+          dataIsCollectable: false,
           rerunnable: false,
           inoperable: true,
         },
@@ -325,21 +325,21 @@ describe("parseInstruments", () => {
     const parsed = parseInstruments([
       {
         partId: 1,
-        partTitle: "Goo",
-        expId: "mysteryGoo",
+        partName: "Goo",
+        experimentId: "mysteryGoo",
         deployed: true,
-        hasData: false,
+        dataIsCollectable: false,
         rerunnable: false,
         inoperable: false,
       },
       // missing partId
-      { partTitle: "Bad" },
-      // missing partTitle falls back rather than dropping
+      { partName: "Bad" },
+      // missing partName falls back rather than dropping
       {
         partId: 2,
-        expId: "temp",
+        experimentId: "temp",
         deployed: false,
-        hasData: false,
+        dataIsCollectable: false,
         rerunnable: true,
         inoperable: false,
       },

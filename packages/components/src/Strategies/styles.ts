@@ -1,4 +1,4 @@
-import { Badge, Block, Row } from "@ksp-gonogo/ui-kit";
+import { Badge, Block, Button, Row } from "@ksp-gonogo/ui-kit";
 // biome-ignore lint/style/noRestrictedImports: type and card treatments not yet expressed in kit primitives
 import styled from "styled-components";
 
@@ -25,6 +25,14 @@ export const StrategyCard = styled(Block).attrs({
   /* Deliberately very dark: the dim body text has almost no contrast headroom, so the border carries the green. */
   background: ${({ $active }) =>
     $active ? "var(--color-go-muted)" : "transparent"};
+`;
+
+/** The strategy's name as the control that opens its details: wraps inside a name cell that would otherwise clip it without a trace. */
+export const StrategyName = styled(Button)`
+  max-width: 100%;
+  white-space: normal;
+  text-align: start;
+  overflow-wrap: anywhere;
 `;
 
 export const CardDept = styled.span`

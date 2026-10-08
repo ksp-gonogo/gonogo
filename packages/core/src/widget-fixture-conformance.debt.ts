@@ -26,26 +26,4 @@
  * SHRINK-ONLY, graded against a base revision by the gate's last test. Adding
  * an entry is not how a new one is recorded, it is the gate refusing it.
  */
-export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
-  /*
-   * The science instrument entry declares `partName` / `experimentId` /
-   * `dataIsCollectable`. The second of the five defects, still in four
-   * fixtures.
-   */
-  "packages/components/src/Experiments#science.instruments.expId",
-  "packages/components/src/Experiments#science.instruments.hasData",
-  "packages/components/src/Experiments#science.instruments.partTitle",
-  // Neither is declared on the science experiment entry.
-  "packages/components/src/ScienceData#science.experiments.scienceValueBase",
-  "packages/components/src/ScienceData#science.experiments.transmitBoost",
-  /*
-   * The first of the five, and the one with a wrong NUMBER on screen rather
-   * than a blank: `CareerStrategy` declares `department` and no
-   * `effectiveCostReputation` at all. One fixture,
-   * `one-active-strategy-room-for-more.json`, already carries the real shape; the
-   * other five in that directory do not, and the widget still normalises both
-   * so that neither the render nor a test can tell them apart.
-   */
-  "packages/components/src/Strategies#career.status.departmentName",
-  "packages/components/src/Strategies#career.status.effectiveCostReputation",
-];
+export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [];

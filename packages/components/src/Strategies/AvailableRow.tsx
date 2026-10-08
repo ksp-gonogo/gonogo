@@ -5,15 +5,12 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
   CommandButton,
   type CommandButtonHandle,
   ExpandableText,
   Notice,
   Slider,
-  Tooltip,
   Unit,
-  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { parseEffectLines } from "./parsing";
 import {
@@ -28,6 +25,7 @@ import {
   FactorRow,
   FactorValue,
   StrategyCard,
+  StrategyName,
 } from "./styles";
 import type { Strategy } from "./types";
 
@@ -66,7 +64,7 @@ export function StrategyCost({
     s.initialCostScience === 0 &&
     s.initialCostReputation === 0;
   const scaledScience = s.initialCostScience * factorScale;
-  const scaledRep = s.effectiveCostReputation * factorScale;
+  const scaledRep = s.initialCostReputation * factorScale;
 
   // Fails closed: a non-finite cost and an absent or withheld balance are all unaffordable.
   const overBudget = (cost: number, balance: number | null) =>
@@ -111,18 +109,13 @@ export function StrategyCost({
             </CostChip>
           )}
           {s.initialCostReputation > 0 && (
-            <Tooltip
-              text={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
-              focusable
+            <CostChip
+              size="sm"
+              tone={costTone(affordVerdict(scaledRep, reputation))}
+              data-afford={affordVerdict(scaledRep, reputation)}
             >
-              <CostChip
-                size="sm"
-                tone={costTone(affordVerdict(scaledRep, reputation))}
-                data-afford={affordVerdict(scaledRep, reputation)}
-              >
-                <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
-              </CostChip>
-            </Tooltip>
+              <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
+            </CostChip>
           )}
         </CostRow>
       )}
@@ -176,14 +169,14 @@ export function AvailableRow({
   return (
     <StrategyCard
       title={
-        <Button
+        <StrategyName
           type="button"
           variant="text"
           onClick={onToggleExpanded}
           aria-expanded={expanded}
         >
           {s.title}
-        </Button>
+        </StrategyName>
       }
       titleRight={
         showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
