@@ -1,4 +1,5 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
+import { useMemo } from "react";
 import {
   DEPTH_ABOVE_COLOUR,
   DEPTH_BELOW_COLOUR,
@@ -103,6 +104,20 @@ export function VesselOrbitPath({
   hasGradient: boolean;
   zoom: number;
 }>) {
+  const { lan, argPe, inclination } = vessel;
+  /*
+   * The placed arc is held on the answer's identity, so a render that carries the same held trajectory re-places nothing.
+   * Only the plane's rotation enters the lift, never where the craft is on it, so the craft moving does not invalidate it.
+   */
+  const arcPath = useMemo(() => {
+    if (trajectory === null || trajectory.shape !== "arc") return null;
+    const lifted = liftArc(trajectory, { lan, argPe, inclination });
+    if (lifted === null) return null;
+    return openPath(
+      lifted.map((p) => placement.place(p)),
+      plotScale,
+    );
+  }, [trajectory, lan, argPe, inclination, placement, plotScale]);
   if (trajectory === null || trajectory.shape === "withheld") return null;
   // Screen-constant stroke and dashes.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
@@ -122,16 +137,12 @@ export function VesselOrbitPath({
       />
     );
   }
-  const lifted = liftArc(trajectory, vessel);
-  if (lifted === null) return null;
+  if (arcPath === null) return null;
   return (
     <path
       data-vessel-trajectory="arc"
       data-trajectory-frame={trajectory.frame.kind}
-      d={openPath(
-        lifted.map((p) => placement.place(p)),
-        plotScale,
-      )}
+      d={arcPath}
       fill="none"
       stroke={stroke}
       strokeWidth={strokeW}

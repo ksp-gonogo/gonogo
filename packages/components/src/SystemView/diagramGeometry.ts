@@ -226,7 +226,7 @@ export function openPath(
  */
 export function liftArc(
   trajectory: Extract<OrbitTrajectory, { shape: "arc" }>,
-  vessel: VesselOrbit,
+  vessel: Pick<VesselOrbit, "lan" | "argPe" | "inclination">,
 ): (readonly [number, number, number])[] | null {
   switch (trajectory.frame.kind) {
     case TrajectoryFrameKindLike.Perifocal:
