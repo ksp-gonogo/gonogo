@@ -12,6 +12,8 @@ import {
   CONTROL_FRAME_TOPIC,
   controlFrameToReadFrameChoice,
   type OrbitTrajectory,
+  type ReadFrameChoice,
+  readFrameChoicesEqual,
   useFleetVesselSilence,
   useOrbitTrajectory,
   useProcessor,
@@ -78,6 +80,18 @@ const topics = defineTopicManifest({
   ],
 });
 
+/** The translation returns a new object per call, and the projection memos below key on it: hold the previous object while the choice draws the same picture. */
+function useHeldChoice(choice: ReadFrameChoice | null): ReadFrameChoice | null {
+  const held = useRef<ReadFrameChoice | null>(null);
+  const previous = held.current;
+  const same =
+    previous === null || choice === null
+      ? previous === choice
+      : readFrameChoicesEqual(previous, choice);
+  if (!same) held.current = choice;
+  return held.current;
+}
+
 function SystemViewComponent({
   config,
   w,
@@ -99,7 +113,9 @@ function SystemViewComponent({
     controlFrameReading.state === "held"
       ? controlFrameReading.value
       : undefined;
-  const controlFrameChoice = controlFrameToReadFrameChoice(controlFrame, facts);
+  const controlFrameChoice = useHeldChoice(
+    controlFrameToReadFrameChoice(controlFrame, facts),
+  );
   // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
   const orbitReading = topics.useTelemetry("vessel.orbit");
   // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.

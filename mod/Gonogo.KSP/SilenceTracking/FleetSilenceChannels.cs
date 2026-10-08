@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Sitrep.Host.Comms;
@@ -35,7 +36,7 @@ namespace Gonogo.KSP.SilenceTracking
             "FleetSilenceChannels silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");
 
         /// <summary>
-        /// Roster entries pushed onto <c>fleet.silence</c> per second. Sized like
+        /// Roster entries pushed onto <c>fleet.silence</c> per real second. Sized like
         /// the capture budget above: the aggregate carries one entry per tracked
         /// vessel per tick, so a fleet that outgrows the capture budget outgrows
         /// this at the same moment, and a duplicated publish shows up here first.
@@ -43,6 +44,19 @@ namespace Gonogo.KSP.SilenceTracking
         private static readonly PerfBudget SilenceRosterBudget = new PerfBudget(
             "FleetSilenceChannels roster entries", threshold: 2000, windowSec: 1.0, unit: "entries");
 
+        /// <summary>
+        /// Roster publishes per five real seconds. <see cref="RealTimeRepublishGate"/> holds the
+        /// topic to one a second at the most, so the budget sits just above that and a path that
+        /// bypasses the gate (or a sampler that fires faster than the gate expects) shows up here.
+        /// Counted on the wall clock: a window in game seconds holds one sample whatever the warp.
+        /// </summary>
+        private static readonly PerfBudget SilenceRosterPublishBudget = new PerfBudget(
+            "FleetSilenceChannels roster publishes", threshold: 6, windowSec: 5.0, unit: "publishes");
+
+        private static readonly Stopwatch RealClock = Stopwatch.StartNew();
+
+        private readonly RealTimeRepublishGate _rosterGate = new RealTimeRepublishGate();
+        private List<SilenceContactSnapshot>? _lastSentRoster;
         private IDynamicChannelSource? _silenceSource;
         private IChannelPublisher? _rosterPublisher;
 
@@ -194,17 +208,36 @@ namespace Gonogo.KSP.SilenceTracking
                     cap.Ut);
             }
 
-            if (_rosterPublisher != null)
+            var realSec = RealClock.Elapsed.TotalSeconds;
+            if (_rosterPublisher != null && _rosterGate.Admit(!SameRoster(_lastSentRoster, cap.Roster), realSec))
             {
+                _lastSentRoster = cap.Roster;
                 var entries = new List<Dictionary<string, object?>>(cap.Roster.Count);
                 foreach (var v in cap.Roster)
                 {
                     entries.Add(FleetSilenceRosterBuilder.BuildEntry(
                         v.VesselId, v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec));
                 }
-                SilenceRosterBudget.Record(entries.Count, cap.Ut);
+                SilenceRosterBudget.Record(entries.Count, realSec);
+                SilenceRosterPublishBudget.Record(1, realSec);
                 _rosterPublisher.Publish(FleetSilenceRosterBuilder.Build(entries), cap.Ut);
             }
+        }
+
+        private static bool SameRoster(List<SilenceContactSnapshot>? sent, List<SilenceContactSnapshot> now)
+        {
+            if (sent == null || sent.Count != now.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < now.Count; i++)
+            {
+                if (!sent[i].SameAs(now[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>
@@ -279,6 +312,15 @@ namespace Gonogo.KSP.SilenceTracking
             public string? DeadlineBasis { get; set; }
             public double? PredictedReacquisitionUt { get; set; }
             public double? PredictionGraceSec { get; set; }
+
+            public bool SameAs(SilenceContactSnapshot other) =>
+                VesselId == other.VesselId
+                && State == other.State
+                && SilenceSinceUt == other.SilenceSinceUt
+                && DeadlineUt == other.DeadlineUt
+                && DeadlineBasis == other.DeadlineBasis
+                && PredictedReacquisitionUt == other.PredictedReacquisitionUt
+                && PredictionGraceSec == other.PredictionGraceSec;
         }
     }
 }
