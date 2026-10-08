@@ -35,6 +35,7 @@ Once it is in an Uplink's devDependencies the same commands answer to
 |---|---|
 | `new <id>` | scaffold an Uplink: contract slice, plugin, tests, one widget and its fixture, then generate its client types, install the client and write its page. In a repo with an `uplinks/` folder it goes to `uplinks/<id>/`; anywhere else the current directory becomes the Uplink |
 | `codegen` | generate `client/src/__generated__/` from the C# contract slice; `codegen --check` fails on drift |
+| `check` | read the client with TypeScript (an optional peer, installed in every scaffold) and report what is unresolved or stale, with the command that heals each finding. Exits 0 clean, 1 when findings remain, 2 when it could not run; `--fix` writes the files it owns and is refused when `CI` is set; `--json`, `--only` and `--skip` take its groups. A read it cannot name takes a `// gonogo:reads <topic or family>` comment above the call |
 | `bundle` | build the client bundle the app loads, and the `gonogo-uplink.json` beside it; `--watch` rebuilds on every change and `--serve <port>` also serves it from this computer |
 | `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
 | `package` | lay the built plugin out as `GameData/<name>/` and zip it with that as the zip's one root, which is what a hand install and CKAN both expect; it refuses a netkan whose install stanza names a path the zip does not hold |

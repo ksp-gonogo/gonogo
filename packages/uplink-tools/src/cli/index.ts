@@ -28,6 +28,7 @@ import {
   serialiseUplinkManifest,
   UPLINK_MANIFEST_FILE,
 } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
+import { CHECK_USAGE, check } from "../check/command";
 import { BAKE_USAGE, bake } from "./bake";
 import { CODEGEN_USAGE, codegen } from "./codegen";
 import { parseFlags, wantsHelp } from "./flags";
@@ -44,6 +45,7 @@ const USAGE = `uplink-tools <command>
 
   new      scaffold a fresh Uplink: the hand-written seed, then its generators
   codegen  generate the client's types from the C# contract slice
+  check    read the client and report what is stale or unresolved, with the fix
   bundle   build the client bundle the app loads, and its gonogo-uplink.json
   bake     write what the plugin tells the app about its client into C#: where
            the bundle lives, who wrote it and the hash the mod vouches for
@@ -401,6 +403,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       [string, (argv: readonly string[]) => number | Promise<number>]
     > = {
       bake: [BAKE_USAGE, bake],
+      check: [CHECK_USAGE, check],
       codegen: [CODEGEN_USAGE, codegen],
       package: [PACKAGE_USAGE, packageCommand],
       page: [PAGE_USAGE, page],

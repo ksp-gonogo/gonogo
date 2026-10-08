@@ -80,6 +80,7 @@ export default defineConfig([
       // binary-backed package.
       "esbuild",
       "playwright",
+      "typescript",
     ],
     dts: { resolve: true },
   },

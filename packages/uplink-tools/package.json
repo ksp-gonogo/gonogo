@@ -61,7 +61,8 @@
     "playwright": "^1.50.0",
     "react": "^18 || ^19",
     "react-dom": "^18 || ^19",
-    "styled-components": "^6.0.0"
+    "styled-components": "^6.0.0",
+    "typescript": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@ksp-gonogo/ui-kit": {
@@ -83,6 +84,9 @@
       "optional": true
     },
     "styled-components": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     }
   },
