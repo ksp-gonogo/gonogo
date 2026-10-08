@@ -706,8 +706,16 @@ export function MeterStack({
       if (stack.clientWidth === 0) return;
       stack.toggleAttribute("data-figures-below", !figuresFitBeside(stack));
     };
+    /*
+     * Moving the figures resizes elements this observer is already watching, so the move is made on the next frame: made inside the delivery it ends the frame with undelivered observations, which the browser reports as a loop error.
+     */
+    let frame = 0;
+    const placeNextFrame = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(place);
+    };
     // Every label and figure is observed too, since a figure growing a digit can push the list over the line.
-    const resize = new ResizeObserver(place);
+    const resize = new ResizeObserver(placeNextFrame);
     const watch = () => {
       resize.disconnect();
       resize.observe(stack);
@@ -718,6 +726,7 @@ export function MeterStack({
     watch();
     place();
     return () => {
+      cancelAnimationFrame(frame);
       resize.disconnect();
       rows.disconnect();
     };

@@ -76,6 +76,15 @@ function Tanks() {
 
 const stack = () => screen.getByTestId("stack");
 
+/** Lets the frame the stack decides in go by. */
+const nextFrame = () =>
+  act(
+    () =>
+      new Promise<void>((done) => {
+        requestAnimationFrame(() => done());
+      }),
+  );
+
 describe("MeterStack lining up row meters", () => {
   let observers: DrivableResizeObservers;
   beforeEach(() => {
@@ -101,20 +110,34 @@ describe("MeterStack lining up row meters", () => {
     expect(stack()).toHaveAttribute("data-figures-below");
   });
 
-  it("decides again when the stack is resized", () => {
+  it("decides again when the stack is resized", async () => {
     widths = { stack: 300, label: 100, figure: 120 };
     stubLayout();
     render(<Tanks />);
     expect(stack()).not.toHaveAttribute("data-figures-below");
     widths.stack = 200;
     act(() => observers.resize(stack(), { width: 200, height: 40 }));
+    await nextFrame();
     expect(stack()).toHaveAttribute("data-figures-below");
     widths.stack = 400;
     act(() => observers.resize(stack(), { width: 400, height: 40 }));
+    await nextFrame();
     expect(stack()).not.toHaveAttribute("data-figures-below");
   });
 
-  it("decides again when a figure grows without the stack changing size", () => {
+  it("moves the figures after the observation is delivered, never inside it", async () => {
+    widths = { stack: 300, label: 100, figure: 120 };
+    stubLayout();
+    render(<Tanks />);
+    widths.stack = 200;
+    act(() => observers.resize(stack(), { width: 200, height: 40 }));
+    // Inside the delivery the move would resize watched elements and the browser would report a loop
+    expect(stack()).not.toHaveAttribute("data-figures-below");
+    await nextFrame();
+    expect(stack()).toHaveAttribute("data-figures-below");
+  });
+
+  it("decides again when a figure grows without the stack changing size", async () => {
     widths = { stack: 300, label: 100, figure: 120 };
     stubLayout();
     render(<Tanks />);
@@ -124,6 +147,7 @@ describe("MeterStack lining up row meters", () => {
     if (!figure) throw new Error("no figure");
     widths.figure = 200;
     act(() => observers.resize(figure, { width: 200, height: 14 }));
+    await nextFrame();
     expect(stack()).toHaveAttribute("data-figures-below");
   });
 

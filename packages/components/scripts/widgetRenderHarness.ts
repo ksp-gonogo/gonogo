@@ -356,10 +356,21 @@ export async function renderWidgets(
     page.on("console", (msg) => {
       if (msg.type() === "error") {
         console.error("  [console error]", msg.text());
+        if (msg.text().startsWith("[resize-observer-loop]")) {
+          pageErrors.push(msg.text());
+        }
       }
     });
 
     await installFixedClock(page);
+    // The browser reports a ResizeObserver loop to `window.onerror` only, which Playwright does not surface as a page error.
+    await page.addInitScript(() => {
+      window.addEventListener("error", (e) => {
+        if (e.message.startsWith("ResizeObserver loop")) {
+          console.error(`[resize-observer-loop] ${e.message}`);
+        }
+      });
+    });
     await page.goto(pathToFileURL(probeHtmlOut).toString(), {
       waitUntil: "domcontentloaded",
     });
