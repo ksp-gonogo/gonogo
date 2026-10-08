@@ -6,6 +6,7 @@ const meta = {
   title: "Widgets/commcast/Loop playback",
   component: CommsPlaybackScene,
   decorators: [withGonogoFrame],
+  tags: ["playback"],
   parameters: { layout: "fullscreen" },
   argTypes: {
     w: { control: { type: "range", min: 4, max: 36, step: 1 } },

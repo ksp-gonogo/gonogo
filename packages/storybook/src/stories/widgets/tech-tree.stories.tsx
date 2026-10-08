@@ -6,6 +6,7 @@ const meta = {
   title: "Widgets/tech-tree/Career playback",
   component: TechTreeCareerScene,
   decorators: [withGonogoFrame],
+  tags: ["playback"],
   parameters: { layout: "fullscreen" },
   argTypes: {
     w: { control: { type: "range", min: 5, max: 36, step: 1 } },
