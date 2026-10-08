@@ -178,6 +178,7 @@ export const SNAPSHOT = {
   "vessel.comms": {
     connected: false,
     signalStrength: 0,
+    signalQuantity: 1, // SignalQuantity.RangeFraction
     controlState: 0, // ControlState.None
     meta: payloadMeta,
   },

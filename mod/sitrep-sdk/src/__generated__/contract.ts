@@ -1765,8 +1765,9 @@ export interface CommsConnectivity
 * The `comms.signal` payload: the active vessel's own reading of its link,
 * from the elected comms backend. A strength from 0 to 1 whose meaning depends
 * on the backend: stock CommNet reports a coarse fraction of the link's range,
-* RealAntennas how much headroom the link has over its data rate. Nothing on
-* the wire says which, so compare values only within one install.
+* RealAntennas how much headroom the link has over its data rate.
+* `CommsSignal.quantity` says which, so a reader names the figure correctly
+* and never compares two that are different quantities.
 *
 * Each command centre is sent its own, the newest reading to have reached it.
 * A reading is of the vessel's whole path at one instant, so it reaches a
@@ -1792,6 +1793,13 @@ export interface CommsSignal
 	* could be read.
 	*/
 	strength: Value<"ratio">;
+	/**
+	* Which quantity `CommsSignal.strength` is: a fraction of the link's range, a
+	* fraction of its data-rate headroom, or a stand-in where no link is modelled.
+	* `SignalQuantity.Unknown` where the strength was worked out for a path before
+	* any reading of the craft's radio said which.
+	*/
+	quantity: SignalQuantity;
 	/**
 	* Whether `CommsSignal.strength` is worked out and not measured. A command
 	* centre is sent the strength of the path it believes in. Where the active
@@ -1822,6 +1830,35 @@ export interface CommsSignal
 	* receiving centre last heard it named.
 	*/
 	measuredPath?: CommsMeasuredPath | null;
+}
+/**
+* Which quantity a signal strength from 0 to 1 is. Two backends that both
+* report "0 to 1" are not saying the same thing, and a figure is only
+* comparable with another of the same quantity.
+*
+* @category Comms
+*/
+export enum SignalQuantity {
+	/**
+	* Nothing says which. A strength worked out for a path before any reading of
+	* the craft's radio, or a read that failed.
+	*/
+	Unknown = 0,
+	/**
+	* How far inside its range the link is, 0 at the edge of range and 1 at no
+	* distance: stock CommNet's.
+	*/
+	RangeFraction = 1,
+	/**
+	* How much headroom the link has over its data rate, 0 where the lowest rate
+	* fails and 1 at the top of the ladder: RealAntennas'.
+	*/
+	DataRateHeadroom = 2,
+	/**
+	* A stand-in: the save models no comms network, so there is no link to grade
+	* and the figure is 1.
+	*/
+	NoModel = 3
 }
 /**
 * A path a vessel's radio reported a strength on, as the nodes it runs
@@ -4908,9 +4945,11 @@ export interface NoCommandArgs
 * (`VesselOrbit.referenceBodyIndex` among them). `OrbitPatch.referenceBody`
 * and `OrbitPatch.closestEncounterBody` are the body's name, for display.
 *
-* Every element is a plain, non-nullable double, unlike `VesselOrbit.lan` and
-* `VesselOrbit.argPe`: a patch missing any element needed to propagate it is
-* not sent at all, rather than sent with a stand-in.
+* `OrbitPatch.lan`, `OrbitPatch.argPe` and `OrbitPatch.meanAnomalyAtEpoch` are
+* null when KSP's value for them is undefined, as `VesselOrbit.lan` and
+* `VesselOrbit.argPe` are, and the patch is still sent. A patch with a null
+* element cannot be propagated, so a reader that propagates one declines to
+* rather than substituting a value.
 *
 * @category Orbits and trajectories
 */
@@ -4923,20 +4962,20 @@ export interface OrbitPatch
 	/** Inclination in degrees, KSP's `Orbit.inclination`. */
 	inc: Value<"°">;
 	/**
-	* Longitude of the ascending node in degrees, KSP's `Orbit.LAN`. `0` when
+	* Longitude of the ascending node in degrees, KSP's `Orbit.LAN`. Null when
 	* KSP's value is undefined (NaN).
 	*/
-	lan: Value<"°">;
+	lan?: Value<"°"> | null;
 	/**
-	* Argument of periapsis in degrees, KSP's `Orbit.argumentOfPeriapsis`. `0`
+	* Argument of periapsis in degrees, KSP's `Orbit.argumentOfPeriapsis`. Null
 	* when KSP's value is undefined (NaN).
 	*/
-	argPe: Value<"°">;
+	argPe?: Value<"°"> | null;
 	/**
 	* Mean anomaly at `OrbitPatch.epoch` in radians, KSP's
-	* `Orbit.meanAnomalyAtEpoch`. `0` when KSP's value is undefined (NaN).
+	* `Orbit.meanAnomalyAtEpoch`. Null when KSP's value is undefined (NaN).
 	*/
-	meanAnomalyAtEpoch: Value<"rad">;
+	meanAnomalyAtEpoch?: Value<"rad"> | null;
 	/**
 	* The universal time at which `OrbitPatch.meanAnomalyAtEpoch` holds, KSP's
 	* `Orbit.epoch`.
@@ -5665,28 +5704,44 @@ export interface RevertAvailability
 	canRevertToLaunch: boolean;
 }
 /**
-* Args for `robotics.servo.setTarget`: the absolute angle (hinge) or extension
-* (piston) to drive to, keyed by the part's `ServoSetTargetArgs.partId`.
-* `ServoSetTargetArgs.partId` is the same `flightID` string `parts.robotics`
+* Args for `robotics.servo.setAngle`: the absolute angle a hinge or rotation
+* servo is to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
+* `ServoSetAngleArgs.partId` is the same `flightID` string `parts.robotics`
 * publishes on each servo entry, so a widget sends back the exact id it
-* displays. A rotor has no target (it spins continuously); a `setTarget` aimed
-* at one fails with `CommandResult.errorCode`
-* `CommandErrorCode.ModeUnavailable`.
+* displays. A piston has no angle and a rotor no target: a `setAngle` aimed at
+* either fails with `CommandResult.errorCode`
+* `CommandErrorCode.CapabilityMismatch`.
 *
 * @category Command arguments
 */
-export interface ServoSetTargetArgs
+export interface ServoSetAngleArgs
 {
 	/**
 	* The part's `flightID.ToString()`: the id the read side stamps on each
 	* `parts.robotics` entry.
 	*/
 	partId: string;
+	/** The absolute target angle. */
+	degrees: number;
+}
+/**
+* Args for `robotics.servo.setExtension`: the absolute extension a piston is
+* to drive to, keyed by the part's `ServoSetExtensionArgs.partId`. A hinge or
+* rotation servo has no extension and a rotor no target: a `setExtension`
+* aimed at one fails with `CommandResult.errorCode`
+* `CommandErrorCode.CapabilityMismatch`.
+*
+* @category Command arguments
+*/
+export interface ServoSetExtensionArgs
+{
 	/**
-	* Absolute target. Its unit follows the part's kind: degrees for a hinge or
-	* rotation servo, metres for a piston.
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
 	*/
-	value: number;
+	partId: string;
+	/** The absolute target extension. */
+	metres: number;
 }
 /**
 * Args shared by every robotics boolean actuation
@@ -8932,6 +8987,11 @@ export interface VesselComms
 	* ratio from `0` (none) to `1` (full).
 	*/
 	signalStrength: Value<"ratio">;
+	/**
+	* Which quantity `VesselComms.signalStrength` is, as the elected comms backend
+	* declares it: `SignalQuantity.Unknown` while no backend has answered.
+	*/
+	signalQuantity: SignalQuantity;
 	/**
 	* What is controlling the vessel and how much control it has, from
 	* `vessel.connection.ControlState`.

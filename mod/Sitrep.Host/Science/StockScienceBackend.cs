@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Science
@@ -34,15 +35,15 @@ namespace Sitrep.Host.Science
 
         public string ProviderId => "stock";
 
-        public object? Experiments(KspSnapshot? snapshot) => ScienceViewProvider.BuildExperiments(snapshot);
+        public IReadOnlyList<ExperimentEntry>? Experiments(KspSnapshot? snapshot) => ScienceViewProvider.BuildExperiments(snapshot);
 
-        public object? Instruments(KspSnapshot? snapshot) => ScienceViewProvider.BuildInstruments(snapshot);
+        public IReadOnlyList<InstrumentEntry>? Instruments(KspSnapshot? snapshot) => ScienceViewProvider.BuildInstruments(snapshot);
 
-        public object? Sensors(KspSnapshot? snapshot) => ScienceViewProvider.BuildSensors(snapshot);
+        public IReadOnlyList<SensorEntry>? Sensors(KspSnapshot? snapshot) => ScienceViewProvider.BuildSensors(snapshot);
 
-        public object? Lab(KspSnapshot? snapshot) => ScienceViewProvider.BuildLab(snapshot);
+        public IReadOnlyList<LabEntry>? Lab(KspSnapshot? snapshot) => ScienceViewProvider.BuildLab(snapshot);
 
-        public object? ExperimentBreakdown(KspSnapshot? snapshot) => ScienceViewProvider.BuildExperimentBreakdown(snapshot);
+        public IReadOnlyList<ExperimentBreakdownEntry>? ExperimentBreakdown(KspSnapshot? snapshot) => ScienceViewProvider.BuildExperimentBreakdown(snapshot);
 
         public CommandResult DeployExperiment(ExperimentActionArgs args) =>
             ScienceCommandProvider.HandleDeploy(_actuator, args);

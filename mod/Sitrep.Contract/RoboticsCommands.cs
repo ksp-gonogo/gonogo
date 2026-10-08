@@ -5,29 +5,53 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Args for <c>robotics.servo.setTarget</c>: the absolute angle (hinge) or
-/// extension (piston) to drive to, keyed by the part's
-/// <see cref="PartId"/>. <see cref="PartId"/> is the same
-/// <c>flightID</c> string <c>parts.robotics</c> publishes on each servo
-/// entry, so a widget sends back the exact id it displays. A rotor has no
-/// target (it spins continuously); a <c>setTarget</c> aimed at one fails with
-/// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.ModeUnavailable"/>.
+/// Args for <c>robotics.servo.setAngle</c>: the absolute angle a hinge or
+/// rotation servo is to drive to, keyed by the part's <see cref="PartId"/>.
+/// <see cref="PartId"/> is the same <c>flightID</c> string
+/// <c>parts.robotics</c> publishes on each servo entry, so a widget sends back
+/// the exact id it displays. A piston has no angle and a rotor no target: a
+/// <c>setAngle</c> aimed at either fails with
+/// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.CapabilityMismatch"/>.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("robotics.servo.setTarget")]
-public class ServoSetTargetArgs
+[SitrepCommand("robotics.servo.setAngle")]
+public class ServoSetAngleArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
-    /// <summary>Absolute target. Its unit follows the part's kind: degrees for a hinge or rotation servo, metres for a piston.</summary>
-    [SitrepUnit(Units.NotApplicable)]
-    public double Value { get; set; }
+    /// <summary>The absolute target angle.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double Degrees { get; set; }
+}
+
+/// <summary>
+/// Args for <c>robotics.servo.setExtension</c>: the absolute extension a
+/// piston is to drive to, keyed by the part's <see cref="PartId"/>. A hinge or
+/// rotation servo has no extension and a rotor no target: a
+/// <c>setExtension</c> aimed at one fails with
+/// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.CapabilityMismatch"/>.
+/// </summary>
+/// <category>Command arguments</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepCommand("robotics.servo.setExtension")]
+public class ServoSetExtensionArgs
+{
+    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
+    public string PartId { get; set; } = "";
+
+    /// <summary>The absolute target extension.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double Metres { get; set; }
 }
 
 /// <summary>

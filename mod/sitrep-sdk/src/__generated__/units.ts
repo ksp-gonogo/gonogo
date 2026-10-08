@@ -508,6 +508,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommsSignal": {
     modelled: "flag",
     otherPath: "flag",
+    quantity: "enum",
     strength: "ratio",
   },
   "ContractActionArgs": {
@@ -1226,13 +1227,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     traverseVelocity: "n/a",
     type: "id",
   },
+  "ServoSetAngleArgs": {
+    degrees: "°",
+    partId: "id",
+  },
   "ServoSetEnabledArgs": {
     enabled: "flag",
     partId: "id",
   },
-  "ServoSetTargetArgs": {
+  "ServoSetExtensionArgs": {
+    metres: "m",
     partId: "id",
-    value: "n/a",
   },
   "SetActionGroupArgs": {
     group: "id",
@@ -1464,6 +1469,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "VesselComms": {
     connected: "flag",
     controlState: "enum",
+    signalQuantity: "enum",
     signalStrength: "ratio",
   },
   "VesselControl": {
@@ -1766,6 +1772,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "comms.signal": {
     modelled: "flag",
     otherPath: "flag",
+    quantity: "enum",
     strength: "ratio",
   },
   "crash.hasRecent": {
@@ -2108,6 +2115,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.comms": {
     connected: "flag",
     controlState: "enum",
+    signalQuantity: "enum",
     signalStrength: "ratio",
   },
   "vessel.control": {
@@ -2911,6 +2919,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "CommsNetworkNode": {
     kind: "CommsHopKind",
   },
+  "CommsSignal": {
+    quantity: "SignalQuantity",
+  },
   "ControlFrame": {
     kind: "ControlFrameKind",
   },
@@ -3011,6 +3022,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "VesselComms": {
     controlState: "ControlState",
+    signalQuantity: "SignalQuantity",
   },
   "VesselControl": {
     sasMode: "SasMode",
@@ -3061,6 +3073,9 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "comms.delay": {
     source: "CommsDelaySource",
   },
+  "comms.signal": {
+    quantity: "SignalQuantity",
+  },
   "deployed.bases": {
     power: "DeployedPowerState",
   },
@@ -3085,6 +3100,7 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "vessel.comms": {
     controlState: "ControlState",
+    signalQuantity: "SignalQuantity",
   },
   "vessel.control": {
     sasMode: "SasMode",
@@ -3362,6 +3378,12 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "Recovered",
     3: "Defaults",
     4: "Unreadable",
+  },
+  "SignalQuantity": {
+    0: "Unknown",
+    1: "RangeFraction",
+    2: "DataRateHeadroom",
+    3: "NoModel",
   },
   "Situation": {
     0: "Landed",

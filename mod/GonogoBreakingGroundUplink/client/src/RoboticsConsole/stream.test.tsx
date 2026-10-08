@@ -77,10 +77,10 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
     });
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
-        (c) => c.command === "robotics.servo.setTarget",
+        (c) => c.command === "robotics.servo.setAngle",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "11", value: 65 });
+      expect(sent?.args).toEqual({ partId: "11", degrees: 65 });
     });
   });
 

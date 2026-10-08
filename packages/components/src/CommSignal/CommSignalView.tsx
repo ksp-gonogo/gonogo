@@ -60,6 +60,7 @@ export function CommSignalComponent({
     pct,
     bars,
     control,
+    quantity,
     strengthMark,
   } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
@@ -209,6 +210,7 @@ export function CommSignalComponent({
                     control={control}
                     delay={delay}
                     noSignal={noSignal}
+                    quantity={quantity}
                   />
                 </Grid>
               )}

@@ -76,8 +76,9 @@ import type {
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
   ScienceTransmission,
+  ServoSetAngleArgs,
   ServoSetEnabledArgs,
-  ServoSetTargetArgs,
+  ServoSetExtensionArgs,
   SetActionGroupArgs,
   SetControlAxesArgs,
   SetControlFrameArgs,
@@ -128,9 +129,10 @@ export interface GeneratedCommandArgsMap {
   "robotics.rotor.setMotor": ServoSetEnabledArgs;
   "robotics.rotor.setRpmLimit": RotorSetRpmLimitArgs;
   "robotics.rotor.setTorqueLimit": RotorSetTorqueLimitArgs;
+  "robotics.servo.setAngle": ServoSetAngleArgs;
+  "robotics.servo.setExtension": ServoSetExtensionArgs;
   "robotics.servo.setLock": ServoSetEnabledArgs;
   "robotics.servo.setMotor": ServoSetEnabledArgs;
-  "robotics.servo.setTarget": ServoSetTargetArgs;
   "science.experiment.deploy": ExperimentActionArgs;
   "science.experiment.transmit": ExperimentActionArgs;
   "settings.mod.write": WriteModSettingArgs;
@@ -191,9 +193,10 @@ export interface GeneratedCommandReplyMap {
   "robotics.rotor.setMotor": CommandResult;
   "robotics.rotor.setRpmLimit": CommandResult;
   "robotics.rotor.setTorqueLimit": CommandResult;
+  "robotics.servo.setAngle": CommandResult;
+  "robotics.servo.setExtension": CommandResult;
   "robotics.servo.setLock": CommandResult;
   "robotics.servo.setMotor": CommandResult;
-  "robotics.servo.setTarget": CommandResult;
   "science.experiment.deploy": CommandResult;
   "science.experiment.transmit": CommandResultOf<ScienceTransmission>;
   "settings.mod.write": CommandResult;
@@ -264,9 +267,10 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "robotics.rotor.setMotor": "CommandResult",
   "robotics.rotor.setRpmLimit": "CommandResult",
   "robotics.rotor.setTorqueLimit": "CommandResult",
+  "robotics.servo.setAngle": "CommandResult",
+  "robotics.servo.setExtension": "CommandResult",
   "robotics.servo.setLock": "CommandResult",
   "robotics.servo.setMotor": "CommandResult",
-  "robotics.servo.setTarget": "CommandResult",
   "science.experiment.deploy": "CommandResult",
   "science.experiment.transmit": "CommandResultOf<ScienceTransmission>",
   "settings.mod.write": "CommandResult",
@@ -365,9 +369,10 @@ export const GENERATED_COMMAND_RAIL = {
   "robotics.rotor.setMotor": { replies: true, delayed: true },
   "robotics.rotor.setRpmLimit": { replies: true, delayed: true },
   "robotics.rotor.setTorqueLimit": { replies: true, delayed: true },
+  "robotics.servo.setAngle": { replies: true, delayed: true },
+  "robotics.servo.setExtension": { replies: true, delayed: true },
   "robotics.servo.setLock": { replies: true, delayed: true },
   "robotics.servo.setMotor": { replies: true, delayed: true },
-  "robotics.servo.setTarget": { replies: true, delayed: true },
   "science.experiment.deploy": { replies: true, delayed: true },
   "science.experiment.transmit": { replies: true, delayed: true },
   "settings.mod.write": { replies: true, delayed: false },
@@ -428,9 +433,10 @@ export const GENERATED_COMMAND_IDS = [
   "robotics.rotor.setMotor",
   "robotics.rotor.setRpmLimit",
   "robotics.rotor.setTorqueLimit",
+  "robotics.servo.setAngle",
+  "robotics.servo.setExtension",
   "robotics.servo.setLock",
   "robotics.servo.setMotor",
-  "robotics.servo.setTarget",
   "science.experiment.deploy",
   "science.experiment.transmit",
   "settings.mod.write",

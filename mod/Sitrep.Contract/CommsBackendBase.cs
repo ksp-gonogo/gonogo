@@ -152,7 +152,9 @@ public abstract class CommsBackendBase : ICommsBackend
     /// <see cref="CommsLinkState.SignalStrength"/>.
     /// </summary>
     public CommsSignal SignalStrength() =>
-        new CommsSignal { Strength = LinkState()?.SignalStrength ?? 0.0 };
+        LinkState() is { } link
+            ? new CommsSignal { Strength = link.SignalStrength, Quantity = link.SignalQuantity }
+            : new CommsSignal { Strength = 0.0, Quantity = SignalQuantity.Unknown };
 
     /// <inheritdoc cref="ICommsBackend.ControlState" />
     public CommsControl ControlState()

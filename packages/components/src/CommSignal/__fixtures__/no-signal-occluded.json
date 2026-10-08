@@ -28,6 +28,7 @@
         "value": {
           "connected": false,
           "signalStrength": 0,
+          "signalQuantity": 1,
           "controlState": 0
         }
       },

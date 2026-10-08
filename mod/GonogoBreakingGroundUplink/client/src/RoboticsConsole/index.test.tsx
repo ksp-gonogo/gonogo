@@ -125,10 +125,10 @@ describe("RoboticsConsoleComponent", () => {
     await user.click(screen.getByRole("button", { name: /Increase target/i }));
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
-        (c) => c.command === "robotics.servo.setTarget",
+        (c) => c.command === "robotics.servo.setAngle",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "11", value: 35 });
+      expect(sent?.args).toEqual({ partId: "11", degrees: 35 });
     });
   });
 
@@ -223,10 +223,10 @@ describe("RoboticsConsoleComponent", () => {
     // A metre-scale step on a metre-scale target.
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
-        (c) => c.command === "robotics.servo.setTarget",
+        (c) => c.command === "robotics.servo.setExtension",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "22", value: 0.65 });
+      expect(sent?.args).toEqual({ partId: "22", metres: 0.65 });
     });
   });
 });

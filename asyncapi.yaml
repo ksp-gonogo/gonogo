@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 30.0.0
+  version: 31.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
-    channels a client subscribes to, and 60 commands it dispatches, with the payload
+    channels a client subscribes to, and 61 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -184,7 +184,7 @@ info:
     - name: recovery
       description: 2 telemetry channels, 0 commands
     - name: robotics
-      description: 2 telemetry channels, 9 commands
+      description: 2 telemetry channels, 10 commands
     - name: science
       description: 6 telemetry channels, 2 commands
     - name: settings
@@ -1251,8 +1251,9 @@ channels:
       The `comms.signal` payload: the active vessel's own reading of its link,
       from the elected comms backend. A strength from 0 to 1 whose meaning depends
       on the backend: stock CommNet reports a coarse fraction of the link's range,
-      RealAntennas how much headroom the link has over its data rate. Nothing on
-      the wire says which, so compare values only within one install.
+      RealAntennas how much headroom the link has over its data rate.
+      `CommsSignal.quantity` says which, so a reader names the figure correctly
+      and never compares two that are different quantities.
 
       Each command centre is sent its own, the newest reading to have reached it.
       A reading is of the vessel's whole path at one instant, so it reaches a
@@ -2040,6 +2041,48 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.setTorqueLimit"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.setTorqueLimit"
+  robotics.servo.setAngle:
+    address: robotics.servo.setAngle
+    description: |-
+      Takes `ServoSetAngleArgs`.
+
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
+
+      Args for `robotics.servo.setAngle`: the absolute angle a hinge or rotation
+      servo is to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
+      `ServoSetAngleArgs.partId` is the same `flightID` string `parts.robotics`
+      publishes on each servo entry, so a widget sends back the exact id it
+      displays. A piston has no angle and a rotor no target: a `setAngle` aimed at
+      either fails with `CommandResult.errorCode`
+      `CommandErrorCode.CapabilityMismatch`.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.robotics.servo.setAngle"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.robotics.servo.setAngle"
+  robotics.servo.setExtension:
+    address: robotics.servo.setExtension
+    description: |-
+      Takes `ServoSetExtensionArgs`.
+
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
+
+      Args for `robotics.servo.setExtension`: the absolute extension a piston is
+      to drive to, keyed by the part's `ServoSetExtensionArgs.partId`. A hinge or
+      rotation servo has no extension and a rotor no target: a `setExtension`
+      aimed at one fails with `CommandResult.errorCode`
+      `CommandErrorCode.CapabilityMismatch`.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.robotics.servo.setExtension"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.robotics.servo.setExtension"
   robotics.servo.setLock:
     address: robotics.servo.setLock
     description: |-
@@ -2082,28 +2125,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.servo.setMotor"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.servo.setMotor"
-  robotics.servo.setTarget:
-    address: robotics.servo.setTarget
-    description: |-
-      Takes `ServoSetTargetArgs`.
-
-      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
-
-      Args for `robotics.servo.setTarget`: the absolute angle (hinge) or extension
-      (piston) to drive to, keyed by the part's `ServoSetTargetArgs.partId`.
-      `ServoSetTargetArgs.partId` is the same `flightID` string `parts.robotics`
-      publishes on each servo entry, so a widget sends back the exact id it
-      displays. A rotor has no target (it spins continuously); a `setTarget` aimed
-      at one fails with `CommandResult.errorCode`
-      `CommandErrorCode.ModeUnavailable`.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.robotics.servo.setTarget"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.robotics.servo.setTarget"
   robotics.servos:
     address: robotics.servos
     description: |-
@@ -4278,6 +4299,34 @@ operations:
         $ref: "#/channels/robotics.rotor.setTorqueLimit"
       messages:
         - $ref: "#/channels/robotics.rotor.setTorqueLimit/messages/commandResponse"
+  dispatch:robotics.servo.setAngle:
+    action: send
+    channel:
+      $ref: "#/channels/robotics.servo.setAngle"
+    title: Dispatch robotics.servo.setAngle
+    tags:
+      - name: robotics
+    messages:
+      - $ref: "#/channels/robotics.servo.setAngle/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/robotics.servo.setAngle"
+      messages:
+        - $ref: "#/channels/robotics.servo.setAngle/messages/commandResponse"
+  dispatch:robotics.servo.setExtension:
+    action: send
+    channel:
+      $ref: "#/channels/robotics.servo.setExtension"
+    title: Dispatch robotics.servo.setExtension
+    tags:
+      - name: robotics
+    messages:
+      - $ref: "#/channels/robotics.servo.setExtension/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/robotics.servo.setExtension"
+      messages:
+        - $ref: "#/channels/robotics.servo.setExtension/messages/commandResponse"
   dispatch:robotics.servo.setLock:
     action: send
     channel:
@@ -4306,20 +4355,6 @@ operations:
         $ref: "#/channels/robotics.servo.setMotor"
       messages:
         - $ref: "#/channels/robotics.servo.setMotor/messages/commandResponse"
-  dispatch:robotics.servo.setTarget:
-    action: send
-    channel:
-      $ref: "#/channels/robotics.servo.setTarget"
-    title: Dispatch robotics.servo.setTarget
-    tags:
-      - name: robotics
-    messages:
-      - $ref: "#/channels/robotics.servo.setTarget/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/robotics.servo.setTarget"
-      messages:
-        - $ref: "#/channels/robotics.servo.setTarget/messages/commandResponse"
   dispatch:science.experiment.deploy:
     action: send
     channel:
@@ -6123,6 +6158,36 @@ components:
                 const: robotics.rotor.setTorqueLimit
               args:
                 $ref: "#/components/schemas/RotorSetTorqueLimitArgs"
+    commandRequest.robotics.servo.setAngle:
+      name: command-request
+      title: Dispatch robotics.servo.setAngle
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `robotics.servo.setAngle`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: robotics.servo.setAngle
+              args:
+                $ref: "#/components/schemas/ServoSetAngleArgs"
+    commandRequest.robotics.servo.setExtension:
+      name: command-request
+      title: Dispatch robotics.servo.setExtension
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `robotics.servo.setExtension`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: robotics.servo.setExtension
+              args:
+                $ref: "#/components/schemas/ServoSetExtensionArgs"
     commandRequest.robotics.servo.setLock:
       name: command-request
       title: Dispatch robotics.servo.setLock
@@ -6153,21 +6218,6 @@ components:
                 const: robotics.servo.setMotor
               args:
                 $ref: "#/components/schemas/ServoSetEnabledArgs"
-    commandRequest.robotics.servo.setTarget:
-      name: command-request
-      title: Dispatch robotics.servo.setTarget
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `robotics.servo.setTarget`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: robotics.servo.setTarget
-              args:
-                $ref: "#/components/schemas/ServoSetTargetArgs"
     commandRequest.science.experiment.deploy:
       name: command-request
       title: Dispatch science.experiment.deploy
@@ -6965,6 +7015,32 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.robotics.servo.setAngle:
+      name: command-response
+      title: Reply to robotics.servo.setAngle
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `robotics.servo.setAngle`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.robotics.servo.setExtension:
+      name: command-response
+      title: Reply to robotics.servo.setExtension
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `robotics.servo.setExtension`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.robotics.servo.setLock:
       name: command-response
       title: Reply to robotics.servo.setLock
@@ -6986,19 +7062,6 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `robotics.servo.setMotor`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/CommandResult"
-    commandResponse.robotics.servo.setTarget:
-      name: command-response
-      title: Reply to robotics.servo.setTarget
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `robotics.servo.setTarget`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -12148,8 +12211,9 @@ components:
         The `comms.signal` payload: the active vessel's own reading of its link,
         from the elected comms backend. A strength from 0 to 1 whose meaning depends
         on the backend: stock CommNet reports a coarse fraction of the link's range,
-        RealAntennas how much headroom the link has over its data rate. Nothing on
-        the wire says which, so compare values only within one install.
+        RealAntennas how much headroom the link has over its data rate.
+        `CommsSignal.quantity` says which, so a reader names the figure correctly
+        and never compares two that are different quantities.
 
         Each command centre is sent its own, the newest reading to have reached it.
         A reading is of the vessel's whole path at one instant, so it reaches a
@@ -12166,6 +12230,7 @@ components:
         `comms.*` channel.
       required:
         - strength
+        - quantity
         - modelled
         - otherPath
       properties:
@@ -12176,6 +12241,15 @@ components:
             Link strength from 0 to 1, in the backend's own terms (see this type's
             summary), so compare values only within one install. 0 when no link state
             could be read.
+        quantity:
+          description: |-
+            Which quantity `CommsSignal.strength` is: a fraction of the link's range, a
+            fraction of its data-rate headroom, or a stand-in where no link is modelled.
+            `SignalQuantity.Unknown` where the strength was worked out for a path before
+            any reading of the craft's radio said which.
+          allOf:
+            - $ref: "#/components/schemas/SignalQuantity"
+              x-sitrep-unit: enum
         modelled:
           type: boolean
           x-sitrep-unit: flag
@@ -15946,16 +16020,15 @@ components:
         (`VesselOrbit.referenceBodyIndex` among them). `OrbitPatch.referenceBody`
         and `OrbitPatch.closestEncounterBody` are the body's name, for display.
 
-        Every element is a plain, non-nullable double, unlike `VesselOrbit.lan` and
-        `VesselOrbit.argPe`: a patch missing any element needed to propagate it is
-        not sent at all, rather than sent with a stand-in.
+        `OrbitPatch.lan`, `OrbitPatch.argPe` and `OrbitPatch.meanAnomalyAtEpoch` are
+        null when KSP's value for them is undefined, as `VesselOrbit.lan` and
+        `VesselOrbit.argPe` are, and the patch is still sent. A patch with a null
+        element cannot be propagated, so a reader that propagates one declines to
+        rather than substituting a value.
       required:
         - sma
         - ecc
         - inc
-        - lan
-        - argPe
-        - meanAnomalyAtEpoch
         - epoch
         - period
         - startUt
@@ -15981,23 +16054,29 @@ components:
           x-sitrep-unit: °
           description: Inclination in degrees, KSP's `Orbit.inclination`.
         lan:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: °
           description: |-
-            Longitude of the ascending node in degrees, KSP's `Orbit.LAN`. `0` when
+            Longitude of the ascending node in degrees, KSP's `Orbit.LAN`. Null when
             KSP's value is undefined (NaN).
         argPe:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: °
           description: |-
-            Argument of periapsis in degrees, KSP's `Orbit.argumentOfPeriapsis`. `0`
+            Argument of periapsis in degrees, KSP's `Orbit.argumentOfPeriapsis`. Null
             when KSP's value is undefined (NaN).
         meanAnomalyAtEpoch:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: rad
           description: |-
             Mean anomaly at `OrbitPatch.epoch` in radians, KSP's
-            `Orbit.meanAnomalyAtEpoch`. `0` when KSP's value is undefined (NaN).
+            `Orbit.meanAnomalyAtEpoch`. Null when KSP's value is undefined (NaN).
         epoch:
           type: number
           x-sitrep-unit: ut
@@ -18080,6 +18159,30 @@ components:
 
             kN is the unit KSP's editor shows for it, although the value acts as a
             torque on the rotor's joint.
+    ServoSetAngleArgs:
+      type: object
+      description: |-
+        Args for `robotics.servo.setAngle`: the absolute angle a hinge or rotation
+        servo is to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
+        `ServoSetAngleArgs.partId` is the same `flightID` string `parts.robotics`
+        publishes on each servo entry, so a widget sends back the exact id it
+        displays. A piston has no angle and a rotor no target: a `setAngle` aimed at
+        either fails with `CommandResult.errorCode`
+        `CommandErrorCode.CapabilityMismatch`.
+      required:
+        - partId
+        - degrees
+      properties:
+        partId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The part's `flightID.ToString()`: the id the read side stamps on each
+            `parts.robotics` entry.
+        degrees:
+          type: number
+          x-sitrep-unit: °
+          description: The absolute target angle.
     ServoSetEnabledArgs:
       type: object
       description: |-
@@ -18107,19 +18210,17 @@ components:
             `false` disengages it; for `setLock`, `true` locks the part and `false`
             unlocks it. `setMotor` on a servo with no motor fails with
             `CommandErrorCode.CapabilityMismatch`.
-    ServoSetTargetArgs:
+    ServoSetExtensionArgs:
       type: object
       description: |-
-        Args for `robotics.servo.setTarget`: the absolute angle (hinge) or extension
-        (piston) to drive to, keyed by the part's `ServoSetTargetArgs.partId`.
-        `ServoSetTargetArgs.partId` is the same `flightID` string `parts.robotics`
-        publishes on each servo entry, so a widget sends back the exact id it
-        displays. A rotor has no target (it spins continuously); a `setTarget` aimed
-        at one fails with `CommandResult.errorCode`
-        `CommandErrorCode.ModeUnavailable`.
+        Args for `robotics.servo.setExtension`: the absolute extension a piston is
+        to drive to, keyed by the part's `ServoSetExtensionArgs.partId`. A hinge or
+        rotation servo has no extension and a rotor no target: a `setExtension`
+        aimed at one fails with `CommandResult.errorCode`
+        `CommandErrorCode.CapabilityMismatch`.
       required:
         - partId
-        - value
+        - metres
       properties:
         partId:
           type: string
@@ -18127,12 +18228,10 @@ components:
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
-        value:
+        metres:
           type: number
-          x-sitrep-unit: n/a
-          description: |-
-            Absolute target. Its unit follows the part's kind: degrees for a hinge or
-            rotation servo, metres for a piston.
+          x-sitrep-unit: m
+          description: The absolute target extension.
     SetActionGroupArgs:
       type: object
       description: |-
@@ -18678,6 +18777,34 @@ components:
           description: |-
             The value in force when the settings file holds none for this row, in the
             same spelling as `SettingsRowState.value`.
+    SignalQuantity:
+      type: integer
+      description: |-
+        Which quantity a signal strength from 0 to 1 is. Two backends that both
+        report "0 to 1" are not saying the same thing, and a figure is only
+        comparable with another of the same quantity.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Unknown
+          description: |-
+            Nothing says which. A strength worked out for a path before any reading of
+            the craft's radio, or a read that failed.
+        - const: 1
+          title: RangeFraction
+          description: |-
+            How far inside its range the link is, 0 at the edge of range and 1 at no
+            distance: stock CommNet's.
+        - const: 2
+          title: DataRateHeadroom
+          description: |-
+            How much headroom the link has over its data rate, 0 where the lowest rate
+            fails and 1 at the top of the ladder: RealAntennas'.
+        - const: 3
+          title: NoModel
+          description: |-
+            A stand-in: the save models no comms network, so there is no link to grade
+            and the figure is 1.
     Situation:
       type: integer
       description: |-
@@ -20073,6 +20200,7 @@ components:
       required:
         - connected
         - signalStrength
+        - signalQuantity
         - controlState
         - meta
       properties:
@@ -20088,6 +20216,13 @@ components:
           description: |-
             The connection's signal strength, from `vessel.connection.SignalStrength`: a
             ratio from `0` (none) to `1` (full).
+        signalQuantity:
+          description: |-
+            Which quantity `VesselComms.signalStrength` is, as the elected comms backend
+            declares it: `SignalQuantity.Unknown` while no backend has answered.
+          allOf:
+            - $ref: "#/components/schemas/SignalQuantity"
+              x-sitrep-unit: enum
         controlState:
           description: |-
             What is controlling the vessel and how much control it has, from

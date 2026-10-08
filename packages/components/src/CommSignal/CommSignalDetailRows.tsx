@@ -7,14 +7,25 @@ export function CommSignalDetailRows({
   control,
   delay,
   noSignal,
+  quantity,
 }: {
   control: ControlDescription;
   delay: Parameters<typeof Countdown>[0]["value"];
   /** Withholds the control row, which is read off the held `vessel.comms`. */
   noSignal?: boolean;
+  /** What the strength is a fraction of; the row is left out where nothing says. */
+  quantity?: string | null;
 }) {
   return (
     <>
+      {quantity != null && !noSignal && (
+        <>
+          <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+            Strength
+          </Text>
+          <Text size="sm">{quantity}</Text>
+        </>
+      )}
       <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
         Control
       </Text>

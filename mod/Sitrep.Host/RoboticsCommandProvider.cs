@@ -32,7 +32,8 @@ namespace Sitrep.Host
     {
         // ---- robotics.* -- delayed:true (actuation of parts ON the craft
         // rides light-time, same class as vessel.control.*) ----
-        public const string ServoSetTargetCommand = "robotics.servo.setTarget";
+        public const string ServoSetAngleCommand = "robotics.servo.setAngle";
+        public const string ServoSetExtensionCommand = "robotics.servo.setExtension";
         public const string ServoSetMotorCommand = "robotics.servo.setMotor";
         public const string ServoSetLockCommand = "robotics.servo.setLock";
         public const string RotorSetRpmLimitCommand = "robotics.rotor.setRpmLimit";
@@ -48,13 +49,22 @@ namespace Sitrep.Host
         /// <summary>Brake percentage upper bound (<c>brakePercentage</c> ranges 0–200 in the stock UI).</summary>
         private const double BrakePercentMax = 200.0;
 
-        public static CommandResult HandleServoSetTarget(IRoboticsActuator actuator, ServoSetTargetArgs args)
+        public static CommandResult HandleServoSetAngle(IRoboticsActuator actuator, ServoSetAngleArgs args)
         {
             if (string.IsNullOrEmpty(args.PartId))
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            return actuator.SetServoTarget(args.PartId, args.Value);
+            return actuator.SetServoAngle(args.PartId, args.Degrees);
+        }
+
+        public static CommandResult HandleServoSetExtension(IRoboticsActuator actuator, ServoSetExtensionArgs args)
+        {
+            if (string.IsNullOrEmpty(args.PartId))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+            return actuator.SetServoExtension(args.PartId, args.Metres);
         }
 
         public static CommandResult HandleServoSetMotor(IRoboticsActuator actuator, ServoSetEnabledArgs args)

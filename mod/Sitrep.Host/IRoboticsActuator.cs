@@ -30,7 +30,9 @@ namespace Sitrep.Host
     /// </summary>
     public interface IRoboticsActuator
     {
-        CommandResult SetServoTarget(string partId, double value);
+        CommandResult SetServoAngle(string partId, double degrees);
+
+        CommandResult SetServoExtension(string partId, double metres);
 
         CommandResult SetServoMotor(string partId, bool engaged);
 

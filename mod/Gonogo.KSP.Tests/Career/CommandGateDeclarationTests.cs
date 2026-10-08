@@ -203,7 +203,7 @@ namespace Gonogo.KSP.Tests.Career
         {
             var robotics = GateDeclarations.All().Where(e => e.Key.StartsWith("robotics.")).ToList();
 
-            Assert.Equal(9, robotics.Count);
+            Assert.Equal(10, robotics.Count);
             foreach (var entry in robotics)
             {
                 var requirement = Assert.Single(entry.Value);

@@ -45,6 +45,15 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void AChangeOfQuantityIsSaidAgainEvenWhereTheFigureIsTheSame()
+        {
+            var range = new ContactRadio("vessel:a", true, 0.5, new CommsDegrade { ModelId = "m" }, null, SignalQuantity.RangeFraction);
+            var headroom = new ContactRadio("vessel:a", true, 0.5, new CommsDegrade { ModelId = "m" }, null, SignalQuantity.DataRateHeadroom);
+
+            Assert.False(range.SaysTheSameAs(headroom));
+        }
+
+        [Fact]
         public void TheFirstReadingIsAlwaysSaid()
         {
             Assert.False(Radio(0.5, 0.2).SaysTheSameAs(null));

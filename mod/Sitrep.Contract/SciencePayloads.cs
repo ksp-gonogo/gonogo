@@ -52,14 +52,14 @@ public static class ScienceValueModels
 /// Every field is nullable, and is <c>null</c> whenever the raw value is
 /// absent or non-finite.</para>
 /// <internal>
-/// Typing-only mirror of what
-/// <c>Sitrep.Host.ScienceViewProvider.BuildExperimentEntry</c> already emits
-/// (same names, same camelCase wire keys via
-/// <c>RtConfig.CamelCaseForProperties</c>, same units). It is never
-/// serialized itself: the wire is written by <c>JsonWriter</c> walking the
-/// provider's dictionary. Every field is nullable because each is read
-/// through <c>SnapshotDict.Get*</c>, which yields <c>null</c> (not a
-/// sentinel) whenever the raw value is absent or non-finite.
+/// What <c>Sitrep.Host.ScienceViewProvider.BuildExperimentEntry</c> returns and
+/// <c>JsonWriter</c> writes: the camelCase wire keys of
+/// <c>RtConfig.CamelCaseForProperties</c>, in the order the wire has always
+/// carried them, with the same units. Every field is nullable because each is
+/// read through <c>SnapshotDict.Get*</c>, which yields <c>null</c> (not a
+/// sentinel) whenever the raw value is absent or non-finite, and the wire text
+/// is held by <c>Sitrep.Host.Tests.ScienceWireGoldenTests</c> (the "no wire
+/// change, all fields nullable" rationale the sibling types point to).
 /// </internal>
 /// </summary>
 /// <category>Science</category>
@@ -232,8 +232,7 @@ public class ExperimentEntry
 /// module. Every field is nullable, and is <c>null</c> whenever the raw value
 /// is absent.</para>
 /// <internal>
-/// Typing-only mirror of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry</c>: see
+/// What <c>Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry</c> returns: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields
 /// nullable" rationale.
 /// </internal>
@@ -321,8 +320,7 @@ public class InstrumentEntry
 /// active vessel or it carries no lab. Every field is nullable, and is
 /// <c>null</c> whenever the raw value is absent or non-finite.
 /// <internal>
-/// Typing-only mirror of <c>Sitrep.Host.ScienceViewProvider.BuildLabEntry</c>:
-/// see <see cref="ExperimentEntry"/> for the "no wire change, all fields
+/// What <c>Sitrep.Host.ScienceViewProvider.BuildLabEntry</c> returns: see <see cref="ExperimentEntry"/> for the "no wire change, all fields
 /// nullable" rationale.
 /// </internal>
 /// </summary>
@@ -636,8 +634,7 @@ public enum DeployedPowerState
 /// <para>Every field is nullable, and is <c>null</c> whenever the raw value is
 /// absent.</para>
 /// <internal>
-/// Typing-only mirror of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildSensorEntry</c>: see
+/// What <c>Sitrep.Host.ScienceViewProvider.BuildSensorEntry</c> returns: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.
 /// </internal>
@@ -699,8 +696,7 @@ public class SensorEntry
 /// not from the vessel's current position, so a subject collected earlier in
 /// the flight keeps its own biome and situation.</para>
 /// <internal>
-/// Typing-only mirror of
-/// <c>Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdownEntry</c>: see
+/// What <c>Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdownEntry</c> returns: see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.
 /// </internal>

@@ -54,11 +54,13 @@ namespace Sitrep.Host.Comms
             bool connected,
             double strength,
             CommsDegrade degrade,
-            IReadOnlyList<RadioHop>? hops = null)
+            IReadOnlyList<RadioHop>? hops = null,
+            SignalQuantity quantity = SignalQuantity.Unknown)
         {
             CraftId = craftId;
             Connected = connected;
             Strength = strength;
+            Quantity = quantity;
             Degrade = degrade;
             Hops = hops ?? NoHops;
         }
@@ -70,6 +72,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The link's strength, as <see cref="CommsSignal.Strength"/> carries it.</summary>
         public double Strength { get; }
+
+        /// <summary>Which quantity <see cref="Strength"/> is, as the backend that took the reading declares it.</summary>
+        public SignalQuantity Quantity { get; }
 
         public CommsDegrade Degrade { get; }
 
@@ -86,6 +91,7 @@ namespace Sitrep.Host.Comms
                 || other.CraftId != CraftId
                 || other.Connected != Connected
                 || Math.Abs(other.Strength - Strength) >= Quantum
+                || other.Quantity != Quantity
                 || other.Degrade.ModelId != Degrade.ModelId
                 || other.Degrade.Level.HasValue != Degrade.Level.HasValue
                 || (Degrade.Level.HasValue && Math.Abs(other.Degrade.Level!.Value - Degrade.Level.Value) >= Quantum)

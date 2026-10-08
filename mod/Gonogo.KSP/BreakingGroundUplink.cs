@@ -126,7 +126,8 @@ namespace Gonogo.KSP
             // args types, see SitrepCommandAttribute.Delay.
             Commands = new List<CommandDeclaration>
             {
-                Command(RoboticsCommandProvider.ServoSetTargetCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.ServoSetAngleCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.ServoSetExtensionCommand, BreakingGroundViewProvider.RoboticsTopic),
                 Command(RoboticsCommandProvider.ServoSetMotorCommand, BreakingGroundViewProvider.RoboticsTopic),
                 Command(RoboticsCommandProvider.ServoSetLockCommand, BreakingGroundViewProvider.RoboticsTopic),
                 Command(RoboticsCommandProvider.RotorSetRpmLimitCommand, BreakingGroundViewProvider.RoboticsTopic),
@@ -149,7 +150,8 @@ namespace Gonogo.KSP
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsAvailableTopic, BreakingGroundViewProvider.BuildRoboticsAvailable);
             host.AddChannelSource(BreakingGroundViewProvider.DeployedTopic, BreakingGroundViewProvider.BuildDeployed);
 
-            host.AddCommandHandler<ServoSetTargetArgs, CommandResult>(RoboticsCommandProvider.ServoSetTargetCommand, args => RoboticsCommandProvider.HandleServoSetTarget(_actuator, args));
+            host.AddCommandHandler<ServoSetAngleArgs, CommandResult>(RoboticsCommandProvider.ServoSetAngleCommand, args => RoboticsCommandProvider.HandleServoSetAngle(_actuator, args));
+            host.AddCommandHandler<ServoSetExtensionArgs, CommandResult>(RoboticsCommandProvider.ServoSetExtensionCommand, args => RoboticsCommandProvider.HandleServoSetExtension(_actuator, args));
             host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.ServoSetMotorCommand, args => RoboticsCommandProvider.HandleServoSetMotor(_actuator, args));
             host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.ServoSetLockCommand, args => RoboticsCommandProvider.HandleServoSetLock(_actuator, args));
             host.AddCommandHandler<RotorSetRpmLimitArgs, CommandResult>(RoboticsCommandProvider.RotorSetRpmLimitCommand, args => RoboticsCommandProvider.HandleRotorSetRpmLimit(_actuator, args));

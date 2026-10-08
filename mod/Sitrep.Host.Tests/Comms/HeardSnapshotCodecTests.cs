@@ -81,7 +81,8 @@ namespace Sitrep.Host.Tests.Comms
                 {
                     new RadioHop("a", "relay", true, new Dictionary<string, object?> { ["ra"] = new Dictionary<string, object?> { ["band"] = "X", ["rate"] = 1200.0 } }),
                     new RadioHop("relay", "KSC", false),
-                })
+                },
+                SignalQuantity.DataRateHeadroom)
             {
                 CapturedUt = 55.0,
             };
@@ -97,6 +98,7 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(55.0, a.CapturedUt);
             Assert.True(a.SaysTheSameAs(reading));
             Assert.Equal("Model", a.Degrade.ModelName);
+            Assert.Equal(SignalQuantity.DataRateHeadroom, a.Quantity);
             Assert.True(a.Hops[0].ToIsCraft);
             Assert.False(a.Hops[1].ToIsCraft);
             Assert.Null(a.Hops[1].Extensions);

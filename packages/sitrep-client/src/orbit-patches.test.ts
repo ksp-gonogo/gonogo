@@ -1,10 +1,11 @@
 import { type OrbitPatch, TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
+  canPropagatePatch,
   findImpactPoint,
   geoFromInertial,
   groundTrackSamples,
-  isPatchElliptical,
+  type PropagablePatch,
   patchArc,
   patchHolds,
   patchStateAt,
@@ -38,7 +39,9 @@ function wirePatch(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
 }
 
 /** A circular equatorial orbit of 1 Mm and a 100 s period around Kerbin, open for a million seconds. */
-function circular(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
+function circular(
+  overrides: Partial<WireOf<OrbitPatch>> = {},
+): OrbitPatch & PropagablePatch {
   return wirePatch({
     sma: 1_000_000,
     ecc: 0,
@@ -51,8 +54,23 @@ function circular(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
     startUt: 0,
     endUt: 1_000_000,
     ...overrides,
-  });
+  }) as OrbitPatch & PropagablePatch;
 }
+
+describe("a patch with an undefined element", () => {
+  it.each([
+    "lan",
+    "argPe",
+    "meanAnomalyAtEpoch",
+  ] as const)("is not propagated when %s is null", (element) => {
+    const patch = wirePatch({ [element]: null });
+    expect(canPropagatePatch(patch)).toBe(false);
+    const ref = { ut: 0, lat: 0, lon: 0 };
+    expect([
+      ...groundTrackSamples([patch], "Kerbin", 600_000, 21_600, ref, 100, 10),
+    ]).toEqual([]);
+  });
+});
 
 describe("patchStateAt", () => {
   it("places the vessel at periapsis (+x) at epoch", () => {
@@ -105,11 +123,11 @@ describe("geoFromInertial", () => {
   });
 });
 
-describe("isPatchElliptical", () => {
+describe("canPropagatePatch", () => {
   it("propagates a closed orbit and refuses an open one", () => {
-    expect(isPatchElliptical(circular())).toBe(true);
+    expect(canPropagatePatch(circular())).toBe(true);
     expect(
-      isPatchElliptical(
+      canPropagatePatch(
         circular({ ecc: 1.5, period: Number.POSITIVE_INFINITY }),
       ),
     ).toBe(false);

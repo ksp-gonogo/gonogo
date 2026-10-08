@@ -86,7 +86,7 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            return new CommsLinkState(conn.IsConnected, ControlLevelGrade.Of(conn.GetControlLevel()), conn.SignalStrength);
+            return new CommsLinkState(conn.IsConnected, ControlLevelGrade.Of(conn.GetControlLevel()), conn.SignalStrength, SignalQuantity.RangeFraction);
         }
 
         /// <summary>

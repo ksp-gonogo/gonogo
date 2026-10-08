@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using Sitrep.Contract;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Xunit;
 
@@ -16,8 +18,8 @@ namespace Sitrep.Host.Tests
     /// for field name, camelCase wire key for camelCase wire key, type for
     /// type: the EXACT serialized shape <see cref="ScienceViewProvider"/>
     /// already emits. This is a typing change only: the wire is written by
-    /// <c>JsonWriter</c> walking the provider's dictionary, not by serializing
-    /// these POCOs, so if the two shapes ever drift (a field renamed, removed,
+    /// <c>JsonWriter</c> walking the typed entries the provider returns, so if
+    /// the wire and the type ever drift (a field renamed, removed,
     /// added, or retyped on either side) this test fails, the guarantee that
     /// the contract type a widget codes against is byte-identical to the wire.
     ///
@@ -182,17 +184,35 @@ namespace Sitrep.Host.Tests
         };
 
         /// <summary>
-        /// The core round-trip assertion: the single emitted dictionary entry's
-        /// key set must equal the entry type's camelCase'd property-name set
-        /// (no extra, no missing), and every emitted non-null value's runtime
-        /// type must match the corresponding property's (Nullable-unwrapped)
-        /// type. Guards against a field added/removed/renamed/re-cased/retyped
-        /// on EITHER the provider or the contract type.
+        /// The core round-trip assertion: the single entry the real wire codec
+        /// writes must carry exactly the entry type's camelCase'd property-name
+        /// set (no extra, no missing), and every non-null value's JSON kind must
+        /// match the corresponding property's (Nullable-unwrapped) type. Guards
+        /// against a field added, removed, renamed, re-cased or retyped on
+        /// EITHER the provider, the writer or the contract type.
         /// </summary>
         private static void AssertTypeMirrorsEntry(Type entryType, object? payload)
         {
-            var list = Assert.IsType<List<object?>>(payload);
-            var emitted = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
+            var msg = new StreamData<object?>
+            {
+                Type = "stream-data",
+                Topic = "science",
+                Payload = payload,
+                Meta = new Meta
+                {
+                    Source = "science",
+                    ValidAt = 0,
+                    Seq = 1,
+                    DeliveredAt = 0,
+                    Vantage = "v",
+                    Quality = Quality.OnRails,
+                    Active = true,
+                    Staleness = Staleness.Fresh,
+                    TimelineEpoch = 0,
+                },
+            };
+            using var doc = JsonDocument.Parse(EnvelopeCodec.WriteStreamData(msg));
+            var emitted = Assert.Single(doc.RootElement.GetProperty("payload").EnumerateArray());
 
             // The provider extension bag is the one member that must NOT mirror:
             // it is omitted from the wire entirely unless a provider filled it
@@ -208,11 +228,11 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(
                 props.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray(),
-                emitted.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
+                emitted.EnumerateObject().Select(f => f.Name).OrderBy(k => k, StringComparer.Ordinal).ToArray());
 
-            foreach (var (key, value) in emitted)
+            foreach (var field in emitted.EnumerateObject())
             {
-                var prop = props[key];
+                var prop = props[field.Name];
                 var expected = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
                 // Every field is optional on the wire (SnapshotDict.Get* yields
@@ -225,12 +245,19 @@ namespace Sitrep.Host.Tests
                         $"{entryType.Name}.{prop.Name} must be nullable to mirror SnapshotDict's null-on-absence rule.");
                 }
 
-                if (value is not null)
+                if (field.Value.ValueKind == JsonValueKind.Null)
                 {
-                    Assert.True(
-                        expected.IsInstanceOfType(value),
-                        $"{entryType.Name}.{prop.Name} is {expected.Name} but the provider emitted {value.GetType().Name} for \"{key}\".");
+                    continue;
                 }
+
+                var kind = expected == typeof(string)
+                    ? new[] { JsonValueKind.String }
+                    : expected == typeof(bool)
+                        ? new[] { JsonValueKind.True, JsonValueKind.False }
+                        : new[] { JsonValueKind.Number };
+                Assert.True(
+                    kind.Contains(field.Value.ValueKind),
+                    $"{entryType.Name}.{prop.Name} is {expected.Name} but the wire carried {field.Value.ValueKind} for \"{field.Name}\".");
             }
         }
 

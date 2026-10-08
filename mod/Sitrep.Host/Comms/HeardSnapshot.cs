@@ -248,6 +248,7 @@ namespace Sitrep.Host.Comms
                 ["capturedUt"] = radio.CapturedUt,
                 ["connected"] = radio.Connected,
                 ["strength"] = radio.Strength,
+                ["quantity"] = (double)(int)radio.Quantity,
                 ["gradedBy"] = radio.Degrade.ModelId,
                 ["gradedByName"] = radio.Degrade.ModelName,
                 ["grade"] = radio.Degrade.Level,
@@ -278,7 +279,8 @@ namespace Sitrep.Host.Comms
                 Get(r, "connected") is bool connected && connected,
                 (double)r["strength"]!,
                 degrade,
-                hops)
+                hops,
+                Get(r, "quantity") is double quantity ? (SignalQuantity)(int)quantity : SignalQuantity.Unknown)
             {
                 CapturedUt = (double)r["capturedUt"]!,
             };

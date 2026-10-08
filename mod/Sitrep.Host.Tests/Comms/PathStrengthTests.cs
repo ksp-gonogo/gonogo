@@ -117,12 +117,28 @@ namespace Sitrep.Host.Tests.Comms
             Hops = hops.Select(h => new CommsHop { From = h.From, To = h.To }).ToList(),
         };
 
-        private static ContactRadio Heard(double strength, bool connected, params (string From, string To)[] hops) => new ContactRadio(
+        private static ContactRadio Heard(double strength, bool connected, params (string From, string To)[] hops) =>
+            HeardAs(SignalQuantity.RangeFraction, strength, connected, hops);
+
+        private static ContactRadio HeardAs(SignalQuantity quantity, double strength, bool connected, params (string From, string To)[] hops) => new ContactRadio(
             "vessel:probe",
             connected,
             strength,
             new CommsDegrade { ModelId = "m", ModelName = "M", Level = connected ? 1.0 - strength : 1.0 },
-            hops.Select(h => new RadioHop(h.From, h.To, false)).ToArray());
+            hops.Select(h => new RadioHop(h.From, h.To, false)).ToArray(),
+            quantity);
+
+        [Fact]
+        public void TheCentreIsToldWhichQuantityTheStrengthIsAndAWorkedOutOneTakesTheRadiosQuantity()
+        {
+            var measured = CentreSignal.For(Believed(("probe", "KSC")), 0.6, HeardAs(SignalQuantity.DataRateHeadroom, 0.9, true, ("probe", "KSC")));
+            var modelled = CentreSignal.For(Believed(("probe", "Crater Rim")), 0.6, HeardAs(SignalQuantity.DataRateHeadroom, 0.9, true, ("probe", "KSC")));
+            var unheard = CentreSignal.For(Believed(("probe", "KSC")), 0.6, null);
+
+            Assert.Equal(SignalQuantity.DataRateHeadroom, measured!.Value.Quantity);
+            Assert.Equal(SignalQuantity.DataRateHeadroom, modelled!.Value.Quantity);
+            Assert.Equal(SignalQuantity.Unknown, unheard!.Value.Quantity);
+        }
 
         [Fact]
         public void WhereTheRadioReportedOnTheVeryPathTheCentreBelievesInTheCentreIsToldTheMeasuredStrength()

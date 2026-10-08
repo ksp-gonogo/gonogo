@@ -1409,6 +1409,26 @@ namespace Sitrep.Host.Tests
             Assert.Equal(ControlState.Full, comms.ControlState);
         }
 
+        [Theory]
+        [InlineData("RangeFraction", SignalQuantity.RangeFraction)]
+        [InlineData("DataRateHeadroom", SignalQuantity.DataRateHeadroom)]
+        [InlineData(null, SignalQuantity.Unknown)]
+        [InlineData("nothing", SignalQuantity.Unknown)]
+        public void BuildCommsSaysWhichQuantityTheStrengthIsAndUnknownWhereNothingSaid(string? raw, SignalQuantity expected)
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                comms: new Dictionary<string, object?>
+                {
+                    ["connected"] = true,
+                    ["signalStrength"] = 0.85,
+                    ["signalQuantity"] = raw,
+                    ["controlState"] = "Full",
+                });
+
+            Assert.Equal(expected, VesselViewProvider.BuildComms(snapshot)!.SignalQuantity);
+        }
+
         [Fact]
         public void BuildCommsReturnsNullWhenVesselHasNoConnectionNeverAFakeZeroReading()
         {
@@ -1625,15 +1645,16 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A patch missing an element it is propagated from is not sent, rather
-        /// than sent with 0 standing in for it: every orbit has a node, a
-        /// periapsis and a mean anomaly, so an absent one is a gap in the reading.
+        /// An element KSP left undefined is sent as null and the patch is kept,
+        /// rather than the patch being dropped from the chain (which shifts every
+        /// index after it) or 0 standing in for the element. A reader that
+        /// propagates the patch declines to when it finds the null.
         /// </summary>
         [Theory]
         [InlineData("lan")]
         [InlineData("argPe")]
         [InlineData("meanAnomalyAtEpoch")]
-        public void BuildManeuverDropsAPatchMissingAnElementRatherThanZeroFillingIt(string missing)
+        public void BuildManeuverKeepsAPatchWithAnUndefinedElementAndSendsItAsNull(string missing)
         {
             var raw = PatchRaw(mu: 3.5316e12, bodyIndex: 1, encounterIndex: 2);
             raw.Remove(missing);
@@ -1648,7 +1669,14 @@ namespace Sitrep.Host.Tests
                     },
                 });
 
-            Assert.Empty(Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes).Patches);
+            var patch = Assert.Single(Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes).Patches);
+            Assert.Equal(800_000.0, patch.Sma);
+            Assert.Null(missing switch
+            {
+                "lan" => patch.Lan,
+                "argPe" => patch.ArgPe,
+                _ => patch.MeanAnomalyAtEpoch,
+            });
         }
 
         /// <summary>

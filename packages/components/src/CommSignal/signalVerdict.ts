@@ -1,3 +1,4 @@
+import { SignalQuantity } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { Tone } from "./tones";
 
@@ -99,4 +100,24 @@ export function connectionAnnouncement(connected: boolean | undefined): string {
   if (connected === false) return "Signal lost";
   if (connected === true) return "Signal connected";
   return "";
+}
+
+/**
+ * What the strength figure is a fraction of, in the words the detail grid draws
+ * beside it, or null where nothing says: two backends both report 0 to 1, and a
+ * figure read as the wrong one misleads.
+ */
+export function describeQuantity(
+  quantity: SignalQuantity | undefined,
+): string | null {
+  switch (quantity) {
+    case SignalQuantity.RangeFraction:
+      return "Fraction of range";
+    case SignalQuantity.DataRateHeadroom:
+      return "Fraction of data-rate headroom";
+    case SignalQuantity.NoModel:
+      return "Not modelled";
+    default:
+      return null;
+  }
 }

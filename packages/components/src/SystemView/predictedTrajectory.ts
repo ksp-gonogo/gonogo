@@ -6,7 +6,7 @@
  * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, whereas this walks the patch chain the game's solver already published (`orbitPatches`) and samples each conic into a polyline. The windows and the SOI transitions come off the wire, so there is no observed value being carried and no uncertainty to label; the output is drawing geometry that sits on no channel, and `registerReckoner` takes a `TopicId`.
  */
 import {
-  isPatchElliptical,
+  canPropagatePatch,
   type PatchSpan,
   patchArc,
   patchHolds,
@@ -147,7 +147,7 @@ export function predictTrajectory({
     const p = patches[i];
     if (
       sameBody(p.referenceBody, parentName) &&
-      isPatchElliptical(p) &&
+      canPropagatePatch(p) &&
       patchHolds(p, ut)
     ) {
       currentIndex = i;
@@ -157,7 +157,7 @@ export function predictTrajectory({
 
   for (let i = 0; i < patches.length; i++) {
     const patch = patches[i];
-    if (!isPatchElliptical(patch)) continue;
+    if (!canPropagatePatch(patch)) continue;
 
     const offset = frameOffset(patch.referenceBody, parentName, childOffsets);
     if (offset === null) continue;

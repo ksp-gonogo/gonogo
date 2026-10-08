@@ -70,6 +70,13 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void SignalSerializesTheQuantityItIs()
+        {
+            var el = Write(new CommsSignal { Strength = 0.75, Quantity = SignalQuantity.DataRateHeadroom });
+            Assert.Equal((int)SignalQuantity.DataRateHeadroom, el.GetProperty("quantity").GetInt32());
+        }
+
+        [Fact]
         public void SignalWithNoMeasuredPathSerializesItAsJsonNull()
         {
             var el = Write(new CommsSignal { Strength = 0.75 });

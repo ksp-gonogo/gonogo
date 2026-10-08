@@ -21,6 +21,20 @@ export type PatchConic = Pick<
   | "period"
 >;
 
+/**
+ * A patch with every element a propagation reads present. The wire sends
+ * `lan`, `argPe` and `meanAnomalyAtEpoch` as null where KSP left them
+ * undefined, and such a patch cannot be propagated.
+ */
+export type PropagablePatch = Omit<
+  PatchConic,
+  "lan" | "argPe" | "meanAnomalyAtEpoch"
+> & {
+  [Element in "lan" | "argPe" | "meanAnomalyAtEpoch"]: NonNullable<
+    PatchConic[Element]
+  >;
+};
+
 /** A patch's conic with the window it holds for and the body it is around. */
 export type PatchSpan = PatchConic &
   Pick<OrbitPatch, "startUt" | "endUt" | "referenceBody">;
@@ -88,7 +102,10 @@ const FULL_TURN = value("rad", 2 * Math.PI);
  * patch's window; nothing is clamped, so picking the patch is the caller's.
  * Mean motion comes from the patch's own period.
  */
-export function patchStateAt(patch: PatchConic, ut: number): InertialState {
+export function patchStateAt(
+  patch: PropagablePatch,
+  ut: number,
+): InertialState {
   const { trueAnomaly, radius } = solveConic(
     patch,
     FULL_TURN.dividedBy(patch.period),
@@ -117,9 +134,18 @@ export function geoFromInertial(
   return { lat, lonInertial, alt: state.radius - bodyRadius };
 }
 
-/** Whether the elliptical solve can propagate a patch. Hyperbolic and parabolic patches it cannot. */
-export function isPatchElliptical(patch: PatchConic): boolean {
+/**
+ * Whether the elliptical solve can propagate a patch. Hyperbolic and parabolic
+ * patches it cannot, and neither can one whose `lan`, `argPe` or
+ * `meanAnomalyAtEpoch` is null.
+ */
+export function canPropagatePatch<Patch extends PatchConic>(
+  patch: Patch,
+): patch is Patch & PropagablePatch {
   return (
+    patch.lan != null &&
+    patch.argPe != null &&
+    patch.meanAnomalyAtEpoch != null &&
     patch.ecc.lessThan(1) &&
     patch.period.isFinite() &&
     patch.period.isPositive()
@@ -137,7 +163,7 @@ export function patchHolds(patch: PatchSpan, ut: number): boolean {
  * earlier than `notBeforeUt`. Empty when nothing of the window is left.
  */
 export function patchArc(
-  patch: PatchSpan,
+  patch: PatchSpan & PropagablePatch,
   samples: number,
   notBeforeUt?: number,
 ): { ut: number; state: InertialState }[] {
@@ -180,7 +206,8 @@ export function* groundTrackSamples(
 
   // Calibration needs a patch around the named body, or the inertial longitude is in another frame.
   const calCandidates = calibrationPatches.filter(
-    (p) => p.referenceBody === bodyId && isPatchElliptical(p),
+    (p): p is PatchSpan & PropagablePatch =>
+      p.referenceBody === bodyId && canPropagatePatch(p),
   );
   const refPatch =
     calCandidates.find((p) => patchHolds(p, ref.ut)) ?? calCandidates[0];
@@ -195,7 +222,7 @@ export function* groundTrackSamples(
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex];
     if (patch.referenceBody !== bodyId) return;
-    if (!isPatchElliptical(patch)) return;
+    if (!canPropagatePatch(patch)) return;
     const { start, end } = windowOf(patch);
     if (end < ref.ut) continue;
     if (start > endUT) return;

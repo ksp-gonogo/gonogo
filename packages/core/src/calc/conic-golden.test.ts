@@ -1,4 +1,8 @@
-import { type PatchConic, patchStateAt } from "@ksp-gonogo/sitrep-client";
+import {
+  type PatchConic,
+  type PropagablePatch,
+  patchStateAt,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import GOLDEN from "./__fixtures__/conic-golden.json";
@@ -62,7 +66,7 @@ function expectGolden(actual: unknown, golden: unknown, path = "$"): void {
 
 const OFFSETS = [-90_000, -1234.5, 0, 17.25, 2000, 33_333, 5_000_000];
 
-function conicOf(shape: Shape): PatchConic {
+function conicOf(shape: Shape): PatchConic & PropagablePatch {
   return {
     sma: value("m", shape.sma),
     ecc: value("1", shape.ecc),

@@ -28,6 +28,7 @@
         "value": {
           "connected": true,
           "signalStrength": 0.23,
+          "signalQuantity": 1,
           "controlState": 3
         }
       },
@@ -35,6 +36,7 @@
         "channel": "comms.signal",
         "value": {
           "strength": 0.23,
+          "quantity": 1,
           "modelled": false,
           "otherPath": true,
           "measuredPath": {

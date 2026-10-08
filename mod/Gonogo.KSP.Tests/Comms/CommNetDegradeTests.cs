@@ -41,7 +41,7 @@ namespace Gonogo.KSP.Tests.Comms
         public void ADisconnectedLinkRatesUnusableWhateverTheStrengthFieldSays()
         {
             var model = CommNetDegrade.From(
-                new CommsLinkState(connected: false, CommsControlGrade.None, signalStrength: 0.9));
+                new CommsLinkState(connected: false, CommsControlGrade.None, signalStrength: 0.9, signalQuantity: SignalQuantity.RangeFraction));
 
             Assert.Equal(1.0, model.Level);
             Assert.Equal(CommNetDegrade.ModelId, model.ModelId);
@@ -59,7 +59,7 @@ namespace Gonogo.KSP.Tests.Comms
         public void AConnectedLinkGradesOnTheRangeFractionInverted(double strength, double expected)
         {
             var model = CommNetDegrade.From(
-                new CommsLinkState(connected: true, CommsControlGrade.Full, strength));
+                new CommsLinkState(connected: true, CommsControlGrade.Full, strength, SignalQuantity.RangeFraction));
 
             Assert.Equal(expected, model.Level!.Value, precision: 10);
             Assert.Equal(CommNetDegrade.ModelId, model.ModelId);
@@ -80,7 +80,7 @@ namespace Gonogo.KSP.Tests.Comms
         public void AnOutOfRangeStrengthNeverEscapesAsAnOutOfRangeRating(double strength)
         {
             var level = CommNetDegrade.From(
-                new CommsLinkState(connected: true, CommsControlGrade.Full, strength)).Level;
+                new CommsLinkState(connected: true, CommsControlGrade.Full, strength, SignalQuantity.RangeFraction)).Level;
 
             Assert.True(level == null || (level.Value >= 0.0 && level.Value <= 1.0));
         }

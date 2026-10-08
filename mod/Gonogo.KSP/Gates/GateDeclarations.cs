@@ -207,7 +207,8 @@ namespace Gonogo.KSP.Gates
             }
             foreach (var command in new[]
             {
-                RoboticsCommandProvider.ServoSetTargetCommand,
+                RoboticsCommandProvider.ServoSetAngleCommand,
+                RoboticsCommandProvider.ServoSetExtensionCommand,
                 RoboticsCommandProvider.ServoSetMotorCommand,
                 RoboticsCommandProvider.ServoSetLockCommand,
             })

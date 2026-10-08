@@ -50,6 +50,7 @@
         "value": {
           "connected": true,
           "signalStrength": 0.87,
+          "signalQuantity": 1,
           "controlState": 4
         }
       },

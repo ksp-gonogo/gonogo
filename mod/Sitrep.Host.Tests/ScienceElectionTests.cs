@@ -25,11 +25,11 @@ namespace Sitrep.Host.Tests
         {
             public FakeBackend(string id) => ProviderId = id;
             public string ProviderId { get; }
-            public object? Experiments(KspSnapshot? snapshot) => new List<object?>();
-            public object? Instruments(KspSnapshot? snapshot) => null;
-            public object? Sensors(KspSnapshot? snapshot) => null;
-            public object? Lab(KspSnapshot? snapshot) => null;
-            public object? ExperimentBreakdown(KspSnapshot? snapshot) => null;
+            public IReadOnlyList<ExperimentEntry>? Experiments(KspSnapshot? snapshot) => new List<ExperimentEntry>();
+            public IReadOnlyList<InstrumentEntry>? Instruments(KspSnapshot? snapshot) => null;
+            public IReadOnlyList<SensorEntry>? Sensors(KspSnapshot? snapshot) => null;
+            public IReadOnlyList<LabEntry>? Lab(KspSnapshot? snapshot) => null;
+            public IReadOnlyList<ExperimentBreakdownEntry>? ExperimentBreakdown(KspSnapshot? snapshot) => null;
             public CommandResult DeployExperiment(ExperimentActionArgs args) => CommandResult.Ok();
             public CommandResult TransmitExperiment(ExperimentActionArgs args) => CommandResult.Ok();
         }

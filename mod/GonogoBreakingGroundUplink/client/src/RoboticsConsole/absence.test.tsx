@@ -173,7 +173,7 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
     expect(lower.getAttribute("aria-label")).toContain("not reported");
   });
 
-  it("dispatches no setTarget when the + button is pressed", async () => {
+  it("dispatches no servo target command when the + button is pressed", async () => {
     const user = userEvent.setup();
     const { fixture } = mount(servo({ targetAngle: null }));
 
@@ -185,12 +185,14 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
 
     expect(
       fixture.transport.sentCommands.filter(
-        (c) => c.command === "robotics.servo.setTarget",
+        (c) =>
+          c.command === "robotics.servo.setAngle" ||
+          c.command === "robotics.servo.setExtension",
       ),
     ).toEqual([]);
   });
 
-  it("dispatches no setTarget from the mapped targetUp action", async () => {
+  it("dispatches no servo target command from the mapped targetUp action", async () => {
     const { fixture } = mount(servo({ targetAngle: null }));
     await screen.findByRole("button", { name: /Increase target/i });
 
@@ -206,7 +208,9 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
 
     expect(
       fixture.transport.sentCommands.filter(
-        (c) => c.command === "robotics.servo.setTarget",
+        (c) =>
+          c.command === "robotics.servo.setAngle" ||
+          c.command === "robotics.servo.setExtension",
       ),
     ).toEqual([]);
     expect(returned).toBeUndefined();
@@ -222,9 +226,9 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
     );
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
-        (c) => c.command === "robotics.servo.setTarget",
+        (c) => c.command === "robotics.servo.setAngle",
       );
-      expect(sent?.args).toEqual({ partId: "11", value: 65 });
+      expect(sent?.args).toEqual({ partId: "11", degrees: 65 });
     });
   });
 });

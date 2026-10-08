@@ -394,6 +394,21 @@ namespace Sitrep.Contract.Serialization
                     // science.experiment.transmit's reply payload, inside CommandResult<ScienceTransmission>.Payload.
                     AppendScienceTransmission(sb, scienceTransmission);
                     break;
+                case Sitrep.Contract.ExperimentEntry experimentEntry:
+                    AppendExperimentEntry(sb, experimentEntry);
+                    break;
+                case Sitrep.Contract.InstrumentEntry instrumentEntry:
+                    AppendInstrumentEntry(sb, instrumentEntry);
+                    break;
+                case Sitrep.Contract.LabEntry labEntry:
+                    AppendLabEntry(sb, labEntry);
+                    break;
+                case Sitrep.Contract.SensorEntry sensorEntry:
+                    AppendSensorEntry(sb, sensorEntry);
+                    break;
+                case Sitrep.Contract.ExperimentBreakdownEntry experimentBreakdownEntry:
+                    AppendExperimentBreakdownEntry(sb, experimentBreakdownEntry);
+                    break;
                 case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
                     // isru.drills and isru.converters publish their lists raw; a converter's recipe flows nest one level deeper.
                     AppendIsruDrillEntry(sb, isruDrillEntry);
@@ -698,7 +713,243 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ExperimentEntry"/> to its wire object: camelCase keys in the order the science channels have always carried them, JSON null for an absent field and the provider extension bag when a provider filled it.
+        /// </summary>
+        private static void AppendExperimentEntry(StringBuilder sb, Sitrep.Contract.ExperimentEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "partName");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartName);
+            sb.Append(',');
+            AppendString(sb, "location");
+            sb.Append(':');
+            AppendNullableString(sb, e.Location);
+            sb.Append(',');
+            AppendString(sb, "experimentId");
+            sb.Append(':');
+            AppendNullableString(sb, e.ExperimentId);
+            sb.Append(',');
+            AppendString(sb, "subjectId");
+            sb.Append(':');
+            AppendNullableString(sb, e.SubjectId);
+            sb.Append(',');
+            AppendString(sb, "title");
+            sb.Append(':');
+            AppendNullableString(sb, e.Title);
+            sb.Append(',');
+            AppendString(sb, "dataAmount");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.DataAmount);
+            sb.Append(',');
+            AppendString(sb, "scienceValueRatio");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.ScienceValueRatio);
+            sb.Append(',');
+            AppendString(sb, "baseTransmitValue");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.BaseTransmitValue);
+            sb.Append(',');
+            AppendString(sb, "transmitBonus");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.TransmitBonus);
+            sb.Append(',');
+            AppendString(sb, "labValue");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.LabValue);
+            sb.Append(',');
+            AppendString(sb, "deployed");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Deployed);
+            sb.Append(',');
+            AppendString(sb, "inoperable");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Inoperable);
+            sb.Append(',');
+            AppendString(sb, "situation");
+            sb.Append(':');
+            AppendNullableString(sb, e.Situation);
+            sb.Append(',');
+            AppendString(sb, "valueModel");
+            sb.Append(':');
+            AppendNullableString(sb, e.ValueModel);
+            AppendProviderExtensions(sb, e.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.InstrumentEntry"/> to its wire object: camelCase keys in the order the science channels have always carried them, JSON null for an absent field and the provider extension bag when a provider filled it.
+        /// </summary>
+        private static void AppendInstrumentEntry(StringBuilder sb, Sitrep.Contract.InstrumentEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartId);
+            sb.Append(',');
+            AppendString(sb, "partName");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartName);
+            sb.Append(',');
+            AppendString(sb, "experimentId");
+            sb.Append(':');
+            AppendNullableString(sb, e.ExperimentId);
+            sb.Append(',');
+            AppendString(sb, "title");
+            sb.Append(':');
+            AppendNullableString(sb, e.Title);
+            sb.Append(',');
+            AppendString(sb, "deployed");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Deployed);
+            sb.Append(',');
+            AppendString(sb, "inoperable");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Inoperable);
+            sb.Append(',');
+            AppendString(sb, "rerunnable");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Rerunnable);
+            sb.Append(',');
+            AppendString(sb, "resettable");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Resettable);
+            sb.Append(',');
+            AppendString(sb, "dataIsCollectable");
+            sb.Append(':');
+            AppendNullableBool(sb, e.DataIsCollectable);
+            AppendProviderExtensions(sb, e.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.LabEntry"/> to its wire object: camelCase keys in the order the science channels have always carried them, JSON null for an absent field and the provider extension bag when a provider filled it.
+        /// </summary>
+        private static void AppendLabEntry(StringBuilder sb, Sitrep.Contract.LabEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "partName");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartName);
+            sb.Append(',');
+            AppendString(sb, "dataStored");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.DataStored);
+            sb.Append(',');
+            AppendString(sb, "dataStorage");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.DataStorage);
+            sb.Append(',');
+            AppendString(sb, "storedScience");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.StoredScience);
+            sb.Append(',');
+            AppendString(sb, "processingData");
+            sb.Append(':');
+            AppendNullableBool(sb, e.ProcessingData);
+            sb.Append(',');
+            AppendString(sb, "statusText");
+            sb.Append(':');
+            AppendNullableString(sb, e.StatusText);
+            sb.Append(',');
+            AppendString(sb, "scientistCount");
+            sb.Append(':');
+            AppendNullableInteger(sb, e.ScientistCount);
+            sb.Append(',');
+            AppendString(sb, "scienceRate");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.ScienceRate);
+            sb.Append(',');
+            AppendString(sb, "isOperational");
+            sb.Append(':');
+            AppendNullableBool(sb, e.IsOperational);
+            sb.Append(',');
+            AppendString(sb, "valueModel");
+            sb.Append(':');
+            AppendNullableString(sb, e.ValueModel);
+            AppendProviderExtensions(sb, e.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.SensorEntry"/> to its wire object: camelCase keys in the order the science channels have always carried them, JSON null for an absent field.
+        /// </summary>
+        private static void AppendSensorEntry(StringBuilder sb, Sitrep.Contract.SensorEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartId);
+            sb.Append(',');
+            AppendString(sb, "partName");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartName);
+            sb.Append(',');
+            AppendString(sb, "type");
+            sb.Append(':');
+            AppendNullableString(sb, e.Type);
+            sb.Append(',');
+            AppendString(sb, "readout");
+            sb.Append(':');
+            AppendNullableString(sb, e.Readout);
+            sb.Append(',');
+            AppendString(sb, "active");
+            sb.Append(':');
+            AppendNullableBool(sb, e.Active);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ExperimentBreakdownEntry"/> to its wire object: camelCase keys in the order the science channels have always carried them, JSON null for an absent field and the provider extension bag when a provider filled it.
+        /// </summary>
+        private static void AppendExperimentBreakdownEntry(StringBuilder sb, Sitrep.Contract.ExperimentBreakdownEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "subjectId");
+            sb.Append(':');
+            AppendNullableString(sb, e.SubjectId);
+            sb.Append(',');
+            AppendString(sb, "biome");
+            sb.Append(':');
+            AppendNullableString(sb, e.Biome);
+            sb.Append(',');
+            AppendString(sb, "situation");
+            sb.Append(':');
+            AppendNullableString(sb, e.Situation);
+            sb.Append(',');
+            AppendString(sb, "expTitle");
+            sb.Append(':');
+            AppendNullableString(sb, e.ExpTitle);
+            sb.Append(',');
+            AppendString(sb, "dataMits");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.DataMits);
+            sb.Append(',');
+            AppendString(sb, "remainingPotential");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.RemainingPotential);
+            sb.Append(',');
+            AppendString(sb, "valueModel");
+            sb.Append(':');
+            AppendNullableString(sb, e.ValueModel);
+            AppendProviderExtensions(sb, e.Extensions);
+            sb.Append('}');
+        }
+
         // Nullable-field writers: a value, or JSON null when absent.
+        private static void AppendNullableInteger(StringBuilder sb, int? value)
+        {
+            if (value.HasValue)
+            {
+                AppendInteger(sb, value.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+        }
+
         private static void AppendNullableBool(StringBuilder sb, bool? value)
         {
             if (value.HasValue)
@@ -2221,6 +2472,10 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "strength");
             sb.Append(':');
             AppendNumber(sb, s.Strength);
+            sb.Append(',');
+            AppendString(sb, "quantity");
+            sb.Append(':');
+            AppendInteger(sb, (long)s.Quantity);
             sb.Append(',');
             AppendString(sb, "modelled");
             sb.Append(':');

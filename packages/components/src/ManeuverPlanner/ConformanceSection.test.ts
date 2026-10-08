@@ -26,7 +26,9 @@ describe("plannedConic: the planned orbit in the same terms as the current one",
     const planned = plannedConic(patch);
 
     expect(planned).toEqual(current);
-    expect(widestSeparation(current, planned)).toBeNull();
+    expect(
+      widestSeparation(current, planned as NonNullable<typeof planned>),
+    ).toBeNull();
   });
 
   it("takes each apsis as a radius from the centre, not an altitude", () => {
@@ -36,7 +38,17 @@ describe("plannedConic: the planned orbit in the same terms as the current one",
       argPe: value("°", 90),
     });
 
-    expect(planned.apoapsis).toBe(1_250_000);
-    expect(planned.periapsis).toBe(750_000);
+    expect(planned?.apoapsis).toBe(1_250_000);
+    expect(planned?.periapsis).toBe(750_000);
+  });
+
+  it("plans no orbit when the argument of periapsis is undefined", () => {
+    expect(
+      plannedConic({
+        sma: value("m", 1_000_000),
+        ecc: value("1", 0.25),
+        argPe: null,
+      }),
+    ).toBeNull();
   });
 });

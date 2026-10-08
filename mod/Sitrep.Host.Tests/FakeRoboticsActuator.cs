@@ -13,8 +13,10 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeRoboticsActuator : IRoboticsActuator
     {
-        public string? LastSetServoTargetPartId;
-        public double? LastSetServoTargetValue;
+        public string? LastSetServoAnglePartId;
+        public double? LastSetServoAngleDegrees;
+        public string? LastSetServoExtensionPartId;
+        public double? LastSetServoExtensionMetres;
         public string? LastSetServoMotorPartId;
         public bool? LastSetServoMotorEngaged;
         public string? LastSetServoLockPartId;
@@ -31,7 +33,8 @@ namespace Sitrep.Host.Tests
         public bool? LastSetRotorLockLocked;
         public string? LastReverseRotorPartId;
 
-        public CommandResult SetServoTargetResult = CommandResult.Ok();
+        public CommandResult SetServoAngleResult = CommandResult.Ok();
+        public CommandResult SetServoExtensionResult = CommandResult.Ok();
         public CommandResult SetServoMotorResult = CommandResult.Ok();
         public CommandResult SetServoLockResult = CommandResult.Ok();
         public CommandResult SetRotorRpmLimitResult = CommandResult.Ok();
@@ -41,11 +44,18 @@ namespace Sitrep.Host.Tests
         public CommandResult SetRotorLockResult = CommandResult.Ok();
         public CommandResult ReverseRotorResult = CommandResult.Ok();
 
-        public CommandResult SetServoTarget(string partId, double value)
+        public CommandResult SetServoAngle(string partId, double degrees)
         {
-            LastSetServoTargetPartId = partId;
-            LastSetServoTargetValue = value;
-            return SetServoTargetResult;
+            LastSetServoAnglePartId = partId;
+            LastSetServoAngleDegrees = degrees;
+            return SetServoAngleResult;
+        }
+
+        public CommandResult SetServoExtension(string partId, double metres)
+        {
+            LastSetServoExtensionPartId = partId;
+            LastSetServoExtensionMetres = metres;
+            return SetServoExtensionResult;
         }
 
         public CommandResult SetServoMotor(string partId, bool engaged)

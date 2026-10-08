@@ -140,9 +140,10 @@ namespace Sitrep.Host.Comms
         /// <summary>One centre's signal and grading, and whether they are worked out.</summary>
         public readonly struct Told
         {
-            public Told(double strength, bool modelled, CommsDegrade? degrade, IReadOnlyList<RadioHop>? measuredOver = null)
+            public Told(double strength, SignalQuantity quantity, bool modelled, CommsDegrade? degrade, IReadOnlyList<RadioHop>? measuredOver = null)
             {
                 Strength = strength;
+                Quantity = quantity;
                 Modelled = modelled;
                 Degrade = degrade;
                 MeasuredOver = measuredOver;
@@ -155,6 +156,9 @@ namespace Sitrep.Host.Comms
             public IReadOnlyList<RadioHop>? MeasuredOver { get; }
 
             public double Strength { get; }
+
+            /// <summary>Which quantity <see cref="Strength"/> is: the heard radio's, or <see cref="SignalQuantity.Unknown"/> where a path's strength was worked out before any radio was heard.</summary>
+            public SignalQuantity Quantity { get; }
 
             public bool Modelled { get; }
 
@@ -172,15 +176,15 @@ namespace Sitrep.Host.Comms
             {
                 // The craft's own word: of the path the centre believes in, or that there is no link at all,
                 // or all the centre has while it believes in no path for the radio's to differ from.
-                return new Told(heard.Strength, false, heard.Degrade);
+                return new Told(heard.Strength, heard.Quantity, false, heard.Degrade);
             }
             if (believedStrength != null)
             {
-                return new Told(believedStrength.Value, true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
+                return new Told(believedStrength.Value, heard?.Quantity ?? SignalQuantity.Unknown, true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
             }
             // The radio reported on a path other than the believed one and nothing can be worked out.
             // A figure for another path is not this path's figure, so it is told as what it is.
-            return heard == null ? (Told?)null : new Told(heard.Strength, false, heard.Degrade, heard.Hops);
+            return heard == null ? (Told?)null : new Told(heard.Strength, heard.Quantity, false, heard.Degrade, heard.Hops);
         }
 
         private static bool SamePath(CommsPath believed, ContactRadio heard)

@@ -5,10 +5,9 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>science.*</c> channels, added THIS
-    /// session (speed prioritized, same posture as <see cref="CareerViewProvider"/>'s
-    /// doc comment: a primitives-dict pass-through is fine for now, a typed
-    /// <c>Sitrep.Contract</c> POCO is a follow-up). Reads
+    /// KSP-free mapping logic for the <c>science.*</c> channels. Each builder
+    /// returns the channel's typed entries (<see cref="ExperimentEntry"/> and its
+    /// siblings). Reads
     /// <c>Values["science"]["experiments"/"instruments"/"lab"/"sensors"/
     /// "experimentBreakdown"]</c> (<c>Gonogo.KSP.KspHost.BuildScience</c>'s raw
     /// dict) and republishes each sub-group through <see cref="SnapshotDict"/>'s
@@ -66,19 +65,19 @@ namespace Sitrep.Host
         public const string ExperimentBreakdownTopic = "science.experimentBreakdown";
         public const string ArchiveTopic = "science.archive";
 
-        public static object? BuildExperiments(KspSnapshot? snapshot) =>
+        public static List<ExperimentEntry>? BuildExperiments(KspSnapshot? snapshot) =>
             BuildList(snapshot, "experiments", BuildExperimentEntry);
 
-        public static object? BuildInstruments(KspSnapshot? snapshot) =>
+        public static List<InstrumentEntry>? BuildInstruments(KspSnapshot? snapshot) =>
             BuildList(snapshot, "instruments", BuildInstrumentEntry);
 
-        public static object? BuildLab(KspSnapshot? snapshot) =>
+        public static List<LabEntry>? BuildLab(KspSnapshot? snapshot) =>
             BuildList(snapshot, "lab", BuildLabEntry);
 
-        public static object? BuildSensors(KspSnapshot? snapshot) =>
+        public static List<SensorEntry>? BuildSensors(KspSnapshot? snapshot) =>
             BuildList(snapshot, "sensors", BuildSensorEntry);
 
-        public static object? BuildExperimentBreakdown(KspSnapshot? snapshot) =>
+        public static List<ExperimentBreakdownEntry>? BuildExperimentBreakdown(KspSnapshot? snapshot) =>
             BuildList(snapshot, "experimentBreakdown", BuildExperimentBreakdownEntry);
 
         /// <summary>
@@ -124,7 +123,7 @@ namespace Sitrep.Host
         /// sub-group on a build failure without taking out the others; see
         /// its own doc comment).
         /// </summary>
-        private static object? BuildList(KspSnapshot? snapshot, string key, Func<IDictionary<string, object?>, Dictionary<string, object?>> mapEntry)
+        private static List<Entry>? BuildList<Entry>(KspSnapshot? snapshot, string key, Func<IDictionary<string, object?>, Entry> mapEntry)
         {
             if (snapshot?.Values == null)
             {
@@ -141,7 +140,7 @@ namespace Sitrep.Host
                 return null;
             }
 
-            var result = new List<object?>();
+            var result = new List<Entry>();
             foreach (var rawEntry in list)
             {
                 if (rawEntry is IDictionary<string, object?> entry)
@@ -152,77 +151,77 @@ namespace Sitrep.Host
             return result;
         }
 
-        private static Dictionary<string, object?> BuildExperimentEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        private static ExperimentEntry BuildExperimentEntry(IDictionary<string, object?> raw) => new ExperimentEntry
         {
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["location"] = SnapshotDict.GetString(raw, "location"),
-            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
-            ["subjectId"] = SnapshotDict.GetString(raw, "subjectId"),
-            ["title"] = SnapshotDict.GetString(raw, "title"),
-            ["dataAmount"] = SnapshotDict.GetDouble(raw, "dataAmount"),
-            ["scienceValueRatio"] = SnapshotDict.GetDouble(raw, "scienceValueRatio"),
-            ["baseTransmitValue"] = SnapshotDict.GetDouble(raw, "baseTransmitValue"),
-            ["transmitBonus"] = SnapshotDict.GetDouble(raw, "transmitBonus"),
-            ["labValue"] = SnapshotDict.GetDouble(raw, "labValue"),
-            ["deployed"] = SnapshotDict.GetBool(raw, "deployed"),
-            ["inoperable"] = SnapshotDict.GetBool(raw, "inoperable"),
-            ["situation"] = SnapshotDict.GetString(raw, "situation"),
+            PartName = SnapshotDict.GetString(raw, "partName"),
+            Location = SnapshotDict.GetString(raw, "location"),
+            ExperimentId = SnapshotDict.GetString(raw, "experimentId"),
+            SubjectId = SnapshotDict.GetString(raw, "subjectId"),
+            Title = SnapshotDict.GetString(raw, "title"),
+            DataAmount = SnapshotDict.GetDouble(raw, "dataAmount"),
+            ScienceValueRatio = SnapshotDict.GetDouble(raw, "scienceValueRatio"),
+            BaseTransmitValue = SnapshotDict.GetDouble(raw, "baseTransmitValue"),
+            TransmitBonus = SnapshotDict.GetDouble(raw, "transmitBonus"),
+            LabValue = SnapshotDict.GetDouble(raw, "labValue"),
+            Deployed = SnapshotDict.GetBool(raw, "deployed"),
+            Inoperable = SnapshotDict.GetBool(raw, "inoperable"),
+            Situation = SnapshotDict.GetString(raw, "situation"),
             // Always emitted, never inferred from absence: see
             // ScienceValueModels. Stock's numbers above are R&D-curve values in
             // mits, and a consumer comparing them with another provider's needs
             // to be told so on every frame, not only on the other provider's.
-            ["valueModel"] = ScienceValueModels.Stock,
+            ValueModel = ScienceValueModels.Stock,
         };
 
-        private static Dictionary<string, object?> BuildInstrumentEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        private static InstrumentEntry BuildInstrumentEntry(IDictionary<string, object?> raw) => new InstrumentEntry
         {
-            ["partId"] = SnapshotDict.GetString(raw, "partId"),
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
-            ["title"] = SnapshotDict.GetString(raw, "title"),
-            ["deployed"] = SnapshotDict.GetBool(raw, "deployed"),
-            ["inoperable"] = SnapshotDict.GetBool(raw, "inoperable"),
-            ["rerunnable"] = SnapshotDict.GetBool(raw, "rerunnable"),
-            ["resettable"] = SnapshotDict.GetBool(raw, "resettable"),
-            ["dataIsCollectable"] = SnapshotDict.GetBool(raw, "dataIsCollectable"),
+            PartId = SnapshotDict.GetString(raw, "partId"),
+            PartName = SnapshotDict.GetString(raw, "partName"),
+            ExperimentId = SnapshotDict.GetString(raw, "experimentId"),
+            Title = SnapshotDict.GetString(raw, "title"),
+            Deployed = SnapshotDict.GetBool(raw, "deployed"),
+            Inoperable = SnapshotDict.GetBool(raw, "inoperable"),
+            Rerunnable = SnapshotDict.GetBool(raw, "rerunnable"),
+            Resettable = SnapshotDict.GetBool(raw, "resettable"),
+            DataIsCollectable = SnapshotDict.GetBool(raw, "dataIsCollectable"),
         };
 
-        private static Dictionary<string, object?> BuildLabEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        private static LabEntry BuildLabEntry(IDictionary<string, object?> raw) => new LabEntry
         {
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["dataStored"] = SnapshotDict.GetDouble(raw, "dataStored"),
-            ["dataStorage"] = SnapshotDict.GetDouble(raw, "dataStorage"),
-            ["storedScience"] = SnapshotDict.GetDouble(raw, "storedScience"),
-            ["processingData"] = SnapshotDict.GetBool(raw, "processingData"),
-            ["statusText"] = SnapshotDict.GetString(raw, "statusText"),
-            ["scientistCount"] = SnapshotDict.GetInt(raw, "scientistCount"),
-            ["scienceRate"] = SnapshotDict.GetDouble(raw, "scienceRate"),
-            ["isOperational"] = SnapshotDict.GetBool(raw, "isOperational"),
+            PartName = SnapshotDict.GetString(raw, "partName"),
+            DataStored = SnapshotDict.GetDouble(raw, "dataStored"),
+            DataStorage = SnapshotDict.GetDouble(raw, "dataStorage"),
+            StoredScience = SnapshotDict.GetDouble(raw, "storedScience"),
+            ProcessingData = SnapshotDict.GetBool(raw, "processingData"),
+            StatusText = SnapshotDict.GetString(raw, "statusText"),
+            ScientistCount = SnapshotDict.GetInt(raw, "scientistCount"),
+            ScienceRate = SnapshotDict.GetDouble(raw, "scienceRate"),
+            IsOperational = SnapshotDict.GetBool(raw, "isOperational"),
             // Stock's lab is terminal: it produces science per game-day. See
             // ScienceValueModels and LabEntry.ValueModel.
-            ["valueModel"] = ScienceValueModels.Stock,
+            ValueModel = ScienceValueModels.Stock,
         };
 
-        private static Dictionary<string, object?> BuildSensorEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        private static SensorEntry BuildSensorEntry(IDictionary<string, object?> raw) => new SensorEntry
         {
-            ["partId"] = SnapshotDict.GetString(raw, "partId"),
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["type"] = SnapshotDict.GetString(raw, "type"),
-            ["readout"] = SnapshotDict.GetString(raw, "readout"),
-            ["active"] = SnapshotDict.GetBool(raw, "active"),
+            PartId = SnapshotDict.GetString(raw, "partId"),
+            PartName = SnapshotDict.GetString(raw, "partName"),
+            Type = SnapshotDict.GetString(raw, "type"),
+            Readout = SnapshotDict.GetString(raw, "readout"),
+            Active = SnapshotDict.GetBool(raw, "active"),
         };
 
-        private static Dictionary<string, object?> BuildExperimentBreakdownEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        private static ExperimentBreakdownEntry BuildExperimentBreakdownEntry(IDictionary<string, object?> raw) => new ExperimentBreakdownEntry
         {
-            ["subjectId"] = SnapshotDict.GetString(raw, "subjectId"),
-            ["biome"] = SnapshotDict.GetString(raw, "biome"),
-            ["situation"] = SnapshotDict.GetString(raw, "situation"),
-            ["expTitle"] = SnapshotDict.GetString(raw, "expTitle"),
-            ["dataMits"] = SnapshotDict.GetDouble(raw, "dataMits"),
-            ["remainingPotential"] = SnapshotDict.GetDouble(raw, "remainingPotential"),
+            SubjectId = SnapshotDict.GetString(raw, "subjectId"),
+            Biome = SnapshotDict.GetString(raw, "biome"),
+            Situation = SnapshotDict.GetString(raw, "situation"),
+            ExpTitle = SnapshotDict.GetString(raw, "expTitle"),
+            DataMits = SnapshotDict.GetDouble(raw, "dataMits"),
+            RemainingPotential = SnapshotDict.GetDouble(raw, "remainingPotential"),
             // Stock's rollup is the R&D snapshot, in mits. See
             // ScienceValueModels and ExperimentBreakdownEntry.ValueModel.
-            ["valueModel"] = ScienceValueModels.Stock,
+            ValueModel = ScienceValueModels.Stock,
         };
 
         // "remainingPotential" is read straight off the raw entry rather

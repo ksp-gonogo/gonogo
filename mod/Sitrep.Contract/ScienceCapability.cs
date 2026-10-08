@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Sitrep.Contract;
 
 /*
@@ -24,21 +26,20 @@ namespace Sitrep.Contract;
 /// and must never touch the game: read what you need on the main thread with
 /// an <see cref="ISnapshotSampler"/> and pick it up from the snapshot.</para>
 ///
-/// <para>The payload is a value tree of dictionaries and lists in the shape of
-/// <see cref="ExperimentEntry"/> and its siblings, with a non-finite number
-/// left out. Return <c>null</c>, never an empty list, when there is nothing to
-/// say, such as no active vessel. A channel that has never had a non-null
-/// payload sends nothing at all, so a vessel with no lab is silence rather
-/// than an empty list.</para>
+/// <para>The payload is a list of <see cref="ExperimentEntry"/> or its
+/// siblings. A field you cannot state is left null, so a number that is not
+/// finite is null and never NaN. A provider's own per-entry values go in the
+/// entry's <c>Extensions</c> bag. Return <c>null</c>, never an empty list, when
+/// there is nothing to say, such as no active vessel. A channel that has never
+/// had a non-null payload sends nothing at all, so a vessel with no lab is
+/// silence rather than an empty list.</para>
 /// <internal>
-/// Both halves keep the wire byte-identical across this seam. Stock science is
-/// captured by <c>Gonogo.KSP.KspHost.BuildScience</c>, which keeps the vanilla
-/// backend KSP-free and headlessly testable; the mapper runs on the Courier
-/// thread. The <c>Science*Entry</c> classes are typing-only mirrors: the wire is
-/// written by <c>JsonWriter</c> walking the live value tree, and the vanilla
-/// path's tree comes from <c>SnapshotDict</c>'s non-finite-is-absent readers, so
-/// retyping these returns would rewrite that tree and change bytes. A channel
-/// that never returned non-null is never "born" (see
+/// Stock science is captured by <c>Gonogo.KSP.KspHost.BuildScience</c>, which
+/// keeps the vanilla backend KSP-free and headlessly testable; the mapper runs
+/// on the Courier thread. <c>JsonWriter</c> writes each entry type itself, in
+/// the key order the dictionary producers used, and
+/// <c>Sitrep.Host.Tests.ScienceWireGoldenTests</c> holds the text. A channel that
+/// never returned non-null is never "born" (see
 /// <c>Sitrep.Host.ChannelEngine</c>'s <c>_born</c>).
 /// </internal>
 /// </summary>
@@ -48,27 +49,27 @@ public interface IScienceBackend : ISitrepProvider
     /// <summary>One entry per stored science result on the active vessel (<c>science.experiments</c>).</summary>
     /// <param name="snapshot">This tick's capture.</param>
     /// <returns>The payload, or null when there is nothing to report.</returns>
-    object? Experiments(KspSnapshot? snapshot);
+    IReadOnlyList<ExperimentEntry>? Experiments(KspSnapshot? snapshot);
 
     /// <summary>One entry per experiment module on the active vessel, data or not (<c>science.instruments</c>).</summary>
     /// <param name="snapshot">This tick's capture.</param>
     /// <returns>The payload, or null when there is nothing to report.</returns>
-    object? Instruments(KspSnapshot? snapshot);
+    IReadOnlyList<InstrumentEntry>? Instruments(KspSnapshot? snapshot);
 
     /// <summary>Environmental-sensor readouts on the active vessel (<c>science.sensors</c>).</summary>
     /// <param name="snapshot">This tick's capture.</param>
     /// <returns>The payload, or null when there is nothing to report.</returns>
-    object? Sensors(KspSnapshot? snapshot);
+    IReadOnlyList<SensorEntry>? Sensors(KspSnapshot? snapshot);
 
     /// <summary>Science-lab processing state on the active vessel (<c>science.lab</c>).</summary>
     /// <param name="snapshot">This tick's capture.</param>
     /// <returns>The payload, or null when there is nothing to report.</returns>
-    object? Lab(KspSnapshot? snapshot);
+    IReadOnlyList<LabEntry>? Lab(KspSnapshot? snapshot);
 
     /// <summary>Per-subject rollup of the stored results (<c>science.experimentBreakdown</c>).</summary>
     /// <param name="snapshot">This tick's capture.</param>
     /// <returns>The payload, or null when there is nothing to report.</returns>
-    object? ExperimentBreakdown(KspSnapshot? snapshot);
+    IReadOnlyList<ExperimentBreakdownEntry>? ExperimentBreakdown(KspSnapshot? snapshot);
 
     /// <summary>
     /// Run the experiment on the given part (<c>science.experiment.deploy</c>).

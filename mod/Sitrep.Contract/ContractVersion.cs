@@ -690,9 +690,23 @@ namespace Sitrep.Contract
         /// static and deterministic maps it did not write. A channel declared
         /// <see cref="ChannelDeclaration.Addressed"/> by an Uplink that no core source
         /// publishes for is refused at registration.</para>
+        ///
+        /// <para><b>Bumped 30 -&gt; 31: a figure says what it is.</b>
+        /// <see cref="CommsSignal.Quantity"/> and <see cref="VesselComms.SignalQuantity"/>
+        /// name which <see cref="SignalQuantity"/> a strength is (a fraction of range,
+        /// a fraction of data-rate headroom, a no-model stand-in), and
+        /// <see cref="CommsLinkState"/> takes the quantity its backend reports.
+        /// <see cref="OrbitPatch.Lan"/>, <see cref="OrbitPatch.ArgPe"/> and
+        /// <see cref="OrbitPatch.MeanAnomalyAtEpoch"/> are nullable, null where KSP
+        /// left them undefined, and such a patch is sent rather than dropped.
+        /// <c>robotics.servo.setTarget</c> is two commands,
+        /// <see cref="ServoSetAngleArgs"/> in degrees and
+        /// <see cref="ServoSetExtensionArgs"/> in metres. The five
+        /// <see cref="IScienceBackend"/> reads return their entry types in place of
+        /// untyped trees, with the wire text unchanged.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 30;
+        public const int Major = 31;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -2493,6 +2507,8 @@ namespace Sitrep.Contract
         /// field, are unaffected.</para>
         ///
         /// <para><b>Major-30 line, reset to 0</b> with the Major.</para>
+        ///
+        /// <para><b>Major-31 line, reset to 0</b> with the Major.</para>
         /// </internal>
         /// </summary>
         public const int Minor = 0;

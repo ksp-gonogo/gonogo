@@ -392,8 +392,8 @@ namespace Sitrep.Host.Comms
         private readonly BelievedPaths _believed = new BelievedPaths();
 
         /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at, and which kind of figure it was: measured on its path, worked out, or measured on another.</summary>
-        private readonly Dictionary<string, (long Strength, int Kind, string? GradedBy, long? Grade, string? MeasuredOn)> _signalSent =
-            new Dictionary<string, (long, int, string?, long?, string?)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (long Strength, SignalQuantity Quantity, int Kind, string? GradedBy, long? Grade, string? MeasuredOn)> _signalSent =
+            new Dictionary<string, (long, SignalQuantity, int, string?, long?, string?)>(StringComparer.Ordinal);
         private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
@@ -1626,6 +1626,7 @@ namespace Sitrep.Host.Comms
             var measuredPath = told.Value.MeasuredOver == null ? null : MeasuredPath(centre, looked.ActiveCraft, told.Value.MeasuredOver);
             var said = (
                 Quanta(told.Value.Strength),
+                told.Value.Quantity,
                 told.Value.Modelled ? 1 : told.Value.OtherPath ? 2 : 0,
                 degrade?.ModelId,
                 degrade?.Level == null ? (long?)null : Quanta(degrade.Level.Value),
@@ -1641,6 +1642,7 @@ namespace Sitrep.Host.Comms
                     new CommsSignal
                     {
                         Strength = told.Value.Strength,
+                        Quantity = told.Value.Quantity,
                         Modelled = told.Value.Modelled,
                         OtherPath = told.Value.OtherPath,
                         MeasuredPath = measuredPath,

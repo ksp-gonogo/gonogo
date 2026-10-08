@@ -84,21 +84,21 @@ namespace Sitrep.Host.Tests
             };
 
             var payload = ScienceViewProvider.BuildExperiments(snapshot);
-            var list = Assert.IsType<List<object?>>(payload);
+            var list = Assert.IsType<List<ExperimentEntry>>(payload);
             Assert.Equal(2, list.Count);
 
-            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
-            Assert.Equal("Mystery Goo Containment Pod", first["partName"]);
-            Assert.Equal("experiment", first["location"]);
-            Assert.Equal("mysteryGoo", first["experimentId"]);
-            Assert.Equal(5.0, first["dataAmount"]);
-            Assert.Equal(true, first["deployed"]);
-            Assert.Equal(false, first["inoperable"]);
+            var first = list[0];
+            Assert.Equal("Mystery Goo Containment Pod", first.PartName);
+            Assert.Equal("experiment", first.Location);
+            Assert.Equal("mysteryGoo", first.ExperimentId);
+            Assert.Equal(5.0, first.DataAmount);
+            Assert.Equal(true, first.Deployed);
+            Assert.Equal(false, first.Inoperable);
 
-            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
-            Assert.Equal("container", second["location"]);
-            Assert.Null(second["experimentId"]);
-            Assert.Null(second["deployed"]);
+            var second = list[1];
+            Assert.Equal("container", second.Location);
+            Assert.Null(second.ExperimentId);
+            Assert.Null(second.Deployed);
         }
 
         [Fact]
@@ -148,26 +148,26 @@ namespace Sitrep.Host.Tests
             };
 
             var payload = ScienceViewProvider.BuildInstruments(snapshot);
-            var list = Assert.IsType<List<object?>>(payload);
+            var list = Assert.IsType<List<InstrumentEntry>>(payload);
             Assert.Equal(2, list.Count);
 
-            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
-            Assert.Equal("12345", first["partId"]);
-            Assert.Equal("Mystery Goo Containment Pod", first["partName"]);
-            Assert.Equal("mysteryGoo", first["experimentId"]);
-            Assert.Equal("Mystery Goo Observation", first["title"]);
-            Assert.Equal(true, first["deployed"]);
-            Assert.Equal(false, first["inoperable"]);
-            Assert.Equal(false, first["rerunnable"]);
-            Assert.Equal(true, first["resettable"]);
-            Assert.Equal(true, first["dataIsCollectable"]);
+            var first = list[0];
+            Assert.Equal("12345", first.PartId);
+            Assert.Equal("Mystery Goo Containment Pod", first.PartName);
+            Assert.Equal("mysteryGoo", first.ExperimentId);
+            Assert.Equal("Mystery Goo Observation", first.Title);
+            Assert.Equal(true, first.Deployed);
+            Assert.Equal(false, first.Inoperable);
+            Assert.Equal(false, first.Rerunnable);
+            Assert.Equal(true, first.Resettable);
+            Assert.Equal(true, first.DataIsCollectable);
 
-            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
-            Assert.Equal("67890", second["partId"]);
-            Assert.Null(second["title"]);
-            Assert.Null(second["deployed"]);
-            Assert.Equal(true, second["rerunnable"]);
-            Assert.Equal(false, second["dataIsCollectable"]);
+            var second = list[1];
+            Assert.Equal("67890", second.PartId);
+            Assert.Null(second.Title);
+            Assert.Null(second.Deployed);
+            Assert.Equal(true, second.Rerunnable);
+            Assert.Equal(false, second.DataIsCollectable);
         }
 
         [Fact]
@@ -200,13 +200,13 @@ namespace Sitrep.Host.Tests
             };
 
             var payload = ScienceViewProvider.BuildLab(snapshot);
-            var list = Assert.IsType<List<object?>>(payload);
-            var lab = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
-            Assert.Equal("Mobile Processing Lab MPL-LG-2", lab["partName"]);
-            Assert.Equal(120.0, lab["dataStored"]);
-            Assert.Equal(2, lab["scientistCount"]);
-            Assert.Equal(true, lab["processingData"]);
-            Assert.Equal(0.02, lab["scienceRate"]);
+            var list = Assert.IsType<List<LabEntry>>(payload);
+            var lab = Assert.Single(list);
+            Assert.Equal("Mobile Processing Lab MPL-LG-2", lab.PartName);
+            Assert.Equal(120.0, lab.DataStored);
+            Assert.Equal(2, lab.ScientistCount);
+            Assert.Equal(true, lab.ProcessingData);
+            Assert.Equal(0.02, lab.ScienceRate);
         }
 
         [Fact]
@@ -271,23 +271,21 @@ namespace Sitrep.Host.Tests
             };
 
             var payload = ScienceViewProvider.BuildSensors(snapshot);
-            var list = Assert.IsType<List<object?>>(payload);
+            var list = Assert.IsType<List<SensorEntry>>(payload);
             Assert.Equal(2, list.Count);
 
-            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
-            Assert.Equal("101", first["partId"]);
-            Assert.Equal("PresMat Barometer", first["partName"]);
-            Assert.Equal("PRES", first["type"]);
-            Assert.Equal("0.998atm", first["readout"]);
-            Assert.Equal(true, first["active"]);
-            // Exactly the five general-sensor fields, no more.
-            Assert.Equal(5, first.Count);
+            var first = list[0];
+            Assert.Equal("101", first.PartId);
+            Assert.Equal("PresMat Barometer", first.PartName);
+            Assert.Equal("PRES", first.Type);
+            Assert.Equal("0.998atm", first.Readout);
+            Assert.Equal(true, first.Active);
 
-            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
-            Assert.Equal("102", second["partId"]);
-            Assert.Equal("TEMP", second["type"]);
-            Assert.Equal("Off", second["readout"]);
-            Assert.Equal(false, second["active"]);
+            var second = list[1];
+            Assert.Equal("102", second.PartId);
+            Assert.Equal("TEMP", second.Type);
+            Assert.Equal("Off", second.Readout);
+            Assert.Equal(false, second.Active);
         }
 
         [Fact]
@@ -354,25 +352,24 @@ namespace Sitrep.Host.Tests
             };
 
             var payload = ScienceViewProvider.BuildExperimentBreakdown(snapshot);
-            var list = Assert.IsType<List<object?>>(payload);
+            var list = Assert.IsType<List<ExperimentBreakdownEntry>>(payload);
             Assert.Equal(2, list.Count);
 
-            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
-            Assert.Equal("mysteryGoo@KerbinSrfLandedShores", first["subjectId"]);
-            Assert.Equal("Shores", first["biome"]);
-            Assert.Equal("SrfLanded", first["situation"]);
-            Assert.Equal("Mystery Goo Observation", first["expTitle"]);
-            Assert.Equal(5.0, first["dataMits"]);
-            Assert.Equal(12.5, first["remainingPotential"]);
+            var first = list[0];
+            Assert.Equal("mysteryGoo@KerbinSrfLandedShores", first.SubjectId);
+            Assert.Equal("Shores", first.Biome);
+            Assert.Equal("SrfLanded", first.Situation);
+            Assert.Equal("Mystery Goo Observation", first.ExpTitle);
+            Assert.Equal(5.0, first.DataMits);
+            Assert.Equal(12.5, first.RemainingPotential);
             // The stock backend tags every value-bearing entry with the model that
             // produced its numbers: present on every frame rather than inferred from
             // absence, see Sitrep.Contract.ScienceValueModels.
-            Assert.Equal(ScienceValueModels.Stock, first["valueModel"]);
-            Assert.Equal(7, first.Count);
+            Assert.Equal(ScienceValueModels.Stock, first.ValueModel);
 
-            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
-            Assert.Equal("crewReport@KerbinInSpaceLow", second["subjectId"]);
-            Assert.Equal(0.0, second["remainingPotential"]);
+            var second = list[1];
+            Assert.Equal("crewReport@KerbinInSpaceLow", second.SubjectId);
+            Assert.Equal(0.0, second.RemainingPotential);
         }
 
         [Fact]

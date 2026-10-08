@@ -4,7 +4,11 @@ import {
   registerStockBodies,
   wrap180,
 } from "@ksp-gonogo/core";
-import { geoFromInertial, patchStateAt } from "@ksp-gonogo/sitrep-client";
+import {
+  canPropagatePatch,
+  geoFromInertial,
+  patchStateAt,
+} from "@ksp-gonogo/sitrep-client";
 import {
   type OrbitPatch,
   TransitionType,
@@ -269,6 +273,8 @@ describe("MapView fixtures describe scenes that can exist", () => {
       it("puts the vessel where the marker says it is when its own elements are propagated", () => {
         const b = bodyOf(s.bodyName);
         const patch = decoded(s.patches[0] ?? orbitAsPatch(s, b.radius, b.gm));
+        if (!canPropagatePatch(patch))
+          throw new Error("fixture patch has an undefined element");
         const g = geoFromInertial(patchStateAt(patch, s.ut), b.radius);
         // A tenth of a degree is finer than the map draws and survives the fixtures' rounded decimals.
         expect(g.lat).toBeCloseTo(s.flight.latitude, 1);

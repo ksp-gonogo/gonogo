@@ -41,12 +41,58 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class KspRoboticsActuator : IRoboticsActuator
     {
-        public CommandResult SetServoTarget(string partId, double value) => WithServo(partId, servo =>
+        public CommandResult SetServoAngle(string partId, double degrees) => WithServo(partId, servo =>
         {
-            // The part's own module list is the authority here: what a servo IS
-            // decides what it can be told, and none of these resolve by waiting.
-            // A refusal rather than a silent no-op, so the operator learns the
-            // control does not apply to this part.
+            var refusal = DrivableRefusal(servo);
+            if (refusal != null)
+            {
+                return refusal;
+            }
+
+            // A rotation servo is a sibling of the hinge, not a subclass. Its
+            // targetAngle wires OnValueModified -> ModifyTargetAngle exactly as
+            // the hinge's does, so both are driven through the same field.
+            if (servo is ModuleRoboticServoHinge hinge)
+            {
+                hinge.Fields["targetAngle"].SetValue((float)degrees, hinge);
+                return CommandResult.Ok();
+            }
+            if (servo is ModuleRoboticRotationServo rotation)
+            {
+                rotation.Fields["targetAngle"].SetValue((float)degrees, rotation);
+                return CommandResult.Ok();
+            }
+
+            return CommandResult.Fail(
+                CommandErrorCode.CapabilityMismatch, "this servo has no angle to drive: it is a piston");
+        });
+
+        public CommandResult SetServoExtension(string partId, double metres) => WithServo(partId, servo =>
+        {
+            var refusal = DrivableRefusal(servo);
+            if (refusal != null)
+            {
+                return refusal;
+            }
+
+            if (servo is ModuleRoboticServoPiston piston)
+            {
+                piston.Fields["targetExtension"].SetValue((float)metres, piston);
+                return CommandResult.Ok();
+            }
+
+            return CommandResult.Fail(
+                CommandErrorCode.CapabilityMismatch, "this servo has no extension to drive: it is a hinge or rotation servo");
+        });
+
+        /// <summary>
+        /// The part's own module list is the authority on what a servo can be
+        /// told, and none of these resolve by waiting. A refusal rather than a
+        /// silent no-op, so the operator learns the control does not apply to
+        /// this part.
+        /// </summary>
+        private static CommandResult? DrivableRefusal(BaseServo servo)
+        {
             if (servo is ModuleRoboticServoRotor)
             {
                 return CommandResult.Fail(
@@ -57,33 +103,8 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(
                     CommandErrorCode.CapabilityMismatch, "this servo has no motor to drive it");
             }
-
-            if (servo is ModuleRoboticServoHinge hinge)
-            {
-                hinge.Fields["targetAngle"].SetValue((float)value, hinge);
-                return CommandResult.Ok();
-            }
-            // A rotation servo is a sibling of the hinge, not a subclass, so it
-            // fell past both branches and every attempt to drive one came back
-            // ModeUnavailable - while the lock and motor commands below, which
-            // resolve through BaseServo, worked on it all along. Its targetAngle
-            // wires OnValueModified -> ModifyTargetAngle exactly as the hinge's
-            // does; KSP's own SetMinimumAngle/SetMaximumAngle drive it through
-            // the same field.
-            if (servo is ModuleRoboticRotationServo rotation)
-            {
-                rotation.Fields["targetAngle"].SetValue((float)value, rotation);
-                return CommandResult.Ok();
-            }
-            if (servo is ModuleRoboticServoPiston piston)
-            {
-                piston.Fields["targetExtension"].SetValue((float)value, piston);
-                return CommandResult.Ok();
-            }
-
-            return CommandResult.Fail(
-                CommandErrorCode.CapabilityMismatch, "this servo is neither a hinge nor a piston");
-        });
+            return null;
+        }
 
         public CommandResult SetServoMotor(string partId, bool engaged) => WithServo(partId, servo =>
         {

@@ -6,7 +6,9 @@ export const commSignalTopics = defineTopicManifest({
   fields: [
     "comms.link.connected",
     "vessel.comms.signalStrength",
+    "vessel.comms.signalQuantity",
     "comms.signal.strength",
+    "comms.signal.quantity",
     "comms.signal.modelled",
     "comms.signal.otherPath",
     "comms.signal.measuredPath.nodes",

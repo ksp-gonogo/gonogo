@@ -94,7 +94,7 @@ namespace Sitrep.Contract.Tests
             protected override CommsSubject Subject() => new CommsSubject("craft");
 
             protected override CommsLinkState? LinkState() =>
-                new CommsLinkState(true, CommsControlGrade.Full, 1.0);
+                new CommsLinkState(true, CommsControlGrade.Full, 1.0, SignalQuantity.RangeFraction);
 
             protected override IReadOnlyList<CommsLinkView>? ControlPath(object? vessel) =>
                 vessel != null && _paths.TryGetValue(vessel, out var path) ? path : null;

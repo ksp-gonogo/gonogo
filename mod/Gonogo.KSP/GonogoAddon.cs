@@ -306,6 +306,11 @@ namespace Gonogo.KSP
                 _host.SetCrewStandingBackendSource(
                     () => CrewStandingElection.Elected(engine.Kernel));
 
+                // The signal quantity of the elected comms backend, so
+                // vessel.comms says which quantity its strength is.
+                _host.SetSignalQuantitySource(
+                    () => CommsElection.Elected(engine.Kernel)?.SignalStrength().Quantity);
+
                 // The command gates' evaluators, each wrapping one authority KSP
                 // publishes (game mode, loaded scene, the GameVariables facility
                 // surface, ClearToSaveStatus, the PreFlightTests set). Registered

@@ -210,11 +210,13 @@ public readonly struct CommsLinkState
     /// <param name="connected">Whether the backend resolved a control path home.</param>
     /// <param name="grade">The control the link affords.</param>
     /// <param name="signalStrength">The backend's own signal strength, 0 to 1.</param>
-    public CommsLinkState(bool connected, CommsControlGrade grade, double signalStrength)
+    /// <param name="signalQuantity">Which quantity <paramref name="signalStrength"/> is.</param>
+    public CommsLinkState(bool connected, CommsControlGrade grade, double signalStrength, SignalQuantity signalQuantity)
     {
         Connected = connected;
         Grade = grade;
         SignalStrength = signalStrength;
+        SignalQuantity = signalQuantity;
     }
 
     /// <summary>Whether the backend's own gates resolved a control path home.</summary>
@@ -228,13 +230,11 @@ public readonly struct CommsLinkState
     /// <see cref="CommsSignal"/>. Its meaning depends on the backend: under
     /// stock CommNet it is a range fraction, under RealAntennas a fraction of
     /// data-rate headroom.
-    /// <internal>
-    /// Two meanings behind one field is a defect of CommsSignal, not of this
-    /// struct. Fixing it means one normalised quantity or two honest fields,
-    /// either a wire change with client work behind it.
-    /// </internal>
     /// </summary>
     public double SignalStrength { get; }
+
+    /// <summary>Which quantity <see cref="SignalStrength"/> is: a backend names its own, since a fraction of range and a fraction of data-rate headroom are different figures.</summary>
+    public SignalQuantity SignalQuantity { get; }
 }
 
 /// <summary>

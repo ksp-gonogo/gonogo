@@ -100,8 +100,8 @@ public class CommsConnectivity
 /// link, from the elected comms backend. A strength from 0 to 1 whose meaning
 /// depends on the backend: stock CommNet reports a coarse fraction of the
 /// link's range, RealAntennas how much headroom the link has over its data
-/// rate. Nothing on the wire says which, so compare values only within one
-/// install.
+/// rate. <see cref="Quantity"/> says which, so a reader names the figure
+/// correctly and never compares two that are different quantities.
 ///
 /// <para>Each command centre is sent its own, the newest reading to have
 /// reached it. A reading is of the vessel's whole path at one instant, so
@@ -124,7 +124,8 @@ public class CommsConnectivity
 /// SignalLossIndicator keys its "Lost" verdict on.
 /// <para>RealAntennas' value is a headroom fraction on its data-rate ladder
 /// (<c>CommsLinkState.SignalStrength</c>), so the two backends put different
-/// curves behind one field, and no field says which curve a value is on.</para>
+/// curves behind one field, and <see cref="Quantity"/> is what says which curve a
+/// value is on.</para>
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -142,6 +143,15 @@ public class CommsSignal
     /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double Strength { get; set; }
+
+    /// <summary>
+    /// Which quantity <see cref="Strength"/> is: a fraction of the link's range,
+    /// a fraction of its data-rate headroom, or a stand-in where no link is
+    /// modelled. <see cref="SignalQuantity.Unknown"/> where the strength was
+    /// worked out for a path before any reading of the craft's radio said which.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public SignalQuantity Quantity { get; set; }
 
     /// <summary>
     /// Whether <see cref="Strength"/> is worked out and not measured. A
@@ -182,6 +192,36 @@ public class CommsSignal
     /// </internal>
     /// </summary>
     public CommsMeasuredPath? MeasuredPath { get; set; }
+}
+
+/// <summary>
+/// Which quantity a signal strength from 0 to 1 is. Two backends that both
+/// report "0 to 1" are not saying the same thing, and a figure is only
+/// comparable with another of the same quantity.
+/// <internal>
+/// Declared by the comms backend (<c>CommsLinkState.SignalQuantity</c>) and
+/// carried on every strength from there: the heard radio, <c>comms.signal</c>
+/// and <c>vessel.comms</c>.
+/// </internal>
+/// </summary>
+/// <category>Comms</category>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum SignalQuantity
+{
+    /// <summary>Nothing says which. A strength worked out for a path before any reading of the craft's radio, or a read that failed.</summary>
+    Unknown,
+
+    /// <summary>How far inside its range the link is, 0 at the edge of range and 1 at no distance: stock CommNet's.</summary>
+    RangeFraction,
+
+    /// <summary>How much headroom the link has over its data rate, 0 where the lowest rate fails and 1 at the top of the ladder: RealAntennas'.</summary>
+    DataRateHeadroom,
+
+    /// <summary>A stand-in: the save models no comms network, so there is no link to grade and the figure is 1.</summary>
+    NoModel,
 }
 
 /// <summary>

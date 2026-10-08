@@ -173,6 +173,21 @@ namespace Gonogo.KSP
             _propagation = resolver;
         }
 
+        /// <summary>
+        /// Resolves the elected <see cref="ICommsBackend"/>'s signal quantity: which
+        /// quantity <c>vessel.connection.SignalStrength</c> is under the comms model
+        /// this install elected. Same late-bound install shape as
+        /// <see cref="_actionGroupsBackend"/>; null before the addon wires it, which
+        /// leaves the quantity unstated rather than guessed.
+        /// </summary>
+        private Func<SignalQuantity?>? _signalQuantity;
+
+        /// <summary>Installs the resolver described on <see cref="_signalQuantity"/>.</summary>
+        public void SetSignalQuantitySource(Func<SignalQuantity?> resolver)
+        {
+            _signalQuantity = resolver;
+        }
+
         public KspHost(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
         {
             _maneuverNodeIdRegistry = maneuverNodeIdRegistry;
@@ -275,7 +290,7 @@ namespace Gonogo.KSP
                         // Null when there's no target / no encounter -- stamped onto
                         // vessel.target below.
                         var closestApproach = SolveClosestApproach(ut);
-                        values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, ut);
+                        values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, _signalQuantity?.Invoke(), ut);
 
                         // Science + parts/power/robotics capture-adds (this
                         // session) - both require an active vessel to have
@@ -573,7 +588,7 @@ namespace Gonogo.KSP
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach, ThrustObserver thrustObserver, double ut)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach, ThrustObserver thrustObserver, SignalQuantity? signalQuantity, double ut)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -590,7 +605,7 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "thermal", () => BuildThermal(vessel));
             TryBuildGroup(entry, "control", () => BuildControl(vessel, actionGroupsBackend));
             TryBuildGroup(entry, "physics", () => BuildPhysics(vessel));
-            TryBuildGroup(entry, "comms", () => BuildComms(vessel));
+            TryBuildGroup(entry, "comms", () => BuildComms(vessel, signalQuantity));
             TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
             TryBuildGroup(entry, "inventories", () => BuildInventories(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
@@ -891,6 +906,9 @@ namespace Gonogo.KSP
         /// POCO also puts the every-public-property wire ratchet across this
         /// path, which only reaches the POCO encoder.
         /// </summary>
+        private static double? FiniteOrNull(double value) =>
+            double.IsNaN(value) || double.IsInfinity(value) ? (double?)null : value;
+
         internal static Sitrep.Contract.OrbitPatch OrbitToPatch(Orbit patch)
         {
             var body = patch.referenceBody;
@@ -901,9 +919,9 @@ namespace Gonogo.KSP
                 Sma = patch.semiMajorAxis,
                 Ecc = patch.eccentricity,
                 Inc = patch.inclination,
-                Lan = patch.LAN,
-                ArgPe = patch.argumentOfPeriapsis,
-                MeanAnomalyAtEpoch = patch.meanAnomalyAtEpoch,
+                Lan = FiniteOrNull(patch.LAN),
+                ArgPe = FiniteOrNull(patch.argumentOfPeriapsis),
+                MeanAnomalyAtEpoch = FiniteOrNull(patch.meanAnomalyAtEpoch),
                 Epoch = patch.epoch,
                 Period = patch.period,
                 StartUt = patch.StartUT,
@@ -1425,7 +1443,7 @@ namespace Gonogo.KSP
         /// honest answer and the client already handles it (the verdict
         /// requires a strength that is present).</para>
         /// </summary>
-        private static Dictionary<string, object?>? BuildComms(Vessel vessel)
+        private static Dictionary<string, object?>? BuildComms(Vessel vessel, SignalQuantity? signalQuantity)
         {
             if (CommsModelPresence.Present == false)
             {
@@ -1442,6 +1460,7 @@ namespace Gonogo.KSP
             {
                 ["connected"] = connection.IsConnected,
                 ["signalStrength"] = connection.SignalStrength,
+                ["signalQuantity"] = signalQuantity?.ToString(),
                 ["controlState"] = connection.ControlState.ToString(),
             };
         }

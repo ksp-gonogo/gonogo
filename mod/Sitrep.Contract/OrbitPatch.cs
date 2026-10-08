@@ -19,10 +19,11 @@ namespace Sitrep.Contract;
 /// (<see cref="VesselOrbit.ReferenceBodyIndex"/> among them). <see cref="ReferenceBody"/>
 /// and <see cref="ClosestEncounterBody"/> are the body's name, for display.</para>
 ///
-/// <para>Every element is a plain, non-nullable double, unlike
-/// <see cref="VesselOrbit.Lan"/> and <see cref="VesselOrbit.ArgPe"/>: a patch
-/// missing any element needed to propagate it is not sent at all, rather than
-/// sent with a stand-in.</para>
+/// <para><see cref="Lan"/>, <see cref="ArgPe"/> and <see cref="MeanAnomalyAtEpoch"/>
+/// are null when KSP's value for them is undefined, as
+/// <see cref="VesselOrbit.Lan"/> and <see cref="VesselOrbit.ArgPe"/> are, and the
+/// patch is still sent. A patch with a null element cannot be propagated, so a
+/// reader that propagates one declines to rather than substituting a value.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -43,17 +44,17 @@ public class OrbitPatch
     [SitrepUnit(Units.Degrees)]
     public double Inc { get; set; }
 
-    /// <summary>Longitude of the ascending node in degrees, KSP's <c>Orbit.LAN</c>. <c>0</c> when KSP's value is undefined (NaN).</summary>
+    /// <summary>Longitude of the ascending node in degrees, KSP's <c>Orbit.LAN</c>. Null when KSP's value is undefined (NaN).</summary>
     [SitrepUnit(Units.Degrees)]
-    public double Lan { get; set; }
+    public double? Lan { get; set; }
 
-    /// <summary>Argument of periapsis in degrees, KSP's <c>Orbit.argumentOfPeriapsis</c>. <c>0</c> when KSP's value is undefined (NaN).</summary>
+    /// <summary>Argument of periapsis in degrees, KSP's <c>Orbit.argumentOfPeriapsis</c>. Null when KSP's value is undefined (NaN).</summary>
     [SitrepUnit(Units.Degrees)]
-    public double ArgPe { get; set; }
+    public double? ArgPe { get; set; }
 
-    /// <summary>Mean anomaly at <see cref="Epoch"/> in radians, KSP's <c>Orbit.meanAnomalyAtEpoch</c>. <c>0</c> when KSP's value is undefined (NaN).</summary>
+    /// <summary>Mean anomaly at <see cref="Epoch"/> in radians, KSP's <c>Orbit.meanAnomalyAtEpoch</c>. Null when KSP's value is undefined (NaN).</summary>
     [SitrepUnit(Units.Radians)]
-    public double MeanAnomalyAtEpoch { get; set; }
+    public double? MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>The universal time at which <see cref="MeanAnomalyAtEpoch"/> holds, KSP's <c>Orbit.epoch</c>.</summary>
     [SitrepUnit(Units.UniversalTime)]

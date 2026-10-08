@@ -311,12 +311,13 @@ export type {
   InertialState,
   PatchConic,
   PatchSpan,
+  PropagablePatch,
   TrackSample,
 } from "./orbit-patches";
 export {
+  canPropagatePatch,
   geoFromInertial,
   groundTrackSamples,
-  isPatchElliptical,
   patchArc,
   patchHolds,
   patchStateAt,

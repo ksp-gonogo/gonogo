@@ -32,7 +32,7 @@ namespace Sitrep.Contract.Tests
 
             protected override CommsSubject Subject() => new CommsSubject("craft");
 
-            protected override CommsLinkState? LinkState() => new CommsLinkState(true, _grade, 1.0);
+            protected override CommsLinkState? LinkState() => new CommsLinkState(true, _grade, 1.0, SignalQuantity.RangeFraction);
 
             protected override IReadOnlyList<CommsLinkView>? ControlPath(object? vessel) => null;
         }
@@ -53,6 +53,44 @@ namespace Sitrep.Contract.Tests
             Assert.Equal(source, backend.Connectivity().ControlSource);
             Assert.Equal(localControl, backend.Connectivity().HasLocalControl);
             Assert.Equal(kind, backend.ControlState().Level);
+        }
+
+        [Fact]
+        public void TheSignalCarriesTheQuantityTheBackendReportsItIn()
+        {
+            var signal = new GradedBackend(CommsControlGrade.Full).SignalStrength();
+
+            Assert.Equal(1.0, signal.Strength);
+            Assert.Equal(SignalQuantity.RangeFraction, signal.Quantity);
+        }
+
+        [Fact]
+        public void AnUnreadableLinkIsAZeroOfUnknownQuantity()
+        {
+            var signal = new UnreadableBackend().SignalStrength();
+
+            Assert.Equal(0.0, signal.Strength);
+            Assert.Equal(SignalQuantity.Unknown, signal.Quantity);
+        }
+
+        private sealed class UnreadableBackend : CommsBackendBase
+        {
+            public override string ProviderId => "unreadable";
+
+
+            public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+
+            public override ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
+            public override ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            public override ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
+
+            protected override CommsSubject Subject() => new CommsSubject("craft");
+
+            protected override CommsLinkState? LinkState() => null;
+
+            protected override IReadOnlyList<CommsLinkView>? ControlPath(object? vessel) => null;
         }
 
         [Fact]

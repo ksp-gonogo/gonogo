@@ -468,6 +468,7 @@
     "CommsSignal": {
       "modelled": "flag",
       "otherPath": "flag",
+      "quantity": "enum",
       "strength": "ratio"
     },
     "ContractActionArgs": {
@@ -1186,13 +1187,17 @@
       "traverseVelocity": "n/a",
       "type": "id"
     },
+    "ServoSetAngleArgs": {
+      "degrees": "°",
+      "partId": "id"
+    },
     "ServoSetEnabledArgs": {
       "enabled": "flag",
       "partId": "id"
     },
-    "ServoSetTargetArgs": {
-      "partId": "id",
-      "value": "n/a"
+    "ServoSetExtensionArgs": {
+      "metres": "m",
+      "partId": "id"
     },
     "SetActionGroupArgs": {
       "group": "id",
@@ -1424,6 +1429,7 @@
     "VesselComms": {
       "connected": "flag",
       "controlState": "enum",
+      "signalQuantity": "enum",
       "signalStrength": "ratio"
     },
     "VesselControl": {
@@ -1721,6 +1727,7 @@
     "comms.signal": {
       "modelled": "flag",
       "otherPath": "flag",
+      "quantity": "enum",
       "strength": "ratio"
     },
     "crash.hasRecent": {
@@ -2063,6 +2070,7 @@
     "vessel.comms": {
       "connected": "flag",
       "controlState": "enum",
+      "signalQuantity": "enum",
       "signalStrength": "ratio"
     },
     "vessel.control": {
@@ -2826,6 +2834,9 @@
     "CommsNetworkNode": {
       "kind": "CommsHopKind"
     },
+    "CommsSignal": {
+      "quantity": "SignalQuantity"
+    },
     "ControlFrame": {
       "kind": "ControlFrameKind"
     },
@@ -2925,7 +2936,8 @@
       "vesselType": "VesselType"
     },
     "VesselComms": {
-      "controlState": "ControlState"
+      "controlState": "ControlState",
+      "signalQuantity": "SignalQuantity"
     },
     "VesselControl": {
       "sasMode": "SasMode"
@@ -2974,6 +2986,9 @@
     "comms.delay": {
       "source": "CommsDelaySource"
     },
+    "comms.signal": {
+      "quantity": "SignalQuantity"
+    },
     "deployed.bases": {
       "power": "DeployedPowerState"
     },
@@ -2997,7 +3012,8 @@
       "warpMode": "WarpMode"
     },
     "vessel.comms": {
-      "controlState": "ControlState"
+      "controlState": "ControlState",
+      "signalQuantity": "SignalQuantity"
     },
     "vessel.control": {
       "sasMode": "SasMode"
@@ -3240,6 +3256,12 @@
       "2": "Recovered",
       "3": "Defaults",
       "4": "Unreadable"
+    },
+    "SignalQuantity": {
+      "0": "Unknown",
+      "1": "RangeFraction",
+      "2": "DataRateHeadroom",
+      "3": "NoModel"
     },
     "Situation": {
       "0": "Landed",

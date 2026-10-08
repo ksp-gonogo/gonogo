@@ -21,10 +21,13 @@ interface ConformanceSectionProps {
  * A patch's conic in the diagram's terms, whose apsides are RADII from the
  * body's centre like the current orbit's. The patch carries its apsides only as
  * altitudes over its own reference body, so the radii come from the shape.
+ * Null when the patch's argument of periapsis is undefined, since the ellipse
+ * cannot then be oriented, and the plot draws no planned orbit.
  */
 export function plannedConic(
   patch: Pick<OrbitPatch, "sma" | "ecc" | "argPe">,
-): ProjectedOrbit {
+): ProjectedOrbit | null {
+  if (patch.argPe == null) return null;
   const sma = patch.sma.magnitude;
   const ecc = patch.ecc.magnitude;
   return {

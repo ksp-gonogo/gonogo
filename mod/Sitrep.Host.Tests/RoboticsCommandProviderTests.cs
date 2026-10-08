@@ -19,40 +19,55 @@ namespace Sitrep.Host.Tests
     {
 
         [Fact]
-        public void HandleServoSetTargetPassesPartIdAndValueThrough()
+        public void HandleServoSetAnglePassesPartIdAndDegreesThrough()
         {
             var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleServoSetTarget(actuator, new ServoSetTargetArgs { PartId = "42", Value = 73.5 });
+            var result = RoboticsCommandProvider.HandleServoSetAngle(actuator, new ServoSetAngleArgs { PartId = "42", Degrees = 73.5 });
 
-            Assert.Equal("42", actuator.LastSetServoTargetPartId);
-            Assert.Equal(73.5, actuator.LastSetServoTargetValue);
+            Assert.Equal("42", actuator.LastSetServoAnglePartId);
+            Assert.Equal(73.5, actuator.LastSetServoAngleDegrees);
+            Assert.Null(actuator.LastSetServoExtensionPartId);
             Assert.True(result.Success);
         }
 
         [Fact]
-        public void HandleServoSetTargetRejectsEmptyPartIdBeforeEverCallingTheActuator()
+        public void HandleServoSetExtensionPassesPartIdAndMetresThrough()
         {
             var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleServoSetTarget(actuator, new ServoSetTargetArgs { PartId = "", Value = 10.0 });
+            var result = RoboticsCommandProvider.HandleServoSetExtension(actuator, new ServoSetExtensionArgs { PartId = "43", Metres = 1.25 });
 
-            Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
-            Assert.Null(actuator.LastSetServoTargetPartId);
+            Assert.Equal("43", actuator.LastSetServoExtensionPartId);
+            Assert.Equal(1.25, actuator.LastSetServoExtensionMetres);
+            Assert.Null(actuator.LastSetServoAnglePartId);
+            Assert.True(result.Success);
         }
 
         [Fact]
-        public void HandleServoSetTargetSurfacesTheActuatorsModeUnavailableError()
+        public void HandleServoSetAngleAndExtensionRejectAnEmptyPartIdBeforeEverCallingTheActuator()
         {
-            var actuator = new FakeRoboticsActuator { SetServoTargetResult = CommandResult.Fail(CommandErrorCode.ModeUnavailable) };
+            var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleServoSetTarget(actuator, new ServoSetTargetArgs { PartId = "7", Value = 1.0 });
+            var angle = RoboticsCommandProvider.HandleServoSetAngle(actuator, new ServoSetAngleArgs { PartId = "", Degrees = 10.0 });
+            var extension = RoboticsCommandProvider.HandleServoSetExtension(actuator, new ServoSetExtensionArgs { PartId = "", Metres = 1.0 });
 
-            Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.NotFound, angle.ErrorCode);
+            Assert.Equal(CommandErrorCode.NotFound, extension.ErrorCode);
+            Assert.Null(actuator.LastSetServoAnglePartId);
+            Assert.Null(actuator.LastSetServoExtensionPartId);
         }
 
+        [Fact]
+        public void HandleServoSetAngleSurfacesTheActuatorsCapabilityMismatchError()
+        {
+            var actuator = new FakeRoboticsActuator { SetServoAngleResult = CommandResult.Fail(CommandErrorCode.CapabilityMismatch) };
+
+            var result = RoboticsCommandProvider.HandleServoSetAngle(actuator, new ServoSetAngleArgs { PartId = "7", Degrees = 1.0 });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.CapabilityMismatch, result.ErrorCode);
+        }
 
         [Fact]
         public void HandleServoSetMotorPassesEnabledThroughAsAbsoluteState()

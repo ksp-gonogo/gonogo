@@ -48,7 +48,8 @@ function RoboticsConsoleComponent({
     undefined,
   )?.breakingGround;
 
-  const targetCmd = useCommand("robotics.servo.setTarget");
+  const angleCmd = useCommand("robotics.servo.setAngle");
+  const extensionCmd = useCommand("robotics.servo.setExtension");
   const motorCmd = useCommand("robotics.servo.setMotor");
   const lockCmd = useCommand("robotics.servo.setLock");
 
@@ -67,11 +68,15 @@ function RoboticsConsoleComponent({
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
 
   // Type-formatted, so a piston is not commanded to a whole metre.
-  const setTarget = (id: string, type: ServoType, value: number) =>
-    void targetCmd.send(
-      { partId: id, value: Number(formatPos(type, value)) },
-      { label: `Target ${formatPos(type, value)}${unitFor(type)}` },
-    );
+  const setTarget = (id: string, type: ServoType, value: number) => {
+    const target = Number(formatPos(type, value));
+    const label = `Target ${formatPos(type, value)}${unitFor(type)}`;
+    if (type === "piston") {
+      void extensionCmd.send({ partId: id, metres: target }, { label });
+      return;
+    }
+    void angleCmd.send({ partId: id, degrees: target }, { label });
+  };
   const setMotor = (id: string, engaged: boolean) =>
     void motorCmd.send(
       { partId: id, enabled: engaged },

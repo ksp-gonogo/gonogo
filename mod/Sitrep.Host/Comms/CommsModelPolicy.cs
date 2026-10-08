@@ -176,6 +176,7 @@ namespace Sitrep.Host.Comms
         public CommsSignal SignalStrength() => new CommsSignal
         {
             Strength = 1.0,
+            Quantity = SignalQuantity.NoModel,
         };
 
         /// <summary>

@@ -466,8 +466,7 @@ namespace Sitrep.Host
             var semiMinorAxis = GetDouble(patch, "semiMinorAxis");
             var referenceBody = GetString(patch, "referenceBody");
 
-            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !lan.HasValue ||
-                !argPe.HasValue || !maae.HasValue || !epoch.HasValue ||
+            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !epoch.HasValue ||
                 !period.HasValue || !startUt.HasValue || !endUt.HasValue ||
                 !peA.HasValue || !apA.HasValue || !semiLatusRectum.HasValue ||
                 !semiMinorAxis.HasValue || referenceBody == null)
@@ -480,9 +479,9 @@ namespace Sitrep.Host
                 Sma = sma.Value,
                 Ecc = ecc.Value,
                 Inc = inc.Value,
-                Lan = lan.Value,
-                ArgPe = argPe.Value,
-                MeanAnomalyAtEpoch = maae.Value,
+                Lan = lan,
+                ArgPe = argPe,
+                MeanAnomalyAtEpoch = maae,
                 Epoch = epoch.Value,
                 Period = period.Value,
                 StartUt = startUt.Value,
@@ -896,6 +895,7 @@ namespace Sitrep.Host
             {
                 Connected = connected.Value,
                 SignalStrength = signalStrength.Value,
+                SignalQuantity = ParseSignalQuantity(GetString(comms, "signalQuantity")),
                 ControlState = ParseControlState(GetString(comms, "controlState")),
                 Meta = BuildMeta(vesselId),
             };
@@ -1814,6 +1814,7 @@ namespace Sitrep.Host
         {
             ["connected"] = comms.Connected,
             ["signalStrength"] = comms.SignalStrength,
+            ["signalQuantity"] = (int)comms.SignalQuantity,
             ["controlState"] = (int)comms.ControlState,
             ["meta"] = ToWire(comms.Meta),
         };
@@ -2198,6 +2199,17 @@ namespace Sitrep.Host
                 "packed" => PhysicsMode.Packed,
                 "unpacked" => PhysicsMode.Unpacked,
                 _ => PhysicsMode.Unknown,
+            };
+        }
+
+        private static SignalQuantity ParseSignalQuantity(string? raw)
+        {
+            return raw switch
+            {
+                nameof(SignalQuantity.RangeFraction) => SignalQuantity.RangeFraction,
+                nameof(SignalQuantity.DataRateHeadroom) => SignalQuantity.DataRateHeadroom,
+                nameof(SignalQuantity.NoModel) => SignalQuantity.NoModel,
+                _ => SignalQuantity.Unknown,
             };
         }
 
