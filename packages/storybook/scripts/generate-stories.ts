@@ -321,6 +321,19 @@ async function writeWidgetFile(
 const HANDWRITTEN_WIDGETS = resolve(SRC, "stories/widgets");
 
 /**
+ * The widget a playback story shows, read from its title (`Widgets/<id>/...`),
+ * so a widget can have a playback file beside its own stories under any name.
+ */
+function playbackWidgetId(meta: {
+  title?: string;
+  tags?: readonly string[];
+}): string | undefined {
+  if (!meta.tags?.includes("playback")) return undefined;
+  const [group, widgetId] = (meta.title ?? "").split("/");
+  return group === "Widgets" ? widgetId : undefined;
+}
+
+/**
  * The widgets whose stories are written by hand rather than generated, chiefly
  * app widgets whose states come from a host service rather than a fixture:
  * each file's stories, as Storybook's own indexer names them.
@@ -331,13 +344,16 @@ function handwrittenWidgetStories(): Map<string, string[]> {
   for (const entry of readdirSync(HANDWRITTEN_WIDGETS).sort()) {
     if (!entry.endsWith(".stories.tsx")) continue;
     const file = resolve(HANDWRITTEN_WIDGETS, entry);
-    const ids = loadCsf(readFileSync(file, "utf8"), {
+    const csf = loadCsf(readFileSync(file, "utf8"), {
       fileName: file,
       makeTitle: (title) => title,
-    })
-      .parse()
-      .stories.map((story) => story.id);
-    out.set(entry.replace(/\.stories\.tsx$/, ""), ids);
+    }).parse();
+    const widgetId =
+      playbackWidgetId(csf.meta) ?? entry.replace(/\.stories\.tsx$/, "");
+    out.set(widgetId, [
+      ...(out.get(widgetId) ?? []),
+      ...csf.stories.map((story) => story.id),
+    ]);
   }
   return out;
 }

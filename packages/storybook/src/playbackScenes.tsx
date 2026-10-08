@@ -1,4 +1,3 @@
-import { Button } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   orbitFirstScene,
@@ -14,6 +13,7 @@ import {
   transferFirstScene,
   transferFrames,
 } from "../../components/scripts/systemTransferModel";
+import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
 
 export interface PlaybackSceneProps {
@@ -81,9 +81,7 @@ export function FramePlayer({
   return (
     <div>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-        <Button size="sm" onClick={replay}>
-          Replay
-        </Button>
+        <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">{clock}</span>
       </div>
       <WidgetScene
