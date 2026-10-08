@@ -93,6 +93,7 @@ export type {
   SystemEntityPosition,
   SystemEntityShape,
   SystemEntityStyle,
+  SystemEntitySubjectPosition,
   SystemProjectionExtent,
   SystemViewProjection,
   SystemViewVesselStatusEntry,

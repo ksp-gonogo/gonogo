@@ -1,6 +1,8 @@
 import {
   CORE_UPLINK_CLIENT,
   ContributionsProvider,
+  clearAugments,
+  registerAugment,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
@@ -10,7 +12,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { SystemViewComponent } from "./index";
+import { type SystemOverlayContext, SystemViewComponent } from "./index";
 import {
   followControlFrameProjectionId,
   parentDirectionProjectionId,
@@ -329,6 +331,51 @@ describe("SystemView follow-control-frame", () => {
       const dot = view.container.querySelector('circle[data-body="Minmus"]');
       expect(Math.abs(Number(dot?.getAttribute("cy")))).toBeLessThan(0.01);
       expect(Number(dot?.getAttribute("cx"))).toBeGreaterThan(1);
+    });
+    await act(async () => {});
+  });
+});
+
+describe("SystemView overlay placement", () => {
+  it("lands an overlay's point on the body it names, in a frame that turns the picture", async () => {
+    let seen: SystemOverlayContext | null = null;
+    function OverlayAugment(ctx: SystemOverlayContext) {
+      seen = ctx;
+      return <div data-testid="sv-overlay-probe" />;
+    }
+    clearAugments();
+    const { view } = mount({
+      config: { frame: "Kerbin", projection: "test.kerbin-mun" },
+    });
+    act(() => {
+      registerAugment({
+        id: "test-overlay-on-mun",
+        augments: "system-view.overlay",
+        component: OverlayAugment,
+      });
+    });
+    const mun = await bodyAt(view, "Mun");
+    await waitFor(() => {
+      if (seen === null) throw new Error("the overlay has not mounted yet");
+    });
+    const ctx = seen as SystemOverlayContext | null;
+    // Mun's own catalogue place about Kerbin at UT 0: a circular orbit at its mean anomaly.
+    const [x, y] = ctx?.place([
+      MUN_SMA * Math.cos(MUN_MEAN_ANOMALY),
+      MUN_SMA * Math.sin(MUN_MEAN_ANOMALY),
+      0,
+    ]) ?? [Number.NaN, Number.NaN];
+    expect(x).toBeCloseTo(mun.x, 3);
+    expect(y).toBeCloseTo(mun.y, 3);
+    // The plot scale alone would have put it somewhere else: inertially it is not on the first axis.
+    const naiveY =
+      (ctx?.center.y ?? 0) +
+      MUN_SMA * Math.sin(MUN_MEAN_ANOMALY) * (ctx?.plotScale ?? 0);
+    expect(Math.abs(naiveY - mun.y)).toBeGreaterThan(1);
+    expect(ctx?.frame).not.toBe("Kerbin-Centred Inertial");
+    // Cleared inside act: the tree is still mounted, and a clear notifies it.
+    act(() => {
+      clearAugments();
     });
     await act(async () => {});
   });

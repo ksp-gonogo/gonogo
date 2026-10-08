@@ -59,6 +59,7 @@ const PREDICTING_FILES = [
   "packages/components/src/SystemView/predictedTrajectory.ts",
   "packages/components/src/SystemView/transferWindow.ts",
   "packages/components/src/SystemView/useBodyRotation.ts",
+  "packages/components/src/SystemView/systemEntities.ts",
   "packages/components/src/SystemView/usePhaseAngles.ts",
   "packages/components/src/TransferWindow/transferData.ts",
 ];

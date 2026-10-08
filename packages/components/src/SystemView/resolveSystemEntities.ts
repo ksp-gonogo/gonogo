@@ -1,6 +1,7 @@
 import { logger } from "@ksp-gonogo/logger";
 import type { AlertTone } from "@ksp-gonogo/sitrep-sdk";
 import {
+  entityIsHeld,
   projectEntityPosition,
   projectOrbitRing,
   SYSTEM_ENTITY_DEFAULT_LAYER,
@@ -51,6 +52,8 @@ interface ResolvedBase {
   meta?: SystemEntityMeta;
   /** Carried from `SystemEntity.vesselId`, so selection recognises a vessel whether drawn as a point or a ring. */
   vesselId?: string;
+  /** Whether the entity's place is known to be old: drawn dimmed and dashed, and named as held. */
+  held?: boolean;
 }
 
 export type ResolvedSystemEntity =
@@ -96,6 +99,9 @@ export type ResolvedSystemEntity =
     });
 
 const DEFAULT_POINT_RADIUS_PX = 4;
+
+/** A held entity keeps its colour and loses half its weight, which dashing alone would not say at a glance. */
+const HELD_OPACITY_FACTOR = 0.5;
 
 /** One entity projected into plot space, or `null` when it has nowhere to draw. */
 function resolveEntity(
@@ -216,8 +222,14 @@ export function resolveSystemEntities(
     const opacity = resolveOpacity(style);
     const z = effectiveLayer(entity);
 
-    const resolved = resolveEntity(entity, ctx, colour, opacity);
-    if (resolved) layered.push({ z, resolved });
+    const held = entityIsHeld(entity, ctx);
+    const resolved = resolveEntity(
+      entity,
+      ctx,
+      colour,
+      held ? opacity * HELD_OPACITY_FACTOR : opacity,
+    );
+    if (resolved) layered.push({ z, resolved: { ...resolved, held } });
   }
 
   layered.sort((a, b) => a.z - b.z);

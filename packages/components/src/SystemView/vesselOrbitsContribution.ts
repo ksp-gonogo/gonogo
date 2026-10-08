@@ -83,6 +83,23 @@ interface ConicElements {
   inclination: number;
 }
 
+/** Where on the ring the craft was, when the roster read both; without them the ring has no marked place. */
+interface RingPlace {
+  epoch: number;
+  meanAnomalyAtEpoch: number;
+}
+
+function ringPlace(v: VesselRosterEntry): RingPlace | null {
+  const epoch = v.orbit?.epoch;
+  const meanAnomalyAtEpoch = v.orbit?.meanAnomalyAtEpoch;
+  if (!epoch?.isFinite() || !meanAnomalyAtEpoch?.isFinite()) return null;
+  // The published entity position states plain numbers, in seconds and radians.
+  return {
+    epoch: epoch.valueOf(),
+    meanAnomalyAtEpoch: meanAnomalyAtEpoch.valueOf(),
+  };
+}
+
 /**
  * Every element a vessel's ring needs, or `null` when any is unread or the
  * `sma` is not a positive length; shared by the vessel entities and the graph's
@@ -105,6 +122,7 @@ function conicElements(v: VesselRosterEntry): ConicElements | null {
 /** A vessel's position in `bodyName`'s frame: its Keplerian elements when all are read, else a dot at the body without fabricated elements. */
 function vesselPosition(
   elements: ConicElements | null,
+  place: RingPlace | null,
   bodyName: string,
 ): SystemEntityPosition {
   if (!elements) {
@@ -120,7 +138,7 @@ function vesselPosition(
     kind: "orbit",
     parentName: bodyName,
     ...elements,
-    trueAnomaly: 0, // ignored by "orbit-path", which draws the whole ring
+    ...place,
   };
 }
 
@@ -145,7 +163,7 @@ export function computeVesselOrbitEntities(
     entities.push({
       id: `vessel-orbit:${v.vesselId}`,
       vesselId: v.vesselId,
-      position: vesselPosition(elements, bodyName),
+      position: vesselPosition(elements, ringPlace(v), bodyName),
       shape: elements ? { kind: "orbit-path" } : { kind: "point", radiusPx: 3 },
       style: { emphasis: "faint" },
       meta: metaFor(v, bodyName),
@@ -189,7 +207,7 @@ function resolveNodePosition(
       ? (nameByIndex.get(vessel.bodyIndex) ?? null)
       : null;
   if (bodyName == null) return null;
-  return vesselPosition(conicElements(vessel), bodyName);
+  return vesselPosition(conicElements(vessel), ringPlace(vessel), bodyName);
 }
 
 /** The CommNet half: one faint `connection-line` per `comms.network` edge, omitting any edge whose endpoint cannot be resolved; static topology only. */

@@ -95,7 +95,8 @@ describe("computeVesselOrbitEntities", () => {
       argPe: 30,
       // Carried: a contributed ring with no inclination is one the diagram cannot turn.
       inclination: 5,
-      trueAnomaly: 0,
+      epoch: 0,
+      meanAnomalyAtEpoch: 0,
     });
   });
 
@@ -329,7 +330,6 @@ describe("computeCommsNetworkEntities", () => {
         lan: 0,
         argPe: 0,
         inclination: 0,
-        trueAnomaly: 0,
       },
     });
     expect(entities[0].style).toEqual({ emphasis: "faint" });

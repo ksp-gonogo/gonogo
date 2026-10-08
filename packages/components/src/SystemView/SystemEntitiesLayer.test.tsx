@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
@@ -11,6 +12,8 @@ const CTX: SystemEntitiesContext = {
   height: 400,
   plotScale: 1e-5,
   center: { x: 0, y: 0 },
+  ut: 0,
+  muOf: () => 3.5316e12,
 };
 
 const POINT: SystemEntity = {
@@ -23,7 +26,8 @@ const POINT: SystemEntity = {
     lan: 0,
     argPe: 0,
     inclination: 0,
-    trueAnomaly: 0,
+    epoch: 0,
+    meanAnomalyAtEpoch: 0,
   },
   shape: { kind: "point" },
   meta: { name: "Kerbal X" },
@@ -39,7 +43,8 @@ const RING: SystemEntity = {
     lan: 10,
     argPe: 5,
     inclination: 0,
-    trueAnomaly: 0,
+    epoch: 0,
+    meanAnomalyAtEpoch: 0,
   },
   shape: { kind: "orbit-path" },
 };
@@ -55,7 +60,8 @@ const VESSEL_RING: SystemEntity = {
     lan: 10,
     argPe: 5,
     inclination: 0,
-    trueAnomaly: 0,
+    epoch: 0,
+    meanAnomalyAtEpoch: 0,
   },
   shape: { kind: "orbit-path" },
   meta: { name: "Comsat Relay-1" },
@@ -163,7 +169,7 @@ describe("SystemEntitiesLayer", () => {
     );
     const dot = container.querySelector('circle[data-entity-dot-id="ring-1"]');
     expect(dot).not.toBeNull();
-    // RING: sma=1e6, ecc=0.3, lan=10, argPe=5, trueAnomaly=0, plotScale=1e-5.
+    // RING: sma=1e6, ecc=0.3, lan=10, argPe=5, mean anomaly 0, plotScale=1e-5.
     expect(Number(dot?.getAttribute("cx"))).toBeCloseTo(6.7615, 3);
     expect(Number(dot?.getAttribute("cy"))).toBeCloseTo(1.8117, 3);
   });
@@ -696,5 +702,27 @@ describe("travellingPulseWavePoints", () => {
       expect(x).toBeCloseTo(base[i][0] + 10, 6);
       expect(y).toBeCloseTo(base[i][1], 6);
     }
+  });
+
+  it("draws an entity whose place is held dashed and names it as held", async () => {
+    const { container } = render(
+      <SystemEntitiesLayer
+        entities={[{ ...POINT, currency: "held" }]}
+        ctx={CTX}
+      />,
+    );
+    const marker = container.querySelector('[data-entity-id="vessel-1"]');
+    expect(marker?.hasAttribute("data-entity-held")).toBe(true);
+    expect(
+      marker?.querySelector("circle")?.getAttribute("stroke-dasharray"),
+    ).not.toBeNull();
+    await expectNoA11yViolations(container);
+  });
+
+  it("draws a current entity with no held mark", () => {
+    const { container } = render(
+      <SystemEntitiesLayer entities={[POINT]} ctx={CTX} />,
+    );
+    expect(container.querySelector("[data-entity-held]")).toBeNull();
   });
 });

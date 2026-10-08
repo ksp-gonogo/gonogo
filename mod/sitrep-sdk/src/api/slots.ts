@@ -477,10 +477,12 @@ export interface ActionGroupSlotContext {
  * Props passed to every `system-view.overlay` augment: a layer over the System
  * View diagram, with the scale the diagram draws at.
  *
- * Draw in a `width` by `height` origin-centred viewBox: `d` metres from the
- * body the diagram is centred on is `d * plotScale` SVG units from `center`.
- * Both follow the diagram's pan and zoom, so an overlay drawn this way moves
- * with it. The layer passes pointer events through to the diagram, so an
+ * Draw in a `width` by `height` origin-centred viewBox, and put every point
+ * through `place`: it lands where the bodies do in whatever frame the diagram
+ * is drawn in, and follows the diagram's pan and zoom, so an overlay drawn this
+ * way moves with it. Only in the plain inertial frame is `d` metres from the
+ * body the diagram is centred on simply `d * plotScale` SVG units from
+ * `center`; in a frame that turns or pulsates it is not. The layer passes pointer events through to the diagram, so an
  * element that needs clicks turns them back on itself.
  *
  * @category Widget slots
@@ -496,6 +498,17 @@ export interface SystemOverlayContext {
   plotScale: number;
   /** Where the centre body is drawn, in SVG units, after the diagram's pan: the origin until it is panned. */
   center: { x: number; y: number };
+  /**
+   * Where a point lands in the frame the diagram is drawn in, in SVG units, at
+   * the diagram's pan and zoom. Pass metres from the centre body in the
+   * catalogue's axes: it turns with a rotating frame and drops the depth a flat
+   * picture has no place for, so an overlay lands where the bodies do.
+   */
+  place: (
+    metres: readonly [number, number, number],
+  ) => readonly [number, number];
+  /** The name of the frame the diagram is drawn in, such as `"Kerbin-Centred Inertial"`. */
+  frame: string;
 }
 
 // "system-view.actions" carries no props today.

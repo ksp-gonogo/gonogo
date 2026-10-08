@@ -14,12 +14,15 @@ export function overlayGeometry({
   vesselOrbit,
   size,
   projection,
+  places,
 }: {
   parentName: string | null;
   children: readonly CelestialBody[];
   vesselOrbit: { parentName: string; sma: number; ecc: number } | null;
   size: { w: number; h: number };
   projection: Placement | null;
+  /** What an entity needs of the model: the instant, a body's μ, where a body is. */
+  places: Pick<SystemEntitiesContext, "ut" | "muOf" | "bodyPlace">;
 }): SystemEntitiesContext | null {
   if (parentName === null || size.w <= 0 || size.h <= 0) return null;
   return {
@@ -37,6 +40,7 @@ export function overlayGeometry({
     // A contributed entity's metres are measured from the frame body's drawn position.
     center: { x: 0, y: 0 },
     placement: projection ?? undefined,
+    ...places,
   };
 }
 

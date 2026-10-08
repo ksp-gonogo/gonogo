@@ -12,8 +12,10 @@ import {
   CONTROL_FRAME_TOPIC,
   controlFrameToReadFrameChoice,
   type OrbitTrajectory,
+  poseAtIndex,
   type ReadFrameChoice,
   readFrameChoicesEqual,
+  trajectoryFrameLabel,
   useOrbitTrajectory,
   useProcessor,
   useStream,
@@ -40,9 +42,11 @@ import { bodyOffsetAt } from "./patchOffsets";
 import type { TrajectoryPatch } from "./predictedTrajectory";
 import {
   followControlFrameProjection,
+  INERTIAL_PLACEMENT,
   inertialFrameFor,
   resolveProjection,
 } from "./projection";
+import type { SystemOverlayContext } from "./slots";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
@@ -422,6 +426,27 @@ function SystemViewComponent({
 
   // Owned here rather than by the diagram, so the entity layer and the overlay slot follow the same pan and zoom.
   const panZoom = usePanZoom(wrapRef, parentName !== null && bodies.length > 0);
+  const places = useMemo(
+    () => ({
+      ut: universalTime,
+      muOf: (bodyName: string) =>
+        bodies.find((b) => b.name === bodyName)?.gravParameter ?? null,
+      bodyPlace: (bodyIndex: number) => {
+        const body = poseAtIndex(poses, bodyIndex);
+        const frameBody = poseAtIndex(poses, frameBodyIndex);
+        if (!body?.position || !frameBody?.position) return null;
+        return {
+          offset: [
+            body.position[0] - frameBody.position[0],
+            body.position[1] - frameBody.position[1],
+            body.position[2] - frameBody.position[2],
+          ] as const,
+          currency: body.currency,
+        };
+      },
+    }),
+    [universalTime, bodies, poses, frameBodyIndex],
+  );
   const overlayContext = useMemo(
     () =>
       viewedGeometry(
@@ -431,6 +456,7 @@ function SystemViewComponent({
           vesselOrbit,
           size,
           projection,
+          places,
         }),
         panZoom.zoom,
         panZoom.pan,
@@ -441,10 +467,37 @@ function SystemViewComponent({
       vesselOrbit,
       size,
       projection,
+      places,
       panZoom.zoom,
       panZoom.pan,
     ],
   );
+  // What an overlay augment receives: the same geometry, plus the one call that lands a point where the bodies are drawn.
+  const overlayProps = useMemo<SystemOverlayContext | null>(() => {
+    if (overlayContext === null) return null;
+    const placement = overlayContext.placement ?? INERTIAL_PLACEMENT;
+    return {
+      parentName: overlayContext.parentName,
+      width: overlayContext.width,
+      height: overlayContext.height,
+      plotScale: overlayContext.plotScale,
+      center: overlayContext.center,
+      place: (metres) => {
+        const at = placement.place([metres[0], metres[1], metres[2]]);
+        return [
+          overlayContext.center.x + at[0] * overlayContext.plotScale,
+          overlayContext.center.y + at[1] * overlayContext.plotScale,
+        ];
+      },
+      frame: trajectoryFrameLabel(
+        projection?.frame ??
+          (frameBodyIndex === undefined
+            ? undefined
+            : inertialFrameFor(frameBodyIndex)),
+        facts,
+      ),
+    };
+  }, [overlayContext, projection, frameBodyIndex, facts]);
 
   // The selected vessel's roster fields while something is selected, else the frame body's almanac.
   const almanac = (
@@ -569,11 +622,11 @@ function SystemViewComponent({
                     />
                   )}
                   {/* Pointer-transparent, so an empty overlay slot is inert. */}
-                  {overlayContext !== null && (
+                  {overlayProps !== null && (
                     <div style={OVERLAY_LAYER}>
                       <AugmentSlot
                         name="system-view.overlay"
-                        props={overlayContext}
+                        props={overlayProps}
                       />
                     </div>
                   )}

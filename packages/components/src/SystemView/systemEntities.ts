@@ -1,3 +1,7 @@
+import {
+  type BodyPoseCurrency,
+  deriveTrueAnomalyDeg,
+} from "@ksp-gonogo/sitrep-client";
 import type {
   SystemEntity,
   SystemEntityEmphasis,
@@ -7,6 +11,7 @@ import type {
   SystemEntityPosition,
   SystemEntityShape,
   SystemEntityStyle,
+  SystemEntitySubjectPosition,
 } from "@ksp-gonogo/sitrep-sdk";
 import { orbitPointAt, orbitRingOf } from "./orbitGeometry";
 import { INERTIAL_PLACEMENT, type Placement } from "./projection";
@@ -20,6 +25,7 @@ export type {
   SystemEntityPosition,
   SystemEntityShape,
   SystemEntityStyle,
+  SystemEntitySubjectPosition,
 };
 
 /*
@@ -39,6 +45,15 @@ export interface SystemEntitiesContext {
   center: { x: number; y: number };
   /** The frame the diagram draws in, so an entity lands where the bodies do; absent is parent-centred inertial, the frame positions arrive in. */
   placement?: Placement;
+  /** The instant on screen, in seconds: where an orbit position's mean anomaly is carried to. Absent places no orbit marker. */
+  ut?: number;
+  /** A body's gravitational parameter by name, for carrying an orbit position forward. */
+  muOf?: (bodyName: string) => number | null;
+  /** Where a body is relative to the frame body, in the catalogue's axes and metres, and how well that is known; null when it has no place. */
+  bodyPlace?: (bodyIndex: number) => {
+    offset: readonly [number, number, number];
+    currency: BodyPoseCurrency;
+  } | null;
 }
 
 /** Case/whitespace-insensitive body-name match (mirrors `SystemDiagram`'s own `nameMatches`). */
@@ -46,15 +61,62 @@ function sameParent(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
+/**
+ * Where on its orbit an entity is at the instant on screen, in degrees, or null
+ * when it states no epoch, the parent's gravitational parameter is unknown, or
+ * there is no instant. A place nobody stated is not guessed.
+ *
+ * Not a reckoner: the entity states a mean anomaly at an epoch and the widget
+ * carries it to the instant on screen; no Topic holds the result, and
+ * `registerReckoner` takes a `TopicId`.
+ */
+function trueAnomalyOf(
+  position: SystemEntityOrbitPosition,
+  ctx: SystemEntitiesContext,
+): number | null {
+  if (ctx.ut === undefined) return null;
+  return deriveTrueAnomalyDeg({
+    semiMajorAxis: position.sma,
+    eccentricity: position.ecc,
+    meanAnomalyAtEpoch: position.meanAnomalyAtEpoch,
+    epoch: position.epoch,
+    parentGravParameter: ctx.muOf?.(position.parentName),
+    ut: ctx.ut,
+  });
+}
+
+/** Whether an entity's place is known to be old: it says so itself, or it is placed by a body whose place is held. */
+export function entityIsHeld(
+  entity: SystemEntity,
+  ctx: SystemEntitiesContext,
+): boolean {
+  if (entity.currency === "held") return true;
+  if (entity.position.kind !== "subject") return false;
+  return (
+    ctx.bodyPlace?.(entity.position.subject.bodyIndex)?.currency === "held"
+  );
+}
+
 /** Projects a position spec into SVG user units, or `null` when its parent is not the rendered frame or the geometry is degenerate. */
 export function projectEntityPosition(
   position: SystemEntityPosition,
   ctx: SystemEntitiesContext,
 ): { x: number; y: number } | null {
-  if (!sameParent(position.parentName, ctx.parentName)) return null;
   const placement = ctx.placement ?? INERTIAL_PLACEMENT;
+  if (position.kind === "subject") {
+    const place = ctx.bodyPlace?.(position.subject.bodyIndex);
+    if (!place) return null;
+    const at = placement.place([...place.offset]);
+    return {
+      x: ctx.center.x + at[0] * ctx.plotScale,
+      y: ctx.center.y + at[1] * ctx.plotScale,
+    };
+  }
+  if (!sameParent(position.parentName, ctx.parentName)) return null;
   if (position.kind === "orbit") {
     if (!(position.sma > 0) || !Number.isFinite(position.sma)) return null;
+    const trueAnomaly = trueAnomalyOf(position, ctx);
+    if (trueAnomaly === null) return null;
     const at = placement.place(
       orbitPointAt(
         position.sma,
@@ -62,7 +124,7 @@ export function projectEntityPosition(
         position.lan,
         position.argPe,
         position.inclination,
-        position.trueAnomaly,
+        trueAnomaly,
       ),
     );
     return {

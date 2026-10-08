@@ -118,6 +118,7 @@ function Primitive({
               strokeWidth={VESSEL_ORBIT_STROKE_WIDTH_PX}
               pointerEvents="none"
               data-entity-id={r.id}
+              {...heldProps(r)}
             />
             {dot}
           </>
@@ -130,7 +131,7 @@ function Primitive({
             data-entity-id={r.id}
             role="button"
             tabIndex={0}
-            aria-label={formatEntityLabel(r.id, r.meta)}
+            aria-label={labelOf(r)}
             aria-pressed={selected}
             onClick={activate}
             onKeyDown={activateOnKey(activate)}
@@ -166,6 +167,7 @@ function Primitive({
                   ? VESSEL_ORBIT_STROKE_WIDTH_SELECTED_PX
                   : VESSEL_ORBIT_STROKE_WIDTH_PX
               }
+              {...heldProps(r)}
             />
           </InteractiveMarker>
           {dot}
@@ -184,6 +186,7 @@ function Primitive({
           strokeWidth={1.4}
           pointerEvents="none"
           data-entity-id={r.id}
+          {...heldProps(r)}
         />
       );
     case "blob":
@@ -199,6 +202,7 @@ function Primitive({
           strokeWidth={1}
           pointerEvents="none"
           data-entity-id={r.id}
+          {...heldProps(r)}
         />
       );
     case "travelling-pulse":
@@ -212,7 +216,7 @@ function Primitive({
         ? {
             role: "button" as const,
             tabIndex: 0,
-            "aria-label": formatEntityLabel(r.id, r.meta),
+            "aria-label": labelOf(r),
             "aria-pressed": selected,
             onClick: activate,
             onKeyDown: activateOnKey(activate),
@@ -220,7 +224,11 @@ function Primitive({
           }
         : { style: POINT_STATIC_STYLE };
       return (
-        <InteractiveMarker data-entity-id={r.id} {...interactiveProps}>
+        <InteractiveMarker
+          data-entity-id={r.id}
+          {...(r.held ? { "data-entity-held": "" } : {})}
+          {...interactiveProps}
+        >
           <circle
             cx={r.x}
             cy={r.y}
@@ -229,6 +237,7 @@ function Primitive({
             fillOpacity={r.opacity}
             stroke="var(--color-text-inverse)"
             strokeWidth={1}
+            strokeDasharray={r.held ? HELD_DASH : undefined}
           />
           {interactive && (
             <circle
@@ -248,6 +257,20 @@ function Primitive({
     default:
       return null;
   }
+}
+
+/** A held entity is dashed as well as dimmed, so it does not depend on opacity alone to say so. */
+const HELD_DASH = "4 3";
+
+/** The attributes a held entity carries: the dash and a hook for tests and styling. */
+function heldProps(r: { held?: boolean }) {
+  return r.held ? { strokeDasharray: HELD_DASH, "data-entity-held": "" } : {};
+}
+
+/** The accessible name of an entity, saying so when its place is held. */
+function labelOf(r: ResolvedSystemEntity): string {
+  const label = formatEntityLabel(r.id, r.meta);
+  return r.held ? `${label}, held` : label;
 }
 
 /** Radius of the marker at an `orbit-path` entity's own anomaly, showing where on the ring its data points. */

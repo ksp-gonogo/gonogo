@@ -8219,6 +8219,22 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk . SystemEntityOrbitPosition#trueAnomaly",
+        "note": "Removed: the widget carries the entity to the instant on screen from epoch and meanAnomalyAtEpoch, so a contribution cannot freeze a marker at a stale anomaly and never advances an orbit itself"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntityPosition",
+        "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
+      },
+      {
+        "key": "sitrep-sdk . SystemOverlayContext#frame",
+        "note": "Names the frame the diagram is drawn in, so an overlay can say what its points are measured in"
+      },
+      {
+        "key": "sitrep-sdk . SystemOverlayContext#place",
+        "note": "Lands a point in metres from the centre body where the bodies are drawn, in whatever frame the diagram turns with; the plot scale alone is right only in the plain inertial frame"
+      },
+      {
         "key": "sitrep-sdk . TOPIC_IDS",
         "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean"
       },
@@ -8547,6 +8563,14 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk ./registry ~SystemEntityOrbitPosition#trueAnomaly",
+        "note": "Removed: the widget carries the entity to the instant on screen from epoch and meanAnomalyAtEpoch, so a contribution cannot freeze a marker at a stale anomaly and never advances an orbit itself"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemEntityPosition",
+        "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
+      },
+      {
         "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
@@ -8759,6 +8783,14 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk ./spine ~SystemEntityOrbitPosition#trueAnomaly",
+        "note": "Removed: the widget carries the entity to the instant on screen from epoch and meanAnomalyAtEpoch, so a contribution cannot freeze a marker at a stale anomaly and never advances an orbit itself"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemEntityPosition",
+        "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
+      },
+      {
         "key": "sitrep-sdk ./testing StubTransport#sentGroups",
         "note": "New: the groups the stub was asked to send, beside the commands that were its members"
       },
@@ -8841,6 +8873,22 @@
       {
         "key": "sitrep-sdk ./testing ~StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntityOrbitPosition#trueAnomaly",
+        "note": "Removed: the widget carries the entity to the instant on screen from epoch and meanAnomalyAtEpoch, so a contribution cannot freeze a marker at a stale anomaly and never advances an orbit itself"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntityPosition",
+        "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemOverlayContext#frame",
+        "note": "Names the frame the diagram is drawn in, so an overlay can say what its points are measured in"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemOverlayContext#place",
+        "note": "Lands a point in metres from the centre body where the bodies are drawn, in whatever frame the diagram turns with; the plot scale alone is right only in the plain inertial frame"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
@@ -9619,6 +9667,30 @@
       {
         "key": "sitrep-sdk . SizeDelta#w?",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntity#currency?",
+        "note": "Lets a contribution say its entity's place is held, which draws it dimmed and dashed and names it as held"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntityOrbitPosition#epoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntityOrbitPosition#meanAnomalyAtEpoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntitySubjectPosition",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntitySubjectPosition#kind",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk . SystemEntitySubjectPosition#subject",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
       },
       {
         "key": "sitrep-sdk . SystemPoses",
@@ -10597,6 +10669,30 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~SystemEntity#currency?",
+        "note": "Lets a contribution say its entity's place is held, which draws it dimmed and dashed and names it as held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemEntityOrbitPosition#epoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemEntityOrbitPosition#meanAnomalyAtEpoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemEntitySubjectPosition",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemEntitySubjectPosition#kind",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemEntitySubjectPosition#subject",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SystemOverlayContext",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
@@ -10605,12 +10701,20 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~SystemOverlayContext#frame",
+        "note": "Names the frame the diagram is drawn in, so an overlay can say what its points are measured in"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SystemOverlayContext#height",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~SystemOverlayContext#parentName",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemOverlayContext#place",
+        "note": "Lands a point in metres from the centre body where the bodies are drawn, in whatever frame the diagram turns with; the plot scale alone is right only in the plain inertial frame"
       },
       {
         "key": "sitrep-sdk ./registry ~SystemOverlayContext#plotScale",
@@ -11005,6 +11109,30 @@
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
       {
+        "key": "sitrep-sdk ./spine ~SystemEntity#currency?",
+        "note": "Lets a contribution say its entity's place is held, which draws it dimmed and dashed and names it as held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemEntityOrbitPosition#epoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemEntityOrbitPosition#meanAnomalyAtEpoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemEntitySubjectPosition",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemEntitySubjectPosition#kind",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemEntitySubjectPosition#subject",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
         "key": "sitrep-sdk ./testing ~AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -11115,6 +11243,30 @@
       {
         "key": "sitrep-sdk ./testing ~SizeDelta#w?",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntity#currency?",
+        "note": "Lets a contribution say its entity's place is held, which draws it dimmed and dashed and names it as held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntityOrbitPosition#epoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntityOrbitPosition#meanAnomalyAtEpoch?",
+        "note": "States where on the orbit the entity was at one instant; optional because a shape that draws only the whole ring needs no place on it, and a point without them is not drawn"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntitySubjectPosition",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntitySubjectPosition#kind",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemEntitySubjectPosition#subject",
+        "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
       },
       {
         "key": "sitrep-sdk ./testing ~UplinkActionOutcome",

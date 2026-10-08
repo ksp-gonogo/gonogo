@@ -142,16 +142,12 @@ function kerbolSystem() {
 }
 
 /**
- * `argPe` defaults to 0 for the active vessel's own orbit (its real,
- * live-computed position stays at a clean reference angle), but
- * `vesselOrbitsContribution`'s `connection-line`/traffic-pulse endpoints
- * always join a vessel at trueAnomaly=0 (see `vesselOrbitsContribution.ts`'s
- * own module doc), a point whose ANGLE is `lan + argPe`, not `meanAnomaly`:
- * every vessel sharing `argPe=0` would put that join point on the SAME ray
- * from Kerbin's centre regardless of `meanAnomalyAtEpoch`, collapsing a
- * multi-hop route into one overlapping line. Giving v-relay/v-other distinct
- * `argPe` values spreads their join points around the diagram so the route
- * reads as a real bent path.
+ * `argPe` defaults to 0 for the active vessel's own orbit, and
+ * `vesselOrbitsContribution`'s `connection-line`/traffic-pulse endpoints join a
+ * vessel where it is at the instant on screen, carried from its `epoch` and
+ * `meanAnomalyAtEpoch`. Giving v-relay/v-other distinct `argPe` and mean
+ * anomalies spreads their join points around the diagram so the route reads as
+ * a real bent path.
  */
 function orbit(sma: number, meanAnomalyAtEpoch = 0, argPe = 0) {
   return {

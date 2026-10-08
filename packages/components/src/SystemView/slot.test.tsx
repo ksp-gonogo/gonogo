@@ -175,4 +175,31 @@ describe("SystemView: augment slots (spec §4)", () => {
     expect(visibleText(overlay)).toContain(":scaled:");
     expect(visibleText(overlay)).toContain(":0,0");
   });
+
+  it("hands an overlay `place` and the frame's name, so a point lands where the bodies do", async () => {
+    let seen: SystemOverlayContext | null = null;
+    function OverlayAugment(ctx: SystemOverlayContext) {
+      seen = ctx;
+      return <div data-testid="sv-overlay-augment" />;
+    }
+    await renderDiagram();
+    act(() => {
+      registerAugment({
+        id: "test-sv-overlay-place",
+        augments: "system-view.overlay",
+        component: OverlayAugment,
+      });
+    });
+    await screen.findByTestId("sv-overlay-augment");
+    const ctx = seen as SystemOverlayContext | null;
+    expect(ctx).not.toBeNull();
+    // In the plain inertial frame a point is simply its metres at the plot scale from the centre.
+    const [x, y] = ctx?.place([1e7, 0, 0]) ?? [Number.NaN, Number.NaN];
+    expect(x).toBeCloseTo(
+      (ctx?.center.x ?? 0) + 1e7 * (ctx?.plotScale ?? 0),
+      6,
+    );
+    expect(y).toBeCloseTo(ctx?.center.y ?? Number.NaN, 6);
+    expect(ctx?.frame).toBe("Kerbin-Centred Inertial");
+  });
 });

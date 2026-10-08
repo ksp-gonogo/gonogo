@@ -174,8 +174,13 @@ export type SystemEntityMeta = Readonly<
 >;
 
 /**
- * A place on a Keplerian orbit around a named body. `trueAnomaly` picks the
- * point on it; a shape that draws the whole orbit ignores it.
+ * A place on a Keplerian orbit around a named body. `epoch` and
+ * `meanAnomalyAtEpoch` say where on it the entity was at one instant; the
+ * widget carries it forward to the instant on screen, so a contribution never
+ * advances an orbit and a stale one cannot freeze a marker.
+ *
+ * A shape that draws only the whole orbit may leave both out, and then marks no
+ * place on the ring. A point needs both, and is not drawn without them.
  *
  * @category Widget slots
  */
@@ -193,8 +198,10 @@ export interface SystemEntityOrbitPosition {
   argPe: number;
   /** Inclination to the parent's reference plane, in degrees. Required: an equatorial orbit says `0`. */
   inclination: number;
-  /** True anomaly, in degrees. */
-  trueAnomaly: number;
+  /** The UT the mean anomaly is for, in seconds. */
+  epoch?: number;
+  /** Mean anomaly at `epoch`, in radians. */
+  meanAnomalyAtEpoch?: number;
 }
 
 /**
@@ -216,14 +223,34 @@ export interface SystemEntityFixedPosition {
 }
 
 /**
- * Where a System View entity is: on an orbit, or at a fixed offset from a body.
- * An entity whose position holds a non-finite number is not drawn.
+ * A place given by the body it is: the widget puts the entity where that body
+ * is at the instant on screen, in whatever frame the diagram draws in, and
+ * marks it held when the body's place is. The body need not orbit the body the
+ * diagram is centred on.
+ *
+ * @category Widget slots
+ */
+export interface SystemEntitySubjectPosition {
+  kind: "subject";
+  /** What is placed. */
+  subject: {
+    kind: "body";
+    /** The body's index in `system.bodies`. */
+    bodyIndex: number;
+  };
+}
+
+/**
+ * Where a System View entity is: on an orbit, at a fixed offset from a body, or
+ * where a named body is. An entity whose position holds a non-finite number is
+ * not drawn.
  *
  * @category Widget slots
  */
 export type SystemEntityPosition =
   | SystemEntityOrbitPosition
-  | SystemEntityFixedPosition;
+  | SystemEntityFixedPosition
+  | SystemEntitySubjectPosition;
 
 /**
  * What a System View entity looks like, by `kind`:
@@ -280,6 +307,12 @@ export interface SystemEntity {
   vesselId?: string;
   /** Stacking order that overrides the shape's default layer; higher is in front. Ties keep contribution order. */
   zHint?: number;
+  /**
+   * How well the entity's place is known, when the contribution knows it is not
+   * current: `"held"` draws it dimmed and dashed and says so in its name. Absent
+   * is as current as a position the widget computed itself.
+   */
+  currency?: "held";
 }
 
 /**

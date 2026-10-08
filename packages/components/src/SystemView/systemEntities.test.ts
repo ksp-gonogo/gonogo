@@ -16,6 +16,8 @@ const CTX: SystemEntitiesContext = {
   height: 400,
   plotScale: 1e-5, // 1e6 m -> 10 px
   center: { x: 0, y: 0 },
+  ut: 0,
+  muOf: () => 3.5316e12,
 };
 
 /** The points of a closed `M x,y L x,y ... Z` ring path. */
@@ -33,7 +35,7 @@ function pathPoints(d: string): { x: number; y: number }[] {
 
 describe("projectEntityPosition", () => {
   it("projects an orbit position onto its Keplerian point, matching bodyPosition's convention", () => {
-    // Circular, equatorial (ecc=0, lan=argPe=0): trueAnomaly=0 sits on +x.
+    // Circular, equatorial (ecc=0, lan=argPe=0): mean anomaly 0 sits on +x.
     const p = projectEntityPosition(
       {
         kind: "orbit",
@@ -43,7 +45,8 @@ describe("projectEntityPosition", () => {
         lan: 0,
         argPe: 0,
         inclination: 0,
-        trueAnomaly: 0,
+        epoch: 0,
+        meanAnomalyAtEpoch: 0,
       },
       CTX,
     );
@@ -62,7 +65,8 @@ describe("projectEntityPosition", () => {
         lan: 0,
         argPe: 0,
         inclination: 0,
-        trueAnomaly: 0,
+        epoch: 0,
+        meanAnomalyAtEpoch: 0,
       },
       { ...CTX, center: { x: -5, y: 3 } },
     );
@@ -70,7 +74,7 @@ describe("projectEntityPosition", () => {
     expect(p?.y).toBeCloseTo(3, 6);
   });
 
-  it("places trueAnomaly=90deg on +y for a circular equatorial orbit", () => {
+  it("places a 90 degree mean anomaly on +y for a circular equatorial orbit", () => {
     const p = projectEntityPosition(
       {
         kind: "orbit",
@@ -80,7 +84,8 @@ describe("projectEntityPosition", () => {
         lan: 0,
         argPe: 0,
         inclination: 0,
-        trueAnomaly: 90,
+        epoch: 0,
+        meanAnomalyAtEpoch: Math.PI / 2,
       },
       CTX,
     );
@@ -98,7 +103,8 @@ describe("projectEntityPosition", () => {
         lan: 0,
         argPe: 0,
         inclination: 0,
-        trueAnomaly: 0,
+        epoch: 0,
+        meanAnomalyAtEpoch: 0,
       },
       CTX,
     );
@@ -115,7 +121,8 @@ describe("projectEntityPosition", () => {
         lan: 0,
         argPe: 0,
         inclination: 0,
-        trueAnomaly: 0,
+        epoch: 0,
+        meanAnomalyAtEpoch: 0,
       },
       CTX,
     );
@@ -133,7 +140,8 @@ describe("projectEntityPosition", () => {
           lan: 0,
           argPe: 0,
           inclination: 0,
-          trueAnomaly: 0,
+          epoch: 0,
+          meanAnomalyAtEpoch: 0,
         },
         CTX,
       ),
@@ -148,7 +156,8 @@ describe("projectEntityPosition", () => {
           lan: 0,
           argPe: 0,
           inclination: 0,
-          trueAnomaly: 0,
+          epoch: 0,
+          meanAnomalyAtEpoch: 0,
         },
         CTX,
       ),
@@ -225,7 +234,8 @@ describe("projectOrbitRing", () => {
         lan: 30,
         argPe: 15,
         inclination: 0,
-        trueAnomaly: 0, // ignored by the ring
+        epoch: 0,
+        meanAnomalyAtEpoch: 0,
       },
       CTX,
     );
@@ -255,7 +265,8 @@ describe("projectOrbitRing", () => {
           lan: 0,
           argPe: 0,
           inclination: 0,
-          trueAnomaly: 0,
+          epoch: 0,
+          meanAnomalyAtEpoch: 0,
         },
         CTX,
       ),
@@ -273,7 +284,8 @@ describe("projectOrbitRing", () => {
           lan: 0,
           argPe: 0,
           inclination: 0,
-          trueAnomaly: 0,
+          epoch: 0,
+          meanAnomalyAtEpoch: 0,
         },
         CTX,
       ),
@@ -295,7 +307,8 @@ function pointEntity(
       lan: 0,
       argPe: 0,
       inclination: 0,
-      trueAnomaly: 0,
+      epoch: 0,
+      meanAnomalyAtEpoch: 0,
     },
     shape: { kind: "point" },
     ...overrides,
@@ -373,7 +386,8 @@ describe("resolveSystemEntities", () => {
           lan: 0,
           argPe: 0,
           inclination: 0,
-          trueAnomaly: 0,
+          epoch: 0,
+          meanAnomalyAtEpoch: 0,
         },
       }),
       pointEntity("on-frame"),
@@ -414,7 +428,8 @@ describe("resolveSystemEntities", () => {
           lan: 0,
           argPe: 0,
           inclination: 0,
-          trueAnomaly: 90, // +y for a circular equatorial orbit
+          epoch: 0,
+          meanAnomalyAtEpoch: Math.PI / 2,
         },
         shape: { kind: "orbit-path" },
       },
@@ -444,7 +459,8 @@ describe("resolveSystemEntities", () => {
             lan: 0,
             argPe: 0,
             inclination: 0,
-            trueAnomaly: 0,
+            epoch: 0,
+            meanAnomalyAtEpoch: 0,
           },
         },
       },
@@ -681,5 +697,109 @@ describe("formatEntityLabel", () => {
   it("falls back to the id when meta is absent or empty", () => {
     expect(formatEntityLabel("vessel-1", undefined)).toBe("vessel-1");
     expect(formatEntityLabel("vessel-1", {})).toBe("vessel-1");
+  });
+});
+
+describe("an orbit position is carried to the instant on screen", () => {
+  const MU = 3.5316e12;
+  const SMA = 1_000_000;
+  const QUARTER_TURN_S = Math.PI / 2 / Math.sqrt(MU / SMA ** 3);
+  const orbit = {
+    kind: "orbit" as const,
+    parentName: "Kerbin",
+    sma: SMA,
+    ecc: 0,
+    lan: 0,
+    argPe: 0,
+    inclination: 0,
+    epoch: 0,
+    meanAnomalyAtEpoch: 0,
+  };
+
+  it("moves on with the clock, so a stale contribution cannot freeze a marker", () => {
+    const at = projectEntityPosition(orbit, { ...CTX, ut: QUARTER_TURN_S });
+    expect(at?.x).toBeCloseTo(0, 4);
+    expect(at?.y).toBeCloseTo(10, 4);
+  });
+
+  it("is not placed without an epoch, rather than set down at periapsis", () => {
+    const { epoch: _epoch, ...undated } = orbit;
+    expect(projectEntityPosition(undated, CTX)).toBeNull();
+  });
+
+  it("is not placed without an instant to carry it to, or a gravitational parameter to carry it by", () => {
+    expect(projectEntityPosition(orbit, { ...CTX, ut: undefined })).toBeNull();
+    expect(
+      projectEntityPosition(orbit, { ...CTX, muOf: () => null }),
+    ).toBeNull();
+  });
+
+  it("still draws the whole ring for an orbit-path that states no place on it, with no marker", () => {
+    const { epoch: _epoch, meanAnomalyAtEpoch: _anomaly, ...ringOnly } = orbit;
+    const [ring] = resolveSystemEntities(
+      [{ id: "ring", position: ringOnly, shape: { kind: "orbit-path" } }],
+      CTX,
+    );
+    expect(ring?.kind).toBe("orbit-path");
+    if (ring?.kind !== "orbit-path") return;
+    expect(ring.dotX).toBeUndefined();
+  });
+});
+
+describe("a subject position is where the body is", () => {
+  const ctx: SystemEntitiesContext = {
+    ...CTX,
+    bodyPlace: (index) =>
+      index === 4
+        ? { offset: [2_000_000, 0, 0], currency: "exact" }
+        : index === 5
+          ? { offset: [0, 1_000_000, 0], currency: "held" }
+          : null,
+  };
+  const subject = (bodyIndex: number) =>
+    ({ kind: "subject", subject: { kind: "body", bodyIndex } }) as const;
+
+  it("lands at the body's place in the frame, whatever it orbits", () => {
+    const at = projectEntityPosition(subject(4), ctx);
+    expect(at?.x).toBeCloseTo(20, 6);
+    expect(at?.y).toBeCloseTo(0, 6);
+  });
+
+  it("is not drawn for a body the model cannot place", () => {
+    expect(projectEntityPosition(subject(9), ctx)).toBeNull();
+    expect(projectEntityPosition(subject(4), CTX)).toBeNull();
+  });
+
+  it("is held when the body's place is held, though the contribution never said so", () => {
+    const [held, live] = resolveSystemEntities(
+      [
+        { id: "held", position: subject(5), shape: { kind: "point" } },
+        { id: "live", position: subject(4), shape: { kind: "point" } },
+      ],
+      ctx,
+    );
+    expect(held?.held).toBe(true);
+    expect(live?.held).toBe(false);
+  });
+});
+
+describe("an entity that says its place is held", () => {
+  it("is drawn at half weight and marked held", () => {
+    const base = {
+      id: "e",
+      position: {
+        kind: "fixed" as const,
+        parentName: "Kerbin",
+        xMetres: 1,
+        yMetres: 0,
+        zMetres: 0,
+      },
+      shape: { kind: "point" as const },
+    };
+    const [current] = resolveSystemEntities([base], CTX);
+    const [held] = resolveSystemEntities([{ ...base, currency: "held" }], CTX);
+    expect(current?.held).toBe(false);
+    expect(held?.held).toBe(true);
+    expect(held?.opacity).toBeCloseTo((current?.opacity ?? 0) / 2, 6);
   });
 });
