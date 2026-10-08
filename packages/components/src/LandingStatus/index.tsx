@@ -227,6 +227,7 @@ function LandingStatusComponent({
                     agl={aglReading}
                     prediction={predictionOnRail(flightReading, aglReading)}
                     seaLevel={seaLevelOnRail(flightReading, aglReading)}
+                    verticalSpeed={solution.verticalSpeed}
                     centreOfMass={usingComDatum}
                     ignitionAltitude={landed ? null : solution.ignitionAltitude}
                     suicideBurnCountdown={

@@ -22,6 +22,7 @@ function observed(m: number): Reading<Value<"m">> {
 describe("AltitudeRail", () => {
   const descending = {
     agl: observed(1200),
+    verticalSpeed: null,
     ignitionAltitude: 300,
     suicideBurnCountdown: 8,
   };
@@ -96,6 +97,91 @@ describe("AltitudeRail", () => {
     ).toBeNull();
   });
 
+  describe("the scale follows height and vertical speed", () => {
+    const meter = () =>
+      screen.getByRole("meter", { name: /altitude above terrain/i });
+
+    it("opens a window below the craft as far as it falls in twenty seconds", () => {
+      render(
+        <AltitudeRail
+          {...descending}
+          agl={observed(5000)}
+          verticalSpeed={100}
+        />,
+      );
+      expect(meter()).toHaveAttribute("aria-valuemin", "3000");
+    });
+
+    it("tightens as the craft slows toward the ground", () => {
+      render(
+        <AltitudeRail
+          {...descending}
+          agl={observed(5000)}
+          verticalSpeed={20}
+        />,
+      );
+      expect(meter()).toHaveAttribute("aria-valuemin", "4500");
+    });
+
+    it("keeps a tenth of the height below a craft that is hovering", () => {
+      render(
+        <AltitudeRail {...descending} agl={observed(100)} verticalSpeed={0} />,
+      );
+      expect(meter()).toHaveAttribute("aria-valuemin", "90");
+    });
+
+    it("reaches the ground once the craft is within twenty seconds of it", () => {
+      render(
+        <AltitudeRail
+          {...descending}
+          agl={observed(1200)}
+          verticalSpeed={100}
+        />,
+      );
+      expect(meter()).toHaveAttribute("aria-valuemin", "0");
+    });
+
+    it("pins the ground to the bottom edge while the window sits above it", () => {
+      const { container } = render(
+        <AltitudeRail
+          {...descending}
+          agl={observed(5000)}
+          verticalSpeed={100}
+        />,
+      );
+      expect(
+        container
+          .querySelector('[data-level="ground"]')
+          ?.querySelector("[data-off-scale]"),
+      ).not.toBeNull();
+    });
+
+    it("reaches no lower than sea level when it lies below the ground", () => {
+      render(
+        <AltitudeRail
+          {...descending}
+          agl={observed(1200)}
+          verticalSpeed={300}
+          seaLevel={value("m", -3000)}
+        />,
+      );
+      expect(meter()).toHaveAttribute("aria-valuemin", "-3000");
+    });
+
+    it("opens the window above a rising craft by the same reach", () => {
+      render(
+        <AltitudeRail
+          {...descending}
+          agl={observed(1000)}
+          verticalSpeed={-50}
+        />,
+      );
+      expect(
+        Number(meter().getAttribute("aria-valuemax")),
+      ).toBeGreaterThanOrEqual(2000);
+    });
+  });
+
   it("names the root-part datum when the lowest point is unavailable", () => {
     render(<AltitudeRail {...descending} centreOfMass />);
     expect(
@@ -119,6 +205,7 @@ describe("AltitudeRail", () => {
     render(
       <AltitudeRail
         agl={{ state: "pending", reckoning: { status: "none" } }}
+        verticalSpeed={null}
         ignitionAltitude={null}
         suicideBurnCountdown={null}
       />,

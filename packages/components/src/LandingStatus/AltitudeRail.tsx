@@ -1,7 +1,7 @@
 /**
  * The altimeter as a full-height rail down one edge of the landing widget: AGL falling toward the ground line, the suicide-burn ignition band shaded as a hot zone, and the ignition cue beneath it.
  * `agl` is handed to the `Tape` as a whole reading so the rail marks a held height itself; before data arrives it renders an empty scale.
- * The scale runs from the craft down to the lower of the ground and sea level, so a band the model draws near the ground fills a readable part of the rail. Both levels are always drawn, pinned to an edge when off the scale.
+ * The scale is a window around the craft sized by its height and vertical speed: below it, as far as it falls in `LOOKAHEAD_SECONDS` (never less than a tenth of its height) and no lower than the lower of the ground and sea level, so the scale tightens as the craft closes on the ground. Both levels are always drawn, pinned to an edge when off the scale.
  */
 
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -18,6 +18,8 @@ export interface AltitudeRailProps {
   agl: Reading<Value<"m">>;
   /** The height is the root part's, the lowest-point datum being unavailable: the rail draws no burn band and names no ignition. */
   centreOfMass?: boolean;
+  /** Descent rate, downward-positive, m/s; `null` when unknown, which runs the scale down to the lower of the ground and sea level. */
+  verticalSpeed: number | null;
   /** Where the model puts the craft now, as a height on this rail's scale. Drawn beside the pointer, never in its place. */
   prediction?: RailPrediction | null;
   /** Sea level as a height on this rail's scale: below the ground over land, above it below sea level. */
@@ -27,6 +29,9 @@ export interface AltitudeRailProps {
   /** Seconds to the latest ignition. */
   suicideBurnCountdown: number | null;
 }
+
+/** How far ahead the scale looks along the craft's vertical motion. */
+const LOOKAHEAD_SECONDS = 20;
 
 /** Round up to a "nice" 1/2/5 x 10^n tick spacing. */
 function niceStep(x: number): number {
@@ -42,6 +47,7 @@ export function AltitudeRail({
   centreOfMass = false,
   prediction = null,
   seaLevel = null,
+  verticalSpeed,
   ignitionAltitude,
   suicideBurnCountdown,
 }: Readonly<AltitudeRailProps>) {
@@ -53,11 +59,21 @@ export function AltitudeRail({
       ? value("m", Math.round(ignitionAltitude * 1000) / 1000)
       : null;
   const predicted = prediction?.bounds?.hi ?? prediction?.value ?? ground;
-  const top = height
+  const floor = seaLevel === null ? ground : ground.min(seaLevel);
+  const reach =
+    verticalSpeed === null
+      ? null
+      : value("m", Math.abs(verticalSpeed) * LOOKAHEAD_SECONDS);
+  const rising = verticalSpeed !== null && verticalSpeed < 0;
+  const above = rising && reach !== null ? height.plus(reach) : height;
+  const top = above
     .max(predicted)
     .max(ignition ?? ground)
     .max(value("m", 1));
-  const bottom = seaLevel === null ? ground : ground.min(seaLevel);
+  const bottom =
+    reach === null
+      ? floor
+      : floor.max(height.minus(reach.max(height.scaled(0.1))));
   const span = top.minus(bottom);
   const tickStep = value("m", niceStep(span.magnitude / 4));
 
