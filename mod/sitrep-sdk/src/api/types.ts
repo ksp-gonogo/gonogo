@@ -18,12 +18,17 @@
 
 import type { ComponentType } from "react";
 import type {
+  DelayMode,
+  InFlightCommand,
+  PredictedPhase,
+} from "../command-delay";
+import type {
   AnyCommandReply,
   CommandArgs,
   CommandId,
   CommandReply,
 } from "../commands";
-import type { RailDirection, RailTags } from "../rail-tags";
+import type { RailTags } from "../rail-tags";
 import type { HeldGrade, Reading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
@@ -1766,41 +1771,7 @@ export type {
   CommandUndelivered,
 } from "../spine/lifecycle";
 
-/**
- * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `PredictedPhase`:
- * same leaf constraint as every other type in this file.
- */
-export type PredictedPhase =
-  | "in-transit"
-  | "awaiting-reply"
-  | "due"
-  | "overdue"
-  | "lost";
-
-/**
- * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `DelayMode`: same
- * leaf constraint as every other type in this file.
- */
-export type DelayMode = "live" | "staged" | "no-path";
-
-/**
- * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `InFlightCommand`,
- * the shared display shape both `useCommand`'s `inFlight` and
- * `useRouteCommands`'s `items` return. Same leaf constraint as every other
- * type in this file.
- */
-export interface InFlightCommand {
-  id: string;
-  label: string;
-  command: string;
-  topic: string;
-  direction: RailDirection;
-  dispatchedAt: number;
-  oneWaySeconds: number | null;
-  reachEtaSeconds: number | null;
-  replyEtaSeconds: number | null;
-  predictedPhase: PredictedPhase;
-}
+export type { DelayMode, InFlightCommand, PredictedPhase };
 
 /**
  * Options for {@link useCommand}.

@@ -19,20 +19,30 @@ type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
  * Every type in this module reads `UnitDeclarations` and nothing else, which is
  * what makes a unit an Uplink merges into it indistinguishable here from a
  * first-party one.
+ *
+ * @category Unit
  */
-type KindOfSymbol<Unit extends string> = Unit extends DeclaredUnit
+export type KindOfSymbol<Unit extends string> = Unit extends DeclaredUnit
   ? UnitDeclarations[Unit] extends { kind: infer Kind }
     ? Kind
     : never
   : never;
 
-/** Every declared symbol that measures `Kind`. */
-type SymbolsOfKind<Kind> = {
+/**
+ * Every declared symbol that measures `Kind`.
+ *
+ * @category Unit
+ */
+export type SymbolsOfKind<Kind> = {
   [Unit in DeclaredUnit]: KindOfSymbol<Unit> extends Kind ? Unit : never;
 }[DeclaredUnit];
 
-/** The ladder `Unit` is declared on, or `never` for a unit that climbs none. */
-type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
+/**
+ * The ladder `Unit` is declared on, or `never` for a unit that climbs none.
+ *
+ * @category Unit
+ */
+export type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
   ? UnitDeclarations[Unit] extends { ladder: infer Ladder extends string }
     ? Ladder
     : never
@@ -40,11 +50,12 @@ type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
 
 /**
  * Every symbol of kind `Kind` that exists only as a conversion TARGET (`°C`),
- * which the declarations do not name and {@link kindOfConversion} still
- * resolves. A pair whose source is itself undeclared is skipped, or `°C→K`
+ * which the declarations do not name but a conversion still reaches. A pair whose source is itself undeclared is skipped, or `°C→K`
  * would make every kind accept `K`.
+ *
+ * @category Unit
  */
-type ConversionTargetsOfKind<Kind> = {
+export type ConversionTargetsOfKind<Kind> = {
   [Conversion in keyof typeof CONVERSIONS]: Conversion extends `${infer Source}→${infer Target}`
     ? [KindOfSymbol<Source>] extends [never]
       ? never
@@ -797,6 +808,11 @@ function applyRegisteredUnit(unit: RegisteredUnit): void {
   if (unit.word !== undefined) WORD_BY_SYMBOL[symbol] = unit.word;
 }
 
+/**
+ * How a quantity is written: the unit to pin, the number of decimals, and the scale to draw it against.
+ *
+ * @category Unit
+ */
 export interface FormatQuantityOptions {
   /**
    * Pin the unit rather than letting the ladder choose, for where convention
@@ -826,10 +842,9 @@ export interface FormatQuantityOptions {
   /** Override the kind's decimal places. */
   decimals?: number;
   /**
-   * For a caller of `formatQuantity` that keeps the result: pass back the
-   * `rung` of the {@link FormattedQuantity} it returned last time, so a value
-   * hovering on a boundary between two units does not flicker between them.
-   * {@link Unit} does this for you.
+   * The unit the last render settled on. Pass it back so a value hovering on
+   * a boundary between two units does not flicker between them. {@link Unit}
+   * does this for you.
    */
   heldSymbol?: string;
 }

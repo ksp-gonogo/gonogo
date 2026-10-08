@@ -1150,7 +1150,7 @@ namespace Sitrep.Contract
         /// any already-sampled data) and returns plain, self-contained data with
         /// no live KSP or Unity object references.</para>
         ///
-        /// <para><paramref name="handleOnCourier"/> then runs off the main
+        /// <para><paramref name="handleOffMainThread"/> then runs off the main
         /// thread with exactly that captured value, and does the rest: deciding
         /// what changed, building payloads, and publishing to channels obtained from
         /// <see cref="Publisher"/> or <see cref="RegisterDynamicNamespace"/>. It
@@ -1168,8 +1168,8 @@ namespace Sitrep.Contract
         /// </internal>
         /// </summary>
         /// <param name="captureOnMainThread">Reads the game on the main thread and returns plain data.</param>
-        /// <param name="handleOnCourier">Receives that data off the main thread and publishes.</param>
-        void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier);
+        /// <param name="handleOffMainThread">Receives that data off the main thread and publishes.</param>
+        void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread);
 
         /// <summary>
         /// Subscription-gated overload of <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>,
@@ -1199,9 +1199,9 @@ namespace Sitrep.Contract
         /// publishing instead.</para>
         /// </summary>
         /// <param name="captureOnMainThread">Reads the game on the main thread and returns plain data.</param>
-        /// <param name="handleOnCourier">Receives that data off the main thread and publishes.</param>
+        /// <param name="handleOffMainThread">Receives that data off the main thread and publishes.</param>
         /// <param name="subscriptionTopicPrefixes">The topic prefixes this source produces.</param>
-        void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes);
+        void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread, params string[] subscriptionTopicPrefixes);
 
         /// <summary> Whether at least one subscribed topic starts with
         /// <paramref name="topicPrefix"/> (ordinal comparison), right now. The

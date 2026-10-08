@@ -217,7 +217,10 @@ export {
   SignalDelayBadge,
   type SignalDelayBadgeProps,
 } from "./CommandDelay/SignalDelayBadge";
-export { toInFlightListItems } from "./CommandDelay/toInFlightListItems";
+export {
+  type InFlightCommandLike,
+  toInFlightListItems,
+} from "./CommandDelay/toInFlightListItems";
 export { type RailEntry, useRailEntry } from "./CommandDelay/useRailEntry";
 export {
   WAVE_HALF_H,
@@ -505,6 +508,7 @@ export {
 export { Readout, ReadoutCaption, type ReadoutSize } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
 export {
+  type CurrencyOptions,
   derivedMarking,
   modelledBeyondReceived,
   type ReckoningMarking,
@@ -664,12 +668,16 @@ export {
  * one way to show a quantity.
  */
 export {
+  type ConversionTargetsOfKind,
+  type FormatQuantityOptions,
   type FormatsFor,
   // `FormatsFor` asked of a kind, for a pin addressed to a whole group.
   type FormatsForKind,
   type KindOfGroup,
+  type KindOfSymbol,
   type KnownQuantityKind,
   type LadderName,
+  type LadderOfSymbol,
   // The `as` twin of `FormatsFor`: the same kind plus presentation-only units such as `°C`.
   type PresentableAs,
   type PresentableAsKind,
@@ -679,6 +687,7 @@ export {
   quantityScale,
   type Rung,
   STANDARD_GRAVITY,
+  type SymbolsOfKind,
   // The locale every quantity is written in; one call at boot changes every readout.
   setQuantityLocale,
   // String formatters for where a node cannot go: `speakQuantity` for an accessible name, `writeQuantity` for measured text.

@@ -120,29 +120,29 @@ export const DEFAULT_CONTRIBUTION_PRIORITY = 1;
  * Every contribution that WINS the slot: the highest priority band present, in
  * registration order.
  *
- * <p>Equal priority is not a tie to break. Everyone in the winning band renders,
+ * Equal priority is not a tie to break. Everyone in the winning band renders,
  * which is what lets two mutually-unaware mods both put their vessels on one
  * diagram; only a STRICTLY higher band displaces. Nothing sets a priority unless
  * it means to, so the ordinary case is one band holding every contributor,
- * exactly as before.</p>
+ * exactly as before.
  *
- * <p>What the band buys is a host widget filling its OWN slot. It contributes
+ * What the band buys is a host widget filling its OWN slot. It contributes
  * what it can read at one below {@link DEFAULT_CONTRIBUTION_PRIORITY}, so a
  * career overhaul that can answer where the host cannot displaces it instead of
  * appearing beside it as a second copy of the same list. It is the contribution
  * twin of `AugmentDefinition.suppressesVanillaBase`, and it is declared by the
  * contributor rather than by the host for the same reason: the host cannot know
- * which of its guests supersedes it.</p>
+ * which of its guests supersedes it.
  *
- * <p>A contribution that means to render ALONGSIDE the host's own rows says so
- * by taking the host's band explicitly.</p>
+ * A contribution that means to render ALONGSIDE the host's own rows says so
+ * by taking the host's band explicitly.
  *
- * <p>Self-contributing has a cost, and it is worth knowing before choosing it: a
+ * Self-contributing has a cost, and it is worth knowing before choosing it: a
  * widget that reads its own data this way no longer renders anything without a
  * `WidgetMetaContext` and a `ContributionsProvider` above it, and it fails by
  * drawing an empty widget rather than by raising. See `useContributions`
  * (`@ksp-gonogo/ui-kit`) for what that costs a test, and `clearContributions`
- * below for the other half of it.</p>
+ * below for the other half of it.
  */
 export function getContributionsForSlot(slot: string): AnyContribution[] {
   const inSlot = Array.from(state().entries.values()).filter(
@@ -192,18 +192,18 @@ export function getContributionSettings(
 /**
  * For use in tests only, resets the contribution registry to empty.
  *
- * <p><b>It empties the registry, which includes the contributions a HOST widget
- * makes to its own slot.</b> Those register as a module side effect, at import,
+ * **It empties the registry, which includes the contributions a HOST widget
+ * makes to its own slot.** Those register as a module side effect, at import,
  * and nothing re-runs an import. So a test file that clears between cases leaves
  * every case after the first rendering a host with none of its own data, which
  * surfaces as a widget that draws its chrome and no content, and reads as a
- * telemetry fault rather than as a registry that was emptied on purpose.</p>
+ * telemetry fault rather than as a registry that was emptied on purpose.
  *
- * <p>A self-contributing widget therefore exports a function that performs its
+ * A self-contributing widget therefore exports a function that performs its
  * registration, for a test to call after clearing;
  * `SpaceCenterStatus/facilitiesContribution.ts`'s
  * `registerStockFacilityContribution` is the worked example. Re-registering the
- * identical def is a no-op, so calling it when nothing was cleared is safe.</p>
+ * identical def is a no-op, so calling it when nothing was cleared is safe.
  */
 export function clearContributions(): void {
   const s = state();

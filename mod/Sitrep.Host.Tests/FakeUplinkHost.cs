@@ -52,11 +52,11 @@ namespace Sitrep.Host.Tests
         {
         }
 
-        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread)
         {
         }
 
-        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread, params string[] subscriptionTopicPrefixes)
         {
         }
 

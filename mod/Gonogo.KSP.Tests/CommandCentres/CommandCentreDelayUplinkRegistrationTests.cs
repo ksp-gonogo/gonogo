@@ -192,11 +192,11 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public List<(Func<KspSnapshot?, object?> Capture, Action<object?> Handle, string[] Prefixes)> SampledSources { get; }
                 = new List<(Func<KspSnapshot?, object?>, Action<object?>, string[])>();
 
-            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) =>
-                SampledSources.Add((captureOnMainThread, handleOnCourier, Array.Empty<string>()));
+            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread) =>
+                SampledSources.Add((captureOnMainThread, handleOffMainThread, Array.Empty<string>()));
 
-            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes) =>
-                SampledSources.Add((captureOnMainThread, handleOnCourier, subscriptionTopicPrefixes));
+            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread, params string[] subscriptionTopicPrefixes) =>
+                SampledSources.Add((captureOnMainThread, handleOffMainThread, subscriptionTopicPrefixes));
 
             public List<(string Topic, object? Payload)> Published { get; } = new List<(string, object?)>();
 

@@ -331,6 +331,8 @@ export {
   verticalAccelerationOver,
   withinAtmosphere,
 } from "./spine/atmospheric-reckoning";
+// What a locked `LockScope` hands its fallback, which ui-kit publishes.
+export type { CapabilityLock } from "./spine/capability-lock";
 // ---------------------------------------------------------------------------
 // SHARED PROCESSORS: the handles, their result types, and the pure derivations behind them.
 //
@@ -411,6 +413,7 @@ export {
   trySolveAnomalies,
   type WireOrbitElements,
 } from "./spine/kepler-reckoning";
+export type { Capability } from "./spine/lock-scope";
 export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "./spine/map-topic";
 /*
  * The powered-flight model and the pieces of it an Uplink would need to write
@@ -503,6 +506,7 @@ export {
 export {
   affineVectorUnitFor,
   asDeterministic,
+  asStatic,
   assertGuardsRegistered,
   calendarRatio,
   carryDeterminism,

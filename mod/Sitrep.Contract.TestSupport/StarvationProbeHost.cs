@@ -182,16 +182,16 @@ namespace Sitrep.Contract.TestSupport
         }
 
         public void AddSampledSource(
-            Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) =>
+            Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread) =>
             SampledSources.Add(new SampledSource(
-                captureOnMainThread, handleOnCourier, Array.Empty<string>()));
+                captureOnMainThread, handleOffMainThread, Array.Empty<string>()));
 
         public void AddSampledSource(
             Func<KspSnapshot?, object?> captureOnMainThread,
-            Action<object?> handleOnCourier,
+            Action<object?> handleOffMainThread,
             params string[] subscriptionTopicPrefixes) =>
             SampledSources.Add(new SampledSource(
-                captureOnMainThread, handleOnCourier, subscriptionTopicPrefixes));
+                captureOnMainThread, handleOffMainThread, subscriptionTopicPrefixes));
 
         public void AddSampler(ISnapshotSampler sampler) => Samplers.Add(sampler);
 

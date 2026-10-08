@@ -8131,6 +8131,10 @@
         "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
       },
       {
+        "key": "sitrep-sdk . GonogoHost#useCommand",
+        "note": "The untyped overload's Reply defaults to AnyCommandReply, as the facade's does, rather than unknown"
+      },
+      {
         "key": "sitrep-sdk . GonogoHost#useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
       },
@@ -8207,6 +8211,162 @@
         "note": "The default argument is optional: without one the hook reads the default of the client setting registered under the key, and throws when there is none"
       },
       {
+        "key": "sitrep-sdk . ~CommandFound",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandFoundOutcome",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#blocked",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#breach?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#command",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#detail?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#errorCode",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#reason?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandGateStatus#undetermined",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandLoss",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandLoss#args",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandLoss#command",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandLoss#id",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandLoss#label",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusal",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusal#errorCode",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusal#id",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail#args",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail#breach?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail#command",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail#detail?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail#label",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandRefusalDetail#reason?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandUndelivered",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~CommandUndelivered#reason",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~DelayMode",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#command",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#direction",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#dispatchedAt",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#id",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#label",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#oneWaySeconds",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#predictedPhase",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#reachEtaSeconds",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#replyEtaSeconds",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~InFlightCommand#topic",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
         "key": "sitrep-sdk . ~MapViewScope",
         "note": "No longer reachable only through WidgetScopeRegistry: now exported by name, with the same shape"
       },
@@ -8221,6 +8381,10 @@
       {
         "key": "sitrep-sdk . ~PowerSystemsScope#resource",
         "note": "No longer reachable only through WidgetScopeRegistry: now exported by name, with the same shape"
+      },
+      {
+        "key": "sitrep-sdk . ~PredictedPhase",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#augmentSlots?",
@@ -8357,6 +8521,10 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#sendTogether",
         "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useCommand",
+        "note": "The untyped overload's Reply defaults to AnyCommandReply, as the facade's does, rather than unknown"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useDataSources",
@@ -8631,6 +8799,18 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ~ConversionTargetsOfKind",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~CurrencyOptions",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~CurrencyOptions#drawsReckoning?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
         "key": "ui-kit . ~DataTableColumnBase",
         "note": "exported, since a published component's props or return type already names it"
       },
@@ -8657,6 +8837,70 @@
       {
         "key": "ui-kit . ~DataTableColumnBase#width?",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~FormatQuantityOptions",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~FormatQuantityOptions#as?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~FormatQuantityOptions#decimals?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~FormatQuantityOptions#format?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~FormatQuantityOptions#heldSymbol?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~FormatQuantityOptions#scale?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#command",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#direction?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#glyph?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#id",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#label",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#oneWaySeconds?",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#predictedPhase",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#reachEtaSeconds",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~InFlightCommandLike#replyEtaSeconds",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
         "key": "ui-kit . ~JogWheelCommon",
@@ -8701,6 +8945,14 @@
       {
         "key": "ui-kit . ~JogWheelCommon#width?",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~KindOfSymbol",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit . ~LadderOfSymbol",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
         "key": "ui-kit . ~ModalContextValue",
@@ -8749,6 +9001,10 @@
       {
         "key": "ui-kit . ~SwitchBaseProps#onChange",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~SymbolsOfKind",
+        "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       }
     ],
     "additions": [
@@ -8757,8 +9013,80 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk . Capability",
+        "note": "Exported from the root because CapabilityLock names it"
+      },
+      {
+        "key": "sitrep-sdk . CapabilityLock",
+        "note": "Exported from the root because the published LockSummary.locks is typed by it"
+      },
+      {
+        "key": "sitrep-sdk . CapabilityLock#capability",
+        "note": "Exported from the root because the published LockSummary.locks is typed by it"
+      },
+      {
+        "key": "sitrep-sdk . CapabilityLock#detail?",
+        "note": "Exported from the root because the published LockSummary.locks is typed by it"
+      },
+      {
+        "key": "sitrep-sdk . CapabilityLock#missing",
+        "note": "Exported from the root because the published LockSummary.locks is typed by it"
+      },
+      {
         "key": "sitrep-sdk . ChannelFamily",
         "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
+      },
+      {
+        "key": "sitrep-sdk . CommandFailure",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandFailure#code",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandFailure#reason",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandFound",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandFoundOutcome",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#blocked",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#breach?",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#command",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#detail?",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#errorCode",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#reason?",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandGateStatus#undetermined",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
       },
       {
         "key": "sitrep-sdk . CommandGroupHandle",
@@ -8787,6 +9115,74 @@
       {
         "key": "sitrep-sdk . CommandGroupPhase",
         "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk . CommandLoss",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandLoss#args",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandLoss#command",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandLoss#id",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandLoss#label",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusal",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusal#errorCode",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusal#id",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail#args",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail#breach?",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail#command",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail#detail?",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail#label",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandRefusalDetail#reason?",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandUndelivered",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandUndelivered#reason",
+        "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
       },
       {
         "key": "sitrep-sdk . ComponentDefinition#channelFamilies?",
@@ -8917,6 +9313,10 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk . asStatic",
+        "note": "Exported from the root barrel, where its documentation already said it was"
+      },
+      {
         "key": "sitrep-sdk . familyPrefix",
         "note": "The literal text before a family's first placeholder, empty when it starts with one"
       },
@@ -8931,18 +9331,6 @@
       {
         "key": "sitrep-sdk . topicMatchesFamily",
         "note": "Whether a Topic id is a member of a family, segment by segment"
-      },
-      {
-        "key": "sitrep-sdk . ~CommandFailure",
-        "note": "one dispatch the mod answered with a fault rather than a reply, as useCommand's failures holds it"
-      },
-      {
-        "key": "sitrep-sdk . ~CommandFailure#code",
-        "note": "the FaultCode id the mod answered with"
-      },
-      {
-        "key": "sitrep-sdk . ~CommandFailure#reason",
-        "note": "what the mod said of it, in its own words"
       },
       {
         "key": "sitrep-sdk . ~UplinkActionOutcome",
@@ -10257,6 +10645,18 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ConversionTargetsOfKind",
+        "note": "Exported from the kit's index because a published signature names it"
+      },
+      {
+        "key": "ui-kit . CurrencyOptions",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . CurrencyOptions#drawsReckoning?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
         "key": "ui-kit . DataTableColumnBase",
         "note": "exported, since a published component's props or return type already names it"
       },
@@ -10289,6 +10689,30 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . FormatQuantityOptions",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . FormatQuantityOptions#as?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . FormatQuantityOptions#decimals?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . FormatQuantityOptions#format?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . FormatQuantityOptions#heldSymbol?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . FormatQuantityOptions#scale?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
         "key": "ui-kit . HeldFigureProps#elsewhere?",
         "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise (decision 77)"
       },
@@ -10299,6 +10723,46 @@
       {
         "key": "ui-kit . IconButtonProps#pressed?",
         "note": "IconButton is a component taking pressed, which sets aria-pressed"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#command",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#direction?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#glyph?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#id",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#label",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#oneWaySeconds?",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#predictedPhase",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#reachEtaSeconds",
+        "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#replyEtaSeconds",
+        "note": "Exported from the kit's index because published signatures take it"
       },
       {
         "key": "ui-kit . InFlightListProps#\"aria-label\"?",
@@ -10347,6 +10811,14 @@
       {
         "key": "ui-kit . JogWheelCommon#width?",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . KindOfSymbol",
+        "note": "Exported from the kit's index because a published signature names it"
+      },
+      {
+        "key": "ui-kit . LadderOfSymbol",
+        "note": "Exported from the kit's index because a published signature names it"
       },
       {
         "key": "ui-kit . LineGraphProps#\"aria-label\"?",
@@ -10407,6 +10879,10 @@
       {
         "key": "ui-kit . SwitchBaseProps#onChange",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . SymbolsOfKind",
+        "note": "Exported from the kit's index because a published signature names it"
       },
       {
         "key": "ui-kit . TINY_SIZE",

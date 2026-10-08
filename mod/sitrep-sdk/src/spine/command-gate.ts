@@ -11,11 +11,13 @@ import { CommandErrorCode } from "../__generated__/error-codes";
  * What the mod says about a command BEFORE anyone dispatches it, shaped for the
  * control that has to draw itself.
  *
- * <p>Deliberately the same fields a refusal carries (`errorCode`, `breach`,
+ * Deliberately the same fields a refusal carries (`errorCode`, `breach`,
  * `detail`), because they are the same fields: the mod evaluates one gate set
  * one way and the only difference is whether the arguments were supplied. A
  * control renders "the game will refuse this" through the same composer it uses
  * for "the game refused this", and the two cannot drift apart on wording.
+ *
+ * @category Commands
  */
 export interface CommandGateStatus {
   /**
@@ -33,30 +35,30 @@ export interface CommandGateStatus {
    * The mod could not evaluate this command's gates at all: an authority that
    * was not there to ask.
    *
-   * <p><b>This is not a refusal and must never be drawn as one.</b> The reasons
+   * **This is not a refusal and must never be drawn as one.** The reasons
    * are mostly structural or transient and none of them is the game's judgement
    * about the command: `ScenarioUpgradeableFacilities.Instance` is not there yet
    * in a career save that is still loading, `FlightGlobals` is not ready mid
    * scene-load, an Uplink declared a gate kind and forgot its evaluator.
    * Rendering any of those as a dark control with a confident sentence teaches
    * the operator a false belief about their own save, and does it permanently,
-   * which is worse than saying nothing.</p>
+   * which is worse than saying nothing.
    *
-   * <p>A SANDBOX save is deliberately NOT on that list any more. The same
+   * A SANDBOX save is deliberately NOT on that list any more. The same
    * `Instance` is null there too, but permanently and because sandbox has no
    * facility tiers at all, so the gates answer max rather than Unknown and the
    * control is live because it PASSED. An authority that does not exist is not
-   * an authority that could not be read.</p>
+   * an authority that could not be read.
    *
-   * <p>So a control with an undetermined gate renders exactly as an ungated one:
+   * So a control with an undetermined gate renders exactly as an ungated one:
    * live, pressable, claiming nothing. The dispatch is the authority, and a
    * refusal that arrives then at least names itself as one at the moment it
-   * happens.</p>
+   * happens.
    *
-   * <p>Kept as its OWN flag rather than folded into `blocked` because the wire
+   * Kept as its OWN flag rather than folded into `blocked` because the wire
    * has always told the two apart (`GateOutcome.Unknown` vs `GateOutcome.Fail`)
    * and the client is where the distinction was at risk of being lost. `detail`
-   * carries why, for a diagnostic surface.</p>
+   * carries why, for a diagnostic surface.
    */
   undetermined: boolean;
   /**
@@ -80,14 +82,14 @@ export interface CommandGateStatus {
  * This command's entry in the published gate set, or `undefined` when there is
  * none.
  *
- * <p>`undefined` covers three different situations and deliberately does not
+ * `undefined` covers three different situations and deliberately does not
  * distinguish them, because a control does the same thing in all three: the
  * command declares no requirements, the stream is not carrying
  * `system.uplink.gates`, or nothing is connected. In every case the client
  * knows nothing about this command in advance, so the fallback is to behave as
  * though there were no gate channel at all rather than to guess.
  *
- * <p>Never treat a Pass as permission. The snapshot is up to one sampling
+ * Never treat a Pass as permission. The snapshot is up to one sampling
  * interval old and the dispatch re-evaluates the same gates against live state;
  * this exists to say no in advance, never to say yes.
  */

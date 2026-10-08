@@ -10,7 +10,11 @@ import { CommandErrorCode } from "../__generated__/error-codes";
 import type { Capability, LockScopeRegistry } from "./lock-scope";
 import { useLatestValue } from "./use-stream";
 
-/** Why a capability is locked: the unlocks it is missing, and the evaluator's prose for when it named none. */
+/**
+ * Why a capability is locked: the unlocks it is missing, and the evaluator's prose for when it named none.
+ *
+ * @category Panel
+ */
 export interface CapabilityLock {
   capability: Capability;
   missing: readonly MissingUnlock[];

@@ -2781,9 +2781,9 @@ namespace Sitrep.Host
         // RunCaptures, called from Tick), the handle on the Courier thread
         // (see ProcessTick's capture loop): see IUplinkHost.AddSampledSource
         // for the full threading contract.
-        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread)
         {
-            AddSampledSource(captureOnMainThread, handleOnCourier, Array.Empty<string>());
+            AddSampledSource(captureOnMainThread, handleOffMainThread, Array.Empty<string>());
         }
 
         // Subscription-gated overload (see IUplinkHost.AddSampledSource's
@@ -2791,12 +2791,12 @@ namespace Sitrep.Host
         // early-out the capture on the main-loop thread when nothing this
         // source produces is subscribed. An empty prefix set means "never
         // gate": the original always-capture behaviour.
-        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread, params string[] subscriptionTopicPrefixes)
         {
             _sampledSources.Add(new SampledSource(
                 _currentRegisteringUplinkId ?? "",
                 captureOnMainThread,
-                handleOnCourier,
+                handleOffMainThread,
                 subscriptionTopicPrefixes ?? Array.Empty<string>()));
         }
 

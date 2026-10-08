@@ -418,7 +418,7 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
  * Starts from a high-eccentricity guess where it needs one, so it converges
  * just after periapsis on a near-parabolic orbit too.
  *
- * <b>Exported as ARITHMETIC, not as propagation.</b> It takes a mean anomaly
+ * **Exported as ARITHMETIC, not as propagation.** It takes a mean anomaly
  * and an eccentricity and returns an angle: no elements, no frame, no time, so
  * it cannot say "where is this craft" and is not a way around the propagation
  * seam. That question goes through a provider, and on the C# side the

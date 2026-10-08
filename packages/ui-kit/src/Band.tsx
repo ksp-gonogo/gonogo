@@ -87,13 +87,13 @@ export function Band<UnitSymbol extends string = string>({
 /**
  * The ends, drawn once the group has settled how both are written.
  *
- * <p>Two ends that come out as the same text are drawn ONCE, marked
+ * Two ends that come out as the same text are drawn ONCE, marked
  * approximate (`~65.3 km`): the width is below what the display can show. The
  * rule is "the display cannot tell them apart", answered by the group, not a
- * tolerance.</p>
+ * tolerance.
  *
- * <p>Both ends report to the group in every branch, so the group's answer
- * cannot depend on the branch chosen from it.</p>
+ * Both ends report to the group in every branch, so the group's answer
+ * cannot depend on the branch chosen from it.
  */
 function BandEnds<UnitSymbol extends string = string>({
   min,

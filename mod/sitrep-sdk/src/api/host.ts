@@ -16,7 +16,12 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
-import type { CommandArgs, CommandId, CommandReply } from "../commands";
+import type {
+  AnyCommandReply,
+  CommandArgs,
+  CommandId,
+  CommandReply,
+} from "../commands";
 import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { CommandGroupHandle } from "../spine/command-group";
@@ -75,7 +80,7 @@ export interface GonogoHost {
     command: Command,
     options?: UseCommandOptions,
   ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
-  useCommand<Args = unknown, Reply = unknown>(
+  useCommand<Args = unknown, Reply = AnyCommandReply>(
     command: string,
     options?: UseCommandOptions,
   ): UseCommandResult<Args, Reply>;

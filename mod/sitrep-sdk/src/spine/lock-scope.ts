@@ -1,6 +1,10 @@
 import { createContext, useContext, useLayoutEffect } from "react";
 
-/** Something a widget uses that the save may not have unlocked: a topic it reads or a command it holds. */
+/**
+ * Something a widget uses that the save may not have unlocked: a topic it reads or a command it holds.
+ *
+ * @category Panel
+ */
 export type Capability =
   | { kind: "topic"; id: string }
   | { kind: "command"; id: string };

@@ -57,11 +57,11 @@ namespace Sitrep.Contract.TestSupport
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) { }
 
-        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) { }
+        public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread) { }
 
         public void AddSampledSource(
             Func<KspSnapshot?, object?> captureOnMainThread,
-            Action<object?> handleOnCourier,
+            Action<object?> handleOffMainThread,
             params string[] subscriptionTopicPrefixes)
         { }
 

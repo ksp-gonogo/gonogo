@@ -144,11 +144,11 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public IChannelPublisher Publisher(string topic) =>
                 topic == CommandCentreDelayUplink.RosterTopic ? RosterPublisher : new RecordingPublisher();
 
-            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
+            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread)
             {
             }
 
-            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes)
+            public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread, params string[] subscriptionTopicPrefixes)
             {
             }
 

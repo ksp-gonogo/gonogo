@@ -537,8 +537,8 @@ function collectSystem(
  * The centred and parent-direction frames have one body a side; only the
  * pulsating frame widens them, and it is the only caller that needs the sets.
  *
- * <b>The two rotating kinds put the parent on opposite sides, and that is
- * faithful rather than a slip.</b> A parent-direction frame is centred on the
+ * **The two rotating kinds put the parent on opposite sides, and that is
+ * faithful rather than a slip.** A parent-direction frame is centred on the
  * selected body with the parent held out in front of it, so the selected body is
  * the primary. A pulsating frame is named for the pair in the other order, so
  * the parent's system is the primary and the selected body's is the secondary.

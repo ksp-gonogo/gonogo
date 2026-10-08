@@ -1,7 +1,11 @@
 import type { RailDirection } from "@ksp-gonogo/sitrep-sdk";
 import type { InFlightListItem } from "./InFlightList";
 
-/** The structural subset of an in-flight command that this mapping reads. */
+/**
+ * The structural subset of an in-flight command that this mapping reads.
+ *
+ * @category CommandDelay
+ */
 export interface InFlightCommandLike {
   /** Stable for the entry's lifetime, so the list keeps its row as it moves. */
   id: string;

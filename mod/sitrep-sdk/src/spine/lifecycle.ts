@@ -13,6 +13,8 @@ import type { CommandErrorCode } from "../__generated__/error-codes";
  * The code picks the sentence and the breach fills it in. Neither is much use
  * alone: a code cannot say "16 of 16", and a pair of numbers does not say which
  * sentence they belong in.
+ *
+ * @category Commands
  */
 export interface CommandRefusalDetail {
   /** The command id that was dispatched, e.g. `career.facility.upgrade`. */
@@ -47,6 +49,8 @@ export interface CommandRefusalDetail {
  * The `id` is the dispatch's own `requestId`, so the same `dismiss(id)` clears a
  * refusal and a dead in-flight command, and the operator has one gesture rather
  * than two that look alike.
+ *
+ * @category Commands
  */
 export interface CommandRefusal extends CommandRefusalDetail {
   id: string;
@@ -70,6 +74,8 @@ export interface CommandRefusal extends CommandRefusalDetail {
  *
  * The `id` is the dispatch's own `requestId`, so one `dismiss(id)` clears a
  * loss, a refusal and a dead in-flight command alike.
+ *
+ * @category Commands
  */
 export interface CommandLoss {
   id: string;
@@ -96,6 +102,8 @@ export interface CommandLoss {
  *
  * It carries everything the loss did, so a surface drawing the loss can draw
  * this in its place, plus the transport's own reason.
+ *
+ * @category Commands
  */
 export interface CommandUndelivered extends CommandLoss {
   /** Why it will never go, in the transport's own words. */
@@ -110,6 +118,8 @@ export interface CommandUndelivered extends CommandLoss {
  * Not a refusal, which is the game's verdict on the command itself, and not a
  * loss, which carries no news at all. The mod said what became of it, and
  * `code` says which of those it was.
+ *
+ * @category Commands
  */
 export interface CommandFailure extends CommandLoss {
   /** The fault the mod answered with, a `FaultCode` id. `describeErrorCode` gives its sentence. */
@@ -131,6 +141,8 @@ export interface CommandFailure extends CommandLoss {
  * that proves it. Nothing here prevents or undoes the execution; the command ran
  * (or was refused, or broke) exactly as it would have done had the reply arrived
  * on time, and the only thing that was ever wrong was our silence about it.
+ *
+ * @category Commands
  */
 export type CommandFound = CommandLoss & CommandFoundOutcome;
 
@@ -152,6 +164,8 @@ export type CommandFound = CommandLoss & CommandFoundOutcome;
  *
  * Folding these together would repeat the mistake `CommandStatus` already
  * refused to make when it kept `refused` out of `failed`.
+ *
+ * @category Commands
  */
 export type CommandFoundOutcome =
   | { outcome: "ran"; result: unknown }

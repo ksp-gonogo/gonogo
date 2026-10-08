@@ -37,7 +37,8 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
     case "no-horizon-stated":
       return {
         heading: "NO HORIZON STATED",
-        detail: "Nothing has said how far these elements answer for.",
+        detail:
+          "Nothing says how far ahead these orbital elements can be trusted.",
       };
     case "past-horizon":
       return withheld.trajectoryKind === TrajectoryKindLike.Integrated
@@ -47,7 +48,7 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
           }
         : {
             heading: "PAST HORIZON",
-            detail: "These elements do not answer for the instant on screen.",
+            detail: "These orbital elements cannot be trusted this far ahead.",
           };
     case "shape-not-stated":
       return {

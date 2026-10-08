@@ -11,20 +11,20 @@ export interface OrbitSample {
 /**
  * Where the craft HAS BEEN, from the samples that were true at the time.
  *
- * <p><b>Observed, not propagated backwards.</b> Each point is solved from the
+ * **Observed, not propagated backwards.** Each point is solved from the
  * elements that arrived for that instant, so the trail is a record of what was
  * reported rather than a model of what must have happened. Running the current
  * elements backwards would be a different claim and a wrong one under an n-body
  * force model, where the path does not retrace: the craft's real past is only
  * recoverable from what was measured, and that is exactly what the store
- * holds.</p>
+ * holds.
  *
- * <p>This is why the forward arc and the trail must be drawn differently. One
+ * This is why the forward arc and the trail must be drawn differently. One
  * is a prediction and one is a record, and a single unbroken curve through the
- * craft would assert the same confidence in both.</p>
+ * craft would assert the same confidence in both.
  *
- * <p><b>Expressed in `frame`'s perifocal frame, and that argument is required
- * for a reason.</b> Each point is SOLVED from its own sample, which is what
+ * **Expressed in `frame`'s perifocal frame, and that argument is required
+ * for a reason.** Each point is SOLVED from its own sample, which is what
  * makes the trail a record, and a solve hands back a body-centred inertial
  * position. The arc it is drawn beside is in the perifocal frame of the elements
  * the diagram was drawn from, so a trail left inertial is a curve of the right
@@ -32,7 +32,7 @@ export interface OrbitSample {
  * that orbit's own three angles, and out of its plane entirely once the orbit is
  * tilted. Nothing about it looks wrong. Defaulting the frame would let the next
  * caller inherit that silently, so there is no default: naming the elements the
- * points are to be read against is part of asking for them.</p>
+ * points are to be read against is part of asking for them.
  */
 export function pastTrack(
   samples: readonly OrbitSample[],

@@ -58,7 +58,7 @@ import {
 /**
  * A point on a drawable trajectory: where, and when.
  *
- * <b>Three dimensions and an instant, never a flat `{x, y}`.</b> A point in the
+ * **Three dimensions and an instant, never a flat `{x, y}`.** A point in the
  * orbit's own plane with periapsis on +x is what a sampled conic has, and a
  * curve re-expressed in a read frame leaves that plane: in a rotating frame it
  * has no central body to be measured from at all. `z` is the out-of-plane

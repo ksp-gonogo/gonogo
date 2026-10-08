@@ -75,7 +75,7 @@ export interface Resolved<Unit extends string> {
  * reading carries no readable instant.
  *
  * Through `formatQuantity`, so a held number and a `<MissionDate>` beside it
- * print one spelling of a UT. A malformed instant answers null, since "as of"
+ * print one spelling of a UT. A malformed instant gives null, since "as of"
  * followed by the null token is worse than the grade on its own.
  */
 function lastValidAt(asOfUt: Value<"ut"> | undefined): string | null {
@@ -86,7 +86,7 @@ function lastValidAt(asOfUt: Value<"ut"> | undefined): string | null {
 
 /**
  * What the mark says in words: the grade, and how far back the number is from.
- * The dot answers at a glance; this answers the follow-up in the hover and the
+ * The dot shows it at a glance; this words it for the hover and the
  * accessibility tree.
  */
 function sayCurrency(caption: string, asOfUt: Value<"ut"> | undefined): string {
