@@ -1,15 +1,19 @@
 import "./appWidgets";
 import { ScreenProvider } from "@ksp-gonogo/core";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { CommcastLog } from "../../app/src/commcast/CommcastLog";
 import { CommcastLogProvider } from "../../app/src/commcast/CommcastLogContext";
-import { RadioBackendProvider } from "../../app/src/commcast/radio/backend";
+import {
+  type RadioBackend,
+  RadioBackendProvider,
+} from "../../app/src/commcast/radio/backend";
 import { clipRadio, SHORT_CLIP } from "../../app/src/commcast/radio/clips";
 import type { CommsAck, CommsMessage } from "../../app/src/commcast/types";
 import {
   StationIdentityProvider,
   StationIdentityService,
 } from "../../app/src/stationIdentity";
+import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
 import { AppWidgetScene, type ScenePress } from "./AppWidgetScene";
 
 /** The UT every scene calls now: message instants are offsets from it. */
@@ -96,6 +100,12 @@ export interface CommcastSceneProps {
   forgotten?: string[];
   /** Controls pressed once mounted, to reach a thread or the picker. */
   presses?: readonly ScenePress[];
+  /** The radio's microphone and speakers. Defaults to a recorded clip and a silent sink. */
+  radio?: RadioBackend;
+  /** Handed the log the scene reads, once it is built, to feed it live. */
+  onLog?: (log: CommcastLog) => void;
+  /** Handed the scene's mount once every press has been made. */
+  onDriven?: (mount: ProbeMount) => void;
   w: number;
   h: number;
 }
@@ -129,7 +139,7 @@ function toMessage(held: Held): CommsMessage {
   };
 }
 
-function memoryStorage(): Storage {
+export function memoryStorage(): Storage {
   const m = new Map<string, string>();
   return {
     get length() {
@@ -147,7 +157,7 @@ function memoryStorage(): Storage {
   };
 }
 
-function seededLog(props: CommcastSceneProps): CommcastLog {
+export function seededLog(props: CommcastSceneProps): CommcastLog {
   const log = new CommcastLog({
     screenKey: `story-${props.vantage}`,
     storage: memoryStorage(),
@@ -191,7 +201,9 @@ function seededLog(props: CommcastSceneProps): CommcastLog {
  * its instant against the clock's running estimate, which a pinned clock never
  * advances.
  */
-function sceneStream(props: CommcastSceneProps): Record<string, unknown> {
+export function sceneStream(
+  props: CommcastSceneProps,
+): Record<string, unknown> {
   const meta = {
     validAt: VIEW_UT,
     deliveredAt: VIEW_UT,
@@ -241,21 +253,23 @@ function sceneStream(props: CommcastSceneProps): Record<string, unknown> {
  */
 export function CommcastScene(props: CommcastSceneProps) {
   const fixture = useMemo(() => sceneStream(props), [props]);
+  const log = useMemo(() => seededLog(props), [props]);
+  const { onLog } = props;
+  useEffect(() => onLog?.(log), [log, onLog]);
   const wrap = useMemo(() => {
-    const log = seededLog(props);
     const identity = new StationIdentityService(memoryStorage(), props.name);
-    const radio = clipRadio(SHORT_CLIP);
+    const radio = props.radio ?? clipRadio(SHORT_CLIP).backend;
     const screen = props.seat === "pilot" ? "pilot" : "main";
     return (tree: ReactNode) => (
       <ScreenProvider value={screen}>
         <StationIdentityProvider service={identity}>
-          <RadioBackendProvider value={radio.backend}>
+          <RadioBackendProvider value={radio}>
             <CommcastLogProvider log={log}>{tree}</CommcastLogProvider>
           </RadioBackendProvider>
         </StationIdentityProvider>
       </ScreenProvider>
     );
-  }, [props]);
+  }, [props, log]);
   return (
     <AppWidgetScene
       widgetId="commcast"
@@ -264,6 +278,7 @@ export function CommcastScene(props: CommcastSceneProps) {
       h={props.h}
       wrap={wrap}
       presses={props.presses}
+      onDriven={props.onDriven}
     />
   );
 }
