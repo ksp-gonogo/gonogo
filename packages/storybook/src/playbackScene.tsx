@@ -1,7 +1,7 @@
-import { Button } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
 import type { PlaybackScenario } from "../scripts/playbackTypes";
+import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
 
 export interface PlaybackSceneProps {
@@ -63,9 +63,7 @@ export function PlaybackScene({ scenario, w, h }: PlaybackSceneProps) {
   return (
     <div>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-        <Button size="sm" onClick={replay}>
-          Replay
-        </Button>
+        <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">
           Step {at} of {frames.length - 1}: {frames[at].caption}
         </span>

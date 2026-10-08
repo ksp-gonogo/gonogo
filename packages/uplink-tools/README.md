@@ -42,7 +42,35 @@ Once it is in an Uplink's devDependencies the same commands answer to
 | `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order. It refuses when the Uplink's version is not the same in `client/package.json`, in `defineUplinkClient` and in the version folder of `client.url` |
 | `page` | write `README.md`, `gonogo-uplink.json` and `docs/widgets.json` from what the client registers, with no browser |
 | `render` | render every scene to `renders/` |
+| `story <id>` | render one Storybook story to a PNG, or to a GIF when the story is tagged `playback`; see below |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
+
+### Rendering a Storybook story
+
+`story` draws one story of any built Storybook, or a running one, and needs
+nothing of the Uplink around it:
+
+```
+uplink-tools story widgets-landing-status-descent-playback--crash-landing
+uplink-tools story --list landing         # the ids that contain "landing"
+uplink-tools story <id> --png             # the first settled frame of a playback story
+uplink-tools story <id> --chrome          # the whole story frame, controls and captions included
+uplink-tools story <id> --seconds 8 --fps 15 --size 900x700 --out clip.gif
+```
+
+It reads the build from `./storybook-static` (`--storybook <dir|url>` points
+elsewhere) and writes `renders/<id>.png`. The picture is the widget alone, cropped to the element
+the story marks `data-story-widget` (every marked element, when a story has
+several); `--chrome` draws the whole story frame instead, and a story with no
+marker is drawn whole. A story whose meta carries the tag
+`playback` renders as a GIF instead: it clicks the story's Replay or Play
+button, the one marked `data-story-start` or else named Replay or Play, once the
+story has rendered even when it is outside the crop (`--start <name>` names another), records
+for `--seconds` (default 6) at `--fps` (default 10), and is saved as
+`renders/<id>.gif`. A story that starts on its own needs no button. A GIF
+carries no sound, and Chromium is launched muted, so a Play control can be
+pressed without noise. In the gonogo repository `pnpm render-story <id>`
+does the same and builds the Storybook first when there is no build.
 
 The order inside `release` is the point of it. The app loads an installed
 Uplink's client only when the plugin says where the bundle lives and vouches for

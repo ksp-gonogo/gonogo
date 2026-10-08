@@ -1,4 +1,3 @@
-import { Button } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "../../app/src/commcast/CommcastLog";
 import type { RadioBackend } from "../../app/src/commcast/radio/backend";
@@ -33,6 +32,7 @@ import {
   ROW,
   WOOMERA,
 } from "./commcastScenes";
+import { PlaybackStart } from "./PlaybackStart";
 
 /** The UT `commcastScenes` calls now. */
 const VIEW_UT = 12_000_000;
@@ -319,9 +319,9 @@ export function CommsPlaybackScene({
   return (
     <div>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-        <Button size="sm" onClick={play}>
+        <PlaybackStart onClick={play}>
           {run === 0 ? "Play" : "Replay"}
-        </Button>
+        </PlaybackStart>
         <span aria-live="off" ref={readout}>
           Press Play to hear the loop
         </span>

@@ -1,4 +1,3 @@
-import { Button } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type Frame,
@@ -6,6 +5,7 @@ import {
   streamFixture,
 } from "../../components/scripts/landingDescentModel";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
+import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
 
 /** Descent seconds played per real second. */
@@ -87,9 +87,7 @@ export function LandingDescentScene({
   return (
     <div>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-        <Button size="sm" onClick={replay}>
-          Replay
-        </Button>
+        <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">
           Descent clock T+{elapsed} of T+{frames[frames.length - 1].t}, played
           at {PLAYBACK_RATE} times speed

@@ -41,6 +41,7 @@
     "published-packages-probe": "node scripts/published-packages-probe.mjs",
     "scaffold-probe": "node scripts/scaffold-probe.mjs",
     "push": "node scripts/safe-push.mjs",
+    "render-story": "pnpm --filter @ksp-gonogo/storybook render-story",
     "review-sheet": "pnpm --filter @ksp-gonogo/storybook review-sheet"
   },
   "devDependencies": {

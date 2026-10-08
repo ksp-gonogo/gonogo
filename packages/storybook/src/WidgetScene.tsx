@@ -88,5 +88,11 @@ export function WidgetScene(props: WidgetSceneProps) {
   }, [widgetId, fixture, w, h, mode, profile, withheld, wrap]);
 
   if (failure) throw failure;
-  return <div ref={host} data-scene={mounted ? "mounted" : "mounting"} />;
+  return (
+    <div
+      ref={host}
+      data-scene={mounted ? "mounted" : "mounting"}
+      data-story-widget=""
+    />
+  );
 }

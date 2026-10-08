@@ -1,4 +1,3 @@
-import { Button } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
 import early from "../../components/src/TechTree/__fixtures__/early-career-63-nodes.json";
@@ -8,6 +7,7 @@ import {
   nodesAt,
   playCareer,
 } from "../scripts/techCareerModel";
+import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
 
 /** Real milliseconds each step of the career plays for. */
@@ -129,9 +129,7 @@ export function TechTreeCareerScene({
   return (
     <div>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-        <Button size="sm" onClick={replay}>
-          Replay
-        </Button>
+        <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">
           Step {at} of {frames.length - 1}: {describe(frames[at])}
         </span>

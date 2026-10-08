@@ -7,7 +7,7 @@
  * nothing installed, and an installed copy answers to the same name in a
  * `package.json` script.
  *
- * `render` and `docs` drive Playwright and are imported only when one of them
+ * `render`, `docs` and `story` drive Playwright and are imported only when one of them
  * runs, so no other command loads a browser driver.
  */
 
@@ -55,6 +55,7 @@ const USAGE = `uplink-tools <command>
   page     write this Uplink's generated page from its registrations, with
            no browser
   render   render this Uplink's widgets to images
+  story    render one Storybook story to a PNG, or a GIF when it plays over time
   docs     this Uplink's README, its assets and the SAME gonogo-uplink.json
            that bundle writes
 
@@ -416,6 +417,11 @@ export async function run(argv: readonly string[]): Promise<number> {
         return 0;
       }
       return await command(argv.slice(1));
+    }
+    if (verb === "story") {
+      const { storyCommand } = await import("../render/story");
+      await storyCommand(argv.slice(1));
+      return 0;
     }
     if (verb === "render" || verb === "docs") {
       const { renderOrDocs } = await import("../render/cli").catch(

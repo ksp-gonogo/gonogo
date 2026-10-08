@@ -65,7 +65,7 @@ export type Engine = "chromium" | "firefox" | "webkit";
  * Only the VALUES move. `Page` and `Locator` stay type-only imports, which erase,
  * so the signatures throughout this file keep their real types.
  */
-async function engine(name: Engine) {
+export async function engine(name: Engine) {
   let playwright: typeof import("playwright");
   try {
     playwright = await import("playwright");

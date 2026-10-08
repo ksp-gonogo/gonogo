@@ -5,6 +5,7 @@ import { LandingDescentScene } from "../../landingDescentScenes";
 const meta = {
   title: "Widgets/landing-status/Descent playback",
   component: LandingDescentScene,
+  tags: ["playback"],
   decorators: [withGonogoFrame],
   parameters: { layout: "fullscreen" },
   argTypes: {
