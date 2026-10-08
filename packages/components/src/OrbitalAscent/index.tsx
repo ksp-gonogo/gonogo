@@ -14,6 +14,7 @@ import {
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
+import read from "./orbital-ascent.declarations.g";
 
 /** Horizontal speed, computed here: the wire carries its two components, not it. */
 const HORIZONTAL_SPEED_KEY = "orbital-ascent.horizontalSpeed";
@@ -35,6 +36,7 @@ export function horizontalOf(
 const topics = defineTopicManifest({
   // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "vessel.flight.altitudeAsl",
     "vessel.flight.surfaceSpeed",
@@ -146,6 +148,7 @@ function OrbitalAscentComponent({
     undefined;
 
   return (
+    // gonogo:reads vessel.flight
     <GraphView
       config={graphConfig}
       computedSeries={computedSeries}
@@ -167,6 +170,7 @@ registerComponent<OrbitalAscentConfig>({
   mobileHeight: 280,
   component: OrbitalAscentComponent,
   channels: topics.channels,
+  ...read,
   fields: topics.fields,
   defaultConfig: { windowSec: 600 },
   actions: [],

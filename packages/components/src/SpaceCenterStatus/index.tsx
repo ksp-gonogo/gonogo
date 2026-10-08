@@ -19,6 +19,7 @@ import { facilityLevelsFrom } from "./facilities";
 // Imported for its registration side effect too; the age caption is only honest while that contribution is on screen.
 import { STOCK_FACILITY_CONTRIBUTION_ID } from "./facilitiesContribution";
 import { SpaceCenterStatusView } from "./SpaceCenterStatusView";
+import read from "./space-center-status.declarations.g";
 import { useSpaceCenterEssentials } from "./useSpaceCenterEssentials";
 
 const topics = defineTopicManifest({
@@ -28,7 +29,7 @@ const topics = defineTopicManifest({
     "spaceCenter.scene",
     "spaceCenter.state",
   ],
-  optionalChannels: ["career.mode"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "career.facilities.facilities",
     "career.status.balances.funds",
@@ -138,14 +139,13 @@ registerComponent<SpaceCenterStatusConfig>({
   // A real balance does not fit two columns, and the pad word needs a fourth row under it.
   // At four rows the facility grid's empty state sits under the scroll edge's fade.
   minSize: { w: 5, h: 5 },
-  commands: ["career.facility.upgrade"],
   component: SpaceCenterStatusComponent,
   tiny: {
     title: "KSC",
     useEssentials: useSpaceCenterEssentials,
   },
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

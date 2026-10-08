@@ -22,6 +22,7 @@ import { ControlToggles } from "./ControlToggles";
 import { type NavballConfig, navballActions } from "./config";
 import { useAxisStreams, useThrottleCommand } from "./controlStreams";
 import { NavballConfigForm } from "./NavballConfigForm";
+import read from "./navball.declarations.g";
 import { lastObserved, numericOrNull } from "./readings";
 import { badgeSasMode } from "./sasModes";
 import { ThrottleGauge } from "./ThrottleGauge";
@@ -39,7 +40,7 @@ const topics = defineTopicManifest({
     "vessel.comms",
     "comms.delay",
   ],
-  optionalChannels: ["vessel.identity", "vessel.orbit"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "vessel.attitude.heading",
     "vessel.attitude.pitch",
@@ -304,18 +305,12 @@ registerComponent<NavballConfig>({
   defaultSize: { w: 8, h: 11 },
   // 4x5 is where the stacked readout stops clipping vertically.
   minSize: { w: 4, h: 5 },
-  commands: [
-    "vessel.control.setSas",
-    "vessel.control.setRcs",
-    "vessel.control.setSasMode",
-    "vessel.control.setFlyByWire",
-    "vessel.control.setAxes",
-    "vessel.control.setThrottle",
-  ],
   component: NavballComponent,
   configComponent: NavballConfigForm,
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
+  // The attitude reckoning subscribes the orbit with no read the scan can see.
+  optionalChannels: [...read.optionalChannels, "vessel.orbit"],
   fields: topics.fields,
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,

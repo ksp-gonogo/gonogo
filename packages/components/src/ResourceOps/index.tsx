@@ -22,12 +22,13 @@ import {
 import { DrillCard } from "./DrillCard";
 import { ResourceOpsStats } from "./ResourceOpsStats";
 import { converterResources, netElectricChargeDraw } from "./rates";
+import read from "./resource-ops.declarations.g";
 
 export type { ResourceOpsActions } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["isru.drills", "isru.converters"],
-  optionalChannels: ["vessel.identity", "system.bodies"],
+  optionalChannels: read.optionalChannels,
 });
 
 /**
@@ -215,7 +216,7 @@ registerComponent<ResourceOpsConfig>({
   minSize: { w: 3, h: 4 },
   component: ResourceOpsComponent,
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   defaultConfig: {},
   actions: resourceOpsActions,
   pushable: true,

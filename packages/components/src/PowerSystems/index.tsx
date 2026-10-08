@@ -3,6 +3,7 @@ import { type PowerSystemsConfig, powerSystemsActions } from "./config";
 import { PowerSystemsConfigForm } from "./PowerSystemsConfigForm";
 import { PowerSystemsComponent } from "./PowerSystemsView";
 import "./slots";
+import read from "./power-systems.declarations.g";
 
 export type { PowerSystemsScope } from "./slots";
 
@@ -17,8 +18,8 @@ registerComponent<PowerSystemsConfig>({
   component: PowerSystemsComponent,
   configComponent: PowerSystemsConfigForm,
   openConfigOnAdd: false,
-  // `vessel.resources` is declared as a whole Topic because its reservoir is keyed by resource name.
-  dataRequirements: ["vessel.parts", "vessel.resources", "parts.power"],
+  channels: ["vessel.parts"],
+  ...read,
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
   augmentSlots: ["power-systems.sections"],

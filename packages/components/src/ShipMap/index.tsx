@@ -16,6 +16,7 @@ import { externalTempTint } from "./ambientTint";
 import { groupByPart } from "./groupByPart";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
 import { ShipMapBody } from "./ShipMapBody";
+import read from "./ship-map.declarations.g";
 import { computeShipLayout } from "./shipLayout";
 import {
   buildShipMapPart,
@@ -227,13 +228,13 @@ registerComponent<ShipMapConfig>({
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },
-  commands: ["vessel.invokePartAction"],
   component: ShipMapComponent,
   augmentSlots: ["ship-map.overlay"],
   // The built-in contribution always fills part-meters; an Uplink may fill both.
   contributionSlots: ["ship-map.part-meters", "ship-map.part-meta"],
   // Per-part thermal, resources and module state all ride the one `vessel.parts` payload.
   channels: topics.channels,
+  ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

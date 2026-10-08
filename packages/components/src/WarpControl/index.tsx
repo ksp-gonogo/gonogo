@@ -25,6 +25,7 @@ import {
 } from "./config";
 import { WarpControlConfigForm } from "./WarpControlConfigForm";
 import { WarpControlView } from "./WarpControlView";
+import read from "./warp-control.declarations.g";
 import { normalizeWarpMode, TOP_WARP_INDEX, warpLabel } from "./warpLevels";
 
 export { delayRequiringAlarm } from "./alarmGate";
@@ -32,13 +33,7 @@ export type { WarpControlActions, WarpControlConfig } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["time.warp"],
-  optionalChannels: [
-    "comms.delay",
-    "vessel.maneuver",
-    "career.mode",
-    "spaceCenter.scene",
-    "spaceCenter.state",
-  ],
+  optionalChannels: read.optionalChannels,
   fields: [
     "time.warp.warpRate",
     "time.warp.warpRateIndex",
@@ -238,7 +233,6 @@ registerComponent<WarpControlConfig>({
   defaultSize: { w: 6, h: 5 },
   // Below it the ladder has no room.
   minSize: { w: 4, h: 4 },
-  commands: ["time.setWarpIndex", "time.setPaused"],
   component: WarpControlComponent,
   tiny: {
     title: "WARP",
@@ -247,7 +241,7 @@ registerComponent<WarpControlConfig>({
   },
   configComponent: WarpControlConfigForm,
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   // The scene and career reads only dim it; warp is a pilot's control.
   seats: ["mission-control", "pilot"],

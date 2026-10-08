@@ -14,7 +14,6 @@ import {
   type OrbitTrajectory,
   type ReadFrameChoice,
   readFrameChoicesEqual,
-  useFleetVesselSilence,
   useOrbitTrajectory,
   useProcessor,
   useStream,
@@ -70,15 +69,7 @@ import { SystemViewConfigForm } from "./SystemViewConfigForm";
 // comms.network and system.uplink.pending are also read directly, for the host-side path highlight and traffic.
 const topics = defineTopicManifest({
   channels: ["system.bodies"],
-  optionalChannels: [
-    "vessel.orbit",
-    "vessel.identity",
-    "vessel.target",
-    "comms.network",
-    "system.uplink.pending",
-    "system.frame",
-    "system.vessels",
-  ],
+  optionalChannels: read.optionalChannels,
 });
 
 /** The translation returns a new object per call, and the projection memos below key on it: hold the previous object while the choice draws the same picture. */
@@ -142,7 +133,6 @@ function SystemViewComponent({
    */
   const vesselGuid =
     typeof identity?.vesselId === "string" ? identity.vesselId : null;
-  useFleetVesselSilence(vesselGuid ?? "");
   const vesselStatuses = useContributions("system-view.vessel-status");
   const vesselStatus = vesselGuid
     ? vesselStatuses.find((s) => s.target === vesselGuid)
@@ -501,116 +491,120 @@ function SystemViewComponent({
     );
 
   return (
-    <Panel
-      panelTitle="SYSTEM"
-      // A second scrolling region, so reading it never scrolls the diagram off the tile.
-      panelSidebar={showAlmanac ? sidebarContent : undefined}
-      sections={[
-        <Section key="captions" full>
-          <div style={FRAME_CAPTION} role="status" aria-live="polite">
-            {frameCaption({
-              haveBodies: bodies.length > 0,
-              parentName,
-              encounterDirection,
-              encounterBody,
-            })}
-          </div>
-          <ContactCaption
-            status={vesselStatus}
-            vesselName={
-              typeof identity?.name === "string" ? identity.name : "Vessel"
-            }
-          />
-          {/* Beside the caption rather than over the diagram: only the vessel's curve is missing. */}
-          {trajectoryWithheld && (
-            <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
-          )}
-          {/* Which frame the picture is in (what the axes do), distinct from the "Frame:" body caption; passed outright because the diagram does its own framing. */}
-          <TrajectoryFrameCaption
-            frame={
-              projection?.frame ??
-              (frameBodyIndex === undefined
-                ? null
-                : inertialFrameFor(frameBodyIndex))
-            }
-            centreBodyName={parentName ?? undefined}
-          />
-        </Section>,
-        <Section key="diagram" fill>
-          {showDiagram ? (
-            <FramedDisplay style={DIAGRAM_FRAME}>
-              <div ref={wrapRef} style={DIAGRAM_WRAP}>
-                {parentName !== null && bodies.length > 0 && (
-                  <SystemDiagram
-                    bodies={bodies}
-                    poses={poses}
-                    parentName={parentName}
-                    highlightNames={vesselBody ? [vesselBody] : []}
-                    targetName={
-                      typeof targetName === "string" ? targetName : null
-                    }
-                    vessel={vesselOrbit}
-                    vesselTrajectory={vesselTrajectory}
-                    vesselPlotState={drawnPlotState}
-                    vesselPositionHeld={
-                      vesselAt !== null && vesselAt === craft?.held
-                    }
-                    phaseAngles={phaseAngles}
-                    transferStatuses={transferStatuses}
-                    onFocusBodyChange={setFocusedBody}
-                    pinnedBodyIndex={pinnedBodyIndex}
-                    onBodyActivate={activateBody}
-                    vesselSelected={
-                      activeVesselEntityId !== null &&
-                      selectedVesselId === activeVesselEntityId
-                    }
-                    onVesselActivate={
-                      activeVesselEntityId === null
-                        ? undefined
-                        : () => activateEntity(activeVesselEntityId)
-                    }
-                    predicted={predicted}
-                    projection={projection}
-                    width={size.w}
-                    height={size.h}
-                    view={panZoom}
-                  />
-                )}
-                {/* Host-drawn contribution entities, on the same auto-fit projection as the overlay slot. */}
-                {overlayContext !== null && (
-                  <SystemEntitiesLayer
-                    entities={entities}
-                    ctx={overlayContext}
-                    decorate={decorate}
-                    selectedId={selectedVesselId}
-                    onEntityActivate={activateEntity}
-                    pulses={traffic.pulses}
-                    // Real-UT bookkeeping clock: a CME's arrive and clear times are real-UT facts, not delayed telemetry.
-                    nowUt={utNow}
-                  />
-                )}
-                {/* Pointer-transparent, so an empty overlay slot is inert. */}
-                {overlayContext !== null && (
-                  <div style={OVERLAY_LAYER}>
-                    <AugmentSlot
-                      name="system-view.overlay"
-                      props={overlayContext}
-                    />
-                  </div>
-                )}
-              </div>
-            </FramedDisplay>
-          ) : (
-            <div style={COMPACT_BODY}>
-              <div style={COMPACT_VALUE}>{parentName ?? NULL_DISPLAY}</div>
-              {typeof vesselBody === "string" && vesselBody !== parentName && (
-                <div style={COMPACT_SUB}>vessel · {vesselBody}</div>
-              )}
+    <>
+      {vesselGuid && <VesselSilenceSubscription guid={vesselGuid} />}
+      <Panel
+        panelTitle="SYSTEM"
+        // A second scrolling region, so reading it never scrolls the diagram off the tile.
+        panelSidebar={showAlmanac ? sidebarContent : undefined}
+        sections={[
+          <Section key="captions" full>
+            <div style={FRAME_CAPTION} role="status" aria-live="polite">
+              {frameCaption({
+                haveBodies: bodies.length > 0,
+                parentName,
+                encounterDirection,
+                encounterBody,
+              })}
             </div>
-          )}
-        </Section>,
-      ]}
-    />
+            <ContactCaption
+              status={vesselStatus}
+              vesselName={
+                typeof identity?.name === "string" ? identity.name : "Vessel"
+              }
+            />
+            {/* Beside the caption rather than over the diagram: only the vessel's curve is missing. */}
+            {trajectoryWithheld && (
+              <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
+            )}
+            {/* Which frame the picture is in (what the axes do), distinct from the "Frame:" body caption; passed outright because the diagram does its own framing. */}
+            <TrajectoryFrameCaption
+              frame={
+                projection?.frame ??
+                (frameBodyIndex === undefined
+                  ? null
+                  : inertialFrameFor(frameBodyIndex))
+              }
+              centreBodyName={parentName ?? undefined}
+            />
+          </Section>,
+          <Section key="diagram" fill>
+            {showDiagram ? (
+              <FramedDisplay style={DIAGRAM_FRAME}>
+                <div ref={wrapRef} style={DIAGRAM_WRAP}>
+                  {parentName !== null && bodies.length > 0 && (
+                    <SystemDiagram
+                      bodies={bodies}
+                      poses={poses}
+                      parentName={parentName}
+                      highlightNames={vesselBody ? [vesselBody] : []}
+                      targetName={
+                        typeof targetName === "string" ? targetName : null
+                      }
+                      vessel={vesselOrbit}
+                      vesselTrajectory={vesselTrajectory}
+                      vesselPlotState={drawnPlotState}
+                      vesselPositionHeld={
+                        vesselAt !== null && vesselAt === craft?.held
+                      }
+                      phaseAngles={phaseAngles}
+                      transferStatuses={transferStatuses}
+                      onFocusBodyChange={setFocusedBody}
+                      pinnedBodyIndex={pinnedBodyIndex}
+                      onBodyActivate={activateBody}
+                      vesselSelected={
+                        activeVesselEntityId !== null &&
+                        selectedVesselId === activeVesselEntityId
+                      }
+                      onVesselActivate={
+                        activeVesselEntityId === null
+                          ? undefined
+                          : () => activateEntity(activeVesselEntityId)
+                      }
+                      predicted={predicted}
+                      projection={projection}
+                      width={size.w}
+                      height={size.h}
+                      view={panZoom}
+                    />
+                  )}
+                  {/* Host-drawn contribution entities, on the same auto-fit projection as the overlay slot. */}
+                  {overlayContext !== null && (
+                    <SystemEntitiesLayer
+                      entities={entities}
+                      ctx={overlayContext}
+                      decorate={decorate}
+                      selectedId={selectedVesselId}
+                      onEntityActivate={activateEntity}
+                      pulses={traffic.pulses}
+                      // Real-UT bookkeeping clock: a CME's arrive and clear times are real-UT facts, not delayed telemetry.
+                      nowUt={utNow}
+                    />
+                  )}
+                  {/* Pointer-transparent, so an empty overlay slot is inert. */}
+                  {overlayContext !== null && (
+                    <div style={OVERLAY_LAYER}>
+                      <AugmentSlot
+                        name="system-view.overlay"
+                        props={overlayContext}
+                      />
+                    </div>
+                  )}
+                </div>
+              </FramedDisplay>
+            ) : (
+              <div style={COMPACT_BODY}>
+                <div style={COMPACT_VALUE}>{parentName ?? NULL_DISPLAY}</div>
+                {typeof vesselBody === "string" &&
+                  vesselBody !== parentName && (
+                    <div style={COMPACT_SUB}>vessel · {vesselBody}</div>
+                  )}
+              </div>
+            )}
+          </Section>,
+        ]}
+      />
+    </>
   );
 }
 
@@ -681,7 +675,7 @@ registerComponent<SystemViewConfig>({
   ],
   // Declares the body array it walks and not `system.state.bodyCount`, which it never reads.
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   defaultConfig: { frame: "auto" },
   actions: [],
   pushable: true,
@@ -710,6 +704,8 @@ export {
 } from "./systemEntities";
 
 import { unlessLocked } from "@ksp-gonogo/sitrep-sdk";
+import read from "./system-view.declarations.g";
+import { VesselSilenceSubscription } from "./VesselSilenceSubscription";
 
 export type { CelestialBody } from "./useCelestialBodies";
 export { useCelestialBodies } from "./useCelestialBodies";

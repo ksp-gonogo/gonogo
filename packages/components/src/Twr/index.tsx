@@ -16,6 +16,7 @@ import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { GAUGE_MAX, GAUGE_MIN, toneColorFor, twrOf, ZONES } from "./scale";
+import read from "./twr.declarations.g";
 
 type TwrConfig = Record<string, never>;
 
@@ -190,10 +191,9 @@ registerComponent<TwrConfig>({
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 3, h: 3 },
   component: TwrComponent,
-  dataRequirements: [
-    "vessel.propulsion.currentThrust",
-    "vessel.propulsion.totalMass",
-  ],
+  channels: ["vessel.propulsion"],
+  fields: ["vessel.propulsion.currentThrust", "vessel.propulsion.totalMass"],
+  ...read,
   defaultConfig: {},
   actions: [],
   pushable: true,

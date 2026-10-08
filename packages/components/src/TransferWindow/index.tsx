@@ -53,6 +53,7 @@ import {
   NowValue,
   RouteSelect,
 } from "./styles";
+import read from "./transfer-window.declarations.g";
 import {
   computeTransfer,
   porkchopGridQuantum,
@@ -68,7 +69,7 @@ export type { TransferWindowActions } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["system.bodies", "vessel.orbit", "target.available", "dv.summary"],
-  optionalChannels: ["dv.stages", "vessel.structure"],
+  optionalChannels: read.optionalChannels,
 });
 
 /** Stable empty catalogue: `useProcessor` answers undefined before the first frame. */
@@ -425,10 +426,9 @@ registerComponent<TransferWindowConfig>({
   tags: ["telemetry", "planning"],
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },
-  commands: ["system.bodies.statesAt"],
   component: TransferWindowComponent,
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   defaultConfig: { showPorkchop: true, leadHours: 6, reserveDeltaV: 0 },
   actions: transferWindowActions,
   pushable: true,

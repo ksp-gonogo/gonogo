@@ -69,15 +69,7 @@ interface Debt {
   reason: string;
 }
 
-const DEBT: readonly Debt[] = [
-  {
-    widgetId: "system-view",
-    topic: "silence.",
-    prefix: true,
-    reason:
-      "one silence.<vesselId>.state per fleet vessel it draws, an id the manifest has no form for",
-  },
-];
+const DEBT: readonly Debt[] = [];
 
 /**
  * Commands a widget declares that no fixture reaches, each with the reason.

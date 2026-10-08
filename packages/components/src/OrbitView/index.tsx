@@ -23,6 +23,7 @@ import {
   orbitViewActions,
 } from "./config";
 import { OrbitViewPanel } from "./OrbitViewPanel";
+import read from "./orbit-view.declarations.g";
 import { orbitPill } from "./orbitPill";
 import { overlayContext } from "./overlayContext";
 import type { OrbitOverlayContext } from "./slots";
@@ -33,7 +34,7 @@ export type { OrbitOverlayContext } from "./slots";
 
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
-  optionalChannels: ["system.frame"],
+  optionalChannels: read.optionalChannels,
   // Per field so alarms stay off a widget that does not draw them; `system.bodies` carries the body geometry.
   fields: [
     "vessel.orbit.sma",
@@ -201,7 +202,7 @@ registerComponent<OrbitViewConfig>({
   component: OrbitViewComponent,
   augmentSlots: ["orbit-view.overlay"],
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   defaultConfig: { showMarkers: true },
   actions: orbitViewActions,

@@ -3,6 +3,7 @@ import { type TargetPickerConfig, targetPickerActions } from "./config";
 import { SITUATION_LABELS, VESSEL_TYPE_LABELS } from "./entries";
 import { TargetPickerConfigForm } from "./TargetPickerConfigForm";
 import { TargetPickerComponent } from "./TargetPickerView";
+import read from "./target-picker.declarations.g";
 import { targetPickerTopics } from "./topics";
 
 export { SPACE_OBJECT_VESSEL_TYPE } from "./entries";
@@ -15,12 +16,11 @@ registerComponent<TargetPickerConfig>({
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },
-  commands: ["vessel.target.set", "vessel.target.clear"],
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigForm,
   augmentSlots: ["target-picker.sections"],
   channels: targetPickerTopics.channels,
-  optionalChannels: targetPickerTopics.optionalChannels,
+  ...read,
   defaultConfig: {},
   actions: targetPickerActions,
   pushable: true,

@@ -21,10 +21,11 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useBodyName } from "../shared/useBodyName";
+import read from "./semi-major-axis.declarations.g";
 
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "system.bodies"],
-  optionalChannels: ["system.frame"],
+  optionalChannels: read.optionalChannels,
   fields: ["vessel.orbit.sma", "vessel.orbit.referenceBodyIndex"],
 });
 
@@ -150,7 +151,7 @@ registerComponent<SemiMajorAxisConfig>({
   minSize: { w: 3, h: 3 },
   component: SemiMajorAxisComponent,
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

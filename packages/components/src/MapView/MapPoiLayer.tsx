@@ -146,7 +146,7 @@ export function MapPoiLayer({
         provider.requires ? (
           <PoiProviderGate
             key={provider.id}
-            requires={provider.requires}
+            domain={provider.requires}
             provider={provider}
             bodyId={bodyId}
             project={project}
@@ -177,19 +177,19 @@ export function MapPoiLayer({
 
 /** Applies a gated provider's Domain presence gate; an ungated provider mounts its markers directly and reads no availability topic. */
 function PoiProviderGate({
-  requires,
+  domain,
   provider,
   bodyId,
   project,
   hover,
 }: {
-  requires: string;
+  domain: string;
   provider: MapPoiProviderDefinition;
   bodyId: string | undefined;
   project: MapPoiLayerProps["project"];
   hover: PoiHover;
 }): ReactElement | null {
-  const available = useTelemetry(`${requires}.available` as TopicId);
+  const available = useTelemetry(`${domain}.available` as TopicId);
 
   // A `.available` topic is a presence gate: held and absent both mean installed, and only pending or unowned hides the provider.
   if (!hasAnswered(available)) return null;

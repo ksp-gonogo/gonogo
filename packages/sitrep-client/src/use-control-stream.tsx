@@ -131,6 +131,7 @@ export function useControlStream(
   // Hooks are called unconditionally with a stable order. When the channel is
   // unknown, writeCommand/readTopic fall back to inert strings and nothing sends.
   // Off the panel rail: this hook's own `ControlDelayStream` draws the stream.
+  // gonogo:reads vessel.control.setAxes, vessel.control.setThrottle
   const command = useCommand(channel?.writeCommand ?? "", { rail: false });
   /*
    * The rail axes for this channel. Continuous because this hook is what makes
@@ -146,6 +147,7 @@ export function useControlStream(
    */
   const tags = railTagsForControlAxis(channel?.writeCommand ?? "");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
+  // gonogo:reads vessel.control
   const readback = useLatestValue<Record<string, unknown>>(
     channel?.readTopic ?? "",
   );

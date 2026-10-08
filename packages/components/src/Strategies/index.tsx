@@ -14,6 +14,7 @@ import { parseEffectLines, parseStrategies } from "./parsing";
 import { inferCap, partition } from "./partition";
 import { StrategiesView } from "./StrategiesView";
 import { resolveScreens } from "./screens";
+import read from "./strategies.declarations.g";
 
 export type { Strategy } from "./types";
 export { parseEffectLines, parseStrategies };
@@ -135,10 +136,10 @@ registerComponent<StrategiesConfig>({
   defaultSize: { w: 5, h: 9 },
   // Three columns and four rows hold a full balance over the tally.
   minSize: { w: 5, h: 4 },
-  commands: ["career.strategy.activate", "career.strategy.deactivate"],
   component: StrategiesComponent,
   tiny: { title: "ADMIN", useEssentials: useStrategiesEssentials },
   channels: topics.channels,
+  ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

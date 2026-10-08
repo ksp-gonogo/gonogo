@@ -57,6 +57,7 @@ import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { VanillaSuppressionProbe } from "./VanillaSuppressionProbe";
 // Side-effect only: registers the vanilla POI provider MapPoiLayer renders.
 import "./vanillaPoiProvider";
+import read from "./map-view.declarations.g";
 
 export type { MapViewActions } from "./actions";
 export type {
@@ -73,7 +74,7 @@ const topics = defineTopicManifest({
     "vessel.identity",
     "system.bodies",
   ],
-  optionalChannels: ["vessel.maneuver", "spaceCenter.pois"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "vessel.flight.latitude",
     "vessel.flight.longitude",
@@ -473,14 +474,16 @@ registerComponent<MapViewConfig>({
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
   minSize: { w: 3, h: 4 },
-  commands: ["vessel.target.set"],
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
   // `vessel.orbit` is read by `OrbitalEventChips` inside this widget, so it is declared here.
   channels: topics.channels,
   // The space centre markers are reference points on the map, not a ground control.
   seats: ["mission-control", "pilot"],
-  optionalChannels: topics.optionalChannels,
+  ...read,
+  // The point-of-interest providers mount through a registry, so the scan cannot follow what the stock one reads and sends.
+  optionalChannels: [...read.optionalChannels, "spaceCenter.pois"],
+  commands: [...read.commands, "vessel.target.set"],
   fields: topics.fields,
   defaultConfig: {
     trajectoryLength: 2000,

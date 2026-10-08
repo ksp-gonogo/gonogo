@@ -14,6 +14,7 @@ import {
 import { magnitudeOf } from "../shared/magnitude";
 import { computeResearchable } from "./graph-layout";
 import { TechTreeView } from "./TechTreeView";
+import read from "./tech-tree.declarations.g";
 import { parseTechNodes } from "./wire";
 
 export type { TechNode, TechNodeState, TechPart } from "./wire";
@@ -21,7 +22,7 @@ export { parseTechNodes } from "./wire";
 
 const topics = defineTopicManifest({
   channels: ["career.status"],
-  optionalChannels: ["career.mode", "spaceCenter.scene", "spaceCenter.state"],
+  optionalChannels: read.optionalChannels,
   fields: ["career.status.tech.nodes", "career.status.balances.science"],
 });
 
@@ -99,11 +100,10 @@ registerComponent<TechTreeConfig>({
   defaultSize: { w: 6, h: 9 },
   // Three columns and rows hold the two essentials the tiny form draws.
   minSize: { w: 5, h: 4 },
-  commands: ["career.tech.unlock"],
   component: TechTreeComponent,
   tiny: { title: "TECH", useEssentials: useTechTreeEssentials },
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],

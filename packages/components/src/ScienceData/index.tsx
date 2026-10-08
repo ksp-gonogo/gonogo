@@ -32,6 +32,7 @@ import {
   parseExperimentBreakdown,
   parseExperiments,
 } from "./parsers";
+import read from "./science-data.declarations.g";
 
 export type { ScienceDataAboardRowContext } from "@ksp-gonogo/sitrep-sdk";
 
@@ -45,7 +46,7 @@ const topics = defineTopicManifest({
     "science.archive",
     "career.status",
   ],
-  optionalChannels: ["career.mode", "spaceCenter.scene", "spaceCenter.state"],
+  optionalChannels: read.optionalChannels,
   fields: [
     "vessel.identity.parentBodyIndex",
     "vessel.identity.situation",
@@ -183,7 +184,7 @@ registerComponent<ScienceDataConfig>({
   minSize: { w: 5, h: 4 },
   component: ScienceDataComponent,
   channels: topics.channels,
-  optionalChannels: topics.optionalChannels,
+  ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],
