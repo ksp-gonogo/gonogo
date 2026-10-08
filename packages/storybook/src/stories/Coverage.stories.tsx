@@ -49,7 +49,8 @@ function difference(from: readonly string[], to: readonly string[]): string[] {
 /**
  * Every widget, augment and contribution the registries hold, against what
  * the generated stories cover. Throws when a registration has no story or a
- * story names nothing registered, so the smoke check fails on either drift.
+ * story names nothing registered, or a widget with a tiny form lacks its Tiny
+ * and Large stories, so the smoke check fails on any of those drifts.
  */
 function Coverage() {
   const widgets = getComponents().map((d) => d.id);
@@ -65,6 +66,17 @@ function Coverage() {
     ...difference(coverage.widgets, widgets),
     ...difference(coverage.extensions, extensions),
   ];
+  const unsized = difference(
+    getComponents()
+      .filter((d) => d.tiny !== undefined)
+      .map((d) => d.id),
+    coverage.sized,
+  );
+  if (unsized.length > 0) {
+    throw new Error(
+      `Tiny form with no Tiny and Large story: ${unsized.join(", ")}`,
+    );
+  }
   if (uncovered.length > 0) {
     throw new Error(`Registered with no story: ${uncovered.join(", ")}`);
   }

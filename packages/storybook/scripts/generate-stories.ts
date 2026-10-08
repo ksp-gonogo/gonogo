@@ -11,6 +11,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { TINY_SIZE } from "@ksp-gonogo/sitrep-sdk";
 import { storyNameFromExport, toId } from "storybook/internal/csf";
 import { loadCsf } from "storybook/internal/csf-tools";
 import type {
@@ -197,14 +198,50 @@ export const ${s.exportName}: Story = {
 `;
 }
 
+/** The two stories every widget with a tiny form gets beside its scenes, in the order they are written. */
+const SIZE_STORY_NAMES = ["Tiny", "Large"] as const;
+
+/** Where a widget with a tiny form draws its Tiny and Large stories: one scene, at two sizes. */
+interface SizeStories {
+  /** Repo-relative path of the scene the widget's page opens on. */
+  fixture: string;
+  /** The opening scene's config overlay. */
+  config: Record<string, unknown>;
+  large: { w: number; h: number };
+}
+
+function sizeStoryBlocks(sizes: SizeStories): string[] {
+  const mode =
+    Object.keys(sizes.config).length > 0
+      ? `, mode: ${JSON.stringify({ config: sizes.config })}`
+      : "";
+  return [
+    `
+/** The kit-wide tiny size, ${TINY_SIZE.w} by ${TINY_SIZE.h}, where the widget draws its tiny form. */
+export const Tiny: Story = {
+  name: "Tiny",
+  args: { fixture: sizesScene, w: ${TINY_SIZE.w}, h: ${TINY_SIZE.h}${mode} },
+};
+`,
+    `
+/** The largest of the widget's default size and every size its render modes draw, ${sizes.large.w} by ${sizes.large.h}. */
+export const Large: Story = {
+  name: "Large",
+  args: { fixture: sizesScene, w: ${sizes.large.w}, h: ${sizes.large.h}${mode} },
+};
+`,
+  ];
+}
+
 async function writeWidgetFile(
   config: WidgetRenderConfig,
+  sizes?: SizeStories,
 ): Promise<{ file: string; stories: number }> {
   const label = config.label ?? config.widgetId;
   const file = resolve(OUT, "widgets", `${fileSlug(label)}.stories.tsx`);
   const dir = dirname(file);
   const scenes = await sceneFixtures(config);
-  const taken = new Set<string>();
+  const taken = new Set<string>(sizes ? SIZE_STORY_NAMES : []);
   const imports: string[] = [];
   const stories: StoryEntry[] = [];
   scenes.forEach((scene, i) => {
@@ -249,6 +286,13 @@ async function writeWidgetFile(
     }
   }
   const title = `Widgets/${label}`;
+  if (sizes) {
+    imports.push(
+      `import sizesScene from ${JSON.stringify(importPath(dir, resolve(REPO, sizes.fixture)))};`,
+    );
+    for (const name of SIZE_STORY_NAMES)
+      target("widget", config.widgetId, title, name);
+  }
   for (const s of stories)
     target("widget", config.widgetId, title, s.exportName);
   const body = [
@@ -263,10 +307,14 @@ async function writeWidgetFile(
       widgetId: config.widgetId,
       modes: config.modes,
     }),
+    ...(sizes ? sizeStoryBlocks(sizes) : []),
     ...stories.map(storyBlock),
   ].join("\n");
   await writeFile(file, body);
-  return { file, stories: stories.length };
+  return {
+    file,
+    stories: stories.length + (sizes ? SIZE_STORY_NAMES.length : 0),
+  };
 }
 
 /** Where a widget's hand-written stories live, one file per widget named by its id. */
@@ -474,6 +522,8 @@ interface ManifestWidget {
   id: string;
   augmentSlots: string[];
   contributionSlots: string[];
+  tiny: boolean;
+  defaultSize: { w: number; h: number } | null;
   scene: {
     name: string;
     w: number;
@@ -502,6 +552,12 @@ function manifestWidgetOf(raw: unknown): ManifestWidget {
       `${WIDGET_MANIFEST} holds a widget without an id and its slot lists`,
     );
   }
+  const tiny = raw.tiny === true;
+  const size = raw.defaultSize;
+  const defaultSize =
+    isRecord(size) && typeof size.w === "number" && typeof size.h === "number"
+      ? { w: size.w, h: size.h }
+      : null;
   const scene = raw.scene;
   if (
     !isRecord(scene) ||
@@ -513,6 +569,8 @@ function manifestWidgetOf(raw: unknown): ManifestWidget {
       id: raw.id,
       augmentSlots: raw.augmentSlots,
       contributionSlots: raw.contributionSlots,
+      tiny,
+      defaultSize,
       scene: null,
     };
   }
@@ -520,6 +578,8 @@ function manifestWidgetOf(raw: unknown): ManifestWidget {
     id: raw.id,
     augmentSlots: raw.augmentSlots,
     contributionSlots: raw.contributionSlots,
+    tiny,
+    defaultSize,
     scene: {
       name: scene.name,
       w: scene.w,
@@ -529,8 +589,16 @@ function manifestWidgetOf(raw: unknown): ManifestWidget {
   };
 }
 
-/** Each manifest widget with a scene, as the slot stories place its stubs. */
-function slotHosts(configs: readonly WidgetRenderConfig[]): SlotHost[] {
+/** The primary render config of a widget: its `__fixtures__` one, or else its first. */
+function primaryConfig(
+  configs: readonly WidgetRenderConfig[],
+  widgetId: string,
+): WidgetRenderConfig | undefined {
+  const own = configs.filter((c) => c.widgetId === widgetId);
+  return own.find((c) => c.fixturesPath.endsWith("/__fixtures__")) ?? own[0];
+}
+
+function manifestWidgets(): ManifestWidget[] {
   if (!existsSync(WIDGET_MANIFEST)) {
     throw new Error(
       `${WIDGET_MANIFEST} is missing: build @ksp-gonogo/uplink-tools first`,
@@ -540,13 +608,18 @@ function slotHosts(configs: readonly WidgetRenderConfig[]): SlotHost[] {
   if (!Array.isArray(listed)) {
     throw new Error(`${WIDGET_MANIFEST} holds no widgets list`);
   }
-  const widgets = listed.map(manifestWidgetOf);
+  return listed.map(manifestWidgetOf);
+}
+
+/** Each manifest widget with a scene, as the slot stories place its stubs. */
+function slotHosts(
+  configs: readonly WidgetRenderConfig[],
+  widgets: readonly ManifestWidget[],
+): SlotHost[] {
   const hosts: SlotHost[] = [];
   for (const widget of widgets) {
     if (!widget.scene) continue;
-    const own = configs.filter((c) => c.widgetId === widget.id);
-    const config =
-      own.find((c) => c.fixturesPath.endsWith("/__fixtures__")) ?? own[0];
+    const config = primaryConfig(configs, widget.id);
     if (!config) continue;
     hosts.push({
       widgetId: widget.id,
@@ -563,6 +636,37 @@ function slotHosts(configs: readonly WidgetRenderConfig[]): SlotHost[] {
     });
   }
   return hosts;
+}
+
+/**
+ * The Tiny and Large stories of each widget with a tiny form, keyed by the
+ * render config whose page holds them. Large is the biggest by area of the
+ * widget's default size and every size any of its render modes draws.
+ */
+function sizeStories(
+  configs: readonly WidgetRenderConfig[],
+  widgets: readonly ManifestWidget[],
+): Map<WidgetRenderConfig, SizeStories> {
+  const out = new Map<WidgetRenderConfig, SizeStories>();
+  for (const widget of widgets) {
+    if (!widget.tiny || !widget.scene) continue;
+    const config = primaryConfig(configs, widget.id);
+    if (!config) continue;
+    const drawn = configs
+      .filter((c) => c.widgetId === widget.id)
+      .flatMap((c) => c.modes);
+    const sizes = [
+      ...(widget.defaultSize ? [widget.defaultSize] : []),
+      ...drawn,
+    ];
+    const large = sizes.reduce((a, b) => (b.w * b.h > a.w * a.h ? b : a));
+    out.set(config, {
+      fixture: `packages/components/src/${config.fixturesPath}/${widget.scene.name}.json`,
+      config: widget.scene.config ?? {},
+      large: { w: large.w, h: large.h },
+    });
+  }
+  return out;
 }
 
 /** A scene's target, read off its `_scene` block. */
@@ -693,10 +797,12 @@ async function main(): Promise<void> {
   await mkdir(resolve(OUT, "ui-kit"), { recursive: true });
 
   const configs = listWidgets();
+  const widgets = manifestWidgets();
+  const sizes = sizeStories(configs, widgets);
   let widgetStories = 0;
   const covered = new Set<string>();
   for (const config of configs) {
-    const { stories } = await writeWidgetFile(config);
+    const { stories } = await writeWidgetFile(config, sizes.get(config));
     widgetStories += stories;
     if (stories > 0) covered.add(config.widgetId);
   }
@@ -707,7 +813,7 @@ async function main(): Promise<void> {
     TARGETS.widget[widgetId] = [...(TARGETS.widget[widgetId] ?? []), ...ids];
     covered.add(widgetId);
   }
-  const hosts = slotHosts(configs);
+  const hosts = slotHosts(configs, widgets);
   const slotStories = slotScenes(hosts);
   const extensions = await writeExtensionsFiles(slotStories);
   const extensionIds = new Set([
@@ -761,7 +867,7 @@ async function main(): Promise<void> {
   );
   await writeFile(
     resolve(OUT, "coverage.json"),
-    `${JSON.stringify({ widgets: [...covered].sort(), extensions: [...extensionIds].sort() }, null, 2)}\n`,
+    `${JSON.stringify({ widgets: [...covered].sort(), extensions: [...extensionIds].sort(), sized: [...sizes.keys()].map((c) => c.widgetId).sort() }, null, 2)}\n`,
   );
   await writeFile(
     resolve(OUT, "review-targets.json"),
