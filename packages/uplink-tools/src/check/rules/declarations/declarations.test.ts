@@ -106,6 +106,85 @@ describe("field-not-read", () => {
   });
 });
 
+/** A frame that reads nothing itself, its built-in augment declaring `augmentChannels`, with `marker` written above the registration. */
+const frame = (
+  rule: string,
+  marker: string,
+  registration: string,
+  augmentChannels = `["career.status"]`,
+) => {
+  const scan = scanFiles(ts, {
+    "w.tsx": `import { registerComponent, registerAugment } from "./hooks";
+function Widget() {
+  return null;
+}
+registerAugment({ id: "w-contracts", augments: "w.source", component: Widget, channels: ${augmentChannels} });
+${marker}
+registerComponent({ id: "w", component: Widget, ${registration} });
+`,
+  });
+  return declarationRules
+    .filter((r) => r.id === `declarations/${rule}`)
+    .flatMap((r) =>
+      r.check({ clientDir: "/client", scan, dynamicPrefixes: PREFIXES }),
+    );
+};
+
+describe("gonogo:augment-reads", () => {
+  const MARKER = "// gonogo:augment-reads w-contracts career.status";
+  const REGISTRATION = `channels: ["career.status"], fields: ["career.status.contracts.active"]`;
+
+  it("lets a frame keep channels and fields that only its built-in augment reads", () => {
+    expect(frame("required-unread", MARKER, REGISTRATION)).toEqual([]);
+    expect(frame("field-not-read", MARKER, REGISTRATION)).toEqual([]);
+    expect(frame("augment-marker", MARKER, REGISTRATION)).toEqual([]);
+  });
+
+  it("fails a marker naming a channel the augment does not declare", () => {
+    const found = frame(
+      "augment-marker",
+      MARKER,
+      REGISTRATION,
+      `["career.mode"]`,
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ severity: "error", fixable: false });
+    expect(found[0].message).toContain("career.status");
+  });
+
+  it("does not let a marker excuse a channel the augment does not declare", () => {
+    expect(
+      frame("required-unread", MARKER, REGISTRATION, `["career.mode"]`),
+    ).toHaveLength(1);
+  });
+
+  it("fails a marker naming an augment nothing registers", () => {
+    const found = frame(
+      "augment-marker",
+      "// gonogo:augment-reads missing career.status",
+      REGISTRATION,
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain("missing");
+  });
+
+  it("still reports a widget without the marker", () => {
+    expect(frame("required-unread", "", REGISTRATION)).toHaveLength(1);
+    expect(frame("field-not-read", "", REGISTRATION)).toHaveLength(1);
+  });
+
+  it("still reports a required channel the marker does not name", () => {
+    const found = frame(
+      "required-unread",
+      MARKER,
+      `channels: ["career.status", "career.mode"]`,
+      `["career.status", "career.mode"]`,
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain("career.mode");
+  });
+});
+
 describe("legacy-declaration", () => {
   it("warns about dataRequirements with no channels", () => {
     const found = run(

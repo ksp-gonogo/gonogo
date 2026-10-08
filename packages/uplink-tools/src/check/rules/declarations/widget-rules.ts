@@ -1,5 +1,6 @@
 import type {
   CheckContext,
+  ClientScan,
   FixableFinding,
   Rule,
   WidgetScan,
@@ -21,6 +22,15 @@ export const LEGACY_SEVERITY = "warning" as const;
 const provable = (widget: WidgetScan) =>
   !widget.registration.opaque && widget.unresolved.length === 0;
 
+/** The marker's channels the named augment really declares: what the widget's built-in augment reads for it. */
+const augmentReadIds = (widget: WidgetScan, scan: ClientScan): string[] => {
+  const marker = widget.registration.augmentReads;
+  if (!marker) return [];
+  const augment = scan.augments.find((a) => a.id === marker.augment);
+  if (!augment) return [];
+  return marker.channels.filter((c) => augment.channels.includes(c));
+};
+
 const where = (widget: WidgetScan) => ({
   file: widget.registration.file,
   line: widget.registration.line,
@@ -34,7 +44,10 @@ export const requiredUnreadRule: Rule = {
     for (const widget of scan.widgets) {
       if (!provable(widget) || widget.readsFromConfig) continue;
       const { registration } = widget;
-      const ids = new Set(widget.reads.flatMap((r) => (r.id ? [r.id] : [])));
+      const ids = new Set([
+        ...widget.reads.flatMap((r) => (r.id ? [r.id] : [])),
+        ...augmentReadIds(widget, scan),
+      ]);
       const families = new Set(
         widget.reads.flatMap((r) =>
           r.family ? [normalizeFamily(r.family)] : [],
@@ -61,6 +74,44 @@ export const requiredUnreadRule: Rule = {
   },
 };
 
+export const augmentMarkerRule: Rule = {
+  id: "declarations/augment-marker",
+  group: GROUP,
+  check({ scan }: CheckContext): FixableFinding[] {
+    const out: FixableFinding[] = [];
+    for (const widget of scan.widgets) {
+      const marker = widget.registration.augmentReads;
+      if (!marker) continue;
+      const { registration } = widget;
+      const augment = scan.augments.find((a) => a.id === marker.augment);
+      const at = { file: registration.file, line: marker.line };
+      if (!augment) {
+        out.push({
+          rule: "declarations/augment-marker",
+          severity: "error",
+          ...at,
+          message: `${registration.id} says augment "${marker.augment}" reads for it, and no registerAugment in this client has that id.`,
+          fixable: false,
+          fix: `Name an augment registered in this client, or delete the marker.`,
+        });
+        continue;
+      }
+      for (const channel of marker.channels) {
+        if (augment.channels.includes(channel)) continue;
+        out.push({
+          rule: "declarations/augment-marker",
+          severity: "error",
+          ...at,
+          message: `${registration.id} says augment "${marker.augment}" reads "${channel}", and the augment does not declare it in its channels.`,
+          fixable: false,
+          fix: `Add "${channel}" to the augment's channels, or remove it from the marker.`,
+        });
+      }
+    }
+    return out;
+  },
+};
+
 export const fieldNotReadRule: Rule = {
   id: "declarations/field-not-read",
   group: GROUP,
@@ -69,7 +120,10 @@ export const fieldNotReadRule: Rule = {
     for (const widget of scan.widgets) {
       if (!provable(widget) || widget.readsFromConfig) continue;
       const { registration } = widget;
-      const ids = widget.reads.flatMap((r) => (r.id ? [r.id] : []));
+      const ids = [
+        ...widget.reads.flatMap((r) => (r.id ? [r.id] : [])),
+        ...augmentReadIds(widget, scan),
+      ];
       const families = widget.reads.flatMap((r) =>
         r.family ? [r.family] : [],
       );

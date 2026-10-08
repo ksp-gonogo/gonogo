@@ -10,6 +10,7 @@ export declare function useStream(topic: string): unknown;
 export declare function useStreamOptional(topic: string): unknown;
 export declare function useCommand(command: string): unknown;
 export declare function registerComponent(def: object): void;
+export declare function registerAugment(def: object): void;
 `;
 
 /** Scans `files` (paths relative to /client/src) as one client, with the read hooks declared. */

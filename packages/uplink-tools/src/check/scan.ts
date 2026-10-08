@@ -15,6 +15,8 @@ import {
   type Resolver,
 } from "./resolve";
 import type {
+  AugmentReadsMarker,
+  AugmentRegistration,
   ClientScan,
   DirectiveRecord,
   IndexMissingRecord,
@@ -54,6 +56,8 @@ export const LEAF_ARGUMENTS: Readonly<Record<string, ArgumentKind>> = {
 };
 
 const DIRECTIVE = /(?:\/\/|\/\*)\s*gonogo:reads\s+(.+?)\s*(?:\*\/\}?)?\s*$/;
+const AUGMENT_MARKER =
+  /(?:\/\/|\/\*)\s*gonogo:augment-reads\s+([A-Za-z0-9_-]+)\s+(.+?)\s*(?:\*\/\}?)?\s*$/;
 const TOPIC_ID = /^[A-Za-z0-9_]+(\.[A-Za-z0-9_-]+)*$/;
 
 export interface ScanOptions {
@@ -997,6 +1001,30 @@ export function createScanner(
     );
   };
 
+  /** The `// gonogo:augment-reads` marker in the comment lines directly above a registration's statement. */
+  const augmentMarkerAbove = (
+    call: TS.CallExpression,
+    file: TS.SourceFile,
+  ): AugmentReadsMarker | undefined => {
+    const statement = ts.isExpressionStatement(call.parent)
+      ? call.parent
+      : call;
+    const lines = file.text.split("\n");
+    for (let index = lineOf(statement, file) - 1; index >= 0; index--) {
+      const text = lines[index].trim();
+      if (!text.startsWith("//") && !text.startsWith("/*")) return undefined;
+      const match = AUGMENT_MARKER.exec(text);
+      if (match) {
+        return {
+          augment: match[1],
+          channels: match[2].split(/[\s,]+/).filter(Boolean),
+          line: index + 1,
+        };
+      }
+    }
+    return undefined;
+  };
+
   const scanRegistration = (
     object: TS.ObjectLiteralExpression,
     base: { file: string; line: number },
@@ -1062,6 +1090,7 @@ export function createScanner(
   const scanClient = (): ClientScan => {
     const widgets: WidgetScan[] = [];
     const registeredPrefixes: string[] = [];
+    const augments: AugmentRegistration[] = [];
     for (const file of program.getSourceFiles()) {
       if (!isOwnSource(file)) continue;
       const find = (node: TS.Node): void => {
@@ -1093,7 +1122,32 @@ export function createScanner(
               }),
             );
           } else {
-            widgets.push(scanRegistration(arg, base));
+            const widget = scanRegistration(arg, base);
+            const marker = augmentMarkerAbove(node, file);
+            if (marker) widget.registration.augmentReads = marker;
+            widgets.push(widget);
+          }
+        }
+        if (
+          ts.isCallExpression(node) &&
+          calleeName(node) === "registerAugment" &&
+          node.arguments[0] &&
+          ts.isObjectLiteralExpression(node.arguments[0])
+        ) {
+          const object = node.arguments[0];
+          const idExpr = propertyOf(object, "id");
+          const idResolved = idExpr ? resolver.resolve(idExpr) : undefined;
+          const channelsExpr = propertyOf(object, "channels");
+          const channels = channelsExpr
+            ? stringList(channelsExpr, resolver)
+            : undefined;
+          if (idResolved?.ok && idResolved.ids.length === 1) {
+            augments.push({
+              id: idResolved.ids[0],
+              channels: channels ?? [],
+              file: file.fileName,
+              line: lineOf(node, file) + 1,
+            });
           }
         }
         ts.forEachChild(node, find);
@@ -1118,6 +1172,7 @@ export function createScanner(
       registeredPrefixes,
       indexMissing,
       directives: [...directives.values()].filter(isJudged),
+      augments,
       typeErrors,
     };
   };

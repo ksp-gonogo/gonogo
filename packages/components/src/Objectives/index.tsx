@@ -47,6 +47,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   );
 }
 
+// gonogo:augment-reads objectives-contracts career.status
 registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",

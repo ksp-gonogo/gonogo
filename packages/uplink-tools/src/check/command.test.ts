@@ -211,6 +211,7 @@ describe("runCheck", () => {
     registeredPrefixes: [],
     indexMissing: [],
     directives: [],
+    augments: [],
     typeErrors: 0,
   };
   const finding = (severity: "error" | "warning"): FixableFinding => ({

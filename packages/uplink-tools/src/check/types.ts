@@ -79,6 +79,22 @@ export interface Registration {
   fields?: string[];
   /** The registration or its `component` could not be read statically. */
   opaque?: string;
+  /** A `// gonogo:augment-reads` marker above the registration: Topics only its built-in augment reads. */
+  augmentReads?: AugmentReadsMarker;
+}
+
+export interface AugmentReadsMarker {
+  augment: string;
+  channels: string[];
+  line: number;
+}
+
+/** A `registerAugment` call whose id and channels are literals. */
+export interface AugmentRegistration {
+  id: string;
+  channels: string[];
+  file: string;
+  line: number;
 }
 
 export interface WidgetScan {
@@ -104,6 +120,7 @@ export interface ClientScan {
   registeredPrefixes: string[];
   indexMissing: IndexMissingRecord[];
   directives: DirectiveRecord[];
+  augments: AugmentRegistration[];
   /** Type errors in the program, which can hide a read. */
   typeErrors: number;
 }

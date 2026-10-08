@@ -7,6 +7,7 @@ import {
 } from "../../emit";
 import type { CheckContext, FixableFinding, Rule } from "../../types";
 import {
+  augmentMarkerRule,
   configReadUndeclaredRule,
   directiveStaleRule,
   familyUnregisteredRule,
@@ -111,6 +112,7 @@ export const declarationRules: Rule[] = [
   staleRule,
   indexMissingRule,
   requiredUnreadRule,
+  augmentMarkerRule,
   fieldNotReadRule,
   legacyDeclarationRule,
   registrationOpaqueRule,
