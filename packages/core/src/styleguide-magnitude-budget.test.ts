@@ -243,12 +243,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/components/src/shared/dockAngles.ts": 3,
   "packages/components/src/SystemView/index.tsx": 8,
-  // 6: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
-  // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
-  // `magnitudeOf` instead and so does not count here. What is left is the five
-  // elements the shared Kepler solver takes as canonical SI numbers, and the
-  // reckoning's instant the same solver advances both objects to.
-  "packages/components/src/SystemView/usePhaseAngles.ts": 6,
   /*
    * TWO, and each is a boundary rather than arithmetic: a stream field that
    * arrives as a bare number, and a dot product handed to a reticle that draws
@@ -494,7 +488,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is the alarm service reading the view instant into the plain UT seconds an alarm is stored, sent and settled in.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
-  "packages/components": 114,
+  "packages/components": 112,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

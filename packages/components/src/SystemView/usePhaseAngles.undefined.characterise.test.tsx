@@ -1,11 +1,13 @@
-import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
-import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { act, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import { placedAt, posesOf } from "../test/bodyPoses";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
+import {
+  KERBIN_MU,
+  renderPhaseAngles,
+  systemBodies,
+  vesselAtLongitude,
+} from "../test/phaseAngleRig";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import type { CelestialBody } from "./useCelestialBodies";
-import { usePhaseAngles } from "./usePhaseAngles";
 
 /**
  * Characterises what `undefined` means to `usePhaseAngles`: one read behind one gate, `if (!orbit) return EMPTY`.
@@ -13,106 +15,14 @@ import { usePhaseAngles } from "./usePhaseAngles";
  * No vessel orbit, a hyperbolic orbit, and every body lacking elements all reach the shared `EMPTY`. A `Reading` is always truthy, so the gate stops gating on migration.
  */
 
-const KERBIN_MU = 3.5316e12;
-
-/** A `CelestialBody` fixture: only the orbital-longitude inputs matter here. */
-function makeBody(
-  index: number,
-  name: string,
-  overrides: Partial<CelestialBody> & { trueAnomaly?: number | null } = {},
-): CelestialBody {
-  const { trueAnomaly = null, ...catalogue } = overrides;
-  return placedAt(bodyRecord(index, name, catalogue), trueAnomaly);
-}
-
-function bodyRecord(
-  index: number,
-  name: string,
-  overrides: Partial<CelestialBody>,
-): CelestialBody {
-  return {
-    index,
-    name,
-    referenceBody: null,
-    radius: null,
-    soi: null,
-    gravParameter: null,
-    semiMajorAxis: null,
-    eccentricity: null,
-    inclination: null,
-    lan: null,
-    argumentOfPeriapsis: null,
-    meanAnomalyAtEpoch: null,
-    epoch: null,
-    // About geometry, not how far anyone vouches for it, so every body is unbounded and analytic.
-    horizon: ANALYTIC_BODY_HORIZON,
-    deterministic: true,
-    period: null,
-    mass: null,
-    geeASL: null,
-    escapeVelocity: null,
-    hillSphere: null,
-    rotationPeriod: null,
-    initialRotation: null,
-    tidallyLocked: null,
-    rotates: null,
-    hasOcean: null,
-    description: null,
-    atmosphere: null,
-    hasAtmosphere: null,
-    maxAtmosphere: null,
-    hasOxygen: null,
-    figures: {
-      radius: null,
-      mass: null,
-      surfaceGravity: null,
-      dayLength: null,
-      atmosphereDepth: null,
-    },
-    ...overrides,
-  };
-}
-
-/** A circular vessel orbit at true longitude `lonDeg` at UT 0 with the stock analytic horizon, so a missing-elements fixture does not also test a missing horizon. */
-function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
-  return {
-    referenceBodyIndex: 0,
-    sma: 700_000,
-    ecc: 0,
-    inc: 0,
-    lan: lonDeg,
-    argPe: 0,
-    meanAnomalyAtEpoch: 0,
-    epoch: 0,
-    mu: KERBIN_MU,
-    horizon: ANALYTIC_UNBOUNDED_HORIZON,
-  };
-}
-
-function renderPhaseAngles(bodies: CelestialBody[], pinnedUt = 0) {
-  const fixture = setupStreamFixture({
-    pinnedUt,
-    suspendFrames: true,
-  });
-  const { result, rerender } = renderHook(
-    ({ b }: { b: CelestialBody[] }) => usePhaseAngles(b, posesOf(b)),
-    { wrapper: fixture.Provider, initialProps: { b: bodies } },
-  );
-  return { fixture, result, rerender };
-}
-
-/** A body whose true longitude is unambiguously 90 degrees. */
-function bodyAt90() {
-  return makeBody(1, "Mun", {
-    lan: 90,
-    argumentOfPeriapsis: 0,
-    trueAnomaly: 0,
-  });
-}
+const MUN_AT_90 = systemBodies([{ index: 1, name: "Mun", lan: 90 }]);
 
 describe("usePhaseAngles: what undefined means today", () => {
   it("answers no phase angle for a fully-elemented body while vessel.orbit is absent", () => {
-    const { result } = renderPhaseAngles([bodyAt90()]);
+    const { fixture, result } = renderPhaseAngles(["Mun"]);
+    act(() => {
+      fixture.emit("system.bodies", MUN_AT_90);
+    });
 
     // The gate short-circuits before the body loop, so one absent read erases every body's answer.
     expect(result.current.size).toBe(0);
@@ -121,20 +31,27 @@ describe("usePhaseAngles: what undefined means today", () => {
   });
 
   it("hands every data-less render the same EMPTY map instance, whatever the bodies are", () => {
-    const { result, rerender } = renderPhaseAngles([bodyAt90()]);
+    const { fixture, result, rerender } = renderPhaseAngles(["Mun"]);
+    act(() => {
+      fixture.emit("system.bodies", MUN_AT_90);
+    });
     const first = result.current;
 
     // `EMPTY`'s identity keeps SystemView's transfer-window memo from recomputing every frame.
-    rerender({ b: [makeBody(2, "Minmus", { lan: 45 })] });
+    rerender({ n: ["Minmus"] });
     expect(result.current).toBe(first);
-    rerender({ b: [] });
+    rerender({ n: [] });
     expect(result.current).toBe(first);
   });
 
   it("cannot tell an absent vessel orbit from bodies that have no elements", async () => {
-    const { fixture, result } = renderPhaseAngles([
-      makeBody(1, "Mun"), // every element null: the useCelestialBodies partial
-    ]);
+    const { fixture, result } = renderPhaseAngles(["Mun"]);
+    act(() => {
+      fixture.emit(
+        "system.bodies",
+        systemBodies([{ index: 1, name: "Mun", noElements: true }]),
+      );
+    });
     const beforeAnyOrbit = result.current;
 
     act(() => {
@@ -147,11 +64,15 @@ describe("usePhaseAngles: what undefined means today", () => {
   });
 
   it("skips only the body whose elements are missing, keeping the elemented one", async () => {
-    const { fixture, result } = renderPhaseAngles([
-      bodyAt90(),
-      makeBody(2, "Ike", { lan: 45, argumentOfPeriapsis: 0 }), // trueAnomaly null
-    ]);
+    const { fixture, result } = renderPhaseAngles(["Mun", "Ike"]);
     act(() => {
+      fixture.emit(
+        "system.bodies",
+        systemBodies([
+          { index: 1, name: "Mun", lan: 90 },
+          { index: 2, name: "Ike", noElements: true },
+        ]),
+      );
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
     });
 
@@ -162,8 +83,12 @@ describe("usePhaseAngles: what undefined means today", () => {
 
   it("treats a null vessel.orbit as not-arrived-yet, not as a confirmed absence", async () => {
     // View time ahead of both samples so the tombstone is the one sampled.
-    const { fixture, result } = renderPhaseAngles([bodyAt90()], 10);
+    const { fixture, result } = renderPhaseAngles(
+      ["Mun"],
+      setupStreamFixture({ pinnedUt: 10, suspendFrames: true }),
+    );
     act(() => {
+      fixture.emit("system.bodies", MUN_AT_90);
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
     });
     await waitFor(() => expect(result.current.size).toBe(1));
@@ -188,16 +113,18 @@ describe("usePhaseAngles: what undefined means today", () => {
       mu: KERBIN_MU,
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
     };
-    const { fixture, result } = renderPhaseAngles([bodyAt90()]);
+    const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
+      fixture.emit("system.bodies", MUN_AT_90);
       fixture.emit("vessel.orbit", noNodeElements);
     });
 
     // `orbit.lan?.magnitude ?? 0` gives a confident 90 degrees, exactly what an equatorial vessel produces.
     await waitFor(() => expect(result.current.get(1)).toBeCloseTo(90, 4));
 
-    const explicitZeroes = renderPhaseAngles([bodyAt90()]);
+    const explicitZeroes = renderPhaseAngles(["Mun"]);
     act(() => {
+      explicitZeroes.fixture.emit("system.bodies", MUN_AT_90);
       explicitZeroes.fixture.emit("vessel.orbit", vesselAtLongitude(0));
     });
     await waitFor(() =>

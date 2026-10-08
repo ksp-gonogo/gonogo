@@ -93,6 +93,7 @@ export * from "./orbit-trajectory";
 export * from "./orbital-solve";
 export * from "./own-craft-vantage";
 export * from "./past-track";
+export * from "./phase-angle";
 export * from "./processorEvaluator";
 export * from "./processors";
 export * from "./propagation";

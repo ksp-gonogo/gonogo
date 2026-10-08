@@ -1,9 +1,20 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
+  type BodyPose,
+  buildElements,
+  CELESTIAL_FACTS,
+  type CelestialBody,
+  type CelestialFacts,
   canPropagate,
-  deriveTrueAnomalyDeg,
+  observedAt,
+  phaseAngleBetween,
+  poseAtIndex,
   type SystemPoses,
+  solve,
+  systemPosesAt,
+  useProcessor,
   useViewUt,
+  type Vec3Tuple,
 } from "@ksp-gonogo/sitrep-client";
 import {
   datedFrom,
@@ -13,25 +24,24 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
-import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { magnitudeOf } from "../shared/magnitude";
 import { normalizePhaseAngle } from "./transferWindow";
-import type { CatalogueHeld, CelestialBody } from "./useCelestialBodies";
 
 /**
  * Phase angle (deg, in [0, 360)) from each body to the active vessel, keyed by body index.
  *
- * Each object's true longitude is `wrap360(lan + argPe + trueAnomaly)` and the phase angle is `wrap360(bodyLon - vesselLon)`, positive when the body is ahead prograde, matching `hohmannPhaseAngle`. That longitude is exact only for coplanar orbits, the transfer window's own assumption.
+ * It is the angle between the two position vectors as seen from the body's parent, measured in the plane of the vessel's own motion and positive when the body is ahead of the vessel, matching `hohmannPhaseAngle`. Both positions come from the model: the body's from its pose, the vessel's from `vessel.orbit`. A body whose pose is held or withdrawn is left out, because a live highlight drawn from where it used to be would show a window that has gone.
  *
- * Returns a stable empty map when there is no vessel orbit, the orbit is hyperbolic, the received edge is unknown, or the provider will not answer for it.
+ * Returns a stable empty map when there is no vessel orbit, the orbit is hyperbolic, the received edge is unknown, the provider will not answer for it, or the vessel's reckoner declined to carry its elements forward to the instant on screen.
  *
- * Not a reckoner: the figure relates two orbits at the view time, and no single Topic holds it. The vessel half already rides `vessel.orbit`'s own reckoning (the elements are overlaid with what the registered model moved), so the only advancing done here is a true anomaly at an instant, and the result sits on no channel for `registerReckoner` to take.
+ * Not a reckoner: the figure relates two orbits at the view time, and no single Topic holds it. The vessel half already rides `vessel.orbit`'s own reckoning (the elements are overlaid with what the registered model moved), and the result sits on no channel for `registerReckoner` to take.
  */
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
   poses: SystemPoses | undefined,
 ): Map<number, number> {
-  // A position relationship, so only a current reading or a model will do; a held one would draw the window the craft was in.
   const orbitReading = useTelemetry("vessel.orbit");
+  const facts = useCatalogue();
   // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
   const orbitObserved =
     orbitReading.state === "observed" || orbitReading.state === "held"
@@ -45,102 +55,82 @@ export function usePhaseAngles(
         : orbitObserved;
   // Unwrapped at the read; `magnitudeOf` already answers null for an absent or non-finite reading.
   const ut = magnitudeOf(useViewUt());
+  const carriedTo = carriesForwardTo(orbitReading, ut);
 
   return useMemo(() => {
-    if (!orbit) return EMPTY;
+    if (!orbit || facts === undefined || poses === undefined) return EMPTY;
     // The provider gate below needs a real instant to put a window to.
-    if (ut === null) return EMPTY;
+    if (ut === null || !carriedTo) return EMPTY;
     // The same horizon question SystemView's own solve asks, so scrubbing past an integrator's horizon cannot leave a live highlight without a vessel dot. Shape is not consulted: a position at one instant needs none.
     if (!canPropagate(orbit.horizon, ut, ut).propagatable) return EMPTY;
-    const vesselLon = vesselLongitudeAt(orbit, ut);
-    if (vesselLon === null) return EMPTY;
 
     const out = new Map<number, number>();
     for (const b of bodies) {
-      const bodyLon = trueLongitudeDeg(
-        b.lan,
-        b.argumentOfPeriapsis,
-        poses?.poseByIndex[b.index]?.trueAnomaly ?? null,
-      );
-      if (bodyLon === null) continue; // no orbit (root star) or missing element
-      out.set(b.index, wrap360(bodyLon - vesselLon));
+      const angle = phaseAngleAt(orbit, b, facts, poses, ut);
+      if (angle === undefined || angle.poses.some((p) => !isLive(p))) continue;
+      out.set(b.index, wrap360(angle.degrees));
     }
     return out.size > 0 ? out : EMPTY;
-  }, [bodies, poses, orbit, ut]);
-}
-
-type OrbitElements = NonNullable<Parameters<typeof vesselLongitudeAt>[0]>;
-
-/** The vessel's true longitude at `ut`, degrees; null for a non-elliptical orbit or a missing element. */
-function vesselLongitudeAt(
-  orbit: {
-    sma: Value<"m">;
-    ecc: Value<"1">;
-    meanAnomalyAtEpoch: Value<"rad">;
-    epoch: Value<"ut">;
-    mu: Value<"m³/s²">;
-    lan?: Value<"°"> | null;
-    argPe?: Value<"°"> | null;
-  },
-  ut: number,
-): number | null {
-  const nu = deriveTrueAnomalyDeg({
-    semiMajorAxis: orbit.sma.magnitude,
-    eccentricity: orbit.ecc.magnitude,
-    meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch.magnitude,
-    epoch: orbit.epoch.magnitude,
-    parentGravParameter: orbit.mu.magnitude,
-    ut,
-  });
-  if (nu === null) return null;
-  // LAN and argPe default to 0, the same coalescing the widget uses to draw the vessel's orbit.
-  return wrap360(magnitudeOr(orbit.lan, 0) + magnitudeOr(orbit.argPe, 0) + nu);
+  }, [bodies, facts, poses, orbit, ut, carriedTo]);
 }
 
 /**
  * One body's phase angle as a Reading: observed at the received edge `ut`, and,
- * where the vessel's conic reckons past it, both objects advanced to the
- * instant the reckoning is for. Degrees in (-180, 180].
+ * where the vessel's conic reckons past it, both objects placed at the instant
+ * the reckoning is for. Degrees in (-180, 180].
  *
- * The body's half comes from the catalogue, so while `held` says the catalogue
- * has stopped arriving the figure is held too, as of the older of the two
- * instants. The reckoning is kept: it is the model's figure for now, drawn as
- * modelled whatever the observation's currency.
+ * The figure takes the weakest currency of what it rests on. A body held at its
+ * horizon, or on a catalogue that stopped arriving, makes it held as of that
+ * instant; a body on a fixed orbit does not, however old the catalogue is. The
+ * reckoning is kept where every pose at its instant is live, and dropped where
+ * one is not: a body past its horizon has no place to reckon to.
  */
 export function usePhaseAngleReading(
   body: CelestialBody | null,
-  bodies: readonly CelestialBody[],
   poses: SystemPoses | undefined,
   ut: number | undefined,
-  held: CatalogueHeld | null = null,
 ): Reading<Value<"°">> | undefined {
   const orbitReading = useTelemetry("vessel.orbit");
+  const catalogue = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    catalogue?.state === "observed" || catalogue?.state === "held"
+      ? catalogue.value
+      : undefined;
+  const catalogueAsOfUt =
+    catalogue?.state === "held" && catalogue.asOfUt !== undefined
+      ? catalogue.asOfUt.valueOf()
+      : null;
   return useMemo(() => {
     if (body === null || ut === undefined) return undefined;
-    const parentMu =
-      bodies.find((b) => b.name === body.referenceBody)?.gravParameter ?? null;
+    if (facts === undefined || poses === undefined) return undefined;
+    const carried = carriesForwardTo(orbitReading, ut);
+
+    let observedPoses: BodyPose[] = [];
     const reading = deriveReading(
       orbitReading,
-      (orbit) =>
-        phaseAngle(
-          orbit,
-          ut,
-          poses?.poseByIndex[body.index]?.trueAnomaly ?? null,
-          body,
-        ),
+      (orbit) => {
+        if (!carried) return undefined;
+        const angle = phaseAngleAt(orbit, body, facts, poses, ut);
+        if (angle === undefined) return undefined;
+        observedPoses = angle.poses;
+        return value("°", normalizePhaseAngle(angle.degrees));
+      },
       (orbit, atUt) => {
-        // `deriveTrueAnomalyDeg` is plain-number geometry, so the reckoning's instant unwraps here.
-        const at = atUt.magnitude;
-        return phaseAngle(
-          orbit,
-          at,
-          bodyTrueAnomalyAt(body, parentMu, at),
-          body,
-        );
+        const at = atUt.valueOf();
+        const posesAt = systemPosesAt(facts, at, catalogueAsOfUt);
+        const angle = phaseAngleAt(orbit, body, facts, posesAt, at);
+        if (angle === undefined || angle.poses.some((p) => !isLive(p))) {
+          return undefined;
+        }
+        return value("°", normalizePhaseAngle(angle.degrees));
       },
     );
     if (reading.value === undefined) return undefined;
-    if (held === null) return reading;
+    const held = observedPoses.filter(
+      (p): p is BodyPose & { asOfUt: number } =>
+        p.currency === "held" && p.asOfUt !== null,
+    );
+    if (held.length === 0) return reading;
     const aged = datedFrom(
       [
         {
@@ -148,62 +138,113 @@ export function usePhaseAngleReading(
           instant: reading.asOfUt ?? reading.atUt,
           grade: reading.grade,
         },
-        { state: "held", instant: held.asOfUt, grade: held.grade },
+        ...held.map((p) => ({
+          state: "held" as const,
+          instant: value("ut", p.asOfUt),
+          grade: "held" as const,
+        })),
       ],
       reading.value,
     );
     return { ...aged, reckoning: reading.reckoning };
-  }, [body, bodies, poses, orbitReading, ut, held]);
+  }, [body, facts, poses, orbitReading, ut, catalogueAsOfUt]);
 }
 
-function phaseAngle(
-  orbit: OrbitElements,
-  ut: number,
-  bodyTrueAnomaly: number | null,
-  body: CelestialBody,
-): Value<"°"> | undefined {
-  const vesselLon = vesselLongitudeAt(orbit, ut);
-  const bodyLon = trueLongitudeDeg(
-    body.lan,
-    body.argumentOfPeriapsis,
-    bodyTrueAnomaly,
+type OrbitInput = Parameters<typeof buildElements>[0] & {
+  referenceBodyIndex?: number | null;
+};
+
+type OrbitReading = Parameters<typeof observedAt<unknown>>[0] & {
+  reckoning: { status: string };
+};
+
+/** The catalogue as the processor holds it; a held catalogue is still the catalogue. */
+function useCatalogue(): CelestialFacts | undefined {
+  const reading = useProcessor(CELESTIAL_FACTS);
+  return reading?.state === "observed" || reading?.state === "held"
+    ? reading.value
+    : undefined;
+}
+
+/**
+ * Whether the vessel's elements may be taken to the instant `ut`. A reckoner
+ * that declined (under physics, past a transition, in an atmosphere) has said
+ * they no longer describe where the craft is, so the instant of the
+ * observation is the only one they answer for.
+ */
+function carriesForwardTo(
+  reading: OrbitReading,
+  ut: number | null | undefined,
+): boolean {
+  if (reading.reckoning.status !== "declined") return true;
+  const sampled = observedAt(reading);
+  return (
+    sampled !== undefined && ut != null && ut <= sampled.valueOf() + EPSILON_S
   );
-  if (vesselLon === null || bodyLon === null) return undefined;
-  return value("°", normalizePhaseAngle(bodyLon - vesselLon));
 }
 
-function bodyTrueAnomalyAt(
+/** The two instants are one sample's: closer than this is the same moment. */
+const EPSILON_S = 1e-6;
+
+/**
+ * The angle from the vessel to `body` at `ut`, with the poses it rests on, or
+ * undefined where one is missing or the vessel's orbit is not an ellipse.
+ */
+function phaseAngleAt(
+  orbit: OrbitInput,
   body: CelestialBody,
-  parentGravParameter: number | null,
+  facts: CelestialFacts,
+  poses: SystemPoses,
   ut: number,
-): number | null {
-  return deriveTrueAnomalyDeg({
-    semiMajorAxis: body.semiMajorAxis,
-    eccentricity: body.eccentricity,
-    meanAnomalyAtEpoch: body.meanAnomalyAtEpoch,
-    epoch: body.epoch,
-    parentGravParameter,
-    ut,
-  });
+): { degrees: number; poses: BodyPose[] } | undefined {
+  const elements = buildElements(orbit);
+  if (!(elements.ecc >= 0 && elements.ecc < 1)) return undefined;
+  const observerIndex =
+    body.referenceBody === null
+      ? undefined
+      : facts.indexByName[body.referenceBody];
+  const target = poseAtIndex(poses, body.index);
+  const observer = poseAtIndex(poses, observerIndex);
+  const craftParent = poseAtIndex(poses, orbit.referenceBodyIndex);
+  if (target === null || observer === null || craftParent === null) {
+    return undefined;
+  }
+  const vessel = solve(elements, ut);
+  const placed = [target, observer, craftParent].map((pose) =>
+    pose.position !== null && pose.velocity !== null
+      ? { position: pose.position, velocity: pose.velocity }
+      : null,
+  );
+  const [targetState, observerState, parentState] = placed;
+  if (!targetState || !observerState || !parentState) return undefined;
+  const degrees = phaseAngleBetween(
+    {
+      position: minus(
+        plus(vessel.position, parentState.position),
+        observerState.position,
+      ),
+      velocity: minus(
+        plus(vessel.velocity, parentState.velocity),
+        observerState.velocity,
+      ),
+    },
+    minus(targetState.position, observerState.position),
+  );
+  if (degrees === null) return undefined;
+  return { degrees, poses: [target, observer, craftParent] };
 }
 
-/** True longitude `wrap360(lan + argPe + trueAnomaly)`, degrees; null if any input is missing. */
-function trueLongitudeDeg(
-  lan: number | null,
-  argPe: number | null,
-  trueAnomaly: number | null,
-): number | null {
-  if (
-    lan === null ||
-    argPe === null ||
-    trueAnomaly === null ||
-    !Number.isFinite(lan) ||
-    !Number.isFinite(argPe) ||
-    !Number.isFinite(trueAnomaly)
-  ) {
-    return null;
-  }
-  return wrap360(lan + argPe + trueAnomaly);
+/** A pose that places its body where it is, rather than where it was or nowhere. */
+function isLive(pose: BodyPose): boolean {
+  return pose.currency === "exact" || pose.currency === "modelled";
+}
+
+function plus(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+}
+
+function minus(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 
 function wrap360(deg: number): number {

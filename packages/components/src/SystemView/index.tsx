@@ -348,12 +348,13 @@ function SystemViewComponent({
     panelBody && phaseAngles.has(panelBody.index)
       ? (phaseAngles.get(panelBody.index) ?? null)
       : null;
+  // The reading is for a drawn child; one whose pose is held has no live angle on the map but still has a figure to show, marked held.
+  const panelIsChild =
+    panelBody !== null && children.some((c) => c.index === panelBody.index);
   const panelPhaseAngleReading = usePhaseAngleReading(
-    panelPhaseAngle === null ? null : panelBody,
-    bodies,
+    panelIsChild ? panelBody : null,
     poses,
     universalTime,
-    catalogueHeld,
   );
   const encounterIn = useEncounterIn();
   const nextApsisIn =

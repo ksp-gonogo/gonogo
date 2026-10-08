@@ -423,6 +423,7 @@ export {
 } from "./spine/kepler-reckoning";
 export type { Capability } from "./spine/lock-scope";
 export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "./spine/map-topic";
+export { phaseAngleBetween } from "./spine/phase-angle";
 /*
  * The powered-flight model and the pieces of it an Uplink would need to write
  * one of its own: the burn, its evidence, and the state-to-elements conversion

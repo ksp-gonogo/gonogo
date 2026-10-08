@@ -63,6 +63,7 @@ export {
   buildElements,
   conicApsides,
   findImpactPoint,
+  phaseAngleBetween,
   poseAtIndex,
   predictImpactPoint,
   ROTATION_PERIOD_SECONDS,

@@ -9661,6 +9661,10 @@
         "note": "The literal text before a family's first placeholder, empty when it starts with one"
       },
       {
+        "key": "sitrep-sdk . phaseAngleBetween",
+        "note": "The angle from one body or craft to another about their common centre, measured in the plane of the first one's motion rather than as a difference of longitudes"
+      },
+      {
         "key": "sitrep-sdk . poseAtIndex",
         "note": "Looks one body's pose up by its index, null when the instant has none"
       },
@@ -10927,6 +10931,10 @@
       {
         "key": "sitrep-sdk ./spine orbitRing",
         "note": "New: the closed ring of an orbit in the parent's inertial axes, the one sampler every diagram draws a conic with"
+      },
+      {
+        "key": "sitrep-sdk ./spine phaseAngleBetween",
+        "note": "The angle from one body or craft to another about their common centre, measured in the plane of the first one's motion rather than as a difference of longitudes"
       },
       {
         "key": "sitrep-sdk ./spine poseAtIndex",
