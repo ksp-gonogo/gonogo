@@ -27,6 +27,8 @@ import {
 } from "./cli";
 import { resolveUplinkPackage } from "./context";
 import {
+  buildManifest,
+  buildReadme,
   imageLinks,
   linkedAssets,
   README_GENERATED_MARKER,
@@ -80,6 +82,9 @@ const INVENTORY: UplinkInventory = {
       channels: ["example.reactor"],
       optionalChannels: [],
       commands: [],
+      channelFamilies: [],
+      optionalChannelFamilies: [],
+      readsFromConfig: false,
       dataRequirements: [],
       actions: [],
       augmentSlots: [],
@@ -122,6 +127,9 @@ const INVENTORY: UplinkInventory = {
       channels: ["host.status"],
       optionalChannels: [],
       commands: [],
+      channelFamilies: [],
+      optionalChannelFamilies: [],
+      readsFromConfig: false,
       dataRequirements: [],
       actions: [],
       augmentSlots: ["console.header"],
@@ -443,6 +451,29 @@ describe("fixtures become scenes", () => {
     );
     const [scene] = buildScenes(pkg, INVENTORY);
     expect(scene.declaredTopics).toEqual(["example.reactor"]);
+  });
+
+  it("counts a Topic family a widget declares as declared, as its pattern", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({
+        _scene: { widget: "reactor" },
+        _stream: { emits: [{ topic: "example.reactor", payload: {} }] },
+      }),
+    );
+    const inventory: UplinkInventory = {
+      ...INVENTORY,
+      widgets: INVENTORY.widgets.map((w) => ({
+        ...w,
+        channelFamilies: ["fleet.<vessel>.contact"],
+        optionalChannelFamilies: ["<domain>.available"],
+      })),
+    };
+    const [scene] = buildScenes(pkg, inventory);
+    expect(scene.declaredTopics).toEqual([
+      "<domain>.available",
+      "example.reactor",
+      "fleet.<vessel>.contact",
+    ]);
   });
 
   it("lets a contribution scene emit the settings topic its mod-setting dep names", () => {
@@ -1007,6 +1038,39 @@ describe("the README docs is about to overwrite", () => {
     ).rejects.toThrow(
       /was not written by `uplink-tools docs` or `uplink-tools page`[\s\S]*git mv/,
     );
+  });
+});
+
+describe("the widget section of the page", () => {
+  function readmeWith(widget: Partial<UplinkInventory["widgets"][number]>) {
+    const pkg = resolveUplinkPackage(fakePackage({}));
+    const inventory: UplinkInventory = {
+      ...INVENTORY,
+      description: "An example.",
+      widgets: INVENTORY.widgets.map((w) => ({ ...w, ...widget })),
+    };
+    const inputs = { pkg, inventory, scenes: [], assets: [], assetDir: "docs" };
+    return buildReadme(inputs, buildManifest(inputs).manifest);
+  }
+
+  it("lists the families a widget reads and the ones it uses if present, as patterns", () => {
+    const readme = readmeWith({
+      channelFamilies: ["fleet.<vessel>.contact"],
+      optionalChannelFamilies: ["<domain>.available"],
+      optionalChannels: ["example.extra"],
+    });
+    expect(readme).toContain("`example.reactor`");
+    expect(readme).toContain("`fleet.<vessel>.contact`");
+    expect(readme).toMatch(
+      /Uses if present.*`example\.extra`.*`<domain>\.available`/,
+    );
+  });
+
+  it("says a widget's Topics follow its settings, and says nothing otherwise", () => {
+    expect(readmeWith({ readsFromConfig: true })).toContain(
+      "the Topics chosen in the tile's settings",
+    );
+    expect(readmeWith({})).not.toContain("Reads from settings");
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   graphThresholdsOf,
+  graphTopicsOf,
   graphViewConfigOf,
   handleOfKey,
 } from "./savedConfig";
@@ -98,5 +99,32 @@ describe("the Graph widget's saved configuration, as the view it asks for", () =
       [],
     );
     expect(line.value).toMatchObject({ magnitude: 3, unit: "1" });
+  });
+});
+
+describe("the Topics a saved Graph reads", () => {
+  it("names the Topic under every series, band high and non-time X axis, each once", () => {
+    expect(
+      graphTopicsOf({
+        windowSec: 60,
+        xKey: "vessel.orbit.ecc",
+        series: [
+          {
+            id: "a",
+            key: "vessel.flight.altitudeAsl",
+            keyHigh: "vessel.orbit.apoapsis",
+            type: "band",
+          },
+          { id: "b", key: "vessel.flight.speed", type: "line" },
+        ],
+      }),
+    ).toEqual(["vessel.flight", "vessel.orbit"]);
+  });
+
+  it("names nothing for a Graph with no series, or one drawn against time", () => {
+    expect(graphTopicsOf(undefined)).toEqual([]);
+    expect(
+      graphTopicsOf({ windowSec: 60, xKey: TIME_AXIS, series: [] }),
+    ).toEqual([]);
   });
 });

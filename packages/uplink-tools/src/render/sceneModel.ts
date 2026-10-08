@@ -556,7 +556,8 @@ function beforeFor(where: string, scene: FixtureScene): SceneAct[] {
 
 /**
  * Every topic the target's registration declares, which is what an emit is
- * checked against when nothing read it.
+ * checked against when nothing read it. A Topic family is carried as its
+ * pattern, such as `fleet.<vessel>.contact`.
  *
  * Every domain any registered augment or contribution gates on is added too,
  * whatever the target is: `<AugmentSlot>`'s `requires` gate reads a store fed
@@ -575,6 +576,8 @@ function declaredTopicsFor(
     for (const topic of [
       ...def.channels,
       ...def.optionalChannels,
+      ...def.channelFamilies,
+      ...def.optionalChannelFamilies,
       ...def.dataRequirements,
     ]) {
       declared.add(topic);
@@ -599,6 +602,8 @@ function declaredTopicsFor(
       for (const topic of [
         ...def.channels,
         ...def.optionalChannels,
+        ...def.channelFamilies,
+        ...def.optionalChannelFamilies,
         ...def.dataRequirements,
       ]) {
         declared.add(topic);

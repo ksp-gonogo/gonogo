@@ -1,5 +1,6 @@
 import type {
   AugmentSettingField,
+  ChannelFamily,
   ComponentDefinition,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -12,6 +13,7 @@ import {
   registerDataSource,
   registeredErrorCodes,
   registerStockBodies,
+  topicMatchesFamily,
   unregisterDataSource,
 } from "@ksp-gonogo/sitrep-sdk";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
@@ -1091,7 +1093,11 @@ async function renderScene(
 
   // The dynamic namespaces count as declared: their members are keyed at runtime, so no registration can list one.
   const declared = [
-    ...new Set([...scene.declaredTopics, ...DYNAMIC_WHOLE_TOPIC_PREFIXES]),
+    ...new Set([
+      ...scene.declaredTopics,
+      ...configTopicsOf(scene),
+      ...DYNAMIC_WHOLE_TOPIC_PREFIXES,
+    ]),
   ];
   mounted.declared = declared;
   const fixture = setupStreamFixture(
@@ -1514,9 +1520,22 @@ function slotForTarget(target: SceneTarget): string {
 
 /** Exact match, or a dotted child of a declared parent, which is how the
  *  timeline store samples a `<parent>.<field>` pair. */
+/** The Topics a widget scene's tile settings name, for a widget whose reads follow them. */
+function configTopicsOf(scene: ScenePayload): readonly string[] {
+  if (scene.target.kind !== "widget") return [];
+  const def = getComponents().find((d) => d.id === scene.target.id);
+  return def?.channelsFromConfig?.(scene.config) ?? [];
+}
+
 function isDeclared(topic: string, declared: readonly string[]): boolean {
   for (const entry of declared) {
     if (entry === topic) return true;
+    if (
+      entry.includes("<") &&
+      topicMatchesFamily(topic, entry as ChannelFamily)
+    ) {
+      return true;
+    }
     if (entry.endsWith(".") && topic.startsWith(entry)) return true;
     if (topic.startsWith(`${entry}.`)) return true;
     if (entry.startsWith(`${topic}.`)) return true;

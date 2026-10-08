@@ -1150,7 +1150,7 @@ function assertEveryEmitLanded(scene: Scene, report: UnreadTopics): void {
       (report.undeclaredTopics.length > 0
         ? `Not declared at all: ${report.undeclaredTopics.join(", ")}. ` +
           "Add the topic to the target's `channels` / `optionalChannels` / " +
-          "`dataRequirements`, or drop it from the fixture.\n"
+          "`channelFamilies` / `dataRequirements`, or drop it from the fixture.\n"
         : "Declared, and nothing read it: either the target does not consume " +
           "the topic, or whatever gates the read never opened.\n"),
   );

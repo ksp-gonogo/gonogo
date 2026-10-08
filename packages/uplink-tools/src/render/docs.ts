@@ -384,8 +384,14 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
   // are two generations of the same declaration and a widget on the older one
   // still reads something, so quoting an empty `channels` would print nothing
   // about a widget with five topics.
-  const reads =
-    widget.channels.length > 0 ? widget.channels : widget.dataRequirements;
+  const reads = [
+    ...(widget.channels.length > 0 ? widget.channels : widget.dataRequirements),
+    ...widget.channelFamilies,
+  ];
+  const usesIfPresent = [
+    ...widget.optionalChannels,
+    ...widget.optionalChannelFamilies,
+  ];
   const slots = [...widget.augmentSlots, ...widget.contributionSlots];
   out.push(
     ...facts([
@@ -393,8 +399,12 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
       ["Reads", reads.length > 0 ? list(reads) : undefined],
       [
         "Uses if present",
-        widget.optionalChannels.length > 0
-          ? list(widget.optionalChannels)
+        usesIfPresent.length > 0 ? list(usesIfPresent) : undefined,
+      ],
+      [
+        "Reads from settings",
+        widget.readsFromConfig
+          ? "the Topics chosen in the tile's settings"
           : undefined,
       ],
       ["Sends", widget.commands.length > 0 ? list(widget.commands) : undefined],

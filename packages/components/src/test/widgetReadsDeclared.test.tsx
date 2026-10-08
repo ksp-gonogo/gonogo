@@ -5,10 +5,12 @@ import {
   PerfBudget,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
 import {
+  type ChannelFamily,
   DERIVED_CHANNEL_IDS,
   getAllKnownTopicIds,
+  topicMatchesFamily,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type Capability,
@@ -22,12 +24,18 @@ import "../index";
 import { renderWidgetMode } from "./widgetDomSnapshot";
 
 /**
- * A widget reads only the Topics it declares. `useTelemetry`, `useStream` and
- * `useCommand` each claim what they are given with the nearest lock scope, so a
- * scope mounted around the widget sees every Topic its tree reads, whatever
- * shared hook the read went through. What a widget leaves out of `channels` and
- * `optionalChannels` is not held by the dashboard when the save locks it, not
- * graded by the blackout badge and missing from its reference page.
+ * The runtime recorder: what a widget really reads, set against what it
+ * declares. `useTelemetry`, `useStream` and `useCommand` each claim what they
+ * are given with the nearest lock scope, so a scope mounted around the widget
+ * sees every Topic its tree reads, whatever shared hook the read went through.
+ * What a widget leaves out of `channels`, `optionalChannels` and the family
+ * lists is not held by the dashboard when the save locks it, not graded by the
+ * blackout badge and missing from its reference page.
+ *
+ * `uplink-tools check` writes those declarations from the source, so a read
+ * missing here means the scanner missed it. This test is what validates the
+ * scanner against reality: it also sees the real id behind a family pattern and
+ * the Topics a widget's `channelsFromConfig` names under a fixture's settings.
  *
  * Not seen here: a processor's inputs and a reckoner's dependencies (they
  * subscribe without claiming), anything inside a nested `LockScope` such as a
@@ -132,40 +140,35 @@ const UNREACHED_COMMANDS: readonly {
 ];
 
 /**
- * Families of Topics a widget reads that the manifest has no form for and the
- * fixtures never reach, so the gate cannot see them. Listed so they are not
- * forgotten: each wants a declaration form for dynamic Topics.
+ * Families a widget declares or reads that no fixture reaches, so the recorder
+ * cannot see them. Shrink-only: an entry whose pattern the widget declares and
+ * a fixture now claims is stale.
  */
-const UNOBSERVED_DYNAMIC: readonly {
+const UNOBSERVED_FAMILIES: readonly {
   widgetId: string;
-  family: string;
+  pattern: string;
   reason: string;
 }[] = [
   {
     widgetId: "ship-map",
-    family: "vessel.partActions.<flightId>",
+    pattern: "vessel.partActions.<flightId>",
     reason: "read only once a part's action menu is open",
   },
   {
     widgetId: "fleet-roster",
-    family:
-      "fleet.<vesselId>.contact, fleet.<vesselId>.delay, silence.<vesselId>.state",
+    pattern: "fleet.<vessel>.contact",
     reason: "one set per fleet vessel row",
   },
   {
     widgetId: "map-view",
-    family: "<domain>.available",
+    pattern: "<domain>.available",
     reason: "one per registered map point-of-interest provider",
   },
   {
-    widgetId: "graph",
-    family: "any Topic the operator plots",
-    reason: "series are chosen in the widget's configuration",
-  },
-  {
     widgetId: "maneuver-planner",
-    family: "the dataKey of a configured trigger",
-    reason: "triggers are authored by the operator",
+    pattern: "<trigger dataKey>",
+    reason:
+      "armed triggers are runtime state of the trigger service, read outside any hook",
   },
 ];
 
@@ -176,28 +179,48 @@ function topicOf(path: string, known: readonly string[]): string | undefined {
     .sort((a, b) => b.length - a.length)[0];
 }
 
+interface Declared {
+  topics: Set<string>;
+  families: ChannelFamily[];
+}
+
 function declaredTopics(
   def: Pick<
     ComponentDefinition,
-    "channels" | "optionalChannels" | "dataRequirements"
+    | "channels"
+    | "optionalChannels"
+    | "channelFamilies"
+    | "optionalChannelFamilies"
+    | "dataRequirements"
   >,
   known: readonly string[],
-): Set<string> {
-  const declared = new Set<string>([
+  fromConfig: readonly string[] = [],
+): Declared {
+  const topics = new Set<string>([
     ...(def.channels ?? []),
     ...(def.optionalChannels ?? []),
+    ...fromConfig,
   ]);
   for (const requirement of def.dataRequirements ?? []) {
     const topic = topicOf(requirement, known);
-    if (topic !== undefined) declared.add(topic);
+    if (topic !== undefined) topics.add(topic);
   }
-  return declared;
+  return {
+    topics,
+    families: [
+      ...(def.channelFamilies ?? []),
+      ...(def.optionalChannelFamilies ?? []),
+    ],
+  };
 }
+
+const isMember = (id: string, families: readonly ChannelFamily[]) =>
+  families.some((family) => topicMatchesFamily(id, family));
 
 /** The claimed Topics that are neither declared nor command plumbing, nor named in `debt`. */
 function undeclaredReads(
   claimed: ReadonlySet<Capability>,
-  declared: ReadonlySet<string>,
+  declared: Declared,
   debt: readonly Debt[],
   widgetId: string,
 ): string[] {
@@ -207,13 +230,25 @@ function undeclaredReads(
   const sendsCommands = [...claimed].some((c) => c.kind === "command");
   const owed = debt.filter((d) => d.widgetId === widgetId);
   return [...new Set(topics)]
-    .filter((id) => !declared.has(id))
+    .filter((id) => !declared.topics.has(id))
+    .filter((id) => !isMember(id, declared.families))
     .filter((id) => !(sendsCommands && COMMAND_PLUMBING.includes(id)))
     .filter(
       (id) =>
         !owed.some((d) => (d.prefix ? id.startsWith(d.topic) : id === d.topic)),
     )
     .sort();
+}
+
+/** The declared family patterns no claimed id is a member of. */
+function unclaimedFamilies(
+  claimed: ReadonlySet<Capability>,
+  declared: Declared,
+): ChannelFamily[] {
+  const ids = [...claimed].filter((c) => c.kind === "topic").map((c) => c.id);
+  return declared.families.filter(
+    (family) => !ids.some((id) => topicMatchesFamily(id, family)),
+  );
 }
 
 /** The claimed commands the widget does not list in `commands`. */
@@ -267,39 +302,67 @@ function scopeWrapper(scope: LockScopeRegistry) {
 
 type WidgetProps = Parameters<typeof renderWidgetMode>[0]["Widget"];
 
-/** The widget's claims across every fixture any of its render configs names, each at that config's largest mode. */
-async function claimsOf(widgetId: string): Promise<Set<Capability>> {
+interface Claims {
+  claimed: Set<Capability>;
+  /** What `channelsFromConfig` names for each config the widget was rendered under. */
+  fromConfig: Set<string>;
+}
+
+/**
+ * The widget's claims across every fixture any of its render configs names,
+ * each at that config's largest mode. A widget whose reads follow its tile
+ * settings is also rendered under each distinct mode config, since the Topics it
+ * reads differ between them.
+ */
+async function claimsOf(widgetId: string): Promise<Claims> {
   const def = getComponents().find((d) => d.id === widgetId);
   if (!def) throw new Error(`no registered widget ${widgetId}`);
   const { scope, claimed } = recorder();
+  const fromConfig = new Set<string>();
   for (const config of listWidgets().filter((w) => w.widgetId === widgetId)) {
     const needle = `../${config.fixturesPath}/`;
     const fixtures = Object.entries(FIXTURE_MODULES)
       .filter(([path]) => path.startsWith(needle))
       .map(([, mod]) => mod.default);
-    const mode = [...config.modes].sort((a, b) => b.w * b.h - a.w * a.h)[0] ?? {
-      name: "default",
-      w: 12,
-      h: 12,
-    };
-    for (const fixture of fixtures.length > 0 ? fixtures : [{}]) {
-      const { teardown } = await renderWidgetMode({
-        Widget: def.component as WidgetProps,
-        fixture,
-        mode,
-        wrapper: scopeWrapper(scope),
-      });
-      teardown();
-      // One widget mounted once per fixture back to back reads as a sustained rate to a budget that watches a live dashboard.
-      for (const budget of PerfBudget.getAll()) budget.reset();
+    const bySize = [...config.modes].sort((a, b) => b.w * b.h - a.w * a.h);
+    const modes = def.channelsFromConfig
+      ? bySize.filter(
+          (mode, i) =>
+            bySize.findIndex(
+              (other) =>
+                JSON.stringify(other.config) === JSON.stringify(mode.config),
+            ) === i,
+        )
+      : bySize.slice(0, 1);
+    for (const mode of modes.length > 0
+      ? modes
+      : [{ name: "default", w: 12, h: 12 }]) {
+      for (const fixture of fixtures.length > 0 ? fixtures : [{}]) {
+        const { teardown } = await renderWidgetMode({
+          Widget: def.component as WidgetProps,
+          fixture,
+          mode,
+          wrapper: scopeWrapper(scope),
+        });
+        teardown();
+        // One widget mounted once per fixture back to back reads as a sustained rate to a budget that watches a live dashboard.
+        for (const budget of PerfBudget.getAll()) budget.reset();
+      }
+      const settings = {
+        ...(def.defaultConfig ?? {}),
+        ...((mode as { config?: object }).config ?? {}),
+      };
+      for (const id of def.channelsFromConfig?.(settings as never) ?? []) {
+        fromConfig.add(id);
+      }
     }
   }
-  return claimed;
+  return { claimed, fromConfig };
 }
 
-const claimCache = new Map<string, Promise<Set<Capability>>>();
+const claimCache = new Map<string, Promise<Claims>>();
 
-function claimsOnce(widgetId: string): Promise<Set<Capability>> {
+function claimsOnce(widgetId: string): Promise<Claims> {
   const cached = claimCache.get(widgetId);
   if (cached) return cached;
   const claims = claimsOf(widgetId);
@@ -309,27 +372,80 @@ function claimsOnce(widgetId: string): Promise<Set<Capability>> {
 
 const KNOWN = [...getAllKnownTopicIds(), ...DERIVED_CHANNEL_IDS];
 
+const noFamilies = { topics: new Set<string>(), families: [] };
+
 describe("a widget reads only the Topics it declares", () => {
-  it("sees a Topic a widget reads and does not declare", async () => {
-    // Positive control: a gate that cannot see this reports zero, and zero reads as success.
-    function Planted(_props: ComponentProps) {
-      useTelemetry("vessel.control");
-      return null;
-    }
+  async function plantedClaims(
+    Widget: (props: ComponentProps) => null,
+  ): Promise<Set<Capability>> {
     const { scope, claimed } = recorder();
     const { teardown } = await renderWidgetMode({
-      Widget: Planted,
+      Widget,
       fixture: {},
       mode: { name: "planted", w: 4, h: 4 },
       wrapper: scopeWrapper(scope),
     });
     teardown();
+    return claimed;
+  }
+
+  it("sees a Topic a widget reads and does not declare", async () => {
+    // Positive control: a gate that cannot see this reports zero, and zero reads as success.
+    const claimed = await plantedClaims(function Planted(_p: ComponentProps) {
+      useTelemetry("vessel.control");
+      return null;
+    });
+    const declares = (id: string) => ({ ...noFamilies, topics: new Set([id]) });
     expect(
-      undeclaredReads(claimed, new Set(["vessel.orbit"]), [], "planted"),
+      undeclaredReads(claimed, declares("vessel.orbit"), [], "planted"),
     ).toEqual(["vessel.control"]);
     expect(
-      undeclaredReads(claimed, new Set(["vessel.control"]), [], "planted"),
+      undeclaredReads(claimed, declares("vessel.control"), [], "planted"),
     ).toEqual([]);
+  });
+
+  it("sees a family member a widget reads, and the family nothing reads", async () => {
+    const claimed = await plantedClaims(function PlantedFamily(
+      _p: ComponentProps,
+    ) {
+      useStream("fleet.abc.contact");
+      return null;
+    });
+    const wrong = {
+      ...noFamilies,
+      families: ["fleet.<vessel>.delay" as ChannelFamily],
+    };
+    const right = {
+      ...noFamilies,
+      families: ["fleet.<vessel>.contact" as ChannelFamily],
+    };
+    expect(undeclaredReads(claimed, wrong, [], "planted")).toEqual([
+      "fleet.abc.contact",
+    ]);
+    expect(unclaimedFamilies(claimed, wrong)).toEqual(["fleet.<vessel>.delay"]);
+    expect(undeclaredReads(claimed, right, [], "planted")).toEqual([]);
+    expect(unclaimedFamilies(claimed, right)).toEqual([]);
+  });
+
+  it("sees a config-derived Topic only when the settings name it", async () => {
+    const claimed = await plantedClaims(function PlantedConfig(
+      _p: ComponentProps,
+    ) {
+      useTelemetry("vessel.flight");
+      return null;
+    });
+    const def = { channelsFromConfig: () => ["vessel.flight"] };
+    expect(
+      undeclaredReads(
+        claimed,
+        declaredTopics({}, KNOWN, def.channelsFromConfig()),
+        [],
+        "planted",
+      ),
+    ).toEqual([]);
+    expect(
+      undeclaredReads(claimed, declaredTopics({}, KNOWN, []), [], "planted"),
+    ).toEqual(["vessel.flight"]);
   });
 
   it("sees a command a widget sends and does not declare, and one it declares and never sends", async () => {
@@ -385,7 +501,7 @@ describe("a widget reads only the Topics it declares", () => {
   it("names only registered widgets among the unobserved families", () => {
     const registered = new Set(getComponents().map((d) => d.id));
     expect(
-      UNOBSERVED_DYNAMIC.filter((d) => !registered.has(d.widgetId)),
+      UNOBSERVED_FAMILIES.filter((d) => !registered.has(d.widgetId)),
     ).toEqual([]);
   });
 
@@ -397,9 +513,16 @@ describe("a widget reads only the Topics it declares", () => {
     it(`${widgetId} declares what it reads`, async () => {
       const def = getComponents().find((d) => d.id === widgetId);
       if (!def) throw new Error(widgetId);
-      const claimed = await claimsOnce(widgetId);
+      const { claimed, fromConfig } = await claimsOnce(widgetId);
+      const declared = declaredTopics(def, KNOWN, [...fromConfig]);
+      expect(undeclaredReads(claimed, declared, DEBT, widgetId)).toEqual([]);
+      const listed = UNOBSERVED_FAMILIES.filter(
+        (d) => d.widgetId === widgetId,
+      ).map((d) => d.pattern);
       expect(
-        undeclaredReads(claimed, declaredTopics(def, KNOWN), DEBT, widgetId),
+        unclaimedFamilies(claimed, declared).filter(
+          (family) => !listed.includes(family),
+        ),
       ).toEqual([]);
     });
   }
@@ -408,7 +531,7 @@ describe("a widget reads only the Topics it declares", () => {
     it(`${widgetId} declares the commands it sends`, async () => {
       const def = getComponents().find((d) => d.id === widgetId);
       if (!def) throw new Error(widgetId);
-      const claimed = await claimsOnce(widgetId);
+      const { claimed } = await claimsOnce(widgetId);
       const declared = new Set<string>(def.commands ?? []);
       const unreached = new Set(
         UNREACHED_COMMANDS.filter((u) => u.widgetId === widgetId).map(
@@ -430,7 +553,7 @@ describe("a widget reads only the Topics it declares", () => {
         stale.push(`${entry.widgetId}: not a registered widget`);
         continue;
       }
-      const claimed = await claimsOnce(entry.widgetId);
+      const { claimed } = await claimsOnce(entry.widgetId);
       const sent = [...claimed].some(
         (c) => c.kind === "command" && c.id === entry.command,
       );
@@ -441,6 +564,39 @@ describe("a widget reads only the Topics it declares", () => {
     expect(stale).toEqual([]);
   });
 
+  it("lists no unobserved family a fixture now reaches", async () => {
+    const stale: string[] = [];
+    for (const entry of UNOBSERVED_FAMILIES) {
+      const def = getComponents().find((d) => d.id === entry.widgetId);
+      const pattern = entry.pattern as ChannelFamily;
+      const declares = [
+        ...(def?.channelFamilies ?? []),
+        ...(def?.optionalChannelFamilies ?? []),
+      ].includes(pattern);
+      if (!def || !declares) continue;
+      const { claimed } = await claimsOnce(entry.widgetId);
+      if (
+        !unclaimedFamilies(claimed, declaredTopics(def, KNOWN)).includes(
+          pattern,
+        )
+      ) {
+        stale.push(`${entry.widgetId}: ${entry.pattern}`);
+      }
+    }
+    expect(stale).toEqual([]);
+  });
+
+  it("renders every config-derived widget under settings that name a Topic", async () => {
+    // A Graph plots from fixture series the scope never sees, so the recorder proves only that the settings reach channelsFromConfig, not that each named Topic is read.
+    const unreached: string[] = [];
+    for (const def of getComponents().filter((d) => d.channelsFromConfig)) {
+      if (!widgetIds.includes(def.id)) continue;
+      const { fromConfig } = await claimsOnce(def.id);
+      if (fromConfig.size === 0) unreached.push(def.id);
+    }
+    expect(unreached).toEqual([]);
+  });
+
   it("lists no debt a widget has paid off", async () => {
     const stale: string[] = [];
     for (const debt of DEBT) {
@@ -449,10 +605,10 @@ describe("a widget reads only the Topics it declares", () => {
         stale.push(`${debt.widgetId}: not a registered widget`);
         continue;
       }
-      const claimed = await claimsOnce(debt.widgetId);
+      const { claimed, fromConfig } = await claimsOnce(debt.widgetId);
       const still = undeclaredReads(
         claimed,
-        declaredTopics(def, KNOWN),
+        declaredTopics(def, KNOWN, [...fromConfig]),
         [],
         debt.widgetId,
       ).some((id) =>

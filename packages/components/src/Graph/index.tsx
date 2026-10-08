@@ -4,7 +4,11 @@ import { useTopicFieldCatalog } from "@ksp-gonogo/data";
 import { useMemo } from "react";
 import { GraphConfigComponent } from "./GraphConfigForm";
 import { GraphView } from "./GraphView";
-import { graphThresholdsOf, graphViewConfigOf } from "./savedConfig";
+import {
+  graphThresholdsOf,
+  graphTopicsOf,
+  graphViewConfigOf,
+} from "./savedConfig";
 import type { GraphConfig } from "./types";
 
 function GraphComponent({
@@ -35,6 +39,7 @@ registerComponent<GraphConfig>({
   configComponent: GraphConfigComponent,
   openConfigOnAdd: true,
   dataRequirements: [],
+  channelsFromConfig: graphTopicsOf,
   defaultConfig: { series: [], windowSec: 300 },
   actions: [],
   pushable: true,

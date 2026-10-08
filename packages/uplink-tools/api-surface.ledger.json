@@ -678,6 +678,10 @@
         "note": "Carried from InventoryWidget"
       },
       {
+        "key": "uplink-tools . WidgetRecord#channelFamilies",
+        "note": "The Topic families the widget needs, as patterns"
+      },
+      {
         "key": "uplink-tools . WidgetRecord#channels",
         "note": "Carried from InventoryWidget"
       },
@@ -718,12 +722,20 @@
         "note": "Carried from InventoryWidget"
       },
       {
+        "key": "uplink-tools . WidgetRecord#optionalChannelFamilies",
+        "note": "The Topic families the widget uses when present, as patterns"
+      },
+      {
         "key": "uplink-tools . WidgetRecord#optionalChannels",
         "note": "Carried from InventoryWidget"
       },
       {
         "key": "uplink-tools . WidgetRecord#pushable",
         "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools . WidgetRecord#readsFromConfig",
+        "note": "Whether the widget reads Topics its tile settings name"
       },
       {
         "key": "uplink-tools . WidgetRecord#replaces",
@@ -760,6 +772,10 @@
       {
         "key": "uplink-tools ./render-probe WidgetRecord#augmentSlots",
         "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#channelFamilies",
+        "note": "The Topic families the widget needs, as patterns"
       },
       {
         "key": "uplink-tools ./render-probe WidgetRecord#channels",
@@ -802,12 +818,20 @@
         "note": "Carried from InventoryWidget"
       },
       {
+        "key": "uplink-tools ./render-probe WidgetRecord#optionalChannelFamilies",
+        "note": "The Topic families the widget uses when present, as patterns"
+      },
+      {
         "key": "uplink-tools ./render-probe WidgetRecord#optionalChannels",
         "note": "Carried from InventoryWidget"
       },
       {
         "key": "uplink-tools ./render-probe WidgetRecord#pushable",
         "note": "Carried from InventoryWidget"
+      },
+      {
+        "key": "uplink-tools ./render-probe WidgetRecord#readsFromConfig",
+        "note": "Whether the widget reads Topics its tile settings name"
       },
       {
         "key": "uplink-tools ./render-probe WidgetRecord#replaces",

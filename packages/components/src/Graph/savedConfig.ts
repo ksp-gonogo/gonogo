@@ -15,6 +15,17 @@ export function handleOfKey(key: string): TopicFieldHandle {
   return { topic: split.rawTopic, field: split.fieldPath.join(".") };
 }
 
+/** The Topics a saved Graph reads: every series, its upper bound and the x axis unless that is time, each once. */
+export function graphTopicsOf(saved: GraphConfig | undefined): string[] {
+  const keys = (saved?.series ?? []).flatMap(({ key, keyHigh }) =>
+    keyHigh ? [key, keyHigh] : [key],
+  );
+  if (saved?.xKey !== undefined && saved.xKey !== TIME_AXIS) {
+    keys.push(saved.xKey);
+  }
+  return [...new Set(keys.map((key) => handleOfKey(key).topic))];
+}
+
 /** The Graph widget's saved configuration as the `GraphView` it asks for. */
 export function graphViewConfigOf(
   saved: GraphConfig | undefined,

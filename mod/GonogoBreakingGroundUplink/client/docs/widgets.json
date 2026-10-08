@@ -11,6 +11,9 @@
       "channels": [],
       "optionalChannels": [],
       "commands": [],
+      "channelFamilies": [],
+      "optionalChannelFamilies": [],
+      "readsFromConfig": false,
       "dataRequirements": [
         "deployed.bases",
         "game.dlc.breakingGround"
@@ -45,6 +48,9 @@
       "channels": [],
       "optionalChannels": [],
       "commands": [],
+      "channelFamilies": [],
+      "optionalChannelFamilies": [],
+      "readsFromConfig": false,
       "dataRequirements": [
         "robotics.servos",
         "robotics.available.available",
@@ -97,6 +103,9 @@
       "channels": [],
       "optionalChannels": [],
       "commands": [],
+      "channelFamilies": [],
+      "optionalChannelFamilies": [],
+      "readsFromConfig": false,
       "dataRequirements": [
         "robotics.servos",
         "robotics.available.available",

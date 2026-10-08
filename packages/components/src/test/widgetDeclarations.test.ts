@@ -1,4 +1,5 @@
 import { classifyRequirement, getComponents } from "@ksp-gonogo/core";
+import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import "../index";
 
@@ -57,5 +58,46 @@ describe("widget dataRequirements resolve to something real", () => {
     expect(classifyRequirement("spaceCenter.state")).toBe("derived-channel");
     // A retired flat-vocabulary key has nothing to resolve against.
     expect(classifyRequirement("career.funds")).toBeUndefined();
+  });
+});
+
+/**
+ * A Topic family is a pattern whose every placeholder fills one whole dotted
+ * segment, and whose literal prefix is one the store splits as a whole Topic.
+ * Without the second, the store would read `fleet.abc.contact` as a field of a
+ * Topic nobody publishes.
+ */
+function familyFault(pattern: string): string | undefined {
+  const segments = pattern.split(".");
+  const malformed = segments.find(
+    (segment) =>
+      /[<>]/.test(segment) && !/^<[A-Za-z][A-Za-z0-9]*>$/.test(segment),
+  );
+  if (malformed !== undefined) return `"${malformed}" is not a whole segment`;
+  const prefix = pattern.slice(0, pattern.indexOf("<"));
+  if (prefix === "") return undefined;
+  if (!DYNAMIC_WHOLE_TOPIC_PREFIXES.some((p) => `${prefix}x`.startsWith(p))) {
+    return `"${prefix}" is not a registered dynamic prefix`;
+  }
+  return undefined;
+}
+
+describe("widget Topic families are well formed and registered", () => {
+  it("rejects a placeholder inside a segment and an unregistered prefix", () => {
+    // Positive control: a checker that accepts these reports zero faults for any tree.
+    expect(familyFault("fleet.a<x>b.contact")).toBeDefined();
+    expect(familyFault("nowhere.<id>.state")).toBeDefined();
+    expect(familyFault("fleet.<vessel>.contact")).toBeUndefined();
+    expect(familyFault("<domain>.available")).toBeUndefined();
+  });
+
+  it("faults no family any built-in widget declares", () => {
+    const faults = getComponents().flatMap((def) =>
+      [...(def.channelFamilies ?? []), ...(def.optionalChannelFamilies ?? [])]
+        .map((pattern) => [pattern, familyFault(pattern)] as const)
+        .filter(([, fault]) => fault !== undefined)
+        .map(([pattern, fault]) => `${def.id}: ${pattern} (${fault})`),
+    );
+    expect(faults).toEqual([]);
   });
 });

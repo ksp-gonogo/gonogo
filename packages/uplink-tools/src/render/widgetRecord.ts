@@ -27,6 +27,12 @@ export interface WidgetRecord {
   optionalChannels: string[];
   /** The commands the widget's controls can send, as the registration lists them. */
   commands: string[];
+  /** The Topic families the widget needs to render, each as a pattern such as `fleet.<vessel>.contact`. */
+  channelFamilies: string[];
+  /** The Topic families the widget reads when present and draws without otherwise. */
+  optionalChannelFamilies: string[];
+  /** Whether the Topics the widget reads depend on the tile's settings, as a graph's chosen series do. */
+  readsFromConfig: boolean;
   /** The flat data keys an older widget declares instead of `channels`. */
   dataRequirements: string[];
   /** The fields of its Topics the widget draws. */
@@ -65,6 +71,9 @@ export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
     channels: [...(def.channels ?? [])],
     optionalChannels: [...(def.optionalChannels ?? [])],
     commands: [...(def.commands ?? [])],
+    channelFamilies: [...(def.channelFamilies ?? [])],
+    optionalChannelFamilies: [...(def.optionalChannelFamilies ?? [])],
+    readsFromConfig: def.channelsFromConfig !== undefined,
     dataRequirements: (def.dataRequirements ?? []).map((r) => String(r)),
     fields: [...(def.fields ?? [])].map((f) => String(f)),
     actions: (def.actions ?? []).map((a) => ({ id: a.id, label: a.label })),
