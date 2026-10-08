@@ -66,6 +66,7 @@ function Widget({
         go
       </button>
       <span>rows:{ag.inFlight.length + sas.inFlight.length}</span>
+      <span>label:{ag.inFlight[0]?.label}</span>
     </div>
   );
 }
@@ -315,6 +316,7 @@ describe("sendTogether", () => {
     });
 
     await waitFor(() => expect(screen.getByText("rows:1")).toBeTruthy());
+    expect(screen.getByText("label:ag + ag + sas (group of 3)")).toBeTruthy();
     await act(async () => {});
   });
 });

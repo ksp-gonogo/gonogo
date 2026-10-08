@@ -13760,7 +13760,7 @@ components:
             group was refused, or because the group itself could not be sent. A group
             goes whole or not at all, so every member is refused with this one, and the
             message names the member that decided it.
-          x-sitrep-sentence: a command sent with it was refused, so none of them were sent
+          x-sitrep-sentence: a command sent with it was refused, so it was not sent or run
         - const: groupStopped
           title: GroupStopped
           description: |-

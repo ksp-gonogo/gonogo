@@ -397,6 +397,7 @@ namespace Sitrep.Core.StoreAndForward
                             Away = h.Away,
                             CustodyUntilUt = h.Away == null ? (double?)null : h.CustodyUntilUt,
                             Landed = h.Landed,
+                            Excluded = h.Excluded == null ? null : h.Excluded.ToList(),
                         })).ToList(),
                     Flights = _flights.Select(f => new FlightRecord
                     {
@@ -492,6 +493,8 @@ namespace Sitrep.Core.StoreAndForward
                             Away = record.Away,
                             CustodyUntilUt = record.CustodyUntilUt ?? 0.0,
                             Landed = record.Landed,
+                            Excluded = record.Excluded == null ? null : new HashSet<string>(record.Excluded, StringComparer.Ordinal),
+                            ExcludedAtPlan = _planVersion,
                         };
                         List(_held, record.Node).Add(held);
                         if (held.Away != null)
@@ -1558,6 +1561,9 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>Whether the copy that was sent was received.</summary>
         public bool Landed { get; set; }
+
+        /// <summary>The nodes a caught copy may not be sent to again until the plan changes; null when none.</summary>
+        public List<string>? Excluded { get; set; }
     }
 
     /// <summary>A light on its way: the sender's custody copy and the arrival it carries, one record, so a restore never yields both.</summary>

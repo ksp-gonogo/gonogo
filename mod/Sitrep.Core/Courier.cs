@@ -50,10 +50,6 @@ namespace Sitrep.Core
     /// network.DelayTo(vantage, node)</c>). If the node is unreachable at
     /// dispatch time, the command is dropped with honest silence, no
     /// execute, no response.
-    ///
-    /// <see cref="SnapshotCommands"/> / <see cref="RestoreCommands"/> are a
-    /// C#-ONLY addition (no TS reference), scoped to the IN-FLIGHT COMMAND
-    /// QUEUE only, for M5b quicksave: see their doc comments.
     /// </summary>
     public sealed class Courier
     {
@@ -103,7 +99,6 @@ namespace Sitrep.Core
             new Dictionary<string, Dictionary<string, HashSet<Subscriber>>>();
 
         // requestId -> in-flight (dispatched, not-yet-confirmed) command.
-        // This is the ONLY state SnapshotCommands / RestoreCommands touch.
         private readonly Dictionary<string, PendingCommand> _pendingCommands =
             new Dictionary<string, PendingCommand>();
 
@@ -285,8 +280,7 @@ namespace Sitrep.Core
         /// <summary>
         /// Schedules the execute-then-confirm pair for an already-recorded
         /// <see cref="PendingCommand"/>. Shared by <see cref="DispatchCommand"/>
-        /// and <see cref="RestoreCommands"/> so both paths reproduce the
-        /// identical execute@ExecuteUt / confirm@ConfirmUt behavior.
+        /// so the execute@ExecuteUt / confirm@ConfirmUt behavior has one home.
         /// </summary>
         private void ScheduleCommand(PendingCommand pending)
         {
@@ -297,7 +291,7 @@ namespace Sitrep.Core
                 _clock.Schedule(pending.ConfirmUt, () =>
                 {
                     // Remove before invoking the callback: a re-entrant
-                    // SnapshotCommands() from inside onResponse must not see
+                    // PendingCommandCount from inside onResponse must not count
                     // an already-confirmed command as still in flight.
                     _pendingCommands.Remove(pending.RequestId);
                     pending.OnResponse(CommandResponseFor(
@@ -1484,115 +1478,7 @@ namespace Sitrep.Core
             return _archives.TryGetValue(node, out var archive) && archive.HasAnyTail(topic);
         }
 
-        /// <summary>
-        /// Capture every in-flight (dispatched, not-yet-confirmed) command as
-        /// a plain <see cref="CommandQueueState"/> POCO: requestId, node,
-        /// command, args, vantage, and its scheduled execute/confirm UTs.
-        /// C#-ONLY (no TS reference), for M5b quicksave.
-        ///
-        /// Deliberately scoped to the command queue alone: the
-        /// <see cref="Archive"/> is persisted separately (Task 4's
-        /// <see cref="Archive.Snapshot"/>/<see cref="Archive.Restore"/>), and
-        /// telemetry subscriptions + their scheduled deliveries are
-        /// runtime/derivable state, NOT persisted here: a reconnecting
-        /// client is expected to re-subscribe (which re-triggers the
-        /// catch-up + in-flight scheduling in <see cref="SubscribeStream"/>
-        /// against the restored archive), rather than the Courier trying to
-        /// resurrect closures across a save/load boundary.
-        ///
-        /// A command captured HERE is, by construction, always still
-        /// pre-execute at snapshot time in the intended usage (the round
-        /// trip is validated that way in
-        /// <c>Sitrep.Core.Tests/CourierCommandQueueSnapshotRestoreTests.cs</c>):
-        /// <see cref="RestoreCommands"/> re-schedules from scratch via the
-        /// same execute-then-confirm path <see cref="DispatchCommand"/> uses.
-        /// If a snapshot is taken AFTER a command's execute UT has already
-        /// elapsed (but before its confirm), restoring on a clock whose
-        /// current UT is at or past that execute UT will invoke the command
-        /// handler again on the very next <c>AdvanceTo</c>, full
-        /// exactly-once replay across an execute/confirm-straddling
-        /// snapshot is an M5b integration concern, not solved here.
-        /// </summary>
-        public CommandQueueState SnapshotCommands()
-        {
-            var state = new CommandQueueState();
-            foreach (var pending in _pendingCommands.Values)
-            {
-                state.Commands.Add(new PendingCommandState
-                {
-                    RequestId = pending.RequestId,
-                    Node = pending.Node,
-                    Command = pending.Command,
-                    Args = pending.Args,
-                    Vantage = pending.Vantage,
-                    ExecuteUt = pending.ExecuteUt,
-                    ConfirmUt = pending.ConfirmUt,
-                });
-            }
-            return state;
-        }
-
-        /// <summary>
-        /// Re-establish every command captured by <see cref="SnapshotCommands"/>
-        /// against THIS Courier: re-scheduling each command's original
-        /// execute UT and confirm UT on this Courier's Clock so it matures
-        /// and confirms at the same UTs it would have without the
-        /// save/load round trip.
-        ///
-        /// <paramref name="onResponse"/> is a SINGLE handler shared by every
-        /// restored command (rather than one closure per command, which is
-        /// exactly the state a save/load round trip cannot carry), the
-        /// realistic post-restore shape is a generic response router that
-        /// dispatches to whoever is waiting on a given <c>requestId</c>, not
-        /// a per-dispatch callback resurrected from before the save. Call
-        /// <see cref="SetCommandHandler"/> on this Courier BEFORE calling
-        /// this method if the restored commands' executeUt has already (or
-        /// will imminently) elapse relative to the fresh clock's current UT.
-        /// </summary>
-        public void RestoreCommands(CommandQueueState state, Action<CommandResponse> onResponse)
-        {
-            foreach (var commandState in state.Commands)
-            {
-                var pending = new PendingCommand
-                {
-                    RequestId = commandState.RequestId,
-                    Node = commandState.Node,
-                    Command = commandState.Command,
-                    Args = commandState.Args,
-                    Vantage = commandState.Vantage,
-                    ExecuteUt = commandState.ExecuteUt,
-                    ConfirmUt = commandState.ConfirmUt,
-                    OnResponse = onResponse,
-                };
-                _pendingCommands[pending.RequestId] = pending;
-                ScheduleCommand(pending);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Plain BCL-only POCO snapshot of a <see cref="Courier"/>'s IN-FLIGHT
-    /// COMMAND QUEUE (dispatched, not-yet-confirmed commands only): see
-    /// <see cref="Courier.SnapshotCommands"/> / <see cref="Courier.RestoreCommands"/>.
-    /// Deliberately NOT serialization-aware, matching <see cref="ArchiveState"/>:
-    /// <c>Sitrep.Core</c> has ZERO external dependencies, so this type
-    /// carries no JSON attributes. Turning it into a persisted blob is an
-    /// M5b concern, outside this project.
-    /// </summary>
-    public sealed class CommandQueueState
-    {
-        public List<PendingCommandState> Commands { get; set; } = new List<PendingCommandState>();
-    }
-
-    /// <summary>One in-flight command's state within a <see cref="CommandQueueState"/>.</summary>
-    public sealed class PendingCommandState
-    {
-        public string RequestId { get; set; } = string.Empty;
-        public string Node { get; set; } = string.Empty;
-        public string Command { get; set; } = string.Empty;
-        public object? Args { get; set; }
-        public string Vantage { get; set; } = string.Empty;
-        public double ExecuteUt { get; set; }
-        public double ConfirmUt { get; set; }
+        /// <summary>How many dispatched commands have not yet confirmed.</summary>
+        public int PendingCommandCount => _pendingCommands.Count;
     }
 }

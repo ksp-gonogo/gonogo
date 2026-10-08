@@ -178,5 +178,35 @@ namespace Sitrep.Core.Tests.StoreAndForward
             restored.Tick(20.5);
             Assert.Equal(JourneyKind.Held, Assert.Single(restored.Reports).Kind);
         }
+
+        /// <summary>
+        /// A copy that was caught is not sent to the node that caught it again
+        /// until its plan changes, and a save and a load do not forget that.
+        /// </summary>
+        [Fact]
+        public void ACaughtCopyStaysHeldAcrossASaveAndALoadUntilThePlanChanges()
+        {
+            var rig = Sent(hopLands: false);
+            rig.Tick(20.5);
+            rig.Links.Up(Ksc, Probe, light: 10.0);
+            rig.Tick(21.0);
+            Assert.Single(rig.Network.HeldMessages().Where(h => h.Message is CommandMessage));
+            var saved = rig.Network.Snapshot();
+            Assert.Equal(new[] { Probe }, Assert.Single(saved.Held).Excluded);
+
+            var restored = new Rig();
+            restored.Links.Up(Ksc, Probe, light: 10.0);
+            restored.Clock.AdvanceTo(21.0);
+            restored.Network.Restore(saved, epoch: 2);
+            restored.Tick(22.0);
+            restored.Tick(40.0);
+            Assert.Single(restored.Network.HeldMessages().Where(h => h.Message is CommandMessage));
+            Assert.Empty(restored.Ran);
+
+            restored.Network.PlanChanged();
+            restored.Tick(41.0);
+            restored.Tick(60.0);
+            Assert.Equal(1, restored.Ran.Count);
+        }
     }
 }

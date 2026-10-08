@@ -267,15 +267,3 @@ Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 `Sitrep.Core.Courier`, replays each op in order, and asserts the resulting
 event log (kind, topic/requestId, payload/result, and every `Meta` field)
 matches the recorded TS-observed log exactly, in order.
-
-**Not covered here:** `Courier.SnapshotCommands()` / `Courier.RestoreCommands()`
-are a C#-only addition (no TS reference) for M5b quicksave, scoped to the
-IN-FLIGHT COMMAND QUEUE only: the archive is persisted separately
-(`Archive.Snapshot`/`Restore` above), and telemetry subscriptions plus
-their scheduled deliveries are runtime/derivable state that a reconnecting
-client re-establishes by re-subscribing, not something the Courier
-persists. That round trip (dispatch, snapshot mid-flight, restore onto a
-fresh `Courier`/`Clock`, confirm at the original UTs) is tested directly
-against the C# port in
-`mod/Sitrep.Core.Tests/CourierCommandQueueSnapshotRestoreTests.cs`, with no
-golden fixture, since there's no TS behavior to conform to.

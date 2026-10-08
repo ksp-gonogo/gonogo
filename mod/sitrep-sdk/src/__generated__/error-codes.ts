@@ -632,7 +632,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     kind: "fault",
     refines: null,
     origin: "mod",
-    sentence: "a command sent with it was refused, so none of them were sent",
+    sentence: "a command sent with it was refused, so it was not sent or run",
     meaning: "A command sent in a group was not sent because another command in the same group was refused, or because the group itself could not be sent. A group goes whole or not at all, so every member is refused with this one, and the message names the member that decided it.",
   },
   {

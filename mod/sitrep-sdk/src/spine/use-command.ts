@@ -349,6 +349,13 @@ type TrackedResolution =
  * or not one came, so a command nobody ever answered read as one that arrived.
  * The client knows the difference per dispatch and is asked for it here.
  */
+/** A group's one row says how many commands it stands for; a command sent alone keeps its own label. */
+function groupedLabel(entry: PendingEntry): string {
+  const size = entry.members?.length ?? 0;
+  const name = entry.label || entry.command;
+  return size > 1 ? `${name} (group of ${size})` : entry.label;
+}
+
 function resolveTracked(
   id: string,
   queue: PendingUplinkQueueLike | undefined,
@@ -368,7 +375,11 @@ function resolveTracked(
     return { kind: "waiting" };
   }
   // Re-keyed to the tracked id so the rail row keeps the id the caller holds.
-  const inQueue = found && { ...found, id };
+  const inQueue = found && {
+    ...found,
+    id,
+    label: groupedLabel(found),
+  };
   if (inQueue) cache.set(id, inQueue);
   const entry = inQueue ?? cache.get(id);
 

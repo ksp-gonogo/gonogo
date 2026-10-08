@@ -202,13 +202,13 @@ namespace Sitrep.Core.Tests
 
             CommandResponse? response = null;
             courier.DispatchCommand("vessel", "r1", "deploy", null, "KSC", msg => response = msg);
-            Assert.Single(courier.SnapshotCommands().Commands);
+            Assert.Equal(1, courier.PendingCommandCount);
 
             // Quickload before the command's executeUt (5) is reached.
             clock.AdvanceTo(2);
             courier.ResetTimeline(1);
 
-            Assert.Empty(courier.SnapshotCommands().Commands);
+            Assert.Equal(0, courier.PendingCommandCount);
             Assert.Equal(1.0, clock.Now());
 
             // Advancing well past the original executeUt/confirmUt (5/10)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Sitrep.Contract;
+using Sitrep.Host.Comms;
 using Xunit;
 
 namespace Sitrep.Host.IntegrationTests
@@ -165,6 +166,50 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotNull(result);
             Assert.Contains(Journey(world), e => e.Kind == JourneyEventKind.Ran);
             Assert.Empty(Pending(world));
+        }
+
+        /// <summary>
+        /// A game saved while a command's news was still on its way home, and
+        /// loaded again, leaves the centre as ignorant as it was: the command is
+        /// still held in place with its lane and deadline, and the centre hears
+        /// of it no sooner than it would have without the save.
+        /// </summary>
+        [Fact]
+        public async Task ALoadRevealsNoNewsOfAHeldCommandTheCentreHadNotHeardWhenTheGameWasSaved()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            await HasHeardOfTheRelayAsync(world);
+            world.Game.RelayConnected = false;
+            world.Tick(T0);
+            double? accepted = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.RelayCommand, "x", Home, _ => { }, TestBudgets.Op, onAccepted: seconds => accepted = seconds);
+            var light = accepted!.Value;
+            var sent = Pending(world).Single();
+
+            world.Tick(T0 + light + 5.0);
+            Assert.Empty(Journey(world));
+            var delivery = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(world.Engine.DeliverySnapshotNow()));
+            var heard = HeardSnapshotCodec.Decode(HeardSnapshotCodec.Encode(world.Engine.HeardSnapshotNow()!));
+            Assert.NotNull(delivery);
+
+            world.Engine.NoteGameLoaded(delivery, heard, savedUt: T0 + light + 5.0);
+            world.Tick(T0 + light + 10.0);
+            world.Tick(T0 + light + 15.0);
+
+            var kept = Assert.Single(Pending(world));
+            Assert.Equal(sent.LaneSeq, kept.LaneSeq);
+            Assert.Equal(sent.ExpiresAtUt, kept.ExpiresAtUt);
+            Assert.Equal(sent.Command, kept.Command);
+            Assert.Empty(Journey(world));
+
+            world.Tick(T0 + (2.0 * light) - 5.0);
+            Assert.Empty(Journey(world));
+            Assert.Equal(0, world.Uplink.HandledCount);
+
+            world.Tick(T0 + (2.0 * light) + 5.0);
+            var held = Journey(world).Single(e => e.Kind == JourneyEventKind.Held);
+            Assert.Equal(T0 + (2.0 * light), held.AtUt, 3);
         }
 
         /// <summary>

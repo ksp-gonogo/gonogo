@@ -34,6 +34,7 @@ namespace Sitrep.Host.Comms
                     ["away"] = h.Away,
                     ["custodyUntilUt"] = h.CustodyUntilUt,
                     ["landed"] = h.Landed,
+                    ["excluded"] = h.Excluded?.Select(n => (object?)n).ToList(),
                 }).ToList(),
                 ["flights"] = snapshot.Flights.Select(f => (object?)new Dictionary<string, object?>
                 {
@@ -109,6 +110,7 @@ namespace Sitrep.Host.Comms
                     Away = Get(h, "away") as string,
                     CustodyUntilUt = Get(h, "custodyUntilUt") as double?,
                     Landed = Get(h, "landed") is true,
+                    Excluded = (Get(h, "excluded") as List<object?>)?.OfType<string>().ToList(),
                 }).ToList(),
                 Flights = Items(root, "flights").Select(f => new FlightRecord
                 {

@@ -216,7 +216,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// goes whole or not at all, so every member is refused with this one, and the
     /// message names the member that decided it.
     /// </summary>
-    public static readonly FaultCode GroupRefused = Mod("groupRefused", "a command sent with it was refused, so none of them were sent");
+    public static readonly FaultCode GroupRefused = Mod("groupRefused", "a command sent with it was refused, so it was not sent or run");
 
     /// <summary>
     /// A command sent in a group did not run because an earlier command in the
