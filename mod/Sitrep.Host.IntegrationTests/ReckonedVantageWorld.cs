@@ -828,6 +828,13 @@ namespace Sitrep.Host.IntegrationTests
         public List<(double Value, double ValidAt, double DeliveredAt, Staleness Staleness, double? GapSinceUt)> Telemetry { get; } =
             new List<(double, double, double, Staleness, double?)>();
 
+        /// <summary>Every report of the active craft's link this screen has received, in order: whether it said connected, when it was true and when it arrived.</summary>
+        public List<(bool Connected, double ValidAt, double DeliveredAt, Staleness Staleness)> LinkReports { get; } =
+            new List<(bool, double, double, Staleness)>();
+
+        /// <summary>The topics this screen has been sent at least one frame of as a recording, which is how a held span arrives.</summary>
+        public HashSet<string> RecordedTopics { get; } = new HashSet<string>(StringComparer.Ordinal);
+
         public void Received(string topic, string payload, double validAt, double deliveredAt, string vantage)
         {
             _latest[topic] = payload;
@@ -911,6 +918,7 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan Timeout = TestBudgets.Op;
         private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
+        private bool _watchTelemetry;
         private TestClient _home = null!;
         private TestClient _far = null!;
 
@@ -933,7 +941,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>What the far centre's screen holds as of the last <see cref="SettleAsync"/>.</summary>
         public CentreView Far { get; } = new CentreView();
 
-        public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null)
+        /// <param name="watchTelemetry">Whether each screen also takes the active craft's telemetry topic and its link report, which a test about what arrives when has to see.</param>
+        public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null, bool watchTelemetry = false)
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var wall = 0.0;
@@ -949,7 +958,7 @@ namespace Sitrep.Host.IntegrationTests
             }
             engine.RegisterUplink(uplink);
             engine.Start();
-            var world = new ReckonedVantageWorld(engine, game, uplink);
+            var world = new ReckonedVantageWorld(engine, game, uplink) { _watchTelemetry = watchTelemetry };
             world.Tick(0.0);
             world._home = await world.ConnectAtAsync(ScriptedContactGame.Home);
             world._far = await world.ConnectAtAsync(ScriptedContactGame.Far);
@@ -999,6 +1008,19 @@ namespace Sitrep.Host.IntegrationTests
                     && root.TryGetProperty("payload", out var payload))
                 {
                     var meta = root.GetProperty("meta");
+                    var staleness = (Staleness)meta.GetProperty("staleness").GetInt32();
+                    if (staleness == Staleness.Recorded)
+                    {
+                        view.RecordedTopics.Add(root.GetProperty("topic").GetString()!);
+                    }
+                    if (root.GetProperty("topic").GetString() == ChannelEngine.ConnectivityMetaTopic && payload.TryGetProperty("connected", out var connected))
+                    {
+                        view.LinkReports.Add((
+                            connected.GetBoolean(),
+                            meta.GetProperty("validAt").GetDouble(),
+                            meta.GetProperty("deliveredAt").GetDouble(),
+                            staleness));
+                    }
                     if (root.GetProperty("topic").GetString() == ScriptedContactUplink.ActiveTelemetryTopic && payload.ValueKind == JsonValueKind.Number)
                     {
                         view.Telemetry.Add((
@@ -1041,7 +1063,11 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.PathTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.NetworkTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.CommandCentreTopic, Timeout)).Name);
-            Assert.Equal("subscribed", (await SubscribeAsync(client, ScriptedContactUplink.ActiveTelemetryTopic, Timeout)).Name);
+            if (_watchTelemetry)
+            {
+                Assert.Equal("subscribed", (await SubscribeAsync(client, ScriptedContactUplink.ActiveTelemetryTopic, Timeout)).Name);
+                Assert.Equal("subscribed", (await SubscribeAsync(client, ChannelEngine.ConnectivityMetaTopic, Timeout)).Name);
+            }
             return client;
         }
 
