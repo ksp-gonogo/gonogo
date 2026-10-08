@@ -54,7 +54,10 @@ if [ ! -f "$PROPS" ] || [ ! -d "$TARGET/uplinks" ] \
 fi
 
 SHA="$(git -C "$ROOT" rev-parse --verify "$REF^{commit}")"
-WORK="$(mktemp -d)"
+# Resolved, because macOS hands out /var/folders/... and /var is a symlink to
+# /private/var: packed from the unresolved path, the package silently loses
+# lib/net10.0/Sitrep.Core.dll, which an in-tree pack or a resolved path keeps.
+WORK="$(cd "$(mktemp -d)" && pwd -P)"
 trap 'rm -rf "$WORK"' EXIT
 
 echo "vendor: packing KspGonogo.Sitrep.Contract from gonogo $SHA"
@@ -86,6 +89,24 @@ NUPKG="$WORK/out/KspGonogo.Sitrep.Contract.$VERSION.nupkg"
 if [ ! -f "$NUPKG" ]; then
   echo "✖ vendor: the pack produced no $NUPKG"
   exit 1
+fi
+# The archive is only the commit's own files, so a pack of it can differ from a
+# pack of the tree it came from only by losing something. When the ref is the
+# checked-out commit the two are compared, and every assembly the in-tree pack
+# carries must be in this one.
+if [ "$SHA" = "$(git -C "$ROOT" rev-parse HEAD)" ]; then
+  INTREE="$WORK/intree"
+  dotnet pack "$ROOT/mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj" \
+    -c Release -o "$INTREE" --nologo -v quiet -clp:ErrorsOnly \
+    -p:PackageVersion="$VERSION" -p:EnableSourceLink=false -p:EmbedUntrackedSources=false
+  MISSING="$(comm -23 \
+    <(unzip -Z1 "$INTREE/KspGonogo.Sitrep.Contract.$VERSION.nupkg" | grep '\.dll$' | sort) \
+    <(unzip -Z1 "$NUPKG" | grep '\.dll$' | sort))"
+  if [ -n "$MISSING" ]; then
+    echo "✖ vendor: the package packed from the archive lacks assemblies the in-tree pack has:"
+    echo "$MISSING"
+    exit 1
+  fi
 fi
 # A package that lost a group or its codegen folder restores cleanly and fails
 # later in every Uplink at once, so what it must hold is checked here by name.
