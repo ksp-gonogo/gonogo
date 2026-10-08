@@ -350,6 +350,7 @@ function SystemViewComponent({
     panelPhaseAngle === null ? null : panelBody,
     bodies,
     universalTime,
+    catalogueHeld,
   );
   const encounterIn = useEncounterIn();
   const nextApsisIn =

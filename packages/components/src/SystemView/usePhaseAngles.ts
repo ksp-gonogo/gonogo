@@ -5,6 +5,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  datedFrom,
   deriveReading,
   type Reading,
   type Value,
@@ -13,7 +14,7 @@ import {
 import { useMemo } from "react";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import { normalizePhaseAngle } from "./transferWindow";
-import type { CelestialBody } from "./useCelestialBodies";
+import type { CatalogueHeld, CelestialBody } from "./useCelestialBodies";
 
 /**
  * Phase angle (deg, in [0, 360)) from each body to the active vessel, keyed by body index.
@@ -98,11 +99,17 @@ function vesselLongitudeAt(
  * One body's phase angle as a Reading: observed at the received edge `ut`, and,
  * where the vessel's conic reckons past it, both objects advanced to the
  * instant the reckoning is for. Degrees in (-180, 180].
+ *
+ * The body's half comes from the catalogue, so while `held` says the catalogue
+ * has stopped arriving the figure is held too, as of the older of the two
+ * instants. The reckoning is kept: it is the model's figure for now, drawn as
+ * modelled whatever the observation's currency.
  */
 export function usePhaseAngleReading(
   body: CelestialBody | null,
   bodies: readonly CelestialBody[],
   ut: number | undefined,
+  held: CatalogueHeld | null = null,
 ): Reading<Value<"°">> | undefined {
   const orbitReading = useTelemetry("vessel.orbit");
   return useMemo(() => {
@@ -123,8 +130,21 @@ export function usePhaseAngleReading(
         );
       },
     );
-    return reading.value === undefined ? undefined : reading;
-  }, [body, bodies, orbitReading, ut]);
+    if (reading.value === undefined) return undefined;
+    if (held === null) return reading;
+    const aged = datedFrom(
+      [
+        {
+          state: reading.state,
+          instant: reading.asOfUt ?? reading.atUt,
+          grade: reading.grade,
+        },
+        { state: "held", instant: held.asOfUt, grade: held.grade },
+      ],
+      reading.value,
+    );
+    return { ...aged, reckoning: reading.reckoning };
+  }, [body, bodies, orbitReading, ut, held]);
 }
 
 function phaseAngle(

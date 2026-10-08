@@ -12,8 +12,21 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
 import { Floating, Tooltip, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactElement, RefObject } from "react";
-import { useRef, useState, useSyncExternalStore } from "react";
+import type {
+  CSSProperties,
+  FocusEvent,
+  KeyboardEvent,
+  ReactElement,
+  RefObject,
+} from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   markerStyleFor,
   PoiHoverActions,
@@ -37,6 +50,28 @@ export interface MapPoiLayerProps {
   project: (lat: number, lon: number) => { x: number; y: number };
 }
 
+/** How long the card outlives the pointer leaving its marker, so the pointer can cross the gap to the card. */
+const CARD_CLOSE_GRACE_MS = 250;
+
+const CARD_CONTROLS =
+  "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+
+/** What a marker and the card tell the layer about the pointer and focus. */
+interface PoiHover {
+  hoveredId: string | undefined;
+  /** Opens the card for `poi` and cancels any pending close. */
+  show: (poi: MapPoi, marker: HTMLElement) => void;
+  /** Starts the close grace; `keep` cancels it. */
+  leave: () => void;
+  keep: () => void;
+  /** Closes at once and returns focus to the marker that opened the card. */
+  dismiss: () => void;
+  /** Moves focus from the marker into the card; false when the card has no control to reach. */
+  enterCard: () => boolean;
+  /** Moves focus from the card back to the marker. */
+  returnToMarker: () => void;
+}
+
 // A stable snapshot, since getMapPoiProviders() allocates per call and would loop useSyncExternalStore. Refreshed by a module-load subscription so a provider registered before any layer mounts is not missed.
 let cachedProviders: MapPoiProviderDefinition[] = getMapPoiProviders();
 onMapPoiProvidersChange(() => {
@@ -58,6 +93,52 @@ export function MapPoiLayer({
   );
   const [hoveredPoi, setHoveredPoi] = useState<MapPoi | null>(null);
   const layerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<HTMLElement | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  const keep = useCallback(() => {
+    clearTimeout(closeTimer.current);
+    closeTimer.current = undefined;
+  }, []);
+  useEffect(() => keep, [keep]);
+
+  const hover = useMemo<PoiHover>(
+    () => ({
+      hoveredId: hoveredPoi?.id,
+      show: (poi, marker) => {
+        keep();
+        markerRef.current = marker;
+        setHoveredPoi(poi);
+      },
+      leave: () => {
+        keep();
+        closeTimer.current = setTimeout(
+          () => setHoveredPoi(null),
+          CARD_CLOSE_GRACE_MS,
+        );
+      },
+      keep,
+      // Focus first: the marker's focus handler reopens the card, and the close set last wins.
+      dismiss: () => {
+        markerRef.current?.focus();
+        keep();
+        setHoveredPoi(null);
+      },
+      enterCard: () => {
+        const first =
+          cardRef.current?.querySelector<HTMLElement>(CARD_CONTROLS);
+        if (!first) return false;
+        keep();
+        first.focus();
+        return true;
+      },
+      returnToMarker: () => markerRef.current?.focus(),
+    }),
+    [hoveredPoi?.id, keep],
+  );
 
   return (
     <PoiLayerRoot ref={layerRef}>
@@ -69,8 +150,7 @@ export function MapPoiLayer({
             provider={provider}
             bodyId={bodyId}
             project={project}
-            hoveredId={hoveredPoi?.id}
-            onHover={setHoveredPoi}
+            hover={hover}
           />
         ) : (
           <PoiProviderMarkers
@@ -78,8 +158,7 @@ export function MapPoiLayer({
             provider={provider}
             bodyId={bodyId}
             project={project}
-            hoveredId={hoveredPoi?.id}
-            onHover={setHoveredPoi}
+            hover={hover}
           />
         ),
       )}
@@ -88,7 +167,8 @@ export function MapPoiLayer({
           poi={hoveredPoi}
           project={project}
           layerRef={layerRef}
-          onDismiss={() => setHoveredPoi(null)}
+          cardRef={cardRef}
+          hover={hover}
         />
       )}
     </PoiLayerRoot>
@@ -101,15 +181,13 @@ function PoiProviderGate({
   provider,
   bodyId,
   project,
-  hoveredId,
-  onHover,
+  hover,
 }: {
   requires: string;
   provider: MapPoiProviderDefinition;
   bodyId: string | undefined;
   project: MapPoiLayerProps["project"];
-  hoveredId: string | undefined;
-  onHover: (poi: MapPoi | null) => void;
+  hover: PoiHover;
 }): ReactElement | null {
   const available = useTelemetry(`${requires}.available` as TopicId);
 
@@ -121,8 +199,7 @@ function PoiProviderGate({
       provider={provider}
       bodyId={bodyId}
       project={project}
-      hoveredId={hoveredId}
-      onHover={onHover}
+      hover={hover}
     />
   );
 }
@@ -132,14 +209,12 @@ function PoiProviderMarkers({
   provider,
   bodyId,
   project,
-  hoveredId,
-  onHover,
+  hover,
 }: {
   provider: MapPoiProviderDefinition;
   bodyId: string | undefined;
   project: MapPoiLayerProps["project"];
-  hoveredId: string | undefined;
-  onHover: (poi: MapPoi | null) => void;
+  hover: PoiHover;
 }): ReactElement | null {
   const pois = provider.usePois({ bodyId });
   if (!pois) return null;
@@ -147,13 +222,7 @@ function PoiProviderMarkers({
   return (
     <>
       {pois.map((poi) => (
-        <PoiMarker
-          key={poi.id}
-          poi={poi}
-          project={project}
-          isHovered={hoveredId === poi.id}
-          onHover={onHover}
-        />
+        <PoiMarker key={poi.id} poi={poi} project={project} hover={hover} />
       ))}
     </>
   );
@@ -162,14 +231,13 @@ function PoiProviderMarkers({
 function PoiMarker({
   poi,
   project,
-  isHovered,
-  onHover,
+  hover,
 }: {
   poi: MapPoi;
   project: MapPoiLayerProps["project"];
-  isHovered: boolean;
-  onHover: (poi: MapPoi | null) => void;
+  hover: PoiHover;
 }): ReactElement {
+  const isHovered = hover.hoveredId === poi.id;
   const { x, y } = project(poi.lat, poi.lon);
   const style: CSSProperties = { left: x, top: y };
 
@@ -180,13 +248,24 @@ function PoiMarker({
       aria-expanded={isHovered}
       style={style}
       $style={markerStyleFor(poi)}
-      onMouseEnter={() => onHover(poi)}
+      onMouseEnter={(e) => hover.show(poi, e.currentTarget)}
       onMouseLeave={() => {
-        if (isHovered) onHover(null);
+        if (isHovered) hover.leave();
       }}
-      onFocus={() => onHover(poi)}
+      onFocus={(e) => hover.show(poi, e.currentTarget)}
       onBlur={() => {
-        if (isHovered) onHover(null);
+        if (isHovered) hover.leave();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && isHovered) {
+          e.stopPropagation();
+          hover.dismiss();
+          return;
+        }
+        // The card is portalled to the page body, so Tab would skip past it.
+        if (e.key === "Tab" && !e.shiftKey && isHovered && hover.enterCard()) {
+          e.preventDefault();
+        }
       }}
     />
   );
@@ -196,12 +275,14 @@ function PoiHoverCardView({
   poi,
   project,
   layerRef,
-  onDismiss,
+  cardRef,
+  hover,
 }: {
   poi: MapPoi;
   project: MapPoiLayerProps["project"];
   layerRef: RefObject<HTMLDivElement | null>;
-  onDismiss: () => void;
+  cardRef: RefObject<HTMLDivElement>;
+  hover: PoiHover;
 }): ReactElement {
   // Drawn over the page rather than the map, so a card near the map's edge is never cut off by it.
   const anchor = () => {
@@ -216,8 +297,23 @@ function PoiHoverCardView({
     : [];
 
   return (
-    <Floating anchor={anchor} onMouseLeave={onDismiss}>
-      <PoiHoverCard role="group" aria-label={`${poi.label} details`}>
+    <Floating
+      anchor={anchor}
+      onMouseEnter={hover.keep}
+      onMouseLeave={hover.leave}
+      onFocus={hover.keep}
+      onBlur={(e: FocusEvent<HTMLDivElement>) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) hover.leave();
+      }}
+      onKeyDown={(e: KeyboardEvent<HTMLDivElement>) =>
+        handleCardKey(e, cardRef.current, hover)
+      }
+    >
+      <PoiHoverCard
+        ref={cardRef}
+        role="group"
+        aria-label={`${poi.label} details`}
+      >
         <PoiHoverLabel>{poi.label}</PoiHoverLabel>
         {poi.detail && <PoiHoverDetail>{poi.detail}</PoiHoverDetail>}
         <PoiHoverCoords>{`${writeQuantity(value("°", poi.lat), { decimals: 2 })}, ${writeQuantity(value("°", poi.lon), { decimals: 2 })}`}</PoiHoverCoords>
@@ -255,4 +351,27 @@ function PoiHoverCardView({
       </PoiHoverCard>
     </Floating>
   );
+}
+
+/** Escape closes the card; Tab off either end of its controls returns to the marker so focus never strands in the portal. */
+function handleCardKey(
+  e: KeyboardEvent<HTMLDivElement>,
+  card: HTMLDivElement | null,
+  hover: PoiHover,
+): void {
+  if (e.key === "Escape") {
+    e.stopPropagation();
+    hover.dismiss();
+    return;
+  }
+  if (e.key !== "Tab" || !card) return;
+  const controls = card.querySelectorAll<HTMLElement>(CARD_CONTROLS);
+  const first = controls[0];
+  const last = controls[controls.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    hover.returnToMarker();
+    return;
+  }
+  if (!e.shiftKey && document.activeElement === last) hover.returnToMarker();
 }

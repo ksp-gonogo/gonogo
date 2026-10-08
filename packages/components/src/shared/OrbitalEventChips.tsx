@@ -4,7 +4,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { isLocked, unlessLocked } from "@ksp-gonogo/sitrep-sdk";
-import { Box, Cluster, Countdown, LockMark } from "@ksp-gonogo/ui-kit";
+import { Box, Cluster, Countdown, LockMark, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { countdownOf } from "./countdownOf";
 import { encounterKindOf } from "./encounterKind";
@@ -52,7 +52,7 @@ export function OrbitalEventChips() {
   return (
     <Cluster justify="start" wrap>
       {lockedEncounter !== null && (
-        <Chip variant="neutral">
+        <Chip variant="neutral" tip="Sphere of influence encounter">
           <ChipLabel>ENC</ChipLabel>
           <ChipValue>
             <LockMark lock={lockedEncounter} />
@@ -60,7 +60,14 @@ export function OrbitalEventChips() {
         </Chip>
       )}
       {hasEncounter && (
-        <Chip variant={encounterKind === "escape" ? "warn" : "go"}>
+        <Chip
+          variant={encounterKind === "escape" ? "warn" : "go"}
+          tip={
+            encounterKind === "escape"
+              ? "Sphere of influence escape"
+              : "Sphere of influence encounter"
+          }
+        >
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>
           <ChipValue>
             {encBody as string} · <Countdown value={encIn} />
@@ -68,7 +75,10 @@ export function OrbitalEventChips() {
         </Chip>
       )}
       {hasApsis && (
-        <Chip variant="neutral">
+        <Chip
+          variant="neutral"
+          tip={apsisType === -1 ? "Next periapsis" : "Next apoapsis"}
+        >
           <ChipLabel>NEXT</ChipLabel>
           <ChipValue>
             {apsisType === -1 ? "Pe" : "Ap"} · <Countdown value={timeToApsis} />
@@ -105,29 +115,34 @@ const CHIP_TONE: Record<
 /** A compact bordered pill: label + value, tone-coloured per variant. */
 function Chip({
   variant,
+  tip,
   children,
 }: {
   variant: ChipVariant;
+  /** What the abbreviated label stands for. */
+  tip: string;
   children: ReactNode;
 }) {
   const tone = CHIP_TONE[variant];
   return (
-    <Box
-      pad="chip-readout"
-      radius="regular"
-      style={{
-        display: "inline-flex",
-        alignItems: "baseline",
-        gap: "var(--gap-related)",
-        border: `1px solid ${tone.border}`,
-        background: tone.background,
-        color: tone.color,
-        fontSize: "10px",
-        letterSpacing: "0.04em",
-      }}
-    >
-      {children}
-    </Box>
+    <Tooltip text={tip} focusable>
+      <Box
+        pad="chip-readout"
+        radius="regular"
+        style={{
+          display: "inline-flex",
+          alignItems: "baseline",
+          gap: "var(--gap-related)",
+          border: `1px solid ${tone.border}`,
+          background: tone.background,
+          color: tone.color,
+          fontSize: "10px",
+          letterSpacing: "0.04em",
+        }}
+      >
+        {children}
+      </Box>
+    </Tooltip>
   );
 }
 

@@ -4,7 +4,10 @@ import {
   TrajectoryKind,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitalEventChips } from "./OrbitalEventChips";
@@ -18,7 +21,7 @@ function mountAt(transitionUt: number) {
     pinnedUt: VIEW_UT,
     suspendFrames: true,
   });
-  render(
+  const view = render(
     <fixture.Provider>
       <OrbitalEventChips />
     </fixture.Provider>,
@@ -46,7 +49,7 @@ function mountAt(transitionUt: number) {
       patches: [],
     });
   });
-  return fixture;
+  return { fixture, view };
 }
 
 describe("OrbitalEventChips", () => {
@@ -131,5 +134,16 @@ describe("OrbitalEventChips under signal delay", () => {
     expect(visibleText()).toMatch(/24m/);
     expect(alongside[0]?.textContent).toMatch(/20m/);
     expect(alongside[0]?.querySelector("[data-held-mark]")).not.toBeNull();
+  });
+
+  it("names what the encounter chip's label stands for, to the keyboard as well as the pointer", async () => {
+    const { view } = mountAt(TRANSITION_UT);
+
+    const chip = (await screen.findByText("ENC")).closest("[tabindex]");
+    expect(chip).toHaveAttribute(
+      "aria-description",
+      "Sphere of influence encounter",
+    );
+    await expectNoA11yViolations(view.container);
   });
 });

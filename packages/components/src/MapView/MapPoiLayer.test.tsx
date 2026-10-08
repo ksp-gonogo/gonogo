@@ -3,18 +3,21 @@ import {
   type MapPoi,
   registerMapPoiProvider,
 } from "@ksp-gonogo/core";
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapPoiLayer } from "./MapPoiLayer";
 
 // Unmount each tree before clearMapPoiProviders(), which would re-render a mounted layer outside act(); RTL's auto-cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
+/** Past the layer's close grace. */
+const CARD_GRACE = 250;
 afterEach(() => {
+  vi.useRealTimers();
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
   clearMapPoiProviders();
@@ -86,6 +89,7 @@ describe("MapPoiLayer", () => {
   });
 
   it("shows label, detail and formatted coordinates in a hover card on marker hover", () => {
+    vi.useFakeTimers();
     registerMapPoiProvider({
       id: "vanilla:test",
       usePois: () => [
@@ -110,7 +114,102 @@ describe("MapPoiLayer", () => {
     expect(visibleText()).toMatch(/-0\.05.*-74\.72/);
 
     fireEvent.mouseLeave(screen.getByRole("button", { name: "Runway" }));
+    act(() => {
+      vi.advanceTimersByTime(CARD_GRACE);
+    });
     expect(screen.queryByText("Launch pad")).toBeNull();
+  });
+
+  describe("reaching the hover card's buttons", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    const run = vi.fn();
+    function registerRunway() {
+      registerMapPoiProvider({
+        id: "vanilla:test",
+        usePois: () => [
+          makePoi({
+            id: "poi-1",
+            label: "Runway",
+            detail: "Launch pad",
+            actions: [{ id: "set-target", label: "Set as Target", run }],
+          }),
+        ],
+      });
+    }
+
+    it("keeps the card open while the pointer crosses from the marker to it", () => {
+      registerRunway();
+      renderLayer();
+      const marker = screen.getByRole("button", { name: "Runway" });
+
+      fireEvent.mouseEnter(marker);
+      fireEvent.mouseLeave(marker);
+      act(() => {
+        vi.advanceTimersByTime(CARD_GRACE - 1);
+      });
+      fireEvent.mouseEnter(
+        screen.getByRole("group", { name: "Runway details" }),
+      );
+      act(() => {
+        vi.advanceTimersByTime(CARD_GRACE * 4);
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Set as Target" }),
+      ).toBeVisible();
+    });
+
+    it("closes once the pointer leaves the card", () => {
+      registerRunway();
+      renderLayer();
+      const marker = screen.getByRole("button", { name: "Runway" });
+
+      fireEvent.mouseEnter(marker);
+      const card = screen.getByRole("group", { name: "Runway details" });
+      fireEvent.mouseEnter(card);
+      fireEvent.mouseLeave(card);
+      act(() => {
+        vi.advanceTimersByTime(CARD_GRACE);
+      });
+
+      expect(screen.queryByText("Launch pad")).toBeNull();
+    });
+
+    it("reaches the card's button with Tab from the marker, and Escape closes it back onto the marker", () => {
+      registerRunway();
+      renderLayer();
+      const marker = screen.getByRole("button", { name: "Runway" });
+
+      act(() => marker.focus());
+      fireEvent.keyDown(marker, { key: "Tab" });
+      const action = screen.getByRole("button", { name: "Set as Target" });
+      expect(action).toHaveFocus();
+      act(() => {
+        vi.advanceTimersByTime(CARD_GRACE * 4);
+      });
+      expect(action).toBeVisible();
+
+      fireEvent.keyDown(action, { key: "Escape" });
+      expect(screen.queryByText("Launch pad")).toBeNull();
+      expect(marker).toHaveFocus();
+    });
+
+    it("returns focus to the marker on Shift+Tab from the first control", () => {
+      registerRunway();
+      renderLayer();
+      const marker = screen.getByRole("button", { name: "Runway" });
+
+      act(() => marker.focus());
+      fireEvent.keyDown(marker, { key: "Tab" });
+      fireEvent.keyDown(screen.getByRole("button", { name: "Set as Target" }), {
+        key: "Tab",
+        shiftKey: true,
+      });
+
+      expect(marker).toHaveFocus();
+    });
   });
 
   it("renders every meta entry as a key/value row in the hover card", () => {

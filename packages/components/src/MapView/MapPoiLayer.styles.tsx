@@ -115,16 +115,16 @@ const POI_MARKER_BUTTON_STYLE: CSSProperties = {
   pointerEvents: "auto",
 };
 
-export function PoiHoverCard({
-  children,
-  ...rest
-}: Readonly<HTMLAttributes<HTMLDivElement>>) {
+export const PoiHoverCard = forwardRef<
+  HTMLDivElement,
+  Readonly<HTMLAttributes<HTMLDivElement>>
+>(function PoiHoverCard({ children, ...rest }, ref) {
   return (
-    <div style={POI_HOVER_CARD_STYLE} {...rest}>
+    <div ref={ref} style={POI_HOVER_CARD_STYLE} {...rest}>
       {children}
     </div>
   );
-}
+});
 
 const POI_HOVER_CARD_STYLE: CSSProperties = {
   minWidth: 160,

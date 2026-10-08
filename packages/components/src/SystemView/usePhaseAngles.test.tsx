@@ -4,7 +4,7 @@ import {
   type PropagationHorizonLike,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { normalizePhaseAngle } from "./transferWindow";
-import type { CelestialBody } from "./useCelestialBodies";
+import type { CatalogueHeld, CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
 
 /** `usePhaseAngles` derives each body's phase angle to the active vessel from streamed elements, read through a real `TelemetryProvider`. */
@@ -282,7 +282,10 @@ describe("phase angles under signal delay", () => {
     });
   }
 
-  async function phasesAtLightTime(owlt: number) {
+  async function phasesAtLightTime(
+    owlt: number,
+    held: CatalogueHeld | null = null,
+  ) {
     const fixture = setupStreamFixture({
       delaySeconds: owlt,
       suspendFrames: true,
@@ -292,7 +295,12 @@ describe("phase angles under signal delay", () => {
     const { result } = renderHook(
       () => ({
         observed: usePhaseAngles([mun]),
-        reading: usePhaseAngleReading(mun, bodies, useViewUt()?.magnitude),
+        reading: usePhaseAngleReading(
+          mun,
+          bodies,
+          useViewUt()?.magnitude,
+          held,
+        ),
       }),
       { wrapper: fixture.Provider },
     );
@@ -331,6 +339,24 @@ describe("phase angles under signal delay", () => {
     expect(reckoning.modelled.magnitude).toBeCloseTo(
       normalizePhaseAngle(atCraft.observed.get(1) ?? Number.NaN),
       4,
+    );
+  });
+  it("is held as of the catalogue's instant while the catalogue has stopped arriving, and keeps its reckoning", async () => {
+    const current = await phasesAtLightTime(240);
+    const held = await phasesAtLightTime(240, {
+      asOfUt: value("ut", 100),
+      grade: "disconnected",
+    });
+    expect(current.reading?.state).toBe("observed");
+    expect(held.reading?.state).toBe("held");
+    expect(held.reading?.asOfUt?.magnitude).toBe(100);
+    expect(held.reading?.grade).toBe("disconnected");
+    expect(held.reading?.value?.magnitude).toBeCloseTo(
+      current.reading?.value?.magnitude ?? Number.NaN,
+      6,
+    );
+    expect(held.reading?.reckoning.status).toBe(
+      current.reading?.reckoning.status,
     );
   });
 });
