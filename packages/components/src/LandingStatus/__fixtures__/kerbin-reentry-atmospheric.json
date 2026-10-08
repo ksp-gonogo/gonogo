@@ -120,7 +120,7 @@
           "atmosphericTimeToImpact": 95,
           "descentRegime": "hypersonic",
           "parachuteState": "stowed",
-          "dragToWeightRatio": 1.0
+          "dragToWeightRatio": 1
         }
       }
     ]

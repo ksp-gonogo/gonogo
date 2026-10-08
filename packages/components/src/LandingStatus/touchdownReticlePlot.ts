@@ -8,7 +8,6 @@ import { siteWorthPlotting } from "./siteGate";
 
 /**
  * The touchdown reticle as a contributed plot: the top-down half of the altimetry pair, in metres east and north of the predicted site, with the vessel at its real displacement and the landing zone at its actual radius.
- * The terrain is a `relief` layer: this file states elevations and the renderer bands them, so hypsometric colour is the altitude and band edges are the iso-lines.
  */
 
 /** Headroom past the outermost thing on the plot, as a fraction of the span. */
@@ -25,12 +24,6 @@ export interface TouchdownReticleInputs {
   driftBearingDeg: number | null;
   /** Radius of the possible-touchdown circle around the site, metres. */
   zoneRadiusMeters: number | null;
-  /** Terrain elevations, row-major NxN, metres. */
-  patch: readonly number[] | null;
-  /** The N of the NxN patch. */
-  patchSize: number | null;
-  /** Ground width the whole patch spans, metres. */
-  patchExtentMeters: number | null;
   /** Terrain slope at the site, degrees. */
   slopeDeg: number | null;
   /** Biome at the site. */
@@ -45,16 +38,8 @@ export interface TouchdownReticleInputs {
 export function buildTouchdownReticlePlot(
   inputs: Readonly<TouchdownReticleInputs>,
 ): PlotEntry | null {
-  const {
-    driftMeters,
-    driftBearingDeg,
-    zoneRadiusMeters,
-    patch,
-    patchSize,
-    patchExtentMeters,
-    slopeDeg,
-    biome,
-  } = inputs;
+  const { driftMeters, driftBearingDeg, zoneRadiusMeters, slopeDeg, biome } =
+    inputs;
   if (
     driftMeters == null ||
     !Number.isFinite(driftMeters) ||
@@ -71,17 +56,11 @@ export function buildTouchdownReticlePlot(
   const vesselNorth = -driftMeters * Math.cos(bearing);
 
   const layers: PlotLayer[] = [];
-  // The window frames the sampled ground and the vessel, NOT the dispersion ring: on a fast approach the ring is kilometres across and simply runs off the edges.
+  // The window frames the site and the vessel, NOT the dispersion ring: on a fast approach the ring is kilometres across and simply runs off the edges.
   const reaches: number[] = [Math.abs(driftMeters)];
 
-  const relief = reliefGrid(patch, patchSize, patchExtentMeters);
-  if (relief) {
-    layers.push(relief.layer);
-    reaches.push(relief.halfSpan);
-  }
-
   if (zoneRadiusMeters != null && zoneRadiusMeters > 0) {
-    // An outline, not a filled disc, so it hides none of the hypsometric bands the ground's shape is read from.
+    // An outline, not a filled disc, so it hides nothing beneath it.
     layers.push({
       kind: "series",
       id: "landing-zone",
@@ -137,15 +116,13 @@ export function buildTouchdownReticlePlot(
     description: "current sub-vessel point",
   });
 
-  // With a patch the relief bleeds to the frame's edges like a map; padding only when the span comes from the drift.
-  const halfSpan = relief
-    ? Math.max(MIN_HALF_SPAN_M, relief.halfSpan)
-    : Math.max(MIN_HALF_SPAN_M, Math.max(...reaches)) * (1 + SPAN_PADDING);
+  const halfSpan =
+    Math.max(MIN_HALF_SPAN_M, Math.max(...reaches)) * (1 + SPAN_PADDING);
   return {
     subject: "touchdown-site",
     title: "Touchdown site",
     frame: {
-      // A map: equal scale both ways and no tick ladder; the known patch width and the labelled ring carry the scale.
+      // A map: equal scale both ways and no tick ladder; the labelled ring carries the scale.
       kind: "spatial",
       xDomain: [-halfSpan, halfSpan],
       xUnit: "m",
@@ -167,38 +144,6 @@ function siteDescription(
   }
   if (biome) parts.push(biome);
   return parts.join(", ");
-}
-
-/** The terrain patch as a relief layer over its real ground footprint, or null without `terrainPatchExtentMeters`, since a grid at unknown scale would sit under metric marks. */
-function reliefGrid(
-  patch: readonly number[] | null,
-  patchSize: number | null,
-  patchExtentMeters: number | null,
-): { layer: PlotLayer; halfSpan: number } | null {
-  if (!patch || !patchSize || patchSize < 2) return null;
-  if (patch.length < patchSize * patchSize) return null;
-  if (
-    patchExtentMeters == null ||
-    !Number.isFinite(patchExtentMeters) ||
-    patchExtentMeters <= 0
-  ) {
-    return null;
-  }
-  for (let i = 0; i < patchSize * patchSize; i++) {
-    if (!Number.isFinite(patch[i])) return null;
-  }
-  const halfSpan = patchExtentMeters / 2;
-  return {
-    halfSpan,
-    layer: {
-      kind: "relief",
-      id: "terrain",
-      values: patch,
-      size: patchSize,
-      bounds: { x0: -halfSpan, y0: -halfSpan, x1: halfSpan, y1: halfSpan },
-      description: "sampled terrain around the predicted site",
-    },
-  };
 }
 
 /**
@@ -290,9 +235,6 @@ CORE_UPLINK_CLIENT.registerContribution({
       landing.predictedLongitude.magnitude,
       body.radius,
     );
-    const patchExtentMeters =
-      landing.terrainPatchExtentMeters?.magnitude ?? null;
-
     const plot = buildTouchdownReticlePlot({
       driftMeters: drift.distanceMeters,
       driftBearingDeg: drift.bearingDeg,
@@ -319,9 +261,6 @@ CORE_UPLINK_CLIENT.registerContribution({
         roughnessFootprintMeters:
           landing.roughnessFootprintMeters?.magnitude ?? null,
       }),
-      patch: landing.terrainPatch?.map((h) => h.magnitude) ?? null,
-      patchSize: landing.terrainPatchSize?.magnitude ?? null,
-      patchExtentMeters,
       slopeDeg: landing.predictedSlopeAngle?.magnitude ?? null,
       biome: landing.predictedBiome ?? null,
       hasAtmosphere: body.hasAtmosphere ?? false,

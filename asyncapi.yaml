@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 31.0.0
+  version: 32.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -20785,7 +20785,7 @@ components:
             KSP's biome name at the sampled point (for the vessel's current position,
             read `vessel.surface.biome`), from `ScienceUtil.GetExperimentBiome`. Null
             when the body has no biome map.
-        terrainPatch:
+        groundTrackDistances:
           type:
             - array
             - "null"
@@ -20793,26 +20793,23 @@ components:
             type: number
             x-sitrep-unit: m
           description: |-
-            A flattened row-major NxN grid of terrain elevations in metres around the
-            sampled point, for a shaded relief view; its length is
-            `VesselLanding.terrainPatchSize` squared. Not currently produced, so always
-            null.
-        terrainPatchSize:
+            The distance in metres of each `VesselLanding.groundTrackElevations` sample
+            along the predicted ground track, measured from the point on the ground
+            beneath the vessel toward the predicted site and on past it. Ascending,
+            starting at 0, the same length as `VesselLanding.groundTrackElevations`. The
+            spacing and the extent scale with the vessel's height, so the strip narrows
+            toward the site as it descends. Null when no track could be sampled.
+        groundTrackElevations:
           type:
-            - number
+            - array
             - "null"
-          x-sitrep-unit: count
+          items:
+            type: number
+            x-sitrep-unit: m
           description: |-
-            The N of the NxN `VesselLanding.terrainPatch` grid. Null when there is no
-            patch, which is currently always.
-        terrainPatchExtentMeters:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: m
-          description: |-
-            The full width in metres the `VesselLanding.terrainPatch` grid spans. Null
-            when there is no patch, which is currently always.
+            Terrain elevation in metres at each `VesselLanding.groundTrackDistances`
+            entry, from the body's terrain model (ocean floor reads negative). Null when
+            no track could be sampled.
         terminalVelocity:
           type:
             - number

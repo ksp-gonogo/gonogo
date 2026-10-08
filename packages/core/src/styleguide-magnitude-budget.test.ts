@@ -198,13 +198,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // becomes a polyline in the plot's own space, and the drift, the height and
   // the two speed components set its frame and its vector. Every number a
   // READER sees still leaves through `writeQuantity`.
-  "packages/components/src/LandingStatus/crossSectionPlot.ts": 11,
+  "packages/components/src/LandingStatus/crossSectionPlot.ts": 10,
   // 20: the reticle, and the highest of the three because it derives the most.
   // Four coordinates for the great-circle drift, the patch and its footprint
   // for the relief, and the dispersion zone, which is not on the wire at all:
   // it is a horizontal-travel estimate that needs the speed, the time to impact
   // and, in vacuum, a surface gravity backed out of mu and the radius.
-  "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 20,
+  "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 17,
   /*
    * 3: the burn's first post-burn patch drawn as the planned conic. A
    * `ProjectedOrbit` is plain numbers because core's maneuver solver computes

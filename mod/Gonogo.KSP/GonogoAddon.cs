@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Gonogo.KSP.CommandCentres;
 using Sitrep.Host;
+using Sitrep.Host.Comms;
 using Sitrep.Host.Crew;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;

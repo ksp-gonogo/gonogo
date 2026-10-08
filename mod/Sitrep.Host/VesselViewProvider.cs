@@ -1157,7 +1157,7 @@ namespace Sitrep.Host
             };
         }
 
-        /// <summary>The <c>vessel.landing</c> channel: see <see cref="VesselLanding"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildLanding</c> omitted the raw group (the relevance gate is closed: not descending toward a solid, PQS-backed surface). A trivial copy: the atmosphere maths already ran source-side (<see cref="LandingModel"/>) and its scalar results are on the raw group; terrain fields fill in as the PQS sampler lands.</summary>
+        /// <summary>The <c>vessel.landing</c> channel: see <see cref="VesselLanding"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildLanding</c> omitted the raw group (the relevance gate is closed: not descending toward a solid, PQS-backed surface). A trivial copy: the atmosphere maths already ran source-side (<see cref="LandingModel"/>) and its scalar results and the sampled terrain are on the raw group.</summary>
         public static VesselLanding? BuildLanding(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
@@ -1186,8 +1186,8 @@ namespace Sitrep.Host
                 RoughnessFootprintMeters = GetDouble(landing, "roughnessFootprintMeters"),
                 SlopeSampleRadiusMeters = GetDouble(landing, "slopeSampleRadiusMeters"),
                 PredictedBiome = GetString(landing, "predictedBiome"),
-                TerrainPatchSize = GetInt(landing, "terrainPatchSize"),
-                TerrainPatchExtentMeters = GetDouble(landing, "terrainPatchExtentMeters"),
+                GroundTrackDistances = GetDoubleArray(landing, "groundTrackDistances"),
+                GroundTrackElevations = GetDoubleArray(landing, "groundTrackElevations"),
                 TerminalVelocity = GetDouble(landing, "terminalVelocity"),
                 ProjectedTouchdownSpeed = GetDouble(landing, "projectedTouchdownSpeed"),
                 AtmosphericTimeToImpact = GetDouble(landing, "atmosphericTimeToImpact"),
@@ -1908,9 +1908,8 @@ namespace Sitrep.Host
             ["roughnessFootprintMeters"] = landing.RoughnessFootprintMeters,
             ["slopeSampleRadiusMeters"] = landing.SlopeSampleRadiusMeters,
             ["predictedBiome"] = landing.PredictedBiome,
-            ["terrainPatch"] = landing.TerrainPatch,
-            ["terrainPatchSize"] = landing.TerrainPatchSize,
-            ["terrainPatchExtentMeters"] = landing.TerrainPatchExtentMeters,
+            ["groundTrackDistances"] = landing.GroundTrackDistances,
+            ["groundTrackElevations"] = landing.GroundTrackElevations,
             ["terminalVelocity"] = landing.TerminalVelocity,
             ["projectedTouchdownSpeed"] = landing.ProjectedTouchdownSpeed,
             ["atmosphericTimeToImpact"] = landing.AtmosphericTimeToImpact,

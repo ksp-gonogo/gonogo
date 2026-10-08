@@ -2294,9 +2294,38 @@ namespace Sitrep.Host.Tests
             Assert.Equal(41.5, landing.AtmosphericTimeToImpact);
             Assert.Equal("at-terminal", landing.DescentRegime);
             Assert.Equal("armed", landing.ParachuteState);
-            // Terrain fields are individually null until the PQS sampler lands.
+            // A group without terrain readings leaves every terrain field null.
             Assert.Null(landing.PredictedSlopeAngle);
             Assert.Null(landing.PredictedBiome);
+        }
+
+        [Fact]
+        public void BuildLandingCarriesTheGroundTrackStripAsParallelArrays()
+        {
+            var distances = LandingGroundTrack.Distances(6_400.0);
+            var elevations = new double[distances.Length];
+            for (var i = 0; i < elevations.Length; i++)
+            {
+                elevations[i] = 100.0 + i;
+            }
+
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                landing: new Dictionary<string, object?>
+                {
+                    ["outcome"] = "terrain-assessed",
+                    ["groundTrackDistances"] = distances,
+                    ["groundTrackElevations"] = elevations,
+                });
+
+            var landing = VesselViewProvider.BuildLanding(snapshot);
+
+            Assert.NotNull(landing);
+            Assert.Equal(distances, landing!.GroundTrackDistances);
+            Assert.Equal(elevations, landing.GroundTrackElevations);
+            var wire = (IDictionary<string, object?>)VesselViewProvider.BuildLandingWire(snapshot)!;
+            Assert.Equal(distances, (double[])wire["groundTrackDistances"]!);
+            Assert.Equal(elevations, (double[])wire["groundTrackElevations"]!);
         }
 
         [Fact]

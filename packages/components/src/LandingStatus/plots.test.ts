@@ -24,17 +24,25 @@ function frameOf(plot: PlotEntry | null): NonNullable<PlotEntry["frame"]> {
   return plot.frame;
 }
 
-const FLAT_PATCH = Array.from({ length: 9 }, () => 100);
-const SLOPED_PATCH = [100, 100, 100, 110, 110, 110, 120, 120, 120];
+/** A ground strip of the shape the mod sends: 48 samples from beneath the vessel to a quarter of the way again past the site, rising 5 m per 100 m downrange from 100 m. */
+function strip(driftMeters: number): {
+  groundDistances: number[];
+  groundElevations: number[];
+} {
+  const end = Math.max(200, driftMeters + Math.max(100, driftMeters * 0.25));
+  const groundDistances = Array.from({ length: 48 }, (_, i) => (end * i) / 47);
+  return {
+    groundDistances,
+    groundElevations: groundDistances.map((d) => 100 + d * 0.05),
+  };
+}
 
 function crossSection(
   over: Partial<CrossSectionInputs> = {},
 ): CrossSectionInputs {
+  const driftMeters = over.driftMeters === undefined ? 40 : over.driftMeters;
   return {
-    patch: SLOPED_PATCH,
-    patchSize: 3,
-    patchExtentMeters: 200,
-    bearingDeg: 0,
+    ...strip(driftMeters ?? 0),
     driftMeters: 40,
     aglMeters: 300,
     verticalSpeed: 8,
@@ -51,9 +59,6 @@ function reticle(
     driftMeters: 120,
     driftBearingDeg: 90,
     zoneRadiusMeters: 50,
-    patch: FLAT_PATCH,
-    patchSize: 3,
-    patchExtentMeters: 200,
     slopeDeg: 9,
     biome: "Midlands",
     hasAtmosphere: false,
@@ -92,32 +97,6 @@ describe("cross-section plot", () => {
     expect(yHi).toBeGreaterThan(160);
   });
 
-  it("hatches the ground past the outermost sample, starting exactly at it on each side", () => {
-    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 200 }));
-    const skyline = plot?.layers.find((l) => l.id === "skyline");
-    if (skyline?.kind !== "series") throw new Error("expected a series");
-    const firstX = skyline.points[0].x;
-    const lastX = skyline.points[skyline.points.length - 1].x;
-    const left = plot?.layers.find((l) => l.id === "unsampled-left");
-    const right = plot?.layers.find((l) => l.id === "unsampled-right");
-    if (left?.kind !== "region" || right?.kind !== "region") {
-      throw new Error("expected two regions");
-    }
-    expect(left.hatched).toBe(true);
-    expect(right.hatched).toBe(true);
-    expect(left.boundary.every((p) => p.x === firstX)).toBe(true);
-    expect(right.boundary.every((p) => p.x === lastX)).toBe(true);
-    // The skyline stops at the sample; it is not carried across the unknown part.
-    const [xLo, xHi] = frameOf(plot).xDomain;
-    expect(firstX).toBeGreaterThan(xLo);
-    expect(lastX).toBeLessThan(xHi);
-  });
-
-  it("draws no unknown region while the window holds only sampled ground", () => {
-    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
-    expect(plot?.layers.some((l) => l.id.startsWith("unsampled"))).toBe(false);
-  });
-
   it("says both speeds inside the frame, because a map has no gutter", () => {
     const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
     const captions = plot?.layers.filter((l) => l.kind === "caption") ?? [];
@@ -139,7 +118,8 @@ describe("cross-section plot", () => {
     };
     const spanOf = (plot: PlotEntry | null) => {
       const [lo, hi] = frameOf(plot).yDomain;
-      return hi - lo;
+      // The window is centred, so its ends carry the rounding of a sum.
+      return Math.round((hi - lo) * 1e6) / 1e6;
     };
     /** Where the vessel sits in the frame, 0 at the floor and 1 at the top. */
     const heightFraction = (plot: PlotEntry | null) => {
@@ -258,17 +238,40 @@ describe("cross-section plot", () => {
     expect(from.y - to.y).toBe(80); // 8 m/s down for 10 s
   });
 
-  it("contributes NOTHING without a ground extent to state the X axis in", () => {
-    // Without a ground extent the profile would be drawn at an unknown scale.
+  it("contributes NOTHING without a ground strip", () => {
     expect(
-      buildCrossSectionPlot(crossSection({ patchExtentMeters: null })),
+      buildCrossSectionPlot(
+        crossSection({ groundDistances: null, groundElevations: null }),
+      ),
     ).toBeNull();
   });
 
-  it("contributes NOTHING with a hole in the patch", () => {
-    const holed = [...SLOPED_PATCH];
+  it("contributes NOTHING from a strip it cannot read honestly", () => {
+    const { groundDistances, groundElevations } = strip(40);
+    const holed = [...groundElevations];
     holed[4] = Number.NaN;
-    expect(buildCrossSectionPlot(crossSection({ patch: holed }))).toBeNull();
+    expect(
+      buildCrossSectionPlot(crossSection({ groundElevations: holed })),
+    ).toBeNull();
+    expect(
+      buildCrossSectionPlot(
+        crossSection({ groundElevations: groundElevations.slice(1) }),
+      ),
+    ).toBeNull();
+    const shuffled = [...groundDistances];
+    shuffled[3] = shuffled[2];
+    expect(
+      buildCrossSectionPlot(crossSection({ groundDistances: shuffled })),
+    ).toBeNull();
+  });
+
+  it("states the site's elevation from the strip where the site falls along it", () => {
+    const plot = buildCrossSectionPlot(crossSection({ driftMeters: 100 }));
+    const site = plot?.layers.find((l) => l.id === "site");
+    if (site?.kind !== "marker") throw new Error("expected a marker");
+    // 100 m along a strip that rises 5 m per 100 m from 100 m.
+    expect(site.at.x).toBe(0);
+    expect(site.at.y).toBeCloseTo(105, 6);
   });
 
   it("contributes NOTHING high in an atmosphere, and everything low in one", () => {
@@ -312,29 +315,16 @@ describe("touchdown reticle plot", () => {
     }
   });
 
-  it("is a SPATIAL frame that BLEEDS: the relief fills it edge to edge", () => {
-    // The patch footprint is the window: no inset ring of empty ground.
-    const plot = buildTouchdownReticlePlot(reticle({ patchExtentMeters: 200 }));
+  it("is a SPATIAL frame, square, padded past the vessel", () => {
+    const plot = buildTouchdownReticlePlot(reticle({ driftMeters: 400 }));
     expect(frameOf(plot).kind).toBe("spatial");
-    expect(frameOf(plot).xDomain).toEqual([-100, 100]);
-    expect(frameOf(plot).yDomain).toEqual([-100, 100]);
+    expect(frameOf(plot).xDomain[1]).toBeCloseTo(460, 6);
+    expect(frameOf(plot).yDomain[0]).toBeCloseTo(-460, 6);
   });
 
-  it("carries the terrain as a relief over its real footprint", () => {
-    const plot = buildTouchdownReticlePlot(reticle({ patchExtentMeters: 200 }));
-    const relief = plot?.layers.find((l) => l.id === "terrain");
-    if (relief?.kind !== "relief") throw new Error("expected a relief");
-    expect(relief.bounds).toEqual({ x0: -100, y0: -100, x1: 100, y1: 100 });
-    expect(relief.size).toBe(3);
-  });
-
-  it("keeps the plot but drops the relief when the patch has no footprint", () => {
-    // Without an extent the grid goes and the metric reticle stays.
-    const plot = buildTouchdownReticlePlot(
-      reticle({ patchExtentMeters: null }),
-    );
-    expect(plot).not.toBeNull();
-    expect(plot?.layers.some((l) => l.id === "terrain")).toBe(false);
+  it("draws no terrain: the cross-section carries the ground", () => {
+    const plot = buildTouchdownReticlePlot(reticle());
+    expect(plot?.layers.some((l) => l.kind === "relief")).toBe(false);
   });
 
   it("contributes NOTHING without a site to centre on", () => {
@@ -399,9 +389,12 @@ describe("the body a contribution resolves", () => {
       terminalVelocity: value("m/s", 90),
       projectedTouchdownSpeed: value("m/s", 95),
       dragToWeightRatio: value("1", 1.4),
-      terrainPatch: FLAT_PATCH.map((h) => value("m", h)),
-      terrainPatchSize: value("count", 3),
-      terrainPatchExtentMeters: value("m", 200),
+      groundTrackDistances: strip(70_000).groundDistances.map((d) =>
+        value("m", d),
+      ),
+      groundTrackElevations: strip(70_000).groundElevations.map((e) =>
+        value("m", e),
+      ),
       sampleSource: "terrain",
       roughnessFootprintMeters: value("m", 40),
     },
@@ -436,6 +429,25 @@ describe("the body a contribution resolves", () => {
     expect((vessel as { at?: { x: number } } | undefined)?.at?.x).toBeLessThan(
       0,
     );
+  });
+
+  it("draws the ground from the strip on vessel.landing, and nothing without it", () => {
+    const withStrip = compute("core:cross-section", EARTH);
+    expect(withStrip?.[0]?.layers.map((l) => l.id)).toContain("skyline");
+
+    const contribution = getContributionsForSlot("plots").find(
+      (c) => c.id === "core:cross-section",
+    );
+    const topics = topicsFor(EARTH);
+    const bare = {
+      ...topics,
+      "vessel.landing": {
+        ...topics["vessel.landing"],
+        groundTrackDistances: undefined,
+        groundTrackElevations: undefined,
+      },
+    };
+    expect(contribution?.compute(bare)).toBeNull();
   });
 
   it("centres the touchdown reticle for a body no table knows", () => {

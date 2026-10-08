@@ -7,17 +7,20 @@ import { greatCircle } from "./geo";
 import { siteWorthPlotting } from "./siteGate";
 
 /**
- * The terrain cross-section as a contributed plot, in real metres both ways: a side-on slice along the ground track through the predicted touchdown, with the vessel above it and its velocity drawn as where it will be in ten seconds.
+ * The terrain cross-section as a contributed plot, in real metres both ways: a side-on slice of the ground along the predicted track, from beneath the vessel past the predicted touchdown, with the vessel above it and its velocity drawn as where it will be in ten seconds.
  *
- * With the vessel kilometres up a small relief reads flat, because relative to the vessel it is; the top-down reticle carries relief at its own scale. The vessel sits at its real downrange displacement from the site.
+ * The ground is the strip the mod samples along that track (`groundTrackDistances` and `groundTrackElevations`), so the window can hold the craft and the site together at any height. With the vessel kilometres up a small relief reads flat, because relative to the vessel it is; the top-down reticle carries the site's own character.
  */
 /** How far ahead the velocity vector is drawn, seconds: where the vessel will be, unpowered, if nothing changes. */
 const VELOCITY_LOOKAHEAD_S = 10;
 
-/** How far below the terrain's lowest point the floor sits, as a fraction of its span, so the ground reads as filled. */
+/** How far below the terrain's lowest point the floor sits, as a fraction of the window, so the ground reads as filled. */
 const GROUND_INSET = 0.06;
-/** How many patch widths the window may grow to hold the vessel; past it the craft is held on the frame's edge instead. */
-const MAX_FRAME_RATIO = 100;
+/** The narrowest window, metres: close to the ground the terrain stays readable rather than zooming without end. */
+const MIN_SPAN_M = 200;
+/** The widest window that still holds the craft, metres; past it the craft is held on the frame's edge instead. */
+const MAX_FRAME_SPAN_M = 20_000;
+
 /** The smallest 1, 2 or 5 times a power of ten that is at least `metres`. */
 function zoomRung(metres: number): number {
   const decade = 10 ** Math.floor(Math.log10(metres));
@@ -32,18 +35,11 @@ const VESSEL_HEADROOM = 1.12;
 /** How far in from the frame's edge a vessel outside the window is held, as a fraction of the half-span. */
 const EDGE_HOLD = 0.92;
 
-/** Samples along the slice; the patch is bilinear-interpolated, so this is drawing resolution. */
-const SLICE_STEPS = 48;
-
 export interface CrossSectionInputs {
-  /** Terrain elevations, row-major NxN, metres. */
-  patch: readonly number[] | null;
-  /** The N of the NxN patch. */
-  patchSize: number | null;
-  /** Ground width the whole patch spans, metres. */
-  patchExtentMeters: number | null;
-  /** Ground-track bearing to slice along, degrees clockwise from north. */
-  bearingDeg: number | null;
+  /** Distance of each ground sample along the track from beneath the vessel, metres, ascending. */
+  groundDistances: readonly number[] | null;
+  /** Terrain elevation at each ground sample, metres. */
+  groundElevations: readonly number[] | null;
   /** Downrange distance from the vessel to the predicted site, metres. */
   driftMeters: number | null;
   /** Height of the vessel above the terrain beneath it, metres. */
@@ -56,79 +52,39 @@ export interface CrossSectionInputs {
   hasAtmosphere: boolean;
 }
 
-/** Bilinear sample of a row-major grid at continuous (col, row). */
-function bilinear(
-  grid: readonly number[],
-  size: number,
-  col: number,
-  row: number,
-): number {
-  const x0 = Math.max(0, Math.min(size - 1, Math.floor(col)));
-  const y0 = Math.max(0, Math.min(size - 1, Math.floor(row)));
-  const x1 = Math.min(size - 1, x0 + 1);
-  const y1 = Math.min(size - 1, y0 + 1);
-  const fx = Math.max(0, Math.min(1, col - x0));
-  const fy = Math.max(0, Math.min(1, row - y0));
-  const a = grid[y0 * size + x0];
-  const b = grid[y0 * size + x1];
-  const c = grid[y1 * size + x0];
-  const d = grid[y1 * size + x1];
-  return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
-}
-
-export interface TerrainSlice {
-  /** `{ x: metres downrange of the site, y: elevation in metres }`. */
-  points: readonly { x: number; y: number }[];
-  /** Elevation directly under the site, metres. */
-  siteElevation: number;
-  /** Half the patch's ground extent, metres: the slice runs -halfSpan..+halfSpan. */
-  halfSpan: number;
-}
-
-/** The terrain profile along the ground track in real metres, or null when the patch cannot be sliced honestly (missing, short, non-finite, or with no ground extent). */
-export function sliceTerrain(
-  inputs: Readonly<CrossSectionInputs>,
-): TerrainSlice | null {
-  const { patch, patchSize, patchExtentMeters, bearingDeg } = inputs;
-  if (!patch || !patchSize || patchSize < 2) return null;
-  if (patch.length < patchSize * patchSize) return null;
-  if (
-    patchExtentMeters == null ||
-    !Number.isFinite(patchExtentMeters) ||
-    patchExtentMeters <= 0
-  ) {
+/** The ground track as points, or null when it cannot be drawn honestly (absent, mismatched, short, non-finite, or out of order). */
+function groundPoints(
+  distances: readonly number[] | null,
+  elevations: readonly number[] | null,
+): { x: number; y: number }[] | null {
+  if (!distances || !elevations) return null;
+  if (distances.length < 2 || distances.length !== elevations.length) {
     return null;
   }
-  for (let i = 0; i < patchSize * patchSize; i++) {
-    if (!Number.isFinite(patch[i])) return null;
-  }
-
-  const theta = ((bearingDeg ?? 0) * Math.PI) / 180;
-  const dcol = Math.sin(theta);
-  const drow = -Math.cos(theta);
-  const centre = (patchSize - 1) / 2;
-  const halfCells = (patchSize - 1) / 2;
-  const halfSpan = patchExtentMeters / 2;
-  const metresPerCell = patchExtentMeters / (patchSize - 1);
-
   const points: { x: number; y: number }[] = [];
-  for (let i = 0; i <= SLICE_STEPS; i++) {
-    const cells = -halfCells + 2 * halfCells * (i / SLICE_STEPS);
-    points.push({
-      x: cells * metresPerCell,
-      y: bilinear(
-        patch,
-        patchSize,
-        centre + cells * dcol,
-        centre + cells * drow,
-      ),
-    });
+  for (let i = 0; i < distances.length; i++) {
+    const d = distances[i];
+    const e = elevations[i];
+    if (!Number.isFinite(d) || !Number.isFinite(e)) return null;
+    if (i > 0 && d <= distances[i - 1]) return null;
+    points.push({ x: d, y: e });
   }
-  return {
-    points,
-    siteElevation: bilinear(patch, patchSize, centre, centre),
-    halfSpan,
-  };
+  return points;
+}
+
+/** Elevation at `x` along the strip, interpolated between its samples and held at its ends. */
+function elevationAt(points: readonly { x: number; y: number }[], x: number) {
+  if (x <= points[0].x) return points[0].y;
+  const last = points[points.length - 1];
+  if (x >= last.x) return last.y;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].x >= x) {
+      const a = points[i - 1];
+      const b = points[i];
+      return a.y + ((b.y - a.y) * (x - a.x)) / (b.x - a.x);
+    }
+  }
+  return last.y;
 }
 
 function fmtSpeed(v: number): string {
@@ -142,105 +98,70 @@ export function buildCrossSectionPlot(
   const { aglMeters, driftMeters, verticalSpeed, horizontalSpeed } = inputs;
   if (aglMeters == null || !Number.isFinite(aglMeters)) return null;
   if (!siteWorthPlotting(inputs.hasAtmosphere, aglMeters)) return null;
-  const slice = sliceTerrain(inputs);
-  if (!slice) return null;
+  const strip = groundPoints(inputs.groundDistances, inputs.groundElevations);
+  if (!strip) return null;
 
-  // The vessel sits upwind of the site by its real displacement; with the drift unknown it is directly over the site.
-  const vesselX =
-    driftMeters != null && Number.isFinite(driftMeters) ? -driftMeters : 0;
-  const groundUnderVessel = nearestGround(slice, vesselX);
-  const vesselY = groundUnderVessel + aglMeters;
+  // The strip starts beneath the vessel and the site lies `drift` along it; with the drift unknown the vessel is directly over the site.
+  const drift =
+    driftMeters != null && Number.isFinite(driftMeters) ? driftMeters : 0;
+  const points = strip.map((p) => ({ x: p.x - drift, y: p.y }));
+  const siteElevation = elevationAt(strip, drift);
+  const vesselX = -drift;
+  const vesselY = strip[0].y + aglMeters;
 
   /*
    * The frame holds the vessel and the predicted site together, anchored on the GROUND at the foot, so the craft is seen to fall and travel downrange toward the site.
    * One span is used both ways because the frame is spatial: a slope drawn here is the slope.
    */
-  const across = slice.halfSpan * 2;
-  const groundLo = Math.min(...slice.points.map((p) => p.y));
-  const floor = groundLo - across * GROUND_INSET;
+  const first = points[0];
+  const last = points[points.length - 1];
+  const stripWidth = last.x - first.x;
+  const groundLo = Math.min(...points.map((p) => p.y));
+  const floor = groundLo - Math.max(MIN_SPAN_M, stripWidth) * GROUND_INSET;
   const reachUp = (vesselY - floor) * VESSEL_HEADROOM;
-  const reachLeft = Math.min(-slice.halfSpan, vesselX * VESSEL_HEADROOM);
-  const reachRight = Math.max(slice.halfSpan, vesselX * VESSEL_HEADROOM);
-  const needed = Math.max(across, reachUp, reachRight - reachLeft);
+  const reachLeft = Math.min(first.x, vesselX * VESSEL_HEADROOM);
+  const reachRight = last.x;
+  const needed = Math.max(MIN_SPAN_M, reachUp, reachRight - reachLeft);
   /*
    * The scale moves in rungs rather than continuously: a window that always fitted the craft exactly would zoom as fast as the craft falls, and the craft would never move in it.
-   * Past the cap the patch would be a sliver, so the frame stays the ground's and the craft is held on its edge below.
+   * Past the cap the ground would be a sliver, so the frame stays the ground's and the craft is held on its edge below.
    */
-  const fits = needed <= across * MAX_FRAME_RATIO;
-  const span = fits ? zoomRung(needed) : across;
-  const centre = fits ? (reachLeft + reachRight) / 2 : 0;
+  const fits = needed <= MAX_FRAME_SPAN_M;
+  const span = zoomRung(
+    fits
+      ? needed
+      : Math.min(MAX_FRAME_SPAN_M, Math.max(MIN_SPAN_M, stripWidth)),
+  );
+  const centre = fits ? (reachLeft + reachRight) / 2 : (first.x + last.x) / 2;
   const xLo = centre - span / 2;
   const xHi = centre + span / 2;
-
-  /*
-   * The window opens wider than the patch only to bring the vessel in. Past the outermost sample nothing is known of the ground, so those columns are hatched and the skyline stops at the last sample.
-   */
-  const first = slice.points[0];
-  const last = slice.points[slice.points.length - 1];
-  const unknownSides: PlotLayer[] = [
-    ...(xLo < first.x
-      ? [
-          {
-            kind: "region" as const,
-            id: "unsampled-left",
-            side: "left" as const,
-            boundary: [
-              { x: first.x, y: floor },
-              { x: first.x, y: floor + span },
-            ],
-            tone: "neutral" as const,
-            hatched: true,
-            description:
-              "ground before the sampled patch along the track is unknown",
-          },
-        ]
-      : []),
-    ...(xHi > last.x
-      ? [
-          {
-            kind: "region" as const,
-            id: "unsampled-right",
-            side: "right" as const,
-            boundary: [
-              { x: last.x, y: floor },
-              { x: last.x, y: floor + span },
-            ],
-            tone: "neutral" as const,
-            hatched: true,
-            description:
-              "ground beyond the sampled patch along the track is unknown",
-          },
-        ]
-      : []),
-  ];
 
   const layers: PlotLayer[] = [
     {
       kind: "region",
       id: "ground",
-      boundary: slice.points,
+      boundary: points,
       side: "below",
       tone: "neutral",
       // Filled, so which side of the profile the vessel is on reads at a glance.
       opacity: 0.3,
       description: "terrain below the ground track",
     },
-    ...unknownSides,
     {
       kind: "series",
       id: "skyline",
-      points: slice.points,
+      points,
       tone: "neutral",
       description: "terrain profile along the ground track",
     },
     {
       kind: "marker",
       id: "site",
-      at: { x: 0, y: slice.siteElevation },
+      at: { x: 0, y: siteElevation },
       shape: "cross",
       tone: "info",
       description: `predicted touchdown site at ${writeQuantity(
-        value("m", slice.siteElevation),
+        value("m", siteElevation),
         { decimals: 0 },
       )} elevation`,
     },
@@ -343,18 +264,6 @@ export function buildCrossSectionPlot(
   };
 }
 
-/** Terrain elevation at the sample nearest `x`, holding the site's elevation past the patch's edge. */
-function nearestGround(slice: TerrainSlice, x: number): number {
-  if (x <= slice.points[0].x) return slice.points[0].y;
-  const last = slice.points[slice.points.length - 1];
-  if (x >= last.x) return last.y;
-  let best = slice.points[0];
-  for (const p of slice.points) {
-    if (Math.abs(p.x - x) < Math.abs(best.x - x)) best = p;
-  }
-  return best.y;
-}
-
 /** Descent rate (the negated up-positive `verticalSpeed`) and the horizontal speed left of surface speed; `surf > vDown` keeps a negative out from under the root. */
 function descentVelocity(
   verticalSpeed: number | null,
@@ -407,10 +316,10 @@ CORE_UPLINK_CLIENT.registerContribution({
         : null;
 
     const plot = buildCrossSectionPlot({
-      patch: landing?.terrainPatch?.map((h) => h.magnitude) ?? null,
-      patchSize: landing?.terrainPatchSize?.magnitude ?? null,
-      patchExtentMeters: landing?.terrainPatchExtentMeters?.magnitude ?? null,
-      bearingDeg: drift?.bearingDeg ?? null,
+      groundDistances:
+        landing?.groundTrackDistances?.map((d) => d.magnitude) ?? null,
+      groundElevations:
+        landing?.groundTrackElevations?.map((e) => e.magnitude) ?? null,
       driftMeters: drift?.distanceMeters ?? null,
       aglMeters:
         surface?.heightFromTerrain?.magnitude ??

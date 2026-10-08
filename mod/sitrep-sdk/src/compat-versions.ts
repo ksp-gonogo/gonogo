@@ -33,7 +33,7 @@ export const EXTENSION_API_VERSION: string = "6.0.0";
  *
  * @category Host and runtime
  */
-export const CONTRACT_MAJOR = 31;
+export const CONTRACT_MAJOR = 32;
 
 /**
  * The minor version of the game data contract. A minor only adds, so an Uplink

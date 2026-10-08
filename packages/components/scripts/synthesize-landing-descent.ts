@@ -23,6 +23,7 @@ import {
   channelsFor,
   DEG,
   fixtureFromChannels,
+  groundTrackDistances,
   integrate,
   MU,
   predictedPoint,
@@ -33,33 +34,7 @@ import {
 export type { Frame };
 export { integrate, predictedPoint, streamFixture };
 
-// ── Terrain-type showcase: distinct patch shapes for the reticle relief ───────
-const PATCH_N = 16;
-const PATCH_EXT = 200; // metres
-
-/** Build a flattened NxN patch from a height function of local east/north (m). */
-function buildPatch(h: (east: number, north: number) => number): number[] {
-  const cell = PATCH_EXT / PATCH_N;
-  const grid = new Array<number>(PATCH_N * PATCH_N);
-  for (let r = 0; r < PATCH_N; r++) {
-    for (let c = 0; c < PATCH_N; c++) {
-      const east = (c - (PATCH_N - 1) / 2) * cell;
-      const north = ((PATCH_N - 1) / 2 - r) * cell;
-      grid[r * PATCH_N + c] = h(east, north);
-    }
-  }
-  return grid;
-}
-
-function tiltPatch(slopeDeg: number, headingDeg: number): number[] {
-  const de = Math.sin(headingDeg * DEG);
-  const dn = Math.cos(headingDeg * DEG);
-  const t = Math.tan(slopeDeg * DEG);
-  return buildPatch(
-    (e, n) =>
-      -(e * de + n * dn) * t + 1.5 * Math.sin(e * 0.15) * Math.cos(n * 0.13),
-  );
-}
+// ── Terrain-type showcase: distinct relief along the ground track ────────────
 
 interface TerrainPreset {
   name: string;
@@ -67,7 +42,8 @@ interface TerrainPreset {
   heading: number;
   roughness: number;
   biome: string;
-  patch: number[];
+  /** Metres of relief at a distance in metres downrange of the site. */
+  relief: (downrange: number) => number;
   note: string;
 }
 
@@ -80,7 +56,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 90,
     roughness: 15,
     biome: "Lowlands",
-    patch: buildPatch((e, n) => 1.2 * Math.sin(e * 0.2) * Math.cos(n * 0.18)),
+    relief: (x) => 1.2 * Math.sin(x * 0.2),
     note: "Flat plains: near-zero slope, smooth => SAFE",
   },
   {
@@ -89,7 +65,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 110,
     roughness: 45,
     biome: "Midlands",
-    patch: tiltPatch(9, 110),
+    relief: (x) => Math.tan(9 * DEG) * Math.sin(110 * DEG) * x,
     note: "Gentle slope (~9deg) => MARGINAL on slope",
   },
   {
@@ -98,7 +74,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 200,
     roughness: 70,
     biome: "Highlands",
-    patch: tiltPatch(22, 200),
+    relief: (x) => Math.tan(22 * DEG) * Math.sin(200 * DEG) * x,
     note: "Steep slope (>15deg) => DIVERT on slope",
   },
   {
@@ -107,13 +83,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 90,
     roughness: 220,
     biome: "Midlands",
-    patch: buildPatch((e, n) => {
-      const d = Math.hypot(e, n);
-      return (
-        -30 * gauss(d, PATCH_EXT * 0.16) +
-        11 * gauss(d - PATCH_EXT * 0.28, PATCH_EXT * 0.05)
-      );
-    }),
+    relief: (x) => -30 * gauss(x, 32) + 11 * gauss(x - 56, 10),
     note: "Crater: deep central dip + raised rim => MARGINAL on roughness",
   },
   {
@@ -122,10 +92,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 300,
     roughness: 320,
     biome: "Highlands",
-    patch: buildPatch((e, n) => {
-      const along = (e - n) / Math.SQRT2;
-      return 26 * gauss(along, PATCH_EXT * 0.11) + 2 * Math.sin(n * 0.1);
-    }),
+    relief: (x) => 26 * gauss(x, 22) + 2 * Math.sin(x * 0.1),
     note: "Sharp ridge / mountainous => DIVERT (slope + roughness)",
   },
   {
@@ -134,12 +101,8 @@ const PRESETS: TerrainPreset[] = [
     heading: 90,
     roughness: 200,
     biome: "Midlands",
-    patch: buildPatch(
-      (e, n) =>
-        6 * Math.sin(e * 0.5) * Math.sin(n * 0.55) +
-        4 * Math.cos(e * 0.33 + n * 0.4) +
-        3 * Math.sin(e * 0.7 - n * 0.2),
-    ),
+    relief: (x) =>
+      6 * Math.sin(x * 0.5) + 4 * Math.cos(x * 0.33) + 3 * Math.sin(x * 0.7),
     note: "Boulder-rough: low slope, high residual roughness => MARGINAL on roughness",
   },
 ];
@@ -167,6 +130,26 @@ function channel(
   return block as Record<string, unknown>;
 }
 
+/** The ground-track strip a showcase frame carries: the preset's relief along it, through the site's own elevation. */
+function showcaseTrack(preset: TerrainPreset): {
+  groundTrackDistances: number[];
+  groundTrackElevations: number[];
+} {
+  const pp = predictedPoint(SHOWCASE_FRAME);
+  const drift =
+    (pp.lon - SHOWCASE_FRAME.lon) *
+    DEG *
+    R *
+    Math.cos(SHOWCASE_FRAME.lat * DEG);
+  const distances = groundTrackDistances(drift);
+  return {
+    groundTrackDistances: distances,
+    groundTrackElevations: distances.map(
+      (d) => 120 + preset.relief(d - drift) - preset.relief(0),
+    ),
+  };
+}
+
 function showcaseFixture(preset: TerrainPreset): Record<string, unknown> {
   const ch = channelsFor(SHOWCASE_FRAME, 2);
   channel(ch, "vessel.surface").biome = preset.biome;
@@ -176,9 +159,7 @@ function showcaseFixture(preset: TerrainPreset): Record<string, unknown> {
     predictedSlopeHeading: preset.heading,
     predictedRoughness: preset.roughness,
     predictedBiome: preset.biome,
-    terrainPatch: preset.patch,
-    terrainPatchSize: PATCH_N,
-    terrainPatchExtentMeters: PATCH_EXT,
+    ...showcaseTrack(preset),
   };
   return fixtureFromChannels(ch, preset.name, preset.note);
 }

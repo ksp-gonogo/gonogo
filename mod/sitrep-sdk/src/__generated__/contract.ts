@@ -9753,22 +9753,20 @@ export interface VesselLanding
 	*/
 	predictedBiome?: string | null;
 	/**
-	* A flattened row-major NxN grid of terrain elevations in metres around the
-	* sampled point, for a shaded relief view; its length is
-	* `VesselLanding.terrainPatchSize` squared. Not currently produced, so always
-	* null.
+	* The distance in metres of each `VesselLanding.groundTrackElevations` sample
+	* along the predicted ground track, measured from the point on the ground
+	* beneath the vessel toward the predicted site and on past it. Ascending,
+	* starting at 0, the same length as `VesselLanding.groundTrackElevations`. The
+	* spacing and the extent scale with the vessel's height, so the strip narrows
+	* toward the site as it descends. Null when no track could be sampled.
 	*/
-	terrainPatch?: Value<"m">[] | null;
+	groundTrackDistances?: Value<"m">[] | null;
 	/**
-	* The N of the NxN `VesselLanding.terrainPatch` grid. Null when there is no
-	* patch, which is currently always.
+	* Terrain elevation in metres at each `VesselLanding.groundTrackDistances`
+	* entry, from the body's terrain model (ocean floor reads negative). Null when
+	* no track could be sampled.
 	*/
-	terrainPatchSize?: Value<"count"> | null;
-	/**
-	* The full width in metres the `VesselLanding.terrainPatch` grid spans. Null
-	* when there is no patch, which is currently always.
-	*/
-	terrainPatchExtentMeters?: Value<"m"> | null;
+	groundTrackElevations?: Value<"m">[] | null;
 	/**
 	* Terminal velocity in m/s at the current altitude and configuration, from the
 	* measured aggregate drag force against local gravity. An estimate that

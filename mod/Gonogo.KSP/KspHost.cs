@@ -2552,6 +2552,7 @@ namespace Gonogo.KSP
             // Terrain sampling: option 1 (mod-side predicted touchdown point)
             // with a sub-vessel fallback, behind an injectable sample-source.
             SampleTerrain(result, vessel, orbit, body);
+            SampleGroundTrack(result, vessel, body);
 
             // Outcome: atmosphere headlines when it was actually SOLVED, else
             // terrain-assessed once we have a slope reading, else the bare
@@ -2622,6 +2623,47 @@ namespace Gonogo.KSP
                 result["roughnessFootprintMeters"] = footprintMeters;
                 result["slopeSampleRadiusMeters"] = footprintMeters;
             }
+        }
+
+        /// <summary>
+        /// Sample terrain heights along the great circle from the point beneath
+        /// the vessel to the predicted site (the sub-vessel point when no impact
+        /// was predicted) and on past it, into <c>groundTrackDistances</c> and
+        /// <c>groundTrackElevations</c>. The spacing and extent come from
+        /// <see cref="LandingGroundTrack"/>, which fixes the number of PQS reads
+        /// per tick. Reads run on the main thread, one at a time, like the site
+        /// sample.
+        /// </summary>
+        private static void SampleGroundTrack(
+            Dictionary<string, object?> result,
+            Vessel vessel,
+            CelestialBody body)
+        {
+            if (!(result.TryGetValue("predictedLatitude", out var siteLat) && siteLat is double lat2)
+                || !(result.TryGetValue("predictedLongitude", out var siteLon) && siteLon is double lon2))
+            {
+                return;
+            }
+
+            double lat1 = vessel.latitude;
+            double lon1 = vessel.longitude;
+            double r = body.Radius;
+            double toSite = LandingGroundTrack.DistanceMeters(lat1, lon1, lat2, lon2, r);
+            // With the vessel over the site there is no direction to the site; due east follows the descent's usual heading.
+            double bearing = toSite > 1.0
+                ? LandingGroundTrack.BearingDegrees(lat1, lon1, lat2, lon2)
+                : 90.0;
+            double[] distances = LandingGroundTrack.Distances(toSite);
+            var elevations = new double[distances.Length];
+            for (int i = 0; i < distances.Length; i++)
+            {
+                var p = LandingGroundTrack.Destination(lat1, lon1, bearing, distances[i], r);
+                // allowNegative so ocean floor reads honestly rather than clamping to 0.
+                elevations[i] = body.TerrainAltitude(p.lat, p.lon, allowNegative: true);
+            }
+
+            result["groundTrackDistances"] = distances;
+            result["groundTrackElevations"] = elevations;
         }
 
         /// <summary>

@@ -1483,6 +1483,8 @@
       "atmosphericTimeToImpact": "s",
       "descentRegime": "text",
       "dragToWeightRatio": "1",
+      "groundTrackDistances": "m",
+      "groundTrackElevations": "m",
       "outcome": "text",
       "parachuteState": "text",
       "predictedBiome": "text",
@@ -1498,10 +1500,7 @@
       "slopeAngleUnderVessel": "°",
       "slopeSampleRadiusMeters": "m",
       "terminalVelocity": "m/s",
-      "terrainElevationUnderVessel": "m",
-      "terrainPatch": "m",
-      "terrainPatchExtentMeters": "m",
-      "terrainPatchSize": "count"
+      "terrainElevationUnderVessel": "m"
     },
     "VesselManeuver": {
       "planner": "id"
@@ -2134,6 +2133,8 @@
       "atmosphericTimeToImpact": "s",
       "descentRegime": "text",
       "dragToWeightRatio": "1",
+      "groundTrackDistances": "m",
+      "groundTrackElevations": "m",
       "outcome": "text",
       "parachuteState": "text",
       "predictedBiome": "text",
@@ -2149,10 +2150,7 @@
       "slopeAngleUnderVessel": "°",
       "slopeSampleRadiusMeters": "m",
       "terminalVelocity": "m/s",
-      "terrainElevationUnderVessel": "m",
-      "terrainPatch": "m",
-      "terrainPatchExtentMeters": "m",
-      "terrainPatchSize": "count"
+      "terrainElevationUnderVessel": "m"
     },
     "vessel.maneuver": {
       "planner": "id"

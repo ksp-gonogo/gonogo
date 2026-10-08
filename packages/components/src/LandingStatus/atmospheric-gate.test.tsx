@@ -17,7 +17,7 @@ import { LandingStatusComponent } from "./index";
 
 /** An atmospheric descent's site readouts appear exactly when its terrain plots do, and its held figures are marked. */
 
-const PATCH_SIZE = 5;
+const GROUND_SAMPLES = 48;
 
 describe("LandingStatus atmospheric site gate", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
@@ -119,9 +119,11 @@ describe("LandingStatus atmospheric site gate", () => {
       predictedLongitude: -74.55 + drift,
       predictedSlopeAngle: 3.2,
       predictedBiome: "Shores",
-      terrainPatch: Array.from({ length: PATCH_SIZE * PATCH_SIZE }, () => 70),
-      terrainPatchSize: PATCH_SIZE,
-      terrainPatchExtentMeters: 400,
+      groundTrackDistances: Array.from(
+        { length: GROUND_SAMPLES },
+        (_, i) => i * 10,
+      ),
+      groundTrackElevations: Array.from({ length: GROUND_SAMPLES }, () => 70),
       terminalVelocity,
       projectedTouchdownSpeed: 7.5,
       atmosphericTimeToImpact: 90,

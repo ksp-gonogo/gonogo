@@ -704,9 +704,17 @@ namespace Sitrep.Contract
         /// <see cref="ServoSetExtensionArgs"/> in metres. The five
         /// <see cref="IScienceBackend"/> reads return their entry types in place of
         /// untyped trees, with the wire text unchanged.</para>
+        ///
+        /// <para><b>Bumped 31 -&gt; 32: real ground under a descent.</b>
+        /// <c>VesselLanding.TerrainPatch</c>, <c>TerrainPatchSize</c> and
+        /// <c>TerrainPatchExtentMeters</c> are gone: the host never produced them.
+        /// <see cref="VesselLanding.GroundTrackDistances"/> and
+        /// <see cref="VesselLanding.GroundTrackElevations"/> carry terrain heights
+        /// sampled along the predicted ground track, from beneath the vessel to the
+        /// predicted site and past it.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 31;
+        public const int Major = 32;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -2509,6 +2517,8 @@ namespace Sitrep.Contract
         /// <para><b>Major-30 line, reset to 0</b> with the Major.</para>
         ///
         /// <para><b>Major-31 line, reset to 0</b> with the Major.</para>
+        ///
+        /// <para><b>Major-32 line, reset to 0</b> with the Major.</para>
         /// </internal>
         /// </summary>
         public const int Minor = 0;

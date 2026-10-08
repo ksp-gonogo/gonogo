@@ -162,44 +162,41 @@ export function terrainFor(aglMeters: number): {
   return { slope: 3, heading: 80, roughness: 28, biome: "Lowlands" };
 }
 
+/** Terrain reads per ground-track strip; the same figure the mod's `LandingGroundTrack.SampleCount` fixes. */
+export const GROUND_TRACK_SAMPLES = 48;
+
 /**
- * A plausible NxN terrain-height grid (metres, relative) for the reticle relief:
- * a plane tilted by the site slope along its downhill heading, plus a crater dip
- * and a ridge, plus fine deterministic texture. Deterministic (no RNG) so renders
- * are stable.
+ * Where along the track the mod reads terrain: even steps from beneath the vessel to a quarter of the way again past the site, never shorter than 200 m.
+ * Mirrors `LandingGroundTrack.Distances`.
  */
-export function terrainPatchGrid(
-  slopeDeg: number,
-  headingDeg: number,
+export function groundTrackDistances(driftMeters: number): number[] {
+  const toSite =
+    Number.isFinite(driftMeters) && driftMeters > 0 ? driftMeters : 0;
+  const extent = Math.max(200, toSite + Math.max(100, toSite * 0.25));
+  return Array.from(
+    { length: GROUND_TRACK_SAMPLES },
+    (_, i) => (extent * i) / (GROUND_TRACK_SAMPLES - 1),
+  );
+}
+
+/** Relief along the ground track, metres relative to the site, as a function of metres downrange of the site: broad swells with finer ones on them. */
+function relief(downrangeOfSite: number): number {
+  return (
+    60 * Math.sin(downrangeOfSite / 1800) +
+    25 * Math.sin(downrangeOfSite / 430 + 1) +
+    6 * Math.sin(downrangeOfSite / 70)
+  );
+}
+
+/** Elevations at the strip's distances: fixed in the world, so the same ground is read again each frame, and passing through the site's own elevation at the site. */
+export function groundTrackElevations(
+  distances: readonly number[],
+  driftMeters: number,
+  siteElevation: number,
 ): number[] {
-  const n = 16;
-  const extent = 200; // metres the patch spans
-  const cell = extent / n;
-  const slopeRad = slopeDeg * DEG;
-  const de = Math.sin(headingDeg * DEG); // downhill east component
-  const dn = Math.cos(headingDeg * DEG); // downhill north component
-  const grid = new Array<number>(n * n);
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      const east = (c - (n - 1) / 2) * cell;
-      const north = ((n - 1) / 2 - r) * cell;
-      // Tilted plane: elevation falls in the downhill direction.
-      let h = -(east * de + north * dn) * Math.tan(slopeRad);
-      // A crater dip in one quadrant, a ridge in the other.
-      const cd =
-        ((east - extent * 0.2) ** 2 + (north - extent * 0.15) ** 2) /
-        (2 * (extent * 0.18) ** 2);
-      h -= 18 * Math.exp(-cd);
-      const rd =
-        ((east + extent * 0.25) ** 2 + (north + extent * 0.2) ** 2) /
-        (2 * (extent * 0.22) ** 2);
-      h += 12 * Math.exp(-rd);
-      // Fine, deterministic surface texture.
-      h += 2.5 * Math.sin(east * 0.15) * Math.cos(north * 0.13);
-      grid[r * n + c] = h;
-    }
-  }
-  return grid;
+  return distances.map(
+    (d) => siteElevation + relief(d - driftMeters) - relief(0),
+  );
 }
 
 /** The predicted touchdown point: current point + remaining downrange travel.
@@ -269,6 +266,12 @@ export function channelsFor(
   const vSurf = Math.sqrt(f.vDown * f.vDown + f.vHoriz * f.vHoriz);
   const terrain = terrainFor(f.aglMeters);
   const pp = predictedPoint(f);
+  const drift = (pp.lon - f.lon) * DEG * R * Math.cos(f.lat * DEG);
+  const distances = groundTrackDistances(drift);
+  const track = {
+    distances,
+    elevations: groundTrackElevations(distances, drift, 120),
+  };
   return {
     "system.bodies": {
       bodies: [
@@ -322,9 +325,8 @@ export function channelsFor(
       roughnessFootprintMeters: 100,
       slopeSampleRadiusMeters: 100,
       predictedBiome: terrain.biome,
-      terrainPatch: terrainPatchGrid(terrain.slope, terrain.heading),
-      terrainPatchSize: 16,
-      terrainPatchExtentMeters: 200,
+      groundTrackDistances: track.distances,
+      groundTrackElevations: track.elevations,
     },
   };
 }

@@ -122,22 +122,21 @@ public class VesselLanding
     [SitrepUnit(Units.Text)]
     public string? PredictedBiome { get; set; }
 
-    /// <summary>A flattened row-major NxN grid of terrain elevations in metres
-    /// around the sampled point, for a shaded relief view; its length is
-    /// <see cref="TerrainPatchSize"/> squared. Not currently produced, so
-    /// always null.</summary>
+    /// <summary>The distance in metres of each <see cref="GroundTrackElevations"/>
+    /// sample along the predicted ground track, measured from the point on the
+    /// ground beneath the vessel toward the predicted site and on past it.
+    /// Ascending, starting at 0, the same length as
+    /// <see cref="GroundTrackElevations"/>. The spacing and the extent scale with
+    /// the vessel's height, so the strip narrows toward the site as it descends.
+    /// Null when no track could be sampled.</summary>
     [SitrepUnit(Units.Metres)]
-    public double[]? TerrainPatch { get; set; }
+    public double[]? GroundTrackDistances { get; set; }
 
-    /// <summary>The N of the NxN <see cref="TerrainPatch"/> grid. Null when
-    /// there is no patch, which is currently always.</summary>
-    [SitrepUnit(Units.Count)]
-    public int? TerrainPatchSize { get; set; }
-
-    /// <summary>The full width in metres the <see cref="TerrainPatch"/> grid
-    /// spans. Null when there is no patch, which is currently always.</summary>
+    /// <summary>Terrain elevation in metres at each
+    /// <see cref="GroundTrackDistances"/> entry, from the body's terrain model
+    /// (ocean floor reads negative). Null when no track could be sampled.</summary>
     [SitrepUnit(Units.Metres)]
-    public double? TerrainPatchExtentMeters { get; set; }
+    public double[]? GroundTrackElevations { get; set; }
 
     // The atmospheric fields below come from one instantaneous terminal-velocity model over the same measured drag, so they are present or absent together.
 

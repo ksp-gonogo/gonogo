@@ -176,6 +176,16 @@
     "reason": "A model OUTPUT that the mod re-integrates each tick, not a quantity a client should advance; `dragToWeightRatio` is a ratio and not its rate. Advancing it client-side would double-count the elapsed time against the mod's own integration.",
     "verdict": "coincidence"
   },
+  "VesselLanding.groundTrackDistances": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.groundTrackElevations": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
   "VesselLanding.predictedRoughness": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
@@ -197,16 +207,6 @@
     "verdict": "coincidence"
   },
   "VesselLanding.terrainElevationUnderVessel": {
-    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
-    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
-    "verdict": "coincidence"
-  },
-  "VesselLanding.terrainPatch": {
-    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
-    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
-    "verdict": "coincidence"
-  },
-  "VesselLanding.terrainPatchExtentMeters": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
     "verdict": "coincidence"
@@ -388,6 +388,16 @@
     "reason": "A model OUTPUT that the mod re-integrates each tick, not a quantity a client should advance; `dragToWeightRatio` is a ratio and not its rate. Advancing it client-side would double-count the elapsed time against the mod's own integration.",
     "verdict": "coincidence"
   },
+  "vessel.landing.groundTrackDistances": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.groundTrackElevations": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
   "vessel.landing.predictedRoughness": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
@@ -409,16 +419,6 @@
     "verdict": "coincidence"
   },
   "vessel.landing.terrainElevationUnderVessel": {
-    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
-    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
-    "verdict": "coincidence"
-  },
-  "vessel.landing.terrainPatch": {
-    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
-    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
-    "verdict": "coincidence"
-  },
-  "vessel.landing.terrainPatchExtentMeters": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
     "verdict": "coincidence"
