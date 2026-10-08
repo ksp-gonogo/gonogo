@@ -131,6 +131,14 @@ namespace Sitrep.Core.StoreAndForward
 
         private const double Tolerance = 1e-6;
 
+        /// <summary>
+        /// How much sooner, in game seconds, a new plan must say a held span
+        /// arrives before the span leaves the plan it carries. Plans move a little
+        /// every round, and a span that changed route for every small gain would
+        /// flap between two nearly equal ways and leave by neither.
+        /// </summary>
+        public const double SpanRerouteGainSeconds = 60.0;
+
         private readonly object _gate = new object();
         private readonly IClock _clock;
         private readonly IDeliveryLinks _links;
@@ -202,6 +210,7 @@ namespace Sitrep.Core.StoreAndForward
                 {
                     held.Excluded = null;
                 }
+                RerouteHeldSpans(_clock.Now());
             }
         }
 
@@ -431,6 +440,47 @@ namespace Sitrep.Core.StoreAndForward
                 span.Plan = PlanAt(span.Centre);
                 Hold(node, span, nowUt, null);
                 Depart(node, nowUt);
+            }
+        }
+
+        /// <summary>
+        /// A held span takes up its centre's plan as it stands now when that plan
+        /// gets it there <see cref="SpanRerouteGainSeconds"/> sooner than the plan
+        /// it carries, or gets it there at all where the carried plan does not. A
+        /// node holds a span for the way it was told, and a way that has opened
+        /// since is one it could not otherwise know. One route is worked out per
+        /// node and centre, however many spans wait there.
+        /// </summary>
+        private void RerouteHeldSpans(double nowUt)
+        {
+            var fresh = new Dictionary<(string Node, string Centre), (IDeliveryRoutes? Plan, IReadOnlyList<PlannedHop>? Route)>();
+            foreach (var entry in _held)
+            {
+                foreach (var held in entry.Value)
+                {
+                    if (held.Away != null || !(held.Message is SpanMessage span))
+                    {
+                        continue;
+                    }
+                    var key = (entry.Key, span.Centre);
+                    if (!fresh.TryGetValue(key, out var now))
+                    {
+                        var plan = PlanAt(span.Centre);
+                        now = (plan, plan?.Route(entry.Key, span.Centre, nowUt, double.PositiveInfinity));
+                        fresh[key] = now;
+                    }
+                    if (now.Plan == null || now.Route == null || now.Route.Count == 0)
+                    {
+                        continue;
+                    }
+                    var carried = span.Plan?.Route(entry.Key, span.Centre, nowUt, double.PositiveInfinity);
+                    var carriedArrival = carried == null || carried.Count == 0 ? double.PositiveInfinity : carried[carried.Count - 1].ArriveUt;
+                    if (now.Route[now.Route.Count - 1].ArriveUt + SpanRerouteGainSeconds < carriedArrival)
+                    {
+                        span.Plan = now.Plan;
+                        span.Route = now.Route.ToList();
+                    }
+                }
             }
         }
 

@@ -62,11 +62,11 @@ namespace Sitrep.Core.Tests.StoreAndForward
             public readonly List<(SpanMessage Span, double AtUt)> Delivered = new List<(SpanMessage, double)>();
             public readonly DeliveryNetwork Network;
 
-            public Rig()
+            public Rig(ISenderPlans? beliefs = null)
             {
                 var plan = new Plan();
                 Network = new DeliveryNetwork(
-                    Clock, Links, plan, (c, ut) => null, r => { }, beliefs: plan,
+                    Clock, Links, plan, (c, ut) => null, r => { }, beliefs: beliefs ?? plan,
                     deliverSpan: (span, at) => Delivered.Add((span, at)));
             }
 
@@ -201,6 +201,77 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Equal(2, shed.Count);
             Assert.Equal(0, payload.Carriers);
             Assert.Equal(0, rig.Network.HeldSpanBytes());
+        }
+
+        /// <summary>A plan the test rewrites: what a centre believes, copied whole into every message that carries it.</summary>
+        private sealed class Moving : ISenderPlans
+        {
+            public Dictionary<string, PlannedHop[]> Routes { get; } = new Dictionary<string, PlannedHop[]>();
+
+            public bool Reckons => true;
+
+            public IDeliveryRoutes? PlanOf(string centre) => new Snapshot(new Dictionary<string, PlannedHop[]>(Routes));
+
+            private sealed class Snapshot : IDeliveryRoutes
+            {
+                private readonly Dictionary<string, PlannedHop[]> _routes;
+
+                public Snapshot(Dictionary<string, PlannedHop[]> routes) => _routes = routes;
+
+                public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt) =>
+                    _routes.TryGetValue(from, out var hops) ? hops : null;
+            }
+        }
+
+        private const string Other = "vessel:other";
+
+        /// <summary>A relay holds a span for a window to the centre that is far off; its link to a second relay is up, and no plan it carries mentions that one.</summary>
+        private static (Rig Rig, Moving Plan) RelayHolding()
+        {
+            var plan = new Moving();
+            plan.Routes[Lander] = new[] { new PlannedHop(Relay, 0, 5), new PlannedHop(Ksc, 500, 510) };
+            plan.Routes[Relay] = new[] { new PlannedHop(Ksc, 500, 510) };
+            var rig = new Rig(plan);
+            rig.Links.Up(Lander, Relay, 5.0);
+            rig.Links.Up(Relay, Other, 5.0);
+            rig.Links.Up(Other, Ksc, 10.0);
+            rig.Tick(1.0);
+            rig.Add(1.0, 2.0);
+            rig.Tick(8.0);
+            Assert.Equal(Relay, Assert.Single(rig.Network.Spans()).Node);
+            return (rig, plan);
+        }
+
+        [Fact]
+        public void ARelayHeldSpanTakesAWayThatHasOpenedSinceItWasSent()
+        {
+            var (rig, plan) = RelayHolding();
+            rig.Tick(20.0);
+            Assert.Empty(rig.Delivered);
+
+            plan.Routes[Relay] = new[] { new PlannedHop(Other, 20, 25), new PlannedHop(Ksc, 25, 35) };
+            rig.Network.PlanChanged();
+            rig.Tick(21.0);
+            rig.Tick(50.0);
+
+            var (span, at) = Assert.Single(rig.Delivered);
+            Assert.Equal(new[] { 1.0, 2.0 }, span.Samples.Select(sample => sample.Ut));
+            Assert.Equal(36.0, at);
+        }
+
+        [Fact]
+        public void ASpanKeepsItsRouteWhenANewPlanIsBarelyBetter()
+        {
+            var (rig, plan) = RelayHolding();
+
+            // Thirty seconds sooner is not worth leaving the way it was told.
+            plan.Routes[Relay] = new[] { new PlannedHop(Other, 20, 25), new PlannedHop(Ksc, 25, 480) };
+            rig.Network.PlanChanged();
+            rig.Tick(21.0);
+            rig.Tick(50.0);
+
+            Assert.Empty(rig.Delivered);
+            Assert.Equal(Relay, Assert.Single(rig.Network.Spans()).Node);
         }
     }
 }
