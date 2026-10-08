@@ -38,12 +38,12 @@ describe("memoryStorage", () => {
     expect(s.getItem("b")).toBeNull();
   });
 
-  it("reports length as 0 and key() as null (documented limitation)", () => {
+  it("reports its length and keys from what it holds", () => {
     const s = memoryStorage();
     s.setItem("a", "1");
-    // The shim does not implement these, guard the behaviour so any future change is intentional.
-    expect(s.length).toBe(0);
-    expect(s.key(0)).toBeNull();
+    expect(s.length).toBe(1);
+    expect(s.key(0)).toBe("a");
+    expect(s.key(1)).toBeNull();
   });
 
   it("isolates separate instances", () => {
