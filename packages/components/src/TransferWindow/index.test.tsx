@@ -1,4 +1,9 @@
-import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
+import {
+  clearActionHandlers,
+  clearRegistry,
+  DashboardItemContext,
+  dispatchAction,
+} from "@ksp-gonogo/core";
 import {
   act,
   fireEvent,
@@ -407,5 +412,52 @@ describe("TransferWindow layout: origin-based, not destination-based", () => {
       "aria-pressed",
       "false",
     );
+  });
+});
+
+describe("TransferWindow actions", () => {
+  const destination = () =>
+    (screen.getByLabelText(/Windows to/) as HTMLSelectElement).value;
+  const press = (value = true) =>
+    dispatchAction("transfer-test", "cycle-destination", {
+      kind: "button",
+      value,
+    });
+
+  afterEach(() => {
+    clearActionHandlers();
+  });
+
+  it("cycle-destination steps to the next sibling body and wraps round", async () => {
+    setup();
+    await screen.findByLabelText(/Windows to/);
+    expect(destination()).toBe("2");
+
+    act(() => {
+      press();
+    });
+    await waitFor(() => expect(destination()).toBe("3"));
+
+    act(() => {
+      press();
+    });
+    await waitFor(() => expect(destination()).toBe("2"));
+    await act(async () => {});
+  });
+
+  it("cycle-destination steps once per press, not again on the release", async () => {
+    setup();
+    await screen.findByLabelText(/Windows to/);
+
+    act(() => {
+      press(true);
+    });
+    await waitFor(() => expect(destination()).toBe("3"));
+
+    act(() => {
+      press(false);
+    });
+    await act(async () => {});
+    expect(destination()).toBe("3");
   });
 });

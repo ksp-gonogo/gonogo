@@ -93,11 +93,7 @@ export function WarpControlView({
       panelTitle="WARP"
       sections={
         <Section full>
-          <DimmedOverlay
-            show={dimBody}
-            message="No active save"
-            hint="Time warp works in flight, Space Center, and Tracking Station."
-          >
+          <DimmedOverlay show={dimBody} message="No active save">
             <div style={BODY_STYLE}>
               <div style={rateStyle(rateTone)}>
                 <span

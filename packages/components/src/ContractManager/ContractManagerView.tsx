@@ -6,6 +6,7 @@ import {
   ButtonGroup,
   Card,
   CommandButton,
+  EmptyState,
   getWidgetShape,
   Panel,
   Section,
@@ -19,7 +20,6 @@ import {
   ACTIVE_ACTIONS_STYLE,
   AGENCY_STYLE,
   cardListStyle,
-  EMPTY_STYLE,
   OFFERED_ACTIONS_STYLE,
   SECTION_LABEL_STYLE,
   SUMMARY_STYLE,
@@ -71,7 +71,7 @@ export function ContractManagerComponent({
         sections={
           <Section>
             {showSubtitle && (
-              <div style={EMPTY_STYLE}>Awaiting contract telemetry</div>
+              <EmptyState>Awaiting contract telemetry</EmptyState>
             )}
           </Section>
         }
@@ -96,9 +96,7 @@ export function ContractManagerComponent({
             </div>
           )}
           {activeCount === 0 && offeredCount === 0 && (
-            <div style={EMPTY_STYLE}>
-              No active contracts. Pick one up in Mission Control.
-            </div>
+            <EmptyState>No active contracts</EmptyState>
           )}
           {activeCount > 0 && <div style={SECTION_LABEL_STYLE}>Active</div>}
           <div style={cardListStyle(multiColumn)}>

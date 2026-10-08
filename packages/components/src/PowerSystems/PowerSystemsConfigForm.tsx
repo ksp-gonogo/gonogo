@@ -4,6 +4,7 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  Input,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
@@ -32,7 +33,7 @@ export function PowerSystemsConfigForm({
     <ConfigForm>
       <Field>
         <FieldLabel htmlFor="ps-default-resource">Default resource</FieldLabel>
-        <input
+        <Input
           id="ps-default-resource"
           type="text"
           value={defaultResource}

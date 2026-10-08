@@ -1,9 +1,3 @@
-export const EMPTY_STYLE = {
-  color: "var(--color-text-faint)",
-  fontSize: "var(--font-size-compact)",
-  padding: "var(--inset-empty-note)",
-} as const;
-
 export const SUMMARY_STYLE = {
   fontSize: "var(--font-size-caption)",
   letterSpacing: "0.06em",

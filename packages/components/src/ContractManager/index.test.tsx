@@ -71,6 +71,10 @@ describe("ContractManagerComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/No active contracts/i)).toBeInTheDocument(),
     );
+    // A fact about the board, with no instruction on where to pick one up.
+    expect(screen.getByText(/No active contracts/i).textContent).toBe(
+      "No active contracts",
+    );
   });
 
   it("renders an active contract with parameters and rewards", async () => {
