@@ -42,6 +42,9 @@ function niceStep(x: number): number {
   return step * pow;
 }
 
+/** An instrument dimension: the least height at which the scale's end labels and ticks stay clear of one another. */
+const RAIL_MIN_SCALE_PX = 120;
+
 export function AltitudeRail({
   agl,
   centreOfMass = false,
@@ -104,7 +107,8 @@ export function AltitudeRail({
         minWidth: 0,
       }}
     >
-      <div style={{ flex: 1, minHeight: 0, width: "100%" }}>
+      {/* Never shrunk below the scale's own labels: a tile short enough to squeeze it further scrolls instead of painting the scale onto the ignition cue. */}
+      <div style={{ flex: 1, minHeight: RAIL_MIN_SCALE_PX, width: "100%" }}>
         <Tape
           fillHeight
           labelSide="right"

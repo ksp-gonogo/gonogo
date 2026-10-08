@@ -35,6 +35,15 @@ describe("AltitudeRail", () => {
     expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });
 
+  it("holds the scale at a floor height, so a short tile scrolls instead of painting it onto the ignition cue", () => {
+    render(<AltitudeRail {...descending} />);
+    const scale = screen.getByRole("meter").closest("[style*='min-height']");
+    expect(scale).not.toBeNull();
+    expect(
+      Number.parseFloat((scale as HTMLElement).style.minHeight),
+    ).toBeGreaterThanOrEqual(100);
+  });
+
   it("draws a prediction beside the pointer with no text on the rail, and none without one", () => {
     const { container, rerender } = render(<AltitudeRail {...descending} />);
     expect(container.querySelector('[data-marker="prediction"]')).toBeNull();
