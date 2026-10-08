@@ -1,5 +1,5 @@
 import { getBody } from "@ksp-gonogo/core";
-import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
+import type { OrbitTrajectory, SystemPoses } from "@ksp-gonogo/sitrep-client";
 import { TextButton } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -42,6 +42,8 @@ export type { VesselOrbit } from "./diagramGeometry";
 
 export interface SystemDiagramProps {
   bodies: readonly CelestialBody[];
+  /** Where each body is at the instant on screen; a body with no pose is drawn at its periapsis. */
+  poses?: SystemPoses;
   /** Name of the parent whose children we render. */
   parentName: string;
   /** Highlight these body names (current vessel body + target). */
@@ -94,6 +96,7 @@ const BODY_ORBIT_STROKE_WIDTH = 2;
  */
 export function SystemDiagram({
   bodies,
+  poses,
   parentName,
   highlightNames,
   targetName,
@@ -138,8 +141,8 @@ export function SystemDiagram({
 
   // Memoised on the projection and not on zoom: this re-renders every frame, and a wheel gesture must not replace thousands of placements.
   const placedBodies = useMemo(
-    () => placeBodies({ children, placement, plotScale }),
-    [children, placement, plotScale],
+    () => placeBodies({ children, poses, placement, plotScale }),
+    [children, poses, placement, plotScale],
   );
   const vesselHere =
     vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
@@ -221,6 +224,7 @@ export function SystemDiagram({
   const placedPatches = usePlacedPrediction({
     predicted,
     children,
+    poses,
     parentName,
     plotScale,
     placement,

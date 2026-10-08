@@ -125,9 +125,8 @@ describe("useCelestialBodies: what undefined means today", () => {
     expect(root.argumentOfPeriapsis).toBeNull();
     expect(root.meanAnomalyAtEpoch).toBeNull();
     expect(root.epoch).toBeNull();
-    // Derivations decline rather than coercing to zero, which is why `usePhaseAngles` can skip the body instead of plotting it at longitude 0.
+    // Derivations decline rather than coercing to zero.
     expect(root.period).toBeNull();
-    expect(root.trueAnomaly).toBeNull();
     // Carried, not derived: absent reads null, as does KSP's PositiveInfinity for the root star.
     expect(root.hillSphere).toBeNull();
     expect(root.mass).toBeNull();
@@ -188,9 +187,8 @@ describe("useCelestialBodies: what undefined means today", () => {
     const mun = result.current[1];
     expect(mun.referenceBody).toBe("Kerbin");
     expect(mun.semiMajorAxis).toBe(12_000_000);
-    // One absent field two entries away removes the live true anomaly, which makes `usePhaseAngles` skip the body.
+    // One absent field two entries away removes the derived period.
     expect(mun.period).toBeNull();
-    expect(mun.trueAnomaly).toBeNull();
     expect(mun.hillSphere).toBeNull();
   });
 });

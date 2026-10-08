@@ -331,6 +331,14 @@ export {
   verticalAccelerationOver,
   withinAtmosphere,
 } from "./spine/atmospheric-reckoning";
+export {
+  type BodyPose,
+  type BodyPoseCurrency,
+  poseAtIndex,
+  SYSTEM_POSES,
+  type SystemPoses,
+  systemPosesAt,
+} from "./spine/body-pose";
 // What a locked `LockScope` hands its fallback, which ui-kit publishes.
 export type { CapabilityLock } from "./spine/capability-lock";
 // ---------------------------------------------------------------------------
@@ -467,6 +475,7 @@ export type {
   UplinkHealthFact,
   UplinkHealthStateName,
 } from "./spine/uplink-health";
+export { useSystemInstant } from "./system-instant";
 export * from "./timeline";
 export {
   type EnumEncoding,

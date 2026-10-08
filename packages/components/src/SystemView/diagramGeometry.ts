@@ -1,4 +1,4 @@
-import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
+import type { OrbitTrajectory, SystemPoses } from "@ksp-gonogo/sitrep-client";
 import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
 import { type DepthGradientAxis, depthGradientAxis } from "./depthCues";
 import {
@@ -60,12 +60,14 @@ export interface PlacedDiagram {
  */
 export function placeDiagram({
   children,
+  poses,
   vessel,
   parentName,
   placement,
   plotScale,
 }: {
   children: readonly CelestialBody[];
+  poses: SystemPoses | undefined;
   vessel: VesselOrbit | null | undefined;
   parentName: string;
   placement: Placement;
@@ -74,7 +76,7 @@ export function placeDiagram({
   const vesselHere =
     vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
   return {
-    ...placeBodies({ children, placement, plotScale }),
+    ...placeBodies({ children, poses, placement, plotScale }),
     vessel:
       vesselHere === null
         ? null
@@ -120,10 +122,12 @@ function placedRingOf(
 /** The frame body and every drawn child with its ring: independent of the vessel, so a vessel tick does not re-place them. */
 export function placeBodies({
   children,
+  poses,
   placement,
   plotScale,
 }: {
   children: readonly CelestialBody[];
+  poses: SystemPoses | undefined;
   placement: Placement;
   plotScale: number;
 }): { parent: PlacedPoint; bodies: PlacedBody[] } {
@@ -140,7 +144,14 @@ export function placeBodies({
         ...placedPointOf(
           placement,
           plotScale,
-          orbitPointAt(sma, ecc, lan, argPe, inclination, c.trueAnomaly ?? 0),
+          orbitPointAt(
+            sma,
+            ecc,
+            lan,
+            argPe,
+            inclination,
+            poses?.poseByIndex[c.index]?.trueAnomaly ?? 0,
+          ),
         ),
         ...placedRingOf(
           placement,

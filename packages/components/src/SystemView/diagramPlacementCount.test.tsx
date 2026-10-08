@@ -36,7 +36,6 @@ function body(index: number, name: string, sma: number): CelestialBody {
     horizon: ANALYTIC_BODY_HORIZON,
     deterministic: true,
     period: null,
-    trueAnomaly: 1,
     mass: null,
     geeASL: null,
     escapeVelocity: null,

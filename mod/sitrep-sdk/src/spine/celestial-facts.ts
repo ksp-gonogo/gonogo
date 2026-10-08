@@ -10,11 +10,7 @@ import {
   type Value,
   value,
 } from "../unit-system";
-import {
-  deriveEscapeVelocity,
-  derivePeriod,
-  deriveTrueAnomalyDeg,
-} from "./body-derivations";
+import { deriveEscapeVelocity, derivePeriod } from "./body-derivations";
 import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
 // ---------------------------------------------------------------------------
@@ -28,17 +24,11 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //
 // ## What this DERIVES, and what it only carries
 //
-// Deliberately small. It derives exactly two things, and both are ours because
-// the game has no answer to give:
+// Deliberately small. It derives two things, and both are ours because the
+// game has no answer to give:
 //
 //   escapeVelocity  √(2μ/r). `CelestialBody` has no escape-velocity member at
 //                   all, confirmed by a member dump of the installed assembly.
-//   trueAnomaly     solved at the FRAME's view time. `Orbit.trueAnomaly` exists
-//                   but is the live value, and a delayed console needs the body
-//                   where it was when the light left, which the game has no
-//                   concept of. This is the only field here that needs a frame,
-//                   and so the only reason this is a Processor rather than a
-//                   plain function of one Topic.
 //   period          `2π√(a³/μ_parent)`, and this one is a judgement rather than a
 //                   gap. `Orbit.period` exists, but decompiled it is
 //                   `2π/meanMotion` over `meanMotion = √(μ/|a|³)`, which is
@@ -171,8 +161,6 @@ export interface CelestialBody {
   deterministic: boolean;
   /** Orbital period, seconds, computed from the semi-major axis and the parent's gravitational parameter. */
   period: number | null;
-  /** True anomaly at the view time, degrees from 0 to 360, computed from the elements. */
-  trueAnomaly: number | null;
   /** Mass, kilograms. */
   mass: number | null;
   /** Surface gravity, in g. */
@@ -286,7 +274,6 @@ function orbitIsDeterministic(orbit: NonNullable<BodyEntry["orbit"]>): boolean {
 function mapBody(
   entry: BodyEntry,
   byIndex: Map<number, BodyEntry>,
-  ut: number | undefined,
 ): CelestialBody {
   const parentEntry =
     entry.parentIndex != null ? byIndex.get(entry.parentIndex) : undefined;
@@ -333,14 +320,6 @@ function mapBody(
     horizon: mapHorizon(entry.horizon),
     deterministic: orbit === null || orbitIsDeterministic(orbit),
     period: derivePeriod(semiMajorAxis, parentGravParameter),
-    trueAnomaly: deriveTrueAnomalyDeg({
-      semiMajorAxis,
-      eccentricity,
-      meanAnomalyAtEpoch,
-      epoch,
-      parentGravParameter,
-      ut,
-    }),
     mass: numOrNull(entry.mass),
     geeASL: numOrNull(entry.surfaceGravity),
     escapeVelocity: deriveEscapeVelocity(gravParameter, radius),
@@ -376,21 +355,20 @@ const NOTHING_KNOWN: CelestialFacts = {
 };
 
 /**
- * Returns {@link CelestialFacts} from a `system.bodies` payload's `bodies`,
- * with true anomalies solved at `ut`. The same computation
- * {@link CELESTIAL_FACTS} runs each frame, for use without a running
- * telemetry stream, such as in a test.
+ * Returns {@link CelestialFacts} from a `system.bodies` payload's `bodies`. The
+ * same computation {@link CELESTIAL_FACTS} runs each frame, for use without a
+ * running telemetry stream, such as in a test. Where a body is at an instant is
+ * a different question, answered by `systemPosesAt`.
  *
  * @category Solar system and fleet
  */
 export function deriveCelestialFacts(
   wire: readonly BodyEntry[] | undefined,
-  ut: number | undefined,
 ): CelestialFacts {
   if (!wire || wire.length === 0) return NOTHING_KNOWN;
   const byIndex = new Map<number, BodyEntry>();
   for (const b of wire) byIndex.set(b.index, b);
-  const bodies = wire.map((b) => mapBody(b, byIndex, ut));
+  const bodies = wire.map((b) => mapBody(b, byIndex));
   const nameByIndex: Record<number, string> = {};
   const indexByName: Record<string, number> = {};
   for (const body of bodies) {
@@ -416,15 +394,12 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
   // that is not delivering, so a held one is still the catalogue and is used
   // as-is. `pending` and `absent` both mean there is nothing to enrich.
   deps: [{ reading: "system.bodies" }] as const,
-  compute: ([reading], frame): CelestialFacts => {
+  compute: ([reading]): CelestialFacts => {
     const known =
       reading.state === "observed" || reading.state === "held"
         ? reading.value
         : undefined;
-    // The frame's own frozen view time, which is what puts every body on the
-    // same instant. Two consumers reading a wall clock would draw the system at
-    // two different moments.
-    return deriveCelestialFacts(known?.bodies, frame.viewUt);
+    return deriveCelestialFacts(known?.bodies);
   },
 });
 

@@ -2,6 +2,7 @@ import type { PorkchopGrid, TransferSolution } from "@ksp-gonogo/core";
 import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
+import { placedAt, posesOf } from "../test/bodyPoses";
 import {
   bodyTrueLongitudeDeg,
   buildTransferPorkchop,
@@ -45,7 +46,6 @@ function mkBody(
     horizon: ANALYTIC_BODY_HORIZON,
     deterministic: true,
     period: null,
-    trueAnomaly: null,
     mass: null,
     geeASL: null,
     escapeVelocity: null,
@@ -85,8 +85,8 @@ const earth = mkBody({
   meanAnomalyAtEpoch: 0,
   epoch: 0,
   period: 365.256 * DAY,
-  trueAnomaly: 0,
 });
+placedAt(earth, 0);
 const mars = mkBody({
   index: 2,
   name: "Mars",
@@ -100,9 +100,10 @@ const mars = mkBody({
   meanAnomalyAtEpoch: 44.3 * DEG,
   epoch: 0,
   period: 686.98 * DAY,
-  trueAnomaly: 44.3,
 });
+placedAt(mars, 44.3);
 const bodies = [sun, earth, mars];
+const poses = posesOf(bodies);
 
 describe("transferData bridge", () => {
   it("parentMu resolves the shared parent's μ", () => {
@@ -111,12 +112,24 @@ describe("transferData bridge", () => {
   });
 
   it("bodyTrueLongitudeDeg = (Ω+ω)+ν, wrapped", () => {
-    expect(bodyTrueLongitudeDeg(earth)).toBeCloseTo(0, 6);
-    expect(bodyTrueLongitudeDeg(mars)).toBeCloseTo(44.3, 6);
+    expect(bodyTrueLongitudeDeg(earth, poses)).toBeCloseTo(0, 6);
+    expect(bodyTrueLongitudeDeg(mars, poses)).toBeCloseTo(44.3, 6);
+  });
+
+  it("bodyTrueLongitudeDeg takes the node and periapsis as degrees, as the catalogue states them", () => {
+    const tilted = placedAt(
+      mkBody({ ...mars, lan: 350, argumentOfPeriapsis: 20 }),
+      30,
+    );
+    expect(bodyTrueLongitudeDeg(tilted, posesOf([tilted]))).toBeCloseTo(40, 6);
+  });
+
+  it("bodyTrueLongitudeDeg is unknown while the body has no pose", () => {
+    expect(bodyTrueLongitudeDeg(mars, undefined)).toBeNull();
   });
 
   it("phaseAngleDeg = dest longitude − origin longitude", () => {
-    expect(phaseAngleDeg(earth, mars)).toBeCloseTo(44.3, 6);
+    expect(phaseAngleDeg(earth, mars, poses)).toBeCloseTo(44.3, 6);
   });
 
   it("celestialToOrbitElements carries the parent μ + raw (radian) elements", () => {
@@ -145,6 +158,7 @@ describe("transferData bridge", () => {
       origin: earth,
       dest: mars,
       bodies,
+      poses,
       parkingRadius: 6.571e6,
       nowUt: 0,
     });
@@ -397,8 +411,9 @@ describe("reachEntries: what this craft can get to, and on what", () => {
     meanAnomalyAtEpoch: 0,
     epoch: 0,
     period: 224.7 * DAY,
-    trueAnomaly: 0,
   });
+  placedAt(venus, 0);
+  const reachPoses = posesOf([earth, mars, venus]);
   // Mars needs a surface to circularise above; the shared fixture has none.
   const marsWithSurface = mkBody({
     ...mars,
@@ -412,6 +427,7 @@ describe("reachEntries: what this craft can get to, and on what", () => {
     reachEntries({
       origin: earth,
       bodies: reachBodies,
+      poses: reachPoses,
       parkingRadius: R_LEO,
       nowUt: 0,
     });
@@ -476,6 +492,7 @@ describe("reachEntries: what this craft can get to, and on what", () => {
     const rows = reachEntries({
       origin: earth,
       bodies: [...reachBodies, halfSynced],
+      poses: reachPoses,
       parkingRadius: R_LEO,
       nowUt: 0,
     });
@@ -487,6 +504,7 @@ describe("reachEntries: what this craft can get to, and on what", () => {
   it("rows with no cost sort last, so the affordable list reads top-down", () => {
     const rows = reachEntries({
       origin: earth,
+      poses: reachPoses,
       bodies: [
         ...reachBodies,
         mkBody({
@@ -616,7 +634,13 @@ describe("reach list recompute quantum: derived from what the column can show", 
   it("does not move the delta-v columns at all, which is why coarsening it is safe", () => {
     // The costs are functions of radii and μ, so only the timing columns may differ across UTs.
     const mk = (nowUt: number) =>
-      reachEntries({ origin: earth, bodies, parkingRadius: 6.571e6, nowUt });
+      reachEntries({
+        origin: earth,
+        bodies,
+        poses,
+        parkingRadius: 6.571e6,
+        nowUt,
+      });
     const early = mk(0).find((r) => r.body.name === "Mars");
     const late = mk(500 * DAY).find((r) => r.body.name === "Mars");
     expect(early?.totalDeltaV).toBeCloseTo(late?.totalDeltaV as number, 6);

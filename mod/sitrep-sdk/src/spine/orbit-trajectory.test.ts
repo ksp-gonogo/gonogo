@@ -270,26 +270,23 @@ function bodyEntry(spec: {
   };
 }
 
-const SYSTEM = deriveCelestialFacts(
-  [
-    bodyEntry({ index: 0, name: "Star", mu: STAR_MU }),
-    bodyEntry({
-      index: 1,
-      name: "Home",
-      parentIndex: 0,
-      mu: PLANET_MU,
-      sma: AU,
-    }),
-    bodyEntry({
-      index: 2,
-      name: "Moon",
-      parentIndex: 1,
-      mu: MOON_MU,
-      sma: LUNAR_DISTANCE,
-    }),
-  ] as never,
-  0,
-);
+const SYSTEM = deriveCelestialFacts([
+  bodyEntry({ index: 0, name: "Star", mu: STAR_MU }),
+  bodyEntry({
+    index: 1,
+    name: "Home",
+    parentIndex: 0,
+    mu: PLANET_MU,
+    sma: AU,
+  }),
+  bodyEntry({
+    index: 2,
+    name: "Moon",
+    parentIndex: 1,
+    mu: MOON_MU,
+    sma: LUNAR_DISTANCE,
+  }),
+] as never);
 
 /** A high orbit of Home, analytic, so the conic arm is the one under test. */
 function homeOrbit(overrides: Record<string, unknown> = {}) {

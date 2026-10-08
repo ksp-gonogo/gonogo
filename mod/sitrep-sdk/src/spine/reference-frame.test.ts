@@ -81,7 +81,7 @@ function entry(spec: BodySpec): BodyEntry {
 }
 
 function catalogue(specs: readonly BodySpec[]): CelestialFacts {
-  return deriveCelestialFacts(specs.map(entry), 0);
+  return deriveCelestialFacts(specs.map(entry));
 }
 
 /**

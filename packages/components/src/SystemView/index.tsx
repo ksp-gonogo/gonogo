@@ -18,6 +18,7 @@ import {
   useOrbitTrajectory,
   useProcessor,
   useStream,
+  useSystemInstant,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { type ControlFrame, value } from "@ksp-gonogo/sitrep-sdk";
@@ -100,6 +101,7 @@ function SystemViewComponent({
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
   const catalogueHeld = useCelestialHeld();
+  const poses = useSystemInstant();
   // The whole catalogue, for the read frame's index lookups; a held catalogue is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
@@ -301,7 +303,7 @@ function SystemViewComponent({
       (b) => b.referenceBody !== null && b.referenceBody === parentName,
     );
   }, [bodies, parentName]);
-  const phaseAngles = usePhaseAngles(children);
+  const phaseAngles = usePhaseAngles(children, poses);
 
   // Hohmann only applies when the rendered frame is the vessel's own parent.
   const transferStatuses = useMemo(
@@ -349,6 +351,7 @@ function SystemViewComponent({
   const panelPhaseAngleReading = usePhaseAngleReading(
     panelPhaseAngle === null ? null : panelBody,
     bodies,
+    poses,
     universalTime,
     catalogueHeld,
   );
@@ -539,6 +542,7 @@ function SystemViewComponent({
                 {parentName !== null && bodies.length > 0 && (
                   <SystemDiagram
                     bodies={bodies}
+                    poses={poses}
                     parentName={parentName}
                     highlightNames={vesselBody ? [vesselBody] : []}
                     targetName={

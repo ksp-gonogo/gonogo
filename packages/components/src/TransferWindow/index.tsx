@@ -11,6 +11,7 @@ import {
   type CelestialBody,
   DELTA_V_BUDGET,
   useProcessor,
+  useSystemInstant,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
@@ -109,6 +110,7 @@ function TransferWindowComponent({
       ? factsReading.value
       : undefined;
   const bodies = facts?.bodies ?? NO_BODIES;
+  const poses = useSystemInstant();
   // Through the canonical funnel, which coalesces a non-finite reading to 0 rather than passing NaN into the porkchop.
   const nowUt = magnitudeOr(useViewUt(), 0);
 
@@ -194,9 +196,9 @@ function TransferWindowComponent({
   const solution: TransferSolution | null = useMemo(
     () =>
       origin && dest && parkingRadius != null && Number.isFinite(parkingRadius)
-        ? computeTransfer({ origin, dest, bodies, parkingRadius, nowUt })
+        ? computeTransfer({ origin, dest, bodies, poses, parkingRadius, nowUt })
         : null,
-    [origin, dest, bodies, parkingRadius, nowUt],
+    [origin, dest, bodies, poses, parkingRadius, nowUt],
   );
 
   /**
@@ -251,11 +253,12 @@ function TransferWindowComponent({
         ? reachEntries({
             origin,
             bodies,
+            poses,
             parkingRadius,
             nowUt: reachUtBucket * reachRecomputeUt,
           })
         : [],
-    [origin, bodies, parkingRadius, reachUtBucket, reachRecomputeUt],
+    [origin, bodies, poses, parkingRadius, reachUtBucket, reachRecomputeUt],
   );
 
   // Later windows rebuild centred on their own departure. Depends on the two quantised numbers, not on `selected`, which is a fresh object every rebuild.

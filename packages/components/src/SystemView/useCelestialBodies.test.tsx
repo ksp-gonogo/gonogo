@@ -120,8 +120,6 @@ describe("useCelestialBodies", () => {
     // Parent μ = Kerbol's → a real, positive orbital period.
     expect(kerbin.period).not.toBeNull();
     expect(kerbin.period as number).toBeGreaterThan(0);
-    // ecc 0, maae 0, ut(pinned) 0 → true anomaly 0°.
-    expect(kerbin.trueAnomaly).toBeCloseTo(0, 4);
   });
 
   it("surfaces the nested atmosphere object and its convenience mirrors; null for airless bodies", async () => {

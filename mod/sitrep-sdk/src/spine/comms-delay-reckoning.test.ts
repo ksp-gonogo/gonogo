@@ -52,19 +52,16 @@ function wire(magnitude: number) {
   return { magnitude } as BodyEntry["gravParameter"];
 }
 
-const FACTS = deriveCelestialFacts(
-  [
-    {
-      index: PLANET_INDEX,
-      name: "Kerbin",
-      radius: wire(PLANET_RADIUS),
-      gravParameter: wire(PLANET_MU),
-      rotationPeriod: wire(ROTATION_PERIOD),
-      initialRotation: wire(0),
-    } as BodyEntry,
-  ],
-  0,
-);
+const FACTS = deriveCelestialFacts([
+  {
+    index: PLANET_INDEX,
+    name: "Kerbin",
+    radius: wire(PLANET_RADIUS),
+    gravParameter: wire(PLANET_MU),
+    rotationPeriod: wire(ROTATION_PERIOD),
+    initialRotation: wire(0),
+  } as BodyEntry,
+]);
 
 function circularOrbit(sma: number): CommsPeerOrbit {
   return {

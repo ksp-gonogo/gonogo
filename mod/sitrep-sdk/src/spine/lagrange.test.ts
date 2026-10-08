@@ -51,7 +51,6 @@ function body(over: Partial<CelestialBody> & { index: number }): CelestialBody {
     horizon: ANALYTIC_BODY_HORIZON,
     deterministic: true,
     period: null,
-    trueAnomaly: null,
     mass: null,
     geeASL: null,
     escapeVelocity: null,

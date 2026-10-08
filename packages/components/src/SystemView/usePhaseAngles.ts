@@ -2,6 +2,7 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import {
   canPropagate,
   deriveTrueAnomalyDeg,
+  type SystemPoses,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -27,6 +28,7 @@ import type { CatalogueHeld, CelestialBody } from "./useCelestialBodies";
  */
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
+  poses: SystemPoses | undefined,
 ): Map<number, number> {
   // A position relationship, so only a current reading or a model will do; a held one would draw the window the craft was in.
   const orbitReading = useTelemetry("vessel.orbit");
@@ -58,13 +60,13 @@ export function usePhaseAngles(
       const bodyLon = trueLongitudeDeg(
         b.lan,
         b.argumentOfPeriapsis,
-        b.trueAnomaly,
+        poses?.poseByIndex[b.index]?.trueAnomaly ?? null,
       );
       if (bodyLon === null) continue; // no orbit (root star) or missing element
       out.set(b.index, wrap360(bodyLon - vesselLon));
     }
     return out.size > 0 ? out : EMPTY;
-  }, [bodies, orbit, ut]);
+  }, [bodies, poses, orbit, ut]);
 }
 
 type OrbitElements = NonNullable<Parameters<typeof vesselLongitudeAt>[0]>;
@@ -108,6 +110,7 @@ function vesselLongitudeAt(
 export function usePhaseAngleReading(
   body: CelestialBody | null,
   bodies: readonly CelestialBody[],
+  poses: SystemPoses | undefined,
   ut: number | undefined,
   held: CatalogueHeld | null = null,
 ): Reading<Value<"°">> | undefined {
@@ -118,7 +121,13 @@ export function usePhaseAngleReading(
       bodies.find((b) => b.name === body.referenceBody)?.gravParameter ?? null;
     const reading = deriveReading(
       orbitReading,
-      (orbit) => phaseAngle(orbit, ut, body.trueAnomaly, body),
+      (orbit) =>
+        phaseAngle(
+          orbit,
+          ut,
+          poses?.poseByIndex[body.index]?.trueAnomaly ?? null,
+          body,
+        ),
       (orbit, atUt) => {
         // `deriveTrueAnomalyDeg` is plain-number geometry, so the reckoning's instant unwraps here.
         const at = atUt.magnitude;
@@ -144,7 +153,7 @@ export function usePhaseAngleReading(
       reading.value,
     );
     return { ...aged, reckoning: reading.reckoning };
-  }, [body, bodies, orbitReading, ut, held]);
+  }, [body, bodies, poses, orbitReading, ut, held]);
 }
 
 function phaseAngle(

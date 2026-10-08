@@ -716,7 +716,7 @@ function registerCommsDelayReckoner(): void {
         observed,
         craft: orbitPoint.payload,
         peer: located,
-        facts: deriveCelestialFacts(bodiesPoint?.payload?.bodies, reckonUt),
+        facts: deriveCelestialFacts(bodiesPoint?.payload?.bodies),
       });
       if ("declined" in fit) return fit;
       return {
@@ -780,10 +780,7 @@ function registerTargetRosterReckoner(): void {
         return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
       }
       const craft = orbitPoint.payload;
-      const facts = deriveCelestialFacts(
-        bodiesPoint?.payload?.bodies,
-        reckonUt,
-      );
+      const facts = deriveCelestialFacts(bodiesPoint?.payload?.bodies);
       const known = knownCraftOrbits(entries, facts).filter((k) =>
         Number.isFinite(knownCraftRangeAt(craft, k, facts, reckonUt)),
       );

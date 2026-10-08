@@ -1,3 +1,4 @@
+import type { SystemPoses } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import { orbitPointAt } from "./orbitGeometry";
 import {
@@ -13,6 +14,7 @@ import type { CelestialBody } from "./useCelestialBodies";
 export function usePlacedPrediction({
   predicted,
   children,
+  poses,
   parentName,
   plotScale,
   placement,
@@ -22,6 +24,7 @@ export function usePlacedPrediction({
     | null
     | undefined;
   children: readonly CelestialBody[];
+  poses: SystemPoses | undefined;
   parentName: string;
   plotScale: number;
   placement: Placement;
@@ -41,7 +44,7 @@ export function usePlacedPrediction({
         c.lan ?? 0,
         c.argumentOfPeriapsis ?? 0,
         c.inclination ?? 0,
-        c.trueAnomaly ?? 0,
+        poses?.poseByIndex[c.index]?.trueAnomaly ?? 0,
       );
       childOffsets.set(c.name, { x: at[0], y: at[1], z: at[2] });
     }
@@ -51,7 +54,7 @@ export function usePlacedPrediction({
       ut: predicted.ut,
       childOffsets,
     });
-  }, [predicted, plotScale, children, parentName]);
+  }, [predicted, plotScale, children, poses, parentName]);
 
   // Split from the propagation so a projection change does not re-solve Kepler.
   const placedPatches = useMemo(

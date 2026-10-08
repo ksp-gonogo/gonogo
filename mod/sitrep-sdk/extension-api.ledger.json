@@ -8123,6 +8123,10 @@
         "note": "The constant follows the contract from 14 to 18 (the hello, ping and pong envelopes, the departure envelope on the orbit horizon, the Commcast send receipt, then the target list\\u0027s unchanged-to time). Its type is now `number` rather than the literal, so this is the last Minor bump that reads as a retype; a caller compares it or prints it, and is unaffected."
       },
       {
+        "key": "sitrep-sdk . CelestialBody#trueAnomaly",
+        "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
+      },
+      {
         "key": "sitrep-sdk . ClientMessage",
         "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
       },
@@ -8237,6 +8241,10 @@
       {
         "key": "sitrep-sdk . defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
+      },
+      {
+        "key": "sitrep-sdk . deriveCelestialFacts",
+        "note": "Drops its ut argument, since the catalogue no longer holds anything that depends on an instant; where a body is at an instant is systemPosesAt"
       },
       {
         "key": "sitrep-sdk . useDataSources",
@@ -8495,6 +8503,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./frames ~CelestialBody#trueAnomaly",
+        "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#augmentSlots?",
         "note": "Typed as the slot ids SlotRegistry declares rather than any string, so a widget cannot list a slot nothing declares; an Uplink listing its own slot declares it with declare module first, as every bundled Uplink already does"
       },
@@ -8545,6 +8557,10 @@
       {
         "key": "sitrep-sdk ./registry ~UplinkClientHandle#description?",
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk ./spine CelestialBody#trueAnomaly",
+        "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
       {
         "key": "sitrep-sdk ./spine DataSourceState#status",
@@ -8649,6 +8665,10 @@
       {
         "key": "sitrep-sdk ./spine defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
+      },
+      {
+        "key": "sitrep-sdk ./spine deriveCelestialFacts",
+        "note": "Drops its ut argument, since the catalogue no longer holds anything that depends on an instant; where a body is at an instant is systemPosesAt"
       },
       {
         "key": "sitrep-sdk ./spine fromFrame",
@@ -9269,6 +9289,46 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk . BodyPose",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#asOfUt",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#atUt",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#currency",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#index",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#position",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#trueAnomaly",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#untilUt",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPose#velocity",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk . BodyPoseCurrency",
+        "note": "How well a body's place is known: exact, modelled, held or withdrawn"
+      },
+      {
         "key": "sitrep-sdk . Capability",
         "note": "Exported from the root because CapabilityLock names it"
       },
@@ -9537,6 +9597,10 @@
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
       {
+        "key": "sitrep-sdk . SYSTEM_POSES",
+        "note": "The processor behind useSystemInstant, readable by id from a contribution's deps"
+      },
+      {
         "key": "sitrep-sdk . SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -9547,6 +9611,18 @@
       {
         "key": "sitrep-sdk . SizeDelta#w?",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
+      },
+      {
+        "key": "sitrep-sdk . SystemPoses",
+        "note": "The poses of every body at one instant, by body index"
+      },
+      {
+        "key": "sitrep-sdk . SystemPoses#poseByIndex",
+        "note": "The poses of every body at one instant, by body index"
+      },
+      {
+        "key": "sitrep-sdk . SystemPoses#ut",
+        "note": "The poses of every body at one instant, by body index"
       },
       {
         "key": "sitrep-sdk . TINY_SIZE",
@@ -9581,6 +9657,10 @@
         "note": "The literal text before a family's first placeholder, empty when it starts with one"
       },
       {
+        "key": "sitrep-sdk . poseAtIndex",
+        "note": "Looks one body's pose up by its index, null when the instant has none"
+      },
+      {
         "key": "sitrep-sdk . sendTogether",
         "note": "New: sends the commands made inside its callback as one message"
       },
@@ -9589,8 +9669,16 @@
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
       },
       {
+        "key": "sitrep-sdk . systemPosesAt",
+        "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
+      },
+      {
         "key": "sitrep-sdk . topicMatchesFamily",
         "note": "Whether a Topic id is a member of a family, segment by segment"
+      },
+      {
+        "key": "sitrep-sdk . useSystemInstant",
+        "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
       },
       {
         "key": "sitrep-sdk . ~UplinkActionOutcome",
@@ -10497,6 +10585,46 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk ./spine BodyPose",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#asOfUt",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#atUt",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#currency",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#index",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#position",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#trueAnomaly",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#untilUt",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPose#velocity",
+        "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
+      },
+      {
+        "key": "sitrep-sdk ./spine BodyPoseCurrency",
+        "note": "How well a body's place is known: exact, modelled, held or withdrawn"
+      },
+      {
         "key": "sitrep-sdk ./spine CapturedSend",
         "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
       },
@@ -10657,6 +10785,22 @@
         "note": "A patch with lan, argPe and meanAnomalyAtEpoch present, which the propagation reads"
       },
       {
+        "key": "sitrep-sdk ./spine SYSTEM_POSES",
+        "note": "The processor behind useSystemInstant, readable by id from a contribution's deps"
+      },
+      {
+        "key": "sitrep-sdk ./spine SystemPoses",
+        "note": "The poses of every body at one instant, by body index"
+      },
+      {
+        "key": "sitrep-sdk ./spine SystemPoses#poseByIndex",
+        "note": "The poses of every body at one instant, by body index"
+      },
+      {
+        "key": "sitrep-sdk ./spine SystemPoses#ut",
+        "note": "The poses of every body at one instant, by body index"
+      },
+      {
         "key": "sitrep-sdk ./spine Vec3Tuple",
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
@@ -10673,6 +10817,10 @@
         "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
       },
       {
+        "key": "sitrep-sdk ./spine poseAtIndex",
+        "note": "Looks one body's pose up by its index, null when the instant has none"
+      },
+      {
         "key": "sitrep-sdk ./spine readPendingLane",
         "note": "New spine helper behind a held command's cancel, shared by the hook and by a group"
       },
@@ -10687,6 +10835,14 @@
       {
         "key": "sitrep-sdk ./spine solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
+      },
+      {
+        "key": "sitrep-sdk ./spine systemPosesAt",
+        "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
+      },
+      {
+        "key": "sitrep-sdk ./spine useSystemInstant",
+        "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
       },
       {
         "key": "sitrep-sdk ./spine wrap180",

@@ -57,16 +57,23 @@ export type {
   WireOrbitElements,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 export {
+  type BodyPose,
+  type BodyPoseCurrency,
   bodyRadiusOf,
   buildElements,
   conicApsides,
   findImpactPoint,
+  poseAtIndex,
   predictImpactPoint,
   ROTATION_PERIOD_SECONDS,
   type SentTransmission,
+  SYSTEM_POSES,
+  type SystemPoses,
   solveOrbit,
   solveSelfOrbit,
+  systemPosesAt,
   type UseTransmissionsResult,
+  useSystemInstant,
   useTransmissions,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 export {

@@ -63,7 +63,7 @@ function catalogue(
       epoch: value(0),
     },
   } as BodyEntry;
-  return deriveCelestialFacts([star, planet], 0);
+  return deriveCelestialFacts([star, planet]);
 }
 
 function planetOf(facts: CelestialFacts) {

@@ -23,10 +23,11 @@ function entry(index: number, name: string, parentIndex?: number): BodyEntry {
   } as BodyEntry;
 }
 
-const FACTS = deriveCelestialFacts(
-  [entry(0, "Kerbol"), entry(1, "Kerbin", 0), entry(2, "Mun", 1)],
-  0,
-);
+const FACTS = deriveCelestialFacts([
+  entry(0, "Kerbol"),
+  entry(1, "Kerbin", 0),
+  entry(2, "Mun", 1),
+]);
 
 function frame(overrides: Partial<ControlFrame>): ControlFrame {
   return { kind: ControlFrameKind.Unspecified, ...overrides };

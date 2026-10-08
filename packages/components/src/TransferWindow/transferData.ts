@@ -13,10 +13,13 @@ import {
   type StateLike,
   type TransferSolution,
 } from "@ksp-gonogo/core";
-import { type OrbitElements, solve } from "@ksp-gonogo/sitrep-client";
+import {
+  type OrbitElements,
+  type SystemPoses,
+  solve,
+} from "@ksp-gonogo/sitrep-client";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
 
-const toDeg = (rad: number): number => (rad * 180) / Math.PI;
 const wrap360 = (deg: number): number => ((deg % 360) + 360) % 360;
 
 /** The parent body's μ for `body` (looked up by `referenceBody` name). */
@@ -28,16 +31,20 @@ export function parentMu(
   return parent?.gravParameter ?? null;
 }
 
-/** True longitude (degrees, [0,360)) of a body: (Ω + ω) + ν. */
-export function bodyTrueLongitudeDeg(body: CelestialBody): number | null {
+/** True longitude (degrees, [0,360)) of a body at its pose: (Ω + ω) + ν. Null while the pose has no anomaly, or an element is missing. */
+export function bodyTrueLongitudeDeg(
+  body: CelestialBody,
+  poses: SystemPoses | undefined,
+): number | null {
+  const trueAnomaly = poses?.poseByIndex[body.index]?.trueAnomaly;
   if (
     body.lan == null ||
     body.argumentOfPeriapsis == null ||
-    body.trueAnomaly == null
+    trueAnomaly == null
   ) {
     return null;
   }
-  return wrap360(toDeg(body.lan + body.argumentOfPeriapsis) + body.trueAnomaly);
+  return wrap360(body.lan + body.argumentOfPeriapsis + trueAnomaly);
 }
 
 /**
@@ -48,9 +55,10 @@ export function bodyTrueLongitudeDeg(body: CelestialBody): number | null {
 export function phaseAngleDeg(
   origin: CelestialBody,
   dest: CelestialBody,
+  poses: SystemPoses | undefined,
 ): number | null {
-  const lo = bodyTrueLongitudeDeg(origin);
-  const ld = bodyTrueLongitudeDeg(dest);
+  const lo = bodyTrueLongitudeDeg(origin, poses);
+  const ld = bodyTrueLongitudeDeg(dest, poses);
   if (lo == null || ld == null) return null;
   return angleDelta(ld, lo);
 }
@@ -91,6 +99,8 @@ export interface TransferComputeInput {
   /** The destination body (must share `origin`'s parent). */
   dest: CelestialBody;
   bodies: CelestialBody[];
+  /** Where each body is now; without it the phase angle is unknown and no solution is offered. */
+  poses: SystemPoses | undefined;
   /** Parking-orbit radius around the origin body (m). */
   parkingRadius: number;
   nowUt: number;
@@ -103,7 +113,7 @@ export interface TransferComputeInput {
 export function computeTransfer(
   input: TransferComputeInput,
 ): TransferSolution | null {
-  const { origin, dest, bodies, parkingRadius, nowUt } = input;
+  const { origin, dest, bodies, poses, parkingRadius, nowUt } = input;
   const muParent = parentMu(origin, bodies);
   if (
     muParent == null ||
@@ -115,7 +125,7 @@ export function computeTransfer(
   ) {
     return null;
   }
-  const currentPhaseDeg = phaseAngleDeg(origin, dest);
+  const currentPhaseDeg = phaseAngleDeg(origin, dest, poses);
   if (currentPhaseDeg == null) return null;
   return keplerTransferSolver.solve({
     muParent,
@@ -349,6 +359,7 @@ export interface ReachEntry {
 export interface ReachComputeInput {
   origin: CelestialBody;
   bodies: CelestialBody[];
+  poses: SystemPoses | undefined;
   /** Parking-orbit radius around the origin body (m). */
   parkingRadius: number;
   nowUt: number;
@@ -361,7 +372,7 @@ export interface ReachComputeInput {
  * a missing row and an unaffordable one are not the same fact.
  */
 export function reachEntries(input: ReachComputeInput): ReachEntry[] {
-  const { origin, bodies, parkingRadius, nowUt } = input;
+  const { origin, bodies, poses, parkingRadius, nowUt } = input;
   const muParent = parentMu(origin, bodies);
 
   const entries = transferDestinations(origin, bodies).map<ReachEntry>(
@@ -380,6 +391,7 @@ export function reachEntries(input: ReachComputeInput): ReachEntry[] {
         origin,
         dest,
         bodies,
+        poses,
         parkingRadius,
         nowUt,
       });

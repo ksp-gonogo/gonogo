@@ -7,6 +7,7 @@ import {
 import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { placedAt, posesOf } from "../test/bodyPoses";
 import {
   ANALYTIC_UNBOUNDED_HORIZON,
   integratedHorizon,
@@ -25,7 +26,16 @@ const KERBIN_MU = 3.5316e12;
 function makeBody(
   index: number,
   name: string,
-  overrides: Partial<CelestialBody> = {},
+  overrides: Partial<CelestialBody> & { trueAnomaly?: number | null } = {},
+): CelestialBody {
+  const { trueAnomaly = null, ...catalogue } = overrides;
+  return placedAt(bodyRecord(index, name, catalogue), trueAnomaly);
+}
+
+function bodyRecord(
+  index: number,
+  name: string,
+  overrides: Partial<CelestialBody>,
 ): CelestialBody {
   return {
     index,
@@ -45,7 +55,6 @@ function makeBody(
     horizon: ANALYTIC_BODY_HORIZON,
     deterministic: true,
     period: null,
-    trueAnomaly: null,
     mass: null,
     geeASL: null,
     escapeVelocity: null,
@@ -96,7 +105,7 @@ function renderPhaseAngles(bodies: CelestialBody[]) {
     suspendFrames: true,
   });
   const { result, rerender } = renderHook(
-    ({ b }: { b: CelestialBody[] }) => usePhaseAngles(b),
+    ({ b }: { b: CelestialBody[] }) => usePhaseAngles(b, posesOf(b)),
     { wrapper: fixture.Provider, initialProps: { b: bodies } },
   );
   return { fixture, result, rerender };
@@ -294,10 +303,11 @@ describe("phase angles under signal delay", () => {
     const bodies = [makeBody(0, "Kerbin", { gravParameter: KERBIN_MU }), mun];
     const { result } = renderHook(
       () => ({
-        observed: usePhaseAngles([mun]),
+        observed: usePhaseAngles([mun], posesOf([mun])),
         reading: usePhaseAngleReading(
           mun,
           bodies,
+          posesOf([mun]),
           useViewUt()?.magnitude,
           held,
         ),
