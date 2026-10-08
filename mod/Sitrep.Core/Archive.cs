@@ -215,6 +215,51 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// As <see cref="LatestAtOrBefore"/>, passing over a sample that reached
+        /// some other command centre and has not yet reached
+        /// <paramref name="vantage"/> (see <see cref="DelayStamp.IsDeliveryIndexed"/>).
+        /// A NaN <paramref name="nowUt"/> asks for no such check.
+        /// </summary>
+        private static Sample? LatestDeliveredAtOrBefore(List<Sample> list, double sceneUt, string vantage, double nowUt)
+        {
+            var found = LatestAtOrBefore(list, sceneUt);
+            if (found == null || double.IsNaN(nowUt))
+            {
+                return found;
+            }
+            var at = double.IsNaN(sceneUt) ? list.Count - 1 : IndexAtOrBefore(list, sceneUt);
+            while (at >= 0)
+            {
+                var sample = list[at];
+                if (sample.Stamp == null || !sample.Stamp.IsDeliveryIndexed || sample.ValidAt + sample.Stamp.For(vantage) <= nowUt)
+                {
+                    return sample;
+                }
+                at--;
+            }
+            return null;
+        }
+
+        private static int IndexAtOrBefore(List<Sample> list, double sceneUt)
+        {
+            var lo = 0;
+            var hi = list.Count;
+            while (lo < hi)
+            {
+                var mid = lo + (hi - lo) / 2;
+                if (list[mid].ValidAt > sceneUt)
+                {
+                    hi = mid;
+                }
+                else
+                {
+                    lo = mid + 1;
+                }
+            }
+            return lo - 1;
+        }
+
+        /// <summary>
         /// Read <paramref name="topic"/> as of a scene instant the caller
         /// already knows exactly, WITHOUT reading
         /// <paramref name="vantage"/>'s cursor. Returns the latest sample with
@@ -241,7 +286,7 @@ namespace Sitrep.Core
         /// began carrying their own stamps: it picks the newest ARRIVAL off
         /// those and comes back through this instant read.</para>
         /// </summary>
-        public ArchiveSample? ReadAtInstant(string topic, string vantage, double sceneUt)
+        public ArchiveSample? ReadAtInstant(string topic, string vantage, double sceneUt, double nowUt = double.NaN)
         {
             NoteRead(topic, vantage, sceneUt);
 
@@ -250,7 +295,7 @@ namespace Sitrep.Core
                 return null;
             }
 
-            var found = LatestAtOrBefore(list, sceneUt);
+            var found = LatestDeliveredAtOrBefore(list, sceneUt, vantage, nowUt);
 
             return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
         }
@@ -300,7 +345,7 @@ namespace Sitrep.Core
                 return null;
             }
 
-            var found = LatestAtOrBefore(list, scene);
+            var found = LatestDeliveredAtOrBefore(list, scene, vantage, nowUt);
 
             return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
         }

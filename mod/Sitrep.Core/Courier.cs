@@ -575,6 +575,75 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Deliver a span of samples that reached command centre
+        /// <paramref name="vantage"/> by travelling the network, to the subscribers
+        /// at that centre and to nobody else, stamped
+        /// <see cref="Staleness.Recorded"/> with <paramref name="arrivedAtUt"/> as
+        /// the instant each arrived.
+        ///
+        /// <para>The light time and any waiting at a relay are already in
+        /// <paramref name="arrivedAtUt"/>, so no ledger delay is added here. The
+        /// samples are archived once, at arrival, under a stamp that says when THIS
+        /// centre received them and no other has: the archive is one per craft and
+        /// every centre reads it, so a sample that reached home an hour before it
+        /// reaches a distant centre must not be served to that centre first (see
+        /// <see cref="DelayStamp.IsDeliveryIndexed"/>).</para>
+        ///
+        /// <para>C#-ONLY, like <see cref="ReplayRecorded"/>'s per-vantage stamps.</para>
+        /// </summary>
+        public void ReplayRecordedTo(
+            string node,
+            string topic,
+            string vantage,
+            IReadOnlyList<ArchiveSample> samples,
+            double arrivedAtUt,
+            double? gapSinceUt = null)
+        {
+            if (samples.Count == 0)
+            {
+                return;
+            }
+            var subscribers = new List<Subscriber>();
+            if (_subscribers.TryGetValue(node, out var byTopic) && byTopic.TryGetValue(topic, out var subs))
+            {
+                foreach (var subscriber in subs)
+                {
+                    if (string.Equals(subscriber.Vantage, vantage, StringComparison.Ordinal))
+                    {
+                        subscribers.Add(subscriber);
+                    }
+                }
+            }
+
+            _clock.Schedule(arrivedAtUt, () =>
+            {
+                var archive = ArchiveFor(node);
+                foreach (var sample in samples)
+                {
+                    archive.Record(topic, sample.Value, sample.ValidAt, sample.Epoch, DelayStamp.DeliveredTo(vantage, arrivedAtUt - sample.ValidAt));
+                }
+                foreach (var subscriber in subscribers)
+                {
+                    if (!_subscribers.TryGetValue(node, out var live) || !live.TryGetValue(topic, out var current) || !current.Contains(subscriber))
+                    {
+                        continue;
+                    }
+                    for (var i = 0; i < samples.Count; i++)
+                    {
+                        subscriber.OnData(StreamDataFor(
+                            node,
+                            topic,
+                            subscriber.Vantage,
+                            samples[i],
+                            arrivedAtUt,
+                            Staleness.Recorded,
+                            i == 0 ? gapSinceUt : null));
+                    }
+                }
+            });
+        }
+
+        /// <summary>
         /// Record a SCET-stamped sample and schedule its delayed delivery to
         /// every current subscriber.
         ///
@@ -1042,7 +1111,7 @@ namespace Sitrep.Core
         {
             var archive = ArchiveFor(node);
             var sample = stampedDelaySeconds != null
-                ? archive.ReadAtInstant(topic, subscriber.Vantage, fireUt - stampedDelaySeconds.Value)
+                ? archive.ReadAtInstant(topic, subscriber.Vantage, fireUt - stampedDelaySeconds.Value, fireUt)
                 : archive.ReadAtVantage(
                     topic, subscriber.Vantage, _network.DelayTo(subscriber.Vantage, node), fireUt);
             if (sample == null || LostInFlight(node, topic, sample.Value.ValidAt))

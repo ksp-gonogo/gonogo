@@ -235,4 +235,91 @@ namespace Sitrep.Core.StoreAndForward
 
         public override double ExpiresUt => double.PositiveInfinity;
     }
+
+    /// <summary>
+    /// One sample's bytes as a craft's history holds it, shared by every span
+    /// that carries it: a sample sent to two command centres is one payload and
+    /// two entries, never two copies.
+    /// </summary>
+    public sealed class SpanPayload
+    {
+        /// <summary>The sample in whatever form its holder packed it to, opaque to the network.</summary>
+        public object? Held { get; set; }
+
+        /// <summary>What holding it costs, in the holder's budget units.</summary>
+        public long Bytes { get; set; }
+
+        /// <summary>What sending it costs against a release's allowance.</summary>
+        public long ReleaseCost { get; set; }
+
+        /// <summary>How many spans still carry it; the holder frees the payload when this reaches zero.</summary>
+        public int Carriers { get; set; }
+    }
+
+    /// <summary>One sample of a span: the instant it describes and its payload.</summary>
+    public readonly struct SpanSample
+    {
+        public SpanSample(double ut, SpanPayload payload)
+        {
+            Ut = ut;
+            Payload = payload;
+        }
+
+        public double Ut { get; }
+
+        public SpanPayload Payload { get; }
+    }
+
+    /// <summary>
+    /// A stretch of one craft's history of one topic on its way to one command
+    /// centre, oldest sample first. It travels, waits at relays and is received
+    /// like any other message; unlike a command it has no lifetime and no lane,
+    /// since each sample carries the instant it describes and the receiver puts
+    /// it in order itself.
+    /// </summary>
+    public sealed class SpanMessage : DeliveryMessage
+    {
+        /// <summary>The node whose history this is.</summary>
+        public string Craft { get; set; } = "";
+
+        /// <summary>The command centre it is going to.</summary>
+        public string Centre { get; set; } = "";
+
+        /// <summary>The topic the samples belong to.</summary>
+        public string Topic { get; set; } = "";
+
+        /// <summary>The samples, oldest first.</summary>
+        public List<SpanSample> Samples { get; set; } = new List<SpanSample>();
+
+        /// <summary>Whether samples older than the first were dropped to stay in the hold store's budget, so the first sample delivered must state the hole before it.</summary>
+        public bool StartsAfterAHole { get; set; }
+
+        public override string Destination => Centre;
+
+        public override double ExpiresUt => double.PositiveInfinity;
+    }
+
+    /// <summary>A sample a span lost to the hold store's budget, so its holder can state the hole.</summary>
+    public readonly struct SpanShed
+    {
+        public SpanShed(string craft, string centre, string topic, double ut, SpanPayload payload)
+        {
+            Craft = craft;
+            Centre = centre;
+            Topic = topic;
+            Ut = ut;
+            Payload = payload;
+        }
+
+        public string Craft { get; }
+
+        public string Centre { get; }
+
+        public string Topic { get; }
+
+        /// <summary>The instant the dropped sample described.</summary>
+        public double Ut { get; }
+
+        public SpanPayload Payload { get; }
+    }
 }

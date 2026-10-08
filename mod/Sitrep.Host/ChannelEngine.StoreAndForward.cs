@@ -284,7 +284,8 @@ namespace Sitrep.Host
                 new PlanRoutes(null),
                 ExecuteDelivered,
                 OnJourneyReport,
-                beliefs: SenderPlans);
+                beliefs: SenderPlans,
+                deliverSpan: OnSpanDelivered);
         }
 
         private void DeclareDeliveryChannels()

@@ -83,6 +83,18 @@ namespace Sitrep.Core
         public double BaseSeconds => _baseSeconds;
 
         /// <summary>
+        /// Whether this stamp says when ONE vantage received the sample, which no
+        /// other vantage has yet. An archive that holds such a sample serves it
+        /// only to a vantage whose arrival has passed, since the archive is one per
+        /// craft and is read by every command centre.
+        /// </summary>
+        public bool IsDeliveryIndexed { get; private set; }
+
+        /// <summary>A stamp for a sample that reached <paramref name="vantage"/> <paramref name="arrivalSeconds"/> after the instant it describes and has reached no other.</summary>
+        public static DelayStamp DeliveredTo(string vantage, double arrivalSeconds) =>
+            new DelayStamp(double.PositiveInfinity, new Dictionary<string, double> { [vantage] = arrivalSeconds }) { IsDeliveryIndexed = true };
+
+        /// <summary>
         /// The explicit per-vantage rows as a fresh map, or <c>null</c> when
         /// there were none. For <see cref="Archive.Snapshot"/>, which has to
         /// write the stamp out as plain BCL data rather than as a reference.

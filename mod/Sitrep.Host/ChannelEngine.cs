@@ -7097,6 +7097,7 @@ namespace Sitrep.Host
         private void DiscardInBlackoutBacklog(string node)
         {
             _releasing.Remove(node);
+            DiscardSpansOf(node);
             var topics = new HashSet<string>(_recordings.Keys);
             topics.UnionWith(_pendingGapSinceUt.Keys);
             foreach (var topic in topics)
@@ -7245,6 +7246,15 @@ namespace Sitrep.Host
         /// </summary>
         private void ReplayInBlackoutBacklog(string node, double reacquiredAtUt)
         {
+            if (SpanRoutingOn)
+            {
+                // The recording leaves as spans by the plan, and not as a dump
+                // from here: a craft that has its link back still reaches a
+                // centre by the hops the plan names.
+                OffloadRecordings(reacquiredAtUt, node);
+                return;
+            }
+
             var heldSamples = 0;
             var heldBytes = 0L;
             var heaviest = new List<KeyValuePair<string, long>>();
@@ -7335,51 +7345,7 @@ namespace Sitrep.Host
                 }
             }
 
-            var lumps = new Dictionary<string, List<ArchiveSample>>();
-            var epoch = _courier.CurrentEpoch;
-            while (_releaseBytesCredit > 0 && _releaseSamplesCredit > 0)
-            {
-                var next = -1;
-                var nextUt = double.PositiveInfinity;
-                var runnerUpUt = double.PositiveInfinity;
-                for (var i = 0; i < runs.Count; i++)
-                {
-                    if (runs[i].Value.Count == 0)
-                    {
-                        continue;
-                    }
-                    var headUt = runs[i].Value.HeadUt;
-                    if (headUt < nextUt)
-                    {
-                        runnerUpUt = nextUt;
-                        nextUt = headUt;
-                        next = i;
-                        continue;
-                    }
-                    runnerUpUt = Math.Min(runnerUpUt, headUt);
-                }
-                if (next < 0)
-                {
-                    break;
-                }
-
-                var topic = runs[next].Key;
-                var run = runs[next].Value;
-                if (!lumps.TryGetValue(topic, out var lump))
-                {
-                    lump = new List<ArchiveSample>();
-                    lumps[topic] = lump;
-                }
-                do
-                {
-                    var sample = run.TakeHead();
-                    _recordedBytes -= sample.Bytes;
-                    _releaseBytesCredit -= sample.ReleaseCost;
-                    _releaseSamplesCredit -= 1;
-                    lump.Add(new ArchiveSample(sample.Packed != null ? _heldSampleCodec.Unpack(sample.Packed) : sample.Value, sample.Ut, epoch));
-                }
-                while (run.Count > 0 && run.HeadUt <= runnerUpUt && _releaseBytesCredit > 0 && _releaseSamplesCredit > 0);
-            }
+            var lumps = TakeOldestFirst(runs, _ => { });
 
             var releasedSamples = 0;
             foreach (var kv in lumps)
@@ -7445,7 +7411,7 @@ namespace Sitrep.Host
             var bytes = sample.Bytes;
             run.Add(sample);
             _recordedBytes += bytes;
-            if (_recordedBytes > _recorderBudgetBytes)
+            if (HeldTotalBytes > _recorderBudgetBytes)
             {
                 ShedOldestRecordings();
             }
@@ -7475,11 +7441,12 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Drop the oldest held samples, across every craft and topic, until the
-        /// recorder is a hundredth under its budget, so the walk happens once per
-        /// hundredth of budget and not once per sample. Each topic that lost
-        /// samples owes the hole as <see cref="Meta.GapSinceUt"/> on its next
-        /// delivered sample, and the drop is logged with the span it took.
+        /// Drop the oldest held samples, across every craft, topic and place they
+        /// are held (still aboard, in a span at a node, or arrived and waiting its
+        /// turn), until everything held is a hundredth under the budget, so the
+        /// walk happens once per hundredth of budget and not once per sample. Each
+        /// topic that lost samples owes the hole as <see cref="Meta.GapSinceUt"/> on
+        /// its next delivered sample, and the drop is logged with the span it took.
         /// </summary>
         private void ShedOldestRecordings()
         {
@@ -7491,7 +7458,7 @@ namespace Sitrep.Host
             var topics = new HashSet<string>();
             var nodes = new HashSet<string>();
 
-            while (_recordedBytes > target)
+            while (HeldTotalBytes > target)
             {
                 string? oldest = null;
                 var oldestUt = double.PositiveInfinity;
@@ -7503,35 +7470,117 @@ namespace Sitrep.Host
                         oldest = kv.Key;
                     }
                 }
+                (string Centre, string Topic)? oldestInbound = null;
+                foreach (var kv in _inbound)
+                {
+                    if (kv.Value.Count > 0 && kv.Value.HeadUt < oldestUt)
+                    {
+                        oldestUt = kv.Value.HeadUt;
+                        oldest = null;
+                        oldestInbound = kv.Key;
+                    }
+                }
+                var oldestSpanUt = _delivery.OldestHeldSpanUt();
+                if (oldestSpanUt != null && oldestSpanUt.Value < oldestUt)
+                {
+                    var dropped = ShedOldestSpanSample();
+                    if (dropped != null)
+                    {
+                        shedSamples++;
+                        shedBytes += dropped.Value.Bytes;
+                        fromUt = Math.Min(fromUt, dropped.Value.Ut);
+                        toUt = Math.Max(toUt, dropped.Value.Ut);
+                        topics.Add(dropped.Value.Topic);
+                        nodes.Add(dropped.Value.Craft);
+                        continue;
+                    }
+                }
+                if (oldestInbound != null)
+                {
+                    var key = oldestInbound.Value;
+                    var dropped = _inbound[key].TakeHead();
+                    ReleasePayload(dropped.Payload!);
+                    _holeAhead.Add(key);
+                    shedSamples++;
+                    shedBytes += dropped.Payload!.Bytes;
+                    fromUt = Math.Min(fromUt, dropped.Ut);
+                    toUt = Math.Max(toUt, dropped.Ut);
+                    topics.Add(key.Topic);
+                    nodes.Add(key.Centre);
+                    continue;
+                }
                 if (oldest == null)
                 {
                     break;
                 }
 
-                var dropped = _recordings[oldest].TakeHead();
-                _recordedBytes -= dropped.Bytes;
+                var taken = _recordings[oldest].TakeHead();
+                _recordedBytes -= taken.Bytes;
                 OpenGap(oldest);
                 shedSamples++;
-                shedBytes += dropped.Bytes;
-                fromUt = Math.Min(fromUt, dropped.Ut);
-                toUt = Math.Max(toUt, dropped.Ut);
+                shedBytes += taken.Bytes;
+                fromUt = Math.Min(fromUt, taken.Ut);
+                toUt = Math.Max(toUt, taken.Ut);
                 topics.Add(oldest);
                 nodes.Add(NodeFor(oldest));
             }
 
             foreach (var topic in topics)
             {
-                if (_recordings[topic].Count == 0)
+                if (_recordings.TryGetValue(topic, out var run) && run.Count == 0)
                 {
                     _recordings.Remove(topic);
                 }
             }
+            foreach (var key in new List<(string Centre, string Topic)>(_inbound.Keys))
+            {
+                if (_inbound[key].Count == 0)
+                {
+                    _inbound.Remove(key);
+                }
+            }
 
+            NoteShed(shedSamples, shedBytes, fromUt, toUt, topics, nodes);
+        }
+
+        // What the budget has dropped since it last said so, so a recorder that sits at its
+        // budget reports once per interval and not once per tick.
+        private int _shedSamplesUnreported;
+        private long _shedBytesUnreported;
+        private double _shedFromUt = double.PositiveInfinity;
+        private double _shedToUt = double.NegativeInfinity;
+        private readonly HashSet<string> _shedTopicsUnreported = new HashSet<string>();
+        private readonly HashSet<string> _shedNodesUnreported = new HashSet<string>();
+        private double _shedLoggedAtSec = double.NaN;
+
+        private const double ShedLogIntervalSec = 10.0;
+
+        private void NoteShed(int samples, long bytes, double fromUt, double toUt, HashSet<string> topics, HashSet<string> nodes)
+        {
+            _shedSamplesUnreported += samples;
+            _shedBytesUnreported += bytes;
+            _shedFromUt = Math.Min(_shedFromUt, fromUt);
+            _shedToUt = Math.Max(_shedToUt, toUt);
+            _shedTopicsUnreported.UnionWith(topics);
+            _shedNodesUnreported.UnionWith(nodes);
+
+            var now = _nowRealSec();
+            if (!double.IsNaN(_shedLoggedAtSec) && now - _shedLoggedAtSec < ShedLogIntervalSec)
+            {
+                return;
+            }
+            _shedLoggedAtSec = now;
             var ic = System.Globalization.CultureInfo.InvariantCulture;
             LogHost(
-                "recorder: over its " + FormatBytes(_recorderBudgetBytes) + " budget, dropped the oldest " + shedSamples + " samples ("
-                + FormatBytes(shedBytes) + ", UT " + fromUt.ToString("F1", ic) + " to " + toUt.ToString("F1", ic) + ") on "
-                + topics.Count + " topics of " + string.Join(", ", nodes) + "; each states the hole on its next delivered sample");
+                "recorder: over its " + FormatBytes(_recorderBudgetBytes) + " budget, dropped the oldest " + _shedSamplesUnreported + " samples ("
+                + FormatBytes(_shedBytesUnreported) + ", UT " + _shedFromUt.ToString("F1", ic) + " to " + _shedToUt.ToString("F1", ic) + ") on "
+                + _shedTopicsUnreported.Count + " topics of " + string.Join(", ", _shedNodesUnreported) + "; each states the hole on its next delivered sample");
+            _shedSamplesUnreported = 0;
+            _shedBytesUnreported = 0;
+            _shedFromUt = double.PositiveInfinity;
+            _shedToUt = double.NegativeInfinity;
+            _shedTopicsUnreported.Clear();
+            _shedNodesUnreported.Clear();
         }
 
         private static string FormatBytes(long bytes) =>
@@ -7548,7 +7597,7 @@ namespace Sitrep.Host
         internal void SetRecorderBudgetForTests(long bytes) => _recorderBudgetBytes = bytes;
 
         /// <summary>Test hook: the heap the recorder holds now, as <see cref="HeldSampleSize"/> counts it.</summary>
-        internal long RecordedBytes => _recordedBytes;
+        internal long RecordedBytes => HeldTotalBytes;
 
         /// <summary>Test hook: the budget the recorder is enforcing now.</summary>
         internal long RecorderBudgetBytesNow => _recorderBudgetBytes;
@@ -7751,6 +7800,7 @@ namespace Sitrep.Host
                 _recordedBytes = 0;
                 _heldSampleBytes.Clear();
                 _releasing.Clear();
+                ResetSpanState();
                 // Including the recorder's own bookkeeping: a held recording
                 // describes the abandoned timeline, and both a "last delivered
                 // UT" and an owed gap are statements about a record that no
@@ -8047,7 +8097,9 @@ namespace Sitrep.Host
             // run against the craft that is active now, not the one that was.
             NoteActiveCraft(tick.Snapshot);
             _clock.AdvanceTo(tick.Ut);
+            OffloadRecordings(tick.Ut, null);
             TickDelivery(tick.Ut);
+            ContinueInbound(tick.Ut);
             ReleaseGameStateAfterTick();
             tick.Done?.Set();
         }
@@ -9619,13 +9671,17 @@ namespace Sitrep.Host
             /// <summary>What releasing the sample costs against the release's allowance: about its size on the wire.</summary>
             public readonly long ReleaseCost;
 
-            public RecordedSample(double ut, object? value, byte[]? packed, long bytes, long releaseCost)
+            /// <summary>The payload a span delivered the sample in, which every centre it went to shares; null for a sample still held by the craft that took it.</summary>
+            public readonly Sitrep.Core.StoreAndForward.SpanPayload? Payload;
+
+            public RecordedSample(double ut, object? value, byte[]? packed, long bytes, long releaseCost, Sitrep.Core.StoreAndForward.SpanPayload? payload = null)
             {
                 Ut = ut;
                 Value = value;
                 Packed = packed;
                 Bytes = bytes;
                 ReleaseCost = releaseCost;
+                Payload = payload;
             }
         }
 
@@ -9648,6 +9704,18 @@ namespace Sitrep.Host
             public void Add(RecordedSample sample)
             {
                 _items.Add(sample);
+                Bytes += sample.Bytes;
+            }
+
+            /// <summary>Adds a sample behind the ones it is not older than, keeping the run oldest first.</summary>
+            public void AddSorted(RecordedSample sample)
+            {
+                var at = _items.Count;
+                while (at > _head && _items[at - 1].Ut > sample.Ut)
+                {
+                    at--;
+                }
+                _items.Insert(at, sample);
                 Bytes += sample.Bytes;
             }
 

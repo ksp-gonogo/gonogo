@@ -31,6 +31,9 @@ namespace Sitrep.Host.Comms
         public double? LiveLink(string from, string to) =>
             _links.TryGetValue(from, out var near) && near.TryGetValue(to, out var light) ? light : (double?)null;
 
+        /// <summary>Whether <paramref name="node"/> has a direct link to anything right now.</summary>
+        public bool HasLink(string node) => _links.TryGetValue(node, out var near) && near.Count > 0;
+
         /// <summary>The light time of the fastest chain of live links from one node to another, or null when none joins them.</summary>
         public double? LivePath(string from, string to)
         {

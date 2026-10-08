@@ -179,6 +179,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the active craft has a link home.</summary>
         public bool ActiveConnected { get; set; } = true;
 
+        /// <summary>What the active craft's own telemetry topic reads, which a test moves each tick.</summary>
+        public double ActiveValue { get; set; }
+
         /// <summary>Whether the relay has a link home.</summary>
         public bool RelayConnected { get; set; } = true;
 
@@ -299,6 +302,9 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         /// <summary>Whether the relay is within physics range of the active craft, loaded beside it.</summary>
         public bool RelayInRange { get; set; }
+
+        /// <summary>The light-time of a direct radio link between the active craft and the home centre, in seconds, or null for none.</summary>
+        public double? ActiveLinkedToHomeSeconds { get; set; }
 
         /// <summary>The light-time of a direct radio link between the active craft and the relay, in seconds, or null for none.</summary>
         public double? ActiveLinkedToRelaySeconds { get; set; }
@@ -510,6 +516,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private const string RelayStateTopic = "fleet." + ScriptedContactGame.RelayGuid + ".state";
 
+        /// <summary>A telemetry topic of the active craft: Delayed, recordable, and read off the game's <see cref="ScriptedContactGame.ActiveValue"/>.</summary>
+        public const string ActiveTelemetryTopic = "reckoned.active.value";
+
         /// <summary>A control-channel write, a throttle, whose subject here is the relay.</summary>
         public const string ThrottleCommand = "vessel.control.setThrottle";
 
@@ -556,6 +565,14 @@ namespace Sitrep.Host.IntegrationTests
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,
+            });
+            channels.Add(new ChannelDeclaration
+            {
+                Topic = ActiveTelemetryTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+                Recordable = true,
             });
             channels.Add(new ChannelDeclaration
             {
@@ -612,6 +629,7 @@ namespace Sitrep.Host.IntegrationTests
             host.AddSampledSource(_ => new Ledger(_game), captured => Apply((Ledger)captured!));
             _source.Register(host);
             host.AddChannelSource(RelayStateTopic, _ => null);
+            host.AddChannelSource(ActiveTelemetryTopic, snapshot => snapshot != null && snapshot.Values.TryGetValue("activeValue", out var value) ? value : null);
             host.AddChannelSource(ChannelEngine.ConnectivityMetaTopic, _ => new CommsLink { Connected = _game.ActiveConnected });
             host.AddCommandHandler<string, string>(RelayCommand, args =>
             {
@@ -702,13 +720,17 @@ namespace Sitrep.Host.IntegrationTests
             // The live links, for whether light that was sent lands and for a
             // relay's own link: the relay to each centre while it has one.
             var links = new List<(string, string, double)>();
+            if (ledger.ActiveLinkedToHomeSeconds != null)
+            {
+                links.Add((ScriptedContactGame.Home, ScriptedContactGame.Active, ledger.ActiveLinkedToHomeSeconds.Value));
+            }
+            if (ledger.RelayExists && ledger.ActiveLinkedToRelaySeconds != null)
+            {
+                links.Add((ScriptedContactGame.Active, ScriptedContactGame.Relay, ledger.ActiveLinkedToRelaySeconds.Value));
+            }
             if (ledger.RelayExists && ledger.RelayConnected)
             {
                 links.Add((ScriptedContactGame.Home, ScriptedContactGame.Relay, ledger.RelayFromHomeSeconds));
-                if (ledger.ActiveLinkedToRelaySeconds != null)
-                {
-                    links.Add((ScriptedContactGame.Active, ScriptedContactGame.Relay, ledger.ActiveLinkedToRelaySeconds.Value));
-                }
                 if (ledger.FarLinkedToRelay)
                 {
                     links.Add((ScriptedContactGame.Far, ScriptedContactGame.Relay, ledger.RelayFromFarSeconds));
@@ -729,6 +751,7 @@ namespace Sitrep.Host.IntegrationTests
                 RelayFromFarSeconds = game.RelayFromFarSeconds;
                 FarLinkedToRelay = game.FarLinkedToRelay;
                 ActiveLinkedToRelaySeconds = game.ActiveLinkedToRelaySeconds;
+                ActiveLinkedToHomeSeconds = game.ActiveLinkedToHomeSeconds;
                 FarRoutedToRelay = game.FarRoutedToRelay;
             }
 
@@ -749,6 +772,8 @@ namespace Sitrep.Host.IntegrationTests
             public bool FarLinkedToRelay { get; }
 
             public double? ActiveLinkedToRelaySeconds { get; }
+
+            public double? ActiveLinkedToHomeSeconds { get; }
         }
     }
 
@@ -798,6 +823,10 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>When the last contact plan this centre was sent was made, and when it arrived.</summary>
         public (double ValidAt, double DeliveredAt, string Vantage)? ContactsMeta { get; private set; }
+
+        /// <summary>Every frame of the active craft's telemetry topic this screen has received, in order.</summary>
+        public List<(double Value, double ValidAt, double DeliveredAt, Staleness Staleness, double? GapSinceUt)> Telemetry { get; } =
+            new List<(double, double, double, Staleness, double?)>();
 
         public void Received(string topic, string payload, double validAt, double deliveredAt, string vantage)
         {
@@ -936,6 +965,7 @@ namespace Sitrep.Host.IntegrationTests
                     ["identity"] = new Dictionary<string, object?> { ["id"] = Game.ActiveNow },
                 },
                 ["targetAvailable"] = Game.TargetsSnapshot(),
+                ["activeValue"] = Game.ActiveValue,
             };
             if (!Game.OutOfFlight)
             {
@@ -969,6 +999,15 @@ namespace Sitrep.Host.IntegrationTests
                     && root.TryGetProperty("payload", out var payload))
                 {
                     var meta = root.GetProperty("meta");
+                    if (root.GetProperty("topic").GetString() == ScriptedContactUplink.ActiveTelemetryTopic && payload.ValueKind == JsonValueKind.Number)
+                    {
+                        view.Telemetry.Add((
+                            payload.GetDouble(),
+                            meta.GetProperty("validAt").GetDouble(),
+                            meta.GetProperty("deliveredAt").GetDouble(),
+                            (Staleness)meta.GetProperty("staleness").GetInt32(),
+                            meta.TryGetProperty("gapSinceUt", out var gap) && gap.ValueKind == JsonValueKind.Number ? gap.GetDouble() : (double?)null));
+                    }
                     view.Received(
                         root.GetProperty("topic").GetString()!,
                         payload.GetRawText(),
@@ -1002,6 +1041,7 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.PathTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.NetworkTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.CommandCentreTopic, Timeout)).Name);
+            Assert.Equal("subscribed", (await SubscribeAsync(client, ScriptedContactUplink.ActiveTelemetryTopic, Timeout)).Name);
             return client;
         }
 

@@ -138,6 +138,7 @@ namespace Sitrep.Core.StoreAndForward
         private readonly ISenderPlans? _beliefs;
         private readonly Func<CommandMessage, double, object?> _execute;
         private readonly Action<ReportMessage> _deliverReport;
+        private readonly Action<SpanMessage, double>? _deliverSpan;
         private readonly Dictionary<string, List<Held>> _held = new Dictionary<string, List<Held>>(StringComparer.Ordinal);
         private readonly List<Flight> _flights = new List<Flight>();
         private readonly Dictionary<string, List<CancelMessage>> _storedCancels = new Dictionary<string, List<CancelMessage>>(StringComparer.Ordinal);
@@ -162,6 +163,7 @@ namespace Sitrep.Core.StoreAndForward
         /// <param name="execute">Runs a command on its craft and returns the result to report back.</param>
         /// <param name="deliverReport">Takes each report as it reaches its command centre.</param>
         /// <param name="beliefs">What each command centre believes, or null for a network that sends on the live path.</param>
+        /// <param name="deliverSpan">Takes each span as it reaches its command centre, with the instant it arrived; null for a network that carries none.</param>
         public DeliveryNetwork(
             IClock clock,
             IDeliveryLinks links,
@@ -169,9 +171,11 @@ namespace Sitrep.Core.StoreAndForward
             Func<CommandMessage, double, object?> execute,
             Action<ReportMessage> deliverReport,
             ControlValueRelease release = ControlValueRelease.RunEvery,
-            ISenderPlans? beliefs = null)
+            ISenderPlans? beliefs = null,
+            Action<SpanMessage, double>? deliverSpan = null)
         {
             _beliefs = beliefs;
+            _deliverSpan = deliverSpan;
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _links = links ?? throw new ArgumentNullException(nameof(links));
             _routes = routes ?? throw new ArgumentNullException(nameof(routes));
@@ -412,6 +416,163 @@ namespace Sitrep.Core.StoreAndForward
             }
         }
 
+        /// <summary>
+        /// Puts a span on hold at <paramref name="node"/>, the node whose history
+        /// it carries, to leave for its centre by the plan that centre holds as it
+        /// stands now. It goes the moment that node's own link to the next hop is
+        /// up, and otherwise waits.
+        /// </summary>
+        public void AddSpan(string node, SpanMessage span)
+        {
+            lock (_gate)
+            {
+                var nowUt = _clock.Now();
+                span.Id = MintId("span");
+                span.Plan = PlanAt(span.Centre);
+                Hold(node, span, nowUt, null);
+                Depart(node, nowUt);
+            }
+        }
+
+        /// <summary>The bytes of every span payload held at a node, a copy in custody of a hop included, each payload once however many spans carry it.</summary>
+        public long HeldSpanBytes()
+        {
+            lock (_gate)
+            {
+                var seen = new HashSet<SpanPayload>();
+                long total = 0;
+                foreach (var held in _held.Values.SelectMany(h => h))
+                {
+                    if (held.Message is SpanMessage span)
+                    {
+                        foreach (var sample in span.Samples)
+                        {
+                            if (seen.Add(sample.Payload))
+                            {
+                                total += sample.Payload.Bytes;
+                            }
+                        }
+                    }
+                }
+                return total;
+            }
+        }
+
+        /// <summary>
+        /// Drops the oldest samples of the spans held at nodes, across every span,
+        /// until at least <paramref name="bytes"/> are freed or nothing is left to
+        /// drop, and says what went. A span in custody of a hop is on its way and
+        /// stays. A span emptied is let go.
+        /// </summary>
+        public IReadOnlyList<SpanShed> ShedSpans(long bytes)
+        {
+            lock (_gate)
+            {
+                var shed = new List<SpanShed>();
+                long freed = 0;
+                while (freed < bytes)
+                {
+                    SpanMessage? oldest = null;
+                    string? at = null;
+                    Held? oldestHeld = null;
+                    var oldestUt = double.PositiveInfinity;
+                    foreach (var entry in _held)
+                    {
+                        foreach (var held in entry.Value)
+                        {
+                            if (held.Away == null && held.Message is SpanMessage span && span.Samples.Count > 0 && span.Samples[0].Ut < oldestUt)
+                            {
+                                oldestUt = span.Samples[0].Ut;
+                                oldest = span;
+                                at = entry.Key;
+                                oldestHeld = held;
+                            }
+                        }
+                    }
+                    if (oldest == null)
+                    {
+                        break;
+                    }
+
+                    var dropped = oldest.Samples[0];
+                    oldest.Samples.RemoveAt(0);
+                    oldest.StartsAfterAHole = true;
+                    dropped.Payload.Carriers--;
+                    if (dropped.Payload.Carriers <= 0)
+                    {
+                        freed += dropped.Payload.Bytes;
+                    }
+                    shed.Add(new SpanShed(oldest.Craft, oldest.Centre, oldest.Topic, dropped.Ut, dropped.Payload));
+                    if (oldest.Samples.Count == 0)
+                    {
+                        _held[at!].Remove(oldestHeld!);
+                        oldestHeld!.EndWatch?.Invoke();
+                        oldestHeld.CancelWake?.Invoke();
+                    }
+                }
+                return shed;
+            }
+        }
+
+        /// <summary>The instant the oldest sample of any span held at a node describes, or null when none is held.</summary>
+        public double? OldestHeldSpanUt()
+        {
+            lock (_gate)
+            {
+                double? oldest = null;
+                foreach (var held in _held.Values.SelectMany(h => h))
+                {
+                    if (held.Away == null && held.Message is SpanMessage span && span.Samples.Count > 0 && (oldest == null || span.Samples[0].Ut < oldest))
+                    {
+                        oldest = span.Samples[0].Ut;
+                    }
+                }
+                return oldest;
+            }
+        }
+
+        /// <summary>
+        /// Lets go of every span held at <paramref name="node"/>, a craft that no
+        /// longer exists and took its history with it, and returns the payloads
+        /// that lost a carrier. Spans already handed on stay with their holders.
+        /// </summary>
+        public IReadOnlyList<SpanPayload> DiscardSpansHeldAt(string node)
+        {
+            lock (_gate)
+            {
+                var freed = new List<SpanPayload>();
+                if (!_held.TryGetValue(node, out var list))
+                {
+                    return freed;
+                }
+                foreach (var held in list.Where(h => h.Away == null && h.Message is SpanMessage).ToList())
+                {
+                    list.Remove(held);
+                    held.EndWatch?.Invoke();
+                    held.CancelWake?.Invoke();
+                    foreach (var sample in ((SpanMessage)held.Message).Samples)
+                    {
+                        sample.Payload.Carriers--;
+                        freed.Add(sample.Payload);
+                    }
+                }
+                return freed;
+            }
+        }
+
+        /// <summary>The spans held at nodes and in flight, for tests and diagnostics.</summary>
+        public IReadOnlyList<(string Node, SpanMessage Span, bool InFlight)> Spans()
+        {
+            lock (_gate)
+            {
+                var spans = _held
+                    .SelectMany(n => n.Value.Where(h => h.Away == null && h.Message is SpanMessage).Select(h => (n.Key, (SpanMessage)h.Message, false)))
+                    .ToList();
+                spans.AddRange(_flights.Where(f => f.Message is SpanMessage).Select(f => (f.To, (SpanMessage)f.Message, true)));
+                return spans;
+            }
+        }
+
         /// <summary>Everything held, in flight, stored and settled, for saving with the game.</summary>
         public DeliverySnapshot Snapshot()
         {
@@ -423,6 +584,7 @@ namespace Sitrep.Core.StoreAndForward
                     // flight, which restores both. One whose light has landed or
                     // been lost is saved as the custody it still is.
                     Held = _held.SelectMany(n => n.Value
+                        .Where(h => !(h.Message is SpanMessage))
                         .Where(h => h.Away == null || !_flights.Any(f => ReferenceEquals(f.Custody, h)))
                         .Select(h => new HeldRecord
                         {
@@ -437,7 +599,7 @@ namespace Sitrep.Core.StoreAndForward
                             Landed = h.Landed,
                             Excluded = h.Excluded == null ? null : h.Excluded.ToList(),
                         })).ToList(),
-                    Flights = _flights.Select(f => new FlightRecord
+                    Flights = _flights.Where(f => !(f.Message is SpanMessage)).Select(f => new FlightRecord
                     {
                         Message = f.Message,
                         From = f.From,
@@ -778,6 +940,16 @@ namespace Sitrep.Core.StoreAndForward
                         Hold(node, report, atUt, cameFrom);
                     }
                     break;
+                case SpanMessage span:
+                    if (string.Equals(node, span.Centre, StringComparison.Ordinal))
+                    {
+                        _deliverSpan?.Invoke(span, atUt);
+                    }
+                    else
+                    {
+                        Hold(node, span, atUt, cameFrom);
+                    }
+                    break;
             }
         }
 
@@ -1047,6 +1219,18 @@ namespace Sitrep.Core.StoreAndForward
             {
                 message.Plan = _beliefs!.PlanOf(node);
             }
+            if (message is SpanMessage && !IsExcluded(held, destination))
+            {
+                // A craft that has a path to the centre right now sends its history
+                // down it, whatever the plan expected, as one flight with the
+                // light time the path really has.
+                var live = _links.LivePath(node, destination);
+                if (live != null)
+                {
+                    Launch(node, held, destination, nowUt, live.Value, endToEnd: true);
+                    return null;
+                }
+            }
 
             var route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt);
             if ((route == null || route.Count == 0) && !own && message.Plan == null)
@@ -1083,8 +1267,10 @@ namespace Sitrep.Core.StoreAndForward
             {
                 return clearAt;
             }
-            if (next.RetargetDish != null)
+            if (next.RetargetDish != null && !(message is SpanMessage))
             {
+                // A span rides a turn someone else needs and never starts one: its
+                // data is history, and no dish is worth turning for it.
                 NoteRetargetNeeded(node, held, next, nowUt);
             }
             if (!own)
@@ -1141,6 +1327,7 @@ namespace Sitrep.Core.StoreAndForward
             CommandMessage command => command.Lane.Vantage,
             CancelMessage cancel => cancel.Lane.Vantage,
             ReportMessage report => report.To,
+            SpanMessage span => span.Centre,
             _ => "",
         };
 
@@ -1266,11 +1453,12 @@ namespace Sitrep.Core.StoreAndForward
 
         private static bool IsExcluded(Held held, string to) => held.Excluded != null && held.Excluded.Contains(to);
 
-        /// <summary>Commands leave in lane order, ahead of cancels and reports.</summary>
+        /// <summary>Commands leave in lane order, ahead of cancels and reports, and a node's spans leave last, oldest first.</summary>
         private static (int, long, string) Order(Held held) => held.Message switch
         {
             CommandMessage c => (0, c.LaneSeq, c.Id),
             CancelMessage x => (1, x.FromSeq, x.Id),
+            SpanMessage span => (3, span.Samples.Count == 0 ? 0 : (long)Math.Floor(span.Samples[0].Ut * 1000.0), span.Id),
             _ => (2, 0, held.Message.Id),
         };
 
