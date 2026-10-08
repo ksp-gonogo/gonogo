@@ -2413,6 +2413,9 @@
       "breach": "LimitBreach",
       "missing": "MissingUnlock[]"
     },
+    "ICommandGateInputs": {
+      "inputs": "GateInput[]"
+    },
     "IControlFrameSource": {
       "frame": "ControlFrame"
     },

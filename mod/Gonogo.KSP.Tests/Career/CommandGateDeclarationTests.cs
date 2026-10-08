@@ -222,6 +222,8 @@ namespace Gonogo.KSP.Tests.Career
             public Sitrep.Contract.CommandResult JudgeActivateStrategy(string strategyId) => throw new System.NotSupportedException();
 
             public Sitrep.Contract.CommandResult JudgeDeactivateStrategy(string strategyId) => throw new System.NotSupportedException();
+
+            public bool StrategyScreenOpen => false;
         }
 
         /// <summary>An ungated command gets an empty array, never a null the engine would have to guard.</summary>

@@ -61,6 +61,37 @@ namespace Sitrep.Contract.TestSupport
             return asked;
         }
 
+        /// <summary>
+        /// Reads every input of <paramref name="inputs"/> twice with nothing
+        /// changed between the reads.
+        ///
+        /// <para>Fails when no input is declared, when an input is unnamed or
+        /// named twice, and when two readings of the same unchanged state
+        /// differ: the gate report would take the difference for a change and
+        /// ask every item again every frame.</para>
+        /// </summary>
+        /// <param name="inputs">The implementation under test.</param>
+        /// <returns>The input names, for a caller that wants to assert on them.</returns>
+        public static IReadOnlyList<string> AssertInputsAreReadable(ICommandGateInputs inputs)
+        {
+            Assert.NotNull(inputs);
+            var name = inputs.GetType().Name;
+            var declared = inputs.Inputs;
+            Assert.True(
+                declared != null && declared.Count > 0,
+                name + " declares no inputs, so the gate report cannot tell when to ask its items again");
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var input in declared!)
+            {
+                Assert.True(input != null, name + " declares a null input");
+                Assert.False(string.IsNullOrEmpty(input.Name), name + " declares an unnamed input");
+                Assert.True(seen.Add(input.Name), name + " declares the input \"" + input.Name + "\" twice");
+                Assert.Equal(input.Read(), input.Read());
+            }
+            return new List<string>(seen);
+        }
+
         private sealed class OneArgument : IGateArguments
         {
             private readonly string _path;

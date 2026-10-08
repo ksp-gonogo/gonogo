@@ -182,6 +182,8 @@ namespace Gonogo.KSP
         /// </summary>
         CommandResult Gates.ICareerItemJudge.JudgeDeactivateStrategy(string strategyId) => DeactivateStrategy(strategyId, commit: false);
 
+        bool Gates.ICareerItemJudge.StrategyScreenOpen => Administration.Instance != null;
+
         private CommandResult DeactivateStrategy(string strategyId, bool commit)
         {
             var system = StrategySystem.Instance;

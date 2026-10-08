@@ -467,6 +467,7 @@
     <Compile Include="..\Gonogo.KSP\Gates\CareerGates.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\GateDeclarations.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\KspGateEvaluators.cs" />
+    <Compile Include="..\Gonogo.KSP\Gates\GateInputs.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\ItemGates.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\UnlockGates.cs" />
     <Compile Include="..\Gonogo.KSP\OrbitKnowledge.cs" />

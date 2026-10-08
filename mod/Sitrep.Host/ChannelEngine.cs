@@ -431,11 +431,21 @@ namespace Sitrep.Host
         // sampler feeds, so the first verdicts do not wait out the throttle.
         private int _gateSampleDue;
 
-        // Main-thread only: the non-passing verdicts the item windows have found,
-        // by command then item, and where the next window starts.
-        private readonly Dictionary<string, Dictionary<string, GateVerdict>> _itemVerdicts =
-            new Dictionary<string, Dictionary<string, GateVerdict>>(StringComparer.Ordinal);
+        // Main-thread only, like everything below it up to GateSampleIntervalSec:
+        // the sampler runs from the Unity update and nothing else touches this.
+        private readonly Dictionary<string, ItemCommand> _itemCommands =
+            new Dictionary<string, ItemCommand>(StringComparer.Ordinal);
+        private readonly Dictionary<string, GateInput> _gateInputReaders =
+            new Dictionary<string, GateInput>(StringComparer.Ordinal);
+        private readonly Dictionary<string, object?> _gateInputLast =
+            new Dictionary<string, object?>(StringComparer.Ordinal);
+        private static readonly HashSet<string> NoInputsChanged = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly object InputReadFailed = new object();
+        private Dictionary<string, GateVerdict> _itemMemo = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
         private int _itemCursor;
+        private double _itemTokens;
+        private double _itemTokensAtSec = double.NegativeInfinity;
+        private bool _itemBacklog;
 
         /// <summary>
         /// How often <see cref="SampleCommandGates"/> actually re-reads the
@@ -473,18 +483,31 @@ namespace Sitrep.Host
         internal const double GateEvaluationBudget = 100;
 
         /**
-         * How many per-item verdicts one pass re-asks, three fifths of what the
-         * budget allows a pass; the argument-free requirements, one call per
-         * distinct requirement, have the rest.
+         * How many per-item evaluations the gate sampler may spend in a second,
+         * half of what the budget allows; the argument-free requirements, one
+         * call per distinct requirement, and the burst below share the rest.
          *
          * A career install names hundreds of items (every researchable node,
-         * every strategy), so asking all of them each pass is a cost set by the
-         * save rather than by anything being watched. Past this many the walk
-         * takes a window of them per pass, round-robin, and the rest keep the
-         * verdict the last window gave them: an item's published verdict is at
-         * most a full lap old, and the dispatch re-asks live in any case.
+         * every strategy), so the cost of asking them must be set by what
+         * changes rather than by the save. The allowance is a bucket of
+         * <see cref="GateItemsPerPass"/>, refilling at this rate: an item whose
+         * inputs changed is asked in the frame the change is seen while the
+         * bucket holds, and a change that touches more items than it holds
+         * drains over the following frames, items never asked before first.
+         * Any one-second window then holds at most the bucket plus a second's
+         * refill, which with the argument-free calls stays under the budget.
          */
-        internal const int GateItemsPerPass = (int)(GateEvaluationBudget * GateSampleIntervalSec * 0.6);
+        internal const int GateItemsPerSecond = (int)(GateEvaluationBudget * 0.5);
+
+        /**
+         * The bucket's size, and how many items a pass re-asks for an evaluator
+         * that declares no inputs: half a second's allowance. Past this many
+         * the walk takes a window of them per pass, round-robin, and the rest
+         * keep the verdict the last window gave them: such an item's published
+         * verdict is at most a full lap old, and the dispatch re-asks live in
+         * any case.
+         */
+        internal const int GateItemsPerPass = (int)(GateItemsPerSecond * GateSampleIntervalSec);
 
         /*
          * The last built system.channels roster, and when it was built.
@@ -3905,7 +3928,6 @@ namespace Sitrep.Host
         internal void SampleCommandGatesAt(double nowSec)
         {
             var due = Interlocked.Exchange(ref _gateSampleDue, 0) == 1;
-            if (!due && nowSec - _lastGateSampleAtSec < GateSampleIntervalSec) return;
 
             // Only what someone is reading is sampled. The report is one topic
             // and a field lock is read only through its own channel's frames, so
@@ -3913,6 +3935,18 @@ namespace Sitrep.Host
             // would be set by the save (its stations, strategies, tech nodes)
             // rather than by anything on screen.
             var reportWanted = _subscribedTopics.ContainsKey(UplinkGatesTopic);
+            if (!reportWanted) ForgetItemState();
+
+            // Every frame, not every pass: an item is asked again in the frame
+            // an input it reads moves, which a half-second cadence cannot do.
+            var changed = reportWanted ? ReadGateInputs() : NoInputsChanged;
+
+            if (!due && nowSec - _lastGateSampleAtSec < GateSampleIntervalSec)
+            {
+                if (reportWanted && (changed.Count > 0 || _itemBacklog)) RefreshItemsBetweenPasses(changed, nowSec);
+                return;
+            }
+
             var lockChannels = _fieldRequirements.Where(c => _subscribedTopics.ContainsKey(c.Key)).ToList();
             if (!reportWanted && lockChannels.Count == 0) return;
             _lastGateSampleAtSec = nowSec;
@@ -3921,7 +3955,11 @@ namespace Sitrep.Host
             var channels = new List<ChannelGate>();
             var memo = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
             var itemEvaluations = 0;
-            if (reportWanted && !SampleReport(gates, channels, memo, ref itemEvaluations)) return;
+            if (reportWanted && !SampleReport(gates, channels, memo, changed, nowSec, ref itemEvaluations))
+            {
+                MarkItemsStale();
+                return;
+            }
 
             var lockedFields = new Dictionary<string, Dictionary<string, List<MissingUnlock>>>(StringComparer.Ordinal);
             try
@@ -3956,10 +3994,111 @@ namespace Sitrep.Host
             // this pass made, a repeated requirement being answered from the
             // memo without one; itemEvaluations is the per-item calls on top.
             _commandGateBudget?.Record(memo.Count + itemEvaluations, nowSec);
+            _itemMemo = memo;
             if (reportWanted)
             {
                 Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = channels });
             }
+        }
+
+        /// <summary>
+        /// Republishes the last pass's report with the items that an input change
+        /// (or an unfinished drain) has moved, without re-asking anything else:
+        /// the command and channel verdicts keep their cadence.
+        /// </summary>
+        private void RefreshItemsBetweenPasses(HashSet<string> changed, double nowSec)
+        {
+            try
+            {
+                var previous = Volatile.Read(ref _commandGateReport);
+                var memo = _itemMemo;
+                var memoBefore = memo.Count;
+                var evaluated = RefreshItems(_itemCommands.Values.ToList(), false, changed, memo, nowSec, out var moved);
+                if (!moved) return;
+
+                var gates = new List<CommandGate>(previous.Gates.Count);
+                foreach (var gate in previous.Gates)
+                {
+                    if (!_itemCommands.TryGetValue(gate.Command, out var state) || !state.Driven)
+                    {
+                        gates.Add(gate);
+                        continue;
+                    }
+                    var items = new List<CommandGateItem>();
+                    FillItems(state, items);
+                    gates.Add(new CommandGate
+                    {
+                        Command = gate.Command,
+                        Verdict = gate.Verdict,
+                        ItemArgument = gate.ItemArgument,
+                        Items = items,
+                    });
+                }
+                _commandGateBudget?.Record(evaluated + (memo.Count - memoBefore), nowSec);
+                Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = previous.Channels });
+            }
+            catch (Exception ex)
+            {
+                LogHost("gate item refresh threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
+                MarkItemsStale();
+            }
+        }
+
+        /// <summary>Drops everything remembered about items, so the next time the report is watched every item is asked at once.</summary>
+        private void ForgetItemState()
+        {
+            if (_itemCommands.Count == 0 && _gateInputLast.Count == 0 && !_itemBacklog) return;
+            _itemCommands.Clear();
+            _gateInputReaders.Clear();
+            _gateInputLast.Clear();
+            _itemMemo = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
+            _itemTokensAtSec = double.NegativeInfinity;
+            _itemBacklog = false;
+        }
+
+        /// <summary>Treats every input-driven item as changed, for a pass that could not finish and so cannot say what it missed.</summary>
+        private void MarkItemsStale()
+        {
+            foreach (var state in _itemCommands.Values)
+            {
+                state.Fresh.Clear();
+                state.NamesStale = true;
+            }
+            _itemBacklog = _itemCommands.Count > 0;
+        }
+
+        /// <summary>
+        /// Reads every input an input-driven evaluator declared, once each however
+        /// many evaluators share it, and returns the names whose reading differs
+        /// from the last one. An input that cannot be read is held at one value
+        /// until it can, so a fault is neither a storm of changes nor silence.
+        /// </summary>
+        private HashSet<string> ReadGateInputs()
+        {
+            if (_gateInputReaders.Count == 0) return NoInputsChanged;
+            HashSet<string>? changed = null;
+            foreach (var pair in _gateInputReaders)
+            {
+                object? value;
+                try
+                {
+                    value = pair.Value.Read();
+                }
+                catch (Exception ex)
+                {
+                    value = InputReadFailed;
+                    if (_loggedGateThrows.TryAdd("input\n" + pair.Key, 0))
+                    {
+                        LogHost($"gate input \"{pair.Key}\" could not be read: {SafeExceptionMessage(ex)}");
+                    }
+                }
+                if (_gateInputLast.TryGetValue(pair.Key, out var last) && !Equals(last, value))
+                {
+                    (changed ??= new HashSet<string>(StringComparer.Ordinal)).Add(pair.Key);
+                }
+                _gateInputLast[pair.Key] = value;
+            }
+            return changed ?? NoInputsChanged;
         }
 
         /// <summary>
@@ -3971,9 +4110,12 @@ namespace Sitrep.Host
             List<CommandGate> gates,
             List<ChannelGate> channels,
             Dictionary<string, GateVerdict> memo,
+            HashSet<string> changed,
+            double nowSec,
             ref int itemEvaluations)
         {
-            var walks = new List<ItemWalk>();
+            var active = new List<ItemCommand>();
+            var published = new List<KeyValuePair<ItemCommand, List<CommandGateItem>>>();
             try
             {
                 foreach (var pair in _commandDeclarations)
@@ -3992,8 +4134,13 @@ namespace Sitrep.Host
                     var itemArgument = "";
                     if (verdict.Outcome == GateOutcome.Abstain)
                     {
-                        itemArgument = NameItems(pair.Key, out var values);
-                        if (itemArgument.Length > 0) walks.Add(new ItemWalk(pair.Key, itemArgument, values, items));
+                        var state = ItemCommandFor(pair.Key);
+                        if (state != null)
+                        {
+                            itemArgument = state.Argument;
+                            active.Add(state);
+                            published.Add(new KeyValuePair<ItemCommand, List<CommandGateItem>>(state, items));
+                        }
                     }
                     gates.Add(new CommandGate
                     {
@@ -4003,7 +4150,32 @@ namespace Sitrep.Host
                         Items = items,
                     });
                 }
-                itemEvaluations = EvaluateItemWindow(walks, memo);
+
+                foreach (var gone in _itemCommands.Keys.Where(k => active.All(a => a.Command != k)).ToList())
+                {
+                    _itemCommands.Remove(gone);
+                }
+                _gateInputReaders.Clear();
+                foreach (var state in active)
+                {
+                    foreach (var input in state.Readers)
+                    {
+                        if (!_gateInputReaders.ContainsKey(input.Name)) _gateInputReaders[input.Name] = input;
+                    }
+                }
+                // Baselined before anything is asked, so a move between this
+                // read and the evaluations below is not mistaken for the first.
+                var moved = ReadGateInputs();
+                if (moved.Count > 0)
+                {
+                    changed = new HashSet<string>(changed, StringComparer.Ordinal);
+                    changed.UnionWith(moved);
+                }
+                itemEvaluations = RefreshItems(active, true, changed, memo, nowSec, out _);
+                foreach (var entry in published)
+                {
+                    FillItems(entry.Key, entry.Value);
+                }
             }
             catch (Exception ex)
             {
@@ -4194,85 +4366,240 @@ namespace Sitrep.Host
             return argument ?? "";
         }
 
-        /// <summary>One command's named items, and the list its non-passing verdicts are published into.</summary>
-        private sealed class ItemWalk
+        /// <summary>
+        /// What the sampler remembers about one command's items between passes:
+        /// the items named, the non-passing verdict each last drew, and, for a
+        /// command whose item evaluators all declare their inputs, which of those
+        /// verdicts are still current.
+        /// </summary>
+        private sealed class ItemCommand
         {
-            public ItemWalk(string command, string argument, List<string> values, List<CommandGateItem> items)
-            {
-                Command = command;
-                Argument = argument;
-                Values = values;
-                Items = items;
-            }
+            public ItemCommand(string command) => Command = command;
 
             public string Command { get; }
-            public string Argument { get; }
-            public List<string> Values { get; }
-            public List<CommandGateItem> Items { get; }
+            public string Argument { get; set; } = "";
+            public List<string> Values { get; set; } = new List<string>();
+
+            /// <summary>True when every evaluator that names this command's items declares its inputs, so a verdict is re-asked only when one moves.</summary>
+            public bool Driven { get; set; }
+            public HashSet<string> Inputs { get; } = new HashSet<string>(StringComparer.Ordinal);
+            public List<GateInput> Readers { get; } = new List<GateInput>();
+
+            public Dictionary<string, GateVerdict> Known { get; } = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
+
+            /// <summary>Items asked since an input last moved.</summary>
+            public HashSet<string> Fresh { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+            /// <summary>Items asked at all, so a newly named item is asked before any that is merely out of date.</summary>
+            public HashSet<string> Asked { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+            public bool Named { get; set; }
+
+            /// <summary>An input moved, so which items exist may have too.</summary>
+            public bool NamesStale { get; set; }
+            public int Cursor { get; set; }
         }
 
         /// <summary>
-        /// Re-asks one window of at most <see cref="GateItemsPerPass"/> items
-        /// across every command in <paramref name="walks"/>, each evaluated over
-        /// the WHOLE requirement set with that one argument supplied, exactly as a
-        /// dispatch naming it would be, and publishes into each walk's
-        /// <see cref="ItemWalk.Items"/> every item whose last verdict was not a
-        /// Pass. When everything fits in one window every item is re-asked every
-        /// pass; otherwise the window moves on each pass so every item is reached
-        /// in turn.
+        /// The remembered items of <paramref name="command"/>, created and
+        /// classified when first seen, or null when none of its requirements
+        /// names items.
         /// </summary>
-        /// <returns>How many items were asked this pass.</returns>
-        private int EvaluateItemWindow(List<ItemWalk> walks, Dictionary<string, GateVerdict> memo)
+        private ItemCommand? ItemCommandFor(string command)
         {
-            foreach (var command in _itemVerdicts.Keys.Where(k => walks.All(w => w.Command != k)).ToList())
+            string? argument = null;
+            var driven = true;
+            var inputs = new List<GateInput>();
+            foreach (var requirement in RequirementsFor(command))
             {
-                _itemVerdicts.Remove(command);
+                if (requirement.Needs == null || requirement.Needs.Length != 1) continue;
+                if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator)) continue;
+                if (!(evaluator is ICommandGateItems)) continue;
+                argument ??= requirement.Needs[0];
+                var declared = (evaluator as ICommandGateInputs)?.Inputs;
+                if (declared == null || declared.Count == 0)
+                {
+                    driven = false;
+                    continue;
+                }
+                inputs.AddRange(declared);
+            }
+            if (argument == null) return null;
+
+            if (!_itemCommands.TryGetValue(command, out var state))
+            {
+                state = new ItemCommand(command);
+                _itemCommands[command] = state;
+            }
+            state.Argument = argument;
+            state.Driven = driven;
+            state.Inputs.Clear();
+            state.Readers.Clear();
+            if (driven)
+            {
+                foreach (var input in inputs)
+                {
+                    state.Inputs.Add(input.Name);
+                    state.Readers.Add(input);
+                }
+            }
+            return state;
+        }
+
+        /// <summary>Asks the evaluators for the items worth a verdict now, and forgets everything remembered about an item no longer named.</summary>
+        private void Rename(ItemCommand state)
+        {
+            NameItems(state.Command, out var values);
+            state.Values = values;
+            state.Named = true;
+            state.NamesStale = false;
+            var named = new HashSet<string>(values, StringComparer.Ordinal);
+            foreach (var gone in state.Known.Keys.Where(k => !named.Contains(k)).ToList())
+            {
+                state.Known.Remove(gone);
+            }
+            state.Fresh.RemoveWhere(v => !named.Contains(v));
+            state.Asked.RemoveWhere(v => !named.Contains(v));
+        }
+
+        private static void FillItems(ItemCommand state, List<CommandGateItem> into)
+        {
+            foreach (var value in state.Values)
+            {
+                if (state.Known.TryGetValue(value, out var verdict))
+                {
+                    into.Add(new CommandGateItem { Value = value, Verdict = verdict });
+                }
+            }
+        }
+
+        private void RefillItemTokens(double nowSec)
+        {
+            if (double.IsNegativeInfinity(_itemTokensAtSec))
+            {
+                _itemTokens = GateItemsPerPass;
+            }
+            else
+            {
+                _itemTokens = Math.Min(
+                    GateItemsPerPass, _itemTokens + Math.Max(0.0, nowSec - _itemTokensAtSec) * GateItemsPerSecond);
+            }
+            _itemTokensAtSec = nowSec;
+        }
+
+        private void AskItem(ItemCommand state, string value, Dictionary<string, GateVerdict> memo)
+        {
+            var bag = new Dictionary<string, object> { [state.Argument] = value };
+            var verdict = EvaluateGatesHere(state.Command, new GateArguments(bag), memo);
+            if (verdict.Outcome == GateOutcome.Pass || verdict.Outcome == GateOutcome.Abstain)
+            {
+                state.Known.Remove(value);
+            }
+            else
+            {
+                state.Known[value] = verdict;
+            }
+            state.Fresh.Add(value);
+            state.Asked.Add(value);
+        }
+
+        /// <summary>
+        /// Brings every command's items up to date for this frame, each asked over
+        /// the WHOLE requirement set with that one argument supplied, exactly as a
+        /// dispatch naming it would be.
+        ///
+        /// <para>An item of an input-driven command is asked when it has never
+        /// been, or when an input its evaluators declared has moved since, and
+        /// never otherwise. Items are asked while the per-second allowance holds;
+        /// a change touching more than it holds carries over to the next frames,
+        /// items never asked first. An item of a command whose evaluator
+        /// declares no inputs is re-asked on the cadence, a window of at most
+        /// <see cref="GateItemsPerPass"/> a pass, round-robin.</para>
+        /// </summary>
+        /// <param name="moved">Whether anything published could differ from the last report.</param>
+        /// <returns>How many items were asked.</returns>
+        private int RefreshItems(
+            List<ItemCommand> active,
+            bool cadence,
+            HashSet<string> changed,
+            Dictionary<string, GateVerdict> memo,
+            double nowSec,
+            out bool moved)
+        {
+            RefillItemTokens(nowSec);
+            moved = false;
+            foreach (var state in active)
+            {
+                if (state.Driven && changed.Overlaps(state.Inputs))
+                {
+                    state.Fresh.Clear();
+                    state.NamesStale = true;
+                }
+            }
+            foreach (var state in active)
+            {
+                if (!(state.Driven ? state.NamesStale || !state.Named : cadence)) continue;
+                Rename(state);
+                moved = true;
             }
 
-            var total = walks.Sum(w => w.Values.Count);
-            var windowSize = Math.Min(total, GateItemsPerPass);
-            var start = total <= GateItemsPerPass ? 0 : _itemCursor % total;
+            var asked = 0;
+            foreach (var onlyNew in new[] { true, false })
+            {
+                foreach (var state in active)
+                {
+                    if (!state.Driven) continue;
+                    var count = state.Values.Count;
+                    var reached = -1;
+                    for (var i = 0; i < count && _itemTokens >= 1; i++)
+                    {
+                        var value = state.Values[(state.Cursor + i) % count];
+                        if (state.Fresh.Contains(value) || (onlyNew && state.Asked.Contains(value))) continue;
+                        AskItem(state, value, memo);
+                        _itemTokens -= 1;
+                        asked++;
+                        reached = i;
+                    }
+                    if (!onlyNew && reached >= 0) state.Cursor = (state.Cursor + reached + 1) % count;
+                }
+            }
+            _itemBacklog = active.Any(s => s.Driven && s.Values.Any(v => !s.Fresh.Contains(v)));
+
+            if (cadence)
+            {
+                asked += AskPolledWindow(active.Where(s => !s.Driven).ToList(), memo);
+            }
+            moved |= asked > 0;
+            return asked;
+        }
+
+        /// <summary>
+        /// One window of at most <see cref="GateItemsPerPass"/> items, across the
+        /// commands whose evaluators declare no inputs. When everything fits in
+        /// one window every item is re-asked every pass; otherwise the window
+        /// moves on each pass so every item is reached in turn.
+        /// </summary>
+        private int AskPolledWindow(List<ItemCommand> polled, Dictionary<string, GateVerdict> memo)
+        {
+            var total = polled.Sum(s => s.Values.Count);
+            var windowSize = Math.Min(Math.Min(total, GateItemsPerPass), (int)Math.Floor(_itemTokens));
+            var start = windowSize >= total ? 0 : _itemCursor % total;
             _itemCursor = total == 0 ? 0 : (start + windowSize) % total;
 
             var position = 0;
             var asked = 0;
-            foreach (var walk in walks)
+            foreach (var state in polled)
             {
-                if (!_itemVerdicts.TryGetValue(walk.Command, out var known))
-                {
-                    known = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
-                    _itemVerdicts[walk.Command] = known;
-                }
-                var named = new HashSet<string>(walk.Values, StringComparer.Ordinal);
-                foreach (var gone in known.Keys.Where(k => !named.Contains(k)).ToList())
-                {
-                    known.Remove(gone);
-                }
-
-                foreach (var value in walk.Values)
+                foreach (var value in state.Values)
                 {
                     var inWindow = (position - start + total) % total < windowSize;
                     position++;
-                    if (inWindow)
-                    {
-                        asked++;
-                        var bag = new Dictionary<string, object> { [walk.Argument] = value };
-                        var verdict = EvaluateGatesHere(walk.Command, new GateArguments(bag), memo);
-                        if (verdict.Outcome == GateOutcome.Pass || verdict.Outcome == GateOutcome.Abstain)
-                        {
-                            known.Remove(value);
-                        }
-                        else
-                        {
-                            known[value] = verdict;
-                        }
-                    }
-                    if (known.TryGetValue(value, out var last))
-                    {
-                        walk.Items.Add(new CommandGateItem { Value = value, Verdict = last });
-                    }
+                    if (!inWindow) continue;
+                    asked++;
+                    AskItem(state, value, memo);
                 }
             }
+            _itemTokens -= asked;
             return asked;
         }
 

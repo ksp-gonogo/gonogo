@@ -80,13 +80,18 @@ namespace Gonogo.KSP.Gates
     }
 
     /// <summary>Whether this facility can be upgraded now: its tier, what stands on it, and the price of the next tier against the career's funds.</summary>
-    internal sealed class FacilityUpgradeGate : ICommandGateEvaluator, ICommandGateItems
+    internal sealed class FacilityUpgradeGate : ICommandGateEvaluator, ICommandGateItems, ICommandGateInputs
     {
         private readonly ICareerItemJudge _actuator;
 
         public FacilityUpgradeGate(ICareerItemJudge actuator) => _actuator = actuator;
 
         public string Kind => ItemGates.Kinds.FacilityUpgrade;
+
+        public IReadOnlyList<GateInput> Inputs { get; } = new[]
+        {
+            GateInputs.Scene, GateInputs.Funds, GateInputs.Facilities, GateInputs.Vessels, GateInputs.Strategies,
+        };
 
         public IEnumerable<string> Items(CommandRequirement requirement) =>
             Enum.GetNames(typeof(SpaceCenterFacility));
@@ -100,13 +105,18 @@ namespace Gonogo.KSP.Gates
     }
 
     /// <summary>Whether this node can be researched now: the science it costs against the career's science, and the R&amp;D tier's ceiling on a node's cost.</summary>
-    internal sealed class TechUnlockGate : ICommandGateEvaluator, ICommandGateItems
+    internal sealed class TechUnlockGate : ICommandGateEvaluator, ICommandGateItems, ICommandGateInputs
     {
         private readonly ICareerItemJudge _actuator;
 
         public TechUnlockGate(ICareerItemJudge actuator) => _actuator = actuator;
 
         public string Kind => ItemGates.Kinds.TechUnlock;
+
+        public IReadOnlyList<GateInput> Inputs { get; } = new[]
+        {
+            GateInputs.Scene, GateInputs.Science, GateInputs.Research, GateInputs.Facilities, GateInputs.Strategies,
+        };
 
         /// <summary>
         /// The nodes still to be researched whose prerequisites allow it, which
@@ -157,13 +167,25 @@ namespace Gonogo.KSP.Gates
     /// would take: KSP's own check while the Administration Building is open,
     /// the arms one at a time while it is shut.
     /// </summary>
-    internal sealed class StrategyActivateGate : ICommandGateEvaluator, ICommandGateItems
+    internal sealed class StrategyActivateGate : ICommandGateEvaluator, ICommandGateItems, ICommandGateInputs
     {
         private readonly ICareerItemJudge _actuator;
 
-        public StrategyActivateGate(ICareerItemJudge actuator) => _actuator = actuator;
+        public StrategyActivateGate(ICareerItemJudge actuator)
+        {
+            _actuator = actuator;
+            Inputs = new[]
+            {
+                GateInputs.Scene,
+                new GateInput("administration", () => actuator.StrategyScreenOpen),
+                GateInputs.Funds, GateInputs.Science, GateInputs.Reputation, GateInputs.Facilities,
+                GateInputs.Strategies,
+            };
+        }
 
         public string Kind => ItemGates.Kinds.StrategyActivate;
+
+        public IReadOnlyList<GateInput> Inputs { get; }
 
         public IEnumerable<string> Items(CommandRequirement requirement) => StrategyItems.Ids(active: false);
 
@@ -176,13 +198,15 @@ namespace Gonogo.KSP.Gates
     }
 
     /// <summary>Whether this running strategy can be ended now: KSP's own <c>CanBeDeactivated</c>, which includes the minimum commitment.</summary>
-    internal sealed class StrategyDeactivateGate : ICommandGateEvaluator, ICommandGateItems
+    internal sealed class StrategyDeactivateGate : ICommandGateEvaluator, ICommandGateItems, ICommandGateInputs
     {
         private readonly ICareerItemJudge _actuator;
 
         public StrategyDeactivateGate(ICareerItemJudge actuator) => _actuator = actuator;
 
         public string Kind => ItemGates.Kinds.StrategyDeactivate;
+
+        public IReadOnlyList<GateInput> Inputs { get; } = new[] { GateInputs.Scene, GateInputs.Strategies };
 
         public IEnumerable<string> Items(CommandRequirement requirement) => StrategyItems.Ids(active: true);
 
@@ -209,6 +233,9 @@ namespace Gonogo.KSP.Gates
         CommandResult JudgeActivateStrategy(string strategyId);
 
         CommandResult JudgeDeactivateStrategy(string strategyId);
+
+        /// <summary>Whether the Administration screen is open, which decides the route a strategy's activation is judged by.</summary>
+        bool StrategyScreenOpen { get; }
     }
 
     internal static class StrategyItems

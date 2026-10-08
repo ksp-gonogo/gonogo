@@ -871,6 +871,55 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// One piece of game state a per-item verdict depends on, named so the gate
+    /// report can tell when to ask again.
+    /// </summary>
+    /// <category>Commands</category>
+    public sealed class GateInput
+    {
+        /// <summary>Creates an input.</summary>
+        /// <param name="name">What the input is, e.g. <c>funds</c>. Two evaluators that name the same input share one reading.</param>
+        /// <param name="read">Reads the input now, on the Unity main thread. Two readings that are <see cref="object.Equals(object, object)"/> mean nothing the verdict depends on has changed.</param>
+        public GateInput(string name, Func<object?> read)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Read = read ?? throw new ArgumentNullException(nameof(read));
+        }
+
+        /// <summary>What this input is.</summary>
+        public string Name { get; }
+
+        /// <summary>Reads the input now.</summary>
+        public Func<object?> Read { get; }
+    }
+
+    /// <summary>
+    /// What an <see cref="ICommandGateItems"/> evaluator's verdicts depend on,
+    /// declared so the gate report asks an item again only when one of these has
+    /// changed, instead of sampling every item on a timer.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// <para>The report reads every input once per frame while something is
+    /// watching the gates, and re-asks every item of the evaluator in the same
+    /// frame that any of its inputs differs from the last reading. An input
+    /// left out is a verdict that goes stale until a declared one next moves, so
+    /// list everything the evaluator and the checks behind it read, and a
+    /// reading that changes with the passage of game time (a commitment that
+    /// elapses) as a reading that changes when it flips.</para>
+    ///
+    /// <para>An evaluator that names items and declares no inputs is asked a
+    /// window of its items on every sampling pass, round-robin, and its
+    /// verdicts can be a full lap old.</para>
+    /// </remarks>
+    /// <category>Commands</category>
+    public interface ICommandGateInputs
+    {
+        /// <summary>The inputs this evaluator's verdicts read. At least one.</summary>
+        IReadOnlyList<GateInput> Inputs { get; }
+    }
+
+    /// <summary>
     /// Where an Uplink's client bundle lives, so the app learns it from the
     /// running mod rather than from a central index. Declared only by an Uplink
     /// with a client half.

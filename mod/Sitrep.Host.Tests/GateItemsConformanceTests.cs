@@ -43,6 +43,45 @@ namespace Sitrep.Host.Tests
                 () => GateItemsConformance.AssertItemsAreAskable(new PriceGate(), twoNeeds));
         }
 
+        [Fact]
+        public void InputsThatReadTheSameTwiceConform()
+        {
+            var names = GateItemsConformance.AssertInputsAreReadable(new Inputs(new GateInput("funds", () => 5)));
+
+            Assert.Equal(new[] { "funds" }, names);
+        }
+
+        [Fact]
+        public void AnInputThatReadsDifferentlyEachTimeDoesNot()
+        {
+            var next = 0;
+            Assert.ThrowsAny<XunitException>(
+                () => GateItemsConformance.AssertInputsAreReadable(new Inputs(new GateInput("tick", () => next++))));
+        }
+
+        [Fact]
+        public void NoInputsAtAllDoesNot()
+        {
+            Assert.ThrowsAny<XunitException>(() => GateItemsConformance.AssertInputsAreReadable(new Inputs()));
+        }
+
+        [Fact]
+        public void TwoInputsWithOneNameDoNot()
+        {
+            Assert.ThrowsAny<XunitException>(
+                () => GateItemsConformance.AssertInputsAreReadable(
+                    new Inputs(new GateInput("funds", () => 1), new GateInput("funds", () => 2))));
+        }
+
+        private sealed class Inputs : ICommandGateInputs
+        {
+            public Inputs(params GateInput[] inputs) => Declared = inputs;
+
+            public GateInput[] Declared { get; }
+
+            IReadOnlyList<GateInput> ICommandGateInputs.Inputs => Declared;
+        }
+
         private sealed class PriceGate : ICommandGateEvaluator, ICommandGateItems
         {
             public const string PriceKind = "probe-price";

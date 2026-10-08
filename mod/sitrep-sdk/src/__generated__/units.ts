@@ -2487,6 +2487,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     breach: "LimitBreach",
     missing: "MissingUnlock[]",
   },
+  "ICommandGateInputs": {
+    inputs: "GateInput[]",
+  },
   "IControlFrameSource": {
     frame: "ControlFrame",
   },
