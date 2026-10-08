@@ -16,6 +16,7 @@ export declare function registerComponent(def: object): void;
 export function scanFiles(
   ts: TypeScript,
   files: Readonly<Record<string, string>>,
+  options: { topicIds?: readonly string[] } = {},
 ): ClientScan {
   const absolute: Record<string, string> = {
     [`${CLIENT}/src/hooks.ts`]: HOOKS,
@@ -25,5 +26,6 @@ export function scanFiles(
   }
   return scanClient(ts, createMemoryProgram(ts, absolute), {
     clientDir: CLIENT,
+    ...options,
   });
 }

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type * as TS from "typescript";
+import { workspaceSourcePaths } from "./workspace";
 
 export type TypeScript = typeof TS;
 
@@ -46,10 +47,15 @@ export async function loadTypeScript(fromDir: string): Promise<TypeScript> {
   }
 }
 
-/** The client's program, built from its own tsconfig.json. */
+/**
+ * The client's program, built from its own tsconfig.json. With `workspace`, the
+ * private packages of the gonogo workspace the client sits in resolve to their
+ * source, so their hooks can be read; outside that workspace it changes nothing.
+ */
 export function createClientProgram(
   ts: TypeScript,
   clientDir: string,
+  options: { workspace?: boolean } = {},
 ): TS.Program {
   const configPath = join(clientDir, "tsconfig.json");
   if (!existsSync(configPath)) {
@@ -69,9 +75,16 @@ export function createClientProgram(
       `${configPath} includes no source files, so there is nothing to read.`,
     );
   }
+  const workspacePaths = options.workspace
+    ? workspaceSourcePaths(clientDir)
+    : {};
   return ts.createProgram({
     rootNames: parsed.fileNames,
-    options: { ...parsed.options, noEmit: true },
+    options: {
+      ...parsed.options,
+      noEmit: true,
+      paths: { ...workspacePaths, ...parsed.options.paths },
+    },
   });
 }
 

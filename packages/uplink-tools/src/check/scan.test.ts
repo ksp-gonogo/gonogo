@@ -1,6 +1,11 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { scanFiles } from "./fixture";
-import { loadTypeScript, type TypeScript } from "./program";
+import { CLIENT, scanFiles } from "./fixture";
+import {
+  createMemoryProgram,
+  loadTypeScript,
+  type TypeScript,
+} from "./program";
+import { scanClient } from "./scan";
 
 let ts: TypeScript;
 beforeAll(async () => {
@@ -301,5 +306,200 @@ registerComponent({ id: "w", channels: topics.channels, component: Widget });
     });
     expect(w.registration.channels).toEqual(["vessel.flight"]);
     expect(w.registration.opaque).toBeUndefined();
+  });
+});
+
+describe("a value that is built by a function", () => {
+  const partTopic = `const PREFIX = "vessel.partActions.";
+function partTopic(flightId: number) {
+  return \`$\{PREFIX}$\{flightId}\`;
+}`;
+
+  it("reads a family out of a helper's returned template", () => {
+    const { w } = only({
+      "w.tsx": widget("  useStream(partTopic(props.topic.length));", partTopic),
+    });
+    expect(ids(w.reads)).toEqual(["vessel.partActions.<flightId>"]);
+    expect(w.unresolved).toEqual([]);
+  });
+
+  it("reads every literal a helper can return", () => {
+    const { w } = only({
+      "w.tsx": widget(
+        '  useCommand(commandFor(props.topic) ?? "");',
+        `function commandFor(name: string): string | null {
+  if (name === "a") return "x.a";
+  switch (name) {
+    case "b":
+      return "x.b";
+  }
+  return null;
+}`,
+      ),
+    });
+    expect(ids(w.commands)).toEqual(["x.a", "x.b"]);
+    expect(w.unresolved).toEqual([]);
+  });
+
+  it("takes both branches of a conditional and drops null and the empty string", () => {
+    const { w } = only({
+      "w.tsx": widget(
+        `  const on = props.topic === "a";
+  useStream(on ? "x.a" : null);
+  const picked: "x.b" | undefined = props.topic ? "x.b" : undefined;
+  useStream(picked ?? "x.d");
+  useStream(props.topic ? "x.c" : "");`,
+      ),
+    });
+    expect(ids(w.reads)).toEqual(["x.a", "x.b", "x.c", "x.d"]);
+  });
+
+  it("gives up on a call to a function it cannot see into", () => {
+    const { w } = only({
+      "w.tsx": widget(
+        "  useStream(lookup(props.topic));",
+        "declare function lookup(name: string): string;",
+      ),
+    });
+    expect(w.unresolved[0].reason).toMatch(/CallExpression/);
+  });
+
+  it("stops at a function that calls itself", () => {
+    const { w } = only({
+      "w.tsx": widget(
+        "  useStream(loop(props.topic));",
+        "function loop(name: string): string {\n  return loop(name);\n}",
+      ),
+    });
+    expect(w.unresolved[0].reason).toMatch(/itself/);
+  });
+});
+
+describe("a handle, a series key and a processor", () => {
+  const SERIES = `declare function useSeriesReadings(handle: object, windowSec: number): unknown;
+declare function useDataSeries(key: string, windowSec: number): unknown;
+declare function useProcessor(handle: object): unknown;
+declare const CLIENT_HANDLE: { registerProcessor(def: object): object };
+declare function defineProcessor(def: object): object;`;
+
+  it("follows a handle through the parameters of the helper it is passed to", () => {
+    const { w } = only({
+      "w.tsx": widget(
+        `  useTwo({ topic: "a.x" }, { topic: "b.y", field: "f" });`,
+        `${SERIES}
+function useTwo(first: { topic: string }, second: { topic: string; field?: string }) {
+  useSeriesReadings(first, 1);
+  useSeriesReadings(second, 1);
+}`,
+      ),
+    });
+    expect(ids(w.reads)).toEqual(["a.x", "b.y"]);
+    expect(w.unresolved).toEqual([]);
+  });
+
+  it("leaves a handle that comes from props unresolved", () => {
+    const { w } = only({
+      "w.tsx": widget("  useSeriesReadings(props, 1);", SERIES),
+    });
+    expect(w.unresolved[0].reason).toMatch(/never passed a handle/);
+  });
+
+  it("reads the Topic a series key begins with", () => {
+    const scan = scanFiles(
+      ts,
+      {
+        "w.tsx": widget(
+          `  useDataSeries("vessel.orbit.sma", 1);
+  useDataSeries(\`vessel.resources.resources.$\{props.topic}.current\`, 1);`,
+          SERIES,
+        ),
+      },
+      { topicIds: ["vessel.orbit", "vessel.resources", "vessel"] },
+    );
+    const [w] = scan.widgets;
+    expect(ids(w.reads)).toEqual(["vessel.orbit", "vessel.resources"]);
+    expect(w.unresolved).toEqual([]);
+  });
+
+  it("reports a series key that begins with no known Topic", () => {
+    const scan = scanFiles(
+      ts,
+      { "w.tsx": widget(`  useDataSeries("nothing.here.x", 1);`, SERIES) },
+      { topicIds: ["vessel.orbit"] },
+    );
+    expect(scan.widgets[0].unresolved[0].reason).toMatch(
+      /does not begin with a Topic id/,
+    );
+  });
+
+  it("reads the sdk's TopicId type when no list is given", () => {
+    const files = {
+      "/node_modules/@ksp-gonogo/sitrep-sdk/index.d.ts": `export interface TopicPayloadMap { "vessel.orbit": object; "time.warp": object }
+export type TopicId = keyof TopicPayloadMap;`,
+      [`${CLIENT}/src/w.tsx`]: `
+declare function useDataSeries(key: string, windowSec: number): unknown;
+declare function registerComponent(def: object): void;
+function Widget() {
+  useDataSeries("vessel.orbit.sma", 1);
+  return null;
+}
+registerComponent({ id: "w", component: Widget });
+`,
+    };
+    const scan = scanClient(ts, createMemoryProgram(ts, files), {
+      clientDir: CLIENT,
+    });
+    expect(ids(scan.widgets[0].reads)).toEqual(["vessel.orbit"]);
+  });
+
+  it("reads a processor's inputs from defineProcessor or an Uplink client's registerProcessor", () => {
+    const { w } = only({
+      "w.tsx": widget(
+        "  useProcessor(FACTS);\n  useProcessor(SUMMARY);",
+        `${SERIES}
+const FACTS = CLIENT_HANDLE.registerProcessor({ id: "f", deps: [{ reading: "system.bodies" }] as const });
+const SUMMARY = defineProcessor({ id: "s", deps: [FACTS, "dv.stages"] as const });`,
+      ),
+    });
+    expect(ids(w.reads)).toEqual([
+      "dv.stages",
+      "system.bodies",
+      "system.bodies",
+    ]);
+    expect(w.unresolved).toEqual([]);
+  });
+});
+
+describe("a directive in source the client does not own", () => {
+  const files = {
+    "/lib/spine.ts": `declare function useTelemetryStoreOptional(): unknown;
+export function walked() {
+  // gonogo:reads none
+  return useTelemetryStoreOptional();
+}
+export function neverCalled() {
+  // gonogo:reads none
+  return useTelemetryStoreOptional();
+}
+`,
+    [`${CLIENT}/src/w.tsx`]: `
+import { walked } from "/lib/spine";
+declare function registerComponent(def: object): void;
+function Widget() {
+  walked();
+  return null;
+}
+registerComponent({ id: "w", component: Widget });
+`,
+  };
+
+  it("is judged only where the scan went through the function it sits in", () => {
+    const scan = scanClient(ts, createMemoryProgram(ts, files), {
+      clientDir: CLIENT,
+    });
+    expect(scan.directives).toMatchObject([
+      { file: "/lib/spine.ts", line: 3, attached: true, needed: true },
+    ]);
+    expect(scan.widgets[0].unresolved).toEqual([]);
   });
 });

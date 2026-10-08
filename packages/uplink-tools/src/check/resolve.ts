@@ -137,8 +137,90 @@ export function createResolver(
     return undefined;
   };
 
+  /** A function's `return` expressions, or its expression body, leaving nested functions alone. */
+  const returnsOf = (fn: TS.Node): TS.Expression[] | undefined => {
+    if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) return [fn.body];
+    const body = (fn as TS.FunctionLikeDeclaration).body;
+    if (!body || !ts.isBlock(body)) return undefined;
+    const found: TS.Expression[] = [];
+    const visit = (node: TS.Node) => {
+      if (ts.isFunctionLike(node)) return;
+      if (ts.isReturnStatement(node) && node.expression) {
+        found.push(node.expression);
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(body, visit);
+    return found.length > 0 ? found : undefined;
+  };
+
+  const isNothing = (node: TS.Expression): boolean =>
+    node.kind === ts.SyntaxKind.NullKeyword ||
+    (ts.isIdentifier(node) && node.text === "undefined") ||
+    (ts.isStringLiteral(node) && node.text === "");
+
   const resolve: Resolver["resolve"] = (expr) => {
     const active = new Set<TS.Node>();
+    /** The argument each parameter of a function being read through was called with. */
+    const bound = new Map<TS.Node, TS.Expression>();
+
+    /** Every branch that can be the value; `null`, `undefined` and `""` are the absence of one. */
+    const union = (
+      level: number,
+      followParams: boolean,
+      branches: readonly TS.Expression[],
+    ): Resolution => {
+      const ids = new Set<string>();
+      const families = new Set<string>();
+      for (const branch of branches) {
+        if (isNothing(unwrap(branch))) continue;
+        const got = go(branch, level, followParams);
+        if (!got.ok) return got;
+        for (const id of got.ids) ids.add(id);
+        for (const family of got.families) families.add(family);
+      }
+      return { ok: true, ids: [...ids], families: [...families] };
+    };
+
+    /** A call to a function in this program is the value its `return` statements give, with its parameters as the call's arguments. */
+    const through = (
+      call: TS.CallExpression,
+      level: number,
+      followParams: boolean,
+    ): Resolution => {
+      const decl = declarationOf(call.expression);
+      const fn =
+        decl && ts.isVariableDeclaration(decl) && decl.initializer
+          ? unwrap(decl.initializer)
+          : decl;
+      const returns = fn && returnsOf(fn);
+      if (!fn || !returns || !ts.isFunctionLike(fn)) {
+        return {
+          ok: false,
+          reason: "a CallExpression is not a value the scanner can evaluate",
+        };
+      }
+      if (level >= CALL_SITE_DEPTH) {
+        return {
+          ok: false,
+          reason: `the value passes through more than ${CALL_SITE_DEPTH} call sites`,
+        };
+      }
+      if (active.has(fn)) {
+        return { ok: false, reason: "the value refers to itself" };
+      }
+      active.add(fn);
+      fn.parameters.forEach((param, index) => {
+        const argument = call.arguments[index] ?? param.initializer;
+        if (argument) bound.set(param, argument);
+      });
+      try {
+        return union(level + 1, followParams, returns);
+      } finally {
+        active.delete(fn);
+        for (const param of fn.parameters) bound.delete(param);
+      }
+    };
 
     const go = (
       node: TS.Expression,
@@ -153,7 +235,23 @@ export function createResolver(
         return { ok: true, ids: [inner.text], families: [] };
       }
       const literals = literalsOf(checker.getTypeAtLocation(inner));
-      if (literals) return { ok: true, ids: literals, families: [] };
+      if (literals) {
+        return { ok: true, ids: literals.filter(Boolean), families: [] };
+      }
+
+      if (ts.isConditionalExpression(inner)) {
+        return union(level, followParams, [inner.whenTrue, inner.whenFalse]);
+      }
+      if (
+        ts.isBinaryExpression(inner) &&
+        (inner.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+          inner.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+      ) {
+        return union(level, followParams, [inner.left, inner.right]);
+      }
+      if (ts.isCallExpression(inner)) {
+        return through(inner, level, followParams);
+      }
 
       const pieces = piecesOf(inner);
       if (pieces && pieces.length > 1) {
@@ -215,6 +313,8 @@ export function createResolver(
       }
       active.add(decl);
       try {
+        const argument = bound.get(decl);
+        if (argument) return go(argument, level, followParams);
         if (
           ts.isVariableDeclaration(decl) &&
           decl.initializer &&

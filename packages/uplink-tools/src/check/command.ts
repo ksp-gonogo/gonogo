@@ -76,10 +76,14 @@ export async function check(
       dynamicPrefixes: sdkPrefixes.prefixes,
       dynamicPrefixesProblem: sdkPrefixes.problem,
       scan: () =>
-        scanClient(ts, createClientProgram(ts, clientDir), {
-          clientDir,
-          indexes,
-        }),
+        scanClient(
+          ts,
+          createClientProgram(ts, clientDir, { workspace: true }),
+          {
+            clientDir,
+            indexes,
+          },
+        ),
       fix: switches.has("--fix"),
       only: list(values.get("--only")),
       skip: list(values.get("--skip")),

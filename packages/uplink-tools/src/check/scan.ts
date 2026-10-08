@@ -1,4 +1,5 @@
-import { sep } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, sep } from "node:path";
 import type * as TS from "typescript";
 import type {
   ArgumentKind,
@@ -62,6 +63,8 @@ export interface ScanOptions {
   indexes?: IndexReader;
   /** Hook or component name to the Topics it reads on the framework's behalf. Defaults to what the installed sdk lists. */
   frameworkReads?: Readonly<Record<string, readonly string[]>>;
+  /** The Topic ids a series key's leading segments can name. Defaults to the sdk's `TopicId` as the program sees it. */
+  topicIds?: readonly string[];
 }
 
 /** Where the reads of one scan accumulate: a widget, or one exported function of a package. */
@@ -148,6 +151,24 @@ export function createScanner(
     }
     return directives.get(`${file.fileName}:${line}`);
   };
+
+  /** Line ranges, per file outside the client, of the function bodies a walk entered. */
+  const walked = new Map<string, [number, number][]>();
+  const noteWalked = (body: TS.Node) => {
+    const file = body.getSourceFile();
+    if (isOwnSource(file)) return;
+    const range: [number, number] = [
+      lineOf(body, file) + 1,
+      file.getLineAndCharacterOfPosition(body.getEnd()).line + 1,
+    ];
+    walked.set(file.fileName, [...(walked.get(file.fileName) ?? []), range]);
+  };
+  /** A directive in a file the client does not own is judged only when the scan went through the function it sits in. */
+  const isJudged = (directive: DirectiveRecord) =>
+    directive.file.startsWith(clientRoot) ||
+    (walked.get(directive.file) ?? []).some(
+      ([start, end]) => directive.line >= start && directive.line <= end,
+    );
 
   const lineOf = (node: TS.Node, file: TS.SourceFile) =>
     file.getLineAndCharacterOfPosition(node.getStart(file)).line;
@@ -269,7 +290,13 @@ export function createScanner(
     | { ok: true; ids: string[]; families: string[]; via?: "processor" }
     | { ok: false; reason: string };
 
-  /** A handle is an object with a `topic` member; the Topic is what that member resolves to. */
+  /** Deepest chain of constants and parameters followed from a handle to its object literal. */
+  const HANDLE_DEPTH = 6;
+
+  /**
+   * A handle is an object with a `topic` member; the Topic is what that member
+   * resolves to. A handle passed in as a parameter is what each call passes.
+   */
   const resolveHandle = (expr: TS.Expression, depth = 0): Resolution => {
     const node = strip(expr);
     if (ts.isObjectLiteralExpression(node)) {
@@ -278,17 +305,137 @@ export function createScanner(
         ? resolver.resolve(topic)
         : { ok: false, reason: "the handle has no topic member" };
     }
-    const next = depth < 4 ? constInitializer(node) : undefined;
-    return next
-      ? resolveHandle(next, depth + 1)
-      : {
+    if (depth >= HANDLE_DEPTH) {
+      return {
+        ok: false,
+        reason: "the handle passes through too many constants and calls",
+      };
+    }
+    const next = constInitializer(node);
+    if (next) return resolveHandle(next, depth + 1);
+    const decl = ts.isIdentifier(node)
+      ? resolver.declarationOf(node)
+      : undefined;
+    if (decl && ts.isParameter(decl) && ts.isIdentifier(decl.name)) {
+      const fn = decl.parent;
+      const index = fn.parameters.indexOf(decl);
+      const calls = resolver.callSites(fn);
+      if (calls.length === 0) {
+        return {
           ok: false,
-          reason: "the handle is not an object literal in this program",
+          reason: "the parameter is never passed a handle in this program",
         };
+      }
+      const ids = new Set<string>();
+      const families = new Set<string>();
+      for (const call of calls) {
+        const source = call.arguments[index] ?? decl.initializer;
+        if (!source) {
+          return { ok: false, reason: "a call passes the parameter nothing" };
+        }
+        const got = resolveHandle(source, depth + 1);
+        if (!got.ok) return got;
+        for (const id of got.ids) ids.add(id);
+        for (const family of got.families) families.add(family);
+      }
+      return { ok: true, ids: [...ids], families: [...families] };
+    }
+    return {
+      ok: false,
+      reason: "the handle is not an object literal in this program",
+    };
   };
 
-  /** A processor's inputs are the literal dependency list of its `defineProcessor` call. */
-  const resolveProcessor = (expr: TS.Expression): ArgumentResolution => {
+  let knownTopics: ReadonlySet<string> | undefined;
+  /** The Topic ids of the sdk's `TopicId` type, read through the checker so a re-export or a rename does not hide them. */
+  const topicIds = (): ReadonlySet<string> => {
+    if (knownTopics) return knownTopics;
+    const found = new Set<string>(options.topicIds ?? []);
+    if (options.topicIds === undefined) {
+      const checker = program.getTypeChecker();
+      for (const file of program.getSourceFiles()) {
+        if (!/[\\/]sitrep-sdk[\\/]/.test(file.fileName)) continue;
+        for (const statement of file.statements) {
+          if (
+            !ts.isTypeAliasDeclaration(statement) ||
+            statement.name.text !== "TopicId"
+          ) {
+            continue;
+          }
+          const type = checker.getTypeAtLocation(statement.name);
+          for (const member of type.isUnion() ? type.types : [type]) {
+            if (member.isStringLiteral()) found.add(member.value);
+          }
+        }
+      }
+    }
+    knownTopics = found;
+    return found;
+  };
+
+  /**
+   * A series key is `<topic>.<field path>`, so what it reads is its longest
+   * leading run of whole segments that is a Topic id. A family's placeholder
+   * ends the run, since a field path never contains one.
+   */
+  const topicOfSeriesKey = (key: string): string | undefined => {
+    const segments = key.split(".");
+    const known = topicIds();
+    for (let end = segments.length; end > 0; end--) {
+      const head = segments.slice(0, end);
+      if (head.some((segment) => segment.includes("<"))) continue;
+      const candidate = head.join(".");
+      if (known.has(candidate)) return candidate;
+    }
+    return undefined;
+  };
+
+  const resolveSeriesKey = (
+    name: string,
+    expr: TS.Expression,
+  ): ArgumentResolution => {
+    const resolved = resolver.resolve(expr);
+    if (!resolved.ok) return resolved;
+    const ids = new Set<string>();
+    for (const key of [...resolved.ids, ...resolved.families]) {
+      const topic = topicOfSeriesKey(key);
+      if (topic === undefined) {
+        return {
+          ok: false,
+          reason: `${name}() reads "${key}", which does not begin with a Topic id the sdk knows`,
+        };
+      }
+      ids.add(topic);
+    }
+    return { ok: true, ids: [...ids], families: [] };
+  };
+
+  const makerOf = (call: TS.CallExpression): string | undefined =>
+    ts.isIdentifier(call.expression)
+      ? call.expression.text
+      : ts.isPropertyAccessExpression(call.expression)
+        ? call.expression.name.text
+        : undefined;
+
+  const isMaker = (maker: string | undefined) =>
+    maker === "defineProcessor" || maker === "registerProcessor";
+
+  const isProcessorHandle = (node: TS.Expression): boolean => {
+    const init = constInitializer(node);
+    const call = init && strip(init);
+    return !!call && ts.isCallExpression(call) && isMaker(makerOf(call));
+  };
+
+  /**
+   * A processor's inputs are the literal dependency list of the call that made
+   * it: `defineProcessor({...})`, or `registerProcessor({...})` on an Uplink's
+   * client handle. A dependency that is itself a processor contributes that
+   * processor's inputs.
+   */
+  const resolveProcessor = (
+    expr: TS.Expression,
+    depth = 0,
+  ): ArgumentResolution => {
     const init = constInitializer(expr);
     const call = init && strip(init);
     if (!call || !ts.isCallExpression(call)) {
@@ -297,15 +444,9 @@ export function createScanner(
         reason: "the processor handle is not a constant in this program",
       };
     }
-    const maker = ts.isIdentifier(call.expression)
-      ? call.expression.text
-      : undefined;
+    const maker = makerOf(call);
     const def = call.arguments[0] && strip(call.arguments[0]);
-    if (
-      maker !== "defineProcessor" ||
-      !def ||
-      !ts.isObjectLiteralExpression(def)
-    ) {
+    if (!isMaker(maker) || !def || !ts.isObjectLiteralExpression(def)) {
       return {
         ok: false,
         reason: `the processor's inputs are not declared here${maker ? ` (it comes from ${maker})` : ""}`,
@@ -327,7 +468,10 @@ export function createScanner(
       const node = strip(element);
       const topic =
         ts.isObjectLiteralExpression(node) && propertyOf(node, "reading");
-      const got = resolver.resolve(topic || node);
+      const upstream = depth < 4 && !topic && isProcessorHandle(node);
+      const got = upstream
+        ? resolveProcessor(node, depth + 1)
+        : resolver.resolve(topic || node);
       if (!got.ok) {
         return {
           ok: false,
@@ -351,12 +495,7 @@ export function createScanner(
     expr: TS.Expression | undefined,
   ): ArgumentResolution => {
     if (!expr) return { ok: false, reason: `${name}() has no argument` };
-    if (kind === "series-key") {
-      return {
-        ok: false,
-        reason: `${name}() takes a series key, which names a field (<topic>.<field>) and not a Topic`,
-      };
-    }
+    if (kind === "series-key") return resolveSeriesKey(name, expr);
     if (kind === "processor") return resolveProcessor(expr);
     return kind === "handle" ? resolveHandle(expr) : resolver.resolve(expr);
   };
@@ -587,6 +726,33 @@ export function createScanner(
 
   const HOOK = /^use[A-Z]/;
 
+  /**
+   * The gonogo package a declaration was written in, which differs from the one
+   * a call imported it from when the importer is a re-export (`ui` and `core`
+   * both hand on ui-kit's hooks).
+   */
+  const declaringPackage = (callee: TS.Expression): string | undefined => {
+    const decl = resolver.declarationOf(callee);
+    if (!decl) return undefined;
+    let dir = dirname(decl.getSourceFile().fileName);
+    for (;;) {
+      const manifest = join(dir, "package.json");
+      if (existsSync(manifest)) {
+        try {
+          const name = JSON.parse(readFileSync(manifest, "utf8")).name;
+          return typeof name === "string" && name.startsWith("@ksp-gonogo/")
+            ? name
+            : undefined;
+        } catch {
+          return undefined;
+        }
+      }
+      const parent = dirname(dir);
+      if (parent === dir) return undefined;
+      dir = parent;
+    }
+  };
+
   /** Takes what a published package's index says a call or element reads, or reports that it says nothing. */
   const readFromIndex = (
     sink: Sink,
@@ -598,10 +764,8 @@ export function createScanner(
     if (!imported) return;
     const file = node.getSourceFile();
     const where = whereOf(node, imported.name);
-    const { index, problem } = options.indexes.lookup(
-      imported.specifier,
-      file.fileName,
-    );
+    const specifier = declaringPackage(callee) ?? imported.specifier;
+    const { index, problem } = options.indexes.lookup(specifier, file.fileName);
     const entry = index?.entries[imported.name];
     if (!entry) {
       if (!HOOK.test(imported.name)) return;
@@ -614,7 +778,7 @@ export function createScanner(
       }
       indexMissing.push({
         name: imported.name,
-        specifier: imported.specifier,
+        specifier,
         file: where.file,
         line: where.line,
         reason: problem ?? `its index has no entry for ${imported.name}`,
@@ -645,6 +809,7 @@ export function createScanner(
       const file = body.getSourceFile();
       if (file.isDeclarationFile || inNodeModules(file.fileName)) return;
       visited.add(body);
+      noteWalked(body);
       const name = nameOfDeclaration(decl);
       const hidden = name === undefined ? undefined : frameworkReads[name];
       if (hidden) suppressed.push(new Set(hidden));
@@ -678,7 +843,11 @@ export function createScanner(
         });
         return;
       }
-      if (opaqueHost && name !== undefined && OPAQUE_CALLS.has(name)) {
+      if (
+        name !== undefined &&
+        OPAQUE_CALLS.has(name) &&
+        (opaqueHost || directiveFor(node, node.getSourceFile()))
+      ) {
         recordOpaque(sink, node, name);
         return;
       }
@@ -691,8 +860,10 @@ export function createScanner(
       }
       ts.forEachChild(node, visit);
     };
-    if (direct) visit(root);
-    else enter(root);
+    if (direct) {
+      noteWalked(root);
+      visit(root);
+    } else enter(root);
   };
 
   const scanFunction: Scanner["scanFunction"] = (decl, scanOptions) => {
@@ -919,7 +1090,7 @@ export function createScanner(
       widgets,
       registeredPrefixes,
       indexMissing,
-      directives: [...directives.values()],
+      directives: [...directives.values()].filter(isJudged),
       typeErrors,
     };
   };
