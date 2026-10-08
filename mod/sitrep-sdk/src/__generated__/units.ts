@@ -550,6 +550,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     partTitle: "text",
   },
+  "CrashRecent": {
+    recent: "flag",
+  },
   "CrashReport": {
     altitude: "m",
     body: "text",
@@ -1054,6 +1057,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     resourcesValue: "funds",
     totalValue: "funds",
   },
+  "RecoveryRecent": {
+    recent: "flag",
+  },
   "RecoveryReport": {
     capturedAtUT: "ut",
     displayReputation: "flag",
@@ -1108,9 +1114,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RotorReverseArgs": {
     partId: "id",
   },
-  "RotorSetValueArgs": {
+  "RotorSetBrakeArgs": {
     partId: "id",
-    value: "ratio",
+    percent: "%",
+  },
+  "RotorSetRpmLimitArgs": {
+    partId: "id",
+    rpm: "rpm",
+  },
+  "RotorSetTorqueLimitArgs": {
+    partId: "id",
+    percent: "%",
   },
   "SavedShipEntry": {
     facility: "text",
@@ -1218,7 +1232,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "ServoSetTargetArgs": {
     partId: "id",
-    value: "ratio",
+    value: "n/a",
   },
   "SetActionGroupArgs": {
     group: "id",
@@ -1754,6 +1768,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     otherPath: "flag",
     strength: "ratio",
   },
+  "crash.hasRecent": {
+    recent: "flag",
+  },
   "crash.lastCrash": {
     altitude: "m",
     body: "text",
@@ -1877,6 +1894,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "parts.power": {
     totalProductionEc: "units/s",
+  },
+  "recovery.hasRecent": {
+    recent: "flag",
   },
   "recovery.lastSummary": {
     capturedAtUT: "ut",

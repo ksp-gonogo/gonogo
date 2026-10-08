@@ -673,9 +673,26 @@ namespace Sitrep.Contract
         /// there, which reads as "arrives at once". A pending entry writes
         /// the key as null and the accept frame leaves it out, so a reader typed
         /// for a number must now handle its absence.</para>
+        ///
+        /// <para><b>Bumped 29 -&gt; 30: the wire states what it means, and the seams
+        /// stop taking what they cannot honour.</b>
+        /// <c>crash.hasRecent</c> and <c>recovery.hasRecent</c> are the one-field
+        /// payloads <see cref="CrashRecent"/> and <see cref="RecoveryRecent"/> where each
+        /// was a bare boolean, so both are in the generated Topic list and a client reads
+        /// <c>recent</c> off the object. <see cref="ThermalHottestPart.SkinMaxTemp"/> is
+        /// nullable, null for a part with no skin-thermal model where it carried KSP's
+        /// <c>-1</c>. The rotor limit commands each take their own arguments with the unit
+        /// they carry (<see cref="RotorSetRpmLimitArgs"/> in rpm,
+        /// <see cref="RotorSetTorqueLimitArgs"/> and <see cref="RotorSetBrakeArgs"/> in
+        /// percent) where <c>RotorSetValueArgs</c> typed every one of them as a ratio.
+        /// <see cref="CraftLoad"/> is built only through <see cref="CraftLoad.Loaded"/> and
+        /// <see cref="CraftLoad.Failed"/>, and the unit descriptor document gains the enum,
+        /// static and deterministic maps it did not write. A channel declared
+        /// <see cref="ChannelDeclaration.Addressed"/> by an Uplink that no core source
+        /// publishes for is refused at registration.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 29;
+        public const int Major = 30;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -2474,8 +2491,10 @@ namespace Sitrep.Contract
         /// <see cref="IAttributedContactLinkModel"/> and <see cref="ICommsRetargetBackend"/>.
         /// Additive: a backend that implements neither, and a client that reads neither
         /// field, are unaffected.</para>
+        ///
+        /// <para><b>Major-30 line, reset to 0</b> with the Major.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 24;
+        public const int Minor = 0;
     }
 }

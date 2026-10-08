@@ -146,7 +146,7 @@ describe("LaunchDirector actions", () => {
         canRevertToLaunch: opts.canRevertToLaunch ?? true,
         canRevertToEditor: true,
       });
-      stream.emit("crash.hasRecent", opts.crashed === true);
+      stream.emit("crash.hasRecent", { recent: opts.crashed === true });
       if (opts.crashed) {
         stream.emit("crash.lastCrash", { vesselName: opts.name });
       }

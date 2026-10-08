@@ -125,10 +125,10 @@ namespace Sitrep.Contract
         /// <see cref="ICraftCatalogue.Release"/>, whether the consumer used it or
         /// refused part-way.</para>
         /// </summary>
-        public object? Ship { get; set; }
+        public object? Ship { get; private set; }
 
         /// <summary>Why nothing was loaded, in words an operator can act on. Null on success.</summary>
-        public string? Failure { get; set; }
+        public string? Failure { get; private set; }
 
         /// <summary>
         /// The craft measured again from the parts that were just loaded, rather
@@ -138,12 +138,18 @@ namespace Sitrep.Contract
         /// current, so a part unlocked since the last rescan counts. Use it before
         /// a command spends money on the craft.</para>
         /// </summary>
-        public CraftFileRecord? Measured { get; set; }
+        public CraftFileRecord? Measured { get; private set; }
+
+        private CraftLoad()
+        {
+        }
 
         /// <summary>A successful load carrying the loaded craft.</summary>
         /// <param name="ship">The KSP <c>ShipConstruct</c>, as an opaque handle.</param>
+        /// <param name="measured">The craft measured again from the parts just loaded, or null when it could not be.</param>
         /// <returns>A load whose <see cref="Ship"/> is set and whose <see cref="Failure"/> is null.</returns>
-        public static CraftLoad Loaded(object ship) => new CraftLoad { Ship = ship };
+        public static CraftLoad Loaded(object ship, CraftFileRecord? measured = null) =>
+            new CraftLoad { Ship = ship, Measured = measured };
 
         /// <summary>A failed load carrying the reason.</summary>
         /// <param name="reason">Why nothing was loaded, in words an operator can act on.</param>

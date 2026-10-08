@@ -27,9 +27,9 @@ public class ThermalHottestPart
     [SitrepUnit(Units.Kelvin)]
     public double SkinTemp { get; set; }
 
-    /// <summary>The part's maximum skin temperature, Kelvin (<c>Part.skinMaxTemp</c>), passed through raw: KSP reports <c>-1</c> for a part with no skin-thermal model, and that value arrives here unchanged.</summary>
+    /// <summary>The part's maximum skin temperature, Kelvin (<c>Part.skinMaxTemp</c>); <c>null</c> for a part with no skin-thermal model, where KSP reports <c>-1</c>.</summary>
     [SitrepUnit(Units.Kelvin)]
-    public double SkinMaxTemp { get; set; }
+    public double? SkinMaxTemp { get; set; }
 
     /// <summary>Display name of the hottest part (<c>Part.partInfo.title</c>, falling back to <c>Part.name</c>, same convention as <see cref="Sitrep.Contract.VesselPart.Title"/>). Never null when <see cref="VesselThermal.HottestPart"/> itself is non-null.</summary>
     [SitrepUnit(Units.Text)]

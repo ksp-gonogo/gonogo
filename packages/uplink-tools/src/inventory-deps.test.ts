@@ -6,6 +6,7 @@ const planted = defineUplinkClient({
   id: "planted-deps",
   version: "1.0.0",
   name: "Planted deps",
+  description: "A test Uplink.",
 });
 
 planted.registerContribution({

@@ -121,9 +121,6 @@ describe("getUndescribedTopics()", () => {
         // Both dv.* channels key their fields by RESOURCE NAME, so there is no fixed field set for a declaration to enumerate.
         "dv.currentStageResource",
         "dv.currentStageResourceMax",
-        // Bare primitive channels: the Topic IS the value, so it has no fields.
-        "crash.hasRecent",
-        "recovery.hasRecent",
         // A string carrying a JSON document: the Topic IS the value, so it has no fields.
         "system.units",
         // A binary-lane topic: raw Opus frames, not a JSON payload with fields to describe.

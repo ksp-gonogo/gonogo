@@ -1,26 +1,18 @@
 /**
- * The `/frames` published surface, and the `Vector3` collision it exists to
- * avoid.
+ * The `/frames` published surface, and the two vector types it keeps apart.
  *
- * ## The collision, measured rather than reasoned about
+ * ## Two vectors, two names
  *
- * Two types in this package are called `Vector3`. The unit system's is an
- * `{x, y, z}` of unit-carrying `Value`s, the shape that comes off the wire, and
- * the root barrel exports it. The Keplerian one is a bare `readonly [x, y, z]`
- * of numbers, and it is what the frame arithmetic takes and returns.
+ * The unit system's `Vector3` is an `{x, y, z}` of unit-carrying `Value`s, the
+ * shape that comes off the wire, and the root barrel exports it. The Keplerian
+ * one is a bare `readonly [x, y, z]` of numbers, it is what the frame
+ * arithmetic takes and returns, and `/frames` exports it as `Vec3Tuple`.
  *
- * Putting the arithmetic on the ROOT barrel does not fail at the barrel: two
- * exports of one name resolve silently in favour of the one already there, so
- * `tsc` reports nothing about the package. Star-exporting `spine/kepler` and
- * `spine/reference-frame` from `index.ts` and compiling an author's
- * `toFrame(instant, v)` where `v: Vector3` produced exactly one diagnostic, in
- * the author's own file: `TS2345: Argument of type 'Vector3<string>' is not
- * assignable to parameter of type 'Vector3'`. A message about a collision they
- * did not make, in a file they own, naming one type twice.
- *
- * So the arithmetic is on `/frames`, where only one `Vector3` is reachable, and
- * the assertions below hold both barrels at once because that is the situation
- * it has to be absent in.
+ * Two exports of one name resolve silently in favour of the one already there,
+ * so a shared name would surface only as a diagnostic in the author's own file
+ * (`Argument of type 'Vector3<string>' is not assignable to parameter of type
+ * 'Vector3'`) about a collision they did not make. Distinct names make the
+ * mistake impossible, and the assertions below hold both barrels at once.
  *
  * ## It is also the pin on the surface's shape
  *
@@ -55,7 +47,7 @@ import {
   controlFrameToReadFrameChoice,
   type FrameCoordinates,
   type FrameInstant,
-  type Vector3 as FrameVector3,
+  type Vec3Tuple as FrameVector3,
   frameInstantAt,
   frameVector,
   fromFrame,
@@ -77,6 +69,7 @@ import {
   type ReadFrameKind,
   readFrameChoicesEqual,
   resolveReadFrame,
+  rotatePerifocalToInertial,
   type SystemInstant,
   systemInstantAt,
   TRAJECTORY_SCALE_CONVENTIONS,
@@ -85,6 +78,7 @@ import {
   type TrajectoryScaleConvention,
   toFrame,
   trajectoryFrameLabel,
+  trueAnomalyFromEccentric,
   useOrbitTrajectory,
 } from "@ksp-gonogo/sitrep-sdk/frames";
 
@@ -281,4 +275,20 @@ export function _namesThePairsFrame(
     unitLength: answer.frame?.unitLength,
   };
   return trajectoryFrameLabel(frame, facts);
+}
+
+/**
+ * An orbit's elements become a drawn point with the two conic steps: the true
+ * anomaly from the eccentric one, then the perifocal point rotated into the
+ * parent's inertial frame, which is a frame tuple.
+ */
+export function _placesAPointOnAnOrbit(
+  eccentricAnomaly: number,
+  ecc: number,
+  inc: number,
+  lan: number,
+  argPe: number,
+): FrameVector3 {
+  const nu = trueAnomalyFromEccentric(eccentricAnomaly, ecc);
+  return rotatePerifocalToInertial(Math.cos(nu), Math.sin(nu), inc, lan, argPe);
 }

@@ -25,8 +25,8 @@ public class ServoSetTargetArgs
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
-    /// <summary>Absolute target: hinge angle (degrees) or piston extension.</summary>
-    [SitrepUnit(Units.Ratio)]
+    /// <summary>Absolute target. Its unit follows the part's kind: degrees for a hinge or rotation servo, metres for a piston.</summary>
+    [SitrepUnit(Units.NotApplicable)]
     public double Value { get; set; }
 }
 
@@ -59,11 +59,8 @@ public class ServoSetEnabledArgs
 }
 
 /// <summary>
-/// Args for the rotor scalar-limit commands
-/// (<c>robotics.rotor.setRpmLimit</c>/<c>setTorqueLimit</c>/<c>setBrake</c>):
-/// the absolute value to apply, keyed by <see cref="PartId"/>. The bounded
-/// ones (torque 0 to 100, brake 0 to 200) are range-checked; a value out of
-/// range fails with <see cref="CommandErrorCode.Range"/>.
+/// Args for <c>robotics.rotor.setRpmLimit</c>: the absolute rpm cap to apply,
+/// keyed by <see cref="PartId"/>.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -71,17 +68,59 @@ public class ServoSetEnabledArgs
 [TsInterface]
 #endif
 [SitrepCommand("robotics.rotor.setRpmLimit")]
-[SitrepCommand("robotics.rotor.setTorqueLimit")]
-[SitrepCommand("robotics.rotor.setBrake")]
-public class RotorSetValueArgs
+public class RotorSetRpmLimitArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
-    /// <summary>The absolute value to apply: the rpm limit, the torque-limit percent (0 to 100), or the brake percent (0 to 200).</summary>
-    [SitrepUnit(Units.Ratio)]
-    public double Value { get; set; }
+    /// <summary>The rpm cap to apply, in revolutions per minute.</summary>
+    [SitrepUnit(Units.Rpm)]
+    public double Rpm { get; set; }
+}
+
+/// <summary>
+/// Args for <c>robotics.rotor.setTorqueLimit</c>: the absolute torque limit to
+/// apply, keyed by <see cref="PartId"/>. A value outside 0 to 100 fails with
+/// <see cref="CommandErrorCode.Range"/>.
+/// </summary>
+/// <category>Command arguments</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepCommand("robotics.rotor.setTorqueLimit")]
+public class RotorSetTorqueLimitArgs
+{
+    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
+    public string PartId { get; set; } = "";
+
+    /// <summary>The torque limit as a percentage of the rotor's maximum torque, 0 to 100.</summary>
+    [SitrepUnit(Units.Percent)]
+    public double Percent { get; set; }
+}
+
+/// <summary>
+/// Args for <c>robotics.rotor.setBrake</c>: the absolute brake strength to
+/// apply, keyed by <see cref="PartId"/>. A value outside 0 to 200 fails with
+/// <see cref="CommandErrorCode.Range"/>.
+/// </summary>
+/// <category>Command arguments</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepCommand("robotics.rotor.setBrake")]
+public class RotorSetBrakeArgs
+{
+    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
+    public string PartId { get; set; } = "";
+
+    /// <summary>The brake strength as KSP's brake percentage, 0 to 200.</summary>
+    [SitrepUnit(Units.Percent)]
+    public double Percent { get; set; }
 }
 
 /// <summary>

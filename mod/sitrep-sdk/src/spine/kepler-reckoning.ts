@@ -8,7 +8,7 @@ import type {
   OrbitElements,
   PropagationHorizonLike,
   StateVector,
-  Vector3,
+  Vec3Tuple,
 } from "./kepler";
 import {
   canPropagate,
@@ -549,7 +549,7 @@ export function underPhysics(input: string, note: string): ReckoningDecline {
 }
 
 /** The length of a bare three-component vector. */
-export function magnitude(v: Vector3): number {
+export function magnitude(v: Vec3Tuple): number {
   return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 

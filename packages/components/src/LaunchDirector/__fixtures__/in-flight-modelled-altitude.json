@@ -77,7 +77,7 @@
       },
       {
         "channel": "crash.hasRecent",
-        "value": false
+        "value": { "recent": false }
       },
       {
         "channel": "vessel.orbit",

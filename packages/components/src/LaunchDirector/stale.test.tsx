@@ -111,7 +111,7 @@ describe("LaunchDirector when its telemetry is held", () => {
         canRevertToLaunch: true,
         canRevertToEditor: true,
       });
-      stream.emit("crash.hasRecent", false);
+      stream.emit("crash.hasRecent", { recent: false });
       stream.emit("target.available", {
         entries: [
           {
@@ -290,7 +290,7 @@ describe("LaunchDirector when its telemetry is held", () => {
     renderWidget();
     emitInFlight();
     act(() => {
-      stream.emit("crash.hasRecent", true);
+      stream.emit("crash.hasRecent", { recent: true });
       stream.emit("crash.lastCrash", {
         ut: 5,
         vesselName: "Some Debris",

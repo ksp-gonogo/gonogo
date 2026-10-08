@@ -9,7 +9,7 @@ import {
   TrajectoryKindLike as Shape,
   type StateVector,
   solve,
-  type Vector3,
+  type Vec3Tuple,
 } from "./kepler";
 import type { ConicBodiesInput, ConicOrbitInput } from "./kepler-reckoning";
 import {
@@ -52,7 +52,7 @@ const START: OrbitElements = {
 };
 
 /** The burn's fixed inertial direction: prograde at ignition. */
-const DIRECTION: Vector3 = (() => {
+const DIRECTION: Vec3Tuple = (() => {
   const v = solve(START, 0).velocity;
   const n = Math.hypot(v[0], v[1], v[2]);
   return [v[0] / n, v[1] / n, v[2] / n];
@@ -63,7 +63,7 @@ function truthAt(ut: number): StateVector {
   let r = solve(START, 0).position;
   let v = solve(START, 0).velocity;
   const h = 0.1;
-  const accel = (pos: Vector3, t: number): Vector3 => {
+  const accel = (pos: Vec3Tuple, t: number): Vec3Tuple => {
     const d = Math.hypot(pos[0], pos[1], pos[2]);
     const k = THRUST_KN / (MASS_T - (FLOW_KG / 1000) * t);
     return [
@@ -72,7 +72,7 @@ function truthAt(ut: number): StateVector {
       (-MU * pos[2]) / d ** 3 + k * DIRECTION[2],
     ];
   };
-  const plus = (a: Vector3, b: Vector3, s: number): Vector3 => [
+  const plus = (a: Vec3Tuple, b: Vec3Tuple, s: number): Vec3Tuple => [
     a[0] + b[0] * s,
     a[1] + b[1] * s,
     a[2] + b[2] * s,
@@ -96,13 +96,13 @@ function truthAt(ut: number): StateVector {
 
 /** One fourth-order Runge-Kutta update of `x` from the four slopes. */
 function rk4Step(
-  x: Vector3,
-  k1: Vector3,
-  k2: Vector3,
-  k3: Vector3,
-  k4: Vector3,
+  x: Vec3Tuple,
+  k1: Vec3Tuple,
+  k2: Vec3Tuple,
+  k3: Vec3Tuple,
+  k4: Vec3Tuple,
   h: number,
-): Vector3 {
+): Vec3Tuple {
   const at = (i: 0 | 1 | 2) =>
     x[i] + (h / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
   return [at(0), at(1), at(2)];

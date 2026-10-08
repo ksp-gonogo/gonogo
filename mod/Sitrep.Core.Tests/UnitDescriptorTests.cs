@@ -290,6 +290,21 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void WritesEveryMapCollectReflects()
+        {
+            var json = UnitDescriptor.ToJson();
+
+            foreach (var key in new[]
+            {
+                "types", "topics", "typeShapes", "topicShapes", "typeEnums", "topicEnums",
+                "enumMembers", "typeStatic", "topicStatic", "typeDeterministicWhile",
+            })
+            {
+                Assert.Contains("\"" + key + "\": {", json);
+            }
+        }
+
+        [Fact]
         public void IsStableAcrossCalls()
         {
             // Every collection is sorted, so re-running produces identical

@@ -41,7 +41,7 @@ import {
   rotatePerifocalToInertial,
   solveAnomalies,
   TrajectoryKindLike,
-  type Vector3,
+  type Vec3Tuple,
 } from "./kepler";
 import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import { orbitalPeriod } from "./propagation";
@@ -399,7 +399,7 @@ function reframeArc(
     elements.lan,
     elements.argPe,
   );
-  const wHat: Vector3 = [
+  const wHat: Vec3Tuple = [
     pHat[1] * qHat[2] - pHat[2] * qHat[1],
     pHat[2] * qHat[0] - pHat[0] * qHat[2],
     pHat[0] * qHat[1] - pHat[1] * qHat[0],
@@ -424,7 +424,7 @@ function reframeArc(
     if (unitLengthAtView === undefined || p.ut <= viewUt) {
       unitLengthAtView = instant.unitLength;
     }
-    const local: Vector3 =
+    const local: Vec3Tuple =
       sourceKind === TrajectoryFrameKindLike.Perifocal
         ? [
             p.x * pHat[0] + p.y * qHat[0] + p.z * wHat[0],

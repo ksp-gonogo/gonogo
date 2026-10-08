@@ -61,12 +61,14 @@ const UPLINK: UplinkClientHandle = defineUplinkClient({
   id: "test-uplink",
   version: "0.0.0-test",
   name: "Test Uplink",
+  description: "An Uplink that requests alarms in tests.",
 });
 
 const SECOND_UPLINK: UplinkClientHandle = defineUplinkClient({
   id: "other-uplink",
   version: "0.0.0-test",
   name: "Other Uplink",
+  description: "A second Uplink that requests alarms in tests.",
 });
 
 /** How the peer host hands an `alarm-add` to whoever subscribed for one. */

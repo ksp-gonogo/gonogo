@@ -3,7 +3,7 @@ import { TargetKnowledge } from "../__generated__/contract";
 import { value } from "../unit-system/value";
 import type { CelestialFacts } from "./celestial-facts";
 import type { CommsPeerOrbit } from "./comms-path-geometry";
-import type { OrbitElements, Vector3 } from "./kepler";
+import type { OrbitElements, Vec3Tuple } from "./kepler";
 import {
   buildElements,
   isHyperbolic,
@@ -111,10 +111,10 @@ export function knownCraftRangeAt(
 }
 
 function placed(
-  centre: Vector3 | undefined,
+  centre: Vec3Tuple | undefined,
   elements: OrbitElements,
   at: number,
-): Vector3 | null {
+): Vec3Tuple | null {
   if (centre === undefined) return null;
   const state = trySolve(elements, at);
   return state === null

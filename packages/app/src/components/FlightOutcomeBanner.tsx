@@ -1,6 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
-import { useStream, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import {
   type CrashReport,
   isValue,
@@ -106,16 +106,16 @@ type Outcome =
 // ── Component ────────────────────────────────────────────────────────────
 
 export function FlightOutcomeBanner() {
-  const recoveryFlag = useStream<boolean>("recovery.hasRecent");
+  const recoveryFlag = useTelemetry("recovery.hasRecent");
   const recoveryReading = useTelemetry("recovery.lastSummary");
-  const crashFlag = useStream<boolean>("crash.hasRecent");
+  const crashFlag = useTelemetry("crash.hasRecent");
   /* Held like the records they gate: an event does not un-happen down a quiet link. */
   const recoveryHasRecent =
     (recoveryFlag.state === "observed" || recoveryFlag.state === "held") &&
-    recoveryFlag.value === true;
+    recoveryFlag.value.recent === true;
   const crashHasRecent =
     (crashFlag.state === "observed" || crashFlag.state === "held") &&
-    crashFlag.value === true;
+    crashFlag.value.recent === true;
   const crashReading = useTelemetry("crash.lastCrash");
   /**
    * A `Reading` is not its payload, and the deleted parsers took `unknown`, so

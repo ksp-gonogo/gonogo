@@ -253,7 +253,7 @@ export type {
   TrajectoryPoint,
   TrajectoryScaleConvention,
   TrajectoryWithheldReason,
-  Vector3,
+  Vec3Tuple,
 } from "./kepler";
 export {
   CONTROL_FRAME_TOPIC,

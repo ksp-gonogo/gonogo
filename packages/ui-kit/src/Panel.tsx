@@ -2157,6 +2157,7 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   id: "example",
  *   version: "0.0.1",
  *   name: "Example",
+ *   description: "Shows an example section in a widget panel.",
  * });
  *
  * function CadenceSection() {

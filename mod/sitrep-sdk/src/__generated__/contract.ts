@@ -2991,6 +2991,22 @@ export interface CrashFlightStats
 	liftOff: boolean;
 }
 /**
+* The payload for the `crash.hasRecent` channel: one flag saying a notable
+* crash is on record for the current save, published beside `CrashReport` on
+* `crash.lastCrash`. It is true from the first crash a flight records and is
+* not published before one.
+*
+* @category Flights
+*/
+export interface CrashRecent
+{
+	/**
+	* True when a notable crash is on record, so `crash.lastCrash` has a report to
+	* read.
+	*/
+	recent: boolean;
+}
+/**
 * What a kerbal's place on the books is, as the dashboard means it: this
 * contract's own vocabulary, not a mirror of any game enum.
 *
@@ -5604,6 +5620,22 @@ export interface RecoveryCrewEntry
 	newLevel: Value<"count">;
 }
 /**
+* The payload for the `recovery.hasRecent` channel: one flag saying a vessel
+* recovery is on record for the current save, published beside
+* `RecoveryReport` on `recovery.lastSummary`. It is true from the first
+* recovery of a real craft and is not published before one.
+*
+* @category Flights
+*/
+export interface RecoveryRecent
+{
+	/**
+	* True when a recovery is on record, so `recovery.lastSummary` has a summary
+	* to read.
+	*/
+	recent: boolean;
+}
+/**
 * The `ksp.revertAvailability` Topic payload: whether the two stock in-flight
 * revert actions are available right now, so a widget can enable its Revert to
 * Launch and Revert to Editor controls exactly when KSP's own pause menu shows
@@ -5650,7 +5682,10 @@ export interface ServoSetTargetArgs
 	* `parts.robotics` entry.
 	*/
 	partId: string;
-	/** Absolute target: hinge angle (degrees) or piston extension. */
+	/**
+	* Absolute target. Its unit follows the part's kind: degrees for a hinge or
+	* rotation servo, metres for a piston.
+	*/
 	value: number;
 }
 /**
@@ -5679,26 +5714,54 @@ export interface ServoSetEnabledArgs
 	enabled: boolean;
 }
 /**
-* Args for the rotor scalar-limit commands
-* (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`): the absolute
-* value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
-* (torque 0 to 100, brake 0 to 200) are range-checked; a value out of range
-* fails with `CommandErrorCode.Range`.
+* Args for `robotics.rotor.setRpmLimit`: the absolute rpm cap to apply, keyed
+* by `RotorSetRpmLimitArgs.partId`.
 *
 * @category Command arguments
 */
-export interface RotorSetValueArgs
+export interface RotorSetRpmLimitArgs
 {
 	/**
 	* The part's `flightID.ToString()`: the id the read side stamps on each
 	* `parts.robotics` entry.
 	*/
 	partId: string;
+	/** The rpm cap to apply, in revolutions per minute. */
+	rpm: number;
+}
+/**
+* Args for `robotics.rotor.setTorqueLimit`: the absolute torque limit to
+* apply, keyed by `RotorSetTorqueLimitArgs.partId`. A value outside 0 to 100
+* fails with `CommandErrorCode.Range`.
+*
+* @category Command arguments
+*/
+export interface RotorSetTorqueLimitArgs
+{
 	/**
-	* The absolute value to apply: the rpm limit, the torque-limit percent (0 to
-	* 100), or the brake percent (0 to 200).
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
 	*/
-	value: number;
+	partId: string;
+	/** The torque limit as a percentage of the rotor's maximum torque, 0 to 100. */
+	percent: number;
+}
+/**
+* Args for `robotics.rotor.setBrake`: the absolute brake strength to apply,
+* keyed by `RotorSetBrakeArgs.partId`. A value outside 0 to 200 fails with
+* `CommandErrorCode.Range`.
+*
+* @category Command arguments
+*/
+export interface RotorSetBrakeArgs
+{
+	/**
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
+	*/
+	partId: string;
+	/** The brake strength as KSP's brake percentage, 0 to 200. */
+	percent: number;
 }
 /**
 * Args for `robotics.rotor.reverse`: flips the rotor's spin direction. It is
@@ -10884,11 +10947,10 @@ export interface ThermalHottestPart
 	/** The part's current skin temperature, Kelvin (`Part.skinTemperature`). */
 	skinTemp: Value<"K">;
 	/**
-	* The part's maximum skin temperature, Kelvin (`Part.skinMaxTemp`), passed
-	* through raw: KSP reports `-1` for a part with no skin-thermal model, and
-	* that value arrives here unchanged.
+	* The part's maximum skin temperature, Kelvin (`Part.skinMaxTemp`); `null` for
+	* a part with no skin-thermal model, where KSP reports `-1`.
 	*/
-	skinMaxTemp: Value<"K">;
+	skinMaxTemp?: Value<"K"> | null;
 	/**
 	* Display name of the hottest part (`Part.partInfo.title`, falling back to
 	* `Part.name`, same convention as `VesselPart.title`). Never null when

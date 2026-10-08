@@ -11,7 +11,7 @@ import {
   type OrbitElements,
   type StateVector,
   solve,
-  type Vector3,
+  type Vec3Tuple,
 } from "./kepler";
 import {
   buildElements,
@@ -164,7 +164,7 @@ export function elementsFromState(
   const vMag = norm(v);
   const h = cross(r, v);
   const hMag = norm(h);
-  const node: Vector3 = [-h[1], h[0], 0];
+  const node: Vec3Tuple = [-h[1], h[0], 0];
   const nodeMag = norm(node);
   const rv = dot(r, v);
   const eVec = scale(
@@ -184,7 +184,7 @@ export function elementsFromState(
    * inertial x axis where there is no node. Retrograde equatorial orbits turn
    * the in-plane angle round, which is what the sign of `h[2]` carries.
    */
-  const inPlaneAngle = (u: Vector3): number => {
+  const inPlaneAngle = (u: Vec3Tuple): number => {
     if (!equatorial) {
       const cosAngle = dot(node, u) / (nodeMag * norm(u));
       const angle = Math.acos(clamp(cosAngle));
@@ -246,11 +246,11 @@ function clamp(x: number): number {
   return Math.max(-1, Math.min(1, x));
 }
 
-function dot(a: Vector3, b: Vector3): number {
+function dot(a: Vec3Tuple, b: Vec3Tuple): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-function cross(a: Vector3, b: Vector3): Vector3 {
+function cross(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [
     a[1] * b[2] - a[2] * b[1],
     a[2] * b[0] - a[0] * b[2],
@@ -258,19 +258,19 @@ function cross(a: Vector3, b: Vector3): Vector3 {
   ];
 }
 
-function norm(a: Vector3): number {
+function norm(a: Vec3Tuple): number {
   return Math.sqrt(dot(a, a));
 }
 
-function scale(a: Vector3, k: number): Vector3 {
+function scale(a: Vec3Tuple, k: number): Vec3Tuple {
   return [a[0] * k, a[1] * k, a[2] * k];
 }
 
-function add(a: Vector3, b: Vector3): Vector3 {
+function add(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
-function sub(a: Vector3, b: Vector3): Vector3 {
+function sub(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 
@@ -280,7 +280,7 @@ function sub(a: Vector3, b: Vector3): Vector3 {
  * the model's own estimate, tilting for the band's).
  */
 interface SteadyBurn {
-  readonly direction: (ut: number) => Vector3;
+  readonly direction: (ut: number) => Vec3Tuple;
   /** Kilonewtons. Over tonnes this is an acceleration in m/s² directly. */
   readonly thrust: number;
   /** Tonnes, at `massAtUt`. */
@@ -318,7 +318,7 @@ function integrateBurn(
 ): StateVector {
   const span = toUt - fromUt;
   if (!(Math.abs(span) <= MAX_CARRY_SECONDS)) {
-    const unknown: Vector3 = [Number.NaN, Number.NaN, Number.NaN];
+    const unknown: Vec3Tuple = [Number.NaN, Number.NaN, Number.NaN];
     return { position: unknown, velocity: unknown };
   }
   const steps = Math.max(1, Math.ceil(Math.abs(span) / MAX_STEP_SECONDS));
@@ -344,7 +344,7 @@ function integrateBurn(
   return { position: r, velocity: v };
 }
 
-function accelerationAt(r: Vector3, t: number, burn: SteadyBurn): Vector3 {
+function accelerationAt(r: Vec3Tuple, t: number, burn: SteadyBurn): Vec3Tuple {
   const radius = norm(r);
   const gravity = scale(r, -burn.mu / (radius * radius * radius));
   return add(gravity, scale(burn.direction(t), burn.thrust / massAt(burn, t)));
@@ -368,7 +368,7 @@ function massAt(burn: SteadyBurn, ut: number): number {
  */
 interface MeasuredThrust {
   /** Unit vector, body-centred inertial frame. */
-  readonly direction: Vector3;
+  readonly direction: Vec3Tuple;
   /** The acceleration the burn produced over the interval, m/s². */
   readonly acceleration: number;
   /** The interval's midpoint. */
@@ -750,12 +750,12 @@ function perturbations(
   magnitudeError: number,
 ): SteadyBurn[] {
   const axis = measured.direction;
-  const seed: Vector3 = Math.abs(axis[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+  const seed: Vec3Tuple = Math.abs(axis[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
   const across = normalise(cross(axis, seed));
   const along = cross(axis, across);
   const tilt = (ut: number) =>
     DIRECTION_FLOOR + measured.turnRate * Math.abs(ut - measured.atUt);
-  const tilted = (toward: Vector3, sign: number) => (ut: number) => {
+  const tilted = (toward: Vec3Tuple, sign: number) => (ut: number) => {
     const angle = sign * tilt(ut);
     return add(scale(axis, Math.cos(angle)), scale(toward, Math.sin(angle)));
   };
@@ -861,6 +861,6 @@ function surface(state: StateVector, seaLevel: number) {
   };
 }
 
-function normalise(a: Vector3): Vector3 {
+function normalise(a: Vec3Tuple): Vec3Tuple {
   return scale(a, 1 / norm(a));
 }

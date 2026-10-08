@@ -49,6 +49,7 @@ import type {
   CommsRoutes,
   CommsSignal,
   ControlFrame,
+  CrashRecent,
   CrashReport,
   CrewRosterEntry,
   DeployedEntry,
@@ -69,6 +70,7 @@ import type {
   LaunchSiteEntry,
   MissionStatus,
   PartsPower,
+  RecoveryRecent,
   RecoveryReport,
   RevertAvailability,
   RoboticsAvailability,
@@ -137,6 +139,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.path": CommsPath;
   "comms.route": CommsRoutes;
   "comms.signal": CommsSignal;
+  "crash.hasRecent": CrashRecent;
   "crash.lastCrash": CrashReport;
   "deployed.bases": DeployedEntry[];
   "dv.stages": StageDeltaVEntry[];
@@ -153,6 +156,7 @@ export interface GeneratedTopicPayloadMap {
   "ksp.revertAvailability": RevertAvailability;
   "missions.active": MissionStatus;
   "parts.power": PartsPower;
+  "recovery.hasRecent": RecoveryRecent;
   "recovery.lastSummary": RecoveryReport;
   "robotics.available": RoboticsAvailability;
   "robotics.servos": ServoEntry[];
@@ -224,6 +228,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.path",
   "comms.route",
   "comms.signal",
+  "crash.hasRecent",
   "crash.lastCrash",
   "deployed.bases",
   "dv.stages",
@@ -240,6 +245,7 @@ export const GENERATED_TOPIC_IDS = [
   "ksp.revertAvailability",
   "missions.active",
   "parts.power",
+  "recovery.hasRecent",
   "recovery.lastSummary",
   "robotics.available",
   "robotics.servos",

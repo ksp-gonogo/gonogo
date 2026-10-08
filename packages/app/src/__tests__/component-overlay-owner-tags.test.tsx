@@ -31,6 +31,7 @@ const MOD_ALPHA = defineUplinkClient({
   id: "mod-alpha",
   version: "0.0.0-dev",
   name: "Mod Alpha",
+  description: "A planted Uplink for owner-tag tests.",
 });
 
 function OwnedWidget() {

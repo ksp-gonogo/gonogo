@@ -1,5 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useStream, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   type Reading,
   stillTrue,
@@ -18,11 +18,10 @@ export function useFlightState() {
   // Off `vessel.flight`'s own field reading, which stays live on rails.
   const altitudeReading: Reading<Value<"m">> =
     useTelemetry("vessel.flight").altitudeAsl;
-  // Not in the SDK's typed Topic tail, so read through `useStream`.
   const crashHasRecent = stillTrue(
-    useStream<boolean>("crash.hasRecent"),
+    useTelemetry("crash.hasRecent"),
     undefined,
-  );
+  )?.recent;
   const lastCrash = stillTrue(useTelemetry("crash.lastCrash"), undefined);
   // Stays an instant: its only use is the ordering against a crash snapshot's capture ut.
   const viewUt = useViewUt();

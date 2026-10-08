@@ -71,7 +71,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 const double ut = 41486.3595;
                 uplink.LastCrash!.Publish(SampleCrash("vessel-a", "CrashSplashdown", ut), ut);
-                uplink.HasRecent!.Publish(true, ut);
+                uplink.HasRecent!.Publish(CrashPayload.ToWire(new CrashRecent { Recent = true }), ut);
                 engine.TickAndWait(ut, null, Timeout);
 
                 var byTopic = new Dictionary<string, StreamData>();
@@ -83,7 +83,8 @@ namespace Sitrep.Host.IntegrationTests
 
                 Assert.True(byTopic.ContainsKey(CrashTopics.LastCrashTopic));
                 Assert.True(byTopic.ContainsKey(CrashTopics.HasRecentTopic));
-                Assert.Equal(true, byTopic[CrashTopics.HasRecentTopic].Payload);
+                var recent = Assert.IsType<Dictionary<string, object?>>(byTopic[CrashTopics.HasRecentTopic].Payload);
+                Assert.Equal(true, recent["recent"]);
 
                 var payload = Assert.IsType<Dictionary<string, object?>>(byTopic[CrashTopics.LastCrashTopic].Payload);
                 Assert.Equal("CrashSplashdown", payload["eventKind"]);

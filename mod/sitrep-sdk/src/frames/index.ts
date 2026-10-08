@@ -7,26 +7,25 @@
  * instant, the forward and inverse position transforms, and the fact that a
  * pulsating frame's coordinates are ratios rather than distances.
  *
- * Two things built on those transforms are here too, because an author drawing
+ * Three things built on those transforms are here too, because an author drawing
  * in a frame needs them beside it:
  *
  * - a craft's path in the frame you chose, from `useOrbitTrajectory`, with
  *   `trajectoryFrameLabel` to name the frame beside it
+ * - the two conic steps an author turning an orbit's elements into a drawn
+ *   point needs, `trueAnomalyFromEccentric` and `rotatePerifocalToInertial`
  * - a body pair's five libration points, which stand still only in that pair's
  *   rotating-pulsating frame, and a craft's offset from the nearest one
  *
- * ## Why this is not the root barrel
+ * ## Two vector types, two names
  *
- * The root barrel already exports the unit system's `Vector3`, an `{x, y, z}`
- * of unit-carrying `Value`s, and the arithmetic here takes the Keplerian one, a
- * bare `readonly [x, y, z]` of numbers. Two exports of one name resolve
- * silently in favour of the one already there, so putting the arithmetic on the
- * root barrel does not fail at the barrel: it fails at the author's own call
- * site with `Type 'Vector3<string>' is not assignable to parameter of type
- * 'Vector3'`, pointing at their code about a collision they did not make.
+ * The root barrel exports the unit system's `Vector3`, an `{x, y, z}` of
+ * unit-carrying `Value`s. The arithmetic here takes a bare
+ * `readonly [x, y, z]` of numbers, named `Vec3Tuple` so the two never share a
+ * name and a call site never meets `Type 'Vector3<string>' is not assignable to
+ * parameter of type 'Vector3'`.
  *
- * **On this subpath `Vector3` is the Keplerian tuple and nothing else.** An
- * author holding the unit-carrying one, which is what every position and
+ * An author holding the unit-carrying one, which is what every position and
  * velocity field on the wire carries, converts it with {@link frameVector}.
  *
  * ## Why this is not `/spine`
@@ -111,7 +110,7 @@
  *   capability gained
  */
 
-import type { Vector3 } from "../spine/kepler";
+import type { Vec3Tuple } from "../spine/kepler";
 import type { Vec3Of } from "../value";
 
 export {
@@ -119,6 +118,10 @@ export {
   controlFrameToReadFrameChoice,
   readFrameChoicesEqual,
 } from "../spine/control-frame-to-read-frame";
+export {
+  rotatePerifocalToInertial,
+  trueAnomalyFromEccentric,
+} from "../spine/kepler";
 export {
   type LagrangePointName,
   LIBRATION_REFUSALS,
@@ -158,10 +161,11 @@ export {
 export { useOrbitTrajectory } from "../spine/use-orbit-trajectory";
 
 /**
- * A bare `[x, y, z]`. The only `Vector3` this subpath makes reachable, and the
- * shape every function above takes and returns.
+ * A bare `[x, y, z]` of numbers, the shape every function above takes and
+ * returns. Not the root barrel's `Vector3`, the `{x, y, z}` of unit-carrying
+ * `Value`s.
  */
-export type { Vector3 };
+export type { Vec3Tuple };
 
 /**
  * Returns a position or velocity from a payload, a {@link Vec3Of} in metres
@@ -172,6 +176,6 @@ export type { Vector3 };
  */
 export function frameVector<Unit extends "m" | "m/s">(
   v: Vec3Of<Unit>,
-): Vector3 {
+): Vec3Tuple {
   return [v.x.magnitude, v.y.magnitude, v.z.magnitude];
 }

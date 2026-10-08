@@ -46,7 +46,7 @@
 
 import { PerfBudget } from "../perf/PerfBudget";
 import type { CelestialBody, CelestialFacts } from "./celestial-facts";
-import type { Vector3 } from "./kepler";
+import type { Vec3Tuple } from "./kepler";
 import {
   type FrameInstant,
   frameInstantAt,
@@ -139,9 +139,9 @@ export interface LibrationPoint {
    * The point in the pair's rotating-pulsating frame: multiples of the pair's
    * separation, and CONSTANT for as long as the pair's mass ratio is.
    */
-  frame: Vector3;
+  frame: Vec3Tuple;
   /** The same point in root-centred inertial metres at the answer's `ut`. */
-  inertial: Vector3;
+  inertial: Vec3Tuple;
 }
 
 /**
@@ -221,7 +221,7 @@ export type LibrationStationKeeping = "on-station" | "drifting" | "elsewhere";
 export interface LibrationOffset {
   nearest: LagrangePointName;
   /** The craft in the pair's frame: multiples of the separation. */
-  vesselFrame: Vector3;
+  vesselFrame: Vec3Tuple;
   /** Straight-line distance from the craft to that point at the answer's `ut`, metres. */
   distanceMetres: number;
   /** The same distance as a multiple of the pair's separation. */
@@ -334,7 +334,7 @@ const COLLINEAR_BRACKET_GAP = 1e-9;
  */
 export function librationPositionsFor(
   massRatio: number,
-): readonly { name: LagrangePointName; frame: Vector3 }[] | null {
+): readonly { name: LagrangePointName; frame: Vec3Tuple }[] | null {
   const mu = massRatio;
   if (!(mu > 0 && mu < 1)) return null;
   const primaryX = -mu;
@@ -501,7 +501,7 @@ export function lagrangePointsAt(
  */
 export function librationOffsetOf(
   answer: LibrationAnswer,
-  vesselInertial: Vector3 | null | undefined,
+  vesselInertial: Vec3Tuple | null | undefined,
 ): LibrationOffset | null {
   if (answer.refusal !== LIBRATION_REFUSALS.NotRefused) return null;
   if (answer.frame === null || vesselInertial == null) return null;

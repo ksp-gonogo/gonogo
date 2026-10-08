@@ -134,7 +134,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
         mach: 0,
         atmDensity: 1.2,
       });
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
     });
 

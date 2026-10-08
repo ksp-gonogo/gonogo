@@ -705,14 +705,14 @@ namespace Sitrep.Host
             var hottestMax = GetDouble(thermal, "hottestPartMaxTemp");
             var hottestSkin = GetDouble(thermal, "hottestPartSkinTemp");
             var hottestSkinMax = GetDouble(thermal, "hottestPartSkinMaxTemp");
-            if (hottestInternal.HasValue && hottestMax.HasValue && hottestSkin.HasValue && hottestSkinMax.HasValue)
+            if (hottestInternal.HasValue && hottestMax.HasValue && hottestSkin.HasValue)
             {
                 hottestPart = new ThermalHottestPart
                 {
                     InternalTemp = hottestInternal.Value,
                     MaxTemp = hottestMax.Value,
                     SkinTemp = hottestSkin.Value,
-                    SkinMaxTemp = hottestSkinMax.Value,
+                    SkinMaxTemp = hottestSkinMax > 0 ? hottestSkinMax : null,
                     Name = GetString(thermal, "hottestPartName") ?? "",
                     Id = GetString(thermal, "hottestPartId"),
                 };

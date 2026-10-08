@@ -155,7 +155,10 @@ const SCENES: Scene[] = [
   {
     // The headline falsehood: this recovery paid 1,035 funds, 12.5 science and 7.5 reputation, and the banner reported three zeros.
     name: "recovery-banner",
-    emit: { "recovery.hasRecent": true, "recovery.lastSummary": RECOVERY },
+    emit: {
+      "recovery.hasRecent": { recent: true },
+      "recovery.lastSummary": RECOVERY,
+    },
     pxW: 720,
     pxH: 110,
   },
@@ -164,9 +167,9 @@ const SCENES: Scene[] = [
     // seconds the later, and `0 > 0` announced the recovery instead.
     name: "crash-after-recovery",
     emit: {
-      "recovery.hasRecent": true,
+      "recovery.hasRecent": { recent: true },
       "recovery.lastSummary": RECOVERY,
-      "crash.hasRecent": true,
+      "crash.hasRecent": { recent: true },
       "crash.lastCrash": CRASH,
     },
     pxW: 720,
@@ -175,7 +178,10 @@ const SCENES: Scene[] = [
   {
     // Every row of the breakdown came off the same substitution, one level down: the part group of eight rendered as "×1" at 0 funds.
     name: "recovery-detail",
-    emit: { "recovery.hasRecent": true, "recovery.lastSummary": RECOVERY },
+    emit: {
+      "recovery.hasRecent": { recent: true },
+      "recovery.lastSummary": RECOVERY,
+    },
     openDetail: true,
     pxW: 900,
     pxH: 900,
@@ -184,7 +190,7 @@ const SCENES: Scene[] = [
   {
     // The flight statistics, from `flightStats`, wrapped by the same walk.
     name: "crash-detail",
-    emit: { "crash.hasRecent": true, "crash.lastCrash": CRASH },
+    emit: { "crash.hasRecent": { recent: true }, "crash.lastCrash": CRASH },
     openDetail: true,
     pxW: 900,
     pxH: 760,
@@ -195,7 +201,7 @@ const SCENES: Scene[] = [
     // instead of reporting a payout of nothing.
     name: "recovery-funds-absent",
     emit: {
-      "recovery.hasRecent": true,
+      "recovery.hasRecent": { recent: true },
       "recovery.lastSummary": { ...RECOVERY, fundsEarned: undefined },
     },
     pxW: 720,

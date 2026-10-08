@@ -85,7 +85,7 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
         (c) => c.command === "robotics.rotor.setRpmLimit",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "101", value: 310 });
+      expect(sent?.args).toEqual({ partId: "101", rpm: 310 });
     });
   });
 

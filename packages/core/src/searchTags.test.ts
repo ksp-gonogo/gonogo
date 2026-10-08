@@ -42,6 +42,7 @@ describe("effectiveSearchTags", () => {
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     const def = baseDef({ tags: ["telemetry"], owner: MOD_ALPHA });
 
@@ -53,6 +54,7 @@ describe("effectiveSearchTags", () => {
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     const def = baseDef({ tags: ["mod-alpha"], owner: MOD_ALPHA });
 
@@ -88,6 +90,7 @@ describe("effectiveSearchTags", () => {
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     registerAugment({
       id: "mod-beta-badge",
@@ -115,6 +118,7 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
       id: "mod-gamma",
       version: "0.0.0-dev",
       name: "Mod Gamma",
+      description: "A test Uplink.",
     });
     registerAugment({
       id: "gamma-badge",
@@ -135,6 +139,7 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
       id: "mod-delta",
       version: "0.0.0-dev",
       name: "Mod Delta",
+      description: "A test Uplink.",
     });
     registerContribution({
       id: "delta-rows",
@@ -155,6 +160,7 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
       id: "mod-epsilon",
       version: "0.0.0-dev",
       name: "Mod Epsilon",
+      description: "A test Uplink.",
     });
     registerContribution({
       id: "epsilon-badge",
@@ -173,6 +179,7 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     registerAugment({
       id: "alpha-badge",
@@ -202,11 +209,13 @@ describe("uplinkAdditions", () => {
       id: "mod-gamma",
       version: "0.0.0-dev",
       name: "Mod Gamma",
+      description: "A test Uplink.",
     });
     const MOD_EPSILON = defineUplinkClient({
       id: "mod-epsilon",
       version: "0.0.0-dev",
       name: "Mod Epsilon",
+      description: "A test Uplink.",
     });
     registerAugment({
       id: "gamma-badge",
@@ -242,11 +251,13 @@ describe("registerComponent collision handling is owner-agnostic (task override 
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     const MOD_BETA = defineUplinkClient({
       id: "mod-beta",
       version: "0.0.0-dev",
       name: "Mod Beta",
+      description: "A test Uplink.",
     });
     registerComponent(baseDef({ id: "shared-id", owner: MOD_ALPHA }));
 
@@ -262,6 +273,7 @@ describe("registerComponent collision handling is owner-agnostic (task override 
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     const def = baseDef({ id: "same-def", owner: MOD_ALPHA });
 

@@ -97,7 +97,7 @@
       },
       {
         "channel": "crash.hasRecent",
-        "value": true
+        "value": { "recent": true }
       },
       {
         "channel": "system.uplink.gates",

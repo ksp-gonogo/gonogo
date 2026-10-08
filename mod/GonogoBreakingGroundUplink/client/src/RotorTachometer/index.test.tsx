@@ -147,7 +147,7 @@ describe("RotorTachometerComponent", () => {
         (c) => c.command === "robotics.rotor.setRpmLimit",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "101", value: 210 });
+      expect(sent?.args).toEqual({ partId: "101", rpm: 210 });
     });
   });
 
@@ -195,7 +195,7 @@ describe("RotorTachometerComponent", () => {
         (c) => c.command === "robotics.rotor.setRpmLimit",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "202", value: 60 });
+      expect(sent?.args).toEqual({ partId: "202", rpm: 60 });
     });
   });
 });

@@ -69,19 +69,19 @@ function RotorTachometerComponent({
 
   const setRpmLimit = (id: string, rpm: number) => {
     const value = Math.round(clamp(rpm, 0, ROTOR_MAX_RPM));
-    void rpmCmd.send({ partId: id, value }, { label: `RPM cap ${value}` });
+    void rpmCmd.send({ partId: id, rpm: value }, { label: `RPM cap ${value}` });
   };
   const setTorqueLimit = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 100));
     void torqueCmd.send(
-      { partId: id, value },
+      { partId: id, percent: value },
       { label: `Torque ${writeQuantity(quantity("%", value))}` },
     );
   };
   const setBrake = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 200));
     void brakeCmd.send(
-      { partId: id, value },
+      { partId: id, percent: value },
       { label: `Brake ${writeQuantity(quantity("%", value))}` },
     );
   };

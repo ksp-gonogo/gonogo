@@ -156,7 +156,7 @@ export interface GonogoHost {
     id: string;
     version: string;
     name: string;
-    description?: string;
+    description: string;
   }): UplinkClientHandle;
 
   /** What {@link registerSettingsTab} calls. */

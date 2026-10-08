@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Recovery
 {
@@ -116,6 +117,10 @@ namespace Sitrep.Host.Recovery
         /// </summary>
         public static bool ShouldPublish(string? vesselType) =>
             vesselType != "Debris" && vesselType != "Flag" && vesselType != "Unknown";
+
+        /// <summary>Flattens the <c>recovery.hasRecent</c> payload to the dictionary <see cref="Sitrep.Contract.Serialization.JsonWriter"/> serializes.</summary>
+        public static Dictionary<string, object?> ToWire(RecoveryRecent recent) =>
+            new Dictionary<string, object?> { ["recent"] = recent.Recent };
 
         /// <summary>
         /// Flattens a <see cref="RecoveryCapture"/> to the nested

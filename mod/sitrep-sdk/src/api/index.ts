@@ -463,7 +463,7 @@ export const defineUplinkClient = (cfg: {
   version: string;
   name: string;
   /** What the Uplink does, in one or two sentences. See {@link UplinkClientHandle.description}. */
-  description?: string;
+  description: string;
 }): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
 /**

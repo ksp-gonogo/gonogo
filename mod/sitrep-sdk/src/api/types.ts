@@ -29,7 +29,7 @@ import type {
   CommandReply,
 } from "../commands";
 import type { RailTags } from "../rail-tags";
-import type { HeldGrade, Reading } from "../reading";
+import type { HeldGrade, Reading, TopicReading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   ChannelFamily,
@@ -853,17 +853,13 @@ type DepKey<Dependency> = Dependency extends string
  * absence, so a contribution that draws anything for one must decide what it
  * draws for the other.</para>
  *
- * <para>A reading dep resolves to the topic's PAYLOAD here, not to its
- * `Reading`, and that is a statement about the aggregation rather than about
- * the dep: `SlotAggregator` stores `point.payload` for a bare id and a reading
- * dep alike. The processor pipeline does hand a reading dep a `Reading`
- * (`ResolvedDep` in `spine/processors.ts`), so the two pipelines genuinely
- * differ; this types what a contribution is actually given. No contribution in
- * the tree uses a reading dep today, so nothing is relying on either reading of
- * it.</para>
+ * <para>A reading dep resolves to the topic's `Reading`, the same as a
+ * Processor's `{ reading: topicId }` dep, so a contribution can tell a current
+ * value from a held or modelled one. A bare id still gives the payload alone.
+ * Two contributions to one slot may name the same Topic one each way; each is
+ * handed the form it asked for.</para>
  *
- * <para>A PROCESSOR dep is the other way round and must track the evaluator
- * exactly: a processor whose own deps include a reading returns a `Reading`,
+ * <para>A PROCESSOR dep must track the evaluator exactly: a processor whose own deps include a reading returns a `Reading`,
  * and the stored value a contribution is handed is that same reading. Typing it
  * as the bare result here would hand a contribution a reading while telling it
  * otherwise, which is the defect the brand exists to prevent.</para>
@@ -872,7 +868,7 @@ type DepValue<Dependency> = Dependency extends string
   ? TopicPayload<Dependency & TopicId> | null | undefined
   : Dependency extends { readonly reading: infer Topic }
     ? Topic extends TopicId
-      ? TopicPayload<Topic> | null | undefined
+      ? TopicReading<TopicPayload<Topic>>
       : never
     : Dependency extends ModSettingDep<infer Uplink, infer Key>
       ? ModSettingsRegistry[Uplink][Key] | undefined
@@ -915,7 +911,9 @@ export type DepTopics<Deps extends readonly ContributionDep[]> = {
  * - `compute` receives one object holding every Topic named in `deps` by any
  *   contribution to the slot, all read at the same instant: the instant the
  *   dashboard is showing, so under signal delay they lag as every widget does.
- *   The same object is passed to every contribution to the slot.
+ *   The same object is passed to every contribution to the slot, except that a
+ *   contribution with a `{ reading: topicId }` dep gets the Topic's `Reading` under
+ *   that key in place of its payload.
  * - A Topic's value is `undefined` until its first sample arrives, and `null`
  *   while the mod reports that it has nothing to describe. When samples stop
  *   or the link drops, it keeps its last value, and nothing in the object says

@@ -69,7 +69,9 @@ import type {
   RemoveManeuverNodeArgs,
   RevertToEditorArgs,
   RotorReverseArgs,
-  RotorSetValueArgs,
+  RotorSetBrakeArgs,
+  RotorSetRpmLimitArgs,
+  RotorSetTorqueLimitArgs,
   SaveSettingsArgs,
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
@@ -121,11 +123,11 @@ export interface GeneratedCommandArgsMap {
   "ksp.toSpaceCenter": NoCommandArgs;
   "ksp.toTrackingStation": NoCommandArgs;
   "robotics.rotor.reverse": RotorReverseArgs;
-  "robotics.rotor.setBrake": RotorSetValueArgs;
+  "robotics.rotor.setBrake": RotorSetBrakeArgs;
   "robotics.rotor.setLock": ServoSetEnabledArgs;
   "robotics.rotor.setMotor": ServoSetEnabledArgs;
-  "robotics.rotor.setRpmLimit": RotorSetValueArgs;
-  "robotics.rotor.setTorqueLimit": RotorSetValueArgs;
+  "robotics.rotor.setRpmLimit": RotorSetRpmLimitArgs;
+  "robotics.rotor.setTorqueLimit": RotorSetTorqueLimitArgs;
   "robotics.servo.setLock": ServoSetEnabledArgs;
   "robotics.servo.setMotor": ServoSetEnabledArgs;
   "robotics.servo.setTarget": ServoSetTargetArgs;

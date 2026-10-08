@@ -57,7 +57,7 @@ import {
   type CommsPeerOrbit,
   commsPeerPositionAt,
 } from "./comms-path-geometry";
-import type { Vector3 } from "./kepler";
+import type { Vec3Tuple } from "./kepler";
 import { buildElements, magnitude, trySolve } from "./kepler-reckoning";
 import { systemInstantAt } from "./reference-frame";
 
@@ -204,7 +204,7 @@ function firstHopMetresAt(fit: CommsDelayFit, at: number): number {
   if (centre === undefined) return Number.NaN;
   const state = trySolve(buildElements(fit.craft), at);
   if (state === null) return Number.NaN;
-  const craft: Vector3 = [
+  const craft: Vec3Tuple = [
     centre[0] + state.position[0],
     centre[1] + state.position[1],
     centre[2] + state.position[2],

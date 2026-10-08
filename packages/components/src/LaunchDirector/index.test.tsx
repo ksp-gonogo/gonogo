@@ -452,7 +452,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: true,
         canRevertToEditor: true,
       });
-      stream.emit("crash.hasRecent", false);
+      stream.emit("crash.hasRecent", { recent: false });
     });
 
     expect(
@@ -485,7 +485,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: false,
         canRevertToEditor: true,
       });
-      stream.emit("crash.hasRecent", false);
+      stream.emit("crash.hasRecent", { recent: false });
     });
 
     // First click arms: must NOT fire the flight-ending revert yet.
@@ -515,7 +515,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: false,
         canRevertToEditor: false,
       });
-      stream.emit("crash.hasRecent", true);
+      stream.emit("crash.hasRecent", { recent: true });
       stream.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
     });
 
@@ -536,7 +536,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: true,
         canRevertToEditor: true,
       });
-      stream.emit("crash.hasRecent", false);
+      stream.emit("crash.hasRecent", { recent: false });
     });
 
     // First click arms the confirm: no execute fired yet.
@@ -573,7 +573,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: false,
         canRevertToEditor: false,
       });
-      stream.emit("crash.hasRecent", false);
+      stream.emit("crash.hasRecent", { recent: false });
       stream.emit("target.available", {
         entries: [
           {
@@ -639,7 +639,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: false,
         canRevertToEditor: false,
       });
-      stream.emit("crash.hasRecent", true);
+      stream.emit("crash.hasRecent", { recent: true });
       // Debris from a different vessel earlier in the session.
       stream.emit("crash.lastCrash", { vesselName: "Booster A Debris" });
     });
@@ -671,7 +671,7 @@ describe("LaunchDirectorComponent", () => {
         canRevertToLaunch: true,
         canRevertToEditor: false,
       });
-      stream.emit("crash.hasRecent", true);
+      stream.emit("crash.hasRecent", { recent: true });
       // Crash captured at ut 125371; the revert rewound the clock to 113270.
       stream.emit("crash.lastCrash", {
         vesselName: "Doomed Probe",

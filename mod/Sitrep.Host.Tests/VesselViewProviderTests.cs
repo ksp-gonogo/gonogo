@@ -984,6 +984,27 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildThermalLeavesTheHottestPartSkinMaxNullWhereKspReportsNoSkinModel()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                thermal: new Dictionary<string, object?>
+                {
+                    ["maxInternalTempRatio"] = 0.6,
+                    ["hottestPartInternalTemp"] = 500.0,
+                    ["hottestPartMaxTemp"] = 1200.0,
+                    ["hottestPartSkinTemp"] = 800.0,
+                    ["hottestPartSkinMaxTemp"] = -1.0,
+                    ["hottestPartName"] = "Mk1 Command Pod",
+                });
+
+            var thermal = VesselViewProvider.BuildThermal(snapshot);
+
+            Assert.NotNull(thermal!.HottestPart);
+            Assert.Null(thermal.HottestPart!.SkinMaxTemp);
+        }
+
+        [Fact]
         public void BuildThermalLeavesTheHottestPartIdNullWhenThePartHasNoFlightId()
         {
             var snapshot = SnapshotWith(

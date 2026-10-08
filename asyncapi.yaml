@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 29.24.0
+  version: 30.0.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 60 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -160,7 +160,7 @@ info:
     - name: comms
       description: 13 telemetry channels, 0 commands
     - name: crash
-      description: 1 telemetry channel, 0 commands
+      description: 2 telemetry channels, 0 commands
     - name: deployed
       description: 1 telemetry channel, 0 commands
     - name: dv
@@ -182,7 +182,7 @@ info:
     - name: parts
       description: 1 telemetry channel, 0 commands
     - name: recovery
-      description: 1 telemetry channel, 0 commands
+      description: 2 telemetry channels, 0 commands
     - name: robotics
       description: 2 telemetry channels, 9 commands
     - name: science
@@ -1277,6 +1277,25 @@ channels:
         $ref: "#/components/messages/streamData.comms.signal"
       event:
         $ref: "#/components/messages/event"
+  crash.hasRecent:
+    address: crash.hasRecent
+    description: |-
+      Carries a `CrashRecent`.
+
+      The payload for the `crash.hasRecent` channel: one flag saying a notable
+      crash is on record for the current save, published beside `CrashReport` on
+      `crash.lastCrash`. It is true from the first crash a flight records and is
+      not published before one.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 3600
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.crash.hasRecent"
+      event:
+        $ref: "#/components/messages/event"
   crash.lastCrash:
     address: crash.lastCrash
     description: |-
@@ -1833,6 +1852,25 @@ channels:
         $ref: "#/components/messages/streamData.parts.power"
       event:
         $ref: "#/components/messages/event"
+  recovery.hasRecent:
+    address: recovery.hasRecent
+    description: |-
+      Carries a `RecoveryRecent`.
+
+      The payload for the `recovery.hasRecent` channel: one flag saying a vessel
+      recovery is on record for the current save, published beside
+      `RecoveryReport` on `recovery.lastSummary`. It is true from the first
+      recovery of a real craft and is not published before one.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 3600
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.recovery.hasRecent"
+      event:
+        $ref: "#/components/messages/event"
   recovery.lastSummary:
     address: recovery.lastSummary
     description: |-
@@ -1910,15 +1948,13 @@ channels:
   robotics.rotor.setBrake:
     address: robotics.rotor.setBrake
     description: |-
-      Takes `RotorSetValueArgs`.
+      Takes `RotorSetBrakeArgs`.
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for the rotor scalar-limit commands
-      (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`): the absolute
-      value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
-      (torque 0 to 100, brake 0 to 200) are range-checked; a value out of range
-      fails with `CommandErrorCode.Range`.
+      Args for `robotics.rotor.setBrake`: the absolute brake strength to apply,
+      keyed by `RotorSetBrakeArgs.partId`. A value outside 0 to 200 fails with
+      `CommandErrorCode.Range`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -1972,15 +2008,12 @@ channels:
   robotics.rotor.setRpmLimit:
     address: robotics.rotor.setRpmLimit
     description: |-
-      Takes `RotorSetValueArgs`.
+      Takes `RotorSetRpmLimitArgs`.
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for the rotor scalar-limit commands
-      (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`): the absolute
-      value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
-      (torque 0 to 100, brake 0 to 200) are range-checked; a value out of range
-      fails with `CommandErrorCode.Range`.
+      Args for `robotics.rotor.setRpmLimit`: the absolute rpm cap to apply, keyed
+      by `RotorSetRpmLimitArgs.partId`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -1992,14 +2025,12 @@ channels:
   robotics.rotor.setTorqueLimit:
     address: robotics.rotor.setTorqueLimit
     description: |-
-      Takes `RotorSetValueArgs`.
+      Takes `RotorSetTorqueLimitArgs`.
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for the rotor scalar-limit commands
-      (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`): the absolute
-      value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
-      (torque 0 to 100, brake 0 to 200) are range-checked; a value out of range
+      Args for `robotics.rotor.setTorqueLimit`: the absolute torque limit to
+      apply, keyed by `RotorSetTorqueLimitArgs.partId`. A value outside 0 to 100
       fails with `CommandErrorCode.Range`.
     servers:
       - $ref: "#/servers/mod"
@@ -4956,6 +4987,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.signal/messages/streamData"
       - $ref: "#/channels/comms.signal/messages/event"
+  read:crash.hasRecent:
+    action: receive
+    channel:
+      $ref: "#/channels/crash.hasRecent"
+    title: Read crash.hasRecent
+    description: Delivered only after `subscribe` names `crash.hasRecent` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: crash
+    messages:
+      - $ref: "#/channels/crash.hasRecent/messages/streamData"
+      - $ref: "#/channels/crash.hasRecent/messages/event"
   read:crash.lastCrash:
     action: receive
     channel:
@@ -5132,6 +5174,17 @@ operations:
     messages:
       - $ref: "#/channels/parts.power/messages/streamData"
       - $ref: "#/channels/parts.power/messages/event"
+  read:recovery.hasRecent:
+    action: receive
+    channel:
+      $ref: "#/channels/recovery.hasRecent"
+    title: Read recovery.hasRecent
+    description: Delivered only after `subscribe` names `recovery.hasRecent` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: recovery
+    messages:
+      - $ref: "#/channels/recovery.hasRecent/messages/streamData"
+      - $ref: "#/channels/recovery.hasRecent/messages/event"
   read:recovery.lastSummary:
     action: receive
     channel:
@@ -6009,7 +6062,7 @@ components:
               command:
                 const: robotics.rotor.setBrake
               args:
-                $ref: "#/components/schemas/RotorSetValueArgs"
+                $ref: "#/components/schemas/RotorSetBrakeArgs"
     commandRequest.robotics.rotor.setLock:
       name: command-request
       title: Dispatch robotics.rotor.setLock
@@ -6054,7 +6107,7 @@ components:
               command:
                 const: robotics.rotor.setRpmLimit
               args:
-                $ref: "#/components/schemas/RotorSetValueArgs"
+                $ref: "#/components/schemas/RotorSetRpmLimitArgs"
     commandRequest.robotics.rotor.setTorqueLimit:
       name: command-request
       title: Dispatch robotics.rotor.setTorqueLimit
@@ -6069,7 +6122,7 @@ components:
               command:
                 const: robotics.rotor.setTorqueLimit
               args:
-                $ref: "#/components/schemas/RotorSetValueArgs"
+                $ref: "#/components/schemas/RotorSetTorqueLimitArgs"
     commandRequest.robotics.servo.setLock:
       name: command-request
       title: Dispatch robotics.servo.setLock
@@ -7720,6 +7773,19 @@ components:
                 const: comms.signal
               payload:
                 $ref: "#/components/schemas/CommsSignal"
+    streamData.crash.hasRecent:
+      name: stream-data
+      title: A frame on crash.hasRecent
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `crash.hasRecent`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: crash.hasRecent
+              payload:
+                $ref: "#/components/schemas/CrashRecent"
     streamData.crash.lastCrash:
       name: stream-data
       title: A frame on crash.lastCrash
@@ -7936,6 +8002,19 @@ components:
                 const: parts.power
               payload:
                 $ref: "#/components/schemas/PartsPower"
+    streamData.recovery.hasRecent:
+      name: stream-data
+      title: A frame on recovery.hasRecent
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `recovery.hasRecent`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: recovery.hasRecent
+              payload:
+                $ref: "#/components/schemas/RecoveryRecent"
     streamData.recovery.lastSummary:
       name: stream-data
       title: A frame on recovery.lastSummary
@@ -12492,6 +12571,22 @@ components:
           type: string
           x-sitrep-unit: text
           description: "Destruction message for this part: often empty."
+    CrashRecent:
+      type: object
+      description: |-
+        The payload for the `crash.hasRecent` channel: one flag saying a notable
+        crash is on record for the current save, published beside `CrashReport` on
+        `crash.lastCrash`. It is true from the first crash a flight records and is
+        not published before one.
+      required:
+        - recent
+      properties:
+        recent:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            True when a notable crash is on record, so `crash.lastCrash` has a report to
+            read.
     CrashReport:
       type: object
       description: |-
@@ -16567,6 +16662,22 @@ components:
             The group's recovered dry value: `RecoveryPartEntry.partValue` times
             `RecoveryPartEntry.count`. Does not include
             `RecoveryPartEntry.resourcesValue`.
+    RecoveryRecent:
+      type: object
+      description: |-
+        The payload for the `recovery.hasRecent` channel: one flag saying a vessel
+        recovery is on record for the current save, published beside
+        `RecoveryReport` on `recovery.lastSummary`. It is true from the first
+        recovery of a real craft and is not published before one.
+      required:
+        - recent
+      properties:
+        recent:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            True when a recovery is on record, so `recovery.lastSummary` has a summary
+            to read.
     RecoveryReport:
       type: object
       description: |-
@@ -16907,17 +17018,15 @@ components:
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
-    RotorSetValueArgs:
+    RotorSetBrakeArgs:
       type: object
       description: |-
-        Args for the rotor scalar-limit commands
-        (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`): the absolute
-        value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
-        (torque 0 to 100, brake 0 to 200) are range-checked; a value out of range
-        fails with `CommandErrorCode.Range`.
+        Args for `robotics.rotor.setBrake`: the absolute brake strength to apply,
+        keyed by `RotorSetBrakeArgs.partId`. A value outside 0 to 200 fails with
+        `CommandErrorCode.Range`.
       required:
         - partId
-        - value
+        - percent
       properties:
         partId:
           type: string
@@ -16925,12 +17034,49 @@ components:
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
-        value:
+        percent:
           type: number
-          x-sitrep-unit: ratio
+          x-sitrep-unit: "%"
+          description: The brake strength as KSP's brake percentage, 0 to 200.
+    RotorSetRpmLimitArgs:
+      type: object
+      description: |-
+        Args for `robotics.rotor.setRpmLimit`: the absolute rpm cap to apply, keyed
+        by `RotorSetRpmLimitArgs.partId`.
+      required:
+        - partId
+        - rpm
+      properties:
+        partId:
+          type: string
+          x-sitrep-unit: id
           description: |-
-            The absolute value to apply: the rpm limit, the torque-limit percent (0 to
-            100), or the brake percent (0 to 200).
+            The part's `flightID.ToString()`: the id the read side stamps on each
+            `parts.robotics` entry.
+        rpm:
+          type: number
+          x-sitrep-unit: rpm
+          description: The rpm cap to apply, in revolutions per minute.
+    RotorSetTorqueLimitArgs:
+      type: object
+      description: |-
+        Args for `robotics.rotor.setTorqueLimit`: the absolute torque limit to
+        apply, keyed by `RotorSetTorqueLimitArgs.partId`. A value outside 0 to 100
+        fails with `CommandErrorCode.Range`.
+      required:
+        - partId
+        - percent
+      properties:
+        partId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The part's `flightID.ToString()`: the id the read side stamps on each
+            `parts.robotics` entry.
+        percent:
+          type: number
+          x-sitrep-unit: "%"
+          description: The torque limit as a percentage of the rotor's maximum torque, 0 to 100.
     SasMode:
       type: integer
       description: |-
@@ -17983,8 +18129,10 @@ components:
             `parts.robotics` entry.
         value:
           type: number
-          x-sitrep-unit: ratio
-          description: "Absolute target: hinge angle (degrees) or piston extension."
+          x-sitrep-unit: n/a
+          description: |-
+            Absolute target. Its unit follows the part's kind: degrees for a hinge or
+            rotation servo, metres for a piston.
     SetActionGroupArgs:
       type: object
       description: |-
@@ -19400,7 +19548,6 @@ components:
         - internalTemp
         - maxTemp
         - skinTemp
-        - skinMaxTemp
         - name
       properties:
         internalTemp:
@@ -19420,12 +19567,13 @@ components:
           x-sitrep-unit: K
           description: The part's current skin temperature, Kelvin (`Part.skinTemperature`).
         skinMaxTemp:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: K
           description: |-
-            The part's maximum skin temperature, Kelvin (`Part.skinMaxTemp`), passed
-            through raw: KSP reports `-1` for a part with no skin-thermal model, and
-            that value arrives here unchanged.
+            The part's maximum skin temperature, Kelvin (`Part.skinMaxTemp`); `null` for
+            a part with no skin-thermal model, where KSP reports `-1`.
         name:
           type: string
           x-sitrep-unit: text

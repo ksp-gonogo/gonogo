@@ -130,7 +130,12 @@ export interface UplinkAlarmRequest {
  *
  * @example
  * ```tsx
- * const MY_UPLINK = defineUplinkClient({ id: "myuplink", version: "1.0.0", name: "My Uplink" });
+ * const MY_UPLINK = defineUplinkClient({
+ *   id: "myuplink",
+ *   version: "1.0.0",
+ *   name: "My Uplink",
+ *   description: "Reminds the operator when a facility upgrade finishes.",
+ * });
  *
  * function RemindMe({ facility, finishesAtUt }: { facility: string; finishesAtUt: number }) {
  *   const requestAlarm = useAlarmRequest(MY_UPLINK);

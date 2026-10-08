@@ -22,6 +22,7 @@ const SCANNER_MOD = defineUplinkClient({
   id: "scanner-mod",
   version: "0.0.0-dev",
   name: "Scanner Mod",
+  description: "A test Uplink.",
 });
 
 const SCANNER: ContributedInstrument = {

@@ -16,7 +16,7 @@ import {
   locateCommsPeer,
   surfacePositionAt,
 } from "./comms-path-geometry";
-import type { Vector3 } from "./kepler";
+import type { Vec3Tuple } from "./kepler";
 import { magnitude } from "./kepler-reckoning";
 import { systemInstantAt } from "./reference-frame";
 
@@ -115,7 +115,7 @@ const relayOrbits = (id: string) =>
   id === RELAY_GUID ? RELAY_ORBIT : undefined;
 
 /** A vector the code under test refused is a failed assertion, not a null deref. */
-function present(v: Vector3 | null | undefined): Vector3 {
+function present(v: Vec3Tuple | null | undefined): Vec3Tuple {
   if (v == null) throw new Error("expected a vector, got a refusal");
   return v;
 }
@@ -130,7 +130,7 @@ function presentLocation(p: CommsPeerLocation | null): CommsPeerLocation {
   return p;
 }
 
-function separation(a: Vector3, b: Vector3): number {
+function separation(a: Vec3Tuple, b: Vec3Tuple): number {
   return magnitude([a[0] - b[0], a[1] - b[1], a[2] - b[2]]);
 }
 
@@ -225,7 +225,7 @@ describe("a first-hop peer's position at view time", () => {
     // Root-centred: the planet's own position plus a quarter-turned surface
     // point. Subtracting the planet leaves the body-centred vector.
     const planetAt = present(system.positionByIndex.get(1));
-    const local: Vector3 = [
+    const local: Vec3Tuple = [
       position[0] - planetAt[0],
       position[1] - planetAt[1],
       position[2] - planetAt[2],

@@ -37,7 +37,7 @@
 import type { CommandCentreEntry, CommsHop } from "../__generated__/contract";
 import { magnitudeOr } from "../magnitude";
 import type { CelestialBody, CelestialFacts } from "./celestial-facts";
-import type { OrbitElements, Vector3 } from "./kepler";
+import type { OrbitElements, Vec3Tuple } from "./kepler";
 import {
   buildElements,
   trySolve,
@@ -93,7 +93,7 @@ export function surfacePositionAt(
   longitudeDeg: number,
   altitudeMetres: number,
   ut: number,
-): Vector3 | null {
+): Vec3Tuple | null {
   if (body.radius === null) return null;
   const rotationDeg = bodyRotationAngleDegAt(body, ut);
   if (rotationDeg === null) return null;
@@ -211,7 +211,7 @@ export function commsPeerPositionAt(
   facts: CelestialFacts,
   system: SystemInstant,
   ut: number,
-): Vector3 | null {
+): Vec3Tuple | null {
   const centre = system.positionByIndex.get(peer.bodyIndex);
   if (centre === undefined) return null;
 
@@ -232,6 +232,6 @@ export function commsPeerPositionAt(
   return local === null ? null : add(centre, local);
 }
 
-function add(a: Vector3, b: Vector3): Vector3 {
+function add(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }

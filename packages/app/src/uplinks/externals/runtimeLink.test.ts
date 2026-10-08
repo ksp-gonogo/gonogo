@@ -164,7 +164,7 @@ import {
   toFrame,
   TRAJECTORY_SCALE_CONVENTIONS,
   type TrajectoryScaleConvention,
-  type Vector3,
+  type Vec3Tuple,
 } from "@ksp-gonogo/sitrep-sdk/frames";
 
 export const probe = {
@@ -184,7 +184,7 @@ export type Probe = [
   ReadFrameKind,
   SystemInstant,
   TrajectoryScaleConvention,
-  Vector3,
+  Vec3Tuple,
 ];
 `;
 

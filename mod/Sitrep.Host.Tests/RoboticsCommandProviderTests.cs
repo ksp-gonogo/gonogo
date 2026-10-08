@@ -105,7 +105,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeRoboticsActuator();
 
-            RoboticsCommandProvider.HandleRotorSetRpmLimit(actuator, new RotorSetValueArgs { PartId = "9", Value = 180.0 });
+            RoboticsCommandProvider.HandleRotorSetRpmLimit(actuator, new RotorSetRpmLimitArgs { PartId = "9", Rpm = 180.0 });
 
             Assert.Equal("9", actuator.LastSetRotorRpmLimitPartId);
             Assert.Equal(180.0, actuator.LastSetRotorRpmLimitValue);
@@ -116,7 +116,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeRoboticsActuator { SetRotorRpmLimitResult = CommandResult.Fail(CommandErrorCode.ModeUnavailable) };
 
-            var result = RoboticsCommandProvider.HandleRotorSetRpmLimit(actuator, new RotorSetValueArgs { PartId = "9", Value = 180.0 });
+            var result = RoboticsCommandProvider.HandleRotorSetRpmLimit(actuator, new RotorSetRpmLimitArgs { PartId = "9", Rpm = 180.0 });
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
@@ -131,7 +131,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleRotorSetTorqueLimit(actuator, new RotorSetValueArgs { PartId = "3", Value = value });
+            var result = RoboticsCommandProvider.HandleRotorSetTorqueLimit(actuator, new RotorSetTorqueLimitArgs { PartId = "3", Percent = value });
 
             Assert.Equal(value, actuator.LastSetRotorTorqueLimitValue);
             Assert.True(result.Success);
@@ -145,7 +145,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleRotorSetTorqueLimit(actuator, new RotorSetValueArgs { PartId = "3", Value = value });
+            var result = RoboticsCommandProvider.HandleRotorSetTorqueLimit(actuator, new RotorSetTorqueLimitArgs { PartId = "3", Percent = value });
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
@@ -161,7 +161,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleRotorSetBrake(actuator, new RotorSetValueArgs { PartId = "3", Value = value });
+            var result = RoboticsCommandProvider.HandleRotorSetBrake(actuator, new RotorSetBrakeArgs { PartId = "3", Percent = value });
 
             Assert.Equal(value, actuator.LastSetRotorBrakeValue);
             Assert.True(result.Success);
@@ -175,7 +175,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeRoboticsActuator();
 
-            var result = RoboticsCommandProvider.HandleRotorSetBrake(actuator, new RotorSetValueArgs { PartId = "3", Value = value });
+            var result = RoboticsCommandProvider.HandleRotorSetBrake(actuator, new RotorSetBrakeArgs { PartId = "3", Percent = value });
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.Range, result.ErrorCode);

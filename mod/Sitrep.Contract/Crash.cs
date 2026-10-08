@@ -200,3 +200,26 @@ public class CrashFlightStats
     [SitrepUnit(Units.Flag)]
     public bool LiftOff { get; set; }
 }
+
+/// <summary>
+/// The payload for the <c>crash.hasRecent</c> channel: one flag saying a
+/// notable crash is on record for the current save, published beside
+/// <see cref="CrashReport"/> on <c>crash.lastCrash</c>. It is true from the
+/// first crash a flight records and is not published before one.
+/// <internal>
+/// Typing-only: Sitrep.Host.Crash.CrashPayload.ToWire flattens it to a
+/// dictionary, so JsonWriter never sees this POCO.
+/// </internal>
+/// </summary>
+/// <category>Flights</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepTopic("crash.hasRecent")]
+public class CrashRecent
+{
+    /// <summary>True when a notable crash is on record, so <c>crash.lastCrash</c> has a report to read.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Recent { get; set; }
+}

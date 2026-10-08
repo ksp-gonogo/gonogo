@@ -31,7 +31,7 @@ namespace Sitrep.Contract
     public static class UnitDescriptor
     {
         /// <summary>The version of the descriptor document's own shape (its <c>"version"</c> field), not of the contract it describes.</summary>
-        public const int Version = 1;
+        public const int Version = 2;
 
         /// <summary>
         /// Unit tokens that declare a property has no physical dimension and is
@@ -51,9 +51,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The collections <see cref="Collect"/> reflects, each sorted so the output
-        /// is byte-stable. <see cref="ToJson(Maps)"/> writes the vocabulary, the
-        /// unit maps and the shape maps; the enum, static and deterministic maps
-        /// are for callers that read them in process.
+        /// is byte-stable. <see cref="ToJson(Maps)"/> writes every one of them.
         /// </summary>
         public sealed class Maps
         {
@@ -99,32 +97,32 @@ namespace Sitrep.Contract
             /// <summary>
             /// Per type, each <c>enum</c> field's CLR enum wire name, or null for a
             /// field carried as the member's name rather than its ordinal. A field
-            /// absent here has no single name to read as.
+            /// absent here has no single name to read as. Written as <c>"typeEnums"</c>.
             /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> EnumsByType { get; set; }
 
-            /// <summary>The same, keyed by Topic id.</summary>
+            /// <summary>The same, keyed by Topic id. Written as <c>"topicEnums"</c>.</summary>
             public SortedDictionary<string, SortedDictionary<string, string>> EnumsByTopic { get; set; }
 
-            /// <summary>Every enum an <c>enum</c> field names, as its wire value to member name.</summary>
+            /// <summary>Every enum an <c>enum</c> field names, as its wire value to member name. Written as <c>"enumMembers"</c>.</summary>
             public SortedDictionary<string, SortedDictionary<long, string>> EnumMembers { get; set; }
 
             /// <summary>
             /// Type name to the camelCase fields it declares
             /// <see cref="SitrepStaticAttribute"/>, for every type with at least
             /// one. A <c>Vec3</c> field contributes its three dotted leaf keys,
-            /// as it does in <see cref="ByType"/>.
+            /// as it does in <see cref="ByType"/>. Written as <c>"typeStatic"</c>.
             /// </summary>
             public SortedDictionary<string, SortedSet<string>> StaticByType { get; set; }
 
-            /// <summary>The same, keyed by Topic id.</summary>
+            /// <summary>The same, keyed by Topic id. Written as <c>"topicStatic"</c>.</summary>
             public SortedDictionary<string, SortedSet<string>> StaticByTopic { get; set; }
 
             /// <summary>
             /// Type name to the camelCase fields it declares
             /// <see cref="SitrepDeterministicWhileAttribute"/>, each against the
             /// camelCase sibling horizon that gates it, for every type with at
-            /// least one.
+            /// least one. Written as <c>"typeDeterministicWhile"</c>.
             /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> DeterministicWhileByType { get; set; }
         }
@@ -523,7 +521,9 @@ namespace Sitrep.Contract
         /// <summary>
         /// Writes <paramref name="maps"/> as the descriptor JSON document:
         /// <c>version</c>, <c>vocabulary</c>, <c>types</c>, <c>topics</c>,
-        /// <c>typeShapes</c> and <c>topicShapes</c>. Every collection is sorted,
+        /// <c>typeShapes</c>, <c>topicShapes</c>, <c>typeEnums</c>, <c>topicEnums</c>,
+        /// <c>enumMembers</c>, <c>typeStatic</c>, <c>topicStatic</c> and
+        /// <c>typeDeterministicWhile</c>. Every collection is sorted,
         /// so the output is byte-stable and a diff means the contract changed.
         /// <internal>Written by hand: this assembly targets netstandard2.0 and carries no JSON dependency.</internal>
         /// </summary>
@@ -549,9 +549,76 @@ namespace Sitrep.Contract
             AppendJsonMap(sb, "types", maps.ByType, false);
             AppendJsonMap(sb, "topics", maps.ByTopic, false);
             AppendJsonMap(sb, "typeShapes", maps.ShapesByType, false);
-            AppendJsonMap(sb, "topicShapes", maps.ShapesByTopic, true);
+            AppendJsonMap(sb, "topicShapes", maps.ShapesByTopic, false);
+            AppendJsonMap(sb, "typeEnums", maps.EnumsByType, false);
+            AppendJsonMap(sb, "topicEnums", maps.EnumsByTopic, false);
+            AppendEnumMembers(sb, maps.EnumMembers);
+            AppendJsonSetMap(sb, "typeStatic", maps.StaticByType, false);
+            AppendJsonSetMap(sb, "topicStatic", maps.StaticByTopic, false);
+            AppendJsonMap(sb, "typeDeterministicWhile", maps.DeterministicWhileByType, true);
             sb.Append("}\n");
             return sb.ToString();
+        }
+
+        private static void AppendEnumMembers(
+            StringBuilder sb,
+            SortedDictionary<string, SortedDictionary<long, string>> map)
+        {
+            sb.Append("  \"enumMembers\": {\n");
+            var firstOuter = true;
+            foreach (var outer in map)
+            {
+                if (!firstOuter)
+                {
+                    sb.Append(",\n");
+                }
+                firstOuter = false;
+                sb.Append("    ").Append(JsonString(outer.Key)).Append(": {\n");
+                var firstInner = true;
+                foreach (var inner in outer.Value)
+                {
+                    if (!firstInner)
+                    {
+                        sb.Append(",\n");
+                    }
+                    firstInner = false;
+                    sb.Append("      ").Append(JsonString(inner.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+                        .Append(": ").Append(JsonString(inner.Value));
+                }
+                sb.Append("\n    }");
+            }
+            sb.Append("\n  },\n");
+        }
+
+        private static void AppendJsonSetMap(
+            StringBuilder sb,
+            string name,
+            SortedDictionary<string, SortedSet<string>> map,
+            bool last)
+        {
+            sb.Append("  ").Append(JsonString(name)).Append(": {\n");
+            var firstOuter = true;
+            foreach (var outer in map)
+            {
+                if (!firstOuter)
+                {
+                    sb.Append(",\n");
+                }
+                firstOuter = false;
+                sb.Append("    ").Append(JsonString(outer.Key)).Append(": [");
+                var firstInner = true;
+                foreach (var field in outer.Value)
+                {
+                    if (!firstInner)
+                    {
+                        sb.Append(", ");
+                    }
+                    firstInner = false;
+                    sb.Append(JsonString(field));
+                }
+                sb.Append(']');
+            }
+            sb.Append("\n  }").Append(last ? "\n" : ",\n");
         }
 
         private static void AppendJsonMap(
@@ -578,7 +645,8 @@ namespace Sitrep.Contract
                         sb.Append(",\n");
                     }
                     firstInner = false;
-                    sb.Append("      ").Append(JsonString(inner.Key)).Append(": ").Append(JsonString(inner.Value));
+                    sb.Append("      ").Append(JsonString(inner.Key)).Append(": ")
+                        .Append(inner.Value == null ? "null" : JsonString(inner.Value));
                 }
                 sb.Append("\n    }");
             }

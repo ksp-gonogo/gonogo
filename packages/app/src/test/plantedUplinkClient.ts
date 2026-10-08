@@ -20,6 +20,7 @@ export const PLANTED_UPLINK = defineUplinkClient({
   id: "planted",
   version: "0.0.0-dev",
   name: "Planted",
+  description: "An Uplink planted so a probe has something to find.",
 });
 
 /**

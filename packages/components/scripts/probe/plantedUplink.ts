@@ -27,6 +27,7 @@ export const PLANTED_UPLINK = defineUplinkClient({
   id: "planted",
   version: "0.0.0-dev",
   name: "Planted",
+  description: "A test Uplink.",
 });
 
 export const PLANTED_AVAILABLE_TOPIC = "planted.available";

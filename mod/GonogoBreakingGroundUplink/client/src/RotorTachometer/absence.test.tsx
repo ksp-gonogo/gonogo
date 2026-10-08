@@ -212,7 +212,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
       const sent = fixture.transport.sentCommands.find(
         (c) => c.command === "robotics.rotor.setRpmLimit",
       );
-      expect(sent?.args).toEqual({ partId: "101", value: 310 });
+      expect(sent?.args).toEqual({ partId: "101", rpm: 310 });
     });
   });
 

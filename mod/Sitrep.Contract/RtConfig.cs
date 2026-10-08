@@ -244,7 +244,9 @@ public static class RtConfig
                 typeof(LaunchArgs),
                 typeof(ServoSetTargetArgs),
                 typeof(ServoSetEnabledArgs),
-                typeof(RotorSetValueArgs),
+                typeof(RotorSetRpmLimitArgs),
+                typeof(RotorSetTorqueLimitArgs),
+                typeof(RotorSetBrakeArgs),
                 typeof(RotorReverseArgs),
                 typeof(ExperimentActionArgs),
                 // vessel.invokePartAction args (fire one PAW button)
@@ -419,8 +421,10 @@ public static class RtConfig
                 typeof(CrashReport),
                 typeof(CrashPartLost),
                 typeof(CrashFlightStats),
+                typeof(CrashRecent),
                 // recovery.lastSummary payload + nested value shapes
                 typeof(RecoveryReport),
+                typeof(RecoveryRecent),
                 typeof(RecoveryScienceEntry),
                 typeof(RecoveryPartEntry),
                 typeof(RecoveryResourceEntry),

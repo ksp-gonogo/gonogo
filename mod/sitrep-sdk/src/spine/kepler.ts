@@ -189,7 +189,7 @@ export interface OrbitElements {
  *
  * @category Frames of reference
  */
-export type Vector3 = readonly [x: number, y: number, z: number];
+export type Vec3Tuple = readonly [x: number, y: number, z: number];
 
 /**
  * A position and velocity relative to the parent body, at one instant, in
@@ -198,8 +198,8 @@ export type Vector3 = readonly [x: number, y: number, z: number];
  * @category Orbits and trajectories
  */
 export interface StateVector {
-  position: Vector3;
-  velocity: Vector3;
+  position: Vec3Tuple;
+  velocity: Vec3Tuple;
 }
 
 /**
@@ -484,6 +484,8 @@ function solveWrappedEccentricAnomaly(
  * `zPf` is the part along the orbit normal. A conic has none, so it is left
  * out and the vector is planar; an integrated arc leaves the osculating plane
  * and passes it.
+ *
+ * @category Orbits and trajectories
  */
 export function rotatePerifocalToInertial(
   xPf: number,
@@ -492,7 +494,7 @@ export function rotatePerifocalToInertial(
   lan: number,
   argPe: number,
   zPf = 0,
-): Vector3 {
+): Vec3Tuple {
   const cosLan = Math.cos(lan);
   const sinLan = Math.sin(lan);
   const cosArgPe = Math.cos(argPe);
@@ -539,11 +541,11 @@ export function rotatePerifocalToInertial(
  * a conic does not.
  */
 export function rotateInertialToPerifocal(
-  v: Vector3,
+  v: Vec3Tuple,
   inc: number,
   lan: number,
   argPe: number,
-): Vector3 {
+): Vec3Tuple {
   const cosLan = Math.cos(lan);
   const sinLan = Math.sin(lan);
   const cosArgPe = Math.cos(argPe);

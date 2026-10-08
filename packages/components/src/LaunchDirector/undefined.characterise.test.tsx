@@ -271,7 +271,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
     // With hasRecent true and no snapshot to scope it, the crash is chipped for the session.
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
     });
     await waitFor(() =>
       expect(screen.getByText(/Crash in progress/)).toBeTruthy(),

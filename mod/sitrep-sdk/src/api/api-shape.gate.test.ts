@@ -19,7 +19,12 @@ describe("sitrep-sdk author-facing barrel: shims without a host", () => {
     );
     expect(() => barrel.logger.info("x")).toThrow(named);
     expect(() =>
-      barrel.defineUplinkClient({ id: "x", version: "0.0.0", name: "X" }),
+      barrel.defineUplinkClient({
+        id: "x",
+        version: "0.0.0",
+        name: "X",
+        description: "Test",
+      }),
     ).toThrow(named);
   });
 

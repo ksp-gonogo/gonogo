@@ -73,7 +73,7 @@ export interface UplinkClientHandle {
    *
    * `uplink-tools docs` will not write a page for an Uplink without one.
    */
-  description?: string;
+  description: string;
   /**
    * Mounts a provider around every screen, so widgets that share state can
    * find it above them. See {@link RootProviderDefinition}.
@@ -183,7 +183,7 @@ export function defineUplinkClient(cfg: {
   id: string;
   version: string;
   name: string;
-  description?: string;
+  description: string;
 }): UplinkClientHandle {
   const handle: UplinkClientHandle = Object.freeze({
     id: cfg.id,
@@ -252,6 +252,7 @@ export const CORE_UPLINK_CLIENT: UplinkClientHandle = defineUplinkClient({
   id: "core",
   version: "0.0.0",
   name: "Gonogo Core",
+  description: "The widgets and contributions that ship with Gonogo itself.",
 });
 
 /** Every declared Uplink client, in registration order. */

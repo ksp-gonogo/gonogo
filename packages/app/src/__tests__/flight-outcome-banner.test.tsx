@@ -97,7 +97,7 @@ describe("FlightOutcomeBanner", () => {
 
     // Crash data arrives: banner should pop. Real recorded Ship-crash payload.
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
       fixture.store.beginFrame();
     });
@@ -117,7 +117,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
       fixture.store.beginFrame();
     });
@@ -136,7 +136,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
       fixture.store.beginFrame();
     });
@@ -157,7 +157,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", BURNUP_DESTROYED);
       fixture.store.beginFrame();
     });
@@ -179,7 +179,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", {
         ut: 9100,
         vesselName: "Project Debris",
@@ -214,7 +214,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("recovery.hasRecent", true);
+      fixture.emit("recovery.hasRecent", { recent: true });
       fixture.emit("recovery.lastSummary", {
         capturedAtUT: 2000,
         vesselName: "Untitled",
@@ -253,7 +253,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("recovery.hasRecent", true);
+      fixture.emit("recovery.hasRecent", { recent: true });
       fixture.emit("recovery.lastSummary", {
         capturedAtUT: 2000,
         vesselName: "Kerbal I",
@@ -294,7 +294,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("recovery.hasRecent", true);
+      fixture.emit("recovery.hasRecent", { recent: true });
       fixture.emit("recovery.lastSummary", {
         capturedAtUT: 2000,
         vesselName: "Kerbal I",
@@ -354,7 +354,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("recovery.hasRecent", true);
+      fixture.emit("recovery.hasRecent", { recent: true });
       fixture.emit("recovery.lastSummary", {
         capturedAtUT: 1000,
         vesselName: "Recovered Earlier",
@@ -372,7 +372,7 @@ describe("FlightOutcomeBanner", () => {
         resourceBreakdown: [],
         crewBreakdown: [],
       });
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", {
         ut: 9000,
         vesselName: "Crashed Later",
@@ -409,7 +409,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", {
         ut: 9000,
         vesselName: "Crashed Later",
@@ -472,7 +472,7 @@ describe("FlightOutcomeBanner", () => {
     });
 
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", crash(4000, "First Loss"));
       fixture.store.beginFrame();
     });
@@ -502,7 +502,7 @@ describe("FlightOutcomeBanner", () => {
     );
 
     act(() => {
-      fixture.emit("recovery.hasRecent", true);
+      fixture.emit("recovery.hasRecent", { recent: true });
       fixture.emit("recovery.lastSummary", {
         capturedAtUT: 2000,
         vesselName: "Partial Report",
@@ -554,7 +554,7 @@ describe("FlightOutcomeBanner", () => {
       },
     };
     act(() => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", crash);
       fixture.store.beginFrame();
     });
@@ -584,7 +584,7 @@ describe("FlightOutcomeBanner accessibility", () => {
       </fixture.Provider>,
     );
     await act(async () => {
-      fixture.emit("crash.hasRecent", true);
+      fixture.emit("crash.hasRecent", { recent: true });
       fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
       fixture.store.beginFrame();
     });

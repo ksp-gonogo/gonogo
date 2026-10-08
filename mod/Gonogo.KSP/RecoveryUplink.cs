@@ -134,7 +134,7 @@ namespace Gonogo.KSP
                 var capture = BuildCapture(vessel, dialog, vesselType, ut);
 
                 _lastSummary?.Publish(RecoveryPayload.Build(capture), ut);
-                _hasRecent?.Publish(true, ut);
+                _hasRecent?.Publish(RecoveryPayload.ToWire(new RecoveryRecent { Recent = true }), ut);
             }
             catch (Exception ex)
             {

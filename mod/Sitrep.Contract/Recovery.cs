@@ -215,3 +215,26 @@ public class RecoveryCrewEntry
     [SitrepUnit(Units.Count)]
     public int NewLevel { get; set; }
 }
+
+/// <summary>
+/// The payload for the <c>recovery.hasRecent</c> channel: one flag saying a
+/// vessel recovery is on record for the current save, published beside
+/// <see cref="RecoveryReport"/> on <c>recovery.lastSummary</c>. It is true from
+/// the first recovery of a real craft and is not published before one.
+/// <internal>
+/// Typing-only: Sitrep.Host.Recovery.RecoveryPayload.ToWire flattens it to a
+/// dictionary, so JsonWriter never sees this POCO.
+/// </internal>
+/// </summary>
+/// <category>Flights</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepTopic("recovery.hasRecent")]
+public class RecoveryRecent
+{
+    /// <summary>True when a recovery is on record, so <c>recovery.lastSummary</c> has a summary to read.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Recent { get; set; }
+}

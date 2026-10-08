@@ -138,6 +138,7 @@ describe("capability locks", () => {
       id: "lock-test",
       version: "0.0.0",
       name: "Lock test",
+      description: "A test Uplink.",
     });
     registerAugment({
       id: "lock-test:executor",

@@ -27,6 +27,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
 
     expect(getUplinkClients()).toContainEqual(handle);
@@ -37,6 +38,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       id: "mod-beta",
       version: "1.2.3",
       name: "Mod Beta",
+      description: "A test Uplink.",
     });
 
     expect(Object.isFrozen(handle)).toBe(true);
@@ -44,6 +46,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       id: "mod-beta",
       version: "1.2.3",
       name: "Mod Beta",
+      description: "A test Uplink.",
       registerContribution: expect.any(Function),
       registerProcessor: expect.any(Function),
       registerReckoner: expect.any(Function),
@@ -58,11 +61,13 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       id: "mod-alpha",
       version: "0.0.0-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
     const second = defineUplinkClient({
       id: "mod-alpha",
       version: "0.0.1-dev",
       name: "Mod Alpha",
+      description: "A test Uplink.",
     });
 
     const clients = getUplinkClients();
@@ -72,8 +77,18 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
   });
 
   it("clearUplinkClients empties the registry", () => {
-    defineUplinkClient({ id: "mod-alpha", version: "0.0.0-dev", name: "A" });
-    defineUplinkClient({ id: "mod-beta", version: "0.0.0-dev", name: "B" });
+    defineUplinkClient({
+      id: "mod-alpha",
+      version: "0.0.0-dev",
+      name: "A",
+      description: "A test Uplink.",
+    });
+    defineUplinkClient({
+      id: "mod-beta",
+      version: "0.0.0-dev",
+      name: "B",
+      description: "A test Uplink.",
+    });
 
     clearUplinkClients();
 
@@ -92,6 +107,7 @@ describe("UplinkClientHandle.registerContribution", () => {
       id: "example-uplink",
       version: "1.0.0",
       name: "Example",
+      description: "A test Uplink.",
     });
 
     client.registerContribution({
@@ -110,11 +126,13 @@ describe("UplinkClientHandle.registerContribution", () => {
       id: "a",
       version: "1.0.0",
       name: "A",
+      description: "A test Uplink.",
     });
     const clientB = defineUplinkClient({
       id: "b",
       version: "1.0.0",
       name: "B",
+      description: "A test Uplink.",
     });
     clientA.registerContribution({
       id: "shared-local-id",
@@ -148,6 +166,7 @@ describe("UplinkClientHandle.registerProcessor", () => {
       id: "example-uplink",
       version: "1.0.0",
       name: "Example",
+      description: "A test Uplink.",
     });
 
     const handle = client.registerProcessor({

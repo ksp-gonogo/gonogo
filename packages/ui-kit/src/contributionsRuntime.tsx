@@ -138,6 +138,25 @@ function shallowEqualValues(
   return keys.every((k) => Object.hasOwn(b, k) && Object.is(a[k], b[k]));
 }
 
+/** Where the aggregation keeps a Topic's `Reading`, beside the payload a bare dep reads under the Topic's own id. */
+function readingKey(topic: string): string {
+  return `\u0000reading:${topic}`;
+}
+
+/** The record one contribution's `compute` receives: the shared values, with each of its `{ reading }` deps swapped for the Topic's `Reading`. */
+function argumentFor(
+  def: AnyContribution,
+  values: Record<string, unknown>,
+): Record<string, unknown> {
+  let argument = values;
+  for (const d of def.deps ?? []) {
+    if (typeof d === "string" || !("reading" in d)) continue;
+    if (argument === values) argument = { ...values };
+    argument[d.reading] = values[readingKey(d.reading)];
+  }
+  return argument;
+}
+
 interface ModSettingRef {
   readonly uplink: string;
   readonly key: string;
@@ -194,6 +213,7 @@ function SlotAggregator({
 
   const unionDeps = useMemo(() => {
     const topics = new Set<TopicId>();
+    const readingTopics = new Set<TopicId>();
     const processors = new Map<string, ProcessorHandle<unknown>>();
     const settings = new Map<string, ModSettingRef>();
     for (const c of contribs) {
@@ -205,6 +225,7 @@ function SlotAggregator({
         // A reading dep subscribes to the same wire topic a bare id does.
         if ("reading" in d) {
           topics.add(d.reading as TopicId);
+          readingTopics.add(d.reading as TopicId);
           continue;
         }
         if (isModSettingDep(d)) {
@@ -216,6 +237,7 @@ function SlotAggregator({
     }
     return {
       topics: Array.from(topics),
+      readingTopics: Array.from(readingTopics),
       processors: Array.from(processors.values()),
       settings: Array.from(settings.entries()),
     };
@@ -285,6 +307,9 @@ function SlotAggregator({
       const point = telemetryStore.sample(topic, token);
       values[topic] = point ? point.payload : undefined;
     }
+    for (const topic of unionDeps.readingTopics) {
+      values[readingKey(topic)] = telemetryStore.sampleReading(topic, token);
+    }
     for (const p of unionDeps.processors) {
       values[p.id] = processorRuntime?.value(p.id);
     }
@@ -327,7 +352,7 @@ function SlotAggregator({
         const result = runContributionCompute(
           def.id,
           declaredTopicsOf(def),
-          () => def.compute(topicValues as never),
+          () => def.compute(argumentFor(def, topicValues) as never),
         );
         if (result) {
           for (const entry of result) {

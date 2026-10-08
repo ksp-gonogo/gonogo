@@ -197,11 +197,8 @@ namespace Gonogo.KSP
             }
 
             _handedOut.Add(ship, ship);
-            return new CraftLoad
-            {
-                Ship = ship,
-                Measured = Measure(path) ?? new CraftFileRecord { File = file, Facility = facility },
-            };
+            return CraftLoad.Loaded(
+                ship, Measure(path) ?? new CraftFileRecord { File = file, Facility = facility });
         }
 
         /// <summary>

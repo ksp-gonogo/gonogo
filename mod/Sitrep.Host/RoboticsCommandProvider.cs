@@ -75,39 +75,39 @@ namespace Sitrep.Host
             return actuator.SetServoLock(args.PartId, args.Enabled);
         }
 
-        public static CommandResult HandleRotorSetRpmLimit(IRoboticsActuator actuator, RotorSetValueArgs args)
+        public static CommandResult HandleRotorSetRpmLimit(IRoboticsActuator actuator, RotorSetRpmLimitArgs args)
         {
             if (string.IsNullOrEmpty(args.PartId))
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            return actuator.SetRotorRpmLimit(args.PartId, args.Value);
+            return actuator.SetRotorRpmLimit(args.PartId, args.Rpm);
         }
 
-        public static CommandResult HandleRotorSetTorqueLimit(IRoboticsActuator actuator, RotorSetValueArgs args)
+        public static CommandResult HandleRotorSetTorqueLimit(IRoboticsActuator actuator, RotorSetTorqueLimitArgs args)
         {
             if (string.IsNullOrEmpty(args.PartId))
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            if (args.Value < 0.0 || args.Value > TorqueLimitMax)
+            if (args.Percent < 0.0 || args.Percent > TorqueLimitMax)
             {
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
-            return actuator.SetRotorTorqueLimit(args.PartId, args.Value);
+            return actuator.SetRotorTorqueLimit(args.PartId, args.Percent);
         }
 
-        public static CommandResult HandleRotorSetBrake(IRoboticsActuator actuator, RotorSetValueArgs args)
+        public static CommandResult HandleRotorSetBrake(IRoboticsActuator actuator, RotorSetBrakeArgs args)
         {
             if (string.IsNullOrEmpty(args.PartId))
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            if (args.Value < 0.0 || args.Value > BrakePercentMax)
+            if (args.Percent < 0.0 || args.Percent > BrakePercentMax)
             {
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
-            return actuator.SetRotorBrake(args.PartId, args.Value);
+            return actuator.SetRotorBrake(args.PartId, args.Percent);
         }
 
         public static CommandResult HandleRotorSetMotor(IRoboticsActuator actuator, ServoSetEnabledArgs args)

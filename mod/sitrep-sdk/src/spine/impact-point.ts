@@ -27,7 +27,7 @@ import { magnitudeOr, type Quantityish } from "../magnitude";
 import {
   canPropagate,
   rotatePerifocalToInertial,
-  type Vector3,
+  type Vec3Tuple,
 } from "./kepler";
 import { buildElements } from "./kepler-reckoning";
 import {
@@ -361,7 +361,7 @@ function arcImpact(
   ) {
     return null;
   }
-  const resolveLift = (): ((p: TrajectoryPoint) => Vector3) | null => {
+  const resolveLift = (): ((p: TrajectoryPoint) => Vec3Tuple) | null => {
     if (frame.kind === TrajectoryFrameKindLike.BodyCentredInertial) {
       return (p) => [p.x, p.y, p.z];
     }
@@ -369,7 +369,7 @@ function arcImpact(
       const { inc, lan, argPe } = buildElements(orbit);
       const pHat = rotatePerifocalToInertial(1, 0, inc, lan, argPe);
       const qHat = rotatePerifocalToInertial(0, 1, inc, lan, argPe);
-      const wHat: Vector3 = [
+      const wHat: Vec3Tuple = [
         pHat[1] * qHat[2] - pHat[2] * qHat[1],
         pHat[2] * qHat[0] - pHat[0] * qHat[2],
         pHat[0] * qHat[1] - pHat[1] * qHat[0],
@@ -404,7 +404,7 @@ function arcImpact(
     rotationPeriod,
   );
 
-  let previous: { at: Vector3; ut: number } = { at: start, ut: ref.ut };
+  let previous: { at: Vec3Tuple; ut: number } = { at: start, ut: ref.ut };
   for (let i = startAt; i < points.length; i++) {
     const next = { at: lift(points[i]), ut: points[i].ut };
     if (next.ut <= previous.ut) continue;
@@ -415,7 +415,7 @@ function arcImpact(
       const f = (rPrev - surface) / (rPrev - rNext);
       const ut = previous.ut + (next.ut - previous.ut) * f;
       if (ut > endUt) return null;
-      const at: Vector3 = [
+      const at: Vec3Tuple = [
         previous.at[0] + (next.at[0] - previous.at[0]) * f,
         previous.at[1] + (next.at[1] - previous.at[1]) * f,
         previous.at[2] + (next.at[2] - previous.at[2]) * f,

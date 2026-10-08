@@ -13,7 +13,7 @@ import {
   type TrajectoryFrame,
   toFrame,
   trajectoryFrameKindFor,
-  type Vector3,
+  type Vec3Tuple,
 } from "@ksp-gonogo/sitrep-client";
 import type {
   SystemProjectionExtent,
@@ -147,8 +147,8 @@ export interface ResolvedProjection extends Placement {
 
 /** What the diagram draws through, never nullable: the diagram's one coalesce falls back to {@link INERTIAL_PLACEMENT}, a named frame rather than an absence. */
 export interface Placement {
-  place(parentCentred: Vector3): Vector3;
-  unplace(projected: Vector3): Vector3;
+  place(parentCentred: Vec3Tuple): Vec3Tuple;
+  unplace(projected: Vec3Tuple): Vec3Tuple;
   extent: SystemProjectionExtent;
 }
 
@@ -236,8 +236,8 @@ export function resolveProjection(
 function placeThrough(
   from: FrameInstant,
   to: FrameInstant,
-  position: Vector3,
-): Vector3 {
+  position: Vec3Tuple,
+): Vec3Tuple {
   SYSTEM_PLACEMENT_BUDGET.record();
   return toFrame(to, fromFrame(from, position)).position;
 }

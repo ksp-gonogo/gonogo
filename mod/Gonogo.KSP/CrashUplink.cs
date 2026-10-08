@@ -220,7 +220,7 @@ namespace Gonogo.KSP
                 var capture = BuildCapture(vessel, report, eventKind, vesselType, ut);
 
                 _lastCrash?.Publish(CrashPayload.Build(capture), ut);
-                _hasRecent?.Publish(true, ut);
+                _hasRecent?.Publish(CrashPayload.ToWire(new CrashRecent { Recent = true }), ut);
 
                 // The flight is over; drop the tracker state so a re-used id
                 // (revert / new craft) starts clean.

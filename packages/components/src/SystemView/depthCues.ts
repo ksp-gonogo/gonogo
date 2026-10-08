@@ -1,4 +1,4 @@
-import type { Vector3 } from "@ksp-gonogo/sitrep-client";
+import type { Vec3Tuple } from "@ksp-gonogo/sitrep-client";
 
 /** How far a drawn thing leaves the projection's reference plane, read as colour. Depth is not inclination: a body at its ascending node has none. */
 
@@ -41,7 +41,7 @@ export interface DepthGradientAxis {
  * Derived from the samples, not the elements, so it holds for a rotating-frame rosette as for an ellipse, and recovers the node-perpendicular axis for a Keplerian ring.
  */
 export function depthGradientAxis(
-  points: readonly Vector3[],
+  points: readonly Vec3Tuple[],
   plotScale: number,
 ): DepthGradientAxis | null {
   if (points.length === 0) return null;

@@ -13,6 +13,7 @@ const RELIABILITY_MOD = defineUplinkClient({
   id: "reliability-mod",
   version: "0.0.0-dev",
   name: "Reliability Mod",
+  description: "A test Uplink.",
 });
 
 function fleetRoster() {

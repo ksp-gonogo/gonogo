@@ -36,6 +36,7 @@ function seedRegistry(): ComponentDefinition[] {
     id: "kerbalism",
     version: "0.0.0-dev",
     name: "Kerbalism",
+    description: "A planted Uplink for provenance cards.",
   });
 
   const augmented: ComponentDefinition = {

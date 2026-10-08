@@ -4,7 +4,7 @@ import {
   type CelestialBody,
   type CelestialFacts,
 } from "./celestial-facts";
-import type { Vector3 } from "./kepler";
+import type { Vec3Tuple } from "./kepler";
 import {
   LAGRANGE_POINT_NAMES,
   LIBRATION_REFUSALS,
@@ -124,11 +124,11 @@ function kerbinSystem(munEcc: number): CelestialFacts {
 /** Mun's orbital period about Kerbin, so a sample sweep covers a real revolution. */
 const MUN_PERIOD = 2 * Math.PI * Math.sqrt(12_000_000 ** 3 / KERBIN_MU);
 
-function norm(v: Vector3): number {
+function norm(v: Vec3Tuple): number {
   return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
-function separation(a: Vector3, b: Vector3): number {
+function separation(a: Vec3Tuple, b: Vec3Tuple): number {
   return norm([a[0] - b[0], a[1] - b[1], a[2] - b[2]]);
 }
 
@@ -180,8 +180,8 @@ describe("librationPositionsFor", () => {
     const mu = 0.2;
     const points = librationPositionsFor(mu);
     if (points === null) throw new Error("no points");
-    const primary: Vector3 = [-mu, 0, 0];
-    const secondary: Vector3 = [1 - mu, 0, 0];
+    const primary: Vec3Tuple = [-mu, 0, 0];
+    const secondary: Vec3Tuple = [1 - mu, 0, 0];
     for (const name of ["L4", "L5"] as const) {
       const p = points.find((q) => q.name === name)?.frame;
       if (p === undefined) throw new Error(name);
@@ -300,7 +300,7 @@ describe("lagrangePointsAt", () => {
   it("holds every marker still in the pair's frame across a whole revolution of an ECCENTRIC pair", () => {
     const facts = kerbinSystem(0.4);
     const samples = 24;
-    const seen = new Map<string, Vector3[]>();
+    const seen = new Map<string, Vec3Tuple[]>();
     const separations: number[] = [];
     for (let i = 0; i < samples; i++) {
       const ut = (MUN_PERIOD * i) / samples;

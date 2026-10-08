@@ -1,6 +1,6 @@
 import {
   rotatePerifocalToInertial,
-  type Vector3,
+  type Vec3Tuple,
 } from "@ksp-gonogo/sitrep-client";
 
 /** Keplerian orbit geometry in the parent's inertial frame, metres. */
@@ -26,7 +26,7 @@ export function orbitPointAt(
   argPeDeg: number,
   inclinationDeg: number,
   trueAnomalyDeg: number,
-): Vector3 {
+): Vec3Tuple {
   const e = clampEcc(eccentricity);
   const theta = trueAnomalyDeg * RAD;
   const r = (sma * (1 - e * e)) / (1 + e * Math.cos(theta));
@@ -47,7 +47,7 @@ export function perifocalToParent(
   argPeDeg: number,
   inclinationDeg: number,
   zPerifocal = 0,
-): Vector3 {
+): Vec3Tuple {
   return rotatePerifocalToInertial(
     xPerifocal,
     yPerifocal,
@@ -66,10 +66,10 @@ export function orbitRingPoints(
   argPeDeg: number,
   inclinationDeg: number,
   samples: number = ORBIT_RING_SAMPLES,
-): Vector3[] {
+): Vec3Tuple[] {
   const e = clampEcc(eccentricity);
   const b = sma * Math.sqrt(1 - e * e);
-  const points: Vector3[] = [];
+  const points: Vec3Tuple[] = [];
   for (let i = 0; i <= samples; i++) {
     const anomaly = (2 * Math.PI * i) / samples;
     points.push(

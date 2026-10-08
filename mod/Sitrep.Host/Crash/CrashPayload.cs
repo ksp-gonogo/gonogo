@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Crash
 {
@@ -100,6 +101,10 @@ namespace Sitrep.Host.Crash
         /// </summary>
         public static bool ShouldPublish(string? vesselType) =>
             vesselType != "Debris" && vesselType != "Flag" && vesselType != "Unknown";
+
+        /// <summary>Flattens the <c>crash.hasRecent</c> payload to the dictionary <see cref="Sitrep.Contract.Serialization.JsonWriter"/> serializes.</summary>
+        public static Dictionary<string, object?> ToWire(CrashRecent recent) =>
+            new Dictionary<string, object?> { ["recent"] = recent.Recent };
 
         /// <summary>
         /// Flattens a <see cref="CrashCapture"/> to the nested

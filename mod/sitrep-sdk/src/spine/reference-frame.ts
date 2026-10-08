@@ -62,7 +62,7 @@
 import { PropagationHorizonKind } from "../__generated__/contract";
 import { PerfBudget } from "../perf/PerfBudget";
 import type { CelestialBody, CelestialFacts } from "./celestial-facts";
-import { type OrbitElements, solve, type Vector3 } from "./kepler";
+import { type OrbitElements, solve, type Vec3Tuple } from "./kepler";
 
 /**
  * The reference frames a widget may draw in:
@@ -138,17 +138,17 @@ export interface FrameInstant {
   /** The instant, as a UT. */
   ut: number;
   /** Root-centred inertial position of the frame's origin, metres. */
-  origin: Vector3;
+  origin: Vec3Tuple;
   /** That origin's velocity, m/s. */
-  originVelocity: Vector3;
+  originVelocity: Vec3Tuple;
   /**
    * The frame's axes as rows, each a unit vector in root-centred inertial
    * components: the bearing to the secondary, the in-plane perpendicular ahead
    * of it, and the pair's orbit normal. Identity for a non-rotating frame.
    */
-  basis: readonly [Vector3, Vector3, Vector3];
+  basis: readonly [Vec3Tuple, Vec3Tuple, Vec3Tuple];
   /** The frame's angular velocity in inertial components, rad/s. Zero for a non-rotating frame. */
-  angularVelocity: Vector3;
+  angularVelocity: Vec3Tuple;
   /** What a rotating-pulsating frame divides lengths by, metres: the distance between its bodies. Exactly 1 for every other frame. */
   unitLength: number;
   /** How fast `unitLength` changes, m/s. Exactly 0 for every other frame. */
@@ -164,9 +164,9 @@ export interface FrameInstant {
  */
 export interface FrameCoordinates {
   /** The position, in the frame's coordinates. */
-  position: Vector3;
+  position: Vec3Tuple;
   /** The velocity, in the frame's coordinates. Meaningful only when a velocity was given. */
-  velocity: Vector3;
+  velocity: Vec3Tuple;
 }
 
 /**
@@ -193,30 +193,30 @@ const FRAME_INSTANT_BUDGET = new PerfBudget({
 /** How far up a parent chain the walk will go before giving up. Star, planet, moon, submoon is four. */
 const MAX_PARENT_DEPTH = 8;
 
-const ZERO: Vector3 = [0, 0, 0];
-const IDENTITY: readonly [Vector3, Vector3, Vector3] = [
+const ZERO: Vec3Tuple = [0, 0, 0];
+const IDENTITY: readonly [Vec3Tuple, Vec3Tuple, Vec3Tuple] = [
   [1, 0, 0],
   [0, 1, 0],
   [0, 0, 1],
 ];
 
-function sub(a: Vector3, b: Vector3): Vector3 {
+function sub(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 
-function add(a: Vector3, b: Vector3): Vector3 {
+function add(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
-function scale(a: Vector3, k: number): Vector3 {
+function scale(a: Vec3Tuple, k: number): Vec3Tuple {
   return [a[0] * k, a[1] * k, a[2] * k];
 }
 
-function dot(a: Vector3, b: Vector3): number {
+function dot(a: Vec3Tuple, b: Vec3Tuple): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-function cross(a: Vector3, b: Vector3): Vector3 {
+function cross(a: Vec3Tuple, b: Vec3Tuple): Vec3Tuple {
   return [
     a[1] * b[2] - a[2] * b[1],
     a[2] * b[0] - a[0] * b[2],
@@ -224,12 +224,12 @@ function cross(a: Vector3, b: Vector3): Vector3 {
   ];
 }
 
-function norm(a: Vector3): number {
+function norm(a: Vec3Tuple): number {
   return Math.sqrt(dot(a, a));
 }
 
 /** `v / |v|`, or null when `v` has no direction to give. */
-function unit(v: Vector3): Vector3 | null {
+function unit(v: Vec3Tuple): Vec3Tuple | null {
   const n = norm(v);
   if (!(n > 0) || !Number.isFinite(n)) return null;
   return scale(v, 1 / n);
@@ -239,7 +239,7 @@ function unit(v: Vector3): Vector3 | null {
  * The derivative of `v / |v|` given `v` and `v̇`: the part of `v̇` that turns
  * the direction, with the part that only lengthens it removed.
  */
-function normalisedRate(v: Vector3, vDot: Vector3): Vector3 | null {
+function normalisedRate(v: Vec3Tuple, vDot: Vec3Tuple): Vec3Tuple | null {
   const n = norm(v);
   if (!(n > 0) || !Number.isFinite(n)) return null;
   const n2 = n * n;
@@ -313,9 +313,9 @@ export interface SystemInstant {
   /** The instant, as a UT. */
   ut: number;
   /** Each body's position, by body index. A body missing here has none at this instant. */
-  positionByIndex: ReadonlyMap<number, Vector3>;
+  positionByIndex: ReadonlyMap<number, Vec3Tuple>;
   /** Each body's velocity, by body index. */
-  velocityByIndex: ReadonlyMap<number, Vector3>;
+  velocityByIndex: ReadonlyMap<number, Vec3Tuple>;
   /** Each body's gravitational parameter, m³/s², by body index. */
   muByIndex: ReadonlyMap<number, number>;
   /**
@@ -371,8 +371,8 @@ export function systemInstantAt(
   facts: CelestialFacts,
   ut: number,
 ): SystemInstant {
-  const positionByIndex = new Map<number, Vector3>();
-  const velocityByIndex = new Map<number, Vector3>();
+  const positionByIndex = new Map<number, Vec3Tuple>();
+  const velocityByIndex = new Map<number, Vec3Tuple>();
   const muByIndex = new Map<number, number>();
   const withdrawnByIndex = new Map<number, BodyWithdrawal>();
   if (!Number.isFinite(ut)) {
@@ -415,8 +415,8 @@ export function systemInstantAt(
     if (anchorPosition === undefined || anchorVelocity === undefined) {
       return false;
     }
-    let position: Vector3 = anchorPosition;
-    let velocity: Vector3 = anchorVelocity;
+    let position: Vec3Tuple = anchorPosition;
+    let velocity: Vec3Tuple = anchorVelocity;
     for (let i = chain.length - 1; i >= 0; i--) {
       const link = chain[i];
 
@@ -476,10 +476,10 @@ export function systemInstantAt(
  */
 export function pointMassAccelerationAt(
   system: SystemInstant,
-  at: Vector3,
+  at: Vec3Tuple,
   exclude?: number | null,
-): Vector3 {
-  let sum: Vector3 = ZERO;
+): Vec3Tuple {
+  let sum: Vec3Tuple = ZERO;
   for (const [index, position] of system.positionByIndex) {
     if (index === exclude) continue;
     const mu = system.muByIndex.get(index);
@@ -571,9 +571,9 @@ export function frameSides(
 }
 
 interface Barycentre {
-  position: Vector3;
-  velocity: Vector3;
-  acceleration: Vector3;
+  position: Vec3Tuple;
+  velocity: Vec3Tuple;
+  acceleration: Vec3Tuple;
 }
 
 /** The mass-weighted centre of one side, with the acceleration its own frame maths needs. */
@@ -582,8 +582,8 @@ function barycentreOf(
   side: readonly number[],
 ): Barycentre | null {
   let mass = 0;
-  let position: Vector3 = ZERO;
-  let velocity: Vector3 = ZERO;
+  let position: Vec3Tuple = ZERO;
+  let velocity: Vec3Tuple = ZERO;
   for (const index of side) {
     const mu = system.muByIndex.get(index);
     const p = system.positionByIndex.get(index);
@@ -601,7 +601,7 @@ function barycentreOf(
   // cancel out of it by Newton's third law. Evaluating the field once at the
   // mass centre would be a different quantity for a side with more than one
   // body in it.
-  let acceleration: Vector3 = ZERO;
+  let acceleration: Vec3Tuple = ZERO;
   for (const index of side) {
     const mu = system.muByIndex.get(index);
     const p = system.positionByIndex.get(index);
@@ -697,7 +697,7 @@ export function frameInstantAt(
     scale(b, dot(fRate, n)),
   );
 
-  const basis: readonly [Vector3, Vector3, Vector3] = [f, n, b];
+  const basis: readonly [Vec3Tuple, Vec3Tuple, Vec3Tuple] = [f, n, b];
 
   if (choice.kind === "parent-direction") {
     const origin = state.positionByIndex.get(sides.primary[0]);
@@ -741,18 +741,18 @@ export function frameInstantAt(
  */
 export function toFrame(
   instant: FrameInstant,
-  positionInertial: Vector3,
-  velocityInertial?: Vector3,
+  positionInertial: Vec3Tuple,
+  velocityInertial?: Vec3Tuple,
 ): FrameCoordinates {
   const [ex, ey, ez] = instant.basis;
   const dq = sub(positionInertial, instant.origin);
-  const rotated: Vector3 = [dot(ex, dq), dot(ey, dq), dot(ez, dq)];
+  const rotated: Vec3Tuple = [dot(ex, dq), dot(ey, dq), dot(ez, dq)];
 
-  let velocity: Vector3 = ZERO;
+  let velocity: Vec3Tuple = ZERO;
   if (velocityInertial !== undefined) {
     const dv = sub(velocityInertial, instant.originVelocity);
     const w = instant.angularVelocity;
-    const wFrame: Vector3 = [dot(ex, w), dot(ey, w), dot(ez, w)];
+    const wFrame: Vec3Tuple = [dot(ex, w), dot(ey, w), dot(ez, w)];
     velocity = sub(
       [dot(ex, dv), dot(ey, dv), dot(ez, dv)],
       cross(wFrame, rotated),
@@ -810,8 +810,8 @@ export function resolveReadFrame(
  */
 export function fromFrame(
   instant: FrameInstant,
-  positionInFrame: Vector3,
-): Vector3 {
+  positionInFrame: Vec3Tuple,
+): Vec3Tuple {
   const [ex, ey, ez] = instant.basis;
   const scaled = scale(positionInFrame, instant.unitLength);
   return add(

@@ -5,7 +5,7 @@ import {
   TrajectoryKind,
 } from "../__generated__/contract";
 import { type CelestialFacts, deriveCelestialFacts } from "./celestial-facts";
-import type { Vector3 } from "./kepler";
+import type { Vec3Tuple } from "./kepler";
 import {
   frameInstantAt,
   frameSides,
@@ -100,7 +100,7 @@ const SOLAR: readonly BodySpec[] = [
   { index: 5, name: "Outer", parentIndex: 0, mu: 4.3e16, sma: 1.5 * AU },
 ];
 
-function distance(a: Vector3, b: Vector3): number {
+function distance(a: Vec3Tuple, b: Vec3Tuple): number {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 
@@ -166,8 +166,8 @@ describe("systemInstantAt", () => {
     expect(home).toBeDefined();
     expect(moon).toBeDefined();
     // Home is one AU from the star, and the moon a lunar distance from Home.
-    expect(distance(home as Vector3, [0, 0, 0])).toBeCloseTo(AU, -3);
-    expect(distance(moon as Vector3, home as Vector3)).toBeCloseTo(
+    expect(distance(home as Vec3Tuple, [0, 0, 0])).toBeCloseTo(AU, -3);
+    expect(distance(moon as Vec3Tuple, home as Vec3Tuple)).toBeCloseTo(
       LUNAR_DISTANCE,
       -1,
     );
@@ -245,8 +245,8 @@ describe("pointMassAccelerationAt", () => {
     const facts = catalogue(SOLAR);
     const system = systemInstantAt(facts, 0);
     // A point a little off the moon, so the moon's own term is present, large and computable rather than a division by its own zero separation.
-    const moon = system.positionByIndex.get(4) as Vector3;
-    const probe: Vector3 = [moon[0] + 1e6, moon[1], moon[2]];
+    const moon = system.positionByIndex.get(4) as Vec3Tuple;
+    const probe: Vec3Tuple = [moon[0] + 1e6, moon[1], moon[2]];
     const all = pointMassAccelerationAt(system, probe);
     const withoutMoon = pointMassAccelerationAt(system, probe, 4);
     const moonTerm = MOON_MU / 1e12;
@@ -288,7 +288,7 @@ describe("frameInstantAt: body-centred inertial", () => {
     );
     const here = toFrame(
       instant as NonNullable<typeof instant>,
-      system.positionByIndex.get(4) as Vector3,
+      system.positionByIndex.get(4) as Vec3Tuple,
     );
     expect(distance(here.position, [0, 0, 0])).toBeLessThan(1e-6);
   });
@@ -314,7 +314,7 @@ describe("frameInstantAt: parent-direction", () => {
       const { system, instant } = moonFrameAt(ut);
       return toFrame(
         instant as NonNullable<typeof instant>,
-        system.positionByIndex.get(3) as Vector3,
+        system.positionByIndex.get(3) as Vec3Tuple,
       ).position;
     });
     // The parent sits on the first axis, a separation away, at every instant.
@@ -330,12 +330,12 @@ describe("frameInstantAt: parent-direction", () => {
     const { system, instant } = moonFrameAt(300_000);
     const held = toFrame(
       instant as NonNullable<typeof instant>,
-      system.positionByIndex.get(3) as Vector3,
-      system.velocityByIndex.get(3) as Vector3,
+      system.positionByIndex.get(3) as Vec3Tuple,
+      system.velocityByIndex.get(3) as Vec3Tuple,
     );
     const speed = Math.hypot(...held.velocity);
     const inertialSpeed = Math.hypot(
-      ...(system.velocityByIndex.get(3) as Vector3),
+      ...(system.velocityByIndex.get(3) as Vec3Tuple),
     );
     // Not exactly zero: the pair's own barycentre accelerates about the star,
     // so the frame is not quite the pair's two-body frame. It must nonetheless
@@ -347,7 +347,8 @@ describe("frameInstantAt: parent-direction", () => {
   it("turns at the pair's own mean motion", () => {
     const { instant } = moonFrameAt(0);
     const omega = Math.hypot(
-      ...((instant as NonNullable<typeof instant>).angularVelocity as Vector3),
+      ...((instant as NonNullable<typeof instant>)
+        .angularVelocity as Vec3Tuple),
     );
     const expected = Math.sqrt(
       (PLANET_MU + MOON_MU) /
@@ -414,10 +415,12 @@ describe("frameInstantAt: rotating-pulsating", () => {
       const { system, instant } = pulsatingAt(ut);
       separations.push(instant.unitLength);
       starX.push(
-        toFrame(instant, system.positionByIndex.get(0) as Vector3).position[0],
+        toFrame(instant, system.positionByIndex.get(0) as Vec3Tuple)
+          .position[0],
       );
       homeX.push(
-        toFrame(instant, system.positionByIndex.get(1) as Vector3).position[0],
+        toFrame(instant, system.positionByIndex.get(1) as Vec3Tuple)
+          .position[0],
       );
     }
     // The separation genuinely varies, so the constancy below is the dilatation working and not an accident of a circular orbit.
@@ -434,7 +437,7 @@ describe("frameInstantAt: rotating-pulsating", () => {
     const { instant } = pulsatingAt(0);
     const massRatio = PLANET_MU / (STAR_MU + PLANET_MU);
     const { system } = pulsatingAt(0);
-    const star = toFrame(instant, system.positionByIndex.get(0) as Vector3);
+    const star = toFrame(instant, system.positionByIndex.get(0) as Vec3Tuple);
     // The heavier body sits a small fraction of the unit from the origin, on the far side from the lighter one.
     expect(star.position[0]).toBeCloseTo(-massRatio, 9);
   });
@@ -451,7 +454,7 @@ describe("frameInstantAt: rotating-pulsating", () => {
       const { system, instant } = pulsatingAt(ut);
       const rotatedBack = toFrame(
         { ...instant, unitLength: 1, unitLengthRate: 0 },
-        system.positionByIndex.get(1) as Vector3,
+        system.positionByIndex.get(1) as Vec3Tuple,
       ).position[0];
       return rotatedBack / fixedUnit;
     };

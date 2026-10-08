@@ -8111,6 +8111,10 @@
   "pending": {
     "breaks": [
       {
+        "key": "sitrep-sdk . CONTRACT_MAJOR",
+        "note": "Follows the contract to 30: the rotor limit commands take their own arguments and the hottest part's maximum skin temperature is nullable"
+      },
+      {
         "key": "sitrep-sdk . CONTRACT_MINOR",
         "note": "The constant follows the contract from 14 to 18 (the hello, ping and pong envelopes, the departure envelope on the orbit horizon, the Commcast send receipt, then the target list\\u0027s unchanged-to time). Its type is now `number` rather than the literal, so this is the last Minor bump that reads as a retype; a caller compares it or prints it, and is unaffected."
       },
@@ -8125,6 +8129,10 @@
       {
         "key": "sitrep-sdk . EXTENSION_API_VERSION",
         "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
+      },
+      {
+        "key": "sitrep-sdk . GonogoHost#defineUplinkClient",
+        "note": "The config's description is required, matching the handle it returns"
       },
       {
         "key": "sitrep-sdk . GonogoHost#sendTogether",
@@ -8191,16 +8199,40 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk . StateVector#position",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk . StateVector#velocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
         "key": "sitrep-sdk . StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk . TOPIC_IDS",
+        "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean"
       },
       {
         "key": "sitrep-sdk . TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
       {
+        "key": "sitrep-sdk . UplinkClientHandle#description",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk . UplinkClientHandle#description?",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "sitrep-sdk . defineUplinkClient",
+        "note": "The config's description is required, matching the handle it returns"
       },
       {
         "key": "sitrep-sdk . useDataSources",
@@ -8323,6 +8355,10 @@
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
+        "key": "sitrep-sdk . ~DepValue",
+        "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
+      },
+      {
         "key": "sitrep-sdk . ~InFlightCommand",
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
@@ -8387,8 +8423,80 @@
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
+        "key": "sitrep-sdk . ~Vector3",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames FrameCoordinates#position",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames FrameCoordinates#velocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames FrameInstant#angularVelocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames FrameInstant#basis",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames FrameInstant#origin",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames FrameInstant#originVelocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames LibrationOffset#vesselFrame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames LibrationPoint#frame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames LibrationPoint#inertial",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames SystemInstant#positionByIndex",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames SystemInstant#velocityByIndex",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames Vector3",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames frameVector",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames fromFrame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames librationOffsetOf",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames toFrame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#augmentSlots?",
         "note": "Typed as the slot ids SlotRegistry declares rather than any string, so a widget cannot list a slot nothing declares; an Uplink listing its own slot declares it with declare module first, as every bundled Uplink already does"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~DepValue",
+        "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
       },
       {
         "key": "sitrep-sdk ./registry ~HeldGrade",
@@ -8427,16 +8535,76 @@
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
       {
+        "key": "sitrep-sdk ./registry ~UplinkClientHandle#description",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UplinkClientHandle#description?",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
         "key": "sitrep-sdk ./spine DataSourceState#status",
         "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk ./spine FrameCoordinates#position",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine FrameCoordinates#velocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine FrameInstant#angularVelocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine FrameInstant#basis",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine FrameInstant#origin",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine FrameInstant#originVelocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
         "key": "sitrep-sdk ./spine HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./spine LibrationOffset#vesselFrame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine LibrationPoint#frame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine LibrationPoint#inertial",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine StateVector#position",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine StateVector#velocity",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
         "key": "sitrep-sdk ./spine StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./spine SystemInstant#positionByIndex",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine SystemInstant#velocityByIndex",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#dispatchGroup",
@@ -8455,16 +8623,72 @@
         "note": "New: listens for a change in what the game is doing"
       },
       {
+        "key": "sitrep-sdk ./spine UplinkClientHandle#description",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk ./spine UplinkClientHandle#description?",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
         "key": "sitrep-sdk ./spine UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "sitrep-sdk ./spine Vector3",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine commsPeerPositionAt",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine defineUplinkClient",
+        "note": "The config's description is required, matching the handle it returns"
+      },
+      {
+        "key": "sitrep-sdk ./spine fromFrame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine librationOffsetOf",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine librationPositionsFor",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine magnitude",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine pointMassAccelerationAt",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine rotateInertialToPerifocal",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
         "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
       },
       {
+        "key": "sitrep-sdk ./spine surfacePositionAt",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine toFrame",
+        "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ClientMessage",
         "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~DepValue",
+        "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
       },
       {
         "key": "sitrep-sdk ./spine ~ServerMessage",
@@ -8517,6 +8741,14 @@
       {
         "key": "sitrep-sdk ./testing ~ClientMessage",
         "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DepValue",
+        "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#defineUplinkClient",
+        "note": "The config's description is required, matching the handle it returns"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#sendTogether",
@@ -8577,6 +8809,14 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientHandle#description",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientHandle#description?",
+        "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
@@ -9355,6 +9595,22 @@
       {
         "key": "sitrep-sdk . ~UplinkActionOutcome#throughSeq?",
         "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~Vec3Tuple",
+        "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
+      },
+      {
+        "key": "sitrep-sdk ./frames Vec3Tuple",
+        "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
+      },
+      {
+        "key": "sitrep-sdk ./frames rotatePerifocalToInertial",
+        "note": "Published on /frames beside the frame arithmetic: it turns a point in an orbit's plane into the parent body's inertial frame"
+      },
+      {
+        "key": "sitrep-sdk ./frames trueAnomalyFromEccentric",
+        "note": "Published on /frames beside the frame arithmetic: it gives the true anomaly for an eccentric anomaly"
       },
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotContext",
@@ -10379,6 +10635,10 @@
       {
         "key": "sitrep-sdk ./spine GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine Vec3Tuple",
+        "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
         "key": "sitrep-sdk ./spine assertSizeDelta",

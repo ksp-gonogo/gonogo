@@ -1,3 +1,4 @@
+import type { TopicReading } from "../reading";
 import { defineUplinkClient } from "../spine/uplink-clients";
 import type { TopicPayload } from "../topics";
 
@@ -15,6 +16,7 @@ const CLIENT = defineUplinkClient({
   id: "typetest",
   version: "0.0.1",
   name: "Type test",
+  description: "Typing checks for contributions.",
 });
 
 CLIENT.registerContribution({
@@ -56,12 +58,12 @@ CLIENT.registerContribution({
     const notTombstoned: CareerStatus | undefined = topics["career.status"];
     // @ts-expect-error a Topic that has not arrived is undefined, so undefined must be in the type
     const arrived: CareerStatus | null = topics["career.status"];
-    const crew: TopicPayload<"vessel.crew"> | null | undefined =
+    const crew: TopicReading<TopicPayload<"vessel.crew">> =
       topics["vessel.crew"];
-    // @ts-expect-error a reading dep is stored as the payload too, tombstone included
-    const crewNotTombstoned: TopicPayload<"vessel.crew"> | undefined =
+    // @ts-expect-error a reading dep is the Topic's Reading, not its payload
+    const crewPayload: TopicPayload<"vessel.crew"> | undefined =
       topics["vessel.crew"];
-    void [status, notTombstoned, arrived, crew, crewNotTombstoned];
+    void [status, notTombstoned, arrived, crew, crewPayload];
     return [];
   },
 });

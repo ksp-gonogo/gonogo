@@ -1978,6 +1978,33 @@ namespace Sitrep.Host
             {
                 _currentRegisteringUplinkId = null;
             }
+
+            RefuseAddressedChannelsNothingPublishes(id, uplink);
+        }
+
+        /// <summary>
+        /// Only Gonogo's own sources can publish an addressed sample, and a source
+        /// says so by calling <see cref="DeclareAddressedTopic"/> while its Uplink
+        /// registers. A channel declared <see cref="ChannelDeclaration.Addressed"/>
+        /// that nothing declared that way would never be sent to any centre, so the
+        /// Uplink is refused rather than left holding a channel that stays silent.
+        /// </summary>
+        private void RefuseAddressedChannelsNothingPublishes(string id, ISitrepUplink uplink)
+        {
+            if (!_availability.TryGetValue(id, out var availability) || !availability.IsAvailable)
+            {
+                return;
+            }
+            foreach (var channel in uplink.Manifest.Channels)
+            {
+                if (channel.Addressed && !_addressedTopics.Contains(channel.Topic))
+                {
+                    MarkUplinkUnavailable(id,
+                        "channel \"" + channel.Topic + "\" declares Addressed, but only Gonogo's own sources can publish an addressed sample,"
+                        + " so it would never reach a command centre");
+                    return;
+                }
+            }
         }
 
         public Availability AvailabilityOf(string uplinkId)
