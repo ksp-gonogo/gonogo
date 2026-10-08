@@ -80,8 +80,8 @@ describe("cross-section plot", () => {
     const [xLo, xHi] = frameOf(plot).xDomain;
     const [yLo, yHi] = frameOf(plot).yDomain;
     expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
-    // 200 m of patch across and a craft 300 m up: past the tallness limit, so the window stays the ground's and the craft is off the top.
-    expect(yHi - yLo).toBe(200);
+    // 200 m of patch across and a craft 300 m up: the window opens to a rung that holds the craft.
+    expect(yHi - yLo).toBe(500);
   });
 
   it("opens up to hold the vessel when it fits, staying square", () => {
@@ -127,10 +127,79 @@ describe("cross-section plot", () => {
     ]);
   });
 
+  describe("framing a falling vessel", () => {
+    const fall = (agl: number, drift = agl * 0.8) =>
+      buildCrossSectionPlot(
+        crossSection({ aglMeters: agl, driftMeters: drift }),
+      );
+    const vesselOf = (plot: PlotEntry | null) => {
+      const v = plot?.layers.find((l) => l.id === "vessel");
+      if (v?.kind !== "marker") throw new Error("expected a vessel marker");
+      return v;
+    };
+    const spanOf = (plot: PlotEntry | null) => {
+      const [lo, hi] = frameOf(plot).yDomain;
+      return hi - lo;
+    };
+    /** Where the vessel sits in the frame, 0 at the floor and 1 at the top. */
+    const heightFraction = (plot: PlotEntry | null) => {
+      const [lo] = frameOf(plot).yDomain;
+      return (vesselOf(plot).at.y - lo) / spanOf(plot);
+    };
+
+    it.each([
+      8000, 3000, 900, 300, 60,
+    ])("holds the craft and the predicted site together at %i m, square", (agl) => {
+      const plot = fall(agl);
+      const [xLo, xHi] = frameOf(plot).xDomain;
+      const [yLo, yHi] = frameOf(plot).yDomain;
+      const v = vesselOf(plot);
+      expect(v.at.x).toBeGreaterThanOrEqual(xLo);
+      expect(v.at.x).toBeLessThanOrEqual(xHi);
+      expect(v.at.y).toBeGreaterThanOrEqual(yLo);
+      expect(v.at.y).toBeLessThanOrEqual(yHi);
+      expect(xLo).toBeLessThanOrEqual(0);
+      expect(xHi).toBeGreaterThanOrEqual(0);
+      expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
+      expect(plot?.layers.some((l) => l.id === "vessel-edge")).toBe(false);
+    });
+
+    it("zooms in rungs of 1, 2 and 5, so a fall changes scale a few times and not every frame", () => {
+      const spans = new Set<number>();
+      for (let agl = 8000; agl >= 60; agl -= 10) spans.add(spanOf(fall(agl)));
+      for (const span of spans) {
+        const mantissa = span / 10 ** Math.floor(Math.log10(span));
+        expect([1, 2, 5]).toContain(Math.round(mantissa * 1e6) / 1e6);
+      }
+      expect(spans.size).toBeLessThanOrEqual(8);
+    });
+
+    it("lowers the craft in the frame as it falls while the scale holds", () => {
+      const fractions = [7400, 7000, 6600, 6200, 5800].map((agl) => {
+        const plot = fall(agl);
+        return { span: spanOf(plot), fraction: heightFraction(plot) };
+      });
+      expect(new Set(fractions.map((f) => f.span)).size).toBe(1);
+      for (let i = 1; i < fractions.length; i++) {
+        expect(fractions[i].fraction).toBeLessThan(fractions[i - 1].fraction);
+      }
+    });
+
+    it("moves the craft downrange toward the site as it falls", () => {
+      const xs = [7400, 7000, 6600].map((agl) => vesselOf(fall(agl)).at.x);
+      expect(xs[0]).toBeLessThan(xs[1]);
+      expect(xs[1]).toBeLessThan(xs[2]);
+    });
+
+    it("keeps the terrain at the foot of the frame once the craft is close", () => {
+      expect(spanOf(fall(150))).toBeLessThanOrEqual(500);
+    });
+  });
+
   describe("a vessel above the window", () => {
     const high = (over: Partial<CrossSectionInputs>) =>
       buildCrossSectionPlot(
-        crossSection({ aglMeters: 6000, driftMeters: 5000, ...over }),
+        crossSection({ aglMeters: 40_000, driftMeters: 30_000, ...over }),
       );
     const edgeOf = (plot: PlotEntry | null) => {
       const edge = plot?.layers.find((l) => l.id === "vessel-edge");
@@ -156,10 +225,10 @@ describe("cross-section plot", () => {
         if (c?.kind !== "caption") throw new Error("expected a caption");
         return `${c.text} ${c.caption ?? ""}`;
       };
-      const before = caption(high({ aglMeters: 6000, driftMeters: 5000 }));
-      const after = caption(high({ aglMeters: 3000, driftMeters: 2500 }));
+      const before = caption(high({ aglMeters: 40_000, driftMeters: 30_000 }));
+      const after = caption(high({ aglMeters: 30_000, driftMeters: 25_000 }));
       expect(before).not.toBe(after);
-      expect(before).toMatch(/6(\.0+)? km/);
+      expect(before).toMatch(/40(\.0+)? km/);
     });
 
     it("hands over to the real marker once the vessel is inside the window", () => {

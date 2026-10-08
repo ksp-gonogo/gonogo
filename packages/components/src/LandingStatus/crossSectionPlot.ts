@@ -16,8 +16,16 @@ const VELOCITY_LOOKAHEAD_S = 10;
 
 /** How far below the terrain's lowest point the floor sits, as a fraction of its span, so the ground reads as filled. */
 const GROUND_INSET = 0.06;
-/** How much taller than wide the window may get while reaching for the vessel; past it the craft is off the top. */
-const MAX_TALLNESS = 1.6;
+/** How many patch widths the window may grow to hold the vessel; past it the craft is held on the frame's edge instead. */
+const MAX_FRAME_RATIO = 100;
+/** The smallest 1, 2 or 5 times a power of ten that is at least `metres`. */
+function zoomRung(metres: number): number {
+  const decade = 10 ** Math.floor(Math.log10(metres));
+  const mantissa = metres / decade;
+  const rung = [1, 2, 5, 10].find((m) => m >= mantissa - 1e-9) ?? 10;
+  return rung * decade;
+}
+
 /** Sky above the vessel, so it is not drawn on the frame's own edge. */
 const VESSEL_HEADROOM = 1.12;
 
@@ -144,58 +152,67 @@ export function buildCrossSectionPlot(
   const vesselY = groundUnderVessel + aglMeters;
 
   /*
-   * The frame is anchored on the GROUND, spanning the patch across and the same distance up: a vessel far above the relief is simply out of the picture.
-   * Equal spans both ways because the frame is spatial, so a slope drawn here is the slope.
+   * The frame holds the vessel and the predicted site together, anchored on the GROUND at the foot, so the craft is seen to fall and travel downrange toward the site.
+   * One span is used both ways because the frame is spatial: a slope drawn here is the slope.
    */
   const across = slice.halfSpan * 2;
   const groundLo = Math.min(...slice.points.map((p) => p.y));
   const floor = groundLo - across * GROUND_INSET;
+  const reachUp = (vesselY - floor) * VESSEL_HEADROOM;
+  const reachLeft = Math.min(-slice.halfSpan, vesselX * VESSEL_HEADROOM);
+  const reachRight = Math.max(slice.halfSpan, vesselX * VESSEL_HEADROOM);
+  const needed = Math.max(across, reachUp, reachRight - reachLeft);
   /*
-   * Tall enough to hold the vessel when it fits within the cap, and otherwise not stretched at all, so the picture stays a terrain profile.
-   * Equal scale survives either branch, since the arranger derives the box shape from the two spans.
+   * The scale moves in rungs rather than continuously: a window that always fitted the craft exactly would zoom as fast as the craft falls, and the craft would never move in it.
+   * Past the cap the patch would be a sliver, so the frame stays the ground's and the craft is held on its edge below.
    */
-  const reach = (vesselY - floor) * VESSEL_HEADROOM;
-  // One span used both ways, so the square box never stretches the slope.
-  const span =
-    reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
-  const halfWide = span / 2;
+  const fits = needed <= across * MAX_FRAME_RATIO;
+  const span = fits ? zoomRung(needed) : across;
+  const centre = fits ? (reachLeft + reachRight) / 2 : 0;
+  const xLo = centre - span / 2;
+  const xHi = centre + span / 2;
 
   /*
    * The window opens wider than the patch only to bring the vessel in. Past the outermost sample nothing is known of the ground, so those columns are hatched and the skyline stops at the last sample.
    */
   const first = slice.points[0];
   const last = slice.points[slice.points.length - 1];
-  const unknownSides: PlotLayer[] =
-    halfWide > slice.halfSpan
+  const unknownSides: PlotLayer[] = [
+    ...(xLo < first.x
       ? [
           {
-            kind: "region",
+            kind: "region" as const,
             id: "unsampled-left",
-            side: "left",
+            side: "left" as const,
             boundary: [
               { x: first.x, y: floor },
               { x: first.x, y: floor + span },
             ],
-            tone: "neutral",
+            tone: "neutral" as const,
             hatched: true,
             description:
               "ground before the sampled patch along the track is unknown",
           },
+        ]
+      : []),
+    ...(xHi > last.x
+      ? [
           {
-            kind: "region",
+            kind: "region" as const,
             id: "unsampled-right",
-            side: "right",
+            side: "right" as const,
             boundary: [
               { x: last.x, y: floor },
               { x: last.x, y: floor + span },
             ],
-            tone: "neutral",
+            tone: "neutral" as const,
             hatched: true,
             description:
               "ground beyond the sampled patch along the track is unknown",
           },
         ]
-      : [];
+      : []),
+  ];
 
   const layers: PlotLayer[] = [
     {
@@ -243,12 +260,13 @@ export function buildCrossSectionPlot(
    * A vessel outside the window is still on the plot: held on the nearest edge, with its real height and distance beside it, so a fall that takes kilometres shows as figures running down rather than as a picture that never changes.
    */
   const top = floor + span;
-  if (vesselY > top || Math.abs(vesselX) > halfWide) {
+  if (vesselY > top || vesselX < xLo || vesselX > xHi) {
     layers.push({
       kind: "marker",
       id: "vessel-edge",
       at: {
-        x: Math.max(-halfWide, Math.min(halfWide, vesselX)) * EDGE_HOLD,
+        x:
+          centre + (Math.max(xLo, Math.min(xHi, vesselX)) - centre) * EDGE_HOLD,
         y: top - span * (1 - EDGE_HOLD),
       },
       shape: "chevron-up",
@@ -316,8 +334,7 @@ export function buildCrossSectionPlot(
     title: "Cross-section",
     frame: {
       kind: "spatial",
-      // Centred on the site.
-      xDomain: [-halfWide, halfWide],
+      xDomain: [xLo, xHi],
       xUnit: "m",
       yDomain: [floor, floor + span],
       yUnit: "m",
