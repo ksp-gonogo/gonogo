@@ -33,3 +33,17 @@ describe("synthetic descent: predicted site converges on the actual touchdown", 
     expect(errorMetresAt(frames[frames.length - 1])).toBeLessThan(1);
   });
 });
+
+describe("synthetic descent: the two endings", () => {
+  it("settles a safe landing at rest on the surface", () => {
+    const last = integrate().at(-1);
+    expect(last).toMatchObject({ aglMeters: 0, vDown: 0, landed: true });
+  });
+
+  it("ends a crash on the ground at a speed no landing leg survives", () => {
+    const last = integrate({ crash: true }).at(-1);
+    expect(last?.aglMeters).toBe(0);
+    expect(last?.landed).toBeUndefined();
+    expect(last?.vDown).toBeGreaterThan(100);
+  });
+});
