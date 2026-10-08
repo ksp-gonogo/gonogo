@@ -83,7 +83,10 @@ function exportTarget(target: unknown): string | undefined {
 }
 
 /** Node's search for `node_modules/<name>/package.json`, upward from `fromDir`. */
-function packageDirOf(name: string, fromDir: string): string | undefined {
+export function packageDirOf(
+  name: string,
+  fromDir: string,
+): string | undefined {
   let dir = resolve(fromDir);
   for (;;) {
     const candidate = join(dir, "node_modules", name);

@@ -68,6 +68,13 @@ function client(options: { read?: string; generated?: string | null } = {}) {
       include: ["src"],
     }),
   );
+  const sdk = join(dir, "node_modules/@ksp-gonogo/sitrep-sdk");
+  mkdirSync(join(sdk, "dist"), { recursive: true });
+  writeFileSync(join(sdk, "package.json"), '{"name":"@ksp-gonogo/sitrep-sdk"}');
+  writeFileSync(
+    join(sdk, "dist/runtime-topic-registry.js"),
+    'export const DYNAMIC_WHOLE_TOPIC_PREFIXES = ["fleet."];',
+  );
   writeFileSync(join(dir, "src/hooks.ts"), HOOKS);
   writeFileSync(join(dir, "src/twr.tsx"), WIDGET(options.read ?? ""));
   if (options.generated !== null) {
@@ -199,6 +206,7 @@ describe("--fix", () => {
 describe("runCheck", () => {
   const emptyScan: ClientScan = {
     widgets: [],
+    registeredPrefixes: [],
     indexMissing: [],
     directives: [],
     typeErrors: 0,

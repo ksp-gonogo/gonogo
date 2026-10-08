@@ -285,3 +285,21 @@ describe("gonogo:reads directives", () => {
     expect(w.unresolved[0].reason).toMatch(/directive names/);
   });
 });
+
+describe("a manifest's channels", () => {
+  it("reads a list through defineTopicManifest", () => {
+    const { w } = only({
+      "w.tsx": `import { registerComponent, useTelemetry } from "./hooks";
+declare function defineTopicManifest(def: object): { channels: string[] };
+const topics = defineTopicManifest({ channels: ["vessel.flight"] });
+function Widget() {
+  useTelemetry("vessel.flight");
+  return null;
+}
+registerComponent({ id: "w", channels: topics.channels, component: Widget });
+`,
+    });
+    expect(w.registration.channels).toEqual(["vessel.flight"]);
+    expect(w.registration.opaque).toBeUndefined();
+  });
+});

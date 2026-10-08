@@ -4,8 +4,17 @@ import {
   declarationsPath,
   emitDeclarations,
   isEmpty,
-} from "../emit";
-import type { CheckContext, FixableFinding, Rule } from "../types";
+} from "../../emit";
+import type { CheckContext, FixableFinding, Rule } from "../../types";
+import {
+  configReadUndeclaredRule,
+  directiveStaleRule,
+  familyUnregisteredRule,
+  fieldNotReadRule,
+  legacyDeclarationRule,
+  registrationOpaqueRule,
+  requiredUnreadRule,
+} from "./widget-rules";
 
 const GROUP = "declarations";
 
@@ -101,4 +110,11 @@ export const declarationRules: Rule[] = [
   unresolvedRule,
   staleRule,
   indexMissingRule,
+  requiredUnreadRule,
+  fieldNotReadRule,
+  legacyDeclarationRule,
+  registrationOpaqueRule,
+  configReadUndeclaredRule,
+  directiveStaleRule,
+  familyUnregisteredRule,
 ];

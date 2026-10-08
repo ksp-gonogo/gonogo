@@ -230,7 +230,11 @@ registerComponent({ id: "w", component: Widget });
       { name: "useForgotten", specifier: "@ksp-gonogo/fake-kit" },
     ]);
     const findings = declarationRules.flatMap((rule) =>
-      rule.check({ clientDir: join(root, "client"), scan: missing }),
+      rule.check({
+        clientDir: join(root, "client"),
+        scan: missing,
+        dynamicPrefixes: [],
+      }),
     );
     const finding = findings.find(
       (f) => f.rule === "declarations/index-missing",

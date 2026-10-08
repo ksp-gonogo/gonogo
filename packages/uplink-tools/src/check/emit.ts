@@ -7,21 +7,32 @@ export interface Declarations {
   commands: string[];
 }
 
+/** A family with its placeholder names dropped, so `fleet.<vessel>.contact` and `fleet.<id>.contact` are one family. */
+export const normalizeFamily = (pattern: string) =>
+  pattern.replace(/<[^>]*>/g, "<>");
+
 const unique = (values: Iterable<string>) => [...new Set(values)].sort();
+
+/** One pattern per family, whatever its placeholders are called. */
+const uniqueFamilies = (patterns: string[]) =>
+  [...new Map(patterns.map((p) => [normalizeFamily(p), p])).values()].sort();
 
 /** What the generated file declares for a widget: everything it reads beyond the required lists. */
 export function declarationsOf(widget: WidgetScan): Declarations {
   const required = new Set(widget.registration.channels ?? []);
-  const requiredFamilies = new Set(widget.registration.channelFamilies ?? []);
+  const requiredFamilies = new Set(
+    (widget.registration.channelFamilies ?? []).map(normalizeFamily),
+  );
   return {
     optionalChannels: unique(
       widget.reads.flatMap((r) =>
         r.id !== undefined && !required.has(r.id) ? [r.id] : [],
       ),
     ),
-    optionalChannelFamilies: unique(
+    optionalChannelFamilies: uniqueFamilies(
       widget.reads.flatMap((r) =>
-        r.family !== undefined && !requiredFamilies.has(r.family)
+        r.family !== undefined &&
+        !requiredFamilies.has(normalizeFamily(r.family))
           ? [r.family]
           : [],
       ),

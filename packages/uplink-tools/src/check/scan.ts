@@ -727,6 +727,27 @@ export function createScanner(
         prop.name.text === name,
     );
 
+  /** `topics.channels` where `topics` is `defineTopicManifest({ channels: [...] })`: the list the manifest was given. */
+  const manifestProperty = (
+    access: TS.PropertyAccessExpression,
+    resolverOf: Resolver,
+  ): TS.Expression | undefined => {
+    if (!ts.isIdentifier(access.expression)) return undefined;
+    const decl = resolverOf.declarationOf(access.expression);
+    const init =
+      decl && ts.isVariableDeclaration(decl) ? decl.initializer : undefined;
+    if (
+      !init ||
+      !ts.isCallExpression(init) ||
+      calleeName(init) !== "defineTopicManifest" ||
+      !init.arguments[0] ||
+      !ts.isObjectLiteralExpression(init.arguments[0])
+    ) {
+      return undefined;
+    }
+    return propertyOf(init.arguments[0], access.name.text);
+  };
+
   /** A literal list of strings, or why it is not one. */
   const stringList = (
     expr: TS.Expression,
@@ -740,6 +761,12 @@ export function createScanner(
         ts.isSatisfiesExpression(node)
       ) {
         node = node.expression;
+      }
+      if (ts.isPropertyAccessExpression(node)) {
+        const listed = manifestProperty(node, resolverOf);
+        if (!listed) return undefined;
+        node = listed;
+        continue;
       }
       if (!ts.isIdentifier(node)) break;
       const decl = resolverOf.declarationOf(node);
@@ -784,6 +811,7 @@ export function createScanner(
       id,
       ...base,
       hasDataRequirements: hasProperty(object, "dataRequirements"),
+      hasChannelsFromConfig: hasProperty(object, "channelsFromConfig"),
     };
     const opaque: string[] = [];
     if (!id) opaque.push("its id is not a literal");
@@ -802,6 +830,9 @@ export function createScanner(
       if (list) registration[field] = list;
       else opaque.push(`${field} is not a literal list`);
     }
+    const fieldsExpr = propertyOf(object, "fields");
+    const fields = fieldsExpr ? stringList(fieldsExpr, resolver) : undefined;
+    if (fields) registration.fields = fields;
     if (opaque.length > 0) registration.opaque = opaque.join("; ");
 
     const widget = widgetOf(registration);
@@ -832,9 +863,18 @@ export function createScanner(
 
   const scanClient = (): ClientScan => {
     const widgets: WidgetScan[] = [];
+    const registeredPrefixes: string[] = [];
     for (const file of program.getSourceFiles()) {
       if (!isOwnSource(file)) continue;
       const find = (node: TS.Node): void => {
+        if (
+          ts.isCallExpression(node) &&
+          calleeName(node) === "registerDynamicTopicPrefix" &&
+          node.arguments[0] &&
+          ts.isStringLiteralLike(node.arguments[0])
+        ) {
+          registeredPrefixes.push(node.arguments[0].text);
+        }
         if (
           ts.isCallExpression(node) &&
           calleeName(node) === "registerComponent"
@@ -850,6 +890,7 @@ export function createScanner(
                 id: "",
                 ...base,
                 hasDataRequirements: false,
+                hasChannelsFromConfig: false,
                 opaque: "the registration is not an object literal",
               }),
             );
@@ -876,6 +917,7 @@ export function createScanner(
 
     return {
       widgets,
+      registeredPrefixes,
       indexMissing,
       directives: [...directives.values()],
       typeErrors,

@@ -7,6 +7,10 @@ export interface RunOptions {
   /** Every group `check` knows, so one with no rule can be reported as unchecked. */
   groups: readonly string[];
   clientDir: string;
+  /** The dynamic prefixes the installed sdk registers by itself. */
+  dynamicPrefixes?: readonly string[];
+  /** Why `dynamicPrefixes` is empty when it could not be read. */
+  dynamicPrefixesProblem?: string;
   /** Builds the scan; called again after fixes so the result is the re-verified tree. */
   scan: () => ClientScan;
   fix?: boolean;
@@ -66,7 +70,12 @@ export function runCheck(options: RunOptions): RunResult {
   const evaluate = () => {
     const scan = options.scan();
     const findings = rules.flatMap((rule) =>
-      rule.check({ clientDir: options.clientDir, scan }),
+      rule.check({
+        clientDir: options.clientDir,
+        scan,
+        dynamicPrefixes: options.dynamicPrefixes ?? [],
+        dynamicPrefixesProblem: options.dynamicPrefixesProblem,
+      }),
     );
     return { scan, findings };
   };

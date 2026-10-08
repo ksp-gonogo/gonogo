@@ -16,6 +16,10 @@ export interface CheckContext {
   /** The client package directory, absolute. */
   clientDir: string;
   scan: ClientScan;
+  /** The dynamic prefixes the installed sdk registers by itself. */
+  dynamicPrefixes: readonly string[];
+  /** Why `dynamicPrefixes` is empty when the installed sdk's could not be read. */
+  dynamicPrefixesProblem?: string;
 }
 
 /** A finding a rule can heal, with the heal attached. */
@@ -69,6 +73,10 @@ export interface Registration {
   channels?: string[];
   channelFamilies?: string[];
   hasDataRequirements: boolean;
+  /** The registration carries a `channelsFromConfig` function. */
+  hasChannelsFromConfig: boolean;
+  /** The field paths the widget draws, as written. Undefined when absent or not a literal list. */
+  fields?: string[];
   /** The registration or its `component` could not be read statically. */
   opaque?: string;
 }
@@ -92,6 +100,8 @@ export interface IndexMissingRecord {
 
 export interface ClientScan {
   widgets: WidgetScan[];
+  /** Prefixes the client registers itself with `registerDynamicTopicPrefix("...")`. */
+  registeredPrefixes: string[];
   indexMissing: IndexMissingRecord[];
   directives: DirectiveRecord[];
   /** Type errors in the program, which can hide a read. */

@@ -11,6 +11,7 @@ import {
 import { GROUPS, RULES } from "./rules";
 import { humanReport, jsonReport, runCheck } from "./run";
 import { scanClient } from "./scan";
+import { sdkDynamicPrefixes } from "./sdk-prefixes";
 
 export const CHECK_USAGE = `uplink-tools check [options]
 
@@ -66,11 +67,14 @@ export async function check(
       );
     }
     const ts = await loadTypeScript(clientDir);
+    const sdkPrefixes = sdkDynamicPrefixes(clientDir);
     const indexes = createIndexReader();
     const result = runCheck({
       rules: RULES,
       groups: GROUPS,
       clientDir,
+      dynamicPrefixes: sdkPrefixes.prefixes,
+      dynamicPrefixesProblem: sdkPrefixes.problem,
       scan: () =>
         scanClient(ts, createClientProgram(ts, clientDir), {
           clientDir,
