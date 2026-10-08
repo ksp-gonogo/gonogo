@@ -834,11 +834,10 @@ describe("AstronautComplexComponent", () => {
   });
 
   /**
-   * A kerbal a mod backend holds back is refused for a flight with the
-   * backend's own reason, though the standing still reads Available: the
-   * widget branches on the producer's `available`, not on the standing.
+   * A kerbal the producer reports as unavailable shows the producer's reason,
+   * and the tooltip names where the wording came from.
    */
-  it("refuses to fly a kerbal a backend holds back, and says why in its words", async () => {
+  it("refuses to fly a kerbal on a mission, and says why in the producer's words", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -852,29 +851,28 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, [
         {
           ...CREW_ROSTER[0],
-          standing: CrewStanding.Available,
-          situation: "Available",
-          situationOrdinal: 0,
+          standing: CrewStanding.Assigned,
+          situation: "Assigned",
+          situationOrdinal: 1,
           available: false,
-          unavailableReason: "Held by planted",
-          standingEndsAtUt: 9_000_000,
+          unavailableReason: "On mission",
         },
       ]);
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
     expect(
-      await screen.findByRole("tab", { name: "Available (1)" }),
+      await screen.findByRole("tab", { name: "Assigned (1)" }),
     ).toBeInTheDocument();
     const row = (await screen.findByText("Bill Kerman")).closest(
       "li",
     ) as HTMLElement;
-    expect(within(row).getByText("Held by planted")).toBeInTheDocument();
+    expect(within(row).getByText("On mission")).toBeInTheDocument();
     // The wording is third-party prose, so the title names where it came from.
-    expect(within(row).getByText("Held by planted")).toHaveAttribute(
+    expect(within(row).getByText("On mission")).toHaveAttribute(
       "data-tooltip",
       expect.stringContaining(
-        "Reported by the game or its career mod: Held by planted",
+        "Reported by the game or its career mod: On mission",
       ),
     );
     // A kerbal held back is not an alarming state.

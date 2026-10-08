@@ -94,14 +94,14 @@
             "name": "Lodan Kerman",
             "trait": "Pilot",
             "experienceLevel": 1,
-            "situation": "Available",
+            "situation": "Resting",
             "situationOrdinal": 0,
             "available": false,
-            "unavailableReason": "Held by planted",
+            "unavailableReason": "Standing down",
             "courage": 0.6,
             "stupidity": 0.2,
             "experienceLevelDelta": 0.6,
-            "standing": 2,
+            "standing": 4,
             "standingEndsAtUt": 9000000
           },
           {
