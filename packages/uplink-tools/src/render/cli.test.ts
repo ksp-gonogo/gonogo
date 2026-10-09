@@ -9,6 +9,7 @@ import {
   compareCommittedPage,
   PICTURES_ARE_CI_NOTE,
   picturesComparedHere,
+  warnWidgetsInDependencies,
 } from "./cli";
 import {
   type AssetShape,
@@ -166,5 +167,39 @@ describe("the committed page, with and without pictures", () => {
     expect(all).toContain("missing asset a--default.png");
     expect(all).toContain("stale asset gone--default.png");
     expect(all).not.toContain("the committed picture is not what");
+  });
+});
+
+describe("warnWidgetsInDependencies", () => {
+  function uplinkWith(manifest: object): string {
+    const dir = mkdtempSync(join(tmpdir(), "uplink-widgets-"));
+    temporaries.push(dir);
+    writeFileSync(join(dir, "package.json"), JSON.stringify(manifest));
+    return dir;
+  }
+  const renderWith = { renderWith: ["@ksp-gonogo/uplink-tools/widgets"] };
+
+  it("warns when the widgets package is named in dependencies", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    warnWidgetsInDependencies(
+      uplinkWith({
+        dependencies: { "@ksp-gonogo/uplink-tools": "1.0.0" },
+        gonogo: renderWith,
+      }),
+    );
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(
+      /Move it to devDependencies/,
+    );
+  });
+
+  it("stays quiet when it is a devDependency", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    warnWidgetsInDependencies(
+      uplinkWith({
+        devDependencies: { "@ksp-gonogo/uplink-tools": "1.0.0" },
+        gonogo: renderWith,
+      }),
+    );
+    expect(warn).not.toHaveBeenCalled();
   });
 });

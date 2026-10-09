@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import {
   display,
+  readJsonObject,
   resolveRenderModule,
   resolveUplinkPackage,
   type UplinkPackage,
@@ -204,6 +205,33 @@ const SHARED_OPTIONS = `  --root <dir>           the Uplink client package (defa
                          for the app's own widgets). For a one-off run;
                          declare the ones a fixture needs every time. Repeatable`;
 
+const WIDGETS_SPECIFIER = "@ksp-gonogo/uplink-tools/widgets";
+
+/**
+ * The widgets package draws host widgets for the docs page only. In
+ * `dependencies` it ships with the Uplink and invites imports of the app's
+ * widgets, so it belongs in `devDependencies`.
+ */
+export function warnWidgetsInDependencies(dir: string): void {
+  const manifest = readJsonObject(join(dir, "package.json"));
+  const dependencies = manifest.dependencies;
+  if (typeof dependencies !== "object" || dependencies === null) return;
+  if (!("@ksp-gonogo/uplink-tools" in dependencies)) return;
+  const { gonogo } = manifest;
+  const renderWith =
+    typeof gonogo === "object" && gonogo !== null && "renderWith" in gonogo
+      ? gonogo.renderWith
+      : undefined;
+  if (!Array.isArray(renderWith) || !renderWith.includes(WIDGETS_SPECIFIER)) {
+    return;
+  }
+  console.warn(
+    `  warning: "@ksp-gonogo/uplink-tools" is in dependencies of ${join(dir, "package.json")}, ` +
+      `and "gonogo.renderWith" names ${WIDGETS_SPECIFIER}.\n` +
+      "  Move it to devDependencies: it draws host widgets for the docs page and must not ship with the Uplink.",
+  );
+}
+
 const RENDER_USAGE = `uplink-tools render [options]
 
   Render every fixture to ./renders/, for a person to look at.
@@ -244,6 +272,7 @@ export async function renderOrDocs(argv: readonly string[]): Promise<void> {
   }
   const args = parseArgs(argv);
   const pkg = resolveUplinkPackage(args.root, { entry: args.entry });
+  warnWidgetsInDependencies(pkg.dir);
   console.log(`${pkg.name} @ ${pkg.dir}`);
   console.log(`  entry   ${display(pkg.dir, pkg.entry)}`);
   console.log(
