@@ -845,9 +845,17 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The topics this screen has been sent at least one frame of as a recording, which is how a held span arrives.</summary>
         public HashSet<string> RecordedTopics { get; } = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>The strength of every <c>comms.signal</c> frame this screen has received, in order.</summary>
+        public List<double> SignalStrengths { get; } = new List<double>();
+
         public void Received(string topic, string payload, double validAt, double deliveredAt, string vantage)
         {
             _latest[topic] = payload;
+            if (topic == ContactPlanSource.SignalTopic)
+            {
+                using var signal = JsonDocument.Parse(payload);
+                SignalStrengths.Add(signal.RootElement.GetProperty("strength").GetDouble());
+            }
             Stamps[topic] = (validAt, deliveredAt);
             if (topic == ContactPlanSource.ContactsTopic)
             {

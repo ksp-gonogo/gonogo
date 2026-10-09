@@ -371,6 +371,27 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ASwitchOfActiveCraftSendsNoFrameOfStrengthZeroBeforeTheNewCraftsOwnReading()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            var before = seated.HomeView.SignalStrengths.Count;
+
+            seated.World.Game.ActiveNow = ScriptedContactGame.RelayGuid;
+            seated.World.Game.Radio = null;
+            await seated.TickAsync(T0, T0 + 1, T0 + 2);
+            seated.World.Game.Radio = new ContactRadio(
+                ScriptedContactGame.Relay,
+                true,
+                0.6,
+                new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 0.4 },
+                new[] { new RadioHop(ScriptedContactGame.RelayGuid, ScriptedContactGame.HomeName, false) });
+            await seated.TickAsync(T0 + 3, T0 + 4, T0 + 5, T0 + 700, T0 + 702);
+
+            Assert.DoesNotContain(0.0, seated.HomeView.SignalStrengths.Skip(before));
+        }
+
+        [Fact]
         public async Task ACentreThatHasHeardNoReadingIsSentNoSignal()
         {
             await using var seated = await SeatedAsync();

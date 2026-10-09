@@ -187,7 +187,8 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public void Learn(CraftState state, double asOfUt, TargetKnowledge source, string? via)
         {
-            if (_known.TryGetValue(state.Id, out var held) && held.AsOfUt >= asOfUt)
+            if (_known.TryGetValue(state.Id, out var held)
+                && (held.AsOfUt > asOfUt || (held.AsOfUt == asOfUt && !IsMoreDirect(source, held.Source))))
             {
                 return;
             }
@@ -198,6 +199,9 @@ namespace Sitrep.Host.Comms
             }
             _known[state.Id] = new KnownCraft(state, asOfUt, source, via);
         }
+
+        /// <summary>Whether <paramref name="source"/> is a nearer way of knowing than <paramref name="than"/>: the same word heard on the craft's own link outranks the centre's telling of it, because only the link's silence says the craft is unchanged.</summary>
+        private static bool IsMoreDirect(TargetKnowledge source, TargetKnowledge than) => source < than;
 
         /// <summary>
         /// Takes in that a link held as up has brought nothing newer than what

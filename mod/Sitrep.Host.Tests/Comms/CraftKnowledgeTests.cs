@@ -88,6 +88,35 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ALinkThatComesUpAfterTheCentreToldOfACraftTakesOverTheSameWordAndItsSilenceCounts()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.CommandCentre, "KSC");
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
+
+            var entry = Entry(knowledge, "b");
+            Assert.Equal((int)TargetKnowledge.DirectLink, entry["source"]);
+            Assert.Equal(690.0, entry["unchangedToUt"]);
+        }
+
+        [Fact]
+        public void TheCentreTellingTheSameWordAgainDoesNotTakeOverFromALiveLinkOrEndItsSilence()
+        {
+            var knowledge = new CraftKnowledge();
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+            knowledge.HeardNothingNewTo("vessel:b", 100.0, 690.0);
+
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.CommandCentre, "KSC");
+            knowledge.Learn(Craft("b", 100.0, 700_000.0), 100.0, TargetKnowledge.DirectLink, null);
+
+            var entry = Entry(knowledge, "b");
+            Assert.Equal((int)TargetKnowledge.DirectLink, entry["source"]);
+            Assert.Equal(690.0, entry["unchangedToUt"]);
+        }
+
+        [Fact]
         public void WhatSilenceSaidStandsWhereItStoodOnceTheLinkIsGone()
         {
             var knowledge = new CraftKnowledge();

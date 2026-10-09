@@ -127,4 +127,49 @@ describe("a chosen vantage across a reconnect", () => {
     expect(screen.getByText(`chosen:${CRAFT}`)).toBeTruthy();
     await act(async () => {});
   });
+
+  it("is sent again to a NEW game process, whose rebuilt client starts with no choice of its own", async () => {
+    const connections: Connection[] = [];
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        client.send(
+          JSON.stringify({
+            type: "hello",
+            bootId: `boot-${connections.length}`,
+          }),
+        );
+        const received: string[] = [];
+        client.addEventListener("message", (event) =>
+          received.push(String(event.data)),
+        );
+        connections.push({ client, received });
+      }),
+    );
+    render(
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+        <Seat />
+      </SitrepTelemetryProvider>,
+    );
+    await waitFor(() => expect(connections).toHaveLength(1));
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+    await act(async () => {
+      screen.getByRole("button", { name: "choose" }).click();
+    });
+    expect(screen.getByText(`chosen:${CRAFT}`)).toBeTruthy();
+
+    await act(async () => {
+      connections[0].client.close();
+    });
+    await waitFor(() => expect(connections).toHaveLength(2), {
+      timeout: 10_000,
+    });
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+
+    await waitFor(() =>
+      expect(connections[1].received.join("")).toContain("set-vantage"),
+    );
+    expect(connections[1].received.join("")).toContain(CRAFT);
+    expect(screen.getByText(`chosen:${CRAFT}`)).toBeTruthy();
+    await act(async () => {});
+  });
 });
