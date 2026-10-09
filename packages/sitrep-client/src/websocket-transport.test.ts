@@ -477,6 +477,32 @@ describe("WebSocketTransport", () => {
     }
   });
 
+  it("with default timings reconnects within seconds of the host coming back from a 16 s outage", () => {
+    vi.useFakeTimers();
+    try {
+      const fakes = makeFakeSocketCtor();
+      const transport = new WebSocketTransport({
+        url: SITREP_URL,
+        WebSocketImpl: fakes.ctor,
+      });
+      const outageMs = 16_000;
+      let refused = 0;
+      for (let t = 0; t < outageMs; t += 100) {
+        vi.advanceTimersByTime(100);
+        while (refused < fakes.instances.length) {
+          fakes.instances[refused].fire("close");
+          refused += 1;
+        }
+      }
+      const attemptsDuringOutage = fakes.instances.length;
+      vi.advanceTimersByTime(5_000);
+      expect(fakes.instances.length).toBeGreaterThan(attemptsDuringOutage);
+      transport.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("retries at once when the page becomes visible or the network returns", async () => {
     vi.useFakeTimers();
     try {

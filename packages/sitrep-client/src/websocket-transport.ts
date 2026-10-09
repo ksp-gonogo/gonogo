@@ -74,9 +74,9 @@ export interface WebSocketTransportOptions {
   host?: string;
   /** Port to connect to (default `8090`). Ignored when `url` is given. */
   port?: number;
-  /** Delay before the first reconnect attempt, ms (default 5000). It doubles per consecutive failed attempt up to {@link maxRetryIntervalMs}. */
+  /** Delay before the first reconnect attempt, ms (default 1000). It doubles per consecutive failed attempt up to {@link maxRetryIntervalMs}. */
   retryIntervalMs?: number;
-  /** Ceiling the doubling retry delay settles at, ms (default 30000). */
+  /** Ceiling the doubling retry delay settles at, ms (default 5000). */
   maxRetryIntervalMs?: number;
   /**
    * How long a subscribed, open socket may deliver nothing before the transport
@@ -173,9 +173,9 @@ function decodeFrame(data: unknown): DecodedFrame | null {
 }
 
 const DEFAULT_PORT = 8090;
-const DEFAULT_RETRY_INTERVAL_MS = 5_000;
+const DEFAULT_RETRY_INTERVAL_MS = 1_000;
 const DEFAULT_COMMAND_HOLD_MS = 5 * 60 * 1000;
-const DEFAULT_MAX_RETRY_INTERVAL_MS = 30_000;
+const DEFAULT_MAX_RETRY_INTERVAL_MS = 5_000;
 const DEFAULT_SILENCE_TIMEOUT_MS = 30_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
 
