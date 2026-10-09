@@ -8139,6 +8139,14 @@
         "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
       },
       {
+        "key": "sitrep-sdk . FlightRecoveryOutcome#fundsEarned",
+        "note": "Null for a recovery in a save with no such currency, where it was 0"
+      },
+      {
+        "key": "sitrep-sdk . FlightRecoveryOutcome#scienceEarned",
+        "note": "Null for a recovery in a save with no such currency, where it was 0"
+      },
+      {
         "key": "sitrep-sdk . GonogoHost#defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
       },

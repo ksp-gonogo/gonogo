@@ -47,10 +47,21 @@ namespace Gonogo.KSP
     /// degrades to an empty breakdown list (still-correct totals, less
     /// detail), never a crash or a dropped publish. A public-API alternative
     /// may exist and would be a straightforward follow-up swap if found.</para>
+    ///
+    /// <para><b>A save that awards nothing (Sandbox):</b> stock raises its summary
+    /// event with no dialog for a crewless loaded craft, and builds a dialog with
+    /// nothing in it for the rest, so there is no summary to reuse. The record is
+    /// built from <see cref="GameEvents.onVesselRecovered"/> instead, which fires
+    /// first and unconditionally, from what the craft itself holds. Funds and
+    /// science are left absent: a save with no funds has no balance of zero.</para>
     /// </summary>
     [SitrepUplink("recovery")]
     public sealed class RecoveryUplink : ISitrepUplink
     {
+        // A recovery can raise both of the events hooked below; the first one in wins.
+        private const double DedupWindowUt = 2.0;
+
+        private readonly Dictionary<string, double> _lastPublishedUt = new Dictionary<string, double>();
         private IChannelPublisher? _lastSummary;
         private IChannelPublisher? _hasRecent;
         private bool _subscribed;
@@ -103,8 +114,99 @@ namespace Gonogo.KSP
             _subscribed = true;
 
             GameEvents.onVesselRecoveryProcessingComplete.Add(OnRecoveryComplete);
+            GameEvents.onVesselRecovered.Add(OnVesselRecovered);
             // The hook lives for the whole process: Register runs once, before the
             // main menu, and recovery can happen after any flight.
+        }
+
+        /// <summary>
+        /// True in a save with no funds, no reputation and no science, the only kind in which
+        /// stock hands the summary event no dialog worth reading.
+        /// </summary>
+        private static bool SaveAwardsNothing() =>
+            Funding.Instance == null && Reputation.Instance == null && ResearchAndDevelopment.Instance == null;
+
+        private bool AlreadyPublished(string vesselId, double ut)
+        {
+            if (_lastPublishedUt.TryGetValue(vesselId, out var previous) && Math.Abs(ut - previous) <= DedupWindowUt)
+            {
+                return true;
+            }
+            _lastPublishedUt[vesselId] = ut;
+            return false;
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: publishes the record for a recovery in a save that awards nothing.
+        /// A recovery in any other save is left to <see cref="OnRecoveryComplete"/>, and a
+        /// quick one (stock clearing the launch site for a new launch) is not a recovery
+        /// the operator made.
+        /// </summary>
+        private void OnVesselRecovered(ProtoVessel vessel, bool quick)
+        {
+            try
+            {
+                if (vessel == null || quick || !SaveAwardsNothing())
+                {
+                    return;
+                }
+
+                var vesselType = vessel.vesselType.ToString();
+                if (!RecoveryPayload.ShouldPublish(vesselType))
+                {
+                    return;
+                }
+
+                var ut = Planetarium.GetUniversalTime();
+                if (AlreadyPublished(vessel.vesselID.ToString(), ut))
+                {
+                    return;
+                }
+
+                Publish(BuildUnawardedCapture(vessel, vesselType, ut), ut);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Gonogo] recovery capture failed: " + ex);
+            }
+        }
+
+        private void Publish(RecoveryCapture capture, double ut)
+        {
+            _lastSummary?.Publish(RecoveryPayload.Build(capture), ut);
+            _hasRecent?.Publish(RecoveryPayload.ToWire(new RecoveryRecent { Recent = true }), ut);
+        }
+
+        private static RecoveryCapture BuildUnawardedCapture(ProtoVessel vessel, string vesselType, double ut)
+        {
+            var parts = new List<KeyValuePair<string, string>>();
+            if (vessel.protoPartSnapshots != null)
+            {
+                foreach (var snapshot in vessel.protoPartSnapshots)
+                {
+                    if (snapshot == null)
+                    {
+                        continue;
+                    }
+                    var name = snapshot.partInfo?.name ?? snapshot.partName ?? "";
+                    parts.Add(new KeyValuePair<string, string>(name, snapshot.partInfo?.title ?? name));
+                }
+            }
+
+            var crew = new List<RecoveryCrewItem>();
+            foreach (var member in vessel.GetVesselCrew())
+            {
+                crew.Add(new RecoveryCrewItem
+                {
+                    Name = member.name ?? "",
+                    Trait = member.trait ?? "",
+                    IsTourist = member.type == ProtoCrewMember.KerbalType.Tourist,
+                    NewLevel = member.experienceLevel,
+                });
+            }
+
+            var location = string.IsNullOrEmpty(vessel.displaylandedAt) ? vessel.landedAt : vessel.displaylandedAt;
+            return RecoveryPayload.Unawarded(ut, vessel.vesselName ?? "", vesselType, location ?? "", parts, crew);
         }
 
         /// <summary>
@@ -119,7 +221,7 @@ namespace Gonogo.KSP
         {
             try
             {
-                if (vessel == null || dialog == null)
+                if (vessel == null || dialog == null || SaveAwardsNothing())
                 {
                     return;
                 }
@@ -131,10 +233,7 @@ namespace Gonogo.KSP
                 }
 
                 var ut = Planetarium.GetUniversalTime();
-                var capture = BuildCapture(vessel, dialog, vesselType, ut);
-
-                _lastSummary?.Publish(RecoveryPayload.Build(capture), ut);
-                _hasRecent?.Publish(RecoveryPayload.ToWire(new RecoveryRecent { Recent = true }), ut);
+                Publish(BuildCapture(vessel, dialog, vesselType, ut), ut);
             }
             catch (Exception ex)
             {
@@ -151,10 +250,10 @@ namespace Gonogo.KSP
                 VesselType = vesselType,
                 RecoveryLocation = dialog.recoveryLocation ?? "",
                 RecoveryFactor = dialog.recoveryFactor ?? "",
-                ScienceEarned = dialog.scienceEarned,
-                TotalScience = dialog.totalScience,
-                FundsEarned = dialog.fundsEarned,
-                TotalFunds = dialog.totalFunds,
+                ScienceEarned = ResearchAndDevelopment.Instance == null ? (double?)null : dialog.scienceEarned,
+                TotalScience = ResearchAndDevelopment.Instance == null ? (double?)null : dialog.totalScience,
+                FundsEarned = Funding.Instance == null ? (double?)null : dialog.fundsEarned,
+                TotalFunds = Funding.Instance == null ? (double?)null : dialog.totalFunds,
                 ReputationEarned = dialog.reputationEarned,
                 TotalReputation = dialog.totalReputation,
                 DisplayReputation = dialog.displayReputation,

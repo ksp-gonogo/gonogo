@@ -39,9 +39,9 @@ namespace Sitrep.Host.Recovery
         public string PartName = "";
         public string PartTitle = "";
         public int Count;
-        public double PartValue;
-        public double ResourcesValue;
-        public double TotalValue;
+        public double? PartValue;
+        public double? ResourcesValue;
+        public double? TotalValue;
     }
 
     /// <summary>
@@ -65,8 +65,8 @@ namespace Sitrep.Host.Recovery
         public string Name = "";
         public string Trait = "";
         public bool IsTourist;
-        public double XpGained;
-        public int LevelsGained;
+        public double? XpGained;
+        public int? LevelsGained;
         public int NewLevel;
     }
 
@@ -84,10 +84,10 @@ namespace Sitrep.Host.Recovery
         public string VesselType = "";
         public string RecoveryLocation = "";
         public string RecoveryFactor = "";
-        public double ScienceEarned;
-        public double TotalScience;
-        public double FundsEarned;
-        public double TotalFunds;
+        public double? ScienceEarned;
+        public double? TotalScience;
+        public double? FundsEarned;
+        public double? TotalFunds;
         public double ReputationEarned;
         public double TotalReputation;
         public bool DisplayReputation;
@@ -117,6 +117,45 @@ namespace Sitrep.Host.Recovery
         /// </summary>
         public static bool ShouldPublish(string? vesselType) =>
             vesselType != "Debris" && vesselType != "Flag" && vesselType != "Unknown";
+
+        /// <summary>
+        /// The record for a recovery in a save that awards nothing (Sandbox: no funds, no
+        /// science, no reputation), built from what is known of the craft. Every figure the
+        /// save cannot award is left <c>null</c>, which is absent on the wire and not 0.
+        /// Parts of one kind are grouped with a count, in the order each first appears.
+        /// </summary>
+        /// <param name="parts">One entry per part aboard: its name and its title.</param>
+        public static RecoveryCapture Unawarded(
+            double capturedAtUt,
+            string vesselName,
+            string vesselType,
+            string recoveryLocation,
+            IEnumerable<KeyValuePair<string, string>> parts,
+            IEnumerable<RecoveryCrewItem> crew)
+        {
+            var groups = new List<RecoveryPartItem>();
+            var byName = new Dictionary<string, RecoveryPartItem>();
+            foreach (var part in parts)
+            {
+                if (!byName.TryGetValue(part.Key, out var group))
+                {
+                    group = new RecoveryPartItem { PartName = part.Key, PartTitle = part.Value };
+                    byName[part.Key] = group;
+                    groups.Add(group);
+                }
+                group.Count++;
+            }
+
+            return new RecoveryCapture
+            {
+                CapturedAtUt = capturedAtUt,
+                VesselName = vesselName,
+                VesselType = vesselType,
+                RecoveryLocation = recoveryLocation,
+                PartBreakdown = groups,
+                CrewBreakdown = new List<RecoveryCrewItem>(crew),
+            };
+        }
 
         /// <summary>Flattens the <c>recovery.hasRecent</c> payload to the dictionary <see cref="Sitrep.Contract.Serialization.JsonWriter"/> serializes.</summary>
         public static Dictionary<string, object?> ToWire(RecoveryRecent recent) =>

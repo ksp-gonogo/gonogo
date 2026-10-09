@@ -712,9 +712,17 @@ namespace Sitrep.Contract
         /// <see cref="VesselLanding.GroundTrackElevations"/> carry terrain heights
         /// sampled along the predicted ground track, from beneath the vessel to the
         /// predicted site and past it.</para>
+        ///
+        /// <para><b>Bumped 32 -&gt; 33: a save that awards nothing says so.</b>
+        /// <see cref="RecoveryReport.FundsEarned"/>, <see cref="RecoveryReport.TotalFunds"/>,
+        /// <see cref="RecoveryReport.ScienceEarned"/>, <see cref="RecoveryReport.TotalScience"/>,
+        /// <see cref="RecoveryPartEntry.PartValue"/>, <see cref="RecoveryPartEntry.ResourcesValue"/>,
+        /// <see cref="RecoveryPartEntry.TotalValue"/>, <see cref="RecoveryCrewEntry.XpGained"/> and
+        /// <see cref="RecoveryCrewEntry.LevelsGained"/> are nullable, null where the save has no such
+        /// currency, where they carried a zero that read as an award of nothing.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 32;
+        public const int Major = 33;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -2527,8 +2535,10 @@ namespace Sitrep.Contract
         /// holding the model for a hop states that hop's facts at once after the load.
         /// Additive: a backend that implements neither is unaffected, and a save made
         /// before this carries no models.</para>
+        ///
+        /// <para><b>Major-33 line, reset to 0</b> with the Major.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 0;
     }
 }

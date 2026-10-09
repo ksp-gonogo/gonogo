@@ -843,9 +843,11 @@ export class BufferedDataSource extends DataSourceWrapper {
             ? payload.recoveryFactor
             : "",
         fundsEarned:
-          typeof payload.fundsEarned === "number" ? payload.fundsEarned : 0,
+          typeof payload.fundsEarned === "number" ? payload.fundsEarned : null,
         scienceEarned:
-          typeof payload.scienceEarned === "number" ? payload.scienceEarned : 0,
+          typeof payload.scienceEarned === "number"
+            ? payload.scienceEarned
+            : null,
         reputationEarned:
           typeof payload.reputationEarned === "number"
             ? payload.reputationEarned

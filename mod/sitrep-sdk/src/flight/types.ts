@@ -331,8 +331,9 @@ export interface FlightRecoveryOutcome {
   recordedAt: number;
   recoveryLocation: string;
   recoveryFactor: string;
-  fundsEarned: number;
-  scienceEarned: number;
+  /** Null in a save with no funds or no science: absent, not zero. */
+  fundsEarned: number | null;
+  scienceEarned: number | null;
   reputationEarned: number;
   /** Names of crew that were aboard at recovery. */
   crew: string[];

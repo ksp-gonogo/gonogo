@@ -239,6 +239,59 @@ describe("FlightOutcomeBanner", () => {
     expect(screen.getByText("Untitled")).toBeInTheDocument();
   });
 
+  it("says a save that awards nothing awards nothing, rather than showing zero funds and science", async () => {
+    const fixture = setupOutcomeStream();
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("recovery.hasRecent", { recent: true });
+      fixture.emit("recovery.lastSummary", {
+        capturedAtUT: 2000,
+        vesselName: "Dart 1",
+        recoveryLocation: "KSC",
+        recoveryFactor: "",
+        scienceEarned: null,
+        totalScience: null,
+        fundsEarned: null,
+        totalFunds: null,
+        reputationEarned: 0,
+        totalReputation: 0,
+        displayReputation: false,
+        scienceBreakdown: [],
+        partBreakdown: [
+          {
+            partName: "fuelTank",
+            partTitle: "FL-T400 Fuel Tank",
+            count: 2,
+            partValue: null,
+            resourcesValue: null,
+            totalValue: null,
+          },
+        ],
+        resourceBreakdown: [],
+        crewBreakdown: [],
+      });
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.getByText(/VESSEL RECOVERED/)).toBeInTheDocument();
+    expect(screen.getByText(/awards no funds or science/i)).toBeInTheDocument();
+
+    await act(async () => {
+      screen.getByRole("button").click();
+    });
+
+    expect(rowFor(/FL-T400 Fuel Tank/)).toHaveTextContent("×2");
+    expect(
+      screen.getAllByText(/awards no funds or science/i).length,
+    ).toBeGreaterThan(0);
+  });
+
   // Every quantity on both payloads is a `Value` by the time the banner reads
   // it, wrapped on decode from the generated unit maps.
   // A reader that tests `typeof v === "number"` therefore sees an object and

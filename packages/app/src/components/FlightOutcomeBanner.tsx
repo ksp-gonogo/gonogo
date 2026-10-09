@@ -96,6 +96,17 @@ function Gain({ value }: { value: Value | null }): ReactNode {
   );
 }
 
+/**
+ * A save with no funds and no science (Sandbox) sends both as absent. That is
+ * not a payout of nothing to be tallied, so the surfaces say so in words
+ * instead of printing two empty figures.
+ */
+const AWARDS_NOTHING = "This save awards no funds or science";
+
+function awardsNothing(report: RecoveryReport): boolean {
+  return q(report.fundsEarned) === null && q(report.scienceEarned) === null;
+}
+
 // crash.lastCrash only ever carries notable-vessel crashes: the mod
 // filters debris / flags / non-vessels at the source, so the banner
 // trusts whatever it receives and never second-guesses by name or type.
@@ -287,12 +298,18 @@ function OutcomeBanner({
         <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
         <BannerVessel>{name}</BannerVessel>
         <BannerStats>
-          <BannerStat>
-            <Gain value={q(summary.fundsEarned)} />
-          </BannerStat>
-          <BannerStat>
-            <Gain value={q(summary.scienceEarned)} />
-          </BannerStat>
+          {awardsNothing(summary) ? (
+            <BannerStat>{AWARDS_NOTHING}</BannerStat>
+          ) : (
+            <>
+              <BannerStat>
+                <Gain value={q(summary.fundsEarned)} />
+              </BannerStat>
+              <BannerStat>
+                <Gain value={q(summary.scienceEarned)} />
+              </BannerStat>
+            </>
+          )}
           {summary.displayReputation === true && (
             <BannerStat>
               <Gain value={q(summary.reputationEarned)} />
@@ -343,6 +360,8 @@ function RecoveryDetail({ summary }: { summary: RecoveryReport }) {
           {str(summary.recoveryLocation)} · {str(summary.recoveryFactor)}
         </DetailMeta>
       </DetailHeader>
+
+      {awardsNothing(summary) && <DetailMeta>{AWARDS_NOTHING}.</DetailMeta>}
 
       <Totals>
         <TotalsTable>

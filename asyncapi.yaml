@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 32.1.0
+  version: 33.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -1887,6 +1887,11 @@ channels:
       Published only for a real craft: recovering debris, a flag or a vessel of
       unknown type publishes nothing. The four breakdown lists can be empty while
       the totals are present, if KSP's dialog could not be read for them.
+
+      A figure the save cannot award is `null`, never 0: funds and science are
+      null in a Sandbox save (and funds in a Science save). A Sandbox recovery
+      still produces a record, with the craft, where it came down, its parts and
+      its crew, and nothing awarded.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
@@ -16671,8 +16676,6 @@ components:
         - name
         - trait
         - isTourist
-        - xpGained
-        - levelsGained
         - newLevel
       properties:
         name:
@@ -16688,15 +16691,21 @@ components:
           x-sitrep-unit: flag
           description: Whether the kerbal is a tourist, who earns no experience.
         xpGained:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: count
-          description: Experience points this flight added.
+          description: |-
+            Experience points this flight added. Null in a save that awards no
+            experience (Sandbox).
         levelsGained:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: count
           description: |-
             How many experience levels this flight added: `RecoveryCrewEntry.newLevel`
-            minus the level before.
+            minus the level before. Null in a save that awards no experience (Sandbox).
         newLevel:
           type: number
           x-sitrep-unit: count
@@ -16712,9 +16721,6 @@ components:
         - partName
         - partTitle
         - count
-        - partValue
-        - resourcesValue
-        - totalValue
       properties:
         partName:
           type: string
@@ -16729,22 +16735,30 @@ components:
           x-sitrep-unit: count
           description: How many parts are in this group. At least 1.
         partValue:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: funds
-          description: The recovered dry value of one part in the group, excluding its resources.
+          description: |-
+            The recovered dry value of one part in the group, excluding its resources.
+            Null in a save with no funds.
         resourcesValue:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: funds
           description: |-
             The recovered value of the resources the group's parts held, summed over the
-            group.
+            group. Null in a save with no funds.
         totalValue:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: funds
           description: |-
             The group's recovered dry value: `RecoveryPartEntry.partValue` times
             `RecoveryPartEntry.count`. Does not include
-            `RecoveryPartEntry.resourcesValue`.
+            `RecoveryPartEntry.resourcesValue`. Null in a save with no funds.
     RecoveryRecent:
       type: object
       description: |-
@@ -16772,15 +16786,16 @@ components:
         Published only for a real craft: recovering debris, a flag or a vessel of
         unknown type publishes nothing. The four breakdown lists can be empty while
         the totals are present, if KSP's dialog could not be read for them.
+
+        A figure the save cannot award is `null`, never 0: funds and science are
+        null in a Sandbox save (and funds in a Science save). A Sandbox recovery
+        still produces a record, with the craft, where it came down, its parts and
+        its crew, and nothing awarded.
       required:
         - capturedAtUT
         - vesselName
         - recoveryLocation
         - recoveryFactor
-        - scienceEarned
-        - totalScience
-        - fundsEarned
-        - totalFunds
         - reputationEarned
         - totalReputation
         - displayReputation
@@ -16810,26 +16825,37 @@ components:
             KSP's own recovery-factor display string (e.g. `"100%"`), the payout
             multiplier for landing precision.
         scienceEarned:
-          type: number
-          x-sitrep-unit: science
-          description: Science this recovery earned, as KSP's recovery dialog totals it.
-        totalScience:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: science
           description: |-
-            The career's science balance as the recovery dialog reports it. 0 in a save
-            with no science (Sandbox).
+            Science this recovery earned, as KSP's recovery dialog totals it. Null in a
+            save with no science (Sandbox).
+        totalScience:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            The career's science balance as the recovery dialog reports it. Null in a
+            save with no science (Sandbox).
         fundsEarned:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: funds
           description: |-
             Funds this recovery earned, after the recovery factor and any strategy
-            modifiers KSP applies to a recovery.
+            modifiers KSP applies to a recovery. Null in a save with no funds (Science
+            or Sandbox).
         totalFunds:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: funds
           description: |-
-            The career's funds balance as the recovery dialog reports it. 0 in a save
+            The career's funds balance as the recovery dialog reports it. Null in a save
             with no funds (Science or Sandbox).
         reputationEarned:
           type: number

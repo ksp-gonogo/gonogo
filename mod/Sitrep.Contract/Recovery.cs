@@ -16,6 +16,11 @@ namespace Sitrep.Contract;
 /// vessel of unknown type publishes nothing. The four breakdown lists can be
 /// empty while the totals are present, if KSP's dialog could not be read for
 /// them.</para>
+///
+/// <para>A figure the save cannot award is <c>null</c>, never 0: funds and
+/// science are null in a Sandbox save (and funds in a Science save). A Sandbox
+/// recovery still produces a record, with the craft, where it came down, its
+/// parts and its crew, and nothing awarded.</para>
 /// <internal>
 /// Typing-only mirror: Gonogo.KSP.RecoveryUplink flattens the live recovery
 /// into a dictionary via Sitrep.Host.Recovery.RecoveryPayload.Build, so
@@ -49,21 +54,21 @@ public class RecoveryReport
     [SitrepUnit(Units.Text)]
     public string RecoveryFactor { get; set; } = "";
 
-    /// <summary>Science this recovery earned, as KSP's recovery dialog totals it.</summary>
+    /// <summary>Science this recovery earned, as KSP's recovery dialog totals it. Null in a save with no science (Sandbox).</summary>
     [SitrepUnit(Units.Science)]
-    public double ScienceEarned { get; set; }
+    public double? ScienceEarned { get; set; }
 
-    /// <summary>The career's science balance as the recovery dialog reports it. 0 in a save with no science (Sandbox).</summary>
+    /// <summary>The career's science balance as the recovery dialog reports it. Null in a save with no science (Sandbox).</summary>
     [SitrepUnit(Units.Science)]
-    public double TotalScience { get; set; }
+    public double? TotalScience { get; set; }
 
-    /// <summary>Funds this recovery earned, after the recovery factor and any strategy modifiers KSP applies to a recovery.</summary>
+    /// <summary>Funds this recovery earned, after the recovery factor and any strategy modifiers KSP applies to a recovery. Null in a save with no funds (Science or Sandbox).</summary>
     [SitrepUnit(Units.Funds)]
-    public double FundsEarned { get; set; }
+    public double? FundsEarned { get; set; }
 
-    /// <summary>The career's funds balance as the recovery dialog reports it. 0 in a save with no funds (Science or Sandbox).</summary>
+    /// <summary>The career's funds balance as the recovery dialog reports it. Null in a save with no funds (Science or Sandbox).</summary>
     [SitrepUnit(Units.Funds)]
-    public double TotalFunds { get; set; }
+    public double? TotalFunds { get; set; }
 
     /// <summary>Reputation this recovery earned, after any strategy modifiers KSP applies. Show it only when <see cref="DisplayReputation"/> is true.</summary>
     [SitrepUnit(Units.Reputation)]
@@ -141,17 +146,17 @@ public class RecoveryPartEntry
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
-    /// <summary>The recovered dry value of one part in the group, excluding its resources.</summary>
+    /// <summary>The recovered dry value of one part in the group, excluding its resources. Null in a save with no funds.</summary>
     [SitrepUnit(Units.Funds)]
-    public double PartValue { get; set; }
+    public double? PartValue { get; set; }
 
-    /// <summary>The recovered value of the resources the group's parts held, summed over the group.</summary>
+    /// <summary>The recovered value of the resources the group's parts held, summed over the group. Null in a save with no funds.</summary>
     [SitrepUnit(Units.Funds)]
-    public double ResourcesValue { get; set; }
+    public double? ResourcesValue { get; set; }
 
-    /// <summary>The group's recovered dry value: <see cref="PartValue"/> times <see cref="Count"/>. Does not include <see cref="ResourcesValue"/>.</summary>
+    /// <summary>The group's recovered dry value: <see cref="PartValue"/> times <see cref="Count"/>. Does not include <see cref="ResourcesValue"/>. Null in a save with no funds.</summary>
     [SitrepUnit(Units.Funds)]
-    public double TotalValue { get; set; }
+    public double? TotalValue { get; set; }
 }
 
 /// <summary>
@@ -203,13 +208,13 @@ public class RecoveryCrewEntry
     [SitrepUnit(Units.Flag)]
     public bool IsTourist { get; set; }
 
-    /// <summary>Experience points this flight added.</summary>
+    /// <summary>Experience points this flight added. Null in a save that awards no experience (Sandbox).</summary>
     [SitrepUnit(Units.Count)]
-    public double XpGained { get; set; }
+    public double? XpGained { get; set; }
 
-    /// <summary>How many experience levels this flight added: <see cref="NewLevel"/> minus the level before.</summary>
+    /// <summary>How many experience levels this flight added: <see cref="NewLevel"/> minus the level before. Null in a save that awards no experience (Sandbox).</summary>
     [SitrepUnit(Units.Count)]
-    public int LevelsGained { get; set; }
+    public int? LevelsGained { get; set; }
 
     /// <summary>The kerbal's experience level after this flight, 0 to 5 in stock.</summary>
     [SitrepUnit(Units.Count)]

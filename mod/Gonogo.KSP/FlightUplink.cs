@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using KSP.UI.Screens;
-using KSP.UI.Screens.SpaceCenter.MissionSummaryDialog;
 using Sitrep.Contract;
 using Sitrep.Host.Crash;
 using Sitrep.Host.Flight;
@@ -101,7 +99,7 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Add(OnCrash);
             GameEvents.onCrashSplashdown.Add(OnCrashSplashdown);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
-            GameEvents.onVesselRecoveryProcessingComplete.Add(OnRecoveryComplete);
+            GameEvents.onVesselRecovered.Add(OnVesselRecovered);
             // The hooks live for the whole process: Register runs once, before the
             // main menu, and a flight can end in any scene the player reaches.
         }
@@ -160,13 +158,14 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// MAIN-THREAD: mirrors <c>RecoveryUplink.OnRecoveryComplete</c>'s
-        /// hook choice (decompile-confirmed: see that class's doc comment)
-        /// and relevance filter. Only the completion signal is needed here,
-        /// not the rich earned/total breakdown <c>RecoveryUplink</c> already
-        /// publishes separately.
+        /// MAIN-THREAD: a recovery ends the flight. Hooked on <c>onVesselRecovered</c>, which
+        /// stock fires first and for every game mode, rather than on the post-recovery summary
+        /// event: that one is raised only once the summary is processed, and a save that
+        /// awards nothing gives it no dialog. Only the completion is needed here, not the
+        /// earned and total figures <c>RecoveryUplink</c> publishes separately; the relevance
+        /// filter is the same.
         /// </summary>
-        private void OnRecoveryComplete(ProtoVessel vessel, MissionRecoveryDialog dialog, float recoveryPercent)
+        private void OnVesselRecovered(ProtoVessel vessel, bool quick)
         {
             try
             {
@@ -182,7 +181,15 @@ namespace Gonogo.KSP
                 }
 
                 var ut = Planetarium.GetUniversalTime();
-                _sampler.SignalEnd(vessel.vesselID.ToString(), vessel.vesselName ?? "", FlightEndReason.Recovered, ut);
+                var vesselId = vessel.vesselID.ToString();
+                if (_lastPublishedEndUt.TryGetValue(vesselId, out var previous)
+                    && Math.Abs(ut - previous) <= DedupWindowUt)
+                {
+                    return;
+                }
+                _lastPublishedEndUt[vesselId] = ut;
+
+                _sampler.SignalEnd(vesselId, vessel.vesselName ?? "", FlightEndReason.Recovered, ut);
             }
             catch (Exception ex)
             {

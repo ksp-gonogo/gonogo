@@ -171,17 +171,9 @@ namespace Sitrep.Core.Tests
                     + "only genuine reach in it.",
                     "KSP.UI"),
 
-                ["Gonogo.KSP/FlightUplink.cs"] = new UiReach(
-                    "The MissionRecoveryDialog appears only in the signature of the "
-                    + "onVesselRecoveryProcessingComplete handler, which cannot be written without "
-                    + "naming the parameter's type. Nothing is read off it: this handler wants the "
-                    + "completion signal alone and takes its facts from the ProtoVessel. No value "
-                    + "here comes from the UI, so there is nothing to find an interop route for.",
-                    "KSP.UI"),
-
                 ["Gonogo.KSP/CurrencyDelay/StockCurrencyInterceptor.cs"] = new UiReach(
-                    "Same shape as the flight handler above: MissionRecoveryDialog is the type of a "
-                    + "parameter on the same game event and the body never touches it, taking the "
+                    "MissionRecoveryDialog appears only as the type of a parameter on the "
+                    + "onVesselRecoveryProcessingComplete handler, and the body never touches it, taking the "
                     + "vessel id off the ProtoVessel instead.",
                     "KSP.UI"),
 

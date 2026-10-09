@@ -5495,6 +5495,11 @@ export interface RoboticsAvailability
 * unknown type publishes nothing. The four breakdown lists can be empty while
 * the totals are present, if KSP's dialog could not be read for them.
 *
+* A figure the save cannot award is `null`, never 0: funds and science are
+* null in a Sandbox save (and funds in a Science save). A Sandbox recovery
+* still produces a record, with the craft, where it came down, its parts and
+* its crew, and nothing awarded.
+*
 * @category Flights
 */
 export interface RecoveryReport
@@ -5513,23 +5518,27 @@ export interface RecoveryReport
 	* multiplier for landing precision.
 	*/
 	recoveryFactor: string;
-	/** Science this recovery earned, as KSP's recovery dialog totals it. */
-	scienceEarned: Value<"science">;
 	/**
-	* The career's science balance as the recovery dialog reports it. 0 in a save
-	* with no science (Sandbox).
+	* Science this recovery earned, as KSP's recovery dialog totals it. Null in a
+	* save with no science (Sandbox).
 	*/
-	totalScience: Value<"science">;
+	scienceEarned?: Value<"science"> | null;
+	/**
+	* The career's science balance as the recovery dialog reports it. Null in a
+	* save with no science (Sandbox).
+	*/
+	totalScience?: Value<"science"> | null;
 	/**
 	* Funds this recovery earned, after the recovery factor and any strategy
-	* modifiers KSP applies to a recovery.
+	* modifiers KSP applies to a recovery. Null in a save with no funds (Science
+	* or Sandbox).
 	*/
-	fundsEarned: Value<"funds">;
+	fundsEarned?: Value<"funds"> | null;
 	/**
-	* The career's funds balance as the recovery dialog reports it. 0 in a save
+	* The career's funds balance as the recovery dialog reports it. Null in a save
 	* with no funds (Science or Sandbox).
 	*/
-	totalFunds: Value<"funds">;
+	totalFunds?: Value<"funds"> | null;
 	/**
 	* Reputation this recovery earned, after any strategy modifiers KSP applies.
 	* Show it only when `RecoveryReport.displayReputation` is true.
@@ -5599,19 +5608,22 @@ export interface RecoveryPartEntry
 	partTitle: string;
 	/** How many parts are in this group. At least 1. */
 	count: Value<"count">;
-	/** The recovered dry value of one part in the group, excluding its resources. */
-	partValue: Value<"funds">;
+	/**
+	* The recovered dry value of one part in the group, excluding its resources.
+	* Null in a save with no funds.
+	*/
+	partValue?: Value<"funds"> | null;
 	/**
 	* The recovered value of the resources the group's parts held, summed over the
-	* group.
+	* group. Null in a save with no funds.
 	*/
-	resourcesValue: Value<"funds">;
+	resourcesValue?: Value<"funds"> | null;
 	/**
 	* The group's recovered dry value: `RecoveryPartEntry.partValue` times
 	* `RecoveryPartEntry.count`. Does not include
-	* `RecoveryPartEntry.resourcesValue`.
+	* `RecoveryPartEntry.resourcesValue`. Null in a save with no funds.
 	*/
-	totalValue: Value<"funds">;
+	totalValue?: Value<"funds"> | null;
 }
 /**
 * One recovered-resource group: an entry of
@@ -5650,13 +5662,16 @@ export interface RecoveryCrewEntry
 	trait: string;
 	/** Whether the kerbal is a tourist, who earns no experience. */
 	isTourist: boolean;
-	/** Experience points this flight added. */
-	xpGained: Value<"count">;
+	/**
+	* Experience points this flight added. Null in a save that awards no
+	* experience (Sandbox).
+	*/
+	xpGained?: Value<"count"> | null;
 	/**
 	* How many experience levels this flight added: `RecoveryCrewEntry.newLevel`
-	* minus the level before.
+	* minus the level before. Null in a save that awards no experience (Sandbox).
 	*/
-	levelsGained: Value<"count">;
+	levelsGained?: Value<"count"> | null;
 	/** The kerbal's experience level after this flight, 0 to 5 in stock. */
 	newLevel: Value<"count">;
 }

@@ -42,6 +42,30 @@ function formatFlightDuration(
   return writeQuantity(value("irl:s", (lastSampleAt - launchedAt) / 1000));
 }
 
+/** Funds and science are absent in a save that awards neither, and read as absent rather than as +0. */
+function recoveryTitle(outcome: {
+  recoveryLocation: string;
+  recoveryFactor: string;
+  fundsEarned: number | null;
+  scienceEarned: number | null;
+}): string {
+  const earned = [
+    outcome.fundsEarned === null
+      ? null
+      : `+${writeQuantity(value("funds", outcome.fundsEarned), { decimals: 0 })}`,
+    outcome.scienceEarned === null
+      ? null
+      : `+${writeQuantity(value("science", outcome.scienceEarned), { decimals: 1 })}`,
+  ].filter((part): part is string => part !== null);
+  return [
+    `Recovered ${outcome.recoveryLocation}`,
+    outcome.recoveryFactor,
+    earned.length > 0 ? earned.join(" · ") : "no funds or science awarded",
+  ]
+    .filter((part) => part !== "")
+    .join(" · ");
+}
+
 function getSource(): MissionHistorySource | undefined {
   return getDataSource("missionHistory") as MissionHistorySource | undefined;
 }
@@ -382,7 +406,7 @@ export function FlightsManager({
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
-                            title={`Recovered ${f.outcome.recoveryLocation} · ${f.outcome.recoveryFactor} · +${writeQuantity(value("funds", f.outcome.fundsEarned), { decimals: 0 })} · +${writeQuantity(value("science", f.outcome.scienceEarned), { decimals: 1 })}`}
+                            title={recoveryTitle(f.outcome)}
                           >
                             recovered
                           </OutcomeBadge>
