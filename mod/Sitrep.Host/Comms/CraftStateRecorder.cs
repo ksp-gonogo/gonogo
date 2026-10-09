@@ -376,7 +376,7 @@ namespace Sitrep.Host.Comms
                 return moving;
             }
             var settling = !last.State.Settled && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds;
-            if (!settling && ut < last.State.CapturedUt + LinkRefreshSeconds)
+            if (!settling && ut < last.State.CapturedUt + LinkRefreshSeconds && !LacksALinkToANodeHere(last.State, look))
             {
                 if (!ListedDifferently(last.State.Roster, listed))
                 {
@@ -401,6 +401,26 @@ namespace Sitrep.Host.Comms
                 .Listed(listed);
             _read[node.Id] = new Read(afresh ? node : last.Node, again);
             return again;
+        }
+
+        /// <summary>
+        /// Whether the game has a node the state holds no link to: one that
+        /// arrived after the craft was read. A plan pairs two craft by the link
+        /// the older of their states holds, so until the craft is read again it
+        /// is planned as unable to reach the arrival. Nothing is read for a node
+        /// that has left, because a centre learns of that when the craft's own
+        /// light reaches it and not when another craft happens to be read.
+        /// </summary>
+        private static bool LacksALinkToANodeHere(CraftState state, ContactGameLook look)
+        {
+            foreach (var other in look.Nodes)
+            {
+                if (other.Id != state.Id && !state.Links.ContainsKey(other.Id))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>COURIER THREAD: records what <see cref="Capture"/> read.</summary>

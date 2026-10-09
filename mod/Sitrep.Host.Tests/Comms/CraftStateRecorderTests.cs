@@ -3,6 +3,7 @@ using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
 using Sitrep.Propagation;
+using Sitrep.Propagation.Contacts;
 using Sitrep.Propagation.Visibility;
 using Xunit;
 
@@ -129,21 +130,66 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// A craft read because a distant one was launched or destroyed would
-        /// carry that news to a centre at its own light-time.
+        /// A craft that arrives is a node every earlier craft has no link to,
+        /// and a plan pairs two craft by the link the older of their states
+        /// holds. Left to the refresh, a relay launched next to a craft would be
+        /// planned as unreachable from it for as long as the refresh takes.
         /// </summary>
         [Fact]
-        public void NothingAnotherCraftDoesHasACraftRead()
+        public void ACraftThatArrivesIsLinkedToByEveryCraftAlreadyThere()
         {
             var recorder = new CraftStateRecorder();
             var a = Craft("a", Orbit(700_000.0));
             recorder.Capture(Look(a), 0.0, null);
 
             var arrived = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0))), 1.0, null);
-            Assert.Equal("vessel:b", Assert.Single(arrived.States).Id);
+            Assert.Equal(new[] { "vessel:a", "vessel:b" }, arrived.States.Select(s => s.Id).OrderBy(i => i));
+            Assert.Contains("vessel:b", arrived.States.Single(s => s.Id == "vessel:a").Links.Keys);
 
-            var station = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0)), Ksc), 2.0, null);
-            Assert.Empty(station.States);
+            var settled = recorder.Capture(Look(a, Craft("b", Orbit(800_000.0))), 2.0, null);
+            Assert.Empty(settled.States);
+        }
+
+        /// <summary>
+        /// What reaches a centre of a craft launched beside another, read as the
+        /// game reads them, plans the two as a pair at once.
+        /// </summary>
+        [Fact]
+        public void ARelayLaunchedBesideACraftIsPlannedAsAPairWithItWithoutWaitingForARefresh()
+        {
+            var recorder = new CraftStateRecorder();
+            var a = Craft("a", Orbit(700_000.0));
+            var heard = new Dictionary<string, CraftState>();
+            foreach (var state in recorder.Capture(Look(a, Ksc), 0.0, null).States)
+            {
+                heard[state.Id] = state;
+            }
+            foreach (var state in recorder.Capture(Look(a, Craft("relay", Orbit(800_000.0)), Ksc), 30.0, null).States)
+            {
+                heard[state.Id] = state;
+            }
+
+            var ground = new PlanGround(
+                new PlanNode[0],
+                new[] { new SystemBody(-1, null), new SystemBody(0, new OrbitElements(13_599_840_256.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1723328e18)) },
+                Kerbin,
+                index => KerbinRadius);
+            var request = ReckonedPlan.Request(heard.Values.ToList(), ground, 40.0, 3600.0);
+
+            Assert.Contains(request.Pairs, p => (p.A == "vessel:a" && p.B == "vessel:relay") || (p.A == "vessel:relay" && p.B == "vessel:a"));
+        }
+
+        /// <summary>
+        /// A craft that leaves is not read for: a pair ends when the centre
+        /// hears the craft is gone, and a state read now would end it at the
+        /// light-time of whichever craft was read.
+        /// </summary>
+        [Fact]
+        public void NothingIsReadForACraftThatLeavesOrAStationThatWasThereAlready()
+        {
+            var recorder = new CraftStateRecorder();
+            var a = Craft("a", Orbit(700_000.0));
+            recorder.Capture(Look(a, Craft("b", Orbit(800_000.0)), Ksc), 0.0, null);
 
             var left = recorder.Capture(Look(a, Ksc), 3.0, null);
             Assert.Empty(left.States);
@@ -155,15 +201,14 @@ namespace Sitrep.Host.Tests.Comms
         {
             var recorder = new CraftStateRecorder();
             var first = Assert.Single(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 0.0, null).States);
-            var wobbled = Look(Craft("a", Orbit(700_010.0, 1e-6, 1e-5)), Craft("b", Orbit(800_000.0)));
+            var wobbled = Look(Craft("a", Orbit(700_010.0, 1e-6, 1e-5)));
 
-            Assert.DoesNotContain(recorder.Capture(wobbled, CraftStateRecorder.LinkRefreshSeconds - 1.0, null).States, s => s.Id == "vessel:a");
+            Assert.Empty(recorder.Capture(wobbled, CraftStateRecorder.LinkRefreshSeconds - 1.0, null).States);
             var again = recorder.Capture(wobbled, CraftStateRecorder.LinkRefreshSeconds, null).States.Single(s => s.Id == "vessel:a");
 
             Assert.Equal(CraftStateRecorder.LinkRefreshSeconds, again.CapturedUt);
             Assert.Equal(700_000.0, again.Orbit!.Value.Sma);
             Assert.Same(first.Motion, again.Motion);
-            Assert.Contains("vessel:b", again.Links.Keys);
             Assert.Empty(first.Links);
         }
 
