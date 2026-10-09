@@ -230,42 +230,51 @@ namespace Gonogo.KSP
             ICommsBackend? backend,
             CommNode? from,
             CommNode? to,
+            SignalDelayConfig? config) =>
+            ReadNodeRoute(backend, from, to, config).OneWaySeconds;
+
+        /// <summary>
+        /// <see cref="ReadNodePath"/> with the hops it was measured over, so the
+        /// route a delay was priced by can be shown as well as summed. The hops
+        /// are null wherever the delay is, and for a save with no comms model,
+        /// whose zero has no route behind it.
+        /// </summary>
+        internal static (double? OneWaySeconds, IReadOnlyList<CommsRouteHop>? Hops) ReadNodeRoute(
+            ICommsBackend? backend,
+            CommNode? from,
+            CommNode? to,
             SignalDelayConfig? config)
         {
             try
             {
                 if (from == null || to == null || ReferenceEquals(from, to))
                 {
-                    return null;
+                    return (null, null);
                 }
 
                 // No comms model: two distinct places are reachable from each
                 // other with no light-time between them, and there is no relay
-                // graph to solve. Without this the solve fails (no network was
-                // ever built) and the centre-to-centre pass writes NO ROW,
-                // leaving each pair on the whole-network default. That default
-                // is 0 here, so the answer came out right by a route nobody
-                // chose; saying it outright is what keeps it right.
-                //
-                // It sits ABOVE the backend guard deliberately: with no comms
-                // model there may be no backend to elect, and "no backend" must
-                // not turn the answer back into the null this exists to stop.
+                // graph to solve. It sits ABOVE the backend guard deliberately:
+                // with no comms model there may be no backend to elect, and "no
+                // backend" must not turn the answer back into the null this
+                // exists to stop.
                 if (config != null && config.CutForNoCommsModel)
                 {
-                    return 0.0;
+                    return (0.0, null);
                 }
 
                 if (backend == null)
                 {
-                    return null;
+                    return (null, null);
                 }
 
-                return RoutedPathDelay.OneWaySeconds(backend.RouteBetween(CommsNodeHandle.Of(from), CommsNodeHandle.Of(to)), config);
+                var hops = backend.RouteBetween(CommsNodeHandle.Of(from), CommsNodeHandle.Of(to));
+                return (RoutedPathDelay.OneWaySeconds(hops, config), hops);
             }
             catch (Exception ex)
             {
                 Debug.LogWarning("[Gonogo] FleetCommsReader.ReadNodePath failed (treating as no path): " + ex.Message);
-                return null;
+                return (null, null);
             }
         }
 

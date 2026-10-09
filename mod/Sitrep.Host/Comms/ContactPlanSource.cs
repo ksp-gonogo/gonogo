@@ -361,6 +361,8 @@ namespace Sitrep.Host.Comms
         private IUplinkHost? _host;
         private ICraftStateHost? _craftHost;
         private IPlanAudienceHost? _audience;
+
+        private CommandCentres.IActiveRouteHost? _routes;
         private IAddressedStreamHost? _streams;
         private volatile string? _lastFailure;
 
@@ -563,6 +565,7 @@ namespace Sitrep.Host.Comms
             _host = host;
             _craftHost = host as ICraftStateHost;
             _audience = host as IPlanAudienceHost;
+            _routes = host as CommandCentres.IActiveRouteHost;
             _streams = host as IAddressedStreamHost;
             if (_craftHost == null || _audience == null || _streams == null)
             {
@@ -1427,15 +1430,19 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Sends each planning centre the active craft's path as its own plan has
-        /// it: every centre once a second, and at once a centre where a session
+        /// Sends each planning centre the active craft's path: every centre once a second, and at once a centre where a session
         /// has just sat down. The hop lengths move with the craft, so the path is
         /// sent each time; the network and the terminus are sent when the path
         /// names different nodes, and to a session that has just sat down.
         ///
-        /// <para>A centre with no plan yet is sent nothing while there is a craft
-        /// to have a path: it has no belief to state, which is not the same as
-        /// believing there is no path.</para>
+        /// <para>A centre the game routes the craft's samples to is sent that
+        /// route and its light-time, the very hops the delay ledger times the
+        /// samples by, so the figure is the delay of what arrives. Any other
+        /// centre is sent the path its own plan has.</para>
+        ///
+        /// <para>A centre with no plan yet and no game route is sent nothing
+        /// while there is a craft to have a path: it has no belief to state,
+        /// which is not the same as believing there is no path.</para>
         /// </summary>
         private void PublishPaths(Looked looked, IReadOnlyCollection<string> planning)
         {
@@ -1464,7 +1471,8 @@ namespace Sitrep.Host.Comms
                     _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, source), looked.Ut, ToItself(centre));
                     frames++;
                 }
-                if (plan == null && looked.ActiveCraft != null)
+                var gameRoute = looked.ActiveCraft == null ? null : _routes?.ActiveVesselRoute(centre);
+                if (plan == null && looked.ActiveCraft != null && gameRoute == null)
                 {
                     // Between one plan and the next the centre believes what it last believed.
                     frames += PublishSignal(looked, centre, _believed.Of(centre, looked.ActiveCraft), radio);
@@ -1491,6 +1499,10 @@ namespace Sitrep.Host.Comms
                     looked.Ut,
                     lightFactor,
                     PathStrengths.For(heard, looked.PathStrength));
+                if (gameRoute != null)
+                {
+                    view = WithGameRoute(view, gameRoute);
+                }
                 WithHeardFacts(view.Path, radio);
                 if (looked.ActiveCraft != null)
                 {
@@ -1527,6 +1539,37 @@ namespace Sitrep.Host.Comms
                 asked.Clear();
             }
             PathFramesBudget.Record(frames, looked.Ut);
+        }
+
+        /// <summary>
+        /// The view with its path replaced by the game's own route, hop for hop.
+        /// The network and the terminus stay the plan's: the route names no
+        /// centre.
+        /// </summary>
+        internal static CentrePathView WithGameRoute(CentrePathView view, IReadOnlyList<CommsHop> route)
+        {
+            var hops = new List<CommsHop>(route.Count);
+            var shape = new System.Text.StringBuilder(view.Shape).Append('\u0002');
+            foreach (var hop in route)
+            {
+                hops.Add(new CommsHop
+                {
+                    From = hop.From,
+                    To = hop.To,
+                    FromIsHome = hop.FromIsHome,
+                    ToIsHome = hop.ToIsHome,
+                    Kind = hop.Kind,
+                    DistanceMeters = hop.DistanceMeters,
+                    Strength = hop.Strength,
+                    Quantity = hop.Quantity,
+                    Extensions = hop.Extensions,
+                });
+                shape.Append(hop.From).Append('\u0001').Append(hop.To).Append('\u0001');
+            }
+            return new CentrePathView(new CommsPath { Hops = hops }, view.Network, view.CommandCentre)
+            {
+                Shape = shape.ToString(),
+            };
         }
 
         /// <summary>
