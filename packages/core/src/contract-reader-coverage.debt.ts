@@ -211,19 +211,9 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:deployed.bases.biome":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.body":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:deployed.bases.deployedOnGround":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.experimentId":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.partName":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:deployed.bases.situation":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.vesselName":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:isru.drills.deployed":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:parts.power.alternators":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
@@ -234,8 +224,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:parts.power.solarPanels":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:robotics.servos.motorState":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:robotics.servos.partName":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:robotics.servos.servoIsMotorized":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
@@ -250,8 +238,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:settings.gonogo.persistence.savedAtUt":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:spaceCenter.crewRoster.experience":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:spaceCenter.crewRoster.situation":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:spaceCenter.launchSites.isStock":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",

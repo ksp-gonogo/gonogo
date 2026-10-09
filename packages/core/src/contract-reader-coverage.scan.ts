@@ -58,6 +58,12 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     touch their own model's members constantly, and crediting those would
  *     over-credit worse than the TypeScript co-occurrence rule.
  *
+ *  4. A file bound to a Topic in `ELEMENT_READERS`: a parser, card or row
+ *     mapper handed one element of the Topic's collection that never names the
+ *     Topic. Its leaf reads (`e.partName`) are credited to that Topic's fields
+ *     only, by hand binding, since a leaf like `partName` is shared with other
+ *     Topics and nothing in the file says which one it means.
+ *
  * WHAT COUNTS AS A COMMAND READER: a production file naming the command id as
  * a string literal, anywhere. `useCommand(id)` is the common shape, but a
  * command also dispatches through a `handle.send(...)` off a `useCommand`
@@ -401,6 +407,13 @@ function findWidgetDeclarations(
  * command ids the same way it reads field leaves: from the string-literal set,
  * not from one recognised call shape.
  */
+/** `COMM_SIGNAL_HELD` in `COMM_SIGNAL_HELD.id` or `COMM_SIGNAL_HELD.meta.source`. */
+function isConstantReceiver(expr: ts.Expression): boolean {
+  let root = expr;
+  while (ts.isPropertyAccessExpression(root)) root = root.expression;
+  return ts.isIdentifier(root) && /^[A-Z][A-Z0-9_]+$/.test(root.text);
+}
+
 function collectTokens(sf: ts.SourceFile): {
   identifiers: Set<string>;
   members: Set<string>;
@@ -415,8 +428,15 @@ function collectTokens(sf: ts.SourceFile): {
     if (ts.isExportDeclaration(node)) return;
     if (ts.isIdentifier(node)) identifiers.add(node.text);
     if (ts.isPropertyAccessExpression(node)) {
-      members.add(node.name.text);
-      fieldNames.add(node.name.text);
+      /*
+       * `HELD.id` reads a constant's member, not a field of a payload: an
+       * upper-case receiver is a declared constant or enum, so its members are
+       * never a read.
+       */
+      if (!isConstantReceiver(node.expression)) {
+        members.add(node.name.text);
+        fieldNames.add(node.name.text);
+      }
     }
     if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
       const named = node.propertyName ?? node.name;
@@ -687,6 +707,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
   }
 
   creditWholeObjectReads(root, texts, addField);
+  creditElementReaders(texts, fieldsByTopic, addField);
 
   scanCsharpReaders(root, topics, fieldsByTopic, addField, filesParsed);
 
@@ -783,6 +804,71 @@ export function creditWholeObjectReads(
       if (!text.includes(getter)) continue;
       for (const member of read) {
         addField(`${topic}.${member}`, { via: "field-access", file: rel });
+      }
+    }
+  }
+}
+
+/**
+ * Files that read the elements of one Topic's collection through a helper that
+ * never names the Topic (a parser handed the payload, a card handed one typed
+ * entry, a row mapper). The file is bound to its Topic here by hand because a
+ * leaf like `partName` or `situation` is shared with other Topics, so nothing
+ * but the binding says which field a read of it means. The fields credited are
+ * read off the file: a member access or destructured binding of the leaf.
+ */
+export const ELEMENT_READERS: readonly { file: string; topic: string }[] = [
+  {
+    file: "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/parseBases.ts",
+    topic: "deployed.bases",
+  },
+  {
+    file: "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/servos.ts",
+    topic: "robotics.servos",
+  },
+  {
+    file: "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/rotors.ts",
+    topic: "robotics.servos",
+  },
+  {
+    file: "packages/components/src/ResourceOps/DrillCard.tsx",
+    topic: "isru.drills",
+  },
+  {
+    file: "packages/components/src/AstronautComplex/roster.ts",
+    topic: "spaceCenter.crewRoster",
+  },
+  {
+    file: "packages/components/src/AstronautComplex/ActivePanel.tsx",
+    topic: "spaceCenter.crewRoster",
+  },
+];
+
+/** Credits each {@link ELEMENT_READERS} file for the leaves of its Topic it reads off an element. */
+export function creditElementReaders(
+  texts: ReadonlyMap<string, string>,
+  fieldsByTopic: ReadonlyMap<string, ContractField[]>,
+  addField: (key: string, hit: ReaderHit) => void,
+): void {
+  for (const { file, topic } of ELEMENT_READERS) {
+    const text = texts.get(file);
+    if (text === undefined) continue;
+    const { members } = collectTokens(
+      ts.createSourceFile(
+        file,
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+        scriptKind(file),
+      ),
+    );
+    const fields = fieldsByTopic.get(topic) ?? [];
+    const leaf = (f: ContractField): string =>
+      f.path.slice(f.path.lastIndexOf(".") + 1);
+    for (const f of fields) {
+      const sharing = fields.filter((o) => leaf(o) === leaf(f)).length;
+      if (sharing === 1 && members.has(leaf(f))) {
+        addField(f.key, { via: "field-access", file });
       }
     }
   }

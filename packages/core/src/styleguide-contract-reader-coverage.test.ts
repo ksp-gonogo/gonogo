@@ -4,7 +4,13 @@
  * repo off disk and the shrink-only half transpiles the debt list at a git
  * ref through esbuild, which wants a real TextEncoder/Uint8Array realm.
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { transformSync } from "esbuild";
@@ -17,7 +23,9 @@ import {
   contractCommandIds,
   contractFields,
   contractTopicIds,
+  creditElementReaders,
   creditWholeObjectReads,
+  ELEMENT_READERS,
   membersReadOff,
   scanContractReaderCoverage,
 } from "./contract-reader-coverage.scan";
@@ -621,5 +629,85 @@ describe("the whole-orbit credit stays inside what the solve reads", () => {
         ?.filter((h) => h.file.endsWith("ManeuverTriggerHostService.ts"));
       expect(fromSolve ?? []).toEqual([]);
     }
+  });
+});
+
+describe("an identifier that only looks like a read is never one", () => {
+  const plantedFile = (lines: string[]): { root: string; source: string } => {
+    const root = mkdtempSync(join(tmpdir(), "reader-coverage-coincidence-"));
+    const plant = (rel: string, text: string): void => {
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      writeFileSync(join(root, rel), text);
+    };
+    plant(
+      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      'export const GENERATED_TOPIC_IDS = ["vessel.orbit"] as const;\n',
+    );
+    plant(
+      "mod/sitrep-sdk/src/__generated__/command-map.ts",
+      "export const GENERATED_COMMAND_IDS = [] as const;\n",
+    );
+    plant("packages/app/Planted.ts", lines.join("\n"));
+    const source = scanContractReaderCoverage(root).fields.find(
+      (f) => f.path === "meta.source",
+    )?.key as string;
+    return { root, source };
+  };
+
+  it("does not credit a member of an upper-case constant", () => {
+    const { root, source } = plantedFile([
+      'const topic = "vessel.orbit";',
+      'import { HELD } from "./held";',
+      "export const read = HELD.meta.source;",
+    ]);
+    try {
+      expect(scanContractReaderCoverage(root).fieldReaders.has(source)).toBe(
+        false,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("credits a leaf read off a payload, to prove the two above are not blanket refusals", () => {
+    const { root, source } = plantedFile([
+      'const topic = "vessel.orbit";',
+      "export const read = (o: { meta: { source: string } }) => o.meta.source;",
+    ]);
+    try {
+      expect(scanContractReaderCoverage(root).fieldReaders.has(source)).toBe(
+        true,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("the element readers are bound by hand and stay true", () => {
+  it("names only files that exist and Topics the contract declares", () => {
+    const topics = new Set(contractTopicIds(repoRoot));
+    for (const { file, topic } of ELEMENT_READERS) {
+      expect(existsSync(join(repoRoot, file)), file).toBe(true);
+      expect(topics.has(topic), topic).toBe(true);
+    }
+  });
+
+  it("credits a leaf the bound file reads, and never a leaf it does not", () => {
+    const fields = contractFields(["deployed.bases"]);
+    const byFieldsOfTopic = new Map([["deployed.bases", fields]]);
+    const credited: string[] = [];
+    creditElementReaders(
+      new Map([
+        [
+          ELEMENT_READERS.find((r) => r.topic === "deployed.bases")
+            ?.file as string,
+          "export const f = (e: Record<string, string>) => e.partName;",
+        ],
+      ]),
+      byFieldsOfTopic,
+      (key) => credited.push(key),
+    );
+    expect(credited).toEqual(["deployed.bases.partName"]);
   });
 });
