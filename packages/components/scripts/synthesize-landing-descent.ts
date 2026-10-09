@@ -17,7 +17,7 @@
  *   pnpm --filter @ksp-gonogo/components exec tsx scripts/synthesize-landing-descent.ts
  */
 import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import type { Frame } from "./landingDescentModel";
 import {
   channelsFor,
@@ -57,7 +57,7 @@ const PRESETS: TerrainPreset[] = [
     roughness: 15,
     biome: "Lowlands",
     relief: (x) => 1.2 * Math.sin(x * 0.2),
-    note: "Flat plains: near-zero slope, smooth => SAFE",
+    note: "Flat plains, near-zero slope, smooth => SAFE",
   },
   {
     name: "gentle-slope",
@@ -164,6 +164,97 @@ function showcaseFixture(preset: TerrainPreset): Record<string, unknown> {
   return fixtureFromChannels(ch, preset.name, preset.note);
 }
 
+/** One generated scene: where it lives under `src/LandingStatus`, and what it holds. */
+export interface GeneratedScene {
+  path: string;
+  fixture: Record<string, unknown>;
+}
+
+/**
+ * The five `__render__` scenes, picked from the integrated descent to sweep the hazard verdict DIVERT -> MARGINAL -> SAFE plus the burn states: high (freefall, DIVERT site far downrange), ignition (first burning frame: hot band lit, still fast so DIVERT), approach (slow final approach over a MARGINAL slope), final (SAFE soft touchdown) and the settled touched-down frame, where the widget shows the landed state and no stale descent countdown.
+ */
+export function descentFrames(frames: readonly Frame[]): {
+  high: Frame;
+  ignition: Frame;
+  approach: Frame;
+  final: Frame;
+  landed: Frame;
+} {
+  return {
+    high: frames.find((f) => !f.burning && f.aglMeters <= 7500) ?? frames[0],
+    ignition:
+      frames.find((f) => f.burning) ?? frames[Math.floor(frames.length / 2)],
+    approach:
+      frames.find((f) => f.burning && f.aglMeters <= 150) ??
+      frames[frames.length - 2],
+    final: frames.find((f) => f.aglMeters <= 40) ?? frames[frames.length - 1],
+    landed: frames.find((f) => f.landed) ?? frames[frames.length - 1],
+  };
+}
+
+/** The `__render__` descent scenes. */
+export function descentScenes(): GeneratedScene[] {
+  const { high, ignition, approach, final, landed } = descentFrames(
+    integrate(),
+  );
+  const dir = "__render__";
+  return [
+    {
+      path: `${dir}/descent-high.json`,
+      fixture: streamFixture(
+        high,
+        1.4,
+        "descent-high",
+        "High descent: reticle far downrange, steep+rough site -> DIVERT; STAGED delay.",
+      ),
+    },
+    {
+      path: `${dir}/descent-ignition.json`,
+      fixture: streamFixture(
+        ignition,
+        4,
+        "descent-ignition",
+        "Suicide-burn ignition: committed, still fast so the site reads DIVERT; AUTONOMOUS delay.",
+      ),
+    },
+    {
+      path: `${dir}/descent-approach.json`,
+      fixture: streamFixture(
+        approach,
+        4,
+        "descent-approach",
+        "Final approach: slowed to a soft descent over a MARGINAL slope; commit clocks live.",
+      ),
+    },
+    {
+      path: `${dir}/descent-final.json`,
+      fixture: streamFixture(
+        final,
+        4,
+        "descent-final",
+        "Final: near touchdown, smooth flat site -> SAFE, gear down.",
+      ),
+    },
+    {
+      path: `${dir}/descent-landed.json`,
+      fixture: streamFixture(
+        landed,
+        4,
+        "descent-landed",
+        "Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown.",
+      ),
+    },
+  ];
+}
+
+/** The terrain-type showcase: one near-touchdown frame per distinct terrain, so the verdict range is visible across flat, slope, crater, ridge and the rest. */
+export function showcaseScenes(): GeneratedScene[] {
+  return PRESETS.map((preset) => ({
+    path: `__render_terrains__/${preset.name}.json`,
+    fixture: showcaseFixture(preset),
+  }));
+}
+
 // ── Emit (only when this script is run directly, not when imported) ───────────
 function emitAll(): void {
   const frames = integrate();
@@ -190,61 +281,13 @@ function emitAll(): void {
     `${ndjson}\n`,
   );
 
-  // Pick four telling frames sweeping the hazard verdict DIVERT -> MARGINAL ->
-  // SAFE plus the burn states: high (freefall, DIVERT site far downrange),
-  // ignition (first burning frame: hot band lit, still fast so DIVERT), approach
-  // (slow final-approach over a MARGINAL slope), and final (SAFE soft touchdown).
-  const high =
-    frames.find((f) => !f.burning && f.aglMeters <= 7500) ?? frames[0];
-  const ignition =
-    frames.find((f) => f.burning) ?? frames[Math.floor(frames.length / 2)];
-  const approach =
-    frames.find((f) => f.burning && f.aglMeters <= 150) ??
-    frames[frames.length - 2];
-  const final =
-    frames.find((f) => f.aglMeters <= 40) ?? frames[frames.length - 1];
-  // The settled touched-down frame (last): situation Landed, all motion nulled, the widget shows the landed state, no stale descent countdown.
-  const landedFrame = frames.find((f) => f.landed) ?? frames[frames.length - 1];
-
-  const fixDir = resolve(
-    import.meta.dirname,
-    "../src/LandingStatus/__render__",
-  );
-  mkdirSync(fixDir, { recursive: true });
-  writeFileSync(
-    resolve(fixDir, "descent-high.json"),
-    `${JSON.stringify(streamFixture(high, 1.4, "descent-high", "High descent: reticle far downrange, steep+rough site -> DIVERT; STAGED delay."), null, 2)}\n`,
-  );
-  writeFileSync(
-    resolve(fixDir, "descent-ignition.json"),
-    `${JSON.stringify(streamFixture(ignition, 4, "descent-ignition", "Suicide-burn ignition: committed, still fast so the site reads DIVERT; AUTONOMOUS delay."), null, 2)}\n`,
-  );
-  writeFileSync(
-    resolve(fixDir, "descent-approach.json"),
-    `${JSON.stringify(streamFixture(approach, 4, "descent-approach", "Final approach: slowed to a soft descent over a MARGINAL slope; commit clocks live."), null, 2)}\n`,
-  );
-  writeFileSync(
-    resolve(fixDir, "descent-final.json"),
-    `${JSON.stringify(streamFixture(final, 4, "descent-final", "Final: near touchdown, smooth flat site -> SAFE, gear down."), null, 2)}\n`,
-  );
-  writeFileSync(
-    resolve(fixDir, "descent-landed.json"),
-    `${JSON.stringify(streamFixture(landedFrame, 4, "descent-landed", "Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."), null, 2)}\n`,
-  );
-
-  // Terrain-type showcase: one near-touchdown frame per distinct terrain, so the reticle relief + verdict range is visible across flat/slope/crater/ridge/etc.
-  const showcaseDir = resolve(
-    import.meta.dirname,
-    "../src/LandingStatus/__render_terrains__",
-  );
-  mkdirSync(showcaseDir, { recursive: true });
-  for (const preset of PRESETS) {
-    writeFileSync(
-      resolve(showcaseDir, `${preset.name}.json`),
-      `${JSON.stringify(showcaseFixture(preset), null, 2)}\n`,
-    );
+  const root = resolve(import.meta.dirname, "../src/LandingStatus");
+  for (const { path, fixture } of [...descentScenes(), ...showcaseScenes()]) {
+    mkdirSync(dirname(resolve(root, path)), { recursive: true });
+    writeFileSync(resolve(root, path), `${JSON.stringify(fixture, null, 2)}\n`);
   }
 
+  const { high, ignition, final } = descentFrames(frames);
   console.log(`frames: ${frames.length}`);
   console.log(
     `high: agl=${Math.round(high.aglMeters)} ignition: agl=${Math.round(ignition.aglMeters)} burning=${ignition.burning} final: agl=${Math.round(final.aglMeters)}`,
@@ -252,8 +295,7 @@ function emitAll(): void {
   console.log(
     `ndjson -> ${resolve(ndjsonDir, "synthetic-descent-mun.ndjson")}`,
   );
-  console.log(`fixtures -> ${fixDir}`);
-  console.log(`terrain showcase (${PRESETS.length}) -> ${showcaseDir}`);
+  console.log(`scenes -> ${root}/__render__ and __render_terrains__`);
 }
 
 // Run the file-writing only when invoked directly (`tsx synthesize-landing-descent.ts`), so importing `integrate`/`streamFixture` (e.g. from the gif renderer) is side-effect-free.

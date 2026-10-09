@@ -199,7 +199,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/scripts/render-delay-rail.ts": 2,
   "packages/components/scripts/render-systemview-traffic-video.ts": 5,
   "packages/components/scripts/render-vantage-control.ts": 3,
-  "packages/components/scripts/synthesize-landing-descent.ts": 1,
   "packages/components/scripts/unfed-snapshot-gate.ts": 1,
   "packages/components/scripts/visual-gate.ts": 1,
   "packages/components/scripts/widgetRenderHarness.ts": 3,

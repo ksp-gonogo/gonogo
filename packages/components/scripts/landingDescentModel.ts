@@ -4,6 +4,7 @@
  * Free of Node APIs, so a story can run it in the browser.
  */
 import { solveSuicideBurn } from "../src/LandingStatus/solveLanding";
+import { SHOWS } from "./landingFixtureProse";
 
 // ── Mun ──────────────────────────────────────────────────────────────────────
 export const MU = 6.5138398e10;
@@ -165,6 +166,22 @@ export function terrainFor(aglMeters: number): {
 /** Terrain reads per ground-track strip; the same figure the mod's `LandingGroundTrack.SampleCount` fixes. */
 export const GROUND_TRACK_SAMPLES = 48;
 
+/** Great-circle distance in metres between two lat/lon points (degrees) on a sphere of the given radius. */
+export function greatCircleMeters(
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number,
+  radius: number,
+): number {
+  const p1 = fromLat * DEG;
+  const p2 = toLat * DEG;
+  const a =
+    Math.sin((p2 - p1) / 2) ** 2 +
+    Math.cos(p1) * Math.cos(p2) * Math.sin(((toLon - fromLon) * DEG) / 2) ** 2;
+  return 2 * radius * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
 /**
  * Where along the track the mod reads terrain: even steps from beneath the vessel to a quarter of the way again past the site, never shorter than 200 m.
  * Mirrors `LandingGroundTrack.Distances`.
@@ -256,6 +273,7 @@ export function orbitFor(f: Frame, epoch: number): Record<string, unknown> {
     meanAnomalyAtEpoch: meanAnomaly,
     epoch,
     mu: MU,
+    horizon: { kind: 1, trajectoryKind: 1 },
   };
 }
 
@@ -344,6 +362,19 @@ export const EMITTED = [
   "vessel.landing",
 ];
 
+/** The `_meta` of a scene: what it shows, when the prose names it, then the scenario and its note. */
+export function sceneMeta(
+  scenario: string,
+  notes: string,
+): Record<string, unknown> {
+  return {
+    ...(SHOWS[scenario] === undefined ? {} : { shows: SHOWS[scenario] }),
+    scenario,
+    synthetic: true,
+    notes,
+  };
+}
+
 export function fixtureFromChannels(
   ch: Record<string, unknown>,
   scenario: string,
@@ -357,11 +388,10 @@ export function fixtureFromChannels(
       : { channel, value };
   });
   return {
-    _meta: {
+    _meta: sceneMeta(
       scenario,
-      synthetic: true,
-      notes: `SYNTHETIC (model-generated, NOT captured). ${notes}`,
-    },
+      `SYNTHETIC (model-generated, NOT captured). ${notes}`,
+    ),
     _stream: { pinnedUt: 10, emits },
   };
 }

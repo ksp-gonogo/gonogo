@@ -37,12 +37,12 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 3,
-          "sma": 250000,
-          "ecc": 0.02,
+          "sma": 108535.24267581527,
+          "ecc": 0.9191462531214243,
           "inc": 0,
           "lan": 0,
-          "argPe": 0,
-          "meanAnomalyAtEpoch": 0,
+          "argPe": 179.1595591630528,
+          "meanAnomalyAtEpoch": -2.833676260523193,
           "epoch": 10,
           "mu": 65138398000,
           "horizon": {

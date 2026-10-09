@@ -1,25 +1,37 @@
 import { describe, expect, it } from "vitest";
-import fixture from "./__fixtures__/descending-too-fast-to-stop.json";
+import {
+  emitOf,
+  generatedScenes,
+  isRecord,
+  numberAt,
+  recordAt,
+} from "../../scripts/gen-landing-status-fixtures";
 
 const MUN_RADIUS = 200_000;
 
-function figure(channel: string, key: string): number {
-  const found = fixture._stream.emits.find((e) => e.channel === channel);
-  const entry = Object.entries(found?.value ?? {}).find(([k]) => k === key);
-  if (typeof entry?.[1] !== "number") {
-    throw new Error(`fixture carries no numeric ${channel}.${key}`);
-  }
-  return entry[1];
-}
+/** The scenes set over the Mun: a Kerbin scene states its own orbit by hand. */
+const munScenes = generatedScenes().filter((s) => {
+  const bodies = recordAt(emitOf(s.fixture, "system.bodies"), "value").bodies;
+  return (
+    Array.isArray(bodies) && isRecord(bodies[0]) && bodies[0].name === "Mun"
+  );
+});
 
-describe("descending-too-fast-to-stop fixture", () => {
-  it("carries an orbit that puts the craft at the speed and height its flight figures give", () => {
-    const radius = MUN_RADIUS + figure("vessel.flight", "altitudeAsl");
+describe("every Mun scene's orbit", () => {
+  it("covers the Mun scenes", () => {
+    expect(munScenes.length).toBe(20);
+  });
+
+  it.each(
+    munScenes.map((s) => [s.path, s.fixture] as const),
+  )("%s puts the craft at the speed and height its flight figures give", (_path, fixture) => {
+    const flight = recordAt(emitOf(fixture, "vessel.flight"), "value");
+    const orbit = recordAt(emitOf(fixture, "vessel.orbit"), "value");
+    const radius = MUN_RADIUS + numberAt(flight, "altitudeAsl");
     const speedSquared =
-      figure("vessel.orbit", "mu") *
-      (2 / radius - 1 / figure("vessel.orbit", "sma"));
-    expect(Math.sqrt(speedSquared)).toBeCloseTo(
-      figure("vessel.flight", "orbitalSpeed"),
+      numberAt(orbit, "mu") * (2 / radius - 1 / numberAt(orbit, "sma"));
+    expect(Math.sqrt(Math.max(0, speedSquared))).toBeCloseTo(
+      numberAt(flight, "orbitalSpeed"),
       0,
     );
   });

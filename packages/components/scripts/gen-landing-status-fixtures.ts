@@ -1,25 +1,43 @@
 #!/usr/bin/env tsx
 /**
- * Regenerate the six `LandingStatus/__fixtures__/*.json` scenarios in the
- * `_stream` Sitrep format (the same envelope the working `__render__/*.json`
- * use). They were stale flat-key fixtures (`v.body`,
- * `v.heightFromTerrain`, `land.*`) that the Sitrep-migrated LandingStatus no
- * longer reads, so the `landing-status-widget` visual config rendered the
- * OFFLINE empty state. Driving the real Sitrep topics leaves offline and
- * renders each scenario's rich UI.
+ * Regenerate every generated Landing Status scene in the `_stream` Sitrep
+ * format, so a regeneration reproduces the committed files exactly:
  *
- * Five scenarios are Mun descents built from the shared `streamFixture(frame)`
- * (same machinery as __render__), tuned to each note's state. The sixth is a
- * hand-built Kerbin atmospheric reentry (different body + atmosphere fields, so
- * the widget takes its atmospheric-aware board rather than the vacuum reticle).
+ * - the six `__fixtures__` scenes (five Mun descents built from the shared
+ *   `streamFixture(frame)`, and a hand-built Kerbin atmospheric reentry whose
+ *   different body and atmosphere fields take the widget's atmospheric board
+ *   rather than the vacuum reticle), plus the same descent with its stream gone
+ *   quiet
+ * - the five `__render__` descents and six `__render_terrains__` showcase scenes
+ *   from `synthesize-landing-descent.ts`
+ * - the three `__render_currency__` scenes (one approach, current, without a
+ *   link, and with its readings gone stale) and the Kerbin chute scene
  *
- * Run: pnpm --filter @ksp-gonogo/components exec tsx scripts/gen-landing-status-fixtures.ts
+ * `generatedScenes()` is the whole set, which `generatedScenes.test.ts` holds
+ * the committed files to.
+ *
+ * Run, then format: pnpm --filter @ksp-gonogo/components exec tsx scripts/gen-landing-status-fixtures.ts && pnpm exec biome format --write packages/components/src/LandingStatus
  */
-import { writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { type Frame, streamFixture } from "./synthesize-landing-descent";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import {
+  type Frame,
+  greatCircleMeters,
+  groundTrackDistances,
+  groundTrackElevations,
+  sceneMeta,
+  streamFixture,
+} from "./landingDescentModel";
+import { DERIVED_NOTES } from "./landingFixtureProse";
+import {
+  descentScenes,
+  type GeneratedScene,
+  showcaseScenes,
+} from "./synthesize-landing-descent";
 
-const OUT = resolve(import.meta.dirname, "../src/LandingStatus/__fixtures__");
+const ROOT = resolve(import.meta.dirname, "../src/LandingStatus");
+
+type Json = Record<string, unknown>;
 
 /** A Mun descent frame (vDown is positive-down, matching Frame). */
 function munFrame(over: Partial<Frame>): Frame {
@@ -35,7 +53,65 @@ function munFrame(over: Partial<Frame>): Frame {
   };
 }
 
-// ── The five Mun scenarios (built from the shared streamFixture) ──────────────
+/** The stream block of a scene, which every generated scene carries. */
+function streamOf(fixture: Json): { emits: Json[] } & Json {
+  const stream = fixture._stream;
+  if (
+    typeof stream !== "object" ||
+    stream === null ||
+    !("emits" in stream) ||
+    !Array.isArray(stream.emits)
+  ) {
+    throw new Error("the scene carries no stream");
+  }
+  return stream as { emits: Json[] } & Json;
+}
+
+export function isRecord(value: unknown): value is Json {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The record at `key` of a scene's block, asserted present. */
+export function recordAt(parent: Json, key: string): Json {
+  const found = parent[key];
+  if (!isRecord(found)) throw new Error(`the scene carries no ${key}`);
+  return found;
+}
+
+/** The number at `key` of a scene's block, asserted present. */
+export function numberAt(parent: Json, key: string): number {
+  const found = parent[key];
+  if (typeof found !== "number") {
+    throw new Error(`the scene carries no number ${key}`);
+  }
+  return found;
+}
+
+/** The emit a scene carries for one channel, asserted present. */
+export function emitOf(fixture: Json, channel: string): Json {
+  const stream = streamOf(fixture);
+  const found = stream.emits.find((e) => e.channel === channel);
+  if (!found) throw new Error(`the scene carries no ${channel}`);
+  return found;
+}
+
+/** The first body of a scene's `system.bodies`, which the stock descents leave without its gravity and rotation. */
+function withBodyFigures(
+  fixture: Json,
+  figures: { surfaceGravity: number; rotationPeriod: number },
+): Json {
+  const bodies = recordAt(emitOf(fixture, "system.bodies"), "value").bodies;
+  if (!Array.isArray(bodies)) throw new Error("the scene carries no bodies");
+  Object.assign(bodies[0], figures);
+  return fixture;
+}
+
+// ── The Mun scenarios (built from the shared streamFixture) ───────────────────
+const MUN_FIGURES = {
+  surfaceGravity: 0.166056700098353,
+  rotationPeriod: 138984.376574476,
+};
+
 const MUN: Array<{
   scenario: string;
   oneWay: number;
@@ -90,7 +166,30 @@ const MUN: Array<{
   },
 ];
 
-// ── The Kerbin atmospheric reentry (hand-built; different body + atmosphere) ──
+function munScenes(): GeneratedScene[] {
+  return MUN.map(({ scenario, oneWay, notes, frame }) => ({
+    path: `__fixtures__/${scenario}.json`,
+    fixture: withBodyFigures(
+      streamFixture(frame, oneWay, scenario, notes),
+      MUN_FIGURES,
+    ),
+  }));
+}
+
+/** The approaching descent with its stream gone quiet: the same readings, flagged as no longer arriving. */
+function linkLostScene(approaching: Json): GeneratedScene {
+  const scenario = "suicide-burn-approaching-link-lost";
+  const stream = streamOf(approaching);
+  return {
+    path: `__fixtures__/${scenario}.json`,
+    fixture: {
+      _meta: sceneMeta(scenario, DERIVED_NOTES[scenario]),
+      _stream: { ...stream, stopsArriving: true },
+    },
+  };
+}
+
+// ── The Kerbin atmospheric scenes (hand-built; different body + atmosphere) ───
 const EMITTED = [
   "system.bodies",
   "vessel.identity",
@@ -108,8 +207,42 @@ const KERBIN_INDEX = 1;
 const KERBIN_MU = 3.5316e12;
 const KERBIN_RADIUS = 600000;
 
-function kerbinReentryFixture(): Record<string, unknown> {
-  const agl = 28000;
+interface KerbinScene {
+  scenario: string;
+  path: string;
+  /** Extra figures on the body, where the scene states them. */
+  bodyFigures?: { surfaceGravity: number; rotationPeriod: number };
+  vesselId: string;
+  vesselName: string;
+  orbit: { sma: number; ecc: number };
+  flight: Json;
+  surface: Json;
+  gear: boolean;
+  /** The landing group, before any ground-track strip is added. */
+  landing: Json;
+  /** Whether the scene states a predicted site, and so carries a ground-track strip along the way to it. */
+  strip?: boolean;
+}
+
+function kerbinScene(spec: KerbinScene): GeneratedScene {
+  const flight = spec.flight as { latitude: number; longitude: number };
+  const landing: Json = { ...spec.landing };
+  if (spec.strip) {
+    const drift = greatCircleMeters(
+      flight.latitude,
+      flight.longitude,
+      numberAt(landing, "predictedLatitude"),
+      numberAt(landing, "predictedLongitude"),
+      KERBIN_RADIUS,
+    );
+    const distances = groundTrackDistances(drift);
+    landing.groundTrackDistances = distances;
+    landing.groundTrackElevations = groundTrackElevations(
+      distances,
+      drift,
+      numberAt(landing, "predictedTerrainElevation"),
+    );
+  }
   const channels: Record<string, unknown> = {
     "system.bodies": {
       bodies: [
@@ -119,12 +252,13 @@ function kerbinReentryFixture(): Record<string, unknown> {
           parentIndex: 0,
           radius: KERBIN_RADIUS,
           orbit: null,
+          ...spec.bodyFigures,
         },
       ],
     },
     "vessel.identity": {
-      vesselId: "synthetic-reentry",
-      name: "Synthetic Reentry",
+      vesselId: spec.vesselId,
+      name: spec.vesselName,
       vesselType: 0,
       situation: 6, // SubOrbital
       parentBodyIndex: KERBIN_INDEX,
@@ -132,53 +266,31 @@ function kerbinReentryFixture(): Record<string, unknown> {
     },
     "vessel.orbit": {
       referenceBodyIndex: KERBIN_INDEX,
-      sma: 680000,
-      ecc: 0.12,
+      sma: spec.orbit.sma,
+      ecc: spec.orbit.ecc,
       inc: 0,
       lan: 0,
       argPe: 0,
       meanAnomalyAtEpoch: 0,
       epoch: 10,
       mu: KERBIN_MU,
+      horizon: { kind: 1, trajectoryKind: 1 },
     },
-    "vessel.flight": {
-      latitude: -0.047,
-      longitude: -74.623,
-      altitudeAsl: agl,
-      altitudeTerrain: agl,
-      verticalSpeed: -210.4,
-      surfaceSpeed: 220,
-      orbitalSpeed: 220,
-      atmDensity: 0.087,
-      atmosphericTemperature: 240.15,
-      externalTemperature: 1850,
-    },
-    "vessel.surface": {
-      biome: "Shores",
-      landedAt: null,
-      heightFromTerrain: agl,
-    },
+    "vessel.flight": spec.flight,
+    "vessel.surface": spec.surface,
     "vessel.propulsion": {
       totalMass: 5,
       dryMass: 3,
       currentThrust: 0,
       availableThrust: 18,
     },
-    "vessel.control": { gear: false, brakes: false },
+    "vessel.control": { gear: spec.gear, brakes: false },
     "dv.summary": { totalDvActual: 400, totalDvVac: 450 },
     "comms.delay": { source: 1, oneWaySeconds: 1.2 },
     // Atmospheric-aware landing estimate (terminal-velocity model): the presence
     // of terminalVelocity flips the widget to its atmospheric board (aerobraking
     // note + ambient section), NOT the vacuum suicide-burn reticle.
-    "vessel.landing": {
-      outcome: "atmosphere-modelled",
-      sampleSource: null,
-      terminalVelocity: 220,
-      projectedTouchdownSpeed: 8.4,
-      atmosphericTimeToImpact: 95,
-      descentRegime: "hypersonic",
-      parachuteState: "stowed",
-    },
+    "vessel.landing": landing,
   };
   const emits = EMITTED.map((channel) =>
     channel === "vessel.orbit"
@@ -186,27 +298,171 @@ function kerbinReentryFixture(): Record<string, unknown> {
       : { channel, value: channels[channel] },
   );
   return {
-    _meta: {
-      scenario: "kerbin-reentry-atmospheric",
-      synthetic: true,
-      notes:
-        "SYNTHETIC (model-generated, NOT captured). Kerbin reentry (~28 km, 210 m/s down) in an atmosphere, the atmospheric board: terminal velocity, projected touchdown, aerobraking regime + the ambient (air density / temp) section, suicide-burn demoted.",
+    path: spec.path,
+    fixture: {
+      _meta: sceneMeta(spec.scenario, DERIVED_NOTES[spec.scenario]),
+      _stream: { pinnedUt: 10, emits },
     },
-    _stream: { pinnedUt: 10, emits },
   };
 }
 
-// ── Emit ──────────────────────────────────────────────────────────────────────
-for (const { scenario, oneWay, notes, frame } of MUN) {
-  const fixture = streamFixture(frame, oneWay, scenario, notes);
-  writeFileSync(
-    resolve(OUT, `${scenario}.json`),
-    `${JSON.stringify(fixture, null, 2)}\n`,
-  );
-  console.log(`wrote ${scenario}.json (Mun, agl=${frame.aglMeters})`);
+function kerbinScenes(): GeneratedScene[] {
+  return [
+    kerbinScene({
+      scenario: "kerbin-reentry-atmospheric",
+      path: "__fixtures__/kerbin-reentry-atmospheric.json",
+      bodyFigures: {
+        surfaceGravity: 1.00034160493135,
+        rotationPeriod: 21549.4251830899,
+      },
+      vesselId: "synthetic-reentry",
+      vesselName: "Synthetic Reentry",
+      orbit: { sma: 680000, ecc: 0.12 },
+      flight: {
+        latitude: -0.047,
+        longitude: -74.623,
+        altitudeAsl: 28000,
+        altitudeTerrain: 28000,
+        verticalSpeed: -210.4,
+        surfaceSpeed: 220,
+        orbitalSpeed: 220,
+        atmDensity: 0.087,
+        atmosphericTemperature: 240.15,
+        externalTemperature: 1850,
+        mach: 0.708,
+      },
+      surface: { biome: "Shores", landedAt: null, heightFromTerrain: 28000 },
+      gear: false,
+      landing: {
+        outcome: "atmosphere-modelled",
+        sampleSource: null,
+        terminalVelocity: 220,
+        projectedTouchdownSpeed: 8.4,
+        atmosphericTimeToImpact: 95,
+        descentRegime: "hypersonic",
+        parachuteState: "stowed",
+        dragToWeightRatio: 1,
+      },
+    }),
+    kerbinScene({
+      scenario: "atmospheric-final-approach-chute",
+      path: "__render_atmospheric__/final-approach-chute.json",
+      vesselId: "atmo-final",
+      vesselName: "Reentry Capsule",
+      orbit: { sma: 610000, ecc: 0.005 },
+      flight: {
+        latitude: -0.05,
+        longitude: -74.6,
+        altitudeAsl: 1500,
+        altitudeTerrain: 1500,
+        verticalSpeed: -9,
+        surfaceSpeed: 11,
+        orbitalSpeed: 11,
+        atmDensity: 1,
+        atmosphericTemperature: 287.15,
+        externalTemperature: 295,
+        mach: 0.032,
+      },
+      surface: {
+        biome: "Grasslands",
+        landedAt: null,
+        heightFromTerrain: 1500,
+      },
+      gear: true,
+      landing: {
+        outcome: "atmosphere-modelled",
+        sampleSource: "predicted",
+        predictedLatitude: -0.048,
+        predictedLongitude: -74.585,
+        predictedTerrainElevation: 70,
+        predictedSlopeAngle: 4.5,
+        predictedSlopeHeading: 120,
+        predictedRoughness: 40,
+        roughnessFootprintMeters: 60,
+        slopeSampleRadiusMeters: 100,
+        predictedBiome: "Grasslands",
+        terminalVelocity: 9.5,
+        projectedTouchdownSpeed: 8.2,
+        atmosphericTimeToImpact: 165,
+        descentRegime: "at-terminal",
+        parachuteState: "deployed",
+        dragToWeightRatio: 1.341,
+      },
+      strip: true,
+    }),
+  ];
 }
-writeFileSync(
-  resolve(OUT, "kerbin-reentry-atmospheric.json"),
-  `${JSON.stringify(kerbinReentryFixture(), null, 2)}\n`,
-);
-console.log("wrote kerbin-reentry-atmospheric.json (Kerbin, atmospheric)");
+
+// ── The currency scenes: the final approach, with what the link says changed ──
+/** The `__render__` approach scene, restated as a currency scene. */
+function currencyScene(
+  approach: Json,
+  scenario: string,
+  file: string,
+  change: (stream: { emits: Json[] }) => void,
+): GeneratedScene {
+  const copy = structuredClone(approach) as Json;
+  const stream = streamOf(copy);
+  change(stream);
+  return {
+    path: `__render_currency__/${file}.json`,
+    fixture: {
+      _meta: sceneMeta(scenario, DERIVED_NOTES[scenario]),
+      _stream: stream,
+    },
+  };
+}
+
+function currencyScenes(approach: Json): GeneratedScene[] {
+  return [
+    currencyScene(approach, "currency-live", "live-descent", () => {}),
+    currencyScene(approach, "currency-no-link", "no-link", (stream) => {
+      const delay = stream.emits.find((e) => e.channel === "comms.delay");
+      if (!delay) throw new Error("the scene carries no comms.delay");
+      recordAt(delay, "value").oneWaySeconds = null;
+    }),
+    currencyScene(
+      approach,
+      "currency-stale-mid-descent",
+      "readings-gone-stale-mid-descent",
+      (stream) => {
+        for (const channel of ["vessel.flight", "vessel.surface"]) {
+          const emit = stream.emits.find((e) => e.channel === channel);
+          if (emit) emit.meta = { validAt: -600, deliveredAt: -600 };
+        }
+      },
+    ),
+  ];
+}
+
+/** Every generated scene, by path under `src/LandingStatus`. */
+export function generatedScenes(): GeneratedScene[] {
+  const descents = descentScenes();
+  const approach = descents.find(
+    (s) => s.path === "__render__/descent-approach.json",
+  );
+  const mun = munScenes();
+  const approaching = mun.find(
+    (s) => s.path === "__fixtures__/suicide-burn-approaching.json",
+  );
+  if (!approach || !approaching) {
+    throw new Error("the scenes the derived ones start from are missing");
+  }
+  return [
+    ...mun,
+    linkLostScene(approaching.fixture),
+    ...kerbinScenes(),
+    ...descents,
+    ...showcaseScenes(),
+    ...currencyScenes(approach.fixture),
+  ];
+}
+
+if (process.argv[1]?.includes("gen-landing-status-fixtures")) {
+  for (const { path, fixture } of generatedScenes()) {
+    const file = resolve(ROOT, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, `${JSON.stringify(fixture, null, 2)}\n`);
+    console.log(`wrote ${path}`);
+  }
+}
