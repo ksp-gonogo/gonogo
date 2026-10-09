@@ -27,7 +27,7 @@ You can use widget profiles to dynamically switch dashboards based on what you'r
 
 To host, you need:
 
-- **Kerbal Space Program**, with the required mods installed: the Gonogo mod (telemetry), kOS, and SCANsat. See [docs/KSP-SETUP.md](docs/KSP-SETUP.md) for the full list and how to install them.
+- **Kerbal Space Program**, with the required mods installed: the Gonogo mod (telemetry), kOS, and SCANsat. See [docs/KSP-SETUP.md](docs/KSP-SETUP.md) for the full list and how to install them
 - **A container runtime** on the computer that runs the main screen. This is the one piece of software you install to run gonogo itself. To see whether you already have one, run `docker --version` or `podman --version` in a terminal; either answering with a version is enough. If neither does, [Docker Desktop](https://www.docker.com/products/docker-desktop/) is the usual choice; follow their install guide for your operating system
 
 ---
