@@ -65,6 +65,7 @@
       {
         "channel": "vessel.orbit",
         "value": {
+          "horizon": { "kind": 1, "trajectoryKind": 1 },
           "patches": [
             {
               "referenceBody": "Kerbin",
