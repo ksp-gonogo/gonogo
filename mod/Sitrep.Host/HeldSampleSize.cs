@@ -69,6 +69,10 @@ namespace Sitrep.Host
             {
                 return Align(22 + 2L * text.Length);
             }
+            if (IsSharedMachinery(value))
+            {
+                return Align(ObjectHeader + Reference);
+            }
             if (type.IsArray)
             {
                 return ArrayBytes((Array)value, seen);
@@ -102,6 +106,17 @@ namespace Sitrep.Host
             }
             return Align(ObjectHeader + InlineSize(value, seen));
         }
+
+        /// <summary>
+        /// A delegate, a reflection object or a retarget model: the runtime's and
+        /// the planner's own machinery, shared by every sample that points at it, so
+        /// a sample is charged the reference and not the graph behind it. Walking a
+        /// reflection graph never ends, because each read of a pointer field boxes a
+        /// new object.
+        /// </summary>
+        private static bool IsSharedMachinery(object value) =>
+            value is Delegate || value is MemberInfo || value is Assembly || value is Module || value is Pointer
+            || value is Sitrep.Contract.IRetargetModel;
 
         /// <summary>
         /// A dictionary built by adding entries grows through the primes 3, 7, 17,
@@ -196,7 +211,7 @@ namespace Sitrep.Host
                     total += inline == null ? TypeSize(fieldType) : InlineSize(inline, seen);
                     continue;
                 }
-                total += Reference + Walk(field.GetValue(instance), seen);
+                total += Reference + (fieldType.IsPointer ? 0 : Walk(field.GetValue(instance), seen));
             }
             return total;
         }

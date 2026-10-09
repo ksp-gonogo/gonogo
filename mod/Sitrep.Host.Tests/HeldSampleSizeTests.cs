@@ -69,6 +69,48 @@ namespace Sitrep.Host.Tests
             Assert.True(distinct > twice + 200);
         }
 
+        private sealed class Holder
+        {
+            public Func<int>? Callback;
+            public string Name = "x";
+        }
+
+        private interface IModel
+        {
+            int Read();
+        }
+
+        private sealed class Model : IModel
+        {
+            public readonly List<string> Capture = new List<string>();
+            public Func<string, int>? Lookup;
+
+            public int Read() => Capture.Count;
+        }
+
+        [Fact]
+        public void ADelegateIsOneReferenceAndItsTargetIsNotWalked()
+        {
+            var model = new Model();
+            for (var i = 0; i < 5000; i++)
+            {
+                model.Capture.Add(new string('x', 100));
+            }
+            model.Lookup = key => model.Capture.Count + key.Length;
+
+            var size = HeldSampleSize.Of(new Holder { Callback = () => model.Read() });
+
+            Assert.True(size < 1000, "size: " + size);
+        }
+
+        [Fact]
+        public void AReflectionObjectIsOneReference()
+        {
+            var size = HeldSampleSize.Of(new List<object?> { typeof(Model), typeof(Model).GetMethod("Read"), typeof(Model).Assembly });
+
+            Assert.True(size < 1000, "size: " + size);
+        }
+
         [Fact]
         public void TheEstimateTracksWhatTheCollectorCountsForTheBiggestTopic()
         {
