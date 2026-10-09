@@ -233,8 +233,10 @@ describe("generated contract.ts unit types", () => {
     // The unit belongs to each ELEMENT: a terrain profile is a list of
     // distances, not one distance. The null arm sits outside the array, on the
     // whole sequence, because the writer sends the key with null in it when
-    // there is no patch: an absent patch is not an empty one.
-    expect(interfaces.VesselLanding?.terrainPatch).toBe('Value<"m">[] | null');
+    // there is no strip: an absent strip is not an empty one.
+    expect(interfaces.VesselLanding?.groundTrackElevations).toBe(
+      'Value<"m">[] | null',
+    );
   });
 
   // No name-keyed-map assertion here, and that is a statement about core's
