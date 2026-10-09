@@ -41,26 +41,53 @@ namespace Sitrep.Host
         public const int RefinementSteps = 24;
 
         /// <summary>
+        /// The most terrain reads one search may take, refinement included. Each
+        /// is a PQS evaluation, so this bounds the per-tick cost; a search that
+        /// spends the allowance on its coarse walk stops reading terrain and
+        /// falls back to the sea-level crossing.
+        /// </summary>
+        public const int MaxTerrainReads = 96;
+
+        /// <summary>
         /// Step from <paramref name="nowUt"/> over <paramref name="horizonSec"/>
-        /// at <paramref name="stepSec"/>; the first step whose altitude drops
-        /// below <paramref name="minImpactAltMeters"/> ends the coarse walk. The
-        /// crossing is then bisected between that step and the one before it
+        /// at <paramref name="stepSec"/>; the first step that is below the
+        /// surface ends the coarse walk. The surface is the larger of
+        /// <paramref name="minImpactAltMeters"/> and the terrain height from
+        /// <paramref name="terrainAt"/> (lat, lon degrees; metres above sea level),
+        /// which is only asked for while the trajectory is under
+        /// <paramref name="terrainCeilingMeters"/>, the highest ground the body has.
+        /// The crossing is then bisected between that step and the one before it
         /// (<see cref="RefinementSteps"/> halvings), and the last above-surface
-        /// lat/lon found is returned, so the site does not move with where the
-        /// coarse grid happens to start. Returns null when the parameters are
-        /// degenerate, the very first sample is already below the surface, or the
-        /// trajectory never reaches the surface within the horizon (still
-        /// airborne: no touchdown to assess).
+        /// lat/lon found is returned, so the site neither moves with where the
+        /// coarse grid happens to start nor stops at sea level over high ground.
+        /// Returns null when the parameters are degenerate, the very first sample
+        /// is already below the surface, or the trajectory never reaches the
+        /// surface within the horizon (still airborne: no touchdown to assess).
         /// </summary>
         public static (double lat, double lon)? FindImpact(
             Func<double, GeoPoint> sampler,
             double nowUt,
             double horizonSec,
             double stepSec,
-            double minImpactAltMeters = -100.0)
+            double minImpactAltMeters = -100.0,
+            Func<double, double, double>? terrainAt = null,
+            double terrainCeilingMeters = double.PositiveInfinity)
         {
             if (sampler == null || !(stepSec > 0) || !(horizonSec > 0))
                 return null;
+
+            int terrainReads = 0;
+            bool Below(GeoPoint g)
+            {
+                if (g.Altitude < minImpactAltMeters)
+                    return true;
+                if (terrainAt == null
+                    || g.Altitude >= terrainCeilingMeters
+                    || terrainReads >= MaxTerrainReads - RefinementSteps)
+                    return false;
+                terrainReads++;
+                return g.Altitude < terrainAt(g.Lat, g.Lon);
+            }
 
             (double lat, double lon)? last = null;
             double lastUt = nowUt;
@@ -68,8 +95,8 @@ namespace Sitrep.Host
             for (double ut = nowUt; ut <= endUt; ut += stepSec)
             {
                 var g = sampler(ut);
-                if (g.Altitude < minImpactAltMeters)
-                    return last.HasValue ? Refine(sampler, lastUt, ut, minImpactAltMeters, last.Value) : null;
+                if (Below(g))
+                    return last.HasValue ? Refine(sampler, Below, lastUt, ut, last.Value) : null;
                 last = (g.Lat, g.Lon);
                 lastUt = ut;
             }
@@ -78,16 +105,16 @@ namespace Sitrep.Host
 
         private static (double lat, double lon) Refine(
             Func<double, GeoPoint> sampler,
+            Func<GeoPoint, bool> below,
             double aboveUt,
             double belowUt,
-            double minImpactAltMeters,
             (double lat, double lon) above)
         {
             for (int i = 0; i < RefinementSteps; i++)
             {
                 double mid = 0.5 * (aboveUt + belowUt);
                 var g = sampler(mid);
-                if (g.Altitude < minImpactAltMeters)
+                if (below(g))
                 {
                     belowUt = mid;
                 }

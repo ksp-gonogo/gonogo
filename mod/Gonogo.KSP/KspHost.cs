@@ -2716,7 +2716,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Best-effort mod-side predicted touchdown lat/lon: a conic patch-walk
-        /// of the live orbit to the surface crossing (option 1), mirroring the
+        /// of the live orbit to the terrain crossing (option 1), mirroring the
         /// client's proven <c>findImpactPoint</c>. Returns null (→ sub-vessel
         /// fallback) when the body does not rotate normally or the trajectory
         /// does not reach the surface within the horizon. The KSP-frame maths
@@ -2748,7 +2748,18 @@ namespace Gonogo.KSP
 
             double horizon = orbit.period > 0 ? Math.Min(orbit.period, 1200.0) : 1200.0;
             double step = Math.Max(1.0, horizon / 240.0);
-            return LandingPredictor.FindImpact(Sampler, now, horizon, step, -100.0);
+            // The ground is met where the trajectory drops to the terrain, which over highlands is kilometres above the sea-level crossing.
+            double ceiling = body.pqsController != null
+                ? body.pqsController.mapMaxHeight + 500.0
+                : double.PositiveInfinity;
+            return LandingPredictor.FindImpact(
+                Sampler,
+                now,
+                horizon,
+                step,
+                -100.0,
+                (lat, lon) => body.TerrainAltitude(lat, lon, allowNegative: true),
+                ceiling);
         }
 
         /// <summary>Air density at an ASL altitude, via the body's pressure/temperature curves.</summary>

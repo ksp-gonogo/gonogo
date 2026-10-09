@@ -71,6 +71,64 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void MeetsAPlateauBeforeSeaLevel()
+        {
+            // Altitude falls 100 m per second from 6000 m while the ground ahead
+            // is a 4000 m plateau: the craft meets it at t = 20 s, 40 s before the
+            // sea-level crossing the search used to report.
+            var hit = LandingPredictor.FindImpact(
+                ut => new LandingPredictor.GeoPoint(0.5 * ut, 2.0 * ut, 6000.0 - 100.0 * ut),
+                nowUt: 0.3,
+                horizonSec: 120,
+                stepSec: 5,
+                terrainAt: (lat, lon) => 4000.0,
+                terrainCeilingMeters: 5000.0);
+
+            Assert.NotNull(hit);
+            Assert.Equal(2.0 * 20, hit!.Value.lon, 2);
+        }
+
+        [Fact]
+        public void IgnoresTerrainAboveTheCeilingWithoutReadingIt()
+        {
+            var reads = 0;
+            LandingPredictor.FindImpact(
+                ut => new LandingPredictor.GeoPoint(0, 0, 9000.0 - 100.0 * ut),
+                nowUt: 0,
+                horizonSec: 200,
+                stepSec: 5,
+                terrainAt: (lat, lon) =>
+                {
+                    reads++;
+                    return 0.0;
+                },
+                terrainCeilingMeters: 5000.0);
+
+            // 5000 m is reached at t = 40 s, the sea-level crossing at ~91 s: the 40 s of walk above the ceiling reads nothing.
+            Assert.True(reads <= LandingPredictor.MaxTerrainReads, "reads: " + reads);
+            Assert.True(reads >= 1);
+        }
+
+        [Fact]
+        public void TerrainReadsStayWithinTheAllowanceOverALongLowWalk()
+        {
+            var reads = 0;
+            LandingPredictor.FindImpact(
+                ut => new LandingPredictor.GeoPoint(0, 0, 1000.0),
+                nowUt: 0,
+                horizonSec: 1200,
+                stepSec: 5,
+                terrainAt: (lat, lon) =>
+                {
+                    reads++;
+                    return 0.0;
+                },
+                terrainCeilingMeters: 5000.0);
+
+            Assert.True(reads <= LandingPredictor.MaxTerrainReads, "reads: " + reads);
+        }
+
+        [Fact]
         public void ReturnsNullWhenStillAirborneAcrossTheHorizon()
         {
             // A shallow descent that never reaches the surface within the horizon.
