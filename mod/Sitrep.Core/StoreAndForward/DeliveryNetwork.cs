@@ -93,6 +93,56 @@ namespace Sitrep.Core.StoreAndForward
     }
 
     /// <summary>
+    /// The links a network reads, remembering each answer while one sweep over
+    /// held messages runs, so a node holding thousands of messages for the same
+    /// few peers asks the game once per pair and not once per message. Outside a
+    /// sweep every question goes through.
+    /// </summary>
+    internal sealed class SweepLinks : IDeliveryLinks, IReceiveCheck
+    {
+        private readonly IDeliveryLinks _inner;
+        private readonly Dictionary<(string, string), double?> _paths = new Dictionary<(string, string), double?>();
+        private readonly Dictionary<(string, string), double?> _links = new Dictionary<(string, string), double?>();
+        private int _depth;
+
+        internal SweepLinks(IDeliveryLinks inner)
+        {
+            _inner = inner;
+        }
+
+        internal void BeginSweep() => _depth++;
+
+        internal void EndSweep()
+        {
+            if (--_depth == 0)
+            {
+                _paths.Clear();
+                _links.Clear();
+            }
+        }
+
+        public double? LivePath(string from, string to) => Remember(_paths, from, to, _inner.LivePath);
+
+        public double? LiveLink(string from, string to) => Remember(_links, from, to, _inner.LiveLink);
+
+        public bool PeerCanReceive(string from, string to) => !(_inner is IReceiveCheck check) || check.PeerCanReceive(from, to);
+
+        private double? Remember(Dictionary<(string, string), double?> known, string from, string to, Func<string, string, double?> ask)
+        {
+            if (_depth == 0)
+            {
+                return ask(from, to);
+            }
+            if (!known.TryGetValue((from, to), out var answer))
+            {
+                answer = ask(from, to);
+                known[(from, to)] = answer;
+            }
+            return answer;
+        }
+    }
+
+    /// <summary>
     /// Store-and-forward delivery of delayed commands, cancels and reports.
     ///
     /// <para><b>Who decides a departure, and from what.</b> A command centre
@@ -141,7 +191,8 @@ namespace Sitrep.Core.StoreAndForward
 
         private readonly object _gate = new object();
         private readonly IClock _clock;
-        private readonly IDeliveryLinks _links;
+        private readonly SweepLinks _links;
+        private readonly Dictionary<string, double> _spanSweepUt = new Dictionary<string, double>(StringComparer.Ordinal);
         private readonly IDeliveryRoutes _routes;
         private readonly ISenderPlans? _beliefs;
         private readonly Func<CommandMessage, double, object?> _execute;
@@ -185,7 +236,7 @@ namespace Sitrep.Core.StoreAndForward
             _beliefs = beliefs;
             _deliverSpan = deliverSpan;
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-            _links = links ?? throw new ArgumentNullException(nameof(links));
+            _links = new SweepLinks(links ?? throw new ArgumentNullException(nameof(links)));
             _routes = routes ?? throw new ArgumentNullException(nameof(routes));
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _deliverReport = deliverReport ?? throw new ArgumentNullException(nameof(deliverReport));
@@ -438,8 +489,16 @@ namespace Sitrep.Core.StoreAndForward
                 var nowUt = _clock.Now();
                 span.Id = MintId("span");
                 span.Plan = PlanAt(span.Centre);
-                Hold(node, span, nowUt, null);
-                Depart(node, nowUt);
+                var held = Hold(node, span, nowUt, null);
+                if (held == null)
+                {
+                    return;
+                }
+                // The first span added to a node at an instant sends on everything
+                // the node holds; the rest of that instant's batch sends only itself.
+                var swept = _spanSweepUt.TryGetValue(node, out var sweptUt) && sweptUt == nowUt;
+                _spanSweepUt[node] = nowUt;
+                Depart(node, nowUt, swept ? held : null);
             }
         }
 
@@ -1137,13 +1196,26 @@ namespace Sitrep.Core.StoreAndForward
             Plan = cancel.Plan,
         };
 
-        private void Depart(string node, double nowUt)
+        private void Depart(string node, double nowUt, Held? only = null)
         {
             if (!_held.TryGetValue(node, out var list) || list.Count == 0)
             {
                 return;
             }
-            foreach (var held in list.OrderBy(Order).ToList())
+            _links.BeginSweep();
+            try
+            {
+                Depart(node, list, nowUt, only);
+            }
+            finally
+            {
+                _links.EndSweep();
+            }
+        }
+
+        private void Depart(string node, List<Held> list, double nowUt, Held? only)
+        {
+            foreach (var held in only != null ? new List<Held> { only } : list.OrderBy(Order).ToList())
             {
                 if (held.Away != null || nowUt < held.EligibleUt)
                 {

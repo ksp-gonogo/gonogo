@@ -394,7 +394,14 @@ namespace Sitrep.Propagation.Contacts
             return (light, meters);
         }
 
-        private static Dictionary<string, List<(PairPlan Pair, string Other)>> Adjacency(ContactPlan plan)
+        /// <summary>Each plan's adjacency, built once: a node holding thousands of messages routes every one of them against the same plan.</summary>
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ContactPlan, Dictionary<string, List<(PairPlan Pair, string Other)>>> Adjacencies =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<ContactPlan, Dictionary<string, List<(PairPlan Pair, string Other)>>>();
+
+        private static Dictionary<string, List<(PairPlan Pair, string Other)>> Adjacency(ContactPlan plan) =>
+            Adjacencies.GetValue(plan, BuildAdjacency);
+
+        private static Dictionary<string, List<(PairPlan Pair, string Other)>> BuildAdjacency(ContactPlan plan)
         {
             var adjacency = new Dictionary<string, List<(PairPlan, string)>>(StringComparer.Ordinal);
             void Add(string from, string to, PairPlan pair)

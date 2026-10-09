@@ -33,7 +33,13 @@ namespace Sitrep.Core.Tests.StoreAndForward
                 _links.Remove((b, a));
             }
 
-            public double? LiveLink(string from, string to) => _links.TryGetValue((from, to), out var light) ? light : (double?)null;
+            public int Asked { get; private set; }
+
+            public double? LiveLink(string from, string to)
+            {
+                Asked++;
+                return _links.TryGetValue((from, to), out var light) ? light : (double?)null;
+            }
 
             public double? LivePath(string from, string to) => LiveLink(from, to);
         }
@@ -86,6 +92,28 @@ namespace Sitrep.Core.Tests.StoreAndForward
                 Network.AddSpan(Lander, span);
                 return span;
             }
+        }
+
+        [Fact]
+        public void HoldingManySpansAsksTheLinksAboutEachPairOnceAndNotOncePerSpan()
+        {
+            var rig = new Rig();
+            rig.Tick(1.0);
+
+            var before = rig.Links.Asked;
+            for (var i = 0; i < 200; i++)
+            {
+                rig.Add(1.0 + i);
+            }
+            var addingAsked = rig.Links.Asked - before;
+
+            before = rig.Links.Asked;
+            rig.Tick(2.0);
+            var tickAsked = rig.Links.Asked - before;
+
+            Assert.Equal(200, rig.Network.Spans().Count);
+            Assert.True(addingAsked <= 200 * 4, "links asked while adding: " + addingAsked);
+            Assert.True(tickAsked <= 8, "links asked by one tick over 200 held spans: " + tickAsked);
         }
 
         [Fact]
