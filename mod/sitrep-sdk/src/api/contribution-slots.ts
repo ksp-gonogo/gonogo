@@ -40,7 +40,7 @@
 // pressure, ...) whose tone genuinely is a state rather than an identity.
 // ---------------------------------------------------------------------------
 
-import type { Reading } from "../reading";
+import type { HeldGrade, Reading } from "../reading";
 import type { ReadFrameChoice } from "../spine/reference-frame";
 import type { Value } from "../unit-system/value";
 import type { AlertTone, Tone } from "./tone";
@@ -99,6 +99,12 @@ export type ShipMapPartMetaEntry = {
   partId: string;
   /** The row's label, such as `"Water Recycler"`. */
   label: string;
+  /**
+   * The reading the row was drawn from, or just its grade. Only a held reading
+   * changes anything, so it can be passed unconditionally; while it is held the
+   * meter or text is drawn with the held mark.
+   */
+  held?: HeldGrade | Reading<unknown>;
 } & (
   | {
       /** `"ratio"` draws `value` as a meter; `"text"` draws `text` beside the label. */
@@ -135,6 +141,12 @@ export interface CommSignalHopRateEntry {
   toNodeId: string;
   /** The hop's forward data rate in bits per second. */
   bitsPerSec: number;
+  /**
+   * The reading the rate was read from, or just its grade. Only a held reading
+   * changes anything, so it can be passed unconditionally; while it is held
+   * the rate is drawn with the held mark.
+   */
+  held?: HeldGrade | Reading<unknown>;
 }
 
 /**
@@ -385,6 +397,14 @@ export interface CrewRowToneEntry {
   crewName: string;
   /** How alarming the situation is. The widget picks the colour. */
   tone: AlertTone;
+  /**
+   * The reading the tone was judged from, or just its grade. Only a held
+   * reading changes anything, so it can be passed unconditionally. While it is
+   * held the row is tinted by the grade's own severity in place of `tone`, as a
+   * held badge is, so a judgement made on data that stopped arriving is never
+   * shown as current.
+   */
+  held?: HeldGrade | Reading<unknown>;
 }
 
 /**
@@ -562,6 +582,13 @@ export interface SpaceCenterFacilityEntry {
   currentTierText?: string;
   /** The same, for the tier an upgrade would buy. */
   nextTierText?: string;
+  /**
+   * The reading the tier was read from, or just its grade. Only a held reading
+   * changes anything, so a contribution can pass its reading unconditionally.
+   * While it is held the widget draws the tier as held, dated by the reading's
+   * `asOfUt` where it has one.
+   */
+  held?: HeldGrade | Reading<unknown>;
 }
 
 // The plot SUBJECTS `packages/components` draws, declared so a contributor

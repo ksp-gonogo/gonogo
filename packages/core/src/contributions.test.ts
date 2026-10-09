@@ -161,7 +161,7 @@ describe("ContributionDefinition.deps accepting a ProcessorHandle", () => {
     const processor = defineProcessor({
       id: "fixture-processor",
       owner: "core",
-      deps: [] as const,
+      deps: [{ reading: "vessel.orbit" }] as const,
       compute: () => 1,
     });
 

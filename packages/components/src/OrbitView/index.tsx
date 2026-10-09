@@ -169,6 +169,7 @@ function OrbitViewComponent({
         argPe: argPe?.magnitude ?? 0,
         trueAnomaly: trueAnomaly ?? 0,
         bodyRadius: body?.radius,
+        held: orbitReading,
       })
     : null;
 

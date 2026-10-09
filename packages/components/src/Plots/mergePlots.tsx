@@ -1,6 +1,12 @@
-import type { Contributed, PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Contributed,
+  HeldGrade,
+  PlotEntry,
+  PlotLayer,
+} from "@ksp-gonogo/sitrep-sdk";
 import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
 import { plotLayerExtent } from "@ksp-gonogo/ui";
+import { heldGradeOf } from "@ksp-gonogo/ui-kit";
 
 /**
  * Groups contributed plots by subject, which turns a better model from a
@@ -27,6 +33,8 @@ export interface MergedPlot {
   title: string;
   frame: NonNullable<PlotEntry["frame"]>;
   layers: readonly PlotLayer[];
+  /** The held grade of the first contribution to the subject drawn from a held reading; absent while every one is current. */
+  held?: HeldGrade;
 }
 
 type Entry = Contributed<PlotEntry>;
@@ -40,7 +48,7 @@ type Entry = Contributed<PlotEntry>;
 export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
   const bySubject = new Map<
     string,
-    { framer: Entry | null; layers: PlotLayer[] }
+    { framer: Entry | null; layers: PlotLayer[]; held?: HeldGrade }
   >();
 
   for (const entry of entries) {
@@ -64,6 +72,7 @@ export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
       }
     }
     group.layers.push(...entry.layers);
+    group.held ??= heldGradeOf(entry.held);
   }
 
   const merged: MergedPlot[] = [];
@@ -80,6 +89,7 @@ export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
       title: framer.title ?? subject,
       frame: widenToFit(framer.frame, group.layers),
       layers: group.layers,
+      ...(group.held === undefined ? {} : { held: group.held }),
     });
   }
   return merged;

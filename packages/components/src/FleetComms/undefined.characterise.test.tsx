@@ -17,8 +17,9 @@ import { __resetFleetCommsTogglesForTests } from "./toggles";
 
 /**
  * What FleetComms's link badge does when `comms.link` is absent for any of its
- * three causes (never landed, a tombstone, `connected` omitted): every one must
- * read as the honest unknown, never LINK or NO LINK.
+ * three causes (never landed, a tombstone, `connected` omitted): never LINK or
+ * NO LINK. One not yet heard from is awaited; the other two are the honest
+ * unknown.
  */
 
 const PINNED_UT = 100;
@@ -70,16 +71,17 @@ function badgeText(): string | null {
   const pill =
     screen.queryByText("COMMS LINKED") ??
     screen.queryByText("NO COMMS LINK") ??
+    screen.queryByText("COMMS AWAITING") ??
     screen.queryByText(`COMMS ${NULL_DISPLAY}`);
   return pill?.textContent ?? null;
 }
 
 describe("FleetComms badge: what undefined means today", () => {
-  it("renders the placeholder glyph, not a link state, when comms.link has never arrived", async () => {
+  it("renders the link as awaited, not a link state, when comms.link has never arrived", async () => {
     renderBadge();
 
-    // An unobserved reading resolves to the honest unknown, neither LINK nor NO LINK.
-    await waitFor(() => expect(badgeText()).toBe(`COMMS ${NULL_DISPLAY}`));
+    // A reading not yet heard from is awaited, neither LINK nor NO LINK.
+    await waitFor(() => expect(badgeText()).toBe("COMMS AWAITING"));
     expect(badgeText()).not.toBe("COMMS LINKED");
     expect(badgeText()).not.toBe("NO COMMS LINK");
   });
@@ -97,7 +99,7 @@ describe("FleetComms badge: what undefined means today", () => {
       expect(fixture.store.sample("comms.link")?.payload).toBeNull(),
     );
 
-    // The badge renders a tombstone the same as never-arrived.
+    // A tombstone is an answer, so it is the honest unknown rather than awaited.
     await waitFor(() => expect(badgeText()).toBe(`COMMS ${NULL_DISPLAY}`));
   });
 

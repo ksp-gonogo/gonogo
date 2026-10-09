@@ -46,7 +46,7 @@ CORE_UPLINK_CLIENT.registerContribution({
 
 const READS_THE_CLOCK = CORE_UPLINK_CLIENT.registerProcessor({
   id: "undeclared-probe-processor",
-  deps: ["comms.link"] as const,
+  deps: [{ reading: "comms.link" }] as const,
   compute: (_values, { viewUt }) => {
     getViewUt();
     return viewUt > 0;

@@ -1,6 +1,8 @@
 import type { StatEntry } from "@ksp-gonogo/sitrep-sdk";
 import { useContributionsBySlotId } from "./contributionsRead";
+import { HeldFigure } from "./HeldMark";
 import { NullValue } from "./NullValue";
+import { heldMarking } from "./readingCurrency";
 import { Stat } from "./Stat";
 import { Unit } from "./Unit";
 
@@ -23,7 +25,8 @@ export interface StatContributionsProps {
  * A fragment, not a wrapper: the cells land in the host's own `Grid` of stats
  * as siblings of its built-in ones. Renders nothing when
  * nothing is contributed, so a host can place it unconditionally. An entry's
- * quantity is drawn through {@link Unit}, else its text, else the null token.
+ * quantity is drawn through {@link Unit}, else its text, else the null token;
+ * a held figure is drawn with the held mark either way.
  *
  * @example
  * ```tsx
@@ -60,9 +63,15 @@ export function StatContributions({ slot }: StatContributionsProps) {
  * The figure: a quantity through `Unit`, else the entry's own text. An entry
  * carrying neither draws the null token rather than a blank cell.
  */
-function StatFigure({ entry }: { entry: StatEntry }) {
+export function StatFigure({ entry }: { entry: StatEntry }) {
   // A `null` value still goes through `Unit`, which draws the null token itself.
   if (entry.value !== undefined) return <Unit value={entry.value} />;
-  if (entry.text !== undefined) return <>{entry.text}</>;
-  return <NullValue />;
+  if (entry.text === undefined) return <NullValue />;
+  const marking = heldMarking(entry.held);
+  if (marking === null) return <>{entry.text}</>;
+  return (
+    <HeldFigure kind={marking.kind} caption={marking.caption}>
+      {entry.text}
+    </HeldFigure>
+  );
 }

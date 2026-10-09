@@ -509,6 +509,9 @@ export { Row, RowName, type RowProps } from "./Row";
 export {
   type CurrencyOptions,
   derivedMarking,
+  heldFigureOf,
+  heldGradeOf,
+  heldMarking,
   modelledBeyondReceived,
   type ReckoningMarking,
   type Resolved,

@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { heldWord } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 import { PlotBoard } from "./PlotBoard";
 
@@ -117,5 +118,65 @@ describe("PlotBoard", () => {
 
     await act(async () => {});
     expect(container.textContent).toBe("");
+  });
+
+  it("marks a plot held while any contribution to its subject is drawn from a held reading", async () => {
+    registerContribution({
+      id: "framer",
+      contributes: "plots",
+      compute: () => [
+        {
+          subject: "shared",
+          title: "Shared plot",
+          frame: FRAME,
+          layers: ONE_MARK,
+          held: {
+            state: "observed" as const,
+            value: undefined,
+            reckoning: { status: "none" as const },
+          },
+        },
+      ],
+    });
+    registerContribution({
+      id: "enricher",
+      contributes: "plots",
+      compute: () => [
+        { subject: "shared", layers: ONE_MARK, held: "disconnected" as const },
+      ],
+    });
+
+    render(<Host />);
+
+    await waitFor(() => expect(screen.getByText("Shared plot")).toBeTruthy());
+    expect(screen.getByText(heldWord("disconnected"))).toBeTruthy();
+    await act(async () => {});
+  });
+
+  it("draws no held badge on a plot every contribution draws from current readings", async () => {
+    registerContribution({
+      id: "current-plot",
+      contributes: "plots",
+      compute: () => [
+        {
+          subject: "current",
+          title: "Current plot",
+          frame: FRAME,
+          layers: ONE_MARK,
+          held: {
+            state: "observed" as const,
+            value: undefined,
+            reckoning: { status: "none" as const },
+          },
+        },
+      ],
+    });
+
+    render(<Host />);
+
+    await waitFor(() => expect(screen.getByText("Current plot")).toBeTruthy());
+    expect(screen.queryByText(heldWord("disconnected"))).toBeNull();
+    expect(screen.queryByText(heldWord("held"))).toBeNull();
+    await act(async () => {});
   });
 });

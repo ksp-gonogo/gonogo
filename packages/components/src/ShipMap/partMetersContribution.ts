@@ -2,7 +2,7 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import { buildResourcesByFlightId } from "@ksp-gonogo/data";
 import {
   type Reading,
-  type TopicReading,
+  type TopicCurrency,
   type Value,
   type VesselParts,
   value,
@@ -13,9 +13,8 @@ import type { ShipMapPartMeterEntry } from "./shipTopology";
  * The built-in `ship-map.part-meters` contribution: the five classic drainable
  * propellants, on the same slot an Uplink contributes its supply tanks to.
  * ShipMap itself does not decide which resource earns a meter. Five
- * well-chosen bars beat a bar on every resource. Reads `vessel.parts` through
- * a processor so each amount carries its reading's currency: contributions are
- * evaluated outside any component.
+ * well-chosen bars beat a bar on every resource. Each amount carries the
+ * currency of the `vessel.parts` reading it came from.
  */
 
 /** The five drainable propellants that earn a meter. The fill colour is the resource's identity, derived by the renderer. */
@@ -78,7 +77,7 @@ export function computeBuiltinPartMeters(
  * tank now.
  */
 function figureReading(
-  parts: Reading<VesselParts | undefined>,
+  parts: TopicCurrency<VesselParts>,
   figure: Value<"units">,
 ): Reading<Value<"units">> {
   if (parts.state === "observed") {
@@ -107,9 +106,9 @@ function figureReading(
  * together; a level that stopped arriving is still drawn, and marked.
  */
 export function builtinPartMeterReadings(
-  parts: Reading<VesselParts | undefined> | undefined,
+  parts: TopicCurrency<VesselParts>,
 ): readonly ShipMapPartMeterEntry[] {
-  if (parts?.state !== "observed" && parts?.state !== "held") return [];
+  if (parts.state !== "observed" && parts.state !== "held") return [];
   return computeBuiltinPartMeters(parts.value).map((entry) => ({
     ...entry,
     amount: figureReading(parts, entry.amount),
@@ -117,26 +116,9 @@ export function builtinPartMeterReadings(
   }));
 }
 
-/**
- * `vessel.parts` as a reading, since a contribution is handed a topic's
- * payload and never its currency.
- */
-const VESSEL_PARTS_READING = CORE_UPLINK_CLIENT.registerProcessor({
-  id: "ship-map-vessel-parts-reading",
-  deps: [{ reading: "vessel.parts" }] as const,
-  compute: ([parts]: readonly [TopicReading<VesselParts>]):
-    | VesselParts
-    | undefined =>
-    parts.state === "observed" || parts.state === "held"
-      ? parts.value
-      : undefined,
-});
-
 CORE_UPLINK_CLIENT.registerContribution({
   id: "ship-map-part-meters",
   contributes: "ship-map.part-meters",
-  // `vessel.parts` stays a bare dep: the bare id subscribes the topic; the processor only reads what is stored.
-  deps: ["vessel.parts", VESSEL_PARTS_READING],
-  compute: (topics) =>
-    builtinPartMeterReadings(topics[VESSEL_PARTS_READING.id]),
+  deps: ["vessel.parts"],
+  compute: (topics) => builtinPartMeterReadings(topics["vessel.parts"]),
 });

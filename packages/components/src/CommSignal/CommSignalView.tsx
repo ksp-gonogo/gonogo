@@ -7,8 +7,10 @@ import {
   Grid,
   getWidgetShape,
   HeldFigure,
+  heldMarking,
   NULL_DISPLAY,
   Panel,
+  type ReckoningMarking,
   Section,
   Stack,
   Unit,
@@ -97,12 +99,16 @@ export function CommSignalComponent({
 
   // Per-hop bitrate comes from a contribution, never the core hop; bare CommNet has none and the schedule is otherwise unchanged.
   const hopRateEntries = useContributions("comm-signal.hop-rates");
-  const rateByHopId = useMemo(() => {
-    const map = new Map<string, number>();
+  const { rateByHopId, rateMarkingByHopId } = useMemo(() => {
+    const rates = new Map<string, number>();
+    const markings = new Map<string, ReckoningMarking>();
     for (const entry of hopRateEntries) {
-      map.set(commsHopId(entry.fromNodeId, entry.toNodeId), entry.bitsPerSec);
+      const id = commsHopId(entry.fromNodeId, entry.toNodeId);
+      rates.set(id, entry.bitsPerSec);
+      const marking = heldMarking(entry.held);
+      if (marking) markings.set(id, marking);
     }
-    return map;
+    return { rateByHopId: rates, rateMarkingByHopId: markings };
   }, [hopRateEntries]);
 
   /*
@@ -222,6 +228,7 @@ export function CommSignalComponent({
                 centreLabel={centreLabel}
                 pathDelay={delay}
                 rateByHopId={rateByHopId}
+                rateMarkingByHopId={rateMarkingByHopId}
               />
             )}
           </Cluster>

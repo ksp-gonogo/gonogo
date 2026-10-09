@@ -22,6 +22,8 @@ import type { TargetingHudContext } from "./slots";
 interface DockingHudProps {
   name: string;
   distance: number | undefined;
+  /** The reading the alignment and distance were drawn from, handed to the augments drawn over the HUD. */
+  figuresReading: TargetingHudContext["held"];
   relVel: number | undefined;
   ax: number | undefined;
   ay: number | undefined;
@@ -46,6 +48,7 @@ export function DockingHud(props: DockingHudProps) {
   const {
     name,
     distance,
+    figuresReading,
     relVel,
     ax,
     ay,
@@ -114,6 +117,7 @@ export function DockingHud(props: DockingHudProps) {
     ax,
     ay,
     distance,
+    held: figuresReading,
     cameraFlightId,
   };
 

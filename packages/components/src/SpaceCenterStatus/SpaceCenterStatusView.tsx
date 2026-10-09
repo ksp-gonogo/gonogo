@@ -9,7 +9,7 @@ import {
   type UnitValue,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
-import { FacilityGridItem, type HeldSince } from "./FacilityCell";
+import { FacilityGridItem } from "./FacilityCell";
 import { FACILITIES, type FacilityLevels } from "./facilities";
 import {
   AbsenceLine,
@@ -27,7 +27,6 @@ export interface SpaceCenterStatusViewProps {
   fundsReading: UnitValue<"funds">;
   chargesFunds: boolean;
   padLine: string;
-  tiersHeldSince: HeldSince;
   facilities: FacilityLevels;
   upgradeBlocked: boolean;
   upgradeCmd: CommandButtonHandle;
@@ -41,7 +40,6 @@ export function SpaceCenterStatusView({
   fundsReading,
   chargesFunds,
   padLine,
-  tiersHeldSince,
   facilities,
   upgradeBlocked,
   upgradeCmd,
@@ -110,7 +108,7 @@ export function SpaceCenterStatusView({
                       tierSpecsFit={tierSpecsFit}
                       anyTierText={anyTierText}
                       careerFunds={careerFunds}
-                      tiersHeldSince={tiersHeldSince}
+                      tiersHeldSince={facilities[key]?.heldSince ?? null}
                       upgradeBlocked={upgradeBlocked}
                       upgradeCmd={upgradeCmd}
                     />

@@ -1,4 +1,5 @@
-import type { BadgeEntry, HeldGrade, Tone } from "@ksp-gonogo/sitrep-sdk";
+import type { BadgeEntry, Tone } from "@ksp-gonogo/sitrep-sdk";
+import { heldGradeOf } from "./readingCurrency";
 import { severityFromStreamStatus } from "./status/severity";
 import { heldWord } from "./status/streamStatusWord";
 
@@ -26,7 +27,7 @@ export interface BadgeFace {
  * @category Badge
  */
 export function badgeFace(entry: BadgeEntry & { title?: string }): BadgeFace {
-  const grade = heldGradeOf(entry);
+  const grade = heldGradeOf(entry.held);
   if (grade === undefined) {
     return { label: entry.label, tone: entry.tone, title: entry.title };
   }
@@ -36,16 +37,4 @@ export function badgeFace(entry: BadgeEntry & { title?: string }): BadgeFace {
     tone: severityFromStreamStatus(grade),
     title: entry.title ?? `${entry.label}: ${label}`,
   };
-}
-
-/**
- * A badge's own grade, whether it names one directly or carries the whole
- * `Reading` it was derived from. `Reading.grade` is only ever set once the
- * reading itself is `"held"`, so a live reading passed through `held` yields
- * `undefined` here the same as no `held` at all.
- */
-function heldGradeOf(entry: BadgeEntry): HeldGrade | undefined {
-  const held = entry.held;
-  if (held === undefined) return undefined;
-  return typeof held === "string" ? held : held.grade;
 }

@@ -1,26 +1,13 @@
-import type { CareerFacility } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  CareerFacility,
+  SpaceCenterFacilityEntry,
+} from "@ksp-gonogo/sitrep-sdk";
 import { KspSpaceCenterFacility } from "@ksp-gonogo/sitrep-sdk";
+import { heldGradeOf } from "@ksp-gonogo/ui-kit";
+import type { HeldSince } from "../shared/heldFigure";
 import { magnitudeOf } from "../shared/magnitude";
 
-/**
- * One building of the space centre, as `space-center-status.facilities` carries
- * it. Every tier is KSP's own zero-based facility level; the display adds one,
- * because operators count from one and so does KSP's own R&D dialog.
- */
-export interface SpaceCenterFacilityEntry {
-  /** KSP's `SpaceCenterFacility` enum name, e.g. `"VehicleAssemblyBuilding"`. */
-  facility: string;
-  /** The tier it is at, zero-based. */
-  currentTier: number;
-  /** The top tier's own index, so a three-tier building says 2. */
-  maxTier: number;
-  /** What the next tier costs in funds; absent at the ceiling and when no price could be read. */
-  upgradeCost?: number;
-  /** KSP's own description of the current tier: newline-separated `* Property: setting` lines. */
-  currentTierText?: string;
-  /** The same, for the tier an upgrade would buy. */
-  nextTierText?: string;
-}
+export type { SpaceCenterFacilityEntry } from "@ksp-gonogo/sitrep-sdk";
 
 export const FACILITIES: Array<{ key: FacilityKey; label: string }> = [
   { key: "launchPad", label: "Launch Pad" },
@@ -95,6 +82,8 @@ export interface FacilityLevel {
   currentLevelText: string;
   /** The same, for the tier the next upgrade would unlock; empty at max tier. */
   nextLevelText: string;
+  /** When the tier was last a reading of now, from the contributed entry's `held`; absent or `null` while it still is. */
+  heldSince?: HeldSince;
 }
 
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
@@ -178,7 +167,14 @@ export function facilityLevelsFrom(
       upgradeFunds: entry.upgradeCost ?? 0,
       currentLevelText: entry.currentTierText ?? "",
       nextLevelText: entry.nextTierText ?? "",
+      heldSince: heldSinceOf(entry.held),
     };
   }
   return out;
+}
+
+function heldSinceOf(held: SpaceCenterFacilityEntry["held"]): HeldSince {
+  const grade = heldGradeOf(held);
+  if (grade === undefined) return null;
+  return { grade, asOfUt: typeof held === "object" ? held.asOfUt : undefined };
 }

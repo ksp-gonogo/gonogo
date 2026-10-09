@@ -2,6 +2,7 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 import { siteWorthPlotting } from "./siteGate";
@@ -294,9 +295,9 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.landing",
   ],
   compute: (topics) => {
-    const flight = topics["vessel.flight"];
-    const surface = topics["vessel.surface"];
-    const landing = topics["vessel.landing"];
+    const flight = lastValue(topics["vessel.flight"]);
+    const surface = lastValue(topics["vessel.surface"]);
+    const landing = lastValue(topics["vessel.landing"]);
     const body = parentBodyFromTopics(topics);
 
     // Derived here from the same two Topics an outside author would use, since a contribution has no route into the widget's copy.
@@ -331,6 +332,17 @@ CORE_UPLINK_CLIENT.registerContribution({
         flight?.surfaceSpeed?.magnitude ?? null,
       ),
     });
-    return plot ? [plot] : null;
+    return plot
+      ? [
+          {
+            ...plot,
+            held: drawnFrom([
+              topics["vessel.flight"],
+              topics["vessel.surface"],
+              topics["vessel.landing"],
+            ]),
+          },
+        ]
+      : null;
   },
 });

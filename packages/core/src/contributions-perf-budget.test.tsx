@@ -4,7 +4,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
+import { observedValue, PerfBudget } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
@@ -129,7 +129,7 @@ describe("the contribution slot perf budget", () => {
       compute: (topics) => [
         {
           id: "row",
-          label: `spin ${String(topics["comms.link"]?.connected)}`,
+          label: `spin ${String(observedValue(topics["comms.link"])?.connected)}`,
         },
       ],
     });

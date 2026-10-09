@@ -7,6 +7,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
 
 /**
@@ -387,9 +388,9 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.landing",
   ],
   compute: (topics) => {
-    const flight = topics["vessel.flight"];
-    const surface = topics["vessel.surface"];
-    const landing = topics["vessel.landing"];
+    const flight = lastValue(topics["vessel.flight"]);
+    const surface = lastValue(topics["vessel.surface"]);
+    const landing = lastValue(topics["vessel.landing"]);
     const body = parentBodyFromTopics(topics);
     // The burn datum as the widget derives it: the lowest point above terrain, falling back to CoM radar altitude when `vessel.surface` is null.
     const height =
@@ -425,6 +426,11 @@ CORE_UPLINK_CLIENT.registerContribution({
           yUnit: "m",
         },
         layers: buildDescentLayers(inputs),
+        held: drawnFrom([
+          topics["vessel.flight"],
+          topics["vessel.surface"],
+          topics["vessel.landing"],
+        ]),
       },
     ];
   },

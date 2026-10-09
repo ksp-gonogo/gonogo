@@ -6,6 +6,7 @@ import {
   type VesselTopology,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { heldGradeOf } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -92,5 +93,37 @@ describe("ShipMap: augment slots (spec §4)", () => {
     // The fixture's part count, the measured canvas size and a positive scale reached the augment.
     expect(visibleText(overlay)).toContain(`${TOPOLOGY.parts.length}|`);
     expect(visibleText(overlay)).toContain("scaled");
+  });
+
+  it("hands the overlay the parts reading, so it can draw the live part fields held once updates stop", async () => {
+    function CurrencyAugment({ held }: ShipMapOverlayContext) {
+      return (
+        <div data-testid="ship-map-overlay-currency">
+          {heldGradeOf(held) ?? "current"}
+        </div>
+      );
+    }
+    const fixture = await renderDiagram();
+    act(() => {
+      registerAugment({
+        id: "test-ship-map-overlay-currency",
+        augments: "ship-map.overlay",
+        component: CurrencyAugment,
+      });
+    });
+
+    const overlay = await screen.findByTestId("ship-map-overlay-currency");
+    expect(visibleText(overlay)).toBe("current");
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+    await waitFor(() =>
+      expect(visibleText(overlay)).toBe(
+        heldGradeOf(fixture.store.sampleReading("vessel.parts")),
+      ),
+    );
+    expect(visibleText(overlay)).not.toBe("current");
   });
 });

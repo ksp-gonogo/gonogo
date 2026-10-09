@@ -1,4 +1,5 @@
 import { clearContributions, registerContribution } from "@ksp-gonogo/core";
+import { observedValue } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import {
   createDomainAvailabilityStore,
@@ -39,7 +40,7 @@ function contributeBadge(requires?: string) {
     requires,
     deps: ["spaceCenter.scene"] as const,
     compute: ({ "spaceCenter.scene": scene }) =>
-      scene?.scene === "Flight"
+      observedValue(scene)?.scene === "Flight"
         ? [{ id: "a", label: "BADGE A", tone: "caution" as const }]
         : [],
   });

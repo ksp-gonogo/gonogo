@@ -746,4 +746,44 @@ describe("CrewStatusComponent, row tone contribution", () => {
       "border-left:2px solid var(--color-nogo-mark);",
     );
   });
+
+  it("tints a row judged from a held reading by the held grade, never by the judgement", async () => {
+    registerContribution({
+      id: "test-crew-row-tone-held",
+      contributes: "crew-status.row-tone",
+      compute: () => [
+        {
+          crewName: "Bill Kerman",
+          tone: "nogo" as const,
+          held: "held" as const,
+        },
+      ],
+    });
+
+    const fixture = newFixture();
+    renderCrewWithContributions(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Bill Kerman")).toBeInTheDocument(),
+    );
+    // The stylesheet outlives earlier cases, so the rule is read off the row's own classes.
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    const rowRules = (
+      screen.getByText("Bill Kerman").closest("li")?.className.split(" ") ?? []
+    )
+      .flatMap(
+        (cls) => styleText.match(new RegExp(`\\.${cls}\\{[^}]*\\}`, "g")) ?? [],
+      )
+      .join("\n");
+    expect(rowRules).toContain("border-left:2px solid var(--color-warn-mark);");
+    expect(rowRules).not.toContain("var(--color-nogo-mark)");
+  });
 });

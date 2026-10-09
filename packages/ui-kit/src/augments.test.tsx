@@ -39,6 +39,7 @@ const TARGETING_CAMERA: SlotProps<"targeting.camera"> = {
   ax: undefined,
   ay: undefined,
   distance: undefined,
+  held: undefined,
   cameraFlightId: undefined,
 };
 
@@ -54,6 +55,7 @@ const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
   project: () => ({ x: 0, y: 0 }),
   vesselLat: undefined,
   vesselLon: undefined,
+  held: undefined,
 };
 
 beforeEach(() => clearAugments());

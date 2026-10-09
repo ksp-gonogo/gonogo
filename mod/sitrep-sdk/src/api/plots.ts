@@ -36,6 +36,7 @@
 // stated policy for every mark.
 // ---------------------------------------------------------------------------
 
+import type { HeldGrade, Reading } from "../reading";
 import type { PlotLayer } from "./plot-layers";
 
 /**
@@ -154,6 +155,17 @@ export interface PlotEntry {
   title?: string;
   /** Everything drawn, in the plot's own data space. See {@link PlotLayer}. */
   layers: readonly PlotLayer[];
+  /**
+   * The reading the plot was drawn from, or just its grade. Only a held
+   * reading changes anything (`Reading.grade` is unset on every other state),
+   * so a contribution can pass its reading unconditionally; one drawn from
+   * several readings passes the least current, as `combineReadings` gives it.
+   *
+   * While it is held the plot carries the grade's own badge beside its title,
+   * so a picture drawn from Topics that stopped arriving is never shown as
+   * current. A plot is held when any contribution to its subject is.
+   */
+  held?: HeldGrade | Reading<unknown>;
 }
 
 declare module "./types" {

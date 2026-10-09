@@ -3,6 +3,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   Countdown,
+  type ReckoningMarking,
   Stack,
   Text,
   Tooltip,
@@ -33,6 +34,7 @@ export function CommsPathRoute({
   centreLabel,
   pathDelay,
   rateByHopId,
+  rateMarkingByHopId,
 }: {
   hops: readonly CommsHop[];
   vesselLabel: string;
@@ -41,6 +43,8 @@ export function CommsPathRoute({
   pathDelay: Value<"s"> | null | undefined;
   /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`. */
   rateByHopId: ReadonlyMap<string, number>;
+  /** The held mark of each rate read from a held reading, keyed by `commsHopId`. */
+  rateMarkingByHopId: ReadonlyMap<string, ReckoningMarking>;
 }) {
   const nodes = buildCommsRouteNodes(hops, vesselLabel, centreLabel);
   if (nodes.length === 0) return null;
@@ -67,6 +71,7 @@ export function CommsPathRoute({
                   hops={hops}
                   pathDelay={pathDelay}
                   rate={rateByHopId.get(hopId)}
+                  rateMarking={rateMarkingByHopId.get(hopId)}
                   isBottleneck={hopId === bottleneckId}
                 />
               )}
@@ -114,6 +119,7 @@ function CommsPathLeg({
   hops,
   pathDelay,
   rate,
+  rateMarking,
   isBottleneck,
 }: {
   hop: CommsHop;
@@ -121,6 +127,7 @@ function CommsPathLeg({
   pathDelay: Value<"s"> | null | undefined;
   /** This hop's forward bitrate (bits/sec), or undefined when none was contributed. */
   rate: number | undefined;
+  rateMarking: ReckoningMarking | undefined;
   /** Whether this hop is the path's minimum-rate (limiting) hop. */
   isBottleneck: boolean;
 }) {
@@ -168,7 +175,7 @@ function CommsPathLeg({
                   color: isBottleneck ? "var(--color-warn-text)" : undefined,
                 }}
               >
-                <Unit value={value("bit/s", rate)} />
+                <Unit value={value("bit/s", rate)} marked={rateMarking} />
                 {isBottleneck && (
                   <VisuallyHidden>
                     , slowest hop, limits end-to-end rate

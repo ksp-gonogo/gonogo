@@ -6,10 +6,12 @@ import {
   Situation,
   type SystemBodies,
   type SystemVessels,
+  stillTrue,
   type VesselRosterEntry,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "@ksp-gonogo/ui-kit";
+import { lastValue } from "../shared/drawnFrom";
 import { edgeEntityId } from "./commsPath";
 import type {
   SystemEntity,
@@ -256,19 +258,32 @@ export function computeCommsNetworkEntities(
   return entities;
 }
 
+/** The entities, marked held where a reading they were placed from is held; the body catalogue names places and so never marks one. */
+function heldWhere(
+  entities: readonly SystemEntity[],
+  held: boolean,
+): readonly SystemEntity[] {
+  return held
+    ? entities.map((entity) => ({ ...entity, currency: "held" as const }))
+    : entities;
+}
+
 CORE_UPLINK_CLIENT.registerContribution({
   id: "system-view-vessel-orbits",
   contributes: "system-view.entities",
   deps: ["system.vessels", "system.bodies", "comms.network"],
-  compute: (topics) => [
-    ...computeVesselOrbitEntities(
-      topics["system.vessels"],
-      topics["system.bodies"],
-    ),
-    ...computeCommsNetworkEntities(
-      topics["comms.network"],
-      topics["system.vessels"],
-      topics["system.bodies"],
-    ),
-  ],
+  compute: (topics) => {
+    const vesselsReading = topics["system.vessels"];
+    const networkReading = topics["comms.network"];
+    const vessels = lastValue(vesselsReading);
+    const bodies = stillTrue(topics["system.bodies"], null);
+    const vesselsHeld = vesselsReading.state === "held";
+    return [
+      ...heldWhere(computeVesselOrbitEntities(vessels, bodies), vesselsHeld),
+      ...heldWhere(
+        computeCommsNetworkEntities(lastValue(networkReading), vessels, bodies),
+        vesselsHeld || networkReading.state === "held",
+      ),
+    ];
+  },
 });

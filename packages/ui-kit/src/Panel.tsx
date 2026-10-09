@@ -2184,10 +2184,20 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   id: "cadence-badge",
  *   contributes: "space-center-status.badges",
  *   deps: ["example.heartbeat"],
- *   compute: (topics) =>
- *     topics["example.heartbeat"]
- *       ? [{ id: "cadence", label: "Publishing", tone: "info" as const }]
- *       : null,
+ *   // A held heartbeat still draws the badge, carrying its reading so the panel shows it as held.
+ *   compute: (topics) => {
+ *     const heartbeat = topics["example.heartbeat"];
+ *     return heartbeat.state === "observed" || heartbeat.state === "held"
+ *       ? [
+ *           {
+ *             id: "cadence",
+ *             label: "Publishing",
+ *             tone: "info" as const,
+ *             held: heartbeat,
+ *           },
+ *         ]
+ *       : null;
+ *   },
  * });
  * ```
  *

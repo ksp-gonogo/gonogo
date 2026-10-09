@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
 import { Box } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -88,6 +89,8 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [topology],
   );
   const liveByFlightId = usePartsLive(flightIds);
+  // The live fields on every part come off this one reading, so it dates them for an overlay.
+  const partsReading = topics.useTelemetry("vessel.parts");
 
   // Grouped by partId once, so the in-body bars and the hover tooltip read the same lookup.
   const meterContributions = useContributions("ship-map.part-meters");
@@ -188,8 +191,9 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
       bounds,
       baseScale,
       padding,
+      held: withoutReckoning(partsReading),
     };
-  }, [parts, size]);
+  }, [parts, size, partsReading]);
 
   return (
     <Box surface="app" style={MAP_SURFACE}>

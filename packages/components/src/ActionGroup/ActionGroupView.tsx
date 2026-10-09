@@ -84,6 +84,7 @@ export function ActionGroupView({
     label: currentLabel,
     value,
     stateLabel,
+    held: valueLate ? "held" : undefined,
   };
 
   const unavailableTitle = unavailableReason

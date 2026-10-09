@@ -2,6 +2,7 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 import { siteWorthPlotting } from "./siteGate";
@@ -214,10 +215,10 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.orbit",
   ],
   compute: (topics) => {
-    const flight = topics["vessel.flight"];
-    const landing = topics["vessel.landing"];
-    const surface = topics["vessel.surface"];
-    const orbit = topics["vessel.orbit"];
+    const flight = lastValue(topics["vessel.flight"]);
+    const landing = lastValue(topics["vessel.landing"]);
+    const surface = lastValue(topics["vessel.surface"]);
+    const orbit = lastValue(topics["vessel.orbit"]);
     const body = parentBodyFromTopics(topics);
     if (
       flight?.latitude == null ||
@@ -269,6 +270,18 @@ CORE_UPLINK_CLIENT.registerContribution({
         flight.altitudeTerrain?.magnitude ??
         null,
     });
-    return plot ? [plot] : null;
+    return plot
+      ? [
+          {
+            ...plot,
+            held: drawnFrom([
+              topics["vessel.flight"],
+              topics["vessel.surface"],
+              topics["vessel.landing"],
+              topics["vessel.orbit"],
+            ]),
+          },
+        ]
+      : null;
   },
 });

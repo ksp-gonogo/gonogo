@@ -5,6 +5,7 @@
  * thing on a readout and another on the instrument beside it.
  */
 import {
+  type HeldGrade,
   isDeterministicValue,
   isStaticValue,
   type Reading,
@@ -328,4 +329,59 @@ export function derivedMarking(
       : { kind: "held", caption: said };
   }
   return null;
+}
+
+/**
+ * How a figure is marked from a `held` field: the reading the figure was drawn
+ * from, or just its grade, as a contributed entry or an augment slot's props
+ * carry it. `null` unless that reading is held or modelled, so the reading can
+ * be passed unconditionally. The same marking {@link derivedMarking} gives.
+ *
+ * @category Unit
+ */
+export function heldMarking(
+  held: HeldGrade | Reading<unknown> | undefined,
+): ReckoningMarking | null {
+  if (held === undefined) return null;
+  if (typeof held !== "string") return derivedMarking(held);
+  return { kind: "held", caption: heldWord(held) };
+}
+
+/**
+ * The held grade of a `held` field, for something drawn as a verdict (a tone,
+ * a badge) rather than a figure: `undefined` unless the reading it names is
+ * held. A held reading derived from several, which may carry no single grade,
+ * reads as plain `"held"`.
+ *
+ * @category Unit
+ */
+export function heldGradeOf(
+  held: HeldGrade | Reading<unknown> | undefined,
+): HeldGrade | undefined {
+  if (held === undefined) return undefined;
+  if (typeof held === "string") return held;
+  return held.state === "held" ? (held.grade ?? "held") : undefined;
+}
+
+/**
+ * A figure as the reading its `held` field says it came from: the figure
+ * itself while that reading is current, and a held reading of it, dated by the
+ * reading's `asOfUt` where it has one, while it is held. Hand the result to
+ * any primitive that takes a {@link UnitValue}.
+ *
+ * @category Unit
+ */
+export function heldFigureOf<Unit extends string>(
+  figure: Value<Unit>,
+  held: HeldGrade | Reading<unknown> | undefined,
+): UnitValue<Unit> {
+  const grade = heldGradeOf(held);
+  if (grade === undefined) return figure;
+  return {
+    state: "held",
+    value: figure,
+    grade,
+    asOfUt: typeof held === "object" ? held.asOfUt : undefined,
+    reckoning: { status: "none" },
+  };
 }

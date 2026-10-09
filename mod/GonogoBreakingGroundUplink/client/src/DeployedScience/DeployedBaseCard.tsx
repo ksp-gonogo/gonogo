@@ -98,7 +98,7 @@ export function DeployedBaseCard({
             />
             <AugmentSlot
               name="deployed-science.experiment"
-              props={{ experiment: exp, body: base.body }}
+              props={{ experiment: exp, body: base.body, held: basesReading }}
             />
           </Stack>
         ))}

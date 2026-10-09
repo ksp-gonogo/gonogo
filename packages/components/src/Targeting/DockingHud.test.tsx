@@ -7,6 +7,7 @@ function reticle(ax: number, ay: number): HTMLElement {
     <DockingHud
       name="Docking Port Mk2"
       distance={62}
+      figuresReading={undefined}
       relVel={-0.4}
       ax={ax}
       ay={ay}

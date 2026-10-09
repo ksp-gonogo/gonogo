@@ -6,7 +6,7 @@
 
 import type { BodyDefinition, PressureProfile } from "@ksp-gonogo/core";
 import { getBody } from "@ksp-gonogo/core";
-import type { DepTopics, Value } from "@ksp-gonogo/sitrep-sdk";
+import { type DepTopics, stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 
 /** A `BodyDefinition` plus the reported facts the static table has no field for. */
@@ -146,14 +146,15 @@ export function bodyNamed(
 }
 
 /**
- * The parent body for a contribution, which gets Topic values and no hooks.
+ * The parent body for a contribution, which gets Topic readings and no hooks.
  * Typed on the two topics so a caller that did not declare them as `deps`
- * fails to compile.
+ * fails to compile. Both are facts that change only by an event, so a held
+ * reading still names the body.
  */
 export function parentBodyFromTopics(
   topics: DepTopics<readonly ["vessel.identity", "system.bodies"]>,
 ): StreamBody | undefined {
-  const identity = topics["vessel.identity"];
-  const bodies = topics["system.bodies"];
+  const identity = stillTrue(topics["vessel.identity"], null);
+  const bodies = stillTrue(topics["system.bodies"], null);
   return bodyAtIndex(bodies, identity?.parentBodyIndex);
 }

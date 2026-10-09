@@ -1,7 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
-  getContributionsForSlot,
   registerComponent,
   useGameContext,
   useTelemetry,
@@ -16,8 +15,7 @@ import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import { facilityLevelsFrom } from "./facilities";
-// Imported for its registration side effect too; the age caption is only honest while that contribution is on screen.
-import { STOCK_FACILITY_CONTRIBUTION_ID } from "./facilitiesContribution";
+import "./facilitiesContribution";
 import { SpaceCenterStatusView } from "./SpaceCenterStatusView";
 import read from "./space-center-status.declarations.g";
 import { useSpaceCenterEssentials } from "./useSpaceCenterEssentials";
@@ -46,8 +44,6 @@ function SpaceCenterStatusComponent({
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
   const careerReading = useTelemetry("career.status");
-  // Read for its currency only, to date the grid: values arrive through the contribution slot's payload-only compute.
-  const facilitiesReading = useTelemetry("career.facilities");
   const careerFunds = magnitudeOf(
     careerReading.state === "observed"
       ? careerReading.value.balances?.funds
@@ -85,14 +81,6 @@ function SpaceCenterStatusComponent({
   const facilities = facilityLevelsFrom(
     useContributions("space-center-status.facilities"),
   );
-  const stockHoldsTheGrid = getContributionsForSlot(
-    "space-center-status.facilities",
-  ).some((def) => def.id === STOCK_FACILITY_CONTRIBUTION_ID);
-  // Marked only while the stock contribution holds the winning band, so a live contributor's grid is never marked by the stock channel's staleness.
-  const tiersHeldSince =
-    stockHoldsTheGrid && facilitiesReading.state === "held"
-      ? { asOfUt: facilitiesReading.asOfUt, grade: facilitiesReading.grade }
-      : null;
 
   // Announced through aria-live, so "No vehicle on pad" must never be reached from two absences.
   const padLine = describePad(padOccupied, padVesselTitle, launchSite);
@@ -106,7 +94,6 @@ function SpaceCenterStatusComponent({
       fundsReading={fundsReading}
       chargesFunds={chargesFunds}
       padLine={padLine}
-      tiersHeldSince={tiersHeldSince}
       facilities={facilities}
       upgradeBlocked={upgradeBlocked}
       upgradeCmd={upgradeCmd}

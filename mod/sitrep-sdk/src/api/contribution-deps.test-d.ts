@@ -1,4 +1,4 @@
-import type { TopicReading } from "../reading";
+import type { Reading, TopicCurrency } from "../reading";
 import { defineUplinkClient } from "../spine/uplink-clients";
 import type { TopicPayload } from "../topics";
 
@@ -24,9 +24,12 @@ CLIENT.registerContribution({
   contributes: "crew-status.row-tone",
   deps: ["career.status"],
   compute: (topics) => {
-    // A declared dep arrives with its real payload type, no assertion needed.
+    // A declared dep arrives as its reading, typed by its real payload.
+    const status = topics["career.status"];
     const funds: number | undefined =
-      topics["career.status"]?.balances?.funds?.magnitude;
+      status.state === "observed"
+        ? status.value.balances?.funds?.magnitude
+        : undefined;
     void funds;
     // @ts-expect-error a topic nobody declared is not readable at all
     void topics["vessel.flight"];
@@ -49,40 +52,58 @@ CLIENT.registerContribution({
 type CareerStatus = TopicPayload<"career.status">;
 
 CLIENT.registerContribution({
-  id: "topic-absence-is-two-facts",
+  id: "a-topic-is-its-reading",
   contributes: "crew-status.row-tone",
-  deps: ["career.status", { reading: "vessel.crew" }],
+  deps: ["career.status"],
   compute: (topics) => {
-    const status: CareerStatus | null | undefined = topics["career.status"];
-    // @ts-expect-error a tombstoned Topic arrives as null, so null must be in the type
-    const notTombstoned: CareerStatus | undefined = topics["career.status"];
-    // @ts-expect-error a Topic that has not arrived is undefined, so undefined must be in the type
-    const arrived: CareerStatus | null = topics["career.status"];
-    const crew: TopicReading<TopicPayload<"vessel.crew">> =
-      topics["vessel.crew"];
-    // @ts-expect-error a reading dep is the Topic's Reading, not its payload
-    const crewPayload: TopicPayload<"vessel.crew"> | undefined =
-      topics["vessel.crew"];
-    void [status, notTombstoned, arrived, crew, crewPayload];
+    const status: TopicCurrency<CareerStatus, { readonly status: "none" }> =
+      topics["career.status"];
+    // @ts-expect-error the payload is reached only through a state that carries one, so a held value cannot pass for a current one
+    const payload: CareerStatus | null | undefined = topics["career.status"];
+    // @ts-expect-error nor through a field of the reading, which would read as the payload's own field
+    void topics["career.status"].balances;
+    // @ts-expect-error a contribution's reading carries no forward model
+    const modelled: "available" = status.reckoning.status;
+    void [status, payload, modelled];
     return [];
   },
 });
 
-const PROCESSOR = CLIENT.registerProcessor({
+CLIENT.registerContribution({
+  id: "no-second-spelling",
+  contributes: "crew-status.row-tone",
+  // @ts-expect-error every Topic dep is already a reading, so there is no `{ reading }` form to ask for one
+  deps: [{ reading: "vessel.crew" }],
+  compute: () => [],
+});
+
+const BARE = CLIENT.registerProcessor({
   id: "derived",
   deps: ["career.status"],
   compute: () => ({ tally: 1 }),
 });
 
 CLIENT.registerContribution({
+  id: "undated-processor-refused",
+  contributes: "crew-status.row-tone",
+  // @ts-expect-error a processor reading only bare Topics answers with no currency, so a contribution cannot depend on it
+  deps: [BARE],
+  compute: () => [],
+});
+
+const DATED = CLIENT.registerProcessor({
+  id: "dated",
+  deps: [{ reading: "career.status" }],
+  compute: () => ({ tally: 1 }),
+});
+
+CLIENT.registerContribution({
   id: "processor-result-is-precise",
   contributes: "crew-status.row-tone",
-  deps: [PROCESSOR],
+  deps: [DATED],
   compute: (topics) => {
-    // A Processor dep arrives under its stamped id, typed by the handle's brand
-    // rather than as `unknown`. This is the read the `Record<string, unknown>`
-    // tail used to exist for.
-    const derived: { tally: number } | undefined = topics[PROCESSOR.id];
+    // A Processor dep arrives under its stamped id as a reading of its result, dated by its own reading deps.
+    const derived: Reading<{ tally: number }> | undefined = topics[DATED.id];
     void derived;
     // @ts-expect-error a processor dep must not reopen the whole record
     void topics["vessel.flight"];

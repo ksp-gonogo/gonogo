@@ -3,8 +3,12 @@ import {
   hasHost,
   logger,
   type ModSettingsModel,
+  observedAt,
   PerfBudget,
+  type TopicCurrency,
   type TopicId,
+  type Value,
+  withoutReckoning,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type FrameToken,
@@ -138,23 +142,42 @@ function shallowEqualValues(
   return keys.every((k) => Object.hasOwn(b, k) && Object.is(a[k], b[k]));
 }
 
-/** Where the aggregation keeps a Topic's `Reading`, beside the payload a bare dep reads under the Topic's own id. */
-function readingKey(topic: string): string {
-  return `\u0000reading:${topic}`;
+/** A Topic's reading as a contribution's `compute` receives it. */
+type Currency = TopicCurrency<unknown, { readonly status: "none" }>;
+
+/**
+ * A Topic's reading as a contribution receives it: with its forward model
+ * removed, and the previous object kept while the state, value, instant and
+ * grade are unchanged.
+ *
+ * A modelled reading is a new object on every frame the view time moves, so
+ * handing one over whole would re-run every contribution reading a modelled
+ * Topic at frame rate, and rebuild its entries each time, whether or not
+ * anything it draws moved.
+ */
+export function contributionReading(
+  previous: Currency | undefined,
+  next: Currency,
+): Currency {
+  if (previous === undefined || previous === next) return next;
+  const sameCurrency =
+    previous.state === next.state &&
+    Object.is(
+      "value" in previous ? previous.value : undefined,
+      "value" in next ? next.value : undefined,
+    ) &&
+    sameInstant(observedAt(previous), observedAt(next)) &&
+    (previous.state === "held" ? previous.grade : undefined) ===
+      (next.state === "held" ? next.grade : undefined);
+  return sameCurrency ? previous : next;
 }
 
-/** The record one contribution's `compute` receives: the shared values, with each of its `{ reading }` deps swapped for the Topic's `Reading`. */
-function argumentFor(
-  def: AnyContribution,
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  let argument = values;
-  for (const d of def.deps ?? []) {
-    if (typeof d === "string" || !("reading" in d)) continue;
-    if (argument === values) argument = { ...values };
-    argument[d.reading] = values[readingKey(d.reading)];
-  }
-  return argument;
+function sameInstant(
+  a: Value<"ut"> | undefined,
+  b: Value<"ut"> | undefined,
+): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  return a.equals(b);
 }
 
 interface ModSettingRef {
@@ -177,10 +200,6 @@ function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
   for (const d of def.deps ?? []) {
     if (typeof d === "string") {
       topics.add(d);
-      continue;
-    }
-    if ("reading" in d) {
-      topics.add(d.reading);
       continue;
     }
     if (isModSettingDep(d)) {
@@ -213,19 +232,12 @@ function SlotAggregator({
 
   const unionDeps = useMemo(() => {
     const topics = new Set<TopicId>();
-    const readingTopics = new Set<TopicId>();
     const processors = new Map<string, ProcessorHandle<unknown>>();
     const settings = new Map<string, ModSettingRef>();
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") {
           topics.add(d as TopicId);
-          continue;
-        }
-        // A reading dep subscribes to the same wire topic a bare id does.
-        if ("reading" in d) {
-          topics.add(d.reading as TopicId);
-          readingTopics.add(d.reading as TopicId);
           continue;
         }
         if (isModSettingDep(d)) {
@@ -237,7 +249,6 @@ function SlotAggregator({
     }
     return {
       topics: Array.from(topics),
-      readingTopics: Array.from(readingTopics),
       processors: Array.from(processors.values()),
       settings: Array.from(settings.entries()),
     };
@@ -288,6 +299,8 @@ function SlotAggregator({
     token: FrameToken;
     values: Record<string, unknown>;
   } | null>(null);
+  // The readings last handed to `compute`, by Topic, so an unchanged one keeps its identity.
+  const readingsRef = useRef(new Map<string, Currency>());
 
   const getSnapshot = useCallback((): Record<string, unknown> => {
     if (!telemetryStore) return EMPTY_TOPIC_VALUES;
@@ -303,12 +316,12 @@ function SlotAggregator({
     if (cached && cached.token === token) return cached.values;
     const values: Record<string, unknown> = {};
     for (const topic of unionDeps.topics) {
-      // `undefined` is no point yet, and a tombstone's `null` passes through as the mod's confirmed absence.
-      const point = telemetryStore.sample(topic, token);
-      values[topic] = point ? point.payload : undefined;
-    }
-    for (const topic of unionDeps.readingTopics) {
-      values[readingKey(topic)] = telemetryStore.sampleReading(topic, token);
+      const reading = contributionReading(
+        readingsRef.current.get(topic),
+        withoutReckoning(telemetryStore.sampleReading(topic, token)),
+      );
+      readingsRef.current.set(topic, reading);
+      values[topic] = reading;
     }
     for (const p of unionDeps.processors) {
       values[p.id] = processorRuntime?.value(p.id);
@@ -352,7 +365,7 @@ function SlotAggregator({
         const result = runContributionCompute(
           def.id,
           declaredTopicsOf(def),
-          () => def.compute(argumentFor(def, topicValues) as never),
+          () => def.compute(topicValues),
         );
         if (result) {
           for (const entry of result) {

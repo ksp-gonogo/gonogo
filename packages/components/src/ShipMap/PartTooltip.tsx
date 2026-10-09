@@ -1,5 +1,14 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Box, Floating, Meter, resourceColor, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Box,
+  Floating,
+  HeldFigure,
+  heldFigureOf,
+  heldMarking,
+  Meter,
+  resourceColor,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { PartActionCount } from "./PartActionMenu";
 import { METER_STATUS_COLOR } from "./partMeters";
@@ -75,17 +84,37 @@ export function PartTooltip({
           <Meter
             key={`meta-${m.label}`}
             label={m.label}
-            value={m.value == null ? null : value("ratio", m.value)}
+            value={
+              m.value == null
+                ? null
+                : heldFigureOf(value("ratio", m.value), m.held)
+            }
             tone={m.tone}
           />
         ) : (
           <div style={TOOLTIP_ROW} key={`meta-${m.label}`}>
             <span>{m.label}</span>
-            <span style={TOOLTIP_ROW_VALUE}>{m.text}</span>
+            <span style={TOOLTIP_ROW_VALUE}>
+              <MetaText text={m.text} held={m.held} />
+            </span>
           </div>
         ),
       )}
     </Floating>
+  );
+}
+
+/** A contributed text row's text, with the held mark while the reading it came from is held. */
+function MetaText({
+  text,
+  held,
+}: Pick<ShipMapPartMetaEntry, "held"> & { text: string | undefined }) {
+  const marking = heldMarking(held);
+  if (marking === null || text === undefined) return <>{text}</>;
+  return (
+    <HeldFigure kind={marking.kind} caption={marking.caption}>
+      {text}
+    </HeldFigure>
   );
 }
 

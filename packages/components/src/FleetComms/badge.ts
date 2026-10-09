@@ -1,8 +1,7 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
+import type { CommsLink, TopicCurrency } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-
-// A contribution's `compute` sees payloads without staleness, so a Processor judges `comms.link` first.
 
 /**
  * `true` connected, `false` a positive report of no link, `null` unknown, and
@@ -11,17 +10,13 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
  */
 export type CommsLinkState = boolean | "awaiting" | null;
 
-export const COMMS_LINK = CORE_UPLINK_CLIENT.registerProcessor({
-  id: "comms-link-state",
-  deps: [{ reading: "comms.link" }] as const,
-  compute: ([linkReading]): CommsLinkState => {
-    if (linkReading.state === "observed") {
-      return linkReading.value.connected ?? null;
-    }
-    // A topic that arrived saying it has nothing is an answer, so only one not yet heard from is awaited.
-    return linkReading.state === "pending" ? "awaiting" : null;
-  },
-});
+/** What `comms.link`'s reading says about the link; a held reading's last word, which the badge then marks held. */
+export function commsLinkState(link: TopicCurrency<CommsLink>): CommsLinkState {
+  if (link.state === "observed" || link.state === "held")
+    return link.value.connected ?? null;
+  // A topic that arrived saying it has nothing is an answer, so only one not yet heard from is awaited.
+  return link.state === "pending" ? "awaiting" : null;
+}
 
 /** An unknown link still draws a badge, so it stays distinguishable from no comms at all. */
 export function commsLinkBadge(link: CommsLinkState | undefined): BadgeEntry[] {
@@ -41,13 +36,10 @@ export function commsLinkBadge(link: CommsLinkState | undefined): BadgeEntry[] {
 CORE_UPLINK_CLIENT.registerContribution({
   id: "fleet-comms-badge",
   contributes: "system-view.badges",
-  deps: [COMMS_LINK],
-  compute: (topics) => {
-    const reading = topics[COMMS_LINK.id];
-    return commsLinkBadge(
-      reading?.state === "observed" || reading?.state === "held"
-        ? reading.value
-        : undefined,
-    );
-  },
+  deps: ["comms.link"],
+  compute: (topics) =>
+    commsLinkBadge(commsLinkState(topics["comms.link"])).map((badge) => ({
+      ...badge,
+      held: topics["comms.link"],
+    })),
 });

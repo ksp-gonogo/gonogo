@@ -106,15 +106,12 @@ describe("useContributions", () => {
       // and are wrapped into `Value<Unit>` objects by `StubTransport.emit`
       // (mirroring the real transport's `wrapTopicPayload`), so `sma` here
       // is a `Value<"m">`, not a plain number: `.magnitude` is the number.
-      compute: (topics) =>
-        topics["vessel.orbit"]
-          ? [
-              {
-                id: "sma-row",
-                label: `sma:${topics["vessel.orbit"].sma.magnitude}`,
-              },
-            ]
-          : [],
+      compute: (topics) => {
+        const orbit = topics["vessel.orbit"];
+        return orbit.state === "observed"
+          ? [{ id: "sma-row", label: `sma:${orbit.value.sma.magnitude}` }]
+          : [];
+      },
     });
 
     const transport = new StubTransport();
@@ -147,17 +144,19 @@ describe("useContributions", () => {
     await waitFor(() => expect(screen.getByText("sma:700000")).toBeTruthy());
   });
 
-  it("hands compute undefined for a Topic that has not arrived and null for one the mod confirmed absent", async () => {
-    const seen: unknown[] = [];
+  it("hands compute a pending reading for a Topic that has not arrived and an absent one for one the mod confirmed absent", async () => {
+    const seen: string[] = [];
     registerContribution({
       id: "fixture-absence",
       contributes: "fixture.rows",
       deps: ["vessel.orbit"],
       compute: (topics) => {
         const orbit = topics["vessel.orbit"];
-        seen.push(orbit);
-        if (orbit === undefined) return [{ id: "a", label: "not arrived" }];
-        if (orbit === null) return [{ id: "a", label: "confirmed absent" }];
+        seen.push(orbit.state);
+        if (orbit.state === "pending")
+          return [{ id: "a", label: "not arrived" }];
+        if (orbit.state === "absent")
+          return [{ id: "a", label: "confirmed absent" }];
         return [{ id: "a", label: "present" }];
       },
     });
@@ -183,24 +182,30 @@ describe("useContributions", () => {
     await waitFor(() =>
       expect(screen.getByText("confirmed absent")).toBeTruthy(),
     );
-    expect(seen).toContain(undefined);
-    expect(seen).toContain(null);
+    expect(seen).toContain("pending");
+    expect(seen).toContain("absent");
   });
 
-  it("a contribution's compute() receives a Processor dep's resolved value alongside Topic values", async () => {
+  it("a contribution's compute() receives a Processor dep's result as a reading dated by the processor's own reading deps", async () => {
     const processor = defineProcessor({
       id: "fixture-doubled",
       owner: "core",
-      deps: [] as const,
+      deps: [{ reading: "vessel.orbit" }] as const,
       compute: () => 21,
     });
     registerContribution({
       id: "uses-processor",
       contributes: "fixture.rows",
       deps: [processor],
-      compute: (topics) => [
-        { id: "p-row", label: `p:${topics[processor.id]}` },
-      ],
+      compute: (topics) => {
+        const result = topics[processor.id];
+        return [
+          {
+            id: "p-row",
+            label: `p:${result?.state}:${String(result?.value)}`,
+          },
+        ];
+      },
     });
 
     const transport = new StubTransport();
@@ -221,7 +226,7 @@ describe("useContributions", () => {
     // Pump one frame so the evaluator runs (it evaluates on the frame boundary); the processor's value is constant, so one frame is enough.
     act(() => store.beginFrame());
 
-    await waitFor(() => expect(screen.getByText("p:21")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("p:observed:21")).toBeTruthy());
   });
 
   it("isolates a throwing contribution: logs once and contributes nothing, siblings still render", async () => {
@@ -479,10 +484,12 @@ describe("a contribution depping on a DERIVED channel", () => {
       id: "derived-dep",
       contributes: "fixture.derived",
       deps: ["derived.contrib"],
-      compute: (topics) =>
-        topics["derived.contrib"]
-          ? [{ id: "d-row", label: `d:${topics["derived.contrib"].doubled}` }]
-          : [],
+      compute: (topics) => {
+        const derived = topics["derived.contrib"];
+        return derived.state === "observed"
+          ? [{ id: "d-row", label: `d:${derived.value.doubled}` }]
+          : [];
+      },
     });
 
     const transport = new StubTransport();

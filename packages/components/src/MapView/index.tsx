@@ -308,6 +308,7 @@ function MapViewComponent({
         bodyRadius: body?.radius,
         vesselLat: vesselOnThisBody ? lat?.magnitude : undefined,
         vesselLon: vesselOnThisBody ? lon?.magnitude : undefined,
+        held: vesselOnThisBody ? telemetry.latitudeReading : undefined,
         project: (projLat, projLon) => {
           const { x: wx, y: wy } = adjustedMap(
             WORLD_W,

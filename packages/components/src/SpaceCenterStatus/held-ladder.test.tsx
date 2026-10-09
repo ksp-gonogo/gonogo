@@ -178,6 +178,33 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     expect(heldTiers()).toHaveLength(0);
   });
 
+  /** A career model's tiers are its own readings, so they go held on its own word, not the stock channel's. */
+  it("marks the tiers a contributor says it read from a held reading", async () => {
+    registerContribution({
+      id: "test-career-model-held-facilities",
+      contributes: "space-center-status.facilities",
+      deps: [],
+      compute: () => [
+        {
+          facility: "LaunchPad",
+          currentTier: 2,
+          maxTier: 2,
+          held: "disconnected" as const,
+        },
+        { facility: "VehicleAssemblyBuilding", currentTier: 1, maxTier: 2 },
+      ],
+    });
+    const fixture = mount();
+
+    emitSession(fixture, 10, "SpaceCenter");
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/^Launch Pad tier 3 of 3, .+/)).toBeTruthy(),
+    );
+    expect(heldTiers()).toHaveLength(1);
+    expect(screen.getByLabelText("VAB tier 2 of 3")).toBeTruthy();
+  });
+
   /** The band decides whether the stock reading can be displaced at all. */
   it("registers the stock reading at the band every contributor outranks", () => {
     const stock = getContributionsForSlot("space-center-status.facilities");

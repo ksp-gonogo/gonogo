@@ -29,7 +29,7 @@ import type {
   CommandReply,
 } from "../commands";
 import type { RailTags } from "../rail-tags";
-import type { HeldGrade, Reading, TopicReading } from "../reading";
+import type { HeldGrade, Reading, TopicCurrency } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   ChannelFamily,
@@ -646,14 +646,22 @@ export interface StatEntry {
    * screen, so a contributor never formats one.
    *
    * `null` draws the null token. Leave it out to draw {@link text} instead.
+   * A whole `Reading` is drawn marked when it is held.
    */
-  value?: Value | null;
+  value?: Value | Reading<Value> | null;
   /**
    * The figure when it is NOT a quantity: an occupancy ("3 / 13"), a name, a
    * bare count of things that carry no unit. Ignored when {@link value} is
    * given, which is the one that gets unit rendering.
    */
   text?: string;
+  /**
+   * The reading {@link text} was drawn from, or just its grade. Only a held
+   * reading changes anything, so it can be passed unconditionally; while it is
+   * held the text is drawn with the held mark. A `value` carries its own
+   * reading instead.
+   */
+  held?: HeldGrade | Reading<unknown>;
   /** One line under the figure, qualifying it: a rate, a horizon, a count it is drawn from. */
   detail?: string;
   /** What state the figure shows. */
@@ -757,21 +765,26 @@ export type Contributed<Entry> = Entry & {
 };
 
 /**
- * One entry of a contribution's `deps`: a Topic id, `{ reading: topicId }`, a
- * setting of an Uplink's host mod from {@link modSettingDep}, or the handle
- * {@link UplinkClientHandle.registerProcessor} returned. {@link DepTopics} says what `compute` receives
- * for each.
+ * One entry of a contribution's `deps`: a Topic id, a setting of an Uplink's
+ * host mod from {@link modSettingDep}, or the handle
+ * {@link UplinkClientHandle.registerProcessor} returned for a processor whose
+ * result is a `Reading`. {@link DepTopics} says what `compute` receives for
+ * each.
+ *
+ * A processor handle is accepted only when its result carries currency, which
+ * it does when one of its own deps is a `{ reading: topicId }`: a bare result
+ * computed from Topics would reach the contribution with nothing saying
+ * whether those Topics were held.
  *
  * @category Extensions
  */
 export type ContributionDep =
   | TopicId
-  | { readonly reading: TopicId }
   | AnyModSettingDep
   | {
       readonly id: string;
       readonly __resultType?: unknown;
-      readonly __carriesCurrency?: boolean;
+      readonly __carriesCurrency?: true;
     };
 
 /**
@@ -828,82 +841,71 @@ export type AnyModSettingDep = {
 
 /**
  * The KEY the aggregation writes one dep's value under: a Topic id under
- * itself, a reading dep under the topic it names, a Processor under its
- * owner-stamped id.
+ * itself, a Processor under its owner-stamped id.
  */
 type DepKey<Dependency> = Dependency extends string
   ? Dependency
-  : Dependency extends { readonly reading: infer Topic extends string }
-    ? Topic
-    : Dependency extends {
-          readonly modSetting: {
-            readonly uplink: infer Uplink extends string;
-            readonly key: infer Key extends string;
-          };
-        }
-      ? `settings.${Uplink}.${Key}`
-      : Dependency extends { readonly id: infer ProcessorId extends string }
-        ? // A processor whose id is still the unnarrowed `string` contributes NO
-          // key. It would otherwise contribute a string index signature, which
-          // reopens every key on the record and puts back exactly the hole this
-          // type exists to close: one loosely-typed dep would make an undeclared
-          // topic readable again for that whole contribution. A handle from
-          // `defineProcessor`/`registerProcessor` always carries its stamped id;
-          // one from `defineProcessorContract` only does when the caller names it.
-          string extends ProcessorId
-          ? never
-          : ProcessorId
-        : never;
+  : Dependency extends {
+        readonly modSetting: {
+          readonly uplink: infer Uplink extends string;
+          readonly key: infer Key extends string;
+        };
+      }
+    ? `settings.${Uplink}.${Key}`
+    : Dependency extends { readonly id: infer ProcessorId extends string }
+      ? /*
+         * A processor whose id is still the unnarrowed `string` contributes NO
+         * key. It would otherwise contribute a string index signature, which
+         * reopens every key on the record: one loosely-typed dep would make an
+         * undeclared topic readable again for that whole contribution. A handle
+         * from `defineProcessor`/`registerProcessor` always carries its stamped
+         * id; one from `defineProcessorContract` only does when the caller
+         * names it.
+         */
+        string extends ProcessorId
+        ? never
+        : ProcessorId
+      : never;
 
 /**
  * The VALUE that arrives under that key.
  *
- * <para>A Topic's value is three distinct facts. `undefined` is no point yet:
- * the Topic has never arrived, or not since the last rewind. `null` is a point
- * the mod sent to say there is nothing to describe (a tombstone). Anything else
- * is the payload. Neither absence is a zero, and the two are not the same
- * absence, so a contribution that draws anything for one must decide what it
- * draws for the other.</para>
+ * <para>A Topic arrives as its reading, so a contribution can tell a current
+ * value from a held one and draw each as what it is. `"pending"` is no point
+ * yet, `"absent"` is the mod saying there is nothing to describe, and only
+ * `"observed"` and `"held"` carry a value, reached through `value` once the
+ * state says there is one. The reading carries no forward model (`reckoning`
+ * is always `{ status: "none" }`) and no per-field readings; a contribution
+ * that wants a modelled figure depends on a processor with a `{ reading }`
+ * dep, which is handed the whole reading.</para>
  *
- * <para>A reading dep resolves to the topic's `Reading`, the same as a
- * Processor's `{ reading: topicId }` dep, so a contribution can tell a current
- * value from a held or modelled one. A bare id still gives the payload alone.
- * Two contributions to one slot may name the same Topic one each way; each is
- * handed the form it asked for.</para>
- *
- * <para>A PROCESSOR dep must track the evaluator exactly: a processor whose own deps include a reading returns a `Reading`,
- * and the stored value a contribution is handed is that same reading. Typing it
- * as the bare result here would hand a contribution a reading while telling it
- * otherwise, which is the defect the brand exists to prevent.</para>
+ * <para>A PROCESSOR dep tracks the evaluator exactly: a processor whose own
+ * deps include a reading returns a `Reading`, dated by those inputs, and that
+ * is the value a contribution is handed.</para>
  */
 type DepValue<Dependency> = Dependency extends string
-  ? TopicPayload<Dependency & TopicId> | null | undefined
-  : Dependency extends { readonly reading: infer Topic }
-    ? Topic extends TopicId
-      ? TopicReading<TopicPayload<Topic>>
-      : never
-    : Dependency extends ModSettingDep<infer Uplink, infer Key>
-      ? ModSettingsRegistry[Uplink][Key] | undefined
-      : Dependency extends {
-            readonly id: string;
-            readonly __resultType?: infer Result;
-          }
-        ? Dependency extends { readonly __carriesCurrency?: true }
-          ? Reading<Result> | undefined
-          : Result | undefined
-        : never;
+  ? TopicCurrency<
+      TopicPayload<Dependency & TopicId>,
+      { readonly status: "none" }
+    >
+  : Dependency extends ModSettingDep<infer Uplink, infer Key>
+    ? ModSettingsRegistry[Uplink][Key] | undefined
+    : Dependency extends {
+          readonly id: string;
+          readonly __resultType?: infer Result;
+        }
+      ? Reading<Result> | undefined
+      : never;
 
 /**
- * The argument a contribution's `compute` receives: each Topic named in its
- * `deps`, keyed by the Topic's id and typed by its payload. A Topic not named
- * in `deps` cannot be read. A dep written as a bare Topic id gives its last
- * value alone, with nothing saying whether it is held; a dep written as
- * `{ reading: topicId }` gives the Topic's `Reading`, which says how current
- * the value is.
+ * The argument a contribution's `compute` receives: the reading of each Topic
+ * named in its `deps`, keyed by the Topic's id and typed by its payload. A
+ * Topic not named in `deps` cannot be read.
  *
- * A Topic's value is `undefined` until its first sample arrives, and `null`
- * while the mod reports that it has nothing to describe. When samples stop, it
- * keeps its last value.
+ * A reading is `"pending"` until the Topic's first sample arrives, and
+ * `"absent"` while the mod reports that it has nothing to describe. When
+ * samples stop it turns `"held"`, keeping the last value with the instant it
+ * was observed, so a value drawn from it can be marked as held.
  *
  * @category Extensions
  */
@@ -920,20 +922,20 @@ export type DepTopics<Deps extends readonly ContributionDep[]> = {
  * checked against both.
  *
  * @remarks
- * - `compute` receives one object holding every Topic named in `deps` by any
- *   contribution to the slot, all read at the same instant: the instant the
- *   dashboard is showing, so under signal delay they lag as every widget does.
- *   The same object is passed to every contribution to the slot, except that a
- *   contribution with a `{ reading: topicId }` dep gets the Topic's `Reading` under
- *   that key in place of its payload.
- * - A Topic's value is `undefined` until its first sample arrives, and `null`
- *   while the mod reports that it has nothing to describe. When samples stop
- *   or the link drops, it keeps its last value, and nothing in the object says
- *   that it is being held.
- * - The Topics are read at most once per animation frame. A value stays the
- *   same object until a new sample of it is shown, and a Topic the mod sends
- *   directly gives a new object for every sample, even one identical to the
- *   last. When several samples arrive within one frame, `compute` sees only
+ * - `compute` receives one object holding the reading of every Topic named in
+ *   `deps` by any contribution to the slot, all read at the same instant: the
+ *   instant the dashboard is showing, so under signal delay they lag as every
+ *   widget does. The same object is passed to every contribution to the slot.
+ * - A reading is `"pending"` until its Topic's first sample arrives, and
+ *   `"absent"` while the mod reports that it has nothing to describe. When
+ *   samples stop or the link drops it turns `"held"`: the last value, with when
+ *   it was observed and why it stopped. An entry drawn from a held value must
+ *   say so, through the entry's own reading or `held` field, so the widget
+ *   draws it as held rather than as current.
+ * - The Topics are read at most once per animation frame. A reading stays the
+ *   same object until a new sample of it is shown or its state changes, and a
+ *   Topic the mod sends directly gives a new reading for every sample, even
+ *   one identical to the last. When several samples arrive within one frame, `compute` sees only
  *   the latest.
  * - `compute` runs when the widget mounts, and again whenever a value in the
  *   object changes, including a Topic that only another contribution to the
@@ -966,8 +968,8 @@ export interface ContributionDefinition<
   contributes: Slot;
   /**
    * The Topics this contribution reads. Naming a Topic here is what subscribes
-   * to it, and `compute` receives each one, typed by its payload; a Topic left
-   * out cannot be read.
+   * to it, and `compute` receives each one's reading, typed by its payload; a
+   * Topic left out cannot be read.
    */
   deps?: Deps;
   /**
@@ -975,8 +977,9 @@ export interface ContributionDefinition<
    * must return them directly, not through a promise, and it runs again
    * whenever a Topic the slot reads changes.
    *
-   * A Topic that is `null` or `undefined` has no value to draw, so return no
-   * entries for it rather than a zero, an empty count or a nominal state.
+   * A reading that is not `"observed"` or `"held"` has no value to draw, so
+   * return no entries for it rather than a zero, an empty count or a nominal
+   * state. A held value is drawn as held, never as current.
    */
   compute: (
     topics: DepTopics<Deps>,
@@ -1129,11 +1132,11 @@ export interface SizeDelta {
  *   ({@link SlotProps}) and reads any Topic it needs with {@link useTelemetry},
  *   as a widget does
  * - a contribution hands over data and never draws: it is a
- *   {@link ContributionDefinition} whose `compute` receives the payloads of the
+ *   {@link ContributionDefinition} whose `compute` receives the readings of the
  *   Topics it names in `deps` and returns entries, which the widget draws in
- *   its own style. Its inputs are bare payloads, not readings, so nothing in
- *   them says a value is held, and only the highest priority band registered to
- *   a slot runs
+ *   its own style. An entry drawn from a held reading carries that reading, so
+ *   the widget draws it as held. Only the highest priority band registered to a
+ *   slot runs
  *
  * Both may name a Domain in `requires` and then appear only while that Domain
  * is present. {@link SlotRegistry} and {@link ContributionSlotId} type the slot

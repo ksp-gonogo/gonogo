@@ -559,6 +559,58 @@ describe("CommSignal: genuinely runs off the stream", () => {
     });
   });
 
+  it("marks a contributed hop rate held while the reading it came from is held, and only that one", async () => {
+    registerContribution({
+      id: "test-comm-signal-held-hop-rate",
+      contributes: "comm-signal.hop-rates",
+      compute: () => [
+        {
+          fromNodeId: "Active Vessel",
+          toNodeId: "Relay 1",
+          bitsPerSec: 96_000,
+          held: "disconnected" as const,
+        },
+        { fromNodeId: "Relay 1", toNodeId: "home", bitsPerSec: 12_000 },
+      ],
+    });
+
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <WidgetMetaContext.Provider value={HOP_RATE_META}>
+          <ContributionsProvider>
+            <DashboardItemContext.Provider
+              value={{ instanceId: "comm-route-held-rate" }}
+            >
+              <CommSignalComponent id="comm-route-held-rate" w={8} h={8} />
+            </DashboardItemContext.Provider>
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.path", {
+        hops: [
+          { from: "Active Vessel", to: "Relay 1", kind: 1 },
+          { from: "Relay 1", to: "home", kind: 0 },
+        ],
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("96.0 kbit/s"));
+    const heldFigures = Array.from(
+      document.querySelectorAll("[data-held]"),
+    ).map((el) => el.textContent ?? "");
+    expect(heldFigures.some((text) => /96\.0\skbit\/s/.test(text))).toBe(true);
+    expect(heldFigures.some((text) => /12\.0\skbit\/s/.test(text))).toBe(false);
+  });
+
   it("falls back to a generic vessel label before vessel.identity has resolved", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,

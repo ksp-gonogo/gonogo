@@ -102,6 +102,11 @@ export function useTargetingReading() {
   // The docking HUD's Δv row prefers the port-to-port closing rate.
   const dockingRelVel = derivedDockRelVel ?? relVel;
   const dockingDistance = dockDistanceStream ?? tarDistance;
+  // What dates the docking HUD's figures for an augment drawn over them: the dock reading, unless the distance fell back to a held target range.
+  const dockingFiguresReading =
+    dockDistanceStream === undefined && targetReading.state === "held"
+      ? withoutReckoning(targetReading)
+      : dockReading;
 
   // A real non-body target, read off the ORDINAL: drives the APPROACH view.
   const dockable =
@@ -158,6 +163,7 @@ export function useTargetingReading() {
     dockY,
     dockingRelVel,
     dockingDistance,
+    dockingFiguresReading,
     dockForwardDot,
     dockingAvailable,
     alignmentWithheld,

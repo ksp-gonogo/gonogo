@@ -1,5 +1,5 @@
 import { useContributions } from "@ksp-gonogo/core";
-import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { Cluster, HeldBadge, SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { GraphView } from "../Graph";
 import { type MergedPlot, mergePlots } from "./mergePlots";
@@ -55,7 +55,7 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
   );
 }
 
-/** One contributed plot, in the same square as every other. */
+/** One contributed plot, in the same square as every other, its title carrying the held badge while any contribution to it is held. */
 function Plot({ plot }: { plot: MergedPlot }) {
   return (
     <div
@@ -67,7 +67,14 @@ function Plot({ plot }: { plot: MergedPlot }) {
         gap: "var(--gap-related)",
       }}
     >
-      <SectionTitle>{plot.title}</SectionTitle>
+      {plot.held === undefined ? (
+        <SectionTitle>{plot.title}</SectionTitle>
+      ) : (
+        <Cluster align="baseline">
+          <SectionTitle>{plot.title}</SectionTitle>
+          <HeldBadge grade={plot.held} subject={plot.title} size="sm" />
+        </Cluster>
+      )}
       <div
         style={{
           display: "flex",

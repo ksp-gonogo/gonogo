@@ -6,7 +6,7 @@ import {
   getLatestFleetVesselSilence,
   overdueSeconds,
 } from "@ksp-gonogo/sitrep-client";
-import { type AlertTone, value } from "@ksp-gonogo/sitrep-sdk";
+import { type AlertTone, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 /*
@@ -98,9 +98,10 @@ export function computeVesselStatus(
 
 const VESSEL_CONTACT_STATUS = CORE_UPLINK_CLIENT.registerProcessor({
   id: "system-view-vessel-contact-status",
-  deps: ["vessel.identity"] as const,
-  compute: ([identity], { viewUt }) => {
-    const vesselId = identity?.vesselId;
+  deps: [{ reading: "vessel.identity" }] as const,
+  compute: ([identityReading], { viewUt }) => {
+    // Which vessel is plotted is a fact until the operator switches, so a held identity still names it.
+    const vesselId = stillTrue(identityReading, null)?.vesselId;
     if (typeof vesselId !== "string" || vesselId === "") return null;
     return computeVesselStatus(
       vesselId,
@@ -114,5 +115,11 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "system-view-vessel-silence-status",
   contributes: "system-view.vessel-status",
   deps: [VESSEL_CONTACT_STATUS],
-  compute: (topics) => topics[VESSEL_CONTACT_STATUS.id] ?? null,
+  // Every entry is the silence model's own judgement of how stale contact is, so it is drawn as reckoned rather than marked held.
+  compute: (topics) => {
+    const status = topics[VESSEL_CONTACT_STATUS.id];
+    return status?.state === "observed" || status?.state === "held"
+      ? status.value
+      : null;
+  },
 });

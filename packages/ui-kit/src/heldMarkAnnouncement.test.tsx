@@ -20,6 +20,7 @@ import { InstrumentHeldMark } from "./instrumentCurrency";
 import { Meter } from "./Meter";
 import { MissionDate } from "./MissionDate";
 import { ReckonedUnit } from "./ModelledAlongside";
+import { StatFigure } from "./StatContributions";
 import { Tape } from "./Tape";
 import { TinyEssentials } from "./TinyEssentials";
 import { Unit } from "./Unit";
@@ -80,6 +81,16 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
       />
     ),
     Countdown: (grade) => <Countdown value={held(value("s", 90), grade)} />,
+    "StatFigure, text": (grade) => (
+      <StatFigure
+        entry={{
+          id: "roster",
+          label: "Roster",
+          text: "3 / 13",
+          held: held(value("count", 3), grade),
+        }}
+      />
+    ),
     MissionDate: (grade) => (
       <MissionDate value={held(value("ut", 12_000), grade)} />
     ),
@@ -197,6 +208,7 @@ const DRAWN_BY: Record<string, readonly string[]> = {
   "./ModelledAlongside.tsx": ["ReckonedUnit"],
   "./Dial.tsx": ["Dial", "Dial, half face"],
   "./Tape.tsx": ["Tape"],
+  "./StatContributions.tsx": ["StatFigure, text"],
   "./CommandDelay/ControlDelayStream.tsx": ["ControlDelayStream"],
 };
 

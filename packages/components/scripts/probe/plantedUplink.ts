@@ -1,6 +1,7 @@
 import {
   defineUplinkClient,
   registerBarePrimitiveTopic,
+  stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -64,7 +65,10 @@ PLANTED_UPLINK.registerContribution({
   deps: ["vessel.parts"],
   requires: "planted",
   compute: (topics) => {
-    const wire = topics["vessel.parts"] as PartsWire | null | undefined;
+    const wire = stillTrue(topics["vessel.parts"], null) as
+      | PartsWire
+      | null
+      | undefined;
     if (!wire) return null;
     const entries = [];
     for (const part of wire.parts) {
@@ -145,15 +149,18 @@ PLANTED_UPLINK.registerContribution({
   deps: ["vessel.crew"],
   requires: "planted",
   compute: (topics) => {
-    const entries = aboard(topics["vessel.crew"]).flatMap(([name, rules]) =>
-      rules.map(([label, fraction]) => ({
-        id: `${name}:${label}`,
-        label,
-        value: value("ratio", fraction),
-        tone: toneFor(fraction),
-        valueLabel: writeQuantity(value("%", fraction * 100), { decimals: 0 }),
-        row: name,
-      })),
+    const entries = aboard(stillTrue(topics["vessel.crew"], null)).flatMap(
+      ([name, rules]) =>
+        rules.map(([label, fraction]) => ({
+          id: `${name}:${label}`,
+          label,
+          value: value("ratio", fraction),
+          tone: toneFor(fraction),
+          valueLabel: writeQuantity(value("%", fraction * 100), {
+            decimals: 0,
+          }),
+          row: name,
+        })),
     );
     return entries.length > 0 ? entries : null;
   },
@@ -165,7 +172,7 @@ PLANTED_UPLINK.registerContribution({
   deps: ["vessel.crew"],
   requires: "planted",
   compute: (topics) => {
-    const entries = aboard(topics["vessel.crew"])
+    const entries = aboard(stillTrue(topics["vessel.crew"], null))
       .filter(([, rules]) => rules.some(([, f]) => f >= CRITICAL))
       .map(([crewName]) => ({ crewName, tone: "nogo" as const }));
     return entries.length > 0 ? entries : null;
@@ -221,8 +228,8 @@ PLANTED_UPLINK.registerContribution({
   deps: ["vessel.crew"],
   requires: "planted",
   compute: (topics) => {
-    const critical = aboard(topics["vessel.crew"]).filter(([, rules]) =>
-      rules.some(([, f]) => f >= CRITICAL),
+    const critical = aboard(stillTrue(topics["vessel.crew"], null)).filter(
+      ([, rules]) => rules.some(([, f]) => f >= CRITICAL),
     ).length;
     if (critical === 0) return null;
     const label =

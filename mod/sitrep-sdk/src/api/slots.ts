@@ -42,6 +42,8 @@
 // the packages/components case this file solves).
 // ---------------------------------------------------------------------------
 
+import type { HeldGrade, Reading } from "../reading";
+
 // "space-center-status.sections" / ".badges" carry no props today.
 
 // "maneuver-planner.sections" / ".badges" carry no props today
@@ -96,6 +98,13 @@ export interface TargetingHudContext {
   ay: number | undefined;
   /** Distance to the target port in metres. `undefined` until the position is reported. */
   distance: number | undefined;
+  /**
+   * The reading `aligned`, `ax`, `ay`, `reticleOffset` and `distance` were drawn from, or just its grade. Only a held reading
+   * changes anything; while it is held, draw them as held rather than as
+   * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
+   * words, and says modelled where a model carried them.
+   */
+  held: HeldGrade | Reading<unknown> | undefined;
   /**
    * The camera the operator chose for the video backdrop in the widget's
    * settings, as a part flight id. `null` or `undefined` when none is chosen,
@@ -262,6 +271,13 @@ export interface ShipMapOverlayContext {
   baseScale: number;
   /** Margin in pixels the diagram leaves around the fitted vessel. */
   padding: number;
+  /**
+   * The reading each part's live fields (temperatures, resources, electric charge flow and part states) were drawn from, or just its grade. Only a held reading
+   * changes anything; while it is held, draw them as held rather than as
+   * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
+   * words, and says modelled where a model carried them.
+   */
+  held: HeldGrade | Reading<unknown> | undefined;
 }
 
 /**
@@ -471,6 +487,13 @@ export interface ActionGroupSlotContext {
   value: unknown;
   /** The state as the widget writes it: `"ON"`, `"OFF"`, the number as text, or the null placeholder while `value` is `null` or `undefined`. */
   stateLabel: string;
+  /**
+   * The reading `value` and `stateLabel` were drawn from, or just its grade. Only a held reading
+   * changes anything; while it is held, draw them as held rather than as
+   * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
+   * words, and says modelled where a model carried them.
+   */
+  held: HeldGrade | Reading<unknown> | undefined;
 }
 
 /**
@@ -551,6 +574,13 @@ export interface MapOverlayContext {
   vesselLat: number | undefined;
   /** The active vessel's longitude in degrees. `undefined` without a position, or when the map shows another body. */
   vesselLon: number | undefined;
+  /**
+   * The reading `vesselLat` and `vesselLon` were drawn from, or just its grade. Only a held reading
+   * changes anything; while it is held, draw them as held rather than as
+   * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
+   * words, and says modelled where a model carried them.
+   */
+  held: HeldGrade | Reading<unknown> | undefined;
 }
 
 /**
@@ -700,6 +730,13 @@ export interface OrbitOverlayContext {
   center: { x: number; y: number };
   /** The distance from the centre to the edge of the visible diagram, in metres: the apoapsis, or a multiple of the periapsis on an escape trajectory. */
   scale: number;
+  /**
+   * The reading the orbit's elements, apsides and `trueAnomaly` were drawn from, or just its grade. Only a held reading
+   * changes anything; while it is held, draw them as held rather than as
+   * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
+   * words, and says modelled where a model carried them.
+   */
+  held: HeldGrade | Reading<unknown> | undefined;
 }
 
 // "navball.badges" carries no props today.
@@ -782,6 +819,13 @@ export interface DeployedExperimentContext {
   experiment: DeployedScienceExperiment;
   /** The name of the body the experiment's base stands on. An empty string when not reported. */
   body: string;
+  /**
+   * The reading the experiment's figures were drawn from, or just its grade. Only a held reading
+   * changes anything; while it is held, draw them as held rather than as
+   * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
+   * words, and says modelled where a model carried them.
+   */
+  held: HeldGrade | Reading<unknown> | undefined;
 }
 
 // "deployed-science.badges" carries no props today.

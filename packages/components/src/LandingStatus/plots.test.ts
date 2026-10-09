@@ -370,7 +370,7 @@ describe("the body a contribution resolves", () => {
   };
 
   // Low enough that the atmospheric gate is open either way, so the case measures the radius and not the gate.
-  const topicsFor = (body: Record<string, unknown>) => ({
+  const payloadsFor = (body: Record<string, unknown>) => ({
     "vessel.identity": { parentBodyIndex: 1 },
     "system.bodies": { bodies: [body] },
     "vessel.flight": {
@@ -400,6 +400,32 @@ describe("the body a contribution resolves", () => {
     },
     "vessel.orbit": { mu: value("m³/s²", 3.986004418e14) },
   });
+
+  /** What a contribution's `compute` is handed: each Topic as a reading, current unless `held` names it. */
+  const topicsFor = (
+    body: Record<string, unknown>,
+    held: readonly string[] = [],
+    payloads: Record<string, unknown> = payloadsFor(body),
+  ) =>
+    Object.fromEntries(
+      Object.entries(payloads).map(([topic, payload]) => [
+        topic,
+        held.includes(topic)
+          ? {
+              state: "held",
+              value: payload,
+              asOfUt: value("ut", 100),
+              grade: "disconnected",
+              reckoning: { status: "none" },
+            }
+          : {
+              state: "observed",
+              value: payload,
+              atUt: value("ut", 100),
+              reckoning: { status: "none" },
+            },
+      ]),
+    );
 
   const compute = (id: string, body: Record<string, unknown>) => {
     const contribution = getContributionsForSlot("plots").find(
@@ -438,20 +464,40 @@ describe("the body a contribution resolves", () => {
     const contribution = getContributionsForSlot("plots").find(
       (c) => c.id === "core:cross-section",
     );
-    const topics = topicsFor(EARTH);
-    const bare = {
-      ...topics,
+    const payloads = payloadsFor(EARTH);
+    const bare = topicsFor(EARTH, [], {
+      ...payloads,
       "vessel.landing": {
-        ...topics["vessel.landing"],
+        ...payloads["vessel.landing"],
         groundTrackDistances: undefined,
         groundTrackElevations: undefined,
       },
-    };
+    });
     expect(contribution?.compute(bare)).toBeNull();
   });
 
   it("centres the touchdown reticle for a body no table knows", () => {
     expect(layerIds("core:touchdown-reticle", EARTH)).toContain("site");
+  });
+
+  it("marks every landing plot held while the flight it was drawn from is held, and none while it is current", () => {
+    for (const id of [
+      "core:descent-envelope",
+      "core:cross-section",
+      "core:touchdown-reticle",
+    ]) {
+      const contribution = getContributionsForSlot("plots").find(
+        (c) => c.id === id,
+      );
+      const plotHeld = (held: readonly string[]) =>
+        (
+          contribution?.compute(topicsFor(EARTH, held)) as
+            | { held?: { state: string } }[]
+            | null
+        )?.[0]?.held?.state;
+      expect(plotHeld([])).toBe("observed");
+      expect(plotHeld(["vessel.flight"])).toBe("held");
+    }
   });
 
   // With nothing reported or known, the reticle is withheld rather than drawn against an unsupplied radius.

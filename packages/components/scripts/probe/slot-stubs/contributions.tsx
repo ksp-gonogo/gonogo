@@ -1,6 +1,7 @@
 import {
   type ExperimentsInstrumentEntry,
   type PlotEntry,
+  stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { plantContribution } from "./stub";
@@ -21,7 +22,7 @@ plantContribution("astronaut-complex.readouts", {
 plantContribution("comm-signal.hop-rates", {
   deps: ["comms.path"],
   compute: (topics) =>
-    topics["comms.path"]?.hops.map((hop) => ({
+    stillTrue(topics["comms.path"], null)?.hops.map((hop) => ({
       fromNodeId: hop.from,
       toNodeId: hop.to,
       bitsPerSec: 9_600,
@@ -40,7 +41,7 @@ function crewNames(
 plantContribution("crew-status.row-tone", {
   deps: ["vessel.crew"],
   compute: (topics) =>
-    crewNames(topics["vessel.crew"]).map((crewName) => ({
+    crewNames(stillTrue(topics["vessel.crew"], null)).map((crewName) => ({
       crewName,
       tone: "warn" as const,
     })),
@@ -49,7 +50,7 @@ plantContribution("crew-status.row-tone", {
 plantContribution("crew-status.meters", {
   deps: ["vessel.crew"],
   compute: (topics) =>
-    crewNames(topics["vessel.crew"]).map((name) => ({
+    crewNames(stillTrue(topics["vessel.crew"], null)).map((name) => ({
       id: name,
       label: "crew-status.meters",
       value: value("ratio", 0.5),
@@ -94,7 +95,7 @@ plantContribution("plots", {
 plantContribution("ship-map.part-meters", {
   deps: ["vessel.parts"],
   compute: (topics) => {
-    const part = topics["vessel.parts"]?.parts[0];
+    const part = stillTrue(topics["vessel.parts"], null)?.parts[0];
     if (!part) return null;
     return [
       {
@@ -111,7 +112,7 @@ plantContribution("ship-map.part-meters", {
 plantContribution("ship-map.part-meta", {
   deps: ["vessel.parts"],
   compute: (topics) => {
-    const part = topics["vessel.parts"]?.parts[0];
+    const part = stillTrue(topics["vessel.parts"], null)?.parts[0];
     if (!part) return null;
     return [
       {
@@ -142,7 +143,7 @@ const ENTITY_OFFSET_M = 1_500_000;
 plantContribution("system-view.entities", {
   deps: ["system.bodies"],
   compute: (topics) =>
-    topics["system.bodies"]?.bodies.flatMap((body) =>
+    stillTrue(topics["system.bodies"], null)?.bodies.flatMap((body) =>
       body.name
         ? [
             {
@@ -166,7 +167,7 @@ plantContribution("system-view.entities", {
 plantContribution("system-view.vessel-status", {
   deps: ["vessel.identity"],
   compute: (topics) => {
-    const vessel = topics["vessel.identity"];
+    const vessel = stillTrue(topics["vessel.identity"], null);
     if (!vessel) return null;
     return [
       {
@@ -187,7 +188,7 @@ plantContribution("system-view.vessel-status", {
 plantContribution("system-view.projection", {
   deps: ["system.bodies"],
   compute: (topics) =>
-    topics["system.bodies"]?.bodies.flatMap((body) =>
+    stillTrue(topics["system.bodies"], null)?.bodies.flatMap((body) =>
       body.parentIndex != null && body.parentIndex !== body.index
         ? [
             {

@@ -2,9 +2,11 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, useContributions } from "@ksp-gonogo/core";
 import { stillTrue, type Tone, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import {
+  heldGradeOf,
   Panel,
   ReadoutCaption,
   Section,
+  severityFromStreamStatus,
   useElementSize,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
@@ -52,9 +54,14 @@ export function CrewStatusComponent(
   const rowToneByName = useMemo(() => {
     const map = new Map<string, Tone>();
     for (const entry of rowToneContributions) {
-      if (!map.has(entry.crewName)) {
-        map.set(entry.crewName, ROW_CARD_TONE[entry.tone]);
-      }
+      if (map.has(entry.crewName)) continue;
+      const grade = heldGradeOf(entry.held);
+      map.set(
+        entry.crewName,
+        grade === undefined
+          ? ROW_CARD_TONE[entry.tone]
+          : severityFromStreamStatus(grade),
+      );
     }
     return map;
   }, [rowToneContributions]);

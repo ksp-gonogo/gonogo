@@ -1,5 +1,5 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type { SystemBodies } from "@ksp-gonogo/sitrep-sdk";
+import { type SystemBodies, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { projectionsForBody, type SystemViewProjection } from "./projection";
 
 /*
@@ -24,5 +24,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "system-view-stock-projections",
   contributes: "system-view.projection",
   deps: ["system.bodies"],
-  compute: (topics) => projectionEntries(topics["system.bodies"]),
+  // The catalogue of bodies changes only with the planet pack, so a held one still lists every frame on offer.
+  compute: (topics) =>
+    projectionEntries(stillTrue(topics["system.bodies"], null)),
 });

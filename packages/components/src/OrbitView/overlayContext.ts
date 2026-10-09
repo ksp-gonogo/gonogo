@@ -13,6 +13,7 @@ export function overlayContext(orbit: {
   argPe: number;
   trueAnomaly: number;
   bodyRadius: number | undefined;
+  held: OrbitOverlayContext["held"];
 }): OrbitOverlayContext {
   return {
     sma: orbit.sma,
@@ -22,6 +23,7 @@ export function overlayContext(orbit: {
     argPe: orbit.argPe,
     trueAnomaly: orbit.trueAnomaly,
     bodyRadius: orbit.bodyRadius,
+    held: orbit.held,
     center: { x: 0, y: 0 },
     scale: orbit.escaping
       ? orbit.periapsis * HYPERBOLIC_OVERLAY_SCALE

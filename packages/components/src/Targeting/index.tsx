@@ -37,6 +37,7 @@ function TargetingComponent({
     dockY,
     dockingRelVel,
     dockingDistance,
+    dockingFiguresReading,
     dockForwardDot,
     dockingAvailable,
     alignmentWithheld,
@@ -89,6 +90,7 @@ function TargetingComponent({
       <DockingHud
         name={tarName}
         distance={dockingDistance}
+        figuresReading={dockingFiguresReading}
         relVel={dockingRelVel}
         ax={dockAx}
         ay={dockAy}
