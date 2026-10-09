@@ -43,7 +43,6 @@ export const COINCIDENTAL: readonly string[] = [
    * same serial input discriminant as ResourceOps, which collides with
    * `vessel.identity`'s `kind` now that the widget reads that topic.
    */
-  "packages/components/src/WarpControl#kind",
   /*
    * `const timeToAp = solve?.timeToAp ?? undefined;` and its `timeToPe` twin:
    * the orbital SOLVE's countdowns out of `useOrbitSolve`, not a read of
