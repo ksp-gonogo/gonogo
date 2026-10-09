@@ -69,34 +69,62 @@ export interface UplinkDeclaration {
    * `[SitrepUplink]` attribute give. It may be left out when the client's own
    * `defineUplinkClient` gives it; building the manifest fails when nothing
    * does.
+   *
+   * @readBy bake, bundle, codegen, docs, package, page, release
    */
   id?: string;
-  /** The name an operator sees, as `defineUplinkClient` gives it. */
+  /**
+   * The name an operator sees, as `defineUplinkClient` gives it.
+   *
+   * @readBy bake, bundle, docs, page
+   */
   name?: string;
-  /** Who wrote it, shown when the app asks the operator whether to load the client. */
+  /**
+   * Who wrote it, shown when the app asks the operator whether to load the client.
+   *
+   * @readBy bake, bundle, docs, page
+   */
   author?: string;
-  /** The URL of its source repository, shown beside the author. */
+  /**
+   * The URL of its source repository, shown beside the author.
+   *
+   * @readBy bake, bundle, docs, page
+   */
   repo?: string;
-  /** The oldest app version it is known to work with. The app warns below it and still loads the client. */
+  /**
+   * The oldest app version it is known to work with. The app warns below it and still loads the client.
+   *
+   * @readBy bundle, docs, page
+   */
   minAppVersion?: string;
   /**
    * The name of the folder the plugin installs into under the game's
    * `GameData`, such as `"GonogoExampleUplink"`. `uplink-tools package` names
    * the mod zip after it and roots the zip at `GameData/<gamedata>/`, and the
    * plugin's project is `mod/<gamedata>.csproj`.
+   *
+   * @readBy package, release
    */
   gamedata?: string;
-  /** The file name of the plugin assembly the build writes, such as `"GonogoExampleUplink.dll"`. */
+  /**
+   * The file name of the plugin assembly the build writes, such as `"GonogoExampleUplink.dll"`.
+   *
+   * @readBy package, release
+   */
   dll?: string;
   /**
    * The C# namespace the plugin's sources are in. `uplink-tools bake` writes
    * its generated classes into it.
+   *
+   * @readBy bake
    */
   csharpNamespace?: string;
   /**
    * The KSP mod this Uplink wraps, when it wraps one, or `null` when it wraps
    * none. The generated page prints it. It is not copied into
    * `gonogo-uplink.json`, since the app loading the client has no use for it.
+   *
+   * @readBy docs, page
    */
   mod?: UplinkWrappedMod | null;
   /**
@@ -104,9 +132,15 @@ export interface UplinkDeclaration {
    * generated TypeScript. `uplink-tools new` writes it, and it changes only
    * when the slice starts emitting another file. Absent for an Uplink with no
    * contract slice of its own.
+   *
+   * @readBy codegen
    */
   codegen?: UplinkCodegenDeclaration;
-  /** Where the client lives. Absent for an Uplink with no client, which the plugin then does not announce. */
+  /**
+   * Where the client lives. Absent for an Uplink with no client, which the plugin then does not announce.
+   *
+   * @readBy bake, check, release
+   */
   client?: {
     /**
      * The address the released client bundle is fetched from, by every install.

@@ -369,14 +369,24 @@ export type TopicReading<Payload> = TopicCurrency<
  * @category Reading telemetry
  */
 export type TopicCurrency<Payload, ReckoningShape = unknown> =
-  | { state: "pending"; reckoning: { readonly status: "none" } }
-  | { state: "unowned"; reckoning: { readonly status: "none" } }
   | {
+      /** Nothing has arrived yet: the Topic was just subscribed, or is resyncing after a rewind. */
+      state: "pending";
+      reckoning: { readonly status: "none" };
+    }
+  | {
+      /** Nothing will ever publish this Topic, because no installed Uplink declares it. */
+      state: "unowned";
+      reckoning: { readonly status: "none" };
+    }
+  | {
+      /** The game confirmed there is no value, such as no target set. */
       state: "absent";
       reckoning: { readonly status: "none" };
       atUt: Value<"ut">;
     }
   | {
+      /** The newest value that could have reached the operator, however old it is under signal delay. */
       state: "observed";
       /** The observation itself. Never a modelled value; see `reckoning`. */
       value: Payload;
@@ -384,6 +394,7 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       reckoning: ReckoningShape;
     }
   | {
+      /** Updates stopped arriving, so `value` is the last one received and `grade` says why. */
       state: "held";
       /** The last REAL observation. Never a modelled value. */
       value: Payload;
