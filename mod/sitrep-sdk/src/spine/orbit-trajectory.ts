@@ -697,7 +697,7 @@ export function orbitRing(
 }
 
 /**
- * A catalogue body's orbit about `parent` as an {@link OrbitTrajectoryInput}
+ * A catalogue body's orbit about `parent` as an `OrbitTrajectoryInput`
  * `orbit`, carrying the horizon its own provider stated, or null for a body with
  * no orbit about anything: the root star, or one whose size and shape the
  * catalogue has not filled.
@@ -730,7 +730,7 @@ export function bodyOrbitInput(
 
 /**
  * How a catalogue body's path may be drawn at `viewUt`, as
- * {@link orbitTrajectory} answers it for a craft: a conic where its provider
+ * `orbitTrajectory` answers it for a craft: a conic where its provider
  * says the elements are the curve, the arc to its horizon where it integrates,
  * a refusal where it vouches for nothing.
  *
