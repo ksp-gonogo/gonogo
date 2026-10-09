@@ -39,7 +39,19 @@ namespace Sitrep.Host
 
             if (_args is IDictionary<string, object> bag)
             {
-                return bag.TryGetValue(path, out value) && value != null;
+                if (bag.TryGetValue(path, out value))
+                {
+                    return value != null;
+                }
+                foreach (var entry in bag)
+                {
+                    if (string.Equals(entry.Key, path, StringComparison.OrdinalIgnoreCase))
+                    {
+                        value = entry.Value;
+                        return value != null;
+                    }
+                }
+                return false;
             }
 
             // A typed args object: look the property up BY NAME rather than
