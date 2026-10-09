@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { scopeWidgets, widgetFlag } from "./gateScope";
+import { scopeWidgets, shardFlag, widgetFlag } from "./gateScope";
 import type { WidgetRenderConfig } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
 
@@ -84,5 +84,48 @@ describe("scopeWidgets", () => {
     expect(
       scopeWidgets(all, ["Navball"], "g", 30).widgets.length,
     ).toBeGreaterThan(0);
+  });
+});
+
+describe("shardFlag", () => {
+  it("is absent without the flag", () => {
+    expect(shardFlag(["--widget", "Navball"])).toBeUndefined();
+  });
+
+  it("reads both spellings", () => {
+    expect(shardFlag(["--shard", "2/4"])).toEqual({ index: 2, count: 4 });
+    expect(shardFlag(["--shard=3/3"])).toEqual({ index: 3, count: 3 });
+  });
+
+  it.each(["", "2", "0/4", "5/4", "a/b"])("rejects %j", (raw) => {
+    expect(() => shardFlag(["--shard", raw])).toThrow("--shard takes");
+  });
+});
+
+describe("scopeWidgets sharding", () => {
+  const many = Array.from({ length: 10 }, (_, i) => config(`W${i}/__f__`));
+
+  it("covers every config in exactly one shard", () => {
+    const seen = [1, 2, 3].flatMap((index) =>
+      scopeWidgets(many, undefined, "g", 10, { index, count: 3 }).widgets.map(
+        (w) => w.fixturesPath,
+      ),
+    );
+    expect(seen.sort()).toEqual(many.map((w) => w.fixturesPath).sort());
+  });
+
+  it("holds the floor on the whole set, not the slice", () => {
+    expect(
+      scopeWidgets(many, undefined, "g", 10, { index: 1, count: 5 }).refusal,
+    ).toBeNull();
+    expect(
+      scopeWidgets(many, undefined, "g", 11, { index: 1, count: 5 }).refusal,
+    ).toContain("Refusing to report a clean run over a set this small");
+  });
+
+  it("refuses an empty shard", () => {
+    expect(
+      scopeWidgets(many, undefined, "g", 0, { index: 11, count: 11 }).refusal,
+    ).toContain("holds no render config");
   });
 });

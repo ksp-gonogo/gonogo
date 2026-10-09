@@ -327,7 +327,12 @@ jobs:
   # gate. Split from `font-gate` below so the two heaviest render passes run
   # concurrently instead of one after the other in the same job.
   overlap-gate:
+    name: overlap-gate (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -383,7 +388,13 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
-      - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
+      # Sharded by widget (`--shard i/4` partitions the render configs, each in
+      # exactly one shard, the floor checked on the whole set). Every shard
+      # re-runs the detectors' own plants inside its render, so each stays
+      # able to fail as BLIND. The smoke check and the aspect gate are not
+      # per-widget, so shard 1 carries them.
+      - if: matrix.shard == 1
+        run: pnpm --filter @ksp-gonogo/components probe-render-smoke
 
       # Does any widget paint two of its own sections into the same pixels?
       #
@@ -420,7 +431,7 @@ jobs:
       # the fixture's real figures, which the minsize gate's empty renders cannot
       # see overflow. A planted tiny widget must fit empty and fail fed at 2x3,
       # or the run fails as blind.
-      - run: pnpm --filter @ksp-gonogo/components overlap-gate
+      - run: pnpm --filter @ksp-gonogo/components overlap-gate --shard ${{ matrix.shard }}/4
 
       # Checkered-flag aspect gate: a checkerboard of square cells painted into
       # a FramedDisplay with object-fit cover, at landscape, portrait and square
@@ -431,14 +442,20 @@ jobs:
       # or the gate fails as blind. Folded into this job rather than given its
       # own, since it costs about a second on top of a browser this job already
       # installs.
-      - run: pnpm --filter @ksp-gonogo/components aspect-gate
+      - if: matrix.shard == 1
+        run: pnpm --filter @ksp-gonogo/components aspect-gate
 
   # Font-fallback gate, its own job so it runs concurrently with overlap-gate
   # above instead of after it: the two are independent findings over the same
   # render pass and used to run one after the other in the same job for no
   # dependency reason.
   font-gate:
+    name: font-gate (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -484,7 +501,7 @@ jobs:
       # MIN_WIDGETS refusal as the overlap gate, and the detector plants a
       # deliberately wrong font-family on every run and throws if it does not
       # catch it.
-      - run: pnpm --filter @ksp-gonogo/components font-gate
+      - run: pnpm --filter @ksp-gonogo/components font-gate --shard ${{ matrix.shard }}/4
 
   # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
   # declares and fails when its title ellipsises, its content is clipped with

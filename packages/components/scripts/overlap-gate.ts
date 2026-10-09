@@ -25,7 +25,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { scopeWidgets, widgetFlag } from "./gateScope";
+import { scopeWidgets, shardFlag, widgetFlag } from "./gateScope";
 import { renderWidgets } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
 
@@ -43,6 +43,7 @@ async function main(): Promise<void> {
     widgetFlag(process.argv.slice(2)),
     "overlap-gate",
     MIN_WIDGETS,
+    shardFlag(process.argv.slice(2)),
   );
   if (refusal) {
     console.error(refusal);
