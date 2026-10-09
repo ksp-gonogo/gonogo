@@ -297,6 +297,15 @@ jobs:
       - if: matrix.leg == 'components 1/4'
         run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
+      # Station parity gate: every stream-fed widget fixture rendered on the
+      # main screen and on a station that joins late and hears only what the
+      # host relays over PeerJS, through the real packer, and the two compared.
+      # Differences known today are recorded in `packages/app/parity/exceptions.ts`,
+      # shrink-only and enforced from both sides.
+      - name: A station draws what the main screen draws
+        if: matrix.leg == 'rest'
+        run: pnpm parity-gate
+
       # Says out loud which suites did not run. Three of them are gated on a
       # recording generated into `local_docs/`, which is blanket-gitignored, so
       # CI can never have it and they skip on every run. A skipped suite prints

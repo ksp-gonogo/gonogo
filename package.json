@@ -17,6 +17,7 @@
     "review-aid": "node scripts/review-aid.mjs",
     "scans:full": "pnpm --filter @ksp-gonogo/core exec vitest run --config vitest.scans.config.ts",
     "act-warning-gate": "node scripts/act-warning-gate.mjs",
+    "parity-gate": "pnpm --filter @ksp-gonogo/app parity-gate",
     "fixture-gated-report": "node scripts/report-fixture-gated-suites.mjs",
     "test:playwright": "playwright test",
     "rig": "playwright test --config playwright.rig.config.ts",
