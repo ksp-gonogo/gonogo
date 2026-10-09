@@ -9047,6 +9047,22 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . PanelSplitProps",
+        "note": "removed: the type of a component that is not exported and not a Panel part"
+      },
+      {
+        "key": "ui-kit . PanelSplitProps#railBand?",
+        "note": "removed: the type of a component that is not exported and not a Panel part"
+      },
+      {
+        "key": "ui-kit . PanelSplitProps#side?",
+        "note": "removed: the type of a component that is not exported and not a Panel part"
+      },
+      {
+        "key": "ui-kit . PanelSplitProps#size?",
+        "note": "removed: the type of a component that is not exported and not a Panel part"
+      },
+      {
         "key": "ui-kit . RECKONING_MARK",
         "note": "Gains a current entry (the lilac ring, which has only a hollow form) and a hollowDomSize on held and modelled. Every field a caller read before is unchanged; code that walks the table's keys now meets current"
       },

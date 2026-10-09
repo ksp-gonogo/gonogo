@@ -9,12 +9,14 @@ export const WAVE_VB_H = 16;
 /**
  * The centre line of the ribbon mark's box, in box units.
  *
+ * @intent Published so a caller can read the trace waveformPath draws back against its centre line.
  * @category CommandDelay
  */
 export const WAVE_MID_Y = WAVE_VB_H / 2;
 /**
  * How far a full-scale sample reaches either side of the centre line, in box units. Short: the rail is a band, not a meter.
  *
+ * @intent Published so a caller can read the trace waveformPath draws back as an amplitude.
  * @category CommandDelay
  */
 export const WAVE_HALF_H = 5.5;

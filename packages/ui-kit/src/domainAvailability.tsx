@@ -63,6 +63,7 @@ const DomainAvailabilityPanelStore = createPanelStore(
  * from {@link createDomainAvailabilityStore} through it to seed presence in a
  * test; otherwise use {@link DomainAvailabilityProvider}.
  *
+ * @intent Published so a test can seed which Domains are present for the widget under test.
  * @category Extensions
  */
 export const DomainAvailabilityContext = DomainAvailabilityPanelStore.Context;

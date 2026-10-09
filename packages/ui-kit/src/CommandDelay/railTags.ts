@@ -75,6 +75,7 @@ export type RailTagKey = `${RailDirection}/${RailContinuity}/${RailDelivery}`;
 /**
  * A handle's three rail axes as one `direction/continuity/delivery` string, e.g. `command/discrete/acked`.
  *
+ * @intent Published so a representation of the rail of a third party can key its entries by the same tag combination the kit does.
  * @category CommandDelay
  */
 export function railTagKey(tags: RailTags): RailTagKey {

@@ -1008,7 +1008,7 @@ const PanelSplit__Box = styled.div<{
  *
  * @category Panel
  */
-export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
+interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
   /** Which edge the sidebar sits against. See {@link PanelSidebarSide}. Defaults to `end`. */
   side?: PanelSidebarSide;
   /**

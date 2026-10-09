@@ -134,6 +134,7 @@ export interface ControlDelayStreamProps {
  * The one-way delay, in seconds, under which {@link ControlDelayStream} draws no
  * command streams. Ribbons draw at any positive delay.
  *
+ * @intent Published so a representation of the rail of a third party can agree with ControlDelayStream on when streams are drawn.
  * @category CommandDelay
  */
 export const STREAM_MIN_DELAY_SECONDS = 0.05;
@@ -169,6 +170,7 @@ const padXFor = (variant: ControlDelayStreamVariant): number =>
  * wide): the T divider, a third of the plot. It never moves with delivery;
  * delivery only decides whether anything is drawn past it.
  *
+ * @intent Published so a representation of the rail of a third party can place its divider where ControlDelayStream places the T.
  * @category CommandDelay
  */
 export function ribbonBoundaryX(

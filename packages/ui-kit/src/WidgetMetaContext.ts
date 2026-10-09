@@ -20,6 +20,7 @@ export interface WidgetMetaContextValue {
  * `null` outside one. The dashboard provides it for every widget; a test
  * rendering a widget bare provides it to get the widget's slots working.
  *
+ * @intent Published so a test or a host of its own can give a widget the identity and slots the dashboard provides.
  * @category Extensions
  */
 export const WidgetMetaContext = createContext<WidgetMetaContextValue | null>(

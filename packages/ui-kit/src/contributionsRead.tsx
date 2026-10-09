@@ -72,6 +72,7 @@ const EMPTY_SLOT_ENTRIES: readonly ContributionSlotEntry[] = Object.freeze([]);
  * ({@link useContributions}, {@link useContributionsBySlotId}) read it. A
  * widget reads through those hooks rather than the store.
  *
+ * @intent Published so a test, or a host of its own, can mount the per-widget contribution store a widget reads through useContributions.
  * @category Extensions
  */
 export const ContributionsPanelStore = createPanelStore<

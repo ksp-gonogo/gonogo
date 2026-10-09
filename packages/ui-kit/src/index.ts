@@ -489,7 +489,6 @@ export {
   type PanelInactiveReason,
   type PanelProps,
   type PanelSidebarSide,
-  type PanelSplitProps,
   type PanelTitleProps,
   ScrollArea,
   WidgetSections,

@@ -88,6 +88,7 @@ export function WidgetHost({
  * than an id to look one up by: for a harness previewing an augment against a
  * synthetic host definition.
  *
+ * @intent Published so a harness can preview an augment against a synthetic host definition.
  * @category Testing
  */
 export function WidgetHostFor({

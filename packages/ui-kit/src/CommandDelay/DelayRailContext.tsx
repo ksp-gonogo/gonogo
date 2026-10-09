@@ -35,6 +35,7 @@ export interface DelayRailStore {
 /**
  * Create an empty delay-rail store, for a caller that owns its lifetime and provides it through {@link DelayRailContext}.
  *
+ * @intent Published so a third party can own the lifetime of a rail store behind a representation of its own, as Console does.
  * @category CommandDelay
  */
 export function createDelayRailStore(): DelayRailStore {
@@ -54,6 +55,7 @@ const DelayPanelStore = createPanelStore(createDelayRailStore);
  * a `Panel`, where `useRailEntry` and `useActiveHandles` degrade to no-ops.
  * Exported raw for a caller that owns the store's lifetime.
  *
+ * @intent Published so a third party can provide a rail store it owns to a representation of its own, as Console does.
  * @category CommandDelay
  */
 export const DelayRailContext = DelayPanelStore.Context;
@@ -102,6 +104,7 @@ const NO_HANDLES_SNAPSHOT = (): readonly CommandHandle[] => NO_HANDLES;
  * is no store in the tree. A subscriber (`Panel.Delay`) re-renders only when
  * the active handle set changes.
  *
+ * @intent Published so a third party can read the active handles to draw a representation of the rail of its own, as Console does.
  * @category CommandDelay
  */
 export function useActiveHandles(): readonly CommandHandle[] {

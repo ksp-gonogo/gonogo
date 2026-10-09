@@ -22,6 +22,7 @@ export interface ModalChromeValue {
  * a modal. Content uses {@link useModalChrome} or {@link useModalSaveBar}
  * rather than reading it.
  *
+ * @intent Published so content that calls useModalChrome can be rendered under a stand-in modal in a test.
  * @category Modal
  */
 export const ModalChromeContext = createContext<ModalChromeValue | null>(null);
