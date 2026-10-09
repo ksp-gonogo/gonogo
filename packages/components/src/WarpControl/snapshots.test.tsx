@@ -11,7 +11,7 @@ import { WarpControlComponent } from "./index";
 
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own `_stream`
- * block. `connectSource` stays on because a disconnected legacy source paints a
+ * block. `connectSource` stays on because a disconnected source paints a
  * status badge these fixtures do not depict.
  */
 

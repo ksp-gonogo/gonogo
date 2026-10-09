@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
-// Both reads run off a real `TelemetryProvider`, with no legacy `MockDataSource`.
+// Both reads run off a real `TelemetryProvider`, with no `MockDataSource`.
 
 describe("SemiMajorAxisComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;

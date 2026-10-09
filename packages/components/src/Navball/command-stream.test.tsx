@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent, sasModeOrdinal } from "./index";
 
-/** Stock's ten customs, all disengaged: the named-list shape the mod now sends. */
+/** Stock's ten customs, all disengaged: the named-list shape the mod sends. */
 const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
   index: i + 1,
   name: `AG${i + 1}`,

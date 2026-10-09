@@ -240,7 +240,7 @@ describe("Strategies: tiny mode keeps the funds essential", () => {
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The tiny header is out of flow (Saga #739): the title trails the essentials in the DOM, drawn as a corner overlay rather than a row above them.
+    // The tiny header is out of flow: the title trails the essentials in the DOM, drawn as a corner overlay rather than a row above them.
     await waitFor(() =>
       expect(visibleText()).toBe(`Funds${NULL_DISPLAY}Active0ADMIN`),
     );

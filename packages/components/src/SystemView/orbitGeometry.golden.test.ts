@@ -23,7 +23,7 @@ const POINTS: readonly (readonly [number, number, number])[] = [
 
 /**
  * The rotation is shared with the SDK's, which composes the three turns as one
- * matrix where this file used to apply them in sequence. The two agree to
+ * matrix, where this file applies them in sequence. The two agree to
  * floating-point rounding (metres of the order 1e6, so 1e-9 is a few ulps), not
  * to the last bit.
  */

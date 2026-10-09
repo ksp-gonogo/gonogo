@@ -8,7 +8,7 @@ import { MapViewComponent } from "./index";
 
 /**
  * MapView running off the real stream pipeline via `StubTransport`, with no
- * legacy `DataSource` registered. The compact mode renders a plain
+ * `DataSource` registered. The compact mode renders a plain
  * Lat/Lon/Alt readout, so the mapped values are DOM-visible.
  */
 describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", () => {

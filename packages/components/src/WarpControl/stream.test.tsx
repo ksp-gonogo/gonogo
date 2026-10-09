@@ -7,14 +7,14 @@ import { WarpIntentProvider } from "../shared/WarpIntent";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
-/** WarpControl running off a real stream pipeline fed via `StubTransport`, with no legacy source registered. */
+/** WarpControl running off a real stream pipeline fed via `StubTransport`, with no source registered. */
 // Reset at the start of each test, once the prior test's tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();
 });
 
 describe("WarpControl: genuinely runs off the stream", () => {
-  it("reads the recorded time.warp state off the real stream pipeline, not legacy", async () => {
+  it("reads the recorded time.warp state off the real stream pipeline, not a fallback", async () => {
     // With no legacy source registered, a read that fell back would stay NULL_DISPLAY rather than reach "10×".
     const fixture = setupStreamFixture({
       pinnedUt: 10,

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ThermalStatusComponent } from "./index";
 
-/** ThermalStatus off the real stream pipeline, with no legacy `DataSource` registered: the headline ratio and the hottest part's name stream from one `vessel.thermal` emission. */
+/** ThermalStatus off the real stream pipeline, with no `DataSource` registered: the headline ratio and the hottest part's name stream from one `vessel.thermal` emission. */
 describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
   it("reads the hottest-part headline ratio and name off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({

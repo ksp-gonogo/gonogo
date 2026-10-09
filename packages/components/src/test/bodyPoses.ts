@@ -1,7 +1,7 @@
 import type { BodyPose, SystemPoses } from "@ksp-gonogo/sitrep-client";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
 
-/** Where a fixture body sits along its orbit, which a body no longer carries: it is a pose's, not the catalogue's. */
+/** Where a fixture body sits along its orbit, which a body does not carry: it is a pose's, not the catalogue's. */
 const ANOMALY_OF = new WeakMap<CelestialBody, number | null>();
 
 /** Records where `body` sits along its orbit, for `posesOf`. Returns the body. */

@@ -10,7 +10,7 @@ import { SemiMajorAxisComponent } from "./index";
 
 /**
  * SemiMajorAxis running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`, with no legacy `DataSource`
+ * `TimelineStore` pipeline via `StubTransport`, with no `DataSource`
  * registered, so a rendered headline, body suffix or sparkline `<path>` can
  * only have come from the stream.
  */

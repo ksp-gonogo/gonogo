@@ -67,7 +67,7 @@ const FOLLOW_PULSATING_EXTENT_UNITS = 1.4;
 /**
  * The "follow the Control Frame" entry, or null when it has nothing to offer.
  *
- * Two operator rulings collapse into one check: hidden when there is no live
+ * Two conditions collapse into one check: hidden when there is no live
  * Control Frame to follow (`controlFrameChoice` null, the ordinary case on a
  * stream with no elector), and hidden when following it would draw exactly
  * what an already-offered choice draws (stock's Control Frame is always

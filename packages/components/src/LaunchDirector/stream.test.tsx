@@ -7,7 +7,7 @@ import { LaunchDirectorComponent } from "./index";
 
 /**
  * LaunchDirector running off the real stream pipeline via `StubTransport`,
- * with no legacy `DataSource` registered. The in-flight scene reports
+ * with no `DataSource` registered. The in-flight scene reports
  * `launchUt: null`, so `missionTime` renders the null-display placeholder.
  */
 afterEach(() => {

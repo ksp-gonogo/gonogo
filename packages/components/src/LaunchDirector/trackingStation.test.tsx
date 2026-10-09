@@ -11,7 +11,7 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
 
-/** The Tracking Station is where an operator driving from the app used to be stranded. */
+/** The Tracking Station is a scene where an operator driving from the app has no launch pad to command. */
 describe("LaunchDirector in the Tracking Station", () => {
   let cmdFixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;

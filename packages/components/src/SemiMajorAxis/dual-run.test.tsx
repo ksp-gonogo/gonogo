@@ -6,7 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import lkoKerbin from "./__fixtures__/lko-kerbin.json";
 import { SemiMajorAxisComponent } from "./index";
 
-/** SemiMajorAxis renders its full readout, headline and reference-body subtitle, off the stream with no legacy source registered. */
+/** SemiMajorAxis renders its full readout, headline and reference-body subtitle, off the stream with no source registered. */
 
 describe("SemiMajorAxis: renders off the stream alone", () => {
   it("renders sma and the reference-body subtitle purely off the stream", async () => {

@@ -10,8 +10,7 @@ import { SystemViewConfigForm } from "./SystemViewConfigForm";
 /**
  * The config form's "Draw the picture in" field, once it runs through the
  * shared `ReadFrameControl`: "Follow the in-game view" is on offer only once
- * the live Control Frame would actually draw something new, per the operator
- * ruling. A stock-shaped stream (fixed, body-centred-inertial about the frame
+ * the live Control Frame would actually draw something new. A stock-shaped stream (fixed, body-centred-inertial about the frame
  * body) never earns the option; a stream that elects a differing frame does.
  */
 

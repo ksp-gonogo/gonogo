@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TechTreeComponent } from "./index";
 
-/** TechTree off the real stream pipeline: science and tech nodes stream, with no legacy `DataSource`. */
+/** TechTree off the real stream pipeline: science and tech nodes stream, with no `DataSource`. */
 // Reset at the start of each test, when the prior tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();

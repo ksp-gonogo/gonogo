@@ -50,7 +50,7 @@ const PART_LIVE = new Map<number, PartLiveWireInput>(
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY, PART_LIVE);
 
 const PLACEHOLDER_WAITING =
-  // The domain-free half of the copy: the whole sentence names the legacy data source, which `uplink-boundary` reads as a mod reference.
+  // The domain-free half of the copy: the whole sentence names the data source, which `uplink-boundary` reads as a mod reference.
   /Waiting for vessel topology/;
 
 const renderedTrees: Array<() => void> = [];

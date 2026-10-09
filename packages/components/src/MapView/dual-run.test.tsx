@@ -10,7 +10,7 @@ import { MapViewComponent } from "./index";
 /**
  * MapView's stream render golden: the compact Lat/Lon/Alt readout (mode
  * `4x5`, plain DOM text rather than canvas) renders the pre-launch state off
- * the real stream pipeline, with no legacy fallback.
+ * the real stream pipeline, with no fallback.
  */
 describe("MapView: stream render golden (delay=0)", () => {
   it("renders the compact Lat/Lon/Alt readout off the stream for the launchpad state", async () => {
