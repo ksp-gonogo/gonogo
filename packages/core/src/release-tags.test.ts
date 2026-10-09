@@ -172,4 +172,22 @@ describe("release.yml publishes the packages as a set", () => {
     expect(job("move-tags")).toContain(movers[0]);
     expect(workflow).not.toMatch(/^\s+(run: )?npm dist-tag (add|rm) /m);
   });
+
+  it("refuses a real publish dispatched from any ref but main or a release tag", () => {
+    const start = workflow.indexOf("\n  ref-guard:\n");
+    expect(start, "the ref-guard job").toBeGreaterThan(-1);
+    const guard = workflow.slice(
+      start,
+      workflow.indexOf("\n  rc-plan:", start),
+    );
+    expect(guard).toContain("refs/heads/main");
+    expect(guard).toContain("refs/tags/v*");
+    expect(guard).toContain("!inputs.dry_run");
+    for (const name of ["publish-nuget", "publish-packages"]) {
+      const at = workflow.indexOf(`\n  ${name}:\n`);
+      const head = workflow.slice(at, at + 1500);
+      expect(head, name).toMatch(/needs: \[ref-guard,/);
+      expect(head, name).toContain("needs.ref-guard.result == 'success'");
+    }
+  });
 });

@@ -211,6 +211,23 @@ jobs:
             --ref main \
             -f channel=release
 
+  # A real (non dry-run, non-RC) dispatch publishes whatever versions the ref's
+  # manifests carry under `latest`, so it runs only on `main`, the branch a
+  # release fast-forwards, or on a v* tag. Any other branch carries unreleased
+  # manifests and a dry run is the way to exercise it there.
+  ref-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: A real publish runs on main or a release tag only
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.rc && !inputs.dry_run }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ] && [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            echo "::error::a non-dry-run dispatch publishes real versions and runs on refs/heads/main or a v* tag only, got $GITHUB_REF. Add -f dry_run=true to try it elsewhere, or -f rc=true --ref staging for a candidate."
+            exit 1
+          fi
+
   # The RC version every published package shares, worked out once and refused
   # unless it sorts above everything any of them has published, then proved
   # outside the workspace: the probe installs the stamped tarballs side by side,
@@ -314,13 +331,13 @@ jobs:
   # Running the workflow again finishes the job: a version already published is
   # skipped, and the tags are moved for whatever still needs it.
   publish-packages:
-    needs: [release, rc-plan, nuget-listed]
+    needs: [ref-guard, release, rc-plan, nuget-listed]
     # `needs` alone would skip this whenever `release` is skipped, which is
     # exactly the packages_only case. Naming the results keeps a *failed*
     # release from publishing while letting a deliberately skipped one through.
     # An RC additionally needs its plan, which is where the staging-only refusal
     # lives. Nothing is published to npm until nuget.org lists the C# package.
-    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-listed.result == 'success' }}
+    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-listed.result == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.pkg.outputs.version }}
@@ -656,8 +673,8 @@ jobs:
   # It is pushed FIRST, before any npm package, and `nuget-listed` then waits
   # for it: see the note above `publish-packages`.
   publish-nuget:
-    needs: [release, rc-plan]
-    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
+    needs: [ref-guard, release, rc-plan]
+    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
