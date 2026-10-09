@@ -3522,6 +3522,7 @@ namespace Sitrep.Host
             // vantage on subsequent subscribes/dispatches (an eventually-consistent
             // switch, matching the client re-subscribing its topics at the new vantage).
             session.ChosenVantage = sv.CentreId;
+            ReplayParkedAnswers(session);
         }
 
         public void SetVesselConnectivity(string vesselId, bool connected)
@@ -8810,11 +8811,16 @@ namespace Sitrep.Host
             // DelayTo(vantage, node) -- the same ledger delay used above -- so
             // telemetry and command delay share one per-(vantage, node) model.
             _courierJobs[requestId] = job;
-            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response =>
-            {
-                _courierJobs.Remove(requestId);
-                Deliver(job, response.Result);
-            });
+            var clientRequestId = job.ClientRequestId;
+            var command = job.Command;
+            _courier.DispatchCommand(
+                node,
+                requestId,
+                job.Command,
+                job.Args,
+                job.Vantage,
+                response => AnswerLivePath(requestId, clientRequestId, command, response),
+                correlation: clientRequestId);
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a
@@ -8909,7 +8915,9 @@ namespace Sitrep.Host
                 ? Math.Max(0.0, entry.PredictedReplyUt.Value - entry.PredictedArrivalUt.Value)
                 : entry.OneWaySeconds ?? 0.0;
 
-        private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
+        private const char RequestIdPrefix = 'c';
+
+        private string NextRequestId() => RequestIdPrefix + Interlocked.Increment(ref _requestSeq).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Ages out every <see cref="PendingUplink"/> whose PREDICTED round
@@ -9538,6 +9546,7 @@ namespace Sitrep.Host
             {
                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId })));
                 GreetWithGameState(session);
+                ReplayParkedAnswers(session);
             }
             catch (Exception publishEx)
             {
@@ -9593,74 +9602,7 @@ namespace Sitrep.Host
                 string.IsNullOrEmpty(req.Vantage) ? VantageOf(session) : req.Vantage,
                 result =>
             {
-                // C2-4: `result` is whatever the uplink's
-                // command handler returned -- uplink-owned,
-                // same as a channel payload. This serialization
-                // sits OUTSIDE InvokeCommandHandler's guard: it
-                // runs here, in the RESULT callback, not inside the
-                // handler call itself, so unguarded an
-                // unserializable result throws unattributed and the
-                // client gets no response at all, not even an
-                // error, which is true silence. Guarded the same way
-                // as every other uplink-value touch point:
-                // refuse that command from now on and send an
-                // explicit error response rather than dropping the
-                // reply on the floor.
-                try
-                {
-                    var response = new CommandResponse<object?>
-                    {
-                        RequestId = req.RequestId,
-                        Result = result,
-                        Meta = new Meta
-                        {
-                            Source = NodeId,
-                            Vantage = VantageOf(session),
-                            ValidAt = req.SentAt,
-                            DeliveredAt = _clock.Now(),
-                            Seq = Interlocked.Increment(ref _ackSeq),
-                            Quality = Quality.OnRails,
-                            Active = true,
-                            Staleness = Staleness.Fresh,
-                            // Defect B fix: this callback runs
-                            // synchronously, on the Courier
-                            // thread, at the exact instant the
-                            // command resolved (either the
-                            // same job-processing step for a
-                            // delayed:false command, or the
-                            // Courier's own ConfirmUt callback
-                            // for a delayed:true one) -- so
-                            // _courier.CurrentEpoch read HERE is
-                            // guaranteed to match whatever epoch
-                            // was current when the Courier
-                            // itself resolved this command (a
-                            // rewind can never race in between:
-                            // ResetTimeline drops every in-flight
-                            // PendingCommand, so this callback
-                            // could not still be about to fire
-                            // for an abandoned-timeline
-                            // dispatch). Reading the epoch off the
-                            // Courier rather than hand-rolling this
-                            // Meta is what keeps it off the wire
-                            // default of 0, which is what a
-                            // hand-rolled one carries even after a
-                            // rewind has bumped the Courier
-                            // forward.
-                            TimelineEpoch = _courier.CurrentEpoch,
-                        },
-                    };
-                    session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandResponse(response)));
-                }
-                catch (Exception ex)
-                {
-                    var error = new ErrorMsg
-                    {
-                        RequestId = req.RequestId,
-                        Code = FaultCode.ResultSerializationError,
-                        Message = FailSoftCommand(req.Command, "its result could not be serialized", ex),
-                    };
-                    session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                }
+                Answer(session, ResponseFrame(req.RequestId, req.Command, VantageOf(session), req.SentAt, result));
             }, req.Label, req.Topic, onRefused: (code, reason) =>
             {
                 // The dispatch never reached a handler (unknown
@@ -9673,13 +9615,7 @@ namespace Sitrep.Host
                 // refusal buried in a payload, and it cancels the
                 // loss timer so the promise never rejects as
                 // "signal-lost" for a link that was up the whole time.
-                var error = new ErrorMsg
-                {
-                    RequestId = req.RequestId,
-                    Code = code,
-                    Message = reason,
-                };
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                Answer(session, ErrorFrame(req.RequestId, code, reason));
             }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt, warning) =>
             {
                 // A held command: the reply may come long after twice the
@@ -10098,10 +10034,10 @@ namespace Sitrep.Host
         /// <summary>
         /// What <see cref="InvokeCommandHandler"/> hands back in place of a result
         /// when the handler threw, so the dispatch can refuse rather than
-        /// deliver. Never leaves the engine: both paths that receive it turn it
-        /// into a refusal before anything reaches a client.
+        /// deliver. Never reaches a client: both paths that receive it turn it
+        /// into a refusal first. A save carries it as the refusal it stands for.
         /// </summary>
-        private sealed class HandlerFault
+        internal sealed class HandlerFault
         {
             public HandlerFault(FaultCode code, string reason)
             {

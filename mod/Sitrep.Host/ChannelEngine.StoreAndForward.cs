@@ -204,11 +204,21 @@ namespace Sitrep.Host
         private ISenderPlans? _senderPlans;
 
         /// <summary>
-        /// Everything held, in flight and settled right now, for saving with the
-        /// game. While a loaded game's snapshot waits for the next tick to restore
+        /// Everything held, in flight and settled right now, the live path's
+        /// commands included, for saving with the game. While a loaded game's snapshot waits for the next tick to restore
         /// it, that snapshot is what the game holds. Callable from any thread.
         /// </summary>
-        public DeliverySnapshot DeliverySnapshotNow() => Volatile.Read(ref _loadedGame)?.Delivery ?? _delivery.Snapshot();
+        public DeliverySnapshot DeliverySnapshotNow()
+        {
+            var loaded = Volatile.Read(ref _loadedGame);
+            if (loaded != null)
+            {
+                return loaded.Delivery;
+            }
+            var snapshot = _delivery.Snapshot();
+            snapshot.LivePath = _courier.SnapshotCommands();
+            return snapshot;
+        }
 
         /// <summary>
         /// A game was loaded, carrying <paramref name="carried"/> and
@@ -1073,7 +1083,7 @@ namespace Sitrep.Host
         private string ResetDelivery(double ut, string? save, IReadOnlyList<PendingUplink> pendingBefore, IReadOnlyDictionary<string, string> dispatchersBefore)
         {
             var jobsBefore = _deliveryJobs.ToList();
-            var courierJobsBefore = _courierJobs.Values.ToList();
+            var courierJobsBefore = _courierJobs.ToList();
             _courierJobs.Clear();
             _delivery.Reset();
             _deliveryJobs.Clear();
@@ -1096,12 +1106,15 @@ namespace Sitrep.Host
                 {
                     _laneCraftNodes[command.Lane.Craft] = command.ExecNode;
                 }
+                RestoreLivePath(carried.LivePath);
             }
             CarryOrUndo(jobsBefore, courierJobsBefore, pendingBefore, dispatchersBefore);
             var ic = System.Globalization.CultureInfo.InvariantCulture;
             if (from != null)
             {
-                return (loaded != null ? "restored the loaded game, saved at UT " : "restored the newest save, written at UT ") + from.Ut.ToString("F2", ic);
+                var live = from.Delivery.LivePath.Commands;
+                return (loaded != null ? "restored the loaded game, saved at UT " : "restored the newest save, written at UT ") + from.Ut.ToString("F2", ic)
+                    + ", " + live.Count.ToString(ic) + " command(s) on the live path, " + live.Count(c => c.Ran).ToString(ic) + " of them already run";
             }
             return latest == null
                 ? "restored nothing, no save has been written or loaded"
@@ -1110,15 +1123,15 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Settles every request that was waiting on the timeline a reset left.
-        /// A command the restored network still carries is still on its way, so
-        /// its request and pending entry stay with it and its reply settles it
-        /// as usual. Every other one, the Courier's live path included, will not
+        /// A command the restored network or the restored live path still
+        /// carries is still on its way, so its request and pending entry stay
+        /// with it and its reply settles it as usual. Every other one will not
         /// run on this timeline, and its request is told so now rather than left
         /// waiting for a reply that cannot come.
         /// </summary>
         private void CarryOrUndo(
             IReadOnlyList<KeyValuePair<string, DispatchCommandJob>> jobsBefore,
-            IReadOnlyList<DispatchCommandJob> courierJobsBefore,
+            IReadOnlyList<KeyValuePair<string, DispatchCommandJob>> courierJobsBefore,
             IReadOnlyList<PendingUplink> pendingBefore,
             IReadOnlyDictionary<string, string> dispatchersBefore)
         {
@@ -1131,9 +1144,17 @@ namespace Sitrep.Host
                     carried.Add(entry.Value);
                 }
             }
+            foreach (var entry in courierJobsBefore)
+            {
+                if (_courier.Carries(entry.Key))
+                {
+                    _courierJobs[entry.Key] = entry.Value;
+                    carried.Add(entry.Value);
+                }
+            }
             foreach (var entry in pendingBefore)
             {
-                if (!_deliveryJobs.ContainsKey(entry.Id))
+                if (!_deliveryJobs.ContainsKey(entry.Id) && !_courierJobs.ContainsKey(entry.Id))
                 {
                     continue;
                 }
@@ -1143,8 +1164,9 @@ namespace Sitrep.Host
                     _pendingDispatcher[entry.Id] = dispatcher;
                 }
             }
-            var undone = jobsBefore.Select(entry => entry.Value).Where(job => !carried.Contains(job))
-                .Concat(courierJobsBefore)
+            var undone = jobsBefore.Concat(courierJobsBefore)
+                .Select(entry => entry.Value)
+                .Where(job => !carried.Contains(job))
                 .Distinct();
             foreach (var job in undone)
             {

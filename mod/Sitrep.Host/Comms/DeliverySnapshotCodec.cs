@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using Sitrep.Contract;
 using Sitrep.Contract.Serialization;
+using Sitrep.Core;
 using Sitrep.Core.StoreAndForward;
 
 namespace Sitrep.Host.Comms
@@ -73,6 +75,19 @@ namespace Sitrep.Host.Comms
                     ["lastSentUt"] = Number(c.LastSentUt),
                 }).ToList(),
                 ["sentCommands"] = snapshot.SentCommands.Select(c => (object?)Message(c)).ToList(),
+                ["live"] = snapshot.LivePath.Commands.Select(c => (object?)new Dictionary<string, object?>
+                {
+                    ["requestId"] = c.RequestId,
+                    ["node"] = c.Node,
+                    ["command"] = c.Command,
+                    ["args"] = c.Args,
+                    ["vantage"] = c.Vantage,
+                    ["executeUt"] = Number(c.ExecuteUt),
+                    ["confirmUt"] = Number(c.ConfirmUt),
+                    ["correlation"] = c.Correlation,
+                    ["ran"] = c.Ran,
+                    ["result"] = c.Ran ? Result(c.Result) : null,
+                }).ToList(),
             };
             var sb = new StringBuilder();
             JsonWriter.AppendValue(sb, root);
@@ -156,6 +171,22 @@ namespace Sitrep.Host.Comms
                     LastSentUt = NumberFrom(c["lastSentUt"]),
                 }).ToList(),
                 SentCommands = ((List<object?>)root["sentCommands"]!).Select(m => (CommandMessage)MessageFrom((Dictionary<string, object?>)m!)).ToList(),
+                LivePath = new CommandQueueState
+                {
+                    Commands = Items(root, "live").Select(c => new PendingCommandState
+                    {
+                        RequestId = (string)c["requestId"]!,
+                        Node = (string)c["node"]!,
+                        Command = (string)c["command"]!,
+                        Args = Get(c, "args"),
+                        Vantage = (string)c["vantage"]!,
+                        ExecuteUt = NumberFrom(c["executeUt"]),
+                        ConfirmUt = NumberFrom(c["confirmUt"]),
+                        Correlation = Get(c, "correlation") as string ?? "",
+                        Ran = Get(c, "ran") is true,
+                        Result = ResultFrom(Get(c, "result")),
+                    }).ToList(),
+                },
             };
         }
 
@@ -220,6 +251,7 @@ namespace Sitrep.Host.Comms
                         ["detail"] = r.Detail,
                         ["missing"] = r.Missing?.Select(n => (object?)(double)n).ToList(),
                         ["route"] = Route(r.Route),
+                        ["result"] = r.Kind == JourneyKind.Reply ? Result(r.Result) : null,
                     };
                 default:
                     throw new NotSupportedException("Unknown delivery message " + message.GetType().Name);
@@ -274,6 +306,7 @@ namespace Sitrep.Host.Comms
                         Detail = m["detail"] as string,
                         Missing = m["missing"] is List<object?> missing ? missing.Select(n => (long)NumberFrom(n)).ToList() : null,
                         Route = RouteFrom(Get(m, "route")),
+                        Result = ResultFrom(Get(m, "result")),
                     };
             }
         }
@@ -342,6 +375,45 @@ namespace Sitrep.Host.Comms
                     hop.Count > 5 ? hop[5] as string : null,
                     hop.Count > 6 ? NumberFrom(hop[6]) : double.NaN)).ToList()
                 : new List<PlannedHop>();
+
+        /// <summary>
+        /// What a command's handler returned, as a save carries it: the JSON it
+        /// goes to a client as, or the refusal it stands for. A result that
+        /// cannot be written as JSON is saved as the refusal a client is sent in
+        /// its place, so one command's answer cannot cost the whole save.
+        /// </summary>
+        private static Dictionary<string, object?> Result(object? result)
+        {
+            if (result is ChannelEngine.HandlerFault fault)
+            {
+                return new Dictionary<string, object?> { ["fault"] = fault.Code.Id, ["reason"] = fault.Reason };
+            }
+            try
+            {
+                var sb = new StringBuilder();
+                JsonWriter.AppendValue(sb, result);
+                return new Dictionary<string, object?> { ["value"] = JsonReader.Parse(sb.ToString()) };
+            }
+            catch (Exception ex)
+            {
+                return new Dictionary<string, object?>
+                {
+                    ["fault"] = FaultCode.ResultSerializationError.Id,
+                    ["reason"] = "its result could not be saved with the game: " + ex.Message,
+                };
+            }
+        }
+
+        private static object? ResultFrom(object? saved)
+        {
+            if (!(saved is Dictionary<string, object?> map))
+            {
+                return null;
+            }
+            return Get(map, "fault") is string code
+                ? new ChannelEngine.HandlerFault(FaultCode.FromWire(code), Get(map, "reason") as string ?? "")
+                : Get(map, "value");
+        }
 
         /// <summary>A number the JSON can carry: a non-finite value becomes null and reads back as not-a-number.</summary>
         private static object? Number(double value) =>

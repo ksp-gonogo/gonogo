@@ -1922,6 +1922,12 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>The dish turns under way and the windows announced for them.</summary>
         public RetargetSnapshot Retargets { get; set; } = new RetargetSnapshot();
+
+        /// <summary>
+        /// The commands sent on the live path rather than held, which the
+        /// <see cref="Courier"/> carries: see <see cref="Courier.SnapshotCommands"/>.
+        /// </summary>
+        public CommandQueueState LivePath { get; set; } = new CommandQueueState();
     }
 
     public sealed class HeldRecord

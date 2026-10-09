@@ -267,3 +267,9 @@ Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 `Sitrep.Core.Courier`, replays each op in order, and asserts the resulting
 event log (kind, topic/requestId, payload/result, and every `Meta` field)
 matches the recorded TS-observed log exactly, in order.
+
+**Not covered here:** `Courier.SnapshotCommands()` / `Courier.RestoreCommands()`
+are C#-only (no TS reference): the in-flight command queue saved with a game
+and put back on a load. They are tested directly against the C# port in
+`mod/Sitrep.Core.Tests/CourierCommandQueueSnapshotRestoreTests.cs`, with no
+golden fixture, since there is no TS behavior to conform to.

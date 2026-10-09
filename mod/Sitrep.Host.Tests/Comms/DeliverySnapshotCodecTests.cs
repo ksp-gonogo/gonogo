@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Core.StoreAndForward;
 using Sitrep.Host.Comms;
@@ -74,6 +75,117 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(new[] { "vessel:relay", "vessel:probe" }, route.Select(h => h.To));
             Assert.Equal(40.0, route[1].DepartUt);
             Assert.Equal(42.0, route[1].ArriveUt);
+        }
+
+        [Fact]
+        public void ALivePathCommandSurvivesTheSaveWithWhetherItRanAndWhatItReturned()
+        {
+            var snapshot = new DeliverySnapshot();
+            snapshot.LivePath.Commands.Add(new PendingCommandState
+            {
+                RequestId = "c3",
+                Node = "system",
+                Command = "science.run",
+                Args = new Dictionary<string, object?> { ["script"] = "boot" },
+                Vantage = "ground:ksc",
+                ExecuteUt = 5.0,
+                ConfirmUt = 10.0,
+                Correlation = "client-9",
+                Ran = true,
+                Result = CommandResult.Ok(),
+            });
+            snapshot.LivePath.Commands.Add(new PendingCommandState
+            {
+                RequestId = "c4",
+                Node = "system",
+                Command = "stage",
+                Vantage = "ground:ksc",
+                ExecuteUt = 7.0,
+                ConfirmUt = 14.0,
+            });
+
+            var restored = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(snapshot))!.LivePath.Commands;
+
+            Assert.Equal(2, restored.Count);
+            var ran = restored[0];
+            Assert.Equal("c3", ran.RequestId);
+            Assert.Equal("system", ran.Node);
+            Assert.Equal("science.run", ran.Command);
+            Assert.Equal("boot", ((Dictionary<string, object?>)ran.Args!)["script"]);
+            Assert.Equal("ground:ksc", ran.Vantage);
+            Assert.Equal(5.0, ran.ExecuteUt);
+            Assert.Equal(10.0, ran.ConfirmUt);
+            Assert.Equal("client-9", ran.Correlation);
+            Assert.True(ran.Ran);
+            Assert.Equal(true, ((Dictionary<string, object?>)ran.Result!)["success"]);
+            var waiting = restored[1];
+            Assert.False(waiting.Ran);
+            Assert.Null(waiting.Result);
+            Assert.Equal("", waiting.Correlation);
+        }
+
+        [Fact]
+        public void ARefusalAHandlerReturnedIsSavedAsTheRefusalItStandsFor()
+        {
+            var snapshot = new DeliverySnapshot();
+            snapshot.LivePath.Commands.Add(new PendingCommandState
+            {
+                RequestId = "c1",
+                Command = "stage",
+                Ran = true,
+                Result = new ChannelEngine.HandlerFault(FaultCode.CommandUnavailable, "it threw"),
+            });
+            snapshot.LivePath.Commands.Add(new PendingCommandState
+            {
+                RequestId = "c2",
+                Command = "stage",
+                Ran = true,
+                Result = new object(),
+            });
+
+            var restored = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(snapshot))!.LivePath.Commands;
+
+            var refused = Assert.IsType<ChannelEngine.HandlerFault>(restored[0].Result);
+            Assert.Equal(FaultCode.CommandUnavailable, refused.Code);
+            Assert.Equal("it threw", refused.Reason);
+            var unwritable = Assert.IsType<ChannelEngine.HandlerFault>(restored[1].Result);
+            Assert.Equal(FaultCode.ResultSerializationError, unwritable.Code);
+        }
+
+        [Fact]
+        public void AReplyOnItsWayHomeKeepsItsResultAcrossTheSave()
+        {
+            var snapshot = new DeliverySnapshot();
+            snapshot.Flights.Add(new FlightRecord
+            {
+                Message = new ReportMessage
+                {
+                    Id = "r1",
+                    To = "ground:ksc",
+                    Kind = JourneyKind.Reply,
+                    About = "c1",
+                    Lane = Lane,
+                    At = "vessel:probe",
+                    Result = "done:x",
+                },
+                From = "vessel:probe",
+                To = "ground:ksc",
+                DepartUt = 1.0,
+                ArriveUt = 3.0,
+            });
+
+            var restored = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(snapshot))!;
+
+            Assert.Equal("done:x", ((ReportMessage)Assert.Single(restored.Flights).Message).Result);
+        }
+
+        [Fact]
+        public void ASaveWrittenWithoutTheLivePathRestoresNoneOfIt()
+        {
+            var json = "{\"version\":1,\"nextId\":0,\"held\":[],\"flights\":[],\"storedCancels\":[],\"senders\":[],\"collectors\":[],\"sentCommands\":[]}";
+            var encoded = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
+
+            Assert.Empty(DeliverySnapshotCodec.Decode(encoded)!.LivePath.Commands);
         }
 
         [Fact]

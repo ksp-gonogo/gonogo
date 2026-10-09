@@ -50,6 +50,10 @@ namespace Sitrep.Core
     /// network.DelayTo(vantage, node)</c>). If the node is unreachable at
     /// dispatch time, the command is dropped with honest silence, no
     /// execute, no response.
+    ///
+    /// <see cref="SnapshotCommands"/> / <see cref="RestoreCommands"/> are a
+    /// C#-ONLY addition (no TS reference): the in-flight command queue saved
+    /// with a game and put back when it is loaded.
     /// </summary>
     public sealed class Courier
     {
@@ -68,6 +72,9 @@ namespace Sitrep.Core
             public string Vantage = string.Empty;
             public double ExecuteUt;
             public double ConfirmUt;
+            public string Correlation = string.Empty;
+            public bool Ran;
+            public object? Result;
             public Action<CommandResponse> OnResponse = null!;
         }
 
@@ -98,9 +105,12 @@ namespace Sitrep.Core
         private readonly Dictionary<string, Dictionary<string, HashSet<Subscriber>>> _subscribers =
             new Dictionary<string, Dictionary<string, HashSet<Subscriber>>>();
 
-        // requestId -> in-flight (dispatched, not-yet-confirmed) command.
+        // requestId -> in-flight (dispatched, not-yet-confirmed) command. Under
+        // _commandsGate, because a save reads it from the game's own thread.
         private readonly Dictionary<string, PendingCommand> _pendingCommands =
             new Dictionary<string, PendingCommand>();
+
+        private readonly object _commandsGate = new object();
 
         // node -> vantage -> the UT the link was marked down since (absent =
         // currently up). See MarkLinkDown/MarkLinkUp and ResolveStaleness --
@@ -233,6 +243,10 @@ namespace Sitrep.Core
         /// changing when an entry leaves that queue is a wire decision rather
         /// than an internal one. Left deliberately, in the open, rather than
         /// guessed at.</para>
+        ///
+        /// <para><paramref name="correlation"/> is saved with the command and
+        /// handed back by <see cref="RestoreCommands"/>, for a dispatcher that
+        /// has to find who asked once <paramref name="onResponse"/> is gone.</para>
         /// </summary>
         public void DispatchCommand(
             string node,
@@ -241,7 +255,8 @@ namespace Sitrep.Core
             object? args,
             string vantage,
             Action<CommandResponse> onResponse,
-            double? uplinkDelaySeconds = null)
+            double? uplinkDelaySeconds = null,
+            string correlation = "")
         {
             if (!_network.Reachable(vantage, node))
             {
@@ -270,38 +285,62 @@ namespace Sitrep.Core
                 Vantage = vantage,
                 ExecuteUt = executeUt,
                 ConfirmUt = confirmUt,
+                Correlation = correlation,
                 OnResponse = onResponse,
             };
-            _pendingCommands[requestId] = pending;
+            lock (_commandsGate)
+            {
+                _pendingCommands[requestId] = pending;
+            }
 
             ScheduleCommand(pending);
         }
 
         /// <summary>
         /// Schedules the execute-then-confirm pair for an already-recorded
-        /// <see cref="PendingCommand"/>. Shared by <see cref="DispatchCommand"/>
-        /// so the execute@ExecuteUt / confirm@ConfirmUt behavior has one home.
+        /// <see cref="PendingCommand"/>, or the confirm alone for one that has
+        /// already run. Shared by <see cref="DispatchCommand"/> and
+        /// <see cref="RestoreCommands"/> so the execute@ExecuteUt /
+        /// confirm@ConfirmUt behavior has one home.
         /// </summary>
         private void ScheduleCommand(PendingCommand pending)
         {
+            if (pending.Ran)
+            {
+                ScheduleConfirm(pending);
+                return;
+            }
             _clock.Schedule(pending.ExecuteUt, () =>
             {
                 var result = _commandHandler(
                     pending.Command, pending.Args, pending.Node, pending.Vantage);
-                _clock.Schedule(pending.ConfirmUt, () =>
+                lock (_commandsGate)
                 {
-                    // Remove before invoking the callback: a re-entrant
-                    // PendingCommandCount from inside onResponse must not count
-                    // an already-confirmed command as still in flight.
+                    pending.Result = result;
+                    pending.Ran = true;
+                }
+                ScheduleConfirm(pending);
+            });
+        }
+
+        private void ScheduleConfirm(PendingCommand pending)
+        {
+            _clock.Schedule(pending.ConfirmUt, () =>
+            {
+                // Remove before invoking the callback: a re-entrant
+                // SnapshotCommands() from inside onResponse must not see
+                // an already-confirmed command as still in flight.
+                lock (_commandsGate)
+                {
                     _pendingCommands.Remove(pending.RequestId);
-                    pending.OnResponse(CommandResponseFor(
-                        pending.RequestId,
-                        result,
-                        pending.Node,
-                        pending.Vantage,
-                        pending.ExecuteUt,
-                        pending.ConfirmUt));
-                });
+                }
+                pending.OnResponse(CommandResponseFor(
+                    pending.RequestId,
+                    pending.Result,
+                    pending.Node,
+                    pending.Vantage,
+                    pending.ExecuteUt,
+                    pending.ConfirmUt));
             });
         }
 
@@ -320,7 +359,8 @@ namespace Sitrep.Core
         /// STREAM delivery, since <see cref="Record"/> and
         /// <see cref="SubscribeStream"/> both schedule deliveries on that
         /// same Clock's pending-callback list. Both are abandoned
-        /// pre-quickload-timeline state that must never fire.
+        /// pre-quickload-timeline state that must never fire. What a load's
+        /// save held goes back afterwards, through <see cref="RestoreCommands"/>.
         ///
         /// Deliberately does NOT touch <see cref="_subscribers"/>: the WS
         /// clients are still connected and still want their stream: only the
@@ -357,7 +397,10 @@ namespace Sitrep.Core
             // announcements built from CurrentEpoch right after this call
             // returns must already see it too.
             _epoch++;
-            _pendingCommands.Clear();
+            lock (_commandsGate)
+            {
+                _pendingCommands.Clear();
+            }
             // The clock drops every scheduled callback below, so nothing that was
             // owed on the abandoned timeline will ever be asked for. Left in place
             // it would hold retention at a scene no longer reachable, for the rest
@@ -1548,6 +1591,139 @@ namespace Sitrep.Core
         }
 
         /// <summary>How many dispatched commands have not yet confirmed.</summary>
-        public int PendingCommandCount => _pendingCommands.Count;
+        public int PendingCommandCount
+        {
+            get
+            {
+                lock (_commandsGate)
+                {
+                    return _pendingCommands.Count;
+                }
+            }
+        }
+
+        /// <summary>Whether <paramref name="requestId"/> is dispatched and not yet confirmed.</summary>
+        public bool Carries(string requestId)
+        {
+            lock (_commandsGate)
+            {
+                return _pendingCommands.ContainsKey(requestId);
+            }
+        }
+
+        /// <summary>
+        /// Every dispatched, not-yet-confirmed command, for saving with the game:
+        /// what it is, where it goes, its execute and confirm UTs, and whether it
+        /// has run, with the result it ran with when it has. Callable from any
+        /// thread.
+        ///
+        /// <para>Telemetry is not here: the <see cref="Archive"/> and the stream
+        /// subscriptions are runtime state a reconnecting client asks for
+        /// again.</para>
+        /// </summary>
+        public CommandQueueState SnapshotCommands()
+        {
+            var state = new CommandQueueState();
+            lock (_commandsGate)
+            {
+                foreach (var pending in _pendingCommands.Values)
+                {
+                    state.Commands.Add(new PendingCommandState
+                    {
+                        RequestId = pending.RequestId,
+                        Node = pending.Node,
+                        Command = pending.Command,
+                        Args = pending.Args,
+                        Vantage = pending.Vantage,
+                        ExecuteUt = pending.ExecuteUt,
+                        ConfirmUt = pending.ConfirmUt,
+                        Correlation = pending.Correlation,
+                        Ran = pending.Ran,
+                        Result = pending.Result,
+                    });
+                }
+            }
+            return state;
+        }
+
+        /// <summary>
+        /// Puts back every command <paramref name="state"/> holds, each confirming
+        /// at its original UTs. Call it after <see cref="ResetTimeline"/> when a
+        /// load starts a new timeline.
+        ///
+        /// <para>A command that had not run when the save was written runs at its
+        /// ExecuteUt, at once when that is already behind the clock. One that had
+        /// run is never run again, since the saved world already holds what it
+        /// did: only its confirmation is still owed, and it carries the result it
+        /// ran with.</para>
+        ///
+        /// <para>The callback a dispatch was given cannot cross a save, so
+        /// <paramref name="answerTo"/> builds one for each restored command from
+        /// what was saved of it, its <see cref="PendingCommandState.Correlation"/>
+        /// included.</para>
+        /// </summary>
+        public void RestoreCommands(CommandQueueState state, Func<PendingCommandState, Action<CommandResponse>> answerTo)
+        {
+            foreach (var saved in state.Commands)
+            {
+                var pending = new PendingCommand
+                {
+                    RequestId = saved.RequestId,
+                    Node = saved.Node,
+                    Command = saved.Command,
+                    Args = saved.Args,
+                    Vantage = saved.Vantage,
+                    ExecuteUt = saved.ExecuteUt,
+                    ConfirmUt = saved.ConfirmUt,
+                    Correlation = saved.Correlation,
+                    Ran = saved.Ran,
+                    Result = saved.Result,
+                    OnResponse = answerTo(saved),
+                };
+                lock (_commandsGate)
+                {
+                    _pendingCommands[pending.RequestId] = pending;
+                }
+                ScheduleCommand(pending);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A <see cref="Courier"/>'s in-flight command queue, as
+    /// <see cref="Courier.SnapshotCommands"/> captures it. Plain BCL types only:
+    /// <c>Sitrep.Core</c> has no serializer, so writing it into a save is the
+    /// host's business.
+    /// </summary>
+    public sealed class CommandQueueState
+    {
+        public List<PendingCommandState> Commands { get; set; } = new List<PendingCommandState>();
+    }
+
+    /// <summary>One in-flight command within a <see cref="CommandQueueState"/>.</summary>
+    public sealed class PendingCommandState
+    {
+        public string RequestId { get; set; } = string.Empty;
+
+        public string Node { get; set; } = string.Empty;
+
+        public string Command { get; set; } = string.Empty;
+
+        public object? Args { get; set; }
+
+        public string Vantage { get; set; } = string.Empty;
+
+        public double ExecuteUt { get; set; }
+
+        public double ConfirmUt { get; set; }
+
+        /// <summary>What the dispatcher handed <see cref="Courier.DispatchCommand"/> to find its answer's way back, opaque to the Courier.</summary>
+        public string Correlation { get; set; } = string.Empty;
+
+        /// <summary>Whether its handler has run.</summary>
+        public bool Ran { get; set; }
+
+        /// <summary>What its handler returned, when it has run.</summary>
+        public object? Result { get; set; }
     }
 }
