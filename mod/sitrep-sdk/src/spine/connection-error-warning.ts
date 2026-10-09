@@ -12,7 +12,7 @@ import { logger } from "../api/logger";
  * on a missing requestId, and died there. The mod had already written the
  * sentence that explains the fault and the author never saw it.
  *
- * Two live producers today, both of them useful and both of them previously
+ * Two live producers today, both of them useful and both of them otherwise
  * invisible: `binaryFrameNotAccepted` (a binary-lane frame sent UP the
  * socket, which nothing accepts) and the `unknownVantage` refusal of a
  * `set-vantage`, whose envelope carries no requestId to correlate by.

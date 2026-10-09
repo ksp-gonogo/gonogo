@@ -343,11 +343,11 @@ type TrackedResolution =
  * computation and the prune effect below so the two can never drift on what
  * counts as resolved/expired.
  *
- * `acknowledged` is what stops a dispatch being dropped on faith. It used to
- * be enough for a command to reach `predictedPhase: "due"` under a connected
- * path: the row left the rail at the exact moment the reply was DUE, whether
- * or not one came, so a command nobody ever answered read as one that arrived.
- * The client knows the difference per dispatch and is asked for it here.
+ * `acknowledged` is what stops a dispatch being dropped on faith. Reaching
+ * `predictedPhase: "due"` under a connected path is not enough: the reply being
+ * DUE does not mean one came, and a command nobody answered must not read as
+ * one that arrived. The client knows the difference per dispatch and is asked
+ * for it here.
  */
 /** A group's one row says how many commands it stands for; a command sent alone keeps its own label. */
 function groupedLabel(entry: PendingEntry): string {
@@ -883,14 +883,12 @@ export function useCommand(
     ): Promise<AnyCommandReply> => {
       // No provider mounted: nothing left the ground, so nothing can come back.
       //
-      // This used to RESOLVE with `undefined`, which typechecked only while the
-      // reply was `unknown` and which every control read as a confirmed
-      // command: `CommandButton` awaits `send()`, calls `onConfirmed`, and
-      // returns to rest, so a press with no link rendered byte-identically to a
-      // press that worked. That is the same wrong answer this repo already
-      // refused to give for a command the engine dropped, and the client
-      // already answers it the same way on `dispose()`. A rejection is what the
-      // controls are built to read.
+      // Resolving with `undefined` would read as a confirmed command:
+      // `CommandButton` awaits `send()`, calls `onConfirmed`, and returns to
+      // rest, so a press with no link would render byte-identically to a press
+      // that worked. A rejection is what the controls are built to read, and
+      // it matches the client's own answer on `dispose()` and for a command
+      // the engine dropped.
       if (!client) {
         const notMounted = new CommandError(
           COMMAND_LOST,

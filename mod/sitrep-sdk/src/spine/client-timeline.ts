@@ -14,14 +14,12 @@ export interface ClientTimelineOptions {
    * are retained. Unset (and nothing in production sets it) means no UT bound
    * at all: `maxPoints` is the always-on one.
    *
-   * It used to default to 300 and be the only bound, and that was wrong in both
-   * directions. A UT window bounds MEMORY only if you assume a sample rate, so
-   * it held a few dozen points of a slow channel and thousands of a fast one
-   * for the same nominal cost. And its floor is measured from `latest.validAt`,
-   * which a landed blackout dump moves: a dump spanning more than the window
-   * destroyed its own oldest half, and the pre-outage tail with it, the instant
-   * it arrived. That is the failure this option now exists to stay out of the
-   * way of, so set it only for a consumer that genuinely wants a fixed-UT view
+   * A UT window bounds MEMORY only if you assume a sample rate, so it holds a
+   * few dozen points of a slow channel and thousands of a fast one for the same
+   * nominal cost. And its floor is measured from `latest.validAt`, which a
+   * landed blackout dump moves: a dump spanning more than the window destroys
+   * its own oldest half, and the pre-outage tail with it, the instant it
+   * arrives. Set it only for a consumer that genuinely wants a fixed-UT view
    * and can afford to lose a wider dump.
    */
   retentionSeconds?: number;
@@ -38,9 +36,9 @@ export interface ClientTimelineOptions {
    * readable off `droppedThroughUt` rather than left to be inferred from a
    * hole.
    *
-   * 1500, which is about what the old 300s window held for a channel emitting
-   * at 4 Hz, so the busiest topic's footprint is unchanged and every slower one
-   * simply keeps more history than it used to.
+   * 1500, which is about what 300 seconds of a channel emitting at 4 Hz comes
+   * to, so the busiest topic's footprint is bounded and every slower one keeps
+   * correspondingly more history.
    */
   maxPoints?: number;
 }

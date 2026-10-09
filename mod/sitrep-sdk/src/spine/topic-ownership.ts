@@ -146,8 +146,8 @@ export class TopicOwnershipTracker {
    * The mod REFUSED `topic` outright, with an `unknownTopic` error frame.
    * Settles it unowned now rather than waiting out the ack window.
    *
-   * The window exists because silence was the only answer an undeclared topic
-   * used to get. A refusal is the same verdict arriving as a statement, so it
+   * The window exists because an undeclared topic can otherwise only be
+   * answered with silence. A refusal is the same verdict arriving as a statement, so it
    * reaches the same callback: one diagnostic, one message, and no second one
    * from the timer that is still armed behind it.
    */

@@ -134,7 +134,7 @@ function timeToMeanAnomaly(
  * Which apsis comes next and the seconds until it: whichever of the two
  * countdowns is the smaller non-`null` value.
  *
- * Never the legacy `0`/N-A sentinel. An unavailable next-apsis is `null`, which
+ * Never a `0` or N/A sentinel. An unavailable next-apsis is `null`, which
  * the consuming chip treats identically, rendering only for a `±1` type with a
  * finite time.
  */

@@ -30,13 +30,9 @@ export interface BodyStatesQuery {
 /**
  * The client half of `system.bodies.statesAt`.
  *
- * Plainly typed in both directions, which it was not until the client learned to
- * carry units across the command boundary. It used to state both sides in wire
- * terms and lift the reply back out by hand, because a `Value` arg serialised as
- * `{magnitude, unit}` into a host binding a `double` and nothing hydrated a reply
- * the way the channel decode hydrates a payload. `TelemetryClient.dispatch` now
- * dehydrates args and `handleCommandResponse` wraps the reply, so the generated
- * types are true at runtime and this hook is the ordinary shape again.
+ * Plainly typed in both directions: `TelemetryClient.dispatch` dehydrates args
+ * and `handleCommandResponse` wraps the reply, so the generated types are true
+ * at runtime and no wire-term lifting is needed here.
  */
 export function useBodyStates(): BodyStatesQuery {
   const command = useCommand(BODY_STATES_COMMAND);

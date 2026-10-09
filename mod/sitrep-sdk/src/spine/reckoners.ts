@@ -226,11 +226,9 @@ export interface ElectedReckoner {
 /**
  * The model to actually use for `topic`, and who owns it.
  *
- * ## The election, and why withholding everything stopped being right
+ * ## The election, and why a contest does not withhold everything
  *
- * This used to answer `undefined` for a contested topic as well as an
- * unmodelled one, on the reasoning that two Uplinks claiming one topic should
- * be served by neither. That reasoning holds for the two Uplinks and stops
+ * Two Uplinks claiming one topic should be served by neither. That stops
  * holding once CORE ships a vanilla: withholding then serves nothing while a
  * working model sits registered, which is a silent outage rather than a
  * withheld opinion, and on a value the CONTRACT declares reckonable the type
@@ -243,8 +241,7 @@ export interface ElectedReckoner {
  * `TimelineStore` turns that into `declined: { reason: "contested" }` rather
  * than a silence.
  *
- * {@link getReckonerConflicts} is unchanged and still names every contested
- * topic, because "these two Uplinks disagree" is worth telling an operator
+ * {@link getReckonerConflicts} names every contested topic, because "these two Uplinks disagree" is worth telling an operator
  * whether or not core covered for them.
  */
 export function getReckoner(topic: string): ElectedReckoner | undefined {

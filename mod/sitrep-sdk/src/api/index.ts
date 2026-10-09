@@ -330,7 +330,7 @@ export {
  * `@ksp-gonogo/ui-kit`, and there the declaration is the registry itself rather
  * than a shim onto the host. Both spellings now reach ONE registry: ui-kit
  * holds it in a global slot precisely so that a second loaded copy of that
- * package cannot fork it, which is what a mis-bundled Uplink used to do
+ * package cannot fork it, as a mis-bundled Uplink would otherwise do
  * silently. The pair is worth knowing about anyway, because the two differ with
  * no host installed: these throw a named error naming the fix, ui-kit's carry
  * on.
