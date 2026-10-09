@@ -380,12 +380,15 @@ export {
   type ConicShape,
   type ConicSolution,
   canPropagate,
+  eccentricFromTrueAnomaly,
   type OrbitElements,
   type PropagationHorizonLike,
+  rotatePerifocalToInertial,
   type StateVector,
   solve,
   solveAnomalies,
   solveConic,
+  trueAnomalyFromEccentric,
 } from "./spine/kepler";
 // ---------------------------------------------------------------------------
 // THE CONIC: the one two-body propagator in this repo, and the guard that says where it stops holding.

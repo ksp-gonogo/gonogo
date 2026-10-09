@@ -9733,6 +9733,10 @@
         "note": "Exported from the root barrel, where its documentation already said it was"
       },
       {
+        "key": "sitrep-sdk . eccentricFromTrueAnomaly",
+        "note": "Converts a true anomaly to an eccentric one, now reachable from the root barrel"
+      },
+      {
         "key": "sitrep-sdk . familyPrefix",
         "note": "The literal text before a family's first placeholder, empty when it starts with one"
       },
@@ -9743,6 +9747,10 @@
       {
         "key": "sitrep-sdk . poseAtIndex",
         "note": "Looks one body's pose up by its index, null when the instant has none"
+      },
+      {
+        "key": "sitrep-sdk . rotatePerifocalToInertial",
+        "note": "Rotates a perifocal-frame vector into the inertial frame, now reachable from the root barrel"
       },
       {
         "key": "sitrep-sdk . sendTogether",
@@ -9759,6 +9767,10 @@
       {
         "key": "sitrep-sdk . topicMatchesFamily",
         "note": "Whether a Topic id is a member of a family, segment by segment"
+      },
+      {
+        "key": "sitrep-sdk . trueAnomalyFromEccentric",
+        "note": "Converts an eccentric anomaly to a true one, now reachable from the root barrel"
       },
       {
         "key": "sitrep-sdk . useSystemInstant",
