@@ -4,7 +4,7 @@ gonogo reads your game through mods installed in KSP. This page lists the mods y
 
 ## The mods you need
 
-One mod is required:
+Gonogo is built for KSP 1.12 (the mod declares 1.12.0 to 1.12.99). One mod is required:
 
 - **The Gonogo mod**, listed on CKAN as **Gonogo** (identifier `GonogoCore`). This is how gonogo reads the game: telemetry, career state, science, comms and more, streamed live over one WebSocket on port **8090**. See [Installing the Gonogo mod](#installing-the-gonogo-mod)
 
@@ -16,7 +16,9 @@ Everything else is optional, and each one adds widgets without touching the rest
 
 An Uplink is a small mod that connects gonogo to one other mod. Each lists the Gonogo mod as its dependency, so a mod manager that finds them installs the Gonogo mod first. Without kerbcast you get no camera feeds, without kOS no terminal, and so on. Start with the Gonogo mod, confirm telemetry is arriving, then add whichever of the others you want.
 
-To see every Uplink CKAN lists, type `dep:GonogoCore` into its search box. kOS and SCANsat are on CKAN too, and HullcamVDS Continued is on SpaceDock. Kerbcast and any Uplink CKAN does not list are hand installs, walked through below.
+To see every Uplink CKAN lists, type `dep:GonogoCore` into its search box. kOS, SCANsat and Kerbcast are on CKAN too, and HullcamVDS Continued is on SpaceDock. Anything CKAN does not list is a hand install, walked through below.
+
+Uplinks are marked as development releases, and CKAN hides those by default. If the search finds no Uplinks, open CKAN's settings and allow development releases (its stability tolerance setting), then search again.
 
 ### Where your KSP install is
 
@@ -33,9 +35,9 @@ Inside it you will see a `GameData/` folder already containing `Squad/`. That is
 
 The easiest install is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN) by following its own guide, search it for **Gonogo**, tick it and press Apply. CKAN puts `GameData/Gonogo/` in place and keeps it updated.
 
-Without CKAN, download `Gonogo-<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is).
+Without CKAN, download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is).
 
-> **Not on CKAN yet?** The CKAN listing and the downloadable zip arrive with the first release that carries them, and until then neither exists. If a search for **Gonogo** finds nothing, or the releases page has no `Gonogo-<version>.zip`, there is nothing to install yet: come back after the first release.
+> **Not on CKAN yet?** The CKAN listing and the downloadable zip arrive with the first release that carries them, and until then neither exists. If a search for **Gonogo** finds nothing, or the releases page has no `Gonogo-v<version>.zip`, there is nothing to install yet: come back after the first release.
 
 ### Starting KSP
 
@@ -51,7 +53,7 @@ That includes playing with someone who isn't on your network: they don't need th
 
 An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half. Install the Uplink from CKAN (search `dep:GonogoCore`), which also installs the Gonogo mod it depends on. Install kOS (or SCANsat) itself first.
 
-If CKAN does not list an Uplink yet, there is no download for it yet either: it arrives with its first release. Uplinks are optional and independent. A missing one costs you its widgets and nothing else.
+To install one by hand, download its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is). Install the mod it connects to (kOS, SCANsat, Kerbcast) the same way or from CKAN. If the releases page has no zip for an Uplink yet, there is nothing to install yet: it arrives with its first release. Uplinks are optional and independent. A missing one costs you its widgets and nothing else.
 
 ## Connecting the dashboard to KSP
 
@@ -97,7 +99,7 @@ Open **Settings, Connection** as above. The **Telemetry stream** row shows a sta
 - **DISCONNECTED**: nothing is getting through. The row also grows a **Reconnect** button and a line of setup text
 - **ERROR** or **RECONNECTING**: the socket failed or is retrying, same causes as disconnected
 
-When the connection is down, the Settings button in the FAB tower carries an orange dot, so you can see it without opening anything.
+The **Reconnect** button and the setup text appear only while the row reads DISCONNECTED. When the connection is down, the Settings button in the FAB tower carries an orange dot, so you can see it without opening anything.
 
 If the mod started (check 1 passed) but the app says disconnected, the problem is between the two machines: a wrong Host, or a firewall on the KSP computer. Windows and macOS both block incoming local-network connections by default; [NETWORKING.md](NETWORKING.md) covers this.
 
@@ -123,9 +125,12 @@ Live in-game camera feeds come through **kerbcast**, a separate KSP-side camera-
 
 ### Installing kerbcast
 
+The easiest install is CKAN: search for **Kerbcast** and **Gonogo kerbcast Uplink** (see the development releases note above). By hand:
+
 1. Download the latest `kerbcast-v<version>.zip` from the releases page: **<https://github.com/ksp-gonogo/kerbcast/releases/>**. Take the full `kerbcast-v<version>.zip`, not the bare `Kerbcast.dll`.
 2. Unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is).
-3. kerbcast uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
+3. Install the Uplink half the same way: `GonogoKerbcastUplink` from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), merged into `GameData/`. The Camera Feed widget needs it
+4. kerbcast uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
 
 By default kerbcast only accepts connections from the same computer, unlike the Gonogo mod, which listens on every interface. To watch feeds from another device, which is the usual setup with the dashboard on a different machine from KSP, create `GameData/Kerbcast/PluginData/settings.cfg` (the folder and file are yours to make) containing a `Settings` block with `BindAddress` set to the KSP computer's LAN address (or `0.0.0.0` for every interface), for example `Settings { BindAddress = 0.0.0.0 }`. The `settings.cfg` next to it is overwritten on every update, which is why the change goes in `PluginData`. There's no password on the stream, so only open it up on a network you trust.
 

@@ -192,6 +192,12 @@
             <button class="copy" type="button" data-copy="run-command" aria-label="Copy run command">Copy</button>
           </div>
           <p>
+            The <code class="inline">latest</code> tag appears with the first
+            release. Until then Docker refuses the command: end it with
+            <code class="inline">:rc</code> in place of
+            <code class="inline">:latest</code> to run the release candidate.
+          </p>
+          <p>
             That is the form for macOS, Linux and WSL. In Windows PowerShell,
             end each line with a backtick (<code class="inline">`</code>) in
             place of the <code class="inline">\</code>, or type it as one
@@ -207,13 +213,16 @@
             mods is CKAN, a mod manager for KSP:
             <a href="https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN">install CKAN</a>
             by following its own guide, then search it for
-            <code class="inline">Gonogo</code> and install it.
+            <code class="inline">Gonogo</code> and install it. It is built for
+            KSP 1.12.
           </p>
           <p>
             Uplinks are optional add-ons that connect Gonogo to other mods,
             adding things like camera feeds, a scripting terminal or surface
             maps. Gonogo works without any. To list them, type this into the
-            search box in CKAN:
+            search box in CKAN. Uplinks are marked as development releases,
+            which CKAN hides by default, so allow those in CKAN's settings if
+            the search finds nothing:
           </p>
           <div class="command">
             <code id="ckan-filter">dep:GonogoCore</code>
@@ -227,6 +236,13 @@
         </li>
         <li>
           <h3>Open the app and follow the setup</h3>
+          <p>
+            KSP pauses when it is not the focused window, so Gonogo works best
+            on a second computer next to the one running KSP. One computer
+            works too, but the dashboard stops updating while you are in the
+            browser. Keep the Gonogo browser tab open: other screens that join
+            get their data through it.
+          </p>
           <p>
             Start KSP, then open
             <a href="http://localhost:8080">http://localhost:8080</a> on the
