@@ -362,6 +362,27 @@ export const EMITTED = [
   "vessel.landing",
 ];
 
+/**
+ * Significant digits a generated figure keeps. The maths library differs in the last digit of a double between machines (a Linux runner and a Mac disagree on the same sine), so derived figures are rounded well above that noise and a regeneration is the same file everywhere.
+ */
+export const SCENE_SIGNIFICANT_DIGITS = 9;
+
+/** `value` with every number in it rounded to {@link SCENE_SIGNIFICANT_DIGITS} significant digits; a structure is copied, never changed. */
+export function roundedScene<T>(value: T): T {
+  if (typeof value === "number") {
+    return Number.isFinite(value)
+      ? (Number(value.toPrecision(SCENE_SIGNIFICANT_DIGITS)) as T)
+      : value;
+  }
+  if (Array.isArray(value)) return value.map(roundedScene) as T;
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, v]) => [key, roundedScene(v)]),
+    ) as T;
+  }
+  return value;
+}
+
 /** The `_meta` of a scene: what it shows, when the prose names it, then the scenario and its note. */
 export function sceneMeta(
   scenario: string,
@@ -381,7 +402,7 @@ export function fixtureFromChannels(
   notes: string,
 ): Record<string, unknown> {
   const emits = EMITTED.map((channel) => {
-    const value = ch[channel];
+    const value = roundedScene(ch[channel]);
     // A descending craft is under physics, so its vessel.orbit sample carries quality:1 (Loaded), as the mod stamps it.
     return channel === "vessel.orbit"
       ? { channel, value, meta: { quality: 1 } }

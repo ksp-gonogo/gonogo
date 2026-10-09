@@ -25,6 +25,7 @@ import {
   greatCircleMeters,
   groundTrackDistances,
   groundTrackElevations,
+  roundedScene,
   sceneMeta,
   streamFixture,
 } from "./landingDescentModel";
@@ -236,11 +237,13 @@ function kerbinScene(spec: KerbinScene): GeneratedScene {
       KERBIN_RADIUS,
     );
     const distances = groundTrackDistances(drift);
-    landing.groundTrackDistances = distances;
-    landing.groundTrackElevations = groundTrackElevations(
-      distances,
-      drift,
-      numberAt(landing, "predictedTerrainElevation"),
+    landing.groundTrackDistances = roundedScene(distances);
+    landing.groundTrackElevations = roundedScene(
+      groundTrackElevations(
+        distances,
+        drift,
+        numberAt(landing, "predictedTerrainElevation"),
+      ),
     );
   }
   const channels: Record<string, unknown> = {
