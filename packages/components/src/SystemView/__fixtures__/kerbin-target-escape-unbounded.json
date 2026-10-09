@@ -1,0 +1,226 @@
+{
+  "_meta": {
+    "shows": "The active craft on its Mun transfer, with a targeted relay's conic drawn whole and an escape marker where it leaves Kerbin's sphere of influence, its comms network sourced from the game.",
+    "capturedAt": "2026-10-09",
+    "vessel": "Munar Injection (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "On a Kerbin->Mun transfer ellipse at periapsis, Mun encounter on the wire",
+    "notes": "SYNTHETIC. Extends kerbin-mun-encounter with a vessel.target on an analytic, unbounded orbit that carries an escape transition (type 3) and a comms.network stamped `game`."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3531600000000.0,
+              "sphereOfInfluence": 84159286,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.14,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.93228,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Minmus",
+              "parentIndex": 1,
+              "radius": 60000,
+              "gravParameter": 1765800000,
+              "sphereOfInfluence": 2247428,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 47000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.490659,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Munar Injection",
+          "name": "Munar Injection",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 6350000,
+          "ecc": 0.88976378,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "encounter": {
+            "transitionType": 2,
+            "transitionUt": 26100,
+            "bodyIndex": 2
+          },
+          "patches": [
+            {
+              "startUt": 0,
+              "endUt": 26100,
+              "patchStartTransition": 0,
+              "patchEndTransition": 2,
+              "sma": 6350000,
+              "ecc": 0.88976378,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 0,
+              "period": 53500.11335814783,
+              "peA": 699999.997,
+              "apA": 12000000.003,
+              "semiLatusRectum": 1322834.6403307088,
+              "semiMinorAxis": 2898275.3433895824,
+              "referenceBody": "Kerbin",
+              "closestEncounterBody": null
+            }
+          ]
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Mun Relay",
+          "kind": 0,
+          "vesselId": "v-mun-relay",
+          "bodyIndex": null,
+          "relativePosition": {
+            "x": 1200000,
+            "y": -800000,
+            "z": 0
+          },
+          "relativeVelocity": {
+            "x": -120,
+            "y": 300,
+            "z": 0
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": 30000000,
+            "ecc": 0.6,
+            "inc": 0,
+            "lan": 0,
+            "argPe": 180,
+            "meanAnomalyAtEpoch": 0.4,
+            "epoch": 0,
+            "mu": 3531600000000.0,
+            "patches": [],
+            "encounter": {
+              "transitionType": 3,
+              "transitionUt": 40000,
+              "bodyIndex": 0
+            },
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            }
+          }
+        }
+      },
+      {
+        "channel": "comms.network",
+        "value": {
+          "nodes": [
+            {
+              "id": "home",
+              "displayName": "KSC",
+              "kind": 0
+            },
+            {
+              "id": "Munar Injection",
+              "displayName": "Munar Injection",
+              "kind": 2
+            },
+            {
+              "id": "v-mun-relay",
+              "displayName": "Mun Relay",
+              "kind": 1
+            }
+          ],
+          "edges": [
+            {
+              "a": "home",
+              "b": "v-mun-relay",
+              "active": true
+            },
+            {
+              "a": "v-mun-relay",
+              "b": "Munar Injection",
+              "active": true
+            }
+          ],
+          "meta": {
+            "source": "game"
+          }
+        }
+      }
+    ]
+  }
+}

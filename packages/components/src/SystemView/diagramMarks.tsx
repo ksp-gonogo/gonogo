@@ -15,6 +15,9 @@ import type { Placement } from "./projection";
 /** The active vessel's own ring, thinner than a body orbit so the two classes read apart. */
 const ACTIVE_VESSEL_ORBIT_STROKE_WIDTH = 1;
 
+/** The target's curve, the colour its dot wears on the diagram. */
+const TARGET_ORBIT_COLOUR = "var(--color-nogo-mark)";
+
 /** A stroke gradient for how far a drawn curve leaves the reference plane, scaled by its on-screen depth span: a depth reading, not an inclination one. */
 export function DepthGradient({
   id,
@@ -92,7 +95,10 @@ export function VesselOrbitPath({
   gradId,
   hasGradient,
   zoom,
+  subject = "vessel",
 }: Readonly<{
+  /** Whose curve this is; the target's is drawn in its own colour and keyed apart. */
+  subject?: "vessel" | "target";
   trajectory: OrbitTrajectory | null;
   conicRing: string | null;
   placement: Placement;
@@ -115,12 +121,18 @@ export function VesselOrbitPath({
   // Screen-constant stroke and dashes.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
   const dashes = `${4 / zoom} ${3 / zoom}`;
-  const stroke = hasGradient ? `url(#${gradId})` : DEPTH_LEVEL_COLOUR;
+  const stroke =
+    subject === "target"
+      ? TARGET_ORBIT_COLOUR
+      : hasGradient
+        ? `url(#${gradId})`
+        : DEPTH_LEVEL_COLOUR;
+  const trajectoryAttr = { [`data-${subject}-trajectory`]: trajectory.shape };
   if (trajectory.shape === "conic") {
     if (conicRing === null) return null;
     return (
       <path
-        data-vessel-trajectory="conic"
+        {...trajectoryAttr}
         d={conicRing}
         fill="none"
         stroke={stroke}
@@ -133,7 +145,7 @@ export function VesselOrbitPath({
   if (arcPath === null) return null;
   return (
     <path
-      data-vessel-trajectory="arc"
+      {...trajectoryAttr}
       data-trajectory-frame={trajectory.frame.kind}
       d={arcPath}
       fill="none"
@@ -215,19 +227,23 @@ export function EncounterMarker({
   kind,
   body,
   zoom,
+  subject = "vessel",
 }: Readonly<{
   x: number;
   y: number;
   kind: "encounter" | "escape";
   body: string;
   zoom: number;
+  subject?: "vessel" | "target";
 }>) {
   const color =
     kind === "escape" ? "var(--color-info-mark)" : "var(--color-warn-mark)";
   const r = 4 / zoom;
-  const label = kind === "escape" ? `escape ${body}` : `↳ ${body}`;
+  const encounterLabel =
+    subject === "target" ? `encounter ${body}` : `↳ ${body}`;
+  const label = kind === "escape" ? `escape ${body}` : encounterLabel;
   return (
-    <g pointerEvents="none">
+    <g pointerEvents="none" data-encounter-subject={subject}>
       <circle
         cx={x}
         cy={y}

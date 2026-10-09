@@ -49,11 +49,6 @@ export const COINCIDENTAL: readonly string[] = [
    * `vessel.orbit`'s own fields of the same names. The widget never
    * dereferences the payload's.
    */
-  /*
-   * `TRAJECTORY_SCALE_CONVENTIONS.metres`, a scale-convention constant, not
-   * the departure knot's `metres`.
-   */
-  "packages/components/src/SystemView#metres",
   "packages/components/src/ManeuverPlanner#timeToAp",
   "packages/components/src/ManeuverPlanner#timeToPe",
   // `spec.id`, the local facility spec used as a React key

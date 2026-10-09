@@ -1,6 +1,6 @@
 import { getBody } from "@ksp-gonogo/core";
 import type { OrbitTrajectory, SystemPoses } from "@ksp-gonogo/sitrep-client";
-import { TextButton } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, TextButton } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
   useCallback,
@@ -34,6 +34,7 @@ import {
   type Placement,
   type ResolvedProjection,
 } from "./projection";
+import type { TargetConic, TargetEncounter } from "./targetOrbit";
 import type { CelestialBody } from "./useCelestialBodies";
 import type { PanZoom } from "./usePanZoom";
 import { usePlacedPrediction } from "./usePlacedPrediction";
@@ -77,6 +78,12 @@ export interface SystemDiagramProps {
   vesselSelected?: boolean;
   /** Fires when the vessel marker is pressed. Absent leaves the marker inert. */
   onVesselActivate?: () => void;
+  /** The target's own conic, drawn as far as its provider's horizon allows, with its encounter or escape marked where it falls. */
+  target?: {
+    conic: TargetConic;
+    trajectory: OrbitTrajectory | null;
+    encounter: TargetEncounter | null;
+  } | null;
   /** Multi-SOI predicted trajectory; `ut` locates the live patch. */
   predicted?: {
     orbitPatches: readonly TrajectoryPatch[];
@@ -109,6 +116,7 @@ export function SystemDiagram({
   vesselTrajectory = null,
   vesselPlotState = "observed",
   vesselPositionHeld = false,
+  target = null,
   phaseAngles,
   transferStatuses,
   onFocusBodyChange,
@@ -215,6 +223,34 @@ export function SystemDiagram({
       plotScale,
     ],
   );
+  const targetHere =
+    target !== null && nameMatches(target.conic.parentName, parentName)
+      ? target
+      : null;
+  const targetConic = targetHere?.conic;
+  const targetRing = useMemo(
+    () =>
+      targetConic === undefined
+        ? null
+        : placeVesselRing(targetConic, placement, plotScale),
+    [targetConic, placement, plotScale],
+  );
+  const targetEncounterAnomaly = targetHere?.encounter?.trueAnomaly;
+  const targetEncounterAt = useMemo(() => {
+    if (
+      targetConic === undefined ||
+      targetEncounterAnomaly === undefined ||
+      targetEncounterAnomaly === null
+    ) {
+      return null;
+    }
+    const at = placeVesselPoint(
+      { ...targetConic, trueAnomaly: targetEncounterAnomaly },
+      placement,
+      plotScale,
+    );
+    return { x: at.x, y: at.y };
+  }, [targetConic, targetEncounterAnomaly, placement, plotScale]);
   const placed = useMemo(
     () => ({
       ...placedBodies,
@@ -353,6 +389,34 @@ export function SystemDiagram({
             gradId={`${tiltGradId}-vessel`}
             hasGradient={placed.vessel?.ringDepth != null}
             zoom={zoom}
+          />
+        )}
+
+        {targetHere && (
+          <VesselOrbitPath
+            subject="target"
+            trajectory={targetHere.trajectory}
+            conicRing={targetRing?.ring ?? null}
+            placement={placement}
+            plotScale={plotScale}
+            gradId={`${tiltGradId}-target`}
+            hasGradient={false}
+            zoom={zoom}
+          />
+        )}
+
+        {targetHere?.encounter && targetEncounterAt && (
+          <EncounterMarker
+            x={targetEncounterAt.x}
+            y={targetEncounterAt.y}
+            kind={targetHere.encounter.direction}
+            body={
+              targetHere.encounter.direction === "escape"
+                ? parentName
+                : (targetHere.encounter.bodyName ?? NULL_DISPLAY)
+            }
+            zoom={zoom}
+            subject="target"
           />
         )}
 

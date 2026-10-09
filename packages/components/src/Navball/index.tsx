@@ -15,6 +15,7 @@ import {
 import { Badge, Countdown, Panel, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { magnitudeOf } from "../shared/magnitude";
+import { AppliedInput } from "./AppliedInput";
 import { AttitudeIndicator } from "./AttitudeIndicator";
 import { AttitudeReadout } from "./AttitudeReadout";
 import { ControlSurface } from "./ControlSurface";
@@ -54,6 +55,8 @@ const topics = defineTopicManifest({
     "vessel.control.rcs",
     "vessel.control.flyByWire",
     "vessel.control.throttle",
+    "vessel.control.pitch",
+    "vessel.control.roll",
     "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
     "vessel.identity.vesselId",
@@ -92,7 +95,8 @@ function NavballComponent({
   const roll = numericOrNull(attitude?.[useCoM ? "roll" : "rollRootFrame"]);
 
   // Buttons show the last confirmed control state; in-flight commands are shown by the failure echo and the delay strip.
-  const control = lastObserved(topics.useTelemetry("vessel.control"));
+  const controlReading = topics.useTelemetry("vessel.control");
+  const control = lastObserved(controlReading);
   const sasMode = enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
   const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
   const throttle = magnitudeOf(control?.throttle);
@@ -216,6 +220,11 @@ function NavballComponent({
         </Section>,
         showControlRow ? (
           <Section key="controls" full>
+            <AppliedInput
+              pitch={control?.pitch}
+              roll={control?.roll}
+              reading={controlReading}
+            />
             <ControlToggles
               disabled={!isControllable}
               sas={sasRaw}

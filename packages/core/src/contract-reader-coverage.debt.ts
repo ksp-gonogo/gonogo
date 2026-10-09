@@ -267,28 +267,10 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.target.orbit.meta.quality":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.target.orbit.meta.source":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.target.orbit.patches":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.target.partId":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:comms.network.meta.source":
-    "no shipping code reads it, the relay graph is drawn without its source",
-  "field:vessel.control.pitch":
-    "Navball's pitch id names a write-side control stream; nothing reads the field",
-  "field:vessel.control.roll":
-    "Navball's roll id names a write-side control stream; nothing reads the field",
-  "field:vessel.target.orbit.encounter.bodyIndex":
-    "the encounter any widget draws is the craft's own, not the target's",
-  "field:vessel.target.orbit.encounter.transitionType":
-    "the encounter any widget draws is the craft's own, not the target's",
   "field:vessel.target.orbit.encounter.transitionUt":
     "the encounter any widget draws is the craft's own, not the target's",
-  "field:vessel.target.orbit.horizon.departure":
-    "no shipping code reads the target orbit's horizon",
-  "field:vessel.target.orbit.horizon.kind":
-    "no shipping code reads the target orbit's horizon",
 };
 
 /**
@@ -297,14 +279,7 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
  * reader lands, and nothing may be added to it once the base carries one.
  */
 export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {
-  "field:comms.network.meta.source": "Saga 924",
-  "field:vessel.control.pitch": "Saga 925",
-  "field:vessel.control.roll": "Saga 926",
-  "field:vessel.target.orbit.encounter.bodyIndex": "Saga 927",
-  "field:vessel.target.orbit.encounter.transitionType": "Saga 928",
   "field:vessel.target.orbit.encounter.transitionUt": "Saga 923",
-  "field:vessel.target.orbit.horizon.departure": "Saga 929",
-  "field:vessel.target.orbit.horizon.kind": "Saga 930",
   "field:commandCentre.unreachable.kind": "Saga 922",
   "field:vessel.propulsion.dryMass": "Saga 921",
 };

@@ -22,7 +22,7 @@ import {
   useSystemInstant,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { ControlFrame } from "@ksp-gonogo/sitrep-sdk";
+import type { ControlFrame, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -52,6 +52,12 @@ import { createUtBucketThrottle } from "./utBucketThrottle";
 import "./projectionContribution";
 import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
+import { CommsSourceCaption, TargetOrbitCaption } from "./TargetOrbitCaption";
+import {
+  targetEncounterOf,
+  targetHorizonOf,
+  targetParentOf,
+} from "./targetOrbit";
 // Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
 import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
@@ -74,6 +80,24 @@ import { SystemViewConfigForm } from "./SystemViewConfigForm";
 const topics = defineTopicManifest({
   channels: ["system.bodies"],
   optionalChannels: read.optionalChannels,
+  fields: [
+    "vessel.identity.vesselId",
+    "vessel.identity.name",
+    "vessel.identity.parentBodyIndex",
+    "vessel.orbit.sma",
+    "vessel.orbit.ecc",
+    "vessel.orbit.inc",
+    "vessel.orbit.lan",
+    "vessel.orbit.argPe",
+    "vessel.orbit.encounter.transitionType",
+    "vessel.orbit.encounter.bodyIndex",
+    "vessel.target.name",
+    "comms.network.meta.source",
+    "vessel.target.orbit.encounter.bodyIndex",
+    "vessel.target.orbit.encounter.transitionType",
+    "vessel.target.orbit.horizon.departure",
+    "vessel.target.orbit.horizon.kind",
+  ],
 });
 
 /** The translation returns a new object per call, and the projection memos below key on it: hold the previous object while the choice draws the same picture. */
@@ -86,6 +110,17 @@ function useHeldChoice(choice: ReadFrameChoice | null): ReadFrameChoice | null {
       : readFrameChoicesEqual(previous, choice);
   if (!same) held.current = choice;
   return held.current;
+}
+
+/** The elements a diagram draws a conic from, in the plain degrees and metres its geometry works in. */
+function conicElementsOf(orbit: VesselOrbit) {
+  return {
+    sma: orbit.sma.magnitude,
+    ecc: orbit.ecc.magnitude,
+    lan: orbit.lan?.magnitude ?? 0,
+    argPe: orbit.argPe?.magnitude ?? 0,
+    inclination: orbit.inc.magnitude,
+  };
 }
 
 const NO_PATCHES: readonly TrajectoryPatch[] = [];
@@ -163,7 +198,9 @@ function SystemViewComponent({
       ? commsNetworkReading.value
       : undefined;
   // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
-  const universalTime = useViewUt()?.magnitude;
+  const viewUt = useViewUt();
+  const universalTime = viewUt?.magnitude;
+  const commsSource = commsNetwork?.meta?.source;
   const {
     entities,
     selectedVesselId,
@@ -207,6 +244,30 @@ function SystemViewComponent({
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody);
 
+  // The target's own conic and what happens at its sphere-of-influence boundary, from the elements the target states.
+  const targetOrbit =
+    targetReading.state === "observed" || targetReading.state === "held"
+      ? targetReading.value.orbit
+      : undefined;
+  const targetParent = targetParentOf(targetOrbit, nameByIndex);
+  const targetConic =
+    targetParent === null || targetOrbit == null
+      ? null
+      : { parentName: targetParent, ...conicElementsOf(targetOrbit) };
+  const targetTrajectory = useOrbitTrajectory(
+    targetConic === null ? undefined : (targetOrbit ?? undefined),
+  );
+  const targetEncounter = targetEncounterOf(targetOrbit, nameByIndex);
+  const targetHorizon = targetHorizonOf(targetOrbit);
+  const drawnTarget =
+    targetConic === null
+      ? null
+      : {
+          conic: targetConic,
+          trajectory: targetTrajectory,
+          encounter: targetEncounter,
+        };
+
   /*
    * Asked with no read frame; the diagram lifts the answer into the projection's frame.
    * A read frame would reframe every conic into points at animation-frame rate, past the trajectory transform budget, and would turn the conic answer the predicted SOI chain needs into an arc.
@@ -231,11 +292,7 @@ function SystemViewComponent({
     vesselBody != null && orbit?.sma.isFinite() && vesselAt !== null
       ? {
           parentName: vesselBody,
-          sma: orbit.sma.magnitude,
-          ecc: orbit.ecc.magnitude,
-          lan: orbit.lan?.magnitude ?? 0,
-          argPe: orbit.argPe?.magnitude ?? 0,
-          inclination: orbit.inc.magnitude,
+          ...conicElementsOf(orbit),
           trueAnomaly: vesselAt,
         }
       : null;
@@ -557,6 +614,27 @@ function SystemViewComponent({
             {trajectoryWithheld && (
               <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
             )}
+            {drawnTarget !== null &&
+              targetHorizon !== null &&
+              typeof targetName === "string" && (
+                <TargetOrbitCaption
+                  targetName={targetName}
+                  horizon={targetHorizon}
+                  viewUt={viewUt}
+                />
+              )}
+            {targetTrajectory?.shape === "withheld" && (
+              <TrajectoryWithheldNote withheld={targetTrajectory} compact />
+            )}
+            {commsSource !== undefined && (
+              <CommsSourceCaption
+                source={commsSource}
+                activeVesselId={identity?.vesselId}
+                activeVesselName={
+                  typeof identity?.name === "string" ? identity.name : undefined
+                }
+              />
+            )}
             {/* Which frame the picture is in (what the axes do), distinct from the "Frame:" body caption; passed outright because the diagram does its own framing. */}
             <TrajectoryFrameCaption
               frame={
@@ -584,6 +662,7 @@ function SystemViewComponent({
                       vessel={vesselOrbit}
                       vesselTrajectory={vesselTrajectory}
                       vesselPlotState={drawnPlotState}
+                      target={drawnTarget}
                       vesselPositionHeld={
                         vesselAt !== null && vesselAt === craft?.held
                       }
@@ -716,6 +795,7 @@ registerComponent<SystemViewConfig>({
   // Declares the body array it walks and not `system.state.bodyCount`, which it never reads.
   channels: topics.channels,
   ...read,
+  fields: topics.fields,
   defaultConfig: { frame: "auto" },
   actions: [],
   pushable: true,
