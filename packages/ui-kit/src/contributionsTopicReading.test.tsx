@@ -92,6 +92,32 @@ describe("a contribution's Topic dep", () => {
     act(() => stopArriving(stream));
     expect(screen.getByRole("status")).toHaveTextContent("held:true");
   });
+
+  it("receives a never-arrived reading for each declared Topic when no store is mounted", () => {
+    registerContribution({
+      id: "no-store",
+      contributes: SLOT,
+      deps: ["crash.hasRecent", "vessel.crew"],
+      compute: (topics) => [
+        {
+          label: `${topics["crash.hasRecent"].state}|${topics["vessel.crew"].state}`,
+        },
+      ],
+    });
+    render(
+      <WidgetMetaContext.Provider
+        value={{
+          componentId: "topic-reading-probe",
+          contributionSlots: [SLOT],
+        }}
+      >
+        <ContributionsProvider>
+          <Probe />
+        </ContributionsProvider>
+      </WidgetMetaContext.Provider>,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("pending|pending");
+  });
 });
 
 describe("contributionReading", () => {

@@ -7,6 +7,7 @@ import {
   PerfBudget,
   type TopicCurrency,
   type TopicId,
+  topicReading,
   type Value,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -71,6 +72,12 @@ function getSlotPerfBudget(slot: string): PerfBudget {
   }
   return budget;
 }
+
+// What a declared Topic reads as while no store exists to sample it: the same never-arrived reading a widget gets with no provider mounted, shared so the snapshot keeps its identity.
+const NEVER_ARRIVED: Currency = topicReading<never>({
+  state: "pending",
+  reckoning: { status: "none" },
+});
 
 // Stable empty snapshot with no `TelemetryProvider`: a fresh `{}` would make `useSyncExternalStore` see a change every render.
 const EMPTY_TOPIC_VALUES: Readonly<Record<string, unknown>> = Object.freeze({});
@@ -302,8 +309,16 @@ function SlotAggregator({
   // The readings last handed to `compute`, by Topic, so an unchanged one keeps its identity.
   const readingsRef = useRef(new Map<string, Currency>());
 
+  // Without a store every declared Topic has not arrived; a settings or processor dep has no such reading and stays absent.
+  const withoutStoreValues = useMemo((): Record<string, unknown> => {
+    if (unionDeps.topics.length === 0) return EMPTY_TOPIC_VALUES;
+    return Object.fromEntries(
+      unionDeps.topics.map((topic) => [topic, NEVER_ARRIVED]),
+    );
+  }, [unionDeps]);
+
   const getSnapshot = useCallback((): Record<string, unknown> => {
-    if (!telemetryStore) return EMPTY_TOPIC_VALUES;
+    if (!telemetryStore) return withoutStoreValues;
     if (
       unionDeps.topics.length === 0 &&
       unionDeps.processors.length === 0 &&
@@ -344,7 +359,7 @@ function SlotAggregator({
         : values;
     topicCacheRef.current = { token, values: next };
     return next;
-  }, [telemetryStore, processorRuntime, unionDeps]);
+  }, [telemetryStore, processorRuntime, unionDeps, withoutStoreValues]);
 
   const topicValues = useSyncExternalStore(subscribe, getSnapshot);
   // The host's presence store, the same one an augment's `requires` reads, so both gates follow one rule.
