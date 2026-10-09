@@ -2431,6 +2431,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     nodes: "CommsNetworkNode[]",
   },
   "CommsNodeView": {
+    handle: "CommsNodeHandle",
     position: "Vector3d",
   },
   "CommsOcclusion": {
@@ -2441,6 +2442,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CommsRoute": {
     holds: "CommsRouteHold[]",
+  },
+  "CommsRouteHop": {
+    fromHandle: "CommsNodeHandle",
+    toHandle: "CommsNodeHandle",
   },
   "CommsRoutes": {
     routes: "CommsRoute[]",

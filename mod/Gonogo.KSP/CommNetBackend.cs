@@ -133,7 +133,7 @@ namespace Gonogo.KSP
         {
             var p = node.precisePosition;
             return new CommsNodeView(
-                node,
+                CommsNodeHandle.Of(node),
                 NodeId(node),
                 NodeDisplayName(node),
                 node.isHome,
@@ -166,11 +166,11 @@ namespace Gonogo.KSP
         /// "no route" meaning, rather than an exception that would take comms
         /// down for the session.</para>
         /// </summary>
-        public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+        public override IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to)
         {
             try
             {
-                if (from is not CommNode start || to is not CommNode end || ReferenceEquals(start, end))
+                if (from?.As<CommNode>() is not CommNode start || to?.As<CommNode>() is not CommNode end || ReferenceEquals(start, end))
                 {
                     return null;
                 }
@@ -208,8 +208,8 @@ namespace Gonogo.KSP
                 hops.Add(new CommsRouteHop(
                     (link.a.precisePosition - link.b.precisePosition).magnitude,
                     link.b.isHome || link.a.isHome,
-                    link.a,
-                    link.b));
+                    CommsNodeHandle.Of(link.a),
+                    CommsNodeHandle.Of(link.b)));
             }
             return hops;
         }
@@ -225,18 +225,18 @@ namespace Gonogo.KSP
         /// it.</para>
         ///
         /// <para>Fail-soft to <see cref="CommsReachModels.Unknown"/>, whose
-        /// maximum is ABSENT, for a handle that is not a stock node, a range
+        /// maximum is ABSENT, for a node that is not a stock one, a range
         /// model the scenario has not stood up yet (main menu), or a read that
         /// threw on torn-down state. Absent, not zero: a zero would assert that
         /// nothing reaches and darken every prediction on the strength of a
         /// failed read, where absent leaves the consumer predicting exactly what
         /// it could before.</para>
         /// </summary>
-        public override ICommsReachModel ReachModel(object? from, object? to)
+        public override ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to)
         {
             try
             {
-                if (from is not CommNode start || to is not CommNode end)
+                if (from?.As<CommNode>() is not CommNode start || to?.As<CommNode>() is not CommNode end)
                 {
                     return CommsReachModels.Unknown;
                 }
@@ -278,7 +278,7 @@ namespace Gonogo.KSP
         /// strength exactly where it reads as in reach. Null for a pair with
         /// no stated reach.
         /// </summary>
-        public IContactLinkStrength? LinkStrength(object? from, object? to, double ut) =>
+        public IContactLinkStrength? LinkStrength(CommsNodeHandle? from, CommsNodeHandle? to, double ut) =>
             CommNetStrength.For(ReachModel(from, to).MaxRangeMeters);
 
         /// <summary>The product of the hops, as stock's own <c>CommPath.signalStrength</c> is.</summary>

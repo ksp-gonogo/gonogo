@@ -1,10 +1,11 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 
 namespace Sitrep.Core
 {
     /// <summary>
     /// One hop of a signal's route between a vantage and a node: its own share of
-    /// the one-way delay, plus whatever geometry and opaque backend handles the
+    /// the one-way delay, plus whatever geometry and backend node handles the
     /// writer had for the hop's two endpoints.
     ///
     /// <para>C#-ONLY, no TS reference (see <see cref="INetwork.JourneyTo"/>). This is
@@ -21,8 +22,8 @@ namespace Sitrep.Core
             double seconds,
             double distanceMeters = 0,
             bool touchesHome = false,
-            object? fromHandle = null,
-            object? toHandle = null)
+            CommsNodeHandle? fromHandle = null,
+            CommsNodeHandle? toHandle = null)
         {
             Seconds = seconds;
             DistanceMeters = distanceMeters;
@@ -40,11 +41,11 @@ namespace Sitrep.Core
         /// <summary>True when EITHER endpoint is a ground station.</summary>
         public bool TouchesHome { get; }
 
-        /// <summary>The live object behind this hop's origin endpoint, or null when the writer had none to give.</summary>
-        public object? FromHandle { get; }
+        /// <summary>This hop's origin endpoint's node, or null when the writer had none to give.</summary>
+        public CommsNodeHandle? FromHandle { get; }
 
-        /// <summary>The live object behind this hop's destination endpoint, or null when the writer had none to give.</summary>
-        public object? ToHandle { get; }
+        /// <summary>This hop's destination endpoint's node, or null when the writer had none to give.</summary>
+        public CommsNodeHandle? ToHandle { get; }
     }
 
     /// <summary>

@@ -19,12 +19,12 @@ namespace Sitrep.Contract.TestSupport
         /// figure from 0 to 1 that is never more than its strongest hop.
         /// </summary>
         /// <param name="backend">The backend under test.</param>
-        /// <param name="from">One end, as the backend's own node object.</param>
+        /// <param name="from">One end, wrapping the backend's own node.</param>
         /// <param name="to">The other end.</param>
         /// <param name="ut">The instant the antennas are read at.</param>
         /// <param name="farthestMeters">The greatest separation to evaluate the returned model at; greater than zero.</param>
         public static void AssertPathStrengthContract(
-            ICommsPathStrength backend, object? from, object? to, double ut, double farthestMeters)
+            ICommsPathStrength backend, CommsNodeHandle? from, CommsNodeHandle? to, double ut, double farthestMeters)
         {
             Assert.NotNull(backend);
             var name = backend.GetType().Name;
@@ -33,7 +33,7 @@ namespace Sitrep.Contract.TestSupport
             Exception? ex = null;
             try
             {
-                unknown = backend.LinkStrength(new object(), new object(), ut);
+                unknown = backend.LinkStrength(CommsNodeHandle.Of(new object()), CommsNodeHandle.Of(new object()), ut);
             }
             catch (Exception thrown)
             {

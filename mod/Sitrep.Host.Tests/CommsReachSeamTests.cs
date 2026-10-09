@@ -42,9 +42,9 @@ namespace Sitrep.Host.Tests
         {
 
         public bool? StillCarriesTo(object? vessel, string nodeId) => null;
-            private readonly Func<object?, object?, ICommsReachModel> _reach;
+            private readonly Func<CommsNodeHandle?, CommsNodeHandle?, ICommsReachModel> _reach;
 
-            public StubBackend(string id, Func<object?, object?, ICommsReachModel> reach)
+            public StubBackend(string id, Func<CommsNodeHandle?, CommsNodeHandle?, ICommsReachModel> reach)
             {
                 ProviderId = id;
                 _reach = reach;
@@ -56,18 +56,20 @@ namespace Sitrep.Host.Tests
             public CommsControl ControlState() => new CommsControl();
             public CommsPath Path(object? vessel) => new CommsPath();
             public CommsNetwork Network(object? vessel) => new CommsNetwork();
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
-            public ICommsReachModel ReachModel(object? from, object? to) => _reach(from, to);
-            public object? ControlPathTerminus(object? vessel) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => _reach(from, to);
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
             /// <summary>Nothing here occludes: this stub exists for the reach read.</summary>
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
             public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
 
+        private static CommsNodeHandle Node() => CommsNodeHandle.Of(new object())!;
+
         private static Kernel ResolvedKernel(
-            Func<object?, object?, ICommsReachModel> vanilla,
-            Func<object?, object?, ICommsReachModel>? higherPriority = null)
+            Func<CommsNodeHandle?, CommsNodeHandle?, ICommsReachModel> vanilla,
+            Func<CommsNodeHandle?, CommsNodeHandle?, ICommsReachModel>? higherPriority = null)
         {
             var kernel = new Kernel();
             CommsElection.RegisterCapability(kernel, _ => new StubBackend(VanillaBackendId, vanilla));
@@ -97,7 +99,7 @@ namespace Sitrep.Host.Tests
         public void TheELECTEDBackendsRuleIsTheOneAConsumerReads()
         {
             var stockOnly = CommsElection.ReachModel(
-                ResolvedKernel((_, _) => Fixed("commnet-range-curve", 1e9)), new object(), new object());
+                ResolvedKernel((_, _) => Fixed("commnet-range-curve", 1e9)), Node(), Node());
             Assert.Equal("commnet-range-curve", stockOnly.ModelId);
             Assert.Equal(1e9, stockOnly.MaxRangeMeters);
 
@@ -111,8 +113,8 @@ namespace Sitrep.Host.Tests
                 ResolvedKernel(
                     (_, _) => Fixed("commnet-range-curve", 0.0),
                     (_, _) => Fixed("budget-closes-in-db", 4e10)),
-                new object(),
-                new object());
+                Node(),
+                Node());
             Assert.Equal("budget-closes-in-db", replacementElected.ModelId);
             Assert.Equal(4e10, replacementElected.MaxRangeMeters);
         }
@@ -127,7 +129,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ARuleNobodyDeclaredIsAbsentAndSaysSo()
         {
-            var noKernel = CommsElection.ReachModel(null, new object(), new object());
+            var noKernel = CommsElection.ReachModel(null, Node(), Node());
 
             Assert.Equal(CommsReachModels.UnknownModelId, noKernel.ModelId);
             Assert.Null(noKernel.MaxRangeMeters);
@@ -145,8 +147,8 @@ namespace Sitrep.Host.Tests
         {
             var model = CommsElection.ReachModel(
                 ResolvedKernel((_, _) => throw new InvalidOperationException("reflection moved")),
-                new object(),
-                new object());
+                Node(),
+                Node());
 
             Assert.Equal(CommsReachModels.UnknownModelId, model.ModelId);
             Assert.Null(model.MaxRangeMeters);
@@ -160,13 +162,13 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ReachIsAskedPerPairRatherThanPerInstall()
         {
-            var near = new object();
-            var far = new object();
+            var near = Node();
+            var far = Node();
             var kernel = ResolvedKernel((_, to) =>
-                Fixed("commnet-range-curve", ReferenceEquals(to, near) ? 1e6 : 1e12));
+                Fixed("commnet-range-curve", to == near ? 1e6 : 1e12));
 
-            Assert.Equal(1e6, CommsElection.ReachModel(kernel, new object(), near).MaxRangeMeters);
-            Assert.Equal(1e12, CommsElection.ReachModel(kernel, new object(), far).MaxRangeMeters);
+            Assert.Equal(1e6, CommsElection.ReachModel(kernel, Node(), near).MaxRangeMeters);
+            Assert.Equal(1e12, CommsElection.ReachModel(kernel, Node(), far).MaxRangeMeters);
         }
 
         [Fact]

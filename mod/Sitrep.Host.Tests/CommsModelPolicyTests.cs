@@ -285,6 +285,21 @@ namespace Sitrep.Host.Tests
             Assert.Contains("CommNet off", health.Detail);
         }
 
+        /// <summary>
+        /// A node is the same node however many times it was wrapped: a backend
+        /// wraps afresh on every read, so a comparison of the wrappers by
+        /// reference would route a node to itself.
+        /// </summary>
+        [Fact]
+        public void ModelAbsent_RoutesBetweenTwoPlacesButNeverFromANodeToItself()
+        {
+            var wrapped = Wrap(new StubBackend(connected: false), CommsControlSource.Full);
+            var node = new object();
+
+            Assert.Null(wrapped.RouteBetween(CommsNodeHandle.Of(node), CommsNodeHandle.Of(node)));
+            Assert.Empty(wrapped.RouteBetween(CommsNodeHandle.Of(node), CommsNodeHandle.Of(new object()))!);
+        }
+
         private static ICommsBackend Wrap(ICommsBackend inner, CommsControlSource local) =>
             CommsModelPolicy.Effective(inner, modelPresent: false, () => local, () => new PayloadMeta())!;
 
@@ -332,9 +347,9 @@ namespace Sitrep.Host.Tests
             // answers for itself rather than delegating, so a stub that returned
             // anything meaningful here would be asserting against its own value
             // instead of the wrapper's.
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
 
-            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
             /// <summary>
             /// A REAL rating, unlike the inert answers above, and deliberately
@@ -345,7 +360,7 @@ namespace Sitrep.Host.Tests
             public ICommsDegradeModel DegradeModel() =>
                 new RatedDegradeModel("stub-grading", "Stub", 0.75);
 
-            public object? ControlPathTerminus(object? vessel) => null;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
         }
     }
 }

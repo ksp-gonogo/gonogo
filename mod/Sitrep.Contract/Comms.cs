@@ -762,16 +762,16 @@ public class CommsCommandCentre
 /// <summary>
 /// One hop of a route a backend has solved: the geometry between its two
 /// endpoints, whether either end is a ground station, and the two endpoints'
-/// own opaque node handles.
+/// nodes.
 ///
 /// <para>Unlike a <see cref="CommsHop"/> it carries no node ids, only the
 /// backend's own node handles, which a caller resolves to a name only when it
 /// needs one.</para>
 ///
-/// <para><see cref="FromHandle"/> and <see cref="ToHandle"/> are opaque handles
-/// of the same kind as <see cref="CommsNodeView.Handle"/>: a live object,
-/// matched by reference and never dereferenced here. They are optional, for a
-/// hop built outside a live backend, such as in a test.</para>
+/// <para><see cref="FromHandle"/> and <see cref="ToHandle"/> are the same
+/// <see cref="CommsNodeHandle"/> a <see cref="CommsNodeView.Handle"/> carries.
+/// They are optional, for a hop built outside a live backend, such as in a
+/// test.</para>
 ///
 /// <para>Carries no KSP type.</para>
 /// <internal>
@@ -793,9 +793,9 @@ public readonly struct CommsRouteHop
     /// <summary>A hop carrying the backend's own handles for its two endpoints.</summary>
     /// <param name="distanceMeters">Straight-line distance between the two endpoints, in metres.</param>
     /// <param name="touchesHome">True when either endpoint is a ground station.</param>
-    /// <param name="fromHandle">The live object behind the origin endpoint, or null.</param>
-    /// <param name="toHandle">The live object behind the destination endpoint, or null.</param>
-    public CommsRouteHop(double distanceMeters, bool touchesHome, object? fromHandle, object? toHandle)
+    /// <param name="fromHandle">The origin endpoint's node, or null.</param>
+    /// <param name="toHandle">The destination endpoint's node, or null.</param>
+    public CommsRouteHop(double distanceMeters, bool touchesHome, CommsNodeHandle? fromHandle, CommsNodeHandle? toHandle)
     {
         DistanceMeters = distanceMeters;
         TouchesHome = touchesHome;
@@ -809,13 +809,13 @@ public readonly struct CommsRouteHop
     /// <summary>True when either endpoint is a ground station.</summary>
     public bool TouchesHome { get; }
 
-    /// <summary>The live object behind this hop's origin endpoint, or null when
-    /// the caller had none to give.</summary>
-    public object? FromHandle { get; }
+    /// <summary>This hop's origin endpoint's node, or null when the caller had
+    /// none to give.</summary>
+    public CommsNodeHandle? FromHandle { get; }
 
-    /// <summary>The live object behind this hop's destination endpoint, or null
-    /// when the caller had none to give.</summary>
-    public object? ToHandle { get; }
+    /// <summary>This hop's destination endpoint's node, or null when the caller
+    /// had none to give.</summary>
+    public CommsNodeHandle? ToHandle { get; }
 }
 
 /// <summary>
@@ -881,9 +881,9 @@ public interface ICommsBackend : ISitrepProvider
     /// The route this backend's own router finds between two nodes, as ordered
     /// hops, or null when it will not route between them.
     ///
-    /// <para><paramref name="from"/> and <paramref name="to"/> are opaque node
-    /// handles, in practice a KSP <c>CommNet.CommNode</c>. Returns null for an
-    /// unrecognised or missing handle, for the same node at both ends, and for
+    /// <para><paramref name="from"/> and <paramref name="to"/> are this
+    /// backend's own nodes, in practice a KSP <c>CommNet.CommNode</c>. Returns
+    /// null for an unrecognised or missing node, for the same node at both ends, and for
     /// an unreachable end. An empty list means routed with nothing to
     /// measure. Main thread only.</para>
     /// <internal>
@@ -895,10 +895,10 @@ public interface ICommsBackend : ISitrepProvider
     /// light-time, and a zero would claim one.
     /// </internal>
     /// </summary>
-    /// <param name="from">The start node, as an opaque handle.</param>
-    /// <param name="to">The end node, as an opaque handle.</param>
+    /// <param name="from">The start node.</param>
+    /// <param name="to">The end node.</param>
     /// <returns>The hops in order, or null when there is no route.</returns>
-    IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
+    IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to);
 
     /// <summary>
     /// Whether this backend can still carry a signal from
@@ -925,9 +925,9 @@ public interface ICommsBackend : ISitrepProvider
     /// The reach rule this backend applies between two nodes: how far apart
     /// they can be and still carry a link. See <see cref="ICommsReachModel"/>.
     ///
-    /// <para><paramref name="from"/> and <paramref name="to"/> are opaque node
-    /// handles, as for <see cref="RouteBetween"/>. Never null: for a pair it
-    /// cannot rate, or a handle it does not recognise, return
+    /// <para><paramref name="from"/> and <paramref name="to"/> are nodes, as
+    /// for <see cref="RouteBetween"/>. Never null: for a pair it cannot rate, or
+    /// a node it does not recognise, return
     /// <see cref="CommsReachModels.Unknown"/>, which asserts no limit.</para>
     ///
     /// <para>Called on the main thread, since building the rule may read the
@@ -938,10 +938,10 @@ public interface ICommsBackend : ISitrepProvider
     /// promises reacquisition on line of sight, which an operator plans against.
     /// </internal>
     /// </summary>
-    /// <param name="from">One node, as an opaque handle.</param>
-    /// <param name="to">The other node, as an opaque handle.</param>
+    /// <param name="from">One node.</param>
+    /// <param name="to">The other node.</param>
     /// <returns>The reach rule for the pair, never null.</returns>
-    ICommsReachModel ReachModel(object? from, object? to);
+    ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to);
 
     /// <summary>
     /// How degraded this backend grades the active vessel's link home right now.
@@ -964,19 +964,19 @@ public interface ICommsBackend : ISitrepProvider
 
     /// <summary>
     /// The node <paramref name="vessel"/>'s control path, as this backend solved
-    /// it, terminates at, as an opaque handle, or null when it terminates
+    /// it, terminates at, or null when it terminates
     /// nowhere (no connection, or a last hop that touches neither a ground
     /// station nor a crewed control source).
     ///
-    /// <para>Return the node's handle, not a <see cref="CommsCommandCentre"/>:
-    /// Gonogo matches it against its command centres and builds the payload.</para>
+    /// <para>Return the node, not a <see cref="CommsCommandCentre"/>: Gonogo
+    /// matches it against its command centres and builds the payload.</para>
     ///
-    /// <para>Main thread only. The handle is a live KSP object and must not cross
-    /// a thread or outlive the capture that produced it.</para>
+    /// <para>Main thread only, and the handle must not cross a thread or outlive
+    /// the capture that produced it.</para>
     /// </summary>
     /// <param name="vessel">The craft whose control path is read, as an opaque handle.</param>
-    /// <returns>The terminal node's handle, or null.</returns>
-    object? ControlPathTerminus(object? vessel);
+    /// <returns>The terminal node, or null.</returns>
+    CommsNodeHandle? ControlPathTerminus(object? vessel);
 
     /// <summary>
     /// The occlusion geometry this backend applies: which radius of a body

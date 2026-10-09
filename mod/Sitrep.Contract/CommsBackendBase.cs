@@ -59,10 +59,10 @@ public abstract class CommsBackendBase : ICommsBackend
     public abstract string ProviderId { get; }
 
     /// <inheritdoc />
-    public abstract IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
+    public abstract IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to);
 
     /// <inheritdoc />
-    public abstract ICommsReachModel ReachModel(object? from, object? to);
+    public abstract ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to);
 
     /// <inheritdoc />
     public abstract ICommsOcclusionModel OcclusionModel();
@@ -337,7 +337,7 @@ public abstract class CommsBackendBase : ICommsBackend
     /// otherwise a control source, otherwise null. Home wins because KSP only
     /// falls back to the nearest control source when no route home exists.</para>
     /// </summary>
-    public object? ControlPathTerminus(object? vessel)
+    public CommsNodeHandle? ControlPathTerminus(object? vessel)
     {
         var path = ControlPath(vessel);
         if (path == null || path.Count == 0)

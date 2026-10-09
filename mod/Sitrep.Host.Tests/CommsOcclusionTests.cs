@@ -149,9 +149,9 @@ namespace Sitrep.Host.Tests
             public CommsPath Path(object? vessel) => new CommsPath();
             public CommsNetwork Network(object? vessel) => new CommsNetwork();
             /// <summary>Nothing here routes: this stub exists for the occlusion read.</summary>
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
-            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
-            public object? ControlPathTerminus(object? vessel) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
             public ICommsOcclusionModel OcclusionModel() => _occlusion();
 
             public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;

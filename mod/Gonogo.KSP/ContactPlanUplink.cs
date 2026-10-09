@@ -203,7 +203,7 @@ namespace Gonogo.KSP
                     var point = _surface.CalibratedSurfacePoint(vessel.mainBody, comm);
                     if (point != null)
                     {
-                        nodes.Add(AsCentre(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, comm, GameWords.VesselName(vessel)), centreOf));
+                        nodes.Add(AsCentre(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)), centreOf));
                     }
                     continue;
                 }
@@ -211,7 +211,7 @@ namespace Gonogo.KSP
                 if (orbit != null)
                 {
                     nodes.Add(AsCentre(
-                        ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), comm, GameWords.VesselName(vessel)),
+                        ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)),
                         centreOf));
                 }
             }
@@ -233,7 +233,7 @@ namespace Gonogo.KSP
                 var point = _surface.CalibratedSurfacePoint(bodies[bodyIndex], home.Node);
                 if (point != null)
                 {
-                    nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, home.Node, home.DisplayName));
+                    nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, CommsNodeHandle.Of(home.Node), home.DisplayName));
                 }
             }
 

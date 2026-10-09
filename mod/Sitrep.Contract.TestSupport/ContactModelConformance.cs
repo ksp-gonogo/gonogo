@@ -16,13 +16,13 @@ namespace Sitrep.Contract.TestSupport
         /// <paramref name="toUt"/>.
         /// </summary>
         /// <param name="model">The backend under test.</param>
-        /// <param name="from">One end, as the backend's own node object.</param>
+        /// <param name="from">One end, wrapping the backend's own node.</param>
         /// <param name="to">The other end.</param>
         /// <param name="ut">The instant the aims are read at.</param>
         /// <param name="positions">Where every node and body is, as the planner would supply it, the two ends included as <c>"from"</c> and <c>"to"</c>.</param>
         /// <param name="toUt">How far ahead to evaluate the returned link.</param>
         public static void AssertContactModelContract(
-            ICommsContactModel model, object? from, object? to, double ut, IContactPositions positions, double toUt)
+            ICommsContactModel model, CommsNodeHandle? from, CommsNodeHandle? to, double ut, IContactPositions positions, double toUt)
         {
             Assert.NotNull(model);
             var name = model.GetType().Name;
@@ -31,7 +31,7 @@ namespace Sitrep.Contract.TestSupport
             Exception? ex = null;
             try
             {
-                unknown = model.LinkModel(new object(), new object(), ut);
+                unknown = model.LinkModel(CommsNodeHandle.Of(new object()), CommsNodeHandle.Of(new object()), ut);
             }
             catch (Exception thrown)
             {

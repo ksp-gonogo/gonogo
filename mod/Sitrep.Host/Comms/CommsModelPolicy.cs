@@ -237,9 +237,9 @@ namespace Sitrep.Host.Comms
         /// at both ends, on the contract's own terms: a path to yourself is not
         /// a route, whatever model is in force.</para>
         /// </summary>
-        public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+        public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to)
         {
-            if (from == null || to == null || ReferenceEquals(from, to))
+            if (from == null || to == null || from == to)
             {
                 return null;
             }
@@ -265,7 +265,7 @@ namespace Sitrep.Host.Comms
         /// reports what it modelled can say which of the two it was standing on
         /// rather than reporting an absence it did not cause.</para>
         /// </summary>
-        public ICommsReachModel ReachModel(object? from, object? to) => NoLimitReach;
+        public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => NoLimitReach;
 
         private static readonly ICommsReachModel NoLimitReach = new MaxRangeReachModel(
             "no-comms-model", "No comms model (nothing limits reach)", null);
@@ -300,7 +300,7 @@ namespace Sitrep.Host.Comms
         /// Null. A centre is where a control PATH terminates and there are no
         /// paths, so there is no node to name.
         /// </summary>
-        public object? ControlPathTerminus(object? vessel) => null;
+        public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
 
         /// <summary>
         /// <c>comms.control</c>'s level for a control tier. Names every tier and

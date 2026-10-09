@@ -331,11 +331,11 @@ namespace Gonogo.KSP.Tests.Comms
             // and no path terminated anywhere. Three nulls and an Unknown, which
             // is what a backend that cannot answer is contractually required to
             // say rather than guessing.
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
 
-            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
-            public object? ControlPathTerminus(object? vessel) => null;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
         }
 
         /// <summary>

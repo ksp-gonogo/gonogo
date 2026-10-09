@@ -24,11 +24,11 @@ namespace Sitrep.Contract
         /// The strength model between two nodes as their antennas stand now, or
         /// <c>null</c> when this backend states no strength for the pair.
         /// </summary>
-        /// <param name="from">One end, as the backend's own node object (a stock <c>CommNode</c> on every shipped backend).</param>
-        /// <param name="to">The other end, in the same form.</param>
+        /// <param name="from">One end: a stock <c>CommNode</c> on every shipped backend.</param>
+        /// <param name="to">The other end.</param>
         /// <param name="ut">The universal time the antennas were read at.</param>
         /// <returns>The model, or <c>null</c> for no stated strength.</returns>
-        IContactLinkStrength? LinkStrength(object? from, object? to, double ut);
+        IContactLinkStrength? LinkStrength(CommsNodeHandle? from, CommsNodeHandle? to, double ut);
 
         /// <summary>
         /// The strength of a whole path from the strengths of its hops, from 0

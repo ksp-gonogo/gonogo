@@ -1,3 +1,4 @@
+using Sitrep.Contract;
 using Sitrep.Core;
 using Xunit;
 
@@ -40,14 +41,14 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void LegCarriesItsOpaqueHandles()
+        public void LegCarriesItsNodeHandles()
         {
-            var from = new object();
-            var to = new object();
+            var from = CommsNodeHandle.Of(new object());
+            var to = CommsNodeHandle.Of(new object());
             var hop = new Hop(1.0, fromHandle: from, toHandle: to);
 
-            Assert.True(ReferenceEquals(from, hop.FromHandle));
-            Assert.True(ReferenceEquals(to, hop.ToHandle));
+            Assert.Same(from, hop.FromHandle);
+            Assert.Same(to, hop.ToHandle);
         }
 
         [Fact]

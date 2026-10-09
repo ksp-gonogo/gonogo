@@ -260,7 +260,7 @@ namespace Gonogo.KSP
                     return null;
                 }
 
-                return RoutedPathDelay.OneWaySeconds(backend.RouteBetween(from, to), config);
+                return RoutedPathDelay.OneWaySeconds(backend.RouteBetween(CommsNodeHandle.Of(from), CommsNodeHandle.Of(to)), config);
             }
             catch (Exception ex)
             {

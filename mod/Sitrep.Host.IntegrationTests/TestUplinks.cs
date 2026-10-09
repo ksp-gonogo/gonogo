@@ -707,15 +707,15 @@ namespace Sitrep.Host.IntegrationTests
             // Routes nowhere, for the same reason as the occlusion model below:
             // this fixture's subject matter is the delay/reveal gate, and the
             // node-to-node route feeds the command-centre matrix instead.
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
 
             // Occludes at the bare radius, matching what a backend that has no
             // opinion declares. Nothing in this fixture's delay/reveal-gate
             // subject matter reads it; it is here because the shared shape
             // requires every backend to name its geometry.
-            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
-            public object? ControlPathTerminus(object? vessel) => null;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 

@@ -22,9 +22,9 @@ namespace Sitrep.Contract.Tests
 
             public override string ProviderId => "graded";
 
-            public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+            public override IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
 
-            public override ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public override ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
             public override ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
@@ -78,9 +78,9 @@ namespace Sitrep.Contract.Tests
             public override string ProviderId => "unreadable";
 
 
-            public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+            public override IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
 
-            public override ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public override ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
             public override ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 

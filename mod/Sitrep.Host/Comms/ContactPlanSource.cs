@@ -16,7 +16,7 @@ namespace Sitrep.Host.Comms
     public sealed class ContactGameNode
     {
         private ContactGameNode(
-            string id, int bodyIndex, OrbitElements? orbit, RotatingGroundStation? surface, bool station, object? radio, string? displayName)
+            string id, int bodyIndex, OrbitElements? orbit, RotatingGroundStation? surface, bool station, CommsNodeHandle? radio, string? displayName)
         {
             DisplayName = displayName;
             Id = id;
@@ -43,7 +43,7 @@ namespace Sitrep.Host.Comms
         public bool Station { get; }
 
         /// <summary>The node as the comms backend knows it, handed back to the backend's reach and link models and never read here.</summary>
-        public object? Radio { get; }
+        public CommsNodeHandle? Radio { get; }
 
         /// <summary>The node's human-facing name: the craft's, or the ground station's as the roster shows it. Null when the game gives none.</summary>
         public string? DisplayName { get; }
@@ -52,15 +52,15 @@ namespace Sitrep.Host.Comms
         public CommandCentreEntry? Centre { get; set; }
 
         public static ContactGameNode OrbitingCraft(
-            string id, int bodyIndex, OrbitElements orbit, object? radio = null, string? displayName = null) =>
+            string id, int bodyIndex, OrbitElements orbit, CommsNodeHandle? radio = null, string? displayName = null) =>
             new ContactGameNode(id, bodyIndex, orbit, null, false, radio, displayName);
 
         public static ContactGameNode LandedCraft(
-            string id, int bodyIndex, RotatingGroundStation surface, object? radio = null, string? displayName = null) =>
+            string id, int bodyIndex, RotatingGroundStation surface, CommsNodeHandle? radio = null, string? displayName = null) =>
             new ContactGameNode(id, bodyIndex, null, surface, false, radio, displayName);
 
         public static ContactGameNode GroundStation(
-            string id, int bodyIndex, RotatingGroundStation surface, object? radio = null, string? displayName = null) =>
+            string id, int bodyIndex, RotatingGroundStation surface, CommsNodeHandle? radio = null, string? displayName = null) =>
             new ContactGameNode(id, bodyIndex, null, surface, true, radio, displayName);
     }
 

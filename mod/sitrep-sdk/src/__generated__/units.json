@@ -2357,6 +2357,7 @@
       "nodes": "CommsNetworkNode[]"
     },
     "CommsNodeView": {
+      "handle": "CommsNodeHandle",
       "position": "Vector3d"
     },
     "CommsOcclusion": {
@@ -2367,6 +2368,10 @@
     },
     "CommsRoute": {
       "holds": "CommsRouteHold[]"
+    },
+    "CommsRouteHop": {
+      "fromHandle": "CommsNodeHandle",
+      "toHandle": "CommsNodeHandle"
     },
     "CommsRoutes": {
       "routes": "CommsRoute[]"

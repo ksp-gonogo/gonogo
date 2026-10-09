@@ -401,7 +401,7 @@ namespace Sitrep.Host.IntegrationTests
                 };
             }
             // A node's radio is its own id where a backend is elected, so the backend can tell the pair it is asked about.
-            object? Antenna(string id) => LinkStrengths == null ? null : id;
+            CommsNodeHandle? Antenna(string id) => LinkStrengths == null ? null : CommsNodeHandle.Of(id);
             var nodes = new List<ContactGameNode>
             {
                 ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), Antenna(Active), "Lander"),
@@ -471,9 +471,9 @@ namespace Sitrep.Host.IntegrationTests
 
             public string ProviderId => _plain.ProviderId;
 
-            public IContactLinkStrength? LinkStrength(object? from, object? to, double ut)
+            public IContactLinkStrength? LinkStrength(CommsNodeHandle? from, CommsNodeHandle? to, double ut)
             {
-                var stated = from is string a && to is string b ? _game.LinkStrengths?.Invoke(a, b) : null;
+                var stated = from?.As<string>() is string a && to?.As<string>() is string b ? _game.LinkStrengths?.Invoke(a, b) : null;
                 return stated == null ? null : new Flat(stated.Value);
             }
 
@@ -492,15 +492,15 @@ namespace Sitrep.Host.IntegrationTests
 
             public CommsNetwork Network(object? vessel) => _plain.Network(vessel);
 
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
 
             public bool? StillCarriesTo(object? vessel, string nodeId) => null;
 
-            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
             public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
 
-            public object? ControlPathTerminus(object? vessel) => null;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 

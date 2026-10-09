@@ -31,11 +31,11 @@ namespace Sitrep.Contract
         /// this backend has nothing to add to geometry for the pair: the planner
         /// then uses line of sight and the declared reach.
         /// </summary>
-        /// <param name="from">One end, as the backend's own node object (a stock <c>CommNode</c> on every shipped backend).</param>
-        /// <param name="to">The other end, in the same form.</param>
+        /// <param name="from">One end: a stock <c>CommNode</c> on every shipped backend.</param>
+        /// <param name="to">The other end.</param>
         /// <param name="ut">The universal time the aims and antennas were read at.</param>
         /// <returns>The model, or <c>null</c> to leave the pair to geometry.</returns>
-        IContactLinkModel? LinkModel(object? from, object? to, double ut);
+        IContactLinkModel? LinkModel(CommsNodeHandle? from, CommsNodeHandle? to, double ut);
     }
 
     /// <summary>

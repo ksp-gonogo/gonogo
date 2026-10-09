@@ -17,14 +17,14 @@ namespace Sitrep.Contract.TestSupport
         /// own contract over <paramref name="fromUt"/> to <paramref name="toUt"/>.
         /// </summary>
         /// <param name="backend">The backend under test.</param>
-        /// <param name="node">The node, as the backend's own node object.</param>
+        /// <param name="node">The node under test.</param>
         /// <param name="nodeId">The same node's id.</param>
         /// <param name="peerId">The id of a peer to ask about.</param>
         /// <param name="positions">Where every node and body is, with the two ends as <c>"node"</c> and <c>"peer"</c>.</param>
         /// <param name="fromUt">The start of the span.</param>
         /// <param name="toUt">The end of the span; must be after <paramref name="fromUt"/>.</param>
         public static void AssertRetargetBackendContract(
-            ICommsRetargetBackend backend, object? node, string nodeId, string peerId, IContactPositions positions, double fromUt, double toUt)
+            ICommsRetargetBackend backend, CommsNodeHandle? node, string nodeId, string peerId, IContactPositions positions, double fromUt, double toUt)
         {
             Assert.NotNull(backend);
             var name = backend.GetType().Name;
@@ -33,7 +33,7 @@ namespace Sitrep.Contract.TestSupport
             Exception? ex = null;
             try
             {
-                unknown = backend.RetargetModel(new object(), fromUt);
+                unknown = backend.RetargetModel(CommsNodeHandle.Of(new object()), fromUt);
             }
             catch (Exception thrown)
             {

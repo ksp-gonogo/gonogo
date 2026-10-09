@@ -101,9 +101,9 @@ namespace Sitrep.Contract
         /// node's own dishes and for whether that node can receive. Null when the
         /// node has no dish it would turn.
         /// </summary>
-        /// <param name="node">The backend's own node object, as <see cref="ICommsContactModel.LinkModel"/> takes.</param>
+        /// <param name="node">The node, as <see cref="ICommsContactModel.LinkModel"/> takes it.</param>
         /// <param name="ut">The universal time the aims were read at.</param>
-        IRetargetModel? RetargetModel(object? node, double ut);
+        IRetargetModel? RetargetModel(CommsNodeHandle? node, double ut);
 
         /// <summary>
         /// Whether <paramref name="peerId"/> can receive light that <paramref name="nodeId"/>

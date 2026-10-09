@@ -14,8 +14,8 @@ namespace Sitrep.Host.Tests
         {
         }
 
-        private static readonly Node From = new Node();
-        private static readonly Node To = new Node();
+        private static readonly CommsNodeHandle From = CommsNodeHandle.Of(new Node())!;
+        private static readonly CommsNodeHandle To = CommsNodeHandle.Of(new Node())!;
 
         /// <summary>Every node sits still on one axis, so a link model's answer depends only on what it is asked.</summary>
         private sealed class StillPositions : IContactPositions
@@ -58,9 +58,9 @@ namespace Sitrep.Host.Tests
             public CommsControl ControlState() => new CommsControl();
             public CommsPath Path(object? vessel) => new CommsPath();
             public CommsNetwork Network(object? vessel) => new CommsNetwork();
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
-            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
-            public object? ControlPathTerminus(object? vessel) => null;
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
             public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
@@ -72,8 +72,8 @@ namespace Sitrep.Host.Tests
             public SteeredBackend(Func<IContactLinkModel> link)
                 : base("test-steered") => _link = link;
 
-            public IContactLinkModel? LinkModel(object? from, object? to, double ut) =>
-                ReferenceEquals(from, From) && ReferenceEquals(to, To) ? _link() : null;
+            public IContactLinkModel? LinkModel(CommsNodeHandle? from, CommsNodeHandle? to, double ut) =>
+                from == From && to == To ? _link() : null;
         }
 
         private static Kernel Electing(ICommsBackend backend)

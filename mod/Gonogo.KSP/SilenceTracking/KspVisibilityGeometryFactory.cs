@@ -801,7 +801,7 @@ namespace Gonogo.KSP.SilenceTracking
             {
                 return CommsReachModels.Unknown;
             }
-            return CommsElection.ReachModel(_kernel(), vesselNode, station);
+            return CommsElection.ReachModel(_kernel(), CommsNodeHandle.Of(vesselNode), CommsNodeHandle.Of(station));
         }
 
         internal static double OccludingRadiusOf(ICommsOcclusionModel model, CelestialBody body)

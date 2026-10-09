@@ -49,15 +49,14 @@ public enum CommsControlGrade
 }
 
 /// <summary>
-/// One endpoint of a link, as a comms backend reports it: an opaque handle
-/// back to the live object, the id that goes on the wire, and a position.
+/// One endpoint of a link, as a comms backend reports it: the node itself, the
+/// id that goes on the wire, and a position.
 ///
-/// <para><see cref="Handle"/> is the live object the backend read this from, on
-/// the same opaque terms as <see cref="ICommsBackend.RouteBetween"/> and
-/// <see cref="IActiveVessel.Reported"/>. Gonogo uses it only to match a node
-/// against its own registries by reference (which is how
-/// <c>comms.commandCentre</c> names a centre). It is a live handle: it must not
-/// cross a thread boundary or outlive the capture that produced it.</para>
+/// <para><see cref="Handle"/> is the node the backend read this from, the same
+/// <see cref="CommsNodeHandle"/> <see cref="ICommsBackend.RouteBetween"/> takes.
+/// Gonogo uses it only to match a node against its own registries (which is
+/// how <c>comms.commandCentre</c> names a centre). It must not cross a thread
+/// boundary or outlive the capture that produced it.</para>
 ///
 /// <para><see cref="Id"/> is a unique, stable key that the published route and
 /// network are keyed on, so a per-hop annotation on your own channel can join
@@ -68,14 +67,14 @@ public enum CommsControlGrade
 public readonly struct CommsNodeView
 {
     /// <summary>A node view.</summary>
-    /// <param name="handle">The live node object, for reference matching only; may be null.</param>
+    /// <param name="handle">The node, for matching only; may be null.</param>
     /// <param name="id">The unique, stable join key. Null reads as empty.</param>
     /// <param name="displayName">The human label. Null reads as empty.</param>
     /// <param name="isHome">Whether the node is a ground station.</param>
     /// <param name="isControlSource">Whether the node is a crewed control source.</param>
     /// <param name="position">Position, in the same frame as every other node the backend reports this capture.</param>
     public CommsNodeView(
-        object? handle,
+        CommsNodeHandle? handle,
         string id,
         string displayName,
         bool isHome,
@@ -90,8 +89,8 @@ public readonly struct CommsNodeView
         Position = position;
     }
 
-    /// <summary>The live object, for reference-matching only. Never dereferenced by shared code.</summary>
-    public object? Handle { get; }
+    /// <summary>The node, for matching only. Never read by shared code.</summary>
+    public CommsNodeHandle? Handle { get; }
 
     /// <summary>The join key that reaches the wire as <see cref="CommsHop.From"/> / <see cref="CommsNetworkNode.Id"/>.</summary>
     public string Id { get; }
@@ -143,8 +142,7 @@ public readonly struct CommsLinkView
     public CommsNodeView B { get; }
 
     /// <summary>
-    /// The live link object, on the same opaque terms as
-    /// <see cref="CommsNodeView.Handle"/>, or null when the backend has no
+    /// The live link object, as an opaque handle, or null when the backend has no
     /// link-level fact to come back for.
     ///
     /// <para>A link-level fact has no home on either node: RealAntennas'

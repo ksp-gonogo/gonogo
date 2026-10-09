@@ -106,7 +106,7 @@ namespace Sitrep.Host.Tests.Comms
         {
             private readonly IRetargetModel _model = new Turnable();
 
-            public IRetargetModel? RetargetModel(object? node, double ut) => node is string ? _model : null;
+            public IRetargetModel? RetargetModel(CommsNodeHandle? node, double ut) => node?.As<string>() != null ? _model : null;
 
             public bool AutoRetargetAllowed(string nodeId) => true;
 
@@ -120,7 +120,7 @@ namespace Sitrep.Host.Tests.Comms
         [Fact]
         public void ABackendThatKeepsTheContractPassesTheConformanceAssertion()
         {
-            RetargetConformance.AssertRetargetBackendContract(new Backend(), Relay, Relay, "ground:ksc", new Positions(), 0.0, 1000.0);
+            RetargetConformance.AssertRetargetBackendContract(new Backend(), CommsNodeHandle.Of(Relay), Relay, "ground:ksc", new Positions(), 0.0, 1000.0);
         }
 
         private sealed class ImpureModel : IRetargetModel

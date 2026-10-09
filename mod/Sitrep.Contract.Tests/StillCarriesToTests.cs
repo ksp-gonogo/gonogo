@@ -33,10 +33,10 @@ namespace Sitrep.Contract.Tests
         {
             private readonly Dictionary<object, IReadOnlyList<CommsLinkView>> _paths =
                 new Dictionary<object, IReadOnlyList<CommsLinkView>>();
-            private readonly HashSet<object> _unreachable = new HashSet<object>();
+            private readonly HashSet<CommsNodeHandle> _unreachable = new HashSet<CommsNodeHandle>();
 
-            public readonly List<object?> Routed = new List<object?>();
-            public readonly List<object?> RoutedFrom = new List<object?>();
+            public readonly List<CommsNodeHandle?> Routed = new List<CommsNodeHandle?>();
+            public readonly List<CommsNodeHandle?> RoutedFrom = new List<CommsNodeHandle?>();
 
             public override string ProviderId => "fake";
 
@@ -69,12 +69,12 @@ namespace Sitrep.Contract.Tests
             }
 
             /// <summary>The handle behind a node id, for asserting which end the router was asked from.</summary>
-            public object HandleOf(string id) => Handle(id);
+            public CommsNodeHandle HandleOf(string id) => Handle(id);
 
             /// <summary>A handle the router will refuse, which is what a destroyed relay looks like from here.</summary>
             public void Strand(string nodeId) => _unreachable.Add(Handle(nodeId));
 
-            public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+            public override IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to)
             {
                 Routed.Add(to);
                 RoutedFrom.Add(from);
@@ -85,7 +85,7 @@ namespace Sitrep.Contract.Tests
                 return new List<CommsRouteHop>();
             }
 
-            public override ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+            public override ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
             public override ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
@@ -99,18 +99,18 @@ namespace Sitrep.Contract.Tests
             protected override IReadOnlyList<CommsLinkView>? ControlPath(object? vessel) =>
                 vessel != null && _paths.TryGetValue(vessel, out var path) ? path : null;
 
-            // One handle per id, so reference identity is stable across ticks
-            // the way a live node's is.
-            private readonly Dictionary<string, object> _handles = new Dictionary<string, object>();
+            // One node per id, stable across ticks the way a live node is, and
+            // wrapped afresh on every read the way a live backend wraps it.
+            private readonly Dictionary<string, object> _nodes = new Dictionary<string, object>();
 
-            private object Handle(string id)
+            private CommsNodeHandle Handle(string id)
             {
-                if (!_handles.TryGetValue(id, out var handle))
+                if (!_nodes.TryGetValue(id, out var node))
                 {
-                    handle = new object();
-                    _handles[id] = handle;
+                    node = new object();
+                    _nodes[id] = node;
                 }
-                return handle;
+                return CommsNodeHandle.Of(node)!;
             }
 
             private CommsNodeView Node(string id) =>
@@ -234,7 +234,7 @@ namespace Sitrep.Contract.Tests
             backend.GoDark(probe);
 
             Assert.False(backend.StillCarriesTo(probe, "relay-b"));
-            Assert.Same(backend.HandleOf("probe"), Assert.Single(backend.RoutedFrom));
+            Assert.Equal(backend.HandleOf("probe"), Assert.Single(backend.RoutedFrom));
         }
 
         /// <summary>

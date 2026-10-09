@@ -58,7 +58,7 @@ namespace Gonogo.KSP.Tests.Comms
             var target = net.AddNodeAt(new Vector3d(1000.0, 0.0, 0.0));
             net.Join(origin, target, 1.0);
 
-            var hops = new CommNetBackend().RouteBetween(origin, target);
+            var hops = new CommNetBackend().RouteBetween(CommsNodeHandle.Of(origin), CommsNodeHandle.Of(target));
 
             var hop = Assert.Single(hops!);
             // Assert.Same is avoided here: xUnit's failure-message formatter
@@ -66,8 +66,8 @@ namespace Gonogo.KSP.Tests.Comms
             // formatted CommNode recurses into the very link objects that
             // point back at it, so a genuine mismatch stack-overflows the
             // test host instead of reporting FAIL.
-            Assert.True(ReferenceEquals(origin, hop.FromHandle), "FromHandle is not the origin node");
-            Assert.True(ReferenceEquals(target, hop.ToHandle), "ToHandle is not the target node");
+            Assert.True(ReferenceEquals(origin, hop.FromHandle?.As<CommNode>()), "FromHandle is not the origin node");
+            Assert.True(ReferenceEquals(target, hop.ToHandle?.As<CommNode>()), "ToHandle is not the target node");
         }
     }
 }

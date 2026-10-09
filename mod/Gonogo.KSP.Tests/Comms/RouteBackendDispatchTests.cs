@@ -46,9 +46,9 @@ namespace Gonogo.KSP.Tests.Comms
         public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public string ProviderId => "test-closest-where";
 
-            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to)
             {
-                if (from is not CommNode start || to is not CommNode end)
+                if (from?.As<CommNode>() is not CommNode start || to?.As<CommNode>() is not CommNode end)
                 {
                     return null;
                 }
@@ -73,9 +73,9 @@ namespace Gonogo.KSP.Tests.Comms
             public CommsControl ControlState() => throw new NotSupportedException();
             public CommsPath Path(object? vessel) => throw new NotSupportedException();
             public CommsNetwork Network(object? vessel) => throw new NotSupportedException();
-            public ICommsReachModel ReachModel(object? from, object? to) => throw new NotSupportedException();
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => throw new NotSupportedException();
 
-            public object? ControlPathTerminus(object? vessel) => throw new NotSupportedException();
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => throw new NotSupportedException();
 
             public ICommsOcclusionModel OcclusionModel() => throw new NotSupportedException();
 

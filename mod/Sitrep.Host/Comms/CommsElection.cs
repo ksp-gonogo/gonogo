@@ -144,7 +144,7 @@ namespace Sitrep.Host.Comms
         /// does; the model it returns is pure and safe to carry anywhere,
         /// including onto a sweep thread.</para>
         /// </summary>
-        public static ICommsReachModel ReachModel(Kernel? kernel, object? from, object? to)
+        public static ICommsReachModel ReachModel(Kernel? kernel, CommsNodeHandle? from, CommsNodeHandle? to)
         {
             if (kernel == null)
             {
@@ -171,7 +171,7 @@ namespace Sitrep.Host.Comms
         /// seam; the model it returns is pure and is evaluated on the planner's
         /// thread.</para>
         /// </summary>
-        public static IContactLinkModel? LinkModel(Kernel? kernel, object? from, object? to, double ut)
+        public static IContactLinkModel? LinkModel(Kernel? kernel, CommsNodeHandle? from, CommsNodeHandle? to, double ut)
         {
             if (kernel == null)
             {
@@ -195,7 +195,7 @@ namespace Sitrep.Host.Comms
         /// <para>THREADING: main thread only, as every other backend read at this
         /// seam; the model it returns is pure.</para>
         /// </summary>
-        public static IRetargetModel? RetargetModel(Kernel? kernel, object? node, double ut)
+        public static IRetargetModel? RetargetModel(Kernel? kernel, CommsNodeHandle? node, double ut)
         {
             if (kernel == null)
             {
@@ -245,7 +245,7 @@ namespace Sitrep.Host.Comms
         /// <para>THREADING: main thread only, as every other backend read at this
         /// seam; the model it returns is pure.</para>
         /// </summary>
-        public static IContactLinkStrength? LinkStrength(Kernel? kernel, object? from, object? to, double ut)
+        public static IContactLinkStrength? LinkStrength(Kernel? kernel, CommsNodeHandle? from, CommsNodeHandle? to, double ut)
         {
             if (kernel == null)
             {
