@@ -152,6 +152,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The light-time of the direct radio link between two nodes as the game has it now, in seconds, or null when they have none.</summary>
         double? LiveLinkSeconds(string from, string to);
+
+        /// <summary>How a route may use the plan's retarget windows, or null while no comms backend can turn a dish.</summary>
+        RetargetRouting? DishRouting();
     }
 
     /// <summary>
@@ -1415,7 +1418,7 @@ namespace Sitrep.Host.Comms
                     continue;
                 }
                 var routes = ContactRouting.RoutesFor(
-                    plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor(), _audience.HomeCentre(), StationIds());
+                    plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor(), _audience.HomeCentre(), StationIds(), _audience.DishRouting());
                 rows += routes.Routes.Count;
                 _streams!.PublishAddressedTo(RouteTopic, routes, looked.Ut, ToItself(centre));
             }

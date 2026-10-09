@@ -61,16 +61,29 @@ namespace Sitrep.Propagation.Contacts
     }
 
     /// <summary>
-    /// How a route may use a node's retarget windows: a message held at its
-    /// source can wait for an idle dish to be turned to the next node.
+    /// How a route may use a node's retarget windows: a message held at a node
+    /// can wait there for an idle dish to be turned to the next node.
+    ///
+    /// <para>A turn is made only for something its node holds and may turn a
+    /// dish for. At the route's source that is anything the source is sending
+    /// or passing on. Further on it is only a message every node may turn a
+    /// dish for, a command or a cancel; a reply or a journey report turns a
+    /// dish only at the node that made it, so a route for one counts no turn
+    /// past its source (<see cref="OnTheWay"/>).</para>
+    ///
+    /// <para>A route that turns a dish is taken only when it arrives sooner
+    /// than the best route that turns none by more than the event lasts
+    /// (<see cref="EventSeconds"/>), so no dish is borrowed for a gain smaller
+    /// than the time it is away.</para>
     /// </summary>
     public sealed class RetargetRouting
     {
-        public RetargetRouting(double linkUpSeconds, double awayMarginSeconds, IReadOnlyCollection<string>? onlyAtNodes = null)
+        public RetargetRouting(double linkUpSeconds, double awayMarginSeconds, IReadOnlyCollection<string>? onlyAtNodes = null, bool onTheWay = false)
         {
             LinkUpSeconds = linkUpSeconds;
             AwayMarginSeconds = awayMarginSeconds;
             OnlyAtNodes = onlyAtNodes;
+            OnTheWay = onTheWay;
         }
 
         /// <summary>How long after the turn starts the link is up.</summary>
@@ -79,8 +92,18 @@ namespace Sitrep.Propagation.Contacts
         /// <summary>The time a window must have left after the link is up for the message to be sent and the dish turned back.</summary>
         public double AwayMarginSeconds { get; }
 
-        /// <summary>The only nodes whose retarget windows may be used, or null for the route's sources.</summary>
+        /// <summary>How long a planned event keeps its dish away: the turn, then the send.</summary>
+        public double EventSeconds => LinkUpSeconds + AwayMarginSeconds;
+
+        /// <summary>The only nodes whose retarget windows may be used, or null for any node <see cref="OnTheWay"/> allows.</summary>
         public IReadOnlyCollection<string>? OnlyAtNodes { get; }
+
+        /// <summary>Whether nodes past the route's source may turn a dish for the message, as they do for a command or a cancel they hold.</summary>
+        public bool OnTheWay { get; }
+
+        /// <summary>The same routing, with <see cref="OnTheWay"/> set to <paramref name="onTheWay"/>.</summary>
+        public RetargetRouting WithOnTheWay(bool onTheWay) =>
+            onTheWay == OnTheWay ? this : new RetargetRouting(LinkUpSeconds, AwayMarginSeconds, OnlyAtNodes, onTheWay);
     }
 
     /// <summary>The earliest-arriving route from one node to another for a message sent at one instant.</summary>
@@ -188,6 +211,7 @@ namespace Sitrep.Propagation.Contacts
         /// <see cref="ContactRoute.Source"/> and
         /// <see cref="ContactRoute.Destination"/> name the two that were used.
         /// </summary>
+        /// <param name="retarget">How the route may use the plan's retarget windows, or null to route on the dishes' own aims alone.</param>
         public static ContactRoute? EarliestArrivalBetween(
             ContactPlan plan,
             IReadOnlyCollection<string> sources,
@@ -200,6 +224,24 @@ namespace Sitrep.Propagation.Contacts
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             if (sources == null) throw new ArgumentNullException(nameof(sources));
             if (destinations == null) throw new ArgumentNullException(nameof(destinations));
+            var turning = Search(plan, sources, destinations, sentUt, mustArriveByUt, lightFactor, retarget);
+            if (retarget == null || turning == null || !turning.Hops.Any(h => h.RetargetDish != null))
+            {
+                return turning;
+            }
+            var plain = Search(plan, sources, destinations, sentUt, mustArriveByUt, lightFactor, null);
+            return plain != null && plain.ArrivalUt - turning.ArrivalUt <= retarget.EventSeconds + Tolerance ? plain : turning;
+        }
+
+        private static ContactRoute? Search(
+            ContactPlan plan,
+            IReadOnlyCollection<string> sources,
+            IReadOnlyCollection<string> destinations,
+            double sentUt,
+            double? mustArriveByUt,
+            double lightFactor,
+            RetargetRouting? retarget)
+        {
             var ends = new HashSet<string>(destinations, StringComparer.Ordinal);
             foreach (var source in sources)
             {
@@ -253,7 +295,7 @@ namespace Sitrep.Propagation.Contacts
                         continue;
                     }
                     var hop = FirstAdmissibleHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor);
-                    if (retarget != null && at.Hops == 0 && (retarget.OnlyAtNodes == null || retarget.OnlyAtNodes.Contains(current)))
+                    if (retarget != null && (at.Hops == 0 || retarget.OnTheWay) && (retarget.OnlyAtNodes == null || retarget.OnlyAtNodes.Contains(current)))
                     {
                         var turned = FirstRetargetHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor, retarget);
                         if (turned != null && (hop == null || turned.ArriveUt < hop.ArriveUt - Tolerance))

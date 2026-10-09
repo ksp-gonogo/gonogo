@@ -52,7 +52,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             public Plan(Func<string, string, double, IReadOnlyList<PlannedHop>?> route) => _route = route;
 
-            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt) => _route(from, to, readyUt);
+            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false) => _route(from, to, readyUt);
         }
 
         private sealed class Beliefs : ISenderPlans
@@ -379,6 +379,63 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             Assert.Contains(restored.Actuator.Log, l => l.StartsWith("restore@"));
             Assert.Empty(restored.Network.ActiveRetargets());
+        }
+
+        /// <summary>
+        /// The centre's plan for a command that reaches the probe through the
+        /// relay on links that are up, and for the reply: back to the relay, then
+        /// on to the centre by a dish turned at <paramref name="turnsAt"/>.
+        /// </summary>
+        private static Plan ReplyTurnsAt(string turnsAt, string dish) => new Plan((from, to, ready) =>
+        {
+            if (to == Probe)
+            {
+                return from == Ksc
+                    ? new[] { new PlannedHop(Relay, ready, ready + 10.0), new PlannedHop(Probe, ready + 11.0, ready + 16.0) }
+                    : new[] { new PlannedHop(Probe, ready, ready + 5.0) };
+            }
+            if (to != Ksc)
+            {
+                return null;
+            }
+            if (from == turnsAt)
+            {
+                return new[] { new PlannedHop(Ksc, ready + 2.0, ready + 12.0, dish, null, dish, ready) };
+            }
+            return new[] { new PlannedHop(Relay, ready, ready + 5.0), new PlannedHop(Ksc, ready + 7.0, ready + 17.0, dish, null, dish, ready + 5.0) };
+        });
+
+        [Fact]
+        public void AReplyHeldAtARelayStartsNoTurnThere()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Relay, Probe, 5.0);
+            rig.Beliefs.Plans[Ksc] = ReplyTurnsAt(Relay, Dish);
+
+            rig.Send(0.0);
+            rig.RunTo(11.0);
+            rig.Links.Down(Ksc, Relay);
+            rig.RunTo(60.0);
+
+            Assert.Single(rig.Ran);
+            Assert.DoesNotContain(rig.Actuator.Log, l => l.StartsWith("turn@"));
+            Assert.Empty(rig.Network.RetargetHistory());
+        }
+
+        [Fact]
+        public void AReplyHeldAtTheCraftThatMadeItTurnsTheCraftsDish()
+        {
+            const string ProbeDish = "vessel:probe#1/0";
+            var rig = new Rig();
+            rig.Links.Up(Relay, Probe, 5.0);
+            rig.Beliefs.Plans[Ksc] = ReplyTurnsAt(Probe, ProbeDish);
+
+            rig.Send(0.0);
+            rig.RunTo(60.0);
+
+            Assert.Single(rig.Ran);
+            Assert.Contains(rig.Actuator.Log, l => l.StartsWith("turn@") && l.EndsWith(ProbeDish + ">" + Ksc));
+            Assert.Contains(rig.Reports, r => r.Kind == JourneyKind.Reply);
         }
     }
 }

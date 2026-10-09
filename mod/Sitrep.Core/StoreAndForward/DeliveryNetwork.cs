@@ -89,7 +89,15 @@ namespace Sitrep.Core.StoreAndForward
     public interface IDeliveryRoutes
     {
         /// <summary>The whole earliest-arrival route from one node to another for a message ready at <paramref name="readyUt"/> that must arrive by <paramref name="deadlineUt"/>, or null when the plan predicts none.</summary>
-        IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt);
+        /// <param name="turnsOnTheWay">
+        /// Whether nodes past <paramref name="from"/> may turn an idle dish for the
+        /// message: true for a command or a cancel, which any node holding one
+        /// turns a dish for. A reply, a journey report or a span turns none past
+        /// the node it starts from; at <paramref name="from"/> itself a route may
+        /// always use a dish turned to the next node, which a message rides
+        /// whoever started the turn.
+        /// </param>
+        IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false);
     }
 
     /// <summary>
@@ -1157,12 +1165,12 @@ namespace Sitrep.Core.StoreAndForward
             {
                 return;
             }
-            var own = plan.Route(cancel.Lane.Vantage, cancel.Lane.Craft, nowUt, cancel.DeleteAtUt);
+            var own = plan.Route(cancel.Lane.Vantage, cancel.Lane.Craft, nowUt, cancel.DeleteAtUt, turnsOnTheWay: true);
             var onOwnRoute = new HashSet<string>(own?.Select(h => h.To) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             var targets = new HashSet<string>(StringComparer.Ordinal);
             foreach (var command in _sentCommands.Values.Where(c => c.Lane.Equals(cancel.Lane) && cancel.Names(c.LaneSeq)))
             {
-                var predicted = plan.Route(cancel.Lane.Vantage, cancel.Lane.Craft, command.SentUt, command.DeleteAtUt);
+                var predicted = plan.Route(cancel.Lane.Vantage, cancel.Lane.Craft, command.SentUt, command.DeleteAtUt, turnsOnTheWay: true);
                 if (predicted == null)
                 {
                     continue;
@@ -1175,7 +1183,7 @@ namespace Sitrep.Core.StoreAndForward
                     {
                         continue;
                     }
-                    var toHold = plan.Route(cancel.Lane.Vantage, holdAt, nowUt, leaves);
+                    var toHold = plan.Route(cancel.Lane.Vantage, holdAt, nowUt, leaves, turnsOnTheWay: true);
                     if (toHold != null && toHold.Count > 0 && toHold[toHold.Count - 1].ArriveUt <= leaves)
                     {
                         Hold(cancel.Lane.Vantage, CopyOf(cancel, holdAt), nowUt, null);
@@ -1354,7 +1362,8 @@ namespace Sitrep.Core.StoreAndForward
                 }
             }
 
-            var route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt);
+            var turnsOnTheWay = message is CommandMessage || message is CancelMessage;
+            var route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt, turnsOnTheWay);
             if ((route == null || route.Count == 0) && !own && message.Plan == null)
             {
                 route = CarriedFrom(message, node);
@@ -1366,7 +1375,7 @@ namespace Sitrep.Core.StoreAndForward
                 // nothing heard, and the message starts again with its centre's
                 // plan as it stands, rather than waiting for ever.
                 message.Plan = _beliefs!.PlanOf(CentreOf(message));
-                route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt);
+                route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt, turnsOnTheWay);
             }
             if (route == null || route.Count == 0)
             {
@@ -1389,10 +1398,8 @@ namespace Sitrep.Core.StoreAndForward
             {
                 return clearAt;
             }
-            if (next.RetargetDish != null && !(message is SpanMessage))
+            if (next.RetargetDish != null && TurnsADish(message, node))
             {
-                // A span rides a turn someone else needs and never starts one: its
-                // data is history, and no dish is worth turning for it.
                 NoteRetargetNeeded(node, held, next, nowUt);
             }
             if (!own)

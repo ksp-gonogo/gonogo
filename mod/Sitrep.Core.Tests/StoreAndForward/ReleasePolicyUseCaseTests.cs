@@ -40,7 +40,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
         private sealed class NoPlan : IDeliveryRoutes
         {
-            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt) => null;
+            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false) => null;
         }
 
         private sealed class Rig

@@ -51,7 +51,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             public IDeliveryRoutes? PlanOf(string centre) => this;
 
-            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt)
+            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false)
             {
                 if (from == Lander)
                 {
@@ -246,7 +246,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
                 public Snapshot(Dictionary<string, PlannedHop[]> routes) => _routes = routes;
 
-                public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt) =>
+                public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false) =>
                     _routes.TryGetValue(from, out var hops) ? hops : null;
             }
         }

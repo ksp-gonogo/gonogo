@@ -194,7 +194,7 @@ namespace Sitrep.Host.Comms
             _antennas = antennas;
         }
 
-        public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt)
+        public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false)
         {
             if (_plan == null)
             {
@@ -210,7 +210,7 @@ namespace Sitrep.Host.Comms
                 readyUt,
                 double.IsInfinity(deadlineUt) ? (double?)null : deadlineUt,
                 _lightFactor,
-                _retarget);
+                _retarget?.WithOnTheWay(turnsOnTheWay));
             if (route == null)
             {
                 return null;

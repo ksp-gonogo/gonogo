@@ -9,6 +9,10 @@ namespace Sitrep.Host.Comms
     /// The <c>comms.route</c> rows: the earliest-arrival route each way between
     /// every command centre and the active craft, from the current contact plan,
     /// on the light times the game is set to model.
+    ///
+    /// <para>The way to the craft is a command's: any node holding it may turn
+    /// an idle dish to send it on. The way back is a reply's, which only the
+    /// craft turns a dish for, as the delivery network sends each.</para>
     /// </summary>
     public static class ContactRouting
     {
@@ -22,6 +26,7 @@ namespace Sitrep.Host.Comms
         /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         /// <param name="home">The home centre, or null.</param>
         /// <param name="antennas">Every ground station, each of which is the home centre's own antenna: see <see cref="GroundNetwork"/>.</param>
+        /// <param name="retarget">How a route may use the plan's retarget windows, or null to route on the dishes' own aims alone.</param>
         public static CommsRoutes RoutesFor(
             ContactPlan plan,
             string activeCraft,
@@ -29,7 +34,8 @@ namespace Sitrep.Host.Comms
             double sentUt,
             double lightFactor = 1.0,
             string? home = null,
-            IReadOnlyCollection<string>? antennas = null)
+            IReadOnlyCollection<string>? antennas = null,
+            RetargetRouting? retarget = null)
         {
             var routes = new CommsRoutes();
             foreach (var centre in centres)
@@ -38,17 +44,17 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                routes.Routes.Add(Row(plan, centre, activeCraft, sentUt, lightFactor, home, antennas));
-                routes.Routes.Add(Row(plan, activeCraft, centre, sentUt, lightFactor, home, antennas));
+                routes.Routes.Add(Row(plan, centre, activeCraft, sentUt, lightFactor, home, antennas, retarget?.WithOnTheWay(true)));
+                routes.Routes.Add(Row(plan, activeCraft, centre, sentUt, lightFactor, home, antennas, retarget?.WithOnTheWay(false)));
             }
             return routes;
         }
 
         private static CommsRoute Row(
-            ContactPlan plan, string from, string to, double sentUt, double lightFactor, string? home, IReadOnlyCollection<string>? antennas)
+            ContactPlan plan, string from, string to, double sentUt, double lightFactor, string? home, IReadOnlyCollection<string>? antennas, RetargetRouting? retarget)
         {
             var route = ContactRouter.EarliestArrivalBetween(
-                plan, GroundNetwork.EndsOf(from, home, antennas), GroundNetwork.EndsOf(to, home, antennas), sentUt, null, lightFactor);
+                plan, GroundNetwork.EndsOf(from, home, antennas), GroundNetwork.EndsOf(to, home, antennas), sentUt, null, lightFactor, retarget);
             var row = new CommsRoute
             {
                 From = from,

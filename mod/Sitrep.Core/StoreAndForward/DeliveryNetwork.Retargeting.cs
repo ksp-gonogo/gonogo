@@ -241,6 +241,22 @@ namespace Sitrep.Core.StoreAndForward
             }
         }
 
+        /// <summary>
+        /// Whether <paramref name="node"/> turns a dish for <paramref name="message"/>
+        /// it holds: any node for a command or a cancel, and for a reply or a
+        /// journey report only the node that made it. A span never starts a turn:
+        /// its data is history, and no dish is worth turning for it, though it
+        /// rides a turn something else needs. Anything else rides a turn and
+        /// starts none.
+        /// </summary>
+        private static bool TurnsADish(DeliveryMessage message, string node) => message switch
+        {
+            CommandMessage _ => true,
+            CancelMessage _ => true,
+            ReportMessage report => string.Equals(report.At, node, StringComparison.Ordinal),
+            _ => false,
+        };
+
         private static bool Live(RetargetEvent e) => e.Record.Phase == RetargetPhase.Announced || e.Record.Phase == RetargetPhase.Turned;
 
         /// <summary>

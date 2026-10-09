@@ -23,6 +23,7 @@ namespace Sitrep.Propagation.Tests.Contacts
         private const double KerbinSma = 13_599_840_256.0;
         private const int Sun = 0, Kerbin = 1;
         private const string Relay = "vessel:r";
+        private const string Craft = "vessel:c";
         private const string Ground = "ground:ksc";
         private const string RelayDish = "vessel:r#1/0";
 
@@ -40,6 +41,19 @@ namespace Sitrep.Propagation.Tests.Contacts
             PlanNode.Orbiting(Relay, PropagationTarget.Vessel(Relay, Kerbin, new OrbitElements(KerbinRadius + 300_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu))),
             PlanNode.OnSurface(Ground, Kerbin, RotatingGroundStation.FromLatitudeLongitude(0.0, 10.0, 0.0, KerbinSiderealDay, KerbinRadius, 0.0)),
         };
+
+        /// <summary>The relay, the station, and a craft a little behind the relay on its orbit that hears only the relay.</summary>
+        private static PlanNode[] NodesWithCraft() => new[]
+        {
+            Nodes()[0],
+            Nodes()[1],
+            PlanNode.Orbiting(Craft, PropagationTarget.Vessel(Craft, Kerbin, new OrbitElements(KerbinRadius + 300_000.0, 0.0, 0.0, 0.0, 0.0, -0.05, 0.0, KerbinMu))),
+        };
+
+        private sealed class Dark : IContactLinkModel
+        {
+            public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions) => -1.0;
+        }
 
         private static OccludingBody[] KerbinOnly() => new[] { new OccludingBody(Kerbin, KerbinRadius) };
 
@@ -81,6 +95,18 @@ namespace Sitrep.Propagation.Tests.Contacts
         {
             var pairs = new[] { new PlanPair(Relay, Ground, KerbinOnly(), null, link) };
             return ContactPlanner.Plan(Nodes(), pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05, null, retarget);
+        }
+
+        /// <summary>The craft talks to the relay on its omni, the relay reaches the station only through its dish, and the craft never reaches the station itself.</summary>
+        private static ContactPlan PlanWithCraft(IContactLinkModel relayToGround, IRetargetModel retarget)
+        {
+            var pairs = new[]
+            {
+                new PlanPair(Relay, Ground, KerbinOnly(), null, relayToGround),
+                new PlanPair(Craft, Relay, KerbinOnly(), null),
+                new PlanPair(Craft, Ground, KerbinOnly(), null, new Dark()),
+            };
+            return ContactPlanner.Plan(NodesWithCraft(), pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05, null, retarget);
         }
 
         [Fact]
@@ -165,6 +191,71 @@ namespace Sitrep.Propagation.Tests.Contacts
             var routing = new RetargetRouting(linkUpSeconds: 5.0, awayMarginSeconds: longest);
 
             Assert.Null(ContactRouter.EarliestArrivalBetween(plan, new[] { Relay }, new[] { Ground }, window.OpenUt - 100.0, null, 1.0, routing));
+        }
+
+        [Fact]
+        public void ACommandPredictsARelayOnItsWayTurningADishForIt()
+        {
+            var plan = PlanWithCraft(new AimedAway(), new Turnable());
+            var window = plan.Pairs.Single(p => p.A == Relay && p.B == Ground).RetargetWindows[0];
+            var sent = window.OpenUt + 100.0;
+            var routing = new RetargetRouting(linkUpSeconds: 5.0, awayMarginSeconds: 10.0);
+
+            var reply = ContactRouter.EarliestArrivalBetween(plan, new[] { Craft }, new[] { Ground }, sent, null, 1.0, routing);
+            var command = ContactRouter.EarliestArrivalBetween(plan, new[] { Craft }, new[] { Ground }, sent, null, 1.0, routing.WithOnTheWay(true));
+
+            Assert.Null(reply);
+            Assert.Equal(2, command!.Hops.Count);
+            Assert.Equal(Relay, command.Hops[0].To);
+            Assert.Null(command.Hops[0].RetargetDish);
+            var turned = command.Hops[1];
+            Assert.Equal(RelayDish, turned.RetargetDish);
+            Assert.Equal(command.Hops[0].ArriveUt, turned.TurnUt, 6);
+            Assert.Equal(turned.TurnUt + 5.0, turned.DepartUt, 6);
+        }
+
+        [Fact]
+        public void ARouteThroughACraftThatOptedOutTurnsNoDishOnTheWay()
+        {
+            var plan = PlanWithCraft(new AimedAway(), new Turnable { Allowed = false });
+            var sight = PlanWithCraft(new AimedAway(), new Turnable()).Pairs.Single(p => p.A == Relay && p.B == Ground).RetargetWindows[0];
+            var routing = new RetargetRouting(linkUpSeconds: 5.0, awayMarginSeconds: 10.0, onTheWay: true);
+
+            Assert.All(plan.Pairs, p => Assert.Empty(p.RetargetWindows));
+            Assert.Null(ContactRouter.EarliestArrivalBetween(plan, new[] { Craft }, new[] { Ground }, sight.OpenUt + 100.0, null, 1.0, routing));
+        }
+
+        [Fact]
+        public void ARouteNeverTurnsADishWhileItCarriesALink()
+        {
+            var sight = Plan(null, null).Pairs[0].Windows[0];
+            var busyFrom = sight.OpenUt ?? 0.0;
+            var busyTo = sight.CloseUt ?? busyFrom + 1000.0;
+            var plan = PlanWithCraft(new AimedAway(busyFrom, busyTo), new Turnable());
+            var routing = new RetargetRouting(linkUpSeconds: 5.0, awayMarginSeconds: 10.0, onTheWay: true);
+
+            for (var sent = busyFrom; sent < busyTo - 60.0; sent += 30.0)
+            {
+                var route = ContactRouter.EarliestArrivalBetween(plan, new[] { Craft }, new[] { Ground }, sent, null, 1.0, routing);
+                Assert.NotNull(route);
+                Assert.All(route!.Hops, h => Assert.Null(h.RetargetDish));
+            }
+        }
+
+        [Fact]
+        public void ADishIsNotBorrowedForAGainNoLongerThanTheEventLasts()
+        {
+            var sight = Plan(null, null).Pairs[0].Windows[0];
+            var busyFrom = (sight.OpenUt ?? 0.0) + 300.0;
+            var plan = Plan(new AimedAway(busyFrom, busyFrom + 200.0), new Turnable());
+            var routing = new RetargetRouting(linkUpSeconds: 5.0, awayMarginSeconds: 10.0);
+
+            var small = ContactRouter.EarliestArrivalBetween(plan, new[] { Relay }, new[] { Ground }, busyFrom - 16.0, null, 1.0, routing);
+            var large = ContactRouter.EarliestArrivalBetween(plan, new[] { Relay }, new[] { Ground }, busyFrom - 100.0, null, 1.0, routing);
+
+            Assert.Null(Assert.Single(small!.Hops).RetargetDish);
+            Assert.InRange(small.Hops[0].DepartUt, busyFrom - 0.5, busyFrom + 0.5);
+            Assert.Equal(RelayDish, Assert.Single(large!.Hops).RetargetDish);
         }
     }
 }

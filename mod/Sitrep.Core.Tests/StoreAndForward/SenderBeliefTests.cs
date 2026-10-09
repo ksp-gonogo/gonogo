@@ -61,7 +61,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             public Plan(Func<string, string, double, IReadOnlyList<PlannedHop>?> route) => _route = route;
 
-            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt) => _route(from, to, readyUt);
+            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false) => _route(from, to, readyUt);
         }
 
         private sealed class Beliefs : ISenderPlans

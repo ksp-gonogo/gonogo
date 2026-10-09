@@ -135,9 +135,7 @@ namespace Sitrep.Host
                 }
                 var home = _engine.HomeCentre();
                 // Every ground station is home's own antenna, and no other centre's.
-                var retarget = _engine._dishBackend == null
-                    ? null
-                    : new RetargetRouting(_engine.DishOptions.LinkUpSeconds, _engine.DishOptions.SendSeconds);
+                var retarget = _engine.DishRouting();
                 return centre == home
                     ? new PlanRoutes(plan, _engine._deliveryInputs.LightFactor, home, _engine._activeGroundIds, retarget)
                     : new PlanRoutes(plan, _engine._deliveryInputs.LightFactor, null, null, retarget);
@@ -161,7 +159,7 @@ namespace Sitrep.Host
             {
                 return;
             }
-            _dishBackend = backend;
+            Volatile.Write(ref _dishBackend, backend);
             if (backend != null)
             {
                 _delivery.SetRetargeting(new BackendDishActuator(this, backend), DishOptions, backend.AutoRetargetAllowed);
@@ -682,7 +680,7 @@ namespace Sitrep.Host
                 }
                 routes = new PlanRoutes(null);
             }
-            var route = routes?.Route(lane.Vantage, lane.Craft, now, deleteAt);
+            var route = routes?.Route(lane.Vantage, lane.Craft, now, deleteAt, turnsOnTheWay: true);
             if (routes == null || route == null || route.Count == 0)
             {
                 return new DeliveryPrediction(null, null, lane.Vantage, null, deleteAt);
@@ -745,7 +743,7 @@ namespace Sitrep.Host
         /// <summary>The latest send time from <paramref name="from"/> that reaches <paramref name="to"/> by <paramref name="byUt"/>, from the travel time of a cancel sent now.</summary>
         private static double? LatestSendToReach(string from, string to, double now, double byUt, IDeliveryRoutes routes)
         {
-            var route = routes.Route(from, to, now, byUt);
+            var route = routes.Route(from, to, now, byUt, turnsOnTheWay: true);
             if (route == null || route.Count == 0)
             {
                 return null;

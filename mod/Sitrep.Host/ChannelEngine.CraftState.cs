@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Sitrep.Core;
 using Sitrep.Host.Comms;
+using Sitrep.Propagation.Contacts;
 
 namespace Sitrep.Host
 {
@@ -310,6 +312,12 @@ namespace Sitrep.Host
         }
 
         public double? LiveLinkSeconds(string from, string to) => _deliveryInputs.Links.LiveLink(from, to);
+
+        public RetargetRouting? DishRouting()
+        {
+            var options = DishOptions;
+            return Volatile.Read(ref _dishBackend) == null ? null : new RetargetRouting(options.LinkUpSeconds, options.SendSeconds);
+        }
 
         public IReadOnlyCollection<string> PlanningCentres()
         {
