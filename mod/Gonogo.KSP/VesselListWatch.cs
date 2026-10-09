@@ -42,7 +42,8 @@ namespace Gonogo.KSP
                 _hadFlight = inFlight;
                 _scene = scene;
             }
-            else if (inFlight)
+
+            if (inFlight)
             {
                 _hadFlight = true;
             }
