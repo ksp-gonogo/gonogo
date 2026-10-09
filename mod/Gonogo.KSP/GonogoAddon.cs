@@ -130,6 +130,7 @@ namespace Gonogo.KSP
                 // makes the whole fail-soft class visible at [WRN] level.
                 _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
                 _engine.SetSpaceCentre(SpaceCentreSite.Current);
+                _engine.SetHomeReadable(() => !VesselListWatch.Shared.Settling);
 
                 // The same sink for the command-delay catalog's assembly scan,
                 // for the same reason. Its failure is the quietest one in this

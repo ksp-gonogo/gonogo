@@ -82,11 +82,13 @@ namespace Gonogo.KSP
                 return null;
             }
             // A list still being filled shows no craft and so no links. That is not the links having gone: light on its way over one still lands.
-            if (!VesselListStanding.Stands(
+            if (!VesselListWatch.Shared.Stands(
+                    HighLogic.LoadedScene.ToString(),
                     HighLogic.LoadedSceneIsFlight,
                     FlightGlobals.ready,
                     vessels.Count,
-                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count))
+                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count,
+                    VesselListWatch.RealNow()))
             {
                 return _linksLastRead;
             }
@@ -154,7 +156,8 @@ namespace Gonogo.KSP
             }
             // A scene that is still loading has no vessels to show, which is not the same as none existing.
             var inGameState = HighLogic.CurrentGame?.flightState?.protoVessels?.Count;
-            var stands = VesselListStanding.Stands(HighLogic.LoadedSceneIsFlight, FlightGlobals.ready, vessels.Count, inGameState);
+            var stands = VesselListWatch.Shared.Stands(
+                HighLogic.LoadedScene.ToString(), HighLogic.LoadedSceneIsFlight, FlightGlobals.ready, vessels.Count, inGameState, VesselListWatch.RealNow());
             if (stands != _listStood)
             {
                 _listStood = stands;

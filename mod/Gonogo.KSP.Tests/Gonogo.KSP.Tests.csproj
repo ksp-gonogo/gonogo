@@ -71,6 +71,7 @@
     <Compile Include="..\Gonogo.KSP\CommNetReach.cs" />
     <Compile Include="..\Gonogo.KSP\CommNetStrength.cs" />
     <Compile Include="..\Gonogo.KSP\VesselListStanding.cs" />
+    <Compile Include="..\Gonogo.KSP\VesselListWatch.cs" />
     <Compile Include="..\Gonogo.KSP\SystemCapture.cs" />
     <!-- CommNetDegrade.cs is the same carve-out for stock's QUALITY rule: it is
          handed the link reading CommNetBackend.cs already took, so the grading

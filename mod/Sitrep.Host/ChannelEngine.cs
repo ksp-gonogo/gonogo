@@ -351,6 +351,16 @@ namespace Sitrep.Host
 
         private Func<CommandCentres.SurfaceSite?> _spaceCentre = () => null;
 
+        private Func<bool> _homeReadable = () => true;
+
+        /// <summary>
+        /// Whether the game's homes can be read as what exists, asked on the main thread each
+        /// tick. While it says false (a scene is changing) the elected claimant is not asked and
+        /// the last answer stands, since the homes named in that gap are not the homes there are.
+        /// </summary>
+        public void SetHomeReadable(Func<bool> readable) =>
+            _homeReadable = readable ?? throw new ArgumentNullException(nameof(readable));
+
         /// <summary>
         /// Where the space centre stands, read on the main thread each tick. With no
         /// home identified, the ground station nearest it stands in for home.
@@ -3470,6 +3480,10 @@ namespace Sitrep.Host
         {
             try
             {
+                if (!_homeReadable())
+                {
+                    return;
+                }
                 var claimant = CommandCentres.HomeCommandElection.Elected(_kernel);
                 _homeCommand = claimant?.Identify(_activeCentres) ?? HomeCommand.NotIdentified;
                 _consecutiveHomeCaptureThrows = 0;

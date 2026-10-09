@@ -252,13 +252,13 @@ namespace Gonogo.KSP
                 var inAGame = HighLogic.CurrentGame != null
                     && (scene == GameScenes.FLIGHT || scene == GameScenes.SPACECENTER || scene == GameScenes.TRACKSTATION || scene == GameScenes.EDITOR);
                 // The bodies and the roster are there in every scene of a loaded game; the active vessel in flight alone.
-                var readsTheSystem = SystemCapture.ReadsTheSystem(
-                    globals,
-                    inAGame,
+                var readsTheSystem = globals && inAGame && VesselListWatch.Shared.Stands(
+                    scene.ToString(),
                     HighLogic.LoadedSceneIsFlight,
                     FlightGlobals.ready,
-                    globals && FlightGlobals.Vessels != null ? FlightGlobals.Vessels.Count : 0,
-                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count);
+                    FlightGlobals.Vessels != null ? FlightGlobals.Vessels.Count : 0,
+                    HighLogic.CurrentGame?.flightState?.protoVessels?.Count,
+                    VesselListWatch.RealNow());
                 if (readsTheSystem)
                 {
                     var bodies = FlightGlobals.Bodies;
