@@ -69,6 +69,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     (requestId: string, code: string, message: string) => void
   >();
   const statusListeners = new Set<(status: ConnStatus) => void>();
+  const resetListeners = new Set<() => void>();
   const sentCommands: Array<{
     requestId: string;
     command: string;
@@ -94,6 +95,10 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     onSitrepFrame: (cb: (message: ServerMessage) => void) => {
       frameListeners.add(cb);
       return () => frameListeners.delete(cb);
+    },
+    onSitrepReset: (cb: () => void) => {
+      resetListeners.add(cb);
+      return () => resetListeners.delete(cb);
     },
     onSitrepCommandResponse: (
       cb: (requestId: string, result: unknown, meta: Meta) => void,
@@ -139,6 +144,9 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     // Test-only helpers to drive the fake from outside, not part of the real PeerClientService surface PeerTransport reads.
     emitFrame(message: ServerMessage) {
       for (const cb of frameListeners) cb(message);
+    },
+    emitReset() {
+      for (const cb of resetListeners) cb();
     },
     emitCommandResponse(requestId: string, result: unknown, meta: Meta) {
       for (const cb of responseListeners) cb(requestId, result, meta);
@@ -755,5 +763,67 @@ describe("PeerTransport", () => {
     transport.onMessage((m) => received.push(m));
     client.emitStatus("disconnected");
     expect(received).toEqual([]);
+  });
+
+  describe("the game's state, told once when the link opens", () => {
+    const noGame: ServerMessage = {
+      type: "game-state",
+      state: "no-game",
+      scene: "MAINMENU",
+    };
+
+    it("reaches a listener that attaches after it arrived", async () => {
+      const client = makeFakeClient();
+      const transport = new PeerTransport(asService(client));
+      client.emitFrame(noGame);
+
+      const received: ServerMessage[] = [];
+      transport.onMessage((m) => received.push(m));
+      await Promise.resolve();
+
+      expect(received).toEqual([noGame]);
+    });
+
+    it("is the newest state and not the one before it", async () => {
+      const client = makeFakeClient();
+      const transport = new PeerTransport(asService(client));
+      const loading: ServerMessage = {
+        type: "game-state",
+        state: "loading",
+        scene: "TRACKSTATION",
+      };
+      client.emitFrame(noGame);
+      client.emitFrame(loading);
+
+      const received: ServerMessage[] = [];
+      transport.onMessage((m) => received.push(m));
+      await Promise.resolve();
+
+      expect(received).toEqual([loading]);
+    });
+
+    it("is not told to a listener that attached before it arrived, a second time", async () => {
+      const client = makeFakeClient();
+      const transport = new PeerTransport(asService(client));
+      const received: ServerMessage[] = [];
+      transport.onMessage((m) => received.push(m));
+      client.emitFrame(noGame);
+      await Promise.resolve();
+
+      expect(received).toEqual([noGame]);
+    });
+
+    it("is forgotten when the host's game restarts", async () => {
+      const client = makeFakeClient();
+      const transport = new PeerTransport(asService(client));
+      client.emitFrame(noGame);
+      client.emitReset();
+
+      const received: ServerMessage[] = [];
+      transport.onMessage((m) => received.push(m));
+      await Promise.resolve();
+
+      expect(received).toEqual([]);
+    });
   });
 });

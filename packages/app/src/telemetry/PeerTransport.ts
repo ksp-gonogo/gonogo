@@ -131,11 +131,23 @@ export class PeerTransport implements Transport {
   private readonly pendingCommandIds = new Set<string>();
   /** Topics with a live `subscribe` and no matching `unsubscribe`, re-sent on every fresh connection. */
   private readonly subscribedTopics = new Set<string>();
+  /**
+   * The newest `game-state` frame. The host tells a station what the game is
+   * doing the moment the link opens, and the client that reads it is built
+   * later (the screen mounts its provider once the host's schema has landed),
+   * with nothing coming to say it again while the game sits at its menu. Told to
+   * every listener that attaches afterwards.
+   */
+  private gameState: ServerMessage | undefined;
 
   constructor(private readonly client: PeerClientService) {
     this._status = toTransportStatus(client.getConnStatus());
     this.unsubs = [
+      client.onSitrepReset(() => {
+        this.gameState = undefined;
+      }),
       client.onSitrepFrame((message) => {
+        if (message.type === "game-state") this.gameState = message;
         // PeerJS serialises, and a `Value`'s methods live on its prototype so
         // that a quantity costs two fields on the wire. Only those two fields
         // survive the hop, so without this a station's readouts render fine
@@ -301,6 +313,15 @@ export class PeerTransport implements Transport {
 
   onMessage(listener: (message: ServerMessage) => void): () => void {
     this.messageListeners.add(listener);
+    const held = this.gameState;
+    if (held) {
+      queueMicrotask(() => {
+        // A newer state arriving in the gap reached this listener live
+        if (this.gameState === held && this.messageListeners.has(listener)) {
+          listener(held);
+        }
+      });
+    }
     return () => this.messageListeners.delete(listener);
   }
 
@@ -339,6 +360,7 @@ export class PeerTransport implements Transport {
   dispose(): void {
     for (const unsub of this.unsubs) unsub();
     this.messageListeners.clear();
+    this.gameState = undefined;
     this.statusListeners.clear();
     this.undeliveredListeners.clear();
     this.lostListeners.clear();
