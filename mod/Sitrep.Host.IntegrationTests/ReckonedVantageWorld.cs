@@ -462,7 +462,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>A backend with nothing to say but what each link is worth, and that a path is worth the least of its links.</summary>
-        private sealed class StatedStrengthBackend : ICommsBackend, ICommsPathStrength
+        private sealed class StatedStrengthBackend : ICommsBackend, ICommsPathStrength, ILinkStrengthRestorer
         {
             private readonly ScriptedContactGame _game;
             private readonly TestCommsCoreUplink.FakeCommsBackend _plain = new TestCommsCoreUplink.FakeCommsBackend("scripted-strength", null);
@@ -478,6 +478,9 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             public double Combine(IReadOnlyList<double> hopStrengths) => PathStrengths.Weakest(hopStrengths);
+
+            public IContactLinkStrength? RestoreLinkStrength(string modelId, IReadOnlyDictionary<string, object?> data) =>
+                modelId == Flat.Id && data.TryGetValue("strength", out var strength) && strength is double s ? new Flat(s) : null;
 
             public CommsConnectivity Connectivity() => _plain.Connectivity();
 
@@ -501,13 +504,20 @@ namespace Sitrep.Host.IntegrationTests
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
-            private sealed class Flat : IContactLinkStrength
+            private sealed class Flat : IPersistableLinkStrength
             {
+                public const string Id = "scripted.flat.v1";
+
                 private readonly double _strength;
 
                 public Flat(double strength) => _strength = strength;
 
-                public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(_strength);
+                public string ModelId => Id;
+
+                public Dictionary<string, object?> Describe() => new Dictionary<string, object?> { ["strength"] = _strength };
+
+                public ContactHopFacts FactsAt(double ut, double separationMeters) =>
+                    new ContactHopFacts(_strength, new Dictionary<string, object?> { ["scripted"] = new Dictionary<string, object?> { ["worth"] = _strength } });
             }
         }
 

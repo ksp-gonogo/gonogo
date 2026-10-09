@@ -17,6 +17,122 @@ namespace Sitrep.Host.Tests.Comms
                 new HeardAtCentre("ground:ksc", states, new Dictionary<string, bool> { ["vessel:a"] = false }),
             })))!;
 
+        private sealed class FakeStrength : IPersistableLinkStrength
+        {
+            private readonly double _bits;
+
+            public FakeStrength(double bits) => _bits = bits;
+
+            public string ModelId => "fake.v1";
+
+            public Dictionary<string, object?> Describe() => new Dictionary<string, object?> { ["bits"] = _bits };
+
+            public ContactHopFacts FactsAt(double ut, double separationMeters) =>
+                new ContactHopFacts(0.5, new Dictionary<string, object?> { ["fake"] = new Dictionary<string, object?> { ["bits"] = _bits, ["metres"] = separationMeters } });
+        }
+
+        private static IContactLinkStrength? RestoreFake(string model, IReadOnlyDictionary<string, object?> data) =>
+            model == "fake.v1" && data.TryGetValue("bits", out var bits) && bits is double d ? new FakeStrength(d) : null;
+
+        [Fact]
+        public void AStrengthModelACraftWasHeardWithComesBackAndAnswersAsItDid()
+        {
+            var links = new Dictionary<string, CraftLink> { ["ground:ksc"] = new CraftLink(2.5e9, null, new FakeStrength(6.0)), ["vessel:b"] = new CraftLink(null, null) };
+            var heard = CraftState.Orbiting("vessel:a", 120.0, 1, Orbit, null, 9000.0, true, links);
+            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[] { new HeardAtCentre("ground:ksc", new[] { heard }, new Dictionary<string, bool>()) }));
+
+            var state = HeardSnapshotCodec.Decode(encoded, RestoreFake)!.Centres.Single().States.Single();
+
+            var facts = state.Links["ground:ksc"].Strength!.FactsAt(0.0, 11.0);
+            var fake = Assert.IsType<Dictionary<string, object?>>(facts.Extensions!["fake"]);
+            Assert.Equal(6.0, fake["bits"]);
+            Assert.Equal(11.0, fake["metres"]);
+            Assert.Null(state.Links["vessel:b"].Strength);
+        }
+
+        private sealed class FakeRestorer : ILinkStrengthRestorer
+        {
+            public IContactLinkStrength? RestoreLinkStrength(string modelId, IReadOnlyDictionary<string, object?> data) => RestoreFake(modelId, data);
+        }
+
+        [Fact]
+        public void TheFakeBackendMeetsTheRestorerConformanceAssertion()
+        {
+            Sitrep.Contract.TestSupport.LinkStrengthPersistenceConformance.AssertRestorerContract(
+                new FakeRestorer(), new FakeStrength(6.0), described => described, new[] { 10.0, 1e6, 1e9 });
+        }
+
+        private sealed class BulkyStrength : IPersistableLinkStrength
+        {
+            private readonly string _craft;
+
+            public BulkyStrength(string craft) => _craft = craft;
+
+            public string ModelId => "bulky.v1";
+
+            public Dictionary<string, object?> Describe()
+            {
+                var antennas = new List<object?>();
+                for (var i = 0; i < 6; i++)
+                {
+                    antennas.Add(new Dictionary<string, object?> { ["id"] = _craft + "/" + i, ["txPowerDbm"] = 40.0 + i, ["band"] = "S", ["note"] = new string('x', 120) });
+                }
+                return new Dictionary<string, object?> { ["from"] = antennas, ["to"] = antennas, ["label"] = _craft };
+            }
+
+            public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(0.5);
+        }
+
+        private static int EncodedSize(int craft, int centres, bool strengths)
+        {
+            var heardAt = new List<HeardAtCentre>();
+            for (var c = 0; c < centres; c++)
+            {
+                var states = new List<CraftState>();
+                for (var a = 0; a < craft; a++)
+                {
+                    var links = new Dictionary<string, CraftLink>();
+                    for (var b = 0; b < craft; b++)
+                    {
+                        if (a != b)
+                        {
+                            links["vessel:" + b] = new CraftLink(1e9, null, strengths ? new BulkyStrength("vessel:" + a) : null);
+                        }
+                    }
+                    states.Add(CraftState.Orbiting("vessel:" + a, 100.0, 1, Orbit, null, 9000.0, true, links));
+                }
+                heardAt.Add(new HeardAtCentre("ground:" + c, states, new Dictionary<string, bool>()));
+            }
+            return HeardSnapshotCodec.Encode(new HeardSnapshot(heardAt)).Length;
+        }
+
+        [Fact]
+        public void TheStrengthModelsAddToASaveByTheCraftAndNotByTheCraftTimesTheCentresTimesTheLinks()
+        {
+            const int craft = 6;
+            const int centres = 16;
+            var described = System.Text.Encoding.UTF8.GetByteCount(
+                System.Text.Json.JsonSerializer.Serialize(new BulkyStrength("vessel:0").Describe())) * 4 / 3;
+
+            var added = EncodedSize(craft, centres, true) - EncodedSize(craft, centres, false);
+
+            var written = (double)craft * (craft - 1) * centres * described;
+            Assert.True(added < written * 0.1, "the models add " + added + " bytes where writing each in full would add " + (long)written);
+            var more = EncodedSize(craft, centres * 2, true) - EncodedSize(craft, centres * 2, false);
+            Assert.True(more < added * 2.5, "doubling the centres more than doubled what the models add: " + added + " to " + more);
+        }
+
+        [Fact]
+        public void AStrengthModelNoBackendCanBuildAgainLeavesThePairWithoutOne()
+        {
+            var links = new Dictionary<string, CraftLink> { ["ground:ksc"] = new CraftLink(2.5e9, null, new FakeStrength(6.0)) };
+            var heard = CraftState.Orbiting("vessel:a", 120.0, 1, Orbit, null, 9000.0, true, links);
+            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[] { new HeardAtCentre("ground:ksc", new[] { heard }, new Dictionary<string, bool>()) }));
+
+            Assert.Null(HeardSnapshotCodec.Decode(encoded)!.Centres.Single().States.Single().Links["ground:ksc"].Strength);
+            Assert.Null(HeardSnapshotCodec.Decode(encoded, (model, data) => throw new System.InvalidOperationException("unreadable"))!.Centres.Single().States.Single().Links["ground:ksc"].Strength);
+        }
+
         [Fact]
         public void AnOrbitingCraftComesBackAsItWasHeardWithItsListingAndItsRangesAndNoLinkModel()
         {

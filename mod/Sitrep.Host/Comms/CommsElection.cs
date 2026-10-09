@@ -211,6 +211,27 @@ namespace Sitrep.Host.Comms
             }
         }
 
+        /// <summary>
+        /// The strength model the elected backend builds again from what it described
+        /// when a game was saved, or null when it is not one that does, does not know
+        /// the model, or the kernel is missing.
+        /// </summary>
+        public static IContactLinkStrength? RestoreLinkStrength(Kernel? kernel, string modelId, IReadOnlyDictionary<string, object?> data)
+        {
+            if (kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                return (Elected(kernel) as ILinkStrengthRestorer)?.RestoreLinkStrength(modelId, data);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         /// <summary>The elected backend as something that turns dishes, or null when it is not one.</summary>
         public static ICommsRetargetBackend? RetargetBackend(Kernel? kernel) =>
             kernel == null ? null : Elected(kernel) as ICommsRetargetBackend;

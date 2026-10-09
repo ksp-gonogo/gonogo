@@ -2519,8 +2519,16 @@ namespace Sitrep.Contract
         /// <para><b>Major-31 line, reset to 0</b> with the Major.</para>
         ///
         /// <para><b>Major-32 line, reset to 0</b> with the Major.</para>
+        ///
+        /// <para><b>Major-32 line, Bumped 0 -&gt; 1: saved link strengths.</b> A comms
+        /// backend can describe a strength model as plain data
+        /// (<see cref="IPersistableLinkStrength"/>) and build it again on a load
+        /// (<see cref="ILinkStrengthRestorer"/>), so a command centre that was saved
+        /// holding the model for a hop states that hop's facts at once after the load.
+        /// Additive: a backend that implements neither is unaffected, and a save made
+        /// before this carries no models.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

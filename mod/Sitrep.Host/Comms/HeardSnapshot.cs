@@ -44,6 +44,66 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
+    /// The values a snapshot's strength models have in common, written once. A
+    /// model's description names the antennas of both its ends, and the same
+    /// craft's antennas appear in every link it has, in every centre's copy of its
+    /// state, so written out each time a save grows with craft times centres times
+    /// links and with this it grows with craft.
+    /// </summary>
+    internal sealed class SharedValues
+    {
+        private const string Key = "$shared";
+
+        private readonly Dictionary<string, int> _index = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        public List<object?> Values { get; } = new List<object?>();
+
+        /// <summary>The description with each nested dictionary or list that stands as one of its entries replaced by a reference to the shared copy.</summary>
+        public Dictionary<string, object?> Compact(Dictionary<string, object?> described)
+        {
+            var compact = new Dictionary<string, object?>(described.Count, StringComparer.Ordinal);
+            foreach (var entry in described)
+            {
+                if (entry.Value is System.Collections.IDictionary || entry.Value is System.Collections.IList)
+                {
+                    var sb = new StringBuilder();
+                    JsonWriter.AppendValue(sb, entry.Value);
+                    var text = sb.ToString();
+                    if (!_index.TryGetValue(text, out var at))
+                    {
+                        at = Values.Count;
+                        _index[text] = at;
+                        Values.Add(entry.Value);
+                    }
+                    compact[entry.Key] = new Dictionary<string, object?> { [Key] = (double)at };
+                }
+                else
+                {
+                    compact[entry.Key] = entry.Value;
+                }
+            }
+            return compact;
+        }
+
+        /// <summary>The description as it was before <see cref="Compact"/>, or what it was given where a reference does not resolve.</summary>
+        public static Dictionary<string, object?> Expand(Dictionary<string, object?> compact, List<object?> shared)
+        {
+            var described = new Dictionary<string, object?>(compact.Count, StringComparer.Ordinal);
+            foreach (var entry in compact)
+            {
+                described[entry.Key] = entry.Value is Dictionary<string, object?> reference
+                    && reference.Count == 1
+                    && reference.TryGetValue(Key, out var at)
+                    && at is double index
+                    && index >= 0 && index < shared.Count
+                        ? shared[(int)index]
+                        : entry.Value;
+            }
+            return described;
+        }
+    }
+
+    /// <summary>
     /// What every command centre has heard of every craft at one instant. Saved
     /// with the game so that a load leaves each centre knowing exactly what it
     /// knew when the game was saved: no more, since what was still on its way
@@ -68,7 +128,7 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public static class HeardSnapshotCodec
     {
-        private const int FormatVersion = 1;
+        private const int FormatVersion = 2;
 
         /// <summary>The roster facts that are whole numbers, which a JSON number does not remember being.</summary>
         private static readonly HashSet<string> WholeNumbers = new HashSet<string>(StringComparer.Ordinal)
@@ -78,13 +138,14 @@ namespace Sitrep.Host.Comms
 
         public static string Encode(HeardSnapshot snapshot)
         {
+            var pool = new SharedValues();
             var centres = new List<object?>();
             foreach (var centre in snapshot.Centres)
             {
                 var states = new List<object?>();
                 foreach (var state in centre.States)
                 {
-                    states.Add(State(state));
+                    states.Add(State(state, pool));
                 }
                 var links = new Dictionary<string, object?>(StringComparer.Ordinal);
                 foreach (var link in centre.Links)
@@ -113,13 +174,17 @@ namespace Sitrep.Host.Comms
                 });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
+            if (pool.Values.Count > 0)
+            {
+                root["shared"] = pool.Values;
+            }
             var sb = new StringBuilder();
             JsonWriter.AppendValue(sb, root);
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(sb.ToString()));
         }
 
         /// <summary>The snapshot a save carried, or null when it carried none or one this build cannot read.</summary>
-        public static HeardSnapshot? Decode(string? encoded)
+        public static HeardSnapshot? Decode(string? encoded, Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restoreStrength = null)
         {
             if (string.IsNullOrEmpty(encoded))
             {
@@ -132,6 +197,7 @@ namespace Sitrep.Host.Comms
                 {
                     return null;
                 }
+                var shared = Get(root, "shared") as List<object?> ?? new List<object?>();
                 var centres = new List<HeardAtCentre>();
                 foreach (var item in List(root, "centres"))
                 {
@@ -139,7 +205,7 @@ namespace Sitrep.Host.Comms
                     var states = new List<CraftState>();
                     foreach (var state in List(centre, "states"))
                     {
-                        states.Add(StateFrom((Dictionary<string, object?>)state!));
+                        states.Add(StateFrom((Dictionary<string, object?>)state!, restoreStrength, shared));
                     }
                     var links = new Dictionary<string, bool>(StringComparer.Ordinal);
                     if (Get(centre, "links") is Dictionary<string, object?> heardLinks)
@@ -179,12 +245,44 @@ namespace Sitrep.Host.Comms
             }
         }
 
-        private static Dictionary<string, object?> State(CraftState state)
+        /// <summary>The strength model a save kept for one link, built again by the backend that described it, or null when none was kept or the backend cannot.</summary>
+        private static IContactLinkStrength? StrengthOf(
+            Dictionary<string, object?> map,
+            string other,
+            Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restore,
+            List<object?> shared)
+        {
+            if (restore == null
+                || !(Get(map, "strengths") is Dictionary<string, object?> kept)
+                || !kept.TryGetValue(other, out var entry)
+                || !(entry is Dictionary<string, object?> described)
+                || !(Get(described, "model") is string model)
+                || !(Get(described, "data") is Dictionary<string, object?> data))
+            {
+                return null;
+            }
+            try
+            {
+                return restore(model, SharedValues.Expand(data, shared));
+            }
+            catch (Exception)
+            {
+                // A backend that cannot read what it once wrote leaves the pair without a strength, as before the load.
+                return null;
+            }
+        }
+
+        private static Dictionary<string, object?> State(CraftState state, SharedValues pool)
         {
             var links = new Dictionary<string, object?>(StringComparer.Ordinal);
+            var strengths = new Dictionary<string, object?>(StringComparer.Ordinal);
             foreach (var link in state.Links)
             {
                 links[link.Key] = link.Value.MaxRangeMeters;
+                if (link.Value.Strength is IPersistableLinkStrength persistable)
+                {
+                    strengths[link.Key] = new Dictionary<string, object?> { ["model"] = persistable.ModelId, ["data"] = pool.Compact(persistable.Describe()) };
+                }
             }
             return new Dictionary<string, object?>
             {
@@ -202,10 +300,11 @@ namespace Sitrep.Host.Comms
                 ["roster"] = state.Roster == null ? null : new Dictionary<string, object?>(Copy(state.Roster)),
                 ["centre"] = CentreOf(state),
                 ["links"] = links,
+                ["strengths"] = strengths,
             };
         }
 
-        private static CraftState StateFrom(Dictionary<string, object?> map)
+        private static CraftState StateFrom(Dictionary<string, object?> map, Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restoreStrength, List<object?> shared)
         {
             var id = (string)map["id"]!;
             var capturedUt = (double)map["capturedUt"]!;
@@ -218,7 +317,7 @@ namespace Sitrep.Host.Comms
             {
                 foreach (var link in heard)
                 {
-                    links[link.Key] = new CraftLink(link.Value as double?, null);
+                    links[link.Key] = new CraftLink(link.Value as double?, null, StrengthOf(map, link.Key, restoreStrength, shared));
                 }
             }
             var roster = Get(map, "roster") is Dictionary<string, object?> listed ? Listed(listed) : null;
