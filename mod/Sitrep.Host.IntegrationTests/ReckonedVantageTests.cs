@@ -57,6 +57,35 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ACommandToTheActiveCraftThatExpiresReportsAgainstItsPendingEntry()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0, T0 })
+            {
+                world.Tick(ut);
+            }
+            world.Game.ActiveConnected = false;
+            world.Tick(T0 + 1.0);
+
+            FaultCode? refused = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.ActiveCommand, "x", Home, _ => { }, TestBudgets.Op, onRefused: (code, _) => refused = code);
+            var entry = Assert.Single(Pending(world));
+
+            var past = (entry.ExpiresAtUt ?? 0.0) + 7200.0;
+            foreach (var ut in new[] { T0 + 100.0, T0 + 1800.0, (entry.ExpiresAtUt ?? 0.0) + 1.0, past })
+            {
+                world.Tick(ut);
+            }
+
+            var expired = Journey(world).Single(e => e.Kind == JourneyEventKind.Expired);
+            Assert.Equal(entry.Craft, expired.Craft);
+            Assert.Equal(entry.LaneSeq, expired.LaneSeq);
+            Assert.Equal(FaultCode.CommandExpired, refused);
+            Assert.Empty(Pending(world));
+        }
+
+        [Fact]
         public async Task ACentresPlanStillMovesWhenNewsArrivesWhileTheActiveCraftIsDark()
         {
             await using var burned = await ReckonedVantageWorld.StartAsync();

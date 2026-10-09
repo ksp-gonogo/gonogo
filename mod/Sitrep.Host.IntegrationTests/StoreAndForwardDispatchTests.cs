@@ -58,6 +58,39 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void AHeldCommandThatExpiresReportsAgainstItsCraftAndRefusesItsRequest()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                CutRoute(engine);
+                Tick(engine, 0.0);
+
+                FaultCode? refused = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op, onRefused: (code, _) => refused = code);
+                Tick(engine, 10.0);
+                var entry = Assert.Single(Pending(engine));
+
+                Tick(engine, (entry.ExpiresAtUt ?? 0.0) + 1.0);
+
+                var expired = Assert.Single(Journey(engine).Events, e => e.Kind == JourneyEventKind.Expired);
+                Assert.Equal(entry.Craft, expired.Craft);
+                Assert.Equal(entry.LaneSeq, expired.LaneSeq);
+                Assert.True(expired.AtUt >= entry.ExpiresAtUt);
+                Assert.Equal(FaultCode.CommandExpired, refused);
+                Assert.Empty(Pending(engine));
+                Assert.Equal(0, uplink.HandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public void ACancelStopsAHeldCommandAndRefusesItsRequest()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

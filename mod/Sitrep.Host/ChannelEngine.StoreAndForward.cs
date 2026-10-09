@@ -771,6 +771,10 @@ namespace Sitrep.Host
         /// <summary>A journey report reached the centre that sent the command: record it, settle the client's request, and drop a settled pending entry.</summary>
         private void OnJourneyReport(ReportMessage report)
         {
+            if (report.Kind == JourneyKind.Expired && _journey.Exists(j => j.Kind == JourneyEventKind.Expired && string.Equals(j.About, report.About, StringComparison.Ordinal)))
+            {
+                return;
+            }
             var kind = KindOf(report.Kind);
             var e = new CommsJourneyEvent
             {
@@ -836,6 +840,27 @@ namespace Sitrep.Host
                     job.OnRefused?.Invoke(FaultCode.CommandCancelled, "It was cancelled at the craft.");
                     break;
             }
+        }
+
+        /// <summary>
+        /// A held command past its expiry whose settling report never reached
+        /// the centre that sent it: nothing can run it now, so the centre reports
+        /// the expiry itself and refuses the client's request.
+        /// </summary>
+        private void ExpireUnreported(PendingUplink entry, double ut)
+        {
+            OnJourneyReport(new ReportMessage
+            {
+                Id = entry.Id + "-expired",
+                To = entry.Vantage,
+                Kind = JourneyKind.Expired,
+                About = entry.Id,
+                Lane = new LaneKey(_courier.CurrentEpoch, entry.Vantage, entry.Craft),
+                LaneSeq = entry.LaneSeq ?? 0,
+                At = entry.Vantage,
+                AtUt = ut,
+                LandedUt = ut,
+            });
         }
 
         /// <summary>Forgets the client request of a pending entry the backstop pruned, so a report that never comes home holds nothing.</summary>

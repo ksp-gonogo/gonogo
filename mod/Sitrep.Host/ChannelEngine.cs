@@ -8912,25 +8912,32 @@ namespace Sitrep.Host
             {
                 return;
             }
-            _pending.RemoveAll(entry =>
+            var overdue = _pending.FindAll(entry =>
             {
                 // A held command's entry goes when its settling report reaches this
                 // centre; this is only the backstop, past both its predicted reply
                 // and its expiry, after which no copy of it can still run.
                 // An entry off the lanes that predicts its own answer, a continuous
                 // input dropped on its way, goes when that answer is overdue.
-                var due = entry.LaneSeq == null
+                return entry.LaneSeq == null
                     ? ut > (entry.PredictedReplyUt != null
                         ? entry.PredictedReplyUt.Value + PendingSettleMarginSeconds
                         : entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)))
                     : ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
-                if (due)
+            });
+            foreach (var entry in overdue)
+            {
+                _pending.Remove(entry);
+                _pendingDispatcher.Remove(entry.Id);
+                if (entry.LaneSeq != null && _deliveryJobs.ContainsKey(entry.Id))
                 {
-                    _pendingDispatcher.Remove(entry.Id);
+                    ExpireUnreported(entry, ut);
+                }
+                else
+                {
                     ForgetDeliveryJobs(entry);
                 }
-                return due;
-            });
+            }
         }
 
         /// <summary>
