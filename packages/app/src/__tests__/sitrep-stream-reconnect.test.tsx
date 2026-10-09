@@ -1,4 +1,9 @@
-import { clearRegistry, useTelemetry } from "@ksp-gonogo/core";
+import { ActionGroupComponent } from "@ksp-gonogo/components";
+import {
+  clearRegistry,
+  DashboardItemContext,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   act,
   probeText,
@@ -78,8 +83,10 @@ interface Connection {
   received: string[];
 }
 
-function track(connections: Connection[]) {
+function track(connections: Connection[], bootIds: string[] = []) {
   return link.addEventListener("connection", ({ client }) => {
+    const bootId = bootIds[connections.length] ?? `boot-${connections.length}`;
+    client.send(JSON.stringify({ type: "hello", bootId }));
     const received: string[] = [];
     client.addEventListener("message", (event) =>
       received.push(String(event.data)),
@@ -94,9 +101,12 @@ async function advance(ms: number) {
   });
 }
 
-async function mountAndReceiveFirstGame(connections: Connection[]) {
+async function mountAndReceiveFirstGame(
+  connections: Connection[],
+  bootIds: string[] = [],
+) {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  server.use(track(connections));
+  server.use(track(connections, bootIds));
   const view = render(
     <SitrepTelemetryProvider enabled host="localhost" port={8090}>
       <Throttle />
@@ -112,6 +122,31 @@ async function mountAndReceiveFirstGame(connections: Connection[]) {
 }
 
 describe("Sitrep stream recovers across a game restart without a reload", () => {
+  it("a reconnect to the same run keeps what the page holds, and sets the subscription up again", async () => {
+    const connections: Connection[] = [];
+    const { container } = await mountAndReceiveFirstGame(connections, [
+      "same-run",
+      "same-run",
+    ]);
+
+    await act(async () => {
+      connections[0].client.close();
+    });
+    await advance(5_000);
+    await waitFor(() => expect(connections).toHaveLength(2));
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+    await waitFor(() =>
+      expect(connections[1].received.join("")).toContain("vessel.control"),
+    );
+    expect(screen.getByText("throttle:0.75")).toBeTruthy();
+
+    await act(async () => {
+      connections[1].client.send(throttleFrame(0.5, 5, 1010));
+    });
+    expect(await screen.findByText("throttle:0.5")).toBeTruthy();
+    await expectNoA11yViolations(container);
+  });
+
   it("a socket that goes silent without closing is replaced and the new game's frames are shown", async () => {
     const connections: Connection[] = [];
     const { container } = await mountAndReceiveFirstGame(connections);
@@ -139,17 +174,12 @@ describe("Sitrep stream recovers across a game restart without a reload", () => 
   it("an idle but healthy server for 90 seconds causes no reconnect and keeps what the page holds", async () => {
     const connections: Connection[] = [];
     const { container } = await mountAndReceiveFirstGame(connections);
-    // A server that has nothing to publish still answers the transport's liveness probe, as the mod does with an unknownTopic error.
+    // A server that has nothing to publish still answers the transport's ping, as the mod does.
     connections[0].client.addEventListener("message", (event) => {
       const message = JSON.parse(String(event.data));
-      if (message.topic !== "liveness.probe") return;
+      if (message.type !== "ping") return;
       connections[0].client.send(
-        JSON.stringify({
-          type: "error",
-          topic: "liveness.probe",
-          code: "unknownTopic",
-          message: "no channel is declared",
-        }),
+        JSON.stringify({ type: "pong", nonce: message.nonce }),
       );
     });
 
@@ -180,5 +210,97 @@ describe("Sitrep stream recovers across a game restart without a reload", () => 
     });
     expect(await screen.findByText("throttle:0.25")).toBeTruthy();
     await expectNoA11yViolations(container);
+  });
+
+  it("an action group with a command in flight survives the game restarting under it", async () => {
+    const connections: Connection[] = [];
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    server.use(track(connections));
+    const errors = vi.spyOn(console, "error");
+    render(
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+        <DashboardItemContext.Provider value={{ instanceId: "ag" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "SAS" }}
+            id="ag"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </SitrepTelemetryProvider>,
+    );
+    await waitFor(() => expect(connections).toHaveLength(1));
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+    const controlFrame = (sas: boolean, epoch: number, validAt: number) =>
+      JSON.stringify({
+        type: "stream-data",
+        topic: "vessel.control",
+        payload: {
+          sas,
+          sasMode: 0,
+          throttle: 0,
+          rcs: false,
+          gear: false,
+          brakes: false,
+          lights: false,
+          abort: false,
+          precisionControl: false,
+          actionGroups: [],
+        },
+        meta: {
+          source: "test",
+          validAt,
+          seq: 0,
+          deliveredAt: validAt,
+          vantage: "test",
+          quality: 0,
+          active: false,
+          staleness: 0,
+          timelineEpoch: epoch,
+        },
+      });
+    await act(async () => {
+      connections[0].client.send(controlFrame(true, 5, 1000));
+    });
+    const toggle = await screen.findByRole("button", { name: "Toggle SAS" });
+    await waitFor(() => expect(toggle.textContent).toContain("ON"));
+
+    await act(async () => {
+      toggle.click();
+    });
+
+    await act(async () => {
+      connections[0].client.close();
+    });
+    await advance(5_000);
+    await waitFor(() => expect(connections).toHaveLength(2));
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+    await act(async () => {
+      connections[1].client.send(
+        JSON.stringify({
+          type: "game-state",
+          state: "loading",
+          scene: "FLIGHT",
+        }),
+      );
+    });
+    await advance(1_000);
+    await act(async () => {
+      connections[1].client.send(
+        JSON.stringify({ type: "game-state", state: "ready", scene: "FLIGHT" }),
+      );
+      connections[1].client.send(controlFrame(false, 0, 10));
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Toggle SAS" }).textContent,
+      ).toContain("OFF"),
+    );
+    expect(
+      errors.mock.calls
+        .map((call) => String(call[0]))
+        .filter((message) => /Maximum update|getSnapshot/.test(message)),
+    ).toEqual([]);
   });
 });

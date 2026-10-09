@@ -86,8 +86,8 @@ export interface WebSocketTransportOptions {
    * A tunnel or proxy can keep the TCP leg to the browser open after the
    * server behind it has gone, so no `close` ever fires. Silence alone proves
    * nothing, since a quiet scene may publish nothing for longer than this: the
-   * socket is dropped only if the probe goes unanswered for
-   * {@link probeTimeoutMs}.
+   * transport sends a `ping`, and the socket is dropped only if no `pong` (or
+   * any other frame) arrives within {@link probeTimeoutMs}.
    */
   silenceTimeoutMs?: number;
   /** How long the answer to a liveness probe may take before the socket is dropped, ms (default 5000). */
@@ -180,15 +180,6 @@ const DEFAULT_SILENCE_TIMEOUT_MS = 30_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
 
 /**
- * The topic a liveness probe subscribes to. Nothing declares it, so the mod
- * refuses the subscribe with a reliable `unknownTopic` error frame on every
- * call and registers nothing: the one request the protocol always answers,
- * whatever the scene is publishing. The transport swallows that reply, so it
- * never reaches the client's ownership bookkeeping.
- */
-export const LIVENESS_PROBE_TOPIC = "liveness.probe";
-
-/**
  * How many undelivered command-requests the transport holds for the next open.
  *
  * The queue exists so a command pressed during a blink of the link still gets
@@ -273,6 +264,7 @@ export class WebSocketTransport implements Transport {
   private unwatchEnvironment: (() => void) | null = null;
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
   private probeTimer: ReturnType<typeof setTimeout> | null = null;
+  private pingCount = 0;
 
   private readonly messageListeners = new Set<
     (message: ServerMessage) => void
@@ -381,6 +373,8 @@ export class WebSocketTransport implements Transport {
       return;
     }
     if (this.sendRaw(message)) return;
+    // A ping is only worth sending to a live socket: one held for the next open would answer nothing.
+    if (message.type === "ping") return;
     if (this.pendingCommands.length >= MAX_PENDING_COMMANDS) {
       for (const requestId of requestIdsOf(message)) {
         this.refuseCommand(requestId);
@@ -602,11 +596,12 @@ export class WebSocketTransport implements Transport {
     if (this.subscribedTopics.size === 0) return;
     this.silenceTimer = setTimeout(() => {
       this.silenceTimer = null;
-      if (!this.sendRaw({ type: "subscribe", topic: LIVENESS_PROBE_TOPIC })) {
+      this.pingCount += 1;
+      if (!this.sendRaw({ type: "ping", nonce: String(this.pingCount) })) {
         this.handleDrop(ws);
         return;
       }
-      // Any frame at all, the probe's reply or ordinary data, re-arms the watch and clears this timer.
+      // Any frame at all, the pong or ordinary data, re-arms the watch and clears this timer.
       this.probeTimer = setTimeout(() => {
         this.probeTimer = null;
         this.handleDrop(ws);
@@ -708,9 +703,7 @@ export class WebSocketTransport implements Transport {
     }
 
     // The probe's own reply: it proved the link is alive by arriving, and means nothing to anything above.
-    if (message.type === "error" && message.topic === LIVENESS_PROBE_TOPIC) {
-      return;
-    }
+    if (message.type === "pong") return;
 
     if (message.type === "stream-data") {
       this.onStreamFrame?.({

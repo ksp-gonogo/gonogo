@@ -8128,7 +8128,7 @@
       },
       {
         "key": "sitrep-sdk . ClientMessage",
-        "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+        "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
       },
       {
         "key": "sitrep-sdk . ComponentDefinition#augmentSlots?",
@@ -8176,7 +8176,7 @@
       },
       {
         "key": "sitrep-sdk . ServerMessage",
-        "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+        "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
       {
         "key": "sitrep-sdk . ShipMapPartMetaEntry",
@@ -8744,7 +8744,7 @@
       },
       {
         "key": "sitrep-sdk ./spine ~ClientMessage",
-        "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+        "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
       },
       {
         "key": "sitrep-sdk ./spine ~DepValue",
@@ -8752,7 +8752,7 @@
       },
       {
         "key": "sitrep-sdk ./spine ~ServerMessage",
-        "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+        "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry",
@@ -8808,7 +8808,7 @@
       },
       {
         "key": "sitrep-sdk ./testing ~ClientMessage",
-        "note": "Gains the command-group frame. A caller that switches over client messages without a default stops compiling until it names it; the transports are the only ones, and all handle it"
+        "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
       },
       {
         "key": "sitrep-sdk ./testing ~DepValue",
@@ -8840,7 +8840,7 @@
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
-        "note": "Gains the game-state frame. A caller that switches over server messages without a default stops compiling until it names it; the transports and the spine client are the only ones, and both handle it"
+        "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry",

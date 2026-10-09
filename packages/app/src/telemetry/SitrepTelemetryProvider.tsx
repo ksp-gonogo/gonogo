@@ -195,13 +195,12 @@ export function SitrepTelemetryProvider({
   const [transport, setTransport] = useState<Transport | null>(null);
   const [client, setClient] = useState<TelemetryClient | null>(null);
   /*
-   * Bumped each time the owned transport comes back after a drop. The wire
-   * carries no process identity, so a blip and a restarted game look the same
-   * from here; either way the client, and the store the provider builds for
-   * it, are rebuilt. A restarted mod counts its timeline epoch from zero, and
-   * a store holding a higher epoch refuses every frame of the new game as a
-   * straggler, so the old state cannot be kept. Widgets fall back to their
-   * waiting state until the new keyframes land.
+   * Bumped when the mod reports a run it had not reported before (`Hello.bootId`
+   * differs). A restarted mod counts its timeline epoch from zero, and a store
+   * holding a higher epoch refuses every frame of the new game as a straggler,
+   * so nothing remembered of the old run can be kept. A reconnect to the SAME
+   * run keeps the client and its store: the transport sets the connection's
+   * subscriptions and vantage up again, and the readings held stay held.
    */
   const [generation, setGeneration] = useState(0);
   // The screen's own choice of command centre outlives the client that recorded it: a rebuilt client starts with none, and a game that has just started puts every connection at its default.
@@ -233,15 +232,9 @@ export function SitrepTelemetryProvider({
     // Mirror the OWNED transport's connection status into the Connection tab's
     // "Sitrep Stream" row: an injected test transport has no bearing on what
     // that row should report about the real connection.
-    let dropped = false;
     const unsubStatus = ownedTransport?.onStatusChange((status) => {
       reportSitrepTransportStatus(status);
       if (status === "connected") setVantageRefused(false);
-      if (status === "reconnecting") dropped = true;
-      if (status === "connected" && dropped) {
-        dropped = false;
-        setGeneration((g) => g + 1);
-      }
     });
     if (ownedTransport) reportSitrepTransportStatus(ownedTransport.status);
     setSitrepRetryHandler(
@@ -263,9 +256,15 @@ export function SitrepTelemetryProvider({
 
   useEffect(() => {
     if (!transport) return;
+    let bootId: string | undefined;
     return transport.onMessage((message) => {
       if (message.type === "error" && message.code === "unknownVantage") {
         setVantageRefused(true);
+      }
+      if (message.type === "hello") {
+        const rebooted = bootId !== undefined && bootId !== message.bootId;
+        bootId = message.bootId;
+        if (rebooted) setGeneration((g) => g + 1);
       }
     });
   }, [transport]);

@@ -8,6 +8,9 @@ import type {
   ErrorMsg,
   EventMsg,
   GameState,
+  Hello,
+  Ping,
+  Pong,
   SetVantage,
   StreamData,
   Subscribe,
@@ -28,6 +31,8 @@ export type ServerMessage =
   | CommandAccepted
   | ErrorMsg
   | GameState
+  | Hello
+  | Pong
   // The one member that never arrives as text. It comes off the BINARY LANE
   // (`binary-frame.ts`), already decoded, and is in the union so every
   // exhaustive switch over a server frame has to account for it rather than
@@ -44,4 +49,5 @@ export type ClientMessage =
   | Unsubscribe
   | SetVantage
   | CommandRequest<unknown>
-  | CommandGroupRequest;
+  | CommandGroupRequest
+  | Ping;

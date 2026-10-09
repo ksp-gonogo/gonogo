@@ -20,7 +20,6 @@ import { LOSS_MARGIN, TelemetryClient } from "./client";
 import { makeMeta } from "./stub-transport";
 import type { TransportStatus } from "./transport";
 import {
-  LIVENESS_PROBE_TOPIC,
   MAX_PENDING_COMMANDS,
   SEND_QUEUE_FULL,
   WebSocketTransport,
@@ -333,7 +332,7 @@ describe("WebSocketTransport", () => {
         expect(receivedByConnection.length).toBeGreaterThanOrEqual(2);
         expect(
           receivedByConnection[0].map((raw) => JSON.parse(raw)),
-        ).toContainEqual({ type: "subscribe", topic: LIVENESS_PROBE_TOPIC });
+        ).toContainEqual({ type: "ping", nonce: "1" });
         expect(JSON.parse(receivedByConnection[1][0])).toEqual({
           type: "subscribe",
           topic: "vessel.flight",
@@ -344,22 +343,15 @@ describe("WebSocketTransport", () => {
     transport.dispose();
   });
 
-  it("keeps a quiet socket whose server answers the liveness probe, and never hands the reply on", async () => {
+  it("keeps a quiet socket whose server answers the ping, and never hands the pong on", async () => {
     let connections = 0;
     server.use(
       link.addEventListener("connection", ({ client }) => {
         connections++;
         client.addEventListener("message", (event) => {
           const message = JSON.parse(String(event.data));
-          if (message.topic !== LIVENESS_PROBE_TOPIC) return;
-          client.send(
-            JSON.stringify({
-              type: "error",
-              topic: LIVENESS_PROBE_TOPIC,
-              code: FaultCode.UnknownTopic,
-              message: "no channel is declared",
-            }),
-          );
+          if (message.type !== "ping") return;
+          client.send(JSON.stringify({ type: "pong", nonce: message.nonce }));
         });
       }),
     );
@@ -377,6 +369,22 @@ describe("WebSocketTransport", () => {
     expect(transport.status).toBe("connected");
     expect(connections).toBe(1);
     expect(delivered).toEqual([]);
+    transport.dispose();
+  });
+
+  it("hands on the hello frame that names the run of the mod it reached", async () => {
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        client.send(JSON.stringify({ type: "hello", bootId: "boot-a" }));
+      }),
+    );
+    const transport = new WebSocketTransport({ url: SITREP_URL });
+    const delivered: ServerMessage[] = [];
+    transport.onMessage((m) => delivered.push(m));
+    await vi.waitFor(
+      () => expect(delivered).toEqual([{ type: "hello", bootId: "boot-a" }]),
+      { timeout: WAIT_TIMEOUT_MS },
+    );
     transport.dispose();
   });
 

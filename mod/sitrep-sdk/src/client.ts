@@ -22,6 +22,8 @@ const SERVER_TYPE_TAGS = {
   "command-accepted": true,
   error: true,
   "game-state": true,
+  hello: true,
+  pong: true,
   "stream-binary": false,
 } satisfies Record<ServerMessage["type"], boolean>;
 
