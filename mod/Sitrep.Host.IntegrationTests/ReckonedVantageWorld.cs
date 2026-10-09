@@ -1081,7 +1081,6 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.PathTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.NetworkTopic, Timeout)).Name);
             Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.CommandCentreTopic, Timeout)).Name);
-            Assert.Equal("subscribed", (await SubscribeAsync(client, ContactPlanSource.DelayTopic, Timeout)).Name);
             if (_watchTelemetry)
             {
                 Assert.Equal("subscribed", (await SubscribeAsync(client, ScriptedContactUplink.ActiveTelemetryTopic, Timeout)).Name);

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CommNet;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
@@ -137,21 +136,16 @@ namespace Gonogo.KSP.CommandCentres
             var backend = kernel != null ? CommsElection.Elected(kernel) : null;
 
             var solves = new SolveCounter();
-            var activeGuid = ActiveVesselGuid(snapshot);
-            var activeRoutes = new Dictionary<string, IReadOnlyList<CommsHop>>();
             var capture = BuildLedger(
                 centres,
                 _home(),
                 vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                activeGuid,
-                (centre, guid, isHome) => RouteDelay(
-                    backend, centre, isHome, guid, config, vessels, solves,
-                    guid == activeGuid ? activeRoutes : null),
+                ActiveVesselGuid(snapshot),
+                (centre, guid, isHome) => RouteDelay(backend, centre, isHome, guid, config, vessels, solves),
                 (from, to) => RouteCentreDelay(backend, from, to, config, solves),
                 centre => SecondsToHome(centre, config),
                 centre => ReachesGround(centre, vessels, config));
             capture.Ut = snapshot != null ? snapshot.Ut : 0.0;
-            capture.ActiveRoutes = activeRoutes;
 
             PathSolveBudget.Record(solves.Count, capture.Ut);
             return capture;
@@ -274,7 +268,6 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             _host?.SetActiveVesselDelays(activeVesselRows);
-            (_host as IActiveRouteHost)?.SetActiveVesselRoutes(cap.ActiveRoutes);
             var reach = _host as ICommandReachWriter;
             reach?.SetAuthorityDelays(fleetRows);
             reach?.SetUnroutable(cap.Unroutable);
@@ -320,8 +313,7 @@ namespace Gonogo.KSP.CommandCentres
             string guid,
             SignalDelayConfig? config,
             IList<Vessel> vessels,
-            SolveCounter solves,
-            Dictionary<string, IReadOnlyList<CommsHop>>? routesOut = null)
+            SolveCounter solves)
         {
             var vessel = vessels.FirstOrDefault(v => v != null && v.id.ToString() == guid);
             if (vessel == null)
@@ -343,20 +335,8 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             solves.Count++;
-            var (seconds, route) = FleetCommsReader.ReadNodeRoute(backend, from, to, config);
-            if (routesOut != null && seconds != null)
-            {
-                var hops = ActiveRoute.Hops(route, NodeNamed);
-                if (hops != null)
-                {
-                    routesOut[centre.Id] = hops;
-                }
-            }
-            return seconds;
+            return FleetCommsReader.ReadNodePath(backend, from, to, config);
         }
-
-        private static (string Id, bool IsHome)? NodeNamed(CommsNodeHandle? handle) =>
-            handle?.As<CommNode>() is CommNode node ? (CommNetBackend.NodeId(node), node.isHome) : ((string, bool)?)null;
 
         /// <summary>
         /// A non-ground centre's path home, for the home-command ledger row. A crewed
@@ -499,8 +479,6 @@ namespace Gonogo.KSP.CommandCentres
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
             public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Unroutable =
                 new Dictionary<string, IReadOnlyCollection<string>>();
-            public IReadOnlyDictionary<string, IReadOnlyList<CommsHop>> ActiveRoutes =
-                new Dictionary<string, IReadOnlyList<CommsHop>>();
             public double Ut;
         }
 
