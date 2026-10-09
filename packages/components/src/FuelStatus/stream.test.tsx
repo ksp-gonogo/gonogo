@@ -6,7 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * FuelStatus off the real stream pipeline, with no legacy `DataSource` registered. MonoPropellant, XenonGas and ElectricCharge read vessel totals off `vessel.resources` (wire shape `{ resources: { <name>: { current, max } }, meta }`); LiquidFuel and Oxidizer read stage-scoped channels this file does not feed, so they drop from the list.
+ * FuelStatus off the real stream pipeline, with no `DataSource` registered. MonoPropellant, XenonGas and ElectricCharge read vessel totals off `vessel.resources` (wire shape `{ resources: { <name>: { current, max } }, meta }`); LiquidFuel and Oxidizer read stage-scoped channels this file does not feed, so they drop from the list.
  */
 describe("FuelStatus: genuinely runs off the stream", () => {
   it("reads current stage + vessel-total resources off the real stream pipeline, not legacy", async () => {
@@ -78,7 +78,7 @@ describe("FuelStatus: genuinely runs off the stream", () => {
         totalDvActual: 3900,
         totalBurnTime: 125,
       });
-      // The mod's real StageDeltaVEntry field names, not the legacy `StageInfo` ones.
+      // The mod's real StageDeltaVEntry field names.
       fixture.emit("dv.stages", [
         {
           stage: 1,

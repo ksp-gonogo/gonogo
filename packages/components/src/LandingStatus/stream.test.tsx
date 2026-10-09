@@ -17,7 +17,7 @@ import {
 import { LandingStatusComponent } from "./index";
 
 /**
- * LandingStatus running off the stream through a real `StubTransport` pipeline, with no legacy `DataSource` registered, on a real Mun descent: subscription, carried-channel promotion, body resolution and the DOM render end to end.
+ * LandingStatus running off the stream through a real `StubTransport` pipeline, with no `DataSource` registered, on a real Mun descent: subscription, carried-channel promotion, body resolution and the DOM render end to end.
  * `vessel.orbit` is emitted `{ quality: Quality.Loaded }`, a craft under physics.
  */
 

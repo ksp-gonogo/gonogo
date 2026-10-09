@@ -7,7 +7,7 @@ import { AtmosphereProfileComponent } from "./index";
 
 /**
  * AtmosphereProfile running off the real stream pipeline via `StubTransport`,
- * with no legacy `DataSource` registered: the body resolves through
+ * with no `DataSource` registered: the body resolves through
  * `vessel.identity.parentBodyIndex` against `system.bodies`, and the air
  * readings are raw `vessel.flight` fields.
  */

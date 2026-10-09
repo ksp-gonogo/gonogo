@@ -264,10 +264,10 @@ describe("CrewStatusComponent", () => {
       act(() => evaOnSuit(fixture));
 
       await waitFor(() => expect(screen.getByText("Dose")).toBeInTheDocument());
-      // Named once (the header); the Card holding the contributed meter is still present but no longer repeats the name inside it.
+      // Named once (the header); the Card holding the contributed meter is still present but does not repeat the name inside it.
       expect(screen.getAllByText(/Jebediah Kerman/)).toHaveLength(1);
       const row = screen.getByRole("listitem");
-      // The identity the visible text no longer carries survives on the Card itself, for an accessibility tree with no other text naming it.
+      // The identity the visible text does not carry sits on the Card itself, for an accessibility tree with no other text naming it.
       expect(row).toHaveAccessibleName("Jebediah Kerman");
     });
   });

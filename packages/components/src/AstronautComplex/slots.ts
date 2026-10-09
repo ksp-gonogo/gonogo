@@ -15,9 +15,7 @@ export const ASTRONAUT_COMPLEX_CREW_BADGE_SLOT = "astronaut-complex.crew-badge";
  * of what the tab is FOR, so nothing here names one. The augment that binds it
  * supplies its own `label` (`AugmentDefinition.label`), which becomes the
  * tab's label, and its own content, which becomes the tab's panel; the host
- * draws neither. Renamed from `astronaut-complex.training` (Saga 722/697): the
- * old id named a career-mod's crew-training concept, which stock does not
- * have, and is listed in ui-kit's `RETIRED_SLOT_IDS`.
+ * draws neither.
  */
 export const ASTRONAUT_COMPLEX_TAB_SLOT = "astronaut-complex.tab";
 
