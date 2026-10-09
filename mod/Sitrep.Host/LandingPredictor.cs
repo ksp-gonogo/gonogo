@@ -33,12 +33,24 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Bisection halvings spent on the step that crosses the surface. The
+        /// search interval shrinks to <c>stepSec / 2^RefinementSteps</c>, which
+        /// is well under a millisecond for any sane step, and it is also the
+        /// ceiling on the extra samples one search takes.
+        /// </summary>
+        public const int RefinementSteps = 24;
+
+        /// <summary>
         /// Step from <paramref name="nowUt"/> over <paramref name="horizonSec"/>
         /// at <paramref name="stepSec"/>; the first step whose altitude drops
-        /// below <paramref name="minImpactAltMeters"/> ends the walk, returning
-        /// the PREVIOUS (last above-surface) point's lat/lon. Returns null when
-        /// the parameters are degenerate, or the trajectory never reaches the
-        /// surface within the horizon (still airborne: no touchdown to assess).
+        /// below <paramref name="minImpactAltMeters"/> ends the coarse walk. The
+        /// crossing is then bisected between that step and the one before it
+        /// (<see cref="RefinementSteps"/> halvings), and the last above-surface
+        /// lat/lon found is returned, so the site does not move with where the
+        /// coarse grid happens to start. Returns null when the parameters are
+        /// degenerate, the very first sample is already below the surface, or the
+        /// trajectory never reaches the surface within the horizon (still
+        /// airborne: no touchdown to assess).
         /// </summary>
         public static (double lat, double lon)? FindImpact(
             Func<double, GeoPoint> sampler,
@@ -51,15 +63,41 @@ namespace Sitrep.Host
                 return null;
 
             (double lat, double lon)? last = null;
+            double lastUt = nowUt;
             double endUt = nowUt + horizonSec;
             for (double ut = nowUt; ut <= endUt; ut += stepSec)
             {
                 var g = sampler(ut);
                 if (g.Altitude < minImpactAltMeters)
-                    return last;
+                    return last.HasValue ? Refine(sampler, lastUt, ut, minImpactAltMeters, last.Value) : null;
                 last = (g.Lat, g.Lon);
+                lastUt = ut;
             }
             return null;
+        }
+
+        private static (double lat, double lon) Refine(
+            Func<double, GeoPoint> sampler,
+            double aboveUt,
+            double belowUt,
+            double minImpactAltMeters,
+            (double lat, double lon) above)
+        {
+            for (int i = 0; i < RefinementSteps; i++)
+            {
+                double mid = 0.5 * (aboveUt + belowUt);
+                var g = sampler(mid);
+                if (g.Altitude < minImpactAltMeters)
+                {
+                    belowUt = mid;
+                }
+                else
+                {
+                    aboveUt = mid;
+                    above = (g.Lat, g.Lon);
+                }
+            }
+            return above;
         }
     }
 }

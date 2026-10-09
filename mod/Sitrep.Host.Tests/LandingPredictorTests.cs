@@ -32,6 +32,45 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void TheSiteDoesNotDependOnWhereTheSearchGridStarts()
+        {
+            // The same trajectory searched from successive frame times: the
+            // search grid shifts with nowUt, and the crossing it reports must not.
+            var lons = new System.Collections.Generic.List<double>();
+            for (double now = 0; now < 5.0; now += 0.7)
+            {
+                var hit = LandingPredictor.FindImpact(
+                    ut => new LandingPredictor.GeoPoint(0.5 * ut, 2.0 * ut, 1000.0 - 100.0 * ut),
+                    nowUt: now,
+                    horizonSec: 30,
+                    stepSec: 5);
+                Assert.NotNull(hit);
+                lons.Add(hit!.Value.lon);
+            }
+
+            Assert.True(
+                System.Linq.Enumerable.Max(lons) - System.Linq.Enumerable.Min(lons) < 1e-3,
+                "the reported crossing moved with the grid: " + string.Join(", ", lons));
+        }
+
+        [Fact]
+        public void TheSampleCountStaysBounded()
+        {
+            var calls = 0;
+            LandingPredictor.FindImpact(
+                ut =>
+                {
+                    calls++;
+                    return new LandingPredictor.GeoPoint(0, 0, 1000.0 - 100.0 * ut);
+                },
+                nowUt: 0,
+                horizonSec: 1200,
+                stepSec: 5);
+
+            Assert.True(calls <= 240 + LandingPredictor.RefinementSteps + 1, "samples: " + calls);
+        }
+
+        [Fact]
         public void ReturnsNullWhenStillAirborneAcrossTheHorizon()
         {
             // A shallow descent that never reaches the surface within the horizon.
