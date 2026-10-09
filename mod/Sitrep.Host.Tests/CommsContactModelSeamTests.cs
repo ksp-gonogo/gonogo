@@ -54,7 +54,7 @@ namespace Sitrep.Host.Tests
             public string ProviderId { get; }
             public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public CommsConnectivity Connectivity() => new CommsConnectivity();
-            public CommsSignal SignalStrength() => new CommsSignal();
+            public CommsSignal Signal() => new CommsSignal();
             public CommsControl ControlState() => new CommsControl();
             public CommsPath Path(object? vessel) => new CommsPath();
             public CommsNetwork Network(object? vessel) => new CommsNetwork();

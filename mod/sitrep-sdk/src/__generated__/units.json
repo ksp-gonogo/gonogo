@@ -403,6 +403,7 @@
       "from": "id",
       "fromIsHome": "flag",
       "kind": "enum",
+      "quantity": "enum",
       "strength": "ratio",
       "to": "id",
       "toIsHome": "flag"
@@ -2827,7 +2828,8 @@
       "source": "CommsDelaySource"
     },
     "CommsHop": {
-      "kind": "CommsHopKind"
+      "kind": "CommsHopKind",
+      "quantity": "SignalQuantity"
     },
     "CommsJourneyEvent": {
       "kind": "JourneyEventKind"

@@ -484,7 +484,7 @@ namespace Sitrep.Host.IntegrationTests
 
             public CommsConnectivity Connectivity() => _plain.Connectivity();
 
-            public CommsSignal SignalStrength() => _plain.SignalStrength();
+            public CommsSignal Signal() => _plain.Signal();
 
             public CommsControl ControlState() => _plain.ControlState();
 
@@ -517,7 +517,7 @@ namespace Sitrep.Host.IntegrationTests
                 public Dictionary<string, object?> Describe() => new Dictionary<string, object?> { ["strength"] = _strength };
 
                 public ContactHopFacts FactsAt(double ut, double separationMeters) =>
-                    new ContactHopFacts(_strength, new Dictionary<string, object?> { ["scripted"] = new Dictionary<string, object?> { ["worth"] = _strength } });
+                    new ContactHopFacts(_strength, SignalQuantity.RangeFraction, new Dictionary<string, object?> { ["scripted"] = new Dictionary<string, object?> { ["worth"] = _strength } });
             }
         }
 

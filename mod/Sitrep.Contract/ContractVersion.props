@@ -8,12 +8,11 @@
     Sitrep.Contract.csproj, which stamps them into the assembly, and by
     Sitrep.Contract.Package.csproj, which names them in the release notes. A
     hand-maintained copy would be one more mirror of a number that already has
-    several, and an unchecked mirror is how the app once advertised contract 5.0
-    against a contract at 12.22.
+    several, and an unchecked mirror drifts.
 
-    The regex is nested INSIDE the ReadAllText call deliberately: the file is
-    120KB of doc comments, and storing it in an MSBuild property would hand
-    that text to the property expander. Only the digits ever become a property.
+    The regex is nested INSIDE the ReadAllText call deliberately: storing the
+    file in an MSBuild property would hand its doc comments to the property
+    expander. Only the digits ever become a property.
   -->
   <PropertyGroup>
     <_ContractVersionCs>$(MSBuildThisFileDirectory)ContractVersion.cs</_ContractVersionCs>

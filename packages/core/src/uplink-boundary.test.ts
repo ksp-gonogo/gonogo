@@ -225,20 +225,20 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [],
   },
   principia: {
-    // The Uplink LEFT for gonogo-uplinks and ownedDirs is []: with no owning
-    // directory, ANY mention of the mod outside packages/core's own
-    // carried-topics files is a violation, which is the stronger guard and
-    // the reason this narrows rather than being deleted outright. See the
-    // ContractVersion.cs entry in ALLOWLIST for the record this token still
-    // needs to name.
-    //
-    // This token exists because its absence was a blind spot with teeth. A
-    // ratchet keyed on "mods we already integrate" cannot see coupling
-    // introduced in ANTICIPATION of one we do not, and anticipating is exactly
-    // when core is most tempted to name a mod: TargetApproachElection carried a
-    // public RegisterPrincipiaProvider, PrincipiaProviderId and
-    // PrincipiaPriority for a year without ever being flagged, because no token
-    // looked for the string.
+    /*
+     * The Uplink LEFT for gonogo-uplinks and ownedDirs is []: with no owning
+     * directory, ANY mention of the mod outside packages/core's own
+     * carried-topics files is a violation, which is the stronger guard and
+     * the reason this narrows rather than being deleted outright.
+     *
+     * This token exists because its absence was a blind spot with teeth. A
+     * ratchet keyed on "mods we already integrate" cannot see coupling
+     * introduced in ANTICIPATION of one we do not, and anticipating is exactly
+     * when core is most tempted to name a mod: TargetApproachElection carried a
+     * public RegisterPrincipiaProvider, PrincipiaProviderId and
+     * PrincipiaPriority for a year without ever being flagged, because no token
+     * looked for the string.
+     */
     patterns: [/principia/i],
     ownedDirs: [],
   },

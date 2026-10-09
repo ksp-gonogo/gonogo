@@ -55,14 +55,14 @@ namespace Sitrep.Host.Comms
                 return null;
             }
             var facts = model.FactsAt(ut, separationMeters);
-            if (double.IsNaN(facts.Strength) || double.IsInfinity(facts.Strength))
+            if (double.IsNaN(facts.HopStrength) || double.IsInfinity(facts.HopStrength))
             {
                 // Not a strength at all: the hop has none, where a clamp would call an overflow full strength.
                 return null;
             }
-            return facts.Strength >= 0.0 && facts.Strength <= 1.0
+            return facts.HopStrength >= 0.0 && facts.HopStrength <= 1.0
                 ? facts
-                : new ContactHopFacts(Math.Max(0.0, Math.Min(1.0, facts.Strength)), facts.Extensions);
+                : new ContactHopFacts(Math.Max(0.0, Math.Min(1.0, facts.HopStrength)), facts.Quantity, facts.Extensions);
         }
 
         /// <summary>How many routes other than the earliest have been weighed against it through this object.</summary>
@@ -121,10 +121,10 @@ namespace Sitrep.Host.Comms
         {
             if (!(_maxRangeMeters > 0.0) || !(separationMeters >= 0.0))
             {
-                return new ContactHopFacts(0.0);
+                return new ContactHopFacts(0.0, SignalQuantity.RangeFraction);
             }
             var inside = 1.0 - (separationMeters / _maxRangeMeters);
-            return new ContactHopFacts(inside > 0.0 ? inside * inside * (3.0 - (2.0 * inside)) : 0.0);
+            return new ContactHopFacts(inside > 0.0 ? inside * inside * (3.0 - (2.0 * inside)) : 0.0, SignalQuantity.RangeFraction);
         }
     }
 
@@ -157,7 +157,7 @@ namespace Sitrep.Host.Comms
 
             public double Strength { get; }
 
-            /// <summary>Which quantity <see cref="Strength"/> is: the heard radio's, or <see cref="SignalQuantity.Unknown"/> where a path's strength was worked out before any radio was heard.</summary>
+            /// <summary>Which quantity <see cref="Strength"/> is: the heard radio's where it was measured, and the believed hops' where it was worked out.</summary>
             public SignalQuantity Quantity { get; }
 
             public bool Modelled { get; }
@@ -180,11 +180,26 @@ namespace Sitrep.Host.Comms
             }
             if (believedStrength != null)
             {
-                return new Told(believedStrength.Value, heard?.Quantity ?? SignalQuantity.Unknown, true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
+                return new Told(believedStrength.Value, QuantityOf(believed), true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
             }
             // The radio reported on a path other than the believed one and nothing can be worked out.
             // A figure for another path is not this path's figure, so it is told as what it is.
             return heard == null ? (Told?)null : new Told(heard.Strength, heard.Quantity, false, heard.Degrade, heard.Hops);
+        }
+
+        /// <summary>The quantity every hop of a worked-out path was stated in, or <see cref="SignalQuantity.Unknown"/> where they differ or one states none.</summary>
+        private static SignalQuantity QuantityOf(CommsPath believed)
+        {
+            SignalQuantity? common = null;
+            foreach (var hop in believed.Hops)
+            {
+                if (hop.Quantity == null || (common != null && common != hop.Quantity))
+                {
+                    return SignalQuantity.Unknown;
+                }
+                common = hop.Quantity;
+            }
+            return common ?? SignalQuantity.Unknown;
         }
 
         private static bool SamePath(CommsPath believed, ContactRadio heard)

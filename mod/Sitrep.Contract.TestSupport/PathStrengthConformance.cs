@@ -88,7 +88,7 @@ namespace Sitrep.Contract.TestSupport
             for (var i = 0; i <= samples; i++)
             {
                 var separation = farthestMeters * i / samples;
-                first[i] = link.FactsAt(ut, separation).Strength;
+                first[i] = link.FactsAt(ut, separation).HopStrength;
                 Assert.True(
                     first[i] >= 0.0 && first[i] <= 1.0,
                     name + ".FactsAt(" + separation + " m) has strength " + first[i] + ". A strength runs "
@@ -99,7 +99,7 @@ namespace Sitrep.Contract.TestSupport
             for (var i = samples; i >= 0; i--)
             {
                 var separation = farthestMeters * i / samples;
-                var again = link.FactsAt(ut, separation).Strength;
+                var again = link.FactsAt(ut, separation).HopStrength;
                 Assert.True(
                     again.Equals(first[i]),
                     name + ".FactsAt(" + separation + " m) gave " + first[i] + " and then " + again + ". A link "

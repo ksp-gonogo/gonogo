@@ -93,14 +93,16 @@ namespace Sitrep.Contract
     /// <para><b>Derived values.</b> A derived value is never reckonable beyond what its inputs support.
     /// Reckonable inputs are necessary but not sufficient, because deriving then
     /// advancing is not in general the same as advancing then deriving. An input
-    /// that never changes (a catalogue, an identity) limits nothing.</para>
+    /// that never changes (a catalogue, an identity) limits nothing. So where an
+    /// input from another Topic is itself marked, the build requires the value's
+    /// basis to be one that input is carried by.</para>
     ///
+    /// <para><see cref="ReckoningBases.Combination"/> is never declared here: the build rejects it.</para>
     /// <internal>
-    /// Nothing enforces the composition rule mechanically: it needs a machine-readable verdict on
-    /// "does this input move, and is it unmodelled", and the only classification in
-    /// the tree is the SDK's <c>NEVER_RECKONABLE</c>, whose groups are comment-only.
-    /// Splitting that list is the prerequisite, and it is a TS-side change, so the
-    /// check cannot live here without a cross-language ratchet.
+    /// The check is ReckonabilityAssertion's, and it sees only marks. An input that
+    /// moves and declares no model is held as observed and passes, since telling a
+    /// rate a model assumes steady from an unmodelled quantity needs a verdict the
+    /// contract does not record.
     /// </internal>
     /// </summary>
     /// <category>Propagation and models</category>

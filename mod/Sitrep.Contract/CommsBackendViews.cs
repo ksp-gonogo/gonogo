@@ -209,14 +209,14 @@ public readonly struct CommsLinkState
     /// <summary>A link state.</summary>
     /// <param name="connected">Whether the backend resolved a control path home.</param>
     /// <param name="grade">The control the link affords.</param>
-    /// <param name="signalStrength">The backend's own signal strength, 0 to 1.</param>
-    /// <param name="signalQuantity">Which quantity <paramref name="signalStrength"/> is.</param>
-    public CommsLinkState(bool connected, CommsControlGrade grade, double signalStrength, SignalQuantity signalQuantity)
+    /// <param name="pathStrength">The backend's own strength for the whole path home, 0 to 1.</param>
+    /// <param name="quantity">Which quantity <paramref name="pathStrength"/> is.</param>
+    public CommsLinkState(bool connected, CommsControlGrade grade, double pathStrength, SignalQuantity quantity)
     {
         Connected = connected;
         Grade = grade;
-        SignalStrength = signalStrength;
-        SignalQuantity = signalQuantity;
+        PathStrength = pathStrength;
+        Quantity = quantity;
     }
 
     /// <summary>Whether the backend's own gates resolved a control path home.</summary>
@@ -226,15 +226,15 @@ public readonly struct CommsLinkState
     public CommsControlGrade Grade { get; }
 
     /// <summary>
-    /// The backend's own signal strength, 0 to 1, published unchanged on
-    /// <see cref="CommsSignal"/>. Its meaning depends on the backend: under
-    /// stock CommNet it is a range fraction, under RealAntennas a fraction of
-    /// data-rate headroom.
+    /// The backend's own strength for the whole path home, 0 to 1, published
+    /// unchanged on <see cref="CommsSignal"/>. <see cref="Quantity"/> says what
+    /// it measures: under stock CommNet a range fraction, under RealAntennas a
+    /// fraction of data-rate headroom.
     /// </summary>
-    public double SignalStrength { get; }
+    public double PathStrength { get; }
 
-    /// <summary>Which quantity <see cref="SignalStrength"/> is: a backend names its own, since a fraction of range and a fraction of data-rate headroom are different figures.</summary>
-    public SignalQuantity SignalQuantity { get; }
+    /// <summary>Which quantity <see cref="PathStrength"/> is: a backend names its own, since a fraction of range and a fraction of data-rate headroom are different figures.</summary>
+    public SignalQuantity Quantity { get; }
 }
 
 /// <summary>

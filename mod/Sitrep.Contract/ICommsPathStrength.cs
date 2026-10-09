@@ -65,22 +65,27 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// What a backend says of one hop at one separation: how strong the link
-    /// is, and whatever else it knows of the hop.
+    /// is, which quantity that strength is, and whatever else it knows of the hop.
     /// </summary>
     /// <category>Comms models</category>
     public readonly struct ContactHopFacts
     {
         /// <summary>Makes the facts of one hop.</summary>
-        /// <param name="strength">The link's strength, from 0 to 1, in the backend's own meaning.</param>
+        /// <param name="hopStrength">The hop's strength, from 0 to 1.</param>
+        /// <param name="quantity">Which quantity <paramref name="hopStrength"/> is.</param>
         /// <param name="extensions">The backend's own facts about the hop, in the shape <see cref="CommsHop.Extensions"/> carries, or <c>null</c> for none.</param>
-        public ContactHopFacts(double strength, Dictionary<string, object?>? extensions = null)
+        public ContactHopFacts(double hopStrength, SignalQuantity quantity, Dictionary<string, object?>? extensions = null)
         {
-            Strength = strength;
+            HopStrength = hopStrength;
+            Quantity = quantity;
             Extensions = extensions;
         }
 
-        /// <summary>The link's strength, from 0 (nothing) to 1 (full), in the backend's own meaning.</summary>
-        public double Strength { get; }
+        /// <summary>This one hop's strength, from 0 (nothing) to 1 (full), published as <see cref="CommsHop.Strength"/>.</summary>
+        public double HopStrength { get; }
+
+        /// <summary>Which quantity <see cref="HopStrength"/> is, published as <see cref="CommsHop.Quantity"/>.</summary>
+        public SignalQuantity Quantity { get; }
 
         /// <summary>The backend's own facts about the hop, in the shape <see cref="CommsHop.Extensions"/> carries, or <c>null</c> for none.</summary>
         public Dictionary<string, object?>? Extensions { get; }

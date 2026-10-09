@@ -173,7 +173,7 @@ namespace Sitrep.Host.Comms
         /// that needs to know this is not a grading has
         /// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>.</para>
         /// </summary>
-        public CommsSignal SignalStrength() => new CommsSignal
+        public CommsSignal Signal() => new CommsSignal
         {
             Strength = 1.0,
             Quantity = SignalQuantity.NoModel,

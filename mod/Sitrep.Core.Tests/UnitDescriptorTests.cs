@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Sitrep.Contract;
@@ -289,19 +290,64 @@ namespace Sitrep.Core.Tests
             Assert.Contains(named, ex.Message);
         }
 
+        /// <summary>
+        /// Every property of <see cref="UnitDescriptor.Maps"/> reaches the JSON.
+        /// Each is filled with an entry keyed on its own name, so a map added to
+        /// the type and not written by <c>ToJson</c> leaves its key out and fails
+        /// here by name, with nothing to keep in step by hand.
+        /// </summary>
         [Fact]
-        public void WritesEveryMapCollectReflects()
+        public void WritesEveryMapTheTypeDeclares()
         {
-            var json = UnitDescriptor.ToJson();
-
-            foreach (var key in new[]
+            var maps = new UnitDescriptor.Maps();
+            var properties = typeof(UnitDescriptor.Maps).GetProperties();
+            foreach (var property in properties)
             {
-                "types", "topics", "typeShapes", "topicShapes", "typeEnums", "topicEnums",
-                "enumMembers", "typeStatic", "topicStatic", "typeDeterministicWhile",
-            })
-            {
-                Assert.Contains("\"" + key + "\": {", json);
+                property.SetValue(maps, Probe(property.PropertyType, "Probe" + property.Name));
             }
+
+            var json = UnitDescriptor.ToJson(maps);
+
+            Assert.True(properties.Length >= 11, "Maps declares " + properties.Length + " properties; the probe found too few to mean anything");
+            var missing = properties.Where(p => !json.Contains("\"Probe" + p.Name + "\"", StringComparison.Ordinal)).Select(p => p.Name).ToList();
+            Assert.True(missing.Count == 0, "UnitDescriptor.ToJson does not write: " + string.Join(", ", missing));
+        }
+
+        /// <summary>
+        /// A collection of <paramref name="type"/> holding one entry under
+        /// <paramref name="key"/>, with one inner entry where the value is
+        /// itself a collection.
+        /// </summary>
+        private static object Probe(Type type, string key)
+        {
+            var collection = Activator.CreateInstance(type)!;
+            var add = type.GetMethods().Single(m => m.Name == "Add" && m.DeclaringType == type);
+            var parameters = add.GetParameters();
+            if (parameters.Length == 1)
+            {
+                add.Invoke(collection, new object[] { key });
+                return collection;
+            }
+
+            add.Invoke(collection, new[] { key, InnerProbe(parameters[1].ParameterType) });
+            return collection;
+        }
+
+        private static object InnerProbe(Type valueType)
+        {
+            if (valueType == typeof(SortedSet<string>))
+            {
+                return new SortedSet<string> { "probeField" };
+            }
+            if (valueType == typeof(SortedDictionary<string, string>))
+            {
+                return new SortedDictionary<string, string> { ["probeField"] = "probeValue" };
+            }
+            if (valueType == typeof(SortedDictionary<long, string>))
+            {
+                return new SortedDictionary<long, string> { [1] = "probeMember" };
+            }
+            throw new InvalidOperationException("No probe for a map of " + valueType.Name + ": teach this test the new shape");
         }
 
         [Fact]

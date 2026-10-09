@@ -30,9 +30,8 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>Comment lines are exempt.</b> A relocation's own PROVENANCE
     /// record legitimately names the mod it moved out (see
-    /// <c>ContractVersion.cs</c>'s Minor-history doc-comment, or
     /// <c>RtConfig.cs</c>'s "moved OUT of core into
-    /// GonogoMechJebUplink.Contract" comment): historical prose, not a type
+    /// GonogoMechJebUplink.Contract" comment): prose, not a type
     /// declaration or a live reference. A pure text scan would flag those and
     /// force a choice between an honest changelog and a green gate; this
     /// scan strips <c>//</c>/<c>///</c>-prefixed lines before matching, so

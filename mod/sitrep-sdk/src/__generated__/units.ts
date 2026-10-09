@@ -443,6 +443,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     from: "id",
     fromIsHome: "flag",
     kind: "enum",
+    quantity: "enum",
     strength: "ratio",
     to: "id",
     toIsHome: "flag",
@@ -2913,6 +2914,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "CommsHop": {
     kind: "CommsHopKind",
+    quantity: "SignalQuantity",
   },
   "CommsJourneyEvent": {
     kind: "JourneyEventKind",

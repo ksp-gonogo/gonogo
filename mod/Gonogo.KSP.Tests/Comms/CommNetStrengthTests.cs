@@ -13,7 +13,7 @@ namespace Gonogo.KSP.Tests.Comms
         [Fact]
         public void ALinkHalfWayToTheEdgeOfItsRangeIsAtHalfStrength()
         {
-            Assert.Equal(0.5, CommNetStrength.For(2_000_000.0)!.FactsAt(0.0, 1_000_000.0).Strength, 9);
+            Assert.Equal(0.5, CommNetStrength.For(2_000_000.0)!.FactsAt(0.0, 1_000_000.0).HopStrength, 9);
         }
 
         [Fact]
@@ -26,7 +26,7 @@ namespace Gonogo.KSP.Tests.Comms
         [Fact]
         public void APairThatReachesNothingIsAtNoStrength()
         {
-            Assert.Equal(0.0, CommNetStrength.For(0.0)!.FactsAt(0.0, 10.0).Strength);
+            Assert.Equal(0.0, CommNetStrength.For(0.0)!.FactsAt(0.0, 10.0).HopStrength);
         }
 
         [Fact]

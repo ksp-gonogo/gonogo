@@ -52,6 +52,18 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void ARefusalCarriesNoStateNoBodyAndNoInstants()
+        {
+            var refused = DelayedObservation.Refused(DelayedStateRefusal.NothingArrived, "nothing yet");
+
+            Assert.Null(refused.State);
+            Assert.Null(refused.CentreBodyIndex);
+            Assert.Null(refused.ObservedAtUt);
+            Assert.Null(refused.ViewUt);
+            Assert.Null(refused.AgeSeconds);
+        }
+
+        [Fact]
         public void ANearerVantageSeesWhatADistantOneCannot()
         {
             // Same archive, same instant, two observers. The whole architecture in one
@@ -167,8 +179,8 @@ namespace Sitrep.Core.Tests
 
             var observed = DelayedStateReader.Read(archive, "vessel.orbit", "ksc", 0, 200, AsState);
 
-            Assert.Equal(3.0, observed.State.Position.X);
-            Assert.Equal(3.0, observed.State.Velocity.Y);
+            Assert.Equal(3.0, observed.State!.Value.Position.X);
+            Assert.Equal(3.0, observed.State!.Value.Velocity.Y);
             Assert.Equal(1, observed.CentreBodyIndex);
         }
     }

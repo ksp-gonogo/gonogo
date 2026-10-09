@@ -54,10 +54,10 @@ namespace Sitrep.Contract
     {
         private DelayedObservation(
             bool established,
-            StateVector state,
-            int centreBodyIndex,
-            double observedAtUt,
-            double viewUt,
+            StateVector? state,
+            int? centreBodyIndex,
+            double? observedAtUt,
+            double? viewUt,
             DelayedStateRefusal refusal,
             string? reason)
         {
@@ -71,37 +71,37 @@ namespace Sitrep.Contract
         }
 
         /// <summary>True when a state was established; false on a refusal, when
-        /// <see cref="Refusal"/> and <see cref="Reason"/> say why and the other
-        /// fields carry no data.</summary>
+        /// <see cref="Refusal"/> and <see cref="Reason"/> say why and every other
+        /// field is null.</summary>
         public bool Established { get; }
 
         /// <summary>Position and velocity relative to <see
-        /// cref="CentreBodyIndex"/>. The default value on a refusal.</summary>
-        public StateVector State { get; }
+        /// cref="CentreBodyIndex"/>. Null on a refusal.</summary>
+        public StateVector? State { get; }
 
         /// <summary>The <c>system.bodies</c> index of the body <see cref="State"/>
-        /// is expressed about; -1 on a refusal.</summary>
-        public int CentreBodyIndex { get; }
+        /// is expressed about. Null on a refusal.</summary>
+        public int? CentreBodyIndex { get; }
 
         /// <summary>
         /// When this state was true (UT seconds), taken from the sample itself. A
         /// propagation seeded here must integrate from this instant, not from
-        /// <see cref="ViewUt"/>. NaN on a refusal.
+        /// <see cref="ViewUt"/>. Null on a refusal.
         /// </summary>
-        public double ObservedAtUt { get; }
+        public double? ObservedAtUt { get; }
 
         /// <summary>
         /// The instant the vantage is currently seeing (UT seconds). Always at or
         /// after <see cref="ObservedAtUt"/>: the gap is how long the newest
-        /// arrived state has been held, which an operator wants shown. NaN on a
+        /// arrived state has been held, which an operator wants shown. Null on a
         /// refusal.
         /// </summary>
-        public double ViewUt { get; }
+        public double? ViewUt { get; }
 
         /// <summary>How long, in seconds, this state has been the newest thing the
         /// vantage has: <see cref="ViewUt"/> minus <see cref="ObservedAtUt"/>.
-        /// NaN on a refusal.</summary>
-        public double AgeSeconds => ViewUt - ObservedAtUt;
+        /// Null on a refusal.</summary>
+        public double? AgeSeconds => ViewUt - ObservedAtUt;
 
         /// <summary>Why no state was established; <see cref="DelayedStateRefusal.None"/>
         /// when <see cref="Established"/> is true.</summary>
@@ -115,10 +115,10 @@ namespace Sitrep.Contract
         /// established.</summary>
         /// <param name="refusal">Which kind of refusal this is.</param>
         /// <param name="reason">A human-readable explanation.</param>
-        /// <returns>An observation with <see cref="Established"/> false, <see
-        /// cref="CentreBodyIndex"/> -1 and NaN instants.</returns>
+        /// <returns>An observation with <see cref="Established"/> false and every
+        /// field but the refusal null.</returns>
         public static DelayedObservation Refused(DelayedStateRefusal refusal, string reason) =>
-            new DelayedObservation(false, default, -1, double.NaN, double.NaN, refusal, reason);
+            new DelayedObservation(false, null, null, null, null, refusal, reason);
 
         /// <summary>
         /// Establish an observation. Returns a

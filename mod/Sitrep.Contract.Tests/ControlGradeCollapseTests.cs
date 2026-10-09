@@ -58,7 +58,7 @@ namespace Sitrep.Contract.Tests
         [Fact]
         public void TheSignalCarriesTheQuantityTheBackendReportsItIn()
         {
-            var signal = new GradedBackend(CommsControlGrade.Full).SignalStrength();
+            var signal = new GradedBackend(CommsControlGrade.Full).Signal();
 
             Assert.Equal(1.0, signal.Strength);
             Assert.Equal(SignalQuantity.RangeFraction, signal.Quantity);
@@ -67,7 +67,7 @@ namespace Sitrep.Contract.Tests
         [Fact]
         public void AnUnreadableLinkIsAZeroOfUnknownQuantity()
         {
-            var signal = new UnreadableBackend().SignalStrength();
+            var signal = new UnreadableBackend().Signal();
 
             Assert.Equal(0.0, signal.Strength);
             Assert.Equal(SignalQuantity.Unknown, signal.Quantity);

@@ -7,7 +7,7 @@
   "version": "0.0.1",
   "minAppVersion": "0.0.0",
   "apiVersion": "6.0.0",
-  "contractMajor": 33,
+  "contractMajor": 34,
   "contractMinor": 0,
   "bundleUrl": "breakingGround/breakingGround.client.js",
   "integrity": "",

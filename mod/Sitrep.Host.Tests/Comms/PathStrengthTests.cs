@@ -36,7 +36,7 @@ namespace Sitrep.Host.Tests.Comms
             public ContactHopFacts FactsAt(double ut, double separationMeters)
             {
                 AskedAtMeters = separationMeters;
-                return new ContactHopFacts(_strength, _extensions);
+                return new ContactHopFacts(_strength, SignalQuantity.DataRateHeadroom, _extensions);
             }
         }
 
@@ -53,7 +53,7 @@ namespace Sitrep.Host.Tests.Comms
         [InlineData(2000.0, 0.0)]
         public void StockStrengthIsTheSmoothStepOfHowFarInsideItsRangeThePairIs(double separation, double strength)
         {
-            Assert.Equal(strength, new RangeCurveStrength(1000.0).FactsAt(0.0, separation).Strength, 9);
+            Assert.Equal(strength, new RangeCurveStrength(1000.0).FactsAt(0.0, separation).HopStrength, 9);
         }
 
         [Fact]
@@ -65,8 +65,8 @@ namespace Sitrep.Host.Tests.Comms
         [Fact]
         public void APairWithNoRangeHasNoStrength()
         {
-            Assert.Equal(0.0, new RangeCurveStrength(0.0).FactsAt(0.0, 10.0).Strength);
-            Assert.Equal(0.0, new RangeCurveStrength(double.NaN).FactsAt(0.0, 10.0).Strength);
+            Assert.Equal(0.0, new RangeCurveStrength(0.0).FactsAt(0.0, 10.0).HopStrength);
+            Assert.Equal(0.0, new RangeCurveStrength(double.NaN).FactsAt(0.0, 10.0).HopStrength);
         }
 
         [Fact]
@@ -76,12 +76,13 @@ namespace Sitrep.Host.Tests.Comms
             var strengths = new PathStrengths(new[] { Craft("vessel:probe", ("ground:ksc", model)) }, null);
 
             var outward = strengths.FactsOf("vessel:probe", "ground:ksc", 5.0, 123.0);
-            Assert.Equal(0.7, outward!.Value.Strength);
+            Assert.Equal(0.7, outward!.Value.HopStrength);
+            Assert.Equal(SignalQuantity.DataRateHeadroom, outward.Value.Quantity);
             Assert.Equal(123.0, model.AskedAtMeters);
             Assert.NotNull(outward.Value.Extensions);
 
             // A ground station says nothing of its own, so the hop is read from the craft's end whichever way it is asked.
-            Assert.Equal(0.7, strengths.FactsOf("ground:ksc", "vessel:probe", 5.0, 9.0)!.Value.Strength);
+            Assert.Equal(0.7, strengths.FactsOf("ground:ksc", "vessel:probe", 5.0, 9.0)!.Value.HopStrength);
         }
 
         [Fact]
@@ -128,16 +129,33 @@ namespace Sitrep.Host.Tests.Comms
             hops.Select(h => new RadioHop(h.From, h.To, false)).ToArray(),
             quantity);
 
-        [Fact]
-        public void TheCentreIsToldWhichQuantityTheStrengthIsAndAWorkedOutOneTakesTheRadiosQuantity()
+        private static CommsPath BelievedIn(params (string From, string To, SignalQuantity? Quantity)[] hops) => new CommsPath
         {
-            var measured = CentreSignal.For(Believed(("probe", "KSC")), 0.6, HeardAs(SignalQuantity.DataRateHeadroom, 0.9, true, ("probe", "KSC")));
-            var modelled = CentreSignal.For(Believed(("probe", "Crater Rim")), 0.6, HeardAs(SignalQuantity.DataRateHeadroom, 0.9, true, ("probe", "KSC")));
-            var unheard = CentreSignal.For(Believed(("probe", "KSC")), 0.6, null);
+            Hops = hops.Select(h => new CommsHop { From = h.From, To = h.To, Strength = h.Quantity == null ? null : 0.6, Quantity = h.Quantity }).ToList(),
+        };
+
+        [Fact]
+        public void AMeasuredStrengthIsInTheRadiosQuantityAndAWorkedOutOneInItsHops()
+        {
+            var measured = CentreSignal.For(BelievedIn(("probe", "KSC", SignalQuantity.RangeFraction)), 0.6, HeardAs(SignalQuantity.DataRateHeadroom, 0.9, true, ("probe", "KSC")));
+            var modelled = CentreSignal.For(BelievedIn(("probe", "Crater Rim", SignalQuantity.RangeFraction)), 0.6, HeardAs(SignalQuantity.DataRateHeadroom, 0.9, true, ("probe", "KSC")));
+            var unheard = CentreSignal.For(BelievedIn(("probe", "KSC", SignalQuantity.DataRateHeadroom)), 0.6, null);
 
             Assert.Equal(SignalQuantity.DataRateHeadroom, measured!.Value.Quantity);
-            Assert.Equal(SignalQuantity.DataRateHeadroom, modelled!.Value.Quantity);
-            Assert.Equal(SignalQuantity.Unknown, unheard!.Value.Quantity);
+            Assert.Equal(SignalQuantity.RangeFraction, modelled!.Value.Quantity);
+            Assert.Equal(SignalQuantity.DataRateHeadroom, unheard!.Value.Quantity);
+        }
+
+        [Fact]
+        public void AWorkedOutStrengthOverHopsOfDifferentQuantitiesSaysNotWhich()
+        {
+            var mixed = CentreSignal.For(
+                BelievedIn(("probe", "relay", SignalQuantity.RangeFraction), ("relay", "KSC", SignalQuantity.DataRateHeadroom)), 0.6, null);
+            var unstated = CentreSignal.For(
+                BelievedIn(("probe", "relay", SignalQuantity.RangeFraction), ("relay", "KSC", null)), 0.6, null);
+
+            Assert.Equal(SignalQuantity.Unknown, mixed!.Value.Quantity);
+            Assert.Equal(SignalQuantity.Unknown, unstated!.Value.Quantity);
         }
 
         [Fact]
@@ -222,8 +240,8 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Null(With(double.NaN).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0));
             Assert.Null(With(double.PositiveInfinity).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0));
             Assert.Null(With(double.NegativeInfinity).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0));
-            Assert.Equal(1.0, With(1.7).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0)!.Value.Strength);
-            Assert.Equal(0.0, With(-0.2).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0)!.Value.Strength);
+            Assert.Equal(1.0, With(1.7).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0)!.Value.HopStrength);
+            Assert.Equal(0.0, With(-0.2).FactsOf("vessel:probe", "ground:ksc", 0.0, 1.0)!.Value.HopStrength);
         }
 
         [Fact]

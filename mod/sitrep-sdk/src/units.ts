@@ -175,7 +175,7 @@ export function registerTopicUnits(
  * `scansat.scanningVessels` is the case that forced it (the fourth relocation,
  * the first with nesting): its `sensors` field holds `ScanSensorEntry[]`, whose
  * its minimum, maximum and best altitude and field of view are the deepest declared quantities on the
- * SCANsat surface, and `trackColor` holds a `ScanTrackColor`. Registering only
+ * SCANsat surface, and `trackColor` holds a nested colour shape. Registering only
  * the topic would hydrate the vessel's own latitude/longitude/altitude and
  * silently drop every sensor altitude.
  *

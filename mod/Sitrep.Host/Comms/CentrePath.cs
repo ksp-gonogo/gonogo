@@ -130,7 +130,8 @@ namespace Sitrep.Host.Comms
                     Kind = fromHome || toHome ? CommsHopKind.Home : CommsHopKind.Relay,
                     // Where the receiver will be when the light lands, which is the length the light crosses.
                     DistanceMeters = hop.DistanceMeters,
-                    Strength = facts?.Strength,
+                    Strength = facts?.HopStrength,
+                    Quantity = facts?.Quantity,
                     Extensions = facts?.Extensions,
                 });
                 nodes.Add(Node(hop.To, ground, nameOf));
@@ -196,7 +197,7 @@ namespace Sitrep.Host.Comms
             var hops = new List<double?>(route.Hops.Count);
             foreach (var hop in route.Hops)
             {
-                hops.Add(strengths.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters)?.Strength);
+                hops.Add(strengths.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters)?.HopStrength);
             }
             return strengths.Of(hops);
         }

@@ -311,7 +311,7 @@ namespace Gonogo.KSP.Tests.Comms
                 HasLocalControl = false,
             };
 
-            public CommsSignal SignalStrength() => new CommsSignal { Strength = 0.0 };
+            public CommsSignal Signal() => new CommsSignal { Strength = 0.0 };
 
             public CommsControl ControlState() => new CommsControl
             {

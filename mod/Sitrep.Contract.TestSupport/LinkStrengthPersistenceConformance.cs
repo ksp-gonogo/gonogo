@@ -48,8 +48,11 @@ namespace Sitrep.Contract.TestSupport
                 var was = sample.FactsAt(0.0, separation);
                 var now = rebuilt!.FactsAt(0.0, separation);
                 Assert.True(
-                    was.Strength.Equals(now.Strength),
-                    name + ": a rebuilt model's strength at " + separation + " m was " + now.Strength + " and the original's " + was.Strength + ".");
+                    was.HopStrength.Equals(now.HopStrength),
+                    name + ": a rebuilt model's strength at " + separation + " m was " + now.HopStrength + " and the original's " + was.HopStrength + ".");
+                Assert.True(
+                    was.Quantity == now.Quantity,
+                    name + ": a rebuilt model states its strength as " + now.Quantity + " where the original stated " + was.Quantity + ".");
                 Assert.True(
                     Same(was.Extensions, now.Extensions),
                     name + ": a rebuilt model's extensions at " + separation + " m differ from the original's.");

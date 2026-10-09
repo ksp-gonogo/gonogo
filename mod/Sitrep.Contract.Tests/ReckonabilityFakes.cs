@@ -165,5 +165,37 @@ namespace Sitrep.Contract.Tests
 
             public double Rate { get; set; }
         }
+
+        /// <summary>
+        /// A value derived from a Topic whose own values one model carries, declared
+        /// under a different model: claims more than its input supports.
+        /// </summary>
+        [SitrepContract]
+        [SitrepTopic("fake.derived-under-another-model")]
+        public class DerivedUnderAnotherModel
+        {
+            [SitrepReckonable(ReckoningBases.RateIntegration, "@fake.resolvable")]
+            public double Range { get; set; }
+        }
+
+        /// <summary>The clean arm of the composition rule: derived under the model its input field is carried by.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.derived-under-the-same-model")]
+        public class DerivedUnderTheSameModel
+        {
+            [SitrepReckonable(ReckoningBases.KeplerPropagation, "@fake.resolvable#range", "@fake.resolvable#epoch")]
+            public double Range { get; set; }
+        }
+
+        /// <summary>A contract field declaring the SDK's client-side basis.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.combination")]
+        public class CombinationDeclared
+        {
+            [SitrepReckonable(ReckoningBases.Combination, "epoch")]
+            public double Range { get; set; }
+
+            public double Epoch { get; set; }
+        }
     }
 }

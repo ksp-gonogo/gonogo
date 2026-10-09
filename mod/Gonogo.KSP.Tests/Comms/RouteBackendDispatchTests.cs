@@ -69,7 +69,7 @@ namespace Gonogo.KSP.Tests.Comms
             }
 
             public CommsConnectivity Connectivity() => throw new NotSupportedException();
-            public CommsSignal SignalStrength() => throw new NotSupportedException();
+            public CommsSignal Signal() => throw new NotSupportedException();
             public CommsControl ControlState() => throw new NotSupportedException();
             public CommsPath Path(object? vessel) => throw new NotSupportedException();
             public CommsNetwork Network(object? vessel) => throw new NotSupportedException();

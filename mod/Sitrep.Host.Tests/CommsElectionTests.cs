@@ -31,7 +31,7 @@ namespace Sitrep.Host.Tests
 
             public string ProviderId { get; }
             public CommsConnectivity Connectivity() => new CommsConnectivity();
-            public CommsSignal SignalStrength() => new CommsSignal();
+            public CommsSignal Signal() => new CommsSignal();
             public CommsControl ControlState() => new CommsControl();
             public CommsPath Path(object? vessel) => new CommsPath();
             public CommsNetwork Network(object? vessel) => new CommsNetwork();
@@ -179,7 +179,7 @@ namespace Sitrep.Host.Tests
             // The minimal ICommsBackend shape both backends honour (§6): the
             // shared core comms registration reads exactly these.
             Assert.NotNull(backend.Connectivity());
-            Assert.NotNull(backend.SignalStrength());
+            Assert.NotNull(backend.Signal());
             Assert.NotNull(backend.ControlState());
             Assert.NotNull(backend.Path(null));
             Assert.NotNull(backend.Network(null));

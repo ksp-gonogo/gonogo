@@ -26,9 +26,7 @@ namespace Sitrep.Contract;
 /// Published raw: the producer builds this POCO and the publisher hands the
 /// list straight over, so each element is written by JsonWriter's own
 /// AppendCommandCentreEntry. Published by Sitrep.Host.Comms.ContactPlanSource
-/// through CentreRoster. It was one list held at home, which told every ground
-/// centre of a new vessel centre the instant the game had one (Saga 782
-/// subtask 100).
+/// through CentreRoster, one roster per receiving centre.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -228,11 +226,10 @@ public class CentreSeparationEntry
 /// has arrived. Every ground station is the home centre's own antenna, so home
 /// is as far from a vessel as its nearest station is.</para>
 /// <internal>
-/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreFigures. What
-/// schedules traffic between vantages is the engine's delay LEDGER, written by
-/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> from the game's
-/// own links, and is not this. One list held at home named a new vessel centre
-/// to every ground centre at once (Saga 782 subtask 103).
+/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreFigures.
+/// Traffic between vantages is scheduled by the delay
+/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> write from the
+/// game's own links, not by this.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>

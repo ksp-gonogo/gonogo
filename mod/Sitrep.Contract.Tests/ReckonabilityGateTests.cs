@@ -273,6 +273,7 @@ namespace Sitrep.Contract.Tests
             // inputs, is what AltitudeAsl ships. A gate that reported a problem here
             // would make a second model undeclarable.
             Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.TwoModels), payloads, bases));
+            Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.DerivedUnderTheSameModel), payloads, bases));
 
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.DanglingSameTopicInput), "noSuchField", payloads, bases);
@@ -294,6 +295,10 @@ namespace Sitrep.Contract.Tests
                 typeof(ReckonabilityFakes.NoInputs), "no declared inputs", payloads, bases);
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.DuplicateInput), "declared 2 times", payloads, bases);
+            AssertOneProblemMentioning(
+                typeof(ReckonabilityFakes.DerivedUnderAnotherModel), "not by rate-integration", payloads, bases);
+            AssertOneProblemMentioning(
+                typeof(ReckonabilityFakes.CombinationDeclared), "the SDK's own", payloads, bases);
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.DuplicateBasis), "the same basis is declared 2 times",
                 payloads, bases);

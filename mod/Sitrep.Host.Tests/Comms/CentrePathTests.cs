@@ -83,7 +83,7 @@ namespace Sitrep.Host.Tests.Comms
             public Flat(double strength) => _strength = strength;
 
             public ContactHopFacts FactsAt(double ut, double separationMeters) =>
-                new ContactHopFacts(_strength, new System.Collections.Generic.Dictionary<string, object?> { ["test"] = _strength });
+                new ContactHopFacts(_strength, SignalQuantity.RangeFraction, new System.Collections.Generic.Dictionary<string, object?> { ["test"] = _strength });
         }
 
         private static readonly OrbitElements AnOrbit = new OrbitElements(700_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.5316e12);
@@ -107,6 +107,7 @@ namespace Sitrep.Host.Tests.Comms
                 Heard((Probe, Relay, 0.9), (Relay, Forward, 0.6)));
 
             Assert.Equal(new double?[] { 0.9, 0.6 }, view.Path.Hops.Select(h => h.Strength).ToArray());
+            Assert.All(view.Path.Hops, h => Assert.Equal(SignalQuantity.RangeFraction, h.Quantity));
             Assert.All(view.Path.Hops, h => Assert.NotNull(h.Extensions));
             Assert.Equal(0.6, view.Strength!.Value, 9);
         }
@@ -119,6 +120,7 @@ namespace Sitrep.Host.Tests.Comms
             var view = CentrePath.For(plan, Probe, Ksc, true, Stations, Name, 10.0);
 
             Assert.Null(view.Path.Hops.Single().Strength);
+            Assert.Null(view.Path.Hops.Single().Quantity);
             Assert.Null(view.Strength);
         }
 

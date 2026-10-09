@@ -193,9 +193,9 @@ public class TargetListEntry
 /// Assembled by Sitrep.Host.Comms.ContactPlanSource from CraftKnowledge. The
 /// game's own list (every vessel, as it stands this instant) is read only for
 /// which vessels are in range, for parts and bodies, and for which entry is
-/// the current target. It was published whole, which named every vessel in
-/// the game to every centre at the active vessel's light-time (Saga 102).
-/// The command centre is taken to be the home centre.
+/// the current target. Published whole, it would name every vessel in the
+/// game to every centre at the active vessel's light-time. The command centre
+/// is taken to be the home centre.
 /// </internal>
 /// </summary>
 /// <category>Orbits and trajectories</category>

@@ -28,7 +28,7 @@ namespace Sitrep.Host.Tests.Comms
             public Dictionary<string, object?> Describe() => new Dictionary<string, object?> { ["bits"] = _bits };
 
             public ContactHopFacts FactsAt(double ut, double separationMeters) =>
-                new ContactHopFacts(0.5, new Dictionary<string, object?> { ["fake"] = new Dictionary<string, object?> { ["bits"] = _bits, ["metres"] = separationMeters } });
+                new ContactHopFacts(0.5, SignalQuantity.RangeFraction, new Dictionary<string, object?> { ["fake"] = new Dictionary<string, object?> { ["bits"] = _bits, ["metres"] = separationMeters } });
         }
 
         private static IContactLinkStrength? RestoreFake(string model, IReadOnlyDictionary<string, object?> data) =>
@@ -80,7 +80,7 @@ namespace Sitrep.Host.Tests.Comms
                 return new Dictionary<string, object?> { ["from"] = antennas, ["to"] = antennas, ["label"] = _craft };
             }
 
-            public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(0.5);
+            public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(0.5, SignalQuantity.RangeFraction);
         }
 
         private static int EncodedSize(int craft, int centres, bool strengths)

@@ -181,7 +181,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Not zero. The honest answer is that signal strength is not modelled
         /// at all, and the field cannot carry an absence (see
-        /// <see cref="NoCommsModelBackend.SignalStrength"/>); of what it CAN
+        /// <see cref="NoCommsModelBackend.Signal"/>); of what it CAN
         /// carry, a 0 is the one that lies, because it is exactly what the
         /// app's own signal-loss verdict keys on.
         /// </summary>
@@ -190,7 +190,7 @@ namespace Sitrep.Host.Tests
         {
             var wrapped = Wrap(new StubBackend(connected: false), CommsControlSource.Full);
 
-            Assert.Equal(1.0, wrapped.SignalStrength().Strength);
+            Assert.Equal(1.0, wrapped.Signal().Strength);
         }
 
         [Fact]
@@ -314,7 +314,7 @@ namespace Sitrep.Host.Tests
                 HasLocalControl = false,
             };
 
-            public CommsSignal SignalStrength() => new CommsSignal { Strength = 0.0 };
+            public CommsSignal Signal() => new CommsSignal { Strength = 0.0 };
 
             public CommsControl ControlState() => new CommsControl
             {

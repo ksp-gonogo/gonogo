@@ -675,7 +675,7 @@ namespace Sitrep.Host.IntegrationTests
                 HasLocalControl = true,
             };
 
-            public CommsSignal SignalStrength() => new CommsSignal
+            public CommsSignal Signal() => new CommsSignal
             {
                 Strength = 0.87,
             };

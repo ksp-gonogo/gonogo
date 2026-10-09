@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 33.0.0
+  version: 34.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -11689,6 +11689,14 @@ components:
             that centre has heard of the two ends' antennas, so it is a model and not a
             measurement. Null when the backend states no strength for the hop, or the
             centre has not heard enough to work one out.
+        quantity:
+          description: |-
+            Which quantity `CommsHop.strength` is, as the comms backend stated it for
+            this hop. Null exactly when `CommsHop.strength` is.
+          anyOf:
+            - $ref: "#/components/schemas/SignalQuantity"
+              x-sitrep-unit: enum
+            - type: "null"
         extensions:
           type:
             - object
@@ -12252,8 +12260,8 @@ components:
           description: |-
             Which quantity `CommsSignal.strength` is: a fraction of the link's range, a
             fraction of its data-rate headroom, or a stand-in where no link is modelled.
-            `SignalQuantity.Unknown` where the strength was worked out for a path before
-            any reading of the craft's radio said which.
+            A strength worked out for a path carries the quantity its hops were stated
+            in, and `SignalQuantity.Unknown` where they disagree.
           allOf:
             - $ref: "#/components/schemas/SignalQuantity"
               x-sitrep-unit: enum
@@ -18818,8 +18826,8 @@ components:
         - const: 0
           title: Unknown
           description: |-
-            Nothing says which. A strength worked out for a path before any reading of
-            the craft's radio, or a read that failed.
+            Nothing says which: the hops of a worked-out path disagree, or a read
+            failed.
         - const: 1
           title: RangeFraction
           description: |-

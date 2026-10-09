@@ -149,11 +149,11 @@ public abstract class CommsBackendBase : ICommsBackend
     /// <summary>
     /// The backend's own strength, carried through unchanged, or <c>0</c> when
     /// there is no live link to read. Its meaning differs across backends; see
-    /// <see cref="CommsLinkState.SignalStrength"/>.
+    /// <see cref="CommsLinkState.PathStrength"/>.
     /// </summary>
-    public CommsSignal SignalStrength() =>
+    public CommsSignal Signal() =>
         LinkState() is { } link
-            ? new CommsSignal { Strength = link.SignalStrength, Quantity = link.SignalQuantity }
+            ? new CommsSignal { Strength = link.PathStrength, Quantity = link.Quantity }
             : new CommsSignal { Strength = 0.0, Quantity = SignalQuantity.Unknown };
 
     /// <inheritdoc cref="ICommsBackend.ControlState" />

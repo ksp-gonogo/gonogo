@@ -17,8 +17,9 @@ namespace Sitrep.Contract;
  * TRUE-NOW, and what describes the far end of the link (comms.delay,
  * comms.path, comms.degrade) is DELAYED, because a fact about where the craft
  * was travels home at the same speed the telemetry does. Delaying comms.delay
- * is not circular: the reveal gate and the command scheduler read the engine's
- * delay LEDGER, which the capture pass writes directly, never this channel.
+ * is not circular: the reveal gate and the command scheduler read the delay
+ * the host keeps per vantage (INetwork.DelayTo), which ChannelEngine's capture
+ * pass writes directly, never this channel.
  *
  * Every payload carries PayloadMeta; absence is a nullable, never a NaN/0/-1
  * sentinel.
@@ -123,7 +124,7 @@ public class CommsConnectivity
 /// the one that does not mislead, because 0 is what the app's own
 /// SignalLossIndicator keys its "Lost" verdict on.
 /// <para>RealAntennas' value is a headroom fraction on its data-rate ladder
-/// (<c>CommsLinkState.SignalStrength</c>), so the two backends put different
+/// (<c>CommsLinkState.PathStrength</c>), so the two backends put different
 /// curves behind one field, and <see cref="Quantity"/> is what says which curve a
 /// value is on.</para>
 /// </internal>
@@ -147,8 +148,8 @@ public class CommsSignal
     /// <summary>
     /// Which quantity <see cref="Strength"/> is: a fraction of the link's range,
     /// a fraction of its data-rate headroom, or a stand-in where no link is
-    /// modelled. <see cref="SignalQuantity.Unknown"/> where the strength was
-    /// worked out for a path before any reading of the craft's radio said which.
+    /// modelled. A strength worked out for a path carries the quantity its hops
+    /// were stated in, and <see cref="SignalQuantity.Unknown"/> where they disagree.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public SignalQuantity Quantity { get; set; }
@@ -199,9 +200,10 @@ public class CommsSignal
 /// report "0 to 1" are not saying the same thing, and a figure is only
 /// comparable with another of the same quantity.
 /// <internal>
-/// Declared by the comms backend (<c>CommsLinkState.SignalQuantity</c>) and
-/// carried on every strength from there: the heard radio, <c>comms.signal</c>
-/// and <c>vessel.comms</c>.
+/// Declared by the comms backend on every strength it states
+/// (<c>CommsLinkState.Quantity</c> for a whole path, <c>ContactHopFacts.Quantity</c>
+/// for one hop) and carried from there: the heard radio, <c>comms.signal</c>,
+/// each hop of <c>comms.path</c> and <c>vessel.comms</c>.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -211,7 +213,7 @@ public class CommsSignal
 [SitrepContract]
 public enum SignalQuantity
 {
-    /// <summary>Nothing says which. A strength worked out for a path before any reading of the craft's radio, or a read that failed.</summary>
+    /// <summary>Nothing says which: the hops of a worked-out path disagree, or a read failed.</summary>
     Unknown,
 
     /// <summary>How far inside its range the link is, 0 at the edge of range and 1 at no distance: stock CommNet's.</summary>
@@ -380,6 +382,13 @@ public class CommsHop
     public double? Strength { get; set; }
 
     /// <summary>
+    /// Which quantity <see cref="Strength"/> is, as the comms backend stated it
+    /// for this hop. Null exactly when <see cref="Strength"/> is.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public SignalQuantity? Quantity { get; set; }
+
+    /// <summary>
     /// The provider-namespaced extension bag: how the elected comms backend
     /// carries per-hop facts this shared shape does not declare (see
     /// <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism).
@@ -426,10 +435,9 @@ public class CommsHop
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentrePath, with
 /// comms.network and comms.commandCentre, from the same route. The elected
-/// backend's ICommsBackend.Path is no longer published: it is every hop's
-/// state at this instant, so a centre shown it learned of a far hop's change
-/// after only its own light-time to the craft (Saga 782 subtask 78). The
-/// backend's path is still read for the delay ledger.
+/// backend's ICommsBackend.Path is not published: it is every hop's state at
+/// this instant, so a centre shown it would learn of a far hop's change after
+/// only its own light-time to the craft. It is read for the delivery delay.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -585,13 +593,12 @@ public enum CommsDelaySource
 /// delay until its silence has crossed to you. A zero that is a setting (delay
 /// switched off, or a save with no comms network) is sent at once.</para>
 /// <internal>
-/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreDelay. It is
-/// not what the engine times deliveries by. That is the delay LEDGER
-/// (<c>INetwork.DelayTo</c>), fed by <c>ChannelEngine.CaptureSignalDelay</c>
-/// from the game's own links on the ungated capture path, because it decides
-/// when light that was really sent really lands. The elected backend's whole
-/// solved path was published here until Saga 782 subtask 95; a far hop
-/// re-routing then reached a centre after only its light-time to the craft.
+/// Published by Sitrep.Host.Comms.ContactPlanSource through CentreDelay.
+/// Deliveries are not timed by this figure but by <c>INetwork.DelayTo</c>, fed
+/// by <c>ChannelEngine.CaptureSignalDelay</c> from the game's own links on the
+/// ungated capture path, because that decides when light that was really sent
+/// really lands. It is the centre's believed path and not the backend's solved
+/// one, so a far hop re-routing reaches a centre only after its own light has.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -843,7 +850,7 @@ public interface ICommsBackend : ISitrepProvider
     /// reads as a failed read.
     /// </summary>
     /// <returns>The <c>comms.signal</c> payload.</returns>
-    CommsSignal SignalStrength();
+    CommsSignal Signal();
 
     /// <summary>
     /// What the active vessel can be commanded to do right now. This differs

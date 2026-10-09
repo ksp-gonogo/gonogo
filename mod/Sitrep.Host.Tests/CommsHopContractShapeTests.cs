@@ -46,6 +46,8 @@ namespace Sitrep.Host.Tests
             // ICommsPathStrength, so it is the shared shape and not a provider
             // fact.
             nameof(CommsHop.Strength),
+            // Which quantity that number is. Stated with every strength, so it is shared too.
+            nameof(CommsHop.Quantity),
             nameof(CommsHop.Extensions),
         };
 

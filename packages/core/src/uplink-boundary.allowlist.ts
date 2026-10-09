@@ -132,7 +132,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * for anything the pack ships.
        */
       "mod/Sitrep.Contract/WarpState.cs",
-      "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
        * Prose, citing PROVENANCE: the test that pins the warp ladder to the
@@ -182,14 +181,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/view-clock-formula.ts",
       "mod/sitrep-sdk/src/spine/view-clock.ts",
-
-      /*
-       * -- the kerbcast Uplink's provenance record in core --
-       * ContractVersion.cs's Minor-history doc comment records the ORIGINAL
-       * add of kerbcast's control-plane types (Major-4 line, Bumped 0 -> 1):
-       * prose/history only, the types themselves no longer live here.
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
 
       /*
        * UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
@@ -255,7 +246,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
       // -- contract/SDK layer --
-      "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       /*
        * topics.test-d.ts: a comment records WHY scansat Topics are not
@@ -382,13 +372,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
       "mod/Sitrep.Host.IntegrationTests/SharedVantageCatchUpTests.cs",
-      /*
-       * -- contract/SDK layer. All eleven Kos* types live in
-       * GonogoKosUplink.Contract, not Sitrep.Contract. ContractVersion.cs is
-       * prose only: its Major/Minor history records what moved and when, for
-       * a token core names in history and nowhere else.
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       /*
        * Engine sticky-reveal integration test: the diff-channel keyframe-retention
@@ -685,18 +668,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
       "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
       "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
-
       /*
-       * -- contract/serializer/ratchet layer: PROVENANCE, no coupling --
-       * The files the relocation itself added a mention to, each the same
-       * category the earlier relocations put ContractVersion.cs in: a record of
-       * what moved and when, on a comment line, with no reference to a
-       * relocated type left behind.
-       *   • ContractVersion.cs: the Major-bump history entry for the move.
-       *   • UplinkContractOwnershipTests.cs: the mod-side ownership ratchet has
-       *     to NAME the token it registers, so it names this one too.
+       * The mod-side ownership ratchet has to NAME the token it registers, so
+       * it names this one too.
        */
-      "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
@@ -811,12 +786,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Contract/ActionGroupsBackend.cs",
       /*
-       * ContractVersion's migration-history doc-comment for the
-       * bool[]->ActionGroupState[] change names AGX as the reason the
-       * contract had to stop being positional.
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
-      /*
        * VesselControl.ActionGroupState's doc-comment: same "AGX needs named,
        * arbitrary-length groups" rationale for the wire type's shape.
        */
@@ -915,14 +884,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/VesselAttitude.cs",
 
       /*
-       * -- The relocation's own provenance record --
-       * ContractVersion.cs's Minor-history doc-comment records the original
-       * add AND the later relocation of MechJebAscentArgs/MechJebNoArgs out
-       * of this assembly: see ContractVersion.Minor's doc comment. Prose
-       * only, the types themselves no longer live here.
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
-      /*
        * SitrepUnitAttribute.cs's Kilometres doc-comment explains why that
        * token exists by citing MechJebAscentArgs.TargetAltitudeKm as the
        * originating field: prose only.
@@ -982,15 +943,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * class as the C# WirePayloadCoverageTests.cs entry a few lines below.
        */
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-
-      /*
-       * -- The relocation's own provenance record --
-       * ContractVersion.cs's Major/Minor-history doc comments record the
-       * original add of the avionics.status Topic AND its later relocation
-       * out of this assembly: prose only, the type itself no longer lives
-       * here.
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
 
       /*
        * -- The test that records avionics.status coming from the Uplink's own
@@ -1095,15 +1047,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * itself lives in a sibling .json this scan never reads.
        */
       "packages/core/src/reckoning-candidates.test.ts",
-      /*
-       * -- contract/SDK layer --
-       * ContractVersion.cs carries the relocation's PROVENANCE prose (the
-       * Major 9 -> 10 entry and the Minor-history entry recording the Domain's
-       * original landing), which is exactly what the permanent bucket is for.
-       * KerbalismPayloads.cs is NOT here: it left this bucket by leaving core
-       * outright.
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
       /*
        * The source-attributed currency events name Kerbalism in PROSE ONLY, to
        * record why the science-credit event is a core type rather than a
@@ -1258,21 +1201,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * case this bucket documents.
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
-      /*
-       * HISTORICAL RECORD of a decision that removed Principia awareness from
-       * core. You cannot record "we deliberately deleted detection of this
-       * mod" without naming the mod, and rewriting a ledger to hide the
-       * subject would defeat the ledger. Every FORWARD-LOOKING mention ("a
-       * future Principia provider will...") has been de-named instead: those
-       * were the anticipation pattern this token exists to catch, and the
-       * interfaces now say "an n-body backend", which is the same point without
-       * committing core to a specific mod.
-       *
-       * ContractVersion's Major 2 -> 3 entry records the revert that removed
-       * VesselPhysicsMode.IsPrincipiaActive, and the file's own contract is that
-       * a Major "cannot rewrite what it inherited".
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
     ],
   },
 
@@ -1301,12 +1229,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   rp1: {
     domainDebt: [],
     permanent: [
-      /*
-       * HISTORICAL RECORD: the version ledger names the RP-1 Uplink in the
-       * entries that moved its types and Topics, and a Major "cannot rewrite
-       * what it inherited".
-       */
-      "mod/Sitrep.Contract/ContractVersion.cs",
       /*
        * PRIOR ART and INTEROP EVIDENCE. Core's stock-side mechanisms (strategy
        * activation, off-scene facility writes, derived-currency withholding,

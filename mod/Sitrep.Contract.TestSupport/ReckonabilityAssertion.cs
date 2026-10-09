@@ -225,6 +225,13 @@ namespace Sitrep.Contract.TestSupport
                     + "decision on its own, not a mark to add here.";
             }
 
+            if (mark.Declaration.Basis == ReckoningBases.Combination)
+            {
+                yield return "basis '" + ReckoningBases.Combination + "' is the SDK's own, for arithmetic over "
+                    + "readings it already holds. A wire value is advanced by the model that moves it, so "
+                    + "declare that model's basis.";
+            }
+
             if (!knownBases.Contains(mark.Declaration.Basis))
             {
                 yield return "basis '" + mark.Declaration.Basis + "' is not in the ReckoningBases catalogue ("
@@ -298,7 +305,7 @@ namespace Sitrep.Contract.TestSupport
 
             if (separator < 0)
             {
-                return null;
+                return BeyondItsInput(mark, input, ModelledBy(payload.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)));
             }
 
             if (path.Length == 0)
@@ -307,10 +314,42 @@ namespace Sitrep.Contract.TestSupport
                     + "separator to declare the whole payload.";
             }
 
-            return Resolves(payload, path)
-                ? null
-                : "input '" + input + "' does not resolve to a published property path on " + payload.Name
+            if (!Resolves(payload, path))
+            {
+                return "input '" + input + "' does not resolve to a published property path on " + payload.Name
                     + ", the payload of '" + topicId + "'.";
+            }
+
+            var field = path.IndexOf('.') < 0
+                ? payload.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                    .Where(p => string.Equals(CamelCase(p.Name), path, StringComparison.Ordinal))
+                : Enumerable.Empty<PropertyInfo>();
+            return BeyondItsInput(mark, input, ModelledBy(field));
+        }
+
+        /// <summary>The bases the reckonable properties among <paramref name="properties"/> are carried by.</summary>
+        private static ISet<string> ModelledBy(IEnumerable<PropertyInfo> properties) =>
+            new HashSet<string>(
+                properties.SelectMany(p => p.GetCustomAttributes<SitrepReckonableAttribute>(false)).Select(a => a.Basis),
+                StringComparer.Ordinal);
+
+        /// <summary>
+        /// The composition rule: a value derived from another Topic's moving value
+        /// is carried forward only by a model that input is itself carried by.
+        /// An input that declares no model is held as observed (a catalogue, a
+        /// rate a model assumes steady) and limits nothing here.
+        /// </summary>
+        private static string? BeyondItsInput(ReckonableMark mark, string input, ISet<string> inputBases)
+        {
+            if (inputBases.Count == 0 || inputBases.Contains(mark.Declaration.Basis))
+            {
+                return null;
+            }
+
+            return "input '" + input + "' is carried forward by "
+                + string.Join(", ", inputBases.OrderBy(b => b, StringComparer.Ordinal))
+                + " and not by " + mark.Declaration.Basis + ". Deriving then advancing is not advancing "
+                + "then deriving, so a value cannot be reckoned under a model its input does not support.";
         }
 
         /// <summary>

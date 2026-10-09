@@ -41,7 +41,7 @@ namespace Gonogo.KSP.Tests.Comms
         public void ADisconnectedLinkRatesUnusableWhateverTheStrengthFieldSays()
         {
             var model = CommNetDegrade.From(
-                new CommsLinkState(connected: false, CommsControlGrade.None, signalStrength: 0.9, signalQuantity: SignalQuantity.RangeFraction));
+                new CommsLinkState(connected: false, CommsControlGrade.None, pathStrength: 0.9, quantity: SignalQuantity.RangeFraction));
 
             Assert.Equal(1.0, model.Level);
             Assert.Equal(CommNetDegrade.ModelId, model.ModelId);

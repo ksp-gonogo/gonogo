@@ -1796,8 +1796,8 @@ export interface CommsSignal
 	/**
 	* Which quantity `CommsSignal.strength` is: a fraction of the link's range, a
 	* fraction of its data-rate headroom, or a stand-in where no link is modelled.
-	* `SignalQuantity.Unknown` where the strength was worked out for a path before
-	* any reading of the craft's radio said which.
+	* A strength worked out for a path carries the quantity its hops were stated
+	* in, and `SignalQuantity.Unknown` where they disagree.
 	*/
 	quantity: SignalQuantity;
 	/**
@@ -1840,8 +1840,8 @@ export interface CommsSignal
 */
 export enum SignalQuantity {
 	/**
-	* Nothing says which. A strength worked out for a path before any reading of
-	* the craft's radio, or a read that failed.
+	* Nothing says which: the hops of a worked-out path disagree, or a read
+	* failed.
 	*/
 	Unknown = 0,
 	/**
@@ -1994,6 +1994,11 @@ export interface CommsHop
 	* centre has not heard enough to work one out.
 	*/
 	strength?: Value<"ratio"> | null;
+	/**
+	* Which quantity `CommsHop.strength` is, as the comms backend stated it for
+	* this hop. Null exactly when `CommsHop.strength` is.
+	*/
+	quantity?: SignalQuantity | null;
 	/**
 	* The provider-namespaced extension bag: how the elected comms backend carries
 	* per-hop facts this shared shape does not declare (see

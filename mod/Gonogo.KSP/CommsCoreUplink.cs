@@ -778,7 +778,7 @@ namespace Gonogo.KSP
                 {
                     Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Connectivity = connectivity,
-                    Signal = backend.SignalStrength(),
+                    Signal = backend.Signal(),
                     Control = backend.ControlState(),
                     Delay = delay,
                     // The backend declares the RULE; the body list it applies to

@@ -53,7 +53,7 @@ namespace Gonogo.KSP
             return new RatedDegradeModel(
                 ModelId,
                 ModelName,
-                link.Connected ? 1.0 - link.SignalStrength : 1.0);
+                link.Connected ? 1.0 - link.PathStrength : 1.0);
         }
     }
 }

@@ -6,6 +6,7 @@ import {
   type Transport,
   WebSocketTransport,
 } from "@ksp-gonogo/sitrep-client";
+import { FaultCode } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ReactNode,
   useCallback,
@@ -258,7 +259,10 @@ export function SitrepTelemetryProvider({
     if (!transport) return;
     let bootId: string | undefined;
     return transport.onMessage((message) => {
-      if (message.type === "error" && message.code === "unknownVantage") {
+      if (
+        message.type === "error" &&
+        message.code === FaultCode.UnknownVantage
+      ) {
         setVantageRefused(true);
       }
       if (message.type === "hello") {

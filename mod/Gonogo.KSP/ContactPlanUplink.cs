@@ -389,7 +389,7 @@ namespace Gonogo.KSP
                 {
                     hops.Add(new RadioHop(hop.From, hop.To, !hop.ToIsHome, hop.Extensions));
                 }
-                var signal = backend.SignalStrength();
+                var signal = backend.Signal();
                 return new ContactRadio(
                     "vessel:" + active.id,
                     backend.Connectivity().Connected,

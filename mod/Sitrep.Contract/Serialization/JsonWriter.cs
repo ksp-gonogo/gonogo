@@ -2585,6 +2585,17 @@ namespace Sitrep.Contract.Serialization
             {
                 AppendNull(sb);
             }
+            sb.Append(',');
+            AppendString(sb, "quantity");
+            sb.Append(':');
+            if (h.Quantity.HasValue)
+            {
+                AppendInteger(sb, (long)h.Quantity.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
             // Omitted entirely when no provider filled a bag (see AppendProviderExtensions).
             AppendProviderExtensions(sb, h.Extensions);
             sb.Append('}');
