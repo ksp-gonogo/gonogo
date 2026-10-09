@@ -37,6 +37,20 @@ export const warpActions = [
     accepts: ["button"],
     description: "Pause / unpause KSP (in-flight only).",
   },
+  {
+    id: "warp-to-contact",
+    label: "Warp to signal return",
+    accepts: ["button"],
+    description:
+      "Set an alarm for when the craft's signal is predicted to return.",
+  },
+  {
+    id: "warp-to-soi",
+    label: "Warp to SOI change",
+    accepts: ["button"],
+    description:
+      "Set an alarm for the craft's next sphere-of-influence change.",
+  },
 ] as const satisfies readonly ActionDefinition[];
 
 export type WarpControlActions = typeof warpActions;

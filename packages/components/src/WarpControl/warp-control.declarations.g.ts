@@ -3,9 +3,12 @@ export default {
   optionalChannels: [
     "career.mode",
     "comms.delay",
+    "fleet.silence",
     "spaceCenter.scene",
     "spaceCenter.state",
+    "vessel.identity",
     "vessel.maneuver",
+    "vessel.orbit",
   ],
   optionalChannelFamilies: [],
   commands: ["time.setPaused", "time.setWarpIndex"],

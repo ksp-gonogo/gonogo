@@ -5,8 +5,12 @@ import {
   useActionInput,
   useGameContext,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
+import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  observedValue,
+  stillTrue,
+  type TinyEssential,
+} from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import {
@@ -26,6 +30,7 @@ import {
 import { WarpControlConfigForm } from "./WarpControlConfigForm";
 import { WarpControlView } from "./WarpControlView";
 import read from "./warp-control.declarations.g";
+import { armWarpEvent, warpEventTargets } from "./warpEvents";
 import { normalizeWarpMode, TOP_WARP_INDEX, warpLabel } from "./warpLevels";
 
 export { delayRequiringAlarm } from "./alarmGate";
@@ -40,6 +45,9 @@ const topics = defineTopicManifest({
     "time.warp.warpMode",
     "time.warp.paused",
     "comms.delay.oneWaySeconds",
+    "vessel.orbit.patches",
+    "vessel.identity.vesselId",
+    "fleet.silence.vessels",
   ],
 });
 
@@ -88,6 +96,14 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     pending.length === 0 &&
     blockingDelay !== null;
 
+  const viewUt = useViewUt();
+  const events = warpEventTargets({
+    orbit: observedValue(topics.useTelemetry("vessel.orbit")),
+    silence: stillTrue(topics.useTelemetry("fleet.silence"), undefined),
+    identity: stillTrue(topics.useTelemetry("vessel.identity"), undefined),
+    viewUt: viewUt?.valueOf(),
+  });
+
   const setWarp = (idx: number) => {
     // Announced before the command, so this screen alone skips its unscheduled-warp alert for it.
     announceWarpIntent?.();
@@ -97,6 +113,18 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     const next = !effectivePaused;
     setPauseIntent(next);
     void pauseCmd.send({ paused: next });
+  };
+
+  const armEventAction = (
+    id: string,
+    payload: { kind: string; value?: unknown },
+  ) => {
+    if (payload.kind === "button" && payload.value !== true) return undefined;
+    const target = events.find((e) => e.id === id);
+    if (!createAlarm || !target || !armWarpEvent(createAlarm, target)) {
+      return undefined;
+    }
+    return { Armed: target.alarmName };
   };
 
   useActionInput<WarpControlActions>({
@@ -123,9 +151,12 @@ function useWarpControl(config: WarpControlConfig | undefined) {
       togglePause();
       return { Paused: !effectivePaused };
     },
+    "warp-to-contact": (payload) => armEventAction("contact", payload),
+    "warp-to-soi": (payload) => armEventAction("soi", payload),
   });
 
   return {
+    events,
     warp,
     scene,
     hasGameSignal,
@@ -186,6 +217,7 @@ function WarpControlComponent({
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
   const {
+    events,
     warp,
     scene,
     hasGameSignal,
@@ -217,6 +249,7 @@ function WarpControlComponent({
       oneWayDelay={delayReading.oneWaySeconds}
       nextAlarm={pending?.[0] ?? null}
       createAlarm={createAlarm}
+      events={events}
       onSetWarp={setWarp}
       onTogglePause={togglePause}
       onOpenAlarms={() => openAlarms?.({})}

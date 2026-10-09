@@ -17,13 +17,15 @@ import {
 import { useState } from "react";
 import type { AlarmCreator } from "../shared/AlarmsLauncher";
 import type { TimeTrigger } from "../TransferWindow/config";
+import {
+  armWarpEvent,
+  STEP_DOWN_SECONDS,
+  type WarpEventTarget,
+} from "./warpEvents";
 
-type Target = "for" | "node" | "ut";
+type Target = "for" | "node" | "ut" | (string & {});
 
 const LEAD_CHOICES_SECONDS = [30, 60, 300, 600] as const;
-
-/** Seconds before the alarm's instant at which the warp steps down, matching the alarm modal's own default. */
-const STEP_DOWN_SECONDS = 10;
 
 /** The soonest node still ahead of the clock, which is the one an operator warps toward. */
 function nextNode(
@@ -45,7 +47,11 @@ function nextNode(
  */
 export function WarpToRow({
   createAlarm,
-}: Readonly<{ createAlarm: AlarmCreator<TimeTrigger> }>) {
+  events,
+}: Readonly<{
+  createAlarm: AlarmCreator<TimeTrigger>;
+  events: readonly WarpEventTarget[];
+}>) {
   const viewUt = useViewUt();
   const nodes = useManeuverNodes();
   const [target, setTarget] = useState<Target>("for");
@@ -55,6 +61,7 @@ export function WarpToRow({
     LEAD_CHOICES_SECONDS[1],
   );
 
+  const event = events.find((e) => e.id === target) ?? null;
   const node = nextNode(nodes, viewUt);
   // A duration counts from the UT the widget is showing when it is confirmed, so the instant is read at the press and not fixed while the operator types.
   const instant =
@@ -62,11 +69,13 @@ export function WarpToRow({
       ? viewUt === undefined || !forDuration.greaterThan(value("s", 0))
         ? null
         : viewUt.plus(forDuration).valueOf()
-      : target === "ut"
-        ? utTarget
-        : node === null
-          ? null
-          : node.UT - leadSeconds;
+      : event !== null
+        ? event.instant
+        : target === "ut"
+          ? utTarget
+          : node === null
+            ? null
+            : node.UT - leadSeconds;
   const timeTo =
     instant === null || viewUt === undefined
       ? null
@@ -75,6 +84,10 @@ export function WarpToRow({
 
   const arm = () => {
     if (instant === null || !armable) return;
+    if (event !== null) {
+      armWarpEvent(createAlarm, event);
+      return;
+    }
     createAlarm({
       name:
         target === "for"
@@ -118,9 +131,23 @@ export function WarpToRow({
           >
             UT
           </ToggleButton>
+          {events.map((e) => (
+            <ToggleButton
+              key={e.id}
+              size="sm"
+              pressed={target === e.id}
+              onClick={() => setTarget(e.id)}
+            >
+              {e.label}
+            </ToggleButton>
+          ))}
         </Cluster>
 
-        {target === "for" ? (
+        {event !== null ? (
+          <ReadoutCaption>
+            {event.instant === null ? "No prediction" : (event.detail ?? "")}
+          </ReadoutCaption>
+        ) : target === "for" ? (
           <UnitInput
             label="Warp for"
             unit="s"

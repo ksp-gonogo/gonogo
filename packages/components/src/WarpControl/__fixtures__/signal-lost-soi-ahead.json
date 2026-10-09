@@ -1,0 +1,88 @@
+{
+  "_meta": {
+    "shows": "A craft in flight at 1x that has lost its signal with a return predicted fifteen minutes out, and a trajectory that enters the Mun's sphere of influence in about an hour, for the warp-to event targets.",
+    "scenario": "signal-lost-soi-ahead",
+    "notes": "vessel.identity names the craft; fleet.silence marks it Silent with a predicted reacquisition; vessel.orbit carries a two-patch chain whose first patch ends in an Encounter."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1,
+  "t.timeWarp": 0,
+  "t.warpMode": "High",
+  "t.isPaused": false,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "11111111-1111-1111-1111-111111111111"
+        }
+      },
+      {
+        "channel": "fleet.silence",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "11111111-1111-1111-1111-111111111111",
+              "state": "Silent",
+              "predictedReacquisitionUt": 5000900
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "patches": [
+            {
+              "referenceBody": "Kerbin",
+              "startUt": 4999900,
+              "endUt": 5003700,
+              "patchEndTransition": 2
+            },
+            {
+              "referenceBody": "Mun",
+              "startUt": 5003700,
+              "endUt": 5009000,
+              "patchEndTransition": 1
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 5000000
+  },
+  "t.universalTime": 5000000
+}

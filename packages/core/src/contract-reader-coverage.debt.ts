@@ -103,8 +103,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:eva.crew.kerbals":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:fleet.silence.vessels":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:flight.current.phase":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:flight.current.vesselId":

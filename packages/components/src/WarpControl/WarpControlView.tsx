@@ -32,6 +32,7 @@ import {
   WarpButton,
 } from "./styles";
 import { WarpToRow } from "./WarpToRow";
+import type { WarpEventTarget } from "./warpEvents";
 import { formatRate, HIGH_LEVELS, TOP_WARP_INDEX } from "./warpLevels";
 
 export interface WarpControlViewProps {
@@ -50,6 +51,8 @@ export interface WarpControlViewProps {
   nextAlarm: PendingAlarmSummary | null;
   /** Absent when no alarm pipeline is mounted, which hides the warp-to targets. */
   createAlarm: AlarmCreator<TimeTrigger> | null;
+  /** The event targets the warp-to row offers, each with the instant its Topic publishes or null. */
+  events: readonly WarpEventTarget[];
   onSetWarp: (index: number) => void;
   onTogglePause: () => void;
   onOpenAlarms: () => void;
@@ -69,6 +72,7 @@ export function WarpControlView({
   oneWayDelay,
   nextAlarm,
   createAlarm,
+  events,
   onSetWarp,
   onTogglePause,
   onOpenAlarms,
@@ -217,7 +221,7 @@ export function WarpControlView({
               </div>
               {showWarpTo && (
                 <div style={WARP_TO_STYLE}>
-                  <WarpToRow createAlarm={createAlarm} />
+                  <WarpToRow createAlarm={createAlarm} events={events} />
                 </div>
               )}
             </div>

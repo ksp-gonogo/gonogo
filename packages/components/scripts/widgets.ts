@@ -654,7 +654,40 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 7,
         clicks: [
           { selector: "button[aria-expanded]" },
-          { selector: '[aria-label="Warp target"] button:last-child' },
+          { selector: '[aria-label="Warp target"] button:nth-child(3)' },
+        ],
+        forFixtures: ["realtime-1x"],
+      },
+      // The signal-return target, which arms an alarm at the instant fleet.silence predicts.
+      {
+        name: "warp-to-contact-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:nth-child(4)' },
+        ],
+        forFixtures: ["signal-lost-soi-ahead"],
+      },
+      // The SOI-change target, from the end of the first patch of the solved trajectory.
+      {
+        name: "warp-to-soi-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:nth-child(5)' },
+        ],
+        forFixtures: ["signal-lost-soi-ahead"],
+      },
+      // An event target with nothing published for it: drawn absent, with nothing to arm.
+      {
+        name: "warp-to-soi-absent-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:nth-child(5)' },
         ],
         forFixtures: ["realtime-1x"],
       },
