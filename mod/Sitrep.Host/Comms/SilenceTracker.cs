@@ -277,6 +277,14 @@ namespace Sitrep.Host.Comms
         internal bool DeadlineUpgraded;
 
         /// <summary>
+        /// Whether the absence of this vessel has already been handed to the caller of
+        /// <see cref="SilenceTracker.Tick"/>. Not persisted: a reload reports each
+        /// destroyed vessel once more, so the new session has a value for it, and a
+        /// vessel that reappears is reported again if it is destroyed again.
+        /// </summary>
+        internal bool DestroyedReported;
+
+        /// <summary>
         /// Consecutive silent samples in the CURRENT run (warp hysteresis).
         /// Deliberately not part of what gets persisted: a reload always
         /// resumes at 0, requiring two fresh post-reload samples before an
@@ -384,6 +392,11 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
+                if (kv.Value.DestroyedReported)
+                {
+                    continue;
+                }
+                kv.Value.DestroyedReported = true;
                 touched.Add(MarkDestroyed(kv.Value, ut));
             }
 
@@ -404,6 +417,7 @@ namespace Sitrep.Host.Comms
         {
             var s = GetOrCreate(sample.VesselId);
             s.Connected = sample.Connected;
+            s.DestroyedReported = false;
 
             if (sample.Connected)
             {

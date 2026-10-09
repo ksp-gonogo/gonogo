@@ -217,6 +217,58 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ADestroyedVesselIsReportedOnceRatherThanOnEverySampleAfterwards()
+        {
+            var tracker = NewTracker();
+            var launched = new List<SilenceSample>();
+            for (var i = 0; i < 1000; i++)
+            {
+                launched.Add(new SilenceSample("debris-" + i, true, orbit: null, landedOrSplashed: false));
+            }
+            tracker.Tick(launched, ut: 0);
+
+            var reports = 0;
+            for (var ut = 1; ut <= 50; ut++)
+            {
+                reports += tracker.Tick(One(VesselA, true), ut).Count(s => s.VesselId != VesselA);
+            }
+
+            Assert.Equal(1000, reports);
+        }
+
+        [Fact]
+        public void ARestoredDestroyedVesselIsReportedOnceThisSession()
+        {
+            var tracker = NewTracker();
+            tracker.RestoreState(new VesselContactState
+            {
+                VesselId = VesselB,
+                State = SilenceState.Lost,
+                DeadlineBasis = SilenceDeadlineBasis.Destroyed,
+            });
+
+            var first = tracker.Tick(One(VesselA, true), ut: 1);
+            var second = tracker.Tick(One(VesselA, true), ut: 2);
+
+            Assert.Contains(first, s => s.VesselId == VesselB);
+            Assert.DoesNotContain(second, s => s.VesselId == VesselB);
+        }
+
+        [Fact]
+        public void AVesselThatReturnsAndIsDestroyedAgainIsReportedAgain()
+        {
+            var tracker = NewTracker();
+            tracker.Tick(One(VesselA, true), ut: 0);
+            tracker.Tick(new SilenceSample[0], ut: 1);
+            tracker.Tick(One(VesselA, true), ut: 2);
+
+            var again = tracker.Tick(new SilenceSample[0], ut: 3);
+
+            Assert.Single(again);
+            Assert.Equal(VesselA, again[0].VesselId);
+        }
+
+        [Fact]
         public void RestoredSilentStateRequiresTwoFreshConsecutiveSamplesEvenIfAlreadyPastDeadline()
         {
             var tracker = NewTracker();
