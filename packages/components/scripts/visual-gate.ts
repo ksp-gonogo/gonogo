@@ -26,6 +26,7 @@ import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { diffRatio, writeDiff } from "./crossBrowserComposite";
+import { listUplinkWidgets } from "./uplinkWidgets";
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
 
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
   // drift: and, via this same scoping in update-baselines, never regenerating
   // their baselines. Match by widgetId OR a config's own `label`, so a label
   // still scopes to its single config.
-  const all = listWidgets();
+  const all = [...listWidgets(), ...(await listUplinkWidgets())];
   const configs = widgetId
     ? all.filter((c) => c.widgetId === widgetId || c.label === widgetId)
     : [...all];

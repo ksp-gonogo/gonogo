@@ -329,15 +329,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
       "mod/sitrep-sdk/src/spine/use-late-telemetry-subscribe.ts",
-      /*
-       * Breaking Ground uplink extraction: the new bundled
-       * uplink's doc comments and its client package's scaffolding name
-       * GonogoScansatUplink/client as the structural template they were
-       * built from ("mirroring GonogoScansatUplink/client's structure").
-       * Doc mentions + boilerplate config only, nothing imports from the
-       * scansat Uplink.
-       */
-      "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts",
     ],
   },
 

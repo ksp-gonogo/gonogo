@@ -2487,5 +2487,27 @@ function fixtureObject(path: string, raw: string): Record<string, unknown> {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(`${path} does not hold a JSON object.`);
   }
-  return parsed as Record<string, unknown>;
+  return wireEmitsAsChannels(parsed as Record<string, unknown>);
+}
+
+/**
+ * An Uplink's own fixtures name each `_stream` emit by wire `topic` and `payload`; the probe replays `channel` and `value`.
+ */
+function wireEmitsAsChannels(
+  fixture: Record<string, unknown>,
+): Record<string, unknown> {
+  const stream = fixture._stream;
+  if (typeof stream !== "object" || stream === null || !("emits" in stream)) {
+    return fixture;
+  }
+  const { emits } = stream;
+  if (!Array.isArray(emits)) return fixture;
+  const channelled = emits.map((emit) => {
+    if (typeof emit !== "object" || emit === null || !("topic" in emit)) {
+      return emit;
+    }
+    const { topic, payload, ...rest } = emit;
+    return { ...rest, channel: topic, value: payload };
+  });
+  return { ...fixture, _stream: { ...stream, emits: channelled } };
 }

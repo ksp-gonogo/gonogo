@@ -23,6 +23,7 @@ import {
   defineUplinkClient,
   PerfBudget,
   registerAugment,
+  useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
@@ -52,6 +53,8 @@ installTestHost({
   registerAugment: registerAugment as Parameters<
     typeof installTestHost
   >[0]["registerAugment"],
+  useActionInput: (handlers) =>
+    useActionInput(handlers as Parameters<typeof useActionInput>[0]),
   useCommand: ((command: string, options?: { vantage?: string }) =>
     useCommand(command, options)) as GonogoHost["useCommand"],
   useLatestValue,

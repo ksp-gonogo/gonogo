@@ -73,6 +73,7 @@ import type { ProbePayload, ProbeSeriesSample } from "./payload";
  * planted Domain, so only a fixture emitting `planted.available` renders any.
  */
 import "./plantedUplink";
+import "./uplinkClients";
 
 /*
  * Filled once at module load, as the app's main.tsx does: a body-aware widget

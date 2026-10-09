@@ -134,6 +134,6 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
     await act(async () => {
       targetRow.click();
     });
-    await waitFor(() => expect(visibleText(container)).toContain("↺ CCW"));
+    await waitFor(() => expect(visibleText(container)).toContain("CCW"));
   });
 });

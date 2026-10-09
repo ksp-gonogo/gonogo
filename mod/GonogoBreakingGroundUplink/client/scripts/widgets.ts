@@ -1,20 +1,8 @@
 /**
- * Per-widget render configs for this package's three Breaking Ground
- * widgets, the same `WidgetRenderConfig`/`SizeMode` shape (and `getWidget`
- * lookup contract) `@ksp-gonogo/components`'s `scripts/widgets.ts` uses,
- * carried over verbatim for the three entries that moved here
- * (`robotics-console`, `rotor-tachometer`, `deployed-science`) so both the
- * vitest DOM-snapshot tests (`snapshots.test.tsx` in each widget folder) and
- * a future playwright PNG probe driver can share one config, mirroring the
- * components package's own pattern.
- *
- * The playwright + esbuild rendering HARNESS itself
- * (`@ksp-gonogo/components`'s `scripts/widgetRenderHarness.ts`) is NOT
- * ported here yet: this file only carries the lightweight config types +
- * lookup this package's own DOM-snapshot tests need. Porting the full
- * Playwright driver / `visual-gate` CI wiring for this package is an open
- * follow-up, same status `GonogoScansatUplink/client/scripts/probe/
- * probe-entry.tsx`'s own doc comment already flags for that package.
+ * Per-widget render configs for this package's three Breaking Ground widgets, in the same
+ * `WidgetRenderConfig`/`SizeMode` shape (and `getWidget` lookup) as `@ksp-gonogo/components`'s
+ * `scripts/widgets.ts`. The DOM-snapshot tests in each widget folder read them, and so does the
+ * components package's visual gate, which renders and diffs them like any other widget.
  */
 
 /** Grid-size variant to render a widget at. Mirrors the components package's `SizeMode`. */
@@ -76,13 +64,18 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/deployed-science-widget",
     modes: [
       // Minimum size: base header + first experiment, rest scrolls.
-      { name: "min-4x4", w: 4, h: 4 },
+      { name: "min-4x5", w: 4, h: 5 },
       // Default registered size: a base card with its experiments.
       { name: "default-5x9", w: 5, h: 9 },
       // Tall: multiple bases stacked.
       { name: "tall-5x16", w: 5, h: 16 },
       // DLC-absent empty state.
-      { name: "unavailable-5x9", w: 5, h: 9, forFixtures: ["unavailable"] },
+      {
+        name: "unavailable-5x9",
+        w: 5,
+        h: 9,
+        forFixtures: ["breaking-ground-absent"],
+      },
     ],
   },
   {
@@ -101,7 +94,12 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Wide: controls and list get horizontal room.
       { name: "wide-9x6", w: 9, h: 6 },
       // DLC-absent empty state.
-      { name: "unavailable-5x8", w: 5, h: 8, forFixtures: ["unavailable"] },
+      {
+        name: "unavailable-5x8",
+        w: 5,
+        h: 8,
+        forFixtures: ["robotics-dlc-absent"],
+      },
     ],
   },
   {
@@ -120,7 +118,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "unavailable-5x9",
         w: 5,
         h: 9,
-        forFixtures: ["unavailable"],
+        forFixtures: ["rotors-dlc-absent"],
       },
     ],
   },

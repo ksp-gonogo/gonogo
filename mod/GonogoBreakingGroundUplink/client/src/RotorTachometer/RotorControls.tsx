@@ -26,7 +26,7 @@ function brakeStateText(brakePercentage: number | null): string {
 /** The reverse button's text: the heading it spins, or the bare verb when the heading is unread. */
 function directionText(counterClockwise: boolean | null): string {
   if (counterClockwise === null) return "Reverse";
-  return counterClockwise ? "↺ CCW" : "↻ CW";
+  return counterClockwise ? "CCW" : "CW";
 }
 
 export interface RotorControlsProps {
