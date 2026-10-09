@@ -116,11 +116,12 @@ describe("Sitrep stream recovers across a game restart without a reload", () => 
     const connections: Connection[] = [];
     const { container } = await mountAndReceiveFirstGame(connections);
 
-    await advance(36_000);
+    // 30 s of silence plus the 5 s unanswered probe drops the socket, one second ahead of its first retry.
+    await advance(35_000);
     expect(getSitrepTransportStatus()).toBe("reconnecting");
     expect(screen.getByText("throttle:0.75")).toBeTruthy();
 
-    await advance(5_000);
+    await advance(1_000);
     await waitFor(() => expect(connections).toHaveLength(2));
     await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
     await waitFor(() =>
