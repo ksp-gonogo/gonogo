@@ -251,8 +251,10 @@ public class FleetSilenceEntry
 }
 
 /// <summary>
-/// The fleet-wide silence roster on <c>fleet.silence</c>: every vessel the
-/// tracker holds a reckoning for, in one payload.
+/// The fleet-wide silence roster on <c>fleet.silence</c>: every vessel still in
+/// the game that the tracker holds a reckoning for, in one payload. A vessel
+/// that has been destroyed leaves the roster; its last
+/// <c>silence.&lt;guid&gt;.state</c> says it was lost as <c>destroyed</c>.
 ///
 /// <para>A per-vessel topic can only be read by something that already knows
 /// which vessel to ask for. This one static topic lists every vessel, so a
@@ -274,6 +276,6 @@ public class FleetSilenceEntry
 #endif
 public class FleetSilence
 {
-    /// <summary>One entry per vessel the tracker holds a reckoning for, in no guaranteed order. Never null; empty when there are none.</summary>
+    /// <summary>One entry per vessel still in the game, in no guaranteed order. Never null; empty when there are none.</summary>
     public IReadOnlyList<FleetSilenceEntry> Vessels { get; set; } = new List<FleetSilenceEntry>();
 }

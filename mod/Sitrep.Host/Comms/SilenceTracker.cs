@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Propagation;
 using Sitrep.Contract;
 
@@ -217,6 +218,10 @@ namespace Sitrep.Host.Comms
     public sealed class VesselContactState
     {
         public string VesselId = string.Empty;
+
+        /// <summary>Whether the vessel was declared Lost because it is gone from the game, not because it fell silent.</summary>
+        public bool IsDestroyed => State == SilenceState.Lost && DeadlineBasis == SilenceDeadlineBasis.Destroyed;
+
         public SilenceState State = SilenceState.Nominal;
 
         /// <summary>Whether contact was observed on the most recent sample.</summary>
@@ -319,6 +324,14 @@ namespace Sitrep.Host.Comms
 
         /// <summary>Read-only view of every vessel this tracker currently knows about.</summary>
         public IReadOnlyDictionary<string, VesselContactState> States => _states;
+
+        /// <summary>
+        /// The states of vessels still in the game: <see cref="States"/> without the ones
+        /// declared Lost because they no longer exist. A destroyed vessel keeps its record
+        /// for good, so a view that must scale with the fleet reads this one.
+        /// </summary>
+        public IEnumerable<VesselContactState> LiveStates =>
+            _states.Values.Where(s => !s.IsDestroyed);
 
         public VesselContactState? TryGetState(string vesselId) =>
             !string.IsNullOrEmpty(vesselId) && _states.TryGetValue(vesselId, out var s) ? s : null;
@@ -540,7 +553,7 @@ namespace Sitrep.Host.Comms
 
         private static VesselContactState MarkDestroyed(VesselContactState s, double ut)
         {
-            var alreadyDestroyed = s.State == SilenceState.Lost && s.DeadlineBasis == SilenceDeadlineBasis.Destroyed;
+            var alreadyDestroyed = s.IsDestroyed;
             s.Connected = false;
             if (!alreadyDestroyed)
             {

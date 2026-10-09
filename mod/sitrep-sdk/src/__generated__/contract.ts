@@ -3869,8 +3869,10 @@ export interface FleetSilenceEntry
 	predictionGraceSeconds?: Value<"s"> | null;
 }
 /**
-* The fleet-wide silence roster on `fleet.silence`: every vessel the tracker
-* holds a reckoning for, in one payload.
+* The fleet-wide silence roster on `fleet.silence`: every vessel still in the
+* game that the tracker holds a reckoning for, in one payload. A vessel that
+* has been destroyed leaves the roster; its last `silence.<guid>.state` says
+* it was lost as `destroyed`.
 *
 * A per-vessel topic can only be read by something that already knows which
 * vessel to ask for. This one static topic lists every vessel, so a consumer
@@ -3888,8 +3890,8 @@ export interface FleetSilenceEntry
 export interface FleetSilence
 {
 	/**
-	* One entry per vessel the tracker holds a reckoning for, in no guaranteed
-	* order. Never null; empty when there are none.
+	* One entry per vessel still in the game, in no guaranteed order. Never null;
+	* empty when there are none.
 	*/
 	vessels: FleetSilenceEntry[];
 }

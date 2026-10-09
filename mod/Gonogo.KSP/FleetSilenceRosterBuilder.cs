@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// Builds the <c>fleet.silence</c> wire dict: every vessel the tracker holds
-    /// a reckoning for, in one payload.
+    /// Builds the <c>fleet.silence</c> wire dict: every vessel still in the game
+    /// that the tracker holds a reckoning for, in one payload.
     ///
     /// <para>Deliberately reuses <see cref="FleetVesselSilenceBuilder"/> for each
     /// entry and adds only the vessel id, which the per-vessel topic gets from

@@ -161,14 +161,16 @@ namespace Gonogo.KSP.SilenceTracking
                 });
             }
 
-            // The aggregate carries EVERY tracked vessel, not just the ones this
-            // tick touched. `touched` is a change list, and a consumer that has
-            // to work the fleet out for itself needs the whole fleet: a vessel
-            // sitting quietly at Nominal is exactly the one that would go
+            // The aggregate carries every vessel still in the game, not just the
+            // ones this tick touched. `touched` is a change list, and a consumer
+            // that has to work the fleet out for itself needs the whole fleet: a
+            // vessel sitting quietly at Nominal is exactly the one that would go
             // missing from a change-list roster and reappear only when it went
-            // dark, which is the wrong way round.
+            // dark, which is the wrong way round. Destroyed vessels are left out:
+            // the tracker never forgets them, so listing them would size the
+            // payload by every vessel the save ever launched.
             var roster = new List<SilenceContactSnapshot>(tracker.States.Count);
-            foreach (var state in tracker.States.Values)
+            foreach (var state in tracker.LiveStates)
             {
                 roster.Add(new SilenceContactSnapshot
                 {

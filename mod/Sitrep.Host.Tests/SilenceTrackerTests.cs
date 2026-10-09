@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Host.Comms;
 using Xunit;
 
@@ -181,6 +182,38 @@ namespace Sitrep.Host.Tests
             Assert.Equal(SilenceState.Lost, state.State);
             Assert.Equal(1, state.LostSeq); // no re-increment on repeated absence
             Assert.Equal(0, callCount); // destroyed never asks the deadline policy
+        }
+
+        [Fact]
+        public void LiveStatesGrowWithTheFleetThatExistsRatherThanWithEveryVesselEverTracked()
+        {
+            var tracker = NewTracker();
+            var launched = new List<SilenceSample>();
+            for (var i = 0; i < 1000; i++)
+            {
+                launched.Add(new SilenceSample("debris-" + i, true, orbit: null, landedOrSplashed: false));
+            }
+            tracker.Tick(launched, ut: 0);
+            tracker.Tick(One(VesselA, true), ut: 1); // every debris piece is now gone
+
+            Assert.Equal(1001, tracker.States.Count);
+            var live = tracker.LiveStates.ToList();
+            Assert.Single(live);
+            Assert.Equal(VesselA, live[0].VesselId);
+        }
+
+        [Fact]
+        public void ALostVesselThatStillExistsStaysInTheLiveStates()
+        {
+            var tracker = NewTracker(deadlineSec: 0);
+
+            tracker.Tick(One(VesselA, true), ut: 0);
+            tracker.Tick(One(VesselA, false), ut: 1);
+            tracker.Tick(One(VesselA, false), ut: 2);
+            tracker.Tick(One(VesselA, false), ut: 3);
+
+            Assert.Equal(SilenceState.Lost, tracker.TryGetState(VesselA)!.State);
+            Assert.Single(tracker.LiveStates);
         }
 
         [Fact]
