@@ -120,5 +120,35 @@ namespace Sitrep.Host.Tests.Comms
             Assert.False(toCraft.Live);
             Assert.Null(without.Routes.Single(r => r.From == Ground && r.To == Craft).ArrivalUt);
         }
+
+        [Fact]
+        public void ARelayThatOptedOutBeforeTheSendIsNotCountedAsTurningItsDish()
+        {
+            var plan = Plan();
+            var sent = InSight(plan);
+            var routing = new RetargetRouting(LinkUp, 10.0, mayTurn: node => node != Relay);
+
+            var route = new PlanRoutes(plan, retarget: routing).Route(Ground, Craft, sent, double.PositiveInfinity, turnsOnTheWay: true);
+            var rows = ContactRouting.RoutesFor(plan, Craft, new[] { Ground }, sent, retarget: routing);
+
+            Assert.Null(route);
+            Assert.Null(rows.Routes.Single(r => r.From == Ground && r.To == Craft).ArrivalUt);
+        }
+
+        [Fact]
+        public void AMessageAlreadyPlannedThroughARelayReroutesWhenThatRelayOptsOut()
+        {
+            var plan = Plan();
+            var sent = InSight(plan);
+            var optedOut = false;
+            var routes = new PlanRoutes(plan, retarget: new RetargetRouting(LinkUp, 10.0, mayTurn: node => !(optedOut && node == Relay)));
+
+            var before = routes.Route(Ground, Craft, sent, double.PositiveInfinity, turnsOnTheWay: true);
+            optedOut = true;
+            var after = routes.Route(Ground, Craft, sent, double.PositiveInfinity, turnsOnTheWay: true);
+
+            Assert.NotNull(before);
+            Assert.Null(after);
+        }
     }
 }

@@ -78,13 +78,21 @@ namespace Sitrep.Propagation.Contacts
     /// </summary>
     public sealed class RetargetRouting
     {
-        public RetargetRouting(double linkUpSeconds, double awayMarginSeconds, IReadOnlyCollection<string>? onlyAtNodes = null, bool onTheWay = false)
+        public RetargetRouting(double linkUpSeconds, double awayMarginSeconds, IReadOnlyCollection<string>? onlyAtNodes = null, bool onTheWay = false, Func<string, bool>? mayTurn = null)
         {
             LinkUpSeconds = linkUpSeconds;
             AwayMarginSeconds = awayMarginSeconds;
             OnlyAtNodes = onlyAtNodes;
             OnTheWay = onTheWay;
+            MayTurn = mayTurn;
         }
+
+        /// <summary>
+        /// Whether a node may turn a dish on its own right now, asked each time a route is
+        /// worked out, or null for every node. A window of a node that may not is not a way
+        /// through, whatever the plan was made from.
+        /// </summary>
+        public Func<string, bool>? MayTurn { get; }
 
         /// <summary>How long after the turn starts the link is up.</summary>
         public double LinkUpSeconds { get; }
@@ -103,7 +111,7 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>The same routing, with <see cref="OnTheWay"/> set to <paramref name="onTheWay"/>.</summary>
         public RetargetRouting WithOnTheWay(bool onTheWay) =>
-            onTheWay == OnTheWay ? this : new RetargetRouting(LinkUpSeconds, AwayMarginSeconds, OnlyAtNodes, onTheWay);
+            onTheWay == OnTheWay ? this : new RetargetRouting(LinkUpSeconds, AwayMarginSeconds, OnlyAtNodes, onTheWay, MayTurn);
     }
 
     /// <summary>The earliest-arriving route from one node to another for a message sent at one instant.</summary>
@@ -379,6 +387,10 @@ namespace Sitrep.Propagation.Contacts
             foreach (var window in pair.RetargetWindows)
             {
                 if (!string.Equals(window.NodeId, from, StringComparison.Ordinal) || !string.Equals(window.PeerId, to, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (retarget.MayTurn != null && !retarget.MayTurn(window.NodeId))
                 {
                     continue;
                 }

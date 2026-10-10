@@ -316,7 +316,8 @@ namespace Sitrep.Host
         public RetargetRouting? DishRouting()
         {
             var options = DishOptions;
-            return Volatile.Read(ref _dishBackend) == null ? null : new RetargetRouting(options.LinkUpSeconds, options.SendSeconds);
+            var backend = Volatile.Read(ref _dishBackend);
+            return backend == null ? null : new RetargetRouting(options.LinkUpSeconds, options.SendSeconds, mayTurn: backend.AutoRetargetAllowed);
         }
 
         public IReadOnlyCollection<string> PlanningCentres()

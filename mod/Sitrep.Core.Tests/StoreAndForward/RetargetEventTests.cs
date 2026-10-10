@@ -223,6 +223,22 @@ namespace Sitrep.Core.Tests.StoreAndForward
         }
 
         [Fact]
+        public void ACraftThatOptsOutIsNoticedOnTheNextTickWithoutBeingTold()
+        {
+            var rig = new Rig();
+            rig.Send(0.0);
+            rig.RunTo(11.0);
+            Assert.Single(rig.Network.ActiveRetargets());
+
+            rig.Allowed = false;
+            rig.Clock.AdvanceTo(11.5);
+            rig.Network.Tick(11.5);
+
+            Assert.Equal("restore@11.5", rig.Actuator.Log.Last());
+            Assert.Empty(rig.Network.ActiveRetargets());
+        }
+
+        [Fact]
         public void ACraftThatMayNotTurnADishNeverStartsAnEvent()
         {
             var rig = new Rig();

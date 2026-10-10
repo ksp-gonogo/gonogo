@@ -465,6 +465,11 @@ namespace Sitrep.Core.StoreAndForward
         {
             foreach (var e in _retargetEvents.Where(Live).ToList())
             {
+                if (!_autoRetarget(e.Record.Node))
+                {
+                    RestoreEvent(e, nowUt);
+                    continue;
+                }
                 var stillHeld = e.Waiting.Where(id => IsHeldAt(e.Record.Node, id)).ToList();
                 e.Waiting = new HashSet<string>(stillHeld, StringComparer.Ordinal);
                 if (e.Record.Phase == RetargetPhase.Turned
