@@ -1,0 +1,21 @@
+{
+  "debt": [
+    "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/__fixtures__/breaking-ground-absent.json",
+    "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/__fixtures__/controller-not-connected.json",
+    "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/__fixtures__/mun-and-minmus-bases-stopped-arriving.json",
+    "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/__fixtures__/mun-and-minmus-bases.json",
+    "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/__fixtures__/robotics-dlc-absent.json",
+    "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/__fixtures__/servos-link-lost.json",
+    "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/__fixtures__/servos.json",
+    "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/__fixtures__/rotors-dlc-absent.json",
+    "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/__fixtures__/rotors-link-lost.json",
+    "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/__fixtures__/rotors.json",
+    "mod/GonogoMakingHistoryUplink/client/src/ObjectivesSource/__fixtures__/mission-part-way.json",
+    "packages/components/src/ManeuverPlanner/__fixtures__/locks/executor-section-locked.json",
+    "packages/components/src/ManeuverPlanner/__fixtures__/locks/executor-section-unlocked.json",
+    "packages/components/src/ManeuverPlanner/__fixtures__/locks/mission-control-level-1.json",
+    "packages/components/src/ManeuverPlanner/__fixtures__/locks/tracking-station-level-1.json",
+    "packages/components/src/Strategies/__fixtures__/probe/finances-screen.json",
+    "packages/components/src/Strategies/__fixtures__/probe/own-actions-screen.json"
+  ]
+}
