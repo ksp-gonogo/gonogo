@@ -1,5 +1,5 @@
 import type { PlotEmphasis, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
-import { TONE_MARK, TONE_TEXT } from "@ksp-gonogo/ui-kit";
+import { TONE_MARK, TONE_TEXT, VesselMarkSvg } from "@ksp-gonogo/ui-kit";
 import { type ReactElement, useId } from "react";
 
 /**
@@ -18,6 +18,8 @@ const EMPHASIS_OPACITY: Record<PlotEmphasis, number> = {
 const BASE_STROKE_WIDTH = 1.5;
 /** Larger than a scatter point, so a lone mark does not read as one sample of a series. */
 const BASE_MARKER_RADIUS = 5;
+/** The vessel mark is drawn a little under the plot's other marks, as the map draws it against its own. */
+const VESSEL_MARK_SCALE = 0.9;
 const ANNOTATION_HALF = 7;
 const CAPTION_PAD = 6;
 /** This svg has no viewBox, so font sizes are CSS px and stay off the type scale. */
@@ -190,6 +192,64 @@ export function closeHalfPlane(
     out.push({ x: last.x, y: edge }, { x: first.x, y: edge });
   }
   return out;
+}
+
+/**
+ * Whether a screen point lies on one of the solid (unhatched) regions or on a
+ * sampled relief, so a background lattice can be kept to the open space. Rings are the ones the
+ * regions draw.
+ */
+export function solidRegionCover(
+  layers: readonly PlotLayer[],
+  frame: PlotLayerFrame,
+): (x: number, y: number) => boolean {
+  const rings: { x: number; y: number }[][] = [];
+  for (const layer of layers) {
+    if (layer.kind === "relief") {
+      const scaleY = scaleYOf(frame, layer);
+      const { x0, y0, x1, y1 } = layer.bounds;
+      rings.push([
+        { x: frame.scaleX(x0), y: scaleY(y0) },
+        { x: frame.scaleX(x1), y: scaleY(y0) },
+        { x: frame.scaleX(x1), y: scaleY(y1) },
+        { x: frame.scaleX(x0), y: scaleY(y1) },
+      ]);
+      continue;
+    }
+    if (layer.kind !== "region" || layer.hatched) continue;
+    const scaleY = scaleYOf(frame, layer);
+    const boundary = layer.boundary.map((p) => ({
+      x: frame.scaleX(p.x),
+      y: scaleY(p.y),
+    }));
+    if (boundary.length < 2) continue;
+    if (layer.side === "between") {
+      if (!layer.boundaryHigh) continue;
+      rings.push([
+        ...boundary,
+        ...layer.boundaryHigh
+          .map((p) => ({ x: frame.scaleX(p.x), y: scaleY(p.y) }))
+          .reverse(),
+      ]);
+    } else {
+      rings.push(closeHalfPlane(boundary, layer.side, frame));
+    }
+  }
+  return (x, y) =>
+    rings.some((ring) => {
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const a = ring[i];
+        const b = ring[j];
+        if (
+          a.y > y !== b.y > y &&
+          x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x
+        ) {
+          inside = !inside;
+        }
+      }
+      return inside;
+    });
 }
 
 function FieldLayer({
@@ -672,7 +732,18 @@ function MarkerLayer({
   } as const;
 
   const mark =
-    shape === "dot" ? (
+    shape === "vessel" ? (
+      // The shared vessel mark, so the craft reads the same here as on the map: shape and fill say how its position is known.
+      <g {...common}>
+        <VesselMarkSvg
+          state={layer.markState ?? "current"}
+          x={x}
+          y={y}
+          r={r * VESSEL_MARK_SCALE}
+          keyline
+        />
+      </g>
+    ) : shape === "dot" ? (
       <circle
         {...common}
         cx={x}

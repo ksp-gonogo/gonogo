@@ -411,6 +411,7 @@ export function GraphView({
               layers={layers}
               hideXAxis={config?.hideXAxis}
               spatial={config?.spatial}
+              gridScale={config?.gridScale}
               aria-label={ariaLabel}
               crosshair={xIsTime}
               width={size.w}

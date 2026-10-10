@@ -121,6 +121,8 @@ interface GraphFrameConfig {
   hideXAxis?: boolean;
   /** A view of a place rather than a chart: full-bleed, no tick ladders, equal scale on both axes. */
   spatial?: boolean;
+  /** Scales the pitch of a spatial plot's dot lattice, 0.5 to 2; see `PlotFrame.gridScale`. */
+  gridScale?: number;
   /** Unit token for the primary Y tick labels, written through the unit registry's ladder. */
   yUnit?: string;
   /** Pins the primary-axis domain; the data range when absent. */

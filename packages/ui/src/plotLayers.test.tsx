@@ -24,6 +24,131 @@ function chart(layers: PlotLayer[]) {
 const drawn = (container: HTMLElement, id: string) =>
   container.querySelector(`[data-plot-layer="${id}"]`);
 
+describe("the vessel marker shape", () => {
+  it("draws the shared vessel mark, in the state the layer names", () => {
+    const { container } = chart([
+      {
+        kind: "marker",
+        id: "craft",
+        at: { x: 40, y: 400 },
+        shape: "vessel",
+        markState: "held",
+      },
+    ]);
+    const layer = drawn(container, "craft");
+    expect(layer).not.toBeNull();
+    expect(layer?.querySelector("[data-vessel-mark]")).toHaveAttribute(
+      "data-vessel-mark",
+      "held",
+    );
+  });
+
+  it("is current when the layer names no state", () => {
+    const { container } = chart([
+      {
+        kind: "marker",
+        id: "craft",
+        at: { x: 40, y: 400 },
+        shape: "vessel",
+      },
+    ]);
+    expect(
+      drawn(container, "craft")?.querySelector("[data-vessel-mark]"),
+    ).toHaveAttribute("data-vessel-mark", "current");
+  });
+});
+
+describe("a spatial plot's dot lattice", () => {
+  const dots = (gridScale?: number) => {
+    const { container } = render(
+      <LineChart
+        series={[]}
+        xDomain={[0, 100]}
+        yDomainPrimary={[0, 100]}
+        spatial
+        gridScale={gridScale}
+        aria-label="Test plot"
+        {...SIZE}
+      />,
+    );
+    return container.querySelectorAll("circle[r='1']").length;
+  };
+
+  it("spreads its dots as the scale rises and packs them as it falls, between half and twice the usual gap", () => {
+    expect(dots(0.5)).toBeGreaterThan(dots(1));
+    expect(dots(1)).toBeGreaterThan(dots(2));
+  });
+
+  it("leaves out the dots that fall on the ground, so the lattice is in the sky only", () => {
+    const withGround = (layers: PlotLayer[]) => {
+      const { container } = render(
+        <LineChart
+          series={[]}
+          xDomain={[0, 100]}
+          yDomainPrimary={[0, 100]}
+          spatial
+          layers={layers}
+          aria-label="Test plot"
+          {...SIZE}
+        />,
+      );
+      return [...container.querySelectorAll("circle[r='1']")].map((c) =>
+        Number(c.getAttribute("cy")),
+      );
+    };
+    const sky = withGround([]);
+    const ground = withGround([
+      {
+        kind: "region",
+        id: "ground",
+        side: "below",
+        boundary: [
+          { x: 0, y: 50 },
+          { x: 100, y: 50 },
+        ],
+      },
+    ]);
+    // Ground at half height: every dot left is above it (a smaller y on screen), and some dots went.
+    expect(ground.length).toBeGreaterThan(0);
+    expect(ground.length).toBeLessThan(sky.length);
+    const mid = SIZE.height / 2;
+    expect(Math.max(...ground)).toBeLessThanOrEqual(mid);
+  });
+
+  it("leaves out the dots that fall on a sampled relief, where nothing is missing to mark", () => {
+    const { container } = render(
+      <LineChart
+        series={[]}
+        xDomain={[0, 100]}
+        yDomainPrimary={[0, 100]}
+        spatial
+        layers={[
+          {
+            kind: "relief",
+            id: "terrain",
+            values: [1, 2, 3, 4],
+            size: 2,
+            bounds: { x0: 0, y0: 0, x1: 50, y1: 100 },
+          },
+        ]}
+        aria-label="Test plot"
+        {...SIZE}
+      />,
+    );
+    const xs = [...container.querySelectorAll("circle[r='1']")].map((c) =>
+      Number(c.getAttribute("cx")),
+    );
+    expect(xs.length).toBeGreaterThan(0);
+    // The relief covers the left half of the plot, so every dot left is in the right half.
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(SIZE.width / 2 - 1);
+  });
+
+  it("clamps the scale to half and twice the usual gap", () => {
+    expect(dots(0.1)).toBe(dots(0.5));
+    expect(dots(9)).toBe(dots(2));
+  });
+});
+
 describe("plot layers", () => {
   it("draws one element per layer, tagged with the contributor's own id", () => {
     const { container } = chart([

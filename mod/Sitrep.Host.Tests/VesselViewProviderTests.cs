@@ -2302,7 +2302,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildLandingCarriesTheGroundTrackStripAsParallelArrays()
         {
-            var distances = LandingGroundTrack.Distances(6_400.0);
+            var distances = LandingGroundTrack.Distances(-3_464.0, 6_400.0);
             var elevations = new double[distances.Length];
             for (var i = 0; i < elevations.Length; i++)
             {
@@ -2326,6 +2326,37 @@ namespace Sitrep.Host.Tests
             var wire = (IDictionary<string, object?>)VesselViewProvider.BuildLandingWire(snapshot)!;
             Assert.Equal(distances, (double[])wire["groundTrackDistances"]!);
             Assert.Equal(elevations, (double[])wire["groundTrackElevations"]!);
+        }
+
+        [Fact]
+        public void BuildLandingCarriesTheSiteGridWithItsSizeAndWidth()
+        {
+            var heights = new double[LandingSiteGrid.Size * LandingSiteGrid.Size];
+            for (var i = 0; i < heights.Length; i++)
+            {
+                heights[i] = 100.0 + i;
+            }
+
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                landing: new Dictionary<string, object?>
+                {
+                    ["outcome"] = "terrain-assessed",
+                    ["siteHeights"] = heights,
+                    ["siteHeightsSize"] = LandingSiteGrid.Size,
+                    ["siteHeightsExtentMeters"] = 240.0,
+                });
+
+            var landing = VesselViewProvider.BuildLanding(snapshot);
+
+            Assert.NotNull(landing);
+            Assert.Equal(heights, landing!.SiteHeights);
+            Assert.Equal(LandingSiteGrid.Size, landing.SiteHeightsSize);
+            Assert.Equal(240.0, landing.SiteHeightsExtentMeters);
+            var wire = (IDictionary<string, object?>)VesselViewProvider.BuildLandingWire(snapshot)!;
+            Assert.Equal(heights, (double[])wire["siteHeights"]!);
+            Assert.Equal(LandingSiteGrid.Size, wire["siteHeightsSize"]);
+            Assert.Equal(240.0, wire["siteHeightsExtentMeters"]);
         }
 
         [Fact]

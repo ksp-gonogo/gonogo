@@ -21,14 +21,21 @@ import { dirname, resolve } from "node:path";
 import type { Frame } from "./landingDescentModel";
 import {
   channelsFor,
+  coneFootprint,
   DEG,
   fixtureFromChannels,
   groundTrackDistances,
+  groundTrackElevations,
   integrate,
   MU,
   predictedPoint,
   R,
+  type Relief,
+  SITE_GRID_SIZE,
+  siteGridHalfExtent,
+  siteGridHeights,
   streamFixture,
+  trackExtent,
 } from "./landingDescentModel";
 
 export type { Frame };
@@ -42,12 +49,20 @@ interface TerrainPreset {
   heading: number;
   roughness: number;
   biome: string;
-  /** Metres of relief at a distance in metres downrange of the site. */
-  relief: (downrange: number) => number;
+  /** Metres of relief at a point this many metres east and north of the site. */
+  relief: Relief;
   note: string;
 }
 
 const gauss = (d: number, s: number) => Math.exp(-((d / s) ** 2) / 2);
+
+/** A plane falling away from the site's heading at the given slope, with a little fine texture. */
+const tilted =
+  (slopeDeg: number, headingDeg: number): Relief =>
+  (e, n) =>
+    -(e * Math.sin(headingDeg * DEG) + n * Math.cos(headingDeg * DEG)) *
+      Math.tan(slopeDeg * DEG) +
+    1.5 * Math.sin(e * 0.15) * Math.cos(n * 0.13);
 
 const PRESETS: TerrainPreset[] = [
   {
@@ -56,7 +71,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 90,
     roughness: 15,
     biome: "Lowlands",
-    relief: (x) => 1.2 * Math.sin(x * 0.2),
+    relief: (e, n) => 1.2 * Math.sin(e * 0.2) * Math.cos(n * 0.18),
     note: "Flat plains, near-zero slope, smooth => SAFE",
   },
   {
@@ -65,7 +80,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 110,
     roughness: 45,
     biome: "Midlands",
-    relief: (x) => Math.tan(9 * DEG) * Math.sin(110 * DEG) * x,
+    relief: tilted(9, 110),
     note: "Gentle slope (~9deg) => MARGINAL on slope",
   },
   {
@@ -74,7 +89,7 @@ const PRESETS: TerrainPreset[] = [
     heading: 200,
     roughness: 70,
     biome: "Highlands",
-    relief: (x) => Math.tan(22 * DEG) * Math.sin(200 * DEG) * x,
+    relief: tilted(22, 200),
     note: "Steep slope (>15deg) => DIVERT on slope",
   },
   {
@@ -83,7 +98,10 @@ const PRESETS: TerrainPreset[] = [
     heading: 90,
     roughness: 220,
     biome: "Midlands",
-    relief: (x) => -30 * gauss(x, 32) + 11 * gauss(x - 56, 10),
+    relief: (e, n) => {
+      const d = Math.hypot(e, n);
+      return -30 * gauss(d, 32) + 11 * gauss(d - 56, 10);
+    },
     note: "Crater: deep central dip + raised rim => MARGINAL on roughness",
   },
   {
@@ -92,7 +110,8 @@ const PRESETS: TerrainPreset[] = [
     heading: 300,
     roughness: 320,
     biome: "Highlands",
-    relief: (x) => 26 * gauss(x, 22) + 2 * Math.sin(x * 0.1),
+    relief: (e, n) =>
+      26 * gauss((e - n) / Math.SQRT2, 22) + 2 * Math.sin(n * 0.1),
     note: "Sharp ridge / mountainous => DIVERT (slope + roughness)",
   },
   {
@@ -101,8 +120,10 @@ const PRESETS: TerrainPreset[] = [
     heading: 90,
     roughness: 200,
     biome: "Midlands",
-    relief: (x) =>
-      6 * Math.sin(x * 0.5) + 4 * Math.cos(x * 0.33) + 3 * Math.sin(x * 0.7),
+    relief: (e, n) =>
+      6 * Math.sin(e * 0.5) * Math.sin(n * 0.55) +
+      4 * Math.cos(e * 0.33 + n * 0.4) +
+      3 * Math.sin(e * 0.7 - n * 0.2),
     note: "Boulder-rough: low slope, high residual roughness => MARGINAL on roughness",
   },
 ];
@@ -130,23 +151,39 @@ function channel(
   return block as Record<string, unknown>;
 }
 
-/** The ground-track strip a showcase frame carries: the preset's relief along it, through the site's own elevation. */
-function showcaseTrack(preset: TerrainPreset): {
-  groundTrackDistances: number[];
-  groundTrackElevations: number[];
-} {
+/** The ground-track strip and site grid a showcase frame carries: the preset's relief along the track and around the site, through the site's own elevation. */
+function showcaseGround(preset: TerrainPreset): Record<string, unknown> {
   const pp = predictedPoint(SHOWCASE_FRAME);
   const drift =
     (pp.lon - SHOWCASE_FRAME.lon) *
     DEG *
     R *
     Math.cos(SHOWCASE_FRAME.lat * DEG);
-  const distances = groundTrackDistances(drift);
+  const footprint = coneFootprint(
+    SHOWCASE_FRAME.aglMeters,
+    SHOWCASE_FRAME.vDown,
+    SHOWCASE_FRAME.vHoriz,
+    R,
+  );
+  const extent = trackExtent(
+    footprint.behind,
+    footprint.ahead,
+    SHOWCASE_FRAME.aglMeters,
+    drift,
+  );
+  const distances = groundTrackDistances(extent.behind, extent.ahead);
+  const halfExtent = siteGridHalfExtent(drift, SHOWCASE_FRAME.aglMeters);
   return {
     groundTrackDistances: distances,
-    groundTrackElevations: distances.map(
-      (d) => 120 + preset.relief(d - drift) - preset.relief(0),
+    groundTrackElevations: groundTrackElevations(
+      distances,
+      drift,
+      120,
+      preset.relief,
     ),
+    siteHeights: siteGridHeights(halfExtent, 120, preset.relief),
+    siteHeightsSize: SITE_GRID_SIZE,
+    siteHeightsExtentMeters: 2 * halfExtent,
   };
 }
 
@@ -159,7 +196,7 @@ function showcaseFixture(preset: TerrainPreset): Record<string, unknown> {
     predictedSlopeHeading: preset.heading,
     predictedRoughness: preset.roughness,
     predictedBiome: preset.biome,
-    ...showcaseTrack(preset),
+    ...showcaseGround(preset),
   };
   return fixtureFromChannels(ch, preset.name, preset.note);
 }

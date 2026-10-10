@@ -161,7 +161,15 @@ export interface PlotMarkerLayer extends PlotLayerBase {
   kind: "marker";
   at: PlotPoint;
   /** Defaults to `"dot"`. */
-  shape?: "dot" | "ring" | "cross" | "chevron-up" | "chevron-down";
+  shape?: "dot" | "ring" | "cross" | "chevron-up" | "chevron-down" | "vessel";
+  /**
+   * How the position of a `"vessel"` mark is known, which decides its shape and
+   * fill: `"current"` is a reading of now, `"held"` the last observation kept past
+   * its time, `"modelled"` where a model carries the craft to now, and `"lost"`
+   * the last place of a craft given up on. Defaults to `"current"`; ignored for
+   * every other shape.
+   */
+  markState?: "current" | "held" | "modelled" | "lost";
   /** Multiplier on the plot's own marker size. Defaults to 1. */
   scale?: number;
   /**

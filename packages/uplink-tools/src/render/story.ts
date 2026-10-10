@@ -26,7 +26,8 @@ export const STORY_USAGE = `uplink-tools story <story-id> [options]
   --gif                  render as a GIF even when the story is not tagged
   --png                  render the first settled frame, even when the story
                          is tagged
-  --seconds <n>          GIF length (default: 6)
+  --seconds <n>          GIF length (default: the story's own, from the element it
+                         marks [data-story-seconds], else 6)
   --fps <n>              GIF frame rate, 1 to 30 (default: 10)
   --chrome               draw the whole story frame, with its Replay button and
                          captions. Without it the picture is the widget alone,
@@ -54,6 +55,8 @@ export interface StoryArgs {
   out?: string;
   format: "auto" | "gif" | "png";
   seconds: number;
+  /** Whether `--seconds` was given, which wins over the length a story states for itself. */
+  secondsGiven: boolean;
   fps: number;
   width: number;
   height: number;
@@ -86,6 +89,7 @@ export function parseStoryArgs(argv: readonly string[]): StoryArgs {
     storybook: "storybook-static",
     format: "auto",
     seconds: 6,
+    secondsGiven: false,
     fps: 10,
     width: 1280,
     height: 900,
@@ -122,6 +126,7 @@ export function parseStoryArgs(argv: readonly string[]): StoryArgs {
         break;
       case "--seconds":
         args.seconds = numberFlag(flag, value(), 0.5, 60);
+        args.secondsGiven = true;
         break;
       case "--fps":
         args.fps = numberFlag(flag, value(), 1, 30);
@@ -394,6 +399,65 @@ const LISTEN_FOR_RENDER = `
 
 /** What a story marks its widget with, so the picture can be just the widget. */
 const WIDGET_SELECTOR = "[data-story-widget]";
+/**
+ * Refuses a picture that is not exactly one loop of its story: first frame to last, with no wrap.
+ * A frame equal to the first, coming back after the picture has moved on, means the story started over inside it; a length other than the one the story states means it holds more or less than a run.
+ */
+export function assertOneLoop(
+  frames: readonly Buffer[],
+  run: { stated?: number; seconds?: number; fps?: number },
+): void {
+  const moved = frames.findIndex((f) => !f.equals(frames[0]));
+  if (moved > 0) {
+    const back = frames.findIndex((f, i) => i > moved && f.equals(frames[0]));
+    if (back > 0) {
+      throw new Error(
+        `the picture holds more than one loop of its story: frame ${back + 1} of ${frames.length} is the first frame again`,
+      );
+    }
+  }
+  if (
+    run.stated !== undefined &&
+    run.seconds !== undefined &&
+    Math.abs(run.seconds - run.stated) > 0.5
+  ) {
+    throw new Error(
+      `the story runs for ${run.stated} seconds but the picture is ${run.seconds} seconds long, so it does not hold exactly one loop; leave --seconds out`,
+    );
+  }
+}
+
+/** What a playback story marks its running time with, in seconds. */
+const SECONDS_SELECTOR = "[data-story-seconds]";
+
+/** The part of a page `statedSeconds` reads: a locator that can hand back an attribute. */
+export interface SecondsPage {
+  locator(selector: string): {
+    first(): {
+      getAttribute(
+        name: string,
+        options?: { timeout?: number },
+      ): Promise<string | null>;
+    };
+  };
+}
+
+/** The running time a story states for itself, within what a GIF may be, or `fallback` when it states none. */
+export async function statedSeconds(
+  page: SecondsPage,
+  fallback: number,
+): Promise<number> {
+  const raw = await page
+    .locator(SECONDS_SELECTOR)
+    .first()
+    .getAttribute("data-story-seconds", { timeout: 500 })
+    .catch(() => null);
+  const n = Number(raw);
+  return raw !== null && Number.isFinite(n) && n >= 0.5 && n <= 60
+    ? n
+    : fallback;
+}
+
 /** What a playback story marks its start control with. */
 const START_SELECTOR = "[data-story-start]";
 const STORY_ROOT = "#storybook-root";
@@ -520,19 +584,31 @@ export async function renderStory(
           `story ${entry.id} has no button named "${args.start}" to start it`,
         );
       }
+      // A playback story that knows how long it runs says so, so its picture is not cut off partway.
+      const stated = await statedSeconds(page, Number.NaN);
+      const seconds = args.secondsGiven
+        ? args.seconds
+        : Number.isNaN(stated)
+          ? args.seconds
+          : stated;
       const began = Date.now();
       if (clicked) await starter.first().click();
 
       const clip = await picture();
       const captured: { at: number; frame: Buffer }[] = [];
-      while (Date.now() - began < args.seconds * 1000) {
+      while (Date.now() - began < seconds * 1000) {
         const at = Date.now() - began;
         captured.push({
           at,
           frame: await page.screenshot({ clip, fullPage: true }),
         });
       }
-      const frames = resample(captured, args.fps, args.seconds);
+      const frames = resample(captured, args.fps, seconds);
+      assertOneLoop(frames, {
+        stated: Number.isNaN(stated) ? undefined : stated,
+        seconds,
+        fps: args.fps,
+      });
       await mkdir(dirname(file), { recursive: true });
       await writeFile(
         file,

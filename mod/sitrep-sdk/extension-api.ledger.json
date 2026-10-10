@@ -8199,6 +8199,10 @@
         "note": "PerfBudget.rate renamed: the method returns the windowed total"
       },
       {
+        "key": "sitrep-sdk . PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
         "key": "sitrep-sdk . SDK_VERSION",
         "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
@@ -8591,6 +8595,10 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./registry ~PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind; it carries the reading a row was drawn from, so a held row is drawn held"
       },
@@ -8827,6 +8835,10 @@
         "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ServerMessage",
         "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
@@ -8953,6 +8965,10 @@
       {
         "key": "sitrep-sdk ./testing ~OrbitOverlayContext#held",
         "note": "OrbitOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
@@ -9809,6 +9825,14 @@
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk . PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk . PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
         "key": "sitrep-sdk . PowerSystemsScope",
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
@@ -10535,6 +10559,14 @@
       {
         "key": "sitrep-sdk ./registry ~PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
       },
       {
         "key": "sitrep-sdk ./registry ~ScienceDataAboardRowContext",
@@ -11337,6 +11369,14 @@
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
         "key": "sitrep-sdk ./spine ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -11491,6 +11531,14 @@
       {
         "key": "sitrep-sdk ./testing ~PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",

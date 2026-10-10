@@ -201,6 +201,16 @@
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
     "verdict": "coincidence"
   },
+  "VesselLanding.siteHeights": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.siteHeightsExtentMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
   "VesselLanding.slopeSampleRadiusMeters": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
@@ -411,6 +421,16 @@
   "vessel.landing.roughnessFootprintMeters": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.siteHeights": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.siteHeightsExtentMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (sample distances, slope radius, roughness) or a terrain elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
     "verdict": "coincidence"
   },
   "vessel.landing.slopeSampleRadiusMeters": {

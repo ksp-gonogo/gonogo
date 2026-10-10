@@ -15,7 +15,9 @@ import {
   ReadoutCaption,
   Section,
   Stack,
+  Tooltip,
   Unit,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import type { LandingRegime } from "./clocks";
@@ -30,9 +32,20 @@ export const REGIME_LABEL: Record<LandingRegime, string> = {
 export const REGIME_TONE: Record<LandingRegime, Tone> = {
   live: "go",
   staged: "warn",
-  autonomous: "nogo",
+  autonomous: "warn",
   "no-path": "neutral",
 };
+
+/** A line that never wraps: what does not fit is cut with an ellipsis, and the whole of it is in its tooltip. */
+const ONE_LINE = {
+  display: "block",
+  maxWidth: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
+
+const IMPACT_CAPTION = "BEST-BURN IMPACT";
 
 export interface CommitLayerProps {
   regime: LandingRegime;
@@ -54,6 +67,10 @@ export interface CommitLayerProps {
   noLandingVector?: boolean;
   /** The touchdown speed of the best burn started now (`bestSpeedAtImpact`, m/s); the row holds the absent-value token when there is none. */
   impactSpeed?: number | null;
+  /** True while the engines are lit, from a reading of now: the headline reads BURNING in place of the countdown to a burn that has begun. */
+  burning?: boolean;
+  /** False for a craft with no engine to burn (none, no thrust, or none reported): the block says nothing of a burn. True when omitted. */
+  engine?: boolean;
 }
 
 interface Hero {
@@ -73,6 +90,7 @@ function resolveHero({
   centreOfMass = false,
   landed = false,
   noLandingVector = false,
+  burning = false,
 }: Readonly<CommitLayerProps>): Hero {
   const hero = (
     value: ReactNode,
@@ -84,6 +102,8 @@ function resolveHero({
   if (landed) return hero("LANDED", "TOUCHDOWN CONFIRMED", "go");
   // Committed to a hard impact whatever it does now.
   if (noLandingVector) return hero("NO LANDING VECTOR", "", "nogo");
+  // A countdown to a burn that is already under way would be a falsehood, so the engines' own thrust takes its place.
+  if (burning) return hero("BURNING", "", "warn");
   // Both heroes assume something about the link (a closed loop, a known delay) that nothing has told us.
   if (regime === "no-path") {
     return hero(NULL_DISPLAY, "BURN TIMING NEEDS A LINK", "neutral");
@@ -118,7 +138,18 @@ function resolveHero({
 }
 
 export function CommitLayer(props: Readonly<CommitLayerProps>) {
-  const { noLandingVector = false, impactSpeed = null } = props;
+  const { noLandingVector = false, impactSpeed = null, engine = true } = props;
+  // Nothing to burn means no countdown and no best burn to speak of; a touchdown is still a touchdown. The live region stays mounted either way, so the touchdown is announced.
+  if (!engine) {
+    // The row is there before the touchdown too, blank, so LANDED arriving never moves what sits below the block.
+    return (
+      <Section role="status" aria-live="polite">
+        <Readout tone="go" style={ONE_LINE}>
+          {props.landed ? "LANDED" : <span aria-hidden="true">{"\u00a0"}</span>}
+        </Readout>
+      </Section>
+    );
+  }
   const {
     value: heroValue,
     caption: heroCaption,
@@ -128,6 +159,12 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
 
   // A figure from the burn solve is withheld like the hero's instruction while any input to it is dated.
   const showImpact = impactSpeed != null && !props.landed && props.mayInstruct;
+  const heroTitle =
+    `${typeof heroValue === "string" ? `${heroValue} ` : ""}${heroCaption}`.trim();
+  const impactText =
+    showImpact && impactSpeed != null
+      ? writeQuantity(value("m/s", impactSpeed), { decimals: 0 })
+      : "";
 
   // The ignition cue and a no-landing-vector are ABORT-class, so assertive; every other state is polite.
   const alarmed = urgent || noLandingVector;
@@ -137,20 +174,30 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
       role={alarmed ? "alert" : "status"}
       aria-live={alarmed ? "assertive" : "polite"}
     >
-      {/* Two rows in every state, so a state change never moves what sits below the block. */}
+      {/* Two rows in every state, each one line that truncates rather than wraps, so a state change never moves what sits below the block. */}
       <Stack>
-        <Readout tone={heroTone}>
-          {heroValue}
-          {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
-        </Readout>
-        <Readout tone={noLandingVector ? "nogo" : "neutral"}>
-          {showImpact ? (
-            <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
-          ) : (
-            NULL_DISPLAY
-          )}
-          <ReadoutCaption>BEST-BURN IMPACT</ReadoutCaption>
-        </Readout>
+        <Tooltip text={heroTitle}>
+          <Readout tone={heroTone} style={ONE_LINE}>
+            {heroValue}
+            {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
+          </Readout>
+        </Tooltip>
+        <Tooltip
+          text={`${IMPACT_CAPTION}${showImpact ? `: ${impactText}` : ""}`}
+        >
+          <Readout tone={noLandingVector ? "nogo" : "neutral"} style={ONE_LINE}>
+            {showImpact ? (
+              <Unit
+                value={value("m/s", impactSpeed)}
+                format="m/s"
+                decimals={0}
+              />
+            ) : (
+              NULL_DISPLAY
+            )}{" "}
+            <ReadoutCaption>{IMPACT_CAPTION}</ReadoutCaption>
+          </Readout>
+        </Tooltip>
       </Stack>
     </Section>
   );

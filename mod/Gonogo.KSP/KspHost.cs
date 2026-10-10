@@ -2552,7 +2552,8 @@ namespace Gonogo.KSP
             // Terrain sampling: option 1 (mod-side predicted touchdown point)
             // with a sub-vessel fallback, behind an injectable sample-source.
             SampleTerrain(result, vessel, orbit, body);
-            SampleGroundTrack(result, vessel, body);
+            SampleGroundTrack(result, vessel, body, lowestPointHeight.Value);
+            SampleSiteGrid(result, vessel, body, lowestPointHeight.Value);
 
             // Outcome: atmosphere headlines when it was actually SOLVED, else
             // terrain-assessed once we have a slope reading, else the bare
@@ -2626,18 +2627,23 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Sample terrain heights along the great circle from the point beneath
-        /// the vessel to the predicted site (the sub-vessel point when no impact
-        /// was predicted) and on past it, into <c>groundTrackDistances</c> and
-        /// <c>groundTrackElevations</c>. The spacing and extent come from
-        /// <see cref="LandingGroundTrack"/>, which fixes the number of PQS reads
-        /// per tick. Reads run on the main thread, one at a time, like the site
-        /// sample.
+        /// Sample terrain heights along the great circle through the point beneath
+        /// the vessel and the predicted site (the sub-vessel point when no impact
+        /// was predicted), into <c>groundTrackDistances</c> and
+        /// <c>groundTrackElevations</c>: the footprint on the ground of a 120 degree
+        /// cone about the vessel's travel vector (see <see cref="LandingCone"/>),
+        /// widened by <see cref="LandingGroundTrack.Extent"/> to hold the ground
+        /// beneath the vessel and the site, read at a fixed number of points, so it
+        /// is finer as the strip narrows. The
+        /// number of PQS reads per tick is fixed by <see cref="LandingGroundTrack"/>.
+        /// Reads run on the main thread, one at a time, like the site sample.
+        /// Does nothing without a predicted site.
         /// </summary>
         private static void SampleGroundTrack(
             Dictionary<string, object?> result,
             Vessel vessel,
-            CelestialBody body)
+            CelestialBody body,
+            double heightAboveTerrain)
         {
             if (!(result.TryGetValue("predictedLatitude", out var siteLat) && siteLat is double lat2)
                 || !(result.TryGetValue("predictedLongitude", out var siteLon) && siteLon is double lon2))
@@ -2653,10 +2659,16 @@ namespace Gonogo.KSP
             double bearing = toSite > 1.0
                 ? LandingGroundTrack.BearingDegrees(lat1, lon1, lat2, lon2)
                 : 90.0;
-            double[] distances = LandingGroundTrack.Distances(toSite);
+            // The travel vector in the plane of motion: how fast it sinks and how fast it moves along the ground.
+            double descentRate = -vessel.verticalSpeed;
+            double along = Math.Sqrt(Math.Max(0.0, vessel.srfSpeed * vessel.srfSpeed - descentRate * descentRate));
+            var footprint = LandingCone.FootprintOf(heightAboveTerrain, descentRate, along, r);
+            var (behind, ahead) = LandingGroundTrack.Extent(footprint.Behind, footprint.Ahead, heightAboveTerrain, toSite);
+            double[] distances = LandingGroundTrack.Distances(behind, ahead);
             var elevations = new double[distances.Length];
             for (int i = 0; i < distances.Length; i++)
             {
+                // A negative distance is behind the vessel: the same great circle, the other way.
                 var p = LandingGroundTrack.Destination(lat1, lon1, bearing, distances[i], r);
                 // allowNegative so ocean floor reads honestly rather than clamping to 0.
                 elevations[i] = body.TerrainAltitude(p.lat, p.lon, allowNegative: true);
@@ -2664,6 +2676,80 @@ namespace Gonogo.KSP
 
             result["groundTrackDistances"] = distances;
             result["groundTrackElevations"] = elevations;
+
+        }
+
+        /// <summary>The terrain grid last taken around the site, kept between ticks so it is retaken less often than the strip.</summary>
+        private static double[]? siteGridHeights;
+        private static double siteGridHalfExtent;
+        private static double siteGridLat;
+        private static double siteGridLon;
+        private static long siteGridTicks;
+
+        /// <summary>
+        /// Sample a square of terrain heights around the predicted site into
+        /// <c>siteHeights</c>, <c>siteHeightsSize</c> and
+        /// <c>siteHeightsExtentMeters</c>. It is many more PQS reads than the track
+        /// strip, so <see cref="LandingSiteGrid.NeedsRefresh"/> holds it to one
+        /// grid a second at most, and the last grid is sent again in between. The
+        /// site is the predicted touchdown point, or the sub-vessel point when none
+        /// was predicted.
+        /// </summary>
+        private static void SampleSiteGrid(
+            Dictionary<string, object?> result,
+            Vessel vessel,
+            CelestialBody body,
+            double heightAboveTerrain)
+        {
+            if (!(result.TryGetValue("predictedLatitude", out var siteLat) && siteLat is double lat)
+                || !(result.TryGetValue("predictedLongitude", out var siteLon) && siteLon is double lon))
+            {
+                return;
+            }
+
+            double r = body.Radius;
+            // The grid holds the whole window the touchdown plot draws, so it narrows as the vessel comes down and nears the site.
+            double toSite = LandingGroundTrack.DistanceMeters(vessel.latitude, vessel.longitude, lat, lon, r);
+            double halfExtent = LandingSiteGrid.HalfExtentMeters(toSite, heightAboveTerrain);
+
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            double seconds = (now - siteGridTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
+            double moved = siteGridHeights == null
+                ? 0.0
+                : LandingGroundTrack.DistanceMeters(siteGridLat, siteGridLon, lat, lon, r);
+            if (LandingSiteGrid.NeedsRefresh(
+                    siteGridHeights != null, seconds, moved, halfExtent, siteGridHalfExtent))
+            {
+                int n = LandingSiteGrid.Size;
+                var heights = new double[n * n];
+                double cosLat = Math.Cos(lat * Math.PI / 180.0);
+                if (Math.Abs(cosLat) < 1e-6) cosLat = 1e-6;
+                for (int row = 0; row < n; row++)
+                {
+                    for (int col = 0; col < n; col++)
+                    {
+                        var (east, north) = LandingSiteGrid.Offset(row, col, halfExtent);
+                        // A site near a pole has no ground past it, so the row stays on the globe.
+                        double la = Math.Max(-90.0, Math.Min(90.0, lat + north / r * (180.0 / Math.PI)));
+                        double lo = lon + east / (r * cosLat) * (180.0 / Math.PI);
+                        // allowNegative so ocean floor reads honestly rather than clamping to 0.
+                        heights[row * n + col] = body.TerrainAltitude(la, lo, allowNegative: true);
+                    }
+                }
+
+                siteGridHeights = heights;
+                siteGridHalfExtent = halfExtent;
+                siteGridLat = lat;
+                siteGridLon = lon;
+                siteGridTicks = now;
+            }
+
+            if (siteGridHeights != null)
+            {
+                result["siteHeights"] = siteGridHeights;
+                result["siteHeightsSize"] = LandingSiteGrid.Size;
+                result["siteHeightsExtentMeters"] = 2 * siteGridHalfExtent;
+            }
         }
 
         /// <summary>

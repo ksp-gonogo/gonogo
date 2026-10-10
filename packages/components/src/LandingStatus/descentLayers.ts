@@ -9,6 +9,7 @@ import {
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
+import { touchdownBand } from "./hazardVerdict";
 
 /**
  * The descent envelope as a contributed plot: a velocity-height instrument with speed on X and height above ground on Y, so the bottom edge is the ground. The bold curve is the terminal-velocity line, the equilibrium glide the vessel settles onto.
@@ -18,28 +19,21 @@ import { parentBodyFromTopics } from "../shared/streamBody";
  */
 /**
  * Urgency is driven entirely by the do-nothing outcome (`projectedTouchdownSpeed`) and the altitude left, never the current speed.
- * At or under this speed the do-nothing touchdown is soft enough to ride down at any altitude.
+ * The outcome is judged by the landing verdict's own touchdown bands (`touchdownBand`), so the envelope and the verdict never disagree about the same speed.
  */
-const SURVIVABLE_TOUCHDOWN_MPS = 12;
-/** A do-nothing touchdown at/over this speed is lethal to hull and crew. */
-const LETHAL_TOUCHDOWN_MPS = 45;
-/** Below this altitude a lethal-range touchdown has no room left to correct, so caution escalates. */
+/** Below this altitude a touchdown the verdict calls DIVERT has no room left to correct, so caution escalates. */
 const CRITICAL_ALTITUDE_M = 1500;
 
 export type EnvelopeUrgency = "safe" | "caution" | "urgent";
 
-/** The do-nothing touchdown outcome as an action-urgency tier, exported with its thresholds for testing. */
+/** The do-nothing touchdown outcome as an action-urgency tier. */
 export function classifyUrgency(
   touchdownSpeed: number,
   altitude: number,
 ): EnvelopeUrgency {
-  if (touchdownSpeed <= SURVIVABLE_TOUCHDOWN_MPS) return "safe";
-  if (
-    touchdownSpeed >= LETHAL_TOUCHDOWN_MPS &&
-    altitude <= CRITICAL_ALTITUDE_M
-  ) {
-    return "urgent";
-  }
+  const band = touchdownBand(touchdownSpeed);
+  if (band === "SAFE") return "safe";
+  if (band === "DIVERT" && altitude <= CRITICAL_ALTITUDE_M) return "urgent";
   return "caution";
 }
 

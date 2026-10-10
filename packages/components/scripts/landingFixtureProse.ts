@@ -49,6 +49,8 @@ export const SHOWS: Readonly<Record<string, string>> = {
     "A lander mid-descent whose flight and surface readings have stopped arriving: altitude and speed still show with a staleness caption, and the ignition instant is withheld.",
   "atmospheric-final-approach-chute":
     "A craft at about 1.5 km over Kerbin under an open parachute at about 9 m/s, with the terrain plots showing again alongside the descent read.",
+  "ocean-splashdown":
+    "A capsule with no engine, about 300 m over Kerbin's ocean under an open parachute: the sea is the surface it lands on, drawn as water in both plots, the ground strip and the site grid being the floor beneath it.",
 };
 
 /** The `_meta.notes` of the scenes no other table of notes already holds. */

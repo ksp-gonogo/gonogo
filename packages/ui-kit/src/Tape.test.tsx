@@ -41,6 +41,26 @@ describe("Tape", () => {
     expect(text).not.toContain(" m");
   });
 
+  it("does not print a tick label under the pointer's own figure", () => {
+    // The pointer sits exactly on the 3 km tick: its figure would be drawn over the tick's label.
+    const { container } = render(
+      <Tape
+        value={m(3000)}
+        min={m(0)}
+        max={m(5000)}
+        tickStep={m(1000)}
+        aria-label="Alt"
+      />,
+    );
+    const labels = Array.from(container.querySelectorAll("text")).map(
+      (t) => t.textContent,
+    );
+    expect(labels.filter((t) => t === "3.0")).toHaveLength(1);
+    // The ticks either side keep theirs.
+    expect(labels).toContain("2.0");
+    expect(labels).toContain("4.0");
+  });
+
   it("treats a non-finite value as the minimum", () => {
     render(
       <Tape value={m(Number.NaN)} min={m(0)} max={m(5000)} aria-label="Alt" />,

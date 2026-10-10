@@ -123,12 +123,18 @@ public class VesselLanding
     public string? PredictedBiome { get; set; }
 
     /// <summary>The distance in metres of each <see cref="GroundTrackElevations"/>
-    /// sample along the predicted ground track, measured from the point on the
-    /// ground beneath the vessel toward the predicted site and on past it.
-    /// Ascending, starting at 0, the same length as
-    /// <see cref="GroundTrackElevations"/>. The spacing and the extent scale with
-    /// the vessel's height, so the strip narrows toward the site as it descends.
-    /// Null when no track could be sampled.</summary>
+    /// sample along the predicted ground track, signed: 0 is the point on the
+    /// ground beneath the vessel, positive is toward the predicted site and on past
+    /// it, negative is behind the vessel. Ascending, the same length as
+    /// <see cref="GroundTrackElevations"/>. The strip always holds the ground
+    /// directly beneath the vessel, with at least one vessel height (and never less
+    /// than 120 m) of ground behind it, and runs on to the far edge of the footprint
+    /// of a cone of 60 degrees either side of the vessel's travel vector: where the
+    /// cone's two edges, in the plane of the vessel's motion, meet the ground. A
+    /// flat or climbing approach has an edge that never meets it, and that edge is
+    /// cut at the horizon. The strip also reaches the predicted site and a tenth of
+    /// its distance past it. The number of samples is fixed, so they are closer
+    /// together the narrower the strip, which narrows as the vessel descends. Null when no track could be sampled.</summary>
     [SitrepUnit(Units.Metres)]
     public double[]? GroundTrackDistances { get; set; }
 
@@ -137,6 +143,28 @@ public class VesselLanding
     /// (ocean floor reads negative). Null when no track could be sampled.</summary>
     [SitrepUnit(Units.Metres)]
     public double[]? GroundTrackElevations { get; set; }
+
+    /// <summary>A square of terrain elevations in metres around the predicted
+    /// site, for a top-down view of it: <see cref="SiteHeightsSize"/> by
+    /// <see cref="SiteHeightsSize"/> values row by row, the northern row first and
+    /// the western column first in each row, so laying them out in that order puts
+    /// north at the top. The grid is centred on the site and its width is
+    /// <see cref="SiteHeightsExtentMeters"/>: wide enough to hold the ground
+    /// between the vessel and the site, and about the vessel's height of it either
+    /// side, so it narrows as the vessel descends and closes on the site, and it may
+    /// be a second old. Null when no site could be sampled.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double[]? SiteHeights { get; set; }
+
+    /// <summary>The number of values along each side of <see cref="SiteHeights"/>.
+    /// Null when there is no grid.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? SiteHeightsSize { get; set; }
+
+    /// <summary>The full width in metres that <see cref="SiteHeights"/> spans.
+    /// Null when there is no grid.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SiteHeightsExtentMeters { get; set; }
 
     // The atmospheric fields below come from one instantaneous terminal-velocity model over the same measured drag, so they are present or absent together.
 

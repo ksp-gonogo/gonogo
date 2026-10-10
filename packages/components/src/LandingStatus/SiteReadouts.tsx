@@ -7,6 +7,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { Hazard } from "./hazardVerdict";
+import { roundedHeight } from "./readouts";
 import type { LandingModel } from "./useLandingModel";
 
 type Model = Readonly<{ model: LandingModel }>;
@@ -52,7 +53,12 @@ export function TerrainReadout({ model }: Model) {
         NULL_DISPLAY
       )}
       {siteDrift != null
-        ? ` · ${writeQuantity(value("m", siteDrift.distanceMeters), { decimals: 0 })} downrange`
+        ? ` · ${writeQuantity(
+            roundedHeight(value("m", siteDrift.distanceMeters)),
+            {
+              decimals: 0,
+            },
+          )} downrange`
         : ""}
       {source ? ` · ${source}` : ""}
     </Text>

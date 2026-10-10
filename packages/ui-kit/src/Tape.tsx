@@ -106,6 +106,8 @@ export interface TapeProps<Unit extends string = string> {
   "aria-label": string;
 }
 
+/** How close, in pixels, a tick label may sit to the pointer's figure before the figure hides it: the figure is 11 px tall. */
+const FIGURE_CLEARANCE_PX = 9;
 const PAD_TOP = 12;
 const PAD_BOTTOM = 12;
 // Left gutter wide enough for a 5-digit unit-less label (e.g. "10000").
@@ -364,6 +366,12 @@ export function Tape<Unit extends string = string>({
         {/* Interior ticks and labels */}
         {ticks.map((t) => {
           const y = yOf(t);
+          // The pointer's own figure is drawn at its height, so a tick label that close to it would be printed over by it.
+          const underFigure =
+            hasFigure &&
+            Math.abs(
+              y - Math.max(trackTop + 4, Math.min(trackBottom - 4, pointerY)),
+            ) < FIGURE_CLEARANCE_PX;
           return (
             <g key={`tick-${t}`}>
               <line
@@ -374,16 +382,18 @@ export function Tape<Unit extends string = string>({
                 stroke="var(--color-border-subtle)"
                 strokeWidth={1}
               />
-              <text
-                x={labelX}
-                y={y}
-                textAnchor={labelAnchor}
-                dominantBaseline="middle"
-                fontSize={8}
-                fill="var(--color-text-faint)"
-              >
-                {scale.mark(t)}
-              </text>
+              {!underFigure && (
+                <text
+                  x={labelX}
+                  y={y}
+                  textAnchor={labelAnchor}
+                  dominantBaseline="middle"
+                  fontSize={8}
+                  fill="var(--color-text-faint)"
+                >
+                  {scale.mark(t)}
+                </text>
+              )}
             </g>
           );
         })}

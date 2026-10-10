@@ -21,13 +21,23 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
+  atmosphereStream,
+  integrateAtmosphere,
+  LOW_DESCENT,
+} from "./landingAtmosphereModel";
+import {
+  coneFootprint,
   type Frame,
   greatCircleMeters,
   groundTrackDistances,
   groundTrackElevations,
   roundedScene,
+  SITE_GRID_SIZE,
   sceneMeta,
+  siteGridHalfExtent,
+  siteGridHeights,
   streamFixture,
+  trackExtent,
 } from "./landingDescentModel";
 import { DERIVED_NOTES } from "./landingFixtureProse";
 import {
@@ -236,15 +246,37 @@ function kerbinScene(spec: KerbinScene): GeneratedScene {
       numberAt(landing, "predictedLongitude"),
       KERBIN_RADIUS,
     );
-    const distances = groundTrackDistances(drift);
+    const siteElevation = numberAt(landing, "predictedTerrainElevation");
+    const height = numberAt(spec.surface, "heightFromTerrain");
+    const footprint = coneFootprint(
+      height,
+      -numberAt(spec.flight, "verticalSpeed"),
+      Math.sqrt(
+        Math.max(
+          0,
+          numberAt(spec.flight, "surfaceSpeed") ** 2 -
+            numberAt(spec.flight, "verticalSpeed") ** 2,
+        ),
+      ),
+      KERBIN_RADIUS,
+    );
+    const extent = trackExtent(
+      footprint.behind,
+      footprint.ahead,
+      height,
+      drift,
+    );
+    const distances = groundTrackDistances(extent.behind, extent.ahead);
+    const halfExtent = siteGridHalfExtent(drift, height);
     landing.groundTrackDistances = roundedScene(distances);
     landing.groundTrackElevations = roundedScene(
-      groundTrackElevations(
-        distances,
-        drift,
-        numberAt(landing, "predictedTerrainElevation"),
-      ),
+      groundTrackElevations(distances, drift, siteElevation),
     );
+    landing.siteHeights = roundedScene(
+      siteGridHeights(halfExtent, siteElevation),
+    );
+    landing.siteHeightsSize = SITE_GRID_SIZE;
+    landing.siteHeightsExtentMeters = roundedScene(2 * halfExtent);
   }
   const channels: Record<string, unknown> = {
     "system.bodies": {
@@ -438,6 +470,23 @@ function currencyScenes(approach: Json): GeneratedScene[] {
   ];
 }
 
+/** A capsule under canopy over the ocean: the one scene whose ground is a sea floor, so its body has an ocean and its surface is water. */
+function oceanScene(): GeneratedScene {
+  const frames = integrateAtmosphere({ ocean: true }, LOW_DESCENT);
+  const frame = frames.find((f) => !f.landed && f.aglMeters <= 300);
+  if (!frame) throw new Error("the ocean descent never reaches 300 m");
+  return {
+    path: "__fixtures__/ocean-splashdown.json",
+    fixture: atmosphereStream(
+      frame,
+      4,
+      { ocean: true },
+      "ocean-splashdown",
+      "A capsule under canopy over Kerbin's ocean; the ground strip and site grid read the sea floor.",
+    ),
+  };
+}
+
 /** Every generated scene, by path under `src/LandingStatus`. */
 export function generatedScenes(): GeneratedScene[] {
   const descents = descentScenes();
@@ -455,6 +504,7 @@ export function generatedScenes(): GeneratedScene[] {
     ...mun,
     linkLostScene(approaching.fixture),
     ...kerbinScenes(),
+    oceanScene(),
     ...descents,
     ...showcaseScenes(),
     ...currencyScenes(approach.fixture),
