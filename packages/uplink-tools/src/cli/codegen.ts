@@ -132,8 +132,11 @@ export function dotnet(
   const verbose: string[] = [];
   for (let i = 0; i < full.length; i += 1) {
     const arg = full[i];
-    if (arg === "-v") i += 1;
-    else if (!/^-clp:/i.test(arg) && !/^-v:/i.test(arg)) verbose.push(arg);
+    if (arg === "-v") {
+      i += 1;
+      continue;
+    }
+    if (!/^-clp:/i.test(arg) && !/^-v:/i.test(arg)) verbose.push(arg);
   }
   const rerun = spawnSync("dotnet", [...verbose, "-v:n", "-m:1"], {
     encoding: "utf8",
