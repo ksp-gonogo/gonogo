@@ -20,6 +20,7 @@ import {
   sendMessage,
   speak,
   waitForReception,
+  waitForSpoken,
 } from "./commcast-radio-scene";
 import { getHostPeerId } from "./helpers";
 
@@ -82,7 +83,7 @@ test.describe("commcast groups: delivery only to members @chromium-only", () => 
       await sendMessage(control.page, "Near, Kennedy. Go for the burn.");
       await keyDown(control.page);
       await speak(control.page, CHUNKS);
-      await control.page.waitForTimeout(clipSeconds(CHUNKS) * 1000 + 300);
+      await waitForSpoken(control.page, CHUNKS);
       await keyUp(control.page);
 
       await waitForReception(near.page, (r) => r.decoded.length >= CHUNKS, {
@@ -175,15 +176,25 @@ test.describe("commcast groups: delivery only to members @chromium-only", () => 
         message: "the added target never heard the transmission",
       });
 
-      await control.page.waitForTimeout(
-        Math.max(0, keyedAt + clipSeconds(CHUNKS) * 1000 - Date.now()) + 300,
-      );
+      await waitForSpoken(control.page, CHUNKS);
       await keyUp(control.page);
-      await far.page.waitForTimeout(FAR_SECONDS * 1000 + 2_000);
+
+      const firstIndex = (await reception(far.page)).decoded[0] as number;
+      await waitForReception(near.page, (r) => r.decoded.length >= CHUNKS, {
+        timeout: 30_000,
+        message: "the near craft never heard the whole transmission",
+      });
+      await waitForReception(
+        far.page,
+        (r) => r.decoded.length >= CHUNKS - firstIndex,
+        {
+          timeout: 30_000,
+          message: "the added target never heard the rest of the transmission",
+        },
+      );
 
       const nearHeard = await reception(near.page);
       const farHeard = await reception(far.page);
-      const firstIndex = farHeard.decoded[0] as number;
       const spokenAt = keyedAt + firstIndex * CHUNK_MS;
       const crossing = (farHeard.firstDecodeAt as number) - spokenAt;
       console.info(

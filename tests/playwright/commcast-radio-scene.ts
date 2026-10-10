@@ -634,6 +634,21 @@ export async function speak(page: Page, chunks?: number): Promise<void> {
   }, chunks ?? null);
 }
 
+/**
+ * Waits until the microphone on `page` has handed over `chunks` chunks.
+ *
+ * `speak` is a page-side timer, and a backgrounded page's timers run late, so
+ * keying up at a wall-clock instant can land before the last ticks have fired.
+ * `keyUp` discards anything the microphone emits afterwards, which reads as
+ * audio lost in delivery when it was never sent.
+ */
+export async function waitForSpoken(page: Page, chunks: number): Promise<void> {
+  await waitForReception(page, (r) => r.spoken >= chunks, {
+    timeout: 30_000,
+    message: `the microphone never spoke ${chunks} chunks`,
+  });
+}
+
 /** Everything this screen's speakers were handed, with its own wall instants. */
 export async function takeAudio(page: Page): Promise<TapedBlock[]> {
   return await page.evaluate(() => {
