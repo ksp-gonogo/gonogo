@@ -128,6 +128,22 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         /// <summary>
+        /// A launch is refused for the site it names. Declared without that
+        /// need, the requirement judged the pad alone, and a craft parked there
+        /// refused a runway launch as well and darkened its control.
+        /// </summary>
+        [Fact]
+        public void TheLaunchSiteTestsAreJudgedPerSite()
+        {
+            var preFlight = GateDeclarations.All().ToDictionary(e => e.Key, e => e.Value)["ksp.launch"]
+                .Where(r => r.Kind == KspGateEvaluators.Kinds.PreFlight)
+                .ToList();
+
+            Assert.Equal(2, preFlight.Count);
+            Assert.All(preFlight, r => Assert.Equal(new[] { "site" }, r.Needs));
+        }
+
+        /// <summary>
         /// Every requirement declared today is answerable before the press: with
         /// NO arguments, or per item, through an evaluator that names its items
         /// so the gate report can ask each one. That is what lets a control be

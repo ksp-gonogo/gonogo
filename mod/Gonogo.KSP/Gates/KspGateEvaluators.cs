@@ -521,17 +521,50 @@ namespace Gonogo.KSP.Gates
     /// this mod does not have at gate time. They are the natural next
     /// requirement, and they need the craft loaded first.</para>
     ///
-    /// <para>The site is read from the call's own <c>site</c> argument when there
-    /// is one, and falls back to the declared
-    /// <see cref="CommandRequirement.Facility"/>. Deliberately NOT through
-    /// <see cref="CommandRequirement.Needs"/>: needing the argument would make
-    /// the requirement abstain with an empty bag, which is exactly the
-    /// addressability answer we want it to give. Same question, answered with
-    /// whatever is known.</para>
+    /// <para>The site is the call's own <c>site</c> argument, which the
+    /// requirement names as its one need, so each launch site gets its own
+    /// verdict: a craft parked on the pad refuses a launch onto the pad and says
+    /// nothing about the runway. Evaluated with no arguments the requirement
+    /// abstains, and the gate report asks <see cref="Items"/> one by one, so a
+    /// control is dark for the site that is held and live for the rest. The
+    /// declared <see cref="CommandRequirement.Facility"/> is only the site
+    /// assumed by a caller that builds the requirement without the need.</para>
     /// </summary>
-    internal sealed class PreFlightGate : ICommandGateEvaluator
+    internal sealed class PreFlightGate : ICommandGateEvaluator, ICommandGateItems, ICommandGateInputs
     {
         public string Kind => KspGateEvaluators.Kinds.PreFlight;
+
+        public IReadOnlyList<GateInput> Inputs { get; } = new[]
+        {
+            GateInputs.Scene, GateInputs.Vessels, GateInputs.Facilities,
+        };
+
+        /// <summary>
+        /// Every launch site the game offers: the pad and the runway, which are
+        /// facilities and never appear in <c>LaunchSites</c>, then the alternate
+        /// and modded sites registered there.
+        /// </summary>
+        public IEnumerable<string> Items(CommandRequirement requirement)
+        {
+            var setup = PSystemSetup.Instance;
+            if (setup == null) yield break;
+
+            var seen = new HashSet<string>();
+            if (setup.SpaceCenterFacilityLaunchSites != null)
+            {
+                foreach (var facility in setup.SpaceCenterFacilityLaunchSites)
+                {
+                    if (facility?.name != null && seen.Add(facility.name)) yield return facility.name;
+                }
+            }
+            if (setup.LaunchSites != null)
+            {
+                foreach (var launchSite in setup.LaunchSites)
+                {
+                    if (launchSite?.name != null && seen.Add(launchSite.name)) yield return launchSite.name;
+                }
+            }
+        }
 
         public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
         {

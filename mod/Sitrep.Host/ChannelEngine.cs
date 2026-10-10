@@ -8595,6 +8595,24 @@ namespace Sitrep.Host
             return result.ToString();
         }
 
+        /// <summary>
+        /// The args a dispatch's gates read: the call bound to the command's
+        /// declared args type, so an argument the wire omitted reads as the
+        /// default the handler will act on. A gate that read the raw bag would
+        /// see no <c>site</c> on a launch that leaves it out and judge nothing,
+        /// while the handler launched from the default site.
+        /// </summary>
+        private object? GateSubject(string command, object? args)
+        {
+            if (args == null
+                || !_commandArgTypes.TryGetValue(command, out var argsType)
+                || argsType == typeof(object))
+            {
+                return args;
+            }
+            return BindCommandArgs(args, argsType) ?? args;
+        }
+
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
             // A cancel or a send again acts on the store-and-forward network, which
@@ -8652,7 +8670,7 @@ namespace Sitrep.Host
             //
             // Inert until a command declares a requirement: Requires defaults
             // empty, so EvaluateGates returns Pass on the first check.
-            var gate = EvaluateGates(job.Command, new GateArguments(job.Args));
+            var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)));
             if (gate.Outcome == GateOutcome.Fail)
             {
                 // A DECIDED refusal: the gate looked at live state and the answer

@@ -115,8 +115,10 @@ namespace Gonogo.KSP.Gates
 
         /// <summary>
         /// One of the <c>PreFlightTests</c> that needs no built ship, against a
-        /// launch site. The site is the DEFAULT: a call that names its own site
-        /// is judged on that one instead (see <see cref="PreFlightGate"/>).
+        /// launch site. The call's own <c>site</c> argument picks the site, so a
+        /// held pad refuses a launch onto the pad and leaves the runway alone;
+        /// <paramref name="site"/> only labels the requirement (see
+        /// <see cref="PreFlightGate"/>).
         /// </summary>
         public static CommandRequirement PreFlight(string site, string quantity) =>
             new CommandRequirement
@@ -124,6 +126,7 @@ namespace Gonogo.KSP.Gates
                 Kind = KspGateEvaluators.Kinds.PreFlight,
                 Facility = site,
                 Quantity = quantity,
+                Needs = new[] { "site" },
             };
     }
 }
