@@ -47,6 +47,9 @@ describe("the transmission light", () => {
       <RadioIndicator live={[light()]} nameFor={nameFor} onOpen={() => {}} />,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Ares 4 transmitting");
+    expect(screen.getByRole("button", { name: "Ares 4" })).toHaveTextContent(
+      "A4",
+    );
   });
 
   it("names a conversation that is not on screen, which is the whole point", () => {
@@ -78,8 +81,7 @@ describe("the transmission light", () => {
       />,
     );
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Ares 4");
-    expect(status).toHaveTextContent("muted");
+    expect(status).toHaveTextContent("Ares 4 transmitting, muted");
   });
 
   it("is ONE polite live region however many loops are talking", () => {
@@ -128,7 +130,7 @@ describe("the transmission light", () => {
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "2 at once talking over each other",
+      "2 at once, talking over each other",
     );
   });
 
@@ -178,6 +180,29 @@ describe("the transmission light", () => {
   });
 });
 
+describe("the transmission light keeps one size", () => {
+  const widthOf = (live: RadioLight[]) => {
+    const { container, unmount } = render(
+      <RadioIndicator live={live} nameFor={nameFor} onOpen={() => {}} />,
+    );
+    const box = container.firstElementChild as Element;
+    const width = getComputedStyle(
+      box.querySelector('[role="group"]') as Element,
+    ).inlineSize;
+    unmount();
+    return width;
+  };
+
+  it("takes the same width quiet, with one speaker and with many", () => {
+    // Four speakers overflow the stack into a count rather than widening the bar.
+    const many = ["a", "b", "c", "d"].map((id) =>
+      light({ transmissionId: id, from: `vessel:${id}` }),
+    );
+    expect(widthOf([])).toBe(widthOf([light()]));
+    expect(widthOf([light()])).toBe(widthOf(many));
+  });
+});
+
 describe("the transmission light, for a keying this vantage only detects", () => {
   const stranger = {
     transmissionId: "t9",
@@ -196,14 +221,12 @@ describe("the transmission light, for a keying this vantage only detects", () =>
       <RadioIndicator
         live={[]}
         detected={[stranger]}
-        utNow={106}
         nameFor={nameFor}
         onOpen={() => {}}
       />,
     );
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Wernher at Woomera Range to Ares 4");
-    expect(status).toHaveTextContent("Mission control");
     expect(status).not.toHaveTextContent("Quiet");
     expect(screen.queryByRole("button")).toBeNull();
   });
@@ -213,7 +236,6 @@ describe("the transmission light, for a keying this vantage only detects", () =>
       <RadioIndicator
         live={[]}
         detected={[stranger]}
-        utNow={106}
         nameFor={nameFor}
         onOpen={() => {}}
       />,

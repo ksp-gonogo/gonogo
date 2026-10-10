@@ -50,6 +50,12 @@ export {
   type AutoEmptyStateProps,
 } from "./AutoEmptyState";
 export {
+  AvatarStack,
+  type AvatarStackItem,
+  type AvatarStackProps,
+  initialsOf,
+} from "./AvatarStack";
+export {
   type AnchoredPosition,
   type AnchorPoint,
   anchoredPosition,
