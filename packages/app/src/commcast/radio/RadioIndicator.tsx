@@ -1,11 +1,15 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   BroadcastIcon,
   MutedIcon,
   StatusIndicator,
   TextButton,
+  Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import type { DetectedTransmission } from "../detected";
 import { namesOf } from "../groups";
 import type { RecipientId } from "../types";
 import type { RadioLight } from "./RadioSession";
@@ -30,10 +34,20 @@ import type { RadioLight } from "./RadioSession";
  */
 export function RadioIndicator({
   live,
+  detected = [],
+  utNow,
   nameFor,
   onOpen,
 }: {
   live: readonly RadioLight[];
+  /**
+   * Keyings this vantage can detect without being in their group. Shown as
+   * who is on the air, never as something to open: there is no audio and no
+   * thread to go to.
+   */
+  detected?: readonly DetectedTransmission[];
+  /** The UT the on-air time is counted to. */
+  utNow?: number;
   nameFor: (id: RecipientId) => string;
   /**
    * Go to the conversation a lamp names.
@@ -68,7 +82,7 @@ export function RadioIndicator({
      * something that must interrupt: `assertive` belongs to an abort.
      */
     <Radio__Indicator role="status" aria-live="polite">
-      {live.length === 0 && (
+      {live.length === 0 && detected.length === 0 && (
         <StatusIndicator tone="neutral">Quiet</StatusIndicator>
       )}
       {audible > 1 && (
@@ -101,6 +115,26 @@ export function RadioIndicator({
               pulsing dot says it, which is why it is not drawn twice. */}
           <VisuallyHidden> transmitting</VisuallyHidden>
           {one.muted && <VisuallyHidden>, muted</VisuallyHidden>}
+        </StatusIndicator>
+      ))}
+      {detected.map((one) => (
+        <StatusIndicator key={one.transmissionId} tone="neutral">
+          <BroadcastIcon size={12} aria-hidden="true" />
+          {one.authorName === "" ? nameFor(one.from) : one.authorName} at{" "}
+          {nameFor(one.from)}
+          {/* The speaker is among the addressed, so naming them again says nothing. */}
+          {" to "}
+          {namesOf(
+            one.to.filter((id) => id !== one.from),
+            nameFor,
+          )}
+          <Badge size="sm">
+            {one.authorSeat === "pilot" ? "Aboard" : "Mission control"}
+          </Badge>
+          {utNow !== undefined && (
+            <Unit value={value("s", Math.max(0, utNow - one.startedUt))} />
+          )}
+          <VisuallyHidden> transmitting, not addressed to you</VisuallyHidden>
         </StatusIndicator>
       ))}
     </Radio__Indicator>
