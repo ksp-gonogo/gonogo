@@ -281,6 +281,8 @@ export interface ProbeMount {
   emit: (channel: string, value: unknown, meta?: Partial<Meta>) => void;
   /** Moves the scene's view clock to `ut`, so bodies and conics play forward; throws without a stream. */
   scrubTo: (ut: number) => void;
+  /** Ends the stream as a dropped link does, so every figure the widget holds is drawn as last seen; throws without a stream. */
+  stopArriving: () => Promise<void>;
   /** Unmounts this widget alone and drops its data source; safe before `ready` settles. */
   unmount: () => void;
 }
@@ -391,6 +393,17 @@ function startMount(
         );
       }
       state.stream.scrubTo(ut);
+    },
+    stopArriving: async () => {
+      if (!state.stream) {
+        throw new Error(
+          `Probe: "${payload.widgetId}" has no stream to stop: its fixture carries no _stream block, or it is unmounted`,
+        );
+      }
+      state.stream.store.setTransportConnected(false);
+      state.stream.store.beginFrame();
+      await rafTick();
+      await rafTick();
     },
     unmount: () => teardownMount(state),
   };

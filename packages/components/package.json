@@ -45,7 +45,8 @@
     "render-altitude-band": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-altitude-band.ts",
     "render-admin-building-no-departments": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-admin-building-no-departments.ts",
     "render-admin-building-own-actions": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-admin-building-own-actions.ts",
-    "render-capability-locks": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-capability-locks.ts"
+    "render-capability-locks": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-capability-locks.ts",
+    "visual-repeatability": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-repeatability.ts"
   },
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",

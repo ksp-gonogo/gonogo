@@ -143,7 +143,7 @@ describe("LandingStatus: what undefined means today", () => {
     // Both the ignition countdown and the burn-GO clock assert a link state nothing has established.
     expect(hero).not.toHaveTextContent("SUICIDE BURN");
     expect(hero).not.toHaveTextContent("BURN GO IN");
-    // No round-trip readout: `roundTripSeconds` is null, not zero.
+    // Nothing is descending, so there is no round trip to time and the empty state keeps the room.
     expect(screen.queryByText(/^RT /)).toBeNull();
     // No body caption: the widget declines to guess between atmospheric and vacuum.
     expect(visibleText(container)).not.toContain("vacuum");

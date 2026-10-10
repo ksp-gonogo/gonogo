@@ -1,35 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  type Frame,
+  integrateAtmosphere,
+  LOW_DESCENT,
+} from "../../components/scripts/landingAtmosphereModel";
+import {
   integrate,
-  streamFixture,
+  SHALLOW_DESCENT,
 } from "../../components/scripts/landingDescentModel";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
+import {
+  AIR,
+  emitsOf,
+  landsAtSea,
+  playbackOf,
+  type StoryWorld,
+  streamOf,
+} from "../scripts/landingPlaybackModel";
+import { DEFAULT_SIZE } from "../scripts/landingStorySize";
 import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
 
 /** Descent seconds played per real second. */
-const PLAYBACK_RATE = 6;
-const ONE_WAY_SECONDS = 4;
+const PLAYBACK_RATE = 10;
+/** Real seconds the last scene is held on screen before the story ends. */
+const HOLD_SECONDS = 3;
 
 export interface LandingDescentSceneProps {
   /** Comes in too fast and meets the ground, instead of burning down to a soft touchdown. */
   crash?: boolean;
+  /** Begins as a shallow approach: low and slow, under five degrees below level, instead of the deep descent from 8 km. */
+  shallow?: boolean;
+  /** Where the descent takes place; the Mun when omitted. */
+  world?: StoryWorld;
   w?: number;
   h?: number;
-}
-
-interface Emit {
-  channel: string;
-  value: unknown;
-  meta?: Record<string, unknown>;
-}
-
-function emitsOf(frame: Frame): Emit[] {
-  const stream = streamFixture(frame, ONE_WAY_SECONDS, "descent", "") as {
-    _stream: { emits: Emit[] };
-  };
-  return stream._stream.emits;
 }
 
 /**
@@ -39,21 +43,34 @@ function emitsOf(frame: Frame): Emit[] {
  */
 export function LandingDescentScene({
   crash = false,
-  w = 12,
-  h = 16,
+  shallow = false,
+  world = "mun",
+  w = DEFAULT_SIZE.w,
+  h = DEFAULT_SIZE.h,
 }: LandingDescentSceneProps) {
-  const frames = useMemo(() => integrate({ crash }), [crash]);
+  const all = useMemo(
+    () =>
+      world === "mun"
+        ? integrate({ crash, start: shallow ? SHALLOW_DESCENT : undefined })
+        : integrateAtmosphere(
+            AIR[world],
+            landsAtSea(world) ? LOW_DESCENT : undefined,
+          ),
+    [crash, shallow, world],
+  );
+  const { played: frames, streamEnds } = useMemo(
+    () => playbackOf(all, crash),
+    [all, crash],
+  );
   const first = useMemo(() => {
-    const fixture = streamFixture(
+    return streamOf(
       frames[0],
-      ONE_WAY_SECONDS,
-      "descent",
+      world,
       crash
         ? "Comes in too fast and meets the ground."
         : "Burns down to a soft touchdown.",
     );
-    return fixture;
-  }, [frames, crash]);
+  }, [frames, crash, world]);
   const [run, setRun] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval>>();
@@ -69,13 +86,16 @@ export function LandingDescentScene({
         const frame = frames[index];
         if (!frame) {
           clearInterval(timer.current);
+          // The vessel is gone: nothing more arrives, so the widget holds the last scene as last seen.
+          if (streamEnds) void mount.stopArriving();
           return;
         }
-        for (const e of emitsOf(frame)) mount.emit(e.channel, e.value, e.meta);
-        setElapsed(frame.t);
+        for (const e of emitsOf(frame, world))
+          mount.emit(e.channel, e.value, e.meta);
+        setElapsed(Math.floor(frame.t));
       }, 1000 / PLAYBACK_RATE);
     },
-    [frames],
+    [frames, streamEnds, world],
   );
 
   const replay = () => {
@@ -85,16 +105,21 @@ export function LandingDescentScene({
   };
 
   return (
-    <div>
+    // The running time a picture of this story must cover: the whole descent and the hold on its end.
+    <div
+      data-story-seconds={Math.ceil(
+        frames.length / PLAYBACK_RATE + HOLD_SECONDS,
+      )}
+    >
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">
-          Descent clock T+{elapsed} of T+{frames[frames.length - 1].t}, played
-          at {PLAYBACK_RATE} times speed
+          Descent clock T+{elapsed} of T+{all[all.length - 1].t}, played at{" "}
+          {PLAYBACK_RATE} times speed
         </span>
       </div>
       <WidgetScene
-        key={`${crash}-${run}`}
+        key={`${crash}-${shallow}-${world}-${run}`}
         widgetId="landing-status"
         fixture={first}
         w={w}

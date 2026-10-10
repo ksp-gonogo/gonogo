@@ -21,6 +21,8 @@ export type StreamBody = BodyDefinition & {
    * which authority spoke.
    */
   pressureProfile?: PressureProfile;
+  /** Whether the body has a liquid ocean, as the stream reports it; absent when it does not say, which is not the same as false. */
+  hasOcean?: boolean;
 };
 
 /**
@@ -46,6 +48,7 @@ export interface StreamBodyFacts {
   /** Reported in g, which is how the game holds it. */
   surfaceGravity?: Value<"g"> | null;
   atmosphere?: StreamAtmosphere | null;
+  hasOcean?: boolean | null;
 }
 
 /** Breathable stock bodies, for a stream that omits the flag: `false` would claim the air is unbreathable. */
@@ -118,6 +121,7 @@ export function bodyFromStream(
     pressureProfile: hasAtmosphere
       ? pressureProfile(facts.atmosphere)
       : undefined,
+    hasOcean: facts.hasOcean ?? undefined,
   };
 }
 

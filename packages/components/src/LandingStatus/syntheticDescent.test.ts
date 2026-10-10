@@ -22,9 +22,9 @@ describe("synthetic descent: predicted site converges on the actual touchdown", 
     const errHigh = errorMetresAt(high);
     const errMid = errorMetresAt(mid);
     const errLow = errorMetresAt(low);
-    // Coarse high up, refining monotonically as the vessel descends.
+    // Coarse high up, refining as the vessel descends, and none once the sideways speed is spent.
     expect(errMid).toBeLessThan(errHigh);
-    expect(errLow).toBeLessThan(errMid);
+    expect(errLow).toBeLessThanOrEqual(errMid);
     // Effectively on the site by the final approach (tens of metres out of km).
     expect(errLow).toBeLessThan(30);
   });

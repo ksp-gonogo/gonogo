@@ -10,7 +10,7 @@ export const SHOWS: Readonly<Record<string, string>> = {
   "final-approach-mun":
     "A lander about 180 m above the Mun descending at 8 m/s on a live link, with the ignition countdown urgent and the craft low over the landing site.",
   "kerbin-reentry-atmospheric":
-    "A craft descending through Kerbin's atmosphere at 28 km and 210 m/s, so the board shows terminal velocity (220 m/s), projected touchdown (8.4 m/s), time to impact and the descent regime instead of a suicide-burn countdown.",
+    "A craft descending through Kerbin's atmosphere at 28 km and 210 m/s, so the board shows terminal velocity (220 m/s), projected touchdown (8.4 m/s), time to impact and the descent regime instead of a suicide-burn countdown. Its parachutes are armed, rated safe to open, and open fully at 1000 m.",
   "landed-mun":
     "A lander sitting on the Mun after touchdown, with the board showing LANDED, the vessel on its site, a safe verdict, thrust-to-weight and fuel, and no countdowns.",
   "pre-burn-cruise":
@@ -49,6 +49,8 @@ export const SHOWS: Readonly<Record<string, string>> = {
     "A lander mid-descent whose flight and surface readings have stopped arriving: altitude and speed still show with a staleness caption, and the ignition instant is withheld.",
   "atmospheric-final-approach-chute":
     "A craft at about 1.5 km over Kerbin under an open parachute at about 9 m/s, with the terrain plots showing again alongside the descent read.",
+  "ocean-splashdown":
+    "A capsule with no engine, about 300 m over Kerbin's ocean under an open parachute: the sea is the surface it lands on, drawn as water in both plots, the ground strip and the site grid being the floor beneath it.",
 };
 
 /** The `_meta.notes` of the scenes no other table of notes already holds. */

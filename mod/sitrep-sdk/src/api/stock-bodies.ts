@@ -61,6 +61,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     atmosphere: { surfacePressure: 506_625, scaleHeight: 7_000 },
     // Eve's signature purple sky/haze.
     atmosphereColor: "#8850c0",
+    // The game's own ocean material (CloudyPlanetMercury): its surface tint, since its colour from space is all but grey.
+    liquidColor: "#AD94BE",
     rotationPeriod: 80500,
   });
 
@@ -94,6 +96,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     atmosphere: { surfacePressure: 101_325, scaleHeight: 5_600 },
     // Kerbin's familiar blue sky.
     atmosphereColor: "#5a8fd8",
+    // The game's own ocean material (KerbinWater): its colour from space, the bluer of its two.
+    liquidColor: "#243B47",
     rotationPeriod: 21549.425,
     // Sweet spot modelled on real low-Earth-orbit imaging scaled for Kerbin:
     // below the atmosphere gives no useful data, deep space gives too little
@@ -211,6 +215,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     atmosphere: { surfacePressure: 60_795, scaleHeight: 4_000 },
     // Laythe's blue-green tropical-ocean sky.
     atmosphereColor: "#3a9a8a",
+    // The game's own ocean material (OceanMoonWater): its colour from space; the sea is slate blue under the green sky.
+    liquidColor: "#1E2028",
     rotationPeriod: 52980.879,
   });
 

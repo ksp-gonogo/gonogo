@@ -1,8 +1,9 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { CommitLayer } from "./CommitLayer";
+import { CommitLayer, REGIME_TONE } from "./CommitLayer";
 
 const live = {
   // These cases are about which instruction the hero shows; the refusal is covered in `stale.test.tsx`.
@@ -18,6 +19,176 @@ describe("CommitLayer", () => {
   it("shows the ignition countdown as the hero when live", () => {
     render(<CommitLayer {...live} />);
     expect(screen.getByText("SUICIDE BURN")).toBeInTheDocument();
+  });
+
+  describe("with no engine to burn", () => {
+    it("says nothing of a burn: no countdown caption and no best-burn impact line", () => {
+      render(<CommitLayer {...live} engine={false} impactSpeed={12} />);
+      expect(screen.queryByText("SUICIDE BURN")).toBeNull();
+      expect(screen.queryByText("BURN GO IN")).toBeNull();
+      expect(screen.queryByText("BEST-BURN IMPACT")).toBeNull();
+    });
+
+    it("says nothing of a burn under delay either", () => {
+      render(
+        <CommitLayer
+          {...live}
+          regime="staged"
+          live={false}
+          commitInSeconds={14}
+          engine={false}
+        />,
+      );
+      expect(screen.queryByText("BURN GO IN")).toBeNull();
+      expect(screen.queryByText("BEST-BURN IMPACT")).toBeNull();
+    });
+
+    it("holds the same one row before and after the touchdown, so LANDED arriving moves nothing below it", () => {
+      const { container, rerender } = render(
+        <CommitLayer {...live} engine={false} />,
+      );
+      const rows = () => container.querySelectorAll("[role=status] > *").length;
+      const before = rows();
+      expect(before).toBe(1);
+      expect(screen.queryByText("LANDED")).toBeNull();
+      rerender(<CommitLayer {...live} engine={false} landed />);
+      expect(rows()).toBe(before);
+    });
+
+    describe("its parachutes", () => {
+      const chute = (
+        deployment: string | null,
+        safety: string | null = null,
+        fullDeployAltitude: number | null = null,
+      ) => ({
+        deployment,
+        safety,
+        fullDeployAltitude:
+          fullDeployAltitude === null ? null : value("m", fullDeployAltitude),
+      });
+
+      it.each([
+        ["none", "NO PARACHUTE"],
+        ["stowed", "CHUTE STOWED"],
+        ["armed", "CHUTE ARMED"],
+        ["semi-deployed", "CHUTE SEMI-DEPLOYED"],
+        ["deployed", "CHUTE DEPLOYED"],
+        ["cut", "CHUTE CUT"],
+      ])("says a %s parachute in the headline row", (deployment, words) => {
+        render(
+          <CommitLayer
+            {...live}
+            engine={false}
+            parachute={chute(deployment)}
+          />,
+        );
+        expect(screen.getByText(words)).toBeInTheDocument();
+      });
+
+      it("says whether opening it now is safe while it is not yet open, and the height it opens fully at", () => {
+        const { container } = render(
+          <CommitLayer
+            {...live}
+            engine={false}
+            parachute={chute("armed", "unsafe", 1000)}
+          />,
+        );
+        expect(container.querySelector("[role=status]")?.textContent).toContain(
+          "CHUTE ARMED UNSAFE TO OPEN · FULL AT 1 km",
+        );
+      });
+
+      it("keeps the one row in every parachute state, so nothing below moves", () => {
+        const { container, rerender } = render(
+          <CommitLayer {...live} engine={false} parachute={chute(null)} />,
+        );
+        const rows = () =>
+          container.querySelectorAll("[role=status] > *").length;
+        expect(rows()).toBe(1);
+        for (const d of ["armed", "semi-deployed", "deployed"]) {
+          rerender(
+            <CommitLayer
+              {...live}
+              engine={false}
+              parachute={chute(d, "safe", 1000)}
+            />,
+          );
+          expect(rows()).toBe(1);
+        }
+      });
+
+      it("says nothing of a parachute it has no reading for, and LANDED once down", () => {
+        const { rerender } = render(
+          <CommitLayer {...live} engine={false} parachute={chute(null)} />,
+        );
+        expect(screen.queryByText(/CHUTE|PARACHUTE/)).toBeNull();
+        rerender(
+          <CommitLayer
+            {...live}
+            engine={false}
+            landed
+            parachute={chute("deployed")}
+          />,
+        );
+        expect(screen.getByText("LANDED")).toBeInTheDocument();
+        expect(screen.queryByText("CHUTE DEPLOYED")).toBeNull();
+      });
+    });
+
+    it("still says LANDED once down", () => {
+      render(<CommitLayer {...live} engine={false} landed />);
+      expect(screen.getByText("LANDED")).toBeInTheDocument();
+      expect(screen.queryByText("BEST-BURN IMPACT")).toBeNull();
+    });
+
+    it("keeps the rows for a craft that has an engine, and when it is not said", () => {
+      const { rerender } = render(<CommitLayer {...live} engine />);
+      expect(screen.getByText("BEST-BURN IMPACT")).toBeInTheDocument();
+      rerender(<CommitLayer {...live} />);
+      expect(screen.getByText("BEST-BURN IMPACT")).toBeInTheDocument();
+    });
+  });
+
+  describe("while the engines are lit", () => {
+    it("reads BURNING in place of the countdown, keeping the best-burn impact line", () => {
+      render(<CommitLayer {...live} burning impactSpeed={0} />);
+      expect(screen.getByText("BURNING")).toBeInTheDocument();
+      expect(screen.queryByText("SUICIDE BURN")).toBeNull();
+      expect(screen.getByText("BEST-BURN IMPACT")).toBeInTheDocument();
+    });
+
+    it("reads BURNING in place of the burn-GO clock under delay too", () => {
+      render(
+        <CommitLayer
+          {...live}
+          regime="staged"
+          live={false}
+          commitInSeconds={14}
+          burning
+        />,
+      );
+      expect(screen.getByText("BURNING")).toBeInTheDocument();
+      expect(screen.queryByText("BURN GO IN")).toBeNull();
+    });
+
+    it("keeps the countdown when the engines are off or not known to be lit", () => {
+      const { rerender } = render(<CommitLayer {...live} burning={false} />);
+      expect(screen.getByText("SUICIDE BURN")).toBeInTheDocument();
+      expect(screen.queryByText("BURNING")).toBeNull();
+      rerender(<CommitLayer {...live} />);
+      expect(screen.getByText("SUICIDE BURN")).toBeInTheDocument();
+      expect(screen.queryByText("BURNING")).toBeNull();
+    });
+
+    it("leaves a landing the burn cannot make, and a touchdown, as they read", () => {
+      const { rerender } = render(
+        <CommitLayer {...live} burning noLandingVector />,
+      );
+      expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
+      rerender(<CommitLayer {...live} burning landed />);
+      expect(screen.getByText("LANDED")).toBeInTheDocument();
+      expect(screen.queryByText("BURNING")).toBeNull();
+    });
   });
 
   it("shows BURN LOCKED once the burn-GO deadline has passed under delay", () => {
@@ -173,6 +344,31 @@ describe("CommitLayer", () => {
       const shapes = new Set(Object.values(states).map(rows));
       expect(shapes.size).toBe(1);
     });
+  });
+
+  it("keeps two rows in every state, and lets a row's words wrap rather than cutting them off in a narrow tile", () => {
+    const { container } = render(
+      <CommitLayer
+        {...live}
+        regime="autonomous"
+        live={false}
+        commitInSeconds={-2}
+        committed
+        noLandingVector
+        impactSpeed={211}
+      />,
+    );
+    const block = container.querySelector("[role=alert], [role=status]");
+    expect(block?.querySelectorAll(":scope > * > *").length).toBe(2);
+    for (const words of ["NO LANDING VECTOR", "BEST-BURN IMPACT"]) {
+      const row = screen.getByText(words);
+      expect(row.style.whiteSpace).not.toBe("nowrap");
+      expect(row.style.textOverflow).not.toBe("ellipsis");
+    }
+  });
+
+  it("calls the autonomous regime a warning, not a failure", () => {
+    expect(REGIME_TONE.autonomous).toBe("warn");
   });
 
   it("holds no command controls, Landing is an instrument, not a command surface", () => {

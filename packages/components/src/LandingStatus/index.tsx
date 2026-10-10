@@ -2,9 +2,9 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import { datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
   Countdown,
   EmptyState,
+  NULL_DISPLAY,
   Panel,
   Section,
   Stack,
@@ -32,15 +32,18 @@ import { SolutionReadouts } from "./SolutionReadouts";
 import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
 import { useLandingModel } from "./useLandingModel";
 import { useScrollerHeight } from "./useScrollerHeight";
-// The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them.
-import "./descentLayers";
+// The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them. They draw in this order, the descent envelope last: it is the one that leaves at touchdown, and a plot leaving from the end of the row moves none of the others.
 import "./crossSectionPlot";
 import "./touchdownReticlePlot";
+import "./descentLayers";
 import { useLandingEssentials } from "./useLandingEssentials";
 
 export type { FlightReading } from "./CarriedAltitude";
 
 type LandingStatusConfig = Record<string, never>;
+
+/** The share of the room below the link rows the plots may take, so in a short tile they shrink and the readouts under them stay in reach. */
+const PLOTS_SHARE_OF_ROOM = 0.6;
 
 function LandingStatusComponent({
   w,
@@ -86,8 +89,18 @@ function LandingStatusComponent({
   const scopeShown =
     (board === "vacuum-solved" || landed || atmosphericPlotsShown) && showScope;
 
+  // Whether a descent is on the board: the empty state otherwise.
+  const descending = !(board === "not-descending" && !landed);
+
   // Contributed plots: each decides for itself whether it has anything to say, and the board lays out what comes back.
-  const contributedPlots = <PlotBoard />; // gonogo:reads none
+  const contributedPlots = (
+    // gonogo:reads none
+    <PlotBoard
+      heightPx={
+        railFrame.room > 0 ? railFrame.room * PLOTS_SHARE_OF_ROOM : undefined
+      }
+    />
+  );
 
   const comDatumNote = <ComDatumNote model={model} />;
   const readoutsStack = (
@@ -116,6 +129,13 @@ function LandingStatusComponent({
       landed={landed}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}
+      burning={model.burning}
+      engine={model.engine}
+      parachute={{
+        deployment: landing?.parachuteDeployment ?? null,
+        safety: landing?.parachuteDeploySafety ?? null,
+        fullDeployAltitude: landing?.parachuteFullDeployAltitude ?? null,
+      }}
     />
   );
 
@@ -144,47 +164,42 @@ function LandingStatusComponent({
   return (
     <Panel
       panelTitle="LANDING"
+      // The link regime is the widget's state, so it sits in the header with the other state badges rather than in the body, where its width would move the rows.
+      panelBadges={[
+        {
+          id: "landing-regime",
+          label: REGIME_LABEL[clocks.regime],
+          tone: REGIME_TONE[clocks.regime],
+          title: "How the vessel's link to the ground is carrying this descent",
+        },
+      ]}
       // Planted sections go beside the altitude rail, in the readouts column, never under it.
       panelSections={false}
       // Host-derived: the panel watches every topic this widget declares.
       sections={[
         // The link state, first and full width: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away.
+        // Through a descent every row is always present, so no state can change the height above the plots; with nothing descending there is no round trip to time, and the empty state keeps the room.
         <Section key="link" full>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: "var(--gap-related)",
-              width: "100%",
-            }}
-          >
+          <Stack>
             {commitLayerEl}
-            {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
+            {descending && (
               <Text level="muted">
                 RT{" "}
-                <Countdown
-                  value={datedFrom(
-                    model.delayCurrency,
-                    value("s", clocks.roundTripSeconds),
-                  )}
-                  precise
-                />
+                {clocks.roundTripSeconds != null &&
+                clocks.roundTripSeconds > 0 ? (
+                  <Countdown
+                    value={datedFrom(
+                      model.delayCurrency,
+                      value("s", clocks.roundTripSeconds),
+                    )}
+                    precise
+                  />
+                ) : (
+                  NULL_DISPLAY
+                )}
               </Text>
             )}
-            <span
-              style={{
-                marginLeft: "auto",
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--gap-related)",
-              }}
-            >
-              <Badge tone={REGIME_TONE[clocks.regime]}>
-                {REGIME_LABEL[clocks.regime]}
-              </Badge>
-            </span>
-          </div>
+          </Stack>
         </Section>,
         bodyName !== undefined ? (
           <Section key="context" full>
@@ -195,7 +210,7 @@ function LandingStatusComponent({
         ) : null,
         /* Not a filling section: the readouts scroll with the panel body, and a section held to the leftover height would overflow past the body's bottom inset. */
         <Section key="descent" full>
-          {board === "not-descending" && !landed ? (
+          {!descending ? (
             <Stack>
               <EmptyState>No landing in progress</EmptyState>
               <WidgetSections />
@@ -234,6 +249,7 @@ function LandingStatusComponent({
                     suicideBurnCountdown={
                       landed ? null : solution.suicideBurnCountdown
                     }
+                    burning={model.burning}
                   />
                 </div>
               )}
@@ -280,7 +296,8 @@ registerComponent<LandingStatusConfig>({
   description:
     "Everything for a powered landing: altitude, time to impact, the suicide burn with the Δv and fuel it needs, a top-down view of where you will touch down and a side view of the terrain on the way. Under signal delay it shows what was last seen beside what is predicted now.",
   tags: ["telemetry", "landing"],
-  defaultSize: { w: 8, h: 12 },
+  // Wide enough for both plots to sit side by side, with the verdict under them, in view without scrolling.
+  defaultSize: { w: 14, h: 15 },
   minSize: { w: 4, h: 6 },
   component: LandingStatusComponent,
   tiny: {

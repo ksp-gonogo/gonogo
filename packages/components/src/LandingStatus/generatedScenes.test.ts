@@ -58,6 +58,7 @@ describe("generated Landing Status scenes", () => {
       "__fixtures__/final-approach-mun.json",
       "__fixtures__/kerbin-reentry-atmospheric.json",
       "__fixtures__/landed-mun.json",
+      "__fixtures__/ocean-splashdown.json",
       "__fixtures__/pre-burn-cruise.json",
       "__fixtures__/suicide-burn-approaching-link-lost.json",
       "__fixtures__/suicide-burn-approaching.json",

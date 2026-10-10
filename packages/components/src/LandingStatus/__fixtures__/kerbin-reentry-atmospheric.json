@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A craft descending through Kerbin's atmosphere at 28 km and 210 m/s, so the board shows terminal velocity (220 m/s), projected touchdown (8.4 m/s), time to impact and the descent regime instead of a suicide-burn countdown.",
+    "shows": "A craft descending through Kerbin's atmosphere at 28 km and 210 m/s, so the board shows terminal velocity (220 m/s), projected touchdown (8.4 m/s), time to impact and the descent regime instead of a suicide-burn countdown. Its parachutes are armed, rated safe to open, and open fully at 1000 m.",
     "scenario": "kerbin-reentry-atmospheric",
     "synthetic": true,
     "notes": "SYNTHETIC (model-generated, NOT captured). Kerbin reentry (~28 km, 210 m/s down) in an atmosphere, the atmospheric board: terminal velocity, projected touchdown, aerobraking regime + the ambient (air density / temp) section, suicide-burn demoted. mach and dragToWeightRatio are derived from this scene's own numbers rather than picked: 220 m/s against a 240.15 K speed of sound is Mach 0.708, and a vessel sitting exactly at its terminal velocity has drag equal to weight, so the ratio is 1.0. Neither had ever been carried by a LandingStatus fixture, which left the descent envelope's drag chevron undrawn and its supersonic (Mach > 1) dashing unexercised; the __render_atmospheric__ scenes are where those two are worth looking at, since this dir feeds the DOM snapshots and no render config."
@@ -119,7 +119,10 @@
           "projectedTouchdownSpeed": 8.4,
           "atmosphericTimeToImpact": 95,
           "descentRegime": "hypersonic",
-          "parachuteState": "stowed",
+          "parachuteState": "armed",
+          "parachuteDeployment": "armed",
+          "parachuteDeploySafety": "safe",
+          "parachuteFullDeployAltitude": 1000,
           "dragToWeightRatio": 1
         }
       }

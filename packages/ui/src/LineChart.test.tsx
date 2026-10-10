@@ -85,6 +85,30 @@ const SERIES: ChartSeries[] = [
 ];
 
 describe("LineChart", () => {
+  it("leaves its y labels room enough on a small plot that none is clipped at the frame's edge", () => {
+    const { container } = render(
+      <LineChart
+        series={SERIES}
+        xDomain={[0, 2000]}
+        yDomainPrimary={[0, 1500]}
+        yTickFormat={(v) => `${v} m`}
+        width={160}
+        height={160}
+      />,
+    );
+    const labels = [...container.querySelectorAll("text[text-anchor='end']")]
+      .filter((t) => t.textContent?.endsWith(" m"))
+      .map((t) => ({
+        right: Number(t.getAttribute("x")),
+        text: t.textContent ?? "",
+      }));
+    expect(labels.length).toBeGreaterThan(1);
+    // The widest label, "1500 m", at its 11 px type: about 6.5 px a character.
+    for (const label of labels) {
+      expect(label.right - label.text.length * 6.5).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it("renders an svg with a path for the series", () => {
     const { container } = render(
       <LineChart

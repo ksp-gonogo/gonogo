@@ -1374,6 +1374,13 @@ export interface BodyDefinition {
    * consumers fall back to a neutral default.
    */
   atmosphereColor?: string;
+  /**
+   * The colour of the body's open liquid, its seas, for a body that has them:
+   * a CSS colour string. A plot of a sea shades it in this colour, at its
+   * theme's own brightness. Leave unset for a body with no seas, or to have
+   * them drawn in the theme's water colour.
+   */
+  liquidColor?: string;
   /** Sidereal rotation period in seconds. */
   rotationPeriod?: number;
   /** Minimum altitude (metres ASL) at which satellite imaging produces usable data. */

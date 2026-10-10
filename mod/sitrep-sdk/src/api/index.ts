@@ -117,6 +117,7 @@ export type {
   PlotReliefLayer,
   PlotRuleLayer,
   PlotSeriesLayer,
+  PlotWaterLayer,
 } from "./plot-layers";
 // The `plots` contribution slot's own types: the frame a plot pins and the
 // entry it contributes. Its own module for the reason `./plot-layers` is one.

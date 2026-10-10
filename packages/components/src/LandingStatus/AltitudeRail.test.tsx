@@ -205,6 +205,25 @@ describe("AltitudeRail", () => {
     expect(visibleText()).toMatch(/ignite in 8s/i);
   });
 
+  describe("once the engines are lit", () => {
+    it("says so, rather than counting down to an ignition that has happened", () => {
+      render(<AltitudeRail {...descending} burning />);
+      expect(screen.getByText(/^burning$/i)).toBeInTheDocument();
+      expect(visibleText()).not.toMatch(/ignite in/i);
+    });
+
+    it("says so past the ignition altitude too, where it would read 'past ignition'", () => {
+      render(<AltitudeRail {...descending} suicideBurnCountdown={0} burning />);
+      expect(screen.getByText(/^burning$/i)).toBeInTheDocument();
+      expect(screen.queryByText(/past ignition/i)).toBeNull();
+    });
+
+    it("keeps the countdown when the engines are off or not known to be lit", () => {
+      render(<AltitudeRail {...descending} burning={false} />);
+      expect(visibleText()).toMatch(/ignite in 8s/i);
+    });
+  });
+
   it("reads 'past ignition' once the burn window has opened", () => {
     render(<AltitudeRail {...descending} suicideBurnCountdown={-1} />);
     expect(screen.getByText(/past ignition/i)).toBeInTheDocument();

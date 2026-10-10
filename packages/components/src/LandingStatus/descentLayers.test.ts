@@ -5,6 +5,7 @@ import {
   classifyUrgency,
   descentFrame,
 } from "./descentLayers";
+import { touchdownBand } from "./hazardVerdict";
 
 /** The descent envelope's own marks, tested as data: which layers exist and what they say, not how they are drawn. */
 
@@ -54,19 +55,29 @@ describe("descentFrame", () => {
 });
 
 describe("action urgency", () => {
-  it("is SAFE whenever the do-nothing touchdown is survivable, at any altitude", () => {
-    expect(classifyUrgency(5, 50)).toBe("safe");
-    expect(classifyUrgency(12, 100_000)).toBe("safe");
+  it("follows the landing verdict's own touchdown bands, so the two never disagree", () => {
+    for (const speed of [0.5, 2, 2.01, 5.5, 6, 6.01, 12, 60]) {
+      const band = touchdownBand(speed);
+      const urgency = classifyUrgency(speed, 100_000);
+      expect(urgency, `${speed} m/s`).toBe(
+        band === "SAFE" ? "safe" : "caution",
+      );
+    }
   });
 
-  it("is URGENT only when the touchdown is lethal AND altitude is critically low", () => {
+  it("puts exactly the boundary speed in the lower band, in both places", () => {
+    // 2 m/s is SAFE and 6 m/s is MARGINAL, the safer band on the boundary, here and in the verdict.
+    expect(touchdownBand(2)).toBe("SAFE");
+    expect(classifyUrgency(2, 50)).toBe("safe");
+    expect(touchdownBand(6)).toBe("MARGINAL");
+    expect(classifyUrgency(6, 50)).toBe("caution");
+  });
+
+  it("is URGENT only when the touchdown is a crash (past the verdict's last band) AND altitude is critically low", () => {
     expect(classifyUrgency(60, 900)).toBe("urgent");
+    expect(classifyUrgency(7, 900)).toBe("urgent");
     expect(classifyUrgency(60, 9_000)).toBe("caution");
-  });
-
-  it("is CAUTION for a hard-but-not-lethal touchdown at any altitude", () => {
-    expect(classifyUrgency(30, 100)).toBe("caution");
-    expect(classifyUrgency(30, 40_000)).toBe("caution");
+    expect(classifyUrgency(6, 900)).toBe("caution");
   });
 
   it("names a tone rather than a colour, and carries the word to a reader", () => {
@@ -107,7 +118,7 @@ describe("buildDescentLayers", () => {
   });
 
   it("keeps the curve's tone off the SAFE mark's, so the two never blend", () => {
-    const safe = buildDescentLayers({ ...ENTRY, projectedTouchdownSpeed: 8 });
+    const safe = buildDescentLayers({ ...ENTRY, projectedTouchdownSpeed: 1.5 });
     expect(byId(safe, "vessel")?.tone).toBe("go");
     expect(byId(safe, "terminal-curve")?.tone).toBe("neutral");
   });

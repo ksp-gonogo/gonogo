@@ -8199,6 +8199,14 @@
         "note": "PerfBudget.rate renamed: the method returns the windowed total"
       },
       {
+        "key": "sitrep-sdk . PlotLayer",
+        "note": "The plot layer union gains open water (PlotWaterLayer)"
+      },
+      {
+        "key": "sitrep-sdk . PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
         "key": "sitrep-sdk . SDK_VERSION",
         "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
@@ -8595,6 +8603,14 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./registry ~PlotLayer",
+        "note": "The plot layer union gains open water (PlotWaterLayer)"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind; it carries the reading a row was drawn from, so a held row is drawn held"
       },
@@ -8835,6 +8851,14 @@
         "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotLayer",
+        "note": "The plot layer union gains open water (PlotWaterLayer)"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ServerMessage",
         "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
@@ -8965,6 +8989,14 @@
       {
         "key": "sitrep-sdk ./testing ~OrbitOverlayContext#held",
         "note": "OrbitOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotLayer",
+        "note": "The plot layer union gains open water (PlotWaterLayer)"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotMarkerLayer#shape?",
+        "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
@@ -9509,6 +9541,10 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk . BodyDefinition#liquidColor?",
+        "note": "A body's own sea colour, a CSS colour: a plot of its sea is shaded in it, at the theme's water brightness"
+      },
+      {
         "key": "sitrep-sdk . BodyPose",
         "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
       },
@@ -9823,6 +9859,54 @@
       {
         "key": "sitrep-sdk . PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk . PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk . PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer",
+        "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#bearingDeg?",
+        "note": "In a section, the bearing the track runs on, so the waves along it are the same waves the plan view draws"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#bounds",
+        "note": "The data-space rectangle the sea covers"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#gravity",
+        "note": "The body's surface gravity, which sets how fast each wave runs"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#kind",
+        "note": "The water layer's discriminant"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#origin",
+        "note": "Where the plot's origin stands on the body, so the waves stay put on it as the window moves"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#samples?",
+        "note": "In a section, the x positions the surface is sampled at, the ground strip's own, so the waterline steps as the ground line does"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#sea?",
+        "note": "The ground's heights over the bounds, judged on a relief's own cells, so a coast meets the land cell for cell; all of it is sea when omitted"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#tint?",
+        "note": "The body's liquid colour for a water layer: an identity colour like a field's tint, drawn at the theme water's brightness"
+      },
+      {
+        "key": "sitrep-sdk . PlotWaterLayer#view",
+        "note": "Whether the sea is seen from above or from the side"
       },
       {
         "key": "sitrep-sdk . PowerSystemsScope",
@@ -10551,6 +10635,54 @@
       {
         "key": "sitrep-sdk ./registry ~PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer",
+        "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#bearingDeg?",
+        "note": "In a section, the bearing the track runs on, so the waves along it are the same waves the plan view draws"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#bounds",
+        "note": "The data-space rectangle the sea covers"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#gravity",
+        "note": "The body's surface gravity, which sets how fast each wave runs"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#kind",
+        "note": "The water layer's discriminant"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#origin",
+        "note": "Where the plot's origin stands on the body, so the waves stay put on it as the window moves"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#samples?",
+        "note": "In a section, the x positions the surface is sampled at, the ground strip's own, so the waterline steps as the ground line does"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#sea?",
+        "note": "The ground's heights over the bounds, judged on a relief's own cells, so a coast meets the land cell for cell; all of it is sea when omitted"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#tint?",
+        "note": "The body's liquid colour for a water layer: an identity colour like a field's tint, drawn at the theme water's brightness"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotWaterLayer#view",
+        "note": "Whether the sea is seen from above or from the side"
       },
       {
         "key": "sitrep-sdk ./registry ~ScienceDataAboardRowContext",
@@ -11353,6 +11485,54 @@
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer",
+        "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#bearingDeg?",
+        "note": "In a section, the bearing the track runs on, so the waves along it are the same waves the plan view draws"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#bounds",
+        "note": "The data-space rectangle the sea covers"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#gravity",
+        "note": "The body's surface gravity, which sets how fast each wave runs"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#kind",
+        "note": "The water layer's discriminant"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#origin",
+        "note": "Where the plot's origin stands on the body, so the waves stay put on it as the window moves"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#samples?",
+        "note": "In a section, the x positions the surface is sampled at, the ground strip's own, so the waterline steps as the ground line does"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#sea?",
+        "note": "The ground's heights over the bounds, judged on a relief's own cells, so a coast meets the land cell for cell; all of it is sea when omitted"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#tint?",
+        "note": "The body's liquid colour for a water layer: an identity colour like a field's tint, drawn at the theme water's brightness"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotWaterLayer#view",
+        "note": "Whether the sea is seen from above or from the side"
+      },
+      {
         "key": "sitrep-sdk ./spine ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -11507,6 +11687,54 @@
       {
         "key": "sitrep-sdk ./testing ~PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotFrame#gridScale?",
+        "note": "a spatial plot's frame may scale the pitch of its dot lattice from half to twice the usual gap"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotMarkerLayer#markState?",
+        "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer",
+        "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#bearingDeg?",
+        "note": "In a section, the bearing the track runs on, so the waves along it are the same waves the plan view draws"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#bounds",
+        "note": "The data-space rectangle the sea covers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#gravity",
+        "note": "The body's surface gravity, which sets how fast each wave runs"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#kind",
+        "note": "The water layer's discriminant"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#origin",
+        "note": "Where the plot's origin stands on the body, so the waves stay put on it as the window moves"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#samples?",
+        "note": "In a section, the x positions the surface is sampled at, the ground strip's own, so the waterline steps as the ground line does"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#sea?",
+        "note": "The ground's heights over the bounds, judged on a relief's own cells, so a coast meets the land cell for cell; all of it is sea when omitted"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#tint?",
+        "note": "The body's liquid colour for a water layer: an identity colour like a field's tint, drawn at the theme water's brightness"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotWaterLayer#view",
+        "note": "Whether the sea is seen from above or from the side"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",

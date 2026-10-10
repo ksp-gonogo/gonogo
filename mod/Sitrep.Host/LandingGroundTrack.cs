@@ -4,11 +4,10 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// Pure, KSP-free geometry for the ground-track terrain strip on
-    /// <c>vessel.landing</c>: where along the predicted ground track the capture
-    /// reads terrain height. The track runs along the great circle from the point
-    /// beneath the vessel to the predicted touchdown site and on past it; the
-    /// distances are scaled to how far the vessel still has to travel, so the strip
-    /// narrows toward the site as the vessel descends.
+    /// <c>vessel.landing</c>: where along the ground track the capture reads terrain
+    /// height. The strip is the footprint of <see cref="LandingCone"/> along the
+    /// vessel's line of travel, sampled at a fixed number of points, so the spacing
+    /// is finer the narrower the footprint, which narrows as the vessel comes down.
     ///
     /// <para>The number of samples is fixed and small, which is the cost bound on
     /// the PQS reads the capture makes each tick.</para>
@@ -21,31 +20,67 @@ namespace Sitrep.Host
         /// <summary>The least ground the strip covers, metres, so a vessel about to touch down still gets terrain to read.</summary>
         public const double MinExtentMeters = 200.0;
 
-        /// <summary>How far past the site the strip runs, as a share of the distance still to travel.</summary>
-        public const double BeyondSiteFraction = 0.25;
+        /// <summary>The least ground the strip holds either side of the point beneath the vessel, metres.</summary>
+        public const double MinMarginMeters = 120.0;
 
-        /// <summary>The least the strip runs past the site, metres.</summary>
-        public const double MinBeyondSiteMeters = 100.0;
+        /// <summary>How much of the predicted site's distance the strip carries past the site, as a fraction, so a window around the craft and the site is covered end to end.</summary>
+        public const double SiteReachFraction = 0.1;
 
         /// <summary>
-        /// The distances along the track, metres from the point beneath the vessel,
-        /// at which terrain is read: <see cref="SampleCount"/> evenly spaced values,
-        /// ascending from 0 to the end of the strip. The strip ends past the site by
-        /// <see cref="BeyondSiteFraction"/> of <paramref name="distanceToSiteMeters"/>
-        /// (never less than <see cref="MinBeyondSiteMeters"/>), and is never shorter than
-        /// <see cref="MinExtentMeters"/>.
+        /// The stretch of ground the strip covers, metres from the point beneath the
+        /// vessel (negative behind): the cone's footprint, widened so it always holds
+        /// the ground directly beneath the vessel and a margin of one vessel height
+        /// either side of it, and the predicted site with a tenth of its distance
+        /// beyond. A shallow approach's cone meets the ground only ahead of the craft;
+        /// without the widening the ground under the craft would be missing from the
+        /// strip. A vessel about to touch down is held to <see cref="MinMarginMeters"/>.
         /// </summary>
-        public static double[] Distances(double distanceToSiteMeters)
+        public static (double Behind, double Ahead) Extent(
+            double footprintBehindMeters,
+            double footprintAheadMeters,
+            double heightMeters,
+            double siteAheadMeters)
         {
-            var toSite = double.IsNaN(distanceToSiteMeters) || distanceToSiteMeters < 0
-                ? 0.0
-                : distanceToSiteMeters;
-            var beyond = Math.Max(MinBeyondSiteMeters, toSite * BeyondSiteFraction);
-            var extent = Math.Max(MinExtentMeters, toSite + beyond);
+            var height = Math.Max(0.0, double.IsNaN(heightMeters) || double.IsInfinity(heightMeters) ? 0.0 : heightMeters);
+            var site = double.IsNaN(siteAheadMeters) || double.IsInfinity(siteAheadMeters) ? 0.0 : siteAheadMeters;
+            var margin = Math.Max(height, MinMarginMeters);
+            var reach = Math.Abs(site) * SiteReachFraction;
+            var behind = Math.Min(Math.Min(footprintBehindMeters, footprintAheadMeters), -Math.Max(margin, reach));
+            var ahead = Math.Max(Math.Max(footprintBehindMeters, footprintAheadMeters), Math.Max(margin, site * (1.0 + SiteReachFraction)));
+            return (behind, ahead);
+        }
+
+        /// <summary>
+        /// The distances along the track, metres, at which terrain is read:
+        /// <see cref="SampleCount"/> evenly spaced values from
+        /// <paramref name="behindMeters"/> to <paramref name="aheadMeters"/>, ascending.
+        /// Distance 0 is the point beneath the vessel and the track runs the way the
+        /// vessel travels. A footprint shorter than <see cref="MinExtentMeters"/> is
+        /// widened to it about its middle.
+        /// </summary>
+        public static double[] Distances(double behindMeters, double aheadMeters)
+        {
+            var behind = double.IsNaN(behindMeters) ? 0.0 : behindMeters;
+            var ahead = double.IsNaN(aheadMeters) ? 0.0 : aheadMeters;
+            if (ahead < behind)
+            {
+                var swap = behind;
+                behind = ahead;
+                ahead = swap;
+            }
+
+            var shortfall = MinExtentMeters - (ahead - behind);
+            if (shortfall > 0)
+            {
+                behind -= shortfall / 2;
+                ahead += shortfall / 2;
+            }
+
+            var extent = ahead - behind;
             var distances = new double[SampleCount];
             for (var i = 0; i < SampleCount; i++)
             {
-                distances[i] = extent * i / (SampleCount - 1);
+                distances[i] = behind + extent * i / (SampleCount - 1);
             }
 
             return distances;
