@@ -34,7 +34,7 @@ namespace Gonogo.KSP
             {
                 return false;
             }
-            return VesselListStanding.Stands(inFlight, flightReady, listed, inGameState);
+            return VesselListStanding.Stands(inFlight, flightReady, false, listed, inGameState);
         }
     }
 }

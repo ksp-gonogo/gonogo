@@ -16,6 +16,12 @@ namespace Gonogo.KSP
     /// an empty one included, and a flight whose last craft is lost sees it
     /// go.</para>
     ///
+    /// <para>The game clears that flag again when the craft being flown is
+    /// lost, with the scene still up and the list intact. A list that stood
+    /// earlier in this flight (see <see cref="VesselListWatch"/>) keeps
+    /// standing until a scene load is requested, so the craft that was lost
+    /// leaves the roster when the game removes it.</para>
+    ///
     /// <para>Out of flight there is no such flag, and the sign is a list with
     /// no vessels in a game whose own state holds some. That state is as of
     /// the last save, and out of flight a craft leaves the list only by being
@@ -26,13 +32,14 @@ namespace Gonogo.KSP
     {
         /// <param name="inFlight">Whether the loaded scene is flight.</param>
         /// <param name="flightReady">The game's own <c>FlightGlobals.ready</c>.</param>
+        /// <param name="flightHeld">Whether the list stood earlier in this flight and no scene load has been requested since.</param>
         /// <param name="listed">How many vessels the live list holds.</param>
         /// <param name="inGameState">How many vessels the current game's own flight state holds, or null when it cannot be read.</param>
-        public static bool Stands(bool inFlight, bool flightReady, int listed, int? inGameState)
+        public static bool Stands(bool inFlight, bool flightReady, bool flightHeld, int listed, int? inGameState)
         {
             if (inFlight)
             {
-                return flightReady;
+                return flightReady || flightHeld;
             }
             return listed > 0 || inGameState == null || inGameState.Value == 0;
         }

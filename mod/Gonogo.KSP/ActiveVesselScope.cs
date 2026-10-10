@@ -107,6 +107,12 @@ namespace Gonogo.KSP
 
             kspActive = active;
 
+            // The game keeps a destroyed craft as its active vessel until the player leaves the scene.
+            if (Living(active) == null)
+            {
+                return null;
+            }
+
             Vessel? parent = null;
             Guid? reported;
             lock (Gate)
@@ -132,6 +138,10 @@ namespace Gonogo.KSP
             // "gonogo lost the vessel" on top of "there is no flight".
             return parent ?? active;
         }
+
+        /// <summary>The vessel, or null when the game has destroyed it. <c>state</c> is a plain managed field, so no Unity liveness call is made.</summary>
+        internal static Vessel? Living(Vessel? vessel) =>
+            ReferenceEquals(vessel, null) || vessel!.state == Vessel.State.DEAD ? null : vessel;
 
         /// <summary>
         /// Subscribes to the three events the relation rides on. Idempotent, and

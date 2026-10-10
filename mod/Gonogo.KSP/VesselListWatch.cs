@@ -10,6 +10,11 @@ namespace Gonogo.KSP
     /// scene out of flight, an empty list is unknown until it holds a vessel or
     /// has stayed empty for <see cref="GraceSeconds"/>.</para>
     ///
+    /// <para>In flight it also remembers that the list has stood since the last
+    /// scene load was requested. The game clears <c>FlightGlobals.ready</c>
+    /// when the craft being flown is lost, with the list intact, and a flight
+    /// that is still loading differs only in never having been ready.</para>
+    ///
     /// <para>Main thread only.</para>
     /// </summary>
     public sealed class VesselListWatch
@@ -21,6 +26,7 @@ namespace Gonogo.KSP
         private bool _hadFlight;
         private double _changedAt;
         private bool _settling;
+        private bool _flightStood;
 
         /// <summary>The one watch the capture paths share, so a scene change is seen once.</summary>
         public static readonly VesselListWatch Shared = new VesselListWatch();
@@ -30,6 +36,9 @@ namespace Gonogo.KSP
 
         /// <summary>Real time in seconds from a monotonic clock, for the <c>now</c> of <see cref="Stands"/>.</summary>
         public static double RealNow() => System.Diagnostics.Stopwatch.GetTimestamp() / (double)System.Diagnostics.Stopwatch.Frequency;
+
+        /// <summary>A scene load was requested, so whatever list stands next is a new one.</summary>
+        public void SceneLoadRequested() => _flightStood = false;
 
         /// <param name="scene">The loaded scene's name.</param>
         /// <param name="now">A monotonic clock in seconds, real time rather than game time.</param>
@@ -46,6 +55,11 @@ namespace Gonogo.KSP
             if (inFlight)
             {
                 _hadFlight = true;
+                _flightStood |= flightReady;
+            }
+            else
+            {
+                _flightStood = false;
             }
 
             if (_settling && (listed > 0 || now - _changedAt >= GraceSeconds))
@@ -53,7 +67,7 @@ namespace Gonogo.KSP
                 _settling = false;
             }
 
-            return !_settling && VesselListStanding.Stands(inFlight, flightReady, listed, inGameState);
+            return !_settling && VesselListStanding.Stands(inFlight, flightReady, _flightStood, listed, inGameState);
         }
     }
 }

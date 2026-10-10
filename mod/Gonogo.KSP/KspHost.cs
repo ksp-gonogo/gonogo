@@ -328,7 +328,7 @@ namespace Gonogo.KSP
                         var roster = new List<object?>(allVessels.Count);
                         foreach (var candidate in allVessels)
                         {
-                            if (candidate == null || !OrbitKnowledge.Known(DiscoveryLevelOf(candidate)))
+                            if (candidate == null || candidate.state == Vessel.State.DEAD || !OrbitKnowledge.Known(DiscoveryLevelOf(candidate)))
                             {
                                 continue;
                             }
@@ -7063,6 +7063,7 @@ namespace Gonogo.KSP
 
         private void OnGameSceneLoadRequested(GameScenes scene)
         {
+            VesselListWatch.Shared.SceneLoadRequested();
             Emit("scene-load", new Dictionary<string, object?> { ["scene"] = scene.ToString() });
         }
 
