@@ -8499,6 +8499,10 @@
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
+        "key": "sitrep-sdk . ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
+        "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
+      },
+      {
         "key": "sitrep-sdk . ~Vector3",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -8629,6 +8633,10 @@
       {
         "key": "sitrep-sdk ./registry ~SystemEntityPosition",
         "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
+        "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
@@ -8871,6 +8879,10 @@
         "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
       },
       {
+        "key": "sitrep-sdk ./spine ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
+        "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./spine ~Transport#onMessage",
         "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
       },
@@ -9013,6 +9025,10 @@
       {
         "key": "sitrep-sdk ./testing ~SystemOverlayContext#place",
         "note": "Lands a point in metres from the centre body where the bodies are drawn, in whatever frame the diagram turns with; the plot scale alone is right only in the plain inertial frame"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
+        "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
       },
       {
         "key": "sitrep-sdk ./testing ~TargetingHudContext#held",

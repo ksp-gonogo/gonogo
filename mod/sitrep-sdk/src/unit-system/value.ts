@@ -429,12 +429,15 @@ export interface Value<Unit extends string = string> {
   lessThan(
     other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;
+  /** Whether the value is less than or equal to `other`; converts and treats a plain number as `lessThan` does. */
   lessThanOrEqual(
     other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;
+  /** Whether the value is greater than `other`; converts and treats a plain number as `lessThan` does. */
   greaterThan(
     other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;
+  /** Whether the value is greater than or equal to `other`; converts and treats a plain number as `lessThan` does. */
   greaterThanOrEqual(
     other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;

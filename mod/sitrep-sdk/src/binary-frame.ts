@@ -56,6 +56,7 @@ export const BINARY_LANE_PREFIX_BYTES = 4;
  * @category Binary lane
  */
 export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
+  /** The bytes of each segment, in the order the header listed them. */
   segments: Uint8Array[];
 };
 

@@ -71,6 +71,7 @@ import {
  * decodes it in `uplink-health.ts`.
  */
 export interface SystemUplinksTopicPayloadMap {
+  /** Every Uplink the mod knows of, with its version, availability and health, and the contract version the mod itself speaks. */
   "system.uplinks": {
     uplinks: Array<{
       id: string;
@@ -130,6 +131,12 @@ export interface SystemUplinksTopicPayloadMap {
         detail: string | null;
         facts: Array<{ label: string; value: string | null }>;
       };
+      /**
+       * Whether `settings.<id>` carries this Uplink's host mod settings, which
+       * `useModSettings` reads. Absent on a mod build that predates mod
+       * settings.
+       */
+      modSettings?: boolean;
     }>;
     /**
      * The contract version the running mod speaks. Stated once rather than per
@@ -167,6 +174,7 @@ export interface SystemUplinksTopicPayloadMap {
  * interface rather than re-describing the shape inline.
  */
 export interface SystemUplinkPendingTopicPayloadMap {
+  /** The commands sent and still on their way, with when each is predicted to arrive. */
   "system.uplink.pending": PendingUplinkQueue;
 }
 
@@ -184,6 +192,7 @@ export interface SystemUplinkPendingTopicPayloadMap {
  * yes.
  */
 export interface SystemUplinkGatesTopicPayloadMap {
+  /** Each gated command and whether it would be accepted now. */
   "system.uplink.gates": CommandGateReport;
 }
 
@@ -206,6 +215,7 @@ export interface SystemUplinkGatesTopicPayloadMap {
  * a generator in another language.
  */
 export interface SystemUnitsTopicPayloadMap {
+  /** A JSON document, as a string, describing every unit the contract uses. */
   "system.units": string;
 }
 
@@ -227,6 +237,7 @@ export interface SystemUnitsTopicPayloadMap {
  * the Topic has a subscriber.
  */
 export interface SystemChannelsTopicPayloadMap {
+  /** Each declared channel with how many values were considered and emitted. */
   "system.channels": ChannelEmissionReport;
 }
 

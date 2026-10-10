@@ -55,6 +55,7 @@ export interface TopicField {
   path: string;
   /** The declared unit token. Absent on a `collection`, which has no unit. */
   unit?: SitrepUnit;
+  /** What shape the field has: a quantity, an enum, a collection and so on. */
   kind: TopicFieldKind;
   /** How an `enum` field reads as a word. Absent when the contract gives its members no names. */
   enumEncoding?: EnumEncoding;

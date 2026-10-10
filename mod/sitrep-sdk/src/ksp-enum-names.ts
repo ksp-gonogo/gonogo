@@ -37,7 +37,9 @@ import { namesByValue } from "./enum-names";
  * KSP's `ProtoCrewMember.RosterStatus`, as `spaceCenter.crewRoster[]` entries carry it. A map from each value to its
  * member name: `KSP_ROSTER_STATUS_NAMES.get(0)` is `"Available"`, and a value the
  * table does not know gives `undefined`. A roster entry's value is its
- * `situationOrdinal`.
+ * `situationOrdinal`, which reads `Available` for a kerbal standing down, so
+ * do not branch on it to decide whether a kerbal can fly: use
+ * `CrewRosterEntry.standing`.
  *
  * @category Enum names
  */

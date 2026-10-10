@@ -48,13 +48,17 @@ type DeclarationOf<Unit extends DeclaredUnit> = UnitDeclarations[Unit];
  * @category Units and values
  */
 export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
+  /** The token the unit is written as; it must have a declaration. */
   readonly symbol: Unit;
+  /** The kind of quantity it measures, as its declaration says. */
   readonly kind: DeclarationOf<Unit>["kind"];
+  /** Its dimension in base units, as its declaration says. */
   readonly dimension: DeclarationOf<Unit> extends {
     dim: infer Dimension extends Dim.Dimension;
   }
     ? Dimension
     : never;
+  /** How many base units one of it is, as its declaration says. */
   readonly ratio: DeclarationOf<Unit>["ratio"];
   /** Set for a logarithmic unit, which is never shown on a ladder. */
   readonly log?: true;
@@ -70,12 +74,19 @@ export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
  * @category Units and values
  */
 export interface RegisteredUnit extends UnitPresentation {
+  /** The token the unit is written as, including any namespace before a colon. */
   readonly symbol: string;
+  /** The kind of quantity it measures, such as `"length"`. */
   readonly kind: string;
+  /** Its dimension in base units. */
   readonly dimension: Dim.Dimension;
+  /** How many base units one of it is. */
   readonly ratio: number;
+  /** Set for a logarithmic unit, which is never shown on a ladder. */
   readonly log?: true;
+  /** The ladder the unit belongs to, when it steps up and down with size. */
   readonly ladder?: string;
+  /** The steps of that ladder, when the unit declares its own. */
   readonly rungs?: readonly UnitRung[];
 }
 

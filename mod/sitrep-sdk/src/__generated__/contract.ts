@@ -6924,8 +6924,9 @@ export interface ArchiveEntry
 * Settings as the stream carries them: Gonogo's own, its Uplinks', and a host
 * mod's own settings read through its Uplink. Each row says what it may hold,
 * what it holds now and whether it can be written, and the model says whether
-* the settings file on the KSP machine agrees. A client reads them with
-* `useStream("settings.gonogo")`; a setting that lives only in the browser is
+* the settings file on the KSP machine agrees. A client reads Gonogo's with
+* `useTelemetry("settings.gonogo")` and a host mod's with
+* `useModSettings(uplinkId)`; a setting that lives only in the browser is
 * declared with `registerSetting` instead.
 */
 export interface SettingsModel

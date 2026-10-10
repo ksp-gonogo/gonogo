@@ -13,10 +13,12 @@ import type { Value } from "./unit-system/value";
  *   vectorMagnitude,
  * } from "@ksp-gonogo/sitrep-sdk";
  *
- * const target = useTelemetry("vessel.target");
- * const range = combineReadings([target.relativePosition], (position) =>
- *   vectorMagnitude(position),
- * );
+ * function useTargetRange() {
+ *   const target = useTelemetry("vessel.target");
+ *   return combineReadings([target.relativePosition], (position) =>
+ *     vectorMagnitude(position),
+ *   );
+ * }
  * ```
  *
  * ## State
@@ -82,9 +84,11 @@ export function combineReadings<
  * @category Reading telemetry
  */
 export interface CarriedCurrency {
+  /** How current the input is: observed, held, pending, unowned or absent. */
   readonly state: ReadingState;
   /** When the observation behind it was made, where it has one. */
   readonly instant: Value<"ut"> | undefined;
+  /** Why the input is held where it is; present only when `state` is `"held"`. */
   readonly grade?: HeldGrade | undefined;
 }
 

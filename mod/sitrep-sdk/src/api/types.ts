@@ -419,7 +419,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * can read.
    */
   fields?: readonly WidgetFieldPath[];
-  /** Behaviours the widget opts into, each a flag the dashboard reads; see {@link ComponentBehavior} for what each one does. Absent means none. */
+  /** Behaviours the widget opts into; see {@link ComponentBehavior}. The only one has no effect, so leave this out. */
   behaviors?: ComponentBehavior[];
   /** The settings a new instance starts with. */
   defaultConfig?: Partial<Config>;
@@ -796,7 +796,7 @@ export type ContributionDep =
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
  *   interface ModSettingsRegistry {
- *     myuplink: { readonly retirementEnabled: boolean };
+ *     "my-uplink": { readonly difficulty: number };
  *   }
  * }
  * ```
@@ -1691,14 +1691,22 @@ export type {
  * @category Reading telemetry
  */
 export interface TelemetryClient {
+  /** Calls `cb` with each new value of `topic`, and returns a function that unsubscribes. */
   subscribe(topic: string, cb: (value: unknown) => void): () => void;
+  /** The latest value received on `topic`, or `undefined` before the first one. */
   getValue(topic: string): unknown;
+  /**
+   * Sends `command` with `args`. `label` is the name an operator sees for it in
+   * the pending list, and `topic` the Topic it concerns. `requestId` identifies
+   * this send, and `result` settles with the host's answer.
+   */
   dispatch(
     command: string,
     args?: unknown,
     label?: string,
     topic?: string,
   ): { requestId: string; result: Promise<unknown> };
+  /** Closes the connection and drops every subscription. */
   dispose(): void;
 }
 

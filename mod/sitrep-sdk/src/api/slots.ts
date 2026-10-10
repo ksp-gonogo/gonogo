@@ -338,7 +338,7 @@ export interface AstronautComplexCrewContext {
  * @category Widget slots
  */
 export interface LaunchDirectorSlotContext {
-  /** The current KSP scene, such as `"Flight"` or `"SpaceCenter"`. `undefined` until the scene is reported. */
+  /** The current KSP scene, such as `"SpaceCenter"`. `undefined` until the scene is reported. */
   scene: string | undefined;
   /** The name of the saved craft the operator has picked. `null` when none is picked. */
   selectedShip: string | null;
@@ -895,6 +895,11 @@ declare module "./types" {
      * control of your own such as a warp-to button for an event your Uplink
      * knows about. Drawn at every size. Passes no props; read the warp state
      * with `useTelemetry`.
+     *
+     * The widget's rule that warping up past a long signal delay needs an
+     * alarm set first applies to its own buttons only. A button here sends the
+     * command directly, so apply the rule yourself if the control should
+     * follow it.
      */
     "warp-control.stepper": Record<string, never>;
 
@@ -973,7 +978,7 @@ declare module "./types" {
      * A block below the Launch & Recovery widget's list of pads, for checks to make
      * before a launch, such as whether the picked crew is rested. Drawn while
      * the pad list is shown, which is neither in flight nor in the Tracking
-     * Station, so an augment here never sees the context's `inFlight` true.
+     * Station, so the context's `scene` is never `"Flight"` here.
      * Passes a {@link LaunchDirectorSlotContext}.
      */
     "launch-director.preflight": LaunchDirectorSlotContext;

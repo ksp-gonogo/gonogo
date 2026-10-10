@@ -222,6 +222,7 @@ function sizeStoryBlocks(sizes: SizeStories): string[] {
 export const Tiny: Story = {
   name: "Tiny",
   args: { fixture: sizesScene, w: ${TINY_SIZE.w}, h: ${TINY_SIZE.h}${mode} },
+  parameters: { docs: { description: { story: "The widget at the kit-wide tiny size, drawing its tiny form: only the figures it can still show." } } },
 };
 `,
     `
@@ -229,6 +230,7 @@ export const Tiny: Story = {
 export const Large: Story = {
   name: "Large",
   args: { fixture: sizesScene, w: ${sizes.large.w}, h: ${sizes.large.h}${mode} },
+  parameters: { docs: { description: { story: "The widget at the largest size it is drawn in, where it shows everything it has." } } },
 };
 `,
   ];

@@ -1075,7 +1075,10 @@ namespace Sitrep.Contract
         /// <paramref name="ut"/> (UT seconds).
         ///
         /// <para>Offer, not send: a value equal to the last one published puts
-        /// nothing new on the wire. Call it from the main thread only. A
+        /// nothing new on the wire. Call it from the main thread, or from the
+        /// off-main-thread half of a sampled source
+        /// (<see cref="IUplinkHost.AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>), which is where a value
+        /// read on the main thread is published. A
         /// <c>null</c> payload is a legitimate value, meaning the source has
         /// nothing right now, and is not a way to withdraw an earlier
         /// one.</para>

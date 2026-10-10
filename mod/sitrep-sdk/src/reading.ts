@@ -709,8 +709,10 @@ export type UnmodelledReading<Payload> = TopicCurrency<
  * ```ts
  * import { observedValue, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
  *
- * const flight = observedValue(useTelemetry("vessel.flight"));
- * const descending = flight !== undefined && flight.verticalSpeed.lessThan(0);
+ * function useDescending(): boolean {
+ *   const flight = observedValue(useTelemetry("vessel.flight"));
+ *   return flight !== undefined && flight.verticalSpeed.lessThan(0);
+ * }
  * ```
  *
  * @category Reading telemetry
@@ -1062,6 +1064,9 @@ function projectField(
  *
  * @example
  * ```tsx
+ * import { findReading, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ * import { Unit } from "@ksp-gonogo/ui-kit";
+ *
  * function NodeCost({ nodeId }: { nodeId: string }) {
  *   const career = useTelemetry("career.status");
  *   const node = findReading(career.tech.nodes, (n) => n.id === nodeId);

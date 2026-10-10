@@ -864,7 +864,9 @@ export function useModSettings(
  * A contribution dependency on one setting of an Uplink's host mod. Both names
  * are checked against `ModSettingsRegistry`, so an Uplink or a setting nobody
  * declared does not compile, and `compute` receives the value under
- * `settings.<uplink>.<key>` as the type the registry declares.
+ * `settings.<uplink>.<key>` as the type the registry declares. Until an Uplink
+ * adds an entry the registry is empty and the first argument accepts no id,
+ * which is why the declaration comes first.
  *
  * @example
  * ```ts
@@ -940,11 +942,12 @@ export function useViewClock(): unknown {
 /**
  * Connects a widget's declared actions to handlers, so an input the operator
  * has bound, such as a key or a joystick button, fires them. Keys are the
- * action ids from {@link ComponentDefinition.actions}; an operator binds an
- * input to an action on the widget's Inputs tab, in its settings. What a
- * handler returns is sent back to the device that fired it, a control panel
- * with a display of its own for instance, so the display can follow the
- * widget. The built-in 21 by 8 text display takes a flat object of keys to
+ * action ids from {@link ComponentDefinition.actions}, which the widget must
+ * declare when it registers, or no operator can bind them. An operator binds
+ * an input to an action on the widget's Inputs tab, in its settings. What a
+ * handler returns is sent back to the device that fired it, a serial control
+ * panel with a screen for instance, so the screen can follow the widget. The
+ * built-in text display, 21 characters by 8 lines, takes a flat object of keys to
  * values, such as `{ ALT: "12.4 km", THR: "80%" }`, and prints one `KEY VALUE`
  * line per entry, sorted by key. Return nothing when the device has no display.
  *
@@ -953,19 +956,37 @@ export function useViewClock(): unknown {
  *
  * @example
  * ```tsx
- * import { type ActionDefinition, useActionInput } from "@ksp-gonogo/sitrep-sdk";
+ * import {
+ *   type ActionDefinition,
+ *   registerComponent,
+ *   useActionInput,
+ * } from "@ksp-gonogo/sitrep-sdk";
  * import { Text } from "@ksp-gonogo/ui-kit";
+ * import { useState } from "react";
  *
  * const actions = [
  *   { id: "toggle", label: "Toggle", accepts: ["button"] },
  * ] as const satisfies readonly ActionDefinition[];
  *
  * function LightSwitch() {
+ *   const [on, setOn] = useState(false);
  *   useActionInput<typeof actions>({
- *     toggle: (input) => ({ pressed: input.value }),
+ *     toggle: () => {
+ *       setOn(!on);
+ *       return { LIGHT: on ? "OFF" : "ON" };
+ *     },
  *   });
- *   return <Text>Light</Text>;
+ *   return <Text>{on ? "Light on" : "Light off"}</Text>;
  * }
+ *
+ * registerComponent({
+ *   id: "light-switch",
+ *   name: "Light Switch",
+ *   description: "A light an operator switches with a bound button.",
+ *   tags: ["controls"],
+ *   component: LightSwitch,
+ *   actions,
+ * });
  * ```
  *
  * @category Actions

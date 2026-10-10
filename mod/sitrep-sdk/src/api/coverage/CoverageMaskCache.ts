@@ -22,7 +22,7 @@ interface CacheOptions {
 }
 
 /**
- * The width, in pixels, of a new coverage mask.
+ * The width, in cells, of a new coverage mask: the cells across its 360 degrees of longitude.
  *
  * @category Maps and coverage
  */

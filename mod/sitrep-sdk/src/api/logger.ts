@@ -11,8 +11,10 @@ import type { Logger } from "./logger-contract";
  * ```ts
  * import { logger } from "@ksp-gonogo/sitrep-sdk";
  *
- * const log = logger.tag("my-uplink");
- * log.info("Station list refreshed", { count: 3 });
+ * function refreshStations() {
+ *   const log = logger.tag("my-uplink");
+ *   log.info("Station list refreshed", { count: 3 });
+ * }
  * ```
  *
  * @category Logging and performance
