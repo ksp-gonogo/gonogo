@@ -101,8 +101,8 @@ function makeFakeHost() {
       entry.unsub();
       claims.delete(topic);
     },
-    cachedFrame(topic: string) {
-      return sink?.cachedFrame(topic);
+    cachedFrames(topic: string) {
+      return sink?.cachedFrames(topic) ?? [];
     },
     broadcasts,
     allBroadcasts,
@@ -291,6 +291,31 @@ describe("SitrepPeerRelay", () => {
     view.unmount();
   });
 
+  it("replays the run of frames it has seen for a topic, oldest first, to a station that subscribes it", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("vessel.flight"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("vessel.flight")).toBe(true),
+    );
+    act(() => {
+      for (const validAt of [1, 2, 3]) {
+        transport.emit("vessel.flight", { altitude: validAt }, { validAt });
+      }
+    });
+
+    const replay = peerHost.cachedFrames("vessel.flight");
+    expect(
+      replay.map(
+        (m) => (m as { message: { meta: Meta } }).message.meta.validAt,
+      ),
+    ).toEqual([1, 2, 3]);
+
+    view.unmount();
+  });
+
   it("answers a station asking for a topic the host is already holding, from the cache", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);
@@ -314,10 +339,12 @@ describe("SitrepPeerRelay", () => {
 
     act(() => peerHost.connectPeer("station-a"));
     await waitFor(() =>
-      expect(peerHost.cachedFrame("vessel.identity")).toMatchObject({
-        type: "sitrep-frame",
-        message: { topic: "vessel.identity", payload: { name: "Kerbal X" } },
-      }),
+      expect(peerHost.cachedFrames("vessel.identity")).toMatchObject([
+        {
+          type: "sitrep-frame",
+          message: { topic: "vessel.identity", payload: { name: "Kerbal X" } },
+        },
+      ]),
     );
 
     view.unmount();

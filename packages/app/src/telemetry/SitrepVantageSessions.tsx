@@ -137,11 +137,11 @@ export function SitrepVantageSessions({
 
       const detachSink = peerHost.attachSitrepSinkFor(vantage, {
         subscribe: (topic) => client.subscribe(topic, () => {}),
-        cachedFrame: (topic) => {
+        cachedFrames: (topic) => {
           const frame = cache.get(topic);
           return frame
-            ? ({ type: "sitrep-frame", message: frame } satisfies PeerMessage)
-            : undefined;
+            ? [{ type: "sitrep-frame", message: frame } satisfies PeerMessage]
+            : [];
         },
       });
 

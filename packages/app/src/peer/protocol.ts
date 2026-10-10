@@ -328,6 +328,8 @@ export type PeerMessage =
       message: import("@ksp-gonogo/sitrep-sdk").ServerMessage;
       /** Set when numbers the packer cannot write ride in `message` as tagged strings (see `wideNumbers.ts`). */
       wide?: true;
+      /** Set on a frame replayed from the host's history, which describes the past and is not the newest word on the link. */
+      replay?: true;
     }
   // Host -> station: the host's own stream restarted from a new game process,
   // whose timeline epoch counts from zero. A station's store refuses frames

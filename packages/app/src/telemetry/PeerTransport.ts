@@ -4,13 +4,20 @@ import type {
   TransportStatus,
   UndeliveredCommand,
 } from "@ksp-gonogo/sitrep-client";
-import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ClientMessage,
+  ServerMessage,
+  StreamData,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   COMMAND_LOST,
   FaultCode,
   hydratePayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
+
+/** Matches the host relay's per-topic history, the most it can replay of one topic. */
+const SEEN_FRAMES_PER_TOPIC = 1500;
 
 /**
  * Maps the station's PeerJS connection status onto the `Transport` status
@@ -117,7 +124,7 @@ export class PeerTransport implements Transport {
   readonly decidesTopicOwnership = false;
   private _status: TransportStatus;
   private readonly messageListeners = new Set<
-    (message: ServerMessage) => void
+    (message: ServerMessage, delivery?: { replayed: boolean }) => void
   >();
   private readonly statusListeners = new Set<
     (status: TransportStatus) => void
@@ -139,14 +146,23 @@ export class PeerTransport implements Transport {
    * every listener that attaches afterwards.
    */
   private gameState: ServerMessage | undefined;
+  /**
+   * The `stream-data` frames this station has already taken, per topic and
+   * oldest first, keyed by the instants and sequence they carry and holding the
+   * payload. The host replays what it holds when a topic is subscribed, and a
+   * frame it already sent live or on connect would otherwise land twice, as two
+   * points on a chart.
+   */
+  private readonly seenFrames = new Map<string, Map<string, unknown>>();
 
   constructor(private readonly client: PeerClientService) {
     this._status = toTransportStatus(client.getConnStatus());
     this.unsubs = [
       client.onSitrepReset(() => {
         this.gameState = undefined;
+        this.seenFrames.clear();
       }),
-      client.onSitrepFrame((message) => {
+      client.onSitrepFrame((message, replayed) => {
         if (message.type === "game-state") this.gameState = message;
         // PeerJS serialises, and a `Value`'s methods live on its prototype so
         // that a quantity costs two fields on the wire. Only those two fields
@@ -156,13 +172,17 @@ export class PeerTransport implements Transport {
         // a station's values indistinguishable from a host's, which is the
         // whole promise of the station being the same app.
         if (message.type === "stream-data") {
+          if (this.messageListeners.size > 0 && this.isRepeat(message)) return;
           hydratePayload(message.payload);
         }
         if (message.type === "stream-binary") {
-          this.deliver({ ...message, segments: message.segments.map(asBytes) });
+          this.deliver(
+            { ...message, segments: message.segments.map(asBytes) },
+            replayed,
+          );
           return;
         }
-        this.deliver(message);
+        this.deliver(message, replayed);
       }),
       client.onSitrepCommandResponse((requestId, result, meta) => {
         this.pendingCommandIds.delete(requestId);
@@ -311,7 +331,14 @@ export class PeerTransport implements Transport {
     }
   }
 
-  onMessage(listener: (message: ServerMessage) => void): () => void {
+  onMessage(
+    listener: (
+      message: ServerMessage,
+      delivery?: { replayed: boolean },
+    ) => void,
+  ): () => void {
+    // A listener that joins has taken none of what the others did, and the host's replay is how it learns it.
+    this.seenFrames.clear();
     this.messageListeners.add(listener);
     const held = this.gameState;
     if (held) {
@@ -414,10 +441,44 @@ export class PeerTransport implements Transport {
     }
   }
 
-  private deliver(message: ServerMessage): void {
+  /**
+   * Whether this frame is one already taken. Frames that share every instant
+   * and the sequence are told apart by payload, since a source that stamps them
+   * all alike still sends different frames.
+   */
+  private isRepeat(frame: StreamData<unknown>): boolean {
+    const { meta } = frame;
+    const stamp = `${meta.timelineEpoch}|${meta.vantage}|${meta.validAt}|${meta.deliveredAt}|${meta.seq}`;
+    let seen = this.seenFrames.get(frame.topic);
+    if (!seen) {
+      seen = new Map();
+      this.seenFrames.set(frame.topic, seen);
+    }
+    for (let n = 0; ; n++) {
+      const key = n === 0 ? stamp : `${stamp}#${n}`;
+      if (!seen.has(key)) {
+        seen.set(key, frame.payload);
+        break;
+      }
+      const prior = seen.get(key);
+      if (
+        prior === frame.payload ||
+        JSON.stringify(prior) === JSON.stringify(frame.payload)
+      ) {
+        return true;
+      }
+    }
+    if (seen.size > SEEN_FRAMES_PER_TOPIC) {
+      const [oldest] = seen.keys();
+      seen.delete(oldest);
+    }
+    return false;
+  }
+
+  private deliver(message: ServerMessage, replayed = false): void {
     for (const listener of this.messageListeners) {
       try {
-        listener(message);
+        listener(message, { replayed });
       } catch (error) {
         // A throwing listener must not prevent sibling listeners from
         // receiving the message: same isolation contract as every other

@@ -63,7 +63,11 @@ const { FakeHub } = vi.hoisted(() => {
       for (const cb of this.listeners.get(event) ?? []) cb(...args);
     }
 
-    send() {}
+    sent: unknown[] = [];
+
+    send(message?: unknown) {
+      this.sent.push(message);
+    }
 
     close() {
       this.open = false;
@@ -127,11 +131,12 @@ vi.stubGlobal("localStorage", localStorageMock);
 
 import { asDataConnection } from "../test/peerFakes";
 import { PeerHostService } from "./PeerHostService";
+import type { PeerMessage } from "./protocol";
 
 const TOPIC = "thirdparty.readout";
 
 /** Records what the host currently holds upstream, the way `SitrepPeerRelay` supplies it. */
-function makeSink() {
+function makeSink(frames: Record<string, PeerMessage[]> = {}) {
   const live = new Set<string>();
   return {
     live,
@@ -139,8 +144,8 @@ function makeSink() {
       live.add(topic);
       return () => live.delete(topic);
     },
-    cachedFrame() {
-      return undefined;
+    cachedFrames(topic: string): PeerMessage[] {
+      return frames[topic] ?? [];
     },
   };
 }
@@ -193,6 +198,21 @@ describe("the sitrep refcount re-syncs", () => {
     conn.peerConnection?.fail();
 
     expect(sink.live.has(TOPIC)).toBe(false);
+    host.stop();
+  });
+
+  it("marks the history it replays to a subscribing station as a replay", async () => {
+    const host = await startedHost();
+    const frame: PeerMessage = {
+      type: "sitrep-frame",
+      message: { type: "game-state", state: "ready", scene: "FLIGHT" },
+    };
+    host.attachSitrepSink(makeSink({ [TOPIC]: [frame] }));
+
+    const conn = await connectStation(host, "station-a");
+    claim(conn, TOPIC);
+
+    expect(conn.sent).toContainEqual({ ...frame, replay: true });
     host.stop();
   });
 

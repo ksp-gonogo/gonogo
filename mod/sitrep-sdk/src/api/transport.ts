@@ -52,8 +52,19 @@ export interface Transport {
   /** Send a client -> server message (subscribe/unsubscribe/command-request). */
   send(message: ClientMessage): void;
 
-  /** Register a listener for inbound server -> client messages. Returns an unsubscribe function. */
-  onMessage(listener: (message: ServerMessage) => void): () => void;
+  /**
+   * Register a listener for inbound server -> client messages. Returns an unsubscribe function.
+   *
+   * `delivery.replayed` is set on a message that re-delivers the past, such as
+   * history a relay sends a late reader. It still enters the record, but it
+   * does not say where the game is now, so it never pulls the view clock back.
+   */
+  onMessage(
+    listener: (
+      message: ServerMessage,
+      delivery?: { replayed: boolean },
+    ) => void,
+  ): () => void;
 
   /** Register a listener for status changes. Returns an unsubscribe function. */
   onStatusChange(listener: (status: TransportStatus) => void): () => void;

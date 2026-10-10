@@ -139,8 +139,8 @@ function makeSink() {
       live.add(topic);
       return () => live.delete(topic);
     },
-    cachedFrame() {
-      return undefined;
+    cachedFrames() {
+      return [];
     },
   };
 }

@@ -66,12 +66,13 @@ export interface SitrepSubscriptionSink {
   /** Hold an upstream subscription for `topic`. Returns its release. */
   subscribe(topic: string): () => void;
   /**
-   * The most recent frame seen for `topic`, if any. A station subscribing a
-   * topic the host already holds gets no new frame until the next one arrives,
-   * which on a low-rate topic can be never, so the current value is replayed to
-   * it alone.
+   * The frames seen for `topic`, oldest first, empty when there are none. A
+   * station subscribing a topic the host already holds gets no new frame until
+   * the next one arrives, which on a low-rate topic can be never, so what the
+   * host has seen is replayed to it alone: the newest frame answers a quiet
+   * topic, and the run before it is what a chart on that topic has plotted.
    */
-  cachedFrame(topic: string): PeerMessage | undefined;
+  cachedFrames(topic: string): PeerMessage[];
 }
 
 function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
@@ -1256,8 +1257,13 @@ export class PeerHostService {
     // The host may have been subscribed to this for a while, in which case the
     // next frame is the only thing this station would otherwise see. Replay the
     // current one to it alone.
-    const cached = this.sitrepSinks.get(vantage)?.cachedFrame(topic);
-    if (cached) this.transmit(conn, cached);
+    for (const cached of this.sitrepSinks.get(vantage)?.cachedFrames(topic) ??
+      []) {
+      this.transmit(
+        conn,
+        cached.type === "sitrep-frame" ? { ...cached, replay: true } : cached,
+      );
+    }
   }
 
   private releaseSitrepSub(conn: DataConnection, topic: string): void {

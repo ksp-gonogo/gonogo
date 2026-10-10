@@ -115,7 +115,10 @@ type ClientEventMap = {
   // the command-response/error pair is kept split (not pre-synthesized into
   // a `ServerMessage` here) because that synthesis is `PeerTransport`'s job,
   // this service only forwards the wire fields it received.
-  sitrepFrame: [message: import("@ksp-gonogo/sitrep-sdk").ServerMessage];
+  sitrepFrame: [
+    message: import("@ksp-gonogo/sitrep-sdk").ServerMessage,
+    replayed: boolean,
+  ];
   sitrepReset: [];
   sitrepCommandResponse: [
     requestId: string,
@@ -672,7 +675,10 @@ export class PeerClientService {
 
   /** Every `sitrep-frame` the host relays, unwrapped to the raw `ServerMessage` it carries. */
   onSitrepFrame(
-    cb: (message: import("@ksp-gonogo/sitrep-sdk").ServerMessage) => void,
+    cb: (
+      message: import("@ksp-gonogo/sitrep-sdk").ServerMessage,
+      replayed: boolean,
+    ) => void,
   ): () => void {
     return this.events.on("sitrepFrame", cb);
   }
@@ -1131,6 +1137,7 @@ export class PeerClientService {
       this.events.emit(
         "sitrepFrame",
         msg.wide ? decodeWideNumbers(msg.message) : msg.message,
+        msg.replay === true,
       );
     },
     "sitrep-reset": () => {

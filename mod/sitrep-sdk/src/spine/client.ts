@@ -367,9 +367,9 @@ export class TelemetryClient {
           this.notifyStore();
         })
       : undefined;
-    this.unsubscribeFromTransport = transport.onMessage((message) => {
+    this.unsubscribeFromTransport = transport.onMessage((message, delivery) => {
       for (const listener of this.rawMessageListeners) listener(message);
-      this.handleMessage(message);
+      this.handleMessage(message, delivery?.replayed === true);
     });
     this.unsubscribeFromUndelivered =
       transport.onUndelivered?.((command) =>
@@ -988,7 +988,7 @@ export class TelemetryClient {
     for (const listener of this.observedVantageListeners) listener();
   }
 
-  private handleMessage(message: ServerMessage): void {
+  private handleMessage(message: ServerMessage, replayed = false): void {
     if (message.type === "command-response") {
       this.handleCommandResponse(message.requestId, message.result);
       return;
@@ -1068,11 +1068,21 @@ export class TelemetryClient {
      * there.
      */
     if (message.type === "stream-binary") {
-      this.ingestTopicPayload(message.topic, message.segments, message.meta);
+      this.ingestTopicPayload(
+        message.topic,
+        message.segments,
+        message.meta,
+        replayed,
+      );
       return;
     }
     if (message.type !== "stream-data") return;
-    this.ingestTopicPayload(message.topic, message.payload, message.meta);
+    this.ingestTopicPayload(
+      message.topic,
+      message.payload,
+      message.meta,
+      replayed,
+    );
   }
 
   /** Whether a sample is at least as new as the newest this topic has surfaced, recording it when it is. */
@@ -1096,6 +1106,7 @@ export class TelemetryClient {
     topic: string,
     payload: unknown,
     meta: Meta,
+    replayed: boolean,
   ): void {
     this.noteObservedVantage(meta.vantage);
     const point = {
@@ -1113,7 +1124,7 @@ export class TelemetryClient {
       }
     }
     for (const store of this.stores) {
-      store.ingest(topic, point);
+      store.ingest(topic, point, { replayed });
     }
     this.notifyStore();
   }

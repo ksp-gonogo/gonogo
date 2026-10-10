@@ -8283,6 +8283,10 @@
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
       {
+        "key": "sitrep-sdk . Transport#onMessage",
+        "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
+      },
+      {
         "key": "sitrep-sdk . UplinkClientHandle#description",
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
       },
@@ -8715,6 +8719,10 @@
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
       {
+        "key": "sitrep-sdk ./spine TimelineStore#ingest",
+        "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#setGameState",
         "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
       },
@@ -8737,6 +8745,10 @@
       {
         "key": "sitrep-sdk ./spine Vector3",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine ViewClock#observeSample",
+        "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
       },
       {
         "key": "sitrep-sdk ./spine commsPeerPositionAt",
@@ -8859,6 +8871,10 @@
         "note": "Gains the subject member, so an exhaustive switch over position.kind in a consumer must name it"
       },
       {
+        "key": "sitrep-sdk ./spine ~Transport#onMessage",
+        "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./testing StubTransport#sentGroups",
         "note": "New: the groups the stub was asked to send, beside the commands that were its members"
       },
@@ -8867,12 +8883,20 @@
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
       {
+        "key": "sitrep-sdk ./testing TimelineStore#ingest",
+        "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
+      },
+      {
         "key": "sitrep-sdk ./testing TimelineStore#setGameState",
         "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#subscribeGameStatus",
         "note": "New: listens for a change in what the game is doing"
+      },
+      {
+        "key": "sitrep-sdk ./testing ViewClock#observeSample",
+        "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
       },
       {
         "key": "sitrep-sdk ./testing ~ActionGroupSlotContext#held",
@@ -8997,6 +9021,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~Transport#onMessage",
+        "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
       },
       {
         "key": "sitrep-sdk ./testing ~UplinkClientHandle#description",

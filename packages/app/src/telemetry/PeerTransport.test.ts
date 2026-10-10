@@ -247,6 +247,26 @@ describe("PeerTransport", () => {
     expect(received).toEqual([frame]);
   });
 
+  it("takes a replayed stream-data frame once, and keeps frames that only share a stamp", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    transport.onMessage((m) => received.push(m));
+
+    const frame = (payload: number): ServerMessage => ({
+      type: "stream-data",
+      topic: "vessel.flight",
+      payload: { altitude: payload },
+      meta: makeMeta({ validAt: 10, deliveredAt: 10 }),
+    });
+    client.emitFrame(frame(1));
+    client.emitFrame(frame(1));
+    client.emitFrame(frame(2));
+    client.emitFrame(frame(2));
+
+    expect(received).toHaveLength(2);
+  });
+
   it("fans out a relayed game-state frame, so a station learns the game is loading", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));

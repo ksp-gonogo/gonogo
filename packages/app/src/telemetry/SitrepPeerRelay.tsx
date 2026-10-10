@@ -48,6 +48,13 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
 });
 
 /**
+ * Frames kept per topic for a station that subscribes late. The main screen's
+ * own timeline keeps 1500 points per topic, so a station given the same run
+ * plots the same trace.
+ */
+const HISTORY_PER_TOPIC = 1500;
+
+/**
  * The game saying it is loading, at its menu, or ready. A fact about the game
  * on the machine and not about any command centre's view of it, so it carries
  * no vantage and goes to every peer, not only those reading from the host's own
@@ -94,12 +101,15 @@ function isCarriedFrame(message: ServerMessage): boolean {
  * that refcount when a station leaves without saying so is
  * `PeerHostService.reconcileSitrepSubs` plus the host's ICE liveness detector.
  *
- * Backfill: keeps its own `Map<topic, StreamData>` of the last-seen frame
- * per topic, filled from mount rather than from the first station's arrival,
- * and cleared only when the client is rebuilt, so it stays useful across a connect/disconnect gap. It is
- * replayed to a NEWLY connecting peer alone (`sendToPeer`, never `broadcast`)
- * and to a station that subscribes a topic the host was already holding, so
- * neither sits blank on a low-rate topic that has not changed since it asked. `event` frames and
+ * Backfill: keeps its own run of the last `HISTORY_PER_TOPIC` frames per
+ * topic, filled from mount rather than from the first station's arrival, and
+ * cleared only when the client is rebuilt, so it stays useful across a
+ * connect/disconnect gap. A NEWLY connecting peer is sent the newest frame of
+ * each topic alone (`sendToPeer`, never `broadcast`), and a station that
+ * subscribes a topic the host was already holding is sent the whole run, so
+ * neither sits blank on a low-rate topic that has not changed since it asked
+ * and a chart starts with the trace the main screen drew. The station
+ * discards a frame it has already ingested. `event` frames and
  * transmissions are one-shot by nature and deliberately NOT backfilled, same posture as
  * `StreamRecorder`'s "don't replay events out of causal context".
  */
@@ -113,7 +123,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // `hasConnections` does. Persists across connect/disconnect churn
   // (cleared only when the client is rebuilt) so a station reconnecting after a gap
   // still gets the last-known value immediately.
-  const cacheRef = useRef(new Map<string, StreamData<unknown>>());
+  const cacheRef = useRef(new Map<string, StreamData<unknown>[]>());
   // The newest word on what the game is doing. Held apart from the frame cache because it is keyed by no topic, and kept for the same reason: a station arriving mid-load must hold at once, and no later frame is coming to tell it.
   const gameStateRef = useRef<ServerMessage | undefined>(undefined);
 
@@ -135,10 +145,12 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // changed before it got here.
   useEffect(() => {
     return peerHost.onPeerConnect((peerId) => {
-      for (const frame of cacheRef.current.values()) {
+      for (const run of cacheRef.current.values()) {
+        const newest = run[run.length - 1];
+        if (!newest) continue;
         peerHost.sendToPeer(peerId, {
           type: "sitrep-frame",
-          message: frame,
+          message: newest,
         } satisfies PeerMessage);
       }
       if (gameStateRef.current) {
@@ -158,7 +170,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // `client.subscribe` sends no wire subscribe and re-emits no frame for a
   // topic already subscribed (it replays the sticky value to the CALLER only),
   // so the mod was never asked either and the station stayed blank forever.
-  // Caching from mount is what makes `cachedFrame` able to answer.
+  // Caching from mount is what makes `cachedFrames` able to answer.
   const previousClient = useRef<typeof client>(undefined);
   useEffect(() => {
     if (!client) return;
@@ -171,7 +183,13 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     previousClient.current = client;
     return client.onRawMessage((message) => {
       if (message.type === "stream-data" && !isTransmission(message)) {
-        cacheRef.current.set(message.topic, message);
+        let run = cacheRef.current.get(message.topic);
+        if (!run) {
+          run = [];
+          cacheRef.current.set(message.topic, run);
+        }
+        run.push(message);
+        if (run.length > HISTORY_PER_TOPIC) run.shift();
       }
       if (isGameState(message)) gameStateRef.current = message;
     });
@@ -190,12 +208,11 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         SITREP_PEER_SUB_BUDGET.record();
         return client.subscribe(topic, () => {});
       },
-      cachedFrame: (topic) => {
-        const frame = cacheRef.current.get(topic);
-        return frame
-          ? ({ type: "sitrep-frame", message: frame } satisfies PeerMessage)
-          : undefined;
-      },
+      cachedFrames: (topic) =>
+        (cacheRef.current.get(topic) ?? []).map(
+          (message) =>
+            ({ type: "sitrep-frame", message }) satisfies PeerMessage,
+        ),
     });
   }, [client, peerHost]);
 

@@ -1030,7 +1030,11 @@ export class TimelineStore {
    * rewind goes cold right away instead of continuing to serve dead-epoch
    * points until it happens to receive its own next sample.
    */
-  ingest<Payload>(topic: string, point: TimelinePoint<Payload>): void {
+  ingest<Payload>(
+    topic: string,
+    point: TimelinePoint<Payload>,
+    options: { replayed?: boolean } = {},
+  ): void {
     const priorEpoch = this.clock.getEpoch();
     if (point.epoch < priorEpoch) {
       // Stale-epoch straggler by the store's authoritative epoch, refused, not merely masked at read time.
@@ -1054,6 +1058,7 @@ export class TimelineStore {
       point.validAt,
       point.meta.deliveredAt,
       point.epoch,
+      options.replayed === true,
     );
     // Every live sample, keyframe or change-emission alike, confirms the link
     // is alive as of this arrival. A recorded one does not: it describes the

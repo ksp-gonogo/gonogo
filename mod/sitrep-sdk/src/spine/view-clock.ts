@@ -110,7 +110,12 @@ export class ViewClock {
    * one): it's what lets `confirmedEdgeUt` know "the max buffered sample
    * UT" without itself owning any per-topic buffer.
    */
-  observeSample(validAt: number, deliveredAt: number, epoch = 0): void {
+  observeSample(
+    validAt: number,
+    deliveredAt: number,
+    epoch = 0,
+    replayed = false,
+  ): void {
     if (epoch < this.epoch) return; // stale-epoch straggler, discard
     if (epoch > this.epoch) {
       this.epoch = epoch;
@@ -125,8 +130,20 @@ export class ViewClock {
     }
 
     const wallNow = this.now();
-    this.anchorWall = wallNow;
-    this.anchorUt = deliveredAt;
+    /*
+     * A replayed sample describes the past, so it anchors the estimate only
+     * when nothing anchors it yet or it is the newest delivery seen. Taken
+     * after newer samples it would pull the horizon back behind them. It still
+     * proves the link is alive.
+     */
+    if (
+      !replayed ||
+      this.anchorUt === undefined ||
+      deliveredAt >= this.anchorUt
+    ) {
+      this.anchorWall = wallNow;
+      this.anchorUt = deliveredAt;
+    }
     this.lastObservedWall = wallNow;
     if (validAt > this.maxSampleUt) this.maxSampleUt = validAt;
   }

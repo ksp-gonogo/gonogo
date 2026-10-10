@@ -13,6 +13,44 @@ function fakeWall(start = 0) {
 }
 
 describe("ViewClock", () => {
+  it("a replayed sample older than one already seen does not pull the horizon back", () => {
+    const clock = new ViewClock({
+      nowWall: fakeWall().now,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    });
+
+    clock.observeSample(100, 100);
+    clock.observeSample(0, 0, 0, true);
+
+    expect(clock.confirmedEdgeUt()).toBe(100);
+  });
+
+  it("a live sample older than one already seen still moves the anchor", () => {
+    const clock = new ViewClock({
+      nowWall: fakeWall().now,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    });
+
+    clock.observeSample(100, 100);
+    clock.observeSample(0, 0);
+
+    expect(clock.utNowEstimate()).toBe(0);
+  });
+
+  it("a replayed sample anchors a clock that has no anchor yet", () => {
+    const clock = new ViewClock({
+      nowWall: fakeWall().now,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    });
+
+    clock.observeSample(40, 40, 0, true);
+
+    expect(clock.utNowEstimate()).toBe(40);
+  });
+
   it("confirmedEdgeUt is sample-clamped: never ahead of the max buffered sample, even when the estimate runs far ahead", () => {
     const wall = fakeWall();
     const clock = new ViewClock({

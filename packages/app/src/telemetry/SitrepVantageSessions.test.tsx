@@ -57,7 +57,7 @@ function makeHost() {
     string,
     {
       subscribe(topic: string): () => void;
-      cachedFrame(topic: string): unknown;
+      cachedFrames(topic: string): unknown[];
     }
   >();
   const sent: Array<{ vantage: string; msg: PeerMessage }> = [];
@@ -182,8 +182,8 @@ describe("SitrepVantageSessions", () => {
     f.want([CRAFT]);
     f.frameListeners.get(CRAFT)?.(frame("vessel.orbit"));
 
-    expect(f.sinks.get(CRAFT)?.cachedFrame("vessel.orbit")).toBeDefined();
-    expect(f.sinks.get(CRAFT)?.cachedFrame("vessel.flight")).toBeUndefined();
+    expect(f.sinks.get(CRAFT)?.cachedFrames("vessel.orbit")).toHaveLength(1);
+    expect(f.sinks.get(CRAFT)?.cachedFrames("vessel.flight")).toEqual([]);
 
     f.view.unmount();
   });
