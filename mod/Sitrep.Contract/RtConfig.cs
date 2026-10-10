@@ -529,7 +529,7 @@ public static class RtConfig
         var topicMapOut = Environment.GetEnvironmentVariable("SITREP_TOPICMAP_OUT");
         if (!string.IsNullOrEmpty(topicMapOut))
         {
-            EmitTopicMap(topicMapOut!);
+            EmitTopicMap(topicMapOut!, documentationPath: builder.Context.DocumentationFilePath);
         }
 
         // The field -> unit map (see SitrepUnitAttribute). Same shape of problem, and same solution, as the topic map above:
@@ -1528,8 +1528,19 @@ public static class RtConfig
     /// core never names an Uplink's topic. Shrink-only the same way core's is:
     /// an entry that has stopped colliding fails this leg.
     /// </param>
-    public static void EmitTopicMap(string outPath, Assembly assembly = null, string[] reservedFieldDebt = null)
+    /// <param name="documentationPath">
+    /// The compiler's XML documentation file. When given, each row carries the
+    /// first sentence of its payload type's summary. A payload type with no
+    /// summary leaves its row bare.
+    /// </param>
+    public static void EmitTopicMap(
+        string outPath,
+        Assembly assembly = null,
+        string[] reservedFieldDebt = null,
+        string documentationPath = null)
     {
+        var docs = ReadFieldSummaries(documentationPath);
+        var descriptions = new Dictionary<string, string>(StringComparer.Ordinal);
         CheckReservedFieldNames(assembly ?? typeof(RtConfig).Assembly, reservedFieldDebt);
 
         var entries = new List<KeyValuePair<string, string>>();
@@ -1546,6 +1557,8 @@ public static class RtConfig
             entries.Add(new KeyValuePair<string, string>(
                 attr.TopicId,
                 type.Name + (attr.IsArray ? "[]" : "")));
+            var description = FirstSentence(docs, type);
+            if (description != null) descriptions[attr.TopicId] = description;
             typeNames.Add(type.Name);
             if (attr.IsArray)
             {
@@ -1596,6 +1609,10 @@ public static class RtConfig
         sb.Append("export interface GeneratedTopicPayloadMap {\n");
         foreach (var entry in entries)
         {
+            if (descriptions.TryGetValue(entry.Key, out var description))
+            {
+                sb.Append("  /** ").Append(description).Append(" */\n");
+            }
             sb.Append("  \"").Append(entry.Key).Append("\": ").Append(entry.Value).Append(";\n");
         }
         sb.Append("}\n\n");
@@ -2441,7 +2458,7 @@ public static class RtConfig
                  */
                 if (documented)
                 {
-                    var description = CommandDescription(docs, type);
+                    var description = FirstSentence(docs, type);
                     if (description == null) undescribed.Add(attr.CommandId);
                     else descriptions[attr.CommandId] = description;
                 }
@@ -2685,12 +2702,12 @@ public static class RtConfig
     }
 
     /// <summary>
-    /// The first sentence of a command's args type summary as one line, or null when the
-    /// type has none. A leading <c>`id`'s args:</c> is dropped, since the row is the command. A comment terminator inside it is broken so it cannot close the block.
+    /// The first sentence of a type's summary as one line, or null when the type has none.
+    /// A leading <c>`id`'s args:</c> is dropped, since the row is named by the id. A comment terminator inside it is broken so it cannot close the block.
     /// </summary>
-    private static string? CommandDescription(Dictionary<string, string> docs, Type argsType)
+    private static string? FirstSentence(Dictionary<string, string> docs, Type type)
     {
-        if (!docs.TryGetValue("T:" + argsType.FullName, out var summary)) return null;
+        if (!docs.TryGetValue("T:" + type.FullName, out var summary)) return null;
         var lines = RtDocText.ToDocLines(summary, ErrorCodeCref, out _);
         var first = new List<string>();
         foreach (var line in lines)
