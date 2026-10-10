@@ -16,7 +16,6 @@ import {
   type SetupStep,
 } from "../../app/src/firstRun/FirstRunSetup";
 import { relayBaseUrl } from "../../app/src/peer/iceServers";
-import { RunSetupAgain } from "../../app/src/settings/SettingsModal";
 import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
@@ -83,7 +82,6 @@ const EMITS: Record<SetupWorld, FixtureEmit[]> = {
     }),
     installed("science", "Science lab"),
     installed("resources", "Resource scanner"),
-    installed("radar", "Ground radar", { expectedClientHash: "client-hash" }),
   ]),
 };
 
@@ -163,26 +161,6 @@ function answerRelay(world: SetupWorld): () => void {
 export interface FirstRunSceneProps {
   step: SetupStep;
   world: SetupWorld;
-  /** The browser's operating system, which picks the shell the run command is written for. */
-  os?: "other" | "windows";
-}
-
-/** Makes the browser report Windows for as long as the scene is up, returning the undo. */
-function reportWindows(): () => void {
-  const own = Object.getOwnPropertyDescriptor(navigator, "userAgent");
-  Object.defineProperty(navigator, "userAgent", {
-    configurable: true,
-    value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-  });
-  return () => {
-    if (own) Object.defineProperty(navigator, "userAgent", own);
-    else Reflect.deleteProperty(navigator, "userAgent");
-  };
-}
-
-/** The Settings Connection tab's offer to run the setup again. */
-export function RunSetupAgainScene() {
-  return <RunSetupAgain onRunSetupAgain={() => {}} />;
 }
 
 /** The dialog the app opens the wizard in, as far as a still page needs it: its title above its content. */
@@ -206,22 +184,13 @@ function Dialog({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 /** One wizard step in one world. */
-export function FirstRunScene({
-  step,
-  world,
-  os = "other",
-}: Readonly<FirstRunSceneProps>) {
+export function FirstRunScene({ step, world }: Readonly<FirstRunSceneProps>) {
   // Set as the scene is created rather than in an effect: the steps read all three on their first render.
   const [restoreFetch] = useState(() => {
     registerDataSource(sitrepSource(KSP[world]));
     __resetUplinkOutcomes();
     for (const outcome of OUTCOMES[world]) setUplinkOutcome(outcome);
-    const restoreAgent = os === "windows" ? reportWindows() : () => {};
-    const restoreRelay = answerRelay(world);
-    return () => {
-      restoreRelay();
-      restoreAgent();
-    };
+    return answerRelay(world);
   });
   useEffect(() => restoreFetch, [restoreFetch]);
 

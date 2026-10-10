@@ -63,7 +63,7 @@ public class WarpState
     [SitrepUnit(Units.Dimensionless)]
     public double WarpRate { get; set; }
 
-    /// <summary>The current rung (one step) of the warp rate table (KSP's
+    /// <summary>The current rung of the warp rate table (KSP's
     /// <c>TimeWarp.CurrentRateIndex</c>), <c>0</c> at real time. Under
     /// <see cref="Sitrep.Contract.WarpMode.High"/> it indexes <see cref="WarpRates"/>.</summary>
     [SitrepUnit(Units.Id)]
@@ -101,9 +101,7 @@ public class WarpState
 
     /// <summary>
     /// The shortest real time the mod leaves between two periodic keyframes on
-    /// one channel, in seconds. A keyframe is a full sample sent on a schedule
-    /// even when nothing changed, so a client can tell a quiet channel from a
-    /// dead one.
+    /// one channel, in seconds.
     ///
     /// <para>Keyframe cadences are declared in UT, and under warp UT can pass a
     /// cadence on every tick, so the mod also waits at least this long in real

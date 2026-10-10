@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { FirstRunScene, RunSetupAgainScene } from "../../firstRunScenes";
+import { FirstRunScene } from "../../firstRunScenes";
 import { withGonogoFrame } from "../../frame";
 
 /**
@@ -110,15 +110,4 @@ export const UplinksNeedsAttention: Story = {
 export const HealthNeedsAttention: Story = {
   name: "Health: needs attention",
   args: { step: "health", world: "needs-attention" },
-};
-
-export const ContainerOnWindows: Story = {
-  name: "Container: on Windows",
-  args: { step: "container", world: "nothing-running", os: "windows" },
-};
-
-export const SettingsRunSetupAgain: Story = {
-  name: "Settings: run setup again",
-  args: { step: "welcome", world: "nothing-running" },
-  render: () => <RunSetupAgainScene />,
 };

@@ -290,15 +290,13 @@ export const FaultCode = {
   PayloadSerializationError: "payloadSerializationError",
   /**
    * A `set-vantage`, or a command's `vantage`, naming a command centre that is
-   * not active. The alarm command for a SCET alarm (an alarm on the craft's own
-   * clock, spacecraft event time) is the exception: it refuses an inactive
+   * not active. The SCET alarm command is the exception: it refuses an inactive
    * vantage with the `range` refusal instead.
    */
   UnknownVantage: "unknownVantage",
   /**
    * A held command reached its expiry, or its place on the lane passed, before
-   * it could run. A lane is the numbered sequence of commands to one craft,
-   * which the craft settles in number order.
+   * it could run.
    */
   CommandExpired: "commandExpired",
   /**
@@ -619,7 +617,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "that command centre is not active",
-    meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active. The alarm command for a SCET alarm (an alarm on the craft's own clock, spacecraft event time) is the exception: it refuses an inactive vantage with the `range` refusal instead.",
+    meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active. The SCET alarm command is the exception: it refuses an inactive vantage with the `range` refusal instead.",
   },
   {
     id: "commandExpired",
@@ -627,7 +625,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "it expired before it could run",
-    meaning: "A held command reached its expiry, or its place on the lane passed, before it could run. A lane is the numbered sequence of commands to one craft, which the craft settles in number order.",
+    meaning: "A held command reached its expiry, or its place on the lane passed, before it could run.",
   },
   {
     id: "groupRefused",

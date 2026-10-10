@@ -7096,10 +7096,8 @@ export interface SettingsChange
 * when no sample has arrived yet, which tells "no data yet" apart from "zero
 * sites". It carries no `meta` of its own.
 *
-* Held at the home command, the command centre that holds the career ledger
-* (see `CommandCentreEntry`): each vantage, a command centre the operator
-* observes from, receives a change after its own delay to home, at once on the
-* ground network.
+* Held at the home command: each vantage receives a change after its own delay
+* to home, at once on the ground network.
 *
 * @category Space center
 */
@@ -11049,9 +11047,8 @@ export interface WarpState
 	*/
 	warpRate: Value<"1">;
 	/**
-	* The current rung (one step) of the warp rate table (KSP's
-	* `TimeWarp.CurrentRateIndex`), `0` at real time. Under `WarpMode.High` it
-	* indexes `WarpState.warpRates`.
+	* The current rung of the warp rate table (KSP's `TimeWarp.CurrentRateIndex`),
+	* `0` at real time. Under `WarpMode.High` it indexes `WarpState.warpRates`.
 	*/
 	warpRateIndex: number;
 	/**
@@ -11074,8 +11071,7 @@ export interface WarpState
 	warpRates?: Value<"1">[] | null;
 	/**
 	* The shortest real time the mod leaves between two periodic keyframes on one
-	* channel, in seconds. A keyframe is a full sample sent on a schedule even
-	* when nothing changed, so a client can tell a quiet channel from a dead one.
+	* channel, in seconds.
 	*
 	* Keyframe cadences are declared in UT, and under warp UT can pass a cadence
 	* on every tick, so the mod also waits at least this long in real time. The

@@ -17,10 +17,8 @@ namespace Sitrep.Contract;
 /// when no sample has arrived yet, which tells "no data yet" apart from "zero
 /// sites". It carries no <c>meta</c> of its own.</para>
 ///
-/// <para>Held at the home command, the command centre that holds the career
-/// ledger (see <see cref="CommandCentreEntry"/>): each vantage, a command
-/// centre the operator observes from, receives a change after its own delay to
-/// home, at once on the ground network.</para>
+/// <para>Held at the home command: each vantage receives a change after its
+/// own delay to home, at once on the ground network.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildLaunchSites</c>.
 /// Typing-only mirror of the per-site dict the provider emits;
