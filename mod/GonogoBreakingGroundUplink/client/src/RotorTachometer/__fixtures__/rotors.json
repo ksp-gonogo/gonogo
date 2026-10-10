@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Two rotors: a main rotor spinning near its cap and a stopped, braked, locked tail rotor.",
     "scenario": "rotors",
     "notes": "Two rotors: a main rotor spinning near its cap, and a stopped, braked, locked tail rotor. Exercises gauge + controls + multi-rotor list."
   },

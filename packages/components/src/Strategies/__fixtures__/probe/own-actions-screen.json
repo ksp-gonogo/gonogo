@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A contributed screen for the Finances department that draws its own actions, so its cards show no Activate button and no price.",
     "scenario": "own-actions-screen",
     "notes": "The planted Uplink contributes a screen claiming the Finances department that draws its own actions (scripts/probe/plantedUplink.ts, gated on the plantedleads Domain). The host draws that screen's cards with no Activate button and no price, since the price belongs to whichever control spends it. Not a live capture."
   },

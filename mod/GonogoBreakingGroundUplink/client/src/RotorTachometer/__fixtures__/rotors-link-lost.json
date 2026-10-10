@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The rotors scene after the craft stops reporting: the gauge keeps its last rpm, marked as held.",
     "scenario": "rotors-link-lost",
     "notes": "The rotors scene, after the craft stops reporting. The wire is identical to `rotors` and the link then drops, so every figure is HELD: the gauge keeps the last rpm and marks it, and the list, the cap, the torque and brake settings and the motor/lock/direction states stay as last reported."
   },

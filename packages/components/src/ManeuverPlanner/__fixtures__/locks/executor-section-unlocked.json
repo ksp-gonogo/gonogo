@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Flight planning unlocked, with a contributed burn-executor section shown in the planner.",
     "scenario": "executor-section-unlocked",
     "notes": "Flight planning unlocked, and an Uplink contributes a burn-executor section to the planner. The mod resolves the missing tech from the parts carrying the module the channel declares."
   },

@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "Flight planning unlocked but no part the burn executor needs researched, so only the contributed executor section refuses itself.",
     "scenario": "executor-section-locked",
     "notes": "Flight planning unlocked, but no part the executor needs has been researched. Only the contributed section refuses itself; the host planner is untouched."
   },

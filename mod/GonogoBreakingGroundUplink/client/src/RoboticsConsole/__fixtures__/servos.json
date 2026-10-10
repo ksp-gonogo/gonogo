@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A hinge moving and a piston at its target.",
     "scenario": "servos",
     "notes": "Hinge moving, piston at target. A rotor entry rides the same robotics.servos array to prove RoboticsConsole ignores it (Rotor Tachometer's domain). The piston extension values are ILLUSTRATIVE metre-scale numbers, not recorded from KSP: they were 80 apiece, which encoded the same percent misconception the widget label did. Breaking Ground is not installed in CI, so no recorded robotics values exist anywhere in this repo. Do not cite these as measured."
   },

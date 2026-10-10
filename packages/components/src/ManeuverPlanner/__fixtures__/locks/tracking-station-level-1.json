@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A career save with the Tracking Station at level 1, so there is no maneuver data and the tiny form draws the compact lock mark.",
     "scenario": "tracking-station-level-1",
     "notes": "A career save whose Tracking Station is still at level 1, so no vessel carries a patched-conics solver and the maneuver channel has nothing to read. The tiny form reads that channel too, so it draws the compact lock mark."
   },

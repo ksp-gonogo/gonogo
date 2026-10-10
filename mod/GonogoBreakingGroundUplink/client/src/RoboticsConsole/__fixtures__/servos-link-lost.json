@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The servo scene after the craft stops reporting: every figure is held at its last value and marked.",
     "scenario": "servos-link-lost",
     "notes": "The servos scene, after the craft stops reporting. The wire is identical to `servos` and the link then drops, so every figure is HELD: the measured angles and the targets keep their last values and are marked, the joint list and the lock and motor states stay as last reported, and only the at-target verdict is withheld."
   },

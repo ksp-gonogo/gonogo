@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The Mun and Minmus bases after the craft stops reporting, every figure held at its last value and marked.",
     "synthetic": true,
     "notes": "SYNTHETIC, in the CURRENT flat `deployed.bases` wire shape (one entry per deployed experiment, grouped client-side by vesselName). Two bases at once, which is the point: a powered Mun base climbing on two experiments, and a Minmus base that has gone unpowered overnight. The pair is what makes the power indicator worth looking at, since a single powered base draws the same green pill whether the state means anything or not. The two carry opposite power balances off the cluster (Mun 6 of 4 power units produced, Minmus 0 of 3), which is the reading that used to be a hardcoded \"EC 0/0\" on every base regardless of state. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
     "scenario": "mun-and-minmus-bases-stopped-arriving"

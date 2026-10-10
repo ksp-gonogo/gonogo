@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "The Deployed Science widget on a save without Breaking Ground, saying the expansion is not installed rather than that there are no deployed bases.",
     "synthetic": true,
     "notes": "SYNTHETIC. Breaking Ground is not installed, so there are no deployed bases and never will be. The widget has to say that rather than 'No deployed bases', which is what a player WITH the DLC and nothing planted sees: the two look identical on the wire (an empty roster) and read completely differently to an operator."
   },

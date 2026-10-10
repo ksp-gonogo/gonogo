@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A career save with Mission Control at level 1, so flight planning is locked and the whole planner refuses itself.",
     "scenario": "mission-control-level-1",
     "notes": "A career save whose Mission Control is still at level 1, so flight planning is locked. The planner holds the add and update commands in its own body, so the whole widget refuses itself through the dashboard guard."
   },

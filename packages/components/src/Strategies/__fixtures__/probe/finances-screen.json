@@ -1,5 +1,6 @@
 {
   "_meta": {
+    "shows": "A contributed Finances-like screen that names no departments, beside the real Operations, Finances and Public Relations strategies.",
     "scenario": "finances-screen",
     "notes": "Saga #649 (T4) review render: the planted Uplink contributes a Finances-like screen naming no departments (scripts/probe/plantedUplink.ts, requires 'planted'), alongside the real Operations/Finances/Public Relations strategies from small-career-detail.json's roster, which land on the trailing 'Other' screen since nobody claims those departments. Demonstrates the host fix: a screen naming no departments draws no Active/Available/Locked sections, only its (here empty) augment body, while the 'Other' screen keeps listing its real strategies untouched. Not a live capture."
   },
