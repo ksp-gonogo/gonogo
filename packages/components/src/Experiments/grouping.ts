@@ -14,13 +14,7 @@ export function byExperiment<Item extends TitledInstrument>(
   instruments: readonly Item[],
 ): Item[] {
   const name = (inst: TitledInstrument) => inst.expTitle || inst.expId;
-  return [...instruments].sort((a, b) => {
-    const [left, right] = [name(a), name(b)];
-    // An instrument that names no experiment follows every named one.
-    if (left === "" || right === "")
-      return left === right ? 0 : left === "" ? 1 : -1;
-    return left.localeCompare(right);
-  });
+  return [...instruments].sort((a, b) => name(a).localeCompare(name(b)));
 }
 
 /**

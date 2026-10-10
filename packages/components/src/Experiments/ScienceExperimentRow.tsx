@@ -129,9 +129,8 @@ export function ScienceExperimentRow({
         )}
       </Inline>
       <Text level="muted" size="xs">
-        {experimentName(instrument)}
-        {instrument.dataKnown !== false &&
-          ` · ${instrument.hasData ? "Holds data" : "No data"}`}
+        {experimentName(instrument)} ·{" "}
+        {instrument.hasData ? "Holds data" : "No data"}
       </Text>
     </Card>
   );

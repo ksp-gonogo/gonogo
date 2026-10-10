@@ -35,7 +35,7 @@ import {
   ownContributed,
   summarise,
 } from "./grouping";
-import type { TitledInstrument } from "./instrument";
+import type { Instrument } from "./instrument";
 import { LabSection } from "./LabSection";
 import {
   EMPTY_EXPERIMENTS,
@@ -61,19 +61,7 @@ export {
 // The sitrep-sdk copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts`.
 
 /** Strips the browser's list chrome so the `<ul>` is semantics only. */
-const INSTRUMENT_LIST = {
-  listStyle: "none",
-  margin: 0,
-  padding: 0,
-} as const;
-
-/** The cards flow across a wide tile, as many columns as fit at a readable width. */
-const INSTRUMENT_GRID = {
-  ...INSTRUMENT_LIST,
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(min(14rem, 100%), 1fr))",
-  gap: "var(--gap-related)",
-} as const;
+const INSTRUMENT_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 function ExperimentsComponent({
   w,
@@ -145,10 +133,10 @@ function ExperimentsComponent({
   const labs =
     allLabs?.filter((lab) => filter.matches(lab.partName)) ?? allLabs;
 
-  const matchesFilter = (inst: TitledInstrument) =>
-    filter.matches(`${inst.expTitle ?? ""} ${inst.expId} ${inst.partTitle}`);
+  const matchesFilter = (inst: Instrument) =>
+    filter.matches(`${inst.expId} ${inst.partTitle}`);
 
-  // One card per instrument, each naming its experiment, ordered so one experiment's cards sit together.
+  // Each card names its experiment: a heading per experiment held one card apiece on a typical vessel.
   const listed = byExperiment((instruments ?? []).filter(matchesFilter));
   const contributedGroups = groupContributed(contributed.filter(matchesFilter));
 
@@ -159,7 +147,7 @@ function ExperimentsComponent({
     listed.length === 0 ? null : (
       <Section key="instruments" full>
         {/* A real list, because the row renders an `<li>`; an augment in the slot below must be a list item too. */}
-        <Stack as="ul" style={INSTRUMENT_GRID}>
+        <Stack as="ul" style={INSTRUMENT_LIST}>
           {listed.map((inst) => (
             <Fragment key={inst.partId}>
               <ScienceExperimentRow

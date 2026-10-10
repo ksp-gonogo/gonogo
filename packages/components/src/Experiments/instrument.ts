@@ -24,8 +24,6 @@ export interface Instrument {
  */
 export interface TitledInstrument extends Instrument {
   expTitle?: string;
-  /** False where the wire did not say whether the instrument holds data, so `hasData` is a default rather than a reading. */
-  dataKnown?: boolean;
 }
 
 /**
