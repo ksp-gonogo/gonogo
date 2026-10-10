@@ -1285,8 +1285,17 @@ async function findClippedContent(page: Page): Promise<string[]> {
              */
             if (!declared && moved && (hidesX || hidesY)) break;
             const rect = anc.getBoundingClientRect();
-            const clipLeft = rect.left + anc.clientLeft;
-            const clipTop = rect.top + anc.clientTop;
+            /*
+             * An SVG element has no CSS box, so Firefox reports its client
+             * size, and its border, as zero where Chromium reports the drawn
+             * size. A `<foreignObject>` clips what it holds, which makes it one
+             * of these, so its drawn rectangle stands in for the client box.
+             */
+            const svgBox = anc instanceof SVGElement;
+            const clientW = svgBox ? rect.width : anc.clientWidth;
+            const clientH = svgBox ? rect.height : anc.clientHeight;
+            const clipLeft = rect.left + (svgBox ? 0 : anc.clientLeft);
+            const clipTop = rect.top + (svgBox ? 0 : anc.clientTop);
             if (scrollsX) {
               left -= anc.scrollWidth - anc.clientWidth - anc.scrollLeft;
               right += anc.scrollLeft;
@@ -1297,11 +1306,11 @@ async function findClippedContent(page: Page): Promise<string[]> {
             }
             if (hidesX || scrollsX) {
               left = Math.max(left, clipLeft);
-              right = Math.min(right, clipLeft + anc.clientWidth);
+              right = Math.min(right, clipLeft + clientW);
             }
             if (hidesY || scrollsY) {
               top = Math.max(top, clipTop);
-              bottom = Math.min(bottom, clipTop + anc.clientHeight);
+              bottom = Math.min(bottom, clipTop + clientH);
             }
             const goneX = right - left <= 0.5;
             const goneY = bottom - top <= 0.5;
@@ -1318,7 +1327,7 @@ async function findClippedContent(page: Page): Promise<string[]> {
                 !goneY &&
                 hidesX &&
                 as.textOverflow === "ellipsis" &&
-                anc.clientWidth >= 0.6 * Number.parseFloat(as.fontSize)
+                clientW >= 0.6 * Number.parseFloat(as.fontSize)
               ) {
                 break;
               }
@@ -1339,8 +1348,8 @@ async function findClippedContent(page: Page): Promise<string[]> {
                   `(element ${Math.round(box.left)}..${Math.round(box.right)} x ` +
                   `${Math.round(box.top)}..${Math.round(box.bottom)}, ` +
                   `${anc.localName} shows ` +
-                  `${Math.round(clipLeft)}..${Math.round(clipLeft + anc.clientWidth)} x ` +
-                  `${Math.round(clipTop)}..${Math.round(clipTop + anc.clientHeight)}` +
+                  `${Math.round(clipLeft)}..${Math.round(clipLeft + clientW)} x ` +
+                  `${Math.round(clipTop)}..${Math.round(clipTop + clientH)}` +
                   `${scrollsX || scrollsY ? " and scrolls" : ""})`,
               );
               break;
