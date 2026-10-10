@@ -22,12 +22,24 @@ describe("resolveVesselMarkerPlacement", () => {
     expect(placement.leaderFrom).toEqual({ x: 2, y: 0 });
   });
 
-  it("pushes the marker to at least the crowd threshold in screen px", () => {
+  it("pushes the marker out to the crowd threshold in screen px", () => {
     const zoom = 3;
     const placement = resolveVesselMarkerPlacement({ x: 1, y: 1 }, zoom);
     const screenDist =
       Math.hypot(placement.marker.x, placement.marker.y) * zoom;
-    expect(screenDist).toBeGreaterThanOrEqual(MARKER_CROWD_THRESHOLD_PX);
+    expect(screenDist).toBeCloseTo(MARKER_CROWD_THRESHOLD_PX, 9);
+  });
+
+  it("does not move the marker as the craft crosses the crowd threshold", () => {
+    const inside = resolveVesselMarkerPlacement(
+      { x: MARKER_CROWD_THRESHOLD_PX - 1e-6, y: 0 },
+      1,
+    );
+    const outside = resolveVesselMarkerPlacement(
+      { x: MARKER_CROWD_THRESHOLD_PX, y: 0 },
+      1,
+    );
+    expect(inside.marker.x).toBeCloseTo(outside.marker.x, 4);
   });
 
   it("picks a stable fallback direction when the vessel sits exactly on the parent", () => {
