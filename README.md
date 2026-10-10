@@ -44,10 +44,10 @@ docker run -d --name gonogo --restart unless-stopped \
   -p 8080:8080 -p 3002:3002 \
   -p 3478:3478/tcp -p 3478:3478/udp \
   -p 49160-49170:49160-49170/udp \
-  ghcr.io/ksp-gonogo/gonogo:latest
+  ghcr.io/ksp-gonogo/gonogo:rc
 ```
 
-The `latest` tag is published with the first release, and until then the pull is refused. Until the first release, use the release candidate image instead: change the last line to `ghcr.io/ksp-gonogo/gonogo:rc`. After the first release, use `latest`. The same applies to the `docker pull` below Podman takes the same command: type `podman` where it says `docker`.
+Until the first release is published, the image exists only as the release candidate, tagged `rc`, which is what the command pulls. After the first release, change the last line to `ghcr.io/ksp-gonogo/gonogo:latest`. The same applies to the `docker pull` below. Podman takes the same command: type `podman` where it says `docker`.
 
 That is the form for macOS, Linux and WSL. In Windows PowerShell, end each line with a backtick (`` ` ``) in place of the `\`, or type it as one line; the app's own setup screen prints the PowerShell form when it is opened on Windows.
 
@@ -62,11 +62,11 @@ If the command fails with "port is already allocated", another program is using 
 `docker run` (and `podman run`) never re-pulls a tag you already have, so running the command again keeps the old app without saying so. To update, pull first, then replace the container (use `podman` in place of `docker` if that is what you have):
 
 ```bash
-docker pull ghcr.io/ksp-gonogo/gonogo:latest
+docker pull ghcr.io/ksp-gonogo/gonogo:rc
 docker rm -f gonogo
 ```
 
-Then run the same `docker run` command again. (Pull `:rc` instead if that is the tag you run.) Update the Gonogo mod in KSP at the same time, since the app and the mod are released together and an old mod may lack channels a new app expects. CKAN does this for you; a hand install means deleting `GameData/Gonogo` and copying the new one in. The container holds no data of its own: your layouts, settings, share code and Uplink answers live in the browser, per address, so they survive as long as you keep opening the same address (`localhost:8080`). Stations keep theirs in their own browsers.
+Then run the same `docker run` command again. (After the first release, pull and run `:latest` instead.) Update the Gonogo mod in KSP at the same time, since the app and the mod are released together and an old mod may lack channels a new app expects. CKAN does this for you; a hand install means deleting `GameData/Gonogo` and copying the new one in. The container holds no data of its own: your layouts, settings, share code and Uplink answers live in the browser, per address, so they survive as long as you keep opening the same address (`localhost:8080`). Stations keep theirs in their own browsers.
 
 The app has no version readout in its screens yet (a station shows its version only when it differs from the main screen's). To see what you are running, open `http://localhost:3002/version`, or view the page source of the main screen and look for `gonogo-version`.
 

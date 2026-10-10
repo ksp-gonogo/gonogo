@@ -11,6 +11,14 @@
 export const CONTAINER_NAME = "gonogo";
 
 /**
+ * The image tag the run command pulls. Only the release candidate exists
+ * until the first release is published; after it, this becomes `latest` and
+ * the README, the home page and the wizard follow by the tests that hold them
+ * to this module.
+ */
+export const RUN_IMAGE_TAG = "rc";
+
+/**
  * Starts the app and the relay in one container, one entry per line it is
  * printed on. Every surface that prints the command renders these lines, so
  * the README, the home page and the app cannot drift.
@@ -22,7 +30,7 @@ export const RUN_COMMAND_LINES = [
   "-p 8080:8080 -p 3002:3002",
   "-p 3478:3478/tcp -p 3478:3478/udp",
   "-p 49160-49170:49160-49170/udp",
-  "ghcr.io/ksp-gonogo/gonogo:latest",
+  `ghcr.io/ksp-gonogo/gonogo:${RUN_IMAGE_TAG}`,
 ] as const;
 
 /** The run command as the single line it runs as, with no continuation of any shell's. */

@@ -5,6 +5,7 @@ import { runs, say } from "../copy";
 import {
   browserShell,
   CONTAINER_STATUS_COMMAND,
+  RUN_IMAGE_TAG,
   runCommandFor,
 } from "../setupGuide";
 import { useRelayHealth } from "../useRelayHealth";
@@ -24,7 +25,7 @@ export function ContainerStep() {
   return (
     <Stack gap="related-comfortable">
       <Text level="muted" size="sm">
-        {say("container.instruction")}
+        {say("container.instruction", { tag: RUN_IMAGE_TAG })}
       </Text>
       <CommandBlock
         command={runCommandFor(shell)}

@@ -2,10 +2,12 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { say } from "./copy";
 import {
   CKAN_UPLINK_FILTER,
   RUN_COMMAND,
   RUN_COMMAND_LINES,
+  RUN_IMAGE_TAG,
   runCommandFor,
 } from "./setupGuide";
 
@@ -29,6 +31,13 @@ function oneLine(command: string, continuation: string): string {
 }
 
 describe("the run command is spelled once", () => {
+  it("pulls the one image tag the wizard copy names", () => {
+    expect(RUN_COMMAND.endsWith(`gonogo:${RUN_IMAGE_TAG}`)).toBe(true);
+    expect(say("container.instruction", { tag: RUN_IMAGE_TAG })).toContain(
+      `tagged ${RUN_IMAGE_TAG},`,
+    );
+  });
+
   it("has no line continuation in its source, so each shell's form adds only its own", () => {
     for (const line of RUN_COMMAND_LINES) expect(line).not.toMatch(/[\\`^\n]/);
     expect(RUN_COMMAND).toBe(RUN_COMMAND_LINES.join(" "));
