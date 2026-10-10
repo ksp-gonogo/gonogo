@@ -495,6 +495,12 @@ export {
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export {
+  PlotCrosshair,
+  type PlotCrosshairProps,
+  type PlotCrosshairRow,
+  plotCrosshairShowsCard,
+} from "./PlotCrosshair";
+export {
   ReadFrameControl,
   type ReadFrameControlProps,
   type ReadFrameOption,

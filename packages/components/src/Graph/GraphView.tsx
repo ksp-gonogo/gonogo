@@ -412,6 +412,7 @@ export function GraphView({
               hideXAxis={config?.hideXAxis}
               spatial={config?.spatial}
               aria-label={ariaLabel}
+              crosshair={xIsTime}
               width={size.w}
               height={size.h}
             />

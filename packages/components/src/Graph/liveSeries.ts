@@ -1,8 +1,10 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
 import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries, ChartSeriesData } from "@ksp-gonogo/ui";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { alignXY } from "./align";
 import { paletteColor } from "./palette";
+import { formatReadoutValue } from "./ticks";
 import type { GraphSeries } from "./types";
 
 /** Each configured series resolved to plottable data: paired against the shared X buffer on a parametric axis, or read straight off its own timestamps on a time axis. */
@@ -52,6 +54,10 @@ export function buildLiveSeries(
       axis: axes[i],
       color: cfg.color ?? paletteColor(i),
       type: cfg.type ?? "line",
+      format: (y: number) =>
+        meta?.unit && meta.unit !== "raw"
+          ? writeQuantity({ magnitude: y, unit: meta.unit })
+          : formatReadoutValue(y),
       data,
     };
   });

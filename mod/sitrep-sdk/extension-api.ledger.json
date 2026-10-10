@@ -11849,6 +11849,66 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . PlotCrosshair",
+        "note": "a crosshair for an SVG plot: a line at an instant, a dot per trace and a readout of every row's value"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairProps",
+        "note": "the props of the new PlotCrosshair component"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairProps#heading",
+        "note": "names the instant above the rows"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairProps#plot",
+        "note": "the plot's pixel box, which the line spans and the readout stays inside"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairProps#rows",
+        "note": "one entry per trace or limit read at the instant"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairProps#x",
+        "note": "where the line stands in pixels"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow",
+        "note": "one line of the crosshair readout"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#color",
+        "note": "the colour of the thing the row reads"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#currency?",
+        "note": "how current the reading is, written after the value when there is room"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#detail?",
+        "note": "dropped from the compact card of a small plot"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#id",
+        "note": "keys the row"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#label",
+        "note": "names the trace or limit"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#modelled?",
+        "note": "a model's figure, drawn with the modelled mark"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#value",
+        "note": "the reading with its unit, null for an absent sample"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairRow#y?",
+        "note": "where the row's dot stands on the plot in pixels"
+      },
+      {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -11915,6 +11975,10 @@
       {
         "key": "ui-kit . heldMarking",
         "note": "The held or modelled mark for a figure from a held field"
+      },
+      {
+        "key": "ui-kit . plotCrosshairShowsCard",
+        "note": "says whether the crosshair card has room on a plot, so a chart can hand its legend corner to the card"
       },
       {
         "key": "ui-kit . sizeDeltaFor",

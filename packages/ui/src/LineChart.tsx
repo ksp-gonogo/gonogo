@@ -5,13 +5,18 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   InstrumentHeldMark,
+  PlotCrosshair,
+  type PlotCrosshairRow,
+  plotCrosshairShowsCard,
   ReckoningMarkSvg,
   reckoningBasisPhrase,
   resolveCurrency,
   sayHeld,
   type UnitValue,
+  VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import React, { useId, useMemo } from "react";
+import React, { useId, useMemo, useState } from "react";
+import { sampleNearest, sampleTimes, stepTime } from "./crosshairMath";
 import { LimitCrossingMark } from "./LimitCrossingMark";
 import { isPast, type LimitSide, limitCrossings } from "./limitCrossings";
 import {
@@ -79,6 +84,8 @@ export interface ChartSeries {
   dashed?: boolean;
   /** Fill opacity (0..1) for `band` series. Defaults 0.2. */
   fillOpacity?: number;
+  /** Writes one of this series' figures with its unit, for the crosshair readout. Falls back to the axis tick formatter. */
+  format?: (y: number) => string;
   data: ChartSeriesData;
 }
 
@@ -182,6 +189,14 @@ export interface LineChartProps {
   layers?: readonly PlotLayer[];
   /** Names what the chart is, before the layers add their own clauses. */
   "aria-label"?: string;
+  /**
+   * A crosshair that reads every series at one instant: on pointer hover, and
+   * from the keyboard (the chart takes focus; arrow keys step through the
+   * samples, shift for ten at a time, Home and End for the ends, Escape to
+   * clear). Only meaningful when x is time, so that samples are ordered along
+   * it. Off by default.
+   */
+  crosshair?: boolean;
   width: number;
   height: number;
 }
@@ -268,10 +283,20 @@ export function LineChart({
   spatial = false,
   layers,
   "aria-label": ariaLabel,
+  crosshair = false,
   width,
   height,
 }: Readonly<LineChartProps>) {
   const uid = useId();
+  // With nothing plotted there is nothing to read, so the chart takes no tab stop.
+  const crosshairOn =
+    crosshair && !spatial && series.some((s) => s.data.x.length > 0);
+  const [cursor, setCursor] = useState<{
+    at: number;
+    source: "pointer" | "keys";
+  } | null>(null);
+  const [focusRing, setFocusRing] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
   const w = width;
   const h = height;
 
@@ -575,6 +600,7 @@ export function LineChart({
       return {
         id: t.id,
         label: t.label,
+        value: t.value,
         kind: t.kind,
         passed,
         // The line stands where the reading's model has it, so a figure carried forward is marked as that.
@@ -761,6 +787,163 @@ export function LineChart({
     ...thresholdClauses,
   ].join("; ");
 
+  const crosshairSeries = useMemo(
+    () => series.filter((s) => s.data.x.length > 0),
+    [series],
+  );
+  const crosshairTimes = useMemo(
+    () => (crosshairOn ? sampleTimes(crosshairSeries) : []),
+    [crosshairOn, crosshairSeries],
+  );
+  const xLo = Math.min(xDomain[0], xDomain[1]);
+  const xHi = Math.max(xDomain[0], xDomain[1]);
+
+  /** Every series' figure at `at`, and the limits, with the words that name the instant. */
+  function readAt(at: number): { heading: string; rows: PlotCrosshairRow[] } {
+    const rows: PlotCrosshairRow[] = crosshairSeries.map((s) => {
+      const sample = sampleNearest(s, at);
+      const write = s.format ?? yTickFormat;
+      const scaleY = s.axis === "primary" ? scaleYPrimary : scaleYSecondary;
+      const isBand = (s.type ?? "line") === "band";
+      if (sample === null) {
+        return { id: s.id, label: s.label, color: s.color, value: null };
+      }
+      return {
+        id: s.id,
+        label: s.label,
+        color: s.color,
+        value:
+          isBand && sample.y2 !== undefined
+            ? `${write(sample.y)} to ${write(sample.y2)}`
+            : write(sample.y),
+        currency: sample.currency,
+        modelled: sample.currency === "modelled",
+        y: isBand ? undefined : scaleY(sample.y),
+      };
+    });
+    if (captionsFit) {
+      for (const t of thresholdLines) {
+        if (t.kind === "marker") continue;
+        rows.push({
+          id: `threshold-${t.id}`,
+          label: t.kind,
+          color: t.tone.label,
+          value: t.label ?? yTickFormat(t.value),
+          detail: true,
+          currency: t.currency.held
+            ? t.currency.mark === "modelled"
+              ? "modelled"
+              : "held"
+            : undefined,
+          modelled: t.currency.held && t.currency.mark === "modelled",
+        });
+      }
+    }
+    return { heading: xTickFormat(at, xDomain), rows };
+  }
+
+  function sayReading(at: number): string {
+    const { heading, rows } = readAt(at);
+    return [
+      heading,
+      ...rows.map(
+        (row) =>
+          `${row.label} ${row.value ?? "no sample"}${row.currency ? `, ${row.currency}` : ""}`,
+      ),
+    ].join("; ");
+  }
+
+  const cursorAt =
+    crosshairOn && cursor !== null && cursor.at >= xLo && cursor.at <= xHi
+      ? cursor.at
+      : null;
+  const crosshairReading = cursorAt === null ? null : readAt(cursorAt);
+  // The card names every series in its colour, so the legend gives its corner up while the card is drawn.
+  const cardShown =
+    crosshairReading !== null &&
+    plotCrosshairShowsCard(
+      { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+      crosshairReading.rows,
+    );
+
+  function timeAtPointer(e: React.PointerEvent<SVGSVGElement>): number | null {
+    const box = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - box.left;
+    if (px < plotX0 || px > plotX1) return null;
+    return (
+      xDomain[0] +
+      ((px - plotX0) / (plotX1 - plotX0)) * (xDomain[1] - xDomain[0])
+    );
+  }
+
+  function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    const at = timeAtPointer(e);
+    if (at === null) {
+      setCursor((c) => (c?.source === "pointer" ? null : c));
+      return;
+    }
+    setCursor({ at, source: "pointer" });
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<SVGSVGElement>) {
+    const inView = crosshairTimes.filter((t) => t >= xLo && t <= xHi);
+    const steps: Record<string, number> = {
+      ArrowLeft: e.shiftKey ? -10 : -1,
+      ArrowRight: e.shiftKey ? 10 : 1,
+      Home: -inView.length,
+      End: inView.length,
+    };
+    if (e.key === "Escape") {
+      if (cursor === null) return;
+      e.preventDefault();
+      setCursor(null);
+      setAnnouncement("");
+      return;
+    }
+    const stride = steps[e.key];
+    if (stride === undefined) return;
+    e.preventDefault();
+    const next = stepTime(inView, cursorAt, stride);
+    if (next === null) return;
+    setCursor({ at: next, source: "keys" });
+    setAnnouncement(sayReading(next));
+  }
+
+  function onFocus(e: React.FocusEvent<SVGSVGElement>) {
+    try {
+      setFocusRing(e.currentTarget.matches(":focus-visible"));
+    } catch {
+      setFocusRing(true);
+    }
+    if (cursor !== null) return;
+    const newest = stepTime(
+      crosshairTimes.filter((t) => t >= xLo && t <= xHi),
+      null,
+      0,
+    );
+    if (newest === null) return;
+    setCursor({ at: newest, source: "keys" });
+    setAnnouncement(sayReading(newest));
+  }
+
+  function onBlur() {
+    setFocusRing(false);
+    setCursor((c) => (c?.source === "keys" ? null : c));
+    setAnnouncement("");
+  }
+
+  const crosshairProps = crosshairOn
+    ? {
+        tabIndex: 0,
+        onPointerMove,
+        onPointerLeave: () =>
+          setCursor((c) => (c?.source === "pointer" ? null : c)),
+        onKeyDown,
+        onFocus,
+        onBlur,
+      }
+    : {};
+
   const layerFrame: PlotLayerFrame = {
     scaleX,
     scaleYPrimary,
@@ -789,18 +972,27 @@ export function LineChart({
     );
   }
 
-  return (
+  const chart = (
     <svg
       width={w}
       height={h}
       // An image has no parts a reader can reach, so a chart carrying marks that each say something is a group.
-      role={crossingMarks.length > 0 ? "group" : "img"}
+      role={crossingMarks.length > 0 || crosshairOn ? "group" : "img"}
       aria-label={chartLabel}
+      aria-describedby={crosshairOn ? `${uid}-crosshair-hint` : undefined}
+      {...crosshairProps}
       // display: block stops the inline baseline gap feeding the ResizeObserver a growing height.
       style={{
         fontFamily: "var(--font-family-mono)",
         overflow: "visible",
         display: "block",
+        ...(crosshairOn
+          ? {
+              touchAction: "pan-y",
+              outline: focusRing ? "2px solid var(--color-focus)" : "none",
+              outlineOffset: 2,
+            }
+          : {}),
       }}
     >
       <title>{chartLabel}</title>
@@ -1143,6 +1335,7 @@ export function LineChart({
       ))}
 
       {legend !== "none" &&
+        !cardShown &&
         series.map((s, i) => {
           const rowY = plotY0 + 6 + i * 16;
           if (rowY + 13 > plotY1) return null;
@@ -1175,7 +1368,30 @@ export function LineChart({
       {layers && layers.length > 0 && captionsFit && (
         <PlotLayers layers={layers} frame={layerFrame} pass="caption" />
       )}
+
+      {crosshairReading !== null && cursorAt !== null && (
+        <PlotCrosshair
+          x={scaleX(cursorAt)}
+          plot={{ x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 }}
+          heading={crosshairReading.heading}
+          rows={crosshairReading.rows}
+        />
+      )}
     </svg>
+  );
+
+  if (!crosshairOn) return chart;
+  return (
+    <>
+      {chart}
+      <VisuallyHidden id={`${uid}-crosshair-hint`}>
+        Use the arrow keys to read the values at each sample
+      </VisuallyHidden>
+      {/* Set when a key moves the line and read once, so a streaming value never floods it. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {announcement}
+      </VisuallyHidden>
+    </>
   );
 }
 
