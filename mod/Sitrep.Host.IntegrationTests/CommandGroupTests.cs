@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Contract.Serialization;
+using Sitrep.Core.StoreAndForward;
 using Sitrep.Host;
 using Sitrep.Host.Comms;
 using Sitrep.Host.CommandCentres;
@@ -411,6 +412,116 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The game is quit with a command held on a lane and started again: the
+        /// request that sent it died with the old process, and the client that
+        /// reconnected finds the reply by the request id it chose.
+        /// </summary>
+        [Fact]
+        public async Task AHeldCommandSavedAcrossARestartIsAnsweredToTheClientByItsRequestId()
+        {
+            DeliverySnapshot written;
+            using (var before = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0))
+            {
+                before.RegisterUplink(new GroupTestUplink());
+                before.Start();
+                try
+                {
+                    CutRoute(before);
+                    Tick(before, 0.0);
+                    before.DispatchCommandAndWait(GroupTestUplink.SetGroup, Args("Custom01", true), Centre, _ => { }, Op, clientRequestId: "client-7");
+                    Tick(before, 1.0);
+                    written = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(before.DeliverySnapshotNow()))!;
+                }
+                finally
+                {
+                    before.Stop();
+                }
+            }
+
+            using var after = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var afterUplink = new GroupTestUplink();
+            after.RegisterUplink(afterUplink);
+            after.RegisterCommandCentreSource(new VesselCentreSource(Centre));
+            after.Start();
+            try
+            {
+                CutRoute(after);
+                Tick(after, 0.5);
+                await using var reconnected = await TestClient.ConnectAsync(after.BoundPort, Op);
+                await reconnected.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Centre }));
+                after.NoteGameLoaded(written, savedUt: 1.0);
+                Tick(after, 2.0);
+                OpenRoute(after);
+                Tick(after, 3.0);
+                Tick(after, 3.0 + OneWaySeconds + 1.0);
+                Tick(after, 3.0 + 2 * OneWaySeconds + 2.0);
+
+                Assert.Equal(new[] { "Custom01:True" }, afterUplink.Ran);
+                var answer = await ReceiveTypedAsync<CommandResponse<object?>>(reconnected, Op);
+                Assert.Equal("client-7", answer.RequestId);
+                Assert.Equal("done:Custom01", answer.Result);
+            }
+            finally
+            {
+                after.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The same restart, but the route never opens and the command runs out
+        /// of time where it is held: the client is refused by its request id
+        /// rather than left waiting.
+        /// </summary>
+        [Fact]
+        public async Task AHeldCommandThatExpiresAfterARestartIsRefusedToTheClientByItsRequestId()
+        {
+            DeliverySnapshot written;
+            using (var before = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0))
+            {
+                before.RegisterUplink(new GroupTestUplink());
+                before.Start();
+                try
+                {
+                    CutRoute(before);
+                    Tick(before, 0.0);
+                    before.DispatchCommandAndWait(GroupTestUplink.SetGroup, Args("Custom01", true), Centre, _ => { }, Op, clientRequestId: "client-8");
+                    Tick(before, 1.0);
+                    written = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(before.DeliverySnapshotNow()))!;
+                }
+                finally
+                {
+                    before.Stop();
+                }
+            }
+
+            using var after = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var afterUplink = new GroupTestUplink();
+            after.RegisterUplink(afterUplink);
+            after.RegisterCommandCentreSource(new VesselCentreSource(Centre));
+            after.Start();
+            try
+            {
+                CutRoute(after);
+                Tick(after, 0.5);
+                await using var reconnected = await TestClient.ConnectAsync(after.BoundPort, Op);
+                await reconnected.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Centre }));
+                after.NoteGameLoaded(written, savedUt: 1.0);
+                Tick(after, 2.0);
+                Tick(after, 5000.0);
+                Tick(after, 6000.0);
+
+                var refusal = await ReceiveTypedAsync<ErrorMsg>(reconnected, Op);
+                Assert.Equal("client-8", refusal.RequestId);
+                Assert.Equal(FaultCode.CommandExpired, refusal.Code);
+                Assert.Empty(afterUplink.Ran);
+            }
+            finally
+            {
+                after.Stop();
+            }
+        }
+
         [Fact]
         public async Task ACommandGroupFrameIsAnsweredOnceForEachMemberUnderItsOwnRequestId()
         {
@@ -473,6 +584,30 @@ namespace Sitrep.Host.IntegrationTests
 
         private static Dictionary<string, object?> Args(string group, bool state) =>
             new Dictionary<string, object?> { ["group"] = group, ["state"] = state };
+
+        private sealed class VesselCentreSource : ICommandCentreSource
+        {
+            private readonly string _id;
+
+            public VesselCentreSource(string id) => _id = id;
+
+            public string ProviderId => "command-group-test";
+
+            public IEnumerable<ICommandCentre> Enumerate() => new ICommandCentre[] { new VesselCentre(_id) };
+
+            private sealed class VesselCentre : ICommandCentre
+            {
+                public VesselCentre(string id) => Id = id;
+
+                public string Id { get; }
+                public string DisplayName => Id;
+                public CommandCentreKind Kind => CommandCentreKind.CrewedVessel;
+                public int? BodyIndex => null;
+                public double? Latitude => null;
+                public double? Longitude => null;
+                public bool IsActiveNow() => true;
+            }
+        }
 
         private static void CutRoute(ChannelEngine engine)
         {

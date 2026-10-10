@@ -308,7 +308,8 @@ namespace Sitrep.Core.StoreAndForward
             string? channel,
             double nowUt,
             double? arriveBeforeUt,
-            string? id = null)
+            string? id = null,
+            string clientRequestId = "")
         {
             try
             {
@@ -332,6 +333,7 @@ namespace Sitrep.Core.StoreAndForward
                         Args = args,
                         ExecNode = execNode,
                         Channel = channel,
+                        ClientRequestId = clientRequestId,
                     };
                     _sentCommands[message.Id] = message;
                     CopiesOut(lane, seq).Add(message.Id);
@@ -386,6 +388,7 @@ namespace Sitrep.Core.StoreAndForward
                         ExecNode = original.ExecNode,
                         Channel = original.Channel,
                         Attempt = original.Attempt + 1,
+                        ClientRequestId = original.ClientRequestId,
                     };
                     sender.AddCopy(seq, deleteAt);
                     _sentCommands[copy.Id] = copy;
@@ -988,6 +991,8 @@ namespace Sitrep.Core.StoreAndForward
                         At = next.Command.Lane.Craft,
                         AtUt = next.AtUt,
                         Result = result,
+                        ClientRequestId = next.Command.ClientRequestId,
+                        Command = next.Command.Command,
                         Plan = next.Command.Plan,
                     };
                     Route(next.Command.Lane.Craft, reply, next.AtUt);
@@ -1709,6 +1714,8 @@ namespace Sitrep.Core.StoreAndForward
                 AtUt = atUt,
                 Detail = detail,
                 UntilUt = until,
+                ClientRequestId = command.ClientRequestId,
+                Command = command.Command,
                 Plan = command.Plan,
             };
             Route(node, report, atUt);

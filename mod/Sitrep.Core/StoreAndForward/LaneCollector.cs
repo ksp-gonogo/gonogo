@@ -323,6 +323,8 @@ namespace Sitrep.Core.StoreAndForward
                 At = Lane.Craft,
                 AtUt = atUt,
                 Result = result,
+                ClientRequestId = command.ClientRequestId,
+                Command = command.Command,
             });
         }
 
@@ -378,6 +380,8 @@ namespace Sitrep.Core.StoreAndForward
                 At = Lane.Craft,
                 AtUt = nowUt,
                 Detail = detail,
+                ClientRequestId = command.ClientRequestId,
+                Command = command.Command,
             });
         }
 

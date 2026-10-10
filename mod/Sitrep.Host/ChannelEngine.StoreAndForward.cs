@@ -397,7 +397,7 @@ namespace Sitrep.Host
             _laneCraftNodes[craft] = node;
             var requestId = NextRequestId();
             var arriveBefore = ArriveBeforeUt(job);
-            var message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId);
+            var message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId, job.ClientRequestId);
             job.Carried = true;
             DeliveryMessagesBudget.Record(1, now);
             _deliveryJobs[message.Id] = job;
@@ -810,43 +810,61 @@ namespace Sitrep.Host
 
             if (!_deliveryJobs.TryGetValue(report.About, out var job))
             {
+                if (string.IsNullOrEmpty(report.ClientRequestId) || _settledDeliveries.Contains(report.About))
+                {
+                    return;
+                }
+                if (report.Kind == JourneyKind.Reply)
+                {
+                    ParkAnswer(report.To, ResponseFrame(report.ClientRequestId, report.Command, report.To, report.AtUt, report.Result));
+                    return;
+                }
+                if (RefusalOf(report) is { } parked)
+                {
+                    ParkAnswer(report.To, ErrorFrame(report.ClientRequestId, parked.Code, parked.Reason));
+                }
                 return;
             }
+            if (report.Kind == JourneyKind.Reply)
+            {
+                Settle(report.About);
+                Deliver(job, report.Result);
+                return;
+            }
+            if (RefusalOf(report) is { } refusal)
+            {
+                Settle(report.About);
+                job.OnRefused?.Invoke(refusal.Code, refusal.Reason);
+            }
+        }
+
+        /// <summary>
+        /// The refusal a client is told when this report ends its command, or
+        /// null when the report does not end it: a copy sent again may yet run,
+        /// and most kinds are only progress.
+        /// </summary>
+        private (FaultCode Code, string Reason)? RefusalOf(ReportMessage report)
+        {
             switch (report.Kind)
             {
-                case JourneyKind.Reply:
-                    Settle(report.About);
-                    Deliver(job, report.Result);
-                    break;
                 case JourneyKind.Expired when report.OtherCopiesOut:
-                    // A copy sent again is still out there and may yet run, so the
-                    // command is not finished: only this copy is. Its reply, or the
-                    // last copy's end, settles the request.
-                    break;
+                    return null;
                 case JourneyKind.Expired:
-                    Settle(report.About);
-                    job.OnRefused?.Invoke(FaultCode.CommandExpired, "It expired at " + report.At + " before it could run.");
-                    break;
+                    return (FaultCode.CommandExpired, "It expired at " + report.At + " before it could run.");
                 case JourneyKind.Cancelled:
-                    Settle(report.About);
-                    job.OnRefused?.Invoke(FaultCode.CommandCancelled, "It was cancelled at " + report.At + ".");
-                    break;
+                    return (FaultCode.CommandCancelled, "It was cancelled at " + report.At + ".");
                 case JourneyKind.Discarded when report.Detail == "its lane moved on" && report.OtherCopiesOut:
-                    break;
+                    return null;
                 case JourneyKind.Discarded when report.Detail == "its lane moved on":
-                    Settle(report.About);
-                    job.OnRefused?.Invoke(FaultCode.CommandExpired, "Its place on the lane passed before it arrived.");
-                    break;
+                    return (FaultCode.CommandExpired, "Its place on the lane passed before it arrived.");
                 case JourneyKind.Discarded when report.Detail == ContinuousInputDropped:
-                    Settle(report.About);
-                    job.OnRefused?.Invoke(
+                    return (
                         FaultCode.ContinuousInputWouldWait,
                         "It was dropped at " + NameOfNode(report.To, report.At) + ": it would have waited there for its next window, and a continuous input is not held.");
-                    break;
                 case JourneyKind.Discarded when report.Detail == "cancelled":
-                    Settle(report.About);
-                    job.OnRefused?.Invoke(FaultCode.CommandCancelled, "It was cancelled at the craft.");
-                    break;
+                    return (FaultCode.CommandCancelled, "It was cancelled at the craft.");
+                default:
+                    return null;
             }
         }
 
@@ -884,6 +902,31 @@ namespace Sitrep.Host
             }
         }
 
+        private const int SettledDeliveryCap = 512;
+
+        /// <summary>
+        /// Ids of commands this process has already answered, newest last. A late
+        /// report about one of them has no job because it was settled, not
+        /// because a restart lost it, so it must not be parked for the client
+        /// as a second answer.
+        /// </summary>
+        private readonly HashSet<string> _settledDeliveries = new HashSet<string>(StringComparer.Ordinal);
+
+        private readonly Queue<string> _settledDeliveryOrder = new Queue<string>();
+
+        private void NoteSettled(string id)
+        {
+            if (!_settledDeliveries.Add(id))
+            {
+                return;
+            }
+            _settledDeliveryOrder.Enqueue(id);
+            if (_settledDeliveryOrder.Count > SettledDeliveryCap)
+            {
+                _settledDeliveries.Remove(_settledDeliveryOrder.Dequeue());
+            }
+        }
+
         /// <summary>Forgets a settled command's client request and pending entry, and every copy sent of it.</summary>
         private void Settle(string id)
         {
@@ -894,6 +937,7 @@ namespace Sitrep.Host
             foreach (var copy in _deliveryJobs.Where(j => ReferenceEquals(j.Value, job)).Select(j => j.Key).ToList())
             {
                 _deliveryJobs.Remove(copy);
+                NoteSettled(copy);
                 _pending.RemoveAll(p => string.Equals(p.Id, copy, StringComparison.Ordinal));
                 _pendingDispatcher.Remove(copy);
             }

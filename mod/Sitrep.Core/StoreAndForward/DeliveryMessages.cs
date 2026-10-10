@@ -113,6 +113,13 @@ namespace Sitrep.Core.StoreAndForward
         /// <summary>Which copy of its lane number this is: 1 for the first, more after a send again.</summary>
         public int Attempt { get; set; } = 1;
 
+        /// <summary>
+        /// The id the client chose for the request that sent it, empty when it did
+        /// not come from a client. Every copy carries it, and so does the reply,
+        /// so a game that was restarted since can still find the client's answer.
+        /// </summary>
+        public string ClientRequestId { get; set; } = "";
+
         public override string Destination => Lane.Craft;
 
         public override double ExpiresUt => DeleteAtUt;
@@ -216,6 +223,12 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>For a reply, what the command's handler returned.</summary>
         public object? Result { get; set; }
+
+        /// <summary>The <see cref="CommandMessage.ClientRequestId"/> of the command it is about, empty for a cancel.</summary>
+        public string ClientRequestId { get; set; } = "";
+
+        /// <summary>The command id of the command it is about, empty for a cancel.</summary>
+        public string Command { get; set; } = "";
 
         /// <summary>For a waiting report, the lane numbers the craft is still missing.</summary>
         public IReadOnlyList<long>? Missing { get; set; }

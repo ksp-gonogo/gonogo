@@ -184,6 +184,24 @@ namespace Sitrep.Host
                     }
                 }
             }
+            foreach (var command in saved.Commands)
+            {
+                var oneWay = command.ConfirmUt - command.ExecuteUt;
+                if (oneWay > 0 && !_pending.Exists(p => string.Equals(p.Id, command.RequestId, StringComparison.Ordinal)))
+                {
+                    _pending.Add(new PendingUplink
+                    {
+                        Id = command.RequestId,
+                        ClientRequestId = command.Correlation,
+                        Command = command.Command,
+                        Label = command.Label,
+                        Topic = command.Topic,
+                        Vantage = command.Vantage,
+                        DispatchedAt = command.ExecuteUt - oneWay,
+                        OneWaySeconds = oneWay,
+                    });
+                }
+            }
             _courier.RestoreCommands(saved, command => response =>
                 AnswerLivePath(command.RequestId, command.Correlation, command.Command, response));
         }

@@ -73,6 +73,8 @@ namespace Sitrep.Core
             public double ExecuteUt;
             public double ConfirmUt;
             public string Correlation = string.Empty;
+            public string Label = string.Empty;
+            public string Topic = string.Empty;
             public bool Ran;
             public object? Result;
             public Action<CommandResponse> OnResponse = null!;
@@ -256,7 +258,9 @@ namespace Sitrep.Core
             string vantage,
             Action<CommandResponse> onResponse,
             double? uplinkDelaySeconds = null,
-            string correlation = "")
+            string correlation = "",
+            string label = "",
+            string topic = "")
         {
             if (!_network.Reachable(vantage, node))
             {
@@ -286,6 +290,8 @@ namespace Sitrep.Core
                 ExecuteUt = executeUt,
                 ConfirmUt = confirmUt,
                 Correlation = correlation,
+                Label = label,
+                Topic = topic,
                 OnResponse = onResponse,
             };
             lock (_commandsGate)
@@ -1638,6 +1644,8 @@ namespace Sitrep.Core
                         ExecuteUt = pending.ExecuteUt,
                         ConfirmUt = pending.ConfirmUt,
                         Correlation = pending.Correlation,
+                        Label = pending.Label,
+                        Topic = pending.Topic,
                         Ran = pending.Ran,
                         Result = pending.Result,
                     });
@@ -1676,6 +1684,8 @@ namespace Sitrep.Core
                     ExecuteUt = saved.ExecuteUt,
                     ConfirmUt = saved.ConfirmUt,
                     Correlation = saved.Correlation,
+                    Label = saved.Label,
+                    Topic = saved.Topic,
                     Ran = saved.Ran,
                     Result = saved.Result,
                     OnResponse = answerTo(saved),
@@ -1719,6 +1729,12 @@ namespace Sitrep.Core
 
         /// <summary>What the dispatcher handed <see cref="Courier.DispatchCommand"/> to find its answer's way back, opaque to the Courier.</summary>
         public string Correlation { get; set; } = string.Empty;
+
+        /// <summary>The caller-supplied label the command was dispatched with, empty when none.</summary>
+        public string Label { get; set; } = string.Empty;
+
+        /// <summary>The part or terminal route the command was addressed to, empty when none.</summary>
+        public string Topic { get; set; } = string.Empty;
 
         /// <summary>Whether its handler has run.</summary>
         public bool Ran { get; set; }

@@ -8820,7 +8820,9 @@ namespace Sitrep.Host
                 job.Args,
                 job.Vantage,
                 response => AnswerLivePath(requestId, clientRequestId, command, response),
-                correlation: clientRequestId);
+                correlation: clientRequestId,
+                label: job.Label ?? "",
+                topic: job.Topic ?? "");
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a

@@ -53,6 +53,17 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void TheClientRequestIdSurvivesTheSaveOnAHeldCommand()
+        {
+            var clock = new ManualClock();
+            var network = new DeliveryNetwork(clock, new Links(), new NoPlan(), (c, ut) => null, _ => { });
+            network.SendCommand(Lane, "stage", null, "system", null, 0.0, null, clientRequestId: "client-3");
+
+            var restored = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(network.Snapshot()))!;
+            Assert.Equal("client-3", Assert.Single(restored.SentCommands).ClientRequestId);
+        }
+
+        [Fact]
         public void CustodyAndTheRouteAMessageCarriesSurviveTheSave()
         {
             var links = new Links { Up = true };
@@ -167,6 +178,8 @@ namespace Sitrep.Host.Tests.Comms
                     Lane = Lane,
                     At = "vessel:probe",
                     Result = "done:x",
+                    ClientRequestId = "client-4",
+                    Command = "stage",
                 },
                 From = "vessel:probe",
                 To = "ground:ksc",
@@ -176,7 +189,10 @@ namespace Sitrep.Host.Tests.Comms
 
             var restored = DeliverySnapshotCodec.Decode(DeliverySnapshotCodec.Encode(snapshot))!;
 
-            Assert.Equal("done:x", ((ReportMessage)Assert.Single(restored.Flights).Message).Result);
+            var reply = (ReportMessage)Assert.Single(restored.Flights).Message;
+            Assert.Equal("done:x", reply.Result);
+            Assert.Equal("client-4", reply.ClientRequestId);
+            Assert.Equal("stage", reply.Command);
         }
 
         [Fact]

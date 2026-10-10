@@ -85,6 +85,8 @@ namespace Sitrep.Host.Comms
                     ["executeUt"] = Number(c.ExecuteUt),
                     ["confirmUt"] = Number(c.ConfirmUt),
                     ["correlation"] = c.Correlation,
+                    ["label"] = c.Label,
+                    ["topic"] = c.Topic,
                     ["ran"] = c.Ran,
                     ["result"] = c.Ran ? Result(c.Result) : null,
                 }).ToList(),
@@ -183,6 +185,8 @@ namespace Sitrep.Host.Comms
                         ExecuteUt = NumberFrom(c["executeUt"]),
                         ConfirmUt = NumberFrom(c["confirmUt"]),
                         Correlation = Get(c, "correlation") as string ?? "",
+                        Label = Get(c, "label") as string ?? "",
+                        Topic = Get(c, "topic") as string ?? "",
                         Ran = Get(c, "ran") is true,
                         Result = ResultFrom(Get(c, "result")),
                     }).ToList(),
@@ -219,6 +223,7 @@ namespace Sitrep.Host.Comms
                         ["execNode"] = c.ExecNode,
                         ["channel"] = c.Channel,
                         ["attempt"] = (double)c.Attempt,
+                        ["clientRequestId"] = c.ClientRequestId,
                         ["supersedes"] = c.Supersedes.Select(n => (object?)(double)n).ToList(),
                         ["route"] = Route(c.Route),
                     };
@@ -252,6 +257,8 @@ namespace Sitrep.Host.Comms
                         ["missing"] = r.Missing?.Select(n => (object?)(double)n).ToList(),
                         ["route"] = Route(r.Route),
                         ["result"] = r.Kind == JourneyKind.Reply ? Result(r.Result) : null,
+                        ["clientRequestId"] = r.ClientRequestId,
+                        ["command"] = r.Command,
                     };
                 default:
                     throw new NotSupportedException("Unknown delivery message " + message.GetType().Name);
@@ -276,6 +283,7 @@ namespace Sitrep.Host.Comms
                         ExecNode = (string)m["execNode"]!,
                         Channel = m["channel"] as string,
                         Attempt = (int)NumberFrom(m["attempt"]),
+                        ClientRequestId = Get(m, "clientRequestId") as string ?? "",
                         Supersedes = Longs(m["supersedes"]),
                         Route = RouteFrom(Get(m, "route")),
                     };
@@ -307,6 +315,8 @@ namespace Sitrep.Host.Comms
                         Missing = m["missing"] is List<object?> missing ? missing.Select(n => (long)NumberFrom(n)).ToList() : null,
                         Route = RouteFrom(Get(m, "route")),
                         Result = ResultFrom(Get(m, "result")),
+                        ClientRequestId = Get(m, "clientRequestId") as string ?? "",
+                        Command = Get(m, "command") as string ?? "",
                     };
             }
         }

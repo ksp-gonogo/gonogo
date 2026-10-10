@@ -247,6 +247,50 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A restart puts the in-flight live-path command back in the pending
+        /// queue with the label and route it was dispatched with.
+        /// </summary>
+        [Fact]
+        public void AfterARestartTheInFlightCommandIsBackInThePendingQueueWithItsLabelAndTopic()
+        {
+            DeliverySnapshot written;
+            using (var before = NewEngine(out _))
+            {
+                try
+                {
+                    Tick(before, 0.0);
+                    before.DispatchCommandAndWait(
+                        LiveCommandTestUplink.Command, "x", "KSC", _ => { }, Timeout, label: "Throttle up", topic: "kos/7", clientRequestId: "client-9");
+                    Tick(before, 2.0);
+                    written = Written(before);
+                }
+                finally
+                {
+                    before.Stop();
+                }
+            }
+
+            using var after = NewEngine(out _);
+            try
+            {
+                after.NoteGameLoaded(written, savedUt: 2.0);
+                Tick(after, 2.0);
+
+                var queue = Assert.IsType<PendingUplinkQueue>(after.PayloadOf(ChannelEngine.UplinkPendingTopic));
+                var entry = Assert.Single(queue.Pending);
+                Assert.Equal("Throttle up", entry.Label);
+                Assert.Equal("kos/7", entry.Topic);
+                Assert.Equal("client-9", entry.ClientRequestId);
+                Assert.Equal(LiveCommandTestUplink.Command, entry.Command);
+                Assert.Equal(Delay, entry.OneWaySeconds);
+            }
+            finally
+            {
+                after.Stop();
+            }
+        }
+
+        /// <summary>
         /// A client whose connection closed while its command was on its way
         /// finds the answer on its next connection, and so does any client that
         /// sits down at that centre afterwards; one that never sent that
