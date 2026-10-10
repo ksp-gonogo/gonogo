@@ -92,7 +92,9 @@ export const HEALTH_STATE_NAMES = [
 ] as const;
 
 /**
- * An Uplink's health, as a widget reads it.
+ * An Uplink's health, as a widget reads it: `"healthy"`, `"degraded"` (running
+ * with a problem its `detail` names) or `"unavailable"` (not running, with a
+ * reason).
  *
  * @category Host and runtime
  */

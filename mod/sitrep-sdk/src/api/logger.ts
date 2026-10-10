@@ -7,6 +7,10 @@ import type { Logger } from "./logger-contract";
  * to the logs the running app sends to its log service. Throws when used with
  * no app or test host installed.
  *
+ * A tagged logger's entries are kept in the buffer and sent either way, but
+ * reach the browser console only when the operator lists the tag in
+ * `localStorage.LOG_TAGS` and reloads.
+ *
  * @example
  * ```ts
  * import { logger } from "@ksp-gonogo/sitrep-sdk";

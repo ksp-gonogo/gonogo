@@ -796,7 +796,7 @@ export type ContributionDep =
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
  *   interface ModSettingsRegistry {
- *     "my-uplink": { readonly difficulty: number };
+ *     "myuplink": { readonly difficulty: number };
  *   }
  * }
  * ```

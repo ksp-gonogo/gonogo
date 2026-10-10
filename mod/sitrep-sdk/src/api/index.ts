@@ -755,13 +755,13 @@ export function sendTogether(build: () => void): CommandGroupHandle {
  * The returned function stays the same while the route does, so it is safe in
  * a dependency array. It rejects, rather than hanging, when there is no route.
  *
- * @example Calling a method of the object the Uplink stored with `registerUplinkHandle("my-uplink", ...)`
+ * @example Calling a method of the object the Uplink stored with `registerUplinkHandle("myuplink", ...)`
  * ```tsx
  * import { useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
  * import { useEffect, useState } from "react";
  *
  * function CameraCount(props: { vesselId: string }) {
- *   const relay = useUplinkRelay("my-uplink");
+ *   const relay = useUplinkRelay("myuplink");
  *   const [cameras, setCameras] = useState<unknown[]>([]);
  *   useEffect(() => {
  *     let stale = false;
@@ -874,11 +874,11 @@ export function useModSettings(
  * // Declare the host mod's settings once, in the Uplink's client:
  * declare module "@ksp-gonogo/sitrep-sdk" {
  *   interface ModSettingsRegistry {
- *     "my-uplink": { difficulty: number };
+ *     "myuplink": { difficulty: number };
  *   }
  * }
  *
- * const deps = [modSettingDep("my-uplink", "difficulty")] as const;
+ * const deps = [modSettingDep("myuplink", "difficulty")] as const;
  * ```
  *
  * @category Extensions
@@ -1124,8 +1124,8 @@ export function useReplaySessionActive(): boolean {
 
 /**
  * The address of the machine running KSP, which every Uplink connects to: the
- * address saved in Settings, or else the build's `VITE_SITREP_HOST`, or else
- * `localhost`. It carries no port; each service adds its own.
+ * address saved in Settings, or else the host the app was deployed with
+ * (`KSP_HOST`), or else the build's `VITE_SITREP_HOST`, or else `localhost`. It carries no port; each service adds its own.
  *
  * @category Host and runtime
  */

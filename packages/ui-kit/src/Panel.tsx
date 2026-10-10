@@ -2147,8 +2147,9 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * } from "@ksp-gonogo/sitrep-sdk";
  * import { Section, Text, Unit } from "@ksp-gonogo/ui-kit";
  *
- * // In a real Uplink, `uplink-tools codegen` writes this declaration from the
- * // contract; it is spelled out here so the example stands alone.
+ * // In a real Uplink this block is in `src/topics.ts`, with the payload type
+ * // `uplink-tools codegen` writes from the contract; it is spelled out here so
+ * // the example stands alone.
  * declare module "@ksp-gonogo/sitrep-sdk" {
  *   interface TopicPayloadMap {
  *     "example.heartbeat": { ut: Value<"ut"> };
