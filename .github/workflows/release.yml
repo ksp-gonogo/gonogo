@@ -228,6 +228,46 @@ jobs:
             exit 1
           fi
 
+  # A release or a package-only publish proves the stamped tarballs install and
+  # load together outside the workspace before anything is published, as the RC
+  # plan does for its candidates. packages_only skips the release job's test run,
+  # so this is the one pre-publish check that mode gets.
+  packages-probe:
+    needs: [ref-guard]
+    if: ${{ !inputs.rc }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the published packages
+        run: pnpm exec turbo build --filter=@ksp-gonogo/sitrep-sdk --filter=@ksp-gonogo/ui-kit --filter=@ksp-gonogo/uplink-tools
+
+      - name: The packages install and load together outside the workspace
+        run: node scripts/published-packages-probe.mjs
+
   # The RC version every published package shares, worked out once and refused
   # unless it sorts above everything any of them has published, then proved
   # outside the workspace: the probe installs the stamped tarballs side by side,
@@ -331,13 +371,13 @@ jobs:
   # Running the workflow again finishes the job: a version already published is
   # skipped, and the tags are moved for whatever still needs it.
   publish-packages:
-    needs: [ref-guard, release, rc-plan, nuget-listed]
+    needs: [ref-guard, packages-probe, release, rc-plan, nuget-listed]
     # `needs` alone would skip this whenever `release` is skipped, which is
     # exactly the packages_only case. Naming the results keeps a *failed*
     # release from publishing while letting a deliberately skipped one through.
     # An RC additionally needs its plan, which is where the staging-only refusal
     # lives. Nothing is published to npm until nuget.org lists the C# package.
-    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-listed.result == 'success' }}
+    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-listed.result == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.pkg.outputs.version }}
@@ -351,7 +391,9 @@ jobs:
       contents: read
       id-token: write
     strategy:
-      # One package's failure must not cancel the other's publish.
+      # One package's failure must not cancel the others' publish, so a failed
+      # sibling leaves the rest pinned to a version that is not on npm yet. The
+      # Summary step says so; re-running the workflow finishes it.
       fail-fast: false
       matrix:
         include:
@@ -563,6 +605,11 @@ jobs:
           fi
           echo "$NAME latest is still $BEFORE; the new version is under the pending dist-tag."
 
+      - name: A failed sibling leaves the others pinned to an unpublished version
+        if: failure()
+        run: |
+          echo "❌ ${{ matrix.package }} did not publish. The other packages pin it exactly, so re-run the failed jobs; a version already on npm is skipped." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Summary
         run: |
           NAME='${{ steps.pkg.outputs.name }}'
@@ -673,8 +720,8 @@ jobs:
   # It is pushed FIRST, before any npm package, and `nuget-listed` then waits
   # for it: see the note above `publish-packages`.
   publish-nuget:
-    needs: [ref-guard, release, rc-plan]
-    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
+    needs: [ref-guard, packages-probe, release, rc-plan]
+    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

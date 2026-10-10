@@ -190,4 +190,18 @@ describe("release.yml publishes the packages as a set", () => {
       expect(head, name).toContain("needs.ref-guard.result == 'success'");
     }
   });
+
+  it("probes the packed packages before either registry is pushed to", () => {
+    for (const name of ["publish-nuget", "publish-packages"]) {
+      const at = workflow.indexOf(`\n  ${name}:\n`);
+      const head = workflow.slice(at, at + 1800);
+      expect(head, name).toMatch(/needs: \[ref-guard, packages-probe,/);
+      expect(head, name).toContain("needs.packages-probe.result == 'success'");
+    }
+    const at = workflow.indexOf("\n  packages-probe:\n");
+    expect(at, "the packages-probe job").toBeGreaterThan(-1);
+    expect(workflow.slice(at, at + 1800)).toContain(
+      "node scripts/published-packages-probe.mjs\n",
+    );
+  });
 });
