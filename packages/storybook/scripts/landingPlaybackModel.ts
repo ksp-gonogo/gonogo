@@ -59,10 +59,17 @@ export function playbackOf(
     : { played: refined(frames), streamEnds: false };
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
 /** The crash report a destroyed vessel leaves, from the frame that met the ground: where it came to rest, and the flag that says a crash is on record. */
 export function crashEmits(impact: Frame): Emit[] {
   const ch = channelsFor(impact, ONE_WAY_SECONDS);
-  const flight = ch["vessel.flight"] as Record<string, unknown>;
+  const flight = ch["vessel.flight"];
+  if (!isRecord(flight)) {
+    throw new Error("a frame of the descent carries no vessel.flight");
+  }
   return [
     { channel: "crash.hasRecent", value: { recent: true } },
     {

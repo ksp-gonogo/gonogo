@@ -169,13 +169,7 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:crash.lastCrash.flightStats.totalDistance":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:crash.lastCrash.latitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:crash.lastCrash.longitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:crash.lastCrash.msg":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:crash.lastCrash.vesselId":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:crash.lastCrash.vesselType":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
