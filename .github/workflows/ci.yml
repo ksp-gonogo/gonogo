@@ -169,7 +169,7 @@ jobs:
   # `test` task).
   #
   # Sharded by package first: the cross-file ratchets read the whole tree from
-  # core's own scans, so they stay together in `rest`. `components` alone is most
+  # core's own scans, so they stay together in `core`. `components` alone is most
   # of the wall time, so it is further split by FILE with vitest's own `--shard`,
   # which is safe there because vitest isolates every file and nothing in the
   # package reads the whole tree. Each file runs in exactly one shard.
@@ -192,10 +192,14 @@ jobs:
           - leg: components 4/4
             turbo-scope: --filter=@ksp-gonogo/components
             shard: 4/4
-          # Every package but components, so a package added later lands here
-          # without anyone editing the matrix.
+          - leg: app
+            turbo-scope: --filter=@ksp-gonogo/app
+          - leg: core
+            turbo-scope: --filter=@ksp-gonogo/core
+          # Every package the legs above do not name, so a package added later
+          # lands here without anyone editing the matrix.
           - leg: rest
-            turbo-scope: "--filter='!@ksp-gonogo/components'"
+            turbo-scope: "--filter='!@ksp-gonogo/components' --filter='!@ksp-gonogo/app' --filter='!@ksp-gonogo/core'"
     steps:
       # The shrink-only ratchets read their debt lists at a BASE revision
       # (`git show <ref>:<path>`) and diff them. At the default depth of 1
@@ -309,7 +313,7 @@ jobs:
       # Differences known today are recorded in `packages/app/parity/exceptions.ts`,
       # shrink-only and enforced from both sides.
       - name: A station draws what the main screen draws
-        if: matrix.leg == 'rest'
+        if: matrix.leg == 'app'
         run: pnpm parity-gate
 
       # Says out loud which suites did not run. Three of them are gated on a
@@ -612,10 +616,12 @@ jobs:
             scope: --filter components --shard 4/4
           - leg: app
             scope: --filter app
-          # Everything the two legs above do not name, so a package added later
+          - leg: core
+            scope: --filter core
+          # Everything the legs above do not name, so a package added later
           # lands here without anyone editing the matrix.
           - leg: rest
-            scope: --except components,app
+            scope: --except components,app,core
     steps:
       # Same checkout depth and base ref as `unit-test`, because this job
       # re-runs every suite (the ratchets included) and treats a non-zero
@@ -951,6 +957,9 @@ jobs:
           # it did not need one. A green that needed a retry is a probability
           # rather than a fact.
           for p in "${projects[@]}"; do
+            # Run by the mod-integration job, sharded by class; this list still
+            # names it so the solution cross-check sees every project.
+            if [ "$p" = "Sitrep.Host.IntegrationTests" ]; then continue; fi
             echo "::group::dotnet test $p"
             # Only Gonogo.KSP.Tests reads the KSP_Data/Managed reference DLLs
             # (its ConfigNode-backed ledger tests); every other project is
@@ -1058,6 +1067,48 @@ jobs:
             exit 0
           fi
           node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
+
+  # Sitrep.Host.IntegrationTests is serial by design (TestParallelization.cs:
+  # real sockets under wall-clock budgets) and takes 15 minutes in one process,
+  # so it is split by test class across jobs instead. Each shard stays serial.
+  # scripts/integration-shard.mjs deals the classes out and its `verify` mode
+  # fails the run if any listed test falls into no shard or more than one.
+  # One attempt each, like every other project.
+  mod-integration:
+    name: mod-integration (${{ matrix.shard }}/5)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: dotnet build
+        working-directory: mod
+        run: dotnet build Sitrep.Host.IntegrationTests/Sitrep.Host.IntegrationTests.csproj --configuration Release --nologo
+
+      - name: Every integration test is in exactly one shard
+        if: matrix.shard == 1
+        run: node scripts/integration-shard.mjs verify 5
+
+      - name: dotnet test Sitrep.Host.IntegrationTests (shard ${{ matrix.shard }}/5)
+        working-directory: mod
+        run: |
+          set -euo pipefail
+          filter="$(node "$GITHUB_WORKSPACE/scripts/integration-shard.mjs" filter ${{ matrix.shard }}/5)"
+          dotnet test Sitrep.Host.IntegrationTests/Sitrep.Host.IntegrationTests.csproj \
+            --configuration Release --no-build --filter "$filter"
 
   # Whether an author who starts an Uplink with `uplink-tools new` ends with a
   # widget on the dashboard, holding only what a release publishes. The three
