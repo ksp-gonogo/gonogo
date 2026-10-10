@@ -1,9 +1,18 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+function findRepoRoot(start: string): string {
+  let dir = start;
+  while (dir !== "/") {
+    if (existsSync(join(dir, "pnpm-workspace.yaml"))) return dir;
+    dir = dirname(dir);
+  }
+  throw new Error(`Could not locate workspace root from ${start}`);
+}
+
+const ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
 /** The `include:` legs of one ci.yml job's matrix, as their raw `key: value` lines. */
 function legs(job: string): Record<string, string>[] {
