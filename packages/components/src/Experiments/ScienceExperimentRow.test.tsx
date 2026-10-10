@@ -230,4 +230,15 @@ describe("ScienceExperimentRow", () => {
       expect(card.querySelector('[style*="min-height"]')).not.toBeNull();
     }
   });
+
+  it("says nothing about data where the wire did not state it", () => {
+    const { container } = renderRow(
+      <ScienceExperimentRow
+        instrument={{ ...instrument(), hasData: false, dataKnown: false }}
+      />,
+    );
+    const card = container.querySelector("li");
+    expect(card).not.toHaveTextContent("No data");
+    expect(card).not.toHaveTextContent("Holds data");
+  });
 });
