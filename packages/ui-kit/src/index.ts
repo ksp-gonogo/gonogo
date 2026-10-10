@@ -501,6 +501,11 @@ export {
   plotCrosshairShowsCard,
 } from "./PlotCrosshair";
 export {
+  type PlotReadoutPlacement,
+  type PlotReadoutSpace,
+  placePlotReadouts,
+} from "./plotReadoutPlacement";
+export {
   ReadFrameControl,
   type ReadFrameControlProps,
   type ReadFrameOption,

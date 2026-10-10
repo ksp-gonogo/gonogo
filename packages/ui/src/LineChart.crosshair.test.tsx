@@ -147,4 +147,22 @@ describe("LineChart crosshair", () => {
     fireEvent.keyDown(svg, { key: "Escape" });
     expect(legendChips()).toBe(2);
   });
+
+  it("gives a roomy chart a column past the plot for its legend and card", () => {
+    const { container } = render(chart({ width: 700, height: 260 }));
+    const svg = container.querySelector("svg") as SVGSVGElement;
+    const plotRight = () => {
+      const plot = container.querySelector("svg rect") as SVGRectElement;
+      return (
+        Number(plot.getAttribute("x")) + Number(plot.getAttribute("width"))
+      );
+    };
+    const chip = container.querySelector('rect[rx="2"]') as SVGRectElement;
+    expect(Number(chip.getAttribute("x"))).toBeGreaterThan(plotRight());
+    act(() => svg.focus());
+    const card = container.querySelector(
+      "[data-plot-crosshair-card] rect",
+    ) as SVGRectElement;
+    expect(Number(card.getAttribute("x"))).toBeGreaterThan(plotRight());
+  });
 });

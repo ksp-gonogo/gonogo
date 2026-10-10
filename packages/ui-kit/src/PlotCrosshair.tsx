@@ -37,6 +37,15 @@ export interface PlotCrosshairProps {
   /** Names the instant, written once above the rows. */
   heading: string;
   rows: readonly PlotCrosshairRow[];
+  /**
+   * A column outside the plot where the readout stands, when the chart has
+   * given the card one (see `placePlotReadouts`). The card then sits at the
+   * column's top and names the instant even when compact, and nothing it draws
+   * covers the plot. Omitted, the card is drawn over the plot where it covers no dot.
+   */
+  column?: { x0: number; y0: number; x1: number; y1: number };
+  /** The traces as drawn, one pixel point per sample with a non-finite `cy` for a hole. Over the plot, the card prefers a corner none of them crosses. */
+  traces?: ReadonlyArray<{ cx: readonly number[]; cy: readonly number[] }>;
 }
 
 const ROW_PX = 14;
@@ -46,6 +55,7 @@ const GAP_PX = 10;
 const MARK_PX = 12;
 const EDGE_PX = 6;
 const SWATCH_PX = 8;
+const DOT_PX = 4.5;
 const SWATCH_GAP_PX = 4;
 const MAX_COMPACT_LABEL_CHARS = 12;
 const FULL_MIN_PLOT_W = 190;
@@ -53,6 +63,9 @@ const FULL_MIN_PLOT_H = 80;
 
 interface CardLayout {
   full: boolean;
+  /** The card writes the instant above its rows. */
+  named: boolean;
+  headingChars: number;
   rows: readonly PlotCrosshairRow[];
   /** What each row's text says: the label and value on a full card, a shortened label and the value on a compact one. */
   text: (row: PlotCrosshairRow) => string;
@@ -74,11 +87,15 @@ function layoutCard(
   plot: PlotCrosshairProps["plot"],
   heading: string,
   allRows: readonly PlotCrosshairRow[],
+  column?: PlotCrosshairProps["column"],
 ): CardLayout {
-  const plotW = plot.x1 - plot.x0;
+  const room = column ?? plot;
+  const plotW = room.x1 - room.x0;
   const plotH = plot.y1 - plot.y0;
   const full = plotW >= FULL_MIN_PLOT_W && plotH >= FULL_MIN_PLOT_H;
-  const rows = full ? allRows : allRows.filter((row) => !row.detail);
+  const named = full || column !== undefined;
+  // A column has the height for the limits too, since the card covers nothing there.
+  const rows = full || column ? allRows : allRows.filter((row) => !row.detail);
 
   // A compact row keeps its series' identity: a swatch and as much of the label as the card can hold beside the value.
   const compactRoom =
@@ -91,7 +108,10 @@ function layoutCard(
       1 -
       (row.modelled ? 2 : 0);
     const label = shortened(row.label, Math.min(room, MAX_COMPACT_LABEL_CHARS));
-    return label === "" ? value : `${label} ${value}`;
+    if (label !== "") return `${label} ${value}`;
+    // A value wider than the card is cut rather than left to spill out of it.
+    const chars = Math.floor(compactRoom / CHAR_PX) - (row.modelled ? 2 : 0);
+    return shortened(value, chars);
   };
   const currencyText = (row: PlotCrosshairRow) =>
     full && row.currency ? row.currency : "";
@@ -104,15 +124,18 @@ function layoutCard(
         ? MARK_PX
         : 0;
   const swatchW = full ? 0 : SWATCH_PX + SWATCH_GAP_PX;
+  const headingChars = Math.floor((plotW - EDGE_PX * 2 - PAD_PX * 2) / CHAR_PX);
 
   const textW = Math.max(
     ...rows.map((row) => swatchW + text(row).length * CHAR_PX + currencyW(row)),
-    full ? heading.length * CHAR_PX : 0,
+    named ? Math.min(heading.length, headingChars) * CHAR_PX : 0,
   );
-  const headRows = full ? 1 : 0;
+  const headRows = named ? 1 : 0;
   const cardH = (rows.length + headRows) * ROW_PX + PAD_PX * 2;
   return {
     full,
+    named,
+    headingChars,
     rows,
     text,
     currencyText,
@@ -123,18 +146,100 @@ function layoutCard(
   };
 }
 
+/** Whether any stretch of the trace passes through the box, walking each segment in steps no wider than the card's rows. */
+function crossesBox(
+  trace: { cx: readonly number[]; cy: readonly number[] },
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): boolean {
+  const inside = (px: number, py: number) =>
+    px >= x && px <= x + w && py >= y && py <= y + h;
+  for (let i = 1; i < trace.cx.length; i++) {
+    const [ax, ay, bx, by] = [
+      trace.cx[i - 1],
+      trace.cy[i - 1],
+      trace.cx[i],
+      trace.cy[i],
+    ];
+    if (![ax, ay, bx, by].every(Number.isFinite)) continue;
+    const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / ROW_PX));
+    for (let k = 0; k <= steps; k++) {
+      if (inside(ax + ((bx - ax) * k) / steps, ay + ((by - ay) * k) / steps)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function resolveCard({
+  x,
+  plot,
+  heading,
+  rows: allRows,
+  column,
+  traces = [],
+}: PlotCrosshairProps): {
+  layout: CardLayout;
+  place: { cardX: number; cardY: number } | undefined;
+} {
+  const layout = layoutCard(plot, heading, allRows, column);
+  const { rows, cardW, cardH, fits } = layout;
+  const cardY0 = plot.y0 + EDGE_PX;
+  const dots = rows.flatMap((row) =>
+    row.y === undefined || row.y === null ? [] : [row.y],
+  );
+  const clearOfDots = (cardX: number, cardY: number) =>
+    dots.every(
+      (dy) =>
+        x + DOT_PX < cardX ||
+        x - DOT_PX > cardX + cardW ||
+        dy + DOT_PX < cardY ||
+        dy - DOT_PX > cardY + cardH,
+    );
+
+  // In a column the card stands there. Over the plot it takes the first corner, beside the line on the side with more room, that covers no dot.
+  const roomRight = plot.x1 - x - EDGE_PX;
+  const rightFirst = roomRight >= cardW || roomRight >= x - plot.x0;
+  const clampX = (v: number) =>
+    Math.max(plot.x0 + EDGE_PX, Math.min(plot.x1 - EDGE_PX - cardW, v));
+  const sideXs = rightFirst
+    ? [x + EDGE_PX, x - EDGE_PX - cardW]
+    : [x - EDGE_PX - cardW, x + EDGE_PX];
+  const corners = [cardY0, plot.y1 - EDGE_PX - cardH].flatMap((cy) =>
+    sideXs.map((cx) => ({ cardX: clampX(cx), cardY: cy })),
+  );
+  const clearOfTraces = (cardX: number, cardY: number) =>
+    traces.every((t) => !crossesBox(t, cardX, cardY, cardW, cardH));
+  const overPlot =
+    corners.find(
+      (c) => clearOfDots(c.cardX, c.cardY) && clearOfTraces(c.cardX, c.cardY),
+    ) ?? corners.find((c) => clearOfDots(c.cardX, c.cardY));
+  const place = !fits
+    ? undefined
+    : column
+      ? { cardX: column.x0, cardY: column.y0 + EDGE_PX }
+      : overPlot;
+  return { layout, place };
+}
+
 /**
- * Whether {@link PlotCrosshair} has room to draw its readout card for these
- * rows on this plot. A chart that drew a legend in the same corner hides it
- * while the card is up, since each row names its series in its colour.
+ * Whether {@link PlotCrosshair} draws its readout card for these props: the
+ * card fits, and over the plot there is a corner that covers no dot. A chart
+ * that drew a legend in the same place hides it while the card is up, since
+ * each row names its series in its colour.
  *
  * @category LineGraph
  */
 export function plotCrosshairShowsCard(
-  plot: PlotCrosshairProps["plot"],
-  rows: readonly PlotCrosshairRow[],
+  props: Pick<
+    PlotCrosshairProps,
+    "x" | "plot" | "heading" | "rows" | "column" | "traces"
+  >,
 ): boolean {
-  return layoutCard(plot, "", rows).fits;
+  return resolveCard(props).place !== undefined;
 }
 
 /**
@@ -155,22 +260,31 @@ export function PlotCrosshair({
   plot,
   heading,
   rows: allRows,
+  column,
 }: PlotCrosshairProps) {
-  const { full, rows, text, currencyText, cardW, cardH, headRows, fits } =
-    layoutCard(plot, heading, allRows);
-
-  // Beside the line, on the side with more room.
-  const roomRight = plot.x1 - x - EDGE_PX;
-  const onRight = roomRight >= cardW || roomRight >= x - plot.x0;
-  const cardX = Math.max(
-    plot.x0 + EDGE_PX,
-    Math.min(
-      plot.x1 - EDGE_PX - cardW,
-      onRight ? x + EDGE_PX : x - EDGE_PX - cardW,
-    ),
-  );
-  const cardY = plot.y0 + EDGE_PX;
-  const textX = cardX + PAD_PX + (full ? 0 : SWATCH_PX + SWATCH_GAP_PX);
+  const { layout, place } = resolveCard({
+    x,
+    plot,
+    heading,
+    rows: allRows,
+    column,
+  });
+  const {
+    full,
+    named,
+    headingChars,
+    rows,
+    text,
+    currencyText,
+    cardW,
+    cardH,
+    headRows,
+  } = layout;
+  const drawn = place !== undefined;
+  const cardX = place?.cardX ?? 0;
+  const cardY = place?.cardY ?? 0;
+  const textX = (cx: number) =>
+    cx + PAD_PX + (full ? 0 : SWATCH_PX + SWATCH_GAP_PX);
 
   return (
     <g pointerEvents="none" data-plot-crosshair="">
@@ -196,7 +310,7 @@ export function PlotCrosshair({
           />
         ),
       )}
-      {fits && (
+      {drawn && (
         <g data-plot-crosshair-card="">
           <rect
             x={cardX}
@@ -207,14 +321,14 @@ export function PlotCrosshair({
             fill="var(--color-surface-panel)"
             stroke="var(--color-border-strong)"
           />
-          {full && (
+          {named && (
             <text
               x={cardX + PAD_PX}
               y={cardY + PAD_PX + 10}
               fill="var(--color-text-muted)"
               fontSize={10}
             >
-              {heading}
+              {shortened(heading, headingChars)}
             </text>
           )}
           {rows.map((row, i) => {
@@ -232,7 +346,7 @@ export function PlotCrosshair({
                   />
                 )}
                 <text
-                  x={textX}
+                  x={textX(cardX)}
                   y={baseline}
                   fill={
                     row.value === null ? "var(--color-text-faint)" : row.color

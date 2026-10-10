@@ -11857,6 +11857,10 @@
         "note": "the props of the new PlotCrosshair component"
       },
       {
+        "key": "ui-kit . PlotCrosshairProps#column?",
+        "note": "a column outside the plot where the card stands, so it covers nothing on the plot"
+      },
+      {
         "key": "ui-kit . PlotCrosshairProps#heading",
         "note": "names the instant above the rows"
       },
@@ -11867,6 +11871,10 @@
       {
         "key": "ui-kit . PlotCrosshairProps#rows",
         "note": "one entry per trace or limit read at the instant"
+      },
+      {
+        "key": "ui-kit . PlotCrosshairProps#traces?",
+        "note": "the traces as drawn, so the card over the plot picks a corner no trace crosses"
       },
       {
         "key": "ui-kit . PlotCrosshairProps#x",
@@ -11907,6 +11915,22 @@
       {
         "key": "ui-kit . PlotCrosshairRow#y?",
         "note": "where the row's dot stands on the plot in pixels"
+      },
+      {
+        "key": "ui-kit . PlotReadoutPlacement",
+        "note": "where a chart's card, legend and captions stand: a column beside the plot or over it"
+      },
+      {
+        "key": "ui-kit . PlotReadoutSpace",
+        "note": "the chart size placePlotReadouts decides from"
+      },
+      {
+        "key": "ui-kit . PlotReadoutSpace#height",
+        "note": "the chart's height in pixels"
+      },
+      {
+        "key": "ui-kit . PlotReadoutSpace#width",
+        "note": "the chart's width in pixels"
       },
       {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",
@@ -11975,6 +11999,10 @@
       {
         "key": "ui-kit . heldMarking",
         "note": "The held or modelled mark for a figure from a held field"
+      },
+      {
+        "key": "ui-kit . placePlotReadouts",
+        "note": "one kit placement for the crosshair card, the legend and the limit or target captions"
       },
       {
         "key": "ui-kit . plotCrosshairShowsCard",

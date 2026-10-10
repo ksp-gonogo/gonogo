@@ -36,6 +36,7 @@ const SIZES = [
   { name: "default", w: 420, h: 260 },
   { name: "wide", w: 760, h: 260 },
   { name: "tiny", w: 200, h: 120 },
+  { name: "tall", w: 300, h: 520 },
 ];
 /** Fractions of the plot width the pointer visits. */
 const STOPS = [0.2, 0.55, 0.9];

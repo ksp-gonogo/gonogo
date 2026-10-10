@@ -54,8 +54,8 @@ const thresholds: ThresholdRule[] = [
     id: "ceiling",
     kind: "limit",
     bad: "above",
-    value: 150_000,
-    label: "Altitude ceiling: 150 km",
+    value: 60_000,
+    label: "Altitude ceiling: 60 km",
   },
 ];
 

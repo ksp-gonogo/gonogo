@@ -72,9 +72,75 @@ describe("PlotCrosshair", () => {
 
   it("says whether the card has room, so a chart can give up its legend", () => {
     const rows = [{ id: "a", label: "A", color: "red", value: "1" }];
-    expect(plotCrosshairShowsCard(plot, rows)).toBe(true);
+    const at = { x: 60, heading: "T+1s", rows };
+    expect(plotCrosshairShowsCard({ ...at, plot })).toBe(true);
     expect(
-      plotCrosshairShowsCard({ x0: 0, y0: 0, x1: 100, y1: 20 }, rows),
+      plotCrosshairShowsCard({
+        ...at,
+        plot: { x0: 0, y0: 0, x1: 100, y1: 20 },
+      }),
     ).toBe(false);
+  });
+
+  it("never draws the card over a dot, moving to a corner that is clear", () => {
+    const rows = [
+      { id: "a", label: "Altitude", color: "red", value: "12 km", y: 20 },
+    ];
+    const { container } = render(
+      <svg width={400} height={240} aria-label="chart" role="img">
+        <PlotCrosshair
+          x={100}
+          plot={{ x0: 20, y0: 5, x1: 120, y1: 100 }}
+          heading="T+1s"
+          rows={rows}
+        />
+      </svg>,
+    );
+    const card = container.querySelector("[data-plot-crosshair-card] rect");
+    const top = Number(card?.getAttribute("y"));
+    const height = Number(card?.getAttribute("height"));
+    expect(top).toBeGreaterThan(20);
+    expect(top + height).toBeLessThanOrEqual(100);
+  });
+
+  it("gives the card up when every corner would cover a dot", () => {
+    const tiny = { x0: 10, y0: 5, x1: 70, y1: 100 };
+    const rows = [
+      { id: "a", label: "A", color: "red", value: "1", y: 12 },
+      { id: "b", label: "B", color: "blue", value: "2", y: 90 },
+    ];
+    expect(
+      plotCrosshairShowsCard({ x: 40, plot: tiny, heading: "T", rows }),
+    ).toBe(false);
+  });
+
+  it("stands in a given column, naming the instant and keeping the limits, whatever the plot's size", () => {
+    const small = { x0: 20, y0: 5, x1: 120, y1: 160 };
+    const column = { x0: 130, y0: 5, x1: 260, y1: 160 };
+    const { container } = render(
+      <svg width={300} height={180} aria-label="chart" role="img">
+        <PlotCrosshair
+          x={60}
+          plot={small}
+          column={column}
+          heading="T+30s"
+          rows={[
+            { id: "a", label: "Altitude", color: "red", value: "1", y: 40 },
+            {
+              id: "t",
+              label: "limit",
+              color: "gold",
+              value: "9",
+              detail: true,
+            },
+          ]}
+        />
+      </svg>,
+    );
+    const card = container.querySelector("[data-plot-crosshair-card]");
+    const rect = card?.querySelector("rect");
+    expect(Number(rect?.getAttribute("x"))).toBe(column.x0);
+    expect(card?.textContent).toContain("T+30s");
+    expect(card?.querySelector('[data-plot-crosshair-row="t"]')).not.toBeNull();
   });
 });

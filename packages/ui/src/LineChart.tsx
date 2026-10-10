@@ -7,6 +7,7 @@ import {
   InstrumentHeldMark,
   PlotCrosshair,
   type PlotCrosshairRow,
+  placePlotReadouts,
   plotCrosshairShowsCard,
   ReckoningMarkSvg,
   reckoningBasisPhrase,
@@ -243,6 +244,9 @@ const CAPTION_MIN_PLOT_H = 90;
 const PX_PER_X_TICK = 70;
 const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
+/** Space between the plot and its readout column, and between the column and the chart edge. */
+const COLUMN_GAP = 8;
+const COLUMN_EDGE = 2;
 /** The limit mark's width, which is also how close two spells may start and still be one mark. */
 const LIMIT_MARK_SIZE = 14;
 /** A threshold label's width per character and for a held or modelled mark after it, at its 10 px type. */
@@ -313,13 +317,35 @@ export function LineChart({
     ? { top: 1, right: 1, bottom: 1, left: 1 }
     : fitMargins(w, h, hasSecondary);
   const plotX0 = margin.left;
-  const plotX1 = w - margin.right;
+  // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
+  // A chart with nothing to read out keeps the whole width for its plot.
+  const hasReadouts =
+    crosshairOn ||
+    (legend !== "none" && series.length > 0) ||
+    (thresholds ?? []).some((t) => t.label);
+  const readouts =
+    spatial || !hasReadouts
+      ? ({ placement: "overlay" } as const)
+      : placePlotReadouts({ width: w, height: h });
+  const columnWidth =
+    readouts.placement === "beside" ? readouts.columnWidth : 0;
+  const plotX1 = w - margin.right - columnWidth;
   const plotY0 = margin.top;
   const plotY1 = h - margin.bottom;
   const plotW = plotX1 - plotX0;
   const plotH = plotY1 - plotY0;
   const captionsFit =
     plotW >= CAPTION_MIN_PLOT_W && plotH >= CAPTION_MIN_PLOT_H;
+  const column =
+    columnWidth > 0
+      ? {
+          // A second axis writes its ticks in the margin, so the column starts past them.
+          x0: plotX1 + (hasSecondary ? margin.right : 0) + COLUMN_GAP,
+          y0: plotY0,
+          x1: w - COLUMN_EDGE,
+          y1: plotY1,
+        }
+      : undefined;
 
   const layerYs = useMemo(() => {
     const out = { primary: [] as number[], secondary: [] as number[] };
@@ -703,7 +729,7 @@ export function LineChart({
             (t.currency.held ? LABEL_MARK_PX : 0),
           lineY: t.y,
         })),
-      plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+      plot: column ?? { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
       obstacles: [
         ...crossingMarks.map((m) => ({
           x0: m.x - half,
@@ -714,13 +740,18 @@ export function LineChart({
         ...(legend === "none"
           ? []
           : series.map((s, i) => ({
-              x0: plotX0 + 3,
+              x0: column ? column.x0 : plotX0 + 3,
               y0: plotY0 + 6 + i * 16,
-              x1: plotX0 + 3 + Math.min(s.label.length * 6 + 8, plotW - 6),
+              x1:
+                (column ? column.x0 : plotX0 + 3) +
+                Math.min(
+                  s.label.length * 6 + 8,
+                  column ? column.x1 - column.x0 : plotW - 6,
+                ),
               y1: plotY0 + 6 + i * 16 + 13,
             }))),
       ],
-      traces: series
+      traces: (column ? [] : series)
         .filter((s) => (s.type ?? "line") !== "band")
         .map((s) => ({
           cx: s.data.x.map(scaleX),
@@ -731,6 +762,7 @@ export function LineChart({
     });
   }, [
     captionsFit,
+    column,
     thresholdLines,
     crossingMarks,
     legend,
@@ -853,6 +885,12 @@ export function LineChart({
     ].join("; ");
   }
 
+  const tracePixels = series
+    .filter((s) => (s.type ?? "line") !== "band")
+    .map((s) => ({
+      cx: s.data.x.map(scaleX),
+      cy: s.data.y.map(s.axis === "primary" ? scaleYPrimary : scaleYSecondary),
+    }));
   const cursorAt =
     crosshairOn && cursor !== null && cursor.at >= xLo && cursor.at <= xHi
       ? cursor.at
@@ -861,10 +899,14 @@ export function LineChart({
   // The card names every series in its colour, so the legend gives its corner up while the card is drawn.
   const cardShown =
     crosshairReading !== null &&
-    plotCrosshairShowsCard(
-      { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
-      crosshairReading.rows,
-    );
+    plotCrosshairShowsCard({
+      x: cursorAt === null ? 0 : scaleX(cursorAt),
+      plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+      heading: crosshairReading.heading,
+      rows: crosshairReading.rows,
+      column,
+      traces: tracePixels,
+    });
 
   function timeAtPointer(e: React.PointerEvent<SVGSVGElement>): number | null {
     const box = e.currentTarget.getBoundingClientRect();
@@ -1339,8 +1381,10 @@ export function LineChart({
         series.map((s, i) => {
           const rowY = plotY0 + 6 + i * 16;
           if (rowY + 13 > plotY1) return null;
+          const chipX = column ? column.x0 : plotX0 + 3;
+          const chipRoom = column ? column.x1 - column.x0 : plotW - 6;
           // The SVG has no viewBox, so these pixel constants are CSS px and stay off the type scale.
-          const chipW = Math.min(s.label.length * 6 + 8, plotW - 6);
+          const chipW = Math.min(s.label.length * 6 + 8, chipRoom);
           // The root keeps overflow visible, so a clamped chip needs its label ellipsised.
           const maxChars = Math.max(1, Math.floor((chipW - 8) / 6));
           const labelText =
@@ -1350,14 +1394,14 @@ export function LineChart({
           return (
             <React.Fragment key={s.id}>
               <rect
-                x={plotX0 + 3}
+                x={chipX}
                 y={rowY}
                 width={chipW}
                 height={13}
                 rx={2}
                 fill="rgba(0, 0, 0, 0.55)"
               />
-              <text x={plotX0 + 6} y={rowY + 10} fill={s.color} fontSize={10}>
+              <text x={chipX + 3} y={rowY + 10} fill={s.color} fontSize={10}>
                 {labelText}
               </text>
             </React.Fragment>
@@ -1375,6 +1419,8 @@ export function LineChart({
           plot={{ x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 }}
           heading={crosshairReading.heading}
           rows={crosshairReading.rows}
+          column={column}
+          traces={tracePixels}
         />
       )}
     </svg>
