@@ -191,6 +191,21 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the far centre has a route to the relay. Without one it is listed as unable to reach it.</summary>
         public bool FarRoutedToRelay { get; set; } = true;
 
+        /// <summary>
+        /// The route the game carries the active craft's samples to a centre by,
+        /// as a comms backend solves it, keyed by centre. A centre listed here is
+        /// timed by its route's light-time, as the delay ledger times it; one left
+        /// out keeps the plain light-times above.
+        /// </summary>
+        public Dictionary<string, IReadOnlyList<CommsHop>> GameRoutes { get; } = new Dictionary<string, IReadOnlyList<CommsHop>>();
+
+        /// <summary>The light-time of a route as the game is set to model it.</summary>
+        public static double SecondsOver(IReadOnlyList<CommsHop> route) =>
+            SignalDelay.Compute(
+                new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 / LightFactor },
+                new CommsPath { Hops = new List<CommsHop>(route) },
+                "").OneWaySeconds!.Value;
+
         public bool RelayExists
         {
             get
@@ -704,7 +719,13 @@ namespace Sitrep.Host.IntegrationTests
             }
             _engine.SetVesselDelay(ScriptedContactGame.ActiveGuid, ledger.ActiveSeconds);
             _engine.SetVesselConnectivity(ScriptedContactGame.ActiveGuid, ledger.ActiveConnected);
-            _engine.SetActiveVesselDelays(new Dictionary<string, double> { [ScriptedContactGame.Far] = ledger.ActiveSeconds });
+            var activeRows = new Dictionary<string, double> { [ScriptedContactGame.Far] = ledger.ActiveSeconds };
+            foreach (var route in ledger.GameRoutes)
+            {
+                activeRows[route.Key] = ScriptedContactGame.SecondsOver(route.Value);
+            }
+            _engine.SetActiveVesselDelays(activeRows);
+            _engine.SetActiveVesselRoutes(ledger.GameRoutes);
             var rows = new List<(string, string, double)>
             {
                 (ScriptedContactGame.Far, ScriptedContactGame.ActiveGuid, ledger.ActiveSeconds),
@@ -763,7 +784,10 @@ namespace Sitrep.Host.IntegrationTests
                 ActiveLinkedToRelaySeconds = game.ActiveLinkedToRelaySeconds;
                 ActiveLinkedToHomeSeconds = game.ActiveLinkedToHomeSeconds;
                 FarRoutedToRelay = game.FarRoutedToRelay;
+                GameRoutes = new Dictionary<string, IReadOnlyList<CommsHop>>(game.GameRoutes);
             }
+
+            public Dictionary<string, IReadOnlyList<CommsHop>> GameRoutes { get; }
 
             public bool FarRoutedToRelay { get; }
 
