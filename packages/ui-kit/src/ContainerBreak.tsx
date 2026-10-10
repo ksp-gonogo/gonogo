@@ -13,6 +13,7 @@ export interface ContainerBreakProps extends HTMLAttributes<HTMLDivElement> {
   narrow?: CSSProperties;
   /** Styles applied once the container is at least `at` px wide, layered over `narrow`. */
   wide?: CSSProperties;
+  /** The content the styles lay out. */
   children?: ReactNode;
 }
 

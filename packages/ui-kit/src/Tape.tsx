@@ -46,7 +46,7 @@ export interface TapeMarker<Unit extends string = string> {
   color?: string;
   /** Names the marker in the meter's spoken value. Never drawn, so a marker never competes with the scale for room. */
   label?: string;
-  /** The model's interval around `value`, drawn as the same two bounds a {@link Meter} draws. */
+  /** The low and high ends of an {@link UncertaintyBand} around `value`, drawn as the same two ticks a {@link Meter} draws. */
   bounds?: { lo: Value<Unit>; hi: Value<Unit> };
 }
 

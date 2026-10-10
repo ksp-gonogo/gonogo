@@ -196,6 +196,7 @@ export interface ComboboxListboxProps<Option extends ComboboxOption> {
  *         aria-activedescendant={activeOption ? optionId(activeOption.key) : undefined}
  *         value={query}
  *         onFocus={() => setOpen(true)}
+ *         // Safe to close on blur: pressing an option does not take focus from the input.
  *         onBlur={() => setOpen(false)}
  *         onChange={(e) => {
  *           setQuery(e.target.value);

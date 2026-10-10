@@ -13,7 +13,9 @@ import type { RailTags } from "./railTags";
  * @category CommandDelay
  */
 export interface CommandRefusalLike {
-  /** Why the command was refused, as one of the root codes every Uplink shares, such as `insufficientFunds`. */
+  /** Why the command was refused, as one of the root codes every Uplink shares, such as
+   * `CommandErrorCode.InsufficientFunds`, whose string value (the one on the
+   * wire) is `"insufficientFunds"`. */
   errorCode: CommandErrorCode;
   /**
    * The refinement's id, when the refusal was more specific than its root

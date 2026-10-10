@@ -32,6 +32,7 @@ interface ModalEntry {
  * @category Modal
  */
 export interface ModalOpenOptions {
+  /** The dialog's visible heading, which also names it for assistive technology. Without one, give `aria-label`. */
   title?: string;
   /** Names a dialog that has no visible `title`. Ignored when `title` is given. */
   "aria-label"?: string;
@@ -59,8 +60,8 @@ let modalSeq = 0;
 /**
  * Holds the stack of open modal dialogs and renders them into `document.body`.
  * The dashboard mounts one at its root, so a widget on the dashboard calls
- * {@link useModal} without mounting its own. Anywhere else, such as a test or
- * a page of your own, wrap the tree in one: `useModal` needs it above it.
+ * {@link useModal} without mounting its own. Anywhere else, such as a test that
+ * renders a widget with a config form, wrap the tree in one: `useModal` needs it above it.
  *
  * Each dialog has a title bar with a close button, a scrolling body, and an
  * optional sticky footer set with {@link useModalSaveBar} or

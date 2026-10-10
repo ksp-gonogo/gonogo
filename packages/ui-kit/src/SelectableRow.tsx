@@ -48,18 +48,34 @@ export interface SelectableRowProps
  *
  * @example
  * ```tsx
- * <Stack gap="rows">
- *   {servos.map((s) => (
- *     <SelectableRow
- *       key={s.id}
- *       selected={s.id === selectedId}
- *       onClick={() => select(s.id)}
- *     >
- *       <span>{s.name}</span>
- *       <Text level="muted" size="xs">{s.group}</Text>
- *     </SelectableRow>
- *   ))}
- * </Stack>
+ * import { SelectableRow, Stack, Text } from "@ksp-gonogo/ui-kit";
+ *
+ * interface Servo {
+ *   id: string;
+ *   name: string;
+ *   group: string;
+ * }
+ *
+ * function ServoList(props: {
+ *   servos: readonly Servo[];
+ *   selectedId: string | null;
+ *   select: (id: string) => void;
+ * }) {
+ *   return (
+ *     <Stack gap="rows">
+ *       {props.servos.map((s) => (
+ *         <SelectableRow
+ *           key={s.id}
+ *           selected={s.id === props.selectedId}
+ *           onClick={() => props.select(s.id)}
+ *         >
+ *           <span>{s.name}</span>
+ *           <Text level="muted" size="xs">{s.group}</Text>
+ *         </SelectableRow>
+ *       ))}
+ *     </Stack>
+ *   );
+ * }
  * ```
  *
  * @category FilterList

@@ -56,8 +56,8 @@ export interface SectionProps
  * leftover height.
  *
  * A section is also a {@link LockScope}: when anything inside it reads a Topic
- * or uses a command this save has not unlocked, the section keeps its title
- * and shows what is missing in place of its content.
+ * or uses a command this save has not unlocked (see {@link LockScope}), the
+ * section keeps its title and shows what is missing in place of its content.
  *
  * @category Layout
  */
@@ -108,7 +108,10 @@ export function Section({
  *
  * @category Layout
  */
-export const SectionTitle = styled.div<{ $rule?: boolean }>`
+export const SectionTitle = styled.div<{
+  /** Draws a hairline under the heading. */
+  $rule?: boolean;
+}>`
   margin: 0;
   font-size: var(--font-size-value);
   font-weight: 700;

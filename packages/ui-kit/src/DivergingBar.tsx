@@ -37,8 +37,10 @@ export interface DivergingBarProps<Unit extends string = string> {
  * A held figure fades the bar and nothing more; the number beside it says how
  * current it is.
  *
- * Hides itself when the nearest `inline-size` container (such as `Panel`) is
- * narrower than 300px, where the number alone is the reading that matters.
+ * Hides itself when the nearest `inline-size` container is narrower than 300px,
+ * where the number alone is the reading that matters. A {@link Panel} is such a
+ * container, so a bar inside a widget needs none of its own; outside a panel,
+ * wrap it in an element with `container-type: inline-size`.
  *
  * @category Meter
  */

@@ -7,10 +7,13 @@ import { Text } from "./Text";
 import { Tooltip } from "./Tooltip";
 
 /**
- * An orbit path that may not be drawn, and the reason. An orbit's horizon is
- * how far ahead in game time its elements can be trusted; the path is withheld
- * when no horizon was stated for it, the instant on screen is past its horizon, its shape was not stated,
- * the frame asked for cannot be built, or it could not be sampled. It is the
+ * An orbit path that may not be drawn, and the reason. An orbit's elements are
+ * the numbers that define its curve, and its horizon is how far ahead in game
+ * time they can be trusted. The path is withheld when no horizon was stated for
+ * it, the instant on screen is past its horizon, its shape (a conic drawn from
+ * the elements, or an arc sampled by the provider) was not stated, the frame
+ * asked for cannot be built (a body not yet received, say), or it could not be
+ * sampled. It is the
  * `withheld` member of `OrbitTrajectory`, which `useOrbitTrajectory` from
  * `@ksp-gonogo/sitrep-sdk/frames` returns.
  *

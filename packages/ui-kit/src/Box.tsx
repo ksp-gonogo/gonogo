@@ -14,8 +14,8 @@ export type BoxSurface = "app" | "panel" | "raised" | "sunken";
 /**
  * The corner radii {@link Box} accepts: `regular` for ordinary controls, rows
  * and cards, `floating` for something that sits above the app (a dialog, a
- * menu), and `pill` for a fully rounded stadium. The display-frame corner is
- * reserved for {@link FramedDisplay}.
+ * menu), and `pill` for a fully rounded stadium. {@link FramedDisplay} has a corner
+ * of its own that a `Box` cannot take.
  *
  * @category Layout
  */

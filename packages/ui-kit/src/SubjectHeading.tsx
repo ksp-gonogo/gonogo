@@ -37,12 +37,10 @@ export interface SubjectHeadingProps {
  *
  * @example
  * ```tsx
- * <SubjectHeading
- *   status={
- *     <Badge tone="go">Active</Badge>
- *   }
- * >
- *   <Text weight="semibold">{program.title}</Text>
+ * import { Badge, SubjectHeading, Text } from "@ksp-gonogo/ui-kit";
+ *
+ * <SubjectHeading status={<Badge tone="go">Active</Badge>}>
+ *   <Text weight="semibold">Kerbin Science Program</Text>
  * </SubjectHeading>
  * ```
  *

@@ -1,8 +1,8 @@
 /**
  * The width of one dashboard grid column in CSS pixels, an approximation for
- * the dashboard's widest layout (its `lg` breakpoint, 36 columns across): on
- * the dashboard a column's real width is a fraction of the container. Use it to lay a widget out outside the dashboard,
- * such as in a test harness or a docs page.
+ * the dashboard's widest layout (36 columns across): on the dashboard a
+ * column's real width is a fraction of the container. Use it to lay a widget
+ * out outside the dashboard, such as in a test harness or a docs page.
  *
  * @category Layout
  */

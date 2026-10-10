@@ -1224,8 +1224,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   sections?: Exclude<ReactNode, boolean> | readonly ReactNode[];
   /**
    * Narrowest a section column may be before the panel stops offering a
-   * second one. Defaults to `13rem`, which gives two columns in a panel about
-   * 470px wide.
+   * second one. Defaults to `13rem` (208px at the default font size), which gives two
+   * columns in a panel about 470px wide.
    *
    * Raise it for a widget whose sections carry long rows and read badly at the
    * default width; set it to `100%` for one that should never columnise at all.
@@ -1258,9 +1258,10 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * the badge.
    *
    * The dashboard sets the blackout grades itself, from the widget's declared
-   * channels: `last-before-blackout` (the last value sent before a known loss
-   * of signal) and `recorded` (sent by the craft once contact came back). The
-   * grades are listed on {@link StreamStatusValue}. Any
+   * channels (the Topics it reads). A blackout is a stretch when the craft's
+   * signal cannot reach the command centre: the last value sent before it is
+   * `last-before-blackout`, and a value the craft sent once contact came back
+   * is `recorded`. The grades are listed on {@link StreamStatusValue}. Any
    * other grade shows only when set here, so set it for a panel that reads one
    * specific Topic. It is merged, worst first, with the dashboard's status and
    * any badge drawn with `report`.
@@ -2094,7 +2095,8 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * a widget can compose a variant by hand from them:
  *
  * - `Panel.Container`: the bordered frame
- * - `Panel.Context`: links the body's scroller to the glow
+ * - `Panel.Context`: the provider that links the body's scroller to the glow;
+ *   take no props but `children`
  * - `Panel.Delay`: the delay rail above the header
  * - `Panel.Header`: the title and its aside on one row, collapsing the aside
  *   to status dots when they no longer fit
@@ -2162,7 +2164,8 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *
  * function CadenceSection() {
  *   const heartbeat = useTelemetry("example.heartbeat");
- *   if (heartbeat.state !== "observed") return null;
+ *   // A held heartbeat is still drawn: `Unit` marks the figure as held.
+ *   if (heartbeat.state !== "observed" && heartbeat.state !== "held") return null;
  *   return (
  *     <Section title="Example">
  *       <Text>

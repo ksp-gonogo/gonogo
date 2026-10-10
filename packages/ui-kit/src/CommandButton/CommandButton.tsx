@@ -253,6 +253,9 @@ export interface CommandButtonState {
  *
  * @example
  * ```tsx
+ * import { useCommand } from "@ksp-gonogo/sitrep-sdk";
+ * import { useCommandButton } from "@ksp-gonogo/ui-kit";
+ *
  * function RecoverButton() {
  *   const recover = useCommand("ksp.recover");
  *   const { isArmed, isPending, isRefused, refusalText, press } =
@@ -269,6 +272,7 @@ export interface CommandButtonState {
  *       type="button"
  *       aria-busy={isPending || undefined}
  *       title={refusalText ?? undefined}
+ *       // `true` asks for a confirm step: the first press arms, the second sends.
  *       onClick={() => press(true)}
  *     >
  *       {word}
@@ -585,7 +589,8 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   /**
    * Called with the control's press while a click on it would do something
    * (not while it is in flight) and with `null` when it would not, for a
-   * caller that lets an input press the control from elsewhere. The press
+   * caller that lets an input (a key, a gamepad button or a serial device
+   * bound to this control) press it from elsewhere. The press
    * takes whether the control has a confirm step.
    */
   onPressReady?: (press: ((armable: boolean) => void) | null) => void;
@@ -599,7 +604,8 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    *
    * Receives what the dispatch resolved with, typed off the handle. A confirmed
    * command did not necessarily do something: a mod that de-duplicates on
-   * request id replies to a repeat with the receipt it stored the first time. The
+   * request id (the id each dispatch carries) replies to a repeat of the same
+   * dispatch with the receipt it stored the first time. The
    * value is the reply envelope; the command's own value is on `payload`.
    */
   onConfirmed?: (result: Result) => void;

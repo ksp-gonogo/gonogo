@@ -66,20 +66,42 @@ export interface UseRowFilterOptions {
  *
  * @example
  * ```tsx
- * const filter = useRowFilter({ placeholder: "Filter subjects..." });
- * const shown = subjects.filter((s) => filter.matches(`${s.title} ${s.biome}`));
+ * import {
+ *   EmptyState,
+ *   FilterRegion,
+ *   Stack,
+ *   Text,
+ *   useRowFilter,
+ * } from "@ksp-gonogo/ui-kit";
  *
- * return (
- *   <FilterRegion filter={filter} fill>
- *     {shown.length > 0 ? (
- *       <SubjectTable rows={shown} />
- *     ) : (
- *       <EmptyState>
- *         {filter.active ? "Nothing matches the filter" : "No subjects yet"}
- *       </EmptyState>
- *     )}
- *   </FilterRegion>
- * );
+ * interface Subject {
+ *   id: string;
+ *   title: string;
+ *   biome: string;
+ * }
+ *
+ * function SubjectList({ subjects }: { subjects: readonly Subject[] }) {
+ *   const filter = useRowFilter({ placeholder: "Filter subjects..." });
+ *   const shown = subjects.filter((s) =>
+ *     filter.matches(`${s.title} ${s.biome}`),
+ *   );
+ *
+ *   return (
+ *     <FilterRegion filter={filter} fill>
+ *       {shown.length > 0 ? (
+ *         <Stack>
+ *           {shown.map((s) => (
+ *             <Text key={s.id}>{s.title}</Text>
+ *           ))}
+ *         </Stack>
+ *       ) : (
+ *         <EmptyState>
+ *           {filter.active ? "Nothing matches the filter" : "No subjects yet"}
+ *         </EmptyState>
+ *       )}
+ *     </FilterRegion>
+ *   );
+ * }
  * ```
  *
  * @category FilterList
