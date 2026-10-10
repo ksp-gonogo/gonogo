@@ -143,15 +143,12 @@ async function pinTheClock(page: Page): Promise<void> {
  * @category Rendering scenes
  */
 export interface RenderOptions {
-  /** The browser engine to draw in. */
   engine: Engine;
-  /** Where the pictures are written. */
   outDir: string;
   /** Only scenes whose name matches. */
   scene?: string;
   /** Keep the numbered PNG frames of a motion scene beside its GIF. */
   frames: boolean;
-  /** Which Uplink to draw, when the client registers more than one. */
   uplinkId?: string;
   /** Extra modules bundled into the page ON TOP of the package's own
    *  `gonogo.renderWith`, so a one-off run can name a host the package does not
@@ -175,13 +172,10 @@ export interface RenderOptions {
  * @category Rendering scenes
  */
 export interface RenderedAsset {
-  /** The scene the picture is of. */
   scene: Scene;
-  /** The size mode it was drawn at. */
   mode: string;
   /** Path relative to `outDir`. */
   file: string;
-  /** A still picture or a motion one. */
   kind: "still" | "motion";
   /** What this render IS, comparable across machines. See `./shape`. */
   shape: AssetShape;
@@ -194,7 +188,6 @@ export interface RenderedAsset {
  * @category Rendering scenes
  */
 export interface RenderResult extends UplinkScenes {
-  /** The pictures drawn. */
   assets: RenderedAsset[];
 }
 

@@ -6,7 +6,6 @@ import {
   MUN_ORBIT_RADIUS,
   orbitAt,
   PARKING_RADIUS,
-  TILTED_CATALOGUE,
   TRANSFER_RATE,
   transferFrames,
 } from "../../scripts/systemTransferModel";
@@ -50,21 +49,5 @@ describe("Mun transfer playback samples", () => {
       (meanMotion * ENCOUNTER_UT) % (2 * Math.PI),
       9,
     );
-  });
-});
-
-describe("Mun transfer playback keyframes", () => {
-  it("restates the catalogue on every frame, so no body figure goes held as the clock runs", () => {
-    for (const frame of transferFrames()) {
-      const bodies = frame.emits.find((e) => e.channel === "system.bodies");
-      expect(bodies?.meta?.deliveredAt).toBe(frame.ut);
-    }
-  });
-
-  it("tilts Minmus only, as the stock system does", () => {
-    const orbitOf = (name: string) =>
-      TILTED_CATALOGUE.bodies.find((b) => b.name === name)?.orbit;
-    expect(orbitOf("Minmus")?.inc).toBe(6);
-    expect(orbitOf("Mun")?.inc).toBe(0);
   });
 });

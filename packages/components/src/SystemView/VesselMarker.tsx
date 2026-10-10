@@ -65,6 +65,9 @@ function markerStyle(state: VesselPlotState) {
 /** Screen-px distance below which a vessel marker overlaps its parent body's dot. */
 export const MARKER_CROWD_THRESHOLD_PX = 18;
 
+/** How far outside the crowd threshold an offset marker is pushed, screen px. */
+const MARKER_OFFSET_MARGIN_PX = 8;
+
 export interface VesselMarkerPlacement {
   /** Where the marker actually renders, user-space (pre-zoom) coordinates. */
   marker: { x: number; y: number };
@@ -93,8 +96,8 @@ export function resolveVesselMarkerPlacement(
     return { marker: pos, leaderFrom: null };
   }
   const angle = screenDist > 1e-6 ? Math.atan2(dy, dx) : -Math.PI / 4;
-  // The threshold itself, so the marker is where the true position would be at the instant it stops being crowded and never jumps as the craft crosses it.
-  const targetUserDist = MARKER_CROWD_THRESHOLD_PX / zoom;
+  const targetUserDist =
+    (MARKER_CROWD_THRESHOLD_PX + MARKER_OFFSET_MARGIN_PX) / zoom;
   return {
     marker: {
       x: anchor.x + Math.cos(angle) * targetUserDist,

@@ -23,7 +23,7 @@ export function useThermalEssentials(): readonly TinyEssential[] {
   const { worstBand, hottest, engine } = useThermal();
   const badge = bandBadge(worstBand);
   useStatusContribution(
-    badge.tone === "neutral"
+    badge === null || badge.tone === "neutral"
       ? null
       : { id: BAND_BADGE_ID, severity: badge.tone, label: badge.label },
   );

@@ -74,7 +74,7 @@ const GROUP_RECEIVED: Held[] = [
     to: [KSC, ARES, WOOMERA, RECOVERY],
     authorName: "Jeb",
     authorSeat: "pilot",
-    body: "Recovery is connected for splashdown.",
+    body: "Recovery is on the loop for splashdown.",
     sentAt: -1100,
     separationSeconds: LIGHT_TIME,
     group: GROUP,

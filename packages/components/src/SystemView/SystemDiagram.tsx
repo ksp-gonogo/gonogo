@@ -277,23 +277,7 @@ export function SystemDiagram({
   }, [focusedBody, onFocusBodyChange]);
 
   const emptyDiagram = !parent || children.length === 0;
-  const {
-    zoom,
-    pan,
-    isDragging,
-    following,
-    setFollowing,
-    handlePointerDown,
-    resetView,
-    focusOn,
-  } = view;
-  const vesselX = placed.vessel?.x;
-  const vesselY = placed.vessel?.y;
-  useEffect(() => {
-    if (following && vesselX !== undefined && vesselY !== undefined) {
-      focusOn({ x: vesselX, y: vesselY });
-    }
-  }, [following, vesselX, vesselY, focusOn]);
+  const { zoom, pan, isDragging, handlePointerDown, resetView, focusOn } = view;
 
   const hoverStart = useCallback(
     (body: CelestialBody) => setFocusedBody(body),
@@ -508,9 +492,11 @@ export function SystemDiagram({
         {placed.vessel && (
           <TextButton
             type="button"
-            aria-pressed={following}
-            onClick={() => setFollowing(!following)}
-            style={following ? VIEW_BUTTON_ON : VIEW_BUTTON}
+            onClick={() =>
+              placed.vessel &&
+              focusOn({ x: placed.vessel.x, y: placed.vessel.y })
+            }
+            style={VIEW_BUTTON}
           >
             Focus vessel
           </TextButton>
@@ -559,10 +545,4 @@ const VIEW_BUTTON: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-muted)",
   textDecoration: "none",
-};
-
-const VIEW_BUTTON_ON: CSSProperties = {
-  ...VIEW_BUTTON,
-  borderColor: "var(--color-accent-fg)",
-  color: "var(--color-accent-fg)",
 };

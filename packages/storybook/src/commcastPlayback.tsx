@@ -225,7 +225,7 @@ export function CommsPlaybackScene({
     const heard =
       speaking && (speaking.cutAt ?? Infinity) > t ? speaking : null;
     if (readout.current) {
-      readout.current.textContent = `Playback clock T+${t.toFixed(1)} of T+${PLAYBACK_SECONDS}`;
+      readout.current.textContent = `Loop clock T+${t.toFixed(1)} of T+${PLAYBACK_SECONDS}`;
     }
     if (caption.current) {
       caption.current.textContent = `Signal ${Math.round(100 * signalQuality(t))} of 100${
@@ -301,7 +301,7 @@ export function CommsPlaybackScene({
           to: [KSC],
           authorName: "Jeb",
           authorSeat: "pilot",
-          body: "Ares 4 connected.",
+          body: "Ares 4 on the loop.",
           sentAt: -120,
           separationSeconds: 1.3,
         },
@@ -324,7 +324,7 @@ export function CommsPlaybackScene({
           {run === 0 ? "Play" : "Replay"}
         </PlaybackStart>
         <span aria-live="off" ref={readout}>
-          Press Play to hear the transmission
+          Press Play to hear the loop
         </span>
       </div>
       <div

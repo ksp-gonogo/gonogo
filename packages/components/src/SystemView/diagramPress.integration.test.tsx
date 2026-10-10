@@ -192,16 +192,6 @@ describe("SystemView: pressing the diagram", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps following the craft until the view is reset", async () => {
-    mountScene();
-    const focus = await screen.findByRole("button", { name: "Focus vessel" });
-    expect(focus).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(focus);
-    expect(focus).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(await screen.findByRole("button", { name: "Reset view" }));
-    expect(focus).toHaveAttribute("aria-pressed", "false");
-  });
-
   it("has no axe violations with the pressable marks", async () => {
     const { container } = mountScene();
     await screen.findByRole("button", { name: "Active vessel" });

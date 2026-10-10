@@ -46,12 +46,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
       fixture.emit("vessel.comms", {
         connected: true,
         signalStrength: 0.87,
@@ -301,7 +295,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     expect(screen.queryByText("Signal to KSC")).toBeNull();
   });
 
-  it("names no centre when neither the centre record nor a ground-station hop has arrived", async () => {
+  it("falls back to Signal to KSC when no command-centre identity has arrived", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -323,8 +317,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
     });
 
-    await waitFor(() => expect(screen.getByText("Signal")).toBeTruthy());
-    expect(screen.queryByText(/Signal to/)).toBeNull();
+    await waitFor(() => expect(screen.getByText("Signal to KSC")).toBeTruthy());
   });
 
   it("renders the full train-schedule with per-leg distances at a comfortable size", async () => {
@@ -343,12 +336,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("vessel.identity", {
         vesselId: "v1",
@@ -417,12 +404,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [
@@ -456,12 +437,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [
@@ -495,18 +470,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [{ from: "Active Vessel", to: "home", kind: 0 }],
@@ -665,12 +628,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      fixture.emit("comms.commandCentre", {
-        id: "ground:KSC",
-        displayName: "KSC",
-        kind: "GroundStation",
-        bodyIndex: 1,
-      });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [{ from: "Active Vessel", to: "home", kind: 0 }],

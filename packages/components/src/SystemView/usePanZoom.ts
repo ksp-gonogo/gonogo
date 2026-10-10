@@ -37,7 +37,6 @@ export function usePanZoom(
     [zoom],
   );
   const [isDragging, setIsDragging] = useState(false);
-  const [following, setFollowing] = useState(false);
   const onPointerUp = useCallback(() => {
     dragRef.current = null;
     setIsDragging(false);
@@ -73,7 +72,6 @@ export function usePanZoom(
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent) => {
       if (e.button !== 0) return;
-      setFollowing(false);
       dragRef.current = {
         startX: e.clientX,
         startY: e.clientY,
@@ -86,26 +84,16 @@ export function usePanZoom(
   );
 
   const resetView = useCallback(() => {
-    setFollowing(false);
     setZoom(1);
     setPan({ x: 0, y: 0 });
   }, []);
 
-  /** Centres the view on a point in the diagram's own user units, keeping the zoom. While `following` is on, the diagram calls this each time the point moves. */
+  /** Centres the view on a point in the diagram's own user units, keeping the zoom. */
   const focusOn = useCallback((point: { x: number; y: number }) => {
     setPan({ x: point.x, y: point.y });
   }, []);
 
-  return {
-    zoom,
-    pan,
-    isDragging,
-    following,
-    setFollowing,
-    handlePointerDown,
-    resetView,
-    focusOn,
-  };
+  return { zoom, pan, isDragging, handlePointerDown, resetView, focusOn };
 }
 
 export type PanZoom = ReturnType<typeof usePanZoom>;

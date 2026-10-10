@@ -13,8 +13,6 @@ const view = {
   zoom: 1,
   pan: { x: 0, y: 0 },
   isDragging: false,
-  following: false,
-  setFollowing: () => {},
   handlePointerDown: () => {},
   resetView: () => {},
   focusOn: () => {},

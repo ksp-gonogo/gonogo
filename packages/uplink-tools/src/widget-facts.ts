@@ -26,16 +26,8 @@ export type WidgetFactId =
  * @category Inventory
  */
 export type WidgetFactItem =
-  | {
-      /** An identifier shown as code. */
-      code: string;
-      /** The label an operator reads for it. */
-      label?: string;
-    }
-  | {
-      /** A plain phrase. */
-      prose: string;
-    };
+  | { code: string; label?: string }
+  | { prose: string };
 
 /**
  * One row of a widget's fact table: the label a reader sees and what the
@@ -44,11 +36,8 @@ export type WidgetFactItem =
  * @category Inventory
  */
 export interface WidgetFact {
-  /** Which fact the row states. */
   id: WidgetFactId;
-  /** The label a reader sees. */
   label: string;
-  /** What the registration says under the label. */
   items: WidgetFactItem[];
 }
 

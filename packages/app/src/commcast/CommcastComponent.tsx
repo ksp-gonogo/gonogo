@@ -7,7 +7,7 @@ import {
 import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
 import { observedValue } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
-import { EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
+import { Badge, EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
 import { CommcastComposeView } from "./CommcastComposeView";
@@ -101,6 +101,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
     <RadioIndicator
       live={radio.reception.live}
       detected={detected}
+      utNow={utNow}
       nameFor={nameFor}
       onOpen={(light) => openThread(light.threadKey, light.with)}
     />
@@ -166,6 +167,10 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
       ) : (
         <StationNameEditor compact />
       )}
+      {/* No severity: a seat is an identity, neither good nor bad. */}
+      <Badge size="sm">
+        {me.seat === "pilot" ? "Aboard" : "Mission control"}
+      </Badge>
     </Commcast__Identity>
   );
 

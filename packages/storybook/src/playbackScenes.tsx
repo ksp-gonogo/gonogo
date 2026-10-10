@@ -28,8 +28,6 @@ interface FramePlayerProps extends PlaybackSceneProps {
   frames: readonly PlaybackFrame[];
   /** Part of the mount's key, so a story that swaps its model remounts. */
   name: string;
-  /** Run once the widget has mounted, before the first frame: the presses and gestures an operator would make to set the view up. */
-  setup?: (scene: HTMLElement) => void;
 }
 
 /**
@@ -42,11 +40,9 @@ export function FramePlayer({
   first,
   frames,
   name,
-  setup,
   w,
   h,
 }: FramePlayerProps) {
-  const sceneRef = useRef<HTMLDivElement>(null);
   const [run, setRun] = useState(0);
   const [clock, setClock] = useState(frames[0].clock);
   const timer = useRef<ReturnType<typeof setInterval>>();
@@ -56,7 +52,6 @@ export function FramePlayer({
   const play = useCallback(
     (mount: ProbeMount) => {
       clearInterval(timer.current);
-      if (sceneRef.current) setup?.(sceneRef.current);
       const started = performance.now();
       let index = 0;
       timer.current = setInterval(() => {
@@ -74,7 +69,7 @@ export function FramePlayer({
         if (index + 1 >= frames.length) clearInterval(timer.current);
       }, 1000 / 30);
     },
-    [frames, setup],
+    [frames],
   );
 
   const replay = () => {
@@ -90,41 +85,17 @@ export function FramePlayer({
         <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">{clock}</span>
       </div>
-      <div ref={sceneRef}>
-        <WidgetScene
-          key={`${name}-${run}`}
-          widgetId={widgetId}
-          fixture={first}
-          w={w ?? 12}
-          h={h ?? 12}
-          onMounted={play}
-        />
-      </div>
+      <WidgetScene
+        key={`${name}-${run}`}
+        widgetId={widgetId}
+        fixture={first}
+        w={w ?? 12}
+        h={h ?? 12}
+        onMounted={play}
+      />
     </div>
   );
 }
-
-/** Following the craft and zooming in on it, as an operator would, so the burn's parking orbit and the climb away from it read at their own scale. */
-function followAndZoom(scene: HTMLElement): void {
-  const focus = [...scene.querySelectorAll("button")].find(
-    (b) => b.textContent === "Focus vessel",
-  );
-  focus?.click();
-  const diagram = scene.querySelector("svg[viewBox]");
-  for (let notch = 0; notch < FOLLOW_ZOOM_NOTCHES; notch++) {
-    diagram?.dispatchEvent(
-      new WheelEvent("wheel", {
-        deltaY: -100,
-        ctrlKey: true,
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
-  }
-}
-
-/** Each notch is a 1.15 times zoom. */
-const FOLLOW_ZOOM_NOTCHES = 4;
 
 /** System View following a craft from low Kerbin orbit to the Mun, the Mun and the phase angle moving as the clock runs. */
 export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {
@@ -136,7 +107,6 @@ export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {
     <FramePlayer
       widgetId="system-view"
       name="transfer"
-      setup={followAndZoom}
       first={model.first}
       frames={model.frames}
       w={w}

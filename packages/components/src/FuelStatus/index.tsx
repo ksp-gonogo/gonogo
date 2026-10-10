@@ -80,6 +80,7 @@ function FuelStatusComponent({
     budget.budget.state !== "pending" &&
     // A build whose ΔV sim publishes nothing has not answered and never will, so the row stays away.
     budget.budget.state !== "unowned";
+  const stageCount = budget?.stageCount ?? undefined;
   const dated = <UnitSymbol extends string>(figure: Value<UnitSymbol>) =>
     budgetReading === undefined ? figure : budgetFigure(budgetReading, figure);
   const totalDv = magnitudeOf(pickTotal(budget, mode)) ?? undefined;
@@ -131,7 +132,12 @@ function FuelStatusComponent({
         /* The caption and the totals span the row: they describe the columns rather than sit beside them. */
         showSubtitle && currentStage !== undefined && (
           <Section key="stage" full>
-            <ReadoutCaption>Stage {currentStage}</ReadoutCaption>
+            <ReadoutCaption>
+              Stage {currentStage}
+              {stageCount !== null &&
+                stageCount !== undefined &&
+                ` / ${stageCount.minus(1).max(0).magnitude}`}
+            </ReadoutCaption>
           </Section>
         ),
         budgetReported && (

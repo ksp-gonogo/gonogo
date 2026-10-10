@@ -70,13 +70,9 @@ export function signalDelayPresentation({
  * @category CommandDelay
  */
 export interface InFlightListItem {
-  /** Identifies the command. */
   id: string;
-  /** What the command is called in the list. */
   label: string;
-  /** Seconds until it reaches the craft or is answered, or `null` for none. */
   etaSeconds: number | null;
-  /** Where the command is on its way. */
   phase: "in-transit" | "awaiting-reply" | "due" | "overdue" | "lost";
   /**
    * True position along the 3-stage delay axis, 0 (just sent) to 1 (end of the

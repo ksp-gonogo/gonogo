@@ -62,12 +62,11 @@ export const BAND_RANK: Record<Band, number> = {
 
 export const BAND_BADGE_ID = "thermal-band";
 
-/** The worst band as the panel header's state badge, always present so the header never changes shape; `unknown` reads as such, in a neutral tone. */
-export function bandBadge(worstBand: Band): {
-  id: string;
-  label: string;
-  tone: TinyEssentialTone;
-} {
+/** The worst band as the panel header's state badge, or none while the band is unknown. */
+export function bandBadge(
+  worstBand: Band,
+): { id: string; label: string; tone: TinyEssentialTone } | null {
+  if (worstBand === "unknown") return null;
   return {
     id: BAND_BADGE_ID,
     label: BAND_LABEL[worstBand],

@@ -1,7 +1,11 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  AvatarStack,
+  Badge,
   BroadcastIcon,
   MutedIcon,
+  StatusIndicator,
+  TextButton,
+  Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
@@ -24,16 +28,14 @@ import type { RadioLight } from "./RadioSession";
  * lights when the words are heard and never a light-minute before, and a
  * conversation with no path to this vantage never lights at all.
  *
- * Drawn when nothing is happening too, and always the same size. A lamp that
- * appeared only while it mattered, or grew a name per speaker, would shift the
- * bar under the operator's eye at the exact instant they needed to read it, and
- * an instrument that is dark is itself a reading. Who is talking is a stack of
- * initials badges with the full names in their tips, so a new speaker fills a
- * place that was already reserved.
+ * Drawn when nothing is happening too. A lamp that appeared only while it
+ * mattered would shift the bar under the operator's eye at the exact instant
+ * they needed to read it, and an instrument that is dark is itself a reading.
  */
 export function RadioIndicator({
   live,
   detected = [],
+  utNow,
   nameFor,
   onOpen,
 }: {
@@ -44,6 +46,8 @@ export function RadioIndicator({
    * thread to go to.
    */
   detected?: readonly DetectedTransmission[];
+  /** The UT the on-air time is counted to. */
+  utNow?: number;
   nameFor: (id: RecipientId) => string;
   /**
    * Go to the conversation a lamp names.
@@ -70,98 +74,76 @@ export function RadioIndicator({
    * Only ever drawn above one, because "1 at once" is not a reading.
    */
   const audible = live.filter((one) => !one.muted).length;
-  const overlapping = audible > 1;
-  const busy = live.length > 0 || detected.length > 0;
-  const speakers = [
-    ...live.map((one) => ({
-      id: one.transmissionId,
-      name: namesOf(one.with, nameFor),
-      tone: one.muted ? ("neutral" as const) : ("info" as const),
-      onSelect: () => onOpen(one),
-    })),
-    ...detected.map((one) => ({
-      id: one.transmissionId,
-      name: detectedName(one, nameFor),
-      tone: "neutral" as const,
-    })),
-  ];
   return (
     /*
-     * ONE region for every speaker. A live region per speaker would announce
-     * the same transmission twice when two loops open together, and `polite`
-     * because a transmission is a state change worth being told about rather
-     * than something that must interrupt: `assertive` belongs to an abort.
+     * ONE region for every lamp. A live region per lamp would announce the same
+     * transmission twice when two loops open together, and `polite` because a
+     * transmission is a state change worth being told about rather than
+     * something that must interrupt: `assertive` belongs to an abort.
      */
-    <Radio__Indicator
-      role="status"
-      aria-live="polite"
-      data-tone={overlapping ? "warn" : busy ? "info" : "neutral"}
-    >
-      {/* Shape, not only colour: a heard speaker and a muted one differ by the glyph as well as the edge. */}
-      {live.length > 0 && live.every((one) => one.muted) ? (
-        <MutedIcon size="var(--icon-size-control)" aria-hidden="true" />
-      ) : (
-        <BroadcastIcon size="var(--icon-size-control)" aria-hidden="true" />
+    <Radio__Indicator role="status" aria-live="polite">
+      {live.length === 0 && detected.length === 0 && (
+        <StatusIndicator tone="neutral">Quiet</StatusIndicator>
       )}
-      {/* Empty it still holds its places, so going quiet never narrows the bar. */}
-      <AvatarStack items={speakers} max={MAX_SPEAKERS} />
-      {!busy && <VisuallyHidden>Quiet</VisuallyHidden>}
-      {overlapping && (
-        <VisuallyHidden>
-          {audible} at once, talking over each other
-        </VisuallyHidden>
+      {audible > 1 && (
+        <StatusIndicator tone="warn">
+          {audible} at once
+          {/* The sentence a screen reader needs, since "2 at once" beside two
+              names is only legible as a picture. */}
+          <VisuallyHidden> talking over each other</VisuallyHidden>
+        </StatusIndicator>
       )}
       {live.map((one) => (
-        <VisuallyHidden key={one.transmissionId}>
-          {namesOf(one.with, nameFor)} transmitting
-          {one.muted ? ", muted" : ""}
-        </VisuallyHidden>
+        <StatusIndicator
+          key={one.transmissionId}
+          tone={one.muted ? "neutral" : "info"}
+          {...(one.muted ? {} : { pulse: "slow" as const })}
+        >
+          {/* Shape, not only colour: a muted lamp and a live one differ by the
+              glyph as well as the dot, so the difference survives a monitor
+              nobody calibrated and an operator who cannot tell the two dots
+              apart. */}
+          {one.muted ? (
+            <MutedIcon size={12} aria-hidden="true" />
+          ) : (
+            <BroadcastIcon size={12} aria-hidden="true" />
+          )}
+          <TextButton type="button" onClick={() => onOpen(one)}>
+            {namesOf(one.with, nameFor)}
+          </TextButton>
+          {/* The verb the name needs to mean anything read aloud. On screen the
+              pulsing dot says it, which is why it is not drawn twice. */}
+          <VisuallyHidden> transmitting</VisuallyHidden>
+          {one.muted && <VisuallyHidden>, muted</VisuallyHidden>}
+        </StatusIndicator>
       ))}
       {detected.map((one) => (
-        <VisuallyHidden key={one.transmissionId}>
-          {detectedName(one, nameFor)} transmitting, not addressed to you
-        </VisuallyHidden>
+        <StatusIndicator key={one.transmissionId} tone="neutral">
+          <BroadcastIcon size={12} aria-hidden="true" />
+          {one.authorName === "" ? nameFor(one.from) : one.authorName} at{" "}
+          {nameFor(one.from)}
+          {/* The speaker is among the addressed, so naming them again says nothing. */}
+          {" to "}
+          {namesOf(
+            one.to.filter((id) => id !== one.from),
+            nameFor,
+          )}
+          <Badge size="sm">
+            {one.authorSeat === "pilot" ? "Aboard" : "Mission control"}
+          </Badge>
+          {utNow !== undefined && (
+            <Unit value={value("s", Math.max(0, utNow - one.startedUt))} />
+          )}
+          <VisuallyHidden> transmitting, not addressed to you</VisuallyHidden>
+        </StatusIndicator>
       ))}
     </Radio__Indicator>
   );
 }
 
-/** Places in the stack, which is also what fixes the indicator's width. */
-const MAX_SPEAKERS = 3;
-
 const Radio__Indicator = styled.div`
   display: flex;
   align-items: center;
-  flex: none;
-  gap: var(--gap-glyph-box);
-  box-sizing: border-box;
-  min-height: var(--control-height);
-  padding: var(--inset-status-box);
-  border: 1px solid var(--color-neutral-mark);
-  border-radius: var(--radius-regular);
-  font-size: var(--font-size-compact);
-  /* The icon's box is the stack's height, so the two share a centre line. */
-  & > svg {
-    flex: none;
-    display: block;
-  }
-  &[data-tone="info"] {
-    border-color: var(--color-info-mark);
-  }
-  &[data-tone="warn"] {
-    border-color: var(--color-warn-mark);
-  }
+  gap: var(--gap-related);
+  min-width: 0;
 `;
-
-/** Who is on the air and to whom. The speaker is among the addressed, so naming them again says nothing. */
-function detectedName(
-  one: DetectedTransmission,
-  nameFor: (id: RecipientId) => string,
-): string {
-  const author = one.authorName === "" ? nameFor(one.from) : one.authorName;
-  const to = namesOf(
-    one.to.filter((id) => id !== one.from),
-    nameFor,
-  );
-  return `${author} at ${nameFor(one.from)} to ${to}`;
-}

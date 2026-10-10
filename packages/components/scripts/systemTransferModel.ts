@@ -57,54 +57,8 @@ export function orbitAt(ut: number): {
   };
 }
 
-interface CatalogueBody {
-  name: string;
-  orbit: Record<string, unknown> | null;
-}
-
-const catalogue = fixture._stream.emits.find(
-  (e) => e.channel === "system.bodies",
-) as { value: { bodies: CatalogueBody[] } };
-
-/**
- * The fixture's catalogue with Minmus on its stock 6 degree orbit, 78 degrees
- * round from the reference direction. The fixture itself is coplanar; the
- * playback tilts the one moon the stock system does, so the depth tint on a
- * body's ring has something to show.
- */
-export const TILTED_CATALOGUE = {
-  ...catalogue.value,
-  bodies: catalogue.value.bodies.map((b) =>
-    b.name === "Minmus" && b.orbit !== null
-      ? { ...b, orbit: { ...b.orbit, inc: 6, lan: 78 } }
-      : b,
-  ),
-};
-
-/**
- * What the mod sends every keyframe, restated at `ut`. The catalogue is the
- * sample the aside's body figures read, and a channel that stops arriving is
- * drawn held once the view clock runs past its keyframe cadence, which at the
- * playback rate it does inside a second.
- */
-function keyframesAt(ut: number): PlaybackEmit[] {
-  return fixture._stream.emits
-    .filter((e) => e.channel !== "vessel.orbit")
-    .map((e) =>
-      stampedAt(
-        e.channel,
-        e.channel === "system.bodies" ? TILTED_CATALOGUE : e.value,
-        ut,
-        (e as { meta?: Record<string, unknown> }).meta,
-      ),
-    );
-}
-
 function emitsAt(ut: number): PlaybackEmit[] {
-  return [
-    stampedAt("vessel.orbit", orbitAt(ut), ut, orbitTemplate.meta),
-    ...keyframesAt(ut),
-  ];
+  return [stampedAt("vessel.orbit", orbitAt(ut), ut, orbitTemplate.meta)];
 }
 
 function clockLine(ut: number): string {
@@ -114,12 +68,7 @@ function clockLine(ut: number): string {
 
 /** The scene System View mounts on: the craft at periapsis, the burn just done. */
 export function transferFirstScene(): Record<string, unknown> {
-  return firstScene(
-    fixture,
-    { "system.bodies": TILTED_CATALOGUE },
-    "transfer-playback",
-    0,
-  );
+  return firstScene(fixture, {}, "transfer-playback", 0);
 }
 
 /** One frame per tenth of a second until the craft reaches the Mun's sphere of influence. */

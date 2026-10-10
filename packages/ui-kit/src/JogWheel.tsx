@@ -21,24 +21,19 @@ export type JogWheelMode = "offset" | "rate";
  * @category Form
  */
 export interface JogWheelCommon {
-  /** The current value. */
   value: number;
-  /** How far one step moves the value. */
   step: number;
   /** Drag/keyboard axis. Default "horizontal". */
   orientation?: "horizontal" | "vertical";
-  /** Called with the new value as the wheel is dragged or keyed. */
   onChange: (next: number) => void;
   /** Caret label formatter, also used as `aria-valuetext`. Default `String(Math.round(v))`; for a quantity, write it with {@link writeQuantity}. */
   format?: (v: number) => string;
-  /** The wheel's accessible name. */
   "aria-label": string;
   /**
    * The name drawn above the wheel. Defaults to `aria-label`; `false` draws
    * none, for a wheel the caller already names beside it.
    */
   label?: string | false;
-  /** Stops the wheel responding to input. */
   disabled?: boolean;
   /**
    * Box width in CSS px. Defaults to 56 horizontal / 24 vertical. Clamped up
@@ -62,19 +57,14 @@ export interface JogWheelCommon {
  */
 export type JogWheelProps =
   | (JogWheelCommon & {
-      /** Dragging moves the value by an amount (the default). */
       mode?: "offset";
-      /** The lowest value. */
       min: number;
-      /** The highest value. */
       max: number;
     })
   | (JogWheelCommon & {
-      /** Holding the wheel off centre changes the value continuously. */
       mode: "rate";
       /** Optional here: a rate control does not need somewhere to stop. */
       min?: number;
-      /** The highest value, when the control has one. */
       max?: number;
       /**
        * How many `step`s per second at FULL displacement. The travel between

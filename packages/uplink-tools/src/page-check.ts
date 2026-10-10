@@ -40,7 +40,6 @@ export interface PageCheckOptions {
  * @category Page check
  */
 export interface PageCheckResult {
-  /** One line for each way the committed page differs from what the client registers. */
   differences: string[];
 }
 

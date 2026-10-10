@@ -186,7 +186,7 @@ function NavballComponent({
 
   return (
     <Panel
-      panelTitle="NAVBALL"
+      panelTitle={showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
       sections={[
         <Section
           key="attitude"

@@ -162,7 +162,6 @@ export function useSignalVerdict(): SignalVerdict {
       told?.strength === undefined || told.strength === null
         ? commsHeld?.signalQuantity
         : told.quantity,
-      pct,
     ),
     strengthReading:
       pct === null

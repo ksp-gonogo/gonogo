@@ -39,9 +39,9 @@ describe("CommSignal says which quantity the strength is", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText("40% data-rate headroom")).toBeTruthy(),
+      expect(screen.getByText("Fraction of data-rate headroom")).toBeTruthy(),
     );
-    expect(screen.queryByText("60% of range left")).toBeNull();
+    expect(screen.queryByText("Fraction of range")).toBeNull();
     await expectNoA11yViolations(container);
   });
 
@@ -58,7 +58,7 @@ describe("CommSignal says which quantity the strength is", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText("60% of range left")).toBeTruthy(),
+      expect(screen.getByText("Fraction of range")).toBeTruthy(),
     );
   });
 
@@ -80,16 +80,15 @@ describe("CommSignal says which quantity the strength is", () => {
 });
 
 describe("describeQuantity", () => {
-  it("states the figure with what it measures, and nothing for unknown", () => {
-    expect(describeQuantity(SignalQuantity.RangeFraction, 0.62)).toBe(
-      "62% of range left",
+  it("has a word for each quantity a backend can declare and none for unknown", () => {
+    expect(describeQuantity(SignalQuantity.RangeFraction)).toBe(
+      "Fraction of range",
     );
-    expect(describeQuantity(SignalQuantity.DataRateHeadroom, 0.62)).toBe(
-      "62% data-rate headroom",
+    expect(describeQuantity(SignalQuantity.DataRateHeadroom)).toBe(
+      "Fraction of data-rate headroom",
     );
-    expect(describeQuantity(SignalQuantity.RangeFraction, null)).toBeNull();
-    expect(describeQuantity(SignalQuantity.NoModel, 1)).toBe("Not modelled");
-    expect(describeQuantity(SignalQuantity.Unknown, 0.5)).toBeNull();
-    expect(describeQuantity(undefined, 0.5)).toBeNull();
+    expect(describeQuantity(SignalQuantity.NoModel)).toBe("Not modelled");
+    expect(describeQuantity(SignalQuantity.Unknown)).toBeNull();
+    expect(describeQuantity(undefined)).toBeNull();
   });
 });

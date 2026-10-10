@@ -52,7 +52,7 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
 
     expect(visibleText()).toContain("Heat Shield (2.5m)");
     // "warm" appears twice: the compact pill and the hottest-part row's tag.
-    expect(screen.getAllByText("warm").length).toBe(3);
+    expect(screen.getAllByText("warm").length).toBe(2);
     // A temperature is a Quantity with separate number and symbol elements, so assert on the container text; skinMaxTemp 2400 K is 2127 °C.
     expect(visibleText()).toContain("2127 °C");
     expect(visibleText()).toContain("1671 °C");

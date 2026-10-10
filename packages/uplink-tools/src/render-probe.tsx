@@ -219,7 +219,6 @@ export interface SceneStep {
  * @category Scenes
  */
 export interface ScenePayload {
-  /** The widget or slot the scene mounts. */
   target: SceneTarget;
   /** Fixture name, for error messages. */
   fixture: string;
@@ -336,9 +335,7 @@ export interface ScenePayload {
  * @category Scenes
  */
 export interface UnreadTopics {
-  /** Topics the scene sent that nothing subscribed to. */
   unsubscribedTopics: string[];
-  /** Topics the scene sent that the target never declared. */
   undeclaredTopics: string[];
 }
 
@@ -373,15 +370,10 @@ export interface SceneReport {
  * @category Inventory
  */
 export interface InventoryMode {
-  /** The mode's name. */
   name: string;
-  /** Its width, in grid columns. */
   w: number;
-  /** Its height, in grid rows. */
   h: number;
-  /** Its width, in pixels. */
   pxW: number;
-  /** Its height, in pixels. */
   pxH: number;
 }
 
@@ -404,19 +396,12 @@ export interface InventoryWidget extends WidgetRecord {
  * @category Inventory
  */
 export interface InventoryAugment {
-  /** The augment's id. */
   id: string;
-  /** The slot it fills. */
   augments: string;
-  /** The Topics it reads. */
   channels: string[];
-  /** The Domain that must be present for it to mount. */
   requires?: string;
-  /** Its order among the augments of the slot. */
   priority?: number;
-  /** Whether it replaces the stock map texture. */
   suppressesVanillaBase: boolean;
-  /** The settings an operator can change on it. */
   settings: AugmentSettingField[];
 }
 
@@ -426,17 +411,11 @@ export interface InventoryAugment {
  * @category Inventory
  */
 export interface InventoryContribution {
-  /** The contribution's id. */
   id: string;
-  /** The slot it contributes to. */
   contributes: string;
-  /** The Topics, processors and settings it reads. */
   deps: string[];
-  /** The Domain that must be present for it to run. */
   requires?: string;
-  /** Its priority band in the slot. */
   priority?: number;
-  /** The settings an operator can change on it. */
   settings: AugmentSettingField[];
 }
 
@@ -446,11 +425,8 @@ export interface InventoryContribution {
  * @category Inventory
  */
 export interface InventoryReckonerExemption {
-  /** The Topic the model is for. */
   topic: string;
-  /** The input rule it opted out of. */
   rule: string;
-  /** Why it opted out. */
   reason: string;
 }
 
@@ -461,11 +437,8 @@ export interface InventoryReckonerExemption {
  * @category Inventory
  */
 export interface UplinkCompat {
-  /** The extension API version the client was built against. */
   apiVersion: string;
-  /** The wire contract's major version the client was built against. */
   contractMajor: number;
-  /** The wire contract's minor version the client was built against. */
   contractMinor: number;
 }
 
@@ -477,13 +450,9 @@ export interface UplinkCompat {
  * The refusal codes an Uplink declares, as its page lists them.
  */
 export interface InventoryErrorCode {
-  /** The code's id. */
   id: string;
-  /** The code it refines, or `null` for a root or a fault. */
   refines: string | null;
-  /** What an operator reads for it. */
   sentence: string;
-  /** What it means, from its declaration. */
   meaning: string;
 }
 
@@ -493,11 +462,8 @@ export interface InventoryErrorCode {
  * @category Inventory
  */
 export interface UplinkInventory {
-  /** The Uplink's id. */
   id: string;
-  /** The name an operator sees. */
   name: string;
-  /** The Uplink's version. */
   version: string;
   /**
    * What the Uplink does, from `defineUplinkClient`. The page's opening line.
@@ -506,15 +472,10 @@ export interface UplinkInventory {
    * without one: the enforcement belongs where the value is consumed.
    */
   description?: string;
-  /** The versions it was built against. */
   compat: UplinkCompat;
-  /** The widgets it registers. */
   widgets: InventoryWidget[];
-  /** The augments it registers. */
   augments: InventoryAugment[];
-  /** The contributions it registers. */
   contributions: InventoryContribution[];
-  /** The ids of the processors it registers. */
   processors: string[];
   /**
    * Every registered Processor's own TOPIC deps, keyed by processor id.
@@ -528,7 +489,6 @@ export interface UplinkInventory {
    * contribution may reasonably depend on one the app declares.
    */
   processorTopicDeps: Record<string, string[]>;
-  /** The Topics it registers a forward model for. */
   reckonedTopics: string[];
   /**
    * This client's models that opted out of an input rule, and why.
@@ -539,7 +499,6 @@ export interface UplinkInventory {
    * exceptions, and an exception buried in a model file is not readable.
    */
   reckonerExemptions: InventoryReckonerExemption[];
-  /** The ids of the derived channels it registers. */
   derivedChannels: string[];
   /**
    * The refusal refinements this Uplink declares, from the generated table its
@@ -1774,9 +1733,7 @@ function mountScene(el: HTMLElement, scene: ScenePayload): SceneMount {
  * @category Probe setup
  */
 export interface RenderProbeApi {
-  /** Reads what the client registered, for one Uplink or the only one. */
   readInventory: (uplinkId?: string) => UplinkInventory;
-  /** Mounts a scene and reports what it drew. */
   renderScene: (scene: ScenePayload) => Promise<SceneReport>;
   /** Feed whatever a `_scene.before` press has just mounted, and report the
    *  topics still unread. See {@link RenderProbeApi.refeedScene}. */
@@ -1785,7 +1742,6 @@ export interface RenderProbeApi {
   finishScene: () => Promise<SceneReport>;
   /** The mounted render as it stands, with nothing done to it. */
   readScene: () => SceneReport;
-  /** Advances a mounted scene by `deltaUt` through one of its steps. */
   stepScene: (step: SceneStep, deltaUt: number) => Promise<void>;
   /**
    * Unmount the scene last mounted and put back anything it took out, with the

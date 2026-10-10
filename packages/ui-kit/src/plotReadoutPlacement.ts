@@ -23,16 +23,8 @@ export interface PlotReadoutSpace {
  * @category LineGraph
  */
 export type PlotReadoutPlacement =
-  | {
-      /** The card, legend and captions sit over the plot. */
-      placement: "overlay";
-    }
-  | {
-      /** The card, legend and captions sit in a column beside the plot. */
-      placement: "beside";
-      /** The column's width, in CSS px. */
-      columnWidth: number;
-    };
+  | { placement: "overlay" }
+  | { placement: "beside"; columnWidth: number };
 
 /** Narrowest chart that still leaves the plot a usable width beside a column. */
 const BESIDE_MIN_WIDTH = 480;

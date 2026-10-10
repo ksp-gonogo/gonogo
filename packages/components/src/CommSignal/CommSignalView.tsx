@@ -72,25 +72,22 @@ export function CommSignalComponent({
       ? delayReading.value.oneWaySeconds
       : undefined;
 
-  // The far end is whatever centre the path ends at, named by the receiving centre; a ground-station last hop names itself when the centre record has not arrived.
+  // KSC is the only centre the game creates without a mod or a qualifying crewed vessel, so it is the default.
   const centreReading = useTelemetry("comms.commandCentre");
   const commandCentreName =
     centreReading.state === "observed"
       ? centreReading.value.displayName
       : undefined;
+  const centreLabel =
+    commandCentreName && commandCentreName.length > 0
+      ? commandCentreName
+      : "KSC";
 
   const pathReading = useTelemetry("comms.path");
   const hops =
     (pathReading.state === "observed" ? pathReading.value.hops : undefined) ??
     [];
   const relayCount = commsRouteRelayCount(hops);
-  const lastHop = hops.at(-1);
-  const centreLabel =
-    commandCentreName && commandCentreName.length > 0
-      ? commandCentreName
-      : lastHop?.toIsHome
-        ? lastHop.to
-        : undefined;
 
   const identityReading = useTelemetry("vessel.identity");
   const vesselName =
@@ -228,7 +225,7 @@ export function CommSignalComponent({
               <CommsPathRoute
                 hops={hops}
                 vesselLabel={vesselLabel}
-                centreLabel={centreLabel ?? "Command centre"}
+                centreLabel={centreLabel}
                 pathDelay={delay}
                 rateByHopId={rateByHopId}
                 rateMarkingByHopId={rateMarkingByHopId}
