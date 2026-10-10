@@ -6,11 +6,9 @@ export interface RailFrame {
   top: number;
   /** The visible height from the rail's top edge to the bottom of the body. */
   height: number;
-  /** The height from the row's top edge to the bottom of the body with the body scrolled to its top: what the row has to fill, whatever has been scrolled. */
-  room: number;
 }
 
-const UNMEASURED: RailFrame = { top: 0, height: 0, room: 0 };
+const UNMEASURED: RailFrame = { top: 0, height: 0 };
 
 /**
  * The part of the enclosing `Panel.Body` the rail may occupy, and the callback ref that finds it.
@@ -40,19 +38,10 @@ export function useScrollerHeight(): [
         box.clientHeight -
         Number.parseFloat(cs.paddingBottom || "0");
       const scrollportTop = boxRect.top + box.clientTop + top;
-      const rowTop = node.getBoundingClientRect().top;
-      const railTop = Math.max(rowTop, scrollportTop);
-      const next = {
-        top,
-        height: Math.max(0, Math.round(bottom - railTop)),
-        room: Math.max(0, Math.round(bottom - (rowTop + box.scrollTop))),
-      };
+      const railTop = Math.max(node.getBoundingClientRect().top, scrollportTop);
+      const next = { top, height: Math.max(0, Math.round(bottom - railTop)) };
       setFrame((prev) =>
-        prev.top === next.top &&
-        prev.height === next.height &&
-        prev.room === next.room
-          ? prev
-          : next,
+        prev.top === next.top && prev.height === next.height ? prev : next,
       );
     };
     read();

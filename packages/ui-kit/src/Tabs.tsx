@@ -21,12 +21,7 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * @category Tabs
  */
 export interface TabDescriptor {
-  /**
-   * Stable identity for the tab, the value `activeId` and `onChange` carry.
-   * Falls back to `tab-` and the tab's position in the array (`tab-0`), which
-   * moves if the tabs are reordered, so give every tab an `id` when the
-   * selection is controlled.
-   */
+  /** Stable identity for the tab. Falls back to the tab's position in the array. */
   id?: string;
   /** The tab's name in the strip, and its panel's accessible name. */
   label: string;
@@ -104,7 +99,7 @@ export function shouldExpandTabs(
  * tabs are skipped. The strip tightens its spacing, then scrolls, when the
  * labels do not fit. With `expandWhenRoomy`, a container wide enough for every
  * enabled tab drops the strip and shows each panel side by side under its own
- * `h3` heading.
+ * heading.
  *
  * @example
  * ```tsx

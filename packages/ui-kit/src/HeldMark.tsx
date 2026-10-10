@@ -203,7 +203,6 @@ export interface HeldFigureProps extends HTMLAttributes<HTMLSpanElement> {
   kind?: MarkKind;
   /** The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the square or triangle emptied otherwise. */
   elsewhere?: boolean;
-  /** The figure the mark follows. */
   children: ReactNode;
 }
 

@@ -18,7 +18,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { declinedState } from "../shared/declinedState";
 import type { RailPrediction } from "./AltitudeRail";
-import { altitudeDecimals, GridCellPair, roundedHeight } from "./readouts";
+import { altitudeDecimals, GridCellPair } from "./readouts";
 
 /** The reading `vessel.flight` arrives as, spelled once so the readout and the widget body agree on the reckonable fields. */
 export type FlightReading = ReckonableReading<
@@ -90,12 +90,7 @@ export function seaLevelOnRail(
  * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear whenever the observation is not the craft's present: the reading is held, or a light-time behind SCET.
  */
 export function CarriedAltitude({ reading }: { reading: FlightReading }) {
-  const measured = readingOf(reading, (f) => f.altitudeAsl);
-  // A figure under half a metre is shown as no metres rather than in scientific notation.
-  const observed =
-    "value" in measured
-      ? { ...measured, value: roundedHeight(measured.value) }
-      : measured;
+  const observed = readingOf(reading, (f) => f.altitudeAsl);
   const decimals =
     "value" in observed ? altitudeDecimals(observed.value) : undefined;
   // The field reading, which carries its own band and carried figure.

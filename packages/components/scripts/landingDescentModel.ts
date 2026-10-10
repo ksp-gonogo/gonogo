@@ -15,23 +15,6 @@ export const START_LAT = 0.0;
 export const START_LON = 0.0;
 export const DEG = Math.PI / 180;
 
-/** Where a descent begins: height above the ground, and the speeds down and along it. */
-export interface DescentStart {
-  agl: number;
-  vDown: number;
-  vHoriz: number;
-}
-
-/** The default descent: from 8 km at about nine degrees below level. */
-const DEEP_DESCENT: DescentStart = { agl: 8000, vDown: 25, vHoriz: 160 };
-
-/** A shallow approach: 4 km up, under five degrees below level and slow enough for the engine to stop it, so most of the descent is spent travelling sideways. */
-export const SHALLOW_DESCENT: DescentStart = {
-  agl: 4000,
-  vDown: 8,
-  vHoriz: 100,
-};
-
 export interface Frame {
   t: number;
   aglMeters: number;
@@ -40,27 +23,9 @@ export interface Frame {
   lat: number;
   lon: number;
   burning: boolean;
-  /** While burning, the thrust's acceleration straight up and along the way of travel, m/s squared; the engines' own push, whatever the speeds do. */
-  thrustUp?: number;
-  thrustAlong?: number;
   /** True on the final touched-down frame (situation → Landed, all motion 0). */
   landed?: boolean;
 }
-
-/** The longest a descent is integrated, seconds: long enough for a soft approach to reach the ground. */
-const MAX_DESCENT_SECONDS = 900;
-
-/** The descent rate the profile settles to at the ground, m/s: under the half metre a second above which the widget calls a landing one no burn can make. */
-const TOUCHDOWN_SPEED = 0.3;
-
-/** The speed under which the craft has shed what it came with and eases down, m/s. */
-const SETTLE_SPEED = 4;
-
-/** How early the burn is lit before the solve says ignite, seconds. */
-const IGNITION_MARGIN_SECONDS = 3;
-
-/** How high the landing site stands above the body's datum, metres. */
-const SITE_ELEVATION_M = 120;
 
 /** Where a crashing descent lights its engine: far too low to shed the speed it has built up. */
 const CRASH_IGNITION_AGL = 700;
@@ -70,61 +35,18 @@ const CRASH_IGNITION_AGL = 700;
  * after a suicide burn; with `crash` it lights the engine too late, which at this
  * thrust cannot cancel the speed, and ends on the frame that meets the ground.
  */
-/** Seconds per step of the fine integration inside each second of the descent. */
-const SUBSTEP_S = 0.1;
-/** How much more deceleration than the stop needs the burn commands: the margin a pilot keeps. */
-const BURN_MARGIN = 1.2;
-
-/**
- * The push the engine gives this instant in a descent to a soft touchdown, as acceleration up and along the way of travel (negative along: against it).
- * Until the speed is nearly shed the thrust is held retrograde, against the velocity, at the throttle that stops the craft at the ground with a margin; a real landing burn is flown that way, and its exhaust points along the velocity. Once the speed is a few metres a second it eases down the last stretch on a vertical push.
- */
-function retroBurn(i: {
-  agl: number;
-  vDown: number;
-  vHoriz: number;
-  g: number;
-  aMax: number;
-  settled: boolean;
-  dt: number;
-}): { up: number; along: number; settled: boolean } {
-  const speed = Math.hypot(i.vDown, i.vHoriz);
-  const settled = i.settled || speed < SETTLE_SPEED;
-  if (settled) {
-    const target = TOUCHDOWN_SPEED + i.agl / 50;
-    const up = Math.min(i.aMax, Math.max(0, i.g + (i.vDown - target) / i.dt));
-    return {
-      up,
-      along: i.vHoriz > 0 ? -Math.min(0.5, i.vHoriz / i.dt) : 0,
-      settled,
-    };
-  }
-  // The share of the speed that is downward is how steeply the path falls: the ground is that much farther along it.
-  const steep = i.vDown / speed;
-  const path = i.agl / Math.max(steep, 0.15);
-  const stop =
-    Math.max(speed * speed - TOUCHDOWN_SPEED * TOUCHDOWN_SPEED, 0) /
-      (2 * path) +
-    i.g * steep;
-  const a = Math.min(i.aMax, stop * BURN_MARGIN);
-  return { up: (a * i.vDown) / speed, along: (-a * i.vHoriz) / speed, settled };
-}
-
-export function integrate(
-  opts: { crash?: boolean; start?: DescentStart } = {},
-): Frame[] {
+export function integrate(opts: { crash?: boolean } = {}): Frame[] {
   if (opts.crash) return integrateCrash();
-  const start = opts.start ?? DEEP_DESCENT;
-  let agl = start.agl; // m above terrain
-  let vDown = start.vDown; // m/s, descending
-  let vHoriz = start.vHoriz; // m/s, mostly-horizontal orbital leftover
+  const dt = 1;
+  let agl = 8000; // m above terrain
+  let vDown = 25; // m/s, descending
+  let vHoriz = 160; // m/s, mostly-horizontal orbital leftover
   const lat = START_LAT;
   let lon = START_LON;
   let committed = false; // once the suicide burn starts it stays on (no un-commit)
-  let settled = false; // the speed is shed and the craft is easing down the last stretch
   const frames: Frame[] = [];
 
-  for (let t = 0; t < MAX_DESCENT_SECONDS && agl > 0; t++) {
+  for (let t = 0; t < 300 && agl > 0; t++) {
     const r = R + agl;
     const g = MU / (r * r);
     const solution = solveSuicideBurn({
@@ -141,53 +63,34 @@ export function integrate(
     // solveSuicideBurn signals that with a zero countdown ("ignite now").
     // Latch it: a real suicide burn stays committed through touchdown rather
     // than un-committing into freefall the instant the solve says it fits again.
-    // Lit a few seconds early, as a pilot would: the countdown is read once a second, and a frame past zero is already a burn that is too late.
-    if (
-      solution.suicideBurnCountdown !== null &&
-      solution.suicideBurnCountdown <= IGNITION_MARGIN_SECONDS
-    ) {
-      committed = true;
-    }
+    if (solution.suicideBurnCountdown === 0) committed = true;
     const burning = committed;
 
+    frames.push({ t, aglMeters: agl, vDown, vHoriz, lat, lon, burning });
+
     const aMax = THRUST / MASS;
-    // The engine's push this instant: along the retrograde direction while the descent has speed to shed, so its exhaust points along the velocity.
-    const push = burning
-      ? retroBurn({ agl, vDown, vHoriz, g, aMax, settled, dt: SUBSTEP_S })
-      : null;
-    if (push?.settled) settled = true;
-
-    frames.push({
-      t,
-      aglMeters: agl,
-      vDown,
-      vHoriz,
-      lat,
-      lon,
-      burning,
-      ...(push ? { thrustUp: push.up, thrustAlong: push.along } : {}),
-    });
-
-    // One second in fine steps: the push is recomputed each step, so the path bends as the speed falls.
-    for (let s = 0; s < 1 / SUBSTEP_S && agl > 0; s++) {
-      const gNow = MU / (R + agl) ** 2;
-      const now = burning
-        ? retroBurn({
-            agl,
-            vDown,
-            vHoriz,
-            g: gNow,
-            aMax,
-            settled,
-            dt: SUBSTEP_S,
-          })
-        : null;
-      if (now?.settled) settled = true;
-      vDown = vDown + (gNow - (now?.up ?? 0)) * SUBSTEP_S;
-      vHoriz = Math.max(0, vHoriz + (now?.along ?? 0) * SUBSTEP_S);
-      lon += (vHoriz * SUBSTEP_S) / (R * Math.cos(lat * DEG)) / DEG;
-      agl -= vDown * SUBSTEP_S;
+    if (burning) {
+      // Guided suicide burn. Bleed horizontal velocity off GRADUALLY, tied to
+      // altitude (vHoriz ≤ agl·k), so the ground track converges on the site
+      // smoothly across the WHOLE descent instead of nulling lateral in the
+      // first few seconds and then sitting dead over the site. This is what
+      // makes the predicted-point drift shrink visibly frame-to-frame (the
+      // top-down current marker tracks in toward the centred site). Hold the
+      // descent rate on a constant-net-deceleration profile that reaches ~0 at
+      // the ground, easing to a gentle final approach so touchdown is soft.
+      vHoriz = Math.min(vHoriz, agl * 0.02);
+      let targetVDown = Math.sqrt(
+        2 * Math.max(0.1, aMax - g) * Math.max(agl, 0),
+      );
+      if (agl < 400) targetVDown = Math.min(targetVDown, 1.0 + agl / 100);
+      vDown = Math.min(vDown + g * dt, targetVDown);
+    } else {
+      vDown += g * dt; // freefall
     }
+    // Advance downrange (east) by the horizontal travel this step.
+    const eastMeters = vHoriz * dt;
+    lon += eastMeters / (R * Math.cos(lat * DEG)) / DEG;
+    agl -= vDown * dt;
     if (agl < 0) agl = 0;
   }
   // Touchdown: a final settled frame on the surface (all motion nulled). This is
@@ -216,10 +119,6 @@ function integrateCrash(): Frame[] {
   const aMax = THRUST / MASS;
   for (let t = 0; t < 300; t++) {
     const burning = agl < CRASH_IGNITION_AGL;
-    const speed = Math.hypot(vDown, vHoriz);
-    // Lit too late to stop, the engine still pushes straight against the velocity.
-    const up = burning && speed > 0 ? (aMax * vDown) / speed : 0;
-    const along = burning && speed > 0 ? (-aMax * vHoriz) / speed : 0;
     frames.push({
       t,
       aglMeters: agl,
@@ -228,11 +127,10 @@ function integrateCrash(): Frame[] {
       lat: START_LAT,
       lon,
       burning,
-      ...(burning ? { thrustUp: up, thrustAlong: along } : {}),
     });
     const g = MU / (R + agl) ** 2;
-    vDown = Math.max(0, vDown + g - up);
-    vHoriz = Math.max(0, vHoriz + along);
+    vDown = Math.max(0, vDown + (burning ? g - aMax : g));
+    if (burning) vHoriz = Math.max(0, vHoriz - aMax / 2);
     lon += vHoriz / (R * Math.cos(START_LAT * DEG)) / DEG;
     agl -= vDown;
     if (agl <= 0) {
@@ -244,7 +142,6 @@ function integrateCrash(): Frame[] {
         lat: START_LAT,
         lon,
         burning,
-        ...(burning ? { thrustUp: up, thrustAlong: along } : {}),
       });
       return frames;
     }
@@ -285,261 +182,51 @@ export function greatCircleMeters(
   return 2 * radius * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-/** The half angle of the cone the vessel sees the ground through; the mod's `LandingCone.HalfAngleDegrees`. */
-const CONE_HALF_ANGLE_DEG = 60;
-/** The farthest a footprint reaches in any case, metres; the mod's `LandingCone.AbsoluteMaxRangeMeters`. */
-const CONE_ABSOLUTE_MAX_RANGE_M = 100_000;
-
-/** Where a cone about the travel vector meets the ground, metres along the ground from beneath the vessel, positive ahead. */
-export interface ConeFootprint {
-  behind: number;
-  ahead: number;
-}
-
 /**
- * The footprint of a 60 degree half-angle cone about the vessel's travel vector: where its two edges, in the plane of motion, meet flat ground, with a ray that never does cut at the horizon.
- * Mirrors `LandingCone.FootprintOf`.
- */
-export function coneFootprint(
-  heightMeters: number,
-  descentRate: number,
-  horizontalSpeed: number,
-  bodyRadius: number,
-): ConeFootprint {
-  const height = Math.max(0, Number.isFinite(heightMeters) ? heightMeters : 0);
-  const down = Number.isFinite(descentRate) ? descentRate : 0;
-  const along = Math.max(
-    0,
-    Number.isFinite(horizontalSpeed) ? horizontalSpeed : 0,
-  );
-  const axis =
-    down === 0 && along === 0 ? 90 : (Math.atan2(down, along) * 180) / Math.PI;
-  const horizon =
-    bodyRadius > 0
-      ? Math.sqrt(2 * bodyRadius * height + height * height)
-      : CONE_ABSOLUTE_MAX_RANGE_M;
-  const max = Math.min(horizon, CONE_ABSOLUTE_MAX_RANGE_M);
-  const reach = (angle: number): number => {
-    if (angle <= 0) return max;
-    if (angle >= 180) return -max;
-    return Math.max(-max, Math.min(max, height / Math.tan(angle * DEG)));
-  };
-  return {
-    behind: reach(axis + CONE_HALF_ANGLE_DEG),
-    ahead: reach(axis - CONE_HALF_ANGLE_DEG),
-  };
-}
-
-/** The least ground the strip holds either side of the point beneath the vessel, metres; the mod's `LandingGroundTrack.MinMarginMeters`. */
-const TRACK_MIN_MARGIN_M = 120;
-/** How much of the site's distance the strip carries past the site; the mod's `LandingGroundTrack.SiteReachFraction`. */
-const TRACK_SITE_REACH = 0.1;
-
-/**
- * The stretch of ground the strip covers: the cone's footprint widened to hold the ground beneath the vessel with a margin of one vessel height behind it, and the site with a tenth of its distance beyond.
- * Mirrors `LandingGroundTrack.Extent`.
- */
-export function trackExtent(
-  footprintBehind: number,
-  footprintAhead: number,
-  heightMeters: number,
-  siteAheadMeters: number,
-): ConeFootprint {
-  const height = Math.max(0, Number.isFinite(heightMeters) ? heightMeters : 0);
-  const site = Number.isFinite(siteAheadMeters) ? siteAheadMeters : 0;
-  const margin = Math.max(height, TRACK_MIN_MARGIN_M);
-  const reach = Math.abs(site) * TRACK_SITE_REACH;
-  return {
-    behind: Math.min(footprintBehind, footprintAhead, -Math.max(margin, reach)),
-    ahead: Math.max(
-      footprintBehind,
-      footprintAhead,
-      margin,
-      site * (1 + TRACK_SITE_REACH),
-    ),
-  };
-}
-
-/**
- * Where along the track the mod reads terrain: even steps across the cone's footprint, the point beneath the vessel being distance 0, widened to 200 m about its middle if it is shorter.
+ * Where along the track the mod reads terrain: even steps from beneath the vessel to a quarter of the way again past the site, never shorter than 200 m.
  * Mirrors `LandingGroundTrack.Distances`.
  */
-export function groundTrackDistances(
-  behindMeters: number,
-  aheadMeters: number,
-): number[] {
-  let behind = Math.min(behindMeters, aheadMeters);
-  let ahead = Math.max(behindMeters, aheadMeters);
-  const shortfall = 200 - (ahead - behind);
-  if (shortfall > 0) {
-    behind -= shortfall / 2;
-    ahead += shortfall / 2;
-  }
-  const extent = ahead - behind;
+export function groundTrackDistances(driftMeters: number): number[] {
+  const toSite =
+    Number.isFinite(driftMeters) && driftMeters > 0 ? driftMeters : 0;
+  const extent = Math.max(200, toSite + Math.max(100, toSite * 0.25));
   return Array.from(
     { length: GROUND_TRACK_SAMPLES },
-    (_, i) => behind + (extent * i) / (GROUND_TRACK_SAMPLES - 1),
+    (_, i) => (extent * i) / (GROUND_TRACK_SAMPLES - 1),
   );
 }
 
-/** Points along each side of the site grid; the mod's `LandingSiteGrid.Size`. */
-export const SITE_GRID_SIZE = 24;
-
-/** The half width of the touchdown plot's window at touchdown, as the plot draws it; `MIN_HALF_SPAN_M` and `SPAN_PADDING` in `touchdownReticlePlot.ts`. */
-const WINDOW_MIN_HALF_M = 50 * 1.4;
-/** How much the window's half width grows per metre of the craft's height; `HALF_SPAN_PER_HEIGHT` in `touchdownReticlePlot.ts`. */
-const WINDOW_HALF_PER_HEIGHT = 0.9;
-/** The window's room around the craft and the site, as a multiple of half their distance. */
-const WINDOW_SITE_PADDING = 1.4;
-
-/**
- * Half the site grid's width: enough to hold the whole window the touchdown plot draws, never less than 60 m. The window is centred between the craft and the site, so it reaches half the distance to the craft plus its own half width from the site.
- * Mirrors `LandingSiteGrid.HalfExtentMeters`.
- */
-export function siteGridHalfExtent(
-  siteAheadMeters: number,
-  heightMeters: number,
-): number {
-  const site = Math.abs(siteAheadMeters);
-  const half = Math.max(
-    WINDOW_MIN_HALF_M + Math.max(0, heightMeters) * WINDOW_HALF_PER_HEIGHT,
-    (site / 2) * WINDOW_SITE_PADDING,
+/** Relief along the ground track, metres relative to the site, as a function of metres downrange of the site: broad swells with finer ones on them. */
+function relief(downrangeOfSite: number): number {
+  return (
+    60 * Math.sin(downrangeOfSite / 1800) +
+    25 * Math.sin(downrangeOfSite / 430 + 1) +
+    6 * Math.sin(downrangeOfSite / 70)
   );
-  return Math.max(60, (site / 2 + half) * 1.1);
 }
 
-/** Height of the ground, metres relative to the site, at a point this many metres east and north of it; `cell` is the width of ground the sample stands for, so a relief can leave out detail finer than that. */
-export type Relief = (east: number, north: number, cell?: number) => number;
-
-/** One swell of the stock relief: its height and how fast it rises per metre east and north. */
-interface Swell {
-  amplitude: number;
-  perMetreEast: number;
-  perMetreNorth: number;
-  phase: number;
-}
-
-const DEFAULT_SWELLS: readonly Swell[] = [
-  // Broad: tens of kilometres across, in several directions so the ground is hills and basins rather than parallel ridges.
-  {
-    amplitude: 120,
-    perMetreEast: 1 / 12_000,
-    perMetreNorth: 1 / 9_000,
-    phase: 0.5,
-  },
-  {
-    amplitude: 90,
-    perMetreEast: -1 / 8_000,
-    perMetreNorth: 1 / 11_000,
-    phase: 2.1,
-  },
-  {
-    amplitude: 70,
-    perMetreEast: 1 / 5_500,
-    perMetreNorth: -1 / 7_000,
-    phase: 4.0,
-  },
-  {
-    amplitude: 50,
-    perMetreEast: 1 / 4_000,
-    perMetreNorth: 1 / 3_200,
-    phase: 1.3,
-  },
-  // Middling: a few kilometres.
-  {
-    amplitude: 40,
-    perMetreEast: -1 / 2_300,
-    perMetreNorth: 1 / 1_900,
-    phase: 5.0,
-  },
-  {
-    amplitude: 60,
-    perMetreEast: 1 / 1_800,
-    perMetreNorth: 1 / 2_600,
-    phase: 0,
-  },
-  { amplitude: 25, perMetreEast: 1 / 430, perMetreNorth: 1 / 650, phase: 1 },
-  // Fine: tens of metres, seen only close to the ground.
-  { amplitude: 3, perMetreEast: 1 / 70, perMetreNorth: 1 / 90, phase: 0 },
-  { amplitude: 3, perMetreEast: 1 / 70, perMetreNorth: -1 / 90, phase: 0 },
-];
-
-/**
- * How much of a swell survives being read over a `cell` of ground: all of one much wider than the cell, none of one only a few cells across.
- * A swell the spacing cannot resolve would otherwise alias into noise, which real terrain read at a coarse spacing does not.
- */
-const resolved = (perMetre: number, cell: number): number =>
-  Math.exp(-(((perMetre * cell) / 1.2) ** 2));
-
-/**
- * The relief of the stock descent: broad swells with finer ones on them, in both directions.
- * Each swell fades out where the `cell` of ground a sample stands for is too coarse to show it, so the ground is smooth at every spacing.
- */
-export const DEFAULT_RELIEF: Relief = (east, north, cell = 0) =>
-  DEFAULT_SWELLS.reduce(
-    (sum, w) =>
-      sum +
-      w.amplitude *
-        resolved(w.perMetreEast, cell) *
-        resolved(w.perMetreNorth, cell) *
-        Math.sin(w.perMetreEast * east + w.perMetreNorth * north + w.phase),
-    0,
-  );
-
-/** Elevations at the strip's distances, the track running east: fixed in the world, so the same ground is read again each frame, and passing through the site's own elevation at the site. */
+/** Elevations at the strip's distances: fixed in the world, so the same ground is read again each frame, and passing through the site's own elevation at the site. */
 export function groundTrackElevations(
   distances: readonly number[],
   driftMeters: number,
   siteElevation: number,
-  relief: Relief = DEFAULT_RELIEF,
 ): number[] {
-  const spacing = distances.length > 1 ? distances[1] - distances[0] : 0;
   return distances.map(
-    (d) =>
-      siteElevation +
-      relief(d - driftMeters, 0, spacing) -
-      relief(0, 0, spacing),
+    (d) => siteElevation + relief(d - driftMeters) - relief(0),
   );
 }
 
-/** The site grid's heights, row by row from the northern row, west to east, around the site. */
-export function siteGridHeights(
-  halfExtentMeters: number,
-  siteElevation: number,
-  relief: Relief = DEFAULT_RELIEF,
-): number[] {
-  const cell = (2 * halfExtentMeters) / SITE_GRID_SIZE;
-  const heights: number[] = [];
-  for (let row = 0; row < SITE_GRID_SIZE; row++) {
-    const north = halfExtentMeters - (row + 0.5) * cell;
-    for (let col = 0; col < SITE_GRID_SIZE; col++) {
-      const east = -halfExtentMeters + (col + 0.5) * cell;
-      heights.push(
-        siteElevation + relief(east, north, cell) - relief(0, 0, cell),
-      );
-    }
-  }
-  return heights;
-}
-
-/**
- * How far ahead of the craft the ground is met if the engine is cut now and only gravity acts, metres: what the mod predicts, a walk of the current conic to the surface, whether or not a burn is lit. Under a burn the point therefore walks back toward the craft as the burn sheds the speed, and it never jumps when the engine lights, since the speeds it is read from do not.
- */
-export function ballisticDrift(
-  aglMeters: number,
-  vDown: number,
-  vHoriz: number,
-  g: number,
-): number {
-  const fall =
-    (-vDown + Math.sqrt(vDown * vDown + 2 * g * Math.max(0, aglMeters))) / g;
-  return vHoriz * fall;
-}
-
-/** The predicted touchdown point: the current point plus the travel to the ballistic impact. Exported for the convergence guard test (predicted to actual touchdown as agl falls to 0). */
+/** The predicted touchdown point: current point + remaining downrange travel.
+ * Exported for the convergence guard test (predicted → actual touchdown as
+ * agl → 0). */
 export function predictedPoint(f: Frame): { lat: number; lon: number } {
+  const vSurf = Math.sqrt(f.vDown * f.vDown + f.vHoriz * f.vHoriz);
   const g = MU / (R + f.aglMeters) ** 2;
-  const downrange = ballisticDrift(f.aglMeters, f.vDown, f.vHoriz, g);
+  const tImpact =
+    vSurf > 0
+      ? (-f.vDown + Math.sqrt(f.vDown ** 2 + 2 * g * f.aglMeters)) / g
+      : 0;
+  const downrange = f.vHoriz * tImpact * 0.5; // ~mean horizontal travel to impact
   const dLon = downrange / (R * Math.cos(f.lat * DEG)) / DEG;
   return { lat: f.lat, lon: f.lon + dLon };
 }
@@ -549,8 +236,7 @@ export function predictedPoint(f: Frame): { lat: number; lon: number } {
  * A frame with no motion is a rectilinear fall; its eccentricity is held just under 1 so the conic stays an ellipse.
  */
 export function orbitFor(f: Frame, epoch: number): Record<string, unknown> {
-  // Measured from the body's centre: the datum plus the site's height plus the height above it.
-  const r = R + SITE_ELEVATION_M + f.aglMeters;
+  const r = R + f.aglMeters;
   const theta = f.lon * DEG;
   const vr = -f.vDown;
   const vt = f.vHoriz;
@@ -591,24 +277,6 @@ export function orbitFor(f: Frame, epoch: number): Record<string, unknown> {
   };
 }
 
-/**
- * Where the nose points: along the thrust while the engines are lit, and retrograde (against the velocity) while they are not, which is how a lander is flown to a burn. Pitch is degrees above the horizon and heading degrees clockwise from north, with the descent travelling east.
- */
-function attitudeFor(f: Frame): Record<string, number> {
-  const up = f.thrustUp ?? f.vDown;
-  const along = f.thrustAlong ?? -f.vHoriz;
-  const pitch = Math.atan2(up, Math.abs(along)) / DEG;
-  const heading = along < 0 ? 270 : 90;
-  return {
-    pitch,
-    heading,
-    roll: 0,
-    pitchRootFrame: pitch,
-    headingRootFrame: heading,
-    rollRootFrame: 0,
-  };
-}
-
 export function channelsFor(
   f: Frame,
   oneWaySeconds: number,
@@ -617,15 +285,11 @@ export function channelsFor(
   const terrain = terrainFor(f.aglMeters);
   const pp = predictedPoint(f);
   const drift = (pp.lon - f.lon) * DEG * R * Math.cos(f.lat * DEG);
-  const footprint = coneFootprint(f.aglMeters, f.vDown, f.vHoriz, R);
-  const extent = trackExtent(
-    footprint.behind,
-    footprint.ahead,
-    f.aglMeters,
-    drift,
-  );
-  const distances = groundTrackDistances(extent.behind, extent.ahead);
-  const halfExtent = siteGridHalfExtent(drift, f.aglMeters);
+  const distances = groundTrackDistances(drift);
+  const track = {
+    distances,
+    elevations: groundTrackElevations(distances, drift, 120),
+  };
   return {
     "system.bodies": {
       bodies: [
@@ -646,8 +310,7 @@ export function channelsFor(
     "vessel.flight": {
       latitude: f.lat,
       longitude: f.lon,
-      // The ground here stands 120 m above the datum, so the height above sea level is that more than the height above the ground.
-      altitudeAsl: f.aglMeters + SITE_ELEVATION_M,
+      altitudeAsl: f.aglMeters,
       altitudeTerrain: f.aglMeters,
       verticalSpeed: -f.vDown,
       surfaceSpeed: vSurf,
@@ -662,13 +325,9 @@ export function channelsFor(
     "vessel.propulsion": {
       totalMass: MASS,
       dryMass: 3,
-      // The push the engines are giving: the thrust the model spent this second, which is less than full when only a little is needed.
-      currentThrust: f.burning
-        ? Math.hypot(f.thrustUp ?? THRUST / MASS, f.thrustAlong ?? 0) * MASS
-        : 0,
+      currentThrust: f.burning ? THRUST : 0,
       availableThrust: THRUST,
     },
-    "vessel.attitude": attitudeFor(f),
     "vessel.control": { gear: f.aglMeters < 1500, brakes: false },
     "dv.summary": { totalDvActual: 900, totalDvVac: 950 },
     "comms.delay": { source: 1, oneWaySeconds },
@@ -677,22 +336,15 @@ export function channelsFor(
       sampleSource: "predicted",
       predictedLatitude: pp.lat,
       predictedLongitude: pp.lon,
-      predictedTerrainElevation: SITE_ELEVATION_M,
+      predictedTerrainElevation: 120,
       predictedSlopeAngle: terrain.slope,
       predictedSlopeHeading: terrain.heading,
       predictedRoughness: terrain.roughness,
       roughnessFootprintMeters: 100,
       slopeSampleRadiusMeters: 100,
       predictedBiome: terrain.biome,
-      groundTrackDistances: distances,
-      groundTrackElevations: groundTrackElevations(
-        distances,
-        drift,
-        SITE_ELEVATION_M,
-      ),
-      siteHeights: siteGridHeights(halfExtent, SITE_ELEVATION_M),
-      siteHeightsSize: SITE_GRID_SIZE,
-      siteHeightsExtentMeters: 2 * halfExtent,
+      groundTrackDistances: track.distances,
+      groundTrackElevations: track.elevations,
     },
   };
 }
@@ -704,7 +356,6 @@ export const EMITTED = [
   "vessel.flight",
   "vessel.surface",
   "vessel.propulsion",
-  "vessel.attitude",
   "vessel.control",
   "dv.summary",
   "comms.delay",

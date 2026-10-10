@@ -1,12 +1,13 @@
 /**
- * The landing-site hazard verdict: SAFE / MARGINAL / DIVERT, telemetry alerting and never GO/NO-GO. Worst band wins across three axes. It judges every descent by the speed it will touch down at, and knows nothing of what the craft is (an engine, a parachute, whether it floats) or of what the surface is made of:
+ * The landing-site hazard verdict: SAFE / MARGINAL / DIVERT, telemetry alerting and never GO/NO-GO. Worst band wins across four axes, and a liquid surface forces DIVERT:
  *
- * | axis              | SAFE | MARGINAL | DIVERT | anchor                       |
- * | slope (deg)       | <=5  | 5-15     | >15    | Apollo LM 12-degree limit    |
- * | roughness (sigma) | A/B  | C        | F      | shared roughness grade       |
- * | touchdown (m/s)   | <=2  | 2-6      | >6     | stock modal crashTolerance   |
+ * | axis            | SAFE | MARGINAL | DIVERT | anchor                       |
+ * | slope (deg)     | <=5  | 5-15     | >15    | Apollo LM 12-degree limit    |
+ * | roughness (sigma)| A/B | C        | F      | shared roughness grade       |
+ * | vertical (m/s)  | <=2  | 2-6      | >6     | stock modal crashTolerance   |
+ * | lateral (m/s)   | <=1  | 1-3      | >3     | tip-over torque              |
  *
- * Slope and touchdown speed are per-instance tunable. A null verdict means no axis had data (unknown, not SAFE).
+ * Slope, vertical and lateral are per-instance tunable. A null verdict means no axis had data (unknown, not SAFE).
  */
 
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -21,12 +22,14 @@ export type Hazard = "SAFE" | "MARGINAL" | "DIVERT";
 /** `[safeMax, marginalMax]` per axis as quantities, so readings compare in the algebra with the unit checked. */
 export interface HazardThresholds {
   slope: readonly [Value<"°">, Value<"°">];
-  touchdown: readonly [Value<"m/s">, Value<"m/s">];
+  vertical: readonly [Value<"m/s">, Value<"m/s">];
+  lateral: readonly [Value<"m/s">, Value<"m/s">];
 }
 
 export const DEFAULT_HAZARD_THRESHOLDS: HazardThresholds = {
   slope: [value("°", 5), value("°", 15)],
-  touchdown: [value("m/s", 2), value("m/s", 6)],
+  vertical: [value("m/s", 2), value("m/s", 6)],
+  lateral: [value("m/s", 1), value("m/s", 3)],
 };
 
 export interface HazardInputs {
@@ -34,14 +37,18 @@ export interface HazardInputs {
   slopeDeg?: number | null;
   /** Terrain-height standard deviation at the site, metres. */
   roughnessSigma?: number | null;
-  /** The speed the craft will touch down at, m/s: the best the descent can do from here. */
-  touchdownSpeed?: number | null;
+  /** Descent speed, m/s (down-positive). */
+  verticalSpeed?: number | null;
+  /** Lateral (horizontal) speed, m/s. */
+  lateralSpeed?: number | null;
+  /** Biome at the site: a liquid-surface biome forces DIVERT. */
+  biome?: string | null;
 }
 
 export interface HazardAxis {
-  axis: "slope" | "roughness" | "touchdown";
+  axis: "slope" | "roughness" | "vertical" | "lateral" | "biome";
   band: Hazard;
-  /** Short human note, e.g. "slope 18°". */
+  /** Short human note, e.g. "slope 18°" or "landing on water". */
   detail: string;
 }
 
@@ -50,14 +57,6 @@ export interface HazardResult {
   verdict: Hazard | null;
   /** Per-axis bands that contributed, worst first. */
   axes: HazardAxis[];
-}
-
-/** The band a touchdown speed falls in: the verdict's own rule, which the descent envelope's urgency also uses, so the two cannot disagree. A speed exactly on a boundary falls in the safer band. */
-export function touchdownBand(
-  speed: number,
-  thresholds: HazardThresholds = DEFAULT_HAZARD_THRESHOLDS,
-): Hazard {
-  return bandOf(value("m/s", speed).abs(), thresholds.touchdown);
 }
 
 function bandOf<Unit extends string>(
@@ -79,6 +78,12 @@ function roughnessBand(badge: RoughnessBadge): Hazard {
   if (badge === "A" || badge === "B") return "SAFE";
   if (badge === "C") return "MARGINAL";
   return "DIVERT";
+}
+
+/** True for a liquid-surface biome (Kerbin "Water", "Shores"/ocean variants). */
+function isWaterBiome(biome: string): boolean {
+  const b = biome.toLowerCase();
+  return b.includes("water") || b.includes("ocean");
 }
 
 export function deriveHazardVerdict(
@@ -103,13 +108,25 @@ export function deriveHazardVerdict(
       detail: `roughness ${grade.label}`,
     });
   }
-  if (inputs.touchdownSpeed != null && Number.isFinite(inputs.touchdownSpeed)) {
-    const speed = value("m/s", inputs.touchdownSpeed);
+  if (inputs.verticalSpeed != null && Number.isFinite(inputs.verticalSpeed)) {
+    const descent = value("m/s", inputs.verticalSpeed);
     axes.push({
-      axis: "touchdown",
-      band: bandOf(speed, thresholds.touchdown),
-      detail: `touchdown ${writeQuantity(speed.abs(), { decimals: 1 })}`,
+      axis: "vertical",
+      band: bandOf(descent, thresholds.vertical),
+      detail: `descent ${writeQuantity(descent.abs(), { decimals: 1 })}`,
     });
+  }
+  if (inputs.lateralSpeed != null && Number.isFinite(inputs.lateralSpeed)) {
+    const lateral = value("m/s", inputs.lateralSpeed);
+    axes.push({
+      axis: "lateral",
+      band: bandOf(lateral, thresholds.lateral),
+      detail: `lateral ${writeQuantity(lateral.abs(), { decimals: 1 })}`,
+    });
+  }
+  // Hard override: a liquid surface is DIVERT regardless of the numbers.
+  if (inputs.biome && isWaterBiome(inputs.biome)) {
+    axes.push({ axis: "biome", band: "DIVERT", detail: "liquid surface" });
   }
 
   if (axes.length === 0) return { verdict: null, axes };

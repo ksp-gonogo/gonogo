@@ -289,13 +289,13 @@ function UnitSymbol({
  *
  * With `reckoned`, a reading with a model draws the model's figure and marks it modelled (a blue triangle) wherever it is not a reading of now.
  *
- * The mark is out of flow, so a column never reflows when a channel goes quiet, and it is not a live region: a widget that wants the change announced wraps its readout in `role="status"`. Without `reckoned` it never draws a reckoned figure, so a modelled value never passes for an observed one; do not pull a figure out of a reading's reckoning and hand it to a plain `Unit`.
+ * The mark is out of flow, so a column never reflows when a channel goes quiet, and it is not a live region: a widget that wants the change announced wraps its readout in `role="status"`. Without `reckoned` it never draws a reckoned figure.
  *
  * A held reading whose model publishes an {@link UncertaintyBand} also shows the interval (`1 km ± 0.025 km`, `1 km (0.97 to 1.03 km)`, `1 km (~1.2 km)`). A current reading shows none, and a band in another unit draws nothing.
  *
- * The symbol is sized relative to the text around it (never below 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. A symbol that attaches to the number (`22°`, but `22 °C`) is set with no space and keeps full size: the plane-angle marks and the currency marks. Every symbol is replaced in the accessibility tree by its spoken word.
+ * The symbol is sized relative to the text around it (never below 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
  *
- * `<Unit>` is the way to put a quantity on screen as a React node. Where only text is accepted (an SVG `<text>`, a tooltip, a canvas), write it with {@link writeQuantity} instead. Hand it the value as it arrived (SI, never pre-scaled) and let it choose the unit; pin one with `format` or convert with `as` only where convention calls for it.
+ * `<Unit>` is the one way to put a quantity on screen. Hand it the value as it arrived (SI, never pre-scaled) and let it choose the unit; pin one with `format` or convert with `as` only where convention calls for it.
  *
  * @example
  * ```tsx
@@ -320,12 +320,10 @@ function UnitSymbol({
  *
  * @category Unit
  * @categoryDescription Unit
- * Drawing a quantity. A {@link Unit} puts a value with its unit on screen,
- * formatted the same way everywhere, and every number with a unit is drawn
- * through one. Around it sit the marks for a figure that is held or modelled
- * instead of current, the bands for a figure known only within limits, the
- * null token for no value, and the helpers that write a quantity as text where
- * a node will not do.
+ * Drawing a quantity: a value with its unit, formatted the same way everywhere,
+ * marked when it is held or reckoned instead of current, with bands for a
+ * figure known only within limits and the null token for no value. Every number
+ * with a unit is drawn through a {@link Unit}.
  */
 export function Unit<UnitSymbol extends string = string>({
   value,

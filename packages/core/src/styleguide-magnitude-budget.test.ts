@@ -204,7 +204,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // for the relief, and the dispersion zone, which is not on the wire at all:
   // it is a horizontal-travel estimate that needs the speed, the time to impact
   // and, in vacuum, a surface gravity backed out of mu and the radius.
-  "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 16,
+  "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 17,
   /*
    * 3: the burn's first post-burn patch drawn as the planned conic. A
    * `ProjectedOrbit` is plain numbers because core's maneuver solver computes

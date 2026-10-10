@@ -21,7 +21,6 @@ import { bare, vecMagnitude } from "../shared/dockAngles";
 import { bodyAtIndex } from "../shared/streamBody";
 import { useBodyName } from "../shared/useBodyName";
 import { deriveBoard, type LandingBoard } from "./board";
-import { isBurning } from "./burnEffect";
 import { deriveActiveBurnParams } from "./burnParams";
 import type { FlightReading } from "./CarriedAltitude";
 import {
@@ -33,7 +32,6 @@ import { greatCircle } from "./geo";
 import { isGroundedSituation } from "./grounded";
 import { deriveHazardVerdict, type HazardResult } from "./hazardVerdict";
 import { type LandingSolution, solveSuicideBurn } from "./solveLanding";
-import { widenTrendDomain } from "./trendDomain";
 
 const DESCENT_HISTORY_MAX = 60;
 
@@ -71,15 +69,7 @@ export interface LandingModel {
   aglReading: Reading<Value<"m">>;
   siteDrift: ReturnType<typeof greatCircle> | null;
   hazardVerdict: HazardResult;
-  /** True while the engines are lit, from a reading of now. */
-  burning: boolean;
-  /** Whether the craft has an engine to burn: it reports thrust available. */
-  engine: boolean;
   descentHistory: number[];
-  /** The scale the trend is drawn on: the widest the vertical speed has been, with zero in it. */
-  descentDomain: [number, number] | null;
-  /** The speed the craft was last seen moving at before it touched down, m/s, kept once it is down: the touchdown speed, not the zero every speed reads on the ground. */
-  touchdownSpeed: number | null;
 }
 
 export function useLandingModel(): LandingModel {
@@ -197,11 +187,10 @@ export function useLandingModel(): LandingModel {
       ? readingOf(surfaceReading, (s) => s.heightFromTerrain ?? undefined)
       : readingOf(flightReading, (f) => f.altitudeTerrain);
 
-  const verticalSpeedMps = flight?.verticalSpeed?.magnitude;
   const solution = solveSuicideBurn({
     heightFromTerrain: heightFromTerrain?.magnitude,
     altitudeAsl: flight?.altitudeAsl?.magnitude,
-    verticalSpeed: verticalSpeedMps,
+    verticalSpeed: flight?.verticalSpeed?.magnitude,
     surfaceSpeed: flight?.surfaceSpeed?.magnitude,
     mu: orbit?.mu?.magnitude,
     bodyRadius: body?.radius,
@@ -246,13 +235,9 @@ export function useLandingModel(): LandingModel {
 
   // A bounded vertical-speed history, so a developing over-speed reads as a trend.
   const [descentHistory, setDescentHistory] = useState<number[]>([]);
-  const [descentDomain, setDescentDomain] = useState<[number, number] | null>(
-    null,
-  );
-  const currentVs = verticalSpeedMps;
+  const currentVs = flight?.verticalSpeed?.magnitude;
   useEffect(() => {
     if (currentVs == null || !Number.isFinite(currentVs)) return;
-    setDescentDomain((d) => widenTrendDomain(d, currentVs));
     setDescentHistory((h) => {
       const next = [...h, currentVs];
       return next.length > DESCENT_HISTORY_MAX
@@ -261,29 +246,14 @@ export function useLandingModel(): LandingModel {
     });
   }, [currentVs]);
 
-  // The speed it came down at, held once it is down: the last speed seen while it was still moving.
-  const speedNow =
-    solution.verticalSpeed != null
-      ? Math.hypot(solution.verticalSpeed, solution.horizontalSpeed ?? 0)
-      : null;
-  const [heldSpeed, setHeldSpeed] = useState<number | null>(null);
-  useEffect(() => {
-    if (!landed && speedNow != null && Number.isFinite(speedNow)) {
-      setHeldSpeed(speedNow);
-    }
-  }, [landed, speedNow]);
-
   // `no-path` is not live: with no comms telemetry at all the hero must not claim the loop is closed.
   const live = clocks.regime === "live";
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle?.magnitude,
     roughnessSigma: landing?.predictedRoughness?.magnitude,
-    // The speed it will touch down at: the atmosphere's own projection where there is one, else the best burn's (or, with no engine, the coast).
-    touchdownSpeed: landed
-      ? (heldSpeed ?? undefined)
-      : atmospheric
-        ? landing?.projectedTouchdownSpeed?.magnitude
-        : (solution.bestSpeedAtImpact ?? solution.speedAtImpact),
+    verticalSpeed: solution.verticalSpeed,
+    lateralSpeed: solution.horizontalSpeed,
+    biome: landing?.predictedBiome,
   });
   // Sub-vessel to predicted site: the bearing slices the cross-section, the distance is the downrange readout.
   const siteDrift =
@@ -327,14 +297,6 @@ export function useLandingModel(): LandingModel {
     aglReading,
     siteDrift,
     hazardVerdict,
-    burning: isBurning(propulsionReading),
-    // Nothing has arrived yet is not a craft without an engine: only a flight with no thrust to give, or no propulsion reported beside it, is.
-    engine:
-      propulsion === undefined
-        ? flight === undefined
-        : propulsion.availableThrust.isPositive(),
     descentHistory,
-    descentDomain,
-    touchdownSpeed: heldSpeed,
   };
 }

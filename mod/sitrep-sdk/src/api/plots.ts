@@ -107,13 +107,6 @@ export interface PlotFrame {
    * it.
    */
   hideXAxis?: boolean;
-  /**
-   * How far apart the dots of a `"spatial"` plot's background lattice sit,
-   * as a multiple of the usual gap, so the lattice can carry the scale: a plot
-   * that is zoomed out draws its dots close together and spreads them as it
-   * zooms in. Clamped to 0.5 to 2; omitted means 1.
-   */
-  gridScale?: number;
 }
 
 /**

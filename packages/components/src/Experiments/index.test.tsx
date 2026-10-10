@@ -374,43 +374,4 @@ describe("sumExperimentDataAmount", () => {
       ]),
     ).toBe(5);
   });
-
-  it("filters on the experiment's title as well as its id and part", async () => {
-    const fixture = newFixture();
-    renderOfficer(fixture);
-    act(() => {
-      fixture.emit("science.instruments", [
-        {
-          partId: "1",
-          partName: "2HOT Thermometer",
-          experimentId: "temperatureScan",
-          title: "Temperature Scan",
-          deployed: false,
-          inoperable: false,
-          rerunnable: true,
-          dataIsCollectable: false,
-        },
-        {
-          partId: "2",
-          partName: "Mystery Goo Unit",
-          experimentId: "mysteryGoo",
-          title: "Mystery Goo Observation",
-          deployed: false,
-          inoperable: false,
-          rerunnable: false,
-          dataIsCollectable: false,
-        },
-      ]);
-    });
-    await waitFor(() =>
-      expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument(),
-    );
-    await userEvent.type(
-      screen.getByPlaceholderText("Filter instruments..."),
-      "Temperature Scan",
-    );
-    expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument();
-    expect(screen.queryByText("Mystery Goo Unit")).not.toBeInTheDocument();
-    await drained();
-  });
 });

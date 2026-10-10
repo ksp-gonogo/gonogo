@@ -240,14 +240,9 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
  *
  * `titleRight` is not `right`: `titleRight` holds badges on the name's line and
  * wraps under the name when narrow, while `right` sits beside the whole body
- * and drops below it when narrow. The parts are there for a record that needs
- * its own composition but the same type and spacing:
- *
- *   - `Block.Title`: the heading text, sized and weighted as the `title` prop is
- *   - `Block.TitleRow`: the title's line, holding `left`, the title and `right` badges
- *   - `Block.Body`: the figures under the title
- *   - `Block.Aside`: content beside or below the body (the `left`, `right`, `top` and `bottom` props)
- *   - `Block.Footer`: the line of actions at the foot
+ * and drops below it when narrow. The parts (`Block.Title`, `Block.TitleRow`,
+ * `Block.Body`, `Block.Aside`, `Block.Footer`) are there for a record that
+ * needs its own composition but the same type and spacing.
  *
  * @example
  * ```tsx

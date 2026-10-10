@@ -21,7 +21,6 @@ export interface ModelledQuantityAlongsideProps<UnitSymbol extends string> {
   observed: Value<UnitSymbol> | null | undefined;
   /** The model's figure; nothing is drawn without one. */
   modelled: Value<UnitSymbol> | null | undefined;
-  /** Absent in this form: a `Value` pair is written by {@link Unit}, so no writer is given. */
   write?: undefined;
 }
 

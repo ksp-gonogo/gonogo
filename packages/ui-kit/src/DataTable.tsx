@@ -51,19 +51,8 @@ export interface DataTableColumnBase {
  */
 export type DataTableColumn<Row> = DataTableColumnBase &
   (
-    | {
-        /** Draws the cell yourself. Give this or `value`, never both. */
-        render: (row: Row) => ReactNode;
-        value?: never;
-      }
-    | {
-        /**
-         * The cell's figure, drawn through {@link Unit}: a whole `Reading`, or
-         * a `value()` of a unit and a number. Give this or `render`, never both.
-         */
-        value: (row: Row) => UnitValue | null | undefined;
-        render?: never;
-      }
+    | { render: (row: Row) => ReactNode; value?: never }
+    | { value: (row: Row) => UnitValue | null | undefined; render?: never }
   );
 
 /** A cell's content, from whichever of the two the column gives. */
@@ -113,7 +102,6 @@ export interface DataTableProps<Row> {
    * where per-row controls and augment slots go, so the columns stay aligned.
    */
   rowDetail?: (row: Row) => ReactNode;
-  /** A class for the table's outer wrapper, so a styled-component can extend it. */
   className?: string;
 }
 
@@ -129,17 +117,7 @@ export interface DataTableProps<Row> {
  * @example
  * ```tsx
  * // `"Mit"` is the unit KSP measures science data in, and `"science"` is
- * // science points; any unit symbol `value()` accepts works the same way.
- * import { type DataTableColumn, DataTable } from "@ksp-gonogo/ui-kit";
- * import { value } from "@ksp-gonogo/sitrep-sdk";
- *
- * interface Subject {
- *   subjectId: string;
- *   title: string;
- *   dataMits: number;
- *   remaining: number;
- * }
- *
+ * // science points; any unit `value()` accepts works the same way.
  * const columns: ReadonlyArray<DataTableColumn<Subject>> = [
  *   { key: "subject", header: "Subject", rowHeader: true, width: "1fr", minWidth: "22ch", render: (s) => s.title },
  *   { key: "data", header: "Data", align: "end", width: "9ch", value: (s) => value("Mit", s.dataMits) },

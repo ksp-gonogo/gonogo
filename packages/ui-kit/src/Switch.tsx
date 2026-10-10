@@ -6,9 +6,7 @@ import styled from "styled-components";
  * @category Form
  */
 export interface SwitchBaseProps {
-  /** Whether the switch is on. The switch is controlled: it shows this value and changes only when the caller changes it. */
   checked: boolean;
-  /** Called with the new state when the operator flips the switch. */
   onChange: (value: boolean) => void;
   /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere, such as a sub-setting inert while its parent setting is off. */
   disabled?: boolean;
@@ -26,16 +24,8 @@ export interface SwitchBaseProps {
  */
 export type SwitchProps = SwitchBaseProps &
   (
-    | {
-        /** The visible name, drawn beside the track. Give this or `aria-label`, never both. */
-        label: string;
-        "aria-label"?: never;
-      }
-    | {
-        label?: never;
-        /** The accessible name, for a switch whose row already shows its label text. Give this or `label`, never both. */
-        "aria-label": string;
-      }
+    | { label: string; "aria-label"?: never }
+    | { label?: never; "aria-label": string }
   );
 
 /**

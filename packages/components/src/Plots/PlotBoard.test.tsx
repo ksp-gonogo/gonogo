@@ -8,7 +8,7 @@ import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { heldWord } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
-import { MIN_PLOT_PX, PlotBoard, plotGrid } from "./PlotBoard";
+import { PlotBoard } from "./PlotBoard";
 
 /**
  * What the arranger does with what it is handed, through the real registry,
@@ -153,29 +153,6 @@ describe("PlotBoard", () => {
     await act(async () => {});
   });
 
-  it("keeps a plot's heading on one line when a held badge joins it, so the plot under it never moves down", async () => {
-    registerContribution({
-      id: "held-plot",
-      contributes: "plots",
-      compute: () => [
-        {
-          subject: "held",
-          title: "A long plot title",
-          frame: FRAME,
-          layers: ONE_MARK,
-          held: "disconnected" as const,
-        },
-      ],
-    });
-
-    render(<Host />);
-
-    const title = await screen.findByText("A long plot title");
-    expect(title.style.whiteSpace).toBe("nowrap");
-    expect(title.style.textOverflow).toBe("ellipsis");
-    await act(async () => {});
-  });
-
   it("draws no held badge on a plot every contribution draws from current readings", async () => {
     registerContribution({
       id: "current-plot",
@@ -201,42 +178,5 @@ describe("PlotBoard", () => {
     expect(screen.queryByText(heldWord("disconnected"))).toBeNull();
     expect(screen.queryByText(heldWord("held"))).toBeNull();
     await act(async () => {});
-  });
-});
-
-describe("the board's layout", () => {
-  const GAP = 8;
-
-  it("puts every plot side by side while each stays legible, all the same size", () => {
-    const grid = plotGrid(3, 438, GAP);
-    expect(grid.columns).toBe(3);
-    expect(3 * grid.side + 2 * GAP).toBeLessThanOrEqual(438);
-    expect(grid.side).toBeGreaterThanOrEqual(MIN_PLOT_PX);
-  });
-
-  it("shrinks the plots with the board, rather than holding a width that overflows it", () => {
-    const wide = plotGrid(3, 900, GAP).side;
-    const narrow = plotGrid(3, 420, GAP).side;
-    expect(narrow).toBeLessThan(wide);
-    expect(plotGrid(3, 420, GAP).columns).toBe(3);
-  });
-
-  it("wraps when the board is too narrow for them all, and a plot on a row of its own is no larger than the rest", () => {
-    const grid = plotGrid(3, 300, GAP);
-    expect(grid.columns).toBe(2);
-    // One side for every plot: the third, alone on its row, is drawn at the same size.
-    expect(2 * grid.side + GAP).toBeLessThanOrEqual(300);
-  });
-
-  it("shrinks the plots to the height a short tile gives them, down to the legible minimum", () => {
-    const free = plotGrid(3, 900, GAP).side;
-    const short = plotGrid(3, 900, GAP, 200).side;
-    expect(short).toBeLessThan(free);
-    expect(short).toBeGreaterThanOrEqual(MIN_PLOT_PX);
-    expect(plotGrid(3, 900, GAP, 40).side).toBe(MIN_PLOT_PX);
-  });
-
-  it("never draws a plot wider than the board itself", () => {
-    expect(plotGrid(1, 90, GAP).side).toBeLessThanOrEqual(90);
   });
 });

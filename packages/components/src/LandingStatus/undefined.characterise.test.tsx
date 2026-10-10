@@ -143,8 +143,8 @@ describe("LandingStatus: what undefined means today", () => {
     // Both the ignition countdown and the burn-GO clock assert a link state nothing has established.
     expect(hero).not.toHaveTextContent("SUICIDE BURN");
     expect(hero).not.toHaveTextContent("BURN GO IN");
-    // The round-trip row is still there, so the block's height does not depend on the link, but it holds the absent-value token: `roundTripSeconds` is null, not zero.
-    expect(screen.getByText(/^RT/)).toHaveTextContent(`RT ${NULL_DISPLAY}`);
+    // No round-trip readout: `roundTripSeconds` is null, not zero.
+    expect(screen.queryByText(/^RT /)).toBeNull();
     // No body caption: the widget declines to guess between atmospheric and vacuum.
     expect(visibleText(container)).not.toContain("vacuum");
     expect(visibleText(container)).not.toContain("atmospheric");

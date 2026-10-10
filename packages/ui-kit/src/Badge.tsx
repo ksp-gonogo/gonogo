@@ -41,9 +41,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * can summarise it. `id` must be stable for the badge's lifetime. `label`
    * defaults to the badge's text content when `children` is a plain string; pass
    * it explicitly otherwise. A `go` badge with `report` still registers, but
-   * any worse state in the panel wins the summary over it. Outside a panel
-   * there is no store to register into, so `report` does nothing and the badge
-   * draws as usual.
+   * any worse state in the panel wins the summary over it.
    */
   report?: { id: string; label?: string };
   /** The badge's words, drawn uppercase. */
@@ -52,8 +50,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 /**
  * A compact uppercase pill that shows a label in one `Tone`. A stateful tone
- * (`info`, `go`, `caution`, `warn`, `nogo` or `offline`; `Tone` has the full
- * set and `Button` takes a narrower one) draws an outlined
+ * (`info`, `go`, `caution`, `warn`, `nogo` or `offline`) draws an outlined
  * pill in that tone's colour, with a glow that grows with severity; no tone, or `neutral`, draws
  * a grey rounded chip for a kind tag or a count. The panel's summary badge and
  * {@link StreamStatusBadge} are both drawn with it.

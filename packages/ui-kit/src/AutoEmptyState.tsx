@@ -29,28 +29,12 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @example
  * ```tsx
- * import { AutoEmptyState, EmptyState, Text } from "@ksp-gonogo/ui-kit";
- *
- * interface Sensor {
- *   id: string;
- *   name: string;
- *   on: boolean;
- * }
- *
- * // Renders nothing for a sensor that is switched off.
- * function SensorRow({ sensor }: { sensor: Sensor }) {
- *   return sensor.on ? <Text>{sensor.name}</Text> : null;
- * }
- *
- * function Sensors({ sensors }: { sensors: readonly Sensor[] }) {
- *   return (
- *     <AutoEmptyState fallback={<EmptyState>No sensors active</EmptyState>}>
- *       {sensors.map((s) => (
- *         <SensorRow key={s.id} sensor={s} />
- *       ))}
- *     </AutoEmptyState>
- *   );
- * }
+ * // Each SensorRow renders null for a sensor that is switched off.
+ * <AutoEmptyState fallback={<EmptyState>No sensors active</EmptyState>}>
+ *   {sensors.map((s) => (
+ *     <SensorRow key={s.id} sensor={s} />
+ *   ))}
+ * </AutoEmptyState>
  * ```
  *
  * @category EmptyState

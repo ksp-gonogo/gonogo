@@ -1,15 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
-  assertOneLoop,
   findStory,
   isAnimated,
   outputPath,
   parseStoryArgs,
   resample,
-  type SecondsPage,
   type StoryEntry,
-  statedSeconds,
   storiesOfIndex,
   unionClip,
 } from "./story";
@@ -35,7 +32,6 @@ describe("parseStoryArgs", () => {
       storybook: "storybook-static",
       format: "auto",
       seconds: 6,
-      secondsGiven: false,
       fps: 10,
       width: 1280,
       height: 900,
@@ -74,7 +70,6 @@ describe("parseStoryArgs", () => {
       format: "gif",
       chrome: true,
       seconds: 3.5,
-      secondsGiven: true,
       fps: 20,
       width: 800,
       height: 600,
@@ -245,62 +240,5 @@ describe("unionClip", () => {
     ).toEqual({ x: 5, y: 5, width: 10, height: 10 });
     expect(unionClip([])).toBeUndefined();
     expect(unionClip([{ x: 0, y: 0, width: 0, height: 9 }])).toBeUndefined();
-  });
-});
-
-describe("statedSeconds", () => {
-  /** A page whose one marked element carries `attribute`, or whose lookup fails when it is `null`. */
-  const pageWith = (attribute: string | null | "missing") =>
-    ({
-      locator: () => ({
-        first: () => ({
-          getAttribute: () =>
-            attribute === "missing"
-              ? Promise.reject(new Error("no such element"))
-              : Promise.resolve(attribute),
-        }),
-      }),
-    }) satisfies SecondsPage;
-
-  it("reads the running time a story states for itself", async () => {
-    expect(await statedSeconds(pageWith("31.5"), 6)).toBe(31.5);
-  });
-
-  it("falls back when the story states none, or something a GIF cannot be", async () => {
-    expect(await statedSeconds(pageWith("missing"), 6)).toBe(6);
-    expect(await statedSeconds(pageWith(null), 6)).toBe(6);
-    expect(await statedSeconds(pageWith("soon"), 6)).toBe(6);
-    expect(await statedSeconds(pageWith("0"), 6)).toBe(6);
-    expect(await statedSeconds(pageWith("600"), 6)).toBe(6);
-  });
-});
-
-describe("a GIF holds exactly one loop of its story", () => {
-  const a = Buffer.from("first");
-  const b = Buffer.from("middle");
-  const c = Buffer.from("last");
-
-  it("accepts a run from the first frame to the last, held on the last", () => {
-    expect(() =>
-      assertOneLoop([a, b, c, c, c], { stated: 5 / 8, fps: 8 }),
-    ).not.toThrow();
-  });
-
-  it("refuses a run that comes back round to the first frame", () => {
-    expect(() => assertOneLoop([a, b, c, a, b], {})).toThrow(
-      /more than one loop/,
-    );
-  });
-
-  it("refuses a length that is not the one the story states", () => {
-    expect(() =>
-      assertOneLoop([a, b, c], { stated: 16, seconds: 24, fps: 8 }),
-    ).toThrow(/runs for 16 seconds/);
-  });
-
-  it("accepts a length equal to the one the story states", () => {
-    expect(() =>
-      assertOneLoop([a, b, c], { stated: 16, seconds: 16, fps: 8 }),
-    ).not.toThrow();
   });
 });

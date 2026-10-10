@@ -7,7 +7,6 @@ import styled from "styled-components";
  * @category Layout
  */
 export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
-  /** The drawing the frame surrounds. */
   children?: ReactNode;
   /**
    * Adds an inner gutter between the frame and its contents, for content that

@@ -1,7 +1,6 @@
 /**
  * Value equality for widget config objects, as {@link useModalSaveBar} uses
- * it to decide whether a draft differs from the saved config. Call it yourself
- * only to build a dirty check of your own.
+ * it to decide whether a draft differs from the saved config.
  *
  * - `undefined` and a missing key are treated the same
  * - object key order is ignored

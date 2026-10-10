@@ -17,7 +17,6 @@ export interface ButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
   equalWidth?: boolean;
   /** Gap between buttons, one of the {@link GapToken} names. Omitted, it is the container's `related` gap. */
   gap?: GapToken;
-  /** The buttons to lay out together. */
   children?: ReactNode;
 }
 

@@ -23,12 +23,12 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
   tone?: ConsoleTone;
   /**
    * How long it takes to reach the other end, in seconds. `null` when there is
-   * no measurable path. Neither `null` nor zero gets a {@link SignalDelayBadge}.
+   * no measurable path. Neither `null` nor zero gets a chip.
    */
   oneWaySeconds?: number | null;
   /**
    * The same delay as the reading it arrived in (`useCommand`'s
-   * `delayReading`), so the badge's figure draws held while `comms.delay` is
+   * `delayReading`), so the chip's figure draws held while `comms.delay` is
    * quiet. Omitted, it draws as current.
    */
   delayReading?: Reading<Value<"s">> | null;
@@ -38,9 +38,8 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
    */
   canQueue?: boolean;
   /**
-   * Force the {@link SignalDelayBadge} whatever the separation, for a terminal in
-   * character mode (every keystroke goes on its own), which has no composed
-   * line to queue.
+   * Force the chip whatever the separation, for a terminal in CHARACTER mode,
+   * which has no composed line to queue.
    */
   alwaysBadge?: boolean;
   /**
@@ -51,7 +50,7 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
   /**
    * Set when each `inFlight` entry carries the delay it was sent under, so the
    * queue stays after the live delay reading is gone: words sent at four
-   * light-minutes are still crossing after the path drops. The badge and the
+   * light-minutes are still crossing after the path drops. The chip and the
    * queue are still never drawn together.
    */
   inFlightFrozenAtDispatch?: boolean;
@@ -59,7 +58,7 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
    * The line the operator types on, at the foot and inside the frame. Omitted,
    * the console grows no foot. Given but currently absent (a terminal in
    * character mode), the foot stays, so the surface does not change height
-   * with the mode. A standing badge grows a foot for itself either way.
+   * with the mode. A standing chip grows a foot for itself either way.
    */
   composer?: ReactNode;
   /** The scrollback: an emulator screen, a log, a list of rows. */
@@ -71,13 +70,11 @@ const QUEUE_LABEL = "Uplink queue";
 
 /**
  * A console: a scrolling surface, what is still crossing on the link, the line
- * the operator is typing, and one reading of how far away the other end is
- * (the craft or device the console talks to, whose distance `oneWaySeconds`
- * gives).
+ * the operator is typing, and one reading of how far away the other end is.
  *
  * The delay reading is chosen here, not by the widget: a standing
- * {@link SignalDelayBadge} when the one-way delay is a second or less, so a
- * countdown would be over before it could be read, an {@link InFlightList} queue of what
+ * {@link SignalDelayBadge} when the other end is close enough that a countdown
+ * would be over before it could be read, an {@link InFlightList} queue of what
  * is crossing when it is not, never both. Both sit at the foot. A widget says
  * only how far away the other end is (`oneWaySeconds`), whether it can queue
  * (`canQueue`) and what is queued (`inFlight`).
@@ -89,7 +86,7 @@ const QUEUE_LABEL = "Uplink queue";
  * @categoryDescription Console
  * A two-way text console over a delayed link: the scrollback, the line being
  * typed, and what is still crossing, framed with one reading of how far away
- * the other end (the craft the console talks to) is.
+ * the other end is.
  */
 export function Console({
   tone,

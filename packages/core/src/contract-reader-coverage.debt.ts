@@ -53,22 +53,40 @@
 export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:commandCentre.unreachable.kind":
     "no shipping code reads it, only stories named it",
+  "field:commcast.transmissions.author.name":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.author.seat":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.author.stationKey":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.from":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.groupId":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.phase":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.startedUt":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.to":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:commcast.transmissions.topic":
-    "always commcast.radio, which Commcast already subscribes to by its own constant",
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:commcast.transmissions.transmissionId":
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.commandCentre.bodyIndex":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.commandCentre.id":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.connected":
-    "restates comms.link and vessel.comms, which the comms widgets read",
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.controlSource":
-    "restates comms.link and vessel.comms, which the comms widgets read",
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.hasLocalControl":
-    "restates comms.link and vessel.comms, which the comms widgets read",
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.control.level":
-    "restates comms.link and vessel.comms, which the comms widgets read",
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.control.reason":
-    "restates comms.link and vessel.comms, which the comms widgets read",
+    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.bodies":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.modelId":

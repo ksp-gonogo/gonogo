@@ -40,8 +40,7 @@ export interface ExpandableTextProps {
 }
 
 /**
- * Prose written by the game or a mod (a contract's description, a part's
- * blurb), cut to a readable length with the rest behind a
+ * Game-authored prose, cut to a readable length with the rest behind a
  * "Show more" button.
  *
  * The cut is a prefix of the string ending on a whole word, followed by

@@ -7,7 +7,8 @@ describe("deriveHazardVerdict", () => {
     const r = deriveHazardVerdict({
       slopeDeg: 3,
       roughnessSigma: 30,
-      touchdownSpeed: 1.5,
+      verticalSpeed: 1.5,
+      lateralSpeed: 0.5,
     });
     expect(r.verdict).toBe("SAFE");
   });
@@ -16,7 +17,8 @@ describe("deriveHazardVerdict", () => {
     const r = deriveHazardVerdict({
       slopeDeg: 10, // MARGINAL (5-15)
       roughnessSigma: 30, // SAFE
-      touchdownSpeed: 1, // SAFE
+      verticalSpeed: 1, // SAFE
+      lateralSpeed: 0.5, // SAFE
     });
     expect(r.verdict).toBe("MARGINAL");
     expect(r.axes[0]).toMatchObject({ axis: "slope", band: "MARGINAL" });
@@ -26,38 +28,23 @@ describe("deriveHazardVerdict", () => {
     const r = deriveHazardVerdict({
       slopeDeg: 4,
       roughnessSigma: 30,
-      touchdownSpeed: 8, // DIVERT (>6)
+      verticalSpeed: 8, // DIVERT (>6)
+      lateralSpeed: 0.5,
     });
     expect(r.verdict).toBe("DIVERT");
-    expect(r.axes[0].axis).toBe("touchdown");
+    expect(r.axes[0].axis).toBe("vertical");
   });
 
-  it("judges a descent by its touchdown speed alone: the same figures give the same verdict for any craft", () => {
-    // There is no input for a surface, an engine or a parachute: a flat site at a soft touchdown is SAFE, and a fast one is not.
-    expect(
-      deriveHazardVerdict({
-        slopeDeg: 0,
-        roughnessSigma: 5,
-        touchdownSpeed: 0.5,
-      }).verdict,
-    ).toBe("SAFE");
-    expect(
-      deriveHazardVerdict({ slopeDeg: 0, roughnessSigma: 5, touchdownSpeed: 7 })
-        .verdict,
-    ).toBe("DIVERT");
-  });
-
-  it("says nothing of water: a flat site at a gentle touchdown is SAFE whatever lies under it", () => {
+  it("forces DIVERT on a water biome regardless of the numbers", () => {
     const r = deriveHazardVerdict({
       slopeDeg: 0,
-      roughnessSigma: 0,
-      touchdownSpeed: 6.5,
+      roughnessSigma: 5,
+      verticalSpeed: 0.5,
+      lateralSpeed: 0.1,
+      biome: "Water",
     });
-    expect(r.axes.map((a) => a.axis)).toEqual([
-      "touchdown",
-      "slope",
-      "roughness",
-    ]);
+    expect(r.verdict).toBe("DIVERT");
+    expect(r.axes[0]).toMatchObject({ axis: "biome" });
   });
 
   it("grades roughness on the shared A/B/C/F scale (F is DIVERT)", () => {
@@ -76,17 +63,20 @@ describe("deriveHazardVerdict", () => {
     // The ladder is three comparisons, and only this case lands on a boundary, so flipping one to strict would otherwise pass unnoticed.
     expect(deriveHazardVerdict({ slopeDeg: 5 }).verdict).toBe("SAFE");
     expect(deriveHazardVerdict({ slopeDeg: 15 }).verdict).toBe("MARGINAL");
-    expect(deriveHazardVerdict({ touchdownSpeed: 2 }).verdict).toBe("SAFE");
-    expect(deriveHazardVerdict({ touchdownSpeed: 6 }).verdict).toBe("MARGINAL");
+    expect(deriveHazardVerdict({ verticalSpeed: 2 }).verdict).toBe("SAFE");
+    expect(deriveHazardVerdict({ verticalSpeed: 6 }).verdict).toBe("MARGINAL");
+    expect(deriveHazardVerdict({ lateralSpeed: 1 }).verdict).toBe("SAFE");
+    expect(deriveHazardVerdict({ lateralSpeed: 3 }).verdict).toBe("MARGINAL");
   });
 
-  it("honours per-instance tuned thresholds", () => {
+  it("honours per-instance tuned slope thresholds", () => {
     // A wide-base rover raises the slope tolerance so 12 degrees reads SAFE.
     const r = deriveHazardVerdict(
       { slopeDeg: 12 },
       {
         slope: [value("°", 20), value("°", 30)],
-        touchdown: [value("m/s", 2), value("m/s", 6)],
+        vertical: [value("m/s", 2), value("m/s", 6)],
+        lateral: [value("m/s", 1), value("m/s", 3)],
       },
     );
     expect(r.verdict).toBe("SAFE");

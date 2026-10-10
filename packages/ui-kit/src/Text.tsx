@@ -65,9 +65,8 @@ const LEVEL_COLOR: Record<TextLevel, string> = {
 
 /**
  * Inline style declarations that recede every neutral word inside a box to the
- * faint text level, which still meets WCAG AA contrast on a panel. It sets `color` and the
- * neutral, primary, muted and dim text variables to that faint colour, so
- * nested kit text recedes with it. Use it to quiet a block of words; opacity would drop them below contrast, so keep
+ * faint text level, which still meets WCAG AA contrast on a panel. Use it to
+ * quiet a block of words; opacity would drop them below contrast, so keep
  * opacity for marks that carry no text. A word in a tone keeps its tone. The
  * same declarations as {@link faintText}, for a `style` prop.
  *
@@ -82,8 +81,8 @@ export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
 };
 
 /**
- * The same declarations as {@link FAINT_TEXT_STYLE}, written as
- * `property: value;` lines for a styled-components rule.
+ * {@link FAINT_TEXT_STYLE} as a CSS declaration string, for a styled-components
+ * rule.
  *
  * @category Typography
  */
@@ -128,20 +127,12 @@ const SIZE_STYLES = {
  *
  * @example
  * ```tsx
- * import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
- * import { Cluster, Text, Unit } from "@ksp-gonogo/ui-kit";
- *
- * function AltitudeLine() {
- *   const flight = useTelemetry("vessel.flight");
- *   return (
- *     <Cluster>
- *       <Text level="muted" size="xs">Altitude</Text>
- *       <Text weight="semibold">
- *         <Unit value={flight.altitudeAsl} />
- *       </Text>
- *     </Cluster>
- *   );
- * }
+ * <Cluster>
+ *   <Text level="muted" size="xs">Altitude</Text>
+ *   <Text tone="go" weight="semibold">
+ *     <Unit value={altitude} />
+ *   </Text>
+ * </Cluster>
  * ```
  *
  * @category Typography

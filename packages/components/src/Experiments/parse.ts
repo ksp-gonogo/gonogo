@@ -33,7 +33,6 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
       expTitle: typeof e.title === "string" && e.title ? e.title : undefined,
       deployed: e.deployed === true,
       hasData: e.dataIsCollectable === true,
-      dataKnown: typeof e.dataIsCollectable === "boolean",
       rerunnable: e.rerunnable === true,
       inoperable: e.inoperable === true,
     });

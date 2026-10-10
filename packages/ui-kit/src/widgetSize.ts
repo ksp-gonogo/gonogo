@@ -2,10 +2,8 @@
  * How much room a widget tile has, derived from its `w` and `h` grid units by
  * {@link getSizeBucket} so every widget uses the same boundaries.
  *
- * - `tiny`: a single-glance status or one key readout; under 5 columns wide or
- *   4 rows tall
- * - `small`: essential numbers, minimal chrome; under 8 columns wide or 7 rows
- *   tall
+ * - `tiny`: a single-glance status or one key readout
+ * - `small`: essential numbers, minimal chrome
  * - `normal`: the full widget UI
  *
  * A widget that declares a tiny mode is drawn by the kit in `tiny`; every other
@@ -34,7 +32,7 @@ const SMALL_H = 7;
 
 /**
  * The {@link SizeBucket} a `w` by `h` tile falls in: `tiny` below
- * {@link TINY_BELOW} on either axis, `small` below 8 columns wide or 7 rows tall, `normal`
+ * {@link TINY_BELOW} on either axis, `small` below 8 wide or 7 tall, `normal`
  * otherwise. Returns `normal` while either dimension is `undefined`.
  *
  * This is the bucket by size alone, for a widget arranging its own body.

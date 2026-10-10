@@ -77,19 +77,9 @@ export interface DisclosureProps {
  *
  * @example
  * ```tsx
- * import { value } from "@ksp-gonogo/sitrep-sdk";
- * import { Disclosure, Text, Unit } from "@ksp-gonogo/ui-kit";
- *
  * // The default: the detail pops out over what follows.
  * <Disclosure label="Why held?">
- *   <Text>
- *     The last update arrived <Unit value={value("s", 40)} /> ago.
- *   </Text>
- * </Disclosure>
- *
- * // Inline: the detail opens in the flow of the page, with no chevron.
- * <Disclosure label="Details" variant="inline" chevron={false}>
- *   <Text>Fuel is drawn from the lowest stage first.</Text>
+ *   <Text>The last update arrived 40 s ago.</Text>
  * </Disclosure>
  * ```
  *

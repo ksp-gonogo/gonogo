@@ -26,8 +26,8 @@ export type EphemerisFigure = <Unit extends string>(
  * the figure rests on.
  *
  * The figure is as current as the least current pose it rests on. Where every
- * one of those poses is `exact` (on a fixed conic, an orbit that never changes, as every body of a stock
- * install is) the figure is stamped deterministic and takes no mark, however long
+ * one of those poses is `exact` (a fixed conic, which is every body of a stock
+ * install) the figure is stamped deterministic and takes no mark, however long
  * ago the catalogue last arrived. Where any is `held`, because the instant is
  * past its provider's horizon or the catalogue stopped arriving under a body
  * that drifts, the figure comes back held as of the oldest of them. A `modelled`

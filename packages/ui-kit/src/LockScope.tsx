@@ -43,9 +43,8 @@ export interface LockScopeProps {
 /**
  * Marks a part of the tree that stands or falls together. When anything
  * inside it reads a Topic (with `useTelemetry` or `useStream`) or uses a
- * command (with `useCommand`) that this save has not unlocked (a technology
- * not yet researched, or a building not yet upgraded, in a career save), the
- * whole scope is replaced by its `fallback`. The innermost scope wins, so a scope inside a
+ * command (with `useCommand`) that this save has not unlocked, the whole scope
+ * is replaced by its `fallback`. The innermost scope wins, so a scope inside a
  * section is replaced while the section stays.
  *
  * It draws no element of its own. A {@link Section}, each augment an

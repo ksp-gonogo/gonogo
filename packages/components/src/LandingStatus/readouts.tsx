@@ -53,7 +53,6 @@ export function Mps({
 
 const ONE_KM = value("m", 1000);
 const TEN_KM = value("m", 10_000);
-const HALF_METRE = value("m", 0.5);
 
 /** This widget's precision ladder for a height, shared by the AGL and ASL readouts; the rungs compare as lengths, not bare numbers. */
 export function altitudeDecimals(m: Quantity<"m">): number {
@@ -63,14 +62,6 @@ export function altitudeDecimals(m: Quantity<"m">): number {
     : abs.greaterThanOrEqual(ONE_KM)
       ? 2
       : 0;
-}
-
-/**
- * A height as the widget writes it: under half a metre is no metres, since the whole-metre rung would otherwise hand a small nonzero figure to the kit's scientific notation, which a player never reads as an altitude.
- * Only for a figure that is shown; the reading itself is untouched.
- */
-export function roundedHeight(m: Quantity<"m">): Quantity<"m"> {
-  return m.abs().lessThan(HALF_METRE) ? m.minus(m) : m;
 }
 
 /** An altitude or a distance, on the shared length ladder. */
@@ -83,7 +74,7 @@ export function Metres({
 }) {
   const n = magnitudeOf(m);
   if (n === null) return NULL_DISPLAY;
-  const height = roundedHeight(value("m", n));
+  const height = value("m", n);
   return (
     <Unit value={datedBy(from, height)} decimals={altitudeDecimals(height)} />
   );

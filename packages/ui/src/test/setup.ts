@@ -10,14 +10,6 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   };
 }
 
-// jsdom draws nothing on a canvas and logs "not implemented" whenever one is asked for a context. A canvas with no context is how a browser without one behaves, and every drawing path already handles it.
-if (typeof HTMLCanvasElement !== "undefined") {
-  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
-    configurable: true,
-    value: () => null,
-  });
-}
-
 // Quantities default to the reader's locale; pin it so snapshots match across machines.
 setQuantityLocale("en-GB");
 

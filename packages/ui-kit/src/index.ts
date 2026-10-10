@@ -515,12 +515,7 @@ export {
   type ReadOnlyFieldProps,
   type ReadOnlyFieldValue,
 } from "./ReadOnlyField";
-export {
-  Readout,
-  ReadoutCaption,
-  type ReadoutProps,
-  type ReadoutSize,
-} from "./Readout";
+export { Readout, ReadoutCaption, type ReadoutSize } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
 export {
   type CurrencyOptions,

@@ -49,8 +49,6 @@ function emitVessel(
       surfaceSpeed: number;
     };
     availableThrust?: number;
-    /** The thrust the engines are giving now, kN; zero when omitted. */
-    currentThrust?: number;
     /** Situation ordinal (0 = Landed, 6 = SubOrbital, the descending default). */
     situation?: number;
   },
@@ -109,7 +107,7 @@ function emitVessel(
     stream.emit("vessel.propulsion", {
       totalMass: 1,
       dryMass: 0.5,
-      currentThrust: opts.currentThrust ?? 0,
+      currentThrust: 0,
       availableThrust: opts.availableThrust,
     });
   }
@@ -471,198 +469,6 @@ describe("LandingStatusComponent", () => {
     expect(screen.queryByText(/No landing in progress/i)).toBeNull();
   });
 
-  it("keeps the speed it touched down at after landing, and the verdict agrees with it", async () => {
-    renderWidget({ w: 12, h: 20 });
-    const landing = {
-      outcome: "terrain-assessed",
-      sampleSource: "predicted",
-      predictedLatitude: 0.5,
-      predictedLongitude: 0.5,
-      predictedSlopeAngle: 0,
-      predictedSlopeHeading: 80,
-      predictedRoughness: 0,
-      predictedBiome: "Lowlands",
-    };
-    act(() => {
-      emitVessel(stream, {
-        body: MUN,
-        quality: Quality.Loaded,
-        descent: { heightFromTerrain: 3, verticalSpeed: 4, surfaceSpeed: 5 },
-        availableThrust: 20,
-      });
-      stream.emit("vessel.landing", landing);
-    });
-    await screen.findByText(/mun · vacuum/i);
-    // The moment it is down, every speed reads zero.
-    act(() => {
-      emitVessel(stream, {
-        body: MUN,
-        quality: Quality.Loaded,
-        situation: 0,
-        descent: { heightFromTerrain: 0, verticalSpeed: 0, surfaceSpeed: 0 },
-        availableThrust: 20,
-      });
-      stream.emit("vessel.landing", landing);
-    });
-    expect(await screen.findByText("LANDED")).toBeInTheDocument();
-    // Held: the 5 m/s it came down at, not the 0 it reads now.
-    expect(visibleText()).toMatch(/TOUCHDOWN SPEED\s*5(\.0+)?\s*m\/s/i);
-    // 5 m/s is the verdict's MARGINAL band, the same figure the envelope judged by the same rule.
-    expect(screen.getByText("MARGINAL")).toBeInTheDocument();
-  });
-
-  it("writes a sub-metre altitude above sea level as no metres, never in scientific notation", async () => {
-    renderWidget();
-    act(() => {
-      emitVessel(stream, {
-        body: MUN,
-        quality: Quality.Loaded,
-        descent: {
-          heightFromTerrain: 0.1,
-          verticalSpeed: 1,
-          surfaceSpeed: 1,
-        },
-        availableThrust: 20,
-      });
-      // The site sits at sea level, so the altitude above it is a fraction of a metre.
-      stream.emit("vessel.flight", {
-        latitude: 0,
-        longitude: 0,
-        altitudeAsl: 0.0003,
-        altitudeTerrain: 0.1,
-        verticalSpeed: -1,
-        surfaceSpeed: 1,
-        orbitalSpeed: 1,
-        atmDensity: 0,
-      });
-    });
-    await screen.findByText(/mun · vacuum/i);
-    expect(visibleText()).not.toMatch(/×10/);
-    expect(visibleText()).toMatch(/ALTITUDE ASL\s*0\s*m/i);
-  });
-
-  it("writes a sub-metre downrange distance as no metres, never in scientific notation", async () => {
-    renderWidget();
-    act(() => {
-      emitVessel(stream, {
-        body: MUN,
-        quality: Quality.Loaded,
-        descent: { heightFromTerrain: 40, verticalSpeed: 1, surfaceSpeed: 1 },
-        availableThrust: 20,
-      });
-      stream.emit("vessel.landing", {
-        outcome: "terrain-assessed",
-        sampleSource: "predicted",
-        // 0.3 m of longitude on the Mun is a distance of a fraction of a metre.
-        predictedLatitude: 0,
-        predictedLongitude: 0.0000001,
-        predictedTerrainElevation: 0,
-        predictedSlopeAngle: 3,
-        predictedBiome: "Lowlands",
-      });
-    });
-    await screen.findByText(/mun · vacuum/i);
-    expect(visibleText()).not.toMatch(/×10/);
-  });
-
-  describe("a craft with no engine", () => {
-    const descent = {
-      heightFromTerrain: 2800,
-      verticalSpeed: 42.5,
-      surfaceSpeed: 50,
-    };
-
-    it("has no burn rows when its engines give no thrust", async () => {
-      renderWidget();
-      act(() => {
-        emitVessel(stream, {
-          body: MUN,
-          quality: Quality.Loaded,
-          descent,
-          availableThrust: 0,
-        });
-      });
-      await screen.findByText(/mun · vacuum/i);
-      expect(screen.queryByText("BEST-BURN IMPACT")).toBeNull();
-      expect(screen.queryByText(/BURN GO IN|SUICIDE BURN/)).toBeNull();
-    });
-
-    it("has none with no propulsion reading at all", async () => {
-      renderWidget();
-      act(() => {
-        emitVessel(stream, { body: MUN, quality: Quality.Loaded, descent });
-      });
-      await screen.findByText(/mun · vacuum/i);
-      expect(screen.queryByText("BEST-BURN IMPACT")).toBeNull();
-    });
-
-    it("has them for a craft with an engine", async () => {
-      renderWidget();
-      act(() => {
-        emitVessel(stream, {
-          body: MUN,
-          quality: Quality.Loaded,
-          descent,
-          availableThrust: 20,
-        });
-      });
-      expect(await screen.findByText("BEST-BURN IMPACT")).toBeInTheDocument();
-    });
-  });
-
-  describe("the headline while the engines are lit", () => {
-    const descent = {
-      heightFromTerrain: 2800,
-      verticalSpeed: 42.5,
-      surfaceSpeed: 50,
-    };
-
-    it("reads BURNING from thrust above zero, in place of the countdown", async () => {
-      renderWidget();
-      act(() => {
-        emitVessel(stream, {
-          body: MUN,
-          quality: Quality.Loaded,
-          descent,
-          availableThrust: 20,
-          currentThrust: 18,
-        });
-      });
-      expect(await screen.findByText("BURNING")).toBeInTheDocument();
-      expect(screen.queryByText("SUICIDE BURN")).toBeNull();
-      expect(screen.getByText("BEST-BURN IMPACT")).toBeInTheDocument();
-    });
-
-    it("keeps the countdown with the engines off", async () => {
-      renderWidget();
-      act(() => {
-        emitVessel(stream, {
-          body: MUN,
-          quality: Quality.Loaded,
-          descent,
-          availableThrust: 20,
-          currentThrust: 0,
-        });
-      });
-      // Whatever the solve says for this state, the headline is the countdown's own and not BURNING.
-      expect(
-        await screen.findByText(
-          /SUICIDE BURN|BURN GO IN|BURN TIMING NEEDS|NO LANDING VECTOR/,
-        ),
-      ).toBeInTheDocument();
-      expect(screen.queryByText("BURNING")).toBeNull();
-    });
-
-    it("never reads BURNING with no thrust reading at all", async () => {
-      renderWidget();
-      act(() => {
-        emitVessel(stream, { body: MUN, quality: Quality.Loaded, descent });
-      });
-      await screen.findByText(/mun · vacuum/i);
-      expect(screen.queryByText("BURNING")).toBeNull();
-    });
-  });
-
   it("shows the delayed regime banner off comms.delay", async () => {
     renderWidget();
     act(() => {
@@ -680,10 +486,10 @@ describe("LandingStatusComponent", () => {
       stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
     });
     expect(await screen.findByText("STAGED")).toBeInTheDocument();
-    // The regime is the widget's state, so it is a header badge, where its width cannot move the rows of the body; the round trip stays in the body, beside the clocks it qualifies.
+    // In the body: the header aside folds behind an expand box on a narrow tile, and the link state is what a delayed descent is read by.
     expect(
       screen.getByText("STAGED").closest("[data-panel-header]"),
-    ).not.toBeNull();
+    ).toBeNull();
     expect(screen.getByText(/^RT/).closest("[data-panel-header]")).toBeNull();
   });
 

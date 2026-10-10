@@ -40,7 +40,6 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
    * one level of nesting.
    */
   nested?: boolean;
-  /** The row's content: its label and value, or whatever the row lays out. */
   children?: ReactNode;
 }
 

@@ -63,7 +63,6 @@ export function SolutionReadouts({
     affordableFromObserved,
     targetRange,
     descentHistory,
-    descentDomain,
     solveCurrency,
   } = model;
 
@@ -72,8 +71,10 @@ export function SolutionReadouts({
       <Grid minColWidth="130px" gap="related-dense">
         <StackedField label="Touchdown speed">
           {
-            // Held from before it touched down: every speed reads zero on the ground.
-            <Mps v={model.touchdownSpeed ?? undefined} from={solveCurrency} />
+            <Mps
+              v={flight?.surfaceSpeed ?? solution.horizontalSpeed}
+              from={solveCurrency}
+            />
           }
         </StackedField>
         <StackedField label="Fuel remaining">
@@ -148,7 +149,6 @@ export function SolutionReadouts({
           <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
             <Sparkline
               values={descentHistory}
-              yDomain={descentDomain ?? undefined}
               width={120}
               height={24}
               aria-label="Descent-rate trend"

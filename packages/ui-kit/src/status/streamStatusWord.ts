@@ -33,8 +33,7 @@ const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
  * - `"held"`: HELD
  * - `"disconnected"`: OFFLINE
  * - `"last-before-blackout"`: BLACKOUT, the last value sent before a known
- *   loss of signal (a blackout is a stretch when the craft's signal cannot
- *   reach the command centre)
+ *   loss of signal
  * - `"recorded"`: RECORDED
  * - `"loading"`: LOADING
  * - `"no-game"`: NO GAME

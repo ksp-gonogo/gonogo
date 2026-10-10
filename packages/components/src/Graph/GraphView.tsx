@@ -324,28 +324,19 @@ export function GraphView({
     "wall-ms";
 
   function resolveXTickFormat():
-    | ((
-        value: number,
-        domain: readonly [number, number],
-        ticks?: readonly number[],
-      ) => string)
+    | ((value: number, domain: readonly [number, number]) => string)
     | undefined {
     if (xIsTime) return timeBasis === "ut-seconds" ? utXTickFormat : undefined;
     if (xPinned && config?.xUnit) {
       const unit = config.xUnit;
-      return (
-        v: number,
-        _domain: readonly [number, number],
-        ticks?: readonly number[],
-      ) => unitTick(unit, v, ticks);
+      return (v: number) => unitTick(unit, v);
     }
     return (v: number) => formatNumericTick(v, xMeta?.unit);
   }
   const xTickFormat = resolveXTickFormat();
 
   const yTickFormat = config?.yUnit
-    ? (v: number, ticks?: readonly number[]) =>
-        unitTick(config.yUnit as string, v, ticks)
+    ? (v: number) => unitTick(config.yUnit as string, v)
     : undefined;
 
   if (resolvedVariant === "readout") {
@@ -420,7 +411,6 @@ export function GraphView({
               layers={layers}
               hideXAxis={config?.hideXAxis}
               spatial={config?.spatial}
-              gridScale={config?.gridScale}
               aria-label={ariaLabel}
               crosshair={xIsTime}
               width={size.w}

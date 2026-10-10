@@ -39,7 +39,6 @@ import {
   PlotLayers,
   plotLayerDescriptions,
   plotLayerExtent,
-  solidRegionCover,
 } from "./plotLayers";
 import { placeThresholdLabels } from "./thresholdLabels";
 
@@ -172,14 +171,10 @@ export interface LineChartProps {
   xDomain: [number, number];
   yDomainPrimary?: [number, number];
   yDomainSecondary?: [number, number];
-  /** Tick label formatter for the x-axis. Defaults to elapsed mm:ss / HH:mm:ss. Writing a tick, it is handed the axis's every tick too, so it can give them the decimals that tell them apart. */
-  xTickFormat?: (
-    value: number,
-    domain: readonly [number, number],
-    ticks?: readonly number[],
-  ) => string;
-  /** Tick label formatter for both y-axes. Defaults to k/M-suffixed numeric. Writing a tick, it is handed that axis's every tick too; any other figure is written alone. */
-  yTickFormat?: (value: number, ticks?: readonly number[]) => string;
+  /** Tick label formatter for the x-axis. Defaults to elapsed mm:ss / HH:mm:ss. */
+  xTickFormat?: (value: number, domain: readonly [number, number]) => string;
+  /** Tick label formatter for both y-axes. Defaults to k/M-suffixed numeric. */
+  yTickFormat?: (value: number) => string;
   /** Linear (default) or log10 scale on each Y axis. */
   yScalePrimary?: AxisScale;
   yScaleSecondary?: AxisScale;
@@ -191,8 +186,6 @@ export interface LineChartProps {
   hideXAxis?: boolean;
   /** A view of a place rather than a chart: no tick ladders, content to the frame edges, and equal scale on both axes. */
   spatial?: boolean;
-  /** Scales the pitch of a spatial plot's dot lattice from its usual gap, clamped to 0.5 to 2, so the lattice can carry the zoom. */
-  gridScale?: number;
   /** Everything drawn beyond the series, in data space. Layers join an auto Y domain and are ignored by a pinned one. */
   layers?: readonly PlotLayer[];
   /** Names what the chart is, before the layers add their own clauses. */
@@ -226,12 +219,6 @@ function fitMargins(
     left,
   };
 }
-/** An axis label's width at its 11 px type, with a little room either side. */
-const tickLabelPx = (text: string) => text.length * 6.5 + 6;
-/** The gap between a y label and the plot it labels. */
-const Y_LABEL_INSET = 4;
-/** The most of a plot's width its label gutter may take. */
-const MAX_GUTTER_SHARE = 0.4;
 const SPATIAL_GRID_PITCH_PX = 26;
 
 /** Inset half a pitch so no dot sits on the frame's own edge. */
@@ -240,10 +227,9 @@ function spatialGrid(
   x1: number,
   y0: number,
   y1: number,
-  scale = 1,
 ): Array<{ key: string; x: number; y: number }> {
   const dots: Array<{ key: string; x: number; y: number }> = [];
-  const p = SPATIAL_GRID_PITCH_PX * Math.max(0.5, Math.min(2, scale));
+  const p = SPATIAL_GRID_PITCH_PX;
   for (let x = x0 + p / 2; x < x1; x += p) {
     for (let y = y0 + p / 2; y < y1; y += p) {
       dots.push({ key: `sg-${Math.round(x)}-${Math.round(y)}`, x, y });
@@ -347,7 +333,6 @@ export function LineChart({
   legend = "overlay",
   hideXAxis = false,
   spatial = false,
-  gridScale = 1,
   layers,
   "aria-label": ariaLabel,
   crosshair = false,
@@ -376,12 +361,51 @@ export function LineChart({
   const hasSecondary = secondarySeries.length > 0;
 
   // One pixel of inset keeps the outermost stroke from being clipped by the frame.
-  const fitted = spatial
+  const margin = spatial
     ? { top: 1, right: 1, bottom: 1, left: 1 }
     : fitMargins(w, h, hasSecondary);
-  const plotY0 = fitted.top;
-  const plotY1 = h - fitted.bottom;
+  const plotX0 = margin.left;
+  // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
+  // A chart with nothing to read out keeps the whole width for its plot.
+  const hasReadouts =
+    crosshairOn ||
+    (legend !== "none" && series.length > 0) ||
+    (thresholds ?? []).some((t) => t.label);
+  const readouts =
+    spatial || !hasReadouts
+      ? ({ placement: "overlay" } as const)
+      : placePlotReadouts({
+          width: w,
+          height: h,
+          contentWidth: readoutColumnWidth({
+            series,
+            thresholds: thresholds ?? [],
+            heading: [xDomain[0], xDomain[1]].map((v) =>
+              xTickFormat(v, xDomain),
+            ),
+            crosshairOn,
+            yTickFormat,
+          }),
+        });
+  const columnWidth =
+    readouts.placement === "beside" ? readouts.columnWidth : 0;
+  const plotX1 = w - margin.right - columnWidth;
+  const plotY0 = margin.top;
+  const plotY1 = h - margin.bottom;
+  const plotW = plotX1 - plotX0;
   const plotH = plotY1 - plotY0;
+  const captionsFit =
+    plotW >= CAPTION_MIN_PLOT_W && plotH >= CAPTION_MIN_PLOT_H;
+  const column =
+    columnWidth > 0
+      ? {
+          // A second axis writes its ticks in the margin, so the column starts past them.
+          x0: plotX1 + (hasSecondary ? margin.right : 0) + COLUMN_GAP,
+          y0: plotY0,
+          x1: w - COLUMN_EDGE,
+          y1: plotY1,
+        }
+      : undefined;
 
   const layerYs = useMemo(() => {
     const out = { primary: [] as number[], secondary: [] as number[] };
@@ -414,6 +438,7 @@ export function LineChart({
     [secondarySeries, yDomainSecondary, yScaleSecondary, layerYs],
   );
 
+  const scaleX = makeScale(xDomain[0], xDomain[1], plotX0, plotX1);
   const scaleYPrimary =
     yScalePrimary === "log"
       ? makeLogScale(primaryDomain[0], primaryDomain[1], plotY1, plotY0)
@@ -423,6 +448,10 @@ export function LineChart({
       ? makeLogScale(secondaryDomain[0], secondaryDomain[1], plotY1, plotY0)
       : makeScale(secondaryDomain[0], secondaryDomain[1], plotY1, plotY0);
 
+  const xTickCount = Math.max(
+    2,
+    Math.min(8, Math.round(plotW / PX_PER_X_TICK)),
+  );
   const yTickCount = Math.max(
     2,
     Math.min(7, Math.round(plotH / PX_PER_Y_TICK)),
@@ -455,6 +484,7 @@ export function LineChart({
     }
     return [lo, hi];
   };
+  const xTicks = axisTicks(xDomain[0], xDomain[1], xTickCount, "linear");
   const yTicksPrimary = axisTicks(
     primaryDomain[0],
     primaryDomain[1],
@@ -470,73 +500,6 @@ export function LineChart({
         yScaleSecondary === "log" ? "log" : "linear",
       );
 
-  // A gutter is never narrower than the longest label it carries, so a small plot does not clip "500 m" to "00 m"; it still leaves most of the width to the plot.
-  const labelGutter = (ticks: number[], least: number) =>
-    ticks.length === 0
-      ? least
-      : Math.max(
-          least,
-          Math.min(
-            Math.round(w * MAX_GUTTER_SHARE),
-            Math.max(...ticks.map((t) => tickLabelPx(yTickFormat(t, ticks)))) +
-              Y_LABEL_INSET,
-          ),
-        );
-  const margin = spatial
-    ? fitted
-    : {
-        ...fitted,
-        left: labelGutter(yTicksPrimary, fitted.left),
-        right: hasSecondary
-          ? labelGutter(yTicksSecondary, fitted.right)
-          : fitted.right,
-      };
-  const plotX0 = margin.left;
-  // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
-  // A chart with nothing to read out keeps the whole width for its plot.
-  const hasReadouts =
-    crosshairOn ||
-    (legend !== "none" && series.length > 0) ||
-    (thresholds ?? []).some((t) => t.label);
-  const readouts =
-    spatial || !hasReadouts
-      ? ({ placement: "overlay" } as const)
-      : placePlotReadouts({
-          width: w,
-          height: h,
-          contentWidth: readoutColumnWidth({
-            series,
-            thresholds: thresholds ?? [],
-            heading: [xDomain[0], xDomain[1]].map((v) =>
-              xTickFormat(v, xDomain),
-            ),
-            crosshairOn,
-            yTickFormat,
-          }),
-        });
-  const columnWidth =
-    readouts.placement === "beside" ? readouts.columnWidth : 0;
-  const plotX1 = w - margin.right - columnWidth;
-  const plotW = plotX1 - plotX0;
-  const captionsFit =
-    plotW >= CAPTION_MIN_PLOT_W && plotH >= CAPTION_MIN_PLOT_H;
-  const column =
-    columnWidth > 0
-      ? {
-          // A second axis writes its ticks in the margin, so the column starts past them.
-          x0: plotX1 + (hasSecondary ? margin.right : 0) + COLUMN_GAP,
-          y0: plotY0,
-          x1: w - COLUMN_EDGE,
-          y1: plotY1,
-        }
-      : undefined;
-  const scaleX = makeScale(xDomain[0], xDomain[1], plotX0, plotX1);
-  const xTickCount = Math.max(
-    2,
-    Math.min(8, Math.round(plotW / PX_PER_X_TICK)),
-  );
-  const xTicks = axisTicks(xDomain[0], xDomain[1], xTickCount, "linear");
-
   // Labels are thinned so none overlap or clip; the endpoints are edge-anchored.
   const xTickLabels = useMemo(() => {
     const out: {
@@ -546,11 +509,11 @@ export function LineChart({
     }[] = [];
     const last = xTicks.length - 1;
     if (last < 0) return out;
-    const estPx = tickLabelPx;
+    const estPx = (s: string) => s.length * 6.5 + 6;
     const gap = 6;
     const make = (idx: number) => {
       const tick = xTicks[idx];
-      const text = xTickFormat(tick, xDomain, xTicks);
+      const text = xTickFormat(tick, xDomain);
       const x = scaleX(tick);
       const wpx = estPx(text);
       const anchor: "start" | "middle" | "end" =
@@ -1107,9 +1070,6 @@ export function LineChart({
     uid,
     labels: captionsFit,
   };
-  /** The lattice is open space only: a dot on the ground would read as a mark on it. */
-  const onSolid =
-    spatial && layers ? solidRegionCover(layers, layerFrame) : () => false;
   const layerClipId = `plot-layer-clip-${uid}`;
 
   // Negative rect dimensions spam the console.
@@ -1197,7 +1157,7 @@ export function LineChart({
                   fill="var(--color-text-faint)"
                   fontSize={11}
                 >
-                  {yTickFormat(tick, yTicksPrimary)}
+                  {yTickFormat(tick)}
                 </text>
               )}
             </React.Fragment>
@@ -1217,7 +1177,7 @@ export function LineChart({
               fill="var(--color-text-faint)"
               fontSize={11}
             >
-              {yTickFormat(tick, yTicksSecondary)}
+              {yTickFormat(tick)}
             </text>
           ) : null,
         )}
@@ -1255,18 +1215,16 @@ export function LineChart({
 
       {/* An even lattice at a fixed screen pitch, not on tick positions, so it reads as a map grid. */}
       {spatial &&
-        spatialGrid(plotX0, plotX1, plotY0, plotY1, gridScale)
-          .filter((dot) => !onSolid(dot.x, dot.y))
-          .map((dot) => (
-            <circle
-              key={dot.key}
-              cx={dot.x}
-              cy={dot.y}
-              r={1}
-              fill="var(--color-text-faint)"
-              opacity={0.35}
-            />
-          ))}
+        spatialGrid(plotX0, plotX1, plotY0, plotY1).map((dot) => (
+          <circle
+            key={dot.key}
+            cx={dot.x}
+            cy={dot.y}
+            r={1}
+            fill="var(--color-text-faint)"
+            opacity={0.35}
+          />
+        ))}
 
       {!spatial && (
         <>

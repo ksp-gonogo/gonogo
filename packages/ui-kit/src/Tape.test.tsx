@@ -41,26 +41,6 @@ describe("Tape", () => {
     expect(text).not.toContain(" m");
   });
 
-  it("does not print a tick label under the pointer's own figure", () => {
-    // The pointer sits exactly on the 3 km tick: its figure would be drawn over the tick's label.
-    const { container } = render(
-      <Tape
-        value={m(3000)}
-        min={m(0)}
-        max={m(5000)}
-        tickStep={m(1000)}
-        aria-label="Alt"
-      />,
-    );
-    const labels = Array.from(container.querySelectorAll("text")).map(
-      (t) => t.textContent,
-    );
-    expect(labels.filter((t) => t === "3.0")).toHaveLength(1);
-    // The ticks either side keep theirs.
-    expect(labels).toContain("2.0");
-    expect(labels).toContain("4.0");
-  });
-
   it("treats a non-finite value as the minimum", () => {
     render(
       <Tape value={m(Number.NaN)} min={m(0)} max={m(5000)} aria-label="Alt" />,
@@ -162,24 +142,5 @@ describe("Tape zones", () => {
     );
     expect(fills).toContain("var(--color-warn-mark)");
     expect(fills).not.toContain("var(--color-warn-on-status)");
-  });
-
-  it("writes ticks closer than its unit's decimals with more decimals, so no two read the same", () => {
-    // 50 m ticks on a scale written in kilometres: one decimal would read 1.0, 1.0, 1.1.
-    const { container } = render(
-      <Tape
-        value={m(1240)}
-        min={m(990)}
-        max={m(1110)}
-        tickStep={m(50)}
-        aria-label="Altitude"
-      />,
-    );
-    const labels = [...container.querySelectorAll('text[font-size="8"]')]
-      .map((t) => t.textContent ?? "")
-      .filter((t) => /^[\d.]+$/.test(t));
-    expect(labels.length).toBeGreaterThan(1);
-    expect(new Set(labels).size).toBe(labels.length);
-    expect(labels).toContain("1.05");
   });
 });

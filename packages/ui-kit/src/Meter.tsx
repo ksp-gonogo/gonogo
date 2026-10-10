@@ -135,11 +135,10 @@ export interface MeterProps<UnitSymbol extends string = string>
  *
  * ## Bands
  *
- * Where a reading carries an {@link UncertaintyBand} (how far its forward
- * model, see {@link TopicReckoning}, would defend the figure), the meter draws
- * a tick at each end of it on the track: two marks, never a shaded interval.
- * The bar still shows the observed value, and the ticks sit where the model
- * puts the value now. A band on the capacity is ticked near the track's end, as a
+ * Where a reading carries an uncertainty band, the meter draws a tick at each
+ * end of it on the track: two marks, never a shaded interval. The bar still
+ * shows the observed value, and the ticks sit where the forward model puts the
+ * value now. A band on the capacity is ticked near the track's end, as a
  * fraction of the capacity drawn. A band in a different unit from the value or
  * capacity it belongs to draws nothing.
  *
@@ -740,9 +739,8 @@ export function MeterStack({
 }
 
 /**
- * Keeps a row meter on its `MeterStack`'s columns while it shares one cell of
- * the stack with other lines, such as a caption under the bar. Wrap the meter
- * and the extra lines in one group.
+ * Keeps a row meter on its `MeterStack`'s columns while it shares a slot with
+ * other lines, such as a caption under the bar.
  *
  * @category Meter
  */

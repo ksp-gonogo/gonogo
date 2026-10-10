@@ -28,8 +28,7 @@ export interface FitLabelButtonProps
  * A `button` that shows its label while the label fits and its icon when it
  * does not. The switch is measured against the button's own width, not a
  * breakpoint, and follows resizes. It is an unstyled native button
- * (`type="button"` by default), so it has no border, fill or padding until you give it some: style it with
- * `styled(FitLabelButton)` or wrap it as the layout needs.
+ * (`type="button"` by default), so style it or wrap it as the layout needs.
  *
  * The accessible name is always `label`, carried in `aria-label` in both
  * states. Put anything explaining a disabled state in `title`, since it is the

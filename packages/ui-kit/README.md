@@ -2,7 +2,7 @@
 
 The design system behind [Gonogo](https://github.com/ksp-gonogo/gonogo), a mission-control
 dashboard for Kerbal Space Program. It's the same set of primitives the built-in widgets are
-made of, published so that widgets and Uplinks written outside the Gonogo repository look like they belong
+made of, published so that widgets and Uplinks written outside this repo look like they belong
 on the same screen. Compose them and your widget picks up the host's theme, spacing and type
 scale without you writing CSS for any of it.
 
@@ -35,10 +35,6 @@ Until the first release, `latest` is a placeholder, so install the release candi
 ```sh
 npm install @ksp-gonogo/ui-kit@rc
 ```
-
-An Uplink installs this package together with `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/uplink-tools`,
-all under the same tag, because one beside a release of another fails to resolve; `uplink-tools new`
-writes that set for you.
 
 React 18 and styled-components 6 are peer dependencies; install them if you don't have them:
 

@@ -38,27 +38,10 @@ const Readout__Box = styled.div<{ $size: ReadoutSize; $tone: Tone }>`
 `;
 
 /**
- * Props for {@link Readout}. Any other `div` attribute passes through.
- *
- * @category Readout
- */
-export interface ReadoutProps extends ComponentPropsWithoutRef<"div"> {
-  /** Where it sits: `hero` fills the remaining panel space, `inline` sits beside other content. Defaults to `inline`. */
-  size?: ReadoutSize;
-  /**
-   * Colours the figure with a {@link Tone}: `go`, `caution`, `warn` or `nogo`
-   * for a state from best to worst, `offline` for data that is gone, `info` for
-   * a note and `neutral` for a figure with no verdict. Defaults to `neutral`.
-   * Set it from the state the figure reports, never for decoration.
-   */
-  tone?: Tone;
-}
-
-/**
  * The display-tier figure: bold, tracked, coloured by tone.
  *
- * `size="hero"` is the dominant value of a widget's tiny form (see
- * {@link TinyEssentials}; ΔV, time to impact and warp rate are examples): it fills the remaining panel space and centres. The
+ * `size="hero"` is the dominant value of a widget's tiny form (ΔV, time to
+ * impact, warp rate): it fills the remaining panel space and centres. The
  * default `size="inline"` is the same treatment smaller, sitting beside other
  * content.
  *
@@ -73,14 +56,18 @@ export function Readout({
   size = "inline",
   tone = "neutral",
   ...rest
-}: ReadoutProps) {
+}: ComponentPropsWithoutRef<"div"> & {
+  /** Where it sits. Defaults to `inline`. */
+  size?: ReadoutSize;
+  /** Colour-codes the figure for state-driven widgets. Defaults to `neutral`. */
+  tone?: Tone;
+}) {
   return <Readout__Box $size={size} $tone={tone} {...rest} />;
 }
 
 /**
  * Muted uppercase secondary line for a {@link Readout}
- * (e.g. a mode tag), placed inside it after the figure. It renders a `span` and
- * takes every prop that element does.
+ * (e.g. a mode tag).
  *
  * @category Readout
  */

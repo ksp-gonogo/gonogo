@@ -43,9 +43,7 @@ export type SymbolsOfKind<Kind> = {
  * @category Unit
  */
 export type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
-  ? UnitDeclarations[Unit] extends {
-      ladder: infer Ladder extends string;
-    }
+  ? UnitDeclarations[Unit] extends { ladder: infer Ladder extends string }
     ? Ladder
     : never
   : never;
@@ -147,10 +145,6 @@ import { NULL_DISPLAY } from "./NullValue";
  * What a unit measures. The kind is what makes the system checkable: it says
  * `m` and `km` are interchangeable and `m` and `m/s` are not, and it selects
  * the ladder and the precision rule.
- *
- * A kind names a dimension, never a unit symbol: `length` is what `m` and `km`
- * measure, `planeAngle` is what `°` measures and `universalTime` is what `ut`
- * measures. {@link KindOfSymbol} maps a symbol to its kind.
  *
  * @category Unit
  */
@@ -848,11 +842,9 @@ export interface FormatQuantityOptions {
   /** Override the kind's decimal places. */
   decimals?: number;
   /**
-   * The unit the last render settled on, read from `FormattedQuantity.rung`.
-   * Pass it back so a value hovering on a boundary between two units does not
-   * flicker between them. Nothing keeps it for you: {@link Unit} formats each
-   * render from its props alone, so a caller that wants the steadiness holds
-   * the last rung and passes it here.
+   * The unit the last render settled on. Pass it back so a value hovering on
+   * a boundary between two units does not flicker between them. {@link Unit}
+   * does this for you.
    */
   heldSymbol?: string;
 }

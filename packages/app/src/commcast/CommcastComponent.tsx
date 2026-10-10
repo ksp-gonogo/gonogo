@@ -30,7 +30,6 @@ import { groupSeparation, type Separation, separationsTo } from "./reveal";
 import { threadFor, threadsOf } from "./threads";
 import type { RecipientId } from "./types";
 import { useCommcastFeed } from "./useCommcastFeed";
-import { useDetectedTransmissions } from "./useDetectedTransmissions";
 import { useDroppedCount } from "./useDroppedCount";
 
 /** Which of the widget's screens the operator is on: each group is its own thread, and only its members hold it. */
@@ -93,15 +92,10 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   });
   const openThread = (id: string, fallback: readonly RecipientId[]) =>
     setView({ kind: "thread", groupId: id, with: fallback });
-  const detected = useDetectedTransmissions(log?.screenKey, (id) =>
-    feed.groups.has(id),
-  );
   // In every view's bar, because the transmission may be on a conversation that is not on screen.
   const indicator = (
     <RadioIndicator
       live={radio.reception.live}
-      detected={detected}
-      utNow={utNow}
       nameFor={nameFor}
       onOpen={(light) => openThread(light.threadKey, light.with)}
     />
@@ -297,15 +291,13 @@ registerComponent({
   /*
    * The roster is who can be addressed and the separation how far away each
    * is; `comms.delay` is the fallback for a pair the matrix has not reached,
-   * `comms.link` terminates the log, and `commcast.transmissions` lists
-   * who is on the air beyond the groups this vantage is in.
+   * and `comms.link` terminates the log.
    */
   channels: [
     "commandCentre.roster",
     "commandCentre.separation",
     "comms.delay",
     "comms.link",
-    "commcast.transmissions",
   ],
   defaultConfig: {},
   actions: [],
