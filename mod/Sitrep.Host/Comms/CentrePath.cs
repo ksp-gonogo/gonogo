@@ -37,19 +37,15 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
-    /// Works out the active craft's path as one command centre is shown it:
-    /// the route the game carries the craft's samples to that centre by, or,
-    /// where the game states none, the path the centre's own contact plan has.
-    ///
-    /// <para>The game's route is the one the samples' arrival is timed over,
-    /// so a path shown from it agrees with how old every sample is when it
-    /// lands. A backend chooses that route by its own measure, such as link
-    /// strength or data rate, so it can be longer than the earliest-arriving
-    /// route the plan finds.</para>
+    /// Works out the active craft's path as one command centre believes it to
+    /// stand, from that centre's own contact plan and nothing else.
     ///
     /// <para>The plan is made of what the centre has heard of each craft, so a
-    /// hop far from the centre changes there only once the news of it has
-    /// crossed to the centre.</para>
+    /// hop far from the centre changes here only once the news of it has
+    /// crossed to the centre. The game's own solved control path is not read:
+    /// it is every hop's state at this instant, and a centre shown it would
+    /// learn of a relay near home dropping out after only its own light-time
+    /// to the craft.</para>
     ///
     /// <para>The home centre hears whatever any ground station hears, so it is
     /// shown the craft's path to whichever station its plan says the signal
@@ -147,77 +143,6 @@ namespace Sitrep.Host.Comms
                 new CommsPath { Hops = hops },
                 new CommsNetwork { Nodes = nodes, Edges = edges, Meta = new PayloadMeta { Source = source } },
                 Terminus(route.Destination, ground, nameOf))
-            {
-                Shape = shape.ToString(),
-                Strength = strengths?.Of(hops.ConvertAll(h => h.Strength)),
-            };
-        }
-
-        /// <summary>
-        /// The view of a route the game has solved, hop for hop: its path, the
-        /// network it draws and the centre it ends at, each hop with what the
-        /// centre can work out of its strength at the length the game gives it.
-        /// </summary>
-        /// <param name="route">The game's hops, ends named as <c>comms.path</c> names them.</param>
-        /// <param name="activeCraft">The active craft's node id.</param>
-        /// <param name="stations">Every ground station, as the plan names them.</param>
-        /// <param name="nameOf">The name the centre last heard a craft go by, or null.</param>
-        /// <param name="ut">Now.</param>
-        /// <param name="strengths">What the centre can work out about hop strengths, or null to state none.</param>
-        public static CentrePathView Taken(
-            IReadOnlyList<CommsHop> route,
-            string activeCraft,
-            IReadOnlyList<ContactGameNode> stations,
-            Func<string, string?> nameOf,
-            double ut,
-            PathStrengths? strengths = null)
-        {
-            var ground = new Dictionary<string, ContactGameNode>(StringComparer.Ordinal);
-            var stationOfWire = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var station in stations)
-            {
-                ground[station.Id] = station;
-                stationOfWire[WireId(station.Id, ground)] = station.Id;
-            }
-            // A craft is named on the wire by its bare guid, and a station by its own name.
-            string PlanId(string wireId, bool isHome) =>
-                stationOfWire.TryGetValue(wireId, out var station) ? station
-                : isHome ? wireId
-                : CraftStateRecorder.VesselPrefix + wireId;
-
-            var hops = new List<CommsHop>(route.Count);
-            var nodes = new List<CommsNetworkNode>(route.Count + 1) { Node(activeCraft, ground, nameOf) };
-            var edges = new List<CommsNetworkEdge>(route.Count);
-            var shape = new System.Text.StringBuilder(activeCraft);
-            var last = activeCraft;
-            foreach (var hop in route)
-            {
-                var from = PlanId(hop.From, hop.FromIsHome);
-                last = PlanId(hop.To, hop.ToIsHome);
-                var fromHome = ground.ContainsKey(from) || hop.FromIsHome;
-                var toHome = ground.ContainsKey(last) || hop.ToIsHome;
-                var facts = hop.DistanceMeters is double metres ? strengths?.FactsOf(from, last, ut, metres) : null;
-                hops.Add(new CommsHop
-                {
-                    From = hop.From,
-                    To = hop.To,
-                    FromIsHome = fromHome,
-                    ToIsHome = toHome,
-                    Kind = fromHome || toHome ? CommsHopKind.Home : CommsHopKind.Relay,
-                    DistanceMeters = hop.DistanceMeters,
-                    Strength = facts?.HopStrength,
-                    Quantity = facts?.Quantity,
-                    Extensions = facts?.Extensions,
-                });
-                nodes.Add(Node(last, ground, nameOf));
-                edges.Add(new CommsNetworkEdge { A = hop.From, B = hop.To, Active = true });
-                shape.Append('\u0001').Append(hop.To).Append('\u0001').Append(nodes[nodes.Count - 1].DisplayName);
-            }
-
-            return new CentrePathView(
-                new CommsPath { Hops = hops },
-                new CommsNetwork { Nodes = nodes, Edges = edges, Meta = new PayloadMeta { Source = activeCraft } },
-                Terminus(last, ground, nameOf))
             {
                 Shape = shape.ToString(),
                 Strength = strengths?.Of(hops.ConvertAll(h => h.Strength)),

@@ -158,7 +158,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.network": CommsNetwork;
   /** The `comms.occlusion` payload: always present, sourced from the elected comms backend. */
   "comms.occlusion": CommsOcclusion;
-  /** The `comms.path` payload: the route the active vessel's samples take to the receiving command centre. */
+  /** The `comms.path` payload: the active vessel's path as the receiving command centre believes it to stand now. */
   "comms.path": CommsPath;
   /** The route a message sent now would take between one command centre and the active craft, in both directions, predicted from that centre's own contact plan: the earliest arrival over every relay, waiting at a node for its next window where that arrives sooner. */
   "comms.route": CommsRoutes;
