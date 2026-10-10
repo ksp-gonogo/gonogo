@@ -40,9 +40,16 @@ export type Fingerprint =
   | { fault: string };
 
 const REGISTER_CALL = /\bregister(Component|Augment|Contribution)\s*[<(]/;
-/** The probe's helper that registers a stand-in augment for one slot, and the id prefix it gives it. */
-const SLOT_STUB_HELPER = "plantSlot";
+/** The probe's helpers that register a stand-in augment or contribution for one slot, and the id prefix they give it. */
+const SLOT_STUB_HELPERS: ReadonlySet<string> = new Set([
+  "plantSlot",
+  "plantContribution",
+]);
 const SLOT_STUB_PREFIX = "planted-slot:";
+/** The file whose loop plants the standard points of every widget, which no literal call names. */
+const STANDARD_STUB_FILE =
+  "packages/components/scripts/probe/slot-stubs/standard.tsx";
+const STANDARD_STUB_ID = /^planted-slot:[a-z0-9-]+\.(sections|actions|badges)$/;
 const SKIPPED_DIRS = new Set(["node_modules", "dist", ".git", ".turbo"]);
 const SKIPPED_FILES = /\.(test|spec|stories)\.tsx?$|\.test-d\.ts$/;
 const STORY_FILES = /\.stories\.tsx?$/;
@@ -227,7 +234,7 @@ function uplinkClients(files: string[]): Map<string, string> {
 
 /**
  * Every literal-id registration in the tree's non-test source, plus the
- * planted slot stubs, which register through {@link SLOT_STUB_HELPER} under
+ * planted slot stubs, which register through {@link SLOT_STUB_HELPERS} under
  * {@link SLOT_STUB_PREFIX} and their slot's name.
  */
 function registrationSites(root: string): Site[] {
@@ -247,13 +254,16 @@ function registrationSites(root: string): Site[] {
   const sites: Site[] = [];
   for (const file of files) {
     const text = read(file);
-    if (!REGISTER_CALL.test(text) && !text.includes(`${SLOT_STUB_HELPER}(`))
+    if (
+      !REGISTER_CALL.test(text) &&
+      ![...SLOT_STUB_HELPERS].some((h) => text.includes(`${h}(`))
+    )
       continue;
     const source = parse(file);
     eachCall(source, (call) => {
       const { name, on } = callee(call);
       const arg = call.arguments[0];
-      if (name === SLOT_STUB_HELPER) {
+      if (SLOT_STUB_HELPERS.has(name)) {
         const slot = stringArg(arg);
         if (slot === undefined) return;
         sites.push({
@@ -586,6 +596,13 @@ export class Fingerprinter {
         ? exact
         : ofKind.filter((s) => !s.full && s.id === local);
     const files = [...new Set(matched.map((s) => s.file))];
+    if (
+      files.length === 0 &&
+      subject.kind === "extension" &&
+      STANDARD_STUB_ID.test(subject.id)
+    ) {
+      return { file: join(this.root, STANDARD_STUB_FILE) };
+    }
     if (files.length === 1) return { file: files[0] };
     const where = files.map((f) => toPosix(relative(this.root, f))).join(", ");
     return {

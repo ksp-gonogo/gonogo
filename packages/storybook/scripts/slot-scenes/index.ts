@@ -168,8 +168,11 @@ export function slotScenes(hosts: readonly SlotHost[]): ExtensionScene[] {
   return scenes;
 }
 
-/** Contributions a stub brings with it, shown in that stub's story rather than one of their own. */
-export const STUB_COMPANIONS: readonly string[] = [
+/** Contributions a stub brings with it, each mapped to the slot whose story shows it rather than one of its own. */
+export const STUB_COMPANIONS: Readonly<Record<string, string>> = {
   // The screen the `strategies.screen-body` stub draws on.
-  "planted:planted-slots-strategies-screen",
-];
+  "planted:planted-slots-strategies-screen": "strategies.screen-body",
+};
+
+/** The id a slot's stub story registers under, which a companion's story is found by. */
+export { slotStubId };

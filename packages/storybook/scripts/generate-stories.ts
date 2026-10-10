@@ -36,6 +36,7 @@ import {
   type SlotHost,
   STUB_COMPANIONS,
   slotScenes,
+  slotStubId,
   standardSlots,
 } from "./slot-scenes";
 import { writeUiKitStories } from "./uikit-stories";
@@ -833,10 +834,13 @@ async function main(): Promise<void> {
   const hosts = slotHosts(configs, widgets);
   const slotStories = slotScenes(hosts);
   const extensions = await writeExtensionsFiles(slotStories);
+  for (const [companion, slot] of Object.entries(STUB_COMPANIONS)) {
+    TARGETS.extension[companion] = TARGETS.extension[slotStubId(slot)] ?? [];
+  }
   const extensionIds = new Set([
     ...EXTENSION_SCENES.map((e) => e.id),
     ...slotStories.map((e) => e.id),
-    ...STUB_COMPANIONS,
+    ...Object.keys(STUB_COMPANIONS),
   ]);
   const uplinkStories = await writeUplinkFiles(covered, extensionIds);
 
