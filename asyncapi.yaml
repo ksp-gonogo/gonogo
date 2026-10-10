@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 36.2.0
+  version: 36.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -21566,6 +21566,34 @@ components:
           description: |-
             Index into `SystemBodies` of this vessel's main body; null when absent or
             unresolved.
+        landedAt:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The named launch or landing site the vessel is at, as a player would read it
+            (for example "Runway" or "Woomerang Launch Site"). Null when it is on the
+            ground somewhere with no named site, and null when it is not on the ground
+            at all: an airborne or orbiting vessel has no site.
+        latitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Body-fixed surface latitude in degrees while the vessel is landed, splashed
+            or pre-launch. Null for a vessel in flight or in orbit, since the point
+            beneath it sweeps at orbital rate and is not where it is. Null together with
+            `VesselRosterEntry.longitude`.
+        longitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null
+            exactly when `VesselRosterEntry.latitude` is.
         crewCount:
           type:
             - number

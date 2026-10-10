@@ -1912,11 +1912,63 @@ namespace Gonogo.KSP
                 ["mainBody"] = body != null ? body.bodyName : null,
             };
 
+            AddRosterPlaceFields(entry, vessel);
             AddRosterCrewFields(entry, vessel);
             AddRosterCommsFields(entry, vessel);
             AddRosterOrbitFields(entry, orbit);
 
             return entry;
+        }
+
+        /// <summary>
+        /// Where a vessel on the ground is: its named site and its latitude and
+        /// longitude. A craft that is landed, splashed or pre-launch has a place
+        /// on its body; one in flight or in orbit has none, because the point
+        /// beneath it sweeps at orbital rate. Keys are left absent for such a
+        /// craft and when the read throws, so an unread place never reaches the
+        /// wire as a zero or an empty name.
+        /// </summary>
+        private static void AddRosterPlaceFields(Dictionary<string, object?> entry, Vessel vessel)
+        {
+            try
+            {
+                var onGround = vessel.situation == Vessel.Situations.LANDED
+                    || vessel.situation == Vessel.Situations.SPLASHED
+                    || vessel.situation == Vessel.Situations.PRELAUNCH;
+                if (!onGround)
+                {
+                    return;
+                }
+
+                entry["latitude"] = vessel.latitude;
+                entry["longitude"] = WrapLongitude(vessel.longitude);
+                if (!string.IsNullOrEmpty(vessel.landedAt))
+                {
+                    entry["landedAt"] = GameWords.LaunchSiteName(vessel.landedAt);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] roster place read failed for vessel " + vessel.id + ", omitting: " + ex.Message);
+                entry.Remove("latitude");
+                entry.Remove("longitude");
+                entry.Remove("landedAt");
+            }
+        }
+
+        /// <summary>A longitude in degrees wrapped to (-180, 180], the range every geographic value on the wire uses.</summary>
+        private static double WrapLongitude(double degrees)
+        {
+            var wrapped = degrees % 360.0;
+            if (wrapped > 180.0)
+            {
+                wrapped -= 360.0;
+            }
+            else if (wrapped <= -180.0)
+            {
+                wrapped += 360.0;
+            }
+            return wrapped;
         }
 
         /// <summary>

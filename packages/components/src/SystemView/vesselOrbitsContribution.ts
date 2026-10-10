@@ -65,13 +65,68 @@ function crewLabel(v: VesselRosterEntry): string {
   return capacity != null ? `${count}/${capacity}` : String(count);
 }
 
-/** Roster fields the info panel reads: name, type, situation, body, crew, comms. */
-function metaFor(v: VesselRosterEntry, bodyName: string): SystemEntityMeta {
+/** Whether the craft rests on its body: landed, splashed or pre-launch, the situations that have a place on the surface and no orbit worth drawing. */
+function isOnGround(v: VesselRosterEntry): boolean {
+  return (
+    v.situation === Situation.Landed ||
+    v.situation === Situation.Splashed ||
+    v.situation === Situation.PreLaunch
+  );
+}
+
+/** A surface position as a player reads it, such as `0.05°S 74.72°W`; null unless both coordinates were read. */
+function coordinatesLabel(v: VesselRosterEntry): string | null {
+  const lat = magnitudeOf(v.latitude);
+  const lon = magnitudeOf(v.longitude);
+  if (lat == null || lon == null) return null;
+  const ns = lat < 0 ? "S" : "N";
+  const ew = lon < 0 ? "W" : "E";
+  return `${Math.abs(lat).toFixed(2)}°${ns} ${Math.abs(lon).toFixed(2)}°${ew}`;
+}
+
+/** Where a craft is, in the words that tell two same-named craft apart: its site, else its coordinates, else its situation. */
+function placeLabel(v: VesselRosterEntry): string {
+  if (!isOnGround(v)) return Situation[v.situation] ?? "Unknown";
+  return (
+    v.landedAt ?? coordinatesLabel(v) ?? Situation[v.situation] ?? "Unknown"
+  );
+}
+
+/**
+ * The name a craft is shown under: its own, and where it is when another craft in the roster has the same one, so five craft called "Sally-Hut 1" read as five.
+ */
+function displayName(
+  v: VesselRosterEntry,
+  sharedNames: ReadonlySet<string>,
+): string {
+  return sharedNames.has(v.name) ? `${v.name} · ${placeLabel(v)}` : v.name;
+}
+
+/** Names that more than one roster vessel carries. */
+function namesInUseTwice(vessels: readonly VesselRosterEntry[]): Set<string> {
+  const seen = new Set<string>();
+  const twice = new Set<string>();
+  for (const v of vessels) {
+    if (seen.has(v.name)) twice.add(v.name);
+    seen.add(v.name);
+  }
+  return twice;
+}
+
+/** Roster fields the info panel reads: name, type, situation, body, site and position for a craft on the ground, crew, comms. */
+function metaFor(
+  v: VesselRosterEntry,
+  bodyName: string,
+  sharedNames: ReadonlySet<string>,
+): SystemEntityMeta {
+  const position = isOnGround(v) ? coordinatesLabel(v) : null;
   return {
-    name: v.name,
+    name: displayName(v, sharedNames),
     type: VesselType[v.vesselType] ?? "Unknown",
     situation: Situation[v.situation] ?? "Unknown",
     body: bodyName,
+    ...(isOnGround(v) && v.landedAt != null ? { site: v.landedAt } : {}),
+    ...(position !== null ? { position } : {}),
     crew: crewLabel(v),
     comms: commsLabel(v.commsControlSource),
   };
@@ -121,12 +176,16 @@ function conicElements(v: VesselRosterEntry): ConicElements | null {
   return { sma, ecc, lan, argPe, inclination };
 }
 
-/** A vessel's position in `bodyName`'s frame: its Keplerian elements when all are read, else a dot at the body without fabricated elements. */
+/**
+ * A vessel's position in `bodyName`'s frame: its Keplerian elements when all are read, else a dot at the body without fabricated elements.
+ * A craft on the ground is a dot at its body whatever the roster's orbit says: the game still reports an ellipse for it, one that runs through the planet.
+ */
 function vesselPosition(
-  elements: ConicElements | null,
-  place: RingPlace | null,
+  v: VesselRosterEntry,
   bodyName: string,
 ): SystemEntityPosition {
+  const elements = isOnGround(v) ? null : conicElements(v);
+  const place = ringPlace(v);
   if (!elements) {
     return {
       kind: "fixed",
@@ -154,6 +213,7 @@ export function computeVesselOrbitEntities(
 ): readonly SystemEntity[] {
   if (!vessels) return [];
   const nameByIndex = bodyNameByIndex(bodies);
+  const sharedNames = namesInUseTwice(vessels.vessels);
   const entities: SystemEntity[] = [];
 
   for (const v of vessels.vessels) {
@@ -161,14 +221,14 @@ export function computeVesselOrbitEntities(
       v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null;
     if (bodyName == null) continue;
 
-    const elements = conicElements(v);
+    const elements = isOnGround(v) ? null : conicElements(v);
     entities.push({
       id: `vessel-orbit:${v.vesselId}`,
       vesselId: v.vesselId,
-      position: vesselPosition(elements, ringPlace(v), bodyName),
+      position: vesselPosition(v, bodyName),
       shape: elements ? { kind: "orbit-path" } : { kind: "point", radiusPx: 3 },
       style: { emphasis: "faint" },
-      meta: metaFor(v, bodyName),
+      meta: metaFor(v, bodyName, sharedNames),
     });
   }
 
@@ -209,7 +269,7 @@ function resolveNodePosition(
       ? (nameByIndex.get(vessel.bodyIndex) ?? null)
       : null;
   if (bodyName == null) return null;
-  return vesselPosition(conicElements(vessel), ringPlace(vessel), bodyName);
+  return vesselPosition(vessel, bodyName);
 }
 
 /** The CommNet half: one faint `connection-line` per `comms.network` edge, omitting any edge whose endpoint cannot be resolved; static topology only. */
