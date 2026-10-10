@@ -44,14 +44,16 @@ function TotalFigure({
   );
 }
 
-/** The game's vessel-total ΔV and burn time, side by side. */
+/** The game's vessel-total ΔV and burn time, and the craft's dry mass, side by side. */
 export function TotalsSection({
   totalDv,
   totalBurnTime,
+  dryMass,
   mode,
 }: {
   totalDv: UnitValue<"m/s"> | undefined;
   totalBurnTime: UnitValue<"s"> | null | undefined;
+  dryMass: UnitValue<"t"> | undefined;
   mode: DeltaVMode;
 }) {
   return (
@@ -90,6 +92,11 @@ export function TotalsSection({
           ) : (
             NULL_DISPLAY
           )}
+        </span>
+      </TotalFigure>
+      <TotalFigure label="Dry mass">
+        <span style={{ whiteSpace: "nowrap" }}>
+          {dryMass !== undefined ? <Unit value={dryMass} /> : NULL_DISPLAY}
         </span>
       </TotalFigure>
     </Box>

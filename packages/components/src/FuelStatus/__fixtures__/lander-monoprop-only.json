@@ -90,6 +90,15 @@
         }
       },
       {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 1.5,
+          "dryMass": 1.0,
+          "currentThrust": 0,
+          "availableThrust": 0
+        }
+      },
+      {
         "channel": "dv.summary",
         "value": {
           "stageCount": 1,

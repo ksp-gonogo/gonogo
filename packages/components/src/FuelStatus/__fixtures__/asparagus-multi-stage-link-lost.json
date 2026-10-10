@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A five-stage asparagus rocket after the link drops, every figure held at its last value.",
     "scenario": "asparagus-multi-stage-link-lost",
-    "notes": "Asparagus-staged rocket with 5 stages. Each outer booster pair decouples carrying symmetric LF/Ox load. Stages have widely varying deltaV values to exercise the bar-scaling logic (maxStageDv divides all bars). Stage 4 has the highest ΔV; stage 0 (lander) has the lowest. Tests RESOURCES filter, stage-bar proportional widths, and TWR column across modes. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+    "notes": "Asparagus-staged rocket with 5 stages. Each outer booster pair decouples carrying symmetric LF/Ox load. Stages have widely varying deltaV values to exercise the bar-scaling logic (maxStageDv divides all bars). Stage 4 has the highest \u0394V; stage 0 (lander) has the lowest. Tests RESOURCES filter, stage-bar proportional widths, and TWR column across modes. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },
   "v.currentStage": 4,
   "dv.stageCount": 5,
@@ -155,6 +155,15 @@
         "channel": "vessel.structure",
         "value": {
           "currentStage": 4
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 42.0,
+          "dryMass": 11.4,
+          "currentThrust": 0,
+          "availableThrust": 0
         }
       },
       {

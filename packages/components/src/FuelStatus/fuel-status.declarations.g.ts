@@ -5,6 +5,7 @@ export default {
     "dv.currentStageResourceMax",
     "dv.stages",
     "dv.summary",
+    "vessel.propulsion",
     "vessel.structure",
   ],
   optionalChannelFamilies: [],

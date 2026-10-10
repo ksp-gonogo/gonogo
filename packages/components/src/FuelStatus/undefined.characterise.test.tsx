@@ -179,7 +179,7 @@ describe("FuelStatus: what undefined means today", () => {
     );
     expect(screen.getByText("Total burn")).toBeInTheDocument();
     expect(screen.getByText("2min 5s")).toBeInTheDocument();
-    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
   });
 
   it("shows an em-dash burn and TWR for a stage row whose fields never arrived", async () => {

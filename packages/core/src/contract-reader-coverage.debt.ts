@@ -137,8 +137,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.physics.mode.mode":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.propulsion.dryMass":
-    "no shipping code reads it, only stories named it",
   "field:vessel.thermal.maxSkinTempRatio":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:career.status.strategies.activeCount":
@@ -225,8 +223,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.target.partId":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.target.orbit.encounter.transitionUt":
-    "the encounter any widget draws is the craft's own, not the target's",
 };
 
 /**
@@ -235,7 +231,5 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
  * reader lands, and nothing may be added to it once the base carries one.
  */
 export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {
-  "field:vessel.target.orbit.encounter.transitionUt": "Saga 923",
   "field:commandCentre.unreachable.kind": "Saga 922",
-  "field:vessel.propulsion.dryMass": "Saga 921",
 };

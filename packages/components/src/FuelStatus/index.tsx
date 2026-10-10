@@ -86,6 +86,8 @@ function FuelStatusComponent({
   // `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch.
   const totalBurnTime = budget?.totalBurnTime;
 
+  const dryMass = useTelemetry("vessel.propulsion").dryMass.value;
+
   const readings = useResourceRows();
 
   // Entries arrive high to low (stage 3 first), matching the top-down render order.
@@ -145,6 +147,7 @@ function FuelStatusComponent({
                   ? totalBurnTime
                   : dated(totalBurnTime)
               }
+              dryMass={dryMass}
               mode={mode}
             />
           </Section>
@@ -174,6 +177,7 @@ registerComponent<FuelStatusConfig>({
   channels: ["vessel.resources"],
   fields: [
     "vessel.structure.currentStage",
+    "vessel.propulsion.dryMass",
     "dv.summary.stageCount",
     "dv.summary.totalDvVac",
     "dv.summary.totalDvAsl",

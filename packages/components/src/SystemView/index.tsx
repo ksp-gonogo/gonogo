@@ -95,6 +95,7 @@ const topics = defineTopicManifest({
     "comms.network.meta.source",
     "vessel.target.orbit.encounter.bodyIndex",
     "vessel.target.orbit.encounter.transitionType",
+    "vessel.target.orbit.encounter.transitionUt",
     "vessel.target.orbit.horizon.departure",
     "vessel.target.orbit.horizon.kind",
   ],
