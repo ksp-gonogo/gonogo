@@ -61,7 +61,8 @@ export function PlaybackScene({ scenario, w, h }: PlaybackSceneProps) {
   };
 
   return (
-    <div>
+    // The running time a picture of this story must cover: every step after the first.
+    <div data-story-seconds={Math.ceil(((frames.length - 1) * stepMs) / 1000)}>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">

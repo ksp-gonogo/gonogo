@@ -317,7 +317,8 @@ export function CommsPlaybackScene({
   );
 
   return (
-    <div>
+    // The running time a picture of this story must cover: the whole loop.
+    <div data-story-seconds={Math.ceil(PLAYBACK_SECONDS)}>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <PlaybackStart onClick={play}>
           {run === 0 ? "Play" : "Replay"}

@@ -79,7 +79,8 @@ export function FramePlayer({
   };
 
   return (
-    <div>
+    // The running time a picture of this story must cover: the last frame's instant.
+    <div data-story-seconds={Math.ceil(frames[frames.length - 1].seconds)}>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">{clock}</span>

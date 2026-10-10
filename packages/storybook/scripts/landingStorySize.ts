@@ -1,5 +1,5 @@
 /** The widget's own default size, which a test holds equal to the one it registers: the default stories show what an operator gets when they add the widget. */
-export const DEFAULT_SIZE = { w: 14, h: 15 };
+export const DEFAULT_SIZE = { w: 14, h: 24 };
 
 /** The smallest size the widget can be given, which a test holds equal to the one it registers: below eight columns its plots fold away into plain readouts. */
 export const MIN_SIZE = { w: 4, h: 6 };

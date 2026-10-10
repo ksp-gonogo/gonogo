@@ -296,8 +296,8 @@ registerComponent<LandingStatusConfig>({
   description:
     "Everything for a powered landing: altitude, time to impact, the suicide burn with the Δv and fuel it needs, a top-down view of where you will touch down and a side view of the terrain on the way. Under signal delay it shows what was last seen beside what is predicted now.",
   tags: ["telemetry", "landing"],
-  // Wide enough for both plots to sit side by side, with the verdict under them, in view without scrolling.
-  defaultSize: { w: 14, h: 15 },
+  // Wide enough for the plots to sit side by side, and tall enough for every row of the worst state (a crash) to be in view without scrolling.
+  defaultSize: { w: 14, h: 24 },
   minSize: { w: 4, h: 6 },
   component: LandingStatusComponent,
   tiny: {

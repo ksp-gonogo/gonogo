@@ -127,7 +127,8 @@ export function TechTreeCareerScene({
   };
 
   return (
-    <div>
+    // The running time a picture of this story must cover: every step after the first.
+    <div data-story-seconds={Math.ceil(((frames.length - 1) * STEP_MS) / 1000)}>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">
