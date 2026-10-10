@@ -18,6 +18,7 @@ import {
 import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
+import { useVantageRefused } from "../telemetry/vantageRefused";
 import { vantageLabels } from "./vantageLabels";
 
 interface VantageOption extends ComboboxOption {
@@ -174,6 +175,8 @@ function VantagePicker() {
   // Never empty and never a raw id: a vantage the roster does not carry (a centre not seated yet) and a screen no frame has placed both read as unknown.
   const selectedLabel = selectedOption?.label ?? "Unknown";
   const selectedIsHome = selected !== undefined && selected === homeId;
+  const refused = useVantageRefused();
+  const showing = observed === undefined ? undefined : labels.get(observed);
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -266,6 +269,7 @@ function VantagePicker() {
         {selectedIsHome && <HomeBadge />}
         <ChevronDownIcon size={12} />
       </Trigger>
+      <NotSeated refused={refused} showing={showing} />
       {open &&
         (options.length > 0 ? (
           <ComboboxListbox
@@ -293,6 +297,34 @@ function VantagePicker() {
     </Container>
   );
 }
+
+/**
+ * What the screen is reading while the mod refuses its chosen centre: every
+ * reading on screen is from wherever a fresh connection starts, and saying
+ * whose they are is what keeps them from passing as the chosen centre's.
+ */
+function NotSeated({
+  refused,
+  showing,
+}: Readonly<{ refused: boolean; showing: string | undefined }>) {
+  if (!refused) return null;
+  return (
+    <NotSeated__Root role="status" aria-live="polite">
+      <Badge tone="warn" size="sm">
+        Not seated
+      </Badge>
+      {showing !== undefined && (
+        <Text size="xs">{`Readings from ${showing}`}</Text>
+      )}
+    </NotSeated__Root>
+  );
+}
+
+const NotSeated__Root = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gap-related);
+`;
 
 const Container = styled.div`
   position: relative;

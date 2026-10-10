@@ -25,6 +25,7 @@ import {
   subscribeSitrepReconnectNonce,
 } from "./sitrepRuntime";
 import { VantageRestore } from "./VantageRestore";
+import { VantageRefusedContext } from "./vantageRefused";
 
 /**
  * Soft cap on `stream-data` frames delivered off the live Sitrep WebSocket
@@ -309,7 +310,9 @@ export function SitrepTelemetryProvider({
           it. Renders nothing. */}
       <KspCalendarObserver />
       <VantageRestore refused={vantageRefused} onRetry={clearVantageRefused} />
-      {children}
+      <VantageRefusedContext.Provider value={vantageRefused}>
+        {children}
+      </VantageRefusedContext.Provider>
     </TelemetryProvider>
   );
 }

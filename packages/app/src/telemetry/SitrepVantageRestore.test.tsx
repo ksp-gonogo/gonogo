@@ -21,7 +21,7 @@ afterAll(() => server.close());
 
 const CENTRE = "vessel:99e5b184-0000-0000-0000-000000000000";
 
-function frame(topic: string, payload: unknown): string {
+function frame(topic: string, payload: unknown, vantage = "meta"): string {
   return JSON.stringify({
     type: "stream-data",
     topic,
@@ -31,7 +31,7 @@ function frame(topic: string, payload: unknown): string {
       validAt: 1,
       seq: 0,
       deliveredAt: 1,
-      vantage: "meta",
+      vantage,
       quality: 0,
       active: false,
       staleness: 0,
@@ -107,4 +107,92 @@ describe("a restarted game that refuses the screen's vantage while it loads", ()
     expect(vantageSends()).toHaveLength(before + 1);
     expect(vantageSends().at(-1)?.centreId).toBe(CENTRE);
   }, 30_000);
+
+  it("marks the readings as another centre's until the chosen one is seated", async () => {
+    const HOME = "ground:Kerbal Space Center";
+    const sockets: LinkClient[] = [];
+    const sent: Array<{ type: string; centreId?: string }> = [];
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        sockets.push(client);
+        client.addEventListener("message", (event) => {
+          sent.push(JSON.parse(String(event.data)));
+        });
+      }),
+    );
+    const vantageSends = () => sent.filter((m) => m.type === "set-vantage");
+
+    render(
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+        <Seat />
+        <VantageControl />
+      </SitrepTelemetryProvider>,
+    );
+    await waitFor(() => expect(vantageSends().length).toBeGreaterThan(0));
+
+    await act(async () => {
+      sockets[0].send(
+        JSON.stringify({
+          type: "error",
+          code: "unknownVantage",
+          message: `'${CENTRE}' is not an active command centre`,
+        }),
+      );
+      sockets[0].send(
+        frame(
+          "commandCentre.roster",
+          [
+            {
+              id: HOME,
+              displayName: "Kerbal Space Center",
+              active: true,
+              isHome: true,
+            },
+          ],
+          HOME,
+        ),
+      );
+    });
+    const status = await screen.findByText("Not seated");
+    expect(status).toBeVisible();
+    expect(
+      await screen.findByText("Readings from Kerbal Space Center"),
+    ).toBeVisible();
+
+    const before = vantageSends().length;
+    await act(async () => {
+      sockets[0].send(
+        frame(
+          "commandCentre.roster",
+          [
+            {
+              id: HOME,
+              displayName: "Kerbal Space Center",
+              active: true,
+              isHome: true,
+            },
+            { id: CENTRE, displayName: "Sally-Hut 1", active: true },
+          ],
+          HOME,
+        ),
+      );
+    });
+    await waitFor(() => expect(vantageSends()).toHaveLength(before + 1));
+    expect(vantageSends().at(-1)?.centreId).toBe(CENTRE);
+    await act(async () => {
+      sockets[0].send(
+        frame(
+          "commandCentre.roster",
+          [{ id: CENTRE, displayName: "Sally-Hut 1", active: true }],
+          CENTRE,
+        ),
+      );
+    });
+    await waitFor(() =>
+      expect(screen.queryByText("Not seated")).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", { name: /Command centre vantage/ }),
+    ).toHaveAccessibleName("Command centre vantage: Sally-Hut 1");
+  });
 });
