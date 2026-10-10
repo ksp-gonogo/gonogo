@@ -29,6 +29,7 @@ import {
   UPLINK_MANIFEST_FILE,
 } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
 import { CHECK_USAGE, check } from "../check/command";
+import { usageOf } from "../render/usage";
 import { BAKE_USAGE, bake } from "./bake";
 import { CODEGEN_USAGE, codegen } from "./codegen";
 import { parseFlags, wantsHelp } from "./flags";
@@ -424,6 +425,10 @@ export async function run(argv: readonly string[]): Promise<number> {
       return 0;
     }
     if (verb === "render" || verb === "docs") {
+      if (wantsHelp(argv)) {
+        console.log(usageOf(verb));
+        return 0;
+      }
       const { renderOrDocs } = await import("../render/cli").catch(
         (err: unknown) => {
           // The render half draws the client's widgets with the client's own React and ui-kit, so it cannot load where they are not installed.
