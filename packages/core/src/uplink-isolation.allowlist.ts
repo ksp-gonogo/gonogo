@@ -156,6 +156,8 @@ export const AUTHOR_SUBPATHS: Record<
       "the browser half of the render harness, driven by the uplink-tools bin. An author's `gonogo-render.setup.ts` imports `defineRenderSetup` from it",
     "page-check":
       "the generated-page assertions an author's own `uplink-page.test.ts` reads back",
+    "widget-facts":
+      "the fact rows a widget's registration states, which the Uplink README and the docs site's widget page both write from",
   },
 };
 

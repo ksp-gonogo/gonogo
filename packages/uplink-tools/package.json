@@ -29,6 +29,10 @@
       "types": "./dist/page-check.d.ts",
       "import": "./dist/page-check.js"
     },
+    "./widget-facts": {
+      "types": "./dist/widget-facts.d.ts",
+      "import": "./dist/widget-facts.js"
+    },
     "./widgets": {
       "types": "./dist/widgets.d.ts",
       "import": "./dist/widgets.js"

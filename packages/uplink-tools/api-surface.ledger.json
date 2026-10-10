@@ -848,6 +848,134 @@
       {
         "key": "uplink-tools ./render-probe WidgetRecord#tiny",
         "note": "New: whether the widget has a tiny form"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFact",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFact#id",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFact#items",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFact#label",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFactId",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFactItem",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFactsOptions",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts WidgetFactsOptions#omitSlot?",
+        "note": "New: part of the widget fact rows"
+      },
+      {
+        "key": "uplink-tools ./widget-facts widgetFactValueMd",
+        "note": "New: a fact row rendered as one Markdown table cell"
+      },
+      {
+        "key": "uplink-tools ./widget-facts widgetFactsOf",
+        "note": "New: the fact rows of a widget registration, shared by the Uplink README and the docs site widget page"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#actions",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#augmentSlots",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#channelFamilies",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#channels",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#commands",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#contributionSlots",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#dataRequirements",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#defaultSize",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#description",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#fields",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#id",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#minSize",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#name",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#optionalChannelFamilies",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#optionalChannels",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#pushable",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#readsFromConfig",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#replaces",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#requires",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#tags",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
+      },
+      {
+        "key": "uplink-tools ./widget-facts ~WidgetRecord#tiny",
+        "note": "New: WidgetRecord, now also reachable from the widget-facts entry as the input to widgetFactsOf"
       }
     ]
   }

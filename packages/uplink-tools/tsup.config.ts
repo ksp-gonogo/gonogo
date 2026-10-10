@@ -66,6 +66,7 @@ export default defineConfig([
     entry: {
       index: "src/index.ts",
       "page-check": "src/page-check.ts",
+      "widget-facts": "src/widget-facts.ts",
       cli: "src/cli/index.ts",
     },
     platform: "node",

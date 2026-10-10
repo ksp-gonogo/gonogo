@@ -20,9 +20,10 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | | |
 | --- | --- |
 | Widget id | `deployed-science` |
-| Reads | `deployed.bases`, `game.dlc.breakingGround` |
+| Reads, as flat keys | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots | `deployed-science.experiment` |
 | Default size | 5 × 9 |
+| Smallest size | 4 × 5 |
 | Scenes | 4 |
 
 ![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](docs/assets/mun-and-minmus-bases--default.png)
@@ -34,10 +35,11 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | | |
 | --- | --- |
 | Widget id | `robotics-console` |
-| Reads | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
-| Actions | Target + (`target-up`), Target − (`target-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`) |
-| Only while present | `flight` |
+| Reads, as flat keys | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
+| Actions to bind | Target + (`target-up`), Target − (`target-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`) |
+| Needs | a vessel in flight |
 | Default size | 5 × 8 |
+| Smallest size | 4 × 4 |
 | Scenes | 3 |
 
 ![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](docs/assets/servos--default.png)
@@ -49,10 +51,11 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | | |
 | --- | --- |
 | Widget id | `rotor-tachometer` |
-| Reads | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
-| Actions | RPM up (`rpm-up`), RPM down (`rpm-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`), Reverse (`reverse`) |
-| Only while present | `flight` |
+| Reads, as flat keys | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
+| Actions to bind | RPM up (`rpm-up`), RPM down (`rpm-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`), Reverse (`reverse`) |
+| Needs | a vessel in flight |
 | Default size | 6 × 10 |
+| Smallest size | 4 × 4 |
 | Scenes | 3 |
 
 ![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](docs/assets/rotors--default.png)

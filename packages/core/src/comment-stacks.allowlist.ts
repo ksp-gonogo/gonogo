@@ -328,7 +328,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/tsup.config.ts": 2,
   "packages/ui/vitest.config.ts": 1,
   "packages/uplink-tools/src/render-probe.tsx": 4,
-  "packages/uplink-tools/src/render/docs.ts": 1,
   "packages/uplink-tools/src/render/driver.ts": 2,
   "packages/uplink-tools/src/render/minFit.ts": 2,
   "packages/uplink-tools/src/render/render.test.ts": 2,
@@ -366,5 +365,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1665,
+  files: 1755,
 } as const;

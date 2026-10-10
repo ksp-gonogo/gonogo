@@ -1062,7 +1062,7 @@ describe("the widget section of the page", () => {
     expect(readme).toContain("`example.reactor`");
     expect(readme).toContain("`fleet.<vessel>.contact`");
     expect(readme).toMatch(
-      /Uses if present.*`example\.extra`.*`<domain>\.available`/,
+      /Also reads, if published.*`example\.extra`.*`<domain>\.available`/,
     );
   });
 

@@ -14,6 +14,7 @@ import type {
   InventoryErrorCode,
   UplinkInventory,
 } from "../render-probe";
+import { widgetFactsOf, widgetFactValueMd } from "../widget-facts";
 import type { UplinkPackage } from "./context";
 import type { RenderedAsset } from "./driver";
 import type { Scene } from "./scenes";
@@ -372,60 +373,15 @@ export function widgetRecordsOf(inventory: UplinkInventory): WidgetRecord[] {
   );
 }
 
-/** An action as the README lists it: the label an operator reads, then its id. */
-function actionLine(action: { id: string; label: string }): string {
-  return `${action.label.replaceAll("|", "\\|")} (\`${action.id}\`)`;
-}
-
 // Takes the record, never the inventory entry, so nothing reaches a widget's section that `docs/widgets.json` does not also carry.
 function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
   const out = [`### ${widget.name}`, "", widget.description, ""];
-  // `channels` when the widget declares them, `dataRequirements` otherwise: they
-  // are two generations of the same declaration and a widget on the older one
-  // still reads something, so quoting an empty `channels` would print nothing
-  // about a widget with five topics.
-  const reads = [
-    ...(widget.channels.length > 0 ? widget.channels : widget.dataRequirements),
-    ...widget.channelFamilies,
-  ];
-  const usesIfPresent = [
-    ...widget.optionalChannels,
-    ...widget.optionalChannelFamilies,
-  ];
-  const slots = [...widget.augmentSlots, ...widget.contributionSlots];
   out.push(
     ...facts([
-      ["Widget id", `\`${widget.id}\``],
-      ["Reads", reads.length > 0 ? list(reads) : undefined],
-      [
-        "Uses if present",
-        usesIfPresent.length > 0 ? list(usesIfPresent) : undefined,
-      ],
-      [
-        "Reads from settings",
-        widget.readsFromConfig
-          ? "the Topics chosen in the tile's settings"
-          : undefined,
-      ],
-      ["Sends", widget.commands.length > 0 ? list(widget.commands) : undefined],
-      [
-        "Actions",
-        widget.actions.length > 0
-          ? widget.actions.map(actionLine).join(", ")
-          : undefined,
-      ],
-      ["Slots", slots.length > 0 ? list(slots) : undefined],
-      [
-        "Only while present",
-        widget.requires.length > 0 ? list(widget.requires) : undefined,
-      ],
-      ["Replaces", widget.replaces ? `\`${widget.replaces}\`` : undefined],
-      [
-        "Default size",
-        widget.defaultSize
-          ? `${widget.defaultSize.w} × ${widget.defaultSize.h}`
-          : undefined,
-      ],
+      ...widgetFactsOf(widget).map((fact): [string, string] => [
+        fact.label,
+        widgetFactValueMd(fact.items),
+      ]),
       // How many STATES somebody thought worth showing, not how many pictures.
       // A widget with three warning states and one scene is the shape that hides
       // a finding, and this is what makes that visible in review.
