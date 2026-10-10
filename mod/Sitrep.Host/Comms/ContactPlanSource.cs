@@ -361,6 +361,8 @@ namespace Sitrep.Host.Comms
         private IUplinkHost? _host;
         private ICraftStateHost? _craftHost;
         private IPlanAudienceHost? _audience;
+
+        private CommandCentres.IActiveRouteHost? _routes;
         private IAddressedStreamHost? _streams;
         private volatile string? _lastFailure;
 
@@ -563,6 +565,7 @@ namespace Sitrep.Host.Comms
             _host = host;
             _craftHost = host as ICraftStateHost;
             _audience = host as IPlanAudienceHost;
+            _routes = host as CommandCentres.IActiveRouteHost;
             _streams = host as IAddressedStreamHost;
             if (_craftHost == null || _audience == null || _streams == null)
             {
@@ -1427,15 +1430,19 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Sends each planning centre the active craft's path as its own plan has
-        /// it: every centre once a second, and at once a centre where a session
+        /// Sends each planning centre the active craft's path: every centre once a second, and at once a centre where a session
         /// has just sat down. The hop lengths move with the craft, so the path is
         /// sent each time; the network and the terminus are sent when the path
         /// names different nodes, and to a session that has just sat down.
         ///
-        /// <para>A centre with no plan yet is sent nothing while there is a craft
-        /// to have a path: it has no belief to state, which is not the same as
-        /// believing there is no path.</para>
+        /// <para>A centre the game routes the craft's samples to is sent that
+        /// route and its light-time, the very hops the delay ledger times the
+        /// samples by, so the figure is the delay of what arrives. Any other
+        /// centre is sent the path its own plan has.</para>
+        ///
+        /// <para>A centre with no plan yet and no game route is sent nothing
+        /// while there is a craft to have a path: it has no belief to state,
+        /// which is not the same as believing there is no path.</para>
         /// </summary>
         private void PublishPaths(Looked looked, IReadOnlyCollection<string> planning)
         {
@@ -1464,7 +1471,8 @@ namespace Sitrep.Host.Comms
                     _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, source), looked.Ut, ToItself(centre));
                     frames++;
                 }
-                if (plan == null && looked.ActiveCraft != null)
+                var gameRoute = looked.ActiveCraft == null ? null : _routes?.ActiveVesselRoute(centre);
+                if (plan == null && looked.ActiveCraft != null && gameRoute == null)
                 {
                     // Between one plan and the next the centre believes what it last believed.
                     frames += PublishSignal(looked, centre, _believed.Of(centre, looked.ActiveCraft), radio);
@@ -1481,16 +1489,19 @@ namespace Sitrep.Host.Comms
                 }
 
                 var heard = _hearing!.HeardAt(centre);
-                var view = CentrePath.For(
-                    plan,
-                    looked.ActiveCraft,
-                    centre,
-                    centre == home,
-                    _stations,
-                    id => NameOf(heard, id),
-                    looked.Ut,
-                    lightFactor,
-                    PathStrengths.For(heard, looked.PathStrength));
+                var strengths = PathStrengths.For(heard, looked.PathStrength);
+                var view = gameRoute != null
+                    ? CentrePath.Taken(gameRoute, looked.ActiveCraft!, _stations, id => NameOf(heard, id), looked.Ut, strengths)
+                    : CentrePath.For(
+                        plan,
+                        looked.ActiveCraft,
+                        centre,
+                        centre == home,
+                        _stations,
+                        id => NameOf(heard, id),
+                        looked.Ut,
+                        lightFactor,
+                        strengths);
                 WithHeardFacts(view.Path, radio);
                 if (looked.ActiveCraft != null)
                 {

@@ -325,7 +325,7 @@ namespace Gonogo.KSP
         /// last fallback for a station with no name at all.
         /// <see cref="NodeDisplayName"/> carries the label.
         /// </summary>
-        private static string NodeId(CommNode node)
+        internal static string NodeId(CommNode node)
         {
             if (node == null)
             {

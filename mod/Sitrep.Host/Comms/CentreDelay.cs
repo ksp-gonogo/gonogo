@@ -4,12 +4,12 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// The <c>comms.delay</c> one command centre is sent: the light-time of the
-    /// active craft's path as that centre believes it to stand, which is the
-    /// path it is sent on <c>comms.path</c>.
+    /// active craft's path it is sent on <c>comms.path</c>.
     ///
-    /// <para>The delay the engine times deliveries by is not this. That one is
-    /// measured over the game's own links, because it decides when light that
-    /// was really sent really lands. This is what a centre can know of it.</para>
+    /// <para>At a centre the game routes the craft's samples to, that path is
+    /// the game's route and the figure is the delay the samples arrive by.
+    /// Where the game states no route the plan's path is the only belief the
+    /// centre has to state, so that is the honest fallback.</para>
     /// </summary>
     public static class CentreDelay
     {
@@ -17,7 +17,7 @@ namespace Sitrep.Host.Comms
         /// The light-time of <paramref name="path"/>, or none where the centre
         /// believes there is no path, which a zero would misstate as no distance.
         /// </summary>
-        /// <param name="path">The centre's own path for the active craft.</param>
+        /// <param name="path">The path the centre is sent for the active craft.</param>
         /// <param name="lightFactor">What a real light time is multiplied by, greater than zero: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         /// <param name="source">The craft the path is from, or <c>"game"</c>.</param>
         public static CommsDelay Over(CommsPath path, double lightFactor, string source) =>

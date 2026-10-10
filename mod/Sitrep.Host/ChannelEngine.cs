@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed partial class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
+    public sealed partial class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -3210,6 +3210,17 @@ namespace Sitrep.Host
             }
             return reached;
         }
+
+        private IReadOnlyDictionary<string, IReadOnlyList<CommsHop>> _activeVesselRoutes =
+            new Dictionary<string, IReadOnlyList<CommsHop>>();
+
+        public void SetActiveVesselRoutes(IReadOnlyDictionary<string, IReadOnlyList<CommsHop>> routes)
+        {
+            System.Threading.Volatile.Write(ref _activeVesselRoutes, routes);
+        }
+
+        public IReadOnlyList<CommsHop>? ActiveVesselRoute(string centre) =>
+            System.Threading.Volatile.Read(ref _activeVesselRoutes).TryGetValue(centre, out var hops) ? hops : null;
 
         public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
         {
@@ -8305,6 +8316,7 @@ namespace Sitrep.Host
             // round trip (DispatchedAt + 2*OneWaySeconds), independent of
             // whether anything is subscribed.
             PrunePendingUplinks(tick.Ut);
+            FollowPendingPredictions(tick.Ut);
 
             foreach (var channelSource in _channelSources)
             {

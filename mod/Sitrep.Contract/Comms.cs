@@ -413,21 +413,25 @@ public class CommsHop
 }
 
 /// <summary>
-/// The <c>comms.path</c> payload: the active vessel's path as the receiving
-/// command centre believes it to stand now. Ordered hops from the active
-/// vessel to the receiving centre itself, or, for the home centre, to
-/// whichever ground station the signal reaches first. An empty
-/// <see cref="Hops"/> means the centre knows of no path that is open all the
-/// way now, which includes a path that would have the signal wait at a relay
-/// (<c>comms.route</c> says where it would wait).
+/// The <c>comms.path</c> payload: the route the active vessel's samples take
+/// to the receiving command centre. Ordered hops from the active vessel to the
+/// receiving centre itself, or, for the home centre, to whichever ground
+/// station the signal reaches first. An empty <see cref="Hops"/> means the
+/// centre knows of no path that is open all the way now, which includes a path
+/// that would have the signal wait at a relay (<c>comms.route</c> says where it
+/// would wait).
 ///
-/// <para>Each command centre is sent its own, and no other centre's. It is
-/// worked out from that centre's contact plan, which is made of what the
-/// centre has heard of each craft, so a hop changes here only once the news of
-/// it has reached the centre: a relay that drops out is still on the path
-/// until its silence has crossed to you. Nothing is sent until the centre has
-/// a contact plan, so the topic is absent, not empty, for the first moments of
-/// a session.</para>
+/// <para>Each command centre is sent its own, and no other centre's. Where
+/// the game routes the vessel's samples to the centre (at home, the vessel's
+/// own path to the ground), the hops are that route, the one
+/// <c>comms.delay</c> and the arrival of every sample are timed over. Where the
+/// game states no route, they are worked out from that centre's contact plan,
+/// which is made of what the centre has heard of each craft, so a hop changes
+/// here only once the news of it has reached the centre: a relay that drops out
+/// is still on the path until its silence has crossed to you. Predictions
+/// (<c>comms.route</c>, held commands, cancel deadlines) are always the plan's.
+/// Nothing is sent until the centre has a contact plan or a game route, so the
+/// topic is absent, not empty, for the first moments of a session.</para>
 ///
 /// <para>Not reckonable: a route changes in steps (a relay drops below the
 /// horizon and the whole chain re-solves to different hops), and every
@@ -585,20 +589,21 @@ public enum CommsDelaySource
 /// <c>connected:true</c>.
 ///
 /// <para>Each command centre is sent its own, and no other centre's. It is
-/// the light-time of the active vessel's path as the receiving centre believes
-/// it to stand, which is the path that centre is sent on <c>comms.path</c>, so
-/// the two always agree. The path is worked out from what the centre has heard
-/// of each craft, so the figure moves only once the news that moves it has
-/// reached the centre: a relay that drops out goes on counting towards the
-/// delay until its silence has crossed to you. A zero that is a setting (delay
-/// switched off, or a save with no comms network) is sent at once.</para>
+/// the light-time of the active vessel's path that centre is sent on
+/// <c>comms.path</c>, so the two always agree. Where the game routes the
+/// vessel's samples to the centre (at home, the vessel's own path to the
+/// ground), that path is the game's route and this is the delay the samples
+/// arrive by. Wherever the game states no route, it is the path the centre's own plan has,
+/// worked out from what the centre has heard of each craft, so the figure
+/// moves only once the news that moves it has reached the centre. A zero that
+/// is a setting (delay switched off, or a save with no comms network) is sent
+/// at once.</para>
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentreDelay.
-/// Deliveries are not timed by this figure but by <c>INetwork.DelayTo</c>, fed
-/// by <c>ChannelEngine.CaptureSignalDelay</c> from the game's own links on the
-/// ungated capture path, because that decides when light that was really sent
-/// really lands. It is the centre's believed path and not the backend's solved
-/// one, so a far hop re-routing reaches a centre only after its own light has.
+/// Deliveries are timed by <c>INetwork.DelayTo</c>, fed from the game's own
+/// links on the ungated capture path; at a non-home centre the path published
+/// here is the hops that ledger row was measured over
+/// (<c>IActiveRouteHost</c>).
 /// </internal>
 /// </summary>
 /// <category>Comms</category>

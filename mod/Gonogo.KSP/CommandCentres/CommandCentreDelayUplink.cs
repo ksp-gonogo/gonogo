@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CommNet;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
@@ -136,16 +137,23 @@ namespace Gonogo.KSP.CommandCentres
             var backend = kernel != null ? CommsElection.Elected(kernel) : null;
 
             var solves = new SolveCounter();
+            var activeGuid = ActiveVesselGuid(snapshot);
+            var activeRoutes = new Dictionary<string, IReadOnlyList<CommsHop>>();
+            var nameOf = RouteNames(centres);
             var capture = BuildLedger(
                 centres,
                 _home(),
                 vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                ActiveVesselGuid(snapshot),
-                (centre, guid, isHome) => RouteDelay(backend, centre, isHome, guid, config, vessels, solves),
+                activeGuid,
+                (centre, guid, isHome) => RouteDelay(
+                    backend, centre, isHome, guid, config, vessels, solves,
+                    guid == activeGuid ? activeRoutes : null, nameOf),
                 (from, to) => RouteCentreDelay(backend, from, to, config, solves),
                 centre => SecondsToHome(centre, config),
                 centre => ReachesGround(centre, vessels, config));
             capture.Ut = snapshot != null ? snapshot.Ut : 0.0;
+            capture.ActiveRoutes = activeRoutes;
+            AddHomeRoute(activeRoutes, centres, _home(), vessels, activeGuid, config, nameOf);
 
             PathSolveBudget.Record(solves.Count, capture.Ut);
             return capture;
@@ -268,6 +276,7 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             _host?.SetActiveVesselDelays(activeVesselRows);
+            (_host as IActiveRouteHost)?.SetActiveVesselRoutes(cap.ActiveRoutes);
             var reach = _host as ICommandReachWriter;
             reach?.SetAuthorityDelays(fleetRows);
             reach?.SetUnroutable(cap.Unroutable);
@@ -313,7 +322,9 @@ namespace Gonogo.KSP.CommandCentres
             string guid,
             SignalDelayConfig? config,
             IList<Vessel> vessels,
-            SolveCounter solves)
+            SolveCounter solves,
+            Dictionary<string, IReadOnlyList<CommsHop>>? routesOut = null,
+            Func<CommsNodeHandle?, (string Id, bool IsHome)?>? nameOf = null)
         {
             var vessel = vessels.FirstOrDefault(v => v != null && v.id.ToString() == guid);
             if (vessel == null)
@@ -335,7 +346,73 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             solves.Count++;
-            return FleetCommsReader.ReadNodePath(backend, from, to, config);
+            var (seconds, route) = FleetCommsReader.ReadNodeRoute(backend, from, to, config);
+            if (routesOut != null && nameOf != null && seconds != null)
+            {
+                // Solved from the centre out to the craft, and shown as the samples travel it.
+                var hops = ActiveRoute.Hops(route, nameOf);
+                if (hops != null)
+                {
+                    routesOut[centre.Id] = ActiveRoute.Reversed(hops);
+                }
+            }
+            return seconds;
+        }
+
+        /// <summary>
+        /// The home centre is timed by the active craft's own solved path home,
+        /// so that path's hops are the route its samples take there. A craft
+        /// with no hop to show leaves the home centre out, and the centre is
+        /// then sent the path its own plan has: with no route stated by the
+        /// game, the plan is the only belief there is to state.
+        /// </summary>
+        private static void AddHomeRoute(
+            Dictionary<string, IReadOnlyList<CommsHop>> routes,
+            IReadOnlyList<ICommandCentre> centres,
+            HomeCommand home,
+            IList<Vessel> vessels,
+            string? activeGuid,
+            SignalDelayConfig? config,
+            Func<CommsNodeHandle?, (string Id, bool IsHome)?> nameOf)
+        {
+            var homeId = HomeCentreId(centres, home);
+            var vessel = activeGuid == null ? null : vessels.FirstOrDefault(v => v != null && v.id.ToString() == activeGuid);
+            if (homeId == null || vessel == null)
+            {
+                return;
+            }
+
+            var hops = ActiveRoute.Hops(FleetCommsReader.ReadVesselRoute(vessel, config), nameOf);
+            if (hops != null)
+            {
+                routes[homeId] = hops;
+            }
+        }
+
+        /// <summary>
+        /// What a route's nodes are called, as <c>comms.path</c> names them: a
+        /// craft by its guid, and a ground station by the name its command centre
+        /// goes by, which is the one the contact plans use. The game's own name for
+        /// a station can be an unresolved localisation key.
+        /// </summary>
+        private static Func<CommsNodeHandle?, (string Id, bool IsHome)?> RouteNames(IReadOnlyList<ICommandCentre> centres)
+        {
+            var stations = new Dictionary<CommNode, string>();
+            foreach (var centre in centres)
+            {
+                if (centre is KspCommandCentre ksp && ksp.Node != null && centre.Kind == CommandCentreKind.GroundStation)
+                {
+                    stations[ksp.Node] = centre.DisplayName;
+                }
+            }
+            return handle =>
+            {
+                if (!(handle?.As<CommNode>() is CommNode node))
+                {
+                    return null;
+                }
+                return stations.TryGetValue(node, out var name) ? (name, true) : (CommNetBackend.NodeId(node), node.isHome);
+            };
         }
 
         /// <summary>
@@ -479,6 +556,8 @@ namespace Gonogo.KSP.CommandCentres
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
             public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Unroutable =
                 new Dictionary<string, IReadOnlyCollection<string>>();
+            public IReadOnlyDictionary<string, IReadOnlyList<CommsHop>> ActiveRoutes =
+                new Dictionary<string, IReadOnlyList<CommsHop>>();
             public double Ut;
         }
 
