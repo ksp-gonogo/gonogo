@@ -405,9 +405,13 @@ if (published) {
       "--help",
     ]);
   }
-  // The two that draw widgets cannot load without the client's React and ui-kit, and have to say that rather than print a stack.
+  // The two that draw widgets answer --help without the client's React and ui-kit, but cannot run without them and have to say that rather than print a stack.
   for (const verb of ["render", "docs"]) {
-    const drawn = run(bin, [verb, "--help"]);
+    must(`uplink-tools ${verb} --help, with nothing else installed`, bin, [
+      verb,
+      "--help",
+    ]);
+    const drawn = run(bin, [verb]);
     if (drawn.ok || !/needs the client's dependencies/.test(drawn.output)) {
       console.error(drawn.output);
       fail(
