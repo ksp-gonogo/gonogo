@@ -1018,10 +1018,6 @@ namespace Sitrep.Host.IntegrationTests
             var powerFrames = ParsePayloads(capture.Frames, PartsViewProvider.PowerTopic);
             Assert.True(powerFrames.Count > 0, "expected at least one parts.power frame");
             Assert.Contains(powerFrames, p => p.TryGetValue("totalProductionEc", out var tp) && tp is double);
-            Assert.Contains(powerFrames, p =>
-                p.TryGetValue("solarPanels", out var raw) &&
-                raw is IEnumerable<object?> panels &&
-                panels.OfType<IDictionary<string, object?>>().Any(sp => !string.IsNullOrEmpty(sp.TryGetValue("partName", out var pn) ? pn as string : null)));
 
             // robotics.servos's own payload IS the list (see
             // BreakingGroundViewProvider.BuildRobotics, it returns

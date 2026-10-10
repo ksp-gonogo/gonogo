@@ -22,10 +22,6 @@ namespace Sitrep.Host
     /// <code>
     /// snapshot.Values["parts"] = Dictionary&lt;string, object?&gt; {
     ///   "power": {
-    ///     "solarPanels": [ { "partName", "partId", "deployState", "flowRate", "chargeRate", "sunAOA" }, ... ],
-    ///     "batteries":   [ { "partName", "partId", "current", "max" }, ... ],
-    ///     "fuelCells":   [ { "partName", "partId", "active", "status" }, ... ],
-    ///     "alternators": [ { "partName", "partId", "outputRate" }, ... ],
     ///     "totalProductionEc": double,
     ///   } | null
     ///   "robotics": [ ... ] | null              // read by BreakingGroundViewProvider
@@ -54,10 +50,6 @@ namespace Sitrep.Host
 
             return new Dictionary<string, object?>
             {
-                ["solarPanels"] = BuildEntryList(raw, "solarPanels", BuildSolarPanelEntry),
-                ["batteries"] = BuildEntryList(raw, "batteries", BuildBatteryEntry),
-                ["fuelCells"] = BuildEntryList(raw, "fuelCells", BuildFuelCellEntry),
-                ["alternators"] = BuildEntryList(raw, "alternators", BuildAlternatorEntry),
                 ["totalProductionEc"] = SnapshotDict.GetDouble(raw, "totalProductionEc"),
             };
         }
@@ -81,56 +73,5 @@ namespace Sitrep.Host
             result = new Dictionary<string, object?>();
             return false;
         }
-
-        private static List<object?> BuildEntryList(IDictionary<string, object?> raw, string key, Func<IDictionary<string, object?>, Dictionary<string, object?>> mapEntry)
-        {
-            var result = new List<object?>();
-            if (!raw.TryGetValue(key, out var rawList) || rawList is not IEnumerable<object?> list)
-            {
-                return result;
-            }
-
-            foreach (var rawEntry in list)
-            {
-                if (rawEntry is IDictionary<string, object?> entry)
-                {
-                    result.Add(mapEntry(entry));
-                }
-            }
-            return result;
-        }
-
-        private static Dictionary<string, object?> BuildSolarPanelEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
-        {
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["partId"] = SnapshotDict.GetString(raw, "partId"),
-            ["deployState"] = SnapshotDict.GetString(raw, "deployState"),
-            ["flowRate"] = SnapshotDict.GetDouble(raw, "flowRate"),
-            ["chargeRate"] = SnapshotDict.GetDouble(raw, "chargeRate"),
-            ["sunAOA"] = SnapshotDict.GetDouble(raw, "sunAOA"),
-        };
-
-        private static Dictionary<string, object?> BuildBatteryEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
-        {
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["partId"] = SnapshotDict.GetString(raw, "partId"),
-            ["current"] = SnapshotDict.GetDouble(raw, "current"),
-            ["max"] = SnapshotDict.GetDouble(raw, "max"),
-        };
-
-        private static Dictionary<string, object?> BuildFuelCellEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
-        {
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["partId"] = SnapshotDict.GetString(raw, "partId"),
-            ["active"] = SnapshotDict.GetBool(raw, "active"),
-            ["status"] = SnapshotDict.GetString(raw, "status"),
-        };
-
-        private static Dictionary<string, object?> BuildAlternatorEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
-        {
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["partId"] = SnapshotDict.GetString(raw, "partId"),
-            ["outputRate"] = SnapshotDict.GetDouble(raw, "outputRate"),
-        };
     }
 }

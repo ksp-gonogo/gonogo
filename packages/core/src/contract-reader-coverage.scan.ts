@@ -62,7 +62,10 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     mapper handed one element of the Topic's collection that never names the
  *     Topic. Its leaf reads (`e.partName`) are credited to that Topic's fields
  *     only, by hand binding, since a leaf like `partName` is shared with other
- *     Topics and nothing in the file says which one it means.
+ *     Topics and nothing in the file says which one it means. A binding may
+ *     also name the paths it credits, for a helper (an sdk function, an alarm
+ *     observer) that reads a payload it is handed and whose leaves are too
+ *     generic to credit by name alone.
  *
  * WHAT COUNTS AS A COMMAND READER: a production file naming the command id as
  * a string literal, anywhere. `useCommand(id)` is the common shape, but a
@@ -817,7 +820,17 @@ export function creditWholeObjectReads(
  * but the binding says which field a read of it means. The fields credited are
  * read off the file: a member access or destructured binding of the leaf.
  */
-export const ELEMENT_READERS: readonly { file: string; topic: string }[] = [
+export const ELEMENT_READERS: readonly {
+  file: string;
+  topic: string;
+  /**
+   * Field paths of the Topic this file is bound to, when its leaves are too
+   * generic (`source`, `level`) or too widely shared to be credited by name
+   * alone. Only these are credited, and only while the file still reads the
+   * leaf. Omitted: every field whose leaf is unique within the Topic.
+   */
+  only?: readonly string[];
+}[] = [
   {
     file: "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/parseBases.ts",
     topic: "deployed.bases",
@@ -842,6 +855,40 @@ export const ELEMENT_READERS: readonly { file: string; topic: string }[] = [
     file: "packages/components/src/AstronautComplex/ActivePanel.tsx",
     topic: "spaceCenter.crewRoster",
   },
+  {
+    file: "packages/components/src/Experiments/parse.ts",
+    topic: "science.instruments",
+  },
+  {
+    file: "packages/app/src/alarms/WarpObserver.ts",
+    topic: "time.warp",
+    only: ["warpRates"],
+  },
+  {
+    file: "mod/sitrep-sdk/src/comms-degrade.ts",
+    topic: "comms.degrade",
+    only: ["level", "modelId", "modelName"],
+  },
+  {
+    file: "mod/sitrep-sdk/src/spine/comms-delay-reckoning.ts",
+    topic: "comms.delay",
+    only: ["source"],
+  },
+  {
+    file: "packages/components/src/SystemView/targetOrbit.ts",
+    topic: "vessel.orbit",
+    only: ["horizon.untilUt"],
+  },
+  {
+    file: "packages/components/src/SystemView/targetOrbit.ts",
+    topic: "vessel.target",
+    only: ["orbit.horizon.untilUt"],
+  },
+  {
+    file: "packages/app/src/trajectory/TrajectoryCurrencyBridge.tsx",
+    topic: "vessel.target",
+    only: ["orbit.horizon.trajectoryKind"],
+  },
 ];
 
 /** Credits each {@link ELEMENT_READERS} file for the leaves of its Topic it reads off an element. */
@@ -850,7 +897,7 @@ export function creditElementReaders(
   fieldsByTopic: ReadonlyMap<string, ContractField[]>,
   addField: (key: string, hit: ReaderHit) => void,
 ): void {
-  for (const { file, topic } of ELEMENT_READERS) {
+  for (const { file, topic, only } of ELEMENT_READERS) {
     const text = texts.get(file);
     if (text === undefined) continue;
     const { members } = collectTokens(
@@ -866,6 +913,12 @@ export function creditElementReaders(
     const leaf = (f: ContractField): string =>
       f.path.slice(f.path.lastIndexOf(".") + 1);
     for (const f of fields) {
+      if (only) {
+        if (only.includes(f.path) && members.has(leaf(f))) {
+          addField(f.key, { via: "field-access", file });
+        }
+        continue;
+      }
       const sharing = fields.filter((o) => leaf(o) === leaf(f)).length;
       if (sharing === 1 && members.has(leaf(f))) {
         addField(f.key, { via: "field-access", file });

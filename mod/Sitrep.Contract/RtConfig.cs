@@ -269,10 +269,6 @@ public static class RtConfig
                 typeof(CareerTech),
                 typeof(CareerTechNode),
                 // parts.* channel payloads + entries
-                typeof(SolarPanelEntry),
-                typeof(BatteryEntry),
-                typeof(FuelCellEntry),
-                typeof(AlternatorEntry),
                 typeof(PartsPower),
                 typeof(ServoEntry),
                 // science.* channel payload entries

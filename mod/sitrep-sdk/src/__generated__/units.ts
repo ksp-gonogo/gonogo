@@ -107,11 +107,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     radialOut: "m/s",
     ut: "ut",
   },
-  "AlternatorEntry": {
-    outputRate: "units/s",
-    partId: "id",
-    partName: "text",
-  },
   "ArchiveEntry": {
     biome: "text",
     body: "text",
@@ -136,12 +131,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     pressureAltitudes: "m",
     pressures: "kPa",
     seaLevelPressure: "kPa",
-  },
-  "BatteryEntry": {
-    current: "units",
-    max: "units",
-    partId: "id",
-    partName: "text",
   },
   "BodyEntry": {
     description: "text",
@@ -748,12 +737,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
-  "FuelCellEntry": {
-    active: "flag",
-    partId: "id",
-    partName: "text",
-    status: "text",
-  },
   "GameDlc": {
     breakingGround: "flag",
     makingHistory: "flag",
@@ -1314,14 +1297,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     owner: "id",
     path: "id",
     value: "text",
-  },
-  "SolarPanelEntry": {
-    chargeRate: "units/s",
-    deployState: "text",
-    flowRate: "units/s",
-    partId: "id",
-    partName: "text",
-    sunAOA: "°",
   },
   "SpaceCenterPartsAvailable": {
     count: "count",
@@ -2530,12 +2505,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     actions: "PartActionEntry[]",
     meta: "PayloadMeta",
   },
-  "PartsPower": {
-    alternators: "AlternatorEntry[]",
-    batteries: "BatteryEntry[]",
-    fuelCells: "FuelCellEntry[]",
-    solarPanels: "SolarPanelEntry[]",
-  },
   "PendingUplinkQueue": {
     pending: "PendingUplink[]",
   },
@@ -2769,12 +2738,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "missions.active": {
     objectives: "MissionObjectiveEntry[]",
-  },
-  "parts.power": {
-    alternators: "AlternatorEntry[]",
-    batteries: "BatteryEntry[]",
-    fuelCells: "FuelCellEntry[]",
-    solarPanels: "SolarPanelEntry[]",
   },
   "recovery.lastSummary": {
     crewBreakdown: "RecoveryCrewEntry[]",

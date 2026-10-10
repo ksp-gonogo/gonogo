@@ -14,9 +14,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Locks the P0.5 typing change for <c>parts.power</c>: proves the named
-    /// <c>Sitrep.Contract</c> payload types (<see cref="PartsPower"/> and its
-    /// nested <see cref="SolarPanelEntry"/>/<see cref="BatteryEntry"/>/
-    /// <see cref="FuelCellEntry"/>/<see cref="AlternatorEntry"/>) mirror:
+    /// <c>Sitrep.Contract</c> payload type (<see cref="PartsPower"/>) mirrors:
     /// field name for field name, camelCase wire key for camelCase wire key,
     /// type for type, the EXACT serialized shape <see cref="PartsViewProvider"/>
     /// already emits. This is a typing change only: the wire is written by
@@ -24,9 +22,8 @@ namespace Sitrep.Host.Tests
     /// these POCOs, so if the two shapes ever drift (a field renamed, removed,
     /// added, or retyped on either side) this test fails.
     ///
-    /// <para><c>parts.power</c> is a single WRAPPER OBJECT (tagged
-    /// <c>IsArray = false</c>) whose four arrays hold the nested entry types.
-    /// The sibling <see cref="ServoEntry"/>/<see cref="RoboticsAvailability"/>
+    /// <para><c>parts.power</c> is a single object (tagged
+    /// <c>IsArray = false</c>). The sibling <see cref="ServoEntry"/>/<see cref="RoboticsAvailability"/>
     /// shape tests that used to live here moved to
     /// <c>BreakingGroundContractShapeTests</c> alongside the split-out
     /// <see cref="BreakingGroundViewProvider"/>.</para>
@@ -38,47 +35,6 @@ namespace Sitrep.Host.Tests
         {
             var snapshot = PartsSnapshot(power: new Dictionary<string, object?>
             {
-                ["solarPanels"] = new List<object?>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["partName"] = "OX-STAT Photovoltaic Panels",
-                        ["partId"] = "1001",
-                        ["deployState"] = "EXTENDED",
-                        ["flowRate"] = 1.6,
-                        ["chargeRate"] = 2.0,
-                        ["sunAOA"] = 0.95,
-                    },
-                },
-                ["batteries"] = new List<object?>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["partName"] = "Z-200 Battery Pack",
-                        ["partId"] = "1002",
-                        ["current"] = 150.0,
-                        ["max"] = 200.0,
-                    },
-                },
-                ["fuelCells"] = new List<object?>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["partName"] = "Fuel Cell",
-                        ["partId"] = "1003",
-                        ["active"] = true,
-                        ["status"] = "Nominal",
-                    },
-                },
-                ["alternators"] = new List<object?>
-                {
-                    new Dictionary<string, object?>
-                    {
-                        ["partName"] = "LV-909 \"Terrier\" Liquid Fuel Engine",
-                        ["partId"] = "1004",
-                        ["outputRate"] = 4.0,
-                    },
-                },
                 ["totalProductionEc"] = 5.6,
             });
 
@@ -86,13 +42,6 @@ namespace Sitrep.Host.Tests
 
             // Top-level object keys must equal PartsPower's camelCase'd props.
             AssertKeysMatchType(typeof(PartsPower), root);
-
-            // Each array key resolves to its element type; every emitted entry
-            // must mirror that element type field-for-field.
-            AssertArrayEntriesMirror(typeof(SolarPanelEntry), root["solarPanels"]);
-            AssertArrayEntriesMirror(typeof(BatteryEntry), root["batteries"]);
-            AssertArrayEntriesMirror(typeof(FuelCellEntry), root["fuelCells"]);
-            AssertArrayEntriesMirror(typeof(AlternatorEntry), root["alternators"]);
 
             // The scalar total is a double on the wire, mirrored as double?.
             Assert.IsType<double>(root["totalProductionEc"]);
@@ -208,56 +157,12 @@ namespace Sitrep.Host.Tests
             };
         }
 
-        /// <summary>
-        /// The emitted array's single entry must mirror <paramref name="entryType"/>
-        /// field-for-field: its key set equals the type's camelCase'd
-        /// property-name set (no extra, no missing), and every emitted non-null
-        /// value's runtime type matches the corresponding property's
-        /// (Nullable-unwrapped) type. Also asserts every value-typed property is
-        /// nullable, mirroring <c>SnapshotDict.Get*</c>'s null-on-absence rule.
-        /// </summary>
-        private static void AssertArrayEntriesMirror(Type entryType, object? payload)
-        {
-            var list = Assert.IsType<List<object?>>(payload);
-            var emitted = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
-            AssertEntryMirrors(entryType, emitted);
-        }
-
         private static void AssertKeysMatchType(Type type, Dictionary<string, object?> emitted)
         {
             var props = PropsByCamelCaseName(type);
             Assert.Equal(
                 props.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray(),
                 emitted.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
-        }
-
-        private static void AssertEntryMirrors(Type entryType, Dictionary<string, object?> emitted)
-        {
-            var props = PropsByCamelCaseName(entryType);
-
-            Assert.Equal(
-                props.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray(),
-                emitted.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
-
-            foreach (var (key, value) in emitted)
-            {
-                var prop = props[key];
-                var expected = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-
-                if (prop.PropertyType.IsValueType)
-                {
-                    Assert.True(
-                        Nullable.GetUnderlyingType(prop.PropertyType) != null,
-                        $"{entryType.Name}.{prop.Name} must be nullable to mirror SnapshotDict's null-on-absence rule.");
-                }
-
-                if (value is not null)
-                {
-                    Assert.True(
-                        expected.IsInstanceOfType(value),
-                        $"{entryType.Name}.{prop.Name} is {expected.Name} but the provider emitted {value.GetType().Name} for \"{key}\".");
-                }
-            }
         }
 
         private static Dictionary<string, PropertyInfo> PropsByCamelCaseName(Type type) => type

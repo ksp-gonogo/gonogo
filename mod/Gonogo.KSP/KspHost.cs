@@ -5702,21 +5702,13 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Solar panels (<see cref="ModuleDeployableSolarPanel"/>: deploy
-        /// state + live/rated flow), batteries (any part's <c>ElectricCharge</c>
-        /// resource capacity - per-part granularity, complementing
-        /// <see cref="BuildResources"/>'s vessel-wide sum), fuel cells
-        /// (<see cref="ModuleResourceConverter"/> whose recipe outputs
-        /// <c>ElectricCharge</c> - confirmed via decompile that
-        /// <c>BaseConverter.outputList</c>/<c>ResourceRatio.ResourceName</c>
-        /// are public), and alternators (<see cref="ModuleAlternator"/>'s
-        /// live <c>outputRate</c>). <c>totalProductionEc</c> sums solar
-        /// <c>flowRate</c> + alternator <c>outputRate</c> only - the "if
-        /// cheap" aggregate the task called for; fuel-cell/consumption isn't
-        /// cheaply derivable from these fields alone and is left to the
-        /// consumer. Each part's read is individually try/caught so one bad
-        /// part can't blank the whole group. Null when the vessel has
-        /// nothing at all in any of the four lists.
+        /// Electric-charge production: <c>totalProductionEc</c> sums each solar
+        /// panel's live <c>flowRate</c> and each alternator's live
+        /// <c>outputRate</c>. Fuel-cell output and consumption are not cheaply
+        /// derivable here and are left to the consumer. Each part's read is
+        /// individually try/caught so one bad part can't blank the whole group.
+        /// Null when the vessel carries no solar panel, battery, electric-charge
+        /// converter or alternator at all.
         /// </summary>
         private static Dictionary<string, object?>? BuildPartsPower(Vessel vessel)
         {
@@ -5726,10 +5718,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var solarPanels = new List<object?>();
-            var batteries = new List<object?>();
-            var fuelCells = new List<object?>();
-            var alternators = new List<object?>();
+            var anyPowerPart = false;
             double totalProduction = 0;
 
             foreach (var part in parts)
@@ -5740,15 +5729,6 @@ namespace Gonogo.KSP
                 }
 
                 var partName = part.partInfo != null ? part.partInfo.title : part.name;
-                // flightID is the ID FlightGlobals.FindPartByID/Vessel's own
-                // indexer key off - assigned uniquely per Part instance when
-                // the vessel loads into flight, stable across scene changes
-                // and quicksave/quickload for the life of that flight. That
-                // makes it the right join key for disambiguating symmetric
-                // parts (e.g. a multirotor's N identically-named arms) that
-                // partName alone can't tell apart. 0 is the uninitialized
-                // sentinel, so treat it as "unavailable".
-                var partId = part.flightID != 0 ? part.flightID.ToString() : null;
 
                 try
                 {
@@ -5761,15 +5741,7 @@ namespace Gonogo.KSP
                             {
                                 continue;
                             }
-                            solarPanels.Add(new Dictionary<string, object?>
-                            {
-                                ["partName"] = partName,
-                                ["partId"] = partId,
-                                ["deployState"] = panel.deployState.ToString(),
-                                ["flowRate"] = (double)panel.flowRate,
-                                ["chargeRate"] = (double)panel.chargeRate,
-                                ["sunAOA"] = (double)panel.sunAOA,
-                            });
+                            anyPowerPart = true;
                             totalProduction += panel.flowRate;
                         }
                     }
@@ -5787,13 +5759,7 @@ namespace Gonogo.KSP
                         var ec = resources["ElectricCharge"];
                         if (ec != null && ec.maxAmount > 0)
                         {
-                            batteries.Add(new Dictionary<string, object?>
-                            {
-                                ["partName"] = partName,
-                                ["partId"] = partId,
-                                ["current"] = ec.amount,
-                                ["max"] = ec.maxAmount,
-                            });
+                            anyPowerPart = true;
                         }
                     }
                 }
@@ -5814,7 +5780,6 @@ namespace Gonogo.KSP
                                 continue;
                             }
 
-                            var producesEc = false;
                             var outputs = converter.outputList;
                             if (outputs != null)
                             {
@@ -5822,23 +5787,11 @@ namespace Gonogo.KSP
                                 {
                                     if (output.ResourceName == "ElectricCharge")
                                     {
-                                        producesEc = true;
+                                        anyPowerPart = true;
                                         break;
                                     }
                                 }
                             }
-                            if (!producesEc)
-                            {
-                                continue;
-                            }
-
-                            fuelCells.Add(new Dictionary<string, object?>
-                            {
-                                ["partName"] = partName,
-                                ["partId"] = partId,
-                                ["active"] = converter.IsActivated,
-                                ["status"] = converter.status,
-                            });
                         }
                     }
                 }
@@ -5858,12 +5811,7 @@ namespace Gonogo.KSP
                             {
                                 continue;
                             }
-                            alternators.Add(new Dictionary<string, object?>
-                            {
-                                ["partName"] = partName,
-                                ["partId"] = partId,
-                                ["outputRate"] = (double)alt.outputRate,
-                            });
+                            anyPowerPart = true;
                             totalProduction += alt.outputRate;
                         }
                     }
@@ -5874,17 +5822,13 @@ namespace Gonogo.KSP
                 }
             }
 
-            if (solarPanels.Count == 0 && batteries.Count == 0 && fuelCells.Count == 0 && alternators.Count == 0)
+            if (!anyPowerPart)
             {
                 return null;
             }
 
             return new Dictionary<string, object?>
             {
-                ["solarPanels"] = solarPanels,
-                ["batteries"] = batteries,
-                ["fuelCells"] = fuelCells,
-                ["alternators"] = alternators,
                 ["totalProductionEc"] = totalProduction,
             };
         }

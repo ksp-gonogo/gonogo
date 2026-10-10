@@ -180,12 +180,7 @@ describe("PowerSystems: what undefined means today", () => {
           part("1", "Gigantor XL", { amount: 10, maxAmount: 100, flow: 5 }),
         ],
       });
-      fixture.emit("parts.power", {
-        solarPanels: [],
-        batteries: [],
-        fuelCells: [],
-        alternators: [],
-      });
+      fixture.emit("parts.power", {});
     });
 
     await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());

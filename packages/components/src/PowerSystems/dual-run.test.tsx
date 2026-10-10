@@ -51,10 +51,6 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
         ),
       );
       streamFixture.emit("parts.power", {
-        solarPanels: [],
-        batteries: [],
-        fuelCells: [],
-        alternators: [],
         totalProductionEc: 49.55,
       });
     });

@@ -67,11 +67,6 @@
       "radialOut": "m/s",
       "ut": "ut"
     },
-    "AlternatorEntry": {
-      "outputRate": "units/s",
-      "partId": "id",
-      "partName": "text"
-    },
     "ArchiveEntry": {
       "biome": "text",
       "body": "text",
@@ -96,12 +91,6 @@
       "pressureAltitudes": "m",
       "pressures": "kPa",
       "seaLevelPressure": "kPa"
-    },
-    "BatteryEntry": {
-      "current": "units",
-      "max": "units",
-      "partId": "id",
-      "partName": "text"
     },
     "BodyEntry": {
       "description": "text",
@@ -708,12 +697,6 @@
       "vesselId": "id",
       "vesselName": "text"
     },
-    "FuelCellEntry": {
-      "active": "flag",
-      "partId": "id",
-      "partName": "text",
-      "status": "text"
-    },
     "GameDlc": {
       "breakingGround": "flag",
       "makingHistory": "flag"
@@ -1274,14 +1257,6 @@
       "owner": "id",
       "path": "id",
       "value": "text"
-    },
-    "SolarPanelEntry": {
-      "chargeRate": "units/s",
-      "deployState": "text",
-      "flowRate": "units/s",
-      "partId": "id",
-      "partName": "text",
-      "sunAOA": "°"
     },
     "SpaceCenterPartsAvailable": {
       "count": "count"
@@ -2456,12 +2431,6 @@
       "actions": "PartActionEntry[]",
       "meta": "PayloadMeta"
     },
-    "PartsPower": {
-      "alternators": "AlternatorEntry[]",
-      "batteries": "BatteryEntry[]",
-      "fuelCells": "FuelCellEntry[]",
-      "solarPanels": "SolarPanelEntry[]"
-    },
     "PendingUplinkQueue": {
       "pending": "PendingUplink[]"
     },
@@ -2693,12 +2662,6 @@
     },
     "missions.active": {
       "objectives": "MissionObjectiveEntry[]"
-    },
-    "parts.power": {
-      "alternators": "AlternatorEntry[]",
-      "batteries": "BatteryEntry[]",
-      "fuelCells": "FuelCellEntry[]",
-      "solarPanels": "SolarPanelEntry[]"
     },
     "recovery.lastSummary": {
       "crewBreakdown": "RecoveryCrewEntry[]",

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 35.0.0
+  version: 36.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -1837,14 +1837,11 @@ channels:
     description: |-
       Carries a `PartsPower`.
 
-      The `parts.power` Topic payload: the active vessel's electric-charge
-      production surface (solar panels, batteries, fuel cells, engine alternators,
-      and a rolled-up production total). A single object, or `null` when there is
-      no active vessel or it carries none of the four kinds of part.
-
-      When the payload is present all four arrays are present too, each possibly
-      empty; they are typed nullable so a client stays safe if one is ever
-      missing.
+      The `parts.power` Topic payload: the active vessel's rolled-up
+      electric-charge production. A single object, or `null` when there is no
+      active vessel or it carries no solar panel, battery, electric-charge
+      converter or alternator. The parts themselves are itemised on
+      `vessel.parts`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -8824,36 +8821,6 @@ components:
           type: number
           x-sitrep-unit: m/s
           description: The delta-v component along the radial-out direction at the node, in m/s.
-    AlternatorEntry:
-      type: object
-      description: |-
-        One engine alternator module in the `parts.power` payload's `alternators`
-        array. Every field is `null` when its value could not be read.
-      properties:
-        partName:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The part's display title (KSP's `Part.partInfo.title`), or its internal name
-            when it has no part info.
-        partId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The part's `Part.flightID` as a string, the same join key as
-            `SolarPanelEntry.partId`. Null when the part has no flight id yet.
-        outputRate:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units/s
-          description: |-
-            The alternator's current electric-charge output (KSP's
-            `ModuleAlternator.outputRate`), in EC per second.
     ArchiveEntry:
       type: object
       description: |-
@@ -9085,42 +9052,6 @@ components:
             Rounded to six significant figures. The curve path evaluates in float32
             inside Unity's own `AnimationCurve`, so more digits would be inventing
             precision, and six is far below the 1% spacing tolerance.
-    BatteryEntry:
-      type: object
-      description: |-
-        One electric-charge store in the `parts.power` payload's `batteries` array:
-        every part with an `ElectricCharge` capacity above zero, so command pods and
-        probe cores appear here as well as batteries. Every field is `null` when its
-        value could not be read.
-      properties:
-        partName:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The part's display title (KSP's `Part.partInfo.title`), or its internal name
-            when it has no part info.
-        partId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The part's `Part.flightID` as a string, the same join key as
-            `SolarPanelEntry.partId`. Null when the part has no flight id yet.
-        current:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units
-          description: Electric charge currently held in this part, in EC.
-        max:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units
-          description: This part's electric-charge capacity, in EC.
     BodyEntry:
       type: object
       description: |-
@@ -14376,44 +14307,6 @@ components:
           type: number
           x-sitrep-unit: ut
           description: Universal time of the switch.
-    FuelCellEntry:
-      type: object
-      description: |-
-        One electric-charge-producing converter in the `parts.power` payload's
-        `fuelCells` array: every `ModuleResourceConverter` whose outputs include
-        `ElectricCharge`, one entry per module. Every field is `null` when its value
-        could not be read.
-      properties:
-        partName:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The part's display title (KSP's `Part.partInfo.title`), or its internal name
-            when it has no part info.
-        partId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The part's `Part.flightID` as a string, the same join key as
-            `SolarPanelEntry.partId`. Null when the part has no flight id yet.
-        active:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: True when the converter is switched on (KSP's `IsActivated`).
-        status:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The converter's own status text as KSP displays it
-            (`ModuleResourceConverter.status`). Free text, not a fixed vocabulary.
     GameDlc:
       type: object
       description: |-
@@ -16370,43 +16263,12 @@ components:
     PartsPower:
       type: object
       description: |-
-        The `parts.power` Topic payload: the active vessel's electric-charge
-        production surface (solar panels, batteries, fuel cells, engine alternators,
-        and a rolled-up production total). A single object, or `null` when there is
-        no active vessel or it carries none of the four kinds of part.
-
-        When the payload is present all four arrays are present too, each possibly
-        empty; they are typed nullable so a client stays safe if one is ever
-        missing.
+        The `parts.power` Topic payload: the active vessel's rolled-up
+        electric-charge production. A single object, or `null` when there is no
+        active vessel or it carries no solar panel, battery, electric-charge
+        converter or alternator. The parts themselves are itemised on
+        `vessel.parts`.
       properties:
-        solarPanels:
-          type:
-            - array
-            - "null"
-          items:
-            $ref: "#/components/schemas/SolarPanelEntry"
-          description: Every deployable solar panel module on the vessel.
-        batteries:
-          type:
-            - array
-            - "null"
-          items:
-            $ref: "#/components/schemas/BatteryEntry"
-          description: Every part that stores electric charge.
-        fuelCells:
-          type:
-            - array
-            - "null"
-          items:
-            $ref: "#/components/schemas/FuelCellEntry"
-          description: Every converter module that produces electric charge.
-        alternators:
-          type:
-            - array
-            - "null"
-          items:
-            $ref: "#/components/schemas/AlternatorEntry"
-          description: Every engine alternator module on the vessel.
         totalProductionEc:
           type:
             - number
@@ -16414,9 +16276,8 @@ components:
           x-sitrep-unit: units/s
           description: |-
             Total electric-charge production in EC per second: the sum of every solar
-            panel's `SolarPanelEntry.flowRate` and every alternator's
-            `AlternatorEntry.outputRate`. Fuel cells are not included. Null when no
-            finite total could be read.
+            panel's live flow rate and every alternator's live output rate. Fuel cells
+            are not included. Null when no finite total could be read.
     PayloadMeta:
       type: object
       description: |-
@@ -18885,66 +18746,6 @@ components:
         - const: 8
           title: Unknown
           description: A situation this contract does not recognise.
-    SolarPanelEntry:
-      type: object
-      description: |-
-        One deployable solar panel module in the `parts.power` payload's
-        `solarPanels` array. A part with several panel modules contributes one entry
-        per module. Every field is `null` when its value could not be read, never a
-        sentinel.
-      properties:
-        partName:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The part's display title (KSP's `Part.partInfo.title`), or its internal name
-            when it has no part info.
-        partId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The part's `Part.flightID` as a string: unique per part for the life of the
-            flight, so it tells apart symmetric parts that share a name. Null when the
-            part has no flight id yet.
-        deployState:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The panel's deploy state, KSP's `ModuleDeployablePart.DeployState` name
-            as-is: `"RETRACTED"`, `"EXTENDING"`, `"EXTENDED"`, `"RETRACTING"` or
-            `"BROKEN"`.
-        flowRate:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units/s
-          description: |-
-            The panel's current electric-charge output (KSP's `flowRate`), in EC per
-            second. This is what counts toward `PartsPower.totalProductionEc`.
-        chargeRate:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units/s
-          description: |-
-            The panel's rated charge rate from its part configuration (KSP's
-            `chargeRate`), in EC per second, before sun exposure and distance are
-            applied.
-        sunAOA:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: °
-          description: |-
-            KSP's `ModuleDeployableSolarPanel.sunAOA`: despite the name and the declared
-            unit, a sun-exposure factor from 0 (no sunlight on the panel) to 1 (facing
-            the sun squarely), not an angle.
     SpaceCenterPartsAvailable:
       type: object
       description: |-

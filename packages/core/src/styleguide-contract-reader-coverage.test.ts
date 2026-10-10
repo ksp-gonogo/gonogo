@@ -710,4 +710,62 @@ describe("the element readers are bound by hand and stay true", () => {
     );
     expect(credited).toEqual(["deployed.bases.partName"]);
   });
+
+  /**
+   * A bound file that names no Topic and is read by no widget, so the only way
+   * the scan can see its read is the binding. Planted at the real bound path
+   * under a topic map naming `time.warp`.
+   */
+  function plantedWarpRoot(observerSource: string): string {
+    const root = mkdtempSync(join(tmpdir(), "reader-coverage-warp-"));
+    const plant = (rel: string, text: string): void => {
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      writeFileSync(join(root, rel), text);
+    };
+    plant(
+      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      'export const GENERATED_TOPIC_IDS = ["time.warp"] as const;\n',
+    );
+    plant(
+      "mod/sitrep-sdk/src/__generated__/command-map.ts",
+      "export const GENERATED_COMMAND_IDS = [] as const;\n",
+    );
+    plant("packages/app/src/alarms/WarpObserver.ts", observerSource);
+    return root;
+  }
+
+  it("credits a field a bound file reads without naming the Topic, and only the listed paths", () => {
+    const root = plantedWarpRoot(
+      "export const rates = (w: { warpRates?: number[]; warpRate?: number }) => [w.warpRates, w.warpRate];\n",
+    );
+    try {
+      const planted = scanContractReaderCoverage(root);
+      expect(planted.fieldReaders.get("time.warp.warpRates")?.[0]?.file).toBe(
+        "packages/app/src/alarms/WarpObserver.ts",
+      );
+      expect(planted.fieldReaders.has("time.warp.warpRate")).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("stops crediting a bound file once it no longer reads the field", () => {
+    const root = plantedWarpRoot("export const nothing = 1;\n");
+    try {
+      const planted = scanContractReaderCoverage(root);
+      expect(planted.fieldReaders.has("time.warp.warpRates")).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("binds only files that exist, and only paths the Topic declares", () => {
+    for (const { topic, only } of ELEMENT_READERS) {
+      if (!only) continue;
+      const paths = new Set(contractFields([topic]).map((f) => f.path));
+      for (const path of only) {
+        expect(paths.has(path), `${topic}.${path}`).toBe(true);
+      }
+    }
+  });
 });

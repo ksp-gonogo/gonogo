@@ -77,10 +77,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
     expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
     act(() => {
       fixture.emit("parts.power", {
-        solarPanels: [],
-        batteries: [],
-        fuelCells: [],
-        alternators: [],
         totalProductionEc: 42,
       });
     });
@@ -125,10 +121,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("parts.power", {
-        solarPanels: [],
-        batteries: [],
-        fuelCells: [],
-        alternators: [],
         totalProductionEc: 5,
       });
     });

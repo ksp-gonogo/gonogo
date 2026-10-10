@@ -87,12 +87,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.control.reason":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.degrade.level":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.degrade.modelId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.degrade.modelName":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.bodies":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.modelId":
@@ -147,8 +141,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:time.calendar.kerbinTime":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:time.warp.warpRates":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.control.translationX":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.control.translationY":
@@ -183,8 +175,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:comms.delay.meta.source":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:comms.delay.source":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:comms.link.meta.source":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:crash.lastCrash.eventKind":
@@ -215,21 +205,11 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:deployed.bases.situation":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:parts.power.alternators":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:parts.power.batteries":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:parts.power.fuelCells":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:parts.power.solarPanels":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:robotics.servos.motorState":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:robotics.servos.servoIsMotorized":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:robotics.servos.traverseVelocity":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:science.instruments.experimentId":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:science.instruments.resettable":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
@@ -257,13 +237,7 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.landing.terrainElevationUnderVessel":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.orbit.horizon.untilUt":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.structure.partCount":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.target.orbit.horizon.trajectoryKind":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:vessel.target.orbit.horizon.untilUt":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
   "field:vessel.target.orbit.meta.quality":
     "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",

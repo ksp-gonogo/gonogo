@@ -278,16 +278,6 @@ namespace Sitrep.Host.IntegrationTests
                         ["power"] = new Dictionary<string, object?>
                         {
                             ["totalProductionEc"] = 8.5,
-                            ["solarPanels"] = new List<object?>
-                            {
-                                new Dictionary<string, object?>
-                                {
-                                    ["partName"] = "OX-STAT Photovoltaic Panels",
-                                    ["partId"] = "12345",
-                                    ["deployState"] = "EXTENDED",
-                                    ["chargeRate"] = 0.35,
-                                },
-                            },
                         },
                     },
                 },
@@ -298,9 +288,6 @@ namespace Sitrep.Host.IntegrationTests
             AssertLiveMeta(delivered, PartsViewProvider.PowerTopic, ut);
             var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
             Assert.Equal(8.5, payload["totalProductionEc"]);
-            var panels = Assert.IsType<List<object?>>(payload["solarPanels"]);
-            var panel = Assert.IsType<Dictionary<string, object?>>(panels[0]);
-            Assert.Equal("OX-STAT Photovoltaic Panels", panel["partName"]);
         }
 
         /// <summary>

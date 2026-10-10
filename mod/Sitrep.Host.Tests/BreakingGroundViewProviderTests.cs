@@ -239,10 +239,6 @@ namespace Sitrep.Host.Tests
                         // robotics sub-group at all - roboticsAvailable false.
                         ["power"] = new Dictionary<string, object?>
                         {
-                            ["solarPanels"] = new List<object?>(),
-                            ["batteries"] = new List<object?>(),
-                            ["fuelCells"] = new List<object?>(),
-                            ["alternators"] = new List<object?>(),
                             ["totalProductionEc"] = 0.0,
                         },
                         ["roboticsAvailable"] = false,
@@ -324,10 +320,6 @@ namespace Sitrep.Host.Tests
                         // solar panels but no robotics parts.
                         ["power"] = new Dictionary<string, object?>
                         {
-                            ["solarPanels"] = new List<object?>(),
-                            ["batteries"] = new List<object?>(),
-                            ["fuelCells"] = new List<object?>(),
-                            ["alternators"] = new List<object?>(),
                             ["totalProductionEc"] = 0.0,
                         },
                     },

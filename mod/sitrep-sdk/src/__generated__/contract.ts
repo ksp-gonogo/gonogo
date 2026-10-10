@@ -5208,154 +5208,20 @@ export interface PartActions
 	meta: PayloadMeta;
 }
 /**
-* One deployable solar panel module in the `parts.power` payload's
-* `solarPanels` array. A part with several panel modules contributes one entry
-* per module. Every field is `null` when its value could not be read, never a
-* sentinel.
-*
-* @category Parts
-*/
-export interface SolarPanelEntry
-{
-	/**
-	* The part's display title (KSP's `Part.partInfo.title`), or its internal name
-	* when it has no part info.
-	*/
-	partName?: string | null;
-	/**
-	* The part's `Part.flightID` as a string: unique per part for the life of the
-	* flight, so it tells apart symmetric parts that share a name. Null when the
-	* part has no flight id yet.
-	*/
-	partId?: string | null;
-	/**
-	* The panel's deploy state, KSP's `ModuleDeployablePart.DeployState` name
-	* as-is: `"RETRACTED"`, `"EXTENDING"`, `"EXTENDED"`, `"RETRACTING"` or
-	* `"BROKEN"`.
-	*/
-	deployState?: string | null;
-	/**
-	* The panel's current electric-charge output (KSP's `flowRate`), in EC per
-	* second. This is what counts toward `PartsPower.totalProductionEc`.
-	*/
-	flowRate?: Value<"units/s"> | null;
-	/**
-	* The panel's rated charge rate from its part configuration (KSP's
-	* `chargeRate`), in EC per second, before sun exposure and distance are
-	* applied.
-	*/
-	chargeRate?: Value<"units/s"> | null;
-	/**
-	* KSP's `ModuleDeployableSolarPanel.sunAOA`: despite the name and the declared
-	* unit, a sun-exposure factor from 0 (no sunlight on the panel) to 1 (facing
-	* the sun squarely), not an angle.
-	*/
-	sunAOA?: Value<"°"> | null;
-}
-/**
-* One electric-charge store in the `parts.power` payload's `batteries` array:
-* every part with an `ElectricCharge` capacity above zero, so command pods and
-* probe cores appear here as well as batteries. Every field is `null` when its
-* value could not be read.
-*
-* @category Parts
-*/
-export interface BatteryEntry
-{
-	/**
-	* The part's display title (KSP's `Part.partInfo.title`), or its internal name
-	* when it has no part info.
-	*/
-	partName?: string | null;
-	/**
-	* The part's `Part.flightID` as a string, the same join key as
-	* `SolarPanelEntry.partId`. Null when the part has no flight id yet.
-	*/
-	partId?: string | null;
-	/** Electric charge currently held in this part, in EC. */
-	current?: Value<"units"> | null;
-	/** This part's electric-charge capacity, in EC. */
-	max?: Value<"units"> | null;
-}
-/**
-* One electric-charge-producing converter in the `parts.power` payload's
-* `fuelCells` array: every `ModuleResourceConverter` whose outputs include
-* `ElectricCharge`, one entry per module. Every field is `null` when its value
-* could not be read.
-*
-* @category Parts
-*/
-export interface FuelCellEntry
-{
-	/**
-	* The part's display title (KSP's `Part.partInfo.title`), or its internal name
-	* when it has no part info.
-	*/
-	partName?: string | null;
-	/**
-	* The part's `Part.flightID` as a string, the same join key as
-	* `SolarPanelEntry.partId`. Null when the part has no flight id yet.
-	*/
-	partId?: string | null;
-	/** True when the converter is switched on (KSP's `IsActivated`). */
-	active?: boolean | null;
-	/**
-	* The converter's own status text as KSP displays it
-	* (`ModuleResourceConverter.status`). Free text, not a fixed vocabulary.
-	*/
-	status?: string | null;
-}
-/**
-* One engine alternator module in the `parts.power` payload's `alternators`
-* array. Every field is `null` when its value could not be read.
-*
-* @category Parts
-*/
-export interface AlternatorEntry
-{
-	/**
-	* The part's display title (KSP's `Part.partInfo.title`), or its internal name
-	* when it has no part info.
-	*/
-	partName?: string | null;
-	/**
-	* The part's `Part.flightID` as a string, the same join key as
-	* `SolarPanelEntry.partId`. Null when the part has no flight id yet.
-	*/
-	partId?: string | null;
-	/**
-	* The alternator's current electric-charge output (KSP's
-	* `ModuleAlternator.outputRate`), in EC per second.
-	*/
-	outputRate?: Value<"units/s"> | null;
-}
-/**
-* The `parts.power` Topic payload: the active vessel's electric-charge
-* production surface (solar panels, batteries, fuel cells, engine alternators,
-* and a rolled-up production total). A single object, or `null` when there is
-* no active vessel or it carries none of the four kinds of part.
-*
-* When the payload is present all four arrays are present too, each possibly
-* empty; they are typed nullable so a client stays safe if one is ever
-* missing.
+* The `parts.power` Topic payload: the active vessel's rolled-up
+* electric-charge production. A single object, or `null` when there is no
+* active vessel or it carries no solar panel, battery, electric-charge
+* converter or alternator. The parts themselves are itemised on
+* `vessel.parts`.
 *
 * @category Parts
 */
 export interface PartsPower
 {
-	/** Every deployable solar panel module on the vessel. */
-	solarPanels?: SolarPanelEntry[] | null;
-	/** Every part that stores electric charge. */
-	batteries?: BatteryEntry[] | null;
-	/** Every converter module that produces electric charge. */
-	fuelCells?: FuelCellEntry[] | null;
-	/** Every engine alternator module on the vessel. */
-	alternators?: AlternatorEntry[] | null;
 	/**
 	* Total electric-charge production in EC per second: the sum of every solar
-	* panel's `SolarPanelEntry.flowRate` and every alternator's
-	* `AlternatorEntry.outputRate`. Fuel cells are not included. Null when no
-	* finite total could be read.
+	* panel's live flow rate and every alternator's live output rate. Fuel cells
+	* are not included. Null when no finite total could be read.
 	*/
 	totalProductionEc?: Value<"units/s"> | null;
 }
