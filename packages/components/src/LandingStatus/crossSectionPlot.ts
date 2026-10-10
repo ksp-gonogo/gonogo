@@ -2,6 +2,7 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type {
   PlotEntry,
   PlotLayer,
+  PlotPoint,
   TopicPayload,
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -12,7 +13,7 @@ import { parentBodyFromTopics } from "../shared/streamBody";
 import { burnEffect } from "./burnEffect";
 import { greatCircle } from "./geo";
 import { elevationAt, groundPoints } from "./groundStrip";
-import { crossSectionWaves, surfaceMeters } from "./seaSurface";
+import { surfaceGravityOf, surfaceMeters } from "./seaSurface";
 import { siteWorthPlotting } from "./siteGate";
 
 /**
@@ -123,9 +124,16 @@ export interface CrossSectionInputs {
   burnAccel?: { up: number; along: number } | null;
   /** How the vessel's position is known, for the shared vessel mark; current when omitted. */
   vesselMarkState?: "current" | "held" | "modelled" | "lost";
-  /** How far along the track the predicted site stands from the body's own origin, metres: the sea's waves are laid from it so they stay put on the body. No waves when omitted. */
-  siteAlongMeters?: number | null;
+  /** Where the predicted site stands on the body, the track's bearing and the body's surface gravity: the sea is drawn as a moving surface from them, fixed to the body. Without them it is a flat fill. */
+  sea?: {
+    siteOnBody: { east: number; north: number };
+    bearingDeg: number;
+    gravity: number;
+  } | null;
 }
+
+/** How far above the still surface a side view's water reaches, as a share of the frame's height, so the crests are not cut off. */
+const WATER_HEADROOM = 0.03;
 
 function fmtSpeed(v: number): string {
   return writeQuantity(value("m/s", v), { decimals: 0 });
@@ -256,32 +264,68 @@ export function buildCrossSectionPlot(
   ];
 
   // Each stretch of the strip that was under the sea: from the last sample on the shore side to the next, so the water meets the shore.
+  const under = sampled.map((p) => inputs.hasOcean === true && p.y < 0);
   const water: PlotLayer[] = [];
-  const seaSpans: { x0: number; x1: number }[] = [];
-  if (inputs.hasOcean === true) {
-    let from = -1;
-    for (let i = 0; i <= sampled.length; i++) {
-      const under = i < sampled.length && sampled[i].y < 0;
-      if (under && from < 0) from = i;
-      if (!under && from >= 0) {
-        const lo = Math.max(0, from - 1);
-        const hi = Math.min(sampled.length - 1, i);
-        water.push({
-          kind: "region",
-          id: `sea-${water.length + 1}`,
-          side: "below",
-          boundary: [lo, hi].map((k) => ({ x: sampled[k].x - drift, y: 0 })),
-          tone: "info",
-          opacity: 0.4,
-          description: "sea, whose surface is what the craft lands on",
-        });
-        seaSpans.push({
-          x0: Math.max(xLo, sampled[lo].x - drift),
-          x1: Math.min(xHi, sampled[hi].x - drift),
-        });
-        from = -1;
-      }
+  let from = -1;
+  for (let i = 0; i <= sampled.length; i++) {
+    const wet = i < sampled.length && under[i];
+    if (wet && from < 0) from = i;
+    if (!wet && from >= 0) {
+      const lo = Math.max(0, from - 1);
+      const hi = Math.min(sampled.length - 1, i);
+      const x0 = sampled[lo].x - drift;
+      const x1 = sampled[hi].x - drift;
+      const id = `sea-${water.length + 1}`;
+      const description =
+        water.length === 0
+          ? "sea, whose surface is what the craft lands on"
+          : undefined;
+      water.push(
+        inputs.sea
+          ? {
+              kind: "water",
+              id,
+              view: "section",
+              bounds: { x0, x1, y0: floor, y1: heightSpan * WATER_HEADROOM },
+              // The ground strip's own sample points, so the waterline steps as the ground line does.
+              samples: points.slice(lo, hi + 1).map((p) => p.x),
+              origin: inputs.sea.siteOnBody,
+              bearingDeg: inputs.sea.bearingDeg,
+              gravity: inputs.sea.gravity,
+              tone: "info",
+              description,
+            }
+          : {
+              kind: "region",
+              id,
+              side: "below",
+              boundary: [
+                { x: x0, y: 0 },
+                { x: x1, y: 0 },
+              ],
+              tone: "info",
+              opacity: 0.4,
+              description,
+            },
+      );
+      from = -1;
     }
+  }
+  // The terrain line runs over land only, out to the shore sample beside it: across the sea the water draws its own surface.
+  const skylines: PlotPoint[][] = [];
+  let run: PlotPoint[] | null = null;
+  for (let i = 0; i < points.length; i++) {
+    const onLand =
+      !under[i] || under[i - 1] === false || under[i + 1] === false;
+    if (!onLand) {
+      run = null;
+      continue;
+    }
+    if (!run) {
+      run = [];
+      skylines.push(run);
+    }
+    run.push(points[i]);
   }
 
   const layers: PlotLayer[] = [
@@ -297,22 +341,19 @@ export function buildCrossSectionPlot(
       description: "terrain below the ground track",
     },
     ...unsampled,
-    {
-      kind: "series",
-      id: "skyline",
-      points,
-      tone: "neutral",
-      description: "terrain profile along the ground track",
-    },
-    ...(inputs.siteAlongMeters != null &&
-    Number.isFinite(inputs.siteAlongMeters)
-      ? crossSectionWaves({
-          spans: seaSpans,
-          originAlongMeters: inputs.siteAlongMeters,
-          xSpan: span,
-          ySpan: heightSpan,
-        })
-      : []),
+    ...skylines
+      .filter((run) => run.length > 1)
+      .map(
+        (run, i): PlotLayer => ({
+          kind: "series",
+          id: i === 0 ? "skyline" : `skyline-${i + 1}`,
+          points: run,
+          tone: "neutral",
+          ...(i === 0
+            ? { description: "terrain profile along the ground track" }
+            : {}),
+        }),
+      ),
     {
       kind: "marker",
       id: "site",
@@ -638,9 +679,7 @@ CORE_UPLINK_CLIENT.registerContribution({
       drift != null && drift.distanceMeters > 1
         ? drift.bearingDeg
         : DUE_EAST_DEG;
-    const siteOnBody =
-      site != null ? surfaceMeters(site.lat, site.lon, site.radius) : null;
-    const bearing = (trackBearingDeg * Math.PI) / 180;
+    const gravity = body != null ? surfaceGravityOf(body) : null;
 
     const plot = buildCrossSectionPlot({
       groundDistances:
@@ -658,10 +697,13 @@ CORE_UPLINK_CLIENT.registerContribution({
         burnReading?.state === "observed" && burnReading.value != null
           ? burnEffect({ ...burnReading.value, trackBearingDeg })
           : null,
-      siteAlongMeters:
-        siteOnBody != null
-          ? siteOnBody.east * Math.sin(bearing) +
-            siteOnBody.north * Math.cos(bearing)
+      sea:
+        site != null && gravity != null
+          ? {
+              siteOnBody: surfaceMeters(site.lat, site.lon, site.radius),
+              bearingDeg: trackBearingDeg,
+              gravity,
+            }
           : null,
       vesselMarkState:
         markReading?.state === "observed" || markReading?.state === "held"

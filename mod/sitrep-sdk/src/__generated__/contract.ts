@@ -9751,6 +9751,32 @@ export interface VesselLanding
 	* outside an atmosphere.
 	*/
 	parachuteState?: string | null;
+	/**
+	* How far the craft's parachutes have opened, taken from the one furthest
+	* along: `"none"` (the craft carries no parachute), `"stowed"` (packed, not
+	* yet staged), `"armed"` (staged and waiting for air thick enough to open in),
+	* `"semi-deployed"` (open as a streamer, slowing the craft a little),
+	* `"deployed"` (fully open) or `"cut"` (every one cut away). Unlike
+	* `VesselLanding.parachuteState` it tells semi-deployed from fully deployed,
+	* and a packed parachute from none. Null outside an atmosphere.
+	*/
+	parachuteDeployment?: string | null;
+	/**
+	* Whether opening the parachutes not yet open would survive the current speed
+	* and air, as the game rates it from the heating a canopy would take:
+	* `"safe"`, `"risky"` (the canopy would heat but hold for a few seconds) or
+	* `"unsafe"` (it would burn through). The worst rating among the stowed and
+	* armed parachutes. Null outside an atmosphere, when every parachute is
+	* already open or cut, and for a parachute the game does not rate.
+	*/
+	parachuteDeploySafety?: string | null;
+	/**
+	* The height above the ground or the sea at which an armed or semi-deployed
+	* parachute opens fully, the greatest when there are several, since that one
+	* opens first. Null when none is armed or semi-deployed, outside an
+	* atmosphere, and for a parachute the game does not report one for.
+	*/
+	parachuteFullDeployAltitude?: Value<"m"> | null;
 	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }

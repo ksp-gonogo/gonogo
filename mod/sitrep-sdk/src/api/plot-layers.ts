@@ -242,8 +242,57 @@ export interface PlotReliefLayer extends PlotLayerBase {
 }
 
 /**
+ * Open water, drawn as a moving sea surface: a handful of waves summed on the
+ * body's own gravity and shaded by the slope of the surface, so it reads as
+ * liquid at every zoom and never as relief. The renderer animates it in real
+ * time and draws a still frame where motion is reduced.
+ *
+ * The waves are fixed to the body, not to the plot: `origin` says where the
+ * plot's own origin stands on it, so as a window follows a craft the sea slides
+ * past with the ground. A plan view is shaded one flat cell at a time, on the
+ * cells a relief of the same bounds is drawn on, so the sea is as coarse as the
+ * land beside it. Which waves show is the renderer's choice, from how many
+ * metres each cell spans, so finer waves come in as a window closes and
+ * coarser ones go.
+ *
+ * @category Plots
+ */
+export interface PlotWaterLayer extends PlotLayerBase {
+  kind: "water";
+  /**
+   * How the sea is seen. `"plan"`: from above, the plot's x east and y north
+   * of its origin, in metres. `"section"`: from the side, x metres along a
+   * track and y height, with the still surface at `y = 0`; the surface rises
+   * and falls with the waves and the water fills below it.
+   */
+  view: "plan" | "section";
+  /** The data-space rectangle the sea covers, corner to corner. */
+  bounds: { x0: number; y0: number; x1: number; y1: number };
+  /** Where the plot's origin stands, metres east and north of the body's own origin. */
+  origin: { east: number; north: number };
+  /** In a section, the bearing the track runs on, degrees clockwise from north. */
+  bearingDeg?: number;
+  /** The body's surface gravity, m/s squared: it sets how fast each wave runs. */
+  gravity: number;
+  /**
+   * The ground's heights over `bounds`, row-major from the northern row and
+   * the western column, metres against the sea's surface: the sea is wherever
+   * the ground lies below it. Judged on the same cells a relief of the same
+   * bounds is drawn on, so a coast meets the land cell for cell. All of
+   * `bounds` is sea when omitted.
+   */
+  sea?: { size: number; heights: readonly number[] };
+  /**
+   * In a section, the x positions the surface is sampled at, the same as the
+   * ground beside it, so the waterline steps as the ground line does. Evenly
+   * spaced when omitted.
+   */
+  samples?: readonly number[];
+}
+
+/**
  * One layer of a plot: a data series, a guide line, a shaded region, a field,
- * markers, labels, a caption or relief.
+ * markers, labels, a caption, relief or open water.
  *
  * Every position is in the plot's own data space, in the units of the
  * {@link PlotFrame}'s axes, never in pixels (apart from a marker's
@@ -262,4 +311,5 @@ export type PlotLayer =
   | PlotMarkerLayer
   | PlotAnnotationLayer
   | PlotCaptionLayer
-  | PlotReliefLayer;
+  | PlotReliefLayer
+  | PlotWaterLayer;

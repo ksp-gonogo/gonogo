@@ -1197,6 +1197,9 @@ namespace Sitrep.Host
                 DescentRegime = GetString(landing, "descentRegime"),
                 DragToWeightRatio = GetDouble(landing, "dragToWeightRatio"),
                 ParachuteState = GetString(landing, "parachuteState"),
+                ParachuteDeployment = GetString(landing, "parachuteDeployment"),
+                ParachuteDeploySafety = GetString(landing, "parachuteDeploySafety"),
+                ParachuteFullDeployAltitude = GetDouble(landing, "parachuteFullDeployAltitude"),
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -1922,6 +1925,9 @@ namespace Sitrep.Host
             ["descentRegime"] = landing.DescentRegime,
             ["dragToWeightRatio"] = landing.DragToWeightRatio,
             ["parachuteState"] = landing.ParachuteState,
+            ["parachuteDeployment"] = landing.ParachuteDeployment,
+            ["parachuteDeploySafety"] = landing.ParachuteDeploySafety,
+            ["parachuteFullDeployAltitude"] = landing.ParachuteFullDeployAltitude,
             ["meta"] = ToWire(landing.Meta),
         };
 

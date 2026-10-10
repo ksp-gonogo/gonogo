@@ -163,4 +163,23 @@ describe("Tape zones", () => {
     expect(fills).toContain("var(--color-warn-mark)");
     expect(fills).not.toContain("var(--color-warn-on-status)");
   });
+
+  it("writes ticks closer than its unit's decimals with more decimals, so no two read the same", () => {
+    // 50 m ticks on a scale written in kilometres: one decimal would read 1.0, 1.0, 1.1.
+    const { container } = render(
+      <Tape
+        value={m(1240)}
+        min={m(990)}
+        max={m(1110)}
+        tickStep={m(50)}
+        aria-label="Altitude"
+      />,
+    );
+    const labels = [...container.querySelectorAll('text[font-size="8"]')]
+      .map((t) => t.textContent ?? "")
+      .filter((t) => /^[\d.]+$/.test(t));
+    expect(labels.length).toBeGreaterThan(1);
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(labels).toContain("1.05");
+  });
 });

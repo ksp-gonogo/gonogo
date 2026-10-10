@@ -2503,6 +2503,7 @@ namespace Gonogo.KSP
                 // Aggregate current drag force (kN): a real measurement, no sim.
                 double? dragForce = null;
                 string? parachuteState = null;
+                List<ParachuteReading>? chutes = null;
                 if (parts != null)
                 {
                     double drag = 0.0;
@@ -2512,6 +2513,7 @@ namespace Gonogo.KSP
                     }
                     dragForce = drag;
                     parachuteState = BuildParachuteState(parts);
+                    chutes = BuildParachuteReadings(parts);
                 }
 
                 double altAsl = vessel.altitude;
@@ -2545,6 +2547,14 @@ namespace Gonogo.KSP
                     foreach (var field in atmospheric)
                     {
                         result[field.Key] = field.Value;
+                    }
+                    // The same parts the drag was read from, so the parachute fields stand or fall with the rest of the atmospheric block.
+                    if (chutes != null)
+                    {
+                        foreach (var field in ParachuteSummary.Fields(chutes))
+                        {
+                            result[field.Key] = field.Value;
+                        }
                     }
                 }
             }
@@ -2896,6 +2906,112 @@ namespace Gonogo.KSP
             }
 
             return armed ? "armed" : "none";
+        }
+
+        /// <summary>
+        /// Every parachute on the craft as the game reports it, stock and
+        /// RealChute alike: how far it has opened, the game's own rating of
+        /// opening it now (stock only: its canopy-heating check, the colour of
+        /// its staging icon), and the height above the ground at which it opens
+        /// fully (stock only: its <c>deployAltitude</c>).
+        /// </summary>
+        private static List<ParachuteReading> BuildParachuteReadings(List<Part> parts)
+        {
+            var readings = new List<ParachuteReading>();
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var modules = parts[i].Modules;
+                if (modules == null)
+                {
+                    continue;
+                }
+                for (int m = 0; m < modules.Count; m++)
+                {
+                    var module = modules[m];
+                    if (module is ModuleParachute chute)
+                    {
+                        readings.Add(new ParachuteReading(
+                            DeploymentOf(chute.deploymentState),
+                            SafetyOf(chute.deploymentSafeState),
+                            chute.deployAltitude));
+                        continue;
+                    }
+                    // RealChute subclasses PartModule, not ModuleParachute, and rates nothing the stock way; see BuildPartModuleStates for its by-name read.
+                    if (module == null || module.GetType().Name != "RealChuteModule")
+                    {
+                        continue;
+                    }
+                    var rcType = module.GetType();
+                    var armed = ReflectBool(rcType, module, "armed") ?? false;
+                    if (ReflectMemberValue(rcType, module, "parachutes") is System.Collections.IEnumerable canopies)
+                    {
+                        foreach (var canopy in canopies)
+                        {
+                            if (canopy == null)
+                            {
+                                continue;
+                            }
+                            var deployment = RealChuteDeploymentOf(ReflectString(canopy.GetType(), canopy, "depState"), armed);
+                            if (deployment != null)
+                            {
+                                readings.Add(new ParachuteReading(deployment, null, null));
+                            }
+                        }
+                    }
+                }
+            }
+            return readings;
+        }
+
+        private static string DeploymentOf(ModuleParachute.deploymentStates state)
+        {
+            switch (state)
+            {
+                case ModuleParachute.deploymentStates.ACTIVE:
+                    return "armed";
+                case ModuleParachute.deploymentStates.SEMIDEPLOYED:
+                    return "semi-deployed";
+                case ModuleParachute.deploymentStates.DEPLOYED:
+                    return "deployed";
+                case ModuleParachute.deploymentStates.CUT:
+                    return "cut";
+                default:
+                    return "stowed";
+            }
+        }
+
+        private static string? SafetyOf(ModuleParachute.deploymentSafeStates state)
+        {
+            switch (state)
+            {
+                case ModuleParachute.deploymentSafeStates.SAFE:
+                    return "safe";
+                case ModuleParachute.deploymentSafeStates.RISKY:
+                    return "risky";
+                case ModuleParachute.deploymentSafeStates.UNSAFE:
+                    return "unsafe";
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>A RealChute canopy's <c>depState</c> in the stock vocabulary: its low and pre-deployed stages are a streamer, like stock's semi-deployed. Null for a state it does not name.</summary>
+        private static string? RealChuteDeploymentOf(string? depState, bool armed)
+        {
+            switch (depState)
+            {
+                case "STOWED":
+                    return armed ? "armed" : "stowed";
+                case "LOWDEPLOYED":
+                case "PREDEPLOYED":
+                    return "semi-deployed";
+                case "DEPLOYED":
+                    return "deployed";
+                case "CUT":
+                    return "cut";
+                default:
+                    return null;
+            }
         }
 
         /// <summary>

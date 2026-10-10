@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 36.1.0
+  version: 36.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -20815,6 +20815,41 @@ components:
             in drag the estimate cannot see, so flag it) or `"deployed"` (a parachute is
             open or semi-deployed, so its drag is already in the measurement). Null
             outside an atmosphere.
+        parachuteDeployment:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            How far the craft's parachutes have opened, taken from the one furthest
+            along: `"none"` (the craft carries no parachute), `"stowed"` (packed, not
+            yet staged), `"armed"` (staged and waiting for air thick enough to open in),
+            `"semi-deployed"` (open as a streamer, slowing the craft a little),
+            `"deployed"` (fully open) or `"cut"` (every one cut away). Unlike
+            `VesselLanding.parachuteState` it tells semi-deployed from fully deployed,
+            and a packed parachute from none. Null outside an atmosphere.
+        parachuteDeploySafety:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            Whether opening the parachutes not yet open would survive the current speed
+            and air, as the game rates it from the heating a canopy would take:
+            `"safe"`, `"risky"` (the canopy would heat but hold for a few seconds) or
+            `"unsafe"` (it would burn through). The worst rating among the stowed and
+            armed parachutes. Null outside an atmosphere, when every parachute is
+            already open or cut, and for a parachute the game does not rate.
+        parachuteFullDeployAltitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: m
+          description: |-
+            The height above the ground or the sea at which an armed or semi-deployed
+            parachute opens fully, the greatest when there are several, since that one
+            opens first. Null when none is armed or semi-deployed, outside an
+            atmosphere, and for a parachute the game does not report one for.
         meta:
           description: The payload's provenance (`"vessel:<guid>"`).
           allOf:

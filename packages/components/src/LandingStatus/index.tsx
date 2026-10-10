@@ -128,6 +128,11 @@ function LandingStatusComponent({
       impactSpeed={solution.bestSpeedAtImpact}
       burning={model.burning}
       engine={model.engine}
+      parachute={{
+        deployment: landing?.parachuteDeployment ?? null,
+        safety: landing?.parachuteDeploySafety ?? null,
+        fullDeployAltitude: landing?.parachuteFullDeployAltitude ?? null,
+      }}
     />
   );
 

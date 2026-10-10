@@ -211,6 +211,35 @@ public class VesselLanding
     [SitrepUnit(Units.Text)]
     public string? ParachuteState { get; set; }
 
+    /// <summary>How far the craft's parachutes have opened, taken from the one
+    /// furthest along: <c>"none"</c> (the craft carries no parachute),
+    /// <c>"stowed"</c> (packed, not yet staged), <c>"armed"</c> (staged and
+    /// waiting for air thick enough to open in), <c>"semi-deployed"</c> (open
+    /// as a streamer, slowing the craft a little), <c>"deployed"</c> (fully
+    /// open) or <c>"cut"</c> (every one cut away). Unlike
+    /// <see cref="ParachuteState"/> it tells semi-deployed from fully deployed,
+    /// and a packed parachute from none. Null outside an atmosphere.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? ParachuteDeployment { get; set; }
+
+    /// <summary>Whether opening the parachutes not yet open would survive the
+    /// current speed and air, as the game rates it from the heating a canopy
+    /// would take: <c>"safe"</c>, <c>"risky"</c> (the canopy would heat but
+    /// hold for a few seconds) or <c>"unsafe"</c> (it would burn through). The
+    /// worst rating among the stowed and armed parachutes. Null outside an
+    /// atmosphere, when every parachute is already open or cut, and for a
+    /// parachute the game does not rate.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? ParachuteDeploySafety { get; set; }
+
+    /// <summary>The height above the ground or the sea at which an armed or
+    /// semi-deployed parachute opens fully, the greatest when there are
+    /// several, since that one opens first. Null when none is armed or
+    /// semi-deployed, outside an atmosphere, and for a parachute the game does
+    /// not report one for.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? ParachuteFullDeployAltitude { get; set; }
+
     /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

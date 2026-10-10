@@ -7,7 +7,7 @@
  * An instrument, not a command surface: gear and brakes are fired from the operator's own action-group widgets.
  */
 
-import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
+import { type Tone, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   NULL_DISPLAY,
@@ -47,6 +47,62 @@ const ONE_LINE = {
 
 const IMPACT_CAPTION = "BEST-BURN IMPACT";
 
+/** The craft's parachutes as `vessel.landing` reports them; each field null when unsent. */
+export interface ParachuteStatus {
+  deployment: string | null;
+  safety: string | null;
+  fullDeployAltitude: Value<"m"> | null;
+}
+
+const CHUTE_LINE: Record<string, { text: string; tone: Tone }> = {
+  none: { text: "NO PARACHUTE", tone: "warn" },
+  stowed: { text: "CHUTE STOWED", tone: "neutral" },
+  armed: { text: "CHUTE ARMED", tone: "info" },
+  "semi-deployed": { text: "CHUTE SEMI-DEPLOYED", tone: "info" },
+  deployed: { text: "CHUTE DEPLOYED", tone: "go" },
+  cut: { text: "CHUTE CUT", tone: "warn" },
+};
+
+const CHUTE_SAFETY: Record<string, { text: string; tone: Tone | null }> = {
+  safe: { text: "SAFE TO OPEN", tone: null },
+  risky: { text: "RISKY TO OPEN", tone: "caution" },
+  unsafe: { text: "UNSAFE TO OPEN", tone: "nogo" },
+};
+
+/** The parachute line for a craft with no engine: its state, the game's rating of opening it now while it is not yet open, and the height it opens fully at while armed or opening. Null when nothing is known. */
+function parachuteLine(parachute: ParachuteStatus | undefined): ReactNode {
+  const line = parachute?.deployment
+    ? CHUTE_LINE[parachute.deployment]
+    : undefined;
+  if (!parachute || !line) return null;
+  const safety = parachute.safety ? CHUTE_SAFETY[parachute.safety] : undefined;
+  const opening =
+    (parachute.deployment === "armed" ||
+      parachute.deployment === "semi-deployed") &&
+    parachute.fullDeployAltitude?.isFinite()
+      ? parachute.fullDeployAltitude
+      : null;
+  const height = opening ? writeQuantity(opening, { decimals: 0 }) : null;
+  const words = [safety?.text, height ? "FULL AT" : undefined]
+    .filter(Boolean)
+    .join(" · ");
+  const title = [line.text, words, height].filter(Boolean).join(" ");
+  return (
+    <Tooltip text={title}>
+      <Readout tone={safety?.tone ?? line.tone} style={ONE_LINE}>
+        {line.text}{" "}
+        {words && (
+          <ReadoutCaption>
+            {words}
+            {/* A unit keeps its own case: a caption's capitals would turn km into KM. */}
+            {height && <span style={{ textTransform: "none" }}> {height}</span>}
+          </ReadoutCaption>
+        )}
+      </Readout>
+    </Tooltip>
+  );
+}
+
 export interface CommitLayerProps {
   regime: LandingRegime;
   /**
@@ -71,6 +127,8 @@ export interface CommitLayerProps {
   burning?: boolean;
   /** False for a craft with no engine to burn (none, no thrust, or none reported): the block says nothing of a burn. True when omitted. */
   engine?: boolean;
+  /** The craft's parachutes, from `vessel.landing`, for a craft with no engine: how far they have opened, whether opening the rest is safe, and the height they open fully at. Omitted or all null, the row says nothing. */
+  parachute?: ParachuteStatus;
 }
 
 interface Hero {
@@ -141,12 +199,20 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
   const { noLandingVector = false, impactSpeed = null, engine = true } = props;
   // Nothing to burn means no countdown and no best burn to speak of; a touchdown is still a touchdown. The live region stays mounted either way, so the touchdown is announced.
   if (!engine) {
-    // The row is there before the touchdown too, blank, so LANDED arriving never moves what sits below the block.
+    // One row in every state: the parachutes on the way down, LANDED once down, blank while nothing is known, so no change of state moves what sits below the block.
     return (
       <Section role="status" aria-live="polite">
-        <Readout tone="go" style={ONE_LINE}>
-          {props.landed ? "LANDED" : <span aria-hidden="true">{"\u00a0"}</span>}
-        </Readout>
+        {props.landed ? (
+          <Readout tone="go" style={ONE_LINE}>
+            LANDED
+          </Readout>
+        ) : (
+          (parachuteLine(props.parachute) ?? (
+            <Readout style={ONE_LINE}>
+              <span aria-hidden="true">{"\u00a0"}</span>
+            </Readout>
+          ))
+        )}
       </Section>
     );
   }

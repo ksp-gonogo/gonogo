@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -52,6 +53,86 @@ describe("CommitLayer", () => {
       expect(screen.queryByText("LANDED")).toBeNull();
       rerender(<CommitLayer {...live} engine={false} landed />);
       expect(rows()).toBe(before);
+    });
+
+    describe("its parachutes", () => {
+      const chute = (
+        deployment: string | null,
+        safety: string | null = null,
+        fullDeployAltitude: number | null = null,
+      ) => ({
+        deployment,
+        safety,
+        fullDeployAltitude:
+          fullDeployAltitude === null ? null : value("m", fullDeployAltitude),
+      });
+
+      it.each([
+        ["none", "NO PARACHUTE"],
+        ["stowed", "CHUTE STOWED"],
+        ["armed", "CHUTE ARMED"],
+        ["semi-deployed", "CHUTE SEMI-DEPLOYED"],
+        ["deployed", "CHUTE DEPLOYED"],
+        ["cut", "CHUTE CUT"],
+      ])("says a %s parachute in the headline row", (deployment, words) => {
+        render(
+          <CommitLayer
+            {...live}
+            engine={false}
+            parachute={chute(deployment)}
+          />,
+        );
+        expect(screen.getByText(words)).toBeInTheDocument();
+      });
+
+      it("says whether opening it now is safe while it is not yet open, and the height it opens fully at", () => {
+        const { container } = render(
+          <CommitLayer
+            {...live}
+            engine={false}
+            parachute={chute("armed", "unsafe", 1000)}
+          />,
+        );
+        expect(container.querySelector("[role=status]")?.textContent).toContain(
+          "CHUTE ARMED UNSAFE TO OPEN · FULL AT 1 km",
+        );
+      });
+
+      it("keeps the one row in every parachute state, so nothing below moves", () => {
+        const { container, rerender } = render(
+          <CommitLayer {...live} engine={false} parachute={chute(null)} />,
+        );
+        const rows = () =>
+          container.querySelectorAll("[role=status] > *").length;
+        expect(rows()).toBe(1);
+        for (const d of ["armed", "semi-deployed", "deployed"]) {
+          rerender(
+            <CommitLayer
+              {...live}
+              engine={false}
+              parachute={chute(d, "safe", 1000)}
+            />,
+          );
+          expect(rows()).toBe(1);
+        }
+      });
+
+      it("says nothing of a parachute it has no reading for, and LANDED once down", () => {
+        const { rerender } = render(
+          <CommitLayer {...live} engine={false} parachute={chute(null)} />,
+        );
+        expect(screen.queryByText(/CHUTE|PARACHUTE/)).toBeNull();
+        rerender(
+          <CommitLayer
+            {...live}
+            engine={false}
+            landed
+            parachute={chute("deployed")}
+          />,
+        );
+        expect(screen.getByText("LANDED")).toBeInTheDocument();
+        expect(screen.queryByText("CHUTE DEPLOYED")).toBeNull();
+      });
     });
 
     it("still says LANDED once down", () => {

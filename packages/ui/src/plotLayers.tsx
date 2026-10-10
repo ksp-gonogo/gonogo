@@ -1,6 +1,8 @@
 import type { PlotEmphasis, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { TONE_MARK, TONE_TEXT, VesselMarkSvg } from "@ksp-gonogo/ui-kit";
 import { type ReactElement, useId } from "react";
+import { RELIEF_RESOLUTION, sampleGrid } from "./reliefGrid";
+import { WaterLayer } from "./waterLayer";
 
 /**
  * Draws the `PlotLayer` vocabulary inside `LineChart`'s plot rect. Layers arrive in data space, so a
@@ -205,7 +207,7 @@ export function solidRegionCover(
 ): (x: number, y: number) => boolean {
   const rings: { x: number; y: number }[][] = [];
   for (const layer of layers) {
-    if (layer.kind === "relief") {
+    if (layer.kind === "relief" || layer.kind === "water") {
       const scaleY = scaleYOf(frame, layer);
       const { x0, y0, x1, y1 } = layer.bounds;
       rings.push([
@@ -327,30 +329,6 @@ function FieldLayer({
  */
 
 const DEFAULT_RELIEF_BANDS = 6;
-const RELIEF_RESOLUTION = 56;
-
-/** Bilinear sample of a row-major grid at continuous (col, row). */
-function sampleGrid(
-  values: readonly number[],
-  size: number,
-  col: number,
-  row: number,
-): number {
-  const x0 = Math.max(0, Math.min(size - 1, Math.floor(col)));
-  const y0 = Math.max(0, Math.min(size - 1, Math.floor(row)));
-  const x1 = Math.min(size - 1, x0 + 1);
-  const y1 = Math.min(size - 1, y0 + 1);
-  const fx = Math.max(0, Math.min(1, col - x0));
-  const fy = Math.max(0, Math.min(1, row - y0));
-  const top =
-    values[y0 * size + x0] +
-    (values[y0 * size + x1] - values[y0 * size + x0]) * fx;
-  const bottom =
-    values[y1 * size + x0] +
-    (values[y1 * size + x1] - values[y1 * size + x0]) * fx;
-  return top + (bottom - top) * fy;
-}
-
 /** Low-key on purpose: this is context under the marks. */
 const HYPSO: ReadonlyArray<
   readonly [number, readonly [number, number, number]]
@@ -888,6 +866,8 @@ const KIND_ORDER: Record<PlotLayer["kind"], number> = {
   relief: -1,
   field: 0,
   region: 1,
+  // Over the ground it covers, under every mark.
+  water: 1.5,
   series: 2,
   rule: 3,
   annotation: 4,
@@ -900,6 +880,7 @@ export type PlotLayerPass = "background" | "foreground" | "caption";
 
 const KIND_PASS: Record<PlotLayer["kind"], PlotLayerPass> = {
   relief: "background",
+  water: "background",
   field: "background",
   region: "background",
   series: "foreground",
@@ -950,6 +931,8 @@ export function PlotLayers({
         switch (layer.kind) {
           case "relief":
             return <ReliefLayer key={key} layer={layer} frame={frame} />;
+          case "water":
+            return <WaterLayer key={key} layer={layer} frame={frame} />;
           case "field":
             return <FieldLayer key={key} layer={layer} frame={frame} />;
           case "region":

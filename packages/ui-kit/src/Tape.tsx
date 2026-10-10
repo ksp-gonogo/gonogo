@@ -16,7 +16,12 @@ import {
 } from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
 import { useTooltip } from "./Tooltip";
-import { type FormatsFor, quantityScale, speakQuantity } from "./units";
+import {
+  type FormatsFor,
+  type QuantityScale,
+  quantityScale,
+  speakQuantity,
+} from "./units";
 
 /**
  * A shaded band on a {@link Tape}'s scale, such as an ignition band.
@@ -113,6 +118,30 @@ const PAD_BOTTOM = 12;
 // Left gutter wide enough for a 5-digit unit-less label (e.g. "10000").
 const TRACK_X = 52;
 const TRACK_W = 10;
+
+/** The most decimals a tick label is given. */
+const MAX_TICK_DECIMALS = 4;
+
+/**
+ * `scale` when it already writes every tick exactly, else the scale with the fewest decimals that does: more would change no figure. Fewer would write two 50 m ticks on a kilometre scale the same, or 1.25 km as "1.3".
+ */
+function exactMarks(
+  ticks: readonly number[],
+  scale: QuantityScale,
+  withDecimals: (decimals: number) => QuantityScale,
+): QuantityScale {
+  const figures = (s: QuantityScale) =>
+    ticks.map((t) => Number.parseFloat(s.mark(t).replace(/[^\d.-]/g, "")));
+  const exact = figures(withDecimals(MAX_TICK_DECIMALS));
+  const isExact = (s: QuantityScale) =>
+    figures(s).every((figure, i) => figure === exact[i]);
+  if (isExact(scale)) return scale;
+  for (let decimals = 0; decimals < MAX_TICK_DECIMALS; decimals++) {
+    const candidate = withDecimals(decimals);
+    if (isExact(candidate)) return candidate;
+  }
+  return withDecimals(MAX_TICK_DECIMALS);
+}
 
 /**
  * A vertical linear scale with a moving pointer, the altimeter or airspeed
@@ -270,9 +299,16 @@ export function Tape<Unit extends string = string>({
   const ticks: number[] = [];
   const step = tickStep?.magnitude ?? 0;
   if (step > 0 && span > 0) {
-    const first = Math.ceil(axisMin / step) * step;
-    for (let t = first; t <= axisMax + 1e-9; t += step) ticks.push(t);
+    // Each tick a whole number of steps, so the one at zero is zero: adding the step up from below lands a hair under it, which reads "-0.0".
+    const firstIndex = Math.ceil(axisMin / step);
+    const lastIndex = Math.floor(axisMax / step + 1e-9);
+    for (let i = firstIndex; i <= lastIndex; i++)
+      ticks.push(i === 0 ? 0 : i * step);
   }
+  // Enough decimals that every tick is written exactly: a 50 m step written in kilometres needs two where the rung's own one gives 1.0, 1.0, 1.1.
+  const tickScale = exactMarks(ticks, scale, (decimals) =>
+    quantityScale(max, { format, decimals }),
+  );
 
   const pointerY = yOf(clamped);
   // Compared as fractions of the rail, from the heights the marks are drawn at.
@@ -391,7 +427,7 @@ export function Tape<Unit extends string = string>({
                   fontSize={8}
                   fill="var(--color-text-faint)"
                 >
-                  {scale.mark(t)}
+                  {tickScale.mark(t)}
                 </text>
               )}
             </g>

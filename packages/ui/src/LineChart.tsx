@@ -172,10 +172,14 @@ export interface LineChartProps {
   xDomain: [number, number];
   yDomainPrimary?: [number, number];
   yDomainSecondary?: [number, number];
-  /** Tick label formatter for the x-axis. Defaults to elapsed mm:ss / HH:mm:ss. */
-  xTickFormat?: (value: number, domain: readonly [number, number]) => string;
-  /** Tick label formatter for both y-axes. Defaults to k/M-suffixed numeric. */
-  yTickFormat?: (value: number) => string;
+  /** Tick label formatter for the x-axis. Defaults to elapsed mm:ss / HH:mm:ss. Writing a tick, it is handed the axis's every tick too, so it can give them the decimals that tell them apart. */
+  xTickFormat?: (
+    value: number,
+    domain: readonly [number, number],
+    ticks?: readonly number[],
+  ) => string;
+  /** Tick label formatter for both y-axes. Defaults to k/M-suffixed numeric. Writing a tick, it is handed that axis's every tick too; any other figure is written alone. */
+  yTickFormat?: (value: number, ticks?: readonly number[]) => string;
   /** Linear (default) or log10 scale on each Y axis. */
   yScalePrimary?: AxisScale;
   yScaleSecondary?: AxisScale;
@@ -474,7 +478,7 @@ export function LineChart({
           least,
           Math.min(
             Math.round(w * MAX_GUTTER_SHARE),
-            Math.max(...ticks.map((t) => tickLabelPx(yTickFormat(t)))) +
+            Math.max(...ticks.map((t) => tickLabelPx(yTickFormat(t, ticks)))) +
               Y_LABEL_INSET,
           ),
         );
@@ -546,7 +550,7 @@ export function LineChart({
     const gap = 6;
     const make = (idx: number) => {
       const tick = xTicks[idx];
-      const text = xTickFormat(tick, xDomain);
+      const text = xTickFormat(tick, xDomain, xTicks);
       const x = scaleX(tick);
       const wpx = estPx(text);
       const anchor: "start" | "middle" | "end" =
@@ -1193,7 +1197,7 @@ export function LineChart({
                   fill="var(--color-text-faint)"
                   fontSize={11}
                 >
-                  {yTickFormat(tick)}
+                  {yTickFormat(tick, yTicksPrimary)}
                 </text>
               )}
             </React.Fragment>
@@ -1213,7 +1217,7 @@ export function LineChart({
               fill="var(--color-text-faint)"
               fontSize={11}
             >
-              {yTickFormat(tick)}
+              {yTickFormat(tick, yTicksSecondary)}
             </text>
           ) : null,
         )}

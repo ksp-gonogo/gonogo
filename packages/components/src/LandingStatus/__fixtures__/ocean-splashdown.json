@@ -64,16 +64,16 @@
         "channel": "vessel.flight",
         "value": {
           "latitude": -0.05,
-          "longitude": -74.5193696,
-          "altitudeAsl": 297.805709,
-          "altitudeTerrain": 297.805709,
-          "verticalSpeed": -5.64902675,
-          "surfaceSpeed": 5.64902675,
-          "orbitalSpeed": 5.64902675,
-          "atmDensity": 1.16155689,
-          "atmosphericTemperature": 286.064263,
+          "longitude": -74.5161442,
+          "altitudeAsl": 294.865912,
+          "altitudeTerrain": 294.865912,
+          "verticalSpeed": -5.64754373,
+          "surfaceSpeed": 5.64754373,
+          "orbitalSpeed": 5.64754373,
+          "atmDensity": 1.16216683,
+          "atmosphericTemperature": 286.083372,
           "externalTemperature": 288,
-          "mach": 0.0166147845
+          "mach": 0.0166104227
         }
       },
       {
@@ -81,7 +81,7 @@
         "value": {
           "biome": "Water",
           "landedAt": null,
-          "heightFromTerrain": 297.805709
+          "heightFromTerrain": 294.865912
         }
       },
       {
@@ -96,10 +96,10 @@
       {
         "channel": "vessel.attitude",
         "value": {
-          "pitch": 90,
+          "pitch": 89.9999966,
           "heading": 270,
           "roll": 0,
-          "pitchRootFrame": 90,
+          "pitchRootFrame": 89.9999966,
           "headingRootFrame": 270,
           "rollRootFrame": 0
         }
@@ -131,7 +131,7 @@
           "outcome": "atmosphere-modelled",
           "sampleSource": "predicted",
           "predictedLatitude": -0.05,
-          "predictedLongitude": -74.5193696,
+          "predictedLongitude": -74.5161442,
           "predictedTerrainElevation": -140,
           "predictedSlopeAngle": 0,
           "predictedSlopeHeading": 120,
@@ -139,23 +139,26 @@
           "roughnessFootprintMeters": 60,
           "slopeSampleRadiusMeters": 100,
           "predictedBiome": "Water",
-          "terminalVelocity": 5.64820552,
+          "terminalVelocity": 5.64672316,
           "projectedTouchdownSpeed": 5.5,
-          "atmosphericTimeToImpact": 52.7257211,
+          "atmosphericTimeToImpact": 52.2189425,
           "descentRegime": "at-terminal",
           "parachuteState": "deployed",
-          "dragToWeightRatio": 1.00029081,
+          "parachuteDeployment": "deployed",
+          "parachuteDeploySafety": null,
+          "parachuteFullDeployAltitude": null,
+          "dragToWeightRatio": 1.00029066,
           "groundTrackDistances": [
-            -515.814619, -493.865061, -471.915503, -449.965944, -428.016386,
-            -406.066828, -384.11727, -362.167711, -340.218153, -318.268595,
-            -296.319037, -274.369478, -252.41992, -230.470362, -208.520803,
-            -186.571245, -164.621687, -142.672129, -120.72257, -98.7730122,
-            -76.8234539, -54.8738957, -32.9243374, -10.9747791, 10.9747791,
-            32.9243374, 54.8738957, 76.8234539, 98.7730122, 120.72257,
-            142.672129, 164.621687, 186.571245, 208.520803, 230.470362,
-            252.41992, 274.369478, 296.319037, 318.268595, 340.218153,
-            362.167711, 384.11727, 406.066828, 428.016386, 449.965944,
-            471.915503, 493.865061, 515.814619
+            -510.722671, -488.989788, -467.256905, -445.524023, -423.79114,
+            -402.058258, -380.325375, -358.592492, -336.85961, -315.126727,
+            -293.393845, -271.660962, -249.928079, -228.195197, -206.462314,
+            -184.729432, -162.996549, -141.263666, -119.530784, -97.7979013,
+            -76.0650187, -54.3321361, -32.5992535, -10.8663709, 10.8665117,
+            32.5993943, 54.3322769, 76.0651595, 97.7980421, 119.530925,
+            141.263807, 162.99669, 184.729572, 206.462455, 228.195338,
+            249.92822, 271.661103, 293.393985, 315.126868, 336.859751,
+            358.592633, 380.325516, 402.058398, 423.791281, 445.524164,
+            467.257046, 488.989929, 510.722811
           ],
           "groundTrackElevations": [
             -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140,
@@ -220,7 +223,7 @@
             -140, -140, -140, -140
           ],
           "siteHeightsSize": 24,
-          "siteHeightsExtentMeters": 743.655304
+          "siteHeightsExtentMeters": 737.834508
         }
       }
     ]

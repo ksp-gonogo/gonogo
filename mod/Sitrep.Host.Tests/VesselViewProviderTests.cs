@@ -2283,6 +2283,9 @@ namespace Sitrep.Host.Tests
                     ["atmosphericTimeToImpact"] = 41.5,
                     ["descentRegime"] = "at-terminal",
                     ["parachuteState"] = "armed",
+                    ["parachuteDeployment"] = "armed",
+                    ["parachuteDeploySafety"] = "risky",
+                    ["parachuteFullDeployAltitude"] = 1000.0,
                 });
 
             var landing = VesselViewProvider.BuildLanding(snapshot);
@@ -2294,6 +2297,9 @@ namespace Sitrep.Host.Tests
             Assert.Equal(41.5, landing.AtmosphericTimeToImpact);
             Assert.Equal("at-terminal", landing.DescentRegime);
             Assert.Equal("armed", landing.ParachuteState);
+            Assert.Equal("armed", landing.ParachuteDeployment);
+            Assert.Equal("risky", landing.ParachuteDeploySafety);
+            Assert.Equal(1000.0, landing.ParachuteFullDeployAltitude);
             // A group without terrain readings leaves every terrain field null.
             Assert.Null(landing.PredictedSlopeAngle);
             Assert.Null(landing.PredictedBiome);

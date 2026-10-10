@@ -29,9 +29,14 @@ const SCALE_HEIGHT_M = 5600;
 const BALLISTIC_TERMINAL = 115;
 /** The speed it falls at under an open canopy in sea-level air, m/s. */
 const CANOPY_TERMINAL = 5.5;
-/** Height above the surface at which the canopy is released, metres. */
+/** Height above the surface below which the air is thick enough for the armed chute to open as a streamer, metres: stock opens it on the air's pressure, which over Kerbin is about here. */
 const CHUTE_ALTITUDE_M = 2400;
-/** Seconds the canopy takes to open. */
+/** Height above the surface at which it opens fully, metres: stock's default deploy altitude. */
+export const FULL_DEPLOY_AGL_M = 1000;
+/** How much of the canopy's drag the streamer gives, and the seconds it takes to open. */
+const SEMI_SHARE = 0.1;
+const SEMI_OPENING_S = 2;
+/** Seconds the canopy takes to open fully. */
 const CHUTE_OPENING_S = 8;
 const SUBSTEP_S = 0.02;
 
@@ -73,6 +78,15 @@ export interface AtmosphereFrame extends Frame {
   terminal: number;
   /** How open the canopy is, 0 stowed to 1 open. */
   canopy: number;
+  /** How far the chute has opened, in the mod's words: armed until it streams, semi-deployed as a streamer, deployed once it opens fully. */
+  chute: "armed" | "semi-deployed" | "deployed";
+}
+
+/** How open the canopy is after a streamer this many seconds open and a full opening this many: negative for one not begun. */
+function canopyOf(semiFor: number, fullFor: number): number {
+  const semi = semiFor < 0 ? 0 : Math.min(1, semiFor / SEMI_OPENING_S);
+  const full = fullFor < 0 ? 0 : Math.min(1, fullFor / CHUTE_OPENING_S);
+  return SEMI_SHARE * semi + (1 - SEMI_SHARE) * full;
 }
 
 /** Rolling country: a third of the Mun's relief, which keeps the whole site above the sea. */
@@ -113,12 +127,12 @@ export function integrateAtmosphere(
   let vDown = start.vDown;
   let vHoriz = start.vHoriz;
   let lon = -74.6;
-  let canopyOpenFor = -1;
+  let semiFor = -1;
+  let fullFor = -1;
   const frames: AtmosphereFrame[] = [];
   const frame = (t: number, landed = false): AtmosphereFrame => {
     const asl = base + agl;
-    const canopy =
-      canopyOpenFor < 0 ? 0 : Math.min(1, canopyOpenFor / CHUTE_OPENING_S);
+    const canopy = canopyOf(semiFor, fullFor);
     const seaLevelTerminal =
       BALLISTIC_TERMINAL + (CANOPY_TERMINAL - BALLISTIC_TERMINAL) * canopy;
     const speed = Math.hypot(vDown, vHoriz);
@@ -136,6 +150,8 @@ export function integrateAtmosphere(
       mach: speed / (asl > 12_000 ? 295 : 340),
       terminal: terminalAt(asl, seaLevelTerminal),
       canopy,
+      chute:
+        fullFor >= 0 ? "deployed" : semiFor >= 0 ? "semi-deployed" : "armed",
     };
   };
   for (let t = 0; t < 900 && agl > 0; t++) {
@@ -143,15 +159,16 @@ export function integrateAtmosphere(
     for (let s = 0; s < 1 / SUBSTEP_S && agl > 0; s++) {
       const asl = base + agl;
       if (
-        canopyOpenFor < 0 &&
+        semiFor < 0 &&
         agl < CHUTE_ALTITUDE_M &&
         Math.hypot(vDown, vHoriz) < 260
       ) {
-        canopyOpenFor = 0;
+        semiFor = 0;
       }
-      if (canopyOpenFor >= 0) canopyOpenFor += SUBSTEP_S;
-      const canopy =
-        canopyOpenFor < 0 ? 0 : Math.min(1, canopyOpenFor / CHUTE_OPENING_S);
+      if (semiFor >= 0 && fullFor < 0 && agl < FULL_DEPLOY_AGL_M) fullFor = 0;
+      if (semiFor >= 0) semiFor += SUBSTEP_S;
+      if (fullFor >= 0) fullFor += SUBSTEP_S;
+      const canopy = canopyOf(semiFor, fullFor);
       const vt = terminalAt(
         asl,
         BALLISTIC_TERMINAL + (CANOPY_TERMINAL - BALLISTIC_TERMINAL) * canopy,
@@ -174,6 +191,15 @@ export function integrateAtmosphere(
   const settled = frame((last?.t ?? 0) + 1, true);
   frames.push({ ...settled, vDown: 0, vHoriz: 0, terminal: settled.terminal });
   return frames;
+}
+
+/** Speeds above which opening the chute is risky and then unsafe, m/s: a stand-in for the game's own check, which rates the heating the speed would bring a canopy. */
+const RISKY_DEPLOY_MPS = 300;
+const UNSAFE_DEPLOY_MPS = 450;
+
+function deploySafety(speed: number): "safe" | "risky" | "unsafe" {
+  if (speed > UNSAFE_DEPLOY_MPS) return "unsafe";
+  return speed > RISKY_DEPLOY_MPS ? "risky" : "safe";
 }
 
 /** The regime the drag puts the descent in, by how its drag compares with its weight. */
@@ -310,6 +336,11 @@ export function atmosphereChannelsFor(
       ),
       descentRegime: regime,
       parachuteState: canopyOpen ? "deployed" : "armed",
+      parachuteDeployment: f.landed ? "cut" : f.chute,
+      parachuteDeploySafety:
+        !f.landed && f.chute === "armed" ? deploySafety(speed) : null,
+      parachuteFullDeployAltitude:
+        !f.landed && f.chute !== "deployed" ? FULL_DEPLOY_AGL_M : null,
       dragToWeightRatio: ratio,
       groundTrackDistances: distances,
       groundTrackElevations: groundTrackElevations(

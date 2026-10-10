@@ -6,7 +6,7 @@ import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 import { roundedHeight } from "./readouts";
-import { surfaceMeters, topDownWaves } from "./seaSurface";
+import { surfaceGravityOf, surfaceMeters } from "./seaSurface";
 import { siteWorthPlotting } from "./siteGate";
 
 /**
@@ -49,25 +49,6 @@ function siteRelief(
     size,
     bounds: { x0: -half, y0: -half, x1: half, y1: half },
     description: "sampled ground around the predicted site",
-  };
-}
-
-/** Whether a point of the plot stands over a cell of the sampled grid that is under the sea; outside the grid nothing is known, so no. */
-function underWater(
-  heights: readonly number[] | null,
-  size: number | null,
-  extentMeters: number | null,
-): (x: number, y: number) => boolean {
-  if (!heights || !size || !extentMeters || heights.length < size * size) {
-    return () => false;
-  }
-  const half = extentMeters / 2;
-  const cell = extentMeters / size;
-  return (x, y) => {
-    const col = Math.floor((x + half) / cell);
-    const row = Math.floor((half - y) / cell);
-    if (col < 0 || row < 0 || col >= size || row >= size) return false;
-    return heights[row * size + col] < 0;
   };
 }
 
@@ -158,8 +139,8 @@ export interface TouchdownReticleInputs {
   trackAheadMeters?: number | null;
   /** How wide a patch of ground the site's roughness was measured across. */
   roughnessFootprint?: Value<"m"> | null;
-  /** Where the predicted site stands, metres east and north of the body's own origin: the sea's waves are laid from it so they stay put on the body. No waves when omitted. */
-  siteOnBody?: { east: number; north: number } | null;
+  /** Where the predicted site stands on the body, metres east and north of its origin, and the body's surface gravity: the sea is drawn as a moving surface from them, fixed to the body. Without them it is a flat fill. */
+  sea?: { siteOnBody: { east: number; north: number }; gravity: number } | null;
 }
 
 /** The reticle as a whole plot, or null when there is no predicted site: the whole plot is stated relative to it. */
@@ -280,23 +261,53 @@ export function buildTouchdownReticlePlot(
     inputs.siteHeightsSize ?? null,
     inputs.siteHeightsExtentMeters ?? null,
   );
-  const sea: PlotLayer[] = wholeSea
-    ? [
-        {
-          kind: "region",
-          id: "sea",
-          side: "below",
-          boundary: [
-            { x: window.x0, y: window.y1 },
-            { x: window.x1, y: window.y1 },
-          ],
-          tone: "info",
-          opacity: 0.45,
-          description:
-            "sea: the ground around the predicted site is under water",
-        },
-      ]
-    : [];
+  const half = (inputs.siteHeightsExtentMeters ?? 0) / 2;
+  const size = inputs.siteHeightsSize ?? 0;
+  const partSea =
+    overSea &&
+    !wholeSea &&
+    sampled != null &&
+    size > 0 &&
+    half > 0 &&
+    sampled.some((h) => h < 0);
+  const moving = inputs.sea;
+  const sea: PlotLayer[] =
+    moving && (wholeSea || partSea)
+      ? [
+          {
+            kind: "water",
+            id: "sea",
+            view: "plan",
+            // The grid's own bounds, so the sea is shaded on the cells the land beside it is.
+            bounds: { x0: -half, y0: -half, x1: half, y1: half },
+            origin: moving.siteOnBody,
+            gravity: moving.gravity,
+            ...(wholeSea || !sampled
+              ? {}
+              : { sea: { size, heights: sampled } }),
+            tone: "info",
+            description: wholeSea
+              ? "sea: the ground around the predicted site is under water"
+              : "sea over part of the ground around the predicted site",
+          },
+        ]
+      : wholeSea
+        ? [
+            {
+              kind: "region",
+              id: "sea",
+              side: "below",
+              boundary: [
+                { x: window.x0, y: window.y1 },
+                { x: window.x1, y: window.y1 },
+              ],
+              tone: "info",
+              opacity: 0.45,
+              description:
+                "sea: the ground around the predicted site is under water",
+            },
+          ]
+        : [];
   // First, so everything else is drawn over the ground, and the hatching over whatever of the window the grid does not reach.
   layers.unshift(
     ...(ground
@@ -316,25 +327,6 @@ export function buildTouchdownReticlePlot(
           },
         ]),
   );
-  if (overSea && inputs.siteOnBody) {
-    const isWater = wholeSea
-      ? () => true
-      : underWater(
-          sampled,
-          inputs.siteHeightsSize ?? null,
-          inputs.siteHeightsExtentMeters ?? null,
-        );
-    // Over the ground and under the marks, so a craft or a site is never hidden by a wave.
-    const firstMark = layers.findIndex(
-      (l) => l.kind !== "region" && l.kind !== "relief",
-    );
-    layers.splice(
-      firstMark < 0 ? layers.length : firstMark,
-      0,
-      ...topDownWaves({ window, origin: inputs.siteOnBody, isWater }),
-    );
-  }
-
   // The line the cross-section is cut along, from where the strip begins behind the craft to where it ends, through the craft and the site.
   const behind = inputs.trackBehindMeters;
   const ahead = inputs.trackAheadMeters;
@@ -493,6 +485,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     ) {
       return null;
     }
+    const gravity = surfaceGravityOf(body);
     const siteLat = landing.predictedLatitude.magnitude;
     const siteLon = landing.predictedLongitude.magnitude;
     const drift = greatCircle(
@@ -536,7 +529,13 @@ CORE_UPLINK_CLIENT.registerContribution({
       hasAtmosphere: body.hasAtmosphere ?? false,
       hasOcean: body.hasOcean,
       aglMeters,
-      siteOnBody: surfaceMeters(siteLat, siteLon, body.radius),
+      sea:
+        gravity != null
+          ? {
+              siteOnBody: surfaceMeters(siteLat, siteLon, body.radius),
+              gravity,
+            }
+          : null,
       roughnessFootprint: landing.roughnessFootprintMeters ?? null,
     });
     return plot

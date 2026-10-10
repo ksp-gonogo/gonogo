@@ -727,56 +727,80 @@ describe("cross-section plot", () => {
       ).toBe(false);
     });
 
-    describe("its waves", () => {
-      const ALONG = 98_765;
-      const withWaves = (siteAlongMeters: number | null = ALONG) =>
+    describe("its moving surface", () => {
+      const SEA = {
+        siteOnBody: { east: 98_765, north: -4_321 },
+        bearingDeg: 90,
+        gravity: 9.81,
+      };
+      const withSea = (sea: CrossSectionInputs["sea"] = SEA) =>
         buildCrossSectionPlot(
           crossSection({
             ...floor,
             aglMeters: 300,
             driftMeters: 0,
             hasOcean: true,
-            siteAlongMeters,
+            sea,
           }),
         );
-      const wavesOf = (plot: PlotEntry | null) =>
-        (plot?.layers ?? []).flatMap((l) =>
-          l.id.startsWith("sea-wave-") && l.kind === "series" ? [l] : [],
-        );
+      const watersOf = (plot: PlotEntry | null) =>
+        (plot?.layers ?? []).flatMap((l) => (l.kind === "water" ? [l] : []));
 
-      it("ripples the water just under its surface, inside the stretches that are sea, under one name", () => {
-        const plot = withWaves();
-        const waves = wavesOf(plot);
-        expect(waves.length).toBeGreaterThan(1);
-        const [yLo] = frameOf(plot).yDomain;
-        // The strip is sea up to 750 m along it; the shore rises above the surface at 1000 m.
-        for (const w of waves) {
-          expect(w.tone).toBe("info");
-          expect(w.weight ?? 1).toBeLessThan(1);
-          for (const p of w.points) {
-            expect(p.y).toBeLessThan(0);
-            expect(p.y).toBeGreaterThan(yLo);
-            expect(p.x).toBeLessThan(1000);
-          }
-        }
-        expect(waves.filter((w) => w.description).length).toBe(1);
-      });
-
-      it("draws none without the site's place along the track", () => {
-        expect(wavesOf(withWaves(null))).toEqual([]);
-      });
-
-      it("stands each wave at a fixed place along the track, wherever the site is", () => {
-        const at = (plot: PlotEntry | null, along: number) =>
-          wavesOf(plot).map(
-            (w) =>
-              Math.round(w.points[0].x + (w.points.at(-1)?.x ?? 0)) / 2 + along,
-          );
-        const here = at(withWaves(), ALONG);
-        const there = at(withWaves(ALONG + 37), ALONG + 37);
+      it("draws each stretch of sea as water seen from the side, fixed to the body, on its gravity, under one name", () => {
+        const plot = withSea();
+        const waters = watersOf(plot);
+        expect(waters.length).toBe(1);
+        const [w] = waters;
+        expect(w.view).toBe("section");
+        expect(w.origin).toEqual(SEA.siteOnBody);
+        expect(w.bearingDeg).toBe(90);
+        expect(w.gravity).toBe(9.81);
+        expect(w.tone).toBe("info");
+        // From the shore sample behind the sea to the one at the shore, down to the frame's floor and a little above the still surface for the crests.
+        expect(w.bounds.x1).toBeLessThanOrEqual(1000);
+        expect(w.bounds.y0).toBe(frameOf(plot).yDomain[0]);
+        expect(w.bounds.y1).toBeGreaterThan(0);
+        expect(w.description).toContain("sea");
         expect(
-          here.filter((p) => there.some((q) => Math.abs(p - q) < 1)).length,
-        ).toBeGreaterThan(0);
+          (plot?.layers ?? []).some(
+            (l) => l.kind === "region" && l.id.startsWith("sea"),
+          ),
+        ).toBe(false);
+      });
+
+      it("samples its waterline at the ground strip's own points, so it steps as the ground line does", () => {
+        const [w] = watersOf(withSea());
+        const sky = withSea()?.layers.find((l) => l.id === "ground");
+        if (sky?.kind !== "region") throw new Error("expected the ground");
+        const groundXs = new Set(sky.boundary.map((p) => p.x));
+        expect(w.samples?.length).toBeGreaterThan(1);
+        for (const x of w.samples ?? []) expect(groundXs.has(x)).toBe(true);
+        expect(w.samples?.[0]).toBe(w.bounds.x0);
+        expect(w.samples?.at(-1)).toBe(w.bounds.x1);
+      });
+
+      it("runs the terrain line over the land only, so no flat line lies across the moving water", () => {
+        const sky = (withSea()?.layers ?? []).filter(
+          (l) => l.kind === "series" && l.id.startsWith("skyline"),
+        );
+        expect(sky.length).toBeGreaterThan(0);
+        for (const l of sky) {
+          if (l.kind !== "series") continue;
+          // Only the shore sample beside the land may sit on the surface.
+          expect(l.points.filter((p) => p.y === 0).length).toBeLessThanOrEqual(
+            1,
+          );
+        }
+      });
+
+      it("falls back to a flat fill when the body's gravity or the site's place is not known", () => {
+        const plot = withSea(null);
+        expect(watersOf(plot)).toEqual([]);
+        expect(
+          (plot?.layers ?? []).some(
+            (l) => l.kind === "region" && l.id === "sea-1",
+          ),
+        ).toBe(true);
       });
     });
 
@@ -1299,11 +1323,12 @@ describe("touchdown reticle plot", () => {
       expect(Math.min(...t.values)).toBeGreaterThanOrEqual(0);
     });
 
-    describe("its waves", () => {
-      const ORIGIN = { east: 123_456, north: -7_890 };
-      const wavesOf = (plot: PlotEntry | null) =>
-        (plot?.layers ?? []).filter((l) => l.id.startsWith("sea-wave-"));
-      const withWaves = (
+    describe("its moving surface", () => {
+      const SEA = {
+        siteOnBody: { east: 123_456, north: -7_890 },
+        gravity: 9.81,
+      };
+      const withSea = (
         heights: ReturnType<typeof sea>,
         over: Partial<TouchdownReticleInputs> = {},
       ) =>
@@ -1313,89 +1338,52 @@ describe("touchdown reticle plot", () => {
             aglMeters: 100,
             driftMeters: 40,
             hasOcean: true,
-            siteOnBody: ORIGIN,
+            sea: SEA,
             ...over,
           }),
         );
-      /** Each wave's middle, in metres from the body's own origin. */
-      const placed = (plot: PlotEntry | null, origin = ORIGIN) =>
-        wavesOf(plot).map((l) => {
-          if (l.kind !== "series") throw new Error("expected a stroke");
-          const mid = l.points[Math.floor(l.points.length / 2)];
-          return `${Math.round(mid.x + origin.east)},${Math.round(mid.y + origin.north)}`;
-        });
+      const waterOf = (plot: PlotEntry | null) => {
+        const w = plot?.layers.find((l) => l.id === "sea");
+        return w?.kind === "water" ? w : null;
+      };
 
-      it("marks open water with thin strokes in the water's tone, inside the window, under one name", () => {
-        const plot = withWaves(sea(-140));
-        const waves = wavesOf(plot);
-        expect(waves.length).toBeGreaterThan(4);
-        const [xLo, xHi] = frameOf(plot).xDomain;
-        const [yLo, yHi] = frameOf(plot).yDomain;
-        for (const w of waves) {
-          if (w.kind !== "series") throw new Error("expected a stroke");
-          expect(w.tone).toBe("info");
-          expect(w.weight ?? 1).toBeLessThan(1);
-          expect(w.dashed).toBeFalsy();
-          for (const p of w.points) {
-            expect(p.x).toBeGreaterThan(xLo);
-            expect(p.x).toBeLessThan(xHi);
-            expect(p.y).toBeGreaterThan(yLo);
-            expect(p.y).toBeLessThan(yHi);
-          }
-        }
-        expect(waves.filter((w) => w.description).length).toBe(1);
+      it("draws a grid wholly under the sea as water seen from above, on the ground's own bounds, fixed to the body", () => {
+        const plot = withSea(sea(-140));
+        const w = waterOf(plot);
+        expect(w?.view).toBe("plan");
+        expect(w?.origin).toEqual(SEA.siteOnBody);
+        expect(w?.gravity).toBe(9.81);
+        expect(w?.sea).toBeUndefined();
+        // The relief's bounds exactly, so the water is shaded on the cells the land is.
+        const relief = plot?.layers.find((l) => l.id === "terrain");
+        if (relief?.kind !== "relief") throw new Error("expected the relief");
+        expect(w?.bounds).toEqual(relief.bounds);
       });
 
-      it("draws none over land, nor without the site's place on the body", () => {
-        expect(wavesOf(withWaves(sea(120)))).toEqual([]);
-        expect(wavesOf(withWaves(sea(-140), { siteOnBody: null }))).toEqual([]);
-        expect(wavesOf(withWaves(sea(-140), { hasOcean: undefined }))).toEqual(
-          [],
-        );
-      });
-
-      it("draws them only on the part of a coast's grid that is under the sea", () => {
-        // The western half of the grid is sea, the eastern half land.
+      it("hands a coast the ground's own heights, so the sea meets the land cell for cell", () => {
         const heights = sea(-140);
         heights.siteHeights = heights.siteHeights.map((_, i) =>
           i % size < size / 2 ? -140 : 40,
         );
-        const waves = wavesOf(withWaves(heights));
-        expect(waves.length).toBeGreaterThan(0);
-        for (const w of waves) {
-          if (w.kind !== "series") throw new Error("expected a stroke");
-          expect(w.points[Math.floor(w.points.length / 2)].x).toBeLessThan(0);
-        }
+        const w = waterOf(withSea(heights));
+        expect(w?.sea?.size).toBe(size);
+        // The heights as the mod sent them, below the surface where the sea is: the land's own relief is held at the surface.
+        expect(w?.sea?.heights).toEqual(heights.siteHeights);
+        expect(w?.bounds).toEqual({ x0: -500, y0: -500, x1: 500, y1: 500 });
       });
 
-      it("stays put on the body as the predicted site moves, so the waves slide with the sea", () => {
-        const here = placed(withWaves(sea(-140)));
-        const moved = { east: ORIGIN.east + 13, north: ORIGIN.north - 7 };
-        const there = placed(
-          withWaves(sea(-140), { siteOnBody: moved }),
-          moved,
+      it("draws no water over land, and a flat fill when the site's place or the gravity is not known", () => {
+        expect(waterOf(withSea(sea(120)))).toBeNull();
+        const flat = withSea(sea(-140), { sea: null })?.layers.find(
+          (l) => l.id === "sea",
         );
-        const shared = here.filter((p) => there.includes(p));
-        expect(shared.length).toBeGreaterThan(here.length / 2);
+        expect(flat?.kind).toBe("region");
       });
 
-      it("keeps every wave where it was as the window closes in, adding new ones between them", () => {
-        const wide = placed(withWaves(sea(-140), { aglMeters: 400 }));
-        const near = placed(withWaves(sea(-140), { aglMeters: 150 }));
-        const nearWindow = frameOf(withWaves(sea(-140), { aglMeters: 150 }));
-        const inside = wide.filter((p) => {
-          const [e, n] = p.split(",").map(Number);
-          const x = e - ORIGIN.east;
-          const y = n - ORIGIN.north;
-          return (
-            x > nearWindow.xDomain[0] + 20 &&
-            x < nearWindow.xDomain[1] - 20 &&
-            y > nearWindow.yDomain[0] + 20 &&
-            y < nearWindow.yDomain[1] - 20
-          );
-        });
-        expect(inside.length).toBeGreaterThan(0);
-        for (const p of inside) expect(near).toContain(p);
+      it("draws it over the ground and under every mark", () => {
+        const ids = (withSea(sea(-140))?.layers ?? []).map((l) => l.id);
+        expect(ids.indexOf("sea")).toBeGreaterThan(ids.indexOf("terrain"));
+        expect(ids.indexOf("sea")).toBeLessThan(ids.indexOf("site"));
       });
     });
 
