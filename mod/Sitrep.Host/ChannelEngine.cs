@@ -8316,6 +8316,7 @@ namespace Sitrep.Host
             // round trip (DispatchedAt + 2*OneWaySeconds), independent of
             // whether anything is subscribed.
             PrunePendingUplinks(tick.Ut);
+            FollowPendingPredictions(tick.Ut);
 
             foreach (var channelSource in _channelSources)
             {

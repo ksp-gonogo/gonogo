@@ -222,13 +222,14 @@ namespace Sitrep.Host.IntegrationTests
         /// the periapsis of an eccentric orbit, so it is in the same place at that
         /// instant and somewhere else at every later one.
         /// </summary>
-        public void BurnRelay(double ut)
+        /// <param name="ut">When it burns.</param>
+        /// <param name="ecc">The eccentricity the burn leaves it on.</param>
+        public void BurnRelay(double ut, double ecc = 0.3)
         {
             lock (_gate)
             {
                 var meanMotion = Math.Sqrt(KerbinMu / (RelayRadius * RelayRadius * RelayRadius));
                 var angle = _relayStartAngle + (meanMotion * ut);
-                const double ecc = 0.3;
                 _relayOrbit = new OrbitElements(RelayRadius / (1.0 - ecc), ecc, 0.0, 0.0, angle, 0.0, ut, KerbinMu);
             }
         }

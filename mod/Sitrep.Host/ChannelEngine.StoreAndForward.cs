@@ -407,6 +407,10 @@ namespace Sitrep.Host
             }
 
             var prediction = Predict(lane, now, message.DeleteAtUt);
+            if (SenderPlans.Reckons && lane.Vantage != lane.Craft)
+            {
+                _predictedJourneys[requestId] = new PredictedJourney(lane, now, prediction.Route ?? new PlannedHop[0], message.DeleteAtUt);
+            }
             // No arrival predicted is no figure at all, never a figure of zero.
             var oneWay = prediction.ArrivalUt != null ? Math.Max(0.0, prediction.ArrivalUt.Value - now) : (double?)null;
             _pending.Add(new PendingUplink
@@ -624,8 +628,9 @@ namespace Sitrep.Host
 
         private readonly struct DeliveryPrediction
         {
-            public DeliveryPrediction(double? arrivalUt, double? replyUt, string? heldAt, double? heldUntilUt, double? cancelDeadlineUt)
+            public DeliveryPrediction(double? arrivalUt, double? replyUt, string? heldAt, double? heldUntilUt, double? cancelDeadlineUt, IReadOnlyList<PlannedHop>? route = null)
             {
+                Route = route;
                 ArrivalUt = arrivalUt;
                 ReplyUt = replyUt;
                 HeldAt = heldAt;
@@ -642,6 +647,9 @@ namespace Sitrep.Host
             public double? HeldUntilUt { get; }
 
             public double? CancelDeadlineUt { get; }
+
+            /// <summary>The planned hops from the sender the prediction was read from, or null where it was not read from a plan.</summary>
+            public IReadOnlyList<PlannedHop>? Route { get; }
         }
 
         /// <summary>
@@ -680,20 +688,38 @@ namespace Sitrep.Host
                 }
                 routes = new PlanRoutes(null);
             }
-            var route = routes?.Route(lane.Vantage, lane.Craft, now, deleteAt, turnsOnTheWay: true);
-            if (routes == null || route == null || route.Count == 0)
+            if (routes == null)
             {
                 return new DeliveryPrediction(null, null, lane.Vantage, null, deleteAt);
+            }
+            var prediction = ForecastFrom(lane, lane.Vantage, now, now, deleteAt, routes);
+            return prediction.Route == null ? new DeliveryPrediction(null, null, lane.Vantage, null, deleteAt) : prediction;
+        }
+
+        /// <summary>
+        /// What the sending centre's plan predicts for a command it believes
+        /// stands at <paramref name="start"/>, ready to leave at
+        /// <paramref name="readyUt"/>: where it next waits and until when, its
+        /// arrival and reply, and its cancel deadline. With no route on, it waits
+        /// where it is with no arrival to quote, and the route is null.
+        /// </summary>
+        private static DeliveryPrediction ForecastFrom(LaneKey lane, string start, double readyUt, double now, double deleteAt, IDeliveryRoutes routes)
+        {
+            var route = routes.Route(start, lane.Craft, readyUt, deleteAt, turnsOnTheWay: true);
+            if (route == null || route.Count == 0)
+            {
+                var cancel = start == lane.Vantage ? deleteAt : LatestSendToReach(lane.Vantage, start, now, deleteAt, routes);
+                return new DeliveryPrediction(null, null, start, null, cancel);
             }
             var arrivalUt = route[route.Count - 1].ArriveUt;
             string? heldAt = null;
             double? heldUntil = null;
-            var at = now;
+            var at = readyUt;
             for (var i = 0; i < route.Count; i++)
             {
                 if (route[i].DepartUt > at + 1e-6)
                 {
-                    heldAt = i == 0 ? lane.Vantage : route[i - 1].To;
+                    heldAt = i == 0 ? start : route[i - 1].To;
                     heldUntil = route[i].DepartUt;
                     break;
                 }
@@ -701,7 +727,134 @@ namespace Sitrep.Host
             }
             var replyRoute = routes.Route(lane.Craft, lane.Vantage, arrivalUt, double.PositiveInfinity);
             var reply = replyRoute != null && replyRoute.Count > 0 ? replyRoute[replyRoute.Count - 1].ArriveUt : (double?)null;
-            return new DeliveryPrediction(arrivalUt, reply, heldAt, heldUntil, CancelDeadline(lane, now, route, routes));
+            return new DeliveryPrediction(arrivalUt, reply, heldAt, heldUntil, CancelDeadline(lane, start, readyUt, now, route, routes), route);
+        }
+
+        /// <summary>The planned hops a held command's pending prediction was last read from, by its pending id. Courier-thread-only.</summary>
+        private readonly Dictionary<string, PredictedJourney> _predictedJourneys = new Dictionary<string, PredictedJourney>(StringComparer.Ordinal);
+
+        private sealed class PredictedJourney
+        {
+            public PredictedJourney(LaneKey lane, double sentUt, IReadOnlyList<PlannedHop> hops, double deleteAt)
+            {
+                Lane = lane;
+                SentUt = sentUt;
+                Hops = hops;
+                DeleteAt = deleteAt;
+            }
+
+            public LaneKey Lane { get; }
+
+            public double SentUt { get; }
+
+            /// <summary>From the sender, as the centre believes the command has gone and will go.</summary>
+            public IReadOnlyList<PlannedHop> Hops { get; }
+
+            public double DeleteAt { get; }
+        }
+
+        /// <summary>
+        /// Keeps each held command's pending prediction on what its centre's plan
+        /// says now. Where the command stands is read off the hops it was last
+        /// predicted to take, and the rest of its way is planned again from
+        /// there: when that differs, because a relay stopped turning its dish or
+        /// the plan learned of a move, the hold, arrival, reply and cancel
+        /// deadline follow. Every tick, since a wait can be shorter than a
+        /// second, and planned in full only when the way on has changed.
+        /// </summary>
+        private void FollowPendingPredictions(double now)
+        {
+            if (_predictedJourneys.Count == 0 || !SenderPlans.Reckons)
+            {
+                return;
+            }
+            var live = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in _pending)
+            {
+                live.Add(entry.Id);
+                if (!_predictedJourneys.TryGetValue(entry.Id, out var journey) || journey.Lane.Epoch != _courier.CurrentEpoch)
+                {
+                    continue;
+                }
+                var routes = SenderPlans.PlanOf(journey.Lane.Vantage);
+                var (start, readyUt, taken) = Standing(journey, now);
+                if (routes == null || start == journey.Lane.Craft)
+                {
+                    continue;
+                }
+                if (SameWay(routes.Route(start, journey.Lane.Craft, readyUt, journey.DeleteAt, turnsOnTheWay: true), journey.Hops, taken, now))
+                {
+                    continue;
+                }
+                var next = ForecastFrom(journey.Lane, start, readyUt, now, journey.DeleteAt, routes);
+                entry.PredictedHeldAt = next.HeldAt;
+                entry.PredictedHeldUntilUt = next.HeldUntilUt;
+                entry.PredictedArrivalUt = next.ArrivalUt;
+                entry.PredictedReplyUt = next.ReplyUt;
+                entry.CancelDeadlineUt = next.CancelDeadlineUt;
+                var hops = journey.Hops.Take(taken).ToList();
+                if (next.Route != null)
+                {
+                    hops.AddRange(next.Route);
+                }
+                _predictedJourneys[entry.Id] = new PredictedJourney(journey.Lane, journey.SentUt, hops, journey.DeleteAt);
+            }
+            foreach (var id in _predictedJourneys.Keys.Where(id => !live.Contains(id)).ToList())
+            {
+                _predictedJourneys.Remove(id);
+            }
+        }
+
+        /// <summary>
+        /// The last node a command is believed to have reached on the hops it was
+        /// predicted to take, when it got there, and how many hops lie behind it.
+        /// A departure is not counted as made, because the plan can learn after
+        /// the predicted moment that the way it was to leave by was shut. Ready is
+        /// when it reached the node, never now: a wait that began on arrival, such
+        /// as a dish turning, is not begun again by planning it again.
+        /// </summary>
+        private static (string Start, double ReadyUt, int Taken) Standing(PredictedJourney journey, double now)
+        {
+            var hops = journey.Hops;
+            var taken = 0;
+            while (taken < hops.Count && hops[taken].ArriveUt <= now)
+            {
+                taken++;
+            }
+            return taken == 0
+                ? (journey.Lane.Vantage, journey.SentUt, 0)
+                : (hops[taken - 1].To, hops[taken - 1].ArriveUt, taken);
+        }
+
+        /// <summary>
+        /// Whether a route planned again is the one already predicted for the hops
+        /// after the first <paramref name="taken"/>: the same nodes, and the same
+        /// times for every hop not yet due to leave. A hop already under way is
+        /// not moved by a plan made since, which starts later than it left.
+        /// </summary>
+        private static bool SameWay(IReadOnlyList<PlannedHop>? again, IReadOnlyList<PlannedHop> before, int taken, double now)
+        {
+            if (again == null)
+            {
+                return before.Count == taken;
+            }
+            if (again.Count != before.Count - taken)
+            {
+                return false;
+            }
+            for (var i = 0; i < again.Count; i++)
+            {
+                var was = before[taken + i];
+                if (again[i].To != was.To)
+                {
+                    return false;
+                }
+                if (was.DepartUt > now && (Math.Abs(again[i].DepartUt - was.DepartUt) > 1e-6 || Math.Abs(again[i].ArriveUt - was.ArriveUt) > 1e-6))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>
@@ -709,7 +862,7 @@ namespace Sitrep.Host
         /// before the command leaves it: the sender while it is held there, each
         /// predicted hold, and the craft before the command can run.
         /// </summary>
-        private static double? CancelDeadline(LaneKey lane, double now, IReadOnlyList<PlannedHop> route, IDeliveryRoutes routes)
+        private static double? CancelDeadline(LaneKey lane, string start, double readyUt, double now, IReadOnlyList<PlannedHop> route, IDeliveryRoutes routes)
         {
             double? best = null;
             void Consider(double? candidate)
@@ -719,13 +872,13 @@ namespace Sitrep.Host
                     best = best == null ? candidate : Math.Max(best.Value, candidate.Value);
                 }
             }
-            var at = now;
+            var at = readyUt;
             for (var i = 0; i < route.Count; i++)
             {
-                var holdNode = i == 0 ? lane.Vantage : route[i - 1].To;
+                var holdNode = i == 0 ? start : route[i - 1].To;
                 if (route[i].DepartUt > at + 1e-6)
                 {
-                    if (i == 0)
+                    if (holdNode == lane.Vantage)
                     {
                         Consider(route[i].DepartUt);
                     }
