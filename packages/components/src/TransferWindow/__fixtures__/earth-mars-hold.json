@@ -17,7 +17,7 @@
           "hourSeconds": 3600,
           "daySeconds": 86400,
           "yearSeconds": 31536000,
-          "epoch": null,
+          "epoch": "1951-01-01T00:00:00Z",
           "kerbinTime": false
         }
       },

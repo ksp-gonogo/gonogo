@@ -55,7 +55,7 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     expect(screen.getAllByText("warm").length).toBe(2);
     // A temperature is a Quantity with separate number and symbol elements, so assert on the container text; skinMaxTemp 2400 K is 2127 °C.
     expect(visibleText()).toContain("2127 °C");
-    expect(visibleText()).toContain("1280 °C");
+    expect(visibleText()).toContain("1671 °C");
     // The shared `power` ladder sets one decimal per kind; the rung is MW.
     expect(visibleText()).toContain("3.3 MW");
     expect(visibleText()).toContain("76.9 °C");

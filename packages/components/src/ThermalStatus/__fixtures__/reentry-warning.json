@@ -12,7 +12,7 @@
   "therm.hottestEngineMaxTemp": 2273,
   "therm.hottestEngineTempRatio": 0.15,
   "therm.anyEnginesOverheating": false,
-  "therm.heatShieldTemp": 1553.15,
+  "therm.heatShieldTemp": 1944.0,
   "therm.heatShieldFlux": 3250.4,
   "_stream": {
     "emits": [
@@ -28,7 +28,7 @@
             "skinMaxTemp": 2400,
             "name": "Heat Shield (2.5m)"
           },
-          "heatShieldTemp": 1553.15,
+          "heatShieldTemp": 1944.0,
           "heatShieldFlux": 3250.4,
           "hottestEngineTemp": 350.0,
           "hottestEngineMaxTemp": 2273,
