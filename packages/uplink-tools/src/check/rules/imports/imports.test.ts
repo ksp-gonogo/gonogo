@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PACKAGE_JSON, uplinkOn } from "../fixture";
-import { importFault, importsRule } from "./index";
+import { importFault, importsRule, UPLINK_TOOLS_SUBPATHS } from "./index";
 
 const ctx = (clientDir: string) => ({
   clientDir,
@@ -66,6 +68,42 @@ export { x };
     const [finding] = check({ "widget.tsx": source });
     expect(finding.rule).toBe("imports/not-in-import-map");
     expect(check({ "widget.test.tsx": source })).toEqual([]);
+  });
+
+  it("allows the published uplink-tools entry points in test code, not in bundle code", () => {
+    const source = `import { expectUplinkPageCurrent } from "@ksp-gonogo/uplink-tools/page-check";\n`;
+    expect(check({ "uplink-page.test.ts": source })).toEqual([]);
+    expect(check({ "widget.tsx": source })[0]?.rule).toBe(
+      "imports/not-in-import-map",
+    );
+    expect(
+      check({
+        "t.test.ts": `import { a } from "@ksp-gonogo/uplink-tools/internal";`,
+      })[0]?.rule,
+    ).toBe("imports/uplink-tools-subpath");
+  });
+
+  it("names every entry point the uplink-tools export map publishes", () => {
+    const exported = Object.keys(
+      JSON.parse(
+        readFileSync(
+          join(import.meta.dirname, "../../../../package.json"),
+          "utf8",
+        ),
+      ).exports,
+    )
+      .filter((key) => key !== "." && key !== "./package.json")
+      .map((key) => key.slice(2))
+      .sort();
+    expect([...UPLINK_TOOLS_SUBPATHS].sort()).toEqual(exported);
+  });
+
+  it("treats test setup under a test directory as test code", () => {
+    const source = `import { stub } from "@ksp-gonogo/sitrep-sdk/testing";\n`;
+    expect(check({ "test/setup.ts": source })).toEqual([]);
+    expect(check({ "setup.ts": source })[0]?.rule).toBe(
+      "imports/not-in-import-map",
+    );
   });
 
   it("holds a test file to the published packages all the same", () => {

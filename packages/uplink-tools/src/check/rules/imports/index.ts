@@ -9,13 +9,23 @@ import type { CheckContext, FixableFinding, Rule } from "../../types";
 const SCOPE = "@ksp-gonogo/";
 
 /** The only packages of this ecosystem an Uplink can install. */
-const PUBLISHED = ["sitrep-sdk", "ui-kit"];
+const PUBLISHED = ["sitrep-sdk", "ui-kit", "uplink-tools"];
+
+/** The entry points `@ksp-gonogo/uplink-tools` publishes, which its export map is held to. */
+export const UPLINK_TOOLS_SUBPATHS = [
+  "render-probe",
+  "page-check",
+  "widget-facts",
+  "widgets",
+  "widgets.json",
+];
 
 /** The sdk subpaths an author may import; `/spine` and `/registry` resolve at runtime for first-party code only. */
 const SDK_AUTHOR_SUBPATHS = ["frames", "media", "testing"];
 
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
+const TEST_DIR = /[\\/](?:test|tests|__tests__)[\\/]/;
 const SKIPPED_DIRS = new Set(["node_modules", "dist"]);
 
 function loadTypeScriptSync(clientDir: string): TypeScript {
@@ -67,6 +77,22 @@ export function importFault(
       fix: "Import it from @ksp-gonogo/sitrep-sdk or @ksp-gonogo/ui-kit. If what you need is missing there, ask for it to be moved into one.",
     };
   }
+  if (pkg === "uplink-tools") {
+    if (subpath && !UPLINK_TOOLS_SUBPATHS.includes(subpath)) {
+      return {
+        rule: "imports/uplink-tools-subpath",
+        message: `${specifier} is not an entry point of @ksp-gonogo/uplink-tools. The published ones are ${UPLINK_TOOLS_SUBPATHS.map((s) => `/${s}`).join(", ")}.`,
+        fix: "Import one of the published entry points.",
+      };
+    }
+    return isTest
+      ? undefined
+      : {
+          rule: "imports/not-in-import-map",
+          message: `${specifier} is a build and test tool, which the app does not resolve for a loaded client. Only test code may import it.`,
+          fix: "Move the import into a test file.",
+        };
+  }
   if (
     pkg === "sitrep-sdk" &&
     subpath &&
@@ -81,8 +107,8 @@ export function importFault(
   if (!isTest && !UPLINK_BUNDLE_EXTERNALS.includes(specifier)) {
     return {
       rule: "imports/not-in-import-map",
-      message: `${specifier} is not one of the specifiers the app resolves for a loaded client, so the bundle would carry or lose it and fail at import time. Only a test file may import it.`,
-      fix: "Move the import into a test file, or import the same thing from a specifier the app resolves.",
+      message: `${specifier} is not one of the specifiers the app resolves for a loaded client, so the bundle would carry or lose it and fail at import time. Only test code may import it.`,
+      fix: "Move the import into test code, or import the same thing from a specifier the app resolves.",
     };
   }
   return undefined;
@@ -97,7 +123,7 @@ export const importsRule: Rule = {
     for (const file of sourceFiles(join(clientDir, "src"))) {
       const source = readFileSync(file, "utf8");
       if (!source.includes(SCOPE)) continue;
-      const isTest = TEST_FILE.test(file);
+      const isTest = TEST_FILE.test(file) || TEST_DIR.test(file);
       for (const imported of ts.preProcessFile(source, true, true)
         .importedFiles) {
         const fault = importFault(imported.fileName, isTest);

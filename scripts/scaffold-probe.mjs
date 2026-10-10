@@ -16,6 +16,7 @@
  *   npm run page, then npm test
  *   dotnet test mod-tests
  *   npm run release         bundle, bake, compile, verify, zip
+ *   uplink-tools check      after the release, on the scaffold as written
  *
  * It does that for both shapes `new` writes: an Uplink with Topics of its own,
  * every question answered by a flag, and one with none, scaffolded with `--yes`.
@@ -45,6 +46,7 @@
  *   - `docs` run where no browser is installed, which is how it is known that
  *     no earlier command needed one
  *   - a client import of `@ksp-gonogo/core`, which no author can install
+ *   - the same import, which `check` must name as a private package
  *   - a contract property added after codegen, which `codegen --check` must see
  *   - the package's codegen folder removed, which `codegen` must refuse
  *   - a project that references the game with no KSP_ROOT, which must say so
@@ -494,6 +496,33 @@ if (!published) {
   must("npm run page", "npm", ["run", "page"], { cwd: client });
 }
 
+/**
+ * A scaffold has to pass the check its own docs send an author to. The check is
+ * shown to see first: a widget importing a private package must be refused by
+ * `imports/private-package`.
+ */
+function passesOwnCheck(clientDir, widgetFile) {
+  must("uplink-tools check", "npx", ["uplink-tools", "check"], {
+    cwd: clientDir,
+  });
+  const original = readFileSync(widgetFile, "utf8");
+  writeFileSync(
+    widgetFile,
+    `import { getComponents } from "@ksp-gonogo/core";\nvoid getComponents;\n${original}`,
+  );
+  try {
+    mustFail(
+      "a client import of @ksp-gonogo/core, seen by check",
+      /imports\/private-package/,
+      "npx",
+      ["uplink-tools", "check"],
+      { cwd: clientDir },
+    );
+  } finally {
+    writeFileSync(widgetFile, original);
+  }
+}
+
 // ── The author's own checks ─────────────────────────────────────────────────
 
 console.log("scaffold-probe: the scaffold's own checks");
@@ -665,6 +694,7 @@ must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 
 console.log("scaffold-probe: npm run release");
 npmRun("release");
+passesOwnCheck(client, join(client, "src/Heartbeat/index.tsx"));
 const bundle = join(client, "dist", ID, `${ID}.client.js`);
 const sidecar = join(client, "dist", ID, "gonogo-uplink.json");
 const plugin = join(uplink, "mod/bin/Release", `${NS}.dll`);
@@ -874,6 +904,7 @@ if (!published) {
   for (const script of ["page", "test", "release"]) {
     must(`npm run ${script}`, "npm", ["run", script], { cwd: coreClient });
   }
+  passesOwnCheck(coreClient, join(coreClient, "src/Vessel/index.tsx"));
   must("dotnet test mod-tests", "dotnet", [
     "test",
     join(core, "mod-tests", `${coreNs}.Tests.csproj`),
