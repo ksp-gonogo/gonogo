@@ -20,6 +20,17 @@
  * above every version already published of every package on its registry, and
  * its `v*` tag does not exist yet: a version is spent once, everywhere.
  *
+ * ## A withdrawn version
+ *
+ * A version taken back from a registry no longer counts as published, so it
+ * cannot block a lower one. The registries say so differently, and the planner
+ * reads each at the place that tells the truth: npm drops an unpublished
+ * version from the packument and marks a deprecated one; nuget.org keeps an
+ * unlisted version in its flat container for ever, so the registration's
+ * `listed` flag is read instead. `withdrawn-versions.json` repeats the same
+ * answer in the repository, one reason per version, so the rule does not rest on
+ * a registry quirk. A withdrawn number is never reused: planning it is refused.
+ *
  * ## A release candidate
  *
  * `<release>-rc.<n>` for every package at once, `n` the workflow run number. It
@@ -159,6 +170,7 @@ export function plan({
   npmVersions,
   nugetVersions,
   tags,
+  withdrawn = withdrawnVersions(),
 }) {
   if (!RELEASE_VERSION.test(release ?? "")) {
     throw new Error(`${release} is not a release version (X.Y.Z)`);
@@ -173,10 +185,19 @@ export function plan({
       `the tag ${tag} already exists, so ${release} is spent: pick a version above it, or delete that tag and its GitHub release first`,
     );
   }
+  const spent = withdrawn.find((entry) => entry.version === version);
+  if (spent) {
+    throw new Error(
+      `${version} was withdrawn (${spent.reason}), and a withdrawn number is never reused: pick another`,
+    );
+  }
+  const live = (versions) =>
+    versions.filter((v) => !withdrawn.some((entry) => entry.version === v));
+  nugetVersions = live(nugetVersions);
   const packages = {};
   const registries = [];
   for (const pkg of publishedPackages(root)) {
-    const published = npmVersions(pkg.name);
+    const published = live(npmVersions(pkg.name));
     packages[pkg.name] = { dir: pkg.dir, firstVersion: published.length === 0 };
     registries.push({ name: pkg.name, published });
   }
@@ -348,30 +369,73 @@ export function stampTarball(tarball, version, outDir, root = REPO_ROOT) {
   }
 }
 
-function npmVersions(name) {
-  try {
-    const out = execFileSync("npm", ["view", name, "versions", "--json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const parsed = JSON.parse(out);
-    return Array.isArray(parsed) ? parsed : [parsed];
-  } catch (error) {
-    // Only a 404 means "never published": reading an outage as absence would plan a first publish.
-    if (/E404/.test(String(error.stderr ?? error.stdout ?? ""))) return [];
-    throw new Error(`could not read ${name}'s versions from npm: ${error}`);
+export const WITHDRAWN_VERSIONS_FILE = "scripts/withdrawn-versions.json";
+
+/** The committed list of versions taken back from the registries, each with its reason. */
+export function withdrawnVersions(root = REPO_ROOT) {
+  const entries = JSON.parse(
+    readFileSync(join(root, WITHDRAWN_VERSIONS_FILE), "utf8"),
+  );
+  for (const entry of entries) {
+    if (!entry.version || !entry.reason) {
+      throw new Error(
+        `${WITHDRAWN_VERSIONS_FILE}: every entry needs a version and a reason, got ${JSON.stringify(entry)}`,
+      );
+    }
   }
+  return entries;
+}
+
+/** Versions still installable from the registry: unpublished ones are absent, deprecated ones are withdrawn. */
+export function liveNpmVersions(packument) {
+  return Object.entries(packument.versions ?? {})
+    .filter(([, manifest]) => !manifest.deprecated)
+    .map(([version]) => version);
+}
+
+/** Versions nuget.org lists: an unlisted one stays in the flat container, so only the registration says. */
+export function listedNugetVersions(leaves) {
+  return leaves
+    .filter((leaf) => leaf.catalogEntry.listed !== false)
+    .map((leaf) => leaf.catalogEntry.version);
+}
+
+async function npmVersionsFromRegistry(name) {
+  const response = await fetch(
+    `https://registry.npmjs.org/${name.replace("/", "%2F")}`,
+    { headers: { accept: "application/vnd.npm.install-v1+json" } },
+  );
+  // Only a 404 means "never published": reading an outage as absence would plan a first publish.
+  if (response.status === 404) return [];
+  if (!response.ok) {
+    throw new Error(`npm answered ${response.status} for ${name}`);
+  }
+  return liveNpmVersions(await response.json());
 }
 
 async function nugetVersions(id) {
-  const response = await fetch(
-    `https://api.nuget.org/v3-flatcontainer/${id.toLowerCase()}/index.json`,
-  );
-  if (response.status === 404) return [];
-  if (!response.ok) {
-    throw new Error(`nuget.org answered ${response.status} for ${id}`);
+  const base = `https://api.nuget.org/v3/registration5-gz-semver2/${id.toLowerCase()}`;
+  const first = await fetch(`${base}/index.json`);
+  if (first.status === 404) return [];
+  if (!first.ok) {
+    throw new Error(`nuget.org answered ${first.status} for ${id}`);
   }
-  return (await response.json()).versions;
+  const leaves = [];
+  for (const page of (await first.json()).items) {
+    // A large history is paged: the index lists a page by URL and inlines only some.
+    let items = page.items;
+    if (!items) {
+      const response = await fetch(page["@id"]);
+      if (!response.ok) {
+        throw new Error(
+          `nuget.org answered ${response.status} for ${page["@id"]}`,
+        );
+      }
+      items = (await response.json()).items;
+    }
+    leaves.push(...items);
+  }
+  return listedNugetVersions(leaves);
 }
 
 /** A whole history's log runs to tens of megabytes when no release tag is reachable. */
@@ -417,7 +481,7 @@ export async function main(
   argv,
   {
     root = REPO_ROOT,
-    npm = npmVersions,
+    npm = npmVersionsFromRegistry,
     nuget = nugetVersions,
     tags = () => releaseTags(root),
     log = () => logSinceRelease(root),
@@ -435,11 +499,15 @@ export async function main(
         explicit ||
         nextRelease(current, bump === "auto" ? bumpFromLog(log()) : bump);
       const runFlag = flag(rest, "--rc");
+      const npmByName = {};
+      for (const pkg of publishedPackages(root)) {
+        npmByName[pkg.name] = await npm(pkg.name);
+      }
       const result = plan({
         root,
         release,
         run: runFlag === undefined ? undefined : Number(runFlag),
-        npmVersions: npm,
+        npmVersions: (name) => npmByName[name],
         nugetVersions: await nuget(NUGET_ID),
         tags: tags(),
       });

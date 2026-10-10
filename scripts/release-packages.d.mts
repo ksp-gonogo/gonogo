@@ -30,7 +30,20 @@ export function plan(input: {
   npmVersions: (name: string) => string[];
   nugetVersions: string[];
   tags: string[];
+  withdrawn?: Withdrawn[];
 }): ReleasePlan;
+export interface Withdrawn {
+  version: string;
+  reason: string;
+}
+export const WITHDRAWN_VERSIONS_FILE: string;
+export function withdrawnVersions(root?: string): Withdrawn[];
+export function liveNpmVersions(packument: {
+  versions?: Record<string, { deprecated?: string }>;
+}): string[];
+export function listedNugetVersions(
+  leaves: { catalogEntry: { version: string; listed?: boolean } }[],
+): string[];
 export function importedScopePackages(source: string): Set<string>;
 export function stampManifest(
   manifest: Manifest,
@@ -60,7 +73,7 @@ export function main(
   argv: string[],
   options?: {
     root?: string;
-    npm?: (name: string) => string[];
+    npm?: (name: string) => string[] | Promise<string[]>;
     nuget?: (id: string) => Promise<string[]>;
     tags?: () => string[];
     log?: () => string;

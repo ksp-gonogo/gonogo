@@ -1,0 +1,6 @@
+[
+  {
+    "version": "2.0.0-rc.23",
+    "reason": "published as a 2.0 candidate when the first release is 1.0.0 (decision 162); unpublished from npm and unlisted on nuget.org"
+  }
+]

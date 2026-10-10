@@ -15,10 +15,13 @@ import {
   bumpFromLog,
   compareVersions,
   importedScopePackages,
+  listedNugetVersions,
+  liveNpmVersions,
   main,
   nextRelease,
   plan,
   stampManifest,
+  withdrawnVersions,
 } from "../../../scripts/release-packages.mjs";
 
 /**
@@ -253,6 +256,63 @@ describe("plan", () => {
     );
   });
 
+  describe("a withdrawn version", () => {
+    const withdrawn = [{ version: "2.0.0-rc.23", reason: "wrong line" }];
+    const published = () => {
+      npm[SDK] = ["0.0.1", "2.0.0-rc.23"];
+      npm[KIT] = ["0.1.0", "2.0.0-rc.23"];
+      nuget = ["2.0.0-rc.23"];
+      tags = [];
+    };
+
+    it("does not block a lower version on any registry", () => {
+      published();
+      const out = plan({
+        root,
+        release: "1.0.0",
+        run: 24,
+        ...registries(),
+        withdrawn,
+      });
+      expect(out.version).toBe("1.0.0-rc.24");
+      expect(
+        plan({ root, release: "1.0.0", ...registries(), withdrawn }).version,
+      ).toBe("1.0.0");
+    });
+
+    it("blocks it when it is not withdrawn, so the case above proves the list", () => {
+      published();
+      expect(() =>
+        plan({
+          root,
+          release: "1.0.0",
+          run: 24,
+          ...registries(),
+          withdrawn: [],
+        }),
+      ).toThrow(/has 2\.0\.0-rc\.23 published/);
+    });
+
+    it("is never planned again", () => {
+      tags = [];
+      expect(() =>
+        plan({ root, release: "2.0.0", run: 23, ...registries(), withdrawn }),
+      ).toThrow(/2\.0\.0-rc\.23 was withdrawn \(wrong line\).*never reused/);
+    });
+
+    it("leaves a package with nothing else published a first version", () => {
+      npm[SDK] = ["2.0.0-rc.23"];
+      tags = [];
+      const out = plan({
+        root,
+        release: "1.0.0",
+        ...registries(),
+        withdrawn,
+      });
+      expect(out.packages[SDK].firstVersion).toBe(true);
+    });
+  });
+
   it("refuses a release whose tag is already spent, RC or not", () => {
     expect(() => plan({ root, release: "1.0.0", ...registries() })).toThrow(
       /the tag v1\.0\.0 already exists/,
@@ -386,5 +446,60 @@ describe("main", () => {
     await expect(run(["check", tarball, "0.2.0-rc.12"])).rejects.toThrow(
       /version is 0\.1\.0, the release is 0\.2\.0-rc\.12/,
     );
+  });
+});
+
+describe("what the registries say is still published", () => {
+  it("drops an npm version that is deprecated and keeps the rest", () => {
+    expect(
+      liveNpmVersions({
+        versions: {
+          "1.0.0": {},
+          "2.0.0-rc.23": { deprecated: "wrong line" },
+        },
+      }),
+    ).toEqual(["1.0.0"]);
+    expect(liveNpmVersions({})).toEqual([]);
+  });
+
+  it("drops a nuget version whose registration says it is unlisted", () => {
+    const leaf = (version: string, listed?: boolean) => ({
+      catalogEntry: { version, ...(listed === undefined ? {} : { listed }) },
+    });
+    expect(
+      listedNugetVersions([
+        leaf("1.0.0-rc.21", true),
+        leaf("1.0.0-rc.22"),
+        leaf("2.0.0-rc.23", false),
+      ]),
+    ).toEqual(["1.0.0-rc.21", "1.0.0-rc.22"]);
+  });
+});
+
+describe("the committed list of withdrawn versions", () => {
+  it("names 2.0.0-rc.23, each entry with a reason and no version twice", () => {
+    const list = withdrawnVersions();
+    expect(list.map((e: { version: string }) => e.version)).toContain(
+      "2.0.0-rc.23",
+    );
+    for (const entry of list) expect(entry.reason.length).toBeGreaterThan(10);
+    const versions = list.map((e: { version: string }) => e.version);
+    expect(new Set(versions).size).toBe(versions.length);
+  });
+
+  it("refuses an entry without a reason", () => {
+    const root = mkdtempSync(join(tmpdir(), "withdrawn-"));
+    try {
+      mkdirSync(join(root, "scripts"));
+      writeFileSync(
+        join(root, "scripts/withdrawn-versions.json"),
+        JSON.stringify([{ version: "9.9.9" }]),
+      );
+      expect(() => withdrawnVersions(root)).toThrow(
+        /needs a version and a reason/,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
