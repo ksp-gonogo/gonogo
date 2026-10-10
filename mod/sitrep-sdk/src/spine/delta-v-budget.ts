@@ -53,20 +53,35 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * @category Orbits and trajectories
  */
 export interface DeltaVStage {
+  /** The stage number this row describes. */
   stage: number;
+  /** Stage dry mass, in tonnes. */
   dryMass: number;
+  /** Stage fuel mass, in tonnes. */
   fuelMass: number;
+  /** Stage mass at ignition, in tonnes. */
   startMass: number;
+  /** Stage mass at burnout, in tonnes. */
   endMass: number;
+  /** Full-throttle burn time of the stage, in seconds. */
   burnTime: number;
+  /** Stage delta-v in vacuum, in metres per second. */
   deltaVVac: number;
+  /** Stage delta-v at sea level, in metres per second. */
   deltaVASL: number;
+  /** Stage delta-v in the craft's current situation, in metres per second. */
   deltaVActual: number;
+  /** Thrust-to-weight ratio in vacuum. */
   TWRVac: number;
+  /** Thrust-to-weight ratio at sea level. */
   TWRASL: number;
+  /** Thrust-to-weight ratio in the craft's current situation. */
   TWRActual: number;
+  /** Stage thrust in vacuum, in kilonewtons. */
   thrustVac: number;
+  /** Stage thrust at sea level, in kilonewtons. */
   thrustASL: number;
+  /** Stage thrust in the craft's current situation, in kilonewtons. */
   thrustActual: number;
 }
 
@@ -107,7 +122,9 @@ export interface DeltaVBudget {
    * know" gets said out loud instead of being spelled `0`.
    */
   totalVac: Value<"m/s"> | null;
+  /** Vessel-total delta-v at sea level, with the same `null` rule as `totalVac`. */
   totalAsl: Value<"m/s"> | null;
+  /** Vessel-total delta-v in the current situation, with the same `null` rule as `totalVac`. */
   totalActual: Value<"m/s"> | null;
   /** Total burn time across the budget, or `null` when the wire carries none. */
   totalBurnTime: Value<"s"> | null;

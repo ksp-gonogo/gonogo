@@ -36,14 +36,23 @@ import {
  * @category Reckoners
  */
 export interface ConicOrbitInput {
+  /** Index into `system.bodies` of the body the orbit is around. */
   referenceBodyIndex: number;
+  /** Semi-major axis. */
   sma: Quantityish;
+  /** Eccentricity. */
   ecc: Quantityish;
+  /** Inclination. */
   inc: Quantityish;
+  /** Longitude of the ascending node. Absent or `null` for an orbit with no defined node. */
   lan?: Quantityish | null;
+  /** Argument of periapsis. Absent or `null` for an orbit with no defined periapsis. */
   argPe?: Quantityish | null;
+  /** Mean anomaly at `epoch`. */
   meanAnomalyAtEpoch: Quantityish;
+  /** The instant the elements are given for. */
   epoch: Quantityish;
+  /** The body's gravitational parameter. */
   mu: Quantityish;
   /** A `LockedValue` while the save cannot compute one; read as no encounter. */
   encounter?: { transitionUt: Quantityish } | LockedValue | null;
@@ -135,13 +144,21 @@ export function loadedCoastEvidence(
  * @category Reckoners
  */
 export interface WireOrbitElements {
+  /** Semi-major axis. */
   sma: Quantityish;
+  /** Eccentricity. */
   ecc: Quantityish;
+  /** Inclination. */
   inc: Quantityish;
+  /** Longitude of the ascending node. Absent or `null` for an orbit with no defined node. */
   lan?: Quantityish | null;
+  /** Argument of periapsis. Absent or `null` for an orbit with no defined periapsis. */
   argPe?: Quantityish | null;
+  /** Mean anomaly at `epoch`. */
   meanAnomalyAtEpoch: Quantityish;
+  /** The instant the elements are given for. */
   epoch: Quantityish;
+  /** The body's gravitational parameter. */
   mu: Quantityish;
 }
 

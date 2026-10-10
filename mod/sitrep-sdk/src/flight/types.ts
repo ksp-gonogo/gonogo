@@ -279,13 +279,19 @@ export interface ReadingSeriesRange<Payload = unknown> {
  * @category Flight recording
  */
 export interface FlightRecord {
+  /** This flight's identifier. */
   id: string;
+  /** The vessel's name when the recording began. */
   vesselName: string;
+  /** The game's identifier for the vessel, when it has one. */
   vesselUid?: string | null;
+  /** Wall-clock ms when the recording began. */
   launchedAt: number;
+  /** Wall-clock ms of the latest sample. */
   lastSampleAt: number;
   /** Last observed mission time for revert detection. Seconds. */
   lastMissionTime: number;
+  /** How many samples have been recorded. */
   sampleCount: number;
   /**
    * User-authored chapters / markers. Window bounds are **elapsed
@@ -326,14 +332,20 @@ export interface FlightRecord {
  * @category Flight recording
  */
 export interface FlightRecoveryOutcome {
+  /** Marks this outcome as a recovery. */
   kind: "recovered";
   /** Wall-clock ms when the outcome was captured. */
   recordedAt: number;
+  /** Where the vessel was recovered, as KSP names it. */
   recoveryLocation: string;
+  /** The recovery factor KSP reported, as the text it showed. */
   recoveryFactor: string;
   /** Null in a save with no funds or no science: absent, not zero. */
+  /** Funds the recovery earned. */
   fundsEarned: number | null;
+  /** Science the recovery earned. */
   scienceEarned: number | null;
+  /** Reputation the recovery earned. */
   reputationEarned: number;
   /** Names of crew that were aboard at recovery. */
   crew: string[];
@@ -345,12 +357,19 @@ export interface FlightRecoveryOutcome {
  * @category Flight recording
  */
 export interface FlightCrashOutcome {
+  /** Marks this outcome as a crash. */
   kind: "crashed";
+  /** Wall-clock ms when the outcome was captured. */
   recordedAt: number;
+  /** The name of the body the vessel crashed on or at. */
   body: string;
+  /** The vessel's situation when it crashed, as KSP names it. */
   situation: string;
+  /** KSP's description of what destroyed the vessel. */
   what: string;
+  /** How many parts were lost. */
   partsLostCount: number;
+  /** Names of the kerbals killed. */
   kerbalsKilled: string[];
 }
 
@@ -368,7 +387,9 @@ export type FlightOutcome = FlightRecoveryOutcome | FlightCrashOutcome;
  * @category Flight recording
  */
 export interface FlightChapterRecord {
+  /** Identifier of the chapter. */
   id: string;
+  /** The chapter's name. */
   label: string;
   /** Elapsed ms since `launchedAt`. */
   startMs: number;
@@ -383,7 +404,9 @@ export interface FlightChapterRecord {
  * @category Flight recording
  */
 export interface MissionMeta {
+  /** This mission's identifier. */
   id: string;
+  /** The vessel's name. */
   vesselName: string;
   /** Wall-clock ms when recording started. */
   launchedAt: number;
@@ -391,6 +414,7 @@ export interface MissionMeta {
   firstFrameUt: number;
   /** UT (seconds) of the last captured frame. */
   lastFrameUt: number;
+  /** How many frames the recording holds. */
   frameCount: number;
   /**
    * Whether the operator starred the mission. Starred missions are never pruned

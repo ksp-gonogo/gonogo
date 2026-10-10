@@ -444,12 +444,19 @@ const SPREAD_FRACTION = 0.01;
  * @category Reckoners
  */
 export interface PoweredOrbitProjection {
+  /** Semi-major axis, in metres. */
   sma: Value<"m">;
+  /** Eccentricity. */
   ecc: Value<"1">;
+  /** Inclination, in degrees. */
   inc: Value<"°">;
+  /** Longitude of the ascending node, in degrees. */
   lan: Value<"°">;
+  /** Argument of periapsis, in degrees. */
   argPe: Value<"°">;
+  /** Mean anomaly at `epoch`, in radians. */
   meanAnomalyAtEpoch: Value<"rad">;
+  /** The instant the elements are given for. */
   epoch: Value<"ut">;
 }
 
