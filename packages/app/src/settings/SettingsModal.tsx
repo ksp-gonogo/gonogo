@@ -190,21 +190,28 @@ function ConnectionPanel({
         </SectionTitle>
         <SitrepConnection />
       </Stack>
-      {onRunSetupAgain && (
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            {say("settings.heading")}
-          </SectionTitle>
-          <SettingLine>
-            <RowText>
-              <RowLabel>{say("settings.label")}</RowLabel>
-              <RowDesc>{say("settings.description")}</RowDesc>
-            </RowText>
-            <Button onClick={onRunSetupAgain}>{say("settings.action")}</Button>
-          </SettingLine>
-        </Stack>
-      )}
+      {onRunSetupAgain && <RunSetupAgain onRunSetupAgain={onRunSetupAgain} />}
     </SectionStack>
+  );
+}
+
+/** The Connection tab's section offering the first-run setup again. */
+export function RunSetupAgain({
+  onRunSetupAgain,
+}: Readonly<{ onRunSetupAgain: () => void }>) {
+  return (
+    <Stack as="section" gap="related-comfortable">
+      <SectionTitle as="h3" $rule>
+        {say("settings.heading")}
+      </SectionTitle>
+      <SettingLine>
+        <RowText>
+          <RowLabel>{say("settings.label")}</RowLabel>
+          <RowDesc>{say("settings.description")}</RowDesc>
+        </RowText>
+        <Button onClick={onRunSetupAgain}>{say("settings.action")}</Button>
+      </SettingLine>
+    </Stack>
   );
 }
 

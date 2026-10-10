@@ -2576,8 +2576,10 @@ channels:
       when no sample has arrived yet, which tells "no data yet" apart from "zero
       sites". It carries no `meta` of its own.
 
-      Held at the home command: each vantage receives a change after its own delay
-      to home, at once on the ground network.
+      Held at the home command, the command centre that holds the career ledger
+      (see `CommandCentreEntry`): each vantage, a command centre the operator
+      observes from, receives a change after its own delay to home, at once on the
+      ground network.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -13966,14 +13968,16 @@ components:
           title: UnknownVantage
           description: |-
             A `set-vantage`, or a command's `vantage`, naming a command centre that is
-            not active. The SCET alarm command is the exception: it refuses an inactive
+            not active. The alarm command for a SCET alarm (an alarm on the craft's own
+            clock, spacecraft event time) is the exception: it refuses an inactive
             vantage with the `range` refusal instead.
           x-sitrep-sentence: that command centre is not active
         - const: commandExpired
           title: CommandExpired
           description: |-
             A held command reached its expiry, or its place on the lane passed, before
-            it could run.
+            it could run. A lane is the numbered sequence of commands to one craft,
+            which the craft settles in number order.
           x-sitrep-sentence: it expired before it could run
         - const: groupRefused
           title: GroupRefused
@@ -15262,8 +15266,10 @@ components:
         when no sample has arrived yet, which tells "no data yet" apart from "zero
         sites". It carries no `meta` of its own.
 
-        Held at the home command: each vantage receives a change after its own delay
-        to home, at once on the ground network.
+        Held at the home command, the command centre that holds the career ledger
+        (see `CommandCentreEntry`): each vantage, a command centre the operator
+        observes from, receives a change after its own delay to home, at once on the
+        ground network.
       properties:
         name:
           type:
@@ -21955,8 +21961,9 @@ components:
           type: number
           x-sitrep-unit: id
           description: |-
-            The current rung of the warp rate table (KSP's `TimeWarp.CurrentRateIndex`),
-            `0` at real time. Under `WarpMode.High` it indexes `WarpState.warpRates`.
+            The current rung (one step) of the warp rate table (KSP's
+            `TimeWarp.CurrentRateIndex`), `0` at real time. Under `WarpMode.High` it
+            indexes `WarpState.warpRates`.
         warpMode:
           description: |-
             Which warp mode is in force, on-rails or physics (KSP's
@@ -21989,7 +21996,8 @@ components:
           x-sitrep-unit: s
           description: |-
             The shortest real time the mod leaves between two periodic keyframes on one
-            channel, in seconds.
+            channel, in seconds. A keyframe is a full sample sent on a schedule even
+            when nothing changed, so a client can tell a quiet channel from a dead one.
 
             Keyframe cadences are declared in UT, and under warp UT can pass a cadence
             on every tick, so the mod also waits at least this long in real time. The
