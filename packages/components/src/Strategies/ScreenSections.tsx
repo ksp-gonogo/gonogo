@@ -137,6 +137,16 @@ export function ScreenSections({
       drawsOwnActions={drawsOwnActions}
       details={
         <>
+          {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+          {state.kind === "active" && (
+            <FactorTag>
+              factor{" "}
+              <Unit
+                value={datedFrom(rosterFrom, value("%", s.factor * 100))}
+                decimals={0}
+              />
+            </FactorTag>
+          )}
           <StrategyDescription of={s} />
           <EffectList>
             {parseEffectLines(s.effect).map((line, i) => (

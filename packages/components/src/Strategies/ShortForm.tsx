@@ -100,19 +100,18 @@ export function ShortRow({
             {s.title}
           </StrategyName>
         </Row.Name>
-        <Inline>
-          {badge}
-          {offersActivate && !drawsOwnActions && (
-            <StrategyCost
-              strategy={s}
-              funds={funds}
-              reputation={reputation}
-              science={science}
-              rosterFrom={rosterFrom}
-              factor={factor}
-            />
-          )}
-        </Inline>
+        <Inline>{badge}</Inline>
+        {offersActivate && !drawsOwnActions && (
+          // Outside the inline badge cluster: the no-cost note is a block.
+          <StrategyCost
+            strategy={s}
+            funds={funds}
+            reputation={reputation}
+            science={science}
+            rosterFrom={rosterFrom}
+            factor={factor}
+          />
+        )}
       </Row>
       {!drawsOwnActions && offersActivate && (
         <CommandButton

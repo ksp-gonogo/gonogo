@@ -87,6 +87,13 @@ export function StrategiesView({
   const inferredCap = inferCap(softBlocked);
   const overCap = inferredCap !== null && active.length > inferredCap;
 
+  // A narrow tile keeps funds alone, except for a currency some strategy it lists is priced in: a price needs its balance beside it.
+  const priced = (cost: (s: Strategy) => number) =>
+    strategies.some((s) => !s.isActive && cost(s) > 0);
+  const wide = (w ?? 9) >= 6;
+  const showReputation = wide || priced((s) => s.initialCostReputation);
+  const showScience = wide || priced((s) => s.initialCostScience);
+
   const sectionProps = {
     short: (h ?? SHORT_BELOW_ROWS) < SHORT_BELOW_ROWS,
     checkedOnConfirm,
@@ -120,12 +127,16 @@ export function StrategiesView({
             <Tally>
               <Balance balance={shownBalances.funds} unit="funds" />
             </Tally>
-            {(w ?? 9) >= 6 && (
+            {showReputation && (
               <>
                 <Sep>·</Sep>
                 <Tally>
                   <Balance balance={shownBalances.reputation} unit="rep" />
                 </Tally>
+              </>
+            )}
+            {showScience && (
+              <>
                 <Sep>·</Sep>
                 <Tally>
                   <Balance balance={shownBalances.science} unit="science" />

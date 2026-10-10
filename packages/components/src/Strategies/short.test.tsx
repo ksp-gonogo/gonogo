@@ -62,7 +62,7 @@ describe("Strategies short form", () => {
     stream = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
   });
 
-  async function renderShort(h: number) {
+  async function renderShort(h: number, extra: object[] = []) {
     const view = render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "s" }}>
@@ -70,7 +70,7 @@ describe("Strategies short form", () => {
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
-    const all = [ACTIVE, OPEN, LOCKED];
+    const all = [ACTIVE, OPEN, LOCKED, ...extra];
     act(() => {
       stream.emit("career.status", {
         balances: { funds: 289848, reputation: 976, science: 12 },
@@ -109,6 +109,39 @@ describe("Strategies short form", () => {
     expect(
       within(row).getByText(/Funds Off on Launch Costs/),
     ).toBeInTheDocument();
+  });
+
+  it("reaches the department and the commitment factor of an active strategy behind its name", async () => {
+    const user = userEvent.setup();
+    await renderShort(5);
+    const row = screen.getByText("Aggressive Negotiations").closest("li");
+    if (row === null) throw new Error("no row");
+    await user.click(
+      within(row).getByRole("button", { name: "Aggressive Negotiations" }),
+    );
+    expect(within(row).getByText("Operations")).toBeInTheDocument();
+    expect(within(row).getByText(/factor/)).toBeInTheDocument();
+  });
+
+  it("never nests the no-cost note inside an inline span", async () => {
+    await renderShort(5, [
+      { ...OPEN, id: "free", title: "Free Lunch", initialCostFunds: 0 },
+    ]);
+    const note = screen.getByRole("note");
+    expect(note.closest("span")).toBeNull();
+  });
+
+  it("shows the science balance beside a science price on a narrow tile", async () => {
+    const SCIENCE = {
+      ...OPEN,
+      id: "sci",
+      title: "Lab Grant",
+      initialCostFunds: 0,
+      initialCostScience: 5,
+    };
+    const { container } = await renderShort(5, [SCIENCE]);
+    const rail = container.querySelector("[data-balance-row]");
+    expect(rail?.textContent).toMatch(/12/);
   });
 
   it("lets a long strategy name wrap rather than clip", async () => {
