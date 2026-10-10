@@ -792,6 +792,8 @@ textarea {
   --inset-jog-wheel-label: 0 var(--space-2);
   /* The room a Meter figure keeps for the held mark drawn outside it. */
   --inset-meter-mark: var(--space-6);
+  /* The room an avatar keeps from the edge of the control it sits in, on each side. */
+  --inset-avatar: var(--space-4);
 
   /* Fields. */
   --inset-field: var(--space-6) var(--space-8);

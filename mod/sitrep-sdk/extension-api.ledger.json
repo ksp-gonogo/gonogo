@@ -11861,6 +11861,46 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "ui-kit . AvatarStack",
+        "note": "A row of overlapped initials badges with a fixed footprint and a plus-count overflow"
+      },
+      {
+        "key": "ui-kit . AvatarStackItem",
+        "note": "One person in an AvatarStack"
+      },
+      {
+        "key": "ui-kit . AvatarStackItem#id",
+        "note": "Stable key of the avatar"
+      },
+      {
+        "key": "ui-kit . AvatarStackItem#name",
+        "note": "Full name, shown as the tooltip and accessible name"
+      },
+      {
+        "key": "ui-kit . AvatarStackItem#onSelect?",
+        "note": "Makes the avatar a button"
+      },
+      {
+        "key": "ui-kit . AvatarStackItem#tone?",
+        "note": "Colours the avatar edge and initials"
+      },
+      {
+        "key": "ui-kit . AvatarStackProps",
+        "note": "Props of AvatarStack"
+      },
+      {
+        "key": "ui-kit . AvatarStackProps#items",
+        "note": "Everyone to show, in order"
+      },
+      {
+        "key": "ui-kit . AvatarStackProps#label?",
+        "note": "Accessible name of the group"
+      },
+      {
+        "key": "ui-kit . AvatarStackProps#max?",
+        "note": "Places in the stack, which fix its width"
+      },
+      {
         "key": "ui-kit . ComboboxListboxProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -12275,6 +12315,10 @@
       {
         "key": "ui-kit . heldMarking",
         "note": "The held or modelled mark for a figure from a held field"
+      },
+      {
+        "key": "ui-kit . initialsOf",
+        "note": "The initials AvatarStack draws for a name"
       },
       {
         "key": "ui-kit . placePlotReadouts",

@@ -528,7 +528,9 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
        * "these two are on top of each other", and `RadioIndicator` says so in
        * as many words above one.
        */
-      await expect(pilot.page.getByText("2 at once").first()).toBeVisible();
+      await expect(
+        pilot.page.getByText("2 at once, talking over each other").first(),
+      ).toBeAttached();
       await caption(
         screens,
         'The craft hears both, and says so: "2 at once". Two lanes decoded separately, then summed.',
