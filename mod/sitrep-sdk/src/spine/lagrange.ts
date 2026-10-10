@@ -121,11 +121,9 @@ export type LibrationRefusal =
 export interface LibrationPair {
   /** The body the pair is named FOR, and the one whose system is the secondary side. */
   secondaryIndex: number;
-  /** The secondary body's name, or `null` when it is not known. */
   secondaryName: string | null;
   /** Its parent, whose system is the primary side. Null when the parent could not be identified. */
   primaryIndex: number | null;
-  /** The primary body's name, or `null` when it is not known. */
   primaryName: string | null;
 }
 
@@ -136,7 +134,6 @@ export interface LibrationPair {
  * @category Frames of reference
  */
 export interface LibrationPoint {
-  /** Which of the five points this is, `L1` to `L5`. */
   name: LagrangePointName;
   /**
    * The point in the pair's rotating-pulsating frame: multiples of the pair's
@@ -157,7 +154,6 @@ export interface LibrationPoint {
  * @category Frames of reference
  */
 export interface LibrationAnswer {
-  /** Why no points were found, or `NotRefused` when there are some. */
   refusal: LibrationRefusal;
   /** Which pair, as far as it is known. Null only when no body was named at all. */
   pair: LibrationPair | null;
@@ -177,7 +173,6 @@ export interface LibrationAnswer {
   frame: FrameInstant | null;
   /** The frame that was SOUGHT, whether or not it was formed. */
   frameChoice: ReadFrameChoice;
-  /** The instant the answer is for, in UT seconds. */
   ut: number;
 }
 
@@ -224,7 +219,6 @@ export type LibrationStationKeeping = "on-station" | "drifting" | "elsewhere";
  * @category Frames of reference
  */
 export interface LibrationOffset {
-  /** The Lagrange point the craft is nearest. */
   nearest: LagrangePointName;
   /** The craft in the pair's frame: multiples of the separation. */
   vesselFrame: Vec3Tuple;
@@ -232,7 +226,6 @@ export interface LibrationOffset {
   distanceMetres: number;
   /** The same distance as a multiple of the pair's separation. */
   distanceUnits: number;
-  /** Whether the craft is holding station at that point. */
   keeping: LibrationStationKeeping;
 }
 

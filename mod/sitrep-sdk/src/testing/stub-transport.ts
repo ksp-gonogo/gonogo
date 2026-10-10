@@ -75,15 +75,10 @@ type CommandHandler = (command: string, args: unknown) => unknown;
  * @category Stream fixture
  */
 export interface SentCommand {
-  /** Identifies the send. */
   requestId: string;
-  /** The command id. */
   command: string;
-  /** The arguments it was sent with. */
   args: unknown;
-  /** The operator-facing description it carried. */
   label: string;
-  /** The Topic it concerned. */
   topic: string;
   /** Per-call vantage override, `""` when the dispatch omitted it. */
   vantage: string;
@@ -289,7 +284,6 @@ export class StubTransport implements Transport {
     });
   }
 
-  /** Delivers a server message exactly as given, with no subscription gate or meta added. */
   emitRaw(message: ServerMessage): void {
     this.deliver(message);
   }

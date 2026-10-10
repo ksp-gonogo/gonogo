@@ -64,9 +64,7 @@
  * @category Delayed video
  */
 export interface PacedFrame<Frame> {
-  /** The UT the frame was captured at. */
   ut: number;
-  /** The frame. */
   data: Frame;
 }
 

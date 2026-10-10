@@ -19,20 +19,8 @@ import { useOrbitTrajectory } from "./use-orbit-trajectory";
  * @category Frames of reference
  */
 export type OrbitCurveSubject =
-  | {
-      /** A body's own orbit around its parent. */
-      kind: "body";
-      /** The system's celestial facts, or `undefined` before they arrive. */
-      facts: CelestialFacts | undefined;
-      /** The body's index in `system.bodies`. */
-      index: number;
-    }
-  | {
-      /** An orbit given directly, such as a craft's. */
-      kind: "orbit";
-      /** The orbit's elements, or `undefined` before they arrive. */
-      orbit: OrbitTrajectoryInput["orbit"] | undefined;
-    };
+  | { kind: "body"; facts: CelestialFacts | undefined; index: number }
+  | { kind: "orbit"; orbit: OrbitTrajectoryInput["orbit"] | undefined };
 
 /**
  * How a subject's path may be drawn at the instant on screen: a conic, the arc

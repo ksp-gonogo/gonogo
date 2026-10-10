@@ -115,7 +115,6 @@ export type ShipMapPartMetaEntry = {
       value?: number;
     }
   | {
-      /** A text row. */
       kind: "text";
       /** A text row never draws a tone, so it may be left out. */
       tone?: Tone;
@@ -198,7 +197,6 @@ export type SystemEntityMeta = Readonly<
  * @category Widget slots
  */
 export interface SystemEntityOrbitPosition {
-  /** Marks this position as an orbit around a body. */
   kind: "orbit";
   /** The body orbited. Matched without regard to case or surrounding space; the entity is not drawn unless this is the body the diagram is centred on. */
   parentName: string;
@@ -225,7 +223,6 @@ export interface SystemEntityOrbitPosition {
  * @category Widget slots
  */
 export interface SystemEntityFixedPosition {
-  /** Marks this position as a fixed offset from a body. */
   kind: "fixed";
   /** The body the offset is measured from. Matched as for {@link SystemEntityOrbitPosition.parentName}. */
   parentName: string;
@@ -246,11 +243,9 @@ export interface SystemEntityFixedPosition {
  * @category Widget slots
  */
 export interface SystemEntitySubjectPosition {
-  /** Marks this position as that of a subject the widget places itself. */
   kind: "subject";
   /** What is placed. */
   subject: {
-    /** Marks this position as that of a subject the widget places itself. */
     kind: "body";
     /** The body's index in `system.bodies`. */
     bodyIndex: number;
@@ -284,34 +279,13 @@ export type SystemEntityPosition =
  * @category Widget slots
  */
 export type SystemEntityShape =
+  | { kind: "point"; radiusPx?: number }
+  | { kind: "orbit-path" }
+  | { kind: "connection-line"; to: SystemEntityPosition }
+  | { kind: "blob"; radiusMetres: number }
   | {
-      /** A dot at the position. */
-      kind: "point";
-      /** The dot's radius, in screen pixels. */
-      radiusPx?: number;
-    }
-  | {
-      /** The orbit's path. */
-      kind: "orbit-path";
-    }
-  | {
-      /** A line from the position to another. */
-      kind: "connection-line";
-      /** Where the line ends. */
-      to: SystemEntityPosition;
-    }
-  | {
-      /** A filled disc around the position. */
-      kind: "blob";
-      /** The disc's radius, in metres. */
-      radiusMetres: number;
-    }
-  | {
-      /** A front travelling from the position to another. */
       kind: "travelling-pulse";
-      /** Where the front is heading. */
       to: SystemEntityPosition;
-      /** How long the front is, in metres. */
       segmentLengthMetres: number;
       /** UT the leading edge reaches `to`, in seconds. */
       arriveUt: number;
@@ -387,16 +361,8 @@ export interface SystemViewVesselStatusEntry {
  * @category Widget slots
  */
 export type SystemProjectionExtent =
-  | {
-      /** Fits the drawn orbits about the frame body, in metres. */
-      kind: "auto-fit-metres";
-    }
-  | {
-      /** Holds a fixed half-extent in the projection's own coordinates. */
-      kind: "fixed-units";
-      /** The half-extent. */
-      units: number;
-    };
+  | { kind: "auto-fit-metres" }
+  | { kind: "fixed-units"; units: number };
 
 /**
  * One reference frame the System View can draw its whole picture in,

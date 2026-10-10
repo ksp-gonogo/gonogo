@@ -6,19 +6,12 @@
  * @category Extensions
  */
 export interface WidgetTopicDeclaration {
-  /** The Topics the widget cannot draw without. */
   channels?: readonly string[];
-  /** The Topics the widget reads when they are published. */
   optionalChannels?: readonly string[];
-  /** Families of Topics the widget cannot draw without, as patterns such as `fleet.<vessel>.contact`. */
   channelFamilies?: readonly string[];
-  /** Families of Topics the widget reads when they are published. */
   optionalChannelFamilies?: readonly string[];
-  /** The Topics a widget reads that depend on its settings. */
   channelsFromConfig?: (config: never) => readonly string[];
-  /** The fields the widget draws, when that is fewer than its Topics carry. */
   fields?: readonly string[];
-  /** The legacy flat keys the widget reads. */
   dataRequirements?: readonly string[];
 }
 

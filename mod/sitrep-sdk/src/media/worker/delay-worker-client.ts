@@ -43,7 +43,6 @@ import type {
  * @category Delayed video
  */
 export interface SnapshottableDelayClock extends DelayClockLike {
-  /** A copy of the clock's formula, to hand to a worker. */
   snapshot(): ClockFormulaSnapshot;
 }
 
@@ -53,17 +52,13 @@ export interface SnapshottableDelayClock extends DelayClockLike {
  * @category Delayed video
  */
 export interface CreateWorkerFrameDelayStreamOptions {
-  /** The clock the delay follows. */
   view: SnapshottableDelayClock;
   /** Read fresh on every ~60Hz tick; forwarded to the worker only when it
    *  actually changed (reference inequality): the low-rate capture clock
    *  updates ~1Hz, no need to resend an unchanged sample 60x/sec. */
   getCaptureSample(): CaptureClockSample;
-  /** The most frames the worker holds before dropping the oldest. */
   maxBufferedFrames?: number;
-  /** The backlog past which pacing drops frames; see `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
   maxPacingBacklogSeconds?: number;
-  /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
 }
 
@@ -239,16 +234,13 @@ export async function createWorkerFrameDelayStream(
  * @category Delayed video
  */
 export interface AttachEncodedFrameDelayOptions {
-  /** The clock the delay follows. */
   view: SnapshottableDelayClock;
   /** Read fresh on every ~60Hz tick, same contract as
    *  `CreateWorkerFrameDelayStreamOptions.getCaptureSample`. */
   getCaptureSample(): CaptureClockSample;
   /** Real byte cap: see `encoded-frame-delay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
   maxBufferedBytes?: number;
-  /** The backlog past which pacing drops frames; see `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
   maxPacingBacklogSeconds?: number;
-  /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
 }
 
@@ -263,7 +255,6 @@ export interface EncodedFrameDelayHandle {
    *  perspective: safe to call once, matching every other backend's
    *  `dispose()` contract in this package. */
   dispose(): void;
-  /** Drops the frames the pipeline holds. */
   flush(): void;
 }
 

@@ -89,11 +89,8 @@ export type RailDelivery = "acked" | "fire-and-forget";
  * @category Commands
  */
 export interface RailTags {
-  /** Whether the entry is a command going out or telemetry coming in. */
   direction: RailDirection;
-  /** Whether it is a discrete event or a continuous flow. */
   continuity: RailContinuity;
-  /** Whether an answer comes back (`acked`) or nothing does (`fire-and-forget`). */
   delivery: RailDelivery;
 }
 

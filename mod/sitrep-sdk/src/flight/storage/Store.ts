@@ -20,15 +20,10 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
  * format a flight is exported to and replayed from.
  */
 export interface FlightStore {
-  /** Saves a flight record, replacing one with the same id. */
   upsertFlight(record: FlightRecord): Promise<void>;
-  /** The flight with this id, or `null`. */
   getFlight(id: string): Promise<FlightRecord | null>;
-  /** Every saved flight. */
   listFlights(): Promise<FlightRecord[]>;
-  /** Deletes a flight and its samples. */
   deleteFlight(id: string): Promise<void>;
-  /** Deletes every flight and its samples. */
   clearAllFlights(): Promise<void>;
 
   /**

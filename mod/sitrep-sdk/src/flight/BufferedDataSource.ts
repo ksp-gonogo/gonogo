@@ -376,7 +376,6 @@ export class BufferedDataSource extends DataSourceWrapper {
   }
 
   // Conditional getter so `hasExecuteScript(buffered)` reflects whether the wrapped source actually supports executeScript, matching the PeerBroadcastingDataSource pattern.
-  /** Runs a script on a CPU through the wrapped source, present only when that source supports it. */
   get executeScript(): ExecuteScriptAware["executeScript"] | undefined {
     if (!hasExecuteScript(this.source)) return undefined;
     return this.source.executeScript.bind(this.source);
@@ -505,7 +504,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.runDerivedKeys(key, current?.id ?? null);
   }
 
-  /** Calls `cb` with the current flight whenever it changes, and returns a function that stops it. */
   onFlightChange(cb: (flight: FlightRecord | null) => void): () => void {
     return this.flightSubscribers.add(cb);
   }
@@ -520,12 +518,10 @@ export class BufferedDataSource extends DataSourceWrapper {
     return this.flightListSubscribers.add(cb);
   }
 
-  /** Every recorded flight. */
   listFlights(): Promise<FlightRecord[]> {
     return this.store.listFlights();
   }
 
-  /** The recorded flight with this id, or `null`. */
   getFlight(id: string): Promise<FlightRecord | null> {
     return this.store.getFlight(id);
   }
@@ -582,7 +578,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     return updated;
   }
 
-  /** Changes a chapter of a flight and returns the updated record, or `null` when there is none. */
   async updateChapter(
     flightId: string,
     chapterId: string,
@@ -600,7 +595,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     return updated;
   }
 
-  /** Removes a chapter from a flight and returns the updated record, or `null` when there is none. */
   async removeChapter(
     flightId: string,
     chapterId: string,
@@ -615,12 +609,10 @@ export class BufferedDataSource extends DataSourceWrapper {
     return updated;
   }
 
-  /** The flight now being recorded, or `null`. */
   getCurrentFlight(): FlightRecord | null {
     return this.detector.getCurrent();
   }
 
-  /** Deletes one recorded flight and its samples. */
   async deleteFlight(id: string): Promise<void> {
     const wasCurrent = this.detector.getCurrent()?.id === id;
     this.detector.forget(id);
@@ -668,7 +660,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     return victims.map((f) => f.id);
   }
 
-  /** Deletes every recorded flight and its samples. */
   async clearAllFlights(): Promise<void> {
     this.detector.forgetAll();
     await this.store.clearAllFlights();

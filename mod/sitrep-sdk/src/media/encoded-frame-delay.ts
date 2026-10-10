@@ -62,9 +62,7 @@ import {
  * @category Delayed video
  */
 export interface EncodedVideoFrameLike extends FrameLike {
-  /** `"key"` for a frame that can be decoded alone, `"delta"` for one that needs the frames before it. */
   readonly type: "key" | "delta";
-  /** The encoded bytes. */
   readonly data: ArrayBuffer;
 }
 
@@ -75,9 +73,7 @@ export interface EncodedVideoFrameLike extends FrameLike {
  * @category Delayed video
  */
 export interface EncodedTransformerLike {
-  /** The frames coming in. */
   readable: ReadableStream<EncodedVideoFrameLike>;
-  /** Where the delayed frames are written. */
   writable: WritableStream<EncodedVideoFrameLike>;
 }
 

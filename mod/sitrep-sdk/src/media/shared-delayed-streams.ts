@@ -53,11 +53,8 @@
  * @category Delayed video
  */
 export interface BuiltDelayedStream<Result> {
-  /** What the builder made. */
   result: Result;
-  /** Tears the stream down. */
   dispose?(): void;
-  /** Drops the frames it holds. */
   flush?(): void;
 }
 

@@ -59,7 +59,6 @@ export class LocalStorageStore<Stored> {
     }
   }
 
-  /** The stored value merged over the defaults, or the defaults when nothing valid is stored. */
   get(): Stored {
     let raw: string | null = null;
     try {
@@ -93,7 +92,6 @@ export class LocalStorageStore<Stored> {
     return parsed as Stored;
   }
 
-  /** Stores a value and tells the subscribers. */
   set(value: Stored): void {
     try {
       this.storage?.setItem(this.key, JSON.stringify(value));
@@ -105,7 +103,6 @@ export class LocalStorageStore<Stored> {
     });
   }
 
-  /** Merges `partial` into the current value and stores it. */
   patch(partial: Partial<Stored>): void {
     const current = this.get();
     if (
@@ -120,7 +117,6 @@ export class LocalStorageStore<Stored> {
     this.set(partial as Stored);
   }
 
-  /** Removes the stored value, so the defaults apply again, and tells the subscribers. */
   clear(): void {
     try {
       this.storage?.removeItem(this.key);
@@ -133,7 +129,6 @@ export class LocalStorageStore<Stored> {
     });
   }
 
-  /** Calls `cb` with each new value, and returns a function that stops it. */
   subscribe(cb: (value: Stored) => void): () => void {
     this.listeners.add(cb);
     return () => {

@@ -104,7 +104,6 @@ export const unitMatchers = {
  * @category Testing
  */
 export interface UnitMatchers<Result = unknown> {
-  /** Asserts the element shows `quantity` written as `Unit` writes it, in the unit it would choose unless `opts` pins one. */
   toShowQuantity(
     quantity: { magnitude: number; unit: string } | null | undefined,
     opts?: FormatQuantityOptions,

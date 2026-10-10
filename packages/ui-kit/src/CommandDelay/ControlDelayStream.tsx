@@ -41,7 +41,6 @@ export interface ControlStreamSample {
  * @category CommandDelay
  */
 export interface ControlStreamDatum {
-  /** Identifies the axis. */
   id: string;
   /** The axis's name, e.g. "Throttle". */
   label: string;
@@ -71,7 +70,6 @@ export interface ControlStreamDatum {
  * @category CommandDelay
  */
 export interface ControlRibbonDatum {
-  /** Identifies the ribbon. */
   id: string;
   /** What the ribbon IS, in a sentence, e.g. "Your transmission crossing to Odyssey". */
   label: string;

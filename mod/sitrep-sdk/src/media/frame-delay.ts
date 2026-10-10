@@ -49,7 +49,6 @@ import { PresentationPacer } from "./worker/presentation-pacer";
  * @category Delayed video
  */
 export interface FrameLike {
-  /** Releases the frame's resources, when it has any. */
   close?(): void;
 }
 
@@ -90,9 +89,7 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
    * read from `source`.
    */
   captureUt(): number;
-  /** Where frames are read from. */
   source: FrameSource<Frame>;
-  /** Where released frames are written. */
   sink: FrameSink<Frame>;
   /**
    * The most frames to hold before dropping the oldest. Defaults to 300. With
@@ -303,13 +300,9 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
  * @category Delayed video
  */
 export interface CreateFrameDelayStreamOptions {
-  /** The clock the delay follows. */
   view: DelayClockLike;
-  /** Returns the UT to stamp a frame with, called for each frame as it is read. */
   captureUt(): number;
-  /** The most frames to hold before dropping the oldest. */
   maxBufferedFrames?: number;
-  /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
   /** Override the presentation pacer's backlog threshold: see
    *  `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. Pacing itself can't be disabled
@@ -327,9 +320,7 @@ export interface CreateFrameDelayStreamOptions {
 export interface FrameDelayStream {
   /** The delayed output: feed this to a `<video>`'s `srcObject`. */
   stream: MediaStream;
-  /** Tears the stream down. */
   dispose(): void;
-  /** Drops the frames it holds. */
   flush(): void;
 }
 

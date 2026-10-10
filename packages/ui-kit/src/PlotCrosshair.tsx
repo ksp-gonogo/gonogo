@@ -7,9 +7,7 @@ import { ReckoningMarkSvg } from "./reckoningMarkDraw";
  * @category LineGraph
  */
 export interface PlotCrosshairRow {
-  /** Identifies the row. */
   id: string;
-  /** What the row reads, such as the trace's name. */
   label: string;
   /** The colour of the thing the row reads, so the row ties back to its trace. */
   color: string;
@@ -38,7 +36,6 @@ export interface PlotCrosshairProps {
   plot: { x0: number; y0: number; x1: number; y1: number };
   /** Names the instant, written once above the rows. */
   heading: string;
-  /** One line per trace or limit the crosshair reads at the instant. */
   rows: readonly PlotCrosshairRow[];
   /**
    * A column outside the plot where the readout stands, when the chart has

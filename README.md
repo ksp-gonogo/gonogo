@@ -47,7 +47,7 @@ docker run -d --name gonogo --restart unless-stopped \
   ghcr.io/ksp-gonogo/gonogo:rc
 ```
 
-Until the first release is published, the image exists only as the release candidate, tagged `rc`, which is what the command pulls. After the first release, change the last line to `ghcr.io/ksp-gonogo/gonogo:latest`. The same applies to the `docker pull` below. Podman takes the same command: type `podman` where it says `docker`. On macOS and Windows, Podman also needs its virtual machine first: run `podman machine init`, then `podman machine start`, before the `podman run` line. To prove containers can actually run, use `podman run --rm hello-world`, because `podman --version` answers even when no machine exists.
+Until the first release is published, the image exists only as the release candidate, tagged `rc`, which is what the command pulls. After the first release, change the last line to `ghcr.io/ksp-gonogo/gonogo:latest`. The same applies to the `docker pull` below. Podman takes the same command: type `podman` where it says `docker`.
 
 That is the form for macOS, Linux and WSL. In Windows PowerShell, end each line with a backtick (`` ` ``) in place of the `\`, or type it as one line; the app's own setup screen prints the PowerShell form when it is opened on Windows.
 

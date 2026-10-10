@@ -44,13 +44,11 @@ export type UnitHint =
  * @category Flight recording
  */
 export interface DataKeyMeta extends DataKey {
-  /** What an operator reads for the key. */
   label: string;
   /**
    * The key's unit, as the contract or an Uplink declares it.
    */
   unit?: SitrepUnit;
-  /** The group the key is filed under. */
   group?: string;
 }
 
@@ -62,7 +60,6 @@ export interface DataKeyMeta extends DataKey {
 export interface Sample<Payload = unknown> {
   /** Unix ms. */
   t: number;
-  /** The value. */
   v: Payload;
 }
 
@@ -102,7 +99,6 @@ export interface SeriesStatusSpan {
   from: number;
   /** Last sample of the run, inclusive. */
   to: number;
-  /** The status the run carried. */
   status: StreamStatusValue;
 }
 
@@ -122,7 +118,6 @@ export interface SeriesReckonedSpan {
   from: number;
   /** Last point of the run, inclusive. */
   to: number;
-  /** The kind of model that made the run. */
   basis: ReckoningBasis;
   /**
    * The lower bound of how well the model knew each point of the run, in the
@@ -151,13 +146,9 @@ export interface SeriesReckonedSpan {
  * @category Flight recording
  */
 export interface SeriesBridge {
-  /** Index of the point the bridge runs to. */
   to: number;
-  /** The times of the points the model carried. */
   t: readonly number[];
-  /** The values the model carried. */
   v: readonly number[];
-  /** The kind of model that carried them. */
   basis: ReckoningBasis;
 }
 
@@ -168,9 +159,7 @@ export interface SeriesBridge {
  * @category Flight recording
  */
 export interface SeriesRange<Payload = unknown> {
-  /** The time of each point. */
   t: number[];
-  /** The value of each point. */
   v: Payload[];
 
   /**
@@ -232,7 +221,6 @@ export interface SeriesRange<Payload = unknown> {
 export interface TopicFieldHandle {
   /** A contract Topic, or any string for a registered, derived or computed one. */
   topic: TopicId | (string & {});
-  /** The dotted path of the field inside the payload. */
   field?: string;
 }
 
@@ -271,9 +259,7 @@ export function seriesKeyOf(handle: TopicFieldHandle): string {
  * @category Flight recording
  */
 export interface ReadingSeriesRange<Payload = unknown> {
-  /** The time of each reading. */
   t: number[];
-  /** The readings, one per time. */
   readings: Reading<Payload>[];
   /** The clock `t` is stamped against. See {@link SeriesRange.basis}. */
   basis?: SeriesTimeBasis;
@@ -335,7 +321,6 @@ export interface FlightRecord {
    * `launchedAt` and `lastSampleAt` are wall-clock milliseconds.
    */
   firstFrameUt?: number;
-  /** The UT, in seconds, of the latest captured frame. */
   lastFrameUt?: number;
 }
 

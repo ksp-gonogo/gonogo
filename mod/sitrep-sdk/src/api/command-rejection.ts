@@ -34,9 +34,7 @@ export const COMMAND_LOST = "E_LOST";
  */
 export type CommandRejection =
   | {
-      /** The mod refused the command. */
       kind: "refused";
-      /** Why it was refused. */
       errorCode: CommandErrorCode;
       /**
        * A more specific reason than `errorCode`, where the mod gave one.
@@ -44,7 +42,6 @@ export type CommandRejection =
        * not know is still a refusal of kind `errorCode`.
        */
       reason?: string;
-      /** A sentence describing the refusal. */
       message: string;
       /**
        * The command id that was sent. With `args` and `label` it names what was
@@ -52,29 +49,15 @@ export type CommandRejection =
        * missing, such as on a refusal passed on from another screen.
        */
       command?: string;
-      /** The arguments that were sent. */
       args?: unknown;
-      /** The operator-facing description the command carried. */
       label?: string;
       /** The limit and the actual value behind the refusal, when the mod sent them. */
       breach?: LimitBreach;
       /** The refusal in the game's own words, when the game gave any. */
       detail?: string;
     }
-  | {
-      /** No reply came back, so the command may have run. */
-      kind: "lost";
-      /** A sentence describing the loss. */
-      message: string;
-    }
-  | {
-      /** The command failed. */
-      kind: "failed";
-      /** The fault code, or the error's own code. */
-      code: FaultCode | (string & {});
-      /** The error's message. */
-      message: string;
-    };
+  | { kind: "lost"; message: string }
+  | { kind: "failed"; code: FaultCode | (string & {}); message: string };
 
 /**
  * Sorts the error a command's `send` rejected with into a

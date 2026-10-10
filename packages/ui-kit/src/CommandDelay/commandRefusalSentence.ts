@@ -47,7 +47,6 @@ export interface CommandRefusalLike {
  * @category CommandDelay
  */
 export interface CommandRefusalEntry extends CommandRefusalLike {
-  /** The dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
   id: string;
 }
 

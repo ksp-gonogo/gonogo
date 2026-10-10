@@ -98,7 +98,6 @@ export interface PlotFrame {
   yUnit?: string;
   /** Domain for the secondary Y axis, needed only when a layer names `axis: "secondary"`. */
   ySecondaryDomain?: [number, number];
-  /** Unit token for the secondary Y tick ladder. */
   ySecondaryUnit?: string;
   /** Linear (default) or log10 on the primary Y axis. */
   yScale?: "linear" | "log";

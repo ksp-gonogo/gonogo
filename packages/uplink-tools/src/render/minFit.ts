@@ -88,7 +88,6 @@ const FIT_MASK = "--fit-mask";
  * @category Rendering scenes
  */
 export interface MinFitFinding {
-  /** What is wrong at the smallest size. */
   kind:
     | "title-clipped"
     | "text-cut-off"

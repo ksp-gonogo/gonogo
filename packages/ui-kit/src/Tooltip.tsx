@@ -61,7 +61,6 @@ export interface TooltipAnchorProps {
  * @category Floating
  */
 export interface UseTooltipResult {
-  /** Props to spread on the element the tip belongs to. */
   anchor: TooltipAnchorProps;
   /** The tip itself, portalled to the document body; render it anywhere beside the anchor. */
   tip: ReactNode;
