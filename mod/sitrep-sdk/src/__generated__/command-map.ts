@@ -100,130 +100,252 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedCommandArgsMap {
+  /** Register an alarm with the simulation host, or replace one already registered under the same `ScetAlarmArmArgs.id`. */
   "alarm.scet.arm": ScetAlarmArmArgs;
+  /** Forget the alarm with this id. */
   "alarm.scet.disarm": ScetAlarmDisarmArgs;
+  /** Accept, decline or cancel a contract. */
   "career.contract.accept": ContractActionArgs;
+  /** Accept, decline or cancel a contract. */
   "career.contract.cancel": ContractActionArgs;
+  /** Accept, decline or cancel a contract. */
   "career.contract.decline": ContractActionArgs;
+  /** Fire a hired kerbal, returning them to the applicant pool. */
   "career.crew.fire": FireCrewArgs;
+  /** Hire an applicant into the crew roster. */
   "career.crew.hire": HireApplicantArgs;
+  /** Raise a Space Center facility by one tier. */
   "career.facility.upgrade": UpgradeFacilityArgs;
+  /** Activate a strategy at a chosen commitment. */
   "career.strategy.activate": ActivateStrategyArgs;
+  /** Deactivate an active strategy. */
   "career.strategy.deactivate": DeactivateStrategyArgs;
+  /** Unlock a tech node, spending its science cost. */
   "career.tech.unlock": UnlockTechArgs;
+  /** Bring more centres into a group. */
   "commcast.group.add": CommcastGroupAddArgs;
+  /** Start a group, a set of command centres sharing one thread for messages and radio. */
   "commcast.group.open": CommcastGroupOpenArgs;
+  /** Tell a message's author it arrived. */
   "commcast.message.ack": CommcastMessageAckArgs;
+  /** Say something to a group in text. */
   "commcast.message.send": CommcastMessageSendArgs;
+  /** One batch of live push-to-talk audio, spoken to a group. */
   "commcast.radio.transmit": CommcastRadioTransmitArgs;
+  /** Load a saved craft onto a launch site. */
   "ksp.launch": LaunchArgs;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.recover": NoCommandArgs;
+  /** Revert the flight back into the VAB or SPH. */
   "ksp.revertToEditor": RevertToEditorArgs;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.revertToLaunch": NoCommandArgs;
+  /** Switch the flight to another tracked vessel. */
   "ksp.switchVessel": SwitchVesselArgs;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.toSpaceCenter": NoCommandArgs;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.toTrackingStation": NoCommandArgs;
+  /** Flips the rotor's spin direction. */
   "robotics.rotor.reverse": RotorReverseArgs;
+  /** Set a rotor's brake strength. */
   "robotics.rotor.setBrake": RotorSetBrakeArgs;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.rotor.setLock": ServoSetEnabledArgs;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.rotor.setMotor": ServoSetEnabledArgs;
+  /** Set a rotor's rpm cap. */
   "robotics.rotor.setRpmLimit": RotorSetRpmLimitArgs;
+  /** Set a rotor's torque limit. */
   "robotics.rotor.setTorqueLimit": RotorSetTorqueLimitArgs;
+  /** Drive a hinge or rotation servo to an angle. */
   "robotics.servo.setAngle": ServoSetAngleArgs;
+  /** Drive a piston to an extension. */
   "robotics.servo.setExtension": ServoSetExtensionArgs;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.servo.setLock": ServoSetEnabledArgs;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.servo.setMotor": ServoSetEnabledArgs;
+  /** Deploy or transmit a science experiment on a part. */
   "science.experiment.deploy": ExperimentActionArgs;
+  /** Deploy or transmit a science experiment on a part. */
   "science.experiment.transmit": ExperimentActionArgs;
+  /** Change one of a host mod's own settings through its Uplink, at once. */
   "settings.mod.write": WriteModSettingArgs;
+  /** Apply the settings from one Save press together and write the settings file once. */
   "settings.save": SaveSettingsArgs;
+  /** Ask where a body is at each of a list of instants. */
   "system.bodies.statesAt": BodyStatesRequest;
+  /** Put the view in a different reference frame. */
   "system.frame.set": SetControlFrameArgs;
+  /** Cancels a held or travelling command: its lane number alone, or it and every later number this centre had sent on the lane when it was pressed. */
   "system.uplink.cancel": UplinkCancelRequest;
+  /** Sends a held or overdue command again in its own place on its lane: a new copy with the same lane number, which must arrive before the commands behind it stop waiting for it. */
   "system.uplink.resend": UplinkResendRequest;
+  /** Pause or resume the game. */
   "time.setPaused": SetPausedArgs;
+  /** Select a time-warp rate. */
   "time.setWarpIndex": SetWarpIndexArgs;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setAbort": SetEnabledArgs;
+  /** Set a numbered custom action group on or off. */
   "vessel.control.setActionGroup": SetActionGroupArgs;
+  /** Drive the held control axes of the fly-by-wire override. */
   "vessel.control.setAxes": SetControlAxesArgs;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setBrakes": SetEnabledArgs;
+  /** Turn the fly-by-wire override on or off. */
   "vessel.control.setFlyByWire": SetFlyByWireArgs;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setGear": SetEnabledArgs;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setLights": SetEnabledArgs;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setRcs": SetEnabledArgs;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setSas": SetEnabledArgs;
+  /** Set the SAS mode to hold. */
   "vessel.control.setSasMode": SetSasModeArgs;
+  /** Set the main throttle. */
   "vessel.control.setThrottle": SetThrottleArgs;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "vessel.control.stage": NoCommandArgs;
+  /** Fire one button of one part's right-click Part Action Window, the remote-control equivalent of the player clicking it in-game. */
   "vessel.invokePartAction": InvokePartActionArgs;
+  /** Add a manoeuvre node. */
   "vessel.maneuver.add": AddManeuverNodeArgs;
+  /** Delete a manoeuvre node. */
   "vessel.maneuver.remove": RemoveManeuverNodeArgs;
+  /** Replace an existing node's time and delta-v. */
   "vessel.maneuver.update": UpdateManeuverNodeArgs;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "vessel.target.clear": NoCommandArgs;
+  /** Set the active vessel's target. */
   "vessel.target.set": SetTargetArgs;
 }
 
 export interface GeneratedCommandReplyMap {
+  /** Register an alarm with the simulation host, or replace one already registered under the same `ScetAlarmArmArgs.id`. */
   "alarm.scet.arm": CommandResult;
+  /** Forget the alarm with this id. */
   "alarm.scet.disarm": CommandResult;
+  /** Accept, decline or cancel a contract. */
   "career.contract.accept": CommandResult;
+  /** Accept, decline or cancel a contract. */
   "career.contract.cancel": CommandResult;
+  /** Accept, decline or cancel a contract. */
   "career.contract.decline": CommandResult;
+  /** Fire a hired kerbal, returning them to the applicant pool. */
   "career.crew.fire": CommandResult;
+  /** Hire an applicant into the crew roster. */
   "career.crew.hire": CommandResult;
+  /** Raise a Space Center facility by one tier. */
   "career.facility.upgrade": CommandResult;
+  /** Activate a strategy at a chosen commitment. */
   "career.strategy.activate": CommandResult;
+  /** Deactivate an active strategy. */
   "career.strategy.deactivate": CommandResult;
+  /** Unlock a tech node, spending its science cost. */
   "career.tech.unlock": CommandResult;
+  /** Bring more centres into a group. */
   "commcast.group.add": CommandResult;
+  /** Start a group, a set of command centres sharing one thread for messages and radio. */
   "commcast.group.open": CommandResult;
+  /** Tell a message's author it arrived. */
   "commcast.message.ack": CommandResult;
+  /** Say something to a group in text. */
   "commcast.message.send": CommcastSendReceipt;
+  /** One batch of live push-to-talk audio, spoken to a group. */
   "commcast.radio.transmit": CommandResult;
+  /** Load a saved craft onto a launch site. */
   "ksp.launch": CommandResult;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.recover": CommandResult;
+  /** Revert the flight back into the VAB or SPH. */
   "ksp.revertToEditor": CommandResult;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.revertToLaunch": CommandResult;
+  /** Switch the flight to another tracked vessel. */
   "ksp.switchVessel": CommandResult;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.toSpaceCenter": CommandResult;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "ksp.toTrackingStation": CommandResult;
+  /** Flips the rotor's spin direction. */
   "robotics.rotor.reverse": CommandResult;
+  /** Set a rotor's brake strength. */
   "robotics.rotor.setBrake": CommandResult;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.rotor.setLock": CommandResult;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.rotor.setMotor": CommandResult;
+  /** Set a rotor's rpm cap. */
   "robotics.rotor.setRpmLimit": CommandResult;
+  /** Set a rotor's torque limit. */
   "robotics.rotor.setTorqueLimit": CommandResult;
+  /** Drive a hinge or rotation servo to an angle. */
   "robotics.servo.setAngle": CommandResult;
+  /** Drive a piston to an extension. */
   "robotics.servo.setExtension": CommandResult;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.servo.setLock": CommandResult;
+  /** Switch a robotics servo or rotor motor or lock on or off. */
   "robotics.servo.setMotor": CommandResult;
+  /** Deploy or transmit a science experiment on a part. */
   "science.experiment.deploy": CommandResult;
+  /** Deploy or transmit a science experiment on a part. */
   "science.experiment.transmit": CommandResultOf<ScienceTransmission>;
+  /** Change one of a host mod's own settings through its Uplink, at once. */
   "settings.mod.write": CommandResult;
+  /** Apply the settings from one Save press together and write the settings file once. */
   "settings.save": CommandResult;
+  /** Ask where a body is at each of a list of instants. */
   "system.bodies.statesAt": BodyStatesReply;
+  /** Put the view in a different reference frame. */
   "system.frame.set": CommandResult;
+  /** Cancels a held or travelling command: its lane number alone, or it and every later number this centre had sent on the lane when it was pressed. */
   "system.uplink.cancel": UplinkActionReply;
+  /** Sends a held or overdue command again in its own place on its lane: a new copy with the same lane number, which must arrive before the commands behind it stop waiting for it. */
   "system.uplink.resend": UplinkActionReply;
+  /** Pause or resume the game. */
   "time.setPaused": CommandResult;
+  /** Select a time-warp rate. */
   "time.setWarpIndex": CommandResult;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setAbort": CommandResult;
+  /** Set a numbered custom action group on or off. */
   "vessel.control.setActionGroup": CommandResult;
+  /** Drive the held control axes of the fly-by-wire override. */
   "vessel.control.setAxes": CommandResult;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setBrakes": CommandResult;
+  /** Turn the fly-by-wire override on or off. */
   "vessel.control.setFlyByWire": CommandResult;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setGear": CommandResult;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setLights": CommandResult;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setRcs": CommandResult;
+  /** Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. */
   "vessel.control.setSas": CommandResult;
+  /** Set the SAS mode to hold. */
   "vessel.control.setSasMode": CommandResult;
+  /** Set the main throttle. */
   "vessel.control.setThrottle": CommandResult;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "vessel.control.stage": CommandResultOf<number>;
+  /** Fire one button of one part's right-click Part Action Window, the remote-control equivalent of the player clicking it in-game. */
   "vessel.invokePartAction": CommandResult;
+  /** Add a manoeuvre node. */
   "vessel.maneuver.add": CommandResultOf<string>;
+  /** Delete a manoeuvre node. */
   "vessel.maneuver.remove": CommandResult;
+  /** Replace an existing node's time and delta-v. */
   "vessel.maneuver.update": CommandResult;
+  /** Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. */
   "vessel.target.clear": CommandResult;
+  /** Set the active vessel's target. */
   "vessel.target.set": CommandResult;
 }
 

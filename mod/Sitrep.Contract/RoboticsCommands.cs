@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Args for <c>robotics.servo.setAngle</c>: the absolute angle a hinge or
+/// Drive a hinge or rotation servo to an angle. Args for <c>robotics.servo.setAngle</c>: the absolute angle a hinge or
 /// rotation servo is to drive to, keyed by the part's <see cref="PartId"/>.
 /// <see cref="PartId"/> is the same <c>flightID</c> string
 /// <c>parts.robotics</c> publishes on each servo entry, so a widget sends back
@@ -31,7 +31,7 @@ public class ServoSetAngleArgs
 }
 
 /// <summary>
-/// Args for <c>robotics.servo.setExtension</c>: the absolute extension a
+/// Drive a piston to an extension. Args for <c>robotics.servo.setExtension</c>: the absolute extension a
 /// piston is to drive to, keyed by the part's <see cref="PartId"/>. A hinge or
 /// rotation servo has no extension and a rotor no target: a
 /// <c>setExtension</c> aimed at one fails with
@@ -55,7 +55,7 @@ public class ServoSetExtensionArgs
 }
 
 /// <summary>
-/// Args shared by every robotics boolean actuation
+/// Switch a robotics servo or rotor motor or lock on or off. Args shared by every robotics boolean actuation
 /// (<c>robotics.servo.setMotor</c>/<c>setLock</c> and
 /// <c>robotics.rotor.setMotor</c>/<c>setLock</c>): an absolute state to
 /// apply, never a toggle, like every other actuation command (see
@@ -83,7 +83,7 @@ public class ServoSetEnabledArgs
 }
 
 /// <summary>
-/// Args for <c>robotics.rotor.setRpmLimit</c>: the absolute rpm cap to apply,
+/// Set a rotor's rpm cap. Args for <c>robotics.rotor.setRpmLimit</c>: the absolute rpm cap to apply,
 /// keyed by <see cref="PartId"/>.
 /// </summary>
 /// <category>Command arguments</category>
@@ -104,7 +104,7 @@ public class RotorSetRpmLimitArgs
 }
 
 /// <summary>
-/// Args for <c>robotics.rotor.setTorqueLimit</c>: the absolute torque limit to
+/// Set a rotor's torque limit. Args for <c>robotics.rotor.setTorqueLimit</c>: the absolute torque limit to
 /// apply, keyed by <see cref="PartId"/>. A value outside 0 to 100 fails with
 /// <see cref="CommandErrorCode.Range"/>.
 /// </summary>
@@ -126,7 +126,7 @@ public class RotorSetTorqueLimitArgs
 }
 
 /// <summary>
-/// Args for <c>robotics.rotor.setBrake</c>: the absolute brake strength to
+/// Set a rotor's brake strength. Args for <c>robotics.rotor.setBrake</c>: the absolute brake strength to
 /// apply, keyed by <see cref="PartId"/>. A value outside 0 to 200 fails with
 /// <see cref="CommandErrorCode.Range"/>.
 /// </summary>

@@ -339,10 +339,11 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
-      stable `ContractID` as a string, the same id `career.status` publishes for
-      each contract as `contracts[].id`. Which of the three verbs is valid depends
-      on the contract's current state (accept/decline require an offered contract,
+      Accept, decline or cancel a contract. Args shared by
+      `career.contract.accept`/`decline`/`cancel`: the contract's stable
+      `ContractID` as a string, the same id `career.status` publishes for each
+      contract as `contracts[].id`. Which of the three verbs is valid depends on
+      the contract's current state (accept/decline require an offered contract,
       cancel an active one); an out-of-state request comes back
       `CommandErrorCode.ModeUnavailable`.
     servers:
@@ -360,10 +361,11 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
-      stable `ContractID` as a string, the same id `career.status` publishes for
-      each contract as `contracts[].id`. Which of the three verbs is valid depends
-      on the contract's current state (accept/decline require an offered contract,
+      Accept, decline or cancel a contract. Args shared by
+      `career.contract.accept`/`decline`/`cancel`: the contract's stable
+      `ContractID` as a string, the same id `career.status` publishes for each
+      contract as `contracts[].id`. Which of the three verbs is valid depends on
+      the contract's current state (accept/decline require an offered contract,
       cancel an active one); an out-of-state request comes back
       `CommandErrorCode.ModeUnavailable`.
     servers:
@@ -381,10 +383,11 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
-      stable `ContractID` as a string, the same id `career.status` publishes for
-      each contract as `contracts[].id`. Which of the three verbs is valid depends
-      on the contract's current state (accept/decline require an offered contract,
+      Accept, decline or cancel a contract. Args shared by
+      `career.contract.accept`/`decline`/`cancel`: the contract's stable
+      `ContractID` as a string, the same id `career.status` publishes for each
+      contract as `contracts[].id`. Which of the three verbs is valid depends on
+      the contract's current state (accept/decline require an offered contract,
       cancel an active one); an out-of-state request comes back
       `CommandErrorCode.ModeUnavailable`.
     servers:
@@ -402,6 +405,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Fire a hired kerbal, returning them to the applicant pool.
       `career.crew.fire`'s args: a hired kerbal's `ProtoCrewMember.name`, the same
       id `spaceCenter.crewRoster` publishes for each roster entry. Firing costs
       nothing and returns the kerbal to the applicant pool, so it is reversible: a
@@ -424,8 +428,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `career.crew.hire`'s args: the applicant's `ProtoCrewMember.name`, the same
-      id `spaceCenter.astronautComplex` publishes for each applicant as
+      Hire an applicant into the crew roster. `career.crew.hire`'s args: the
+      applicant's `ProtoCrewMember.name`, the same id
+      `spaceCenter.astronautComplex` publishes for each applicant as
       `applicants[].name`, so a client hires the applicant it read. Hiring debits
       the current recruit cost from funds and moves the applicant into the crew
       roster. An applicant that has left the pool since it was read (someone else
@@ -479,8 +484,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `career.facility.upgrade`'s args: the facility's `SpaceCenterFacility` enum
-      name (e.g. `"VehicleAssemblyBuilding"`, `"LaunchPad"`), the same key
+      Raise a Space Center facility by one tier. `career.facility.upgrade`'s args:
+      the facility's `SpaceCenterFacility` enum name (e.g.
+      `"VehicleAssemblyBuilding"`, `"LaunchPad"`), the same key
       `CareerFacilities`'s `facilities` map uses on the `career.facilities`
       channel (the buildings are not on `career.status`). Upgrading raises the
       facility one tier and deducts its upgrade cost from funds.
@@ -551,14 +557,15 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `career.strategy.activate`'s args: the strategy's stable id plus the slider
-      fraction to activate it at. `ActivateStrategyArgs.strategyId` is
-      `StrategyConfig.Name` (e.g. `"OutsourceRnDStrategy"`): the same id
-      `career.status` publishes for each strategy as `strategies[].id`, so a
-      client activates using the id it read. `ActivateStrategyArgs.factor` is the
-      0 to 1 slider fraction the strategy is committed at (its up-front funds,
-      science and reputation cost scales with it); a strategy with no factor
-      slider ignores it and activates at its fixed factor.
+      Activate a strategy at a chosen commitment. `career.strategy.activate`'s
+      args: the strategy's stable id plus the slider fraction to activate it at.
+      `ActivateStrategyArgs.strategyId` is `StrategyConfig.Name` (e.g.
+      `"OutsourceRnDStrategy"`): the same id `career.status` publishes for each
+      strategy as `strategies[].id`, so a client activates using the id it read.
+      `ActivateStrategyArgs.factor` is the 0 to 1 slider fraction the strategy is
+      committed at (its up-front funds, science and reputation cost scales with
+      it); a strategy with no factor slider ignores it and activates at its fixed
+      factor.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -574,8 +581,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `career.strategy.deactivate`'s args: the strategy's stable
-      `StrategyConfig.Name` id (see `ActivateStrategyArgs.strategyId`).
+      Deactivate an active strategy. `career.strategy.deactivate`'s args: the
+      strategy's stable `StrategyConfig.Name` id (see
+      `ActivateStrategyArgs.strategyId`).
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -591,9 +599,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `career.tech.unlock`'s args: the tech node's `techID`, the same id
-      `career.status` publishes for each tech node as `tech.nodes[].id`. Unlocking
-      deducts the node's science cost.
+      Unlock a tech node, spending its science cost. `career.tech.unlock`'s args:
+      the tech node's `techID`, the same id `career.status` publishes for each
+      tech node as `tech.nodes[].id`. Unlocking deducts the node's science cost.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -1643,10 +1651,11 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      The empty args shape, for the core commands that operate on the current
-      flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+      Take no args: stage, clear the target, recover, revert to launch, or go to
+      the Tracking Station or Space Center. The empty args shape, for the core
+      commands that operate on the current flight or the active vessel and so take
+      nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
       **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
@@ -1693,10 +1702,11 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      `ksp.revertToEditor`'s args, which editor the flight reverts back into.
-      `RevertToEditorArgs.editor` is a small opaque string (`"vab"` or `"sph"`,
-      case-insensitive) rather than the KSP `EditorFacility` enum; an unrecognised
-      value fails with `CommandErrorCode.Range` before the game is ever touched.
+      Revert the flight back into the VAB or SPH. `ksp.revertToEditor`'s args,
+      which editor the flight reverts back into. `RevertToEditorArgs.editor` is a
+      small opaque string (`"vab"` or `"sph"`, case-insensitive) rather than the
+      KSP `EditorFacility` enum; an unrecognised value fails with
+      `CommandErrorCode.Range` before the game is ever touched.
 
       `ksp.revertToLaunch`, `ksp.toTrackingStation`, `ksp.toSpaceCenter` and
       `ksp.recover` take no args (they operate on the current flight / active
@@ -1716,10 +1726,11 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      The empty args shape, for the core commands that operate on the current
-      flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+      Take no args: stage, clear the target, recover, revert to launch, or go to
+      the Tracking Station or Space Center. The empty args shape, for the core
+      commands that operate on the current flight or the active vessel and so take
+      nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
       **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
@@ -1739,9 +1750,10 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      `ksp.switchVessel`'s args: the stable vessel id (`vessel.id.ToString()`, the
-      same id `SetTargetArgs.vesselId` uses), never a roster array index. An empty
-      id fails with `CommandErrorCode.NotFound` before the game is ever touched.
+      Switch the flight to another tracked vessel. `ksp.switchVessel`'s args: the
+      stable vessel id (`vessel.id.ToString()`, the same id
+      `SetTargetArgs.vesselId` uses), never a roster array index. An empty id
+      fails with `CommandErrorCode.NotFound` before the game is ever touched.
       Works from the flight scene, where it changes the active vessel, and from
       the Space Center and the Tracking Station, where it saves and then loads the
       vessel's flight. Refused with `CommandErrorCode.WrongScene` from the editors
@@ -1763,10 +1775,11 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      The empty args shape, for the core commands that operate on the current
-      flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+      Take no args: stage, clear the target, recover, revert to launch, or go to
+      the Tracking Station or Space Center. The empty args shape, for the core
+      commands that operate on the current flight or the active vessel and so take
+      nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
       **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
@@ -1786,10 +1799,11 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      The empty args shape, for the core commands that operate on the current
-      flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+      Take no args: stage, clear the target, recover, revert to launch, or go to
+      the Tracking Station or Space Center. The empty args shape, for the core
+      commands that operate on the current flight or the active vessel and so take
+      nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
       **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
@@ -1957,9 +1971,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for `robotics.rotor.setBrake`: the absolute brake strength to apply,
-      keyed by `RotorSetBrakeArgs.partId`. A value outside 0 to 200 fails with
-      `CommandErrorCode.Range`.
+      Set a rotor's brake strength. Args for `robotics.rotor.setBrake`: the
+      absolute brake strength to apply, keyed by `RotorSetBrakeArgs.partId`. A
+      value outside 0 to 200 fails with `CommandErrorCode.Range`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -1975,8 +1989,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by every robotics boolean actuation
-      (`robotics.servo.setMotor`/`setLock` and
+      Switch a robotics servo or rotor motor or lock on or off. Args shared by
+      every robotics boolean actuation (`robotics.servo.setMotor`/`setLock` and
       `robotics.rotor.setMotor`/`setLock`): an absolute state to apply, never a
       toggle, like every other actuation command (see `SetEnabledArgs`). Keyed by
       `ServoSetEnabledArgs.partId`, the `flightID` string `parts.robotics`
@@ -1996,8 +2010,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by every robotics boolean actuation
-      (`robotics.servo.setMotor`/`setLock` and
+      Switch a robotics servo or rotor motor or lock on or off. Args shared by
+      every robotics boolean actuation (`robotics.servo.setMotor`/`setLock` and
       `robotics.rotor.setMotor`/`setLock`): an absolute state to apply, never a
       toggle, like every other actuation command (see `SetEnabledArgs`). Keyed by
       `ServoSetEnabledArgs.partId`, the `flightID` string `parts.robotics`
@@ -2017,8 +2031,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for `robotics.rotor.setRpmLimit`: the absolute rpm cap to apply, keyed
-      by `RotorSetRpmLimitArgs.partId`.
+      Set a rotor's rpm cap. Args for `robotics.rotor.setRpmLimit`: the absolute
+      rpm cap to apply, keyed by `RotorSetRpmLimitArgs.partId`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -2034,9 +2048,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for `robotics.rotor.setTorqueLimit`: the absolute torque limit to
-      apply, keyed by `RotorSetTorqueLimitArgs.partId`. A value outside 0 to 100
-      fails with `CommandErrorCode.Range`.
+      Set a rotor's torque limit. Args for `robotics.rotor.setTorqueLimit`: the
+      absolute torque limit to apply, keyed by `RotorSetTorqueLimitArgs.partId`. A
+      value outside 0 to 100 fails with `CommandErrorCode.Range`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -2052,8 +2066,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for `robotics.servo.setAngle`: the absolute angle a hinge or rotation
-      servo is to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
+      Drive a hinge or rotation servo to an angle. Args for
+      `robotics.servo.setAngle`: the absolute angle a hinge or rotation servo is
+      to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
       `ServoSetAngleArgs.partId` is the same `flightID` string `parts.robotics`
       publishes on each servo entry, so a widget sends back the exact id it
       displays. A piston has no angle and a rotor no target: a `setAngle` aimed at
@@ -2074,11 +2089,11 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args for `robotics.servo.setExtension`: the absolute extension a piston is
-      to drive to, keyed by the part's `ServoSetExtensionArgs.partId`. A hinge or
-      rotation servo has no extension and a rotor no target: a `setExtension`
-      aimed at one fails with `CommandResult.errorCode`
-      `CommandErrorCode.CapabilityMismatch`.
+      Drive a piston to an extension. Args for `robotics.servo.setExtension`: the
+      absolute extension a piston is to drive to, keyed by the part's
+      `ServoSetExtensionArgs.partId`. A hinge or rotation servo has no extension
+      and a rotor no target: a `setExtension` aimed at one fails with
+      `CommandResult.errorCode` `CommandErrorCode.CapabilityMismatch`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -2094,8 +2109,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by every robotics boolean actuation
-      (`robotics.servo.setMotor`/`setLock` and
+      Switch a robotics servo or rotor motor or lock on or off. Args shared by
+      every robotics boolean actuation (`robotics.servo.setMotor`/`setLock` and
       `robotics.rotor.setMotor`/`setLock`): an absolute state to apply, never a
       toggle, like every other actuation command (see `SetEnabledArgs`). Keyed by
       `ServoSetEnabledArgs.partId`, the `flightID` string `parts.robotics`
@@ -2115,8 +2130,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by every robotics boolean actuation
-      (`robotics.servo.setMotor`/`setLock` and
+      Switch a robotics servo or rotor motor or lock on or off. Args shared by
+      every robotics boolean actuation (`robotics.servo.setMotor`/`setLock` and
       `robotics.rotor.setMotor`/`setLock`): an absolute state to apply, never a
       toggle, like every other actuation command (see `SetEnabledArgs`). Keyed by
       `ServoSetEnabledArgs.partId`, the `flightID` string `parts.robotics`
@@ -2197,13 +2212,13 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by every science-experiment actuation command
-      (`science.experiment.deploy` and `science.experiment.transmit`): the
-      experiment is named by `ExperimentActionArgs.partId`, the part's
-      `flightID.ToString()`, the same id `science.instruments` carries on each
-      experiment entry. It is looked up among the active vessel's parts, never by
-      array index. An empty or unknown `ExperimentActionArgs.partId` fails with
-      `CommandErrorCode.NotFound`.
+      Deploy or transmit a science experiment on a part. Args shared by every
+      science-experiment actuation command (`science.experiment.deploy` and
+      `science.experiment.transmit`): the experiment is named by
+      `ExperimentActionArgs.partId`, the part's `flightID.ToString()`, the same id
+      `science.instruments` carries on each experiment entry. It is looked up
+      among the active vessel's parts, never by array index. An empty or unknown
+      `ExperimentActionArgs.partId` fails with `CommandErrorCode.NotFound`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -2219,13 +2234,13 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Args shared by every science-experiment actuation command
-      (`science.experiment.deploy` and `science.experiment.transmit`): the
-      experiment is named by `ExperimentActionArgs.partId`, the part's
-      `flightID.ToString()`, the same id `science.instruments` carries on each
-      experiment entry. It is looked up among the active vessel's parts, never by
-      array index. An empty or unknown `ExperimentActionArgs.partId` fails with
-      `CommandErrorCode.NotFound`.
+      Deploy or transmit a science experiment on a part. Args shared by every
+      science-experiment actuation command (`science.experiment.deploy` and
+      `science.experiment.transmit`): the experiment is named by
+      `ExperimentActionArgs.partId`, the part's `flightID.ToString()`, the same id
+      `science.instruments` carries on each experiment entry. It is looked up
+      among the active vessel's parts, never by array index. An empty or unknown
+      `ExperimentActionArgs.partId` fails with `CommandErrorCode.NotFound`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -2463,8 +2478,9 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      Arguments to `settings.save`: one Save press, applied together and written
-      to the settings file once. Never delayed by light time.
+      Apply the settings from one Save press together and write the settings file
+      once. Arguments to `settings.save`: one Save press, applied together and
+      written to the settings file once. Never delayed by light time.
 
       Safe to send again. A save sets each row to the value named, so repeating
       one that already landed changes nothing. That matters because a save that
@@ -2694,10 +2710,11 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      Args for `system.bodies.statesAt`: where one body is at each of a list of
-      instants, from the propagation provider in use on this install. The instants
-      are the caller's own, such as the departure and arrival times a transfer
-      search tries.
+      Ask where a body is at each of a list of instants. Args for
+      `system.bodies.statesAt`: where one body is at each of a list of instants,
+      from the propagation provider in use on this install. The instants are the
+      caller's own, such as the departure and arrival times a transfer search
+      tries.
 
       The command centre is the sender's, taken from the connection the command
       arrives on; there is no field to name another.
@@ -2763,7 +2780,8 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      `system.frame.set`'s args: the frame to put the view in.
+      Put the view in a different reference frame. `system.frame.set`'s args: the
+      frame to put the view in.
 
       It names the two head bodies, not the sets: where `ControlFrame` reports
       `PrimaryBodies` and `SecondaryBodies`, the mod that owns the view works out
@@ -2947,7 +2965,8 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      `time.setPaused`'s arguments: whether the game is paused.
+      Pause or resume the game. `time.setPaused`'s arguments: whether the game is
+      paused.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: false
@@ -3086,6 +3105,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
       Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
       `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
       apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -3124,6 +3144,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Drive the held control axes of the fly-by-wire override.
       `vessel.control.setAxes`'s args: a partial update of the held fly-by-wire
       override. Every field is nullable, and only the fields you set change their
       held value, so one axis can be driven on its own without disturbing the
@@ -3155,6 +3176,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
       Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
       `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
       apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -3201,6 +3223,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
       Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
       `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
       apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -3221,6 +3244,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
       Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
       `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
       apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -3241,6 +3265,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
       Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
       `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
       apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -3261,6 +3286,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
+      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
       Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
       `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
       apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -3281,7 +3307,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `vessel.control.setSasMode`'s arguments: the SAS mode to hold.
+      Set the SAS mode to hold. `vessel.control.setSasMode`'s arguments: the SAS
+      mode to hold.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3297,7 +3324,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `vessel.control.setThrottle`'s arguments: the main throttle setting.
+      Set the main throttle. `vessel.control.setThrottle`'s arguments: the main
+      throttle setting.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3313,10 +3341,11 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      The empty args shape, for the core commands that operate on the current
-      flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+      Take no args: stage, clear the target, recover, revert to launch, or go to
+      the Tracking Station or Space Center. The empty args shape, for the core
+      commands that operate on the current flight or the active vessel and so take
+      nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
       **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
@@ -3534,9 +3563,9 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `vessel.maneuver.add`'s args: a new manoeuvre node's time and its delta-v as
-      named components in the node's own prograde, normal and radial-out frame,
-      the same shape as `ManeuverNode`.
+      Add a manoeuvre node. `vessel.maneuver.add`'s args: a new manoeuvre node's
+      time and its delta-v as named components in the node's own prograde, normal
+      and radial-out frame, the same shape as `ManeuverNode`.
 
       The result is a `CommandResult<string>` whose `Payload` is the new node's
       opaque id, the same id `ManeuverNode.id` carries on `vessel.maneuver`. A
@@ -3557,7 +3586,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `vessel.maneuver.remove`'s arguments: the manoeuvre node to delete.
+      Delete a manoeuvre node. `vessel.maneuver.remove`'s arguments: the manoeuvre
+      node to delete.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3833,10 +3863,11 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      The empty args shape, for the core commands that operate on the current
-      flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+      Take no args: stage, clear the target, recover, revert to launch, or go to
+      the Tracking Station or Space Center. The empty args shape, for the core
+      commands that operate on the current flight or the active vessel and so take
+      nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
       **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
@@ -3856,8 +3887,8 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      `vessel.target.set`'s args: a discriminated union, written as
-      `SetTargetArgs.kind` plus the fields that kind uses.
+      Set the active vessel's target. `vessel.target.set`'s args: a discriminated
+      union, written as `SetTargetArgs.kind` plus the fields that kind uses.
       `SetTargetArgs.vesselId` is the stable vessel id, never an array index, and
       a vessel id and a body index travel in separate fields so they cannot be
       confused.
@@ -8764,14 +8795,15 @@ components:
     ActivateStrategyArgs:
       type: object
       description: |-
-        `career.strategy.activate`'s args: the strategy's stable id plus the slider
-        fraction to activate it at. `ActivateStrategyArgs.strategyId` is
-        `StrategyConfig.Name` (e.g. `"OutsourceRnDStrategy"`): the same id
-        `career.status` publishes for each strategy as `strategies[].id`, so a
-        client activates using the id it read. `ActivateStrategyArgs.factor` is the
-        0 to 1 slider fraction the strategy is committed at (its up-front funds,
-        science and reputation cost scales with it); a strategy with no factor
-        slider ignores it and activates at its fixed factor.
+        Activate a strategy at a chosen commitment. `career.strategy.activate`'s
+        args: the strategy's stable id plus the slider fraction to activate it at.
+        `ActivateStrategyArgs.strategyId` is `StrategyConfig.Name` (e.g.
+        `"OutsourceRnDStrategy"`): the same id `career.status` publishes for each
+        strategy as `strategies[].id`, so a client activates using the id it read.
+        `ActivateStrategyArgs.factor` is the 0 to 1 slider fraction the strategy is
+        committed at (its up-front funds, science and reputation cost scales with
+        it); a strategy with no factor slider ignores it and activates at its fixed
+        factor.
       required:
         - strategyId
         - factor
@@ -8789,9 +8821,9 @@ components:
     AddManeuverNodeArgs:
       type: object
       description: |-
-        `vessel.maneuver.add`'s args: a new manoeuvre node's time and its delta-v as
-        named components in the node's own prograde, normal and radial-out frame,
-        the same shape as `ManeuverNode`.
+        Add a manoeuvre node. `vessel.maneuver.add`'s args: a new manoeuvre node's
+        time and its delta-v as named components in the node's own prograde, normal
+        and radial-out frame, the same shape as `ManeuverNode`.
 
         The result is a `CommandResult<string>` whose `Payload` is the new node's
         opaque id, the same id `ManeuverNode.id` carries on `vessel.maneuver`. A
@@ -9328,10 +9360,11 @@ components:
     BodyStatesRequest:
       type: object
       description: |-
-        Args for `system.bodies.statesAt`: where one body is at each of a list of
-        instants, from the propagation provider in use on this install. The instants
-        are the caller's own, such as the departure and arrival times a transfer
-        search tries.
+        Ask where a body is at each of a list of instants. Args for
+        `system.bodies.statesAt`: where one body is at each of a list of instants,
+        from the propagation provider in use on this install. The instants are the
+        caller's own, such as the departure and arrival times a transfer search
+        tries.
 
         The command centre is the sender's, taken from the connection the command
         arrives on; there is no field to name another.
@@ -12233,10 +12266,11 @@ components:
     ContractActionArgs:
       type: object
       description: |-
-        Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
-        stable `ContractID` as a string, the same id `career.status` publishes for
-        each contract as `contracts[].id`. Which of the three verbs is valid depends
-        on the contract's current state (accept/decline require an offered contract,
+        Accept, decline or cancel a contract. Args shared by
+        `career.contract.accept`/`decline`/`cancel`: the contract's stable
+        `ContractID` as a string, the same id `career.status` publishes for each
+        contract as `contracts[].id`. Which of the three verbs is valid depends on
+        the contract's current state (accept/decline require an offered contract,
         cancel an active one); an out-of-state request comes back
         `CommandErrorCode.ModeUnavailable`.
       required:
@@ -13061,8 +13095,9 @@ components:
     DeactivateStrategyArgs:
       type: object
       description: |-
-        `career.strategy.deactivate`'s args: the strategy's stable
-        `StrategyConfig.Name` id (see `ActivateStrategyArgs.strategyId`).
+        Deactivate an active strategy. `career.strategy.deactivate`'s args: the
+        strategy's stable `StrategyConfig.Name` id (see
+        `ActivateStrategyArgs.strategyId`).
       required:
         - strategyId
       properties:
@@ -13594,13 +13629,13 @@ components:
     ExperimentActionArgs:
       type: object
       description: |-
-        Args shared by every science-experiment actuation command
-        (`science.experiment.deploy` and `science.experiment.transmit`): the
-        experiment is named by `ExperimentActionArgs.partId`, the part's
-        `flightID.ToString()`, the same id `science.instruments` carries on each
-        experiment entry. It is looked up among the active vessel's parts, never by
-        array index. An empty or unknown `ExperimentActionArgs.partId` fails with
-        `CommandErrorCode.NotFound`.
+        Deploy or transmit a science experiment on a part. Args shared by every
+        science-experiment actuation command (`science.experiment.deploy` and
+        `science.experiment.transmit`): the experiment is named by
+        `ExperimentActionArgs.partId`, the part's `flightID.ToString()`, the same id
+        `science.instruments` carries on each experiment entry. It is looked up
+        among the active vessel's parts, never by array index. An empty or unknown
+        `ExperimentActionArgs.partId` fails with `CommandErrorCode.NotFound`.
       required:
         - partId
       properties:
@@ -14002,6 +14037,7 @@ components:
     FireCrewArgs:
       type: object
       description: |-
+        Fire a hired kerbal, returning them to the applicant pool.
         `career.crew.fire`'s args: a hired kerbal's `ProtoCrewMember.name`, the same
         id `spaceCenter.crewRoster` publishes for each roster entry. Firing costs
         nothing and returns the kerbal to the applicant pool, so it is reversible: a
@@ -14398,8 +14434,9 @@ components:
     HireApplicantArgs:
       type: object
       description: |-
-        `career.crew.hire`'s args: the applicant's `ProtoCrewMember.name`, the same
-        id `spaceCenter.astronautComplex` publishes for each applicant as
+        Hire an applicant into the crew roster. `career.crew.hire`'s args: the
+        applicant's `ProtoCrewMember.name`, the same id
+        `spaceCenter.astronautComplex` publishes for each applicant as
         `applicants[].name`, so a client hires the applicant it read. Hiring debits
         the current recruit cost from funds and moves the applicant into the crew
         roster. An applicant that has left the pool since it was read (someone else
@@ -15817,10 +15854,11 @@ components:
     NoCommandArgs:
       type: object
       description: |-
-        The empty args shape, for the core commands that operate on the current
-        flight or the active vessel and so take nothing: `vessel.control.stage`,
-        `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-        `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+        Take no args: stage, clear the target, recover, revert to launch, or go to
+        the Tracking Station or Space Center. The empty args shape, for the core
+        commands that operate on the current flight or the active vessel and so take
+        nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+        `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
         **Send no `args` at all for these six.** The SDK's `send()` takes no second
         argument for a command typed this way, and anything you do put on the wire
@@ -16832,7 +16870,9 @@ components:
           description: Science earned for this subject by this recovery.
     RemoveManeuverNodeArgs:
       type: object
-      description: "`vessel.maneuver.remove`'s arguments: the manoeuvre node to delete."
+      description: |-
+        Delete a manoeuvre node. `vessel.maneuver.remove`'s arguments: the manoeuvre
+        node to delete.
       required:
         - nodeId
       properties:
@@ -16907,10 +16947,11 @@ components:
     RevertToEditorArgs:
       type: object
       description: |-
-        `ksp.revertToEditor`'s args, which editor the flight reverts back into.
-        `RevertToEditorArgs.editor` is a small opaque string (`"vab"` or `"sph"`,
-        case-insensitive) rather than the KSP `EditorFacility` enum; an unrecognised
-        value fails with `CommandErrorCode.Range` before the game is ever touched.
+        Revert the flight back into the VAB or SPH. `ksp.revertToEditor`'s args,
+        which editor the flight reverts back into. `RevertToEditorArgs.editor` is a
+        small opaque string (`"vab"` or `"sph"`, case-insensitive) rather than the
+        KSP `EditorFacility` enum; an unrecognised value fails with
+        `CommandErrorCode.Range` before the game is ever touched.
 
         `ksp.revertToLaunch`, `ksp.toTrackingStation`, `ksp.toSpaceCenter` and
         `ksp.recover` take no args (they operate on the current flight / active
@@ -16999,9 +17040,9 @@ components:
     RotorSetBrakeArgs:
       type: object
       description: |-
-        Args for `robotics.rotor.setBrake`: the absolute brake strength to apply,
-        keyed by `RotorSetBrakeArgs.partId`. A value outside 0 to 200 fails with
-        `CommandErrorCode.Range`.
+        Set a rotor's brake strength. Args for `robotics.rotor.setBrake`: the
+        absolute brake strength to apply, keyed by `RotorSetBrakeArgs.partId`. A
+        value outside 0 to 200 fails with `CommandErrorCode.Range`.
       required:
         - partId
         - percent
@@ -17019,8 +17060,8 @@ components:
     RotorSetRpmLimitArgs:
       type: object
       description: |-
-        Args for `robotics.rotor.setRpmLimit`: the absolute rpm cap to apply, keyed
-        by `RotorSetRpmLimitArgs.partId`.
+        Set a rotor's rpm cap. Args for `robotics.rotor.setRpmLimit`: the absolute
+        rpm cap to apply, keyed by `RotorSetRpmLimitArgs.partId`.
       required:
         - partId
         - rpm
@@ -17038,9 +17079,9 @@ components:
     RotorSetTorqueLimitArgs:
       type: object
       description: |-
-        Args for `robotics.rotor.setTorqueLimit`: the absolute torque limit to
-        apply, keyed by `RotorSetTorqueLimitArgs.partId`. A value outside 0 to 100
-        fails with `CommandErrorCode.Range`.
+        Set a rotor's torque limit. Args for `robotics.rotor.setTorqueLimit`: the
+        absolute torque limit to apply, keyed by `RotorSetTorqueLimitArgs.partId`. A
+        value outside 0 to 100 fails with `CommandErrorCode.Range`.
       required:
         - partId
         - percent
@@ -17100,8 +17141,9 @@ components:
     SaveSettingsArgs:
       type: object
       description: |-
-        Arguments to `settings.save`: one Save press, applied together and written
-        to the settings file once. Never delayed by light time.
+        Apply the settings from one Save press together and write the settings file
+        once. Arguments to `settings.save`: one Save press, applied together and
+        written to the settings file once. Never delayed by light time.
 
         Safe to send again. A save sets each row to the value named, so repeating
         one that already landed changes nothing. That matters because a save that
@@ -18061,8 +18103,9 @@ components:
     ServoSetAngleArgs:
       type: object
       description: |-
-        Args for `robotics.servo.setAngle`: the absolute angle a hinge or rotation
-        servo is to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
+        Drive a hinge or rotation servo to an angle. Args for
+        `robotics.servo.setAngle`: the absolute angle a hinge or rotation servo is
+        to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
         `ServoSetAngleArgs.partId` is the same `flightID` string `parts.robotics`
         publishes on each servo entry, so a widget sends back the exact id it
         displays. A piston has no angle and a rotor no target: a `setAngle` aimed at
@@ -18085,8 +18128,8 @@ components:
     ServoSetEnabledArgs:
       type: object
       description: |-
-        Args shared by every robotics boolean actuation
-        (`robotics.servo.setMotor`/`setLock` and
+        Switch a robotics servo or rotor motor or lock on or off. Args shared by
+        every robotics boolean actuation (`robotics.servo.setMotor`/`setLock` and
         `robotics.rotor.setMotor`/`setLock`): an absolute state to apply, never a
         toggle, like every other actuation command (see `SetEnabledArgs`). Keyed by
         `ServoSetEnabledArgs.partId`, the `flightID` string `parts.robotics`
@@ -18112,11 +18155,11 @@ components:
     ServoSetExtensionArgs:
       type: object
       description: |-
-        Args for `robotics.servo.setExtension`: the absolute extension a piston is
-        to drive to, keyed by the part's `ServoSetExtensionArgs.partId`. A hinge or
-        rotation servo has no extension and a rotor no target: a `setExtension`
-        aimed at one fails with `CommandResult.errorCode`
-        `CommandErrorCode.CapabilityMismatch`.
+        Drive a piston to an extension. Args for `robotics.servo.setExtension`: the
+        absolute extension a piston is to drive to, keyed by the part's
+        `ServoSetExtensionArgs.partId`. A hinge or rotation servo has no extension
+        and a rotor no target: a `setExtension` aimed at one fails with
+        `CommandResult.errorCode` `CommandErrorCode.CapabilityMismatch`.
       required:
         - partId
         - metres
@@ -18156,6 +18199,7 @@ components:
     SetControlAxesArgs:
       type: object
       description: |-
+        Drive the held control axes of the fly-by-wire override.
         `vessel.control.setAxes`'s args: a partial update of the held fly-by-wire
         override. Every field is nullable, and only the fields you set change their
         held value, so one axis can be driven on its own without disturbing the
@@ -18236,7 +18280,8 @@ components:
     SetControlFrameArgs:
       type: object
       description: |-
-        `system.frame.set`'s args: the frame to put the view in.
+        Put the view in a different reference frame. `system.frame.set`'s args: the
+        frame to put the view in.
 
         It names the two head bodies, not the sets: where `ControlFrame` reports
         `PrimaryBodies` and `SecondaryBodies`, the mod that owns the view works out
@@ -18285,6 +18330,7 @@ components:
     SetEnabledArgs:
       type: object
       description: |-
+        Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
         Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
         `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
         apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -18322,7 +18368,9 @@ components:
             and trims to 0.
     SetPausedArgs:
       type: object
-      description: "`time.setPaused`'s arguments: whether the game is paused."
+      description: |-
+        Pause or resume the game. `time.setPaused`'s arguments: whether the game is
+        paused.
       required:
         - paused
       properties:
@@ -18332,7 +18380,9 @@ components:
           description: True to pause the game, false to resume it.
     SetSasModeArgs:
       type: object
-      description: "`vessel.control.setSasMode`'s arguments: the SAS mode to hold."
+      description: |-
+        Set the SAS mode to hold. `vessel.control.setSasMode`'s arguments: the SAS
+        mode to hold.
       required:
         - mode
       properties:
@@ -18344,8 +18394,8 @@ components:
     SetTargetArgs:
       type: object
       description: |-
-        `vessel.target.set`'s args: a discriminated union, written as
-        `SetTargetArgs.kind` plus the fields that kind uses.
+        Set the active vessel's target. `vessel.target.set`'s args: a discriminated
+        union, written as `SetTargetArgs.kind` plus the fields that kind uses.
         `SetTargetArgs.vesselId` is the stable vessel id, never an array index, and
         a vessel id and a body index travel in separate fields so they cannot be
         confused.
@@ -18412,7 +18462,9 @@ components:
             `SetTargetArgs.kind` is `TargetKind.Position`.
     SetThrottleArgs:
       type: object
-      description: "`vessel.control.setThrottle`'s arguments: the main throttle setting."
+      description: |-
+        Set the main throttle. `vessel.control.setThrottle`'s arguments: the main
+        throttle setting.
       required:
         - value
       properties:
@@ -19172,9 +19224,10 @@ components:
     SwitchVesselArgs:
       type: object
       description: |-
-        `ksp.switchVessel`'s args: the stable vessel id (`vessel.id.ToString()`, the
-        same id `SetTargetArgs.vesselId` uses), never a roster array index. An empty
-        id fails with `CommandErrorCode.NotFound` before the game is ever touched.
+        Switch the flight to another tracked vessel. `ksp.switchVessel`'s args: the
+        stable vessel id (`vessel.id.ToString()`, the same id
+        `SetTargetArgs.vesselId` uses), never a roster array index. An empty id
+        fails with `CommandErrorCode.NotFound` before the game is ever touched.
         Works from the flight scene, where it changes the active vessel, and from
         the Space Center and the Tracking Station, where it saves and then loads the
         vessel's flight. Refused with `CommandErrorCode.WrongScene` from the editors
@@ -19736,9 +19789,9 @@ components:
     UnlockTechArgs:
       type: object
       description: |-
-        `career.tech.unlock`'s args: the tech node's `techID`, the same id
-        `career.status` publishes for each tech node as `tech.nodes[].id`. Unlocking
-        deducts the node's science cost.
+        Unlock a tech node, spending its science cost. `career.tech.unlock`'s args:
+        the tech node's `techID`, the same id `career.status` publishes for each
+        tech node as `tech.nodes[].id`. Unlocking deducts the node's science cost.
       required:
         - techId
       properties:
@@ -19855,8 +19908,9 @@ components:
     UpgradeFacilityArgs:
       type: object
       description: |-
-        `career.facility.upgrade`'s args: the facility's `SpaceCenterFacility` enum
-        name (e.g. `"VehicleAssemblyBuilding"`, `"LaunchPad"`), the same key
+        Raise a Space Center facility by one tier. `career.facility.upgrade`'s args:
+        the facility's `SpaceCenterFacility` enum name (e.g.
+        `"VehicleAssemblyBuilding"`, `"LaunchPad"`), the same key
         `CareerFacilities`'s `facilities` map uses on the `career.facilities`
         channel (the buildings are not on `career.status`). Upgrading raises the
         facility one tier and deducts its upgrade cost from funds.

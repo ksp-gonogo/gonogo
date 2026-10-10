@@ -35,7 +35,7 @@ public class SetFlyByWireArgs
 }
 
 /// <summary>
-/// <c>vessel.control.setAxes</c>'s args: a partial update of the held
+/// Drive the held control axes of the fly-by-wire override. <c>vessel.control.setAxes</c>'s args: a partial update of the held
 /// fly-by-wire override. Every field is nullable, and only the fields you set
 /// change their held value, so one axis can be driven on its own without
 /// disturbing the others.

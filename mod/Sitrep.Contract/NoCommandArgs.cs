@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The empty args shape, for the core commands that operate on the current
+/// Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. The empty args shape, for the core commands that operate on the current
 /// flight or the active vessel and so take nothing:
 /// <c>vessel.control.stage</c>, <c>vessel.target.clear</c>, <c>ksp.recover</c>,
 /// <c>ksp.revertToLaunch</c>, <c>ksp.toTrackingStation</c> and

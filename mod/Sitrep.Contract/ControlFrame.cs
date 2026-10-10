@@ -166,7 +166,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// <c>system.frame.set</c>'s args: the frame to put the view in.
+    /// Put the view in a different reference frame. <c>system.frame.set</c>'s args: the frame to put the view in.
     ///
     /// <para>It names the two head bodies, not the sets: where
     /// <see cref="ControlFrame"/> reports <c>PrimaryBodies</c> and

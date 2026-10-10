@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// <c>career.strategy.activate</c>'s args: the strategy's stable id plus the
+/// Activate a strategy at a chosen commitment. <c>career.strategy.activate</c>'s args: the strategy's stable id plus the
 /// slider fraction to activate it at. <see cref="StrategyId"/> is
 /// <c>StrategyConfig.Name</c> (e.g. <c>"OutsourceRnDStrategy"</c>): the same
 /// id <c>career.status</c> publishes for each strategy as
@@ -33,7 +33,7 @@ public class ActivateStrategyArgs
     public double Factor { get; set; }
 }
 
-/// <summary><c>career.strategy.deactivate</c>'s args: the strategy's stable
+/// <summary>Deactivate an active strategy. <c>career.strategy.deactivate</c>'s args: the strategy's stable
 /// <c>StrategyConfig.Name</c> id (see <see
 /// cref="ActivateStrategyArgs.StrategyId"/>).</summary>
 /// <category>Command arguments</category>
@@ -50,7 +50,7 @@ public class DeactivateStrategyArgs
 }
 
 /// <summary>
-/// <c>career.tech.unlock</c>'s args: the tech node's <c>techID</c>, the same id
+/// Unlock a tech node, spending its science cost. <c>career.tech.unlock</c>'s args: the tech node's <c>techID</c>, the same id
 /// <c>career.status</c> publishes for each tech node as
 /// <c>tech.nodes[].id</c>. Unlocking deducts the node's science cost.
 /// </summary>
@@ -67,7 +67,7 @@ public class UnlockTechArgs
     public string TechId { get; set; } = "";
 }
 
-/// <summary> Args shared by
+/// <summary> Accept, decline or cancel a contract. Args shared by
 /// <c>career.contract.accept</c>/<c>decline</c>/<c>cancel</c>: the contract's
 /// stable <c>ContractID</c> as a string, the same id <c>career.status</c>
 /// publishes for each contract as <c>contracts[].id</c>. Which of the
@@ -91,7 +91,7 @@ public class ContractActionArgs
 }
 
 /// <summary>
-/// <c>career.facility.upgrade</c>'s args: the facility's
+/// Raise a Space Center facility by one tier. <c>career.facility.upgrade</c>'s args: the facility's
 /// <c>SpaceCenterFacility</c> enum name (e.g. <c>"VehicleAssemblyBuilding"</c>,
 /// <c>"LaunchPad"</c>), the same key <see cref="CareerFacilities"/>'s
 /// <c>facilities</c> map uses on the <c>career.facilities</c> channel (the
@@ -111,7 +111,7 @@ public class UpgradeFacilityArgs
     public string FacilityId { get; set; } = "";
 }
 
-/// <summary> <c>career.crew.hire</c>'s args: the applicant's
+/// <summary> Hire an applicant into the crew roster. <c>career.crew.hire</c>'s args: the applicant's
 /// <c>ProtoCrewMember.name</c>, the same id <c>spaceCenter.astronautComplex</c>
 /// publishes for each applicant as <c>applicants[].name</c>, so a client hires
 /// the applicant it read. Hiring debits the current recruit cost from funds
@@ -135,7 +135,7 @@ public class HireApplicantArgs
     public string ApplicantName { get; set; } = "";
 }
 
-/// <summary> <c>career.crew.fire</c>'s args: a hired kerbal's
+/// <summary> Fire a hired kerbal, returning them to the applicant pool. <c>career.crew.fire</c>'s args: a hired kerbal's
 /// <c>ProtoCrewMember.name</c>, the same id <c>spaceCenter.crewRoster</c>
 /// publishes for each roster entry. Firing costs nothing and returns the
 /// kerbal to the applicant pool, so it is reversible: a re-hire brings them

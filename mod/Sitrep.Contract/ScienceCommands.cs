@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Args shared by every science-experiment actuation command
+/// Deploy or transmit a science experiment on a part. Args shared by every science-experiment actuation command
 /// (<c>science.experiment.deploy</c> and <c>science.experiment.transmit</c>):
 /// the experiment is named by <see cref="PartId"/>, the part's
 /// <c>flightID.ToString()</c>, the same id <c>science.instruments</c> carries

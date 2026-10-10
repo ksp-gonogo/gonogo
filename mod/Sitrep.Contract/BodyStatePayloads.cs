@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Args for <c>system.bodies.statesAt</c>: where one body is at each of a
+    /// Ask where a body is at each of a list of instants. Args for <c>system.bodies.statesAt</c>: where one body is at each of a
     /// list of instants, from the propagation provider in use on this install.
     /// The instants are the caller's own, such as the departure and arrival
     /// times a transfer search tries.

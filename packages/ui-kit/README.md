@@ -30,8 +30,10 @@ package, and the three environment constraints that will otherwise stop you at t
 
 ## Install
 
+Until the first release, `latest` is a placeholder, so install the release candidate with `@rc`.
+
 ```sh
-npm install @ksp-gonogo/ui-kit
+npm install @ksp-gonogo/ui-kit@rc
 ```
 
 React 18 and styled-components 6 are peer dependencies; install them if you don't have them:

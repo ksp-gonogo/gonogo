@@ -99,7 +99,7 @@ export interface FixtureScene {
    * sections to it is running.
    */
   size?: { w: number; h: number };
-  /** Legacy `DataSource` id the bare top-level keys feed. */
+  /** The data source id the fixture's bare top-level keys feed, for a widget still reading a `DataSource`. Absent, `data`. */
   dataSourceId?: string;
   /**
    * This scene's subject IS an empty state, with the reason.
@@ -226,27 +226,49 @@ export interface FixtureStream {
  * widgets found too small for what they hold.
  */
 export interface Scene {
+  /** The fixture file the scene was built from. */
   file: string;
+  /** The file's name without its directory or `.json`, which names the picture it writes. */
   name: string;
+  /** The widget, augment or contribution mounted. */
   target: SceneTarget;
+  /** The widget an augment or contribution is mounted inside, from `_scene.hostWidget`. */
   host?: string;
+  /** What the picture shows, from `_scene.caption`. */
   caption?: string;
+  /** Why an empty state is this scene's subject, from `_scene.expectsEmpty`. */
   expectsEmpty?: string;
+  /** Why the scene draws the same with the link dropped, from `_scene.unchangedWhenHeld`. */
   unchangedWhenHeld?: string;
+  /** Whether the README shows this scene, from `_scene.hero`. */
   hero: boolean;
+  /** Whether the augment is outlined inside its host, from `_scene.highlight`. */
   highlight?: true;
+  /** Text the render must paint at every mode, from `_scene.paints`. */
   paints: string[];
+  /** Acts performed on the mounted target before it is photographed, from `_scene.before`. */
   before: SceneAct[];
+  /** The instant the scene is drawn at, from `_stream.pinnedUt`. */
   pinnedUt: number;
+  /** The one-way light time staged between craft and screen, from `_stream.delaySeconds`. */
   delaySeconds?: number;
+  /** What is sent on the stream, each with its `validAt` filled in. */
   emits: SceneEmit[];
+  /** Whether the link is dropped once every emit has landed, from `_stream.stopsArriving`. */
   stopsArriving?: boolean;
+  /** The target's saved settings, from `_scene.config`. Empty when the fixture sets none. */
   config: Record<string, unknown>;
+  /** The props handed to an augment's slot, from `_scene.slotProps`. Empty when the fixture sets none. */
   slotProps: Record<string, unknown>;
+  /** The fixture's bare top-level keys, grouped under the data source id they feed. */
   dataSources: Record<string, Record<string, unknown>>;
+  /** Every Topic the target's registration declares, which an emit is checked against. */
   declaredTopics: string[];
+  /** The sizes the scene is drawn at, narrowed by `_scene.modes`. */
   modes: InventoryMode[];
+  /** The steps of a motion scene, from `_scene.steps`. Absent, the scene is a still. */
   steps?: SceneStep[];
+  /** How a motion scene plays back, from `_scene.motion`, with the defaults filled in. */
   motion: { fps: number; pingPong: boolean };
 }
 

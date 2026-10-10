@@ -6,6 +6,12 @@ TypeScript client SDK for the gonogo-native telemetry mod. The wire contract
 (message envelopes, `Meta`, enums) is defined once in C# and generated into
 this package: the SDK never redefines the shape by hand.
 
+Until the first release, `latest` is a placeholder, so install the release candidate with `@rc`.
+
+```sh
+npm install @ksp-gonogo/sitrep-sdk@rc
+```
+
 **Writing an Uplink? Start with the [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/).**
 This package is the authoring surface an Uplink imports (`defineUplinkClient`,
 `registerComponent`, `useTelemetry`, `useCommand`, the generated contract types,

@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// <c>ksp.revertToEditor</c>'s args, which editor the flight reverts back
+/// Revert the flight back into the VAB or SPH. <c>ksp.revertToEditor</c>'s args, which editor the flight reverts back
 /// into. <see cref="Editor"/> is a small opaque string (<c>"vab"</c> or
 /// <c>"sph"</c>, case-insensitive) rather than the KSP <c>EditorFacility</c>
 /// enum; an unrecognised value fails with <see cref="CommandErrorCode.Range"/>
@@ -30,7 +30,7 @@ public class RevertToEditorArgs
 }
 
 /// <summary>
-/// <c>ksp.switchVessel</c>'s args: the stable vessel id
+/// Switch the flight to another tracked vessel. <c>ksp.switchVessel</c>'s args: the stable vessel id
 /// (<c>vessel.id.ToString()</c>, the same id <see cref="SetTargetArgs.VesselId"/>
 /// uses), never a roster array index. An empty id fails with
 /// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.

@@ -140,6 +140,7 @@ export type SceneTargetKind = "widget" | "augment" | "contribution";
  * @category Scenes
  */
 export interface SceneTarget {
+  /** Which registry the id is looked up in. */
   kind: SceneTargetKind;
   /** Registered widget id, augment id, or contribution id. */
   id: string;
@@ -151,7 +152,12 @@ export interface SceneTarget {
  * @category Scenes
  */
 export interface SceneEmit {
+  /** The Topic the sample is sent on, such as `vessel.flight`. */
   topic: string;
+  /**
+   * The Topic's value as the wire carries it. `null` is the game confirming
+   * there is no value, which is different from sending nothing.
+   */
   payload: unknown;
   /** The sample's own instant. Defaults to the scene's pinned UT: the
    *  transport defaults it to zero, so omitting it is not "now". */
@@ -238,6 +244,7 @@ export interface ScenePayload {
   delaySeconds?: number;
   /** Every topic the target's registration declares, never written in a fixture. */
   declaredTopics: string[];
+  /** Everything the fixture sends, replayed once the scene has subscribed. */
   emits: SceneEmit[];
   /**
    * Stage the scene as HELD: once every emit has landed and the setup
@@ -261,6 +268,7 @@ export interface ScenePayload {
    * being the one every Uplink widget renders through.</p>
    */
   stopsArriving?: boolean;
+  /** The target's saved settings for this scene, as its config form would save them. */
   config: Record<string, unknown>;
   /** Props handed to `<AugmentSlot>` for an augment scene. */
   slotProps: Record<string, unknown>;
@@ -289,9 +297,13 @@ export interface ScenePayload {
   highlight?: true;
   /** Legacy `DataSource` keys, by source id. */
   dataSources: Record<string, Record<string, unknown>>;
+  /** The tile's width in grid columns. */
   w: number;
+  /** The tile's height in grid rows. */
   h: number;
+  /** The tile's width in pixels, as the grid lays it out. */
   pxW: number;
+  /** The tile's height in pixels, as the grid lays it out. */
   pxH: number;
   /**
    * Feed the scene NOTHING: mount it, then suppress every emission and every
@@ -313,6 +325,7 @@ export interface ScenePayload {
    * press through `_scene.before` while the link is still up.
    */
   holdDrop?: boolean;
+  /** The steps of a motion scene. Absent, the scene is a still. */
   steps?: SceneStep[];
 }
 

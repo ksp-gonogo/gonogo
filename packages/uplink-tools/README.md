@@ -8,11 +8,12 @@ It is a **devDependency**. Nothing here ships in an Uplink's bundle.
 
 ## The command line
 
-One command, `uplink-tools`, and nothing to install before the first run:
+One command, `uplink-tools`, and nothing to install before the first run. Until the first release, `latest` is a placeholder, so run the release candidate with `@rc`.
+
 
 ```sh
-npx @ksp-gonogo/uplink-tools new myuplink --repo you/myuplink   # in an empty directory
-npx @ksp-gonogo/uplink-tools --help
+npx @ksp-gonogo/uplink-tools@rc new myuplink --repo you/myuplink   # in an empty directory
+npx @ksp-gonogo/uplink-tools@rc --help
 ```
 
 `new` asks what it was not told: the id, a display name, the author, the

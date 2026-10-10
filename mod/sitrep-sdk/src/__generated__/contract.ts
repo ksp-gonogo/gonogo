@@ -42,10 +42,11 @@ export interface StreamBinary
 	meta: Meta;
 }
 /**
-* Args for `system.bodies.statesAt`: where one body is at each of a list of
-* instants, from the propagation provider in use on this install. The instants
-* are the caller's own, such as the departure and arrival times a transfer
-* search tries.
+* Ask where a body is at each of a list of instants. Args for
+* `system.bodies.statesAt`: where one body is at each of a list of instants,
+* from the propagation provider in use on this install. The instants are the
+* caller's own, such as the departure and arrival times a transfer search
+* tries.
 *
 * The command centre is the sender's, taken from the connection the command
 * arrives on; there is no field to name another.
@@ -153,14 +154,15 @@ export interface BodyState
 	vz: Value<"m/s">;
 }
 /**
-* `career.strategy.activate`'s args: the strategy's stable id plus the slider
-* fraction to activate it at. `ActivateStrategyArgs.strategyId` is
-* `StrategyConfig.Name` (e.g. `"OutsourceRnDStrategy"`): the same id
-* `career.status` publishes for each strategy as `strategies[].id`, so a
-* client activates using the id it read. `ActivateStrategyArgs.factor` is the
-* 0 to 1 slider fraction the strategy is committed at (its up-front funds,
-* science and reputation cost scales with it); a strategy with no factor
-* slider ignores it and activates at its fixed factor.
+* Activate a strategy at a chosen commitment. `career.strategy.activate`'s
+* args: the strategy's stable id plus the slider fraction to activate it at.
+* `ActivateStrategyArgs.strategyId` is `StrategyConfig.Name` (e.g.
+* `"OutsourceRnDStrategy"`): the same id `career.status` publishes for each
+* strategy as `strategies[].id`, so a client activates using the id it read.
+* `ActivateStrategyArgs.factor` is the 0 to 1 slider fraction the strategy is
+* committed at (its up-front funds, science and reputation cost scales with
+* it); a strategy with no factor slider ignores it and activates at its fixed
+* factor.
 *
 * @category Command arguments
 */
@@ -175,8 +177,9 @@ export interface ActivateStrategyArgs
 	factor: number;
 }
 /**
-* `career.strategy.deactivate`'s args: the strategy's stable
-* `StrategyConfig.Name` id (see `ActivateStrategyArgs.strategyId`).
+* Deactivate an active strategy. `career.strategy.deactivate`'s args: the
+* strategy's stable `StrategyConfig.Name` id (see
+* `ActivateStrategyArgs.strategyId`).
 *
 * @category Command arguments
 */
@@ -189,9 +192,9 @@ export interface DeactivateStrategyArgs
 	strategyId: string;
 }
 /**
-* `career.tech.unlock`'s args: the tech node's `techID`, the same id
-* `career.status` publishes for each tech node as `tech.nodes[].id`. Unlocking
-* deducts the node's science cost.
+* Unlock a tech node, spending its science cost. `career.tech.unlock`'s args:
+* the tech node's `techID`, the same id `career.status` publishes for each
+* tech node as `tech.nodes[].id`. Unlocking deducts the node's science cost.
 *
 * @category Command arguments
 */
@@ -204,10 +207,11 @@ export interface UnlockTechArgs
 	techId: string;
 }
 /**
-* Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
-* stable `ContractID` as a string, the same id `career.status` publishes for
-* each contract as `contracts[].id`. Which of the three verbs is valid depends
-* on the contract's current state (accept/decline require an offered contract,
+* Accept, decline or cancel a contract. Args shared by
+* `career.contract.accept`/`decline`/`cancel`: the contract's stable
+* `ContractID` as a string, the same id `career.status` publishes for each
+* contract as `contracts[].id`. Which of the three verbs is valid depends on
+* the contract's current state (accept/decline require an offered contract,
 * cancel an active one); an out-of-state request comes back
 * `CommandErrorCode.ModeUnavailable`.
 *
@@ -222,8 +226,9 @@ export interface ContractActionArgs
 	contractId: string;
 }
 /**
-* `career.facility.upgrade`'s args: the facility's `SpaceCenterFacility` enum
-* name (e.g. `"VehicleAssemblyBuilding"`, `"LaunchPad"`), the same key
+* Raise a Space Center facility by one tier. `career.facility.upgrade`'s args:
+* the facility's `SpaceCenterFacility` enum name (e.g.
+* `"VehicleAssemblyBuilding"`, `"LaunchPad"`), the same key
 * `CareerFacilities`'s `facilities` map uses on the `career.facilities`
 * channel (the buildings are not on `career.status`). Upgrading raises the
 * facility one tier and deducts its upgrade cost from funds.
@@ -239,8 +244,9 @@ export interface UpgradeFacilityArgs
 	facilityId: string;
 }
 /**
-* `career.crew.hire`'s args: the applicant's `ProtoCrewMember.name`, the same
-* id `spaceCenter.astronautComplex` publishes for each applicant as
+* Hire an applicant into the crew roster. `career.crew.hire`'s args: the
+* applicant's `ProtoCrewMember.name`, the same id
+* `spaceCenter.astronautComplex` publishes for each applicant as
 * `applicants[].name`, so a client hires the applicant it read. Hiring debits
 * the current recruit cost from funds and moves the applicant into the crew
 * roster. An applicant that has left the pool since it was read (someone else
@@ -260,6 +266,7 @@ export interface HireApplicantArgs
 	applicantName: string;
 }
 /**
+* Fire a hired kerbal, returning them to the applicant pool.
 * `career.crew.fire`'s args: a hired kerbal's `ProtoCrewMember.name`, the same
 * id `spaceCenter.crewRoster` publishes for each roster entry. Firing costs
 * nothing and returns the kerbal to the applicant pool, so it is reversible: a
@@ -2866,7 +2873,8 @@ export interface ControlFrameOption
 	targetFrameSelected?: boolean | null;
 }
 /**
-* `system.frame.set`'s args: the frame to put the view in.
+* Put the view in a different reference frame. `system.frame.set`'s args: the
+* frame to put the view in.
 *
 * It names the two head bodies, not the sets: where `ControlFrame` reports
 * `PrimaryBodies` and `SecondaryBodies`, the mod that owns the view works out
@@ -4056,10 +4064,11 @@ export interface FlightVesselChanged
 	ut: Value<"ut">;
 }
 /**
-* `ksp.revertToEditor`'s args, which editor the flight reverts back into.
-* `RevertToEditorArgs.editor` is a small opaque string (`"vab"` or `"sph"`,
-* case-insensitive) rather than the KSP `EditorFacility` enum; an unrecognised
-* value fails with `CommandErrorCode.Range` before the game is ever touched.
+* Revert the flight back into the VAB or SPH. `ksp.revertToEditor`'s args,
+* which editor the flight reverts back into. `RevertToEditorArgs.editor` is a
+* small opaque string (`"vab"` or `"sph"`, case-insensitive) rather than the
+* KSP `EditorFacility` enum; an unrecognised value fails with
+* `CommandErrorCode.Range` before the game is ever touched.
 *
 * `ksp.revertToLaunch`, `ksp.toTrackingStation`, `ksp.toSpaceCenter` and
 * `ksp.recover` take no args (they operate on the current flight / active
@@ -4076,9 +4085,10 @@ export interface RevertToEditorArgs
 	editor: string;
 }
 /**
-* `ksp.switchVessel`'s args: the stable vessel id (`vessel.id.ToString()`, the
-* same id `SetTargetArgs.vesselId` uses), never a roster array index. An empty
-* id fails with `CommandErrorCode.NotFound` before the game is ever touched.
+* Switch the flight to another tracked vessel. `ksp.switchVessel`'s args: the
+* stable vessel id (`vessel.id.ToString()`, the same id
+* `SetTargetArgs.vesselId` uses), never a roster array index. An empty id
+* fails with `CommandErrorCode.NotFound` before the game is ever touched.
 * Works from the flight scene, where it changes the active vessel, and from
 * the Space Center and the Tracking Station, where it saves and then loads the
 * vessel's flight. Refused with `CommandErrorCode.WrongScene` from the editors
@@ -4155,6 +4165,7 @@ export interface SetFlyByWireArgs
 	enabled: boolean;
 }
 /**
+* Drive the held control axes of the fly-by-wire override.
 * `vessel.control.setAxes`'s args: a partial update of the held fly-by-wire
 * override. Every field is nullable, and only the fields you set change their
 * held value, so one axis can be driven on its own without disturbing the
@@ -4919,10 +4930,11 @@ export interface WriteModSettingArgs
 	value: string;
 }
 /**
-* The empty args shape, for the core commands that operate on the current
-* flight or the active vessel and so take nothing: `vessel.control.stage`,
-* `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
-* `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+* Take no args: stage, clear the target, recover, revert to launch, or go to
+* the Tracking Station or Space Center. The empty args shape, for the core
+* commands that operate on the current flight or the active vessel and so take
+* nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+* `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 *
 * **Send no `args` at all for these six.** The SDK's `send()` takes no second
 * argument for a command typed this way, and anything you do put on the wire
@@ -5592,8 +5604,9 @@ export interface RevertAvailability
 	canRevertToLaunch: boolean;
 }
 /**
-* Args for `robotics.servo.setAngle`: the absolute angle a hinge or rotation
-* servo is to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
+* Drive a hinge or rotation servo to an angle. Args for
+* `robotics.servo.setAngle`: the absolute angle a hinge or rotation servo is
+* to drive to, keyed by the part's `ServoSetAngleArgs.partId`.
 * `ServoSetAngleArgs.partId` is the same `flightID` string `parts.robotics`
 * publishes on each servo entry, so a widget sends back the exact id it
 * displays. A piston has no angle and a rotor no target: a `setAngle` aimed at
@@ -5613,11 +5626,11 @@ export interface ServoSetAngleArgs
 	degrees: number;
 }
 /**
-* Args for `robotics.servo.setExtension`: the absolute extension a piston is
-* to drive to, keyed by the part's `ServoSetExtensionArgs.partId`. A hinge or
-* rotation servo has no extension and a rotor no target: a `setExtension`
-* aimed at one fails with `CommandResult.errorCode`
-* `CommandErrorCode.CapabilityMismatch`.
+* Drive a piston to an extension. Args for `robotics.servo.setExtension`: the
+* absolute extension a piston is to drive to, keyed by the part's
+* `ServoSetExtensionArgs.partId`. A hinge or rotation servo has no extension
+* and a rotor no target: a `setExtension` aimed at one fails with
+* `CommandResult.errorCode` `CommandErrorCode.CapabilityMismatch`.
 *
 * @category Command arguments
 */
@@ -5632,8 +5645,8 @@ export interface ServoSetExtensionArgs
 	metres: number;
 }
 /**
-* Args shared by every robotics boolean actuation
-* (`robotics.servo.setMotor`/`setLock` and
+* Switch a robotics servo or rotor motor or lock on or off. Args shared by
+* every robotics boolean actuation (`robotics.servo.setMotor`/`setLock` and
 * `robotics.rotor.setMotor`/`setLock`): an absolute state to apply, never a
 * toggle, like every other actuation command (see `SetEnabledArgs`). Keyed by
 * `ServoSetEnabledArgs.partId`, the `flightID` string `parts.robotics`
@@ -5657,8 +5670,8 @@ export interface ServoSetEnabledArgs
 	enabled: boolean;
 }
 /**
-* Args for `robotics.rotor.setRpmLimit`: the absolute rpm cap to apply, keyed
-* by `RotorSetRpmLimitArgs.partId`.
+* Set a rotor's rpm cap. Args for `robotics.rotor.setRpmLimit`: the absolute
+* rpm cap to apply, keyed by `RotorSetRpmLimitArgs.partId`.
 *
 * @category Command arguments
 */
@@ -5673,9 +5686,9 @@ export interface RotorSetRpmLimitArgs
 	rpm: number;
 }
 /**
-* Args for `robotics.rotor.setTorqueLimit`: the absolute torque limit to
-* apply, keyed by `RotorSetTorqueLimitArgs.partId`. A value outside 0 to 100
-* fails with `CommandErrorCode.Range`.
+* Set a rotor's torque limit. Args for `robotics.rotor.setTorqueLimit`: the
+* absolute torque limit to apply, keyed by `RotorSetTorqueLimitArgs.partId`. A
+* value outside 0 to 100 fails with `CommandErrorCode.Range`.
 *
 * @category Command arguments
 */
@@ -5690,9 +5703,9 @@ export interface RotorSetTorqueLimitArgs
 	percent: number;
 }
 /**
-* Args for `robotics.rotor.setBrake`: the absolute brake strength to apply,
-* keyed by `RotorSetBrakeArgs.partId`. A value outside 0 to 200 fails with
-* `CommandErrorCode.Range`.
+* Set a rotor's brake strength. Args for `robotics.rotor.setBrake`: the
+* absolute brake strength to apply, keyed by `RotorSetBrakeArgs.partId`. A
+* value outside 0 to 200 fails with `CommandErrorCode.Range`.
 *
 * @category Command arguments
 */
@@ -6233,13 +6246,13 @@ export interface ScetAddressableTopic
 	topic: string;
 }
 /**
-* Args shared by every science-experiment actuation command
-* (`science.experiment.deploy` and `science.experiment.transmit`): the
-* experiment is named by `ExperimentActionArgs.partId`, the part's
-* `flightID.ToString()`, the same id `science.instruments` carries on each
-* experiment entry. It is looked up among the active vessel's parts, never by
-* array index. An empty or unknown `ExperimentActionArgs.partId` fails with
-* `CommandErrorCode.NotFound`.
+* Deploy or transmit a science experiment on a part. Args shared by every
+* science-experiment actuation command (`science.experiment.deploy` and
+* `science.experiment.transmit`): the experiment is named by
+* `ExperimentActionArgs.partId`, the part's `flightID.ToString()`, the same id
+* `science.instruments` carries on each experiment entry. It is looked up
+* among the active vessel's parts, never by array index. An empty or unknown
+* `ExperimentActionArgs.partId` fails with `CommandErrorCode.NotFound`.
 *
 * @category Command arguments
 */
@@ -7031,8 +7044,9 @@ export interface SettingsDeclarationFailure
 	reason: string;
 }
 /**
-* Arguments to `settings.save`: one Save press, applied together and written
-* to the settings file once. Never delayed by light time.
+* Apply the settings from one Save press together and write the settings file
+* once. Arguments to `settings.save`: one Save press, applied together and
+* written to the settings file once. Never delayed by light time.
 *
 * Safe to send again. A save sets each row to the value named, so repeating
 * one that already landed changes nothing. That matters because a save that
@@ -8617,6 +8631,7 @@ export interface VesselAttitude
 	meta: PayloadMeta;
 }
 /**
+* Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
 * Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
 * `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
 * apply, never a toggle. Under light-time delay a toggle that arrives after
@@ -8631,7 +8646,8 @@ export interface SetEnabledArgs
 	enabled: boolean;
 }
 /**
-* `vessel.control.setSasMode`'s arguments: the SAS mode to hold.
+* Set the SAS mode to hold. `vessel.control.setSasMode`'s arguments: the SAS
+* mode to hold.
 *
 * @category Command arguments
 */
@@ -8641,7 +8657,8 @@ export interface SetSasModeArgs
 	mode: SasMode;
 }
 /**
-* `vessel.control.setThrottle`'s arguments: the main throttle setting.
+* Set the main throttle. `vessel.control.setThrottle`'s arguments: the main
+* throttle setting.
 *
 * @category Command arguments
 */
@@ -8673,9 +8690,9 @@ export interface SetActionGroupArgs
 	state: boolean;
 }
 /**
-* `vessel.maneuver.add`'s args: a new manoeuvre node's time and its delta-v as
-* named components in the node's own prograde, normal and radial-out frame,
-* the same shape as `ManeuverNode`.
+* Add a manoeuvre node. `vessel.maneuver.add`'s args: a new manoeuvre node's
+* time and its delta-v as named components in the node's own prograde, normal
+* and radial-out frame, the same shape as `ManeuverNode`.
 *
 * The result is a `CommandResult<string>` whose `Payload` is the new node's
 * opaque id, the same id `ManeuverNode.id` carries on `vessel.maneuver`. A
@@ -8728,7 +8745,8 @@ export interface UpdateManeuverNodeArgs
 	radialOut: number;
 }
 /**
-* `vessel.maneuver.remove`'s arguments: the manoeuvre node to delete.
+* Delete a manoeuvre node. `vessel.maneuver.remove`'s arguments: the manoeuvre
+* node to delete.
 *
 * @category Command arguments
 */
@@ -8738,8 +8756,8 @@ export interface RemoveManeuverNodeArgs
 	nodeId: string;
 }
 /**
-* `vessel.target.set`'s args: a discriminated union, written as
-* `SetTargetArgs.kind` plus the fields that kind uses.
+* Set the active vessel's target. `vessel.target.set`'s args: a discriminated
+* union, written as `SetTargetArgs.kind` plus the fields that kind uses.
 * `SetTargetArgs.vesselId` is the stable vessel id, never an array index, and
 * a vessel id and a body index travel in separate fields so they cannot be
 * confused.
@@ -8806,7 +8824,8 @@ export interface SetWarpIndexArgs
 	index: number;
 }
 /**
-* `time.setPaused`'s arguments: whether the game is paused.
+* Pause or resume the game. `time.setPaused`'s arguments: whether the game is
+* paused.
 *
 * @category Command arguments
 */

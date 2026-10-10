@@ -178,7 +178,7 @@ public class SettingsDeclarationFailure
 }
 
 /// <summary>
-/// Arguments to <c>settings.save</c>: one Save press, applied together and
+/// Apply the settings from one Save press together and write the settings file once. Arguments to <c>settings.save</c>: one Save press, applied together and
 /// written to the settings file once. Never delayed by light time.
 ///
 /// <para>Safe to send again. A save sets each row to the value named,

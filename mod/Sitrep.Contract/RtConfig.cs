@@ -574,7 +574,7 @@ public static class RtConfig
         var commandMapOut = Environment.GetEnvironmentVariable("SITREP_COMMANDMAP_OUT");
         if (!string.IsNullOrEmpty(commandMapOut))
         {
-            EmitCommandMap(commandMapOut!);
+            EmitCommandMap(commandMapOut!, documentationPath: builder.Context.DocumentationFilePath);
         }
 
         // Error codes are values a client switches on and a sentence it reads,
@@ -2395,12 +2395,22 @@ public static class RtConfig
     /// them into its own <c>./contract.js</c>; an Uplink slice does not, so it
     /// passes the published package name instead.
     /// </param>
+    /// <param name="documentationPath">
+    /// The compiler's XML documentation file. When given, each row of both maps carries the first
+    /// paragraph of its args type's summary, and a command whose type has none fails the run.
+    /// Omitted, the rows carry no description.
+    /// </param>
     public static void EmitCommandMap(
         string outPath,
         Assembly assembly = null,
-        string resultImportFrom = null)
+        string resultImportFrom = null,
+        string documentationPath = null)
     {
         var target = assembly ?? typeof(RtConfig).Assembly;
+        var docs = ReadFieldSummaries(documentationPath);
+        var documented = !string.IsNullOrEmpty(documentationPath);
+        var descriptions = new Dictionary<string, string>(StringComparer.Ordinal);
+        var undescribed = new List<string>();
         var localNames = new HashSet<string>(
             target.GetTypes().Select(t => t.Name), StringComparer.Ordinal);
 
@@ -2429,9 +2439,22 @@ public static class RtConfig
                  * declaration the HOST dispatches by (SitrepCommandAttribute.Delay), so the client's
                  * delay UX reads the mod's declaration rather than holding a second opinion.
                  */
+                if (documented)
+                {
+                    var description = CommandDescription(docs, type);
+                    if (description == null) undescribed.Add(attr.CommandId);
+                    else descriptions[attr.CommandId] = description;
+                }
                 rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed, ArriveBeforeField(attr, type)));
                 argsNames.Add(type.Name);
             }
+        }
+
+        if (undescribed.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "codegen (command-map): " + string.Join(", ", undescribed) +
+                " have no summary on their args type. Every command says what it does.");
         }
 
         rows.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
@@ -2543,6 +2566,10 @@ public static class RtConfig
         sb.Append("export interface GeneratedCommandArgsMap {\n");
         foreach (var row in rows)
         {
+            if (descriptions.TryGetValue(row.Id, out var description))
+            {
+                sb.Append("  /** ").Append(description).Append(" */\n");
+            }
             sb.Append("  \"").Append(row.Id).Append("\": ").Append(row.Args).Append(";\n");
         }
         sb.Append("}\n\n");
@@ -2550,6 +2577,10 @@ public static class RtConfig
         sb.Append("export interface GeneratedCommandReplyMap {\n");
         foreach (var row in rows)
         {
+            if (descriptions.TryGetValue(row.Id, out var description))
+            {
+                sb.Append("  /** ").Append(description).Append(" */\n");
+            }
             sb.Append("  \"").Append(row.Id).Append("\": ").Append(row.Reply).Append(";\n");
         }
         sb.Append("}\n\n");
@@ -2651,6 +2682,37 @@ public static class RtConfig
                 argsType.Name + ". It must name the UT the command acts at.");
         }
         return UnitDescriptor.CamelCase(prop.Name);
+    }
+
+    /// <summary>
+    /// The first sentence of a command's args type summary as one line, or null when the
+    /// type has none. A leading <c>`id`'s args:</c> is dropped, since the row is the command. A comment terminator inside it is broken so it cannot close the block.
+    /// </summary>
+    private static string? CommandDescription(Dictionary<string, string> docs, Type argsType)
+    {
+        if (!docs.TryGetValue("T:" + argsType.FullName, out var summary)) return null;
+        var lines = RtDocText.ToDocLines(summary, ErrorCodeCref, out _);
+        var first = new List<string>();
+        foreach (var line in lines)
+        {
+            if (line.Length == 0)
+            {
+                if (first.Count > 0) break;
+                continue;
+            }
+            first.Add(line.Trim());
+        }
+        if (first.Count == 0) return null;
+
+        var text = string.Join(" ", first);
+        var lead = System.Text.RegularExpressions.Regex.Match(text, @"^(?:Args for |Arguments to )?`[^`]+`(?:'s (?:args|arguments))?:\s*");
+        if (lead.Success && lead.Length < text.Length)
+        {
+            text = char.ToUpperInvariant(text[lead.Length]) + text.Substring(lead.Length + 1);
+        }
+        var end = System.Text.RegularExpressions.Regex.Match(text, @"(?<!\be\.g|\bi\.e)[.!?](?=\s+[A-Z`])");
+        if (end.Success) text = text.Substring(0, end.Index + 1);
+        return text.Replace("*/", "*\\/");
     }
 
     private static string CommandReply(

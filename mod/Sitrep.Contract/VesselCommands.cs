@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Args shared by every plain on/off actuation command (<c>setSas</c>,
+/// Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. Args shared by every plain on/off actuation command (<c>setSas</c>,
 /// <c>setRcs</c>, <c>setGear</c>, <c>setBrakes</c>, <c>setLights</c>,
 /// <c>setAbort</c>): an absolute state to apply, never a toggle. Under
 /// light-time delay a toggle that arrives after unknown intervening changes
@@ -30,7 +30,7 @@ public class SetEnabledArgs
 }
 
 /// <summary>
-/// <c>vessel.control.setSasMode</c>'s arguments: the SAS mode to hold.
+/// Set the SAS mode to hold. <c>vessel.control.setSasMode</c>'s arguments: the SAS mode to hold.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -46,7 +46,7 @@ public class SetSasModeArgs
 }
 
 /// <summary>
-/// <c>vessel.control.setThrottle</c>'s arguments: the main throttle setting.
+/// Set the main throttle. <c>vessel.control.setThrottle</c>'s arguments: the main throttle setting.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -91,7 +91,7 @@ public class SetActionGroupArgs
 }
 
 /// <summary>
-/// <c>vessel.maneuver.add</c>'s args: a new manoeuvre node's time and its
+/// Add a manoeuvre node. <c>vessel.maneuver.add</c>'s args: a new manoeuvre node's time and its
 /// delta-v as named components in the node's own prograde, normal and
 /// radial-out frame, the same shape as <see cref="ManeuverNode"/>.
 ///
@@ -172,7 +172,7 @@ public class UpdateManeuverNodeArgs
 }
 
 /// <summary>
-/// <c>vessel.maneuver.remove</c>'s arguments: the manoeuvre node to delete.
+/// Delete a manoeuvre node. <c>vessel.maneuver.remove</c>'s arguments: the manoeuvre node to delete.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -188,7 +188,7 @@ public class RemoveManeuverNodeArgs
 }
 
 /// <summary>
-/// <c>vessel.target.set</c>'s args: a discriminated union, written as
+/// Set the active vessel's target. <c>vessel.target.set</c>'s args: a discriminated union, written as
 /// <see cref="Kind"/> plus the fields that kind uses. <see cref="VesselId"/>
 /// is the stable vessel id, never an array index, and a vessel id and a body
 /// index travel in separate fields so they cannot be confused.
@@ -260,7 +260,7 @@ public class SetWarpIndexArgs
 }
 
 /// <summary>
-/// <c>time.setPaused</c>'s arguments: whether the game is paused.
+/// Pause or resume the game. <c>time.setPaused</c>'s arguments: whether the game is paused.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
