@@ -41,7 +41,9 @@ const Notice__Root = styled(Block__Root)<{ $tone: Tone }>`
 /**
  * A banner stating something about the widget rather than a record inside it,
  * such as what is limiting the ship. It takes {@link Block}'s anatomy (title,
- * asides, footer) on a sunken surface bordered in its tone.
+ * asides, footer) on a sunken surface bordered in its tone. Most banners need
+ * only `title`, `tone` and their text; the other anatomy props are for a banner
+ * that also carries a figure beside it or a footer of actions.
  *
  * Unlike a toned {@link Card}, a notice is announced to screen readers. By
  * default it is `role="note"` and its text is read out politely when it

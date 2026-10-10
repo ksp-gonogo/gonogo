@@ -17,10 +17,10 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   blocked?: boolean;
   /**
-   * A short chip straddling the LEFT end of the row's top border, saying WHY
+   * A short label straddling the LEFT end of the row's top border, saying WHY
    * the outline turned red. The right end belongs to the console's delay
-   * reading. A few upper-case words, pinned so it never changes the row's
-   * height.
+   * reading. A few upper-case words, such as `READ ONLY`, pinned so it never
+   * changes the row's height.
    */
   flag?: string;
   /**
@@ -63,6 +63,7 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * operator's choice.
    */
   sendTooltip?: string;
+  /** The input the operator types into, drawn between the prompt and the send button. */
   children?: ReactNode;
 }
 

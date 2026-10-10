@@ -92,6 +92,10 @@ export interface ModalSaveBarOptions<Draft> {
  * from both its value when the modal opened and `saved`. The hook renders
  * nothing where it is called and does nothing outside a modal.
  *
+ * The form is a widget's `configComponent`: register it beside the widget with
+ * `registerComponent({ ..., configComponent: NavballConfigForm })`, and the
+ * dashboard opens it in a modal with the saved `config` and an `onSave`.
+ *
  * @example
  * ```tsx
  * import { useMemo, useState } from "react";

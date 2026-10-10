@@ -26,17 +26,33 @@ export interface FilterChipProps {
  *
  * @example
  * ```tsx
- * <Cluster justify="start" wrap role="group" aria-label="Filters">
- *   {BODIES.map((body) => (
- *     <FilterChip
- *       key={body}
- *       label={body}
- *       selected={shown.has(body)}
- *       count={countFor(body)}
- *       onToggle={() => toggle(body)}
- *     />
- *   ))}
- * </Cluster>
+ * import { useState } from "react";
+ * import { Cluster, FilterChip } from "@ksp-gonogo/ui-kit";
+ *
+ * const BODIES = ["Kerbin", "Mun", "Minmus"] as const;
+ *
+ * function BodyFilter({ countFor }: { countFor: (body: string) => number }) {
+ *   const [shown, setShown] = useState<ReadonlySet<string>>(new Set());
+ *   const toggle = (body: string) =>
+ *     setShown((prev) => {
+ *       const next = new Set(prev);
+ *       if (!next.delete(body)) next.add(body);
+ *       return next;
+ *     });
+ *   return (
+ *     <Cluster justify="start" wrap role="group" aria-label="Filters">
+ *       {BODIES.map((body) => (
+ *         <FilterChip
+ *           key={body}
+ *           label={body}
+ *           selected={shown.has(body)}
+ *           count={countFor(body)}
+ *           onToggle={() => toggle(body)}
+ *         />
+ *       ))}
+ *     </Cluster>
+ *   );
+ * }
  * ```
  *
  * @category FilterList

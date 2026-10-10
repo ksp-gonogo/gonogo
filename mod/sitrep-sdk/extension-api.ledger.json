@@ -9215,6 +9215,10 @@
         "note": "moved onto the new RailFailed interface, unchanged"
       },
       {
+        "key": "ui-kit . Readout",
+        "note": "takes the named ReadoutProps instead of an inline prop type"
+      },
+      {
         "key": "ui-kit . ReckoningMark",
         "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
       },
@@ -11951,6 +11955,18 @@
       {
         "key": "ui-kit . PlotReadoutSpace#width",
         "note": "the chart's width in pixels"
+      },
+      {
+        "key": "ui-kit . ReadoutProps",
+        "note": "the named props of Readout, so size and tone have a documented table"
+      },
+      {
+        "key": "ui-kit . ReadoutProps#size?",
+        "note": "Readout size, as it was on the inline prop type"
+      },
+      {
+        "key": "ui-kit . ReadoutProps#tone?",
+        "note": "Readout tone, as it was on the inline prop type"
       },
       {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",

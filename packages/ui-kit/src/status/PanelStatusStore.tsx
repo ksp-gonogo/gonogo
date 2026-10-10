@@ -181,7 +181,8 @@ const StatusPanelStore = createPanelStore(createPanelStatusStore);
 /**
  * Creates one {@link PanelStatusStore} and provides it for as long as it is
  * mounted, so the widget body and the tile's chrome share it. The dashboard
- * mounts one per tile.
+ * mounts one per tile, so a widget does not mount this itself; it is for a
+ * test or a harness that renders a {@link Panel} outside the dashboard.
  *
  * @category Panel
  */
@@ -189,6 +190,8 @@ export const PanelStatusStoreProvider = StatusPanelStore.Provider;
 
 /**
  * The nearest {@link PanelStatusStore}, or `null` outside a dashboard tile.
+ * {@link Badge}'s `report` and {@link Panel} read it for you, so a widget
+ * rarely calls this directly.
  *
  * @category Panel
  */

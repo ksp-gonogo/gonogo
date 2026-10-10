@@ -335,6 +335,7 @@ export function useInSharedFormat(): boolean {
 
 /** What every spelling of the props below shares. */
 interface UnitSharedFormatBaseProps {
+  /** The tree whose figures share the format. */
   children?: ReactNode;
   /**
    * Widen the digit count until the members stop printing the same figure as each other. What an interval wants (6 700 km and 6 710 km both print `6.7 Mm` otherwise) and a column does not. Applies to the whole scope.

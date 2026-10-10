@@ -10,7 +10,11 @@ import { Tooltip } from "./Tooltip";
  * @category Badge
  */
 export interface HeldBadgeProps {
-  /** Why the reading behind this part of the widget stopped updating. */
+  /**
+   * Why the reading behind this part of the widget stopped updating: `held`,
+   * `disconnected`, `last-before-blackout`, `recorded`, `loading` or `no-game`.
+   * Its word is the one {@link formatStreamStatus} gives the status of that name.
+   */
   grade: HeldGrade;
   /** What is held, in the operator's terms, for the hover text: "Contract board", a part's title. */
   subject?: string;
@@ -19,7 +23,7 @@ export interface HeldBadgeProps {
 }
 
 /**
- * The chip a widget draws beside one part of itself whose reading is held: a
+ * The badge a widget draws beside one part of itself whose reading is held: a
  * row, a card, a totals cell. It prints the grade's word and severity, so it
  * always agrees with the panel's own badge.
  *

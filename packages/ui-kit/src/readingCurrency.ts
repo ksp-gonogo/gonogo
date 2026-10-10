@@ -46,13 +46,14 @@ export interface Resolved<Unit extends string> {
    */
   mark: ReckoningKind | null;
   /**
-   * Whether the number is a fact the contract declares static, which is never
+   * Whether the number is a fact the contract declares static (one that never
+   * changes, such as a body's radius), which is never
    * old and so is never marked held, whatever the reading's state.
    */
   isStatic: boolean;
   /**
    * Whether the number is exact at any instant: computed from fixed inputs and
-   * the clock, as a figure between two bodies on fixed conics is. It moves, so
+   * the clock, as a figure between two bodies on fixed conics (orbits that never change) is. It moves, so
    * it is not static, and it is never a guess, so it takes no held or modelled
    * mark whatever the reading's state.
    */
@@ -106,7 +107,8 @@ export interface CurrencyOptions {
    * than its observation: a countdown, or a figure a widget solves forward.
    * The modelled figure is then marked wherever it is not a reading of now,
    * which under signal delay includes a current reading carried forward to the
-   * craft's own present (SCET, spacecraft event time).
+   * craft's own present (SCET, spacecraft event time: when the event happens
+   * at the craft, rather than when its telemetry reaches the command centre).
    */
   readonly drawsReckoning?: boolean;
 }
@@ -310,6 +312,7 @@ export interface ReckoningMarking {
  * @category Unit
  */
 export function derivedMarking(
+  /** The reading the figure was computed from. Null or undefined gives no mark. */
   reading: Reading<unknown> | null | undefined,
   /** The figure is carried by a model that the reading itself does not name, such as a position the map models from the orbit. */
   carried = false,

@@ -258,8 +258,11 @@ export const Button__Body = styled.button<{
 
 /**
  * A subtle, underlined link-style `button` for a tertiary action inside copy
- * (such as "Clear all" in a list row). For a paired Cancel and Confirm row,
- * use a ghost {@link Button} beside a primary one.
+ * (such as "Clear all" in a list row). It renders a native `button` and takes
+ * every prop that element does. For a paired Cancel and Confirm row, use a
+ * ghost {@link Button} beside a primary one. For words that are themselves the
+ * control and should keep the surrounding text's colour and type, use a
+ * {@link Button} with `variant="text"` instead.
  *
  * @category Button
  */

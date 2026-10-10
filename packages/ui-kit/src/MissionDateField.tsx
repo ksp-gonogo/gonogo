@@ -133,8 +133,9 @@ function stepLabel(seconds: number): string {
  * what the game's own clock calls day 300. Edits round to the second, so the
  * field never shows one instant and holds another.
  *
- * An instant nobody stated is not the epoch: `null` comes up empty with the
- * absent token, and nothing is committed until a component is typed.
+ * An instant nobody stated is not the epoch (UT 0, the start of the game's
+ * calendar): `null` comes up empty with {@link NULL_DISPLAY}, the dash that
+ * stands for no value, and nothing is committed until a component is typed.
  *
  * {@link UnitInput} with a `ut` unit renders this for you and emits a `Value`;
  * use this directly when you hold the instant as a bare number of seconds.

@@ -158,7 +158,8 @@ function arcPath(
  * The whole axis is one kind: `value`, `min`, `max`, every zone bound and
  * every tick are `Value<Unit>` of the same unit, and the centre readout writes
  * that unit itself. Handed a whole `Reading`, a held figure is marked as held
- * and a model's interval puts two bounds on the arc.
+ * and the {@link UncertaintyBand} of a figure a model carried forward (see
+ * {@link TopicReckoning}) puts two bounds on the arc.
  *
  * The dial is a `role="meter"` with the value as `aria-valuetext`. With no
  * value it draws no needle and is announced as an image naming the missing

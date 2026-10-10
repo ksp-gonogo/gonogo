@@ -42,6 +42,7 @@ export interface CardProps extends BlockProps {
    * this card's padding changes, not the spacing of what it holds.
    */
   standalone?: boolean;
+  /** What the card holds. */
   children?: ReactNode;
 }
 

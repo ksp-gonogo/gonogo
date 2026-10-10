@@ -52,7 +52,10 @@ import { focusRing } from "./focusRing";
  * a combobox, a date field on the game's calendar, a reference frame picker, a
  * jog wheel and read-only fields. A widget's config form is built from these.
  */
-export const ConfigForm = styled.div<{ $boxed?: boolean }>`
+export const ConfigForm = styled.div<{
+  /** Puts the form on a bordered panel surface with its own padding and a tighter gap. */
+  $boxed?: boolean;
+}>`
   display: flex;
   flex-direction: column;
   gap: ${({ $boxed }) => ($boxed ? "var(--gap-form-field-boxed)" : "var(--gap-form-field)")};
@@ -70,9 +73,10 @@ export const ConfigForm = styled.div<{ $boxed?: boolean }>`
 /**
  * One labelled control in a {@link ConfigForm}, stacked: {@link FieldLabel} on
  * top, the control below, an optional {@link FieldHint} under it. Tie the label
- * to the control with `htmlFor` and `id`. For a single line of text, prefer
- * {@link TextField}, which does all of this in one; build with `Field` and
- * {@link Input} for a control it does not cover.
+ * to the control with `htmlFor` and `id`. For a single line of text with no hint,
+ * prefer {@link TextField}, which does all of this in one; build with `Field`
+ * and {@link Input} for a control it does not cover or a field that needs a
+ * {@link FieldHint}.
  *
  * @example
  * ```tsx

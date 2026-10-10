@@ -52,18 +52,29 @@ export interface ToggleButtonProps
  *
  * @example
  * ```tsx
- * <Inline>
- *   {RATES.map((rate) => (
- *     <ToggleButton
- *       key={rate}
- *       size="sm"
- *       pressed={rate === current}
- *       onClick={() => setRate(rate)}
- *     >
- *       {rate}x
- *     </ToggleButton>
- *   ))}
- * </Inline>
+ * import { Inline, ToggleButton } from "@ksp-gonogo/ui-kit";
+ *
+ * const RATES = [1, 2, 3, 4] as const;
+ *
+ * function RatePicker(props: {
+ *   current: number;
+ *   setRate: (rate: number) => void;
+ * }) {
+ *   return (
+ *     <Inline>
+ *       {RATES.map((rate) => (
+ *         <ToggleButton
+ *           key={rate}
+ *           size="sm"
+ *           pressed={rate === props.current}
+ *           onClick={() => props.setRate(rate)}
+ *         >
+ *           {rate}x
+ *         </ToggleButton>
+ *       ))}
+ *     </Inline>
+ *   );
+ * }
  * ```
  *
  * @category Button

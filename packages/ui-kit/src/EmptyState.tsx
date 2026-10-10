@@ -34,8 +34,9 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @category EmptyState
  * @categoryDescription EmptyState
- * What a widget shows in place of content: nothing to show, a notice, a spinner
- * while it waits, and the note for a trajectory that is withheld.
+ * What a widget shows where there is no content to draw: a placeholder for an
+ * empty panel or list, a notice, a spinner while it waits, and the note for a
+ * trajectory that is withheld.
  */
 export function EmptyState({
   children,

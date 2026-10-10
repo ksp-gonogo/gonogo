@@ -31,7 +31,9 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
 /**
  * A vertical flex column, the most common container shape in a widget body.
  * Children sit one above the other with the container's related gap between
- * them unless `gap` names another.
+ * them unless `gap` names another. A row that spans the container is a
+ * {@link Cluster}; a compact run of badges or buttons that sits within a line is
+ * an {@link Inline}.
  *
  * The layout primitives compose: a {@link Stack} of sections, a
  * {@link Cluster} for a label beside its controls, a {@link Grid} for a
