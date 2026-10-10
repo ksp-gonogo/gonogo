@@ -66,13 +66,55 @@ function readJson(path: string): Record<string, unknown> {
   return asRecord(JSON.parse(readFileSync(path, "utf8")));
 }
 
-/** Runs `dotnet` with its output shown, and fails naming the step. */
+/** The verbs that start MSBuild, which leaves worker nodes running unless told not to. */
+const MSBUILD_VERBS = new Set(["build", "restore", "test", "publish", "pack"]);
+
+const REPORTED_ERROR = /\berror\b[^\n]*(?:MSB|CS|NU|NETSDK)\d+|: error /i;
+const CAUSE_LINE =
+  /denied|permission|socket|pipe|node|timed out|exception|cannot|unable|MSB\d+|warn|fail/i;
+
+/**
+ * What to tell an author when dotnet failed and its output reports no error.
+ * It is the last meaningful lines of a more verbose run, then the reasons that
+ * produce this shape.
+ */
+export function explainSilentFailure(
+  label: string,
+  verboseOutput: string,
+): string {
+  const lines = verboseOutput
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && CAUSE_LINE.test(line));
+  const tail = lines.slice(-12);
+  return [
+    `${label}: dotnet exited with a failure and reported no error.`,
+    ...(tail.length > 0
+      ? [
+          "The last meaningful lines of a more verbose run:",
+          ...tail.map((l) => `  ${l}`),
+        ]
+      : ["A more verbose run printed nothing that names a cause."]),
+    "The usual reasons: MSBuild could not talk to its worker processes (a sandbox, container or security tool denying local sockets or pipes),",
+    "a build server or file lock held by another run, or a disk or permission problem under obj/ and bin/.",
+    "Run the same `dotnet build` yourself with `-m:1 -nodeReuse:false -v:n` to see it.",
+  ].join("\n");
+}
+
+/** Runs `dotnet` and fails naming the step; a failure that reported no error is rerun verbosely and explained. */
 export function dotnet(
   label: string,
   args: readonly string[],
   env?: NodeJS.ProcessEnv,
 ): void {
-  const result = spawnSync("dotnet", args, { stdio: "inherit", env });
+  const full = MSBUILD_VERBS.has(args[0] ?? "")
+    ? [...args, "-nodeReuse:false"]
+    : [...args];
+  const result = spawnSync("dotnet", full, {
+    encoding: "utf8",
+    env,
+    maxBuffer: 256 * 1024 * 1024,
+  });
   if (result.error) {
     throw new Error(
       Reflect.get(result.error, "code") === "ENOENT"
@@ -80,9 +122,30 @@ export function dotnet(
         : `${label}: ${result.error.message}`,
     );
   }
-  if (result.status !== 0) {
+  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
+  if (result.status === 0) return;
+  if (REPORTED_ERROR.test(output) || !MSBUILD_VERBS.has(args[0] ?? "")) {
     throw new Error(`${label} failed, so nothing after it ran.`);
   }
+  const verbose: string[] = [];
+  for (let i = 0; i < full.length; i += 1) {
+    const arg = full[i];
+    if (arg === "-v") i += 1;
+    else if (!/^-clp:/i.test(arg) && !/^-v:/i.test(arg)) verbose.push(arg);
+  }
+  const rerun = spawnSync("dotnet", [...verbose, "-v:n", "-m:1"], {
+    encoding: "utf8",
+    env,
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  throw new Error(
+    explainSilentFailure(
+      label,
+      `${rerun.stdout ?? ""}${rerun.stderr ?? ""}${rerun.error?.message ?? ""}`,
+    ),
+  );
 }
 
 /** Where a restored project's packages came from: `obj/project.assets.json`, read for one package. */
