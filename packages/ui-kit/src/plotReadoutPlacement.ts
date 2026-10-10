@@ -8,6 +8,8 @@ export interface PlotReadoutSpace {
   width: number;
   /** Height of the whole chart, in CSS pixels. */
   height: number;
+  /** Width the column's widest line needs to be read whole: a legend chip, a caption, a card row, in CSS pixels. */
+  contentWidth: number;
 }
 
 /**
@@ -30,26 +32,34 @@ const BESIDE_MIN_WIDTH = 480;
 /** Shortest chart whose column can hold a card of a few rows. */
 const BESIDE_MIN_HEIGHT = 110;
 
-const COLUMN_SHARE = 0.3;
-const COLUMN_MIN_PX = 104;
-const COLUMN_MAX_PX = 168;
+const COLUMN_MIN_PX = 112;
+const COLUMN_MAX_PX = 260;
+/** The column never takes more than this share of the chart. */
+const COLUMN_MAX_SHARE = 0.4;
+/** What the chart must keep for the plot, its axes and its margins once the column is taken. */
+const PLOT_KEEPS_PX = 300;
 
 /**
  * Where the kit puts a chart's card, legend and captions, decided from
- * measured space. A chart with room gives them a column beside the plot; a
- * smaller one keeps them over the plot.
+ * measured space. A chart with room gives them a column beside the plot, as
+ * wide as its widest line needs so nothing is cut; one that cannot spare that
+ * width, or is smaller, keeps them over the plot.
  *
  * @category LineGraph
  */
 export function placePlotReadouts({
   width,
   height,
+  contentWidth,
 }: PlotReadoutSpace): PlotReadoutPlacement {
-  if (width < BESIDE_MIN_WIDTH || height < BESIDE_MIN_HEIGHT) {
+  const columnWidth = Math.max(COLUMN_MIN_PX, Math.ceil(contentWidth));
+  if (
+    width < BESIDE_MIN_WIDTH ||
+    height < BESIDE_MIN_HEIGHT ||
+    columnWidth > Math.min(COLUMN_MAX_PX, width * COLUMN_MAX_SHARE) ||
+    width - columnWidth < PLOT_KEEPS_PX
+  ) {
     return { placement: "overlay" };
   }
-  const columnWidth = Math.round(
-    Math.min(COLUMN_MAX_PX, Math.max(COLUMN_MIN_PX, width * COLUMN_SHARE)),
-  );
   return { placement: "beside", columnWidth };
 }

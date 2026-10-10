@@ -244,6 +244,13 @@ const CAPTION_MIN_PLOT_H = 90;
 const PX_PER_X_TICK = 70;
 const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
+/** What a card's figure line is sized for: a figure of this many characters and a currency word after it. */
+const CARD_FIGURE_CHARS = 14;
+const CARD_CURRENCY_CHARS = 10;
+/** A stacked card keeps its edge and padding on both sides and a swatch before the text. */
+const CARD_PAD_PX = 36;
+/** Slack for the gap between the plot and its column, which the chart's own margin does not cover. */
+const COLUMN_SLACK_PX = 12;
 /** Space between the plot and its readout column, and between the column and the chart edge. */
 const COLUMN_GAP = 8;
 const COLUMN_EDGE = 2;
@@ -270,6 +277,47 @@ function seriesYValues(s: ChartSeries): number[] {
     return [...s.data.y, ...s.data.y2];
   }
   return s.data.y;
+}
+
+/** The width the column beside the plot needs to hold its widest line whole: the legend chips, the captions and the card's rows. */
+function readoutColumnWidth({
+  series,
+  thresholds,
+  heading,
+  crosshairOn,
+  yTickFormat,
+}: {
+  series: readonly ChartSeries[];
+  thresholds: readonly ThresholdRule[];
+  heading: readonly string[];
+  crosshairOn: boolean;
+  yTickFormat: (v: number) => string;
+}): number {
+  const px = (chars: number) => chars * LABEL_CHAR_PX;
+  const widths: number[] = [];
+  for (const s of series) {
+    widths.push(px(s.label.length) + 8);
+    if (crosshairOn) {
+      widths.push(
+        Math.max(
+          px(s.label.length),
+          px(CARD_FIGURE_CHARS + CARD_CURRENCY_CHARS),
+        ) + CARD_PAD_PX,
+      );
+    }
+  }
+  for (const t of thresholds) {
+    if (t.kind === "marker") continue;
+    const figure = t.label ?? yTickFormat(t.value);
+    widths.push(px(figure.length) + LABEL_MARK_PX + 8);
+    if (crosshairOn) {
+      widths.push(Math.max(px(t.kind.length), px(figure.length)) + CARD_PAD_PX);
+    }
+  }
+  if (crosshairOn) {
+    widths.push(Math.max(...heading.map((h) => px(h.length))) + CARD_PAD_PX);
+  }
+  return Math.max(0, ...widths) + COLUMN_SLACK_PX;
 }
 
 export function LineChart({
@@ -326,7 +374,19 @@ export function LineChart({
   const readouts =
     spatial || !hasReadouts
       ? ({ placement: "overlay" } as const)
-      : placePlotReadouts({ width: w, height: h });
+      : placePlotReadouts({
+          width: w,
+          height: h,
+          contentWidth: readoutColumnWidth({
+            series,
+            thresholds: thresholds ?? [],
+            heading: [xDomain[0], xDomain[1]].map((v) =>
+              xTickFormat(v, xDomain),
+            ),
+            crosshairOn,
+            yTickFormat,
+          }),
+        });
   const columnWidth =
     readouts.placement === "beside" ? readouts.columnWidth : 0;
   const plotX1 = w - margin.right - columnWidth;
@@ -891,9 +951,22 @@ export function LineChart({
       cx: s.data.x.map(scaleX),
       cy: s.data.y.map(s.axis === "primary" ? scaleYPrimary : scaleYSecondary),
     }));
+  // The line stands on a sample the way the keys put it, so the instant it names is a sample's own time and does not depend on where the plot's pixels fall.
+  const snapped = (at: number): number => {
+    let best = at;
+    let gap = Number.POSITIVE_INFINITY;
+    for (const t of crosshairTimes) {
+      if (t < xLo || t > xHi) continue;
+      if (Math.abs(t - at) < gap) {
+        gap = Math.abs(t - at);
+        best = t;
+      }
+    }
+    return best;
+  };
   const cursorAt =
     crosshairOn && cursor !== null && cursor.at >= xLo && cursor.at <= xHi
-      ? cursor.at
+      ? snapped(cursor.at)
       : null;
   const crosshairReading = cursorAt === null ? null : readAt(cursorAt);
   // The card names every series in its colour, so the legend gives its corner up while the card is drawn.
@@ -1345,23 +1418,26 @@ export function LineChart({
             data-threshold-kind={t.kind}
             data-threshold-passed={t.passed || undefined}
           />
-          {t.label && labelPlaces.get(t.id) && (
-            <text
-              x={labelPlaces.get(t.id)?.x}
-              y={labelPlaces.get(t.id)?.y}
-              textAnchor={labelPlaces.get(t.id)?.anchor}
-              fill={t.tone.label}
-              fontSize={10}
-            >
-              {t.label}
-              {t.currency.held && (
-                <InstrumentHeldMark
-                  size={10}
-                  kind={t.currency.mark ?? "held"}
-                />
-              )}
-            </text>
-          )}
+          {/* The card carries every limit and target as a row, so its column does not write the same reading twice. */}
+          {t.label &&
+            labelPlaces.get(t.id) &&
+            !(column !== undefined && cardShown && t.kind !== "marker") && (
+              <text
+                x={labelPlaces.get(t.id)?.x}
+                y={labelPlaces.get(t.id)?.y}
+                textAnchor={labelPlaces.get(t.id)?.anchor}
+                fill={t.tone.label}
+                fontSize={10}
+              >
+                {t.label}
+                {t.currency.held && (
+                  <InstrumentHeldMark
+                    size={10}
+                    kind={t.currency.mark ?? "held"}
+                  />
+                )}
+              </text>
+            )}
         </React.Fragment>
       ))}
 

@@ -165,4 +165,64 @@ describe("LineChart crosshair", () => {
     ) as SVGRectElement;
     expect(Number(card.getAttribute("x"))).toBeGreaterThan(plotRight());
   });
+
+  it("names the same instant in the column card as over the plot for the same hover", () => {
+    const headingAt = (width: number, fraction: number) => {
+      const { container } = render(chart({ width, height: 260 }));
+      const svg = container.querySelector("svg") as SVGSVGElement;
+      svg.getBoundingClientRect = () =>
+        ({ left: 0, top: 0, width, height: 260 }) as DOMRect;
+      const plot = container.querySelector("svg rect") as SVGRectElement;
+      const x0 = Number(plot.getAttribute("x"));
+      const span = Number(plot.getAttribute("width"));
+      fireEvent.pointerMove(svg, {
+        clientX: x0 + span * fraction,
+        clientY: 100,
+      });
+      return container.querySelector("[data-plot-crosshair-card] text")
+        ?.textContent;
+    };
+    const overlay = headingAt(400, 0.52);
+    const column = headingAt(760, 0.52);
+    expect(overlay).toMatch(/^T\+\d+s$/);
+    expect(column).toBe(overlay);
+  });
+
+  it("keeps the row labels and currency words in the column card, uncut", () => {
+    const { container } = render(chart({ width: 760, height: 260 }));
+    const svg = container.querySelector("svg") as SVGSVGElement;
+    act(() => svg.focus());
+    const card = container.querySelector("[data-plot-crosshair-card]");
+    expect(card?.textContent).toContain("Altitude");
+    expect(card?.textContent).toContain("Speed");
+    expect(card?.textContent).toContain("measured");
+    expect(card?.textContent).not.toContain("\u2026");
+  });
+
+  it("writes a limit once while the column card carries it, and as a caption otherwise", () => {
+    const limit = [
+      {
+        id: "ceiling",
+        kind: "limit",
+        bad: "above",
+        value: 450,
+        label: "Ceiling 450",
+      },
+    ] as const;
+    const { container } = render(
+      chart({ width: 760, height: 260, thresholds: limit }),
+    );
+    // A written reading is drawn text; the chart's accessible name says it as well.
+    const mentions = () =>
+      [...container.querySelectorAll("svg text")].filter((t) =>
+        t.textContent?.includes("Ceiling 450"),
+      ).length;
+    expect(mentions()).toBe(1);
+    const svg = container.querySelector("svg") as SVGSVGElement;
+    act(() => svg.focus());
+    expect(mentions()).toBe(1);
+    expect(
+      container.querySelector("[data-plot-crosshair-card]")?.textContent,
+    ).toContain("Ceiling 450");
+  });
 });

@@ -66,9 +66,13 @@ interface CardLayout {
   /** The card writes the instant above its rows. */
   named: boolean;
   headingChars: number;
+  /** A column card writes each row over two lines, the label then its figure, so nothing is cut. */
+  stacked: boolean;
   rows: readonly PlotCrosshairRow[];
   /** What each row's text says: the label and value on a full card, a shortened label and the value on a compact one. */
   text: (row: PlotCrosshairRow) => string;
+  /** The figure's own line on a stacked card. */
+  valueText: (row: PlotCrosshairRow) => string;
   currencyText: (row: PlotCrosshairRow) => string;
   cardW: number;
   cardH: number;
@@ -100,8 +104,16 @@ function layoutCard(
   // A compact row keeps its series' identity: a swatch and as much of the label as the card can hold beside the value.
   const compactRoom =
     plotW - EDGE_PX * 2 - PAD_PX * 2 - SWATCH_PX - SWATCH_GAP_PX;
+  const stacked = column !== undefined;
+  const stackedChars = Math.floor(compactRoom / CHAR_PX);
+  const valueText = (row: PlotCrosshairRow) =>
+    shortened(
+      row.value ?? NULL_DISPLAY,
+      stackedChars - (row.currency ? row.currency.length + 2 : 0),
+    );
   const text = (row: PlotCrosshairRow) => {
     const value = row.value ?? NULL_DISPLAY;
+    if (stacked) return shortened(row.label, stackedChars);
     if (full) return `${row.label}  ${value}`;
     const room =
       Math.floor((compactRoom - value.length * CHAR_PX) / CHAR_PX) -
@@ -114,7 +126,7 @@ function layoutCard(
     return shortened(value, chars);
   };
   const currencyText = (row: PlotCrosshairRow) =>
-    full && row.currency ? row.currency : "";
+    (full || stacked) && row.currency ? row.currency : "";
   const currencyW = (row: PlotCrosshairRow) =>
     currencyText(row)
       ? GAP_PX +
@@ -127,19 +139,31 @@ function layoutCard(
   const headingChars = Math.floor((plotW - EDGE_PX * 2 - PAD_PX * 2) / CHAR_PX);
 
   const textW = Math.max(
-    ...rows.map((row) => swatchW + text(row).length * CHAR_PX + currencyW(row)),
+    ...rows.map((row) =>
+      stacked
+        ? swatchW +
+          Math.max(
+            text(row).length * CHAR_PX,
+            valueText(row).length * CHAR_PX + currencyW(row),
+          )
+        : swatchW + text(row).length * CHAR_PX + currencyW(row),
+    ),
     named ? Math.min(heading.length, headingChars) * CHAR_PX : 0,
   );
   const headRows = named ? 1 : 0;
-  const cardH = (rows.length + headRows) * ROW_PX + PAD_PX * 2;
+  const cardH =
+    (rows.length * (stacked ? 2 : 1) + headRows) * ROW_PX + PAD_PX * 2;
   return {
     full,
     named,
     headingChars,
+    stacked,
     rows,
     text,
+    valueText,
     currencyText,
-    cardW: Math.min(textW + PAD_PX * 2, plotW - EDGE_PX * 2),
+    // A column card spans its column, so the captions standing under it line up with it.
+    cardW: stacked ? plotW : Math.min(textW + PAD_PX * 2, plotW - EDGE_PX * 2),
     cardH,
     headRows,
     fits: cardH <= plotH - EDGE_PX * 2,
@@ -273,8 +297,10 @@ export function PlotCrosshair({
     full,
     named,
     headingChars,
+    stacked,
     rows,
     text,
+    valueText,
     currencyText,
     cardW,
     cardH,
@@ -332,13 +358,17 @@ export function PlotCrosshair({
             </text>
           )}
           {rows.map((row, i) => {
-            const baseline = cardY + PAD_PX + (i + headRows) * ROW_PX + 10;
+            const lines = stacked ? 2 : 1;
+            const labelBaseline =
+              cardY + PAD_PX + (i * lines + headRows) * ROW_PX + 10;
+            // A stacked card gives the figure the line under the label.
+            const baseline = labelBaseline + (stacked ? ROW_PX : 0);
             return (
               <g key={row.id} data-plot-crosshair-row={row.id}>
                 {!full && (
                   <rect
                     x={cardX + PAD_PX}
-                    y={baseline - 8}
+                    y={labelBaseline - 8}
                     width={SWATCH_PX}
                     height={SWATCH_PX}
                     fill={row.color}
@@ -347,15 +377,30 @@ export function PlotCrosshair({
                 )}
                 <text
                   x={textX(cardX)}
-                  y={baseline}
+                  y={labelBaseline}
                   fill={
-                    row.value === null ? "var(--color-text-faint)" : row.color
+                    row.value === null || stacked
+                      ? "var(--color-text-faint)"
+                      : row.color
                   }
                   fontSize={10}
                   style={{ whiteSpace: "pre" }}
                 >
                   {text(row)}
                 </text>
+                {stacked && (
+                  <text
+                    x={textX(cardX)}
+                    y={baseline}
+                    fill={
+                      row.value === null ? "var(--color-text-faint)" : row.color
+                    }
+                    fontSize={10}
+                    style={{ whiteSpace: "pre" }}
+                  >
+                    {valueText(row)}
+                  </text>
+                )}
                 {row.modelled && (
                   <ReckoningMarkSvg
                     kind="modelled"

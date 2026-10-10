@@ -11925,6 +11925,10 @@
         "note": "the chart size placePlotReadouts decides from"
       },
       {
+        "key": "ui-kit . PlotReadoutSpace#contentWidth",
+        "note": "the width the column needs to hold its widest line whole, so a column that would cut text falls back to the plot"
+      },
+      {
         "key": "ui-kit . PlotReadoutSpace#height",
         "note": "the chart's height in pixels"
       },
