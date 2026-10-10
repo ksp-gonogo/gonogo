@@ -29,7 +29,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export interface UplinkPackage {
   /** The directory the tool was invoked in. Holds `package.json`. */
   dir: string;
+  /** The package's name. */
   name: string;
+  /** The package's version. */
   version: string;
   /** The client entry esbuild bundles: `--entry`, else `src/index.ts`, `src/index.tsx`, then `package.json`'s `main`. */
   entry: string;

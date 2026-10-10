@@ -24,7 +24,9 @@
  * @category Testing
  */
 export interface CheckerGrid {
+  /** Cells across. */
   cols: number;
+  /** Cells down. */
   rows: number;
 }
 
@@ -43,11 +45,15 @@ export type CheckerFit = "fill" | "contain" | "cover";
 export interface CheckerPaint {
   /** The grid the source picture carries. */
   grid: CheckerGrid;
+  /** How the picture scales to its box. */
   fit: CheckerFit;
+  /** The box the picture was given, in CSS px. */
   box: { width: number; height: number };
   /** The painted picture's own size, which exceeds `box` on a cropped axis and falls short of it on a letterboxed one. */
   painted: { width: number; height: number };
+  /** One cell's painted width, in CSS px. */
   cellWidth: number;
+  /** One cell's painted height, in CSS px. */
   cellHeight: number;
   /** Cells visible inside the box per axis, never more than the grid holds. */
   visible: CheckerGrid;

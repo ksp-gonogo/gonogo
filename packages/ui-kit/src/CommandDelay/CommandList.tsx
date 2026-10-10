@@ -62,11 +62,36 @@ interface CommandListCommonProps {
  */
 export type CommandListProps = CommandListCommonProps &
   (
-    | { kind: "refused"; entries: readonly RailRefusal[] }
-    | { kind: "lost"; entries: readonly RailLoss[] }
-    | { kind: "undelivered"; entries: readonly RailUndelivered[] }
-    | { kind: "found"; entries: readonly RailFound[] }
-    | { kind: "failed"; entries: readonly RailFailed[] }
+    | {
+        /** The commands that were refused. */
+        kind: "refused";
+        /** The refused commands, one box each. */
+        entries: readonly RailRefusal[];
+      }
+    | {
+        /** The commands that were lost with no answer. */
+        kind: "lost";
+        /** The lost commands, one box each. */
+        entries: readonly RailLoss[];
+      }
+    | {
+        /** The commands that never left. */
+        kind: "undelivered";
+        /** The undelivered commands, one box each. */
+        entries: readonly RailUndelivered[];
+      }
+    | {
+        /** The lost commands that answered after all. */
+        kind: "found";
+        /** The found commands, one box each. */
+        entries: readonly RailFound[];
+      }
+    | {
+        /** The commands that came back with a fault. */
+        kind: "failed";
+        /** The failed commands, one box each. */
+        entries: readonly RailFailed[];
+      }
   );
 
 /** One box as drawn: the kind's sentence and gesture already composed. */
