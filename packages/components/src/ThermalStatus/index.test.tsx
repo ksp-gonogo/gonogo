@@ -64,7 +64,7 @@ describe("ThermalStatusComponent", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("raises a role=alert banner when any engine is flagged overheating", async () => {
+  it("announces an engine flagged overheating as critical", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -80,10 +80,10 @@ describe("ThermalStatusComponent", () => {
     });
 
     const alert = await screen.findByRole("alert");
-    expect(visibleText(alert)).toMatch(/engine overheating/i);
+    expect(visibleText(alert)).toMatch(/thermal critical/i);
   });
 
-  it("raises a role=alert banner when the hottest part ratio is critical", async () => {
+  it("announces a critical band through the alert region and draws no inline note", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -102,8 +102,8 @@ describe("ThermalStatusComponent", () => {
     });
 
     const alert = await screen.findByRole("alert");
-    // Critical band (>= 97% ratio) reads "Part at max temperature"; hot band (90-97%) reads "Part approaching max temperature".
-    expect(visibleText(alert)).toMatch(/at max temperature/i);
+    expect(visibleText(alert)).toMatch(/thermal critical/i);
+    expect(screen.queryByText(/max temperature/i)).toBeNull();
   });
 
   it("treats absolute-zero readings as missing data (no thermometer fitted)", async () => {

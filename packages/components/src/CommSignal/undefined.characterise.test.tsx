@@ -77,6 +77,12 @@ describe("CommSignal: what undefined means today", () => {
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.commandCentre", {
+        id: "ground:KSC",
+        displayName: "KSC",
+        kind: "GroundStation",
+        bodyIndex: 1,
+      });
     });
 
     // "0 of 4" would be a verdict about strength made from no reading of it.

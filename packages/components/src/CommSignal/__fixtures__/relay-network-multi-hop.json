@@ -18,6 +18,15 @@
         }
       },
       {
+        "channel": "comms.commandCentre",
+        "value": {
+          "id": "ground:KSC",
+          "displayName": "KSC",
+          "kind": "GroundStation",
+          "bodyIndex": 1
+        }
+      },
+      {
         "channel": "comms.delay",
         "value": {
           "oneWaySeconds": 6.2

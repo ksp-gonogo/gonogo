@@ -1,18 +1,5 @@
 import { BAND_COLOR, type Band } from "./bands";
 
-export const PILL_ROW_STYLE = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: "var(--gap-related)",
-} as const;
-
-export const CRITICAL_NOTE_STYLE = {
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-nogo-text)",
-  letterSpacing: "0.04em",
-} as const;
-
 // Owned by the parent so a group that does not render leaves no gap.
 export const READOUT_GROUPS_STYLE = {
   gap: "var(--gap-readout-groups)",
