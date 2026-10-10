@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A page opened while fly-by-wire is already armed on the craft, so the button reads armed though this page never armed it.",
     "notes": "A page opened while the mod already has the fly-by-wire override armed on this craft, so vessel.control.flyByWire reads true and the button reads FBW ARMED with no command of this page's having armed it.",
-    "scenario": "fbw-armed-on-load"
+    "scenario": "fly-by-wire-already-armed"
   },
   "n.heading": 270,
   "n.pitch": -60,
