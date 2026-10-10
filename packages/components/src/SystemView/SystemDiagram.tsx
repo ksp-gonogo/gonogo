@@ -16,6 +16,7 @@ import {
   nameMatches,
   organise,
   placeBodies,
+  placeBodyRings,
   placeVesselPoint,
   placeVesselRing,
   type VesselOrbit,
@@ -38,6 +39,7 @@ import type { TargetConic, TargetEncounter } from "./targetOrbit";
 import type { CelestialBody } from "./useCelestialBodies";
 import type { PanZoom } from "./usePanZoom";
 import { usePlacedPrediction } from "./usePlacedPrediction";
+import { createUtBucketThrottle } from "./utBucketThrottle";
 import { VesselMarker, type VesselPlotState } from "./VesselMarker";
 
 export type { VesselOrbit } from "./diagramGeometry";
@@ -153,9 +155,31 @@ export function SystemDiagram({
   );
 
   // Memoised on the projection and not on zoom: this re-renders every frame, and a wheel gesture must not replace thousands of placements.
+  // Rings are paths and move only when the arc's read instant is allowed to, which is the UT bucket and never the frame; the points ride each pose.
+  const [ringThrottle] = useState(() => createUtBucketThrottle());
+  const ringUt = ringThrottle(poses?.ut, performance.now());
+  const bodyRings = useMemo(
+    () =>
+      placeBodyRings({
+        parent,
+        children,
+        placement,
+        plotScale,
+        viewUt: ringUt ?? 0,
+      }),
+    [parent, children, placement, plotScale, ringUt],
+  );
   const placedBodies = useMemo(
-    () => placeBodies({ parent, children, poses, placement, plotScale }),
-    [parent, children, poses, placement, plotScale],
+    () =>
+      placeBodies({
+        parent,
+        children,
+        poses,
+        placement,
+        plotScale,
+        rings: bodyRings,
+      }),
+    [parent, children, poses, placement, plotScale, bodyRings],
   );
   const vesselHere =
     vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
