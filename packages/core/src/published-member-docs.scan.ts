@@ -94,6 +94,12 @@ export function memberFaultsOfEntry(
         if (!NAMED(member)) continue;
         const name = member.name.getText();
         if (name.startsWith("_") || name.startsWith("[")) continue;
+        // `x?: never` only bars the member from the other arm of a union; the arm that holds it documents it.
+        if (
+          (member as ts.PropertySignature).type?.kind ===
+          ts.SyntaxKind.NeverKeyword
+        )
+          continue;
         const memberSymbol = checker.getSymbolAtLocation(member.name);
         if (!memberSymbol) continue;
         count += 1;
@@ -163,6 +169,17 @@ export function gradeMemberPlant(): string[] {
     "  hidden: number;",
     "  _underscored: number;",
     "}",
+    "export type Either =",
+    "  | {",
+    "      /** Documented. */",
+    "      a: string;",
+    "      b?: never;",
+    "    }",
+    "  | {",
+    "      /** Documented. */",
+    "      b: string;",
+    "      a?: never;",
+    "    };",
     "export type Shape = {",
     "  bare: string;",
     "  /** Documented. */",

@@ -9,9 +9,13 @@ import type { FlightRecord } from "./types";
  * @category Flight recording
  */
 export interface FlightChapter {
+  /** The chapter's identifier. */
   readonly id: string;
+  /** The chapter's name. */
   readonly label: string;
+  /** Elapsed ms since the flight began, where the chapter starts. */
   readonly startMs: number;
+  /** Elapsed ms since the flight began, where the chapter ends. */
   readonly endMs: number;
 }
 

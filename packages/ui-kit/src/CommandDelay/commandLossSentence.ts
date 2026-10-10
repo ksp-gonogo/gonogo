@@ -21,6 +21,7 @@ export interface CommandLossLike {
  * @category CommandDelay
  */
 export interface CommandLossEntry extends CommandLossLike {
+  /** The dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
   id: string;
 }
 
@@ -30,6 +31,7 @@ export interface CommandLossEntry extends CommandLossLike {
  * @category CommandDelay
  */
 export interface RailLoss extends CommandLossEntry {
+  /** The command's rail axes. */
   tags: RailTags;
 }
 

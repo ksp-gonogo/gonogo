@@ -42,8 +42,16 @@ export type TopicFieldKind =
  * @category Reading telemetry
  */
 export type EnumEncoding =
-  | { by: "ordinal"; names: Readonly<Record<number, string>> }
-  | { by: "name" };
+  | {
+      /** The enum is carried as its ordinal. */
+      by: "ordinal";
+      /** The member name of each ordinal. */
+      names: Readonly<Record<number, string>>;
+    }
+  | {
+      /** The enum is carried as its member name. */
+      by: "name";
+    };
 
 /**
  * One field of a Topic, as {@link enumerateTopicFields} lists it.

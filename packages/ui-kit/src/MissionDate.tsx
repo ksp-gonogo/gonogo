@@ -19,13 +19,21 @@ import { VisuallyHidden } from "./VisuallyHidden";
  */
 export type TimeContext =
   /** The craft's own clock: when the event happens, or happened, out there. */
-  | { frame: "scet" }
+  | {
+      /** Names the clock the time is on. */
+      frame: "scet";
+    }
   /**
    * The arrival clock at the observing vantage: when the frame showing it
    * reaches, or reached, the operator. `vantage` names that command centre; it
    * is optional because a frame can arrive before the roster naming it does.
    */
-  | { frame: "received"; vantage?: string };
+  | {
+      /** Names the clock the time is on. */
+      frame: "received";
+      /** The command centre the arrival is observed at. */
+      vantage?: string;
+    };
 
 /**
  * The qualifier as rendered: token for the eye, phrase for the accessibility

@@ -143,8 +143,16 @@ export interface TopicReckoningAvailable<Payload> {
  */
 export type TopicReckoning<Payload> =
   | TopicReckoningAvailable<Payload>
-  | { readonly status: "none" }
-  | { readonly status: "declined"; readonly declined: ReckoningDecline };
+  | {
+      /** No model was offered. */
+      readonly status: "none";
+    }
+  | {
+      /** A model the contract declares could not produce a value. */
+      readonly status: "declined";
+      /** Why it could not. */
+      readonly declined: ReckoningDecline;
+    };
 
 /**
  * The reckoning of a Topic whose contract declares a forward model: the model
@@ -277,6 +285,7 @@ export interface TopicModel<Payload, Projection = Payload> {
  * @category Reckoners
  */
 export interface ReckoningDecline {
+  /** Why the model produced no value; branch on this. */
   readonly reason:
     | "input-absent"
     | "beyond-horizon"
@@ -302,7 +311,10 @@ export interface ReckoningDecline {
  */
 export type ReckonerAnswer<Payload, Projection = Payload> =
   | TopicModel<Payload, Projection>
-  | { readonly declined: ReckoningDecline };
+  | {
+      /** Why the model could not answer. */
+      readonly declined: ReckoningDecline;
+    };
 
 /**
  * A Topic's payload together with how current it is. {@link useTelemetry}
@@ -372,17 +384,21 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
   | {
       /** Nothing has arrived yet: the Topic was just subscribed, or is resyncing after a rewind. */
       state: "pending";
+      /** A pending reading has no model to offer. */
       reckoning: { readonly status: "none" };
     }
   | {
       /** Nothing will ever publish this Topic, because no installed Uplink declares it. */
       state: "unowned";
+      /** An unowned Topic has no model to offer. */
       reckoning: { readonly status: "none" };
     }
   | {
       /** The game confirmed there is no value, such as no target set. */
       state: "absent";
+      /** An absent value has no model to offer. */
       reckoning: { readonly status: "none" };
+      /** When the game confirmed there is no value. */
       atUt: Value<"ut">;
     }
   | {
@@ -390,7 +406,9 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       state: "observed";
       /** The observation itself. Never a modelled value; see `reckoning`. */
       value: Payload;
+      /** When the observation was made. */
       atUt: Value<"ut">;
+      /** What a forward model says the value is now. */
       reckoning: ReckoningShape;
     }
   | {
@@ -400,7 +418,9 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       value: Payload;
       /** The UT that observation was made at. */
       asOfUt: Value<"ut">;
+      /** Why updates stopped arriving. */
       grade: HeldGrade;
+      /** What a forward model says the value is now. */
       reckoning: ReckoningShape;
     };
 
@@ -482,6 +502,7 @@ export type ReservedReadingKey =
  */
 export type Reckoning<Payload> =
   | {
+      /** A model produced a value. */
       readonly status: "available";
       /** What the model says the value is at {@link atUt}. */
       readonly modelled: Payload;
@@ -489,12 +510,21 @@ export type Reckoning<Payload> =
       readonly atUt: Value<"ut">;
       /** See {@link TopicReckoningAvailable.beyondReceived}. */
       readonly beyondReceived: boolean;
+      /** The kind of model that produced the value. */
       readonly basis: ReckoningBasis;
       /** How far the model would defend `modelled`, where it will say. */
       readonly band?: UncertaintyBand;
     }
-  | { readonly status: "none" }
-  | { readonly status: "declined"; readonly declined: ReckoningDecline };
+  | {
+      /** No model was offered. */
+      readonly status: "none";
+    }
+  | {
+      /** A model could not produce a value. */
+      readonly status: "declined";
+      /** Why it could not. */
+      readonly declined: ReckoningDecline;
+    };
 
 /**
  * One value together with how current it is: what a payload field of a

@@ -6,7 +6,14 @@ import styled from "styled-components";
  *
  * @category Panel
  */
-export type PanelInactiveReason = string | { reason: string; hint?: string };
+export type PanelInactiveReason =
+  | string
+  | {
+      /** Why the panel is inactive. */
+      reason: string;
+      /** What would make it active, drawn under the reason. */
+      hint?: string;
+    };
 
 /**
  * The one body an inactive panel or section draws in place of its content:

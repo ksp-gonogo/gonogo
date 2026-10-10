@@ -43,6 +43,7 @@ export interface CommandFoundLike {
  * @category CommandDelay
  */
 export interface CommandFoundEntry extends CommandFoundLike {
+  /** The dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
   id: string;
 }
 
@@ -52,6 +53,7 @@ export interface CommandFoundEntry extends CommandFoundLike {
  * @category CommandDelay
  */
 export interface RailFound extends CommandFoundEntry {
+  /** The command's rail axes. */
   tags: RailTags;
 }
 

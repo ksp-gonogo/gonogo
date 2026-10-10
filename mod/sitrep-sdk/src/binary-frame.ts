@@ -70,11 +70,28 @@ export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
  */
 export type BinaryFrameFailure =
   /** Not a binary-lane frame at all. The caller should treat it as text. */
-  | { kind: "not-binary"; reason: string }
+  | {
+      /** Which way the bytes failed to be a frame. */
+      kind: "not-binary";
+      /** A sentence to log. */
+      reason: string;
+    }
   /** A lane byte this build does not know: refuse it, never fall back to text. */
-  | { kind: "unknown-lane"; lane: number; reason: string }
+  | {
+      /** Which way the bytes failed to be a frame. */
+      kind: "unknown-lane";
+      /** The lane byte this build does not know. */
+      lane: number;
+      /** A sentence to log. */
+      reason: string;
+    }
   /** Well-formed prefix, unreadable frame. */
-  | { kind: "malformed"; reason: string };
+  | {
+      /** Which way the bytes failed to be a frame. */
+      kind: "malformed";
+      /** A sentence to log. */
+      reason: string;
+    };
 
 /**
  * What `decodeBinaryFrame` returns: the decoded message, or the reason the bytes
@@ -83,8 +100,16 @@ export type BinaryFrameFailure =
  * @category Binary lane
  */
 export type BinaryFrameResult =
-  | { ok: true; message: StreamBinaryMessage }
-  | ({ ok: false } & BinaryFrameFailure);
+  | {
+      /** The bytes decoded. */
+      ok: true;
+      /** The decoded message. */
+      message: StreamBinaryMessage;
+    }
+  | ({
+      /** The bytes did not decode. */
+      ok: false;
+    } & BinaryFrameFailure);
 
 /**
  * Whether `bytes` start with the binary frame's magic byte. A text frame never

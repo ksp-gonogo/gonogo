@@ -782,6 +782,7 @@ export type ContributionDep =
   | TopicId
   | AnyModSettingDep
   | {
+      /** The processor's id. */
       readonly id: string;
       readonly __resultType?: unknown;
       readonly __carriesCurrency?: true;
@@ -1027,6 +1028,7 @@ export type AnyContribution = Omit<
   ContributionDefinition<string, readonly ContributionDep[]>,
   "compute"
 > & {
+  /** The contribution's compute function, with its Topics erased to a plain record. */
   compute: (
     topics: Record<string, unknown>,
   ) => readonly Record<string, unknown>[] | null | undefined;

@@ -20,8 +20,11 @@ import { useLatestValue } from "./use-stream";
  * @category Panel
  */
 export interface CapabilityLock {
+  /** The Topic or command that is locked. */
   capability: Capability;
+  /** What has to be unlocked first. */
   missing: readonly MissingUnlock[];
+  /** A sentence saying why, when the mod gave one. */
   detail?: string;
 }
 

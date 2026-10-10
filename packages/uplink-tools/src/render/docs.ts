@@ -162,9 +162,13 @@ function bundleIntegrity(
  * @category Uplink page
  */
 export interface DocsInputs {
+  /** The Uplink package. */
   pkg: UplinkPackage;
+  /** What its client registers. */
   inventory: UplinkInventory;
+  /** The scenes its fixtures define. */
   scenes: Scene[];
+  /** The pictures drawn for them. */
   assets: readonly PageAsset[];
   /** Path, relative to the package, of the file distributed to users. */
   bundle?: string;

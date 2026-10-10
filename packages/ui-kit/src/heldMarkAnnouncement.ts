@@ -18,8 +18,11 @@ export type HeldMarkFault = "silent" | "no-hover" | "no-as-of";
  * @category Testing
  */
 export interface UnannouncedHeldMark {
+  /** The held mark's element. */
   mark: Element;
+  /** What the mark fails to announce. */
   fault: HeldMarkFault;
+  /** A short description of where the mark was drawn. */
   where: string;
 }
 

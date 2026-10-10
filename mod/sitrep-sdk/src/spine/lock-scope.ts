@@ -6,8 +6,18 @@ import { createContext, useContext, useLayoutEffect } from "react";
  * @category Panel
  */
 export type Capability =
-  | { kind: "topic"; id: string }
-  | { kind: "command"; id: string };
+  | {
+      /** A Topic. */
+      kind: "topic";
+      /** The Topic id. */
+      id: string;
+    }
+  | {
+      /** A command. */
+      kind: "command";
+      /** The command id. */
+      id: string;
+    };
 
 /**
  * Where the capabilities a part of the tree uses are collected, so the part

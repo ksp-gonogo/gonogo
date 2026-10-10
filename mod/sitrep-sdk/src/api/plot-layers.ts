@@ -48,7 +48,9 @@ export type PlotEmphasis = "faint" | "normal" | "bright";
  * @category Plots
  */
 export interface PlotPoint {
+  /** The position along the X axis, in the plot's data space. */
   x: number;
+  /** The position along the Y axis, in the plot's data space. */
   y: number;
 }
 
@@ -77,7 +79,9 @@ interface PlotLayerBase {
  * @category Plots
  */
 export interface PlotSeriesLayer extends PlotLayerBase {
+  /** Marks this layer as a series. */
   kind: "series";
+  /** The points of the series, in order. */
   points: readonly PlotPoint[];
   /** Defaults to `"line"`. `"step"` holds each y to the next x. */
   style?: "line" | "step" | "scatter";
@@ -94,10 +98,13 @@ export interface PlotSeriesLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotRuleLayer extends PlotLayerBase {
+  /** Marks this layer as a rule. */
   kind: "rule";
   /** The axis `value` is on: `"y"` draws a horizontal rule at that y, `"x"` a vertical rule at that x. */
   along: "x" | "y";
+  /** Where on the axis the rule stands. */
   value: number;
+  /** The words drawn beside it. */
   label?: string;
   /** Defaults to true: a rule is a reference, not a measurement. */
   dashed?: boolean;
@@ -112,10 +119,13 @@ export interface PlotRuleLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotRegionLayer extends PlotLayerBase {
+  /** Marks this layer as a region. */
   kind: "region";
+  /** The edge the region is bounded by. */
   boundary: readonly PlotPoint[];
   /** `"between"` pairs `boundary` with `boundaryHigh`; the rest are half-planes. */
   side: "left" | "right" | "above" | "below" | "between";
+  /** The upper edge, for a `"between"` region. */
   boundaryHigh?: readonly PlotPoint[];
   /** 0..1. Defaults to a value the host picks for the tone. */
   opacity?: number;
@@ -137,6 +147,7 @@ export interface PlotRegionLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotFieldLayer extends PlotLayerBase {
+  /** Marks this layer as a field. */
   kind: "field";
   /** Which axis the intensity varies along. */
   along: "x" | "y";
@@ -159,7 +170,9 @@ export interface PlotFieldLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotMarkerLayer extends PlotLayerBase {
+  /** Marks this layer as a marker. */
   kind: "marker";
+  /** Where the mark stands. */
   at: PlotPoint;
   /** Defaults to `"dot"`. */
   shape?: "dot" | "ring" | "cross" | "chevron-up" | "chevron-down" | "vessel";
@@ -179,6 +192,7 @@ export interface PlotMarkerLayer extends PlotLayerBase {
    * in the plot's data space.
    */
   offsetPx?: number;
+  /** The words drawn beside it. */
   label?: string;
 }
 
@@ -189,10 +203,13 @@ export interface PlotMarkerLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotAnnotationLayer extends PlotLayerBase {
+  /** Marks this layer as an annotation. */
   kind: "annotation";
+  /** Where the annotation stands. */
   at: PlotPoint;
   /** The axis the bar runs along, which is not how a rule's `along` reads: `"x"`, the default, is a horizontal tick, and `"y"` a vertical one. */
   across?: "x" | "y";
+  /** The words drawn beside it. */
   label?: string;
 }
 
@@ -203,7 +220,9 @@ export interface PlotAnnotationLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotCaptionLayer extends PlotLayerBase {
+  /** Marks this layer as a caption. */
   kind: "caption";
+  /** Which corner or edge of the plot the caption sits at. */
   anchor:
     | "top-left"
     | "top-right"
@@ -211,6 +230,7 @@ export interface PlotCaptionLayer extends PlotLayerBase {
     | "bottom-right"
     | "left-edge"
     | "right-edge";
+  /** The caption's words. */
   text: string;
   /** A small dim word above `text`, for a label/value pair. */
   caption?: string;
@@ -231,6 +251,7 @@ export interface PlotCaptionLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotReliefLayer extends PlotLayerBase {
+  /** Marks this layer as a relief. */
   kind: "relief";
   /** Row-major, exactly `size * size` finite samples. */
   values: readonly number[];
@@ -259,6 +280,7 @@ export interface PlotReliefLayer extends PlotLayerBase {
  * @category Plots
  */
 export interface PlotWaterLayer extends PlotLayerBase {
+  /** Marks this layer as water. */
   kind: "water";
   /**
    * How the sea is seen. `"plan"`: from above, the plot's x east and y north

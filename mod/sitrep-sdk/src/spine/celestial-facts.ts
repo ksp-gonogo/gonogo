@@ -65,7 +65,9 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * @category Solar system and fleet
  */
 export interface BodyHorizon {
+  /** How far ahead the elements hold. */
   kind: PropagationHorizonKind;
+  /** The kind of trajectory they describe. */
   trajectoryKind: TrajectoryKind;
   /** The last UT these elements hold for; set iff `kind` is `Until`. */
   untilUt: number | null;
@@ -105,11 +107,15 @@ export interface BodyAtmosphere {
  * @category Solar system and fleet
  */
 export interface BodyFigures {
+  /** The body's radius. */
   radius: Value<"m"> | null;
+  /** The body's mass. */
   mass: Value<"kg"> | null;
+  /** Gravity at the surface. */
   surfaceGravity: Value<"g"> | null;
   /** The sidereal rotation period's length, with a retrograde sign dropped. */
   dayLength: Value<"s"> | null;
+  /** How deep the atmosphere is, or `null` for a body with none. */
   atmosphereDepth: Value<"m"> | null;
 }
 

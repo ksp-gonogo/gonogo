@@ -56,6 +56,7 @@ export interface ConicOrbitInput {
   mu: Quantityish;
   /** A `LockedValue` while the save cannot compute one; read as no encounter. */
   encounter?: { transitionUt: Quantityish } | LockedValue | null;
+  /** How far ahead the elements hold. */
   horizon?: PropagationHorizonLike;
 }
 
@@ -66,6 +67,7 @@ export interface ConicOrbitInput {
  * @category Reckoners
  */
 export interface ConicBodiesInput {
+  /** The bodies, as `system.bodies` lists them. */
   bodies: readonly {
     index: number;
     radius?: Quantityish;
@@ -80,8 +82,11 @@ export interface ConicBodiesInput {
  * @category Reckoners
  */
 export interface ConicThrustInput {
+  /** The thrust now. */
   currentThrust: Quantityish;
+  /** When the current burn began. */
   thrustStartedUt?: Quantityish | null;
+  /** When the last burn ended. */
   lastThrustEndUt?: Quantityish | null;
 }
 
@@ -92,6 +97,7 @@ export interface ConicThrustInput {
  * @category Reckoners
  */
 export interface ConicPendingInput {
+  /** The commands sent and not yet answered. */
   pending: readonly {
     dispatchedAt: Quantityish;
     /** Absent while the sending centre knows no route: such a command is held, and reaches nothing until it is sent. */

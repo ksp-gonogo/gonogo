@@ -102,6 +102,7 @@ export type TrajectoryFrameKindLike =
  * @category Frames of reference
  */
 export interface TrajectoryFrame {
+  /** What kind of frame it is. */
   kind: TrajectoryFrameKindLike;
   /** Index into `system.bodies` of the frame's centre, when it has one. */
   centreBodyIndex?: number;
@@ -112,6 +113,7 @@ export interface TrajectoryFrame {
    * first is the one held at the far end of the first axis.
    */
   primaryBodyIndex?: number;
+  /** Index into `system.bodies` of the second body the frame is named for. */
   secondaryBodyIndex?: number;
   /**
    * How to read a coordinate in this frame. Absent means metres; only a
@@ -188,9 +190,11 @@ export type OrbitTrajectory =
        * span the provider vouched for, and extending it is inventing.
        */
       shape: "arc";
+      /** The sampled points of the path. */
       points: readonly TrajectoryPoint[];
       /** The window the arc spans, so a caller can say how far ahead it reaches. */
       fromUt: number;
+      /** The UT the arc ends at. */
       toUt: number;
       /** Which frame `points` are in, so a widget can name it rather than assume it. */
       frame: TrajectoryFrame;
@@ -198,7 +202,9 @@ export type OrbitTrajectory =
       farEnd: ArcFarEnd;
     }
   | {
+      /** The path may not be drawn. */
       shape: "withheld";
+      /** Why it may not. */
       reason: TrajectoryWithheldReason;
       /**
        * What kind of answer was refused, when the provider said. Present so a

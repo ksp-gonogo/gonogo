@@ -45,6 +45,7 @@ const NEWTON_TOLERANCE = 1e-12;
  * @category Orbits and trajectories
  */
 export interface PropagationHorizonLike {
+  /** How far ahead the elements hold. */
   kind: PropagationHorizonKindLike;
   /** For `Until`, the UT the elements are trusted until: an instant, not a duration. `null` or absent otherwise. */
   untilUt?: { magnitude: number } | number | null;
@@ -198,7 +199,9 @@ export type Vec3Tuple = readonly [x: number, y: number, z: number];
  * @category Orbits and trajectories
  */
 export interface StateVector {
+  /** Position, in metres. */
   position: Vec3Tuple;
+  /** Velocity, in metres per second. */
   velocity: Vec3Tuple;
 }
 
@@ -209,6 +212,7 @@ export interface StateVector {
  * @category Orbits and trajectories
  */
 export interface Anomalies {
+  /** Mean anomaly at the solved instant. */
   meanAnomaly: number;
   /** Eccentric anomaly at the solved instant. */
   eccentricAnomaly: number;
@@ -327,7 +331,9 @@ export interface ConicShape {
 export interface ConicSolution {
   /** Mean anomaly at the solved instant, wrapped to `[0, 2π)`. */
   meanAnomaly: number;
+  /** Eccentric anomaly at the solved instant. */
   eccentricAnomaly: number;
+  /** True anomaly at the solved instant. */
   trueAnomaly: number;
   /** Distance from the body's centre, `sma·(1 − ecc·cos E)`. */
   radius: number;

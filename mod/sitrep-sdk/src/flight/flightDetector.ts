@@ -10,7 +10,9 @@ import type { FlightRecord } from "./types";
  * @category Flight recording
  */
 export interface DetectorInput {
+  /** The vessel's name. */
   vesselName: string;
+  /** The vessel's mission time, in seconds. */
   missionTime: number;
   /** The wall-clock time of the sample, in milliseconds. */
   now: number;
@@ -25,9 +27,24 @@ export interface DetectorInput {
  * @category Flight recording
  */
 export type DetectorDecision =
-  | { kind: "append"; flight: FlightRecord }
-  | { kind: "new"; flight: FlightRecord }
-  | { kind: "resume"; flight: FlightRecord };
+  | {
+      /** The sample continues the current flight. */
+      kind: "append";
+      /** The flight record the sample belongs to. */
+      flight: FlightRecord;
+    }
+  | {
+      /** The sample starts a new flight. */
+      kind: "new";
+      /** The flight record the sample belongs to. */
+      flight: FlightRecord;
+    }
+  | {
+      /** The sample resumes an earlier flight. */
+      kind: "resume";
+      /** The flight record the sample belongs to. */
+      flight: FlightRecord;
+    };
 
 /**
  * Slack window for resuming a flight when we see its vessel again. If the
@@ -72,6 +89,7 @@ export class FlightDetector {
     }
   }
 
+  /** The flight the latest sample belonged to, or `null` before any. */
   getCurrent(): FlightRecord | null {
     return this.current;
   }
@@ -90,6 +108,7 @@ export class FlightDetector {
     }
   }
 
+  /** Forgets every flight, so the next sample mints a new one. */
   forgetAll(): void {
     this.current = null;
     this.knownByVessel.clear();

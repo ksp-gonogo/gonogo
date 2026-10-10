@@ -21,8 +21,16 @@ export type AudioCaptureUnsupportedReason =
  * @category AudioInputPicker
  */
 export type AudioCaptureSupport =
-  | { supported: true }
-  | { supported: false; reason: AudioCaptureUnsupportedReason };
+  | {
+      /** The page can open a microphone. */
+      supported: true;
+    }
+  | {
+      /** The page cannot open a microphone. */
+      supported: false;
+      /** Why it cannot. */
+      reason: AudioCaptureUnsupportedReason;
+    };
 
 /**
  * Whether this page can open a microphone, probed synchronously before touching
