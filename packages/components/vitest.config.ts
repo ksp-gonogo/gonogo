@@ -24,6 +24,10 @@ export default defineConfig({
     },
   },
   test: {
+    // CI splits the package by file. The index arrives through the environment
+    // rather than as a `--shard` argument because a pass-through argument enters
+    // the turbo hash of every task upstream of the test, rebuilding them per leg.
+    ...(process.env.VITEST_SHARD ? { shard: process.env.VITEST_SHARD } : {}),
     // 30s, the repo-wide jsdom budget (see vitest-timeout-convention.test.ts). The
     // 5s default is a hang detector being read as a speed limit: `turbo test` runs
     // ~10 suites at once against 4 vCPUs, which dilates every test by an order of

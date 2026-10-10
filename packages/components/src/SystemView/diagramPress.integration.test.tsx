@@ -153,6 +153,23 @@ describe("SystemView: pressing the diagram", () => {
     );
   });
 
+  it("draws a pinned body's keyboard focus ring outside its pinned ring", async () => {
+    const { container } = mountScene();
+    fireEvent.click(await screen.findByRole("button", { name: "Mun" }));
+    const pinnedRing = await waitFor(() => {
+      const ring = container.querySelector('[data-body-pinned="Mun"]');
+      expect(ring).not.toBeNull();
+      return ring as Element;
+    });
+    const focusRing = screen
+      .getByRole("button", { name: "Mun" })
+      .querySelector("circle.focus-ring");
+    expect(focusRing).not.toBeNull();
+    expect(Number(focusRing?.getAttribute("r"))).toBeGreaterThan(
+      Number(pinnedRing.getAttribute("r")),
+    );
+  });
+
   it("offers a focus-on-vessel control that centres the view on the craft", async () => {
     const { container } = mountScene();
     const before = (

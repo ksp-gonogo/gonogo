@@ -181,13 +181,17 @@ jobs:
       matrix:
         include:
           - leg: components 1/4
-            turbo-scope: --filter=@ksp-gonogo/components -- --shard=1/4
+            turbo-scope: --filter=@ksp-gonogo/components
+            shard: 1/4
           - leg: components 2/4
-            turbo-scope: --filter=@ksp-gonogo/components -- --shard=2/4
+            turbo-scope: --filter=@ksp-gonogo/components
+            shard: 2/4
           - leg: components 3/4
-            turbo-scope: --filter=@ksp-gonogo/components -- --shard=3/4
+            turbo-scope: --filter=@ksp-gonogo/components
+            shard: 3/4
           - leg: components 4/4
-            turbo-scope: --filter=@ksp-gonogo/components -- --shard=4/4
+            turbo-scope: --filter=@ksp-gonogo/components
+            shard: 4/4
           # Every package but components, so a package added later lands here
           # without anyone editing the matrix.
           - leg: rest
@@ -280,6 +284,8 @@ jobs:
         run: pnpm published-packages-probe
 
       - run: pnpm test ${{ matrix.turbo-scope }}
+        env:
+          VITEST_SHARD: ${{ matrix.shard }}
 
       # Un-fed snapshot gate: re-runs the DOM snapshot specs with every stream
       # emit suppressed and fails on any that still pass, because such a test is

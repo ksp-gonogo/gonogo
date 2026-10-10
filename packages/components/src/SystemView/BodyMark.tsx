@@ -17,6 +17,9 @@ export function bodyTone(isTarget: boolean, isHighlighted: boolean): BodyTone {
   return "plain";
 }
 
+/** Larger than the pinned ring (1.9) so keyboard focus on a pinned body is still seen. */
+const FOCUS_RING_RADIUS = 2.6;
+
 const DOT_RADIUS: Record<BodyTone, number> = {
   target: 6,
   highlighted: 5,
@@ -102,7 +105,7 @@ export function BodyMark({
           className="focus-ring"
           cx={placed.x}
           cy={placed.y}
-          r={dotR * 1.9}
+          r={dotR * FOCUS_RING_RADIUS}
           fill="none"
           stroke="var(--color-focus)"
           strokeWidth={2 / zoom}
