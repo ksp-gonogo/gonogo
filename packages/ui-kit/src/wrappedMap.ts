@@ -4,7 +4,11 @@
  * mark drawn in whichever copy of the world is in view.
  */
 
-/** A point on the body, in degrees. */
+/**
+ * A point on the body, in degrees.
+ *
+ * @category Map
+ */
 export interface GroundPoint {
   /** Degrees north, from -90 at the south pole to 90 at the north. */
   lat: number;
@@ -24,6 +28,8 @@ export interface GroundPoint {
  * them, which rules out a pair climbing on one leg; "closer than each other"
  * ties the test to the sampling, so a near miss the sampling resolves still
  * draws its jog.
+ *
+ * @category Map
  */
 export function splitAtPoleCrossings<Point extends GroundPoint>(
   points: readonly Point[],
@@ -49,6 +55,13 @@ export function splitAtPoleCrossings<Point extends GroundPoint>(
  * longitude. The path must already be split where it crosses a pole (see
  * {@link splitAtPoleCrossings}), since half a turn of longitude is no jump a
  * continuous line can be told apart from.
+ *
+ * @category Map
+ * @categoryDescription Map
+ * Drawing on a flat map of a body that repeats east and west, such as a
+ * `map-view.overlay`. A ground track is split only where it flies over a pole,
+ * carried on across the antimeridian rather than drawn back across the map,
+ * and drawn again in every repeat of the world in view.
  */
 export function wrapPath<Point extends { x: number }>(
   points: readonly Point[],
@@ -79,6 +92,8 @@ export function wrapPath<Point extends { x: number }>(
  * a mark or a region so it appears in every copy of the world in view. A
  * single point is a span with `min` equal to `max`; widen the view by the
  * mark's own size so one straddling the edge is not dropped.
+ *
+ * @category Map
  */
 export function repeatsInView(
   min: number,
