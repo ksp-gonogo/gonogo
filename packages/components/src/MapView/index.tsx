@@ -21,7 +21,13 @@ import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
 import { mapViewActions, useMapViewActions } from "./actions";
 import { CompactMapView } from "./CompactMapView";
-import { followZoom, WORLD_H, WORLD_W, worldToScreen } from "./camera";
+import {
+  followZoom,
+  nearestRepeatX,
+  WORLD_H,
+  WORLD_W,
+  worldToScreen,
+} from "./camera";
 import { MapPoiLayer } from "./MapPoiLayer";
 import {
   BaseCanvas,
@@ -316,8 +322,9 @@ function MapViewComponent({
             projLat,
             projLon,
           );
+          // The map repeats east and west, and a point is placed in the repeat nearest the centre of the view.
           return worldToScreen(
-            wx,
+            nearestRepeatX(wx, camera.panX),
             wy,
             camera,
             containerSize.w,

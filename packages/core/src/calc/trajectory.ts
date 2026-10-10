@@ -108,33 +108,3 @@ export function predictGroundTrack(
   }
   return samples;
 }
-
-/**
- * Break a list of lat/lon samples into contiguous polyline segments,
- * inserting a break whenever consecutive longitudes jump by more than
- * `wrapThresholdDeg`: the telltale signature of an equirectangular
- * date-line crossing. Preserves sample order within each segment.
- *
- * `lonOf` is which longitude the seam is measured on, and a caller that draws
- * the track through a rotated projection must say so. The default reads the
- * sample's own, which is only the drawn one when the projection applies no
- * offset; MapView's does, per body.
- */
-export function splitOnLongitudeWrap<Point extends { lon: number }>(
-  samples: readonly Point[],
-  wrapThresholdDeg = 180,
-  lonOf: (sample: Point) => number = (sample) => sample.lon,
-): Point[][] {
-  if (samples.length === 0) return [];
-  const segments: Point[][] = [[samples[0]]];
-  for (let i = 1; i < samples.length; i++) {
-    const prev = samples[i - 1];
-    const curr = samples[i];
-    if (Math.abs(lonOf(curr) - lonOf(prev)) > wrapThresholdDeg) {
-      segments.push([curr]);
-    } else {
-      segments[segments.length - 1].push(curr);
-    }
-  }
-  return segments;
-}

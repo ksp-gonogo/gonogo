@@ -11953,6 +11953,18 @@
         "note": "Exported from the kit's index because published signatures take it"
       },
       {
+        "key": "ui-kit . GroundPoint",
+        "note": "A latitude and longitude in degrees, the point type the wrapped-map helpers take"
+      },
+      {
+        "key": "ui-kit . GroundPoint#lat",
+        "note": "Latitude in degrees"
+      },
+      {
+        "key": "ui-kit . GroundPoint#lon",
+        "note": "Longitude in degrees east"
+      },
+      {
         "key": "ui-kit . HeldFigureProps#elsewhere?",
         "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise (decision 77)"
       },
@@ -12273,8 +12285,16 @@
         "note": "says whether the crosshair card has room on a plot, so a chart can hand its legend corner to the card"
       },
       {
+        "key": "ui-kit . repeatsInView",
+        "note": "The shifts at which a span appears in each repeat of a map that repeats east and west"
+      },
+      {
         "key": "ui-kit . sizeDeltaFor",
         "note": "Sums the sizeDelta of the extensions that render in a widget"
+      },
+      {
+        "key": "ui-kit . splitAtPoleCrossings",
+        "note": "Breaks a ground track where it flies over a pole; the antimeridian is no break"
       },
       {
         "key": "ui-kit . useSizeDeltaFor",
@@ -12287,6 +12307,10 @@
       {
         "key": "ui-kit . withSizeDelta",
         "note": "Adds a size delta to a definition's minSize and defaultSize"
+      },
+      {
+        "key": "ui-kit . wrapPath",
+        "note": "Makes a projected path continuous across the seam and returns its copies in view, for a repeating map"
       },
       {
         "key": "ui-kit . ~CommandListCommonProps#\"aria-label\"?",

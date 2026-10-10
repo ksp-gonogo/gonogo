@@ -1,3 +1,6 @@
+import { repeatsInView } from "@ksp-gonogo/ui-kit";
+
+/** One copy of the world: the map repeats every `WORLD_W` east and west. */
 export const WORLD_W = 4096;
 export const WORLD_H = 2048;
 
@@ -40,19 +43,55 @@ export const screenToWorld = (
   y: (sy - screenH / 2) / camera.zoom + camera.panY,
 });
 
-// ctx.setTransform(...cameraTransform(camera, w, h)) puts the canvas in world space.
+/**
+ * `ctx.setTransform(...cameraTransform(camera, w, h))` puts the canvas in
+ * world space; `shift` moves it by that many world pixels east, to draw a
+ * repeat of the world.
+ */
 export const cameraTransform = (
   camera: Camera,
   screenW: number,
   screenH: number,
+  shift = 0,
 ): [number, number, number, number, number, number] => [
   camera.zoom,
   0,
   0,
   camera.zoom,
-  screenW / 2 - camera.panX * camera.zoom,
+  screenW / 2 + (shift - camera.panX) * camera.zoom,
   screenH / 2 - camera.panY * camera.zoom,
 ];
+
+/** The world x the map area shows, from its west edge to its east, which may run past either end of one world. */
+export const visibleWorldX = (camera: Camera, screenW: number) => {
+  const half = screenW / 2 / camera.zoom;
+  return { min: camera.panX - half, max: camera.panX + half };
+};
+
+/**
+ * The shifts, in world pixels, at which the world x span `min` to `max`
+ * appears in view, one for each repeat of the world it shows in. `marginPx`
+ * widens the view by that many screen pixels, for a mark drawn around a point.
+ */
+export const worldRepeats = (
+  min: number,
+  max: number,
+  camera: Camera,
+  screenW: number,
+  marginPx = 0,
+): number[] => {
+  const { min: viewMin, max: viewMax } = visibleWorldX(camera, screenW);
+  const margin = marginPx / camera.zoom;
+  return repeatsInView(min, max, viewMin - margin, viewMax + margin, WORLD_W);
+};
+
+/** The world x of the repeat of `wx` nearest the world x `near`. */
+export const nearestRepeatX = (wx: number, near: number): number =>
+  wx + WORLD_W * Math.round((near - wx) / WORLD_W);
+
+/** A world x moved by whole worlds into the first one. */
+export const wrapWorldX = (wx: number): number =>
+  ((wx % WORLD_W) + WORLD_W) % WORLD_W;
 
 // Relative to the fit zoom, so the operator cannot zoom out past the global view.
 export const zoomBounds = (baseZoom: number) => ({

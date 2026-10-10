@@ -10,10 +10,9 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { kspCalendar } from "@ksp-gonogo/ui-kit";
+import { kspCalendar, splitAtPoleCrossings } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
-import { splitOnDrawnLongitudeWrap } from "./groundTrackWrap";
 import { quantiseUt } from "./predictionThrottle";
 
 interface GroundTrackInputs {
@@ -47,7 +46,8 @@ function loopHorizon(
 
 /**
  * The predicted ground track of the current orbit, and one per planned
- * manoeuvre, each split where it wraps in longitude.
+ * manoeuvre, each split where it flies over a pole. The antimeridian is no
+ * break: the painter carries a run on into the next repeat of the world.
  *
  * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, and this lays out a path of future ground points from the published patch chain, calibrated against one observed position. The output is a polyline on no channel, and a planned manoeuvre's track describes a burn that has not been flown.
  */
@@ -99,7 +99,7 @@ export function useGroundTrackPrediction({
       horizon,
       10,
     );
-    return splitOnDrawnLongitudeWrap(samples, body.longitudeOffset ?? 0);
+    return splitAtPoleCrossings(samples);
   }, [enabled, orbitPatches, conic, targetBodyId, body, utBucket]);
 
   // Each node's patches are the post-burn trajectory, calibrated from the current orbit's patches.
@@ -121,7 +121,6 @@ export function useGroundTrackPrediction({
     // Capture past the outer guard so TS doesn't re-widen inside the map callback below.
     const bodyRadius = body.radius;
     const rotPeriod = body.rotationPeriod;
-    const longitudeOffset = body.longitudeOffset ?? 0;
     return maneuverNodes.map((node) => {
       const patches = node.patches ?? [];
       const firstPatch = patches.find((p) => p.referenceBody === targetBodyId);
@@ -142,7 +141,7 @@ export function useGroundTrackPrediction({
         10,
         orbitPatches,
       );
-      return splitOnDrawnLongitudeWrap(samples, longitudeOffset);
+      return splitAtPoleCrossings(samples);
     });
   }, [enabled, orbitPatches, maneuverNodes, targetBodyId, body, utBucket]);
 

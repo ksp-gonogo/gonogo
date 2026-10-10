@@ -10,7 +10,6 @@ import {
   MAX_TRACK_SAMPLES,
   predictGroundTrack,
   solveKepler,
-  splitOnLongitudeWrap,
   wrap180,
 } from "./trajectory";
 
@@ -292,39 +291,5 @@ describe("predictGroundTrack", () => {
       1,
     );
     expect(out.length).toBeLessThanOrEqual(MAX_TRACK_SAMPLES + 1);
-  });
-});
-
-// ── splitOnLongitudeWrap ─────────────────────────────────────────────────────
-
-describe("splitOnLongitudeWrap", () => {
-  it("returns empty for empty input", () => {
-    expect(splitOnLongitudeWrap([])).toEqual([]);
-  });
-
-  it("keeps everything in one segment when no wrap occurs", () => {
-    const samples = [{ lon: 0 }, { lon: 10 }, { lon: 20 }, { lon: 30 }];
-    expect(splitOnLongitudeWrap(samples)).toEqual([samples]);
-  });
-
-  it("splits at a date-line crossing", () => {
-    const samples = [{ lon: 170 }, { lon: 175 }, { lon: -175 }, { lon: -170 }];
-    const out = splitOnLongitudeWrap(samples);
-    expect(out).toHaveLength(2);
-    expect(out[0].map((s) => s.lon)).toEqual([170, 175]);
-    expect(out[1].map((s) => s.lon)).toEqual([-175, -170]);
-  });
-
-  it("handles multiple wraps across a long prediction", () => {
-    const samples = [
-      { lon: 170 },
-      { lon: -175 }, // wrap
-      { lon: -170 },
-      { lon: -160 },
-      { lon: 170 },
-      { lon: 175 }, // wrap back? no, jump of 330 > 180
-    ];
-    const out = splitOnLongitudeWrap(samples);
-    expect(out.length).toBeGreaterThanOrEqual(2);
   });
 });

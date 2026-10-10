@@ -1,19 +1,19 @@
-import { predictGroundTrack, splitOnLongitudeWrap } from "@ksp-gonogo/core";
+import { latLonToMap, predictGroundTrack } from "@ksp-gonogo/core";
 import {
   type OrbitPatch,
   TransitionType,
   wrapTypePayload,
 } from "@ksp-gonogo/sitrep-sdk";
+import { splitAtPoleCrossings, wrapPath } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import munPolarOrbit from "./__fixtures__/mun-polar-orbit.json";
-import { splitOnDrawnLongitudeWrap } from "./groundTrackWrap";
 
 /**
  * An inclined pass leaving the map at the right edge and returning at the
  * left, on a body whose texture is rotated 90 degrees: the drawn seam is at
- * body longitude 90, so the break belongs between the 85 and 95 samples.
- * Latitudes are far from zero so a spurious full-width line cannot hide on an
- * equatorial track.
+ * body longitude 90, between the 85 and 95 samples, and the propagated one
+ * between 175 and -175. Latitudes are far from zero so a spurious full-width
+ * line cannot hide on an equatorial track.
  */
 const PASS = [
   { lon: 65, lat: -27.9 },
@@ -24,33 +24,41 @@ const PASS = [
   { lon: -175, lat: 10.1 },
 ];
 
-const KERBIN_LONGITUDE_OFFSET = 90;
+const WORLD = 360;
 
-describe("splitOnDrawnLongitudeWrap", () => {
-  it("breaks the track where the drawing wraps, not where the propagation does", () => {
-    const segments = splitOnDrawnLongitudeWrap(PASS, KERBIN_LONGITUDE_OFFSET);
-    expect(segments.map((s) => s.map((p) => p.lon))).toEqual([
-      [65, 75, 85],
-      [95, 175, -175],
-    ]);
+/** MapView's projection: rotated by the body's texture offset, then wrapped into one world. */
+function drawn(lat: number, lon: number, offsetDeg: number) {
+  const wrapped = ((((lon + offsetDeg + 180) % 360) + 360) % 360) - 180;
+  return latLonToMap(lat, wrapped, WORLD, WORLD / 2);
+}
+
+describe("a ground track across the antimeridian", () => {
+  it.each([
+    0, 90,
+  ])("never strokes across the map, with the texture rotated %s degrees", (offset) => {
+    const projected = PASS.map((p) => drawn(p.lat, p.lon, offset));
+    const copies = wrapPath(projected, WORLD, 0, WORLD);
+    expect(copies.length).toBeGreaterThan(0);
+    for (const copy of copies) {
+      for (let i = 1; i < copy.length; i++)
+        expect(Math.abs(copy[i].x - copy[i - 1].x)).toBeLessThan(WORLD / 4);
+    }
   });
 
-  it("is the same split as the plain one when the body's texture is not rotated", () => {
-    expect(splitOnDrawnLongitudeWrap(PASS, 0)).toEqual(
-      splitOnLongitudeWrap(PASS),
-    );
+  it("is drawn on both sides of the seam, so it leaves one edge and enters the other", () => {
+    const projected = PASS.map((p) => drawn(p.lat, p.lon, 90));
+    const copies = wrapPath(projected, WORLD, 0, WORLD);
+    expect(copies).toHaveLength(2);
+    const reaches = (edge: number) =>
+      copies.some((copy) =>
+        copy.some((p, i) => i > 0 && (copy[i - 1].x - edge) * (p.x - edge) < 0),
+      );
+    expect(reaches(0)).toBe(true);
+    expect(reaches(WORLD)).toBe(true);
   });
 
-  // Splitting on propagated longitude would leave the 85 -> 95 pair in one segment, stroked across the whole map.
-  it("keeps the pair the old split let through in separate segments", () => {
-    const unfixed = splitOnLongitudeWrap(PASS);
-    expect(unfixed[0].map((p) => p.lon)).toContain(85);
-    expect(unfixed[0].map((p) => p.lon)).toContain(95);
-
-    const fixed = splitOnDrawnLongitudeWrap(PASS, KERBIN_LONGITUDE_OFFSET);
-    const segmentOf = (lon: number) =>
-      fixed.findIndex((s) => s.some((p) => p.lon === lon));
-    expect(segmentOf(85)).not.toBe(segmentOf(95));
+  it("is one run: only a pole breaks the line", () => {
+    expect(splitAtPoleCrossings(PASS)).toEqual([PASS]);
   });
 });
 
@@ -129,10 +137,10 @@ function southPoleStraddle(samples: readonly { lat: number; lon: number }[]): {
   throw new Error("mun-polar-orbit no longer crosses the south pole");
 }
 
-describe("splitOnDrawnLongitudeWrap over a pole", () => {
+describe("a ground track over a pole", () => {
   const samples = munPolarSamples();
 
-  it("still has the south crossing the seam split cannot see", () => {
+  it("still has its south crossing, a jump just short of half a turn", () => {
     const { before, after } = southPoleStraddle(samples);
     expect({
       jump: Number(Math.abs(after.lon - before.lon).toFixed(2)),
@@ -141,8 +149,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
   });
 
   it("breaks the track at the south pole rather than stroking a bar along the bottom edge", () => {
-    // The Mun's texture is not rotated, so the seam split has nothing of its own to do.
-    const segments = splitOnDrawnLongitudeWrap(samples, 0);
+    const segments = splitAtPoleCrossings(samples);
     const { before, after } = southPoleStraddle(samples);
     const segmentOf = (p: { lat: number; lon: number }) =>
       segments.findIndex((s) => s.some((q) => q.lat === p.lat));
@@ -150,7 +157,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
   });
 
   it("breaks at both poles and nowhere else, so each pass stays whole", () => {
-    const segments = splitOnDrawnLongitudeWrap(samples, 0);
+    const segments = splitAtPoleCrossings(samples);
     // Two crossings in 1.5 revolutions of a polar orbit: one north, one south.
     expect(segments.length).toBe(3);
     expect(segments.reduce((n, s) => n + s.length, 0)).toBe(samples.length);
@@ -177,9 +184,6 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
     expect(Math.max(...inclined.map((p) => Math.abs(p.lat)))).toBeGreaterThan(
       inclination - 1,
     );
-    // One break, at the date line.
-    expect(splitOnDrawnLongitudeWrap(inclined, 0)).toEqual(
-      splitOnLongitudeWrap(inclined),
-    );
+    expect(splitAtPoleCrossings(inclined)).toEqual([inclined]);
   });
 });

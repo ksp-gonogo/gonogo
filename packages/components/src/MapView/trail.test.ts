@@ -1,6 +1,6 @@
 import { latLonToMap } from "@ksp-gonogo/core";
 import { describe, expect, it, vi } from "vitest";
-import { type Camera, fitCamera } from "./camera";
+import { type Camera, fitCamera, WORLD_W } from "./camera";
 import {
   MAP_MARK,
   paintTrail,
@@ -34,12 +34,17 @@ function recordingContext() {
   let scale = 1;
   let segments = 0;
   const widths: number[] = [];
+  /** Each stroke's world x span, from its move to its line. */
+  const spans: [number, number][] = [];
   const ctx: Partial<CanvasRenderingContext2D> = {
     clearRect: vi.fn(),
     beginPath: vi.fn(),
-    lineTo: vi.fn(),
-    moveTo: () => {
+    lineTo: (x: number) => {
+      spans[spans.length - 1][1] = x;
+    },
+    moveTo: (x: number) => {
       segments++;
+      spans.push([x, x]);
     },
     setTransform: (...m: unknown[]) => {
       scale = Number(m[0]);
@@ -53,6 +58,7 @@ function recordingContext() {
   return {
     ctx: ctx as CanvasRenderingContext2D,
     widths,
+    spans,
     segments: () => segments,
   };
 }
@@ -105,6 +111,35 @@ describe("the flown trail", () => {
     expect(thick).toBeGreaterThan(thin);
     expect(trailScreenWidth(1)).toBeCloseTo((MAP_MARK.trackWidth * 2) / 3, 9);
     expect(trailScreenWidth(100)).toBeCloseTo(MAP_MARK.trackWidth * 2, 9);
+  });
+});
+
+describe("the flown trail across the antimeridian", () => {
+  const fit = fitCamera(W, H);
+  const crossing = [170, 176, -178, -172].map((lon) => point({ lon }));
+
+  it("never strokes a line across the map", () => {
+    const { spans } = paint(fit, crossing);
+    expect(spans.length).toBeGreaterThan(0);
+    for (const [from, to] of spans)
+      expect(Math.abs(to - from)).toBeLessThan(WORLD_W / 36);
+  });
+
+  it("carries on past the east edge, and in from the west, in one unbroken line", () => {
+    const { spans } = paint(fit, crossing);
+    // Three steps, drawn in this world and again in the one to its west.
+    expect(spans).toHaveLength(6);
+    expect(spans.some(([from, to]) => from < WORLD_W && to > WORLD_W)).toBe(
+      true,
+    );
+    expect(spans.some(([from, to]) => from < 0 && to > 0)).toBe(true);
+  });
+
+  it("is drawn in the repeat of the world a camera panned far east is showing", () => {
+    const farEast: Camera = { ...fit, zoom: fit.zoom * 4, panX: 3 * WORLD_W };
+    const { spans } = paint(farEast, crossing);
+    expect(spans.length).toBeGreaterThan(0);
+    for (const [from] of spans) expect(from).toBeGreaterThan(2 * WORLD_W);
   });
 });
 

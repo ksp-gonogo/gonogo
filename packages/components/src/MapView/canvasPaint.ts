@@ -1,8 +1,19 @@
 import { latLonToMap } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
-import { paintVesselMark } from "@ksp-gonogo/ui-kit";
+import {
+  paintVesselMark,
+  splitAtPoleCrossings,
+  wrapPath,
+} from "@ksp-gonogo/ui-kit";
 import type { EncounterKind } from "../shared/encounterKind";
-import { type Camera, cameraTransform, WORLD_H, WORLD_W } from "./camera";
+import {
+  type Camera,
+  cameraTransform,
+  visibleWorldX,
+  WORLD_H,
+  WORLD_W,
+  worldRepeats,
+} from "./camera";
 import {
   type BaseSurfaceLayer,
   baseSurfacePainted,
@@ -90,88 +101,93 @@ export function paintMapBase(
   ctx.fillStyle = canvasColor(canvas, "--color-surface-panel", "#0d0d0d");
   ctx.fillRect(0, 0, w, h);
 
-  ctx.setTransform(...cameraTransform(camera, w, h));
-
-  paintBaseSurface(ctx, {
-    textureImage,
-    bodyColor,
-    suppressVanilla,
-    layers,
-    worldW: WORLD_W,
-    worldH: WORLD_H,
-  });
-
-  // lineWidth compensates for zoom so grid lines stay 1 screen pixel. Keyed off paintBaseSurface's own predicate so it cannot disagree with what was painted.
+  // Keyed off paintBaseSurface's own predicate so the grid cannot disagree with what was painted.
   const surfacePainted = baseSurfacePainted({
     textureImage,
     bodyColor,
     suppressVanilla,
     layers,
   });
-  ctx.strokeStyle = surfacePainted
-    ? "rgba(255,255,255,0.05)"
-    : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
-  ctx.lineWidth = 1 / camera.zoom;
-  for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
-    const { y } = latLonToMap(lat30, 0, WORLD_W, WORLD_H);
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(WORLD_W, y);
-    ctx.stroke();
-  }
-  for (let lon30 = -150; lon30 <= 180; lon30 += 30) {
-    const { x } = latLonToMap(0, lon30, WORLD_W, WORLD_H);
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, WORLD_H);
-    ctx.stroke();
-  }
+  for (const shift of worldRepeats(0, WORLD_W, camera, w)) {
+    ctx.setTransform(...cameraTransform(camera, w, h, shift));
+    paintBaseSurface(ctx, {
+      textureImage,
+      bodyColor,
+      suppressVanilla,
+      layers,
+      worldW: WORLD_W,
+      worldH: WORLD_H,
+    });
 
-  ctx.strokeStyle = surfacePainted
-    ? "rgba(255,255,255,0.15)"
-    : canvasColor(canvas, "--color-border-subtle", "#2a2a2a");
-  ctx.lineWidth = 1.5 / camera.zoom;
-  const { y: eqY } = latLonToMap(0, 0, WORLD_W, WORLD_H);
-  ctx.beginPath();
-  ctx.moveTo(0, eqY);
-  ctx.lineTo(WORLD_W, eqY);
-  ctx.stroke();
-  const { x: pmX } = latLonToMap(0, 0, WORLD_W, WORLD_H);
-  ctx.beginPath();
-  ctx.moveTo(pmX, 0);
-  ctx.lineTo(pmX, WORLD_H);
-  ctx.stroke();
+    // lineWidth compensates for zoom so grid lines stay 1 screen pixel.
+    ctx.strokeStyle = surfacePainted
+      ? "rgba(255,255,255,0.05)"
+      : canvasColor(canvas, "--color-surface-raised", "#1a1a1a");
+    ctx.lineWidth = 1 / camera.zoom;
+    for (let lat30 = -60; lat30 <= 60; lat30 += 30) {
+      const { y } = latLonToMap(lat30, 0, WORLD_W, WORLD_H);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(WORLD_W, y);
+      ctx.stroke();
+    }
+    for (let lon30 = -150; lon30 <= 180; lon30 += 30) {
+      const { x } = latLonToMap(0, lon30, WORLD_W, WORLD_H);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, WORLD_H);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = surfacePainted
+      ? "rgba(255,255,255,0.15)"
+      : canvasColor(canvas, "--color-border-subtle", "#2a2a2a");
+    ctx.lineWidth = 1.5 / camera.zoom;
+    const { y: eqY } = latLonToMap(0, 0, WORLD_W, WORLD_H);
+    ctx.beginPath();
+    ctx.moveTo(0, eqY);
+    ctx.lineTo(WORLD_W, eqY);
+    ctx.stroke();
+    const { x: pmX } = latLonToMap(0, 0, WORLD_W, WORLD_H);
+    ctx.beginPath();
+    ctx.moveTo(pmX, 0);
+    ctx.lineTo(pmX, WORLD_H);
+    ctx.stroke();
+  }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 /**
- * Stroke longitude-wrap-split segments with one fade continuous across the
- * whole list. Caller owns transform, lineWidth and dash.
+ * Stroke a track's runs with one fade continuous across the whole list, each
+ * run carried across the antimeridian and drawn in every repeat of the world
+ * in view. Caller owns the transform, lineWidth and dash.
  */
 function drawFadedSegments(
   ctx: CanvasRenderingContext2D,
   segments: readonly TrackSample[][],
   toMap: MapProjection,
   rgb: readonly [number, number, number],
+  view: Readonly<{ min: number; max: number }>,
 ): void {
   const total = segments.reduce((sum, seg) => sum + seg.length, 0);
   if (total === 0) return;
   const [r, g, b] = rgb;
   let globalIndex = 0;
   for (const segment of segments) {
-    for (let i = 1; i < segment.length; i++) {
-      const prev = segment[i - 1];
-      const curr = segment[i];
-      const { x: x0, y: y0 } = toMap(WORLD_W, WORLD_H, prev.lat, prev.lon);
-      const { x: x1, y: y1 } = toMap(WORLD_W, WORLD_H, curr.lat, curr.lon);
-      const t = (globalIndex + i) / Math.max(1, total - 1);
-      const alpha = Math.max(0.15, 1 - 0.85 * t);
-      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
+    const projected = segment.map((sample, i) => ({
+      ...toMap(WORLD_W, WORLD_H, sample.lat, sample.lon),
+      t: (globalIndex + i) / Math.max(1, total - 1),
+    }));
+    for (const copy of wrapPath(projected, WORLD_W, view.min, view.max)) {
+      for (let i = 1; i < copy.length; i++) {
+        const alpha = Math.max(0.15, 1 - 0.85 * copy[i].t);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+        ctx.beginPath();
+        ctx.moveTo(copy[i - 1].x, copy[i - 1].y);
+        ctx.lineTo(copy[i].x, copy[i].y);
+        ctx.stroke();
+      }
     }
     globalIndex += segment.length;
   }
@@ -228,12 +244,13 @@ export function paintPrediction(
     MAP_MARK.trackDash / camera.zoom,
   ]);
 
+  const view = visibleWorldX(camera, w);
   // Current-orbit prediction: amber, faded proportional to time from now.
-  drawFadedSegments(ctx, predictionSegments, adjustedMap, [255, 180, 64]);
+  drawFadedSegments(ctx, predictionSegments, adjustedMap, [255, 180, 64], view);
 
   // Planned maneuvers: cyan, drawn over the main prediction.
   for (const segments of maneuverSegments) {
-    drawFadedSegments(ctx, segments, adjustedMap, [64, 200, 255]);
+    drawFadedSegments(ctx, segments, adjustedMap, [64, 200, 255], view);
   }
 
   ctx.setLineDash([]);
@@ -241,39 +258,40 @@ export function paintPrediction(
   // SOI marker: predictGroundTrack stops at a referenceBody change, so the last sample is the ground point at the transition.
   const last = encounterKind === null ? null : lastSample(predictionSegments);
   if (last !== null && Number.isFinite(last.lat) && Number.isFinite(last.lon)) {
-    const { x: ex, y: ey } = adjustedMap(WORLD_W, WORLD_H, last.lat, last.lon);
+    const { x, y: ey } = adjustedMap(WORLD_W, WORLD_H, last.lat, last.lon);
     const r = MAP_MARK.endMarker / camera.zoom;
     ctx.strokeStyle =
       encounterKind === "encounter"
         ? "rgba(64, 200, 255, 0.9)"
         : "rgba(255, 180, 64, 0.9)";
-    ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
-    ctx.beginPath();
-    ctx.arc(ex, ey, r, 0, Math.PI * 2);
-    ctx.stroke();
-    // Inner dot so the ring is legible even at low zoom.
     ctx.fillStyle = ctx.strokeStyle;
-    ctx.beginPath();
-    ctx.arc(ex, ey, MAP_MARK.endMarkerDot / camera.zoom, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
+    for (const shift of worldRepeats(x, x, camera, w, MAP_MARK.endMarker)) {
+      const ex = x + shift;
+      ctx.beginPath();
+      ctx.arc(ex, ey, r, 0, Math.PI * 2);
+      ctx.stroke();
+      // Inner dot so the ring is legible even at low zoom.
+      ctx.beginPath();
+      ctx.arc(ex, ey, MAP_MARK.endMarkerDot / camera.zoom, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   if (impactLat !== undefined && impactLon !== undefined) {
-    const { x: ix, y: iy } = adjustedMap(
-      WORLD_W,
-      WORLD_H,
-      impactLat,
-      impactLon,
-    );
+    const { x, y: iy } = adjustedMap(WORLD_W, WORLD_H, impactLat, impactLon);
     const crossSize = MAP_MARK.endMarker / camera.zoom;
     ctx.strokeStyle = "rgba(255, 64, 64, 0.9)";
     ctx.lineWidth = MAP_MARK.trackWidth / camera.zoom;
-    ctx.beginPath();
-    ctx.moveTo(ix - crossSize, iy - crossSize);
-    ctx.lineTo(ix + crossSize, iy + crossSize);
-    ctx.moveTo(ix + crossSize, iy - crossSize);
-    ctx.lineTo(ix - crossSize, iy + crossSize);
-    ctx.stroke();
+    for (const shift of worldRepeats(x, x, camera, w, MAP_MARK.endMarker)) {
+      const ix = x + shift;
+      ctx.beginPath();
+      ctx.moveTo(ix - crossSize, iy - crossSize);
+      ctx.lineTo(ix + crossSize, iy + crossSize);
+      ctx.moveTo(ix + crossSize, iy - crossSize);
+      ctx.lineTo(ix - crossSize, iy + crossSize);
+      ctx.stroke();
+    }
   }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -291,10 +309,11 @@ export function trailScreenWidth(styleWidth: number): number {
 
 /**
  * The flown trail, drawn from its points in world space so it pans and zooms
- * with the map, each stretch in the colour and weight its flight regime gives
- * it. The weight is a width on screen: the stroke is divided by the zoom, as
- * the forward track's is, so the trail's shape grows with the map and its line
- * does not.
+ * with the map, carried across the antimeridian and drawn in every repeat of
+ * the world in view, broken only where it flies over a pole. Each stretch is
+ * in the colour and weight its flight regime gives it. The weight is a width
+ * on screen: the stroke is divided by the zoom, as the forward track's is, so
+ * the trail's shape grows with the map and its line does not.
  */
 export function paintTrail(
   ctx: CanvasRenderingContext2D,
@@ -319,27 +338,33 @@ export function paintTrail(
   ctx.clearRect(0, 0, w, h);
   if (points.length < 2) return;
   ctx.setTransform(...cameraTransform(camera, w, h));
-  for (let i = 1; i < points.length; i++) {
-    const from = points[i - 1];
-    const to = points[i];
-    const start = adjustedMap(WORLD_W, WORLD_H, from.lat, from.lon);
-    const end = adjustedMap(WORLD_W, WORLD_H, to.lat, to.lon);
-    const style = getTrajectoryStyle({
-      alt: to.alt,
-      maxAtmosphere: maxAtmosphere ?? 100_000,
-      hasAtmosphere: hasAtmosphere ?? false,
-      q: to.q,
-      mach: to.mach,
-      speed: to.speed,
-      vSpeed: to.vSpeed,
-    });
-    const [r, g, b] = style.color;
-    ctx.strokeStyle = `rgba(${r},${g},${b},${style.alpha})`;
-    ctx.lineWidth = trailScreenWidth(style.width) / camera.zoom;
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.stroke();
+  const view = visibleWorldX(camera, w);
+  for (const run of splitAtPoleCrossings(points)) {
+    const projected = run.map((point) => ({
+      ...adjustedMap(WORLD_W, WORLD_H, point.lat, point.lon),
+      point,
+    }));
+    for (const copy of wrapPath(projected, WORLD_W, view.min, view.max)) {
+      for (let i = 1; i < copy.length; i++) {
+        const to = copy[i].point;
+        const style = getTrajectoryStyle({
+          alt: to.alt,
+          maxAtmosphere: maxAtmosphere ?? 100_000,
+          hasAtmosphere: hasAtmosphere ?? false,
+          q: to.q,
+          mach: to.mach,
+          speed: to.speed,
+          vSpeed: to.vSpeed,
+        });
+        const [r, g, b] = style.color;
+        ctx.strokeStyle = `rgba(${r},${g},${b},${style.alpha})`;
+        ctx.lineWidth = trailScreenWidth(style.width) / camera.zoom;
+        ctx.beginPath();
+        ctx.moveTo(copy[i - 1].x, copy[i - 1].y);
+        ctx.lineTo(copy[i].x, copy[i].y);
+        ctx.stroke();
+      }
+    }
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }

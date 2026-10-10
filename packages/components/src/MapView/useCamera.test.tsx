@@ -1,6 +1,7 @@
 import { act, render, renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { pointerEvent } from "../test/pointerStubs";
+import { WORLD_W } from "./camera";
 import { useCamera } from "./useCamera";
 
 /** Renders the hook with a fixed container size and a fake element on interactionRef, for the pinch path's getBoundingClientRect. */
@@ -68,6 +69,40 @@ describe("useCamera", () => {
     expect(after.panX).not.toBe(before.panX);
     expect(after.panY).not.toBe(before.panY);
     expect(after.zoom).toBe(before.zoom);
+  });
+
+  it("pans without end: dragging past the world's edge carries on into the next repeat of it", () => {
+    const { hook, el } = setup();
+    const drag = (clientX: number) =>
+      act(() => {
+        hook.result.current.onPointerMove(
+          pointerEvent({
+            pointerId: 1,
+            clientX,
+            clientY: 50,
+            currentTarget: el,
+          }),
+        );
+      });
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 0,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+    const { zoom, panX: start } = hook.result.current.camera;
+    // Each drag moves the view a fifth of a world east; six of them pass the edge.
+    const step = (WORLD_W / 5) * zoom;
+    for (let i = 1; i <= 6; i++) drag(-i * step);
+
+    const { panX } = hook.result.current.camera;
+    expect(panX).toBeGreaterThanOrEqual(0);
+    expect(panX).toBeLessThan(WORLD_W);
+    expect(panX).toBeCloseTo((start + (6 * WORLD_W) / 5) % WORLD_W, 6);
   });
 
   it("zooms with a two-pointer pinch", () => {

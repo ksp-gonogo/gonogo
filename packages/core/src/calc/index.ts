@@ -12,7 +12,6 @@ export {
   MAX_TRACK_SAMPLES,
   predictGroundTrack,
   solveKepler,
-  splitOnLongitudeWrap,
   wrap180,
 } from "./trajectory";
 export * from "./transfer";

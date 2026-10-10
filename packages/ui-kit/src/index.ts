@@ -764,3 +764,9 @@ export {
   widgetDrawnFields,
 } from "./widgetDeclaredTopics";
 export * from "./widgetSize";
+export {
+  type GroundPoint,
+  repeatsInView,
+  splitAtPoleCrossings,
+  wrapPath,
+} from "./wrappedMap";

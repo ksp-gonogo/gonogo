@@ -6,6 +6,7 @@ import {
   type ViewMode,
   WORLD_H,
   WORLD_W,
+  wrapWorldX,
   zoomBounds,
 } from "./camera";
 
@@ -129,9 +130,10 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
       const dy = e.clientY - lastPanPos.current.y;
       lastPanPos.current = { x: e.clientX, y: e.clientY };
       setViewMode("global");
+      // The map repeats east and west, so a pan never ends: kept within one world, which draws the same.
       setCamera((prev) => ({
         ...prev,
-        panX: prev.panX - dx / prev.zoom,
+        panX: wrapWorldX(prev.panX - dx / prev.zoom),
         panY: prev.panY - dy / prev.zoom,
       }));
     },

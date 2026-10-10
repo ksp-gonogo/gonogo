@@ -560,7 +560,11 @@ export interface MapOverlayContext {
   height: number;
   /** The live camera: `zoom` is screen pixels per world pixel, and `panX` and `panY` are the world point at the centre of the map area. */
   camera: { zoom: number; panX: number; panY: number };
-  /** Width of the world image in world pixels, spanning 360 degrees of longitude. */
+  /**
+   * Width of the world image in world pixels, spanning 360 degrees of
+   * longitude. The map repeats east and west, one world every
+   * `worldW * camera.zoom` overlay pixels, so panning never reaches an edge.
+   */
   worldW: number;
   /** Height of the world image in world pixels, spanning 180 degrees of latitude. */
   worldH: number;
@@ -568,7 +572,18 @@ export interface MapOverlayContext {
   bodyName: string | undefined;
   /** The mapped body's radius in metres. `undefined` while it is not known. */
   bodyRadius: number | undefined;
-  /** Returns the overlay pixel for a latitude and longitude in degrees, through the same projection the map is drawn with. Latitude runs from -90 at the south pole to 90 at the north, and is held to that range. Longitude is degrees east and may be given as -180 to 180 or 0 to 360: it is wrapped. */
+  /**
+   * Returns the overlay pixel for a latitude and longitude in degrees, through
+   * the same projection the map is drawn with. Latitude runs from -90 at the
+   * south pole to 90 at the north, and is held to that range. Longitude is
+   * degrees east and may be given as -180 to 180 or 0 to 360: it is wrapped.
+   *
+   * The point is placed in the repeat of the world nearest the centre of the
+   * view, so a single mark is always where the operator is looking. To draw a
+   * mark in every repeat in view, or a line that crosses the antimeridian,
+   * use `repeatsInView` and `wrapPath` from `@ksp-gonogo/ui-kit` with the
+   * repeat width above.
+   */
   project: (lat: number, lon: number) => { x: number; y: number };
   /** The active vessel's latitude in degrees. `undefined` without a position, or when the map shows another body. */
   vesselLat: number | undefined;

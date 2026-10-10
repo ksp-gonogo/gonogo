@@ -4,7 +4,14 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { paintVesselPositions } from "@ksp-gonogo/ui-kit";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";
-import { type Camera, WORLD_H, WORLD_W, worldToScreen } from "./camera";
+import {
+  type Camera,
+  nearestRepeatX,
+  WORLD_H,
+  WORLD_W,
+  worldRepeats,
+  worldToScreen,
+} from "./camera";
 import {
   MAP_MARK,
   type MapProjection,
@@ -52,7 +59,8 @@ interface MapPaintingInputs {
 
 /**
  * Keeps the five stacked map canvases painted: base surface, overlay, the
- * flown trail, the forward tracks and the vessel marker. Returns the refs to
+ * flown trail, the forward tracks and the vessel marker, each in every repeat
+ * of the world in view. Returns the refs to
  * mount them on, and whether the vessel marker is drawn.
  */
 export function useMapPainting({
@@ -243,13 +251,7 @@ export function useMapPainting({
       lat.magnitude,
       lon.magnitude,
     );
-    const { x, y } = worldToScreen(wx, wy, camera, w, h);
-    if (modelledPosition === null && !positionHeld) {
-      paintVesselMarker(canvas, ctx, x, y);
-      return;
-    }
-    // The observation is held wherever it is not the current marker: the kit draws it as the held square, beside a modelled position where there is one.
-    paintCrosshair(ctx, x, y, true);
+    // The modelled position sits in the same repeat of the world as the held one beside it.
     const modelled =
       modelledPosition === null
         ? undefined
@@ -259,17 +261,33 @@ export function useMapPainting({
             modelledPosition.lat,
             modelledPosition.lon,
           );
-    const modelledAt =
-      modelled === undefined
-        ? undefined
-        : worldToScreen(modelled.x, modelled.y, camera, w, h);
-    paintVesselPositions(
-      canvas,
-      ctx,
-      { held: { x, y }, modelled: modelledAt },
-      MAP_MARK.radius,
-      { keyline: true },
-    );
+    const margin = MAP_MARK.crosshair + MAP_MARK.radius;
+    for (const shift of worldRepeats(wx, wx, camera, w, margin)) {
+      const { x, y } = worldToScreen(wx + shift, wy, camera, w, h);
+      if (modelled === undefined && !positionHeld) {
+        paintVesselMarker(canvas, ctx, x, y);
+        continue;
+      }
+      // The observation is held wherever it is not the current marker: the kit draws it as the held square, beside a modelled position where there is one.
+      paintCrosshair(ctx, x, y, true);
+      const modelledAt =
+        modelled === undefined
+          ? undefined
+          : worldToScreen(
+              nearestRepeatX(modelled.x, wx) + shift,
+              modelled.y,
+              camera,
+              w,
+              h,
+            );
+      paintVesselPositions(
+        canvas,
+        ctx,
+        { held: { x, y }, modelled: modelledAt },
+        MAP_MARK.radius,
+        { keyline: true },
+      );
+    }
   }, [
     containerSize,
     camera,
