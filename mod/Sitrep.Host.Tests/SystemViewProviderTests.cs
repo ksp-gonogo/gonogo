@@ -609,57 +609,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsCarriesAGroundCraftsSiteAndCoordinatesAndNothingForOneInFlight()
-        {
-            var snapshot = new KspSnapshot
-            {
-                Ut = 0.0,
-                Values = new Dictionary<string, object?>
-                {
-                    ["bodies"] = new List<object?>
-                    {
-                        new Dictionary<string, object?> { ["name"] = "Kerbin", ["index"] = 1 },
-                    },
-                    ["vessels"] = new List<object?>
-                    {
-                        new Dictionary<string, object?>
-                        {
-                            ["id"] = "aaaaaaaa-0000-0000-0000-000000000001",
-                            ["name"] = "Sally-Hut 1",
-                            ["vesselType"] = "Base",
-                            ["situation"] = "LANDED",
-                            ["mainBody"] = "Kerbin",
-                            ["landedAt"] = "Runway",
-                            ["latitude"] = -0.0486,
-                            ["longitude"] = -74.7244,
-                        },
-                        new Dictionary<string, object?>
-                        {
-                            ["id"] = "aaaaaaaa-0000-0000-0000-000000000002",
-                            ["name"] = "Sally-Hut 1",
-                            ["vesselType"] = "Base",
-                            ["situation"] = "ORBITING",
-                            ["mainBody"] = "Kerbin",
-                        },
-                    },
-                },
-            };
-
-            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemVessels(snapshot));
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
-
-            var ground = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
-            Assert.Equal("Runway", ground["landedAt"]);
-            Assert.Equal(-0.0486, ground["latitude"]);
-            Assert.Equal(-74.7244, ground["longitude"]);
-
-            var orbiting = Assert.IsType<Dictionary<string, object?>>(vessels[1]);
-            Assert.Null(orbiting["landedAt"]);
-            Assert.Null(orbiting["latitude"]);
-            Assert.Null(orbiting["longitude"]);
-        }
-
-        [Fact]
         public void BuildSystemVesselsMapsEachVesselsOwnOrbitViaTheSharedBuildOrbitRoutine()
         {
             // The join a SystemView graph node uses to derive its position:

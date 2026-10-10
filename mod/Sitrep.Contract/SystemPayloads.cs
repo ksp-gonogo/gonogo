@@ -489,28 +489,6 @@ public class VesselRosterEntry
     public int? BodyIndex { get; set; }
 
     /// <summary>
-    /// The named launch or landing site the vessel is at, as a player would
-    /// read it (for example "Runway" or "Woomerang Launch Site"). Null when it
-    /// is on the ground somewhere with no named site, and null when it is not
-    /// on the ground at all: an airborne or orbiting vessel has no site.
-    /// </summary>
-    [SitrepUnit(Units.Text)]
-    public string? LandedAt { get; set; }
-
-    /// <summary>
-    /// Body-fixed surface latitude in degrees while the vessel is landed,
-    /// splashed or pre-launch. Null for a vessel in flight or in orbit, since
-    /// the point beneath it sweeps at orbital rate and is not where it is.
-    /// Null together with <see cref="Longitude"/>.
-    /// </summary>
-    [SitrepUnit(Units.Degrees)]
-    public double? Latitude { get; set; }
-
-    /// <summary>Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null exactly when <see cref="Latitude"/> is.</summary>
-    [SitrepUnit(Units.Degrees)]
-    public double? Longitude { get; set; }
-
-    /// <summary>
     /// Kerbals aboard right now, read from the loaded vessel when it is
     /// loaded and from its saved state otherwise, so an unloaded background
     /// vessel still reports a real count. 0 is an uncrewed vessel; null means

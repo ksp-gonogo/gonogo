@@ -42,4 +42,4 @@ export const CONTRACT_MAJOR = 36;
  *
  * @category Host and runtime
  */
-export const CONTRACT_MINOR: number = 3;
+export const CONTRACT_MINOR: number = 2;

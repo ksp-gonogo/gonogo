@@ -7965,25 +7965,6 @@ export interface VesselRosterEntry
 	*/
 	bodyIndex?: number | null;
 	/**
-	* The named launch or landing site the vessel is at, as a player would read it
-	* (for example "Runway" or "Woomerang Launch Site"). Null when it is on the
-	* ground somewhere with no named site, and null when it is not on the ground
-	* at all: an airborne or orbiting vessel has no site.
-	*/
-	landedAt?: string | null;
-	/**
-	* Body-fixed surface latitude in degrees while the vessel is landed, splashed
-	* or pre-launch. Null for a vessel in flight or in orbit, since the point
-	* beneath it sweeps at orbital rate and is not where it is. Null together with
-	* `VesselRosterEntry.longitude`.
-	*/
-	latitude?: Value<"°"> | null;
-	/**
-	* Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null
-	* exactly when `VesselRosterEntry.latitude` is.
-	*/
-	longitude?: Value<"°"> | null;
-	/**
 	* Kerbals aboard right now, read from the loaded vessel when it is loaded and
 	* from its saved state otherwise, so an unloaded background vessel still
 	* reports a real count. 0 is an uncrewed vessel; null means only that the read
