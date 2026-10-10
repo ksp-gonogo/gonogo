@@ -38,8 +38,11 @@ export const RELEASE_USAGE = `uplink-tools release [options]
   --uplink <dir>        the Uplink's directory, the one holding uplink.json
                         (default: found by walking up from the current directory)`;
 
-/** The GitHub owner \`new\` writes when it was told no repository. A URL under it serves nothing. */
-export const PLACEHOLDER_OWNER = "you";
+/**
+ * The GitHub owner \`new\` writes when it was told no repository. A URL under it serves nothing.
+ * It is a name nobody types as their own, so a repository an author names is never mistaken for it.
+ */
+export const PLACEHOLDER_OWNER = "your-github-owner";
 
 const isPlaceholderUrl = (url: string): boolean =>
   url.includes(`/gh/${PLACEHOLDER_OWNER}/`);

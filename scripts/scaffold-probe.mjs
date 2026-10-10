@@ -849,12 +849,16 @@ if (!published) {
       "--author",
       "Scaffold Probe",
       "--repo",
-      "ksp-gonogo/probecore",
+      "you/example",
       "--no-install",
     ],
     { cwd: core },
   );
-  for (const absent of ["mod-contract", "mod-contract-codegen"]) {
+  for (const absent of [
+    "mod-contract",
+    "mod-contract-codegen",
+    "client/src/commands.ts",
+  ]) {
     if (existsSync(join(core, absent))) {
       fail(`--topics core still wrote ${absent}`);
     }

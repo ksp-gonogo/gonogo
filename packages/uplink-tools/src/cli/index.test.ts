@@ -329,7 +329,7 @@ describe("uplink-tools release", () => {
       gamedata: "GonogoXUplink",
       dll: "GonogoXUplink.dll",
       client: {
-        url: "https://cdn.jsdelivr.net/gh/you/x@releases/releases/x/0.0.1/x.client.js",
+        url: "https://cdn.jsdelivr.net/gh/your-github-owner/x@releases/releases/x/0.0.1/x.client.js",
       },
     });
     writeFileSync(join(dir, "mod", "GonogoXUplink.csproj"), "<Project />");

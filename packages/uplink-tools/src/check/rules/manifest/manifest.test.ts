@@ -90,7 +90,8 @@ describe("manifest release faults", () => {
   });
 
   it("warns about the scaffold's placeholder URL, which release refuses", () => {
-    const url = "https://cdn.jsdelivr.net/gh/you/demo/0.0.1/demo.client.js";
+    const url =
+      "https://cdn.jsdelivr.net/gh/your-github-owner/demo/0.0.1/demo.client.js";
     const { clientDir } = uplinkOn(files(url, "0.0.1"));
     const [finding] = releaseFaultsRule.check(ctx(clientDir));
     expect(finding.rule).toBe("manifest/placeholder-url");

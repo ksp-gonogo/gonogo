@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { newUplink, renderSeed, validateUplinkId } from "./new";
 import type { Prompter } from "./questions";
+import { placeholderUrlFault } from "./release";
 
 const scratch: string[] = [];
 const workdir = () => {
@@ -259,6 +260,19 @@ describe("uplink-tools new", () => {
     });
   });
 
+  it("writes a client URL release accepts for the repository it was given, whatever the owner is called", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await newUplink(["solo", ...BARE, "--repo", "you/example"], repo);
+
+    const declared = JSON.parse(
+      readFileSync(join(repo, "uplink.json"), "utf8"),
+    );
+    expect(declared.client.url).toContain("/gh/you/example@releases/");
+    expect(placeholderUrlFault(declared.client.url)).toBeUndefined();
+  });
+
   it("makes an empty directory the Uplink's own repo when there is no uplinks folder", async () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
@@ -270,6 +284,7 @@ describe("uplink-tools new", () => {
       ".gitignore",
       "client/package.json",
       "client/src/index.ts",
+      "client/src/commands.ts",
       "mod/SoloUplink.cs",
       "mod-contract/GonogoSoloUplink.Contract.csproj",
       "mod-tests/GonogoSoloUplink.Tests.csproj",
@@ -294,7 +309,7 @@ describe("uplink-tools new", () => {
     const declared = JSON.parse(
       readFileSync(join(repo, "uplink.json"), "utf8"),
     );
-    expect(declared.repo).toBe("https://github.com/you/solo");
+    expect(declared.repo).toBe("https://github.com/your-github-owner/solo");
     const scripts = JSON.parse(
       readFileSync(join(repo, "client", "package.json"), "utf8"),
     ).scripts;

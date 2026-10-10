@@ -12,7 +12,7 @@ One command, `uplink-tools`, and nothing to install before the first run. Until 
 
 
 ```sh
-npx @ksp-gonogo/uplink-tools@rc new myuplink --repo you/myuplink   # in an empty directory
+npx @ksp-gonogo/uplink-tools@rc new myuplink --repo acme/myuplink   # in an empty directory
 npx @ksp-gonogo/uplink-tools@rc --help
 ```
 

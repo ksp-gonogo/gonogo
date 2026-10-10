@@ -237,8 +237,35 @@ export const ${upper} = defineUplinkClient({
 import "./Heartbeat/index.js";
 
 export { ${upper} } from "./uplink.js";
+export { UPLINK_COMMAND_IDS } from "./commands.js";
 export { HeartbeatWidget } from "./Heartbeat/index.js";
 export type { ${Id}Heartbeat } from "./topics.js";
+`,
+  );
+
+  files.set(
+    "client/src/commands.ts",
+    `import { registerUplinkCommand } from "@ksp-gonogo/sitrep-sdk";
+import {
+  GENERATED_COMMAND_IDS,
+  GENERATED_COMMAND_RAIL,
+  type GeneratedCommandArgsMap,
+  type GeneratedCommandReplyMap,
+} from "./__generated__/command-map.js";
+
+// Types this Uplink's commands: useCommand("<id>") resolves its args and its reply from the maps codegen writes. index.ts re-exports this module so the augmentation reaches dist/index.d.ts.
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface CommandArgsMap extends GeneratedCommandArgsMap {}
+  interface CommandReplyMap extends GeneratedCommandReplyMap {}
+}
+
+// Tells the app whether each command is held for the signal delay, off the declaration in the contract slice. Nothing to add by hand: a command you declare joins after codegen.
+for (const id of GENERATED_COMMAND_IDS) {
+  registerUplinkCommand(id, GENERATED_COMMAND_RAIL[id]);
+}
+
+/** This Uplink's own command ids, as the generated map declares them. */
+export { GENERATED_COMMAND_IDS as UPLINK_COMMAND_IDS };
 `,
   );
 
@@ -941,6 +968,7 @@ function applyCoreTopics(files: Map<string, string>, o: SeedOptions): void {
       path.startsWith("mod-contract/") ||
       path.startsWith("mod-contract-codegen/") ||
       path.startsWith("client/src/Heartbeat/") ||
+      path === "client/src/commands.ts" ||
       path === "client/src/topics.ts"
     ) {
       files.delete(path);
