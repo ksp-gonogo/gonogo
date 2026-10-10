@@ -99,6 +99,12 @@ function resolveUplink(rawPath: string): Resolved {
     : path;
   const declaration = readUplinkDeclaration(clientDir);
   const id = declaration?.declared.id;
+  const bundled = UPLINK_BUNDLE_TARGETS.find((t) => t.clientDir === clientDir);
+  if (!id && bundled) {
+    throw new Error(
+      `--uplink ${path}: ${bundled.name} is bundled with this repo, so \`pnpm dev\` already builds it from source at start. Name an Uplink you are building, one with its own uplink.json.`,
+    );
+  }
   if (!id) {
     throw new Error(
       `--uplink ${path}: no uplink.json declaring an id in it or the directory above. Name an Uplink's directory, the one holding uplink.json.`,
@@ -307,6 +313,7 @@ export function localUplinks(options: LocalUplinksOptions): PluginOption {
         }
       }
 
+      const localIds = new Set(local.uplinks.map((u) => u.id));
       server.middlewares.use((req, res, next) => {
         const url = new URL(req.url ?? "/", "http://localhost");
         const send = (body: string | Buffer, type: string) => {
@@ -319,7 +326,10 @@ export function localUplinks(options: LocalUplinksOptions): PluginOption {
           return send(
             JSON.stringify({
               generatedAt: new Date().toISOString(),
-              uplinks: [...bundled, ...local.index()],
+              uplinks: [
+                ...bundled.filter((entry) => !localIds.has(String(entry.id))),
+                ...local.index(),
+              ],
             }),
             "application/json",
           );

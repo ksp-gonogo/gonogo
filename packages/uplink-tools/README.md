@@ -46,6 +46,17 @@ Once it is in an Uplink's devDependencies the same commands answer to
 | `story <id>` | render one Storybook story to a PNG, or to a GIF when the story is tagged `playback`; see below |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
 
+### Seeing a build in the app
+
+With a checkout of the gonogo app, run `uplink-tools bundle --watch` in the
+Uplink's `client/` and, from the app checkout, `pnpm dev --uplink <path>`, where
+`<path>` is the directory holding `uplink.json`. Repeat the flag for several
+Uplinks. The dev app loads each one's build output with no mod report, hash or
+consent prompt, still checks its contract and the bytes it fetched, lists it in
+Settings under Local builds, and reloads the page on every rebuild. An Uplink
+without an `uplink.json` is refused. Without a checkout, `bundle --serve <port>`
+with `bake --dev-path` serves a client to an app that is already running.
+
 ### Rendering a Storybook story
 
 `story` draws one story of any built Storybook, or a running one, and needs

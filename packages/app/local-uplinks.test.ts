@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createLocalUplinks, parseLocalUplinkPaths } from "./local-uplinks";
+import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 
 const sha = (text: string) =>
   `sha256-${createHash("sha256").update(text).digest("hex")}`;
@@ -135,6 +136,12 @@ describe("local Uplinks", () => {
   it("refuses a path that is not an Uplink, naming the path", () => {
     const missing = join(tmpdir(), "gonogo-local-no-such-uplink");
     expect(() => createLocalUplinks([missing])).toThrow(missing);
+  });
+
+  it("says a bundled client is already served rather than asking for an uplink.json it has none of", () => {
+    expect(() =>
+      createLocalUplinks([UPLINK_BUNDLE_TARGETS[0].clientDir]),
+    ).toThrow(/bundled with this repo.*already builds it/);
   });
 
   it("splits the environment value into its paths", () => {
