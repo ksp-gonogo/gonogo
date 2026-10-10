@@ -455,6 +455,16 @@ namespace Gonogo.KSP
             // controls are live.
             _engine?.SampleCommandGates();
 
+            // A paused game (Time.timeScale == 0) runs no FixedUpdate, so with
+            // no frame-driven sample nothing is published and the Courier clock,
+            // the only thing that fires a delayed order's delivery, never moves.
+            // The frame drives the same sample FixedUpdate would, on the
+            // stopped-clock rule.
+            if (Time.timeScale <= 0f)
+            {
+                SampleAndTick(paused: true);
+            }
+
             // An Uplink reads its host mod's settings off live game state, so
             // only in a game scene, where the save they belong to exists.
             if (_engine != null && HighLogic.LoadedSceneIsGame)
@@ -473,7 +483,9 @@ namespace Gonogo.KSP
                 ? 0
                 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(HighLogic.CurrentGame));
 
-        private void FixedUpdate()
+        private void FixedUpdate() => SampleAndTick(paused: false);
+
+        private void SampleAndTick(bool paused)
         {
             if (_host == null || _recorder == null || _engine == null)
             {
@@ -527,7 +539,10 @@ namespace Gonogo.KSP
                 // never sample them again: SampleCadence.ShouldSampleStoppedClock
                 // samples a clock that did not move since the last physics tick
                 // on real time instead. SampleGate holds both.
-                if (_sampleGate == null || !_sampleGate.Admit(_host.NowUt(), TimeWarp.CurrentRate, nowRealtime))
+                if (_sampleGate == null
+                    || !(paused
+                        ? _sampleGate.AdmitFrame(_host.NowUt(), TimeWarp.CurrentRate, nowRealtime, Time.timeScale)
+                        : _sampleGate.Admit(_host.NowUt(), TimeWarp.CurrentRate, nowRealtime)))
                 {
                     return;
                 }

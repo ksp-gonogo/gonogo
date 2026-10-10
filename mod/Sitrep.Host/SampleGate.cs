@@ -1,7 +1,7 @@
 namespace Sitrep.Host
 {
     /// <summary>
-    /// The per-physics-tick question <c>GonogoAddon.FixedUpdate</c> asks before
+    /// The per-physics-tick (or, while paused, per-frame) question <c>GonogoAddon.FixedUpdate</c> asks before
     /// sampling the game: <see cref="SampleCadence"/>'s UT gate, or its
     /// stopped-clock rule when the game clock has not moved since the previous
     /// tick. Holds the state both read, so a headless driver asks it exactly as
@@ -42,5 +42,15 @@ namespace Sitrep.Host
             _lastSampledRealSec = realSec;
             return true;
         }
+
+        /// <summary>
+        /// Called once per rendered frame with the engine's time scale. A paused
+        /// game (time scale 0) runs no physics tick, so the frame stands in for
+        /// it: the clock is stopped, and the stopped-clock rule samples it on
+        /// real time. At any other time scale the physics tick is the caller,
+        /// and a frame never admits, so one cadence is not sampled twice.
+        /// </summary>
+        public bool AdmitFrame(double ut, double warpRate, double realSec, double timeScale) =>
+            timeScale <= 0 && Admit(ut, warpRate, realSec);
     }
 }

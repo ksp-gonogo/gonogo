@@ -249,6 +249,28 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void APausedGameSamplesOnFramesAndAnUnpausedOneNeverDoes()
+        {
+            var gate = new SampleGate(StandingIn("FLIGHT"));
+            Assert.True(gate.Admit(500.0, warpRate: 1.0, realSec: 0.0));
+
+            var pausedSampledAt = new List<double>();
+            for (var frame = 1; frame <= 180; frame++)
+            {
+                var realSec = frame / 60.0;
+                if (gate.AdmitFrame(500.4, warpRate: 1.0, realSec, timeScale: 0)) pausedSampledAt.Add(realSec);
+            }
+            Assert.Equal(3, pausedSampledAt.Count);
+
+            var unpaused = new SampleGate(StandingIn("FLIGHT"));
+            Assert.True(unpaused.Admit(500.0, warpRate: 1.0, realSec: 0.0));
+            for (var frame = 1; frame <= 180; frame++)
+            {
+                Assert.False(unpaused.AdmitFrame(500.4, warpRate: 1.0, frame / 60.0, timeScale: 1));
+            }
+        }
+
+        [Fact]
         public void QuantumMatchesWhatTheGateActuallyLets()
         {
             // The gate is asked once per tick, so the gap it produces is the

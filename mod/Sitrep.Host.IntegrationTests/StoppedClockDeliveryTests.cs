@@ -89,6 +89,71 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task PausingInFlightKeepsPublishingItsStateOnFrames()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new StoppedClockTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                foreach (var topic in StoppedClockTestUplink.Topics)
+                {
+                    await SubscribeAsync(client, topic, Timeout);
+                }
+
+                var game = new PhysicsLoop(engine);
+                game.Run(1.0, realSec => SpaceCenterUt + realSec, "Flight");
+                await DrainAllStreamDataAsync(client, TestBudgets.Quiet);
+
+                game.RunPausedFrames(3.0, EditorUt, "Paused");
+                var frames = await DrainAllStreamDataAsync(client, TestBudgets.Quiet);
+
+                foreach (var topic in StoppedClockTestUplink.Topics)
+                {
+                    var pausedFrames = frames.Where(f => f.Topic == topic).ToList();
+                    Assert.True(pausedFrames.Count == 1, topic + " sent " + pausedFrames.Count + " frames while paused, not the one change");
+                    Assert.Equal("Paused", pausedFrames[0].Payload?.ToString());
+                    Assert.Equal(EditorUt, pausedFrames[0].Meta.ValidAt);
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void AZeroDelayOrderGivenWhilePausedExecutesAndConfirmsWithoutUnpausing()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new StoppedClockTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                var game = new PhysicsLoop(engine);
+                game.Run(1.0, realSec => SpaceCenterUt + realSec, "Flight");
+                game.RunPausedFrames(0.5, EditorUt, "Paused");
+
+                object? confirmed = null;
+                engine.DispatchCommandAndWait(
+                    StoppedClockTestUplink.Command, "tool", "KSC",
+                    result => confirmed = result,
+                    Timeout);
+                Assert.Equal(0, uplink.Executed);
+                game.RunPausedFrames(2.0, EditorUt, "Paused");
+
+                Assert.Equal(1, uplink.Executed);
+                Assert.Equal("done:tool", confirmed);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>Fifty physics ticks a real second, ticking the engine only when the gate admits one.</summary>
         private sealed class PhysicsLoop
         {
@@ -106,6 +171,22 @@ namespace Sitrep.Host.IntegrationTests
             public PhysicsLoop(ChannelEngine engine)
             {
                 _engine = engine;
+            }
+
+            /// <summary>Sixty frames a real second at time scale 0: no physics tick, the clock standing at <paramref name="ut"/>.</summary>
+            public void RunPausedFrames(double seconds, double ut, string scene)
+            {
+                const double frameRealSec = 1.0 / 60;
+                var end = _realSec + seconds;
+                for (; _realSec < end - frameRealSec / 2; _realSec += frameRealSec)
+                {
+                    if (!_gate.AdmitFrame(ut, warpRate: 1.0, _realSec, timeScale: 0)) continue;
+                    _engine.TickAndWait(ut, new KspSnapshot
+                    {
+                        Ut = ut,
+                        Values = new Dictionary<string, object?> { ["scene"] = scene },
+                    }, Timeout);
+                }
             }
 
             public void Run(double seconds, Func<double, double> utAt, string scene)
