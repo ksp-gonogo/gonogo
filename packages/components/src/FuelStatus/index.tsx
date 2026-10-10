@@ -86,7 +86,7 @@ function FuelStatusComponent({
   // `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch.
   const totalBurnTime = budget?.totalBurnTime;
 
-  const dryMass = useTelemetry("vessel.propulsion").dryMass.value;
+  const dryMass = useTelemetry("vessel.propulsion").dryMass;
 
   const readings = useResourceRows();
 

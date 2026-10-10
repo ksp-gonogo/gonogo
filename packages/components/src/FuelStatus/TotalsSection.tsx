@@ -1,3 +1,4 @@
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
   NULL_DISPLAY,
@@ -53,7 +54,7 @@ export function TotalsSection({
 }: {
   totalDv: UnitValue<"m/s"> | undefined;
   totalBurnTime: UnitValue<"s"> | null | undefined;
-  dryMass: UnitValue<"t"> | undefined;
+  dryMass: Reading<Value<"t">>;
   mode: DeltaVMode;
 }) {
   return (
@@ -96,7 +97,7 @@ export function TotalsSection({
       </TotalFigure>
       <TotalFigure label="Dry mass">
         <span style={{ whiteSpace: "nowrap" }}>
-          {dryMass !== undefined ? <Unit value={dryMass} /> : NULL_DISPLAY}
+          <Unit value={dryMass} />
         </span>
       </TotalFigure>
     </Box>
