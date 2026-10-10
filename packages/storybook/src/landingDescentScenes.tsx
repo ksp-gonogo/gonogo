@@ -10,6 +10,7 @@ import {
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
 import {
   AIR,
+  crashEmits,
   emitsOf,
   landsAtSea,
   playbackOf,
@@ -24,6 +25,8 @@ import { WidgetScene } from "./WidgetScene";
 const PLAYBACK_RATE = 10;
 /** Real seconds the last scene is held on screen before the story ends. */
 const HOLD_SECONDS = 3;
+/** Real seconds a crash is held on its impact, long enough to read where the vessel came to rest. */
+const CRASH_HOLD_SECONDS = 8;
 
 export interface LandingDescentSceneProps {
   /** Comes in too fast and meets the ground, instead of burning down to a soft touchdown. */
@@ -87,7 +90,11 @@ export function LandingDescentScene({
         if (!frame) {
           clearInterval(timer.current);
           // The vessel is gone: nothing more arrives, so the widget holds the last scene as last seen.
-          if (streamEnds) void mount.stopArriving();
+          if (streamEnds) {
+            for (const e of crashEmits(all[all.length - 1]))
+              mount.emit(e.channel, e.value, e.meta);
+            void mount.stopArriving();
+          }
           return;
         }
         for (const e of emitsOf(frame, world))
@@ -95,7 +102,7 @@ export function LandingDescentScene({
         setElapsed(Math.floor(frame.t));
       }, 1000 / PLAYBACK_RATE);
     },
-    [frames, streamEnds, world],
+    [all, frames, streamEnds, world],
   );
 
   const replay = () => {
@@ -108,7 +115,8 @@ export function LandingDescentScene({
     // The running time a picture of this story must cover: the whole descent and the hold on its end.
     <div
       data-story-seconds={Math.ceil(
-        frames.length / PLAYBACK_RATE + HOLD_SECONDS,
+        frames.length / PLAYBACK_RATE +
+          (streamEnds ? CRASH_HOLD_SECONDS : HOLD_SECONDS),
       )}
     >
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>

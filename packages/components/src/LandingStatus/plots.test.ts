@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { getContributionsForSlot, registerStockBodies } from "@ksp-gonogo/core";
 import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { isRecord } from "../../scripts/gen-landing-status-fixtures";
 import {
@@ -13,8 +14,12 @@ import {
 // Registers the three contributions the last describe drives, as the widget's own import does.
 import "./descentLayers";
 import {
+  ballisticDrift,
   coneFootprint,
   groundTrackDistances,
+  integrate,
+  MU,
+  R,
   siteGridHalfExtent,
   trackExtent,
 } from "../../scripts/landingDescentModel";
@@ -1206,7 +1211,7 @@ describe("touchdown reticle plot", () => {
       expect(top).toBeCloseTo(50, 6);
     });
 
-    it("never outgrows the plot: a ring far wider than the window is drawn inside it and says so", () => {
+    it("holds the whole ring at its real radius in the window, however wide it is", () => {
       for (const radius of [400, 2000, 20_000]) {
         const plot = buildTouchdownReticlePlot(
           reticle({
@@ -1218,14 +1223,45 @@ describe("touchdown reticle plot", () => {
         const ring = ringOf(plot);
         const [xLo, xHi] = frameOf(plot).xDomain;
         const [yLo, yHi] = frameOf(plot).yDomain;
+        expect(Math.max(...ring.points.map((p) => p.y))).toBeCloseTo(radius, 6);
         for (const p of ring.points) {
           expect(p.x).toBeGreaterThan(xLo);
           expect(p.x).toBeLessThan(xHi);
           expect(p.y).toBeGreaterThan(yLo);
           expect(p.y).toBeLessThan(yHi);
         }
-        // The text still carries the real figure.
-        expect(ring.description).toContain("beyond the plot");
+      }
+    });
+
+    it("never grows on screen over the last three kilometres of the fall: its share of the window only falls", () => {
+      let previous = Number.POSITIVE_INFINITY;
+      for (const f of integrate({})) {
+        if (f.landed || f.aglMeters > 3000) continue;
+        const g = MU / (R + f.aglMeters) ** 2;
+        const drift = ballisticDrift(f.aglMeters, f.vDown, f.vHoriz, g);
+        const fall =
+          (-f.vDown + Math.sqrt(f.vDown ** 2 + 2 * g * f.aglMeters)) / g;
+        const radius = dispersionRadiusMeters({
+          sampled: true,
+          heightMeters: f.aglMeters,
+          horizontalSpeed: f.vHoriz,
+          timeToImpact: fall,
+        });
+        const plot = buildTouchdownReticlePlot(
+          reticle({
+            zoneRadiusMeters: radius,
+            aglMeters: f.aglMeters,
+            driftMeters: drift,
+          }),
+        );
+        const ring = plot?.layers.find((x) => x.id === "landing-zone");
+        if (ring?.kind !== "series") throw new Error("expected the ring");
+        const [lo, hi] = frameOf(plot).xDomain;
+        const share = (ring.points[0].y - 0) / ((hi - lo) / 2);
+        expect(share, `at ${f.aglMeters.toFixed(0)} m`).toBeLessThanOrEqual(
+          previous + 0.03,
+        );
+        previous = Math.min(previous, share);
       }
     });
 
@@ -1239,13 +1275,14 @@ describe("touchdown reticle plot", () => {
         { horizontalSpeed: 0, timeToImpact: 5 },
       ];
       const radii = descent.map((d) =>
-        dispersionRadiusMeters({ sampled: true, ...d }),
+        dispersionRadiusMeters({ sampled: true, heightMeters: null, ...d }),
       );
       for (let i = 1; i < radii.length; i++) {
         expect(radii[i]).toBeLessThan(radii[i - 1] ?? 0);
       }
       const floor = dispersionRadiusMeters({
         sampled: true,
+        heightMeters: 0,
         horizontalSpeed: 0,
         timeToImpact: 0,
       });
@@ -1259,6 +1296,7 @@ describe("touchdown reticle plot", () => {
       expect(
         dispersionRadiusMeters({
           sampled: false,
+          heightMeters: 100,
           horizontalSpeed: 10,
           timeToImpact: 10,
         }),
@@ -1568,8 +1606,9 @@ describe("the body a contribution resolves", () => {
     held: readonly string[] = [],
     payloads: Record<string, unknown> = payloadsFor(body),
   ) =>
-    Object.fromEntries(
-      Object.entries(payloads).map(([topic, payload]) => [
+    Object.fromEntries([
+      ["crash.lastCrash", { state: "absent", atUt: value("ut", 100) }],
+      ...Object.entries(payloads).map(([topic, payload]) => [
         topic,
         held.includes(topic)
           ? {
@@ -1586,7 +1625,7 @@ describe("the body a contribution resolves", () => {
               reckoning: { status: "none" },
             },
       ]),
-    );
+    ]);
 
   const compute = (id: string, body: Record<string, unknown>) => {
     const contribution = getContributionsForSlot("plots").find(
@@ -1659,6 +1698,73 @@ describe("the body a contribution resolves", () => {
       expect(plotHeld([])).toBe("observed");
       expect(plotHeld(["vessel.flight"])).toBe("held");
     }
+  });
+
+  describe("a crash on record", () => {
+    const crashed = (held: readonly string[]) => {
+      const payloads = {
+        ...payloadsFor(EARTH),
+        "vessel.identity": { parentBodyIndex: 1, vesselId: "doomed" },
+        "crash.lastCrash": {
+          vesselId: "doomed",
+          // Ahead of the vessel along its track, at ground level.
+          latitude: value("°", 0.3),
+          longitude: value("°", 12.3),
+          altitude: value("m", 200),
+        },
+      };
+      return topicsFor(EARTH, held, payloads);
+    };
+    const run = (id: string, topics: ReturnType<typeof crashed>) =>
+      (
+        getContributionsForSlot("plots")
+          .find((c) => c.id === id)
+          ?.compute(topics) as { layers: PlotLayer[] }[] | null
+      )?.[0]?.layers ?? [];
+
+    it("sets the vessel on the ground and draws the stretch from its last reading as unknown, once the flight has stopped arriving", () => {
+      const layers = run("core:cross-section", crashed(["vessel.flight"]));
+      const ids = layers.map((l) => l.id);
+      expect(ids).toEqual(
+        expect.arrayContaining(["unknown-path", "last-seen", "impact"]),
+      );
+      const path = layers.find((l) => l.id === "unknown-path");
+      expect((path as { dashed?: boolean }).dashed).toBe(true);
+      const at = (id: string) =>
+        (layers.find((l) => l.id === id) as { at: { x: number; y: number } })
+          .at;
+      expect(at("vessel")).toEqual(at("impact"));
+      expect(at("last-seen").y).toBeGreaterThan(at("impact").y);
+      // A projection of where a lost craft would go says nothing of a crash.
+      expect(ids).not.toContain("velocity");
+    });
+
+    it("marks the crash site on the touchdown plot as well", () => {
+      const ids = run("core:touchdown-reticle", crashed(["vessel.flight"])).map(
+        (l) => l.id,
+      );
+      expect(ids).toEqual(expect.arrayContaining(["unknown-path", "impact"]));
+    });
+
+    it("draws nothing of a crash while the vessel is still reporting", () => {
+      const ids = run("core:cross-section", crashed([])).map((l) => l.id);
+      expect(ids).not.toContain("impact");
+    });
+
+    it("ignores the crash of another vessel", () => {
+      const topics = crashed(["vessel.flight"]);
+      Object.assign(topics, {
+        "vessel.identity": {
+          state: "observed",
+          value: { parentBodyIndex: 1, vesselId: "someone-else" },
+          atUt: value("ut", 100),
+          reckoning: { status: "none" },
+        },
+      });
+      expect(run("core:cross-section", topics).map((l) => l.id)).not.toContain(
+        "impact",
+      );
+    });
   });
 
   // With nothing reported or known, the reticle is withheld rather than drawn against an unsupplied radius.

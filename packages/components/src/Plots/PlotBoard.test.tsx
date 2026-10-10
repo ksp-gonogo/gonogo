@@ -8,7 +8,7 @@ import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { heldWord } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
-import { MIN_PLOT_PX, PlotBoard, plotGrid } from "./PlotBoard";
+import { MIN_PLOT_PX, PlotBoard, type PlotSlot, plotGrid } from "./PlotBoard";
 
 /**
  * What the arranger does with what it is handed, through the real registry,
@@ -26,6 +26,23 @@ const FRAME: PlotEntry["frame"] = {
 const ONE_MARK: PlotEntry["layers"] = [
   { kind: "rule", id: "ceiling", along: "y", value: 500, label: "ceiling" },
 ];
+
+const RESERVE: PlotSlot[] = [
+  { subject: "first", title: "First", note: "Awaiting data" },
+  { subject: "second", title: "Second", note: "Awaiting data" },
+];
+
+function ReservingHost() {
+  return (
+    <WidgetMetaContext.Provider
+      value={{ componentId: "host-widget", contributionSlots: ["plots"] }}
+    >
+      <ContributionsProvider>
+        <PlotBoard reserve={RESERVE} />
+      </ContributionsProvider>
+    </WidgetMetaContext.Provider>
+  );
+}
 
 function Host({ componentId = "host-widget" }: { componentId?: string }) {
   return (
@@ -238,5 +255,34 @@ describe("the board's layout", () => {
 
   it("never draws a plot wider than the board itself", () => {
     expect(plotGrid(1, 90, GAP).side).toBeLessThanOrEqual(90);
+  });
+
+  describe("reserved slots", () => {
+    it("keeps a heading and frame for every reserved plot while none has anything to draw", () => {
+      render(<ReservingHost />);
+      expect(screen.getByText("First")).toBeInTheDocument();
+      expect(screen.getByText("Second")).toBeInTheDocument();
+    });
+
+    it("fills a slot in place when its plot arrives, leaving the other where it was", async () => {
+      registerContribution({
+        id: "second-plot",
+        contributes: "plots",
+        compute: () => [
+          {
+            subject: "second",
+            title: "Second",
+            frame: FRAME,
+            layers: ONE_MARK,
+          },
+        ],
+      });
+      render(<ReservingHost />);
+      await act(async () => {});
+      const headings = screen
+        .getAllByText(/^(First|Second)$/)
+        .map((h) => h.textContent);
+      expect(headings).toEqual(["First", "Second"]);
+    });
   });
 });

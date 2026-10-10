@@ -53,20 +53,60 @@ export function plotGrid(
   return { columns, side: Math.max(0, Math.floor(side)) };
 }
 
+/** A place the board keeps for a plot whether or not it has anything to draw: its frame stays, and `note` is what the frame says until the plot arrives. */
+export interface PlotSlot {
+  /** The subject of the plot that fills the slot. */
+  subject: string;
+  /** The heading above the slot while its plot is absent. */
+  title: string;
+  /** What the empty frame says. */
+  note: string;
+}
+
 export interface PlotBoardProps {
   /** Rendered above the plots when there is at least one. Omit when the host already wrote a heading. */
   title?: string;
   /** The most height the plots may take, headings included, so a host can keep its other content in view; the plots shrink to it, never below `MIN_PLOT_PX`. */
   heightPx?: number;
+  /** Plots the host expects through its whole life, in the order they sit: each keeps its place, drawn as an empty frame while its plot is absent, so a plot arriving or leaving moves nothing. Plots contributed beyond them follow. */
+  reserve?: readonly PlotSlot[];
 }
 
-export function PlotBoard({ title, heightPx }: Readonly<PlotBoardProps>) {
+interface Slot {
+  key: string;
+  plot?: MergedPlot;
+  empty?: PlotSlot;
+}
+
+function slotsOf(
+  plots: readonly MergedPlot[],
+  reserve: readonly PlotSlot[],
+): Slot[] {
+  const reserved = new Set(reserve.map((r) => r.subject));
+  return [
+    ...reserve.map((r) => ({
+      key: r.subject,
+      plot: plots.find((p) => p.subject === r.subject),
+      empty: r,
+    })),
+    ...plots
+      .filter((p) => !reserved.has(p.subject))
+      .map((p) => ({ key: p.key, plot: p })),
+  ];
+}
+
+export function PlotBoard({
+  title,
+  heightPx,
+  reserve = [],
+}: Readonly<PlotBoardProps>) {
   const contributed = useContributions("plots");
   // Grouped by subject, so two contributions describing one plot draw as one.
   const plots = useMemo(() => mergePlots(contributed), [contributed]);
   const ref = useRef<HTMLDivElement>(null);
   const [measured, setMeasured] = useState({ width: 0, gap: 0 });
-  const shown = plots.length > 0;
+  const slots = slotsOf(plots, reserve);
+  const shown = slots.length > 0;
   // Measured before the first paint, so the plots are never drawn at a placeholder size and then jump to their own. The gutter is a theme token, so its pixels are read off the board rather than restated here.
   useLayoutEffect(() => {
     const board = ref.current;
@@ -92,7 +132,7 @@ export function PlotBoard({ title, heightPx }: Readonly<PlotBoardProps>) {
   }, [shown]);
   // Sized for the most plots the board has held, so a plot that leaves (the descent envelope at touchdown) does not grow the rest mid-flight.
   const most = useRef(0);
-  most.current = Math.max(most.current, plots.length);
+  most.current = Math.max(most.current, slots.length);
   if (!shown) return null;
 
   // Where nothing lays out, as in a test, the plots take the smallest legible square.
@@ -119,9 +159,13 @@ export function PlotBoard({ title, heightPx }: Readonly<PlotBoardProps>) {
           gap: "var(--gap-related)",
         }}
       >
-        {plots.map((plot) => (
-          <Plot key={plot.key} plot={plot} />
-        ))}
+        {slots.map((slot) =>
+          slot.plot ? (
+            <Plot key={slot.key} plot={slot.plot} />
+          ) : slot.empty ? (
+            <EmptyPlot key={slot.key} slot={slot.empty} />
+          ) : null,
+        )}
       </div>
     </div>
   );
@@ -184,6 +228,54 @@ function Plot({ plot }: { plot: MergedPlot }) {
             yUnit: plot.frame.yUnit,
             yDomainSecondary: plot.frame.ySecondaryDomain,
             yScalePrimary: plot.frame.yScale === "log" ? "log" : "linear",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** A reserved slot with no plot: the same heading and square as a plot, its frame drawn empty with the note across it. */
+function EmptyPlot({ slot }: { slot: PlotSlot }) {
+  return (
+    <div
+      style={{
+        minWidth: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--gap-related)",
+      }}
+    >
+      <SectionTitle style={ONE_LINE} data-tooltip={slot.title}>
+        {slot.title}
+      </SectionTitle>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          aspectRatio: "1",
+          minHeight: 0,
+        }}
+      >
+        <GraphView
+          chrome="bare"
+          aria-label={`${slot.title}: ${slot.note}`}
+          // The note is a caption, so the frame has a layer and the chart draws it rather than its own "configure series" notice, whose placement would move with the plot's size.
+          layers={[
+            {
+              kind: "caption",
+              id: "awaiting",
+              anchor: "top-left",
+              text: slot.note,
+              tone: "neutral",
+            },
+          ]}
+          config={{
+            series: [],
+            windowSec: 0,
+            xDomain: [-1, 1],
+            spatial: true,
+            yDomainPrimary: [-1, 1],
           }}
         />
       </div>

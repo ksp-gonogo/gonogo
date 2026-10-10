@@ -396,7 +396,9 @@ describe("LandingStatusComponent", () => {
     expect(
       await screen.findByText("Atmospheric descent (estimate)"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Touchdown site")).toBeNull();
+    // The slot is kept as an empty frame, with no site drawn in it.
+    expect(screen.getByText("Touchdown site")).toBeInTheDocument();
+    expect(screen.queryByText(/slope/)).toBeNull();
   });
 
   it("renders the touchdown reticle + hazard verdict at a large size", async () => {

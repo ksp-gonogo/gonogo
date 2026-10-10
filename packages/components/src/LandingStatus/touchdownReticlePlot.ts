@@ -4,6 +4,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
+import { crashImpactOf } from "./crashImpact";
 import { greatCircle } from "./geo";
 import { roundedHeight } from "./readouts";
 import { surfaceGravityOf, surfaceMeters } from "./seaSurface";
@@ -124,6 +125,8 @@ export interface TouchdownReticleInputs {
   siteHeightsSize?: number | null;
   /** Ground width the whole grid spans, metres. */
   siteHeightsExtentMeters?: number | null;
+  /** Where the vessel is known to have crashed, measured from its last reading: the stretch between them is drawn as unknown, and the window holds both. */
+  impact?: { distanceMeters: number; bearingDeg: number } | null;
   /** Terrain slope at the site, degrees. */
   slopeDeg: number | null;
   /** Biome at the site. */
@@ -169,17 +172,47 @@ export function buildTouchdownReticlePlot(
   const vesselEast = -driftMeters * Math.sin(bearing);
   const vesselNorth = -driftMeters * Math.cos(bearing);
 
+  const impactBearing =
+    inputs.impact == null ? null : (inputs.impact.bearingDeg * Math.PI) / 180;
+  const impactEast =
+    inputs.impact == null || impactBearing == null
+      ? null
+      : vesselEast + inputs.impact.distanceMeters * Math.sin(impactBearing);
+  const impactNorth =
+    inputs.impact == null || impactBearing == null
+      ? null
+      : vesselNorth + inputs.impact.distanceMeters * Math.cos(impactBearing);
+
   const layers: PlotLayer[] = [];
-  // The window frames the site and the vessel, NOT the dispersion ring: on a fast approach the ring is kilometres across and simply runs off the edges.
+  // The reach is the site and the vessel; the dispersion ring is held in the window separately below.
   const reaches: number[] = [Math.abs(driftMeters)];
+  const easts = [vesselEast, 0, ...(impactEast == null ? [] : [impactEast])];
+  const norths = [
+    vesselNorth,
+    0,
+    ...(impactNorth == null ? [] : [impactNorth]),
+  ];
+  if (impactEast != null) {
+    reaches.push(
+      Math.max(
+        Math.max(...easts) - Math.min(...easts),
+        Math.max(...norths) - Math.min(...norths),
+      ),
+    );
+  }
 
   // The window follows the craft and the site together: it is centred between them and sized to hold both with room, never narrower than about the cone's width at the craft's height, so the craft is seen to travel toward the site. It keeps closing in until touchdown, with no height below which the picture stops changing.
   const height = Math.max(0, inputs.aglMeters ?? 0);
-  const centreEast = vesselEast / 2;
-  const centreNorth = vesselNorth / 2;
+  const centreEast = (Math.max(...easts) + Math.min(...easts)) / 2;
+  const centreNorth = (Math.max(...norths) + Math.min(...norths)) / 2;
   const halfSpan = Math.max(
     MIN_HALF_SPAN_M * (1 + SPAN_PADDING) + height * HALF_SPAN_PER_HEIGHT,
     (Math.max(...reaches) / 2) * (1 + SPAN_PADDING),
+    // Room for the whole ring on the far side of the site: a ring clipped or shrunk to fit would be drawn at a size it does not have.
+    zoneRadiusMeters != null && zoneRadiusMeters > 0
+      ? Math.max(Math.abs(centreEast), Math.abs(centreNorth)) +
+          zoneRadiusMeters / RING_ROOM
+      : 0,
   );
   const window = {
     x0: centreEast - halfSpan,
@@ -188,25 +221,23 @@ export function buildTouchdownReticlePlot(
     y1: centreNorth + halfSpan,
   };
   if (zoneRadiusMeters != null && zoneRadiusMeters > 0) {
-    // Drawn inside the window whatever its real size: a dispersion wider than the plot would only run off every edge, so it is held to just inside the nearest one and the text carries the real figure.
-    const room =
-      RING_ROOM * Math.min(window.x1, -window.x0, window.y1, -window.y0);
-    const drawn = Math.min(zoneRadiusMeters, room);
-    const capped = drawn < zoneRadiusMeters;
-    // An outline, not a filled disc, so it hides nothing beneath it.
+    // An outline, not a filled disc, so it hides nothing beneath it. Always at its real radius: the window is sized to hold it.
     layers.push({
       kind: "series",
       id: "landing-zone",
       points: Array.from({ length: ZONE_STEPS + 1 }, (_, i) => {
         const a = (i / ZONE_STEPS) * 2 * Math.PI;
-        return { x: drawn * Math.sin(a), y: drawn * Math.cos(a) };
+        return {
+          x: zoneRadiusMeters * Math.sin(a),
+          y: zoneRadiusMeters * Math.cos(a),
+        };
       }),
       tone: "warn",
       dashed: true,
       description: `touchdown dispersion ${writeQuantity(
         value("m", zoneRadiusMeters),
         { decimals: 0 },
-      )} across the predicted point${capped ? ", beyond the plot" : ""}`,
+      )} across the predicted point`,
     });
   }
 
@@ -244,14 +275,47 @@ export function buildTouchdownReticlePlot(
       inputs.roughnessFootprint ?? null,
     ),
   });
-  layers.push({
-    kind: "marker",
-    id: "vessel",
-    at: { x: vesselEast, y: vesselNorth },
-    shape: "ring",
-    tone: "go",
-    description: "current sub-vessel point",
-  });
+  if (impactEast != null && impactNorth != null) {
+    layers.push(
+      {
+        kind: "series",
+        id: "unknown-path",
+        points: [
+          { x: vesselEast, y: vesselNorth },
+          { x: impactEast, y: impactNorth },
+        ],
+        tone: "neutral",
+        dashed: true,
+        description:
+          "the path from the last reading to the crash site is unknown",
+      },
+      {
+        kind: "marker",
+        id: "vessel",
+        at: { x: vesselEast, y: vesselNorth },
+        shape: "ring",
+        tone: "neutral",
+        description: "sub-vessel point of the last reading",
+      },
+      {
+        kind: "marker",
+        id: "impact",
+        at: { x: impactEast, y: impactNorth },
+        shape: "cross",
+        tone: "nogo",
+        description: "crash site",
+      },
+    );
+  } else {
+    layers.push({
+      kind: "marker",
+      id: "vessel",
+      at: { x: vesselEast, y: vesselNorth },
+      shape: "ring",
+      tone: "go",
+      description: "current sub-vessel point",
+    });
+  }
 
   // The sea's surface is what a craft lands on: over an ocean the grid is held at it, so the floor's shape is not drawn as terrain, and a grid wholly under the sea is filled as water.
   const sampled = inputs.siteHeights ?? null;
@@ -401,15 +465,21 @@ function siteDescription(
 }
 
 /**
- * The dispersion circle, derived since nothing on the wire carries one: how far from the predicted point the craft may yet come down. That is a share of the sideways travel still to come, which falls as the craft descends and its sideways speed is spent, on top of a floor for what a predicted point can never know, so the circle narrows all the way to the floor at touchdown.
+ * The dispersion circle, derived since nothing on the wire carries one: how far from the predicted point the craft may yet come down. That is a share of the sideways travel still to come and a share of the height still to fall, both of which shrink as the craft descends, on top of a floor for what a predicted point can never know, so the circle narrows all the way to the floor at touchdown.
  * Null when no site was sampled.
  */
 const ZONE_DISPERSION = 0.12;
+/**
+ * The sideways error a steered fall can still pick up, per metre of height left: about six degrees.
+ * The window frames the craft's height at a fixed slope, so a circle that fell slower than the window would be drawn growing as the descent closed in on it; this keeps the circle shrinking on screen at least as fast as the window tightens, even when nothing moves sideways.
+ */
+const ZONE_PER_HEIGHT = 0.1;
 /** About a lander's own size: no prediction says where the legs come down more closely than that. */
 const ZONE_FLOOR_M = 10;
 
 export function dispersionRadiusMeters(inputs: {
   sampled: boolean;
+  heightMeters: number | null;
   horizontalSpeed: number | null;
   timeToImpact: number | null;
 }): number | null {
@@ -422,7 +492,11 @@ export function dispersionRadiusMeters(inputs: {
     timeToImpact > 0
       ? horizontalSpeed * timeToImpact
       : 0;
-  return ZONE_FLOOR_M + ZONE_DISPERSION * travel;
+  const fall =
+    inputs.heightMeters != null && inputs.heightMeters > 0
+      ? ZONE_PER_HEIGHT * inputs.heightMeters
+      : 0;
+  return ZONE_FLOOR_M + ZONE_DISPERSION * travel + fall;
 }
 
 /** The speed over the ground, from the surface speed and the part of it that is vertical; null when either is missing. */
@@ -475,6 +549,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.surface",
     "vessel.landing",
     "vessel.orbit",
+    "crash.lastCrash",
   ],
   compute: (topics) => {
     const flight = lastValue(topics["vessel.flight"]);
@@ -494,9 +569,13 @@ CORE_UPLINK_CLIENT.registerContribution({
     const gravity = surfaceGravityOf(body);
     const siteLat = landing.predictedLatitude.magnitude;
     const siteLon = landing.predictedLongitude.magnitude;
+    const from = {
+      latitude: flight.latitude.magnitude,
+      longitude: flight.longitude.magnitude,
+    };
     const drift = greatCircle(
-      flight.latitude.magnitude,
-      flight.longitude.magnitude,
+      from.latitude,
+      from.longitude,
       siteLat,
       siteLon,
       body.radius,
@@ -505,11 +584,20 @@ CORE_UPLINK_CLIENT.registerContribution({
     const aglMeters =
       (surface?.heightFromTerrain ?? flight.altitudeTerrain)?.magnitude ?? null;
     const track = landing.groundTrackDistances?.map((d) => d.magnitude);
+    const impact = crashImpactOf({
+      crash: lastValue(topics["crash.lastCrash"]) ?? null,
+      vesselId: lastValue(topics["vessel.identity"])?.vesselId,
+      flightIsCurrent: topics["vessel.flight"].state === "observed",
+      from,
+      bodyRadius: body.radius,
+    });
     const plot = buildTouchdownReticlePlot({
+      impact,
       driftMeters: drift.distanceMeters,
       driftBearingDeg: drift.bearingDeg,
       zoneRadiusMeters: dispersionRadiusMeters({
         sampled: landing.sampleSource != null,
+        heightMeters: aglMeters,
         horizontalSpeed: horizontalSpeedOf(
           flight.surfaceSpeed?.magnitude ?? null,
           flight.verticalSpeed?.magnitude ?? null,

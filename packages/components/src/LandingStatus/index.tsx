@@ -11,7 +11,7 @@ import {
   Text,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
-import { PlotBoard } from "../Plots/PlotBoard";
+import { PlotBoard, type PlotSlot } from "../Plots/PlotBoard";
 import { AltitudeRail } from "./AltitudeRail";
 import {
   CarriedAltitude,
@@ -27,7 +27,12 @@ import {
   VelocitySection,
 } from "./DescentSections";
 import read from "./landing-status.declarations.g";
-import { TerrainReadout, VerdictBanner } from "./SiteReadouts";
+import {
+  TerrainReadout,
+  TerrainReadoutIdle,
+  VerdictBanner,
+  VerdictBannerIdle,
+} from "./SiteReadouts";
 import { SolutionReadouts } from "./SolutionReadouts";
 import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
 import { useLandingModel } from "./useLandingModel";
@@ -92,10 +97,22 @@ function LandingStatusComponent({
   // Whether a descent is on the board: the empty state otherwise.
   const descending = !(board === "not-descending" && !landed);
 
+  // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
+  const idle = landed ? "Landed" : "Awaiting data";
+  const reservedPlots: PlotSlot[] = [
+    { subject: "landing-cross-section", title: "Cross-section", note: idle },
+    { subject: "touchdown-site", title: "Touchdown site", note: idle },
+    // Only an atmosphere has a descent envelope to wait for.
+    ...(atmospheric
+      ? [{ subject: "descent-envelope", title: "Descent envelope", note: idle }]
+      : []),
+  ];
+
   // Contributed plots: each decides for itself whether it has anything to say, and the board lays out what comes back.
   const contributedPlots = (
     // gonogo:reads none
     <PlotBoard
+      reserve={reservedPlots}
       heightPx={
         railFrame.room > 0 ? railFrame.room * PLOTS_SHARE_OF_ROOM : undefined
       }
@@ -154,12 +171,17 @@ function LandingStatusComponent({
     </Stack>
   );
 
-  const verdictBannerEl = siteReadoutsShown ? (
+  // Both rows are in the layout whenever the plots are, empty until there is a site, so a site arriving moves nothing below them.
+  const verdictBannerEl = !showPlots ? null : siteReadoutsShown ? (
     <VerdictBanner model={model} />
-  ) : null;
-  const terrainReadoutEl = siteReadoutsShown ? (
+  ) : (
+    <VerdictBannerIdle />
+  );
+  const terrainReadoutEl = !showPlots ? null : siteReadoutsShown ? (
     <TerrainReadout model={model} />
-  ) : null;
+  ) : (
+    <TerrainReadoutIdle />
+  );
 
   return (
     <Panel

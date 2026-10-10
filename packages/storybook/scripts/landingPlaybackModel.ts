@@ -8,6 +8,7 @@ import {
   EVE_AIR,
 } from "../../components/scripts/landingAtmosphereModel";
 import {
+  channelsFor,
   type Frame,
   streamFixture,
 } from "../../components/scripts/landingDescentModel";
@@ -47,7 +48,7 @@ function refined(frames: readonly Frame[]): Frame[] {
 }
 
 /**
- * The frames a story plays and, for a crash, whether it ends with the stream stopping. A safe landing is played through to the touchdown. A crash is played to the last frame before the ground and then ends: the vessel is gone, so its readings stop arriving and the last scene is held, drawn as last seen.
+ * The frames a story plays and, for a crash, whether it ends with the stream stopping. A safe landing is played through to the touchdown. A crash is played to the last frame before the ground: the vessel is destroyed between two readings, so its flight figures stop short of the impact and the crash report (see {@link crashEmits}) is what places it on the ground.
  */
 export function playbackOf(
   frames: readonly Frame[],
@@ -56,6 +57,28 @@ export function playbackOf(
   return crash
     ? { played: refined(frames.slice(0, -1)), streamEnds: true }
     : { played: refined(frames), streamEnds: false };
+}
+
+/** The crash report a destroyed vessel leaves, from the frame that met the ground: where it came to rest, and the flag that says a crash is on record. */
+export function crashEmits(impact: Frame): Emit[] {
+  const ch = channelsFor(impact, ONE_WAY_SECONDS);
+  const flight = ch["vessel.flight"] as Record<string, unknown>;
+  return [
+    { channel: "crash.hasRecent", value: { recent: true } },
+    {
+      channel: "crash.lastCrash",
+      value: {
+        vesselId: "synthetic-lander",
+        vesselName: "Synthetic Lander",
+        eventKind: "Crash",
+        body: "Mun",
+        latitude: flight.latitude,
+        longitude: flight.longitude,
+        altitude: flight.altitudeAsl,
+        situation: "FLYING",
+      },
+    },
+  ];
 }
 
 /** Where a story's descent takes place: the Mun, Kerbin's air over land or over the sea, or Eve's over its sea. */

@@ -198,6 +198,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // the two speed components set its frame and its vector. Every number a
   // READER sees still leaves through `writeQuantity`.
   "packages/components/src/LandingStatus/crossSectionPlot.ts": 10,
+  // 3: the crash site's great-circle distance from the last reading, which takes plain degrees.
+  "packages/components/src/LandingStatus/crashImpact.ts": 3,
   // 20: the reticle, and the highest of the three because it derives the most.
   // Four coordinates for the great-circle drift, the patch and its footprint
   // for the relief, and the dispersion zone, which is not on the wire at all:

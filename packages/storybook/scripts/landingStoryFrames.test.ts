@@ -57,7 +57,10 @@ const STORIES: readonly [string, readonly Frame[], boolean, StoryWorld][] = [
 
 /** Each Topic a frame sends, as a contribution's `compute` is handed it: the payload in its units, current. */
 function topicsOf(frame: Frame, world: StoryWorld): Record<string, unknown> {
-  const topics: Record<string, unknown> = {};
+  // Nothing is on record as a crash while a descent is in flight.
+  const topics: Record<string, unknown> = {
+    "crash.lastCrash": { state: "absent", atUt: value("ut", 100) },
+  };
   for (const e of emitsOf(frame, world)) {
     topics[e.channel] = {
       state: "observed",

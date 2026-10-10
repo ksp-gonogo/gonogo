@@ -11,6 +11,7 @@ import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { parentBodyFromTopics } from "../shared/streamBody";
 import { burnEffect } from "./burnEffect";
+import { alongTrack, crashImpactOf } from "./crashImpact";
 import { greatCircle } from "./geo";
 import { elevationAt, groundPoints } from "./groundStrip";
 import { surfaceGravityOf, surfaceMeters } from "./seaSurface";
@@ -120,6 +121,8 @@ export interface CrossSectionInputs {
   hasAtmosphere: boolean;
   /** Whether the parent body has an ocean, when the stream says: the ground is then no lower than the sea's surface, which is what the craft lands on. */
   hasOcean?: boolean;
+  /** Where the vessel is known to have crashed, along the track from beneath its last reading, with the ground's height there when the crash report carries one: the vessel is then drawn at the ground, and the stretch from its last reading to it is drawn as unknown. */
+  impact?: { alongMeters: number; elevationAsl: number | null } | null;
   /** What the burn lit now does to the craft's speed, m/s squared, up and along the track; null or omitted when the engines are off or any input to it is unknown. */
   burnAccel?: { up: number; along: number } | null;
   /** How the vessel's position is known, for the shared vessel mark; current when omitted. */
@@ -182,6 +185,20 @@ export function buildCrossSectionPlot(
   const siteElevation = elevationAt(strip, drift);
   const vesselX = -drift;
   const vesselY = elevationAt(strip, 0) + aglMeters;
+  const impact = inputs.impact ?? null;
+  const impactX = impact == null ? null : vesselX + impact.alongMeters;
+  const impactY =
+    impact == null
+      ? null
+      : (() => {
+          const d = impact.alongMeters;
+          const covered = d >= strip[0].x && d <= strip[strip.length - 1].x;
+          const ground =
+            covered || impact.elevationAsl == null
+              ? elevationAt(strip, d)
+              : impact.elevationAsl;
+          return inputs.hasOcean === true ? Math.max(ground, 0) : ground;
+        })();
 
   /*
    * The window is the craft and the site with room around them, and the ground beneath them wherever the strip covers it: the part of the cone that matters is the part the craft is about to fly over.
@@ -191,8 +208,8 @@ export function buildCrossSectionPlot(
    */
   const first = points[0];
   const last = points[points.length - 1];
-  const reachLeft = Math.min(vesselX, 0);
-  const reachRight = Math.max(vesselX, 0);
+  const reachLeft = Math.min(vesselX, 0, impactX ?? 0);
+  const reachRight = Math.max(vesselX, 0, impactX ?? 0);
   const centre = (reachLeft + reachRight) / 2;
   const lift = groundLift(aglMeters);
   const headroom = 1 / (CRAFT_CEILING - lift);
@@ -370,19 +387,63 @@ export function buildCrossSectionPlot(
         { decimals: 0 },
       )} elevation`,
     },
-    {
-      kind: "marker",
-      id: "vessel",
-      at: { x: vesselX, y: vesselY },
-      shape: "vessel",
-      markState: inputs.vesselMarkState ?? "current",
-      // Within a few pixels of the ground the mark is raised by its own radius, so a craft at the surface rests on it rather than half in it.
-      ...(restTaper > 0 ? { offsetPx: -VESSEL_REST_PX * restTaper } : {}),
-      tone: "go",
-      description: `vessel ${writeQuantity(value("m", aglMeters), {
-        decimals: 0,
-      })} above terrain`,
-    },
+    ...(impactX != null && impactY != null
+      ? [
+          {
+            kind: "series" as const,
+            id: "unknown-path",
+            points: [
+              { x: vesselX, y: vesselY },
+              { x: impactX, y: impactY },
+            ],
+            tone: "neutral" as const,
+            dashed: true,
+            description:
+              "the path from the last reading to the crash site is unknown",
+          },
+          {
+            kind: "marker" as const,
+            id: "last-seen",
+            at: { x: vesselX, y: vesselY },
+            shape: "vessel" as const,
+            markState: "lost" as const,
+            description: `last reading, ${writeQuantity(value("m", aglMeters), {
+              decimals: 0,
+            })} above terrain`,
+          },
+          {
+            kind: "marker" as const,
+            id: "impact",
+            at: { x: impactX, y: impactY },
+            shape: "cross" as const,
+            tone: "nogo" as const,
+            scale: 1.8,
+            description: "crash site",
+          },
+          {
+            kind: "marker" as const,
+            id: "vessel",
+            at: { x: impactX, y: impactY },
+            shape: "vessel" as const,
+            offsetPx: -VESSEL_REST_PX,
+            description: "vessel crashed here, on the ground",
+          },
+        ]
+      : [
+          {
+            kind: "marker" as const,
+            id: "vessel",
+            at: { x: vesselX, y: vesselY },
+            shape: "vessel" as const,
+            markState: inputs.vesselMarkState ?? "current",
+            // Within a few pixels of the ground the mark is raised by its own radius, so a craft at the surface rests on it rather than half in it.
+            ...(restTaper > 0 ? { offsetPx: -VESSEL_REST_PX * restTaper } : {}),
+            tone: "go" as const,
+            description: `vessel ${writeQuantity(value("m", aglMeters), {
+              decimals: 0,
+            })} above terrain`,
+          },
+        ]),
   ];
 
   /*
@@ -443,7 +504,7 @@ export function buildCrossSectionPlot(
    * Its length is a share of the frame (the vessel icon is a fixed size, so a share of the frame stands for it), saturating with the burn so a hard one is no longer than twice the icon and a gentle one is still a stub.
    * Its direction is mapped to the screen the way the velocity line is, so a purely retrograde burn's flame runs along that line.
    */
-  const burn = inputs.burnAccel;
+  const burn = impact == null ? inputs.burnAccel : null;
   if (burn != null && (burn.up !== 0 || burn.along !== 0)) {
     const effect = Math.hypot(burn.up, burn.along);
     const gained = effect * VELOCITY_LOOKAHEAD_S;
@@ -505,7 +566,7 @@ export function buildCrossSectionPlot(
       seen > 0
         ? (VELOCITY_MAX_SHARE * Math.tanh(seen / VELOCITY_MAX_SHARE)) / seen
         : 1;
-    const end = rayFromVessel(dx * k, dy * k);
+    const end = impact == null ? rayFromVessel(dx * k, dy * k) : null;
     if (end) {
       layers.push({
         kind: "series",
@@ -647,6 +708,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.flight",
     "vessel.surface",
     "vessel.landing",
+    "crash.lastCrash",
     FLIGHT_MARK_STATE,
     BURN_STATE,
   ],
@@ -669,11 +731,18 @@ CORE_UPLINK_CLIENT.registerContribution({
             radius: body.radius,
           }
         : null;
+    const from =
+      flight?.latitude != null && flight?.longitude != null
+        ? {
+            latitude: flight.latitude.magnitude,
+            longitude: flight.longitude.magnitude,
+          }
+        : null;
     const drift =
-      flight?.latitude != null && flight?.longitude != null && site != null
+      from != null && site != null
         ? greatCircle(
-            flight.latitude.magnitude,
-            flight.longitude.magnitude,
+            from.latitude,
+            from.longitude,
             site.lat,
             site.lon,
             site.radius,
@@ -686,7 +755,22 @@ CORE_UPLINK_CLIENT.registerContribution({
         : DUE_EAST_DEG;
     const gravity = body != null ? surfaceGravityOf(body) : null;
 
+    const impact = crashImpactOf({
+      crash: lastValue(topics["crash.lastCrash"]) ?? null,
+      vesselId: lastValue(topics["vessel.identity"])?.vesselId,
+      flightIsCurrent: topics["vessel.flight"].state === "observed",
+      from,
+      bodyRadius: body?.radius,
+    });
+
     const plot = buildCrossSectionPlot({
+      impact:
+        impact == null
+          ? null
+          : {
+              alongMeters: alongTrack(impact, trackBearingDeg),
+              elevationAsl: impact.altitudeAsl,
+            },
       groundDistances:
         landing?.groundTrackDistances?.map((d) => d.magnitude) ?? null,
       groundElevations:

@@ -32,6 +32,15 @@ export function VerdictBanner({ model }: Model) {
   );
 }
 
+/** The verdict's place while there is no site to judge, the same badge in the same row, so the readouts below do not move when one arrives. */
+export function VerdictBannerIdle() {
+  return (
+    <div>
+      <Badge tone="neutral">NO SITE</Badge>
+    </div>
+  );
+}
+
 function sourceLabel(source: string | null | undefined): string | null {
   if (source === "predicted") return "predicted";
   if (source === "sub-vessel") return "sub-vessel (est.)";
@@ -61,6 +70,15 @@ export function TerrainReadout({ model }: Model) {
           )} downrange`
         : ""}
       {source ? ` · ${source}` : ""}
+    </Text>
+  );
+}
+
+/** The terrain line's place while there is no site to describe: one empty line of the same size. */
+export function TerrainReadoutIdle() {
+  return (
+    <Text level="muted" size="xs">
+      {NULL_DISPLAY}
     </Text>
   );
 }

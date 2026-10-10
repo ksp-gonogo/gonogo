@@ -195,7 +195,10 @@ describe("LandingStatus atmospheric site gate", () => {
 
   it("describes no site above the plots' gate, however settled the prediction", async () => {
     await settleAt(15_000);
-    expect(screen.queryByText("Touchdown site")).toBeNull();
+    // The slot is kept, as an empty frame under its heading, rather than a plot drawn.
+    expect(screen.getByText("Touchdown site")).toBeInTheDocument();
     expect(visibleText()).not.toContain("slope");
+    // Its rows are kept too, empty, so a site arriving moves nothing under them.
+    expect(screen.getByText("NO SITE")).toBeInTheDocument();
   });
 });
