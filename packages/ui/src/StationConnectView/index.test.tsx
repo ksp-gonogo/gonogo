@@ -169,10 +169,10 @@ describe("connect progress", () => {
       />,
     );
     const stages = screen.getByRole("list", { name: /connection stages/i });
-    expect(stages.textContent).toContain("Brokerok, 0.8 s");
-    expect(stages.textContent).toContain("Host channelwaiting, 3.2 s");
+    expect(stages.textContent).toContain("Brokerok, 0s");
+    expect(stages.textContent).toContain("Host channelwaiting, 3s");
     expect(stages.textContent).toContain("Host datanot started");
-    expect(stages.textContent).toContain("Elapsed4.0 s, attempt 1");
+    expect(stages.textContent).toContain("Elapsed4s, attempt 1");
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -193,7 +193,7 @@ describe("connect progress", () => {
       />,
     );
     expect(screen.getByRole("alert").textContent).toMatch(
-      /No connection after 32 s\. Stalled at broker, attempt 7/,
+      /No connection after 32s\. Stalled at broker, attempt 7/,
     );
   });
 
@@ -209,7 +209,7 @@ describe("connect progress", () => {
     act(() => {
       vi.advanceTimersByTime(3_000);
     });
-    expect(screen.getByRole("list").textContent).toContain("Elapsed3.0 s");
+    expect(screen.getByRole("list").textContent).toContain("Elapsed3s");
   });
 });
 

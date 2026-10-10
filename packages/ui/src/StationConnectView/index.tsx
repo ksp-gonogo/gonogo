@@ -3,13 +3,14 @@
  * The name editor and download-logs action arrive as slots and all state as props, so it carries no `@ksp-gonogo/app` dependency.
  */
 
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import { StatusIndicator } from "../StatusIndicator";
 import {
   CONNECT_STALL_MS,
   type ConnectProgress,
   describeConnStatus,
-  formatSeconds,
   type StationConnStatus,
   stageStates,
   statusTone,
@@ -136,7 +137,7 @@ export function StationConnectView({
           )}
         {stalled && progress && (
           <ErrorMsg role="alert">
-            No connection after {formatSeconds(now - progress.startedAt)}.
+            No connection after <Seconds ms={now - progress.startedAt} />.
             Stalled at {stalledAt(progress)}, attempt {progress.attempt}.
             Retrying in the background.
           </ErrorMsg>
@@ -202,11 +203,19 @@ function ProgressList({
           <li key={stage} data-state={state}>
             <span>{label}</span>
             <span>
-              {state === "done" && began !== undefined && ended !== undefined
-                ? `ok, ${formatSeconds(ended - began)}`
-                : state === "active" && began !== undefined
-                  ? `waiting, ${formatSeconds(now - began)}`
-                  : "not started"}
+              {state === "done" &&
+              began !== undefined &&
+              ended !== undefined ? (
+                <>
+                  ok, <Seconds ms={ended - began} />
+                </>
+              ) : state === "active" && began !== undefined ? (
+                <>
+                  waiting, <Seconds ms={now - began} />
+                </>
+              ) : (
+                "not started"
+              )}
             </span>
           </li>
         );
@@ -214,9 +223,13 @@ function ProgressList({
       <li>
         <span>Elapsed</span>
         <span>
-          {formatSeconds(now - progress.startedAt)}, attempt {progress.attempt}
+          <Seconds ms={now - progress.startedAt} />, attempt {progress.attempt}
         </span>
       </li>
     </StageList>
   );
+}
+
+function Seconds({ ms }: Readonly<{ ms: number }>) {
+  return <Unit value={value("irl:s", Math.max(0, ms) / 1000)} />;
 }

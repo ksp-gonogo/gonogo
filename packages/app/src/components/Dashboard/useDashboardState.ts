@@ -186,8 +186,7 @@ export function useDashboardState(
   const addItem = useCallback(
     (item: DashboardItem, layout: Partial<Layout>) => {
       setItemsInner((prev) => [...prev, item]);
-      // Without a caller-supplied x/y the widget takes the first free slot
-      // wide enough for it at each breakpoint's own column count.
+      // Without a caller-supplied x/y the widget takes the first free slot wide enough for it at each breakpoint's own column count.
       const w = layout.w ?? 3;
       const h = layout.h ?? 3;
       const placeAt = (bp: string): Layout => {

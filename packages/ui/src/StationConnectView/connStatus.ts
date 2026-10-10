@@ -94,9 +94,3 @@ export function stageStates(
     state: i < reached - 1 ? "done" : i === reached - 1 ? "active" : "pending",
   }));
 }
-
-/** Seconds with one decimal under ten, whole above. */
-export function formatSeconds(ms: number): string {
-  const s = Math.max(0, ms) / 1000;
-  return `${s < 10 ? s.toFixed(1) : Math.round(s)} s`;
-}
