@@ -94,6 +94,7 @@ export const WIZARD_COPY = {
   "uplinks.row.refused": "Refused: contract mismatch",
   "uplinks.row.unavailable": "Mod reports unavailable",
   "uplinks.row.noClient": "No client loaded",
+  "uplinks.row.details": "Details",
 
   "health.heading": "Health check",
   "health.advance": "Next",

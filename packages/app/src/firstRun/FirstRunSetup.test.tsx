@@ -451,6 +451,26 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await screen.findByText(say("uplinks.check.none"));
   });
 
+  it("gives a player one plain line for an author-facing refusal and keeps the detail behind Details", async () => {
+    const reason =
+      "Build it with `uplink-tools release`, or bake it with `--dev-path`";
+    setUplinkOutcome({
+      id: "widget-unpublished",
+      name: "Unpublished Widget",
+      status: "quarantined",
+      reason,
+      summary: "Client not published for this version",
+    });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [rosterEntry({ id: "widget-unpublished" })]);
+
+    await screen.findByText("Client not published for this version");
+    expect(screen.queryByText(reason)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /details/i }));
+    expect(screen.getByText(reason)).toBeInTheDocument();
+  });
+
   it("reads one row per Uplink, saying whether its client loaded", async () => {
     setUplinkOutcome({
       id: "widget-loaded",

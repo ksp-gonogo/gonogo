@@ -3,11 +3,15 @@
  * The name editor and download-logs action arrive as slots and all state as props, so it carries no `@ksp-gonogo/app` dependency.
  */
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { StatusIndicator } from "../StatusIndicator";
 import {
+  CONNECT_STALL_MS,
+  type ConnectProgress,
   describeConnStatus,
+  formatSeconds,
   type StationConnStatus,
+  stageStates,
   statusTone,
 } from "./connStatus";
 import {
@@ -21,9 +25,13 @@ import {
   HostInput,
   NameRow,
   ReconnectMsg,
+  StageList,
 } from "./StationConnectView.styles";
 
 export {
+  CONNECT_STALL_MS,
+  type ConnectProgress,
+  type ConnectStage,
   describeConnStatus,
   type StationConnStatus,
   statusTone,
@@ -46,6 +54,8 @@ export interface StationConnectViewProps {
   onConnect: (hostId: string) => void;
   /** Fired when the user taps "Download logs". */
   onDownloadLogs: () => void;
+  /** Facts about the connect in flight; absent until a connect begins. */
+  progress?: ConnectProgress;
   /** Slot for the app-scoped station-name editor (needs React context). */
   nameEditor?: ReactNode;
 }
@@ -59,8 +69,17 @@ export function StationConnectView({
   onHostInputChange,
   onConnect,
   onDownloadLogs,
+  progress,
   nameEditor,
 }: StationConnectViewProps) {
+  const waiting = connStatus === "connecting" || connStatus === "reconnecting";
+  const now = useNow(waiting && progress !== undefined);
+  const stalled =
+    waiting &&
+    progress !== undefined &&
+    !brokerUnreachable &&
+    !hostNotFound &&
+    now - progress.startedAt >= CONNECT_STALL_MS;
   return (
     <ConnectLayout as="main" aria-label="Connect to mission control">
       <ConnectBox>
@@ -79,9 +98,11 @@ export function StationConnectView({
           <ConnectButton
             type="button"
             onClick={() => onConnect(hostInput)}
-            disabled={connStatus === "connecting"}
+            disabled={connStatus === "connecting" && !stalled}
           >
-            {connStatus === "connecting" ? "Connecting..." : "Connect"}
+            {connStatus === "connecting" && !stalled
+              ? "Connecting..."
+              : "Connect"}
           </ConnectButton>
         </ConnectRow>
         {nameEditor && <NameRow>{nameEditor}</NameRow>}
@@ -113,6 +134,13 @@ export function StationConnectView({
               Connection lost. Check the host ID and try again.
             </ErrorMsg>
           )}
+        {stalled && progress && (
+          <ErrorMsg role="alert">
+            No connection after {formatSeconds(now - progress.startedAt)}.
+            Stalled at {stalledAt(progress)}, attempt {progress.attempt}.
+            Retrying in the background.
+          </ErrorMsg>
+        )}
         <StatusIndicator
           tone={statusTone(
             connStatus,
@@ -129,6 +157,9 @@ export function StationConnectView({
             brokerUnreachable,
           )}
         </StatusIndicator>
+        {waiting && progress && progress.attempt > 0 && (
+          <ProgressList progress={progress} now={now} />
+        )}
         <DiagnosticsRow>
           <DiagnosticsButton type="button" onClick={onDownloadLogs}>
             Download logs
@@ -136,5 +167,56 @@ export function StationConnectView({
         </DiagnosticsRow>
       </ConnectBox>
     </ConnectLayout>
+  );
+}
+
+function stalledAt(progress: ConnectProgress): string {
+  const active = stageStates(progress).find((r) => r.state === "active");
+  return (active?.label ?? "Broker").toLowerCase();
+}
+
+/** Epoch ms, refreshed each second while `running`. */
+function useNow(running: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [running]);
+  return now;
+}
+
+function ProgressList({
+  progress,
+  now,
+}: Readonly<{ progress: ConnectProgress; now: number }>) {
+  const rows = stageStates(progress);
+  return (
+    <StageList aria-label="Connection stages">
+      {rows.map(({ stage, label, state }, i) => {
+        const began = progress.entered[stage];
+        const next = rows[i + 1]?.stage;
+        const ended = next ? progress.entered[next] : undefined;
+        return (
+          <li key={stage} data-state={state}>
+            <span>{label}</span>
+            <span>
+              {state === "done" && began !== undefined && ended !== undefined
+                ? `ok, ${formatSeconds(ended - began)}`
+                : state === "active" && began !== undefined
+                  ? `waiting, ${formatSeconds(now - began)}`
+                  : "not started"}
+            </span>
+          </li>
+        );
+      })}
+      <li>
+        <span>Elapsed</span>
+        <span>
+          {formatSeconds(now - progress.startedAt)}, attempt {progress.attempt}
+        </span>
+      </li>
+    </StageList>
   );
 }

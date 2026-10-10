@@ -11,6 +11,7 @@ import {
 import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
 import {
   BannerStack,
+  type ConnectProgress,
   FabClusterProvider,
   StationConnectView,
 } from "@ksp-gonogo/ui";
@@ -88,6 +89,7 @@ export function StationScreen() {
   const [connStatus, setConnStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
+  const [progress, setProgress] = useState<ConnectProgress>();
   const [hostInput, setHostInput] = useState(
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
@@ -237,6 +239,7 @@ export function StationScreen() {
         }
       }),
     );
+    unsubsRef.current.push(client.onConnectProgress(setProgress));
     unsubsRef.current.push(
       client.onHostUnavailable(() => {
         setHostNotFound(true);
@@ -306,6 +309,7 @@ export function StationScreen() {
                 connStatus={connStatus}
                 hostNotFound={hostNotFound}
                 brokerUnreachable={brokerUnreachable}
+                progress={progress}
                 everConnected={everConnected}
                 onHostInputChange={setHostInput}
                 onConnect={attemptConnect}
@@ -392,9 +396,7 @@ export function StationScreen() {
                                 </RootProviders>
                               </StationUplinkLoader>
                               <FabClusterProvider>
-                                <ComponentOverlay
-                                  currentLayouts={dashboard.currentLayouts}
-                                />
+                                <ComponentOverlay />
                                 <FlightsFab />
                                 <SerialPortRecoveryWatcher />
                                 <StationConnectionFab

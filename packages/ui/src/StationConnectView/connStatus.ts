@@ -56,3 +56,47 @@ export function statusTone(
       return "nogo";
   }
 }
+
+/** The steps of one connect attempt, in the order they complete. */
+export type ConnectStage = "broker" | "host" | "data";
+
+/** Facts about the connect in flight; `entered` holds the epoch ms each stage began during the current attempt. */
+export interface ConnectProgress {
+  startedAt: number;
+  attempt: number;
+  entered: Partial<Record<ConnectStage, number>>;
+}
+
+/** Time without a connection after which the connect screen reports a stall rather than waiting. */
+export const CONNECT_STALL_MS = 30_000;
+
+export const CONNECT_STAGES: ReadonlyArray<{
+  stage: ConnectStage;
+  label: string;
+}> = [
+  { stage: "broker", label: "Broker" },
+  { stage: "host", label: "Host channel" },
+  { stage: "data", label: "Host data" },
+];
+
+export type StageState = "done" | "active" | "pending";
+
+/** The state of every stage given which one the attempt has reached. */
+export function stageStates(
+  progress: ConnectProgress,
+): Array<{ stage: ConnectStage; label: string; state: StageState }> {
+  const reached = CONNECT_STAGES.filter(
+    ({ stage }) => progress.entered[stage] !== undefined,
+  ).length;
+  return CONNECT_STAGES.map(({ stage, label }, i) => ({
+    stage,
+    label,
+    state: i < reached - 1 ? "done" : i === reached - 1 ? "active" : "pending",
+  }));
+}
+
+/** Seconds with one decimal under ten, whole above. */
+export function formatSeconds(ms: number): string {
+  const s = Math.max(0, ms) / 1000;
+  return `${s < 10 ? s.toFixed(1) : Math.round(s)} s`;
+}

@@ -1,5 +1,11 @@
 import { CommandBlock } from "@ksp-gonogo/ui";
-import { Badge, Stack, StatusIndicator, Text } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  Disclosure,
+  Stack,
+  StatusIndicator,
+  Text,
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { ConnectionRow, Name } from "../../settings/SitrepConnection";
 import { StatusList, UplinkHealthReport } from "../../settings/UplinkStatus";
@@ -141,6 +147,7 @@ function UplinkReadinessRow({
    */
   const identity = entry.outcome?.identity;
   const reason = reasonFor(entry);
+  const summary = entry.outcome?.summary;
 
   return (
     <RowItem>
@@ -163,7 +170,19 @@ function UplinkReadinessRow({
       {entry.state === "contract-mismatch" && (
         <ContractMismatchDetail entry={entry} />
       )}
-      {reason && (
+      {reason && summary && (
+        <>
+          <Text level="muted" size="sm">
+            {summary}
+          </Text>
+          <Disclosure label={say("uplinks.row.details")} variant="inline">
+            <Text level="muted" size="sm">
+              {reason}
+            </Text>
+          </Disclosure>
+        </>
+      )}
+      {reason && !summary && (
         <Text level="muted" size="sm">
           {reason}
         </Text>

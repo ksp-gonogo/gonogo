@@ -44,7 +44,7 @@ function renderOverlay() {
     <ModalProvider>
       <SerialDeviceProvider service={serialService}>
         <OverlayProvider addItem={() => {}} updateItemConfig={() => {}}>
-          <ComponentOverlay currentLayouts={{ lg: [] }} />
+          <ComponentOverlay />
         </OverlayProvider>
       </SerialDeviceProvider>
     </ModalProvider>,

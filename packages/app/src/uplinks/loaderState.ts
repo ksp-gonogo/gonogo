@@ -35,6 +35,12 @@ export interface UplinkLoadOutcome {
    */
   reason?: string;
   /**
+   * A one-line fact a player can read in place of `reason`, which stays the
+   * detail an Uplink author acts on. Set only for quarantines whose reason is
+   * written for an author.
+   */
+  summary?: string;
+  /**
    * Set only when the quarantine was a HASH DISAGREEMENT, and the whole reason
    * this field exists rather than a reader matching `reason` for the word
    * "hash": a compat refusal and a tampered bundle are not the same kind of

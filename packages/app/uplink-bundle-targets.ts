@@ -46,7 +46,7 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
      */
     id: "breakingGround",
     name: "Breaking Ground",
-    author: "jonpepler",
+    author: "ksp-gonogo",
     repo: "ksp-gonogo/GonogoBreakingGroundUplink",
     clientDir: resolve(modDir, "GonogoBreakingGroundUplink/client"),
   },
@@ -57,7 +57,7 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
      */
     id: "makingHistory",
     name: "Making History",
-    author: "jonpepler",
+    author: "ksp-gonogo",
     repo: "ksp-gonogo/GonogoMakingHistoryUplink",
     clientDir: resolve(modDir, "GonogoMakingHistoryUplink/client"),
   },

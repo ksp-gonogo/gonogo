@@ -1,6 +1,7 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
+import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
@@ -92,6 +93,7 @@ type ClientEventMap = {
   data: [sourceId: string, key: string, value: unknown];
   sourceStatus: [sourceId: string, status: string];
   connStatus: [status: ConnStatus];
+  connectProgress: [progress: ConnectProgress];
   schema: [sources: PeerSchemaSource[]];
   relayIceServers: [servers: RTCIceServer[]];
   hostHello: [info: { version: string; buildTime: string }];
@@ -158,6 +160,11 @@ export class PeerClientService {
   // `PeerTransport`, built once the station is already `connected`) can
   // read a synchronous snapshot instead of waiting for the next event.
   private connStatus: ConnStatus = "idle";
+  private connectProgress: ConnectProgress = {
+    startedAt: 0,
+    attempt: 0,
+    entered: {},
+  };
   /** Last broker-reachability verdict; `null` until the first attempt resolves. */
   private brokerReachable: boolean | null = null;
   // Relay TURN creds from the latest `relay-ice-servers` broadcast. Applied to
@@ -242,6 +249,7 @@ export class PeerClientService {
     this.hostPeerId = deriveHostPeerId(code);
     logger.setIdentity({ hostPeerId: this.hostPeerId });
     this.retryPolicy.beginConnect();
+    this.connectProgress = { startedAt: Date.now(), attempt: 0, entered: {} };
     this.openPeer();
   }
 
@@ -266,6 +274,12 @@ export class PeerClientService {
           : " (resolving host...)"),
     );
     this.emitConnStatus("connecting");
+    this.connectProgress = {
+      ...this.connectProgress,
+      attempt: this.connectProgress.attempt + 1,
+      entered: { broker: Date.now() },
+    };
+    this.events.emit("connectProgress", this.connectProgress);
     // Stations construct their Peer with no ICE config. The host's
     // relay candidates flow in via the broker as part of the offer's
     // ICE-candidate exchange: that's enough for one-side TURN to
@@ -281,6 +295,7 @@ export class PeerClientService {
     this.peer.on("open", () => {
       // Reaching `open` means the broker answered and holds our id, so any earlier "can't reach the broker" verdict is stale.
       this.setBrokerReachable(true);
+      this.enterStage("host");
       this.connectToHost();
     });
     this.peer.on("error", (err) => {
@@ -349,6 +364,7 @@ export class PeerClientService {
     this.conn.on("open", () => {
       logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
       this.retryPolicy.onConnected();
+      this.enterStage("data");
       // Opt into selective broadcast immediately. The host's default
       // is broadcast-all so v1 stations still work; v2 stations switch
       // here. Following peer-data-subscribe messages from
@@ -385,6 +401,14 @@ export class PeerClientService {
     // Drop the cached hello so a reconnect to a freshly-deployed host on a different version doesn't briefly report the old version.
     this.hostVersion = null;
     this.hostSessionToken = null;
+  }
+
+  private enterStage(stage: keyof ConnectProgress["entered"]) {
+    this.connectProgress = {
+      ...this.connectProgress,
+      entered: { ...this.connectProgress.entered, [stage]: Date.now() },
+    };
+    this.events.emit("connectProgress", this.connectProgress);
   }
 
   private emitConnStatus(status: ConnStatus) {
@@ -915,6 +939,10 @@ export class PeerClientService {
 
   onConnectionStatus(cb: (status: ConnStatus) => void) {
     return this.events.on("connStatus", cb);
+  }
+
+  onConnectProgress(cb: (progress: ConnectProgress) => void) {
+    return this.events.on("connectProgress", cb);
   }
 
   onSchema(cb: (sources: PeerSchemaSource[]) => void) {

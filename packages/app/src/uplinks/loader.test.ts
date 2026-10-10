@@ -1411,6 +1411,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       expect(outcomes[0].status).toBe("quarantined");
       expect(outcomes[0].reason).toMatch(/refusing hash-blind load/);
       expect(outcomes[0].reason).toContain("--dev-path");
+      expect(outcomes[0].summary).toBe("Client not published for this version");
       expect(fetchManifest).not.toHaveBeenCalled();
       expect(fetchBytes).not.toHaveBeenCalled();
     });

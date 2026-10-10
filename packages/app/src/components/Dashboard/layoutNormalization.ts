@@ -12,6 +12,32 @@ export const BREAKPOINT_KEYS = new Set(Object.keys(BREAKPOINTS));
 export const ROW_HEIGHT = 25;
 
 /**
+ * The top-left-most cell where a `w` by `h` tile fits among `placed` without
+ * overlapping any of them, scanning rows top to bottom and columns left to
+ * right. A tile wider than the grid is clamped to its width, and the scan
+ * always terminates at the row below the lowest tile.
+ */
+export function firstFreeSlot(
+  placed: ReadonlyArray<{ x: number; y: number; w: number; h: number }>,
+  size: { w: number; h: number },
+  cols: number,
+): { x: number; y: number; w: number; h: number } {
+  const w = Math.min(size.w, cols);
+  const { h } = size;
+  const bottom = placed.reduce((max, p) => Math.max(max, p.y + p.h), 0);
+  const overlaps = (x: number, y: number) =>
+    placed.some(
+      (p) => x < p.x + p.w && x + w > p.x && y < p.y + p.h && y + h > p.y,
+    );
+  for (let y = 0; y < bottom; y++) {
+    for (let x = 0; x + w <= cols; x++) {
+      if (!overlaps(x, y)) return { x, y, w, h };
+    }
+  }
+  return { x: 0, y: bottom, w, h };
+}
+
+/**
  * Widget ids that have been renamed. Persisted layouts (localStorage, mission
  * profiles, station configs) store the OLD id; we map them forward on load so
  * existing placements survive a rename instead of silently disappearing.

@@ -86,7 +86,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
             addItem={addItem}
             updateItemConfig={updateItemConfig}
           >
-            <ComponentOverlay currentLayouts={{ lg: [] }} />
+            <ComponentOverlay />
           </OverlayProvider>
         </SerialDeviceProvider>
       </ModalProvider>,
@@ -137,7 +137,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
             addItem={addItem}
             updateItemConfig={updateItemConfig}
           >
-            <ComponentOverlay currentLayouts={{ lg: [] }} />
+            <ComponentOverlay />
           </OverlayProvider>
         </SerialDeviceProvider>
       </ModalProvider>,
@@ -187,7 +187,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
           <OverlayProvider addItem={addItem} updateItemConfig={vi.fn()}>
-            <ComponentOverlay currentLayouts={{ lg: [] }} />
+            <ComponentOverlay />
           </OverlayProvider>
         </SerialDeviceProvider>
       </ModalProvider>,

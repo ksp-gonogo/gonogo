@@ -1,8 +1,13 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { describeConnStatus, StationConnectView, statusTone } from "./index";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  CONNECT_STALL_MS,
+  describeConnStatus,
+  StationConnectView,
+  statusTone,
+} from "./index";
 
 const baseProps = {
   hostInput: "",
@@ -140,6 +145,71 @@ describe("StationConnectView", () => {
       />,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("connect progress", () => {
+  const T0 = 1_000_000;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("lists the stage reached with its elapsed time and the attempt", () => {
+    vi.useFakeTimers({ now: T0 + 4_000, toFake: ["Date", "setInterval"] });
+    render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connecting"
+        progress={{
+          startedAt: T0,
+          attempt: 1,
+          entered: { broker: T0, host: T0 + 800 },
+        }}
+      />,
+    );
+    const stages = screen.getByRole("list", { name: /connection stages/i });
+    expect(stages.textContent).toContain("Brokerok, 0.8 s");
+    expect(stages.textContent).toContain("Host channelwaiting, 3.2 s");
+    expect(stages.textContent).toContain("Host datanot started");
+    expect(stages.textContent).toContain("Elapsed4.0 s, attempt 1");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("reports a stall naming the stage once the stall window passes", () => {
+    vi.useFakeTimers({
+      now: T0 + CONNECT_STALL_MS + 2_000,
+      toFake: ["Date", "setInterval"],
+    });
+    render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="reconnecting"
+        progress={{
+          startedAt: T0,
+          attempt: 7,
+          entered: { broker: T0 + 31_000 },
+        }}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /No connection after 32 s\. Stalled at broker, attempt 7/,
+    );
+  });
+
+  it("advances the elapsed time each second", () => {
+    vi.useFakeTimers({ now: T0, toFake: ["Date", "setInterval"] });
+    render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connecting"
+        progress={{ startedAt: T0, attempt: 1, entered: { broker: T0 } }}
+      />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+    expect(screen.getByRole("list").textContent).toContain("Elapsed3.0 s");
   });
 });
 

@@ -169,3 +169,27 @@ export const NameRow = styled.div`
   padding-top: 12px;
   border-top: 1px dashed var(--color-border-subtle);
 `;
+
+export const StageList = styled.ul`
+  list-style: none;
+  margin: var(--gap-section-compact) 0 0;
+  padding: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--gap-section-compact);
+    padding: var(--gap-rows) 0;
+  }
+
+  li[data-state="done"] span:last-child {
+    color: var(--color-go-text);
+  }
+
+  li[data-state="active"] span:last-child {
+    color: var(--color-info-text);
+  }
+`;

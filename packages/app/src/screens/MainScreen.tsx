@@ -434,7 +434,7 @@ function MainDashboard({
             clearLastAdded={dashboard.clearLastAdded}
           />
           <FabClusterProvider>
-            <ComponentOverlay currentLayouts={dashboard.currentLayouts} />
+            <ComponentOverlay />
             <FlightsFabWithMissionHistory />
             <SerialPortRecoveryWatcher />
             <StationLinkFab />

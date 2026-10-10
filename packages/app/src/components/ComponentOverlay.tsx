@@ -40,10 +40,7 @@ import type { DashboardItem } from "./Dashboard";
 
 // Context: lets the overlay call addItem without prop-drilling.
 interface OverlayContextValue {
-  addItem: (
-    item: DashboardItem,
-    layout: { x: number; y: number; w: number; h: number },
-  ) => void;
+  addItem: (item: DashboardItem, layout: { w: number; h: number }) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
 }
 
@@ -55,10 +52,7 @@ export function OverlayProvider({
   updateItemConfig,
 }: Readonly<{
   children: ReactNode;
-  addItem: (
-    item: DashboardItem,
-    layout: { x: number; y: number; w: number; h: number },
-  ) => void;
+  addItem: (item: DashboardItem, layout: { w: number; h: number }) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
 }>) {
   const value = useMemo(
@@ -76,14 +70,7 @@ function useOverlay(): OverlayContextValue {
   return ctx;
 }
 
-interface ComponentOverlayProps {
-  /** Current items so we can compute the next free y position. */
-  currentLayouts: { lg?: Array<{ y: number; h: number }> };
-}
-
-export function ComponentOverlay({
-  currentLayouts,
-}: Readonly<ComponentOverlayProps>) {
+export function ComponentOverlay() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<Set<string>>(
@@ -192,12 +179,6 @@ export function ComponentOverlay({
     setActiveIdx(0);
   }, []);
 
-  const nextY = useCallback(() => {
-    const items = currentLayouts.lg ?? [];
-    if (items.length === 0) return 0;
-    return Math.max(...items.map((l) => l.y + l.h));
-  }, [currentLayouts]);
-
   const handleSelect = useCallback(
     (def: ComponentDefinition) => {
       const item: DashboardItem = {
@@ -214,9 +195,7 @@ export function ComponentOverlay({
             h: Math.max(defaultSize.h, min.h),
           }
         : defaultSize;
-      const layout = { x: 0, y: nextY(), ...size };
-
-      addItem(item, layout);
+      addItem(item, size);
       closeOverlay();
 
       if (def.openConfigOnAdd && def.configComponent) {
@@ -243,7 +222,6 @@ export function ComponentOverlay({
     [
       addItem,
       updateItemConfig,
-      nextY,
       sizeDeltaFor,
       openModal,
       closeModal,

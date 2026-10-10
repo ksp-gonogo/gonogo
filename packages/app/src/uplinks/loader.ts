@@ -679,6 +679,7 @@ function quarantineOutcome(
   reason: string,
   identity?: UplinkIdentity,
   integrity?: UplinkIntegrityFailure,
+  summary?: string,
 ): UplinkLoadOutcome {
   const outcome: UplinkLoadOutcome = {
     id,
@@ -687,6 +688,7 @@ function quarantineOutcome(
     status: "quarantined",
     reason,
     integrity,
+    summary,
   };
   setUplinkOutcome(outcome);
   logger.warn(`[uplink-loader] ${id} quarantined: ${reason}`);
@@ -743,7 +745,15 @@ async function loadThirdParty(
   const unvouched = roster.expectedClientHash == null;
   if (unvouched) {
     const refusal = unvouchedClientRefusal(roster.clientSource, ctx);
-    if (refusal) return quarantineOutcome(id, refusal, modIdentity);
+    if (refusal) {
+      return quarantineOutcome(
+        id,
+        refusal,
+        modIdentity,
+        undefined,
+        "Client not published for this version",
+      );
+    }
     logger.warn(
       `[uplink-loader] ${id}: UNVOUCHED DEVELOPMENT CLIENT. The plugin declares a dev ` +
         `path on this computer (${bundleUrl}) and vouches for no hash, so its bytes ` +

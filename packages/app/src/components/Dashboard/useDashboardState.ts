@@ -2,7 +2,12 @@ import type { InputMappings } from "@ksp-gonogo/serial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
-import { BREAKPOINTS, migrateDashboardItems } from "./layoutNormalization";
+import {
+  BREAKPOINTS,
+  COLS,
+  firstFreeSlot,
+  migrateDashboardItems,
+} from "./layoutNormalization";
 
 // Derived from the single source of truth in layoutNormalization.ts, RGL warns at runtime if a key here isn't a valid breakpoint.
 const COLS_KEYS = Object.keys(BREAKPOINTS);
@@ -181,19 +186,26 @@ export function useDashboardState(
   const addItem = useCallback(
     (item: DashboardItem, layout: Partial<Layout>) => {
       setItemsInner((prev) => [...prev, item]);
-      // Drop the widget below everything (y=9999) and let vertical compaction
-      // (see GridDashboard) float it up into the first available slot. A
-      // caller-supplied x/y still wins via the trailing spread.
-      const entry: Layout = {
-        i: item.i,
-        x: layout.x ?? 0,
-        y: layout.y ?? 9999,
-        w: layout.w ?? 3,
-        h: layout.h ?? 3,
-        ...layout,
+      // Without a caller-supplied x/y the widget takes the first free slot
+      // wide enough for it at each breakpoint's own column count.
+      const w = layout.w ?? 3;
+      const h = layout.h ?? 3;
+      const placeAt = (bp: string): Layout => {
+        const placed = currentLayouts[bp] ?? [];
+        if (layout.x !== undefined || layout.y !== undefined) {
+          return { i: item.i, x: 0, y: 9999, w, h, ...layout };
+        }
+        return {
+          ...layout,
+          i: item.i,
+          ...firstFreeSlot(placed, { w, h }, COLS[bp as keyof typeof COLS]),
+        };
       };
       const nextLayouts = Object.fromEntries(
-        COLS_KEYS.map((bp) => [bp, [...(currentLayouts[bp] ?? []), entry]]),
+        COLS_KEYS.map((bp) => [
+          bp,
+          [...(currentLayouts[bp] ?? []), placeAt(bp)],
+        ]),
       );
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);
