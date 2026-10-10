@@ -39,6 +39,8 @@
             {
               "from": "Active Vessel",
               "to": "Constant Companion",
+              "fromIsHome": false,
+              "toIsHome": false,
               "kind": 1,
               "distanceMeters": 95000
             }

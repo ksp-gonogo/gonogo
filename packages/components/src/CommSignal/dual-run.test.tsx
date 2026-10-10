@@ -35,6 +35,12 @@ describe("CommSignal: full readout off the stream", () => {
       });
       fixture.emit("comms.delay", { oneWaySeconds: 0.0004 });
       fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.commandCentre", {
+        id: "ground:KSC",
+        displayName: "KSC",
+        kind: "GroundStation",
+        bodyIndex: 1,
+      });
     });
 
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);

@@ -1,5 +1,6 @@
-import { Countdown, NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
-import type { ControlDescription } from "./signalVerdict";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Countdown, NULL_DISPLAY, Text, Unit } from "@ksp-gonogo/ui-kit";
+import type { ControlDescription, QuantityReading } from "./signalVerdict";
 import { CAPTION_LABEL_STYLE, TONE_TEXT_COLOR } from "./tones";
 
 /** Control state / signal delay rows, shared by the landscape and portrait grids. */
@@ -14,7 +15,7 @@ export function CommSignalDetailRows({
   /** Withholds the control row, which is read off the held `vessel.comms`. */
   noSignal?: boolean;
   /** What the strength is a fraction of; the row is left out where nothing says. */
-  quantity?: string | null;
+  quantity?: QuantityReading | null;
 }) {
   return (
     <>
@@ -23,7 +24,14 @@ export function CommSignalDetailRows({
           <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
             Strength
           </Text>
-          <Text size="sm">{quantity}</Text>
+          <Text size="sm">
+            {quantity.percent !== null && (
+              <>
+                <Unit value={value("%", quantity.percent)} decimals={0} />{" "}
+              </>
+            )}
+            {quantity.words}
+          </Text>
         </>
       )}
       <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>

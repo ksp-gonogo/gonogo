@@ -18,6 +18,15 @@
         }
       },
       {
+        "channel": "comms.commandCentre",
+        "value": {
+          "id": "ground:KSC",
+          "displayName": "KSC",
+          "kind": "GroundStation",
+          "bodyIndex": 1
+        }
+      },
+      {
         "channel": "comms.delay",
         "value": {
           "oneWaySeconds": 6.2
@@ -30,6 +39,8 @@
             {
               "from": "Explorer II",
               "to": "Relay Sat 1",
+              "fromIsHome": false,
+              "toIsHome": false,
               "kind": 1,
               "distanceMeters": 1250000,
               "strength": 0.62
@@ -37,6 +48,8 @@
             {
               "from": "Relay Sat 1",
               "to": "Relay Sat 2",
+              "fromIsHome": false,
+              "toIsHome": false,
               "kind": 1,
               "distanceMeters": 2400000,
               "strength": 0.8
@@ -44,6 +57,8 @@
             {
               "from": "Relay Sat 2",
               "to": "home",
+              "fromIsHome": false,
+              "toIsHome": true,
               "kind": 0,
               "distanceMeters": 640000,
               "strength": 0.9

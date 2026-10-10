@@ -78,7 +78,7 @@ export function hopHint({
   return ` (${relayCount} relay${relayCount === 1 ? "" : "s"})`;
 }
 
-/** "Signal to <centre>" asserts a signal, so it nulls whenever the link verdict is absent or held. */
+/** "Signal to <centre>" names the far end the receiving centre resolved, and reads just "Signal" where none is named. It asserts a signal, so it nulls whenever the link verdict is absent or held. */
 export function signalCaption({
   noSignal,
   connected,
@@ -87,12 +87,12 @@ export function signalCaption({
 }: {
   noSignal: boolean;
   connected: boolean | undefined;
-  centreLabel: string;
+  centreLabel: string | undefined;
   hint: string;
 }): string {
   if (noSignal || connected === undefined) return NULL_DISPLAY;
   if (connected === false) return "No signal";
-  return `Signal to ${centreLabel}${hint}`;
+  return `${centreLabel === undefined ? "Signal" : `Signal to ${centreLabel}`}${hint}`;
 }
 
 /** Announces only the connection-state transition; the streaming readout must not be a live region. */
@@ -102,21 +102,33 @@ export function connectionAnnouncement(connected: boolean | undefined): string {
   return "";
 }
 
+/** The strength figure and the words saying what it measures, drawn as `<figure> <words>`. */
+export interface QuantityReading {
+  /** 0 to 100, or null where the quantity carries no figure of its own. */
+  percent: number | null;
+  words: string;
+}
+
 /**
- * What the strength figure is a fraction of, in the words the detail grid draws
- * beside it, or null where nothing says: two backends both report 0 to 1, and a
- * figure read as the wrong one misleads.
+ * What the strength figure measures, for the detail grid beside its label, or
+ * null where nothing says: two backends both report 0 to 1, and a figure read
+ * as the wrong one misleads.
  */
 export function describeQuantity(
   quantity: SignalQuantity | undefined,
-): string | null {
+  fraction: number | null,
+): QuantityReading | null {
   switch (quantity) {
     case SignalQuantity.RangeFraction:
-      return "Fraction of range";
+      return fraction === null
+        ? null
+        : { percent: fraction * 100, words: "of range left" };
     case SignalQuantity.DataRateHeadroom:
-      return "Fraction of data-rate headroom";
+      return fraction === null
+        ? null
+        : { percent: fraction * 100, words: "data-rate headroom" };
     case SignalQuantity.NoModel:
-      return "Not modelled";
+      return { percent: null, words: "Not modelled" };
     default:
       return null;
   }

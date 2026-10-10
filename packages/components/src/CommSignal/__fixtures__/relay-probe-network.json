@@ -18,6 +18,15 @@
         }
       },
       {
+        "channel": "comms.commandCentre",
+        "value": {
+          "id": "ground:KSC",
+          "displayName": "KSC",
+          "kind": "GroundStation",
+          "bodyIndex": 1
+        }
+      },
+      {
         "channel": "comms.delay",
         "value": {
           "oneWaySeconds": 4.7
@@ -30,12 +39,16 @@
             {
               "from": "Active Vessel",
               "to": "Relay Sat 1",
+              "fromIsHome": false,
+              "toIsHome": false,
               "kind": 1,
               "distanceMeters": 1850000
             },
             {
               "from": "Relay Sat 1",
               "to": "home",
+              "fromIsHome": false,
+              "toIsHome": true,
               "kind": 0,
               "distanceMeters": 640000
             }
