@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
@@ -197,6 +198,40 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task ASlowTickSaysWhichMainThreadCaptureTookTheTimeAndHowLongTheGameSampleTook()
+        {
+            var uplink = new HeldTickUplink { CaptureSeconds = ChannelEngine.SlowTickSeconds * 2 };
+            uplink.LetEveryTickFinish();
+            var logged = new ConcurrentQueue<string>();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.SetDiagnosticLog(logged.Enqueue);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var watching = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(watching, HeldTickUplink.Topic, Timeout);
+
+                Assert.True(engine.TryTick(() =>
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(ChannelEngine.SlowTickSeconds));
+                    return new KspSnapshot { Ut = 1 };
+                }));
+                engine.TickAndWait(2, new KspSnapshot { Ut = 2 }, Timeout);
+
+                var report = logged.First(line => line.Contains("slow tick"));
+                Assert.Matches(@"sources \d+ of which tick-backlog-test \d+", report);
+                var sampled = System.Text.RegularExpressions.Regex.Match(report, @"game sample (\d+) ms");
+                Assert.True(sampled.Success, report);
+                Assert.True(int.Parse(sampled.Groups[1].Value) >= ChannelEngine.SlowTickSeconds * 1000 * 0.9, report);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>One channel whose mapper does not return until the test lets that tick finish.</summary>
         private sealed class HeldTickUplink : ISitrepUplink
         {
@@ -209,6 +244,9 @@ namespace Sitrep.Host.IntegrationTests
 
             /// <summary>Real seconds the mapper spends once it is let go.</summary>
             public double MapperSeconds { get; set; }
+
+            /// <summary>Real seconds the main-thread capture takes.</summary>
+            public double CaptureSeconds { get; set; }
 
             public int TicksStarted => Volatile.Read(ref _ticksStarted);
 
@@ -269,6 +307,10 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddSampledSource(
                     _ =>
                     {
+                        if (CaptureSeconds > 0)
+                        {
+                            Thread.Sleep(TimeSpan.FromSeconds(CaptureSeconds));
+                        }
                         var drained = new List<string>();
                         while (Captured.TryDequeue(out var happened))
                         {

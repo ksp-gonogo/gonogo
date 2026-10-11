@@ -6410,19 +6410,69 @@ namespace Sitrep.Host
                 Interlocked.Increment(ref _ticksDeclined);
                 return false;
             }
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var snapshot = sample();
-            Tick(snapshot.Ut, snapshot);
+            var sampling = System.Diagnostics.Stopwatch.GetTimestamp() - started;
+            var tick = CaptureTick(snapshot.Ut, snapshot, null);
+            tick.SampleStopwatchTicks = sampling;
+            EnqueueTick(tick);
             return true;
         }
 
         /// <summary>Runs every main-thread capture a tick carries, on the calling thread, and times them.</summary>
         private TickJob CaptureTick(double ut, KspSnapshot? snapshot, ManualResetEventSlim? done)
         {
+            var timing = default(CaptureTiming);
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var mark = started;
             CaptureCommandCentresOnMain();
-            var tick = new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), done) { Save = _saveOnMain };
-            tick.CaptureStopwatchTicks = System.Diagnostics.Stopwatch.GetTimestamp() - started;
-            return tick;
+            timing.CommandCentres = Lap(ref mark);
+            var captures = RunCaptures(snapshot, ref timing);
+            timing.Sources = Lap(ref mark);
+            var signalDelay = CaptureSignalDelayOnMain(snapshot);
+            timing.SignalDelay = Lap(ref mark);
+            var connectivity = CaptureConnectivityOnMain(snapshot);
+            timing.Connectivity = Lap(ref mark);
+            var pathBreak = CapturePathBreakOnMain(snapshot, ut);
+            timing.PathBreak = Lap(ref mark);
+            return new TickJob(ut, snapshot, captures, signalDelay, connectivity, pathBreak, done)
+            {
+                Save = _saveOnMain,
+                CaptureStopwatchTicks = mark - started,
+                CaptureTiming = timing,
+            };
+        }
+
+        /// <summary>The stopwatch ticks since <paramref name="mark"/>, which moves to now.</summary>
+        private static long Lap(ref long mark)
+        {
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var elapsed = now - mark;
+            mark = now;
+            return elapsed;
+        }
+
+        /// <summary>Real time spent in each main-thread capture of one tick, in stopwatch ticks.</summary>
+        private struct CaptureTiming
+        {
+            public long CommandCentres;
+            public long Sources;
+            public long SignalDelay;
+            public long Connectivity;
+            public long PathBreak;
+            public (long Ticks, string? Name) SlowestSource;
+
+            public string Describe()
+            {
+                return "command centres " + Ms(CommandCentres)
+                    + ", sources " + Ms(Sources) + " of which " + (SlowestSource.Name ?? "none") + " " + Ms(SlowestSource.Ticks)
+                    + ", signal delay " + Ms(SignalDelay)
+                    + ", connectivity " + Ms(Connectivity)
+                    + ", path break " + Ms(PathBreak);
+            }
+
+            private static string Ms(long ticks) =>
+                (ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency).ToString("F0", CultureInfo.InvariantCulture);
         }
 
         private void EnqueueTick(TickJob tick)
@@ -6462,7 +6512,7 @@ namespace Sitrep.Host
         /// running on the main-loop thread too, not just its handle on the
         /// Courier thread.
         /// </summary>
-        private CapturedSample[]? RunCaptures(KspSnapshot? snapshot)
+        private CapturedSample[]? RunCaptures(KspSnapshot? snapshot, ref CaptureTiming timing)
         {
             if (_sampledSources.Count == 0)
             {
@@ -6490,6 +6540,7 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                var started = System.Diagnostics.Stopwatch.GetTimestamp();
                 try
                 {
                     captured.Add(new CapturedSample(i, source.Capture(snapshot), null));
@@ -6497,6 +6548,11 @@ namespace Sitrep.Host
                 catch (Exception ex)
                 {
                     captured.Add(new CapturedSample(i, null, ex));
+                }
+                var took = System.Diagnostics.Stopwatch.GetTimestamp() - started;
+                if (took > timing.SlowestSource.Ticks)
+                {
+                    timing.SlowestSource = (took, source.OwnerId);
                 }
             }
 
@@ -8650,6 +8706,8 @@ namespace Sitrep.Host
             _lastSlowTickReport = now;
             LogHost("slow tick at UT " + tick.Ut.ToString("F0", CultureInfo.InvariantCulture) + ": " + timing.Describe()
                 + "; main-thread captures " + (captureSeconds * 1000).ToString("F0", CultureInfo.InvariantCulture) + " ms"
+                + " (" + tick.CaptureTiming.Describe() + ")"
+                + "; game sample " + (tick.SampleStopwatchTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency).ToString("F0", CultureInfo.InvariantCulture) + " ms"
                 + "; " + Interlocked.Exchange(ref _ticksDeclined, 0) + " ticks declined since the last report");
         }
 
@@ -10110,6 +10168,12 @@ namespace Sitrep.Host
 
             /// <summary>Real time the main-thread captures above took, in stopwatch ticks.</summary>
             public long CaptureStopwatchTicks;
+
+            /// <summary>Where that time went, capture by capture.</summary>
+            public CaptureTiming CaptureTiming;
+
+            /// <summary>Real time the game snapshot this tick carries took to sample, in stopwatch ticks, or zero when its caller did not say.</summary>
+            public long SampleStopwatchTicks;
             public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, PathBreakCapture pathBreak, ManualResetEventSlim? done)
             {
                 Ut = ut;

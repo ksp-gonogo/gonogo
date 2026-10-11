@@ -1151,11 +1151,16 @@ namespace Sitrep.Core.StoreAndForward
                     if (string.Equals(node, span.Centre, StringComparison.Ordinal))
                     {
                         _deliverSpan?.Invoke(span, atUt);
+                        break;
                     }
-                    else
+                    // A relay holds one span of a history for a centre while it
+                    // waits. The copy that flew stays its sender's, untouched.
+                    if (WaitingSpanToJoin(node, span) is { } waiting)
                     {
-                        Hold(node, span, atUt, cameFrom);
+                        ((SpanMessage)waiting.Message).Samples.AddRange(span.Samples);
+                        break;
                     }
+                    Hold(node, span, atUt, cameFrom);
                     break;
             }
         }

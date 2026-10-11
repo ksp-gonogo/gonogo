@@ -151,6 +151,35 @@ namespace Sitrep.Core.Tests.StoreAndForward
         }
 
         [Fact]
+        public void ARelayWithNoWayOnHoldsOneSpanOfATopicHoweverManyReachIt()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Lander, Relay, 5.0);
+            rig.Tick(1.0);
+
+            // The craft sends one span every 10 s, each landing 5 s later, while the relay cannot reach the centre.
+            for (var i = 0; i < 8; i++)
+            {
+                rig.Add(1.0 + (i * 10));
+                rig.Tick(8.0 + (i * 10));
+                rig.Tick(11.0 + (i * 10));
+            }
+
+            var held = Assert.Single(rig.Network.Spans());
+            Assert.Equal(Relay, held.Node);
+            Assert.Equal(Enumerable.Range(0, 8).Select(i => 1.0 + (i * 10)), held.Span.Samples.Select(s => s.Ut));
+            Assert.Equal(8 * 100, rig.Network.HeldSpanBytes());
+
+            // All of it reaches the centre once, as one, when the relay's link opens.
+            rig.Links.Up(Relay, Ksc, 10.0);
+            rig.Tick(100.0);
+            rig.Tick(111.0);
+            var (arrived, _) = Assert.Single(rig.Delivered);
+            Assert.Equal(8, arrived.Samples.Count);
+            Assert.Empty(rig.Network.Spans());
+        }
+
+        [Fact]
         public void SamplesHandedOverAfterASpanHasLeftTravelAsTheirOwn()
         {
             var rig = new Rig();
