@@ -9,7 +9,7 @@ import {
 } from "../../../scripts/integration-shard.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const SHARDS = 5;
+const SHARDS = 2;
 
 describe("the integration suite's CI shards", () => {
   const weights: Map<string, number> = classWeights();

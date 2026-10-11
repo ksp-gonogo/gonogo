@@ -63,11 +63,11 @@ describe("the unit-test and act-warnings legs cover every package once", () => {
   it("reads the legs and the packages at all, before comparing them", () => {
     expect(packages).toContain("core");
     expect(packages).toContain("components");
-    expect(legs("unit-test").length).toBeGreaterThan(3);
+    expect(legs("unit-test").length).toBeGreaterThan(2);
     expect(legs("act-warnings").length).toBeGreaterThan(3);
   });
 
-  it("gives each package to exactly one unit-test leg, the components legs sharding its files", () => {
+  it("gives each package to exactly one unit-test leg, components excepted because the act-warnings legs run its whole suite", () => {
     const named = new Set(["components", "app", "core"]);
     const positive = legs("unit-test")
       .map((l) => l["turbo-scope"])
@@ -75,35 +75,37 @@ describe("the unit-test and act-warnings legs cover every package once", () => {
       .map((s) => s.replace("--filter=@ksp-gonogo/", ""));
     const perPackage = (name: string) =>
       positive.filter((p) => p === name).length;
-    expect(perPackage("components")).toBe(4);
+    expect(perPackage("components")).toBe(0);
     for (const n of ["app", "core"]) expect(perPackage(n), n).toBe(1);
     const rest = legs("unit-test").find((l) => l.leg === "rest");
     const excluded = [
       ...(rest?.["turbo-scope"] ?? "").matchAll(/!@ksp-gonogo\/([\w-]+)/g),
     ].map((m) => m[1]);
     expect(excluded.sort()).toEqual([...named].sort());
-    const shards = legs("unit-test").flatMap((l) => (l.shard ? [l.shard] : []));
-    expect(shards.sort()).toEqual(["1/4", "2/4", "3/4", "4/4"]);
   });
 
-  it("gives each package to exactly one act-warnings leg", () => {
+  it("gives each act-warnings leg's files to exactly one shard, and each package to exactly one scope", () => {
     const scopes = legs("act-warnings").map((l) => l.scope);
-    const shards = scopes
-      .filter((s) => s.includes("--shard"))
-      .map((s) => s.split("--shard ")[1]);
-    expect(shards.sort()).toEqual(["1/2", "2/2"]);
+    const shardsOf = (scope: (s: string) => boolean) =>
+      scopes
+        .filter(scope)
+        .map((s) => s.split("--shard ")[1])
+        .sort();
+    expect(shardsOf((s) => s.startsWith("--filter components "))).toEqual([
+      "1/3",
+      "2/3",
+      "3/3",
+    ]);
+    expect(shardsOf((s) => s.startsWith("--except "))).toEqual(["1/2", "2/2"]);
+    const except = scopes
+      .filter((s) => s.startsWith("--except "))
+      .map((s) => s.split(" ")[1].split(",").sort().join(","));
+    expect(except).toEqual(["app,components", "app,components"]);
     const filtered = scopes
       .filter((s) => !s.includes("--shard") && s.startsWith("--filter "))
       .map((s) => s.replace("--filter ", ""));
-    const except =
-      scopes
-        .find((s) => s.startsWith("--except "))
-        ?.replace("--except ", "")
-        .split(",") ?? [];
-    expect(except.sort()).toEqual(["app", "components", "core"]);
-    expect(filtered.sort()).toEqual(["app", "core"]);
-    for (const name of [...filtered, ...except])
-      expect(packages).toContain(name);
+    expect(filtered).toEqual(["app"]);
+    for (const name of ["components", "app"]) expect(packages).toContain(name);
   });
 
   it.each([
