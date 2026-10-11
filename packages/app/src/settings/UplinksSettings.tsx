@@ -36,6 +36,11 @@ import {
   UplinkHealthReport,
 } from "./UplinkStatus";
 
+/** The part of a raw `system.uplinks` entry that says where its client bundle lives. */
+interface AnnouncedClients {
+  uplinks: Array<{ id: string; clientSource?: unknown }>;
+}
+
 /** Everything one Uplink has to show on its page, from every place an Uplink's settings come from. */
 export interface UplinkPage {
   id: string;
@@ -53,6 +58,11 @@ export interface UplinkPage {
   rosterKnown: boolean;
   /** What the runtime loader made of its client, when it tried. */
   client?: UplinkLoadOutcome;
+  /**
+   * The mod lists this Uplink on `system.uplinks` without a client bundle to
+   * load and the loader attempted nothing, so none of its widgets are in this app.
+   */
+  announcesNoClient?: true;
   /** Set when the dev server was started with this Uplink named in `--uplink`. */
   local?: LocalUplinkStatus;
   /** Its health or its client asks for the operator's attention. */
@@ -73,6 +83,11 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
   const rosterKnown = health.state === "observed" || health.state === "held";
   const roster = rosterKnown ? health.value.uplinks : [];
   const localUplinks = useLocalUplinks();
+  const announced = useStream<AnnouncedClients>("system.uplinks");
+  const announcedEntries =
+    announced.state === "observed" || announced.state === "held"
+      ? announced.value.uplinks
+      : [];
   const outcomes = useSyncExternalStore(
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
@@ -117,6 +132,11 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
       rosterKnown,
       client,
       local,
+      ...(!client &&
+      !local &&
+      announcedEntries.some((a) => a.id === id && !a.clientSource)
+        ? { announcesNoClient: true as const }
+        : {}),
       attention:
         undeclared ||
         local?.state === "failed" ||
@@ -235,6 +255,14 @@ function UplinkStatusSection({ page }: { page: UplinkPage }) {
         </li>
       )}
       {page.client && <UplinkClientStatus outcome={page.client} />}
+      {page.announcesNoClient && (
+        <li>
+          <Empty>
+            {page.name} names no client bundle, so none of its widgets are
+            loaded in this app
+          </Empty>
+        </li>
+      )}
       {page.local && (
         <li>
           <Badge tone="warn" size="sm">

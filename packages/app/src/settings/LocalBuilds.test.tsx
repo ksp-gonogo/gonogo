@@ -139,4 +139,15 @@ describe("Local builds", () => {
     );
     expect(screen.queryByText("Local builds")).not.toBeInTheDocument();
   });
+
+  it("says in words that an Uplink naming no client bundle loads no widgets", () => {
+    render(
+      <UplinksSettings
+        pages={[page({ local: undefined, announcesNoClient: true })]}
+      />,
+    );
+    expect(
+      screen.getByText(/Alpha names no client bundle, so none of its widgets/),
+    ).toBeInTheDocument();
+  });
 });
