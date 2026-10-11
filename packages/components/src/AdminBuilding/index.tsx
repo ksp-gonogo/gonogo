@@ -23,6 +23,7 @@ const topics = defineTopicManifest({
   channels: ["career.status"],
   fields: [
     "career.status.strategies.all",
+    "career.status.strategies.activeCount",
     "career.status.strategies.activationPatched",
     "career.status.balances.funds",
     "career.status.balances.reputation",
@@ -89,6 +90,7 @@ function AdminBuildingComponent({
       w={w}
       h={h}
       strategies={strategies}
+      activeCount={rosterRaw?.activeCount ?? null}
       screens={screens}
       funds={funds}
       reputation={reputation}

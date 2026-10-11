@@ -1,4 +1,4 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
 import {
   Badge,
@@ -13,6 +13,7 @@ import {
   Stat,
   Unit,
   useRowFilter,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { DetailPanel } from "./DetailPanel";
@@ -32,6 +33,8 @@ import { sortNodes, type TechNode } from "./wire";
 export interface TechTreeViewProps {
   w?: number;
   allNodes: TechNode[] | null;
+  /** The mod's own count of unlocked nodes; `null` when it did not arrive. */
+  unlockedCount?: Value<"count"> | null;
   sciAvailable: number | null;
   /** The current balance the researchable count is judged against. */
   science: Value<"science"> | null | undefined;
@@ -64,7 +67,7 @@ function TechStats({
   showScience,
   scienceShown,
 }: Readonly<{
-  unlocked: number;
+  unlocked: Value<"count">;
   total: number;
   researchable: number;
   showScience: boolean;
@@ -80,7 +83,7 @@ function TechStats({
       gap="related-compact"
     >
       <Stat label="Unlocked">
-        {unlocked}/{total}
+        {writeQuantity(unlocked, { decimals: 0 })}/{total}
       </Stat>
       <Stat label="Researchable">{researchable}</Stat>
       {showScience && (
@@ -95,6 +98,7 @@ function TechStats({
 export function TechTreeView({
   w,
   allNodes,
+  unlockedCount = null,
   sciAvailable,
   science,
   scienceShown,
@@ -143,7 +147,12 @@ export function TechTreeView({
     );
   }
 
-  const unlocked = allNodes.filter((n) => n.state === "Available").length;
+  // Each source can only undercount (the mod's count falls back to a list built from loaded parts), so the larger is the better figure.
+  const unlockedNodes = allNodes.filter((n) => n.state === "Available").length;
+  const unlocked =
+    unlockedCount === null
+      ? value("count", unlockedNodes)
+      : unlockedCount.max(unlockedNodes);
   const unlockContext = {
     researchable,
     chargesScience,

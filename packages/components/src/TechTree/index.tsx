@@ -23,7 +23,12 @@ export { parseTechNodes } from "./wire";
 const topics = defineTopicManifest({
   channels: ["career.status"],
   optionalChannels: read.optionalChannels,
-  fields: ["career.status.tech.nodes", "career.status.balances.science"],
+  fields: [
+    "career.status.tech.nodes",
+    "career.status.tech.unlockedCount",
+    "career.status.tech.unlockedIds",
+    "career.status.balances.science",
+  ],
 });
 
 type TechTreeConfig = Record<string, never>;
@@ -35,7 +40,18 @@ type TechTreeConfig = Record<string, never>;
  */
 function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
   const career = topics.useTelemetry("career.status");
-  const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
+  const tech = stillTrue(career, undefined)?.tech;
+  /*
+   * A node that never says whether it is unlocked is still unlocked when the
+   * mod lists its id: that list is built from loaded parts, so it only ever
+   * confirms a node and never refutes one.
+   */
+  const confirmed = new Set(tech?.unlockedIds ?? []);
+  const nodesRaw = tech?.nodes?.map((n) =>
+    n.unlocked == null && n.id != null && confirmed.has(n.id)
+      ? { ...n, unlocked: true }
+      : n,
+  );
   const careerScience =
     career.state === "observed" ? career.value.balances?.science : undefined;
   // The balance as drawn: a held one stays on screen and Unit marks it.
@@ -57,6 +73,7 @@ function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
     <TechTreeView
       w={w}
       allNodes={allNodes}
+      unlockedCount={tech?.unlockedCount ?? null}
       sciAvailable={sciAvailable}
       science={careerScience}
       scienceShown={scienceShown}

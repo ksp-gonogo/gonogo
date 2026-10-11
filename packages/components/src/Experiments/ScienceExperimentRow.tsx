@@ -16,7 +16,9 @@ import type { TitledInstrument } from "./instrument";
 const BADGE_MEANING = {
   data: "Holds science data that has not been transmitted or recovered",
   deployed: "The experiment has been run on this instrument",
-  oneShot: "Can run once only, and cannot be reset",
+  oneShot: "Can run once only",
+  oneShotResettable: "Can run once only until it is reset",
+  oneShotFinal: "Can run once only, and cannot be reset",
   inoperable: "Cannot be run in its current state, so it offers no controls",
 } as const;
 
@@ -115,7 +117,15 @@ export function ScienceExperimentRow({
           </Tooltip>
         )}
         {!instrument.rerunnable && (
-          <Tooltip text={BADGE_MEANING.oneShot}>
+          <Tooltip
+            text={
+              instrument.resettable === true
+                ? BADGE_MEANING.oneShotResettable
+                : instrument.resettable === false
+                  ? BADGE_MEANING.oneShotFinal
+                  : BADGE_MEANING.oneShot
+            }
+          >
             <Badge>ONE-SHOT</Badge>
           </Tooltip>
         )}

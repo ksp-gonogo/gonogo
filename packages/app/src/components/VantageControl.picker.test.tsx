@@ -217,3 +217,60 @@ describe("VantagePicker's home badge carries an icon, not the word 'Home'", () =
     fixture.unmount();
   });
 });
+
+describe("VantagePicker's option rows say where a centre is and whether it can be reached", () => {
+  it("names the body and coordinates of a surface centre and flags one with no route", () => {
+    const fixture = mountPicker();
+    act(() => {
+      fixture.emit(
+        "system.bodies",
+        { bodies: [{ index: 1, name: "Kerbin", isHome: true }] },
+        { vantage: KSC },
+      );
+      fixture.store.beginFrame();
+    });
+    fixture.emitRoster([
+      {
+        id: KSC,
+        displayName: "KSC",
+        active: true,
+        isHome: true,
+        bodyIndex: 1,
+        latitude: -0.1,
+        longitude: -74.5,
+        delayQuality: "routed",
+      },
+      {
+        id: "ground:gs1",
+        displayName: "Woomera Station",
+        active: true,
+        isHome: false,
+        bodyIndex: 1,
+        latitude: -31.5,
+        longitude: 136.8,
+        delayQuality: "unroutable",
+      },
+    ]);
+
+    fireEvent.click(screen.getByRole("button"));
+
+    const woomera = screen.getByRole("option", { name: /Woomera Station/ });
+    expect(woomera).toHaveTextContent("Kerbin");
+    expect(woomera).toHaveTextContent("31.5");
+    expect(woomera).toHaveTextContent("No route");
+    expect(screen.getByRole("option", { name: /KSC/ })).not.toHaveTextContent(
+      "No route",
+    );
+
+    fixture.unmount();
+  });
+
+  it("leaves the detail off a centre that reports no body, coordinates or route", () => {
+    const fixture = mountOpenPicker();
+
+    const woomera = screen.getByRole("option", { name: "Woomera Station" });
+    expect(woomera).toHaveTextContent(/^Woomera Station$/);
+
+    fixture.unmount();
+  });
+});

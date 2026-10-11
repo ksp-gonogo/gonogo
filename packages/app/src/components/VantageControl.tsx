@@ -4,6 +4,7 @@ import {
   useSelectedVantage,
   useTelemetryClientOptional,
 } from "@ksp-gonogo/sitrep-client";
+import { stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
@@ -13,6 +14,7 @@ import {
   EmptyState,
   HomeIcon,
   Text,
+  Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { KeyboardEvent } from "react";
@@ -23,12 +25,20 @@ import { vantageLabels } from "./vantageLabels";
 
 interface VantageOption extends ComboboxOption {
   isHome: boolean;
+  bodyName: string | null;
+  latitude: Value<"°"> | null;
+  longitude: Value<"°"> | null;
+  routed: boolean | null;
 }
 
 interface ActiveCentre {
   id: string;
   displayName?: string | null;
   isHome?: boolean;
+  bodyIndex?: number | null;
+  latitude?: Value<"°"> | null;
+  longitude?: Value<"°"> | null;
+  delayQuality?: string | null;
 }
 
 /**
@@ -165,11 +175,27 @@ function VantagePicker() {
   const optionIdPrefix = useId();
   const optionId = (key: string) => `${optionIdPrefix}-${key}`;
 
+  // The body catalogue is a fact that does not change within a save, so a held one is still the catalogue.
+  const bodiesReading = useTelemetry("system.bodies");
+  const bodies = stillTrue(bodiesReading, undefined)?.bodies;
+
   const labels = vantageLabels(active);
   const options: VantageOption[] = active.map((c) => ({
     key: c.id,
     label: labels.get(c.id) ?? c.id,
     isHome: c.id === homeId,
+    bodyName:
+      c.bodyIndex == null
+        ? null
+        : (bodies?.find((b) => b.index === c.bodyIndex)?.name ?? null),
+    latitude: c.latitude ?? null,
+    longitude: c.longitude ?? null,
+    routed:
+      c.delayQuality === "routed"
+        ? true
+        : c.delayQuality === "unroutable"
+          ? false
+          : null,
   }));
 
   const selectedOption = options.find((o) => o.key === selected);
@@ -287,6 +313,7 @@ function VantagePicker() {
               <>
                 <span>{opt.label}</span>
                 {opt.isHome && <HomeBadge />}
+                <CentreDetail option={opt} />
               </>
             )}
           />
@@ -298,6 +325,41 @@ function VantagePicker() {
     </Container>
   );
 }
+
+/**
+ * Where a centre sits and whether a command path can reach it. A moving vessel
+ * centre has no coordinates, and an absent one is left out rather than printed
+ * as zero.
+ */
+function CentreDetail({ option }: Readonly<{ option: VantageOption }>) {
+  const { bodyName, latitude, longitude, routed } = option;
+  if (!bodyName && !latitude && !longitude && routed === null) return null;
+  return (
+    <CentreDetail__Root>
+      {bodyName && <span>{bodyName}</span>}
+      {latitude && longitude && (
+        <span>
+          <Unit value={latitude} decimals={2} />{" "}
+          <Unit value={longitude} decimals={2} />
+        </span>
+      )}
+      {routed === false && (
+        <Badge tone="warn" size="sm">
+          No route
+        </Badge>
+      )}
+    </CentreDetail__Root>
+  );
+}
+
+const CentreDetail__Root = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gap-related);
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+`;
 
 /**
  * What the screen is reading while the mod refuses its chosen centre: every

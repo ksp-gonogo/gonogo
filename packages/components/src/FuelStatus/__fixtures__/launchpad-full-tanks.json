@@ -120,7 +120,8 @@
       {
         "channel": "vessel.structure",
         "value": {
-          "currentStage": 2
+          "currentStage": 2,
+          "partCount": 31
         }
       },
       {

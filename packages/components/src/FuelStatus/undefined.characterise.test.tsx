@@ -172,6 +172,12 @@ describe("FuelStatus: what undefined means today", () => {
 
     act(() => {
       fixture.emit("dv.summary", { stageCount: 2, totalBurnTime: 125 });
+      fixture.emit("vessel.structure", {
+        currentStage: 2,
+        stageCount: 2,
+        partCount: 14,
+        meta: { source: "vessel:test" },
+      });
     });
 
     await waitFor(() =>
@@ -179,6 +185,7 @@ describe("FuelStatus: what undefined means today", () => {
     );
     expect(screen.getByText("Total burn")).toBeInTheDocument();
     expect(screen.getByText("2min 5s")).toBeInTheDocument();
+    expect(screen.getByText("Parts").parentElement).toHaveTextContent("14");
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
   });
 

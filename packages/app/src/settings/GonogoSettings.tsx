@@ -12,7 +12,7 @@ import {
   type SettingsRowState,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Switch } from "@ksp-gonogo/ui";
-import { Cluster, Notice, Stack } from "@ksp-gonogo/ui-kit";
+import { Cluster, Notice, Stack, Text, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import {
@@ -199,9 +199,17 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
  * it says nothing while the file holds exactly what is shown.
  */
 function PersistenceLine({ model }: { model: SettingsModel }) {
-  const { state, path, reason } = model.persistence;
+  const { state, path, reason, savedAtUt } = model.persistence;
   const text = persistenceText(state, path, reason ?? null);
-  if (text === null) return null;
+  if (text === null) {
+    // A file holding exactly what is shown has nothing to warn about; when it was last written is still a fact.
+    if (!savedAtUt) return null;
+    return (
+      <Text level="muted" size="xs">
+        Settings file last saved <Unit value={savedAtUt} />
+      </Text>
+    );
+  }
   return (
     <Notice tone="warn" aria-label="Settings file">
       {text}

@@ -36,6 +36,7 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
       dataKnown: typeof e.dataIsCollectable === "boolean",
       rerunnable: e.rerunnable === true,
       inoperable: e.inoperable === true,
+      resettable: typeof e.resettable === "boolean" ? e.resettable : null,
     });
   }
   return out;
@@ -68,6 +69,8 @@ export interface LabStatus {
   statusText: string | null;
   scientistCount: number | null;
   scienceRate: number | null;
+  /** The value model its rate and data figures are in; `null` when the provider did not tag the lab. */
+  valueModel: string | null;
   /** Null when the provider could not read it; OFFLINE is a diagnosis, not a failed read. */
   isOperational: boolean | null;
 }
@@ -98,6 +101,8 @@ export function parseLab(raw: unknown): LabStatus[] | null {
       statusText: typeof e.statusText === "string" ? e.statusText : null,
       scientistCount: magnitudeOf(asQuantityish(e.scientistCount)),
       scienceRate: magnitudeOf(asQuantityish(e.scienceRate)),
+      valueModel:
+        typeof e.valueModel === "string" && e.valueModel ? e.valueModel : null,
       isOperational: asFlag(e.isOperational),
     });
   }

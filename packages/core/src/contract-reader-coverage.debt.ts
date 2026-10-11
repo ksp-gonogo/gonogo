@@ -138,56 +138,12 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.thermal.maxSkinTempRatio":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:career.status.strategies.activeCount":
-    "kept: the length of CareerStrategies.active, published for API consumers",
-  "field:career.status.tech.unlockedCount":
-    "reader owed by the career status widget (research progress figure)",
-  "field:career.status.tech.unlockedIds":
-    "delete candidate: derived from loaded parts, so a node that unlocks no part never appears; CareerTechNode.unlocked is the per-node reading",
-  "field:commandCentre.roster.bodyIndex":
-    "reader owed by the Command Centres widget (placement and route quality of each centre)",
-  "field:commandCentre.roster.delayQuality":
-    "reader owed by the Command Centres widget (placement and route quality of each centre)",
-  "field:commandCentre.roster.latitude":
-    "reader owed by the Command Centres widget (placement and route quality of each centre)",
-  "field:commandCentre.roster.longitude":
-    "reader owed by the Command Centres widget (placement and route quality of each centre)",
   "field:comms.delay.meta.source":
     "kept: names the payload's subject (vessel or game) for API consumers; the mod copies it from comms.link",
   "field:comms.link.meta.source":
     "kept: names the payload's subject (vessel or game) for API consumers; the mod copies it to comms.delay",
-  "field:crash.lastCrash.eventKind":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.events":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.flightStats.highestSpeedOverLand":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.flightStats.liftOff":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.flightStats.missionEnd":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.flightStats.totalDistance":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.msg":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
-  "field:crash.lastCrash.vesselType":
-    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:robotics.servos.traverseVelocity":
     "kept: unit follows the servo kind and is undeclared, so no widget can draw it honestly",
-  "field:science.instruments.resettable":
-    "reader owed by Experiments (refines the one-shot note to say whether a reset is possible)",
-  "field:science.lab.valueModel":
-    "kept: tags which unit family a lab's rate is in, for API consumers and extension namespaces",
-  "field:settings.gonogo.persistence.savedAtUt":
-    "kept: published for API consumers, no first-party surface shows the last save time",
-  "field:spaceCenter.crewRoster.experience":
-    "reader owed by Astronaut Complex (raw experience points beside the level)",
-  "field:spaceCenter.launchSites.isStock":
-    "reader owed by Space Center Status (site coordinates and stock-or-modded tag)",
-  "field:spaceCenter.launchSites.latitude":
-    "reader owed by Space Center Status (site coordinates and stock-or-modded tag)",
-  "field:spaceCenter.launchSites.longitude":
-    "reader owed by Space Center Status (site coordinates and stock-or-modded tag)",
   "field:vessel.landing.outcome":
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.predictedSlopeHeading":
@@ -200,10 +156,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.terrainElevationUnderVessel":
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
-  "field:vessel.structure.partCount":
-    "delete candidate: duplicates the length of vessel.parts",
-  "field:vessel.target.orbit.meta.quality":
-    "kept: published for API consumers, the target orbit's own quality tag",
   "field:vessel.target.partId":
     "kept: identifies the targeted docking port for API consumers; no widget addresses a port by id",
 };

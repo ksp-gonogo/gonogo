@@ -50,11 +50,14 @@ export function TotalsSection({
   totalDv,
   totalBurnTime,
   dryMass,
+  partCount,
   mode,
 }: {
   totalDv: UnitValue<"m/s"> | undefined;
   totalBurnTime: UnitValue<"s"> | null | undefined;
   dryMass: Reading<Value<"t">>;
+  /** Parts on the craft, held ones marked; absent when the vessel's part list could not be read. */
+  partCount: UnitValue<"count">;
   mode: DeltaVMode;
 }) {
   return (
@@ -99,6 +102,11 @@ export function TotalsSection({
       <TotalFigure label="Dry mass">
         <span style={{ whiteSpace: "nowrap" }}>
           <Unit value={dryMass} />
+        </span>
+      </TotalFigure>
+      <TotalFigure label="Parts">
+        <span style={{ whiteSpace: "nowrap" }}>
+          <Unit value={partCount} />
         </span>
       </TotalFigure>
     </Box>

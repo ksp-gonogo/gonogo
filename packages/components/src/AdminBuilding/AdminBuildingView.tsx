@@ -1,4 +1,8 @@
-import type { CarriedCurrency, Value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CarriedCurrency,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
   Panel,
@@ -6,6 +10,7 @@ import {
   type TabDescriptor,
   Tabs,
   type UnitValue,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { Dispatch, SetStateAction } from "react";
 import { Balance } from "./BalanceRail";
@@ -20,6 +25,8 @@ export interface AdminBuildingViewProps {
   w: number | undefined;
   h: number | undefined;
   strategies: readonly Strategy[] | null;
+  /** The mod's own count of active strategies; `null` when it did not arrive, and the roster's own tally stands in. */
+  activeCount?: Value<"count"> | null;
   screens: readonly ResolvedScreen[];
   /** The career's activation is the game's own, so a strategy with no verdict is checked in full when it is confirmed. */
   checkedOnConfirm: boolean;
@@ -46,6 +53,7 @@ export function AdminBuildingView({
   w,
   h,
   strategies,
+  activeCount = null,
   screens,
   checkedOnConfirm,
   funds,
@@ -85,7 +93,8 @@ export function AdminBuildingView({
    */
   const { active, softBlocked } = partition(strategies);
   const inferredCap = inferCap(softBlocked);
-  const overCap = inferredCap !== null && active.length > inferredCap;
+  const activeShown = activeCount ?? value("count", active.length);
+  const overCap = inferredCap !== null && activeShown.compare(inferredCap) > 0;
 
   // A narrow tile keeps funds alone, except for a currency some strategy it lists is priced in: a price needs its balance beside it.
   const priced = (cost: (s: Strategy) => number) =>
@@ -116,7 +125,7 @@ export function AdminBuildingView({
       compactTitle={["ADMIN", "ADM"]}
       panelAside={
         <Tally $overCap={overCap}>
-          {active.length} active
+          {writeQuantity(activeShown, { decimals: 0 })} active
           {overCap && ` / ${inferredCap}`}
         </Tally>
       }

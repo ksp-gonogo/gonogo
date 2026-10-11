@@ -1,3 +1,4 @@
+import { isValue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 export interface LaunchSiteEntry {
@@ -6,6 +7,12 @@ export interface LaunchSiteEntry {
   facility: string;
   /** The `system.bodies` index of the body the site stands on; `null` when the site reported none. */
   bodyIndex: number | null;
+  /** Surface latitude of the site; `null` when it reported none, never a zero. */
+  latitude: Value<"°"> | null;
+  /** Surface longitude of the site, `null` under the same condition as {@link latitude}. */
+  longitude: Value<"°"> | null;
+  /** Whether the site ships with the game; `null` when it did not say, which is not a claim of either. */
+  isStock: boolean | null;
   /**
    * Whether a vessel is standing on this pad, `null` when this site reports no
    * occupancy at all. The mod reports occupancy for the stock VAB pad alone, so
@@ -39,6 +46,9 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
           : name,
       facility: typeof e.editorFacility === "string" ? e.editorFacility : "",
       bodyIndex: typeof e.bodyIndex === "number" ? e.bodyIndex : null,
+      latitude: isValue(e.latitude) ? (e.latitude as Value<"°">) : null,
+      longitude: isValue(e.longitude) ? (e.longitude as Value<"°">) : null,
+      isStock: typeof e.isStock === "boolean" ? e.isStock : null,
       // Only a real boolean is an answer; anything else is a site that reported no occupancy.
       occupied: typeof e.padOccupied === "boolean" ? e.padOccupied : null,
       occupantName:

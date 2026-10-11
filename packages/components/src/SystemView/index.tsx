@@ -98,6 +98,7 @@ const topics = defineTopicManifest({
     "vessel.target.orbit.encounter.transitionUt",
     "vessel.target.orbit.horizon.departure",
     "vessel.target.orbit.horizon.kind",
+    "vessel.target.orbit.meta.quality",
   ],
 });
 
@@ -634,6 +635,7 @@ function SystemViewComponent({
                   targetName={targetName}
                   horizon={targetHorizon}
                   viewUt={viewUt}
+                  quality={targetOrbit?.meta?.quality}
                 />
               )}
             {targetTrajectory?.shape === "withheld" && (

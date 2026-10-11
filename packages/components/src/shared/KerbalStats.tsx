@@ -2,6 +2,7 @@ import {
   crewUnavailableSentence,
   isFatality,
   staticValue,
+  type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -11,6 +12,7 @@ import {
   speakQuantity,
   Tooltip,
   Unit,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { KerbalInfoPopover } from "./KerbalInfoPopover";
@@ -38,6 +40,8 @@ export interface KerbalStatFields {
   /** Ratio 0-1; always carried, so the chips are gated by `showTraits` rather than presence. */
   courage?: number | null;
   stupidity?: number | null;
+  /** Raw experience points behind {@link experienceLevel}; `null` or absent when unsent. */
+  experience?: Value<"1"> | null;
   /** Progress toward the next rank, ratio 0-1. */
   experienceLevelDelta?: number | null;
   /** Stock trait tooltip strings for the current rank, shown by the info popover. */
@@ -128,6 +132,10 @@ export function KerbalStats({
   children?: ReactNode;
 }) {
   const rankKnown = typeof kerbal.experienceLevel === "number";
+  const rankLabel =
+    kerbal.experience != null
+      ? `Experience level ${kerbal.experienceLevel}, ${writeQuantity(kerbal.experience)} experience points`
+      : `Experience level ${kerbal.experienceLevel}`;
   // An unknown rank is never the top one.
   const atMaxRank =
     rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
@@ -136,15 +144,8 @@ export function KerbalStats({
       <span style={TRAIT_TAG_STYLE}>{kerbal.trait || NULL_DISPLAY}</span>
       {showRank &&
         (rankKnown ? (
-          <Tooltip
-            text={`Experience level ${kerbal.experienceLevel}`}
-            focusable
-          >
-            <span
-              style={LEVEL_STYLE}
-              role="img"
-              aria-label={`Experience level ${kerbal.experienceLevel}`}
-            >
+          <Tooltip text={rankLabel} focusable>
+            <span style={LEVEL_STYLE} role="img" aria-label={rankLabel}>
               L{kerbal.experienceLevel}
             </span>
           </Tooltip>

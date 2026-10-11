@@ -62,6 +62,11 @@ export function LabSection({
                     data
                   </Text>
                 )}
+                {lab.valueModel !== null && lab.valueModel !== "stock" && (
+                  <Text level="muted" size="xs">
+                    {lab.valueModel} model
+                  </Text>
+                )}
               </Inline>
             </Stack>
           );

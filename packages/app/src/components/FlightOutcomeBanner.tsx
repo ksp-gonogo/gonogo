@@ -496,6 +496,8 @@ function CrashDetail({ summary }: { summary: CrashReport }) {
   const stats = summary.flightStats;
   const crewAboard = stringList(summary.crewAboard);
   const kerbalsKilled = stringList(summary.kerbalsKilled);
+  const events = stringList(summary.events);
+  const detectorMessage = str(summary.msg);
   return (
     <DetailWrap>
       <DetailHeader>
@@ -504,9 +506,12 @@ function CrashDetail({ summary }: { summary: CrashReport }) {
         </DetailTitle>
         <DetailMeta>
           {str(summary.what) || str(stats?.flightEndMode) || "destroyed"}
+          {summary.eventKind && ` · ${str(summary.eventKind)}`}
+          {summary.vesselType && ` · ${str(summary.vesselType)}`}
           {summary.body && ` · ${str(summary.body)}`}
           {summary.situation && ` · ${str(summary.situation)}`}
         </DetailMeta>
+        {detectorMessage && <DetailMeta>{detectorMessage}</DetailMeta>}
       </DetailHeader>
 
       <Totals>
@@ -541,6 +546,34 @@ function CrashDetail({ summary }: { summary: CrashReport }) {
             <Unit value={q(stats?.groundDistance)} />
           </TotalValue>
         </TotalRow>
+        <TotalRow>
+          <TotalLabel>Total distance</TotalLabel>
+          <TotalValue>
+            <Unit value={q(stats?.totalDistance)} />
+          </TotalValue>
+        </TotalRow>
+        <TotalRow>
+          <TotalLabel>Highest speed over land</TotalLabel>
+          <TotalValue>
+            <Unit value={q(stats?.highestSpeedOverLand)} />
+          </TotalValue>
+        </TotalRow>
+        {typeof stats?.liftOff === "boolean" && (
+          <TotalRow>
+            <TotalLabel>Lift-off</TotalLabel>
+            <TotalValue>
+              {stats.liftOff ? "Left the pad" : "On the pad"}
+            </TotalValue>
+          </TotalRow>
+        )}
+        {typeof stats?.missionEnd === "boolean" && (
+          <TotalRow>
+            <TotalLabel>Mission</TotalLabel>
+            <TotalValue>
+              {stats.missionEnd ? "Ended" : "In progress"}
+            </TotalValue>
+          </TotalRow>
+        )}
       </Totals>
 
       {crewAboard.length > 0 && (
@@ -561,6 +594,17 @@ function CrashDetail({ summary }: { summary: CrashReport }) {
                 {kerbalsKilled.includes(name) ? "KIA" : "survived"}
               </DetailRowValue>
             </DetailRow>
+          ))}
+        </DetailSection>
+      )}
+      {events.length > 0 && (
+        <DetailSection>
+          <SectionTitle as="h3" $rule>
+            Flight log ({events.length})
+          </SectionTitle>
+          {events.map((line, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: log lines repeat verbatim and never reorder
+            <DetailMeta key={`${index}:${line}`}>{line}</DetailMeta>
           ))}
         </DetailSection>
       )}

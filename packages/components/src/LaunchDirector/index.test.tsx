@@ -3,6 +3,7 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { getByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -861,6 +862,26 @@ describe("parseLaunchSites", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed?.[0]?.facility).toBe("");
     expect(parsed?.[0]).not.toHaveProperty("unlocked");
+  });
+});
+
+describe("parseLaunchSites coordinates and provenance", () => {
+  it("keeps a site's coordinates as readings and leaves absent ones null rather than zero", () => {
+    const parsed = parseLaunchSites([
+      {
+        name: "LaunchPad",
+        latitude: value("°", -0.0972),
+        longitude: value("°", -74.5577),
+        isStock: true,
+      },
+      { name: "Bare" },
+    ]);
+    expect(parsed?.[0]?.latitude).toEqual(value("°", -0.0972));
+    expect(parsed?.[0]?.longitude).toEqual(value("°", -74.5577));
+    expect(parsed?.[0]?.isStock).toBe(true);
+    expect(parsed?.[1]?.latitude).toBeNull();
+    expect(parsed?.[1]?.longitude).toBeNull();
+    expect(parsed?.[1]?.isStock).toBeNull();
   });
 });
 

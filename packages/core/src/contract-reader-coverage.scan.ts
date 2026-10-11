@@ -860,6 +860,10 @@ export const ELEMENT_READERS: readonly {
     topic: "science.instruments",
   },
   {
+    file: "packages/components/src/Experiments/parse.ts",
+    topic: "science.lab",
+  },
+  {
     file: "packages/app/src/alarms/WarpObserver.ts",
     topic: "time.warp",
     only: ["warpRates"],

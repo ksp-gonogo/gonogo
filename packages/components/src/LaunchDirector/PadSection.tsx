@@ -1,6 +1,10 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
-import { type CommandButtonHandle, SelectableRow } from "@ksp-gonogo/ui-kit";
+import {
+  type CommandButtonHandle,
+  SelectableRow,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { ArmedButton } from "./ArmedButton";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
@@ -107,7 +111,14 @@ export function PadSection(props: PadSectionProps) {
                     <PadDetails>
                       {padKindLabel(site.facility)}
                       {bodyName ? ` · ${bodyName}` : ""}
+                      {site.isStock === false ? " · Modded" : ""}
                     </PadDetails>
+                    {site.latitude && site.longitude && (
+                      <PadDetails>
+                        <Unit value={site.latitude} decimals={2} />{" "}
+                        <Unit value={site.longitude} decimals={2} />
+                      </PadDetails>
+                    )}
                   </PadMeta>
                   <PadOccupancy $occupied={site.occupied} $stacked={narrow}>
                     {occupancyText(site)}

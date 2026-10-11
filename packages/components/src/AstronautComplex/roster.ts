@@ -3,6 +3,8 @@ import {
   CrewStanding,
   crewStandingFromRosterStatus,
   crewStandingLabel,
+  isValue,
+  type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { KerbalStatFields } from "../shared/KerbalStats";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
@@ -48,6 +50,8 @@ export interface CrewRosterRow {
   trait: string;
   /** Rank; `null` when none was carried, which renders as a dash rather than rank zero. */
   experienceLevel: number | null;
+  /** Raw experience points behind the rank; `null` when none was carried. */
+  experience: Value<"1"> | null;
   /** Display label only, for a row whose {@link standing} this build cannot name. */
   situation: string;
   /** `CrewStanding`: the field every decision reads and the Active tab's grouping key; `null` when none was sent. */
@@ -89,6 +93,7 @@ export function crewRowStats(c: CrewRosterRow): KerbalStatFields {
     courage: c.courage,
     stupidity: c.stupidity,
     experienceLevelDelta: c.experienceLevelDelta,
+    experience: c.experience,
     roleDescription: c.roleDescription,
     descriptionEffects: c.descriptionEffects,
   };
@@ -151,6 +156,7 @@ export function readCrewRoster(raw: unknown): CrewRosterRow[] {
       name: typeof e.name === "string" ? e.name : "",
       trait: typeof e.trait === "string" ? e.trait : "",
       experienceLevel: magnitudeOf(asQuantityish(e.experienceLevel)),
+      experience: isValue(e.experience) ? (e.experience as Value<"1">) : null,
       situation: typeof e.situation === "string" ? e.situation : "",
       standing: standingOf(e),
       situationOrdinal:

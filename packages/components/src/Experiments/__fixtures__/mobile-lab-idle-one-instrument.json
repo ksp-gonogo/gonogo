@@ -27,6 +27,7 @@
       "statusText": "Operational",
       "scientistCount": 2,
       "scienceRate": 0,
+      "valueModel": "stock",
       "isOperational": true
     }
   ],
@@ -62,6 +63,7 @@
             "statusText": "Operational",
             "scientistCount": 2,
             "scienceRate": 0,
+            "valueModel": "stock",
             "isOperational": true
           }
         ]

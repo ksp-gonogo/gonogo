@@ -1,4 +1,4 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
 import { FRAME_CAPTION } from "./ContactCaption";
 import type { TargetHorizon } from "./targetOrbit";
@@ -8,14 +8,19 @@ export function TargetOrbitCaption({
   targetName,
   horizon,
   viewUt,
+  quality,
 }: Readonly<{
   targetName: string;
   horizon: TargetHorizon;
   viewUt: Value<"ut"> | undefined;
+  /** Whether the target is on rails or loaded under physics; undefined when its orbit did not say. */
+  quality?: Quality;
 }>) {
   return (
     <div style={FRAME_CAPTION} data-target-horizon={horizon.kind}>
       {targetName} path <TargetHorizonFact horizon={horizon} viewUt={viewUt} />
+      {quality === Quality.OnRails && " · on rails"}
+      {quality === Quality.Loaded && " · loaded"}
     </div>
   );
 }

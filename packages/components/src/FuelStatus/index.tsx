@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { DELTA_V_BUDGET, useProcessor } from "@ksp-gonogo/sitrep-client";
 import {
+  readingOf,
   stillTrue,
   type TinyEssential,
   type Value,
@@ -61,10 +62,13 @@ function FuelStatusComponent({
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
   // The staging structure is a fact: staging is an event, so the last reported stage is still the stage.
-  const currentStage = stillTrue(
-    useTelemetry("vessel.structure"),
-    undefined,
-  )?.currentStage;
+  const structureReading = useTelemetry("vessel.structure");
+  const currentStage = stillTrue(structureReading, undefined)?.currentStage;
+  // A count of parts changes by staging, so a held one is drawn marked.
+  const partCount = readingOf(
+    structureReading,
+    (s) => s.partCount ?? undefined,
+  );
   /*
    * Every total is the game's own figure off `dv.summary`, never a sum of the stage rows, which are built from a different stage list (see `DELTA_V_BUDGET`).
    * A dated budget is carried and marked held rather than blanked: it only falls by burning and rises by staging or docking, so the last figure is still the figure.
@@ -148,6 +152,7 @@ function FuelStatusComponent({
                   : dated(totalBurnTime)
               }
               dryMass={dryMass}
+              partCount={partCount}
               mode={mode}
             />
           </Section>
@@ -177,6 +182,7 @@ registerComponent<FuelStatusConfig>({
   channels: ["vessel.resources"],
   fields: [
     "vessel.structure.currentStage",
+    "vessel.structure.partCount",
     "vessel.propulsion.dryMass",
     "dv.summary.stageCount",
     "dv.summary.totalDvVac",

@@ -493,6 +493,34 @@ describe("FlightOutcomeBanner", () => {
     expect(rowFor("Ground distance")).toHaveTextContent("3.1");
   });
 
+  it("lists the crash's event log, detector and distance figures in its detail", async () => {
+    const fixture = setupOutcomeStream();
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("crash.hasRecent", { recent: true });
+      fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+      fixture.store.beginFrame();
+    });
+
+    await act(async () => {
+      screen.getByRole("button").click();
+    });
+
+    expect(screen.getByText(/CrashSplashdown/)).toBeInTheDocument();
+    expect(screen.getByText(/Flight log \(3\)/)).toBeInTheDocument();
+    expect(screen.getByText("[00:00:00]: Liftoff!!")).toBeInTheDocument();
+    expect(rowFor("Total distance")).toHaveTextContent("7.4 km");
+    expect(rowFor("Highest speed over land")).toHaveTextContent("290");
+    expect(rowFor("Lift-off")).toHaveTextContent("Left the pad");
+    expect(rowFor("Mission")).toHaveTextContent("Ended");
+  });
+
   // The announce key is `(kind, ut)`, so a UT that always read 0 made every
   // crash look like the one already announced.
   // After the first, no crash banner ever fired again; the dedupe below is
