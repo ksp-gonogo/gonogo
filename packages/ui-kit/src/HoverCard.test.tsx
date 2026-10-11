@@ -39,6 +39,24 @@ describe("HoverCard", () => {
     expect(widget.contains(screen.getByRole("tooltip"))).toBe(false);
   });
 
+  it("sits above its trigger, so the rows beneath the trigger stay uncovered", () => {
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        const top = this.tagName === "BUTTON" ? 400 : 0;
+        return new DOMRect(100, top, 20, 20);
+      });
+    const height = vi
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockReturnValue(60);
+    mount();
+    act(() => screen.getByRole("button", { name: "Probe signal" }).focus());
+    const layer = screen.getByRole("tooltip").parentElement as HTMLElement;
+    expect(Number.parseFloat(layer.style.top)).toBeLessThanOrEqual(400 - 60);
+    rect.mockRestore();
+    height.mockRestore();
+  });
+
   it("closes on Escape", () => {
     mount();
     act(() => screen.getByRole("button", { name: "Probe signal" }).focus());

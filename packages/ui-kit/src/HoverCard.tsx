@@ -24,13 +24,20 @@ export interface HoverCardProps {
   children: ReactNode;
 }
 
+/** Floating's distance from its anchor to the layer's near edge. */
+const ANCHOR_GAP = 12;
+/** Floating's minimum distance from the viewport edge. */
+const VIEWPORT_EDGE = 8;
+
 /** How long the card waits after the pointer leaves, so it can cross the gap onto the card. */
 const CLOSE_DELAY_MS = 120;
 
 /**
  * A card of facts about a trigger, shown while the trigger is hovered or
  * focused and gone when neither is, drawn over the page in a {@link Floating}
- * so no panel clips it. Useful for giving the operator detail on an item
+ * so no panel clips it. The card sits above the trigger so the rows beneath it
+ * stay in view and reachable; it drops below the trigger only where there is
+ * no room above. Useful for giving the operator detail on an item
  * without leaving the list. Used by the fleet roster's signal cell and the
  * commcast message rows. The trigger renders as an unstyled `button`. Escape
  * dismisses the card; the pointer can move onto the card without closing it.
@@ -53,6 +60,7 @@ export function HoverCard({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const cardId = useId();
 
   const cancelClose = useCallback(() => {
@@ -86,7 +94,19 @@ export function HoverCard({
 
   const anchor = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    return rect ? { x: rect.left, y: rect.bottom } : null;
+    if (!rect) return null;
+    /*
+     * Floating places its layer ANCHOR_GAP below the anchor, so anchoring a
+     * card's own height plus two gaps above the trigger leaves one gap between
+     * its bottom edge and the trigger. With no room above, the card falls back
+     * to hanging below the trigger.
+     */
+    const cardHeight = cardRef.current?.offsetHeight ?? 0;
+    const above = rect.top - cardHeight - 2 * ANCHOR_GAP;
+    return {
+      x: rect.left,
+      y: above + ANCHOR_GAP >= VIEWPORT_EDGE ? above : rect.bottom,
+    };
   };
 
   return (
@@ -109,7 +129,7 @@ export function HoverCard({
           onPointerEnter={cancelClose}
           onPointerLeave={hideSoon}
         >
-          <HoverCard__Card id={cardId} role="tooltip">
+          <HoverCard__Card ref={cardRef} id={cardId} role="tooltip">
             {children}
           </HoverCard__Card>
         </Floating>
