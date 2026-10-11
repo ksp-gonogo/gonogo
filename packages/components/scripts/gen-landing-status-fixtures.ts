@@ -145,7 +145,6 @@ const MUN: Array<{
       aglMeters: 2800,
       vDown: 42.5,
       vHoriz: 50,
-      burning: true,
     }),
   },
   {
