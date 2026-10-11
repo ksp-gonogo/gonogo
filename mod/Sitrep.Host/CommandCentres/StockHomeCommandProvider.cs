@@ -16,6 +16,11 @@ namespace Sitrep.Host.CommandCentres
     /// career is run from; if none stands there, or two do, the claimant does
     /// not guess and choosing among them is that mod's claimant's job.</para>
     ///
+    /// <para>Once one of several flagged homes has been named it stays home for
+    /// as long as it is still flagged. The career ledger does not move between
+    /// stations because a position read was a frame stale, and a home that
+    /// changed under every connection re-subscribed every stream on each change.</para>
+    ///
     /// <para>The answer is the id <see cref="HomeCentreIds.Mint"/> gives that
     /// home across the same set of homes, so it is always the id the command
     /// centre registry carries for it, whatever the minting rule becomes.</para>
@@ -38,6 +43,7 @@ namespace Sitrep.Host.CommandCentres
 
         private readonly Func<IReadOnlyList<HomeNodeFacts>> _homes;
         private readonly Func<SurfaceSite?> _spaceCentre;
+        private string? _named;
 
         /// <param name="homes">
         /// Every CommNet home in the scene, read live. Called from
@@ -71,11 +77,24 @@ namespace Sitrep.Host.CommandCentres
                 if (homes[i].IsKsc) flagged.Add(i);
             }
 
-            var home = flagged.Count == 1 ? flagged[0] : flagged.Count == 0 ? -1 : AtSpaceCentre(homes, flagged);
+            if (flagged.Count == 0)
+            {
+                _named = null;
+                return HomeCommand.NotIdentified;
+            }
+
+            var ids = HomeCentreIds.Mint(homes);
+            if (flagged.Count > 1 && _named != null && flagged.Exists(i => ids[i] == _named))
+            {
+                return HomeCommand.Identified(_named);
+            }
+
+            var home = flagged.Count == 1 ? flagged[0] : AtSpaceCentre(homes, flagged);
+            _named = home < 0 ? null : ids[home];
 
             return home < 0
                 ? HomeCommand.NotIdentified
-                : HomeCommand.Identified(HomeCentreIds.Mint(homes)[home]);
+                : HomeCommand.Identified(ids[home]);
         }
 
         /// <summary>The one flagged home within tolerance of the space centre, or -1 when none or more than one is.</summary>

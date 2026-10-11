@@ -116,6 +116,48 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Same(HomeCommand.NotIdentified, answer);
         }
 
+        /// <summary>
+        /// Several stations flagged and the one that stood at the space centre
+        /// reads as somewhere else on a later pass, as a position stamped before
+        /// the body turned does under rails warp: home stays where it was named,
+        /// rather than moving to whichever flagged station the drift carries over
+        /// the space centre next.
+        /// </summary>
+        [Fact]
+        public void Stock_EveryHomeFlagged_HomeStaysPutWhileReadPositionsDrift()
+        {
+            var homes = new List<HomeNodeFacts>
+            {
+                new HomeNodeFacts(true, "Cape Canaveral", 28.5, -80.57),
+                new HomeNodeFacts(true, "DSS 14 - Goldstone", 35.43, -116.89),
+            };
+            var provider = new StockHomeCommandProvider(() => homes, () => SpaceCentre);
+
+            Assert.Equal("ground:Cape Canaveral", provider.Identify(NoCentres).CentreId);
+
+            homes[0] = new HomeNodeFacts(true, "Cape Canaveral", 28.5, -20.0);
+            homes[1] = new HomeNodeFacts(true, "DSS 14 - Goldstone", 28.6, -80.6);
+
+            Assert.Equal("ground:Cape Canaveral", provider.Identify(NoCentres).CentreId);
+        }
+
+        [Fact]
+        public void Stock_EveryHomeFlagged_HomeIsReconsideredOnceTheNamedOneIsNoLongerFlagged()
+        {
+            var homes = new List<HomeNodeFacts>
+            {
+                new HomeNodeFacts(true, "Cape Canaveral", 28.5, -80.57),
+                new HomeNodeFacts(true, "DSS 14 - Goldstone", 35.43, -116.89),
+            };
+            var provider = new StockHomeCommandProvider(() => homes, () => SpaceCentre);
+            Assert.Equal("ground:Cape Canaveral", provider.Identify(NoCentres).CentreId);
+
+            homes[0] = new HomeNodeFacts(false, "Cape Canaveral", 28.5, -80.57);
+            homes.Add(new HomeNodeFacts(true, "Pad C", 28.6, -80.6));
+
+            Assert.Equal("ground:Pad C", provider.Identify(NoCentres).CentreId);
+        }
+
         [Fact]
         public void Stock_NoHomes_IsNotIdentified()
         {

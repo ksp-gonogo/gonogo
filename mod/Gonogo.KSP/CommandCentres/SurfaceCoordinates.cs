@@ -56,6 +56,25 @@ namespace Gonogo.KSP.CommandCentres
         }
 
         /// <summary>
+        /// Coordinates already in the body's frame, wrapped the way
+        /// <see cref="TryFrom"/> wraps a converted one. <c>false</c> when either is
+        /// not a real number.
+        /// </summary>
+        internal static bool TryFromBodyFixed(double latitude, double longitude, out double latitudeDeg, out double longitudeDeg)
+        {
+            latitudeDeg = 0.0;
+            longitudeDeg = 0.0;
+            if (!IsReal(latitude) || !IsReal(longitude))
+            {
+                return false;
+            }
+
+            latitudeDeg = latitude;
+            longitudeDeg = NormaliseLongitudeDeg(longitude);
+            return true;
+        }
+
+        /// <summary>
         /// Longitude wrapped into (-180, 180], the convention every geographic
         /// value already on the wire uses (<c>vessel.longitude</c> arrives that way
         /// from stock, and <c>KspHost.PredictImpact</c> wraps its own samples to

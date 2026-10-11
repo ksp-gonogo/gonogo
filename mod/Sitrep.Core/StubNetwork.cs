@@ -752,7 +752,7 @@ namespace Sitrep.Core
         }
 
         /*
-         * The recorded breaks, per node, in the order they were recorded. See
+         * The recorded breaks, per node, ordered by the UT each opened at. See
          * INetwork.DropPath.
          *
          * A list rather than one entry because a route can break more than once
@@ -764,11 +764,51 @@ namespace Sitrep.Core
          * Courier's _owedScenes and not the ledger's to see, so it is
          * deliberately not attempted from here.
          *
+         * Lost is asked once per archived sample on every subscribe, so the
+         * list is ordered and read through a window: a break only ever catches
+         * light sent within its own light-seconds-out of the instant it opened,
+         * so the candidates for one send time are the few breaks whose opening
+         * lies within the node's widest such reach of it.
+         *
          * No _revision bump on write: a break changes no delay, so every cached
          * DelayStamp stays valid (INetwork.DropPath).
          */
-        private readonly Dictionary<string, List<PathDrop>> _drops =
-            new Dictionary<string, List<PathDrop>>();
+        private sealed class DropLedger
+        {
+            public readonly List<PathDrop> ByOpening = new List<PathDrop>();
+            public double WidestReach;
+        }
+
+        private readonly Dictionary<string, DropLedger> _drops =
+            new Dictionary<string, DropLedger>();
+
+        /// <summary>The first index in <paramref name="byOpening"/> whose break opened at or after <paramref name="atUt"/>.</summary>
+        private static int FirstOpenedAtOrAfter(List<PathDrop> byOpening, double atUt)
+        {
+            var lo = 0;
+            var hi = byOpening.Count;
+            while (lo < hi)
+            {
+                var mid = lo + (hi - lo) / 2;
+                if (byOpening[mid].AtUt < atUt)
+                {
+                    lo = mid + 1;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+            return lo;
+        }
+
+        /// <summary>
+        /// Margin on the window edges, so a rounding difference between the
+        /// window's arithmetic and <see cref="PathDrop.Caught"/>'s never drops a
+        /// candidate: <c>Caught</c> itself is always the judge.
+        /// </summary>
+        private static double WindowMargin(double ut, double reach) =>
+            1e-9 * (Math.Abs(ut) + reach) + 1e-6;
 
         public void DropPath(
             string node,
@@ -783,10 +823,14 @@ namespace Sitrep.Core
             var outSeconds = double.IsNaN(lightSecondsOut) || lightSecondsOut < 0
                 ? 0
                 : lightSecondsOut;
-            if (!_drops.TryGetValue(node, out var held))
+            if (double.IsNaN(atUt))
             {
-                held = new List<PathDrop>();
-                _drops[node] = held;
+                return;
+            }
+            if (!_drops.TryGetValue(node, out var ledger))
+            {
+                ledger = new DropLedger();
+                _drops[node] = ledger;
             }
 
             /*
@@ -802,24 +846,43 @@ namespace Sitrep.Core
              * on. A wrongly-declared break deletes telemetry that physically
              * arrived, so the uncertainty resolves to delivering.
              */
-            for (var i = 0; i < held.Count; i++)
+            var held = ledger.ByOpening;
+            var from = FirstOpenedAtOrAfter(held, atUt - ledger.WidestReach - WindowMargin(atUt, ledger.WidestReach));
+            for (var i = from; i < held.Count; i++)
             {
+                if (held[i].AtUt > atUt)
+                {
+                    break;
+                }
                 if (held[i].Blinded(atUt))
                 {
                     return;
                 }
             }
 
-            held.Add(new PathDrop(atUt, outSeconds, restoredAtUt));
+            var at = FirstOpenedAtOrAfter(held, atUt);
+            while (at < held.Count && held[at].AtUt == atUt)
+            {
+                at++;
+            }
+            held.Insert(at, new PathDrop(atUt, outSeconds, restoredAtUt));
+            if (outSeconds > ledger.WidestReach)
+            {
+                ledger.WidestReach = outSeconds;
+            }
         }
 
         public bool Lost(string node, double sentAtUt)
         {
-            if (!_drops.TryGetValue(node, out var held))
+            if (!_drops.TryGetValue(node, out var ledger))
             {
                 return false;
             }
-            for (var i = 0; i < held.Count; i++)
+            var held = ledger.ByOpening;
+            var margin = WindowMargin(sentAtUt, ledger.WidestReach);
+            var from = FirstOpenedAtOrAfter(held, sentAtUt - ledger.WidestReach - margin);
+            var to = sentAtUt + ledger.WidestReach + margin;
+            for (var i = from; i < held.Count && held[i].AtUt <= to; i++)
             {
                 if (held[i].Caught(sentAtUt))
                 {

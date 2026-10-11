@@ -115,15 +115,18 @@ namespace Gonogo.KSP.CommandCentres
         /// </summary>
         private static HomeNodeFacts FactsOf(HomeReading home)
         {
-            double? latitude = null;
-            double? longitude = null;
-            if (SurfaceCoordinates.TryFrom(home.Body, home.Position, out var lat, out var lon))
+            if (home.Body != null && home.Coordinates.HasValue
+                && SurfaceCoordinates.TryFromBodyFixed(home.Coordinates.Value.Latitude, home.Coordinates.Value.Longitude, out var fixedLat, out var fixedLon))
             {
-                latitude = lat;
-                longitude = lon;
+                return new HomeNodeFacts(home.IsKsc, home.NodeName, fixedLat, fixedLon);
             }
 
-            return new HomeNodeFacts(home.IsKsc, home.NodeName, latitude, longitude);
+            if (SurfaceCoordinates.TryFrom(home.Body, home.Position, out var lat, out var lon))
+            {
+                return new HomeNodeFacts(home.IsKsc, home.NodeName, lat, lon);
+            }
+
+            return new HomeNodeFacts(home.IsKsc, home.NodeName, null, null);
         }
 
         /// <summary>
@@ -160,7 +163,8 @@ namespace Gonogo.KSP.CommandCentres
                     home.displaynodeName,
                     comm,
                     CommNetHomeAccess.Body(home),
-                    comm != null ? comm.precisePosition : (Vector3d)anchor.position);
+                    comm != null ? comm.precisePosition : (Vector3d)anchor.position,
+                    comm != null ? CommNetHomeAccess.Coordinates(home) : null);
             }
         }
 
@@ -183,7 +187,14 @@ namespace Gonogo.KSP.CommandCentres
     /// </summary>
     internal readonly struct HomeReading
     {
-        public HomeReading(bool isKsc, string? nodeName, string? displayName, CommNode? comm, CelestialBody? body, Vector3d position)
+        public HomeReading(
+            bool isKsc,
+            string? nodeName,
+            string? displayName,
+            CommNode? comm,
+            CelestialBody? body,
+            Vector3d position,
+            (double Latitude, double Longitude)? coordinates = null)
         {
             IsKsc = isKsc;
             NodeName = nodeName;
@@ -191,6 +202,7 @@ namespace Gonogo.KSP.CommandCentres
             Comm = comm;
             Body = body;
             Position = position;
+            Coordinates = coordinates;
         }
 
         public bool IsKsc { get; }
@@ -199,5 +211,8 @@ namespace Gonogo.KSP.CommandCentres
         public CommNode? Comm { get; }
         public CelestialBody? Body { get; }
         public Vector3d Position { get; }
+
+        /// <summary>The body-fixed degrees the node's position is built from, when stock's own fields were readable.</summary>
+        public (double Latitude, double Longitude)? Coordinates { get; }
     }
 }
