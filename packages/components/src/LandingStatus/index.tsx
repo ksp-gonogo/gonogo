@@ -39,6 +39,7 @@ import { useLandingModel } from "./useLandingModel";
 import { useScrollerHeight } from "./useScrollerHeight";
 // The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them. They draw in this order, the descent envelope last: it is the one that leaves at touchdown, and a plot leaving from the end of the row moves none of the others.
 import "./crossSectionPlot";
+import "./vesselViewPlot";
 import "./touchdownReticlePlot";
 import "./descentLayers";
 import { useLandingEssentials } from "./useLandingEssentials";
@@ -48,7 +49,10 @@ export type { FlightReading } from "./CarriedAltitude";
 type LandingStatusConfig = Record<string, never>;
 
 /** The share of the room below the link rows the plots may take, so in a short tile they shrink and the readouts under them stay in reach. */
-const PLOTS_SHARE_OF_ROOM = 0.6;
+const PLOTS_SHARE_OF_ROOM = 0.85;
+
+/** Plots sat across: two, so each is drawn large enough to read at the default tile. */
+const PLOT_COLUMNS = 2;
 
 function LandingStatusComponent({
   w,
@@ -100,8 +104,10 @@ function LandingStatusComponent({
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
   const idle = landed ? "Landed" : "Awaiting data";
   const reservedPlots: PlotSlot[] = [
-    { subject: "landing-cross-section", title: "Cross-section", note: idle },
+    // The view and the map that projects it sit side by side, so a point is matched across a gutter and not a row.
+    { subject: "vessel-view", title: "Touchdown view", note: idle },
     { subject: "touchdown-site", title: "Touchdown site", note: idle },
+    { subject: "landing-cross-section", title: "Cross-section", note: idle },
     // Only an atmosphere has a descent envelope to wait for.
     ...(atmospheric
       ? [{ subject: "descent-envelope", title: "Descent envelope", note: idle }]
@@ -112,6 +118,7 @@ function LandingStatusComponent({
   const contributedPlots = (
     // gonogo:reads none
     <PlotBoard
+      maxColumns={PLOT_COLUMNS}
       reserve={reservedPlots}
       heightPx={
         railFrame.room > 0 ? railFrame.room * PLOTS_SHARE_OF_ROOM : undefined

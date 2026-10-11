@@ -35,8 +35,9 @@ export function plotGrid(
   widthPx: number,
   gapPx: number,
   heightPx?: number,
+  maxColumns = Number.POSITIVE_INFINITY,
 ): PlotGrid {
-  let columns = Math.max(1, count);
+  let columns = Math.max(1, Math.min(count, maxColumns));
   while (
     columns > 1 &&
     (widthPx - gapPx * (columns - 1)) / columns < MIN_PLOT_PX
@@ -68,6 +69,8 @@ export interface PlotBoardProps {
   title?: string;
   /** The most height the plots may take, headings included, so a host can keep its other content in view; the plots shrink to it, never below `MIN_PLOT_PX`. */
   heightPx?: number;
+  /** The most plots sat across, so a host with a few plots draws them larger than the narrowest they could be. */
+  maxColumns?: number;
   /** Plots the host expects through its whole life, in the order they sit: each keeps its place, drawn as an empty frame while its plot is absent, so a plot arriving or leaving moves nothing. Plots contributed beyond them follow. */
   reserve?: readonly PlotSlot[];
 }
@@ -98,6 +101,7 @@ function slotsOf(
 export function PlotBoard({
   title,
   heightPx,
+  maxColumns,
   reserve = [],
 }: Readonly<PlotBoardProps>) {
   const contributed = useContributions("plots");
@@ -138,7 +142,13 @@ export function PlotBoard({
   // Where nothing lays out, as in a test, the plots take the smallest legible square.
   const grid =
     measured.width > 0
-      ? plotGrid(most.current, measured.width, measured.gap, heightPx)
+      ? plotGrid(
+          most.current,
+          measured.width,
+          measured.gap,
+          heightPx,
+          maxColumns,
+        )
       : { columns: most.current, side: MIN_PLOT_PX };
 
   return (

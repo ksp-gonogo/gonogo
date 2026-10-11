@@ -358,15 +358,52 @@ function hypso(t: number): readonly [number, number, number] {
 }
 
 /** Darkened where the band differs from the neighbour above or left, drawing iso-lines without a second pass. */
+/** The colour that ground with no data is drawn in. */
+const NO_DATA_RGB = [150, 156, 160] as const;
+/** The red a hidden stretch of ground is tinted with. */
+const HIDDEN_TINT = [200, 80, 70] as const;
+
+/** A relief colour under a state: plain, outside the view, hidden by terrain, or without data. */
+function veiled(
+  rgb: readonly [number, number, number],
+  state: number,
+): readonly [number, number, number] {
+  if (state === 3) return NO_DATA_RGB;
+  if (state !== 1 && state !== 2) return rgb;
+  const grey = 0.3 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2];
+  const mix = (c: number, k: number, to: number) => c + (to - c) * k;
+  const flat = rgb.map((c) => mix(mix(c, 0.5, grey), 0.06, 235)) as [
+    number,
+    number,
+    number,
+  ];
+  if (state === 1) return flat;
+  return flat.map((c, i) => mix(c, 0.3, HIDDEN_TINT[i])) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+/** The colour step of an absolute band: the bands repeat up and down the ramp, so no height is out of range and the same height is always the same colour. */
+function cycledStep(band: number, bands: number): number {
+  const period = 2 * (bands - 1);
+  const k = ((band % period) + period) % period;
+  return k < bands ? k : period - k;
+}
+
 function fillFor(
   bandAt: Int16Array,
+  veilAt: Uint8Array,
   grid: number,
   bands: number,
+  absolute: boolean,
   row: number,
   col: number,
 ): string {
   const band = bandAt[row * grid + col];
-  const [r, g, b] = hypso(band / (bands - 1));
+  const step = absolute ? cycledStep(band, bands) : band;
+  const [r, g, b] = veiled(hypso(step / (bands - 1)), veilAt[row * grid + col]);
   const leftBand = col > 0 ? bandAt[row * grid + col - 1] : band;
   const upBand = row > 0 ? bandAt[(row - 1) * grid + col] : band;
   const edge = leftBand !== band || upBand !== band ? 0.5 : 1;
@@ -393,6 +430,9 @@ function ReliefLayer({
     if (v > hi) hi = v;
   }
   const range = hi - lo;
+  const bandMetres =
+    layer.bandMetres != null && layer.bandMetres > 0 ? layer.bandMetres : null;
+  const veil = layer.veil;
   const bands = Math.max(2, layer.bands ?? DEFAULT_RELIEF_BANDS);
   const scaleY = scaleYOf(frame, layer);
 
@@ -410,14 +450,22 @@ function ReliefLayer({
   const flipRows = sy0 < sy1;
 
   const bandAt = new Int16Array(grid * grid);
+  const veilAt = new Uint8Array(grid * grid);
+  const hasVeil = veil != null && veil.length >= size * size;
   for (let row = 0; row < grid; row++) {
     for (let col = 0; col < grid; col++) {
-      const v = sampleGrid(
-        values,
-        size,
-        (col / (grid - 1)) * (size - 1),
-        (row / (grid - 1)) * (size - 1),
-      );
+      const gx = (col / (grid - 1)) * (size - 1);
+      const gy = (row / (grid - 1)) * (size - 1);
+      if (hasVeil) {
+        // The nearest value's state: a state does not blend.
+        veilAt[row * grid + col] =
+          veil[Math.round(gy) * size + Math.round(gx)] ?? 0;
+      }
+      const v = sampleGrid(values, size, gx, gy);
+      if (bandMetres != null) {
+        bandAt[row * grid + col] = Math.floor(v / bandMetres);
+        continue;
+      }
       const t = range > 0 ? (v - lo) / range : 0.5;
       bandAt[row * grid + col] = Math.max(
         0,
@@ -433,7 +481,10 @@ function ReliefLayer({
     let runStart = 0;
     let runFill = "";
     for (let col = 0; col <= grid; col++) {
-      const fill = col < grid ? fillFor(bandAt, grid, bands, row, col) : "";
+      const fill =
+        col < grid
+          ? fillFor(bandAt, veilAt, grid, bands, bandMetres != null, row, col)
+          : "";
       if (col === 0) {
         runFill = fill;
         continue;
@@ -460,6 +511,7 @@ function ReliefLayer({
     <g
       data-plot-layer={layer.id}
       data-plot-layer-kind="relief"
+      shapeRendering="crispEdges"
       opacity={toneOpacity(layer)}
       aria-hidden="true"
     >

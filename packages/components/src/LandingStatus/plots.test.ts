@@ -11,6 +11,15 @@ import {
   buildCrossSectionPlot,
   type CrossSectionInputs,
 } from "./crossSectionPlot";
+import {
+  touchdownScene,
+  VEIL_HIDDEN,
+  VEIL_NONE,
+  VEIL_OUTSIDE,
+  VIEW_FOV_FLOOR_DEG,
+  viewFovDegrees,
+  zoneRing,
+} from "./vesselView";
 // Registers the three contributions the last describe drives, as the widget's own import does.
 import "./descentLayers";
 import {
@@ -20,14 +29,18 @@ import {
   integrate,
   MU,
   R,
+  STORY_RELIEF,
   siteGridHalfExtent,
+  siteGridHeights,
   trackExtent,
 } from "../../scripts/landingDescentModel";
+import type { TouchdownInputs as TouchdownViewInputs } from "./touchdownInputs";
 import {
   buildTouchdownReticlePlot,
   dispersionRadiusMeters,
-  type TouchdownReticleInputs,
+  mapFootprintShare,
 } from "./touchdownReticlePlot";
+import { buildVesselViewPlot } from "./vesselViewPlot";
 
 /**
  * The two site plots as pure functions, checked without a DOM.
@@ -94,14 +107,14 @@ function crossSection(
   };
 }
 
-function reticle(
-  over: Partial<TouchdownReticleInputs> = {},
-): TouchdownReticleInputs {
+function reticle(over: Partial<TouchdownViewInputs> = {}): TouchdownViewInputs {
   return {
     driftMeters: 120,
     driftBearingDeg: 90,
+    altitudeAsl: 400,
+    siteElevation: 100,
     zoneRadiusMeters: 50,
-    slopeDeg: 9,
+    slope: value("°", 9),
     biome: "Midlands",
     hasAtmosphere: false,
     aglMeters: 300,
@@ -1040,12 +1053,14 @@ describe("room around the craft and the site", () => {
     [300, 5000],
     [1000, 8000],
     [3000, 30_000],
-  ])("keeps them off the touchdown plot's edges too", (agl, drift) => {
-    const plot = buildTouchdownReticlePlot(
+  ])("holds the site at the middle of the touchdown view at %f m up with the site %f m off", (agl, drift) => {
+    const plot = buildVesselViewPlot(
       reticle({ aglMeters: agl, driftMeters: drift, driftBearingDeg: 90 }),
     );
-    expect(across(plot, "vessel")).toBeGreaterThanOrEqual(0.12);
-    expect(across(plot, "site")).toBeLessThanOrEqual(0.88);
+    const site = plot?.layers.find((l) => l.id === "site");
+    if (site?.kind !== "marker") throw new Error("expected the site");
+    expect(site.at.x).toBeCloseTo(0, 6);
+    expect(site.at.y).toBeCloseTo(0, 6);
   });
 });
 
@@ -1089,182 +1104,187 @@ describe("the ground strip the mod sends", () => {
   });
 });
 
-describe("touchdown reticle plot", () => {
-  describe("the ground under the marks", () => {
-    const relief = (over: Partial<TouchdownReticleInputs>) => {
-      const plot = buildTouchdownReticlePlot(
-        reticle({ driftBearingDeg: 90, driftMeters: 120, ...over }),
-      );
-      const layer = plot?.layers.find((l) => l.id === "terrain");
-      return layer?.kind === "relief" ? layer : null;
+describe("touchdown view plot", () => {
+  /** A flat grid at `ground` with a wall of `wall` metres more across it at east `at`. */
+  const gridWith = (ground: number, wall = 0, at = -150, half = 400) => {
+    const size = 24;
+    const cell = (2 * half) / size;
+    return {
+      siteHeights: Array.from({ length: size * size }, (_, i) => {
+        const x = -half + ((i % size) + 0.5) * cell;
+        return ground + (Math.abs(x - at) < cell ? wall : 0);
+      }),
+      siteHeightsSize: size,
+      siteHeightsExtentMeters: 2 * half,
     };
-
-    it("is drawn from the site grid, first, under every other mark", () => {
-      const plot = buildTouchdownReticlePlot(reticle({ ...grid() }));
-      expect(plot?.layers[0].id).toBe("terrain");
+  };
+  /** A craft 60 m up and 300 m west of the site, looking east at it. */
+  const low = (over: Partial<TouchdownViewInputs> = {}) =>
+    reticle({
+      driftMeters: 300,
+      driftBearingDeg: 90,
+      aglMeters: 60,
+      altitudeAsl: 160,
+      siteElevation: 100,
+      ...gridWith(100),
+      ...over,
     });
+  const ids = (plot: PlotEntry | null) => (plot?.layers ?? []).map((l) => l.id);
 
-    it("lays the grid out as the mod sends it: north at the top, over the grid's own extent", () => {
-      const layer = relief(grid());
-      if (!layer) throw new Error("expected a relief");
-      expect(layer.size).toBe(24);
-      expect(layer.bounds).toEqual({ x0: -120, y0: -120, x1: 120, y1: 120 });
-      expect(layer.values).toEqual(grid().siteHeights);
+  it("places every point of the ring at its true ground position and projects it through the camera", () => {
+    // A wall across the ring: the ring rides up it, so a flat circle nudged would not match.
+    const inputs = low({ ...gridWith(100, 40, 20, 400), aglMeters: 120 });
+    const scene = touchdownScene(inputs);
+    if (!scene) throw new Error("expected a scene");
+    const radius = inputs.zoneRadiusMeters ?? 0;
+    const expected = zoneRing(scene, radius, 72).flatMap(([x, y]) => {
+      const at = scene.camera.project(scene.groundAt(x, y));
+      return at ? [at] : [];
     });
-
-    it("is hatched on every side the grid does not reach, from exactly where it ends", () => {
-      // The vessel is 120 m out, so the window reaches 138 m and the grid only 120 m.
-      const plot = buildTouchdownReticlePlot(reticle({ ...grid() }));
-      const ids = (plot?.layers ?? [])
-        .filter((l) => l.kind === "region" && l.hatched === true)
-        .map((l) => l.id)
-        .sort();
-      expect(ids).toEqual([
-        "unsampled-above",
-        "unsampled-below",
-        "unsampled-left",
-        "unsampled-right",
-      ]);
-      const left = plot?.layers.find((l) => l.id === "unsampled-left");
-      if (left?.kind !== "region") throw new Error("expected a region");
-      expect(left.boundary.every((p) => p.x === -120)).toBe(true);
-    });
-
-    it("is not hatched where the grid covers the whole window", () => {
-      // The grid the mod sends for this window.
-      const plot = buildTouchdownReticlePlot(
-        reticle({
-          ...grid(),
-          siteHeightsExtentMeters: 2 * siteGridHalfExtent(40, 100),
-          driftMeters: 40,
-          aglMeters: 100,
-        }),
-      );
+    const drawn = (buildVesselViewPlot(inputs)?.layers ?? [])
+      .filter((l) => l.id.startsWith("landing-zone"))
+      .flatMap((l) => (l.kind === "series" ? l.points : []));
+    expect(drawn.length).toBeGreaterThan(30);
+    for (const p of drawn) {
       expect(
-        (plot?.layers ?? []).some((l) => l.kind === "region" && l.hatched),
-      ).toBe(false);
-    });
-
-    it("is hatched across the whole window when no ground was sampled", () => {
-      const plot = buildTouchdownReticlePlot(reticle());
-      const whole = plot?.layers.find((l) => l.id === "unsampled");
-      expect(whole?.kind === "region" && whole.hatched).toBe(true);
-    });
-
-    it("is absent without a whole grid, and the rest of the reticle stays", () => {
-      expect(relief({})).toBeNull();
-      expect(relief({ ...grid(), siteHeights: [1, 2, 3] })).toBeNull();
-      const holed = grid().siteHeights;
-      holed[10] = Number.NaN;
-      expect(relief({ ...grid(), siteHeights: holed })).toBeNull();
-      expect(relief({ ...grid(), siteHeightsExtentMeters: null })).toBeNull();
-      expect(buildTouchdownReticlePlot(reticle())).not.toBeNull();
-    });
+        expected.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < 1e-9),
+      ).toBe(true);
+    }
+    // The wall lifts part of the ring: its points do not all lie at the site's height.
+    const heights = zoneRing(scene, radius, 72).map(
+      ([x, y]) => scene.groundAt(x, y)[2],
+    );
+    expect(Math.max(...heights) - Math.min(...heights)).toBeGreaterThan(5);
   });
 
-  describe("the grid under the window", () => {
-    it.each([
-      [8000, 0],
-      [8000, 4000],
-      [3000, 1500],
-      [1000, 200],
-      [291, 60],
-      [100, 0],
-      [30, 5],
-      [5, 0],
-      [3000, 30_000],
-    ])("covers the whole window at %f m up with the site %f m off, in cells narrow enough to read", (height, drift) => {
-      const half = siteGridHalfExtent(drift, height);
-      const size = 24;
-      const plot = buildTouchdownReticlePlot(
-        reticle({
-          aglMeters: height,
-          driftMeters: drift,
-          driftBearingDeg: 45,
-          siteHeights: Array.from({ length: size * size }, () => 100),
-          siteHeightsSize: size,
-          siteHeightsExtentMeters: 2 * half,
+  it("is a screen: both axes the same, from one edge to the other", () => {
+    const frame = frameOf(buildVesselViewPlot(low()));
+    expect(frame.kind).toBe("spatial");
+    expect(frame.xDomain).toEqual([-1, 1]);
+    expect(frame.yDomain).toEqual([-1, 1]);
+  });
+
+  it("narrows its field of view as the craft comes down", () => {
+    const fov = (agl: number) => viewFovDegrees(agl);
+    expect(fov(8000)).toBeGreaterThan(fov(1000));
+    expect(fov(1000)).toBeGreaterThan(fov(100));
+    expect(fov(0)).toBe(VIEW_FOV_FLOOR_DEG);
+    const caption = buildVesselViewPlot(low())?.layers.find(
+      (l) => l.id === "fov",
+    );
+    expect(caption?.kind === "caption" && caption.text).toContain("FOV");
+  });
+
+  it("draws the ground, the ring, the site and the track when nothing stands in the way", () => {
+    const plot = buildVesselViewPlot(low());
+    expect(ids(plot)).toEqual(
+      expect.arrayContaining(["terrain", "landing-zone", "drift", "site"]),
+    );
+    expect(ids(plot).filter((id) => id.includes("hidden"))).toEqual([]);
+  });
+
+  it("draws what a ridge between the craft and the site hides faint, not left out", () => {
+    const plot = buildVesselViewPlot(low(gridWith(100, 200, -150)));
+    expect(ids(plot)).toContain("landing-zone-hidden");
+    const site = plot?.layers.find((l) => l.id === "site");
+    expect(site?.kind === "marker" && site.tone).toBe("neutral");
+    const hidden = plot?.layers.find((l) => l.id === "landing-zone-hidden");
+    expect(hidden?.kind === "series" && hidden.dashed).toBe(true);
+  });
+
+  it("shows the site again once the craft has risen clear of the ridge", () => {
+    const plot = buildVesselViewPlot(
+      low({ ...gridWith(100, 200, -150), altitudeAsl: 900, aglMeters: 800 }),
+    );
+    const site = plot?.layers.find((l) => l.id === "site");
+    expect(site?.kind === "marker" && site.tone).toBe("info");
+  });
+
+  it("draws the skyline without letting a mountain beyond the site hide the site", () => {
+    // Terrain at 12 degrees above the level on every bearing is farther than anything the plot marks.
+    const sky = Array.from({ length: 72 }, () => 12);
+    const plot = buildVesselViewPlot(low({ horizonAngles: sky }));
+    const site = plot?.layers.find((l) => l.id === "site");
+    expect(site?.kind === "marker" && site.tone).toBe("info");
+    expect(ids(plot)).toContain("skyline");
+  });
+
+  it("puts the horizon and sky in the top half and the near ground in the bottom half of the view", () => {
+    // A craft 600 m up looking obliquely at a site 2 km away, over ground with a mountain beyond the site: far ground and sky lie ahead, the near ground below.
+    const size = 24;
+    const half = 3000;
+    const plot = buildVesselViewPlot(
+      reticle({
+        driftMeters: 2000,
+        driftBearingDeg: 90,
+        aglMeters: 600,
+        altitudeAsl: 700,
+        siteElevation: 100,
+        horizonAngles: Array.from({ length: 72 }, () => -2),
+        siteHeights: Array.from({ length: size * size }, (_, i) => {
+          const x = -half + ((i % size) + 0.5) * ((2 * half) / size);
+          return x > 500 ? 600 : 100;
         }),
-      );
-      // No hatching: the grid reaches every side of the window.
-      expect(
-        (plot?.layers ?? []).filter((l) => l.kind === "region").length,
-      ).toBe(0);
-      const [lo, hi] = frameOf(plot).xDomain;
-      const cell = (2 * half) / size;
-      expect((hi - lo) / cell).toBeGreaterThanOrEqual(10);
-    });
+        siteHeightsSize: size,
+        siteHeightsExtentMeters: 2 * half,
+      }),
+    );
+    const terrain = plot?.layers.find((l) => l.id === "terrain");
+    if (terrain?.kind !== "relief" || !terrain.veil) {
+      throw new Error("expected a veiled relief");
+    }
+    const veil = terrain.veil;
+    const n = terrain.size;
+    // The relief's first row is the foot of the plot, so a larger row is higher in the view.
+    const meanRow = (veiled: boolean) => {
+      const rows = veil
+        .map((v, i) => ({ v, row: Math.floor(i / n) }))
+        .filter((c) => (c.v !== 0) === veiled)
+        .map((c) => c.row);
+      return rows.reduce((a, b) => a + b, 0) / Math.max(1, rows.length);
+    };
+    expect(meanRow(true)).toBeGreaterThan(n / 2);
+    expect(meanRow(false)).toBeLessThan(n / 2);
+    // The site is ahead and below the craft, on the way to the horizon: its cross sits in the middle of the view, the mountain's skyline above it.
+    const skyline = plot?.layers.find((l) => l.id === "skyline");
+    if (skyline?.kind !== "series") throw new Error("expected the skyline");
+    expect(Math.max(...skyline.points.map((p) => p.y))).toBeGreaterThan(0);
+  });
+
+  it("draws no skyline without a profile", () => {
+    expect(ids(buildVesselViewPlot(low()))).not.toContain("skyline");
+  });
+
+  it("holds the ground at the surface over the sea", () => {
+    const plot = buildVesselViewPlot(
+      low({ ...gridWith(-80), siteElevation: -80, hasOcean: true }),
+    );
+    // Every cell of the raster is the same height: the sea's surface, whatever the floor.
+    const terrain = plot?.layers.find((l) => l.id === "terrain");
+    const values = terrain?.kind === "relief" ? terrain.values : [];
+    const hit = values.filter((v) => v === 0);
+    expect(hit.length).toBeGreaterThan(0);
+  });
+
+  it("draws no plot without a site to look at or a height to look from", () => {
+    expect(buildVesselViewPlot(low({ driftMeters: null }))).toBeNull();
+    expect(
+      buildVesselViewPlot(
+        low({ altitudeAsl: null, siteElevation: null, siteHeights: null }),
+      ),
+    ).toBeNull();
+  });
+
+  it("marks where a crashed craft came down, with the unknown stretch dashed", () => {
+    const plot = buildVesselViewPlot(
+      low({ impact: { distanceMeters: 250, bearingDeg: 90 } }),
+    );
+    expect(ids(plot)).toEqual(
+      expect.arrayContaining(["unknown-path", "impact"]),
+    );
   });
 
   describe("the dispersion ring", () => {
-    const ringOf = (plot: PlotEntry | null) => {
-      const l = plot?.layers.find((x) => x.id === "landing-zone");
-      if (l?.kind !== "series") throw new Error("expected the ring");
-      return l;
-    };
-
-    it("is drawn at its real radius while it fits the window", () => {
-      const plot = buildTouchdownReticlePlot(
-        reticle({ zoneRadiusMeters: 50, aglMeters: 300, driftMeters: 100 }),
-      );
-      const top = Math.max(...ringOf(plot).points.map((p) => p.y));
-      expect(top).toBeCloseTo(50, 6);
-    });
-
-    it("holds the whole ring at its real radius in the window, however wide it is", () => {
-      for (const radius of [400, 2000, 20_000]) {
-        const plot = buildTouchdownReticlePlot(
-          reticle({
-            zoneRadiusMeters: radius,
-            aglMeters: 300,
-            driftMeters: 100,
-          }),
-        );
-        const ring = ringOf(plot);
-        const [xLo, xHi] = frameOf(plot).xDomain;
-        const [yLo, yHi] = frameOf(plot).yDomain;
-        expect(Math.max(...ring.points.map((p) => p.y))).toBeCloseTo(radius, 6);
-        for (const p of ring.points) {
-          expect(p.x).toBeGreaterThan(xLo);
-          expect(p.x).toBeLessThan(xHi);
-          expect(p.y).toBeGreaterThan(yLo);
-          expect(p.y).toBeLessThan(yHi);
-        }
-      }
-    });
-
-    it("never grows on screen over the last three kilometres of the fall: its share of the window only falls", () => {
-      let previous = Number.POSITIVE_INFINITY;
-      for (const f of integrate({})) {
-        if (f.landed || f.aglMeters > 3000) continue;
-        const g = MU / (R + f.aglMeters) ** 2;
-        const drift = ballisticDrift(f.aglMeters, f.vDown, f.vHoriz, g);
-        const fall =
-          (-f.vDown + Math.sqrt(f.vDown ** 2 + 2 * g * f.aglMeters)) / g;
-        const radius = dispersionRadiusMeters({
-          sampled: true,
-          heightMeters: f.aglMeters,
-          horizontalSpeed: f.vHoriz,
-          timeToImpact: fall,
-        });
-        const plot = buildTouchdownReticlePlot(
-          reticle({
-            zoneRadiusMeters: radius,
-            aglMeters: f.aglMeters,
-            driftMeters: drift,
-          }),
-        );
-        const ring = plot?.layers.find((x) => x.id === "landing-zone");
-        if (ring?.kind !== "series") throw new Error("expected the ring");
-        const [lo, hi] = frameOf(plot).xDomain;
-        const share = (ring.points[0].y - 0) / ((hi - lo) / 2);
-        expect(share, `at ${f.aglMeters.toFixed(0)} m`).toBeLessThanOrEqual(
-          previous + 0.03,
-        );
-        previous = Math.min(previous, share);
-      }
-    });
-
     it("is the prediction's uncertainty: it narrows as the sideways travel still to come is spent, to a floor at touchdown", () => {
       // A coasting craft 100 m/s sideways, its fall time falling as it comes down, then the speed spent on the last stretch.
       const descent = [
@@ -1292,6 +1312,19 @@ describe("touchdown reticle plot", () => {
       expect(floor).toBeLessThan(30);
     });
 
+    it("keeps narrowing with the height still to fall when nothing moves sideways", () => {
+      const radius = (heightMeters: number) =>
+        dispersionRadiusMeters({
+          sampled: true,
+          heightMeters,
+          horizontalSpeed: 0,
+          timeToImpact: null,
+        });
+      expect(radius(2000) ?? 0).toBeGreaterThan(radius(500) ?? 0);
+      expect(radius(500) ?? 0).toBeGreaterThan(radius(50) ?? 0);
+      expect(radius(50)).toBeGreaterThan(radius(0) ?? 0);
+    });
+
     it("is nothing when no site was sampled", () => {
       expect(
         dispersionRadiusMeters({
@@ -1304,249 +1337,207 @@ describe("touchdown reticle plot", () => {
     });
   });
 
-  describe("the site's name", () => {
-    it("says how wide a patch the roughness was measured across, and nothing of it when unsent", () => {
-      const siteOf = (over: Partial<TouchdownReticleInputs>) =>
-        buildTouchdownReticlePlot(reticle(over))?.layers.find(
-          (l) => l.id === "site",
-        )?.description;
-      expect(siteOf({ roughnessFootprint: value("m", 100) })).toContain(
-        "roughness measured across 100 m",
-      );
-      expect(siteOf({})).not.toContain("roughness");
-    });
-  });
-
-  describe("closing in to touchdown", () => {
-    it("narrows the window with every metre of height, with no height below which it stops", () => {
-      let previous = Number.POSITIVE_INFINITY;
-      for (let height = 300; height >= 0; height -= 5) {
-        const [lo, hi] = frameOf(
-          buildTouchdownReticlePlot(
-            reticle({ driftMeters: 0, aglMeters: height }),
-          ),
-        ).xDomain;
-        expect(hi - lo, `at ${height} m`).toBeLessThan(previous);
-        previous = hi - lo;
-      }
-    });
-
-    it("is still wide enough at touchdown to read as a site, not a zoom artefact", () => {
-      const [lo, hi] = frameOf(
-        buildTouchdownReticlePlot(reticle({ driftMeters: 0, aglMeters: 0 })),
-      ).xDomain;
-      expect(hi - lo).toBeGreaterThanOrEqual(100);
-    });
-  });
-
-  describe("over the sea", () => {
-    const size = 24;
-    const sea = (depth: number) => ({
-      siteHeights: Array.from({ length: size * size }, () => depth),
-      siteHeightsSize: size,
-      siteHeightsExtentMeters: 1000,
-    });
-    const plotOf = (heights: ReturnType<typeof sea>, hasOcean?: boolean) =>
-      buildTouchdownReticlePlot(
-        reticle({ ...heights, aglMeters: 100, driftMeters: 40, hasOcean }),
-      );
-
-    it("fills the window with water when the whole grid is under it", () => {
-      const water = (plotOf(sea(-140), true)?.layers ?? []).find(
-        (l) => l.id === "sea",
-      );
-      expect(water?.kind).toBe("region");
-      expect(water?.tone).toBe("info");
-    });
-
-    it("holds the ground at the surface, so the floor's shape is not drawn as terrain", () => {
-      const heights = sea(-140);
-      heights.siteHeights[100] = -20;
-      const t = plotOf(heights, true)?.layers.find((l) => l.id === "terrain");
-      if (t?.kind !== "relief") throw new Error("expected the relief");
-      expect(Math.max(...t.values)).toBeLessThanOrEqual(0);
-      expect(Math.min(...t.values)).toBeGreaterThanOrEqual(0);
-    });
-
-    describe("its moving surface", () => {
-      const SEA = {
-        siteOnBody: { east: 123_456, north: -7_890 },
-        gravity: 9.81,
-      };
-      const withSea = (
-        heights: ReturnType<typeof sea>,
-        over: Partial<TouchdownReticleInputs> = {},
-      ) =>
-        buildTouchdownReticlePlot(
-          reticle({
-            ...heights,
-            aglMeters: 100,
-            driftMeters: 40,
-            hasOcean: true,
-            sea: SEA,
-            ...over,
-          }),
-        );
-      const waterOf = (plot: PlotEntry | null) => {
-        const w = plot?.layers.find((l) => l.id === "sea");
-        return w?.kind === "water" ? w : null;
-      };
-
-      it("draws a grid wholly under the sea as water seen from above, on the ground's own bounds, fixed to the body", () => {
-        const plot = withSea(sea(-140));
-        const w = waterOf(plot);
-        expect(w?.view).toBe("plan");
-        expect(w?.origin).toEqual(SEA.siteOnBody);
-        expect(w?.gravity).toBe(9.81);
-        expect(w?.sea).toBeUndefined();
-        // The relief's bounds exactly, so the water is shaded on the cells the land is.
-        const relief = plot?.layers.find((l) => l.id === "terrain");
-        if (relief?.kind !== "relief") throw new Error("expected the relief");
-        expect(w?.bounds).toEqual(relief.bounds);
-      });
-
-      it("hands a coast the ground's own heights, so the sea meets the land cell for cell", () => {
-        const heights = sea(-140);
-        heights.siteHeights = heights.siteHeights.map((_, i) =>
-          i % size < size / 2 ? -140 : 40,
-        );
-        const w = waterOf(withSea(heights));
-        expect(w?.sea?.size).toBe(size);
-        // The heights as the mod sent them, below the surface where the sea is: the land's own relief is held at the surface.
-        expect(w?.sea?.heights).toEqual(heights.siteHeights);
-        expect(w?.bounds).toEqual({ x0: -500, y0: -500, x1: 500, y1: 500 });
-      });
-
-      it("is drawn in the body's own liquid colour, and in the theme's water where the body gives none", () => {
-        const eve = waterOf(
-          withSea(sea(-140), { sea: { ...SEA, liquidColor: "#AD94BE" } }),
-        );
-        expect(eve?.tint).toBe("#AD94BE");
-        expect(eve?.tone).toBe("info");
-        expect(waterOf(withSea(sea(-140)))?.tint).toBeUndefined();
-      });
-
-      it("draws no water over land, and a flat fill when the site's place or the gravity is not known", () => {
-        expect(waterOf(withSea(sea(120)))).toBeNull();
-        const flat = withSea(sea(-140), { sea: null })?.layers.find(
-          (l) => l.id === "sea",
-        );
-        expect(flat?.kind).toBe("region");
-      });
-
-      it("draws it over the ground and under every mark", () => {
-        const ids = (withSea(sea(-140))?.layers ?? []).map((l) => l.id);
-        expect(ids.indexOf("sea")).toBeGreaterThan(ids.indexOf("terrain"));
-        expect(ids.indexOf("sea")).toBeLessThan(ids.indexOf("site"));
-      });
-    });
-
-    it("draws no water over land, or when the body is not known to have an ocean", () => {
-      expect(
-        (plotOf(sea(120), true)?.layers ?? []).some((l) => l.id === "sea"),
-      ).toBe(false);
-      expect(
-        (plotOf(sea(-140), undefined)?.layers ?? []).some(
-          (l) => l.id === "sea",
-        ),
-      ).toBe(false);
-    });
-  });
-
-  describe("following the craft", () => {
-    const at = (driftMeters: number, aglMeters = 1000) =>
-      buildTouchdownReticlePlot(
-        reticle({ driftMeters, driftBearingDeg: 90, aglMeters }),
-      );
-    const siteFraction = (plot: PlotEntry | null) => {
-      const [lo, hi] = frameOf(plot).xDomain;
-      return (0 - lo) / (hi - lo);
-    };
-
-    it("is centred between the craft and the site, so both are seen to move", () => {
-      const plot = at(3000);
-      const [xLo, xHi] = frameOf(plot).xDomain;
-      const [yLo, yHi] = frameOf(plot).yDomain;
-      expect((xLo + xHi) / 2).toBeCloseTo(-1500, 6);
-      expect((yLo + yHi) / 2).toBeCloseTo(0, 6);
-      expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
-    });
-
-    it("moves the site across the frame toward its middle as the craft closes on it", () => {
-      // A craft 5 km up with the site 3 km off: the window is the cone's width, not the distance, so the marks travel across it.
-      const fractions = [3000, 2000, 1000, 400, 0].map((d) =>
-        siteFraction(at(d, 5000)),
-      );
-      for (let i = 1; i < fractions.length; i++) {
-        expect(fractions[i]).toBeLessThan(fractions[i - 1]);
-      }
-      expect(fractions[0]).toBeGreaterThan(0.65);
-      expect(fractions[fractions.length - 1]).toBeCloseTo(0.5, 6);
-    });
-
-    it("holds the craft and the site inside the frame whatever the distance", () => {
-      for (const d of [0, 40, 400, 4000, 40_000]) {
-        const plot = at(d);
-        const [xLo, xHi] = frameOf(plot).xDomain;
-        for (const id of ["site", "vessel"]) {
-          const m = plot?.layers.find((l) => l.id === id);
-          if (m?.kind !== "marker") throw new Error("expected a marker");
-          expect(m.at.x).toBeGreaterThan(xLo);
-          expect(m.at.x).toBeLessThan(xHi);
-        }
-      }
-    });
-
-    it("zooms with the craft's height, so the window is about the cone's width", () => {
-      const half = (agl: number) => {
-        const [lo, hi] = frameOf(at(0, agl)).xDomain;
-        return (hi - lo) / 2;
-      };
-      expect(half(2000)).toBeGreaterThan(half(500));
-      expect(half(500)).toBeGreaterThan(half(100));
-    });
-
-    it("draws the ground track the cross-section is cut along, through the craft and the site", () => {
-      const plot = buildTouchdownReticlePlot(
-        reticle({
-          driftMeters: 400,
-          driftBearingDeg: 90,
-          aglMeters: 500,
-          trackBehindMeters: -500,
-          trackAheadMeters: 900,
-        }),
-      );
-      const track = plot?.layers.find((l) => l.id === "ground-track");
-      if (track?.kind !== "series") throw new Error("expected the track");
-      const [a, b] = [track.points[0], track.points[track.points.length - 1]];
-      // Along the bearing (east), from 500 m behind the craft to 900 m ahead of it.
-      expect(a.x).toBeCloseTo(-400 - 500, 6);
-      expect(b.x).toBeCloseTo(-400 + 900, 6);
-      expect(a.y).toBeCloseTo(0, 6);
-    });
-  });
-
-  it("contributes NOTHING without a site to centre on", () => {
-    expect(
-      buildTouchdownReticlePlot(reticle({ driftMeters: null })),
-    ).toBeNull();
-    expect(
-      buildTouchdownReticlePlot(reticle({ driftBearingDeg: null })),
-    ).toBeNull();
-  });
-
   it("names the slope and the biome only when it has them", () => {
-    const known = buildTouchdownReticlePlot(reticle());
+    const known = buildVesselViewPlot(reticle());
     const site = known?.layers.find((l) => l.id === "site");
     expect(site?.description).toContain("Midlands");
     expect(site?.description).toMatch(/9\.0°/);
 
-    const unknown = buildTouchdownReticlePlot(
-      reticle({ slopeDeg: null, biome: null }),
-    );
+    const unknown = buildVesselViewPlot(reticle({ slope: null, biome: null }));
     const bareSite = unknown?.layers.find((l) => l.id === "site");
     // An absent slope is NOT a flat site, so nothing is said about one.
     expect(bareSite?.description).toBe("predicted touchdown site");
+  });
+});
+
+describe("touchdown map, the projection of the view", () => {
+  const size = 24;
+  const half = 400;
+  const cell = (2 * half) / size;
+  const gridWith = (wall = 0, at = -150) => ({
+    siteHeights: Array.from({ length: size * size }, (_, i) => {
+      const x = -half + ((i % size) + 0.5) * cell;
+      return 100 + (Math.abs(x - at) < cell ? wall : 0);
+    }),
+    siteHeightsSize: size,
+    siteHeightsExtentMeters: 2 * half,
+  });
+  const low = (over: Partial<TouchdownViewInputs> = {}) =>
+    reticle({
+      driftMeters: 300,
+      driftBearingDeg: 90,
+      aglMeters: 60,
+      altitudeAsl: 160,
+      siteElevation: 100,
+      ...gridWith(),
+      ...over,
+    });
+  const ids = (plot: PlotEntry | null) => (plot?.layers ?? []).map((l) => l.id);
+
+  const relief = (plot: PlotEntry | null) => {
+    const layer = plot?.layers.find((l) => l.id === "terrain");
+    if (layer?.kind !== "relief") throw new Error("expected the relief");
+    return layer;
+  };
+
+  it("outlines the frame's footprint and veils the ground outside it, keeping the relief and its colours under it", () => {
+    const plot = buildTouchdownReticlePlot(low());
+    expect(ids(plot)).toContain("frame");
+    const terrain = relief(plot);
+    expect(terrain.veil?.some((v) => v === VEIL_OUTSIDE)).toBe(true);
+    expect(terrain.veil?.some((v) => v === VEIL_NONE)).toBe(true);
+    // The heights are untouched by the veil: the ground keeps the colour its height gives it.
+    expect(new Set(terrain.values).size).toBeGreaterThan(0);
+  });
+
+  it("darkens the ground behind a ridge as hidden, and none when nothing is in the way", () => {
+    const hidden = (plot: PlotEntry | null) =>
+      relief(plot).veil?.filter((v) => v === VEIL_HIDDEN).length ?? 0;
+    expect(hidden(buildTouchdownReticlePlot(low()))).toBe(0);
+    expect(
+      hidden(buildTouchdownReticlePlot(low(gridWith(45, -150)))),
+    ).toBeGreaterThan(0);
+  });
+
+  it("colours by absolute height in the same bands as the view, whatever else the grid holds", () => {
+    const bandOf = (l: PlotLayer | undefined) =>
+      l?.kind === "relief" ? l.bandMetres : undefined;
+    const withRidge = low(gridWith(200, -150));
+    const flat = low();
+    for (const inputs of [withRidge, flat]) {
+      const map = relief(buildTouchdownReticlePlot(inputs));
+      const view = buildVesselViewPlot(inputs)?.layers.find(
+        (l) => l.id === "terrain",
+      );
+      expect(bandOf(view)).toBeGreaterThan(0);
+      expect(bandOf(view)).toBe(map.bandMetres);
+    }
+  });
+
+  it("draws the ring, the site and the track as the view does", () => {
+    const mark = (plot: PlotEntry | null, id: string) =>
+      plot?.layers.find((l) => l.id === id);
+    const map = buildTouchdownReticlePlot(low());
+    const view = buildVesselViewPlot(low());
+    for (const id of ["landing-zone", "drift"]) {
+      const a = mark(map, id);
+      const b = mark(view, id);
+      expect(a?.kind === "series" && b?.kind === "series").toBe(true);
+      if (a?.kind === "series" && b?.kind === "series") {
+        expect([a.tone, a.dashed ?? false, a.weight]).toEqual([
+          b.tone,
+          b.dashed ?? false,
+          b.weight,
+        ]);
+      }
+    }
+    const a = mark(map, "site");
+    const b = mark(view, "site");
+    expect(a?.kind === "marker" && a.tone).toBe(b?.kind === "marker" && b.tone);
+  });
+
+  it("points the map the way the craft looks, with the site ahead, and marks bearings in degrees", () => {
+    const plot = buildTouchdownReticlePlot(low());
+    const at = (id: string) => {
+      const m = plot?.layers.find((l) => l.id === id);
+      if (m?.kind !== "marker") throw new Error(`expected the ${id}`);
+      return m.at;
+    };
+    // Heading east: the craft is behind the site on the same line, so on the map the site is straight above it.
+    expect(at("site").x).toBeCloseTo(at("vessel").x, 6);
+    expect(at("site").y).toBeGreaterThan(at("vessel").y);
+    // North is to the left of a map that points east, and 090 is straight up.
+    expect(at("bearing-0").x).toBeLessThan(0);
+    expect(at("bearing-90").x).toBeCloseTo(0, 6);
+    expect(at("bearing-90").y).toBeGreaterThan(0);
+    const label = plot?.layers.find((l) => l.id === "bearing-90");
+    expect(label?.kind === "marker" && label.label).toBe("090°");
+    const heading = plot?.layers.find((l) => l.id === "heading");
+    expect(heading?.kind === "caption" && heading.text).toBe("HDG 090°");
+  });
+
+  it("draws ground to the north at the top of a map that points north, not mirrored", () => {
+    const size = 24;
+    // The grid's first rows are its northern edge: high ground to the north, low to the south.
+    const siteHeights = Array.from({ length: size * size }, (_, i) =>
+      Math.floor(i / size) < size / 2 ? 200 : 100,
+    );
+    const plot = buildTouchdownReticlePlot(
+      reticle({
+        driftBearingDeg: 0,
+        driftMeters: 100,
+        altitudeAsl: 300,
+        siteElevation: 150,
+        aglMeters: 150,
+        siteHeights,
+        siteHeightsSize: size,
+        siteHeightsExtentMeters: 400,
+      }),
+    );
+    const relief = plot?.layers.find((l) => l.id === "terrain");
+    if (relief?.kind !== "relief") throw new Error("expected the ground");
+    const n = relief.size;
+    const row = (r: number) => relief.values.slice(r * n, (r + 1) * n);
+    const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    // The relief layer's first row is the foot of the map.
+    expect(mean(row(n - 1))).toBeGreaterThan(mean(row(0)));
+  });
+
+  it("fills the map's set share with the frame's footprint at each height, more of it near the ground", () => {
+    for (const agl of [60, 200, 600]) {
+      const plot = buildTouchdownReticlePlot(
+        low({ aglMeters: agl, altitudeAsl: 100 + agl, driftMeters: 100 }),
+      );
+      const frame = plot?.layers.find((l) => l.id === "frame");
+      if (frame?.kind !== "series") throw new Error("expected the frame");
+      const xs = frame.points.map((p) => p.x);
+      const ys = frame.points.map((p) => p.y);
+      const across = Math.max(
+        Math.max(...xs) - Math.min(...xs),
+        Math.max(...ys) - Math.min(...ys),
+      );
+      const [x0, x1] = frameOf(plot).xDomain;
+      expect(across / (x1 - x0), `at ${agl} m`).toBeCloseTo(
+        mapFootprintShare(agl),
+        2,
+      );
+    }
+  });
+
+  it("closes in with the field of view through the whole descent, never zooming out", () => {
+    let previous = Number.POSITIVE_INFINITY;
+    for (const f of integrate({})) {
+      if (f.landed) continue;
+      const g = MU / (R + f.aglMeters) ** 2;
+      const drift = ballisticDrift(f.aglMeters, f.vDown, f.vHoriz, g);
+      const fall =
+        (-f.vDown + Math.sqrt(f.vDown ** 2 + 2 * g * f.aglMeters)) / g;
+      const halfExtent = siteGridHalfExtent(drift, f.aglMeters);
+      const plot = buildTouchdownReticlePlot(
+        reticle({
+          zoneRadiusMeters: dispersionRadiusMeters({
+            sampled: true,
+            heightMeters: f.aglMeters,
+            horizontalSpeed: f.vHoriz,
+            timeToImpact: fall,
+          }),
+          aglMeters: f.aglMeters,
+          altitudeAsl: 120 + f.aglMeters,
+          siteElevation: 120,
+          driftMeters: Math.max(drift, 0.01),
+          driftBearingDeg: 90,
+          siteHeights: siteGridHeights(halfExtent, 120, STORY_RELIEF),
+          siteHeightsSize: 24,
+          siteHeightsExtentMeters: 2 * halfExtent,
+        }),
+      );
+      const [x0, x1] = frameOf(plot).xDomain;
+      expect(x1 - x0, `at ${f.aglMeters.toFixed(0)} m`).toBeLessThanOrEqual(
+        previous * 1.02,
+      );
+      previous = Math.min(previous, x1 - x0);
+    }
+    expect(previous).toBeLessThan(60);
   });
 });
 

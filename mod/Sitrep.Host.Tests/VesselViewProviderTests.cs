@@ -2366,6 +2366,31 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildLandingCarriesTheHorizonProfile()
+        {
+            var angles = new double[LandingHorizon.AzimuthCount];
+            for (var i = 0; i < angles.Length; i++)
+            {
+                angles[i] = -80.0 + i;
+            }
+
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                landing: new Dictionary<string, object?>
+                {
+                    ["outcome"] = "terrain-assessed",
+                    ["horizonAngles"] = angles,
+                });
+
+            var landing = VesselViewProvider.BuildLanding(snapshot);
+
+            Assert.NotNull(landing);
+            Assert.Equal(angles, landing!.HorizonAngles);
+            var wire = (IDictionary<string, object?>)VesselViewProvider.BuildLandingWire(snapshot)!;
+            Assert.Equal(angles, (double[])wire["horizonAngles"]!);
+        }
+
+        [Fact]
         public void BuildLandingReturnsNullWhenGroupIsAbsentGateClosed()
         {
             // KspHost.BuildLanding omits the "landing" group entirely when the

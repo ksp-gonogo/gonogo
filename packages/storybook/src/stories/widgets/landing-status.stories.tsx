@@ -66,6 +66,14 @@ export const ShallowApproach: Story = {
   args: { shallow: true },
 };
 
+/**
+ * A low approach: the craft starts 250 m up and 300 m short of the site, with a ridge standing between. The touchdown view hides the site and its circle behind the ridge until the craft has come down clear of it.
+ */
+export const LowApproachOverARidge: Story = {
+  name: "Low approach over a ridge",
+  args: { low: true },
+};
+
 /** The shallow approach at the wide size, played all the way to the touchdown. */
 export const ShallowApproachWide: Story = {
   name: "Shallow approach, wide",

@@ -148,8 +148,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.predictedSlopeHeading":
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
-  "field:vessel.landing.predictedTerrainElevation":
-    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.slopeAngleUnderVessel":
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.slopeSampleRadiusMeters":

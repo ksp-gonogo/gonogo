@@ -253,7 +253,7 @@ export interface PlotCaptionLayer extends PlotLayerBase {
 export interface PlotReliefLayer extends PlotLayerBase {
   /** Marks this layer as a relief. */
   kind: "relief";
-  /** Row-major, exactly `size * size` finite samples. */
+  /** Row-major, exactly `size * size` finite samples, the first row along `bounds.y0`: the foot of the plot when its Y axis runs up. */
   values: readonly number[];
   /** The N of the NxN grid. */
   size: number;
@@ -261,6 +261,14 @@ export interface PlotReliefLayer extends PlotLayerBase {
   bounds: { x0: number; y0: number; x1: number; y1: number };
   /** Discrete elevation bands. Defaults to 6. */
   bands?: number;
+  /**
+   * Colours by absolute height instead of across the values' own range: each band is this many metres of height, and the colours repeat up and down the ramp, so the same height is the same colour whatever else is drawn with it.
+   */
+  bandMetres?: number;
+  /**
+   * A state per value, one each, in the same order as `values`, for ground that is not plainly seen, drawn without changing the height it is coloured by or darkening it: `0` plain, `1` outside the view (desaturated), `2` hidden by terrain (desaturated and tinted red), `3` no data (flat grey). Defaults to plain everywhere.
+   */
+  veil?: readonly number[];
 }
 
 /**

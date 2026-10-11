@@ -8,6 +8,7 @@ import {
   fixtureFromChannels,
   groundTrackDistances,
   groundTrackElevations,
+  horizonAngles,
   type Relief,
   SITE_GRID_SIZE,
   siteGridHalfExtent,
@@ -403,6 +404,16 @@ export function atmosphereChannelsFor(
       ),
       siteHeightsSize: SITE_GRID_SIZE,
       siteHeightsExtentMeters: 2 * halfExtent,
+      horizonAngles: horizonAngles(
+        { east: -drift, north: 0, altitude: f.asl },
+        // Over the sea the surface is what is seen, whatever the floor below it.
+        (e, n) =>
+          world.ocean
+            ? 0
+            : elevation + LAND_RELIEF(e, n, 0) - LAND_RELIEF(0, 0, 0),
+        body.radius,
+        f.aglMeters,
+      ),
     },
   };
 }

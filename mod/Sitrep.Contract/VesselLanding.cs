@@ -156,6 +156,20 @@ public class VesselLanding
     [SitrepUnit(Units.Metres)]
     public double[]? SiteHeights { get; set; }
 
+    /// <summary>The skyline the vessel sees, for a view from the vessel: 72 values,
+    /// entry <c>i</c> looking along bearing <c>i * 5</c> degrees clockwise from north,
+    /// each the highest angle above the level, in degrees, at which terrain is seen
+    /// along that bearing out to about 30 km (or the horizon, if nearer). The ground
+    /// curves away below the level by <c>range / (2 * radius)</c>, which is included.
+    /// It carries the relief beyond <see cref="SiteHeights"/>, which holds only the
+    /// ground around the vessel and the site: a view uses it to draw distant hills
+    /// and to tell far ground from sky. It says nothing of what hides a nearer
+    /// point, since the grid already holds all the ground between the vessel and the
+    /// site. Taken from where the vessel was up to a couple of seconds ago. Null when
+    /// no site could be sampled.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double[]? HorizonAngles { get; set; }
+
     /// <summary>The number of values along each side of <see cref="SiteHeights"/>.
     /// Null when there is no grid.</summary>
     [SitrepUnit(Units.Count)]

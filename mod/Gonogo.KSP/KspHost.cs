@@ -2616,6 +2616,7 @@ namespace Gonogo.KSP
             SampleTerrain(result, vessel, orbit, body);
             SampleGroundTrack(result, vessel, body, lowestPointHeight.Value);
             SampleSiteGrid(result, vessel, body, lowestPointHeight.Value);
+            SampleHorizon(result, vessel, body, lowestPointHeight.Value);
 
             // Outcome: atmosphere headlines when it was actually SOLVED, else
             // terrain-assessed once we have a slope reading, else the bare
@@ -2811,6 +2812,66 @@ namespace Gonogo.KSP
                 result["siteHeights"] = siteGridHeights;
                 result["siteHeightsSize"] = LandingSiteGrid.Size;
                 result["siteHeightsExtentMeters"] = 2 * siteGridHalfExtent;
+            }
+        }
+
+        /// <summary>The horizon profile last taken, kept between ticks so it is retaken far less often than the strip.</summary>
+        private static double[]? horizonAngles;
+        private static double horizonLat;
+        private static double horizonLon;
+        private static long horizonTicks;
+
+        /// <summary>
+        /// Sample the skyline the vessel sees into <c>horizonAngles</c>:
+        /// <see cref="LandingHorizon.AzimuthCount"/> bearings by
+        /// <see cref="LandingHorizon.RangeSamples"/> terrain reads. That is the most
+        /// expensive of the landing samples, so <see cref="LandingHorizon.NeedsRefresh"/>
+        /// holds it to one profile a second at the very most, and usually one in two,
+        /// sending the last one again in between. Does nothing without a predicted site,
+        /// like the other terrain samples.
+        /// </summary>
+        private static void SampleHorizon(
+            Dictionary<string, object?> result,
+            Vessel vessel,
+            CelestialBody body,
+            double heightAboveTerrain)
+        {
+            if (!(result.ContainsKey("predictedLatitude") && result.ContainsKey("predictedLongitude")))
+            {
+                return;
+            }
+
+            double r = body.Radius;
+            double lat = vessel.latitude;
+            double lon = vessel.longitude;
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            double seconds = (now - horizonTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
+            double moved = horizonAngles == null
+                ? 0.0
+                : LandingGroundTrack.DistanceMeters(horizonLat, horizonLon, lat, lon, r);
+            if (LandingHorizon.NeedsRefresh(horizonAngles != null, seconds, moved, heightAboveTerrain))
+            {
+                double eye = vessel.altitude;
+                bool sea = body.ocean;
+                horizonAngles = LandingHorizon.Profile(
+                    (azimuth, range) =>
+                    {
+                        var p = LandingGroundTrack.Destination(lat, lon, azimuth, range, r);
+                        // The sea's surface is what is seen over an ocean, not the floor under it.
+                        var terrain = body.TerrainAltitude(p.lat, p.lon, allowNegative: true);
+                        return sea ? Math.Max(terrain, 0.0) : terrain;
+                    },
+                    eye,
+                    r,
+                    LandingHorizon.RangeLimit(heightAboveTerrain, r));
+                horizonLat = lat;
+                horizonLon = lon;
+                horizonTicks = now;
+            }
+
+            if (horizonAngles != null)
+            {
+                result["horizonAngles"] = horizonAngles;
             }
         }
 

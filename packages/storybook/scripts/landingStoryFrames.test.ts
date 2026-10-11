@@ -17,19 +17,20 @@ import {
 import "../../components/src/LandingStatus/descentLayers";
 import "../../components/src/LandingStatus/crossSectionPlot";
 import "../../components/src/LandingStatus/touchdownReticlePlot";
+import "../../components/src/LandingStatus/vesselViewPlot";
 import { emitsOf, playbackOf, type StoryWorld } from "./landingPlaybackModel";
 
 /**
  * Every story played frame by frame through the widget's own plots, as an operator watches it: nothing on screen may jump further between two frames than the craft itself moved.
- * A jump the craft's motion does not explain is the window re-anchoring, or the fixture's own figures leaping, and either reads as a glitch.
+ * A jump the craft's motion does not explain is the window re-anchoring, or the fixture's own figures leaping, and either reads as a glitch. The touchdown view is a camera aimed at the site, so its mark never leaves the middle and its field of view only narrows.
  */
 registerStockBodies();
 
-/** The most the dispersion ring may grow between two frames, as a share of it. */
-const RING_HAIR = 0.001;
-
 /** How far the picture may re-frame itself between two frames on top of the craft's own motion, as a share of the frame: the window follows the craft smoothly, a few tenths of a percent a frame. */
 const REFRAME_ALLOWANCE = 0.015;
+
+/** The same for the touchdown map, whose window is the frame's footprint and so closes in with the field of view as well as following the craft: a few percent a frame at the one-second steps of the high descent, a few tenths at the pace it is played. */
+const MAP_REFRAME_ALLOWANCE = 0.04;
 
 const STORIES: readonly [string, readonly Frame[], boolean, StoryWorld][] = [
   ["the crash", integrate({ crash: true }), true, "mun"],
@@ -56,18 +57,26 @@ const STORIES: readonly [string, readonly Frame[], boolean, StoryWorld][] = [
 ];
 
 /** Each Topic a frame sends, as a contribution's `compute` is handed it: the payload in its units, current. */
-function topicsOf(frame: Frame, world: StoryWorld): Record<string, unknown> {
+function topicsOf(
+  frame: Frame,
+  world: StoryWorld,
+  roll = 0,
+): Record<string, unknown> {
   // Nothing is on record as a crash while a descent is in flight.
   const topics: Record<string, unknown> = {
     "crash.lastCrash": { state: "absent", atUt: value("ut", 100) },
   };
   for (const e of emitsOf(frame, world)) {
+    const cloned = structuredClone(e.value);
+    const payload: Record<string, unknown> =
+      typeof cloned === "object" && cloned !== null ? { ...cloned } : {};
+    if (e.channel === "vessel.attitude") {
+      payload.roll = roll;
+      payload.rollRootFrame = roll;
+    }
     topics[e.channel] = {
       state: "observed",
-      value: wrapTopicPayload<unknown>(
-        e.channel as TopicId,
-        structuredClone(e.value),
-      ),
+      value: wrapTopicPayload<unknown>(e.channel as TopicId, payload),
       atUt: value("ut", 100),
       reckoning: { status: "none" },
     };
@@ -115,13 +124,14 @@ describe.each(STORIES)("%s, frame by frame", (_name, all, crash, world) => {
     frame: f,
     cross: plotOf("core:cross-section", topicsOf(f, world)),
     site: plotOf("core:touchdown-reticle", topicsOf(f, world)),
+    view: plotOf("core:vessel-view", topicsOf(f, world)),
   }));
 
   it.each([
     ["the cross-section", "cross", "vessel"],
-    ["the touchdown plot", "site", "vessel"],
-    ["the touchdown plot", "site", "site"],
-  ] as const)("never jumps %s's %s further than the craft moved", (_plot, key, mark) => {
+    ["the touchdown map", "site", "vessel"],
+    ["the touchdown map", "site", "site"],
+  ] as const)("never jumps %s's %s further than the craft moved", (plot, key, mark) => {
     let checked = 0;
     for (let i = 1; i < plots.length; i++) {
       const before = plots[i - 1][key];
@@ -135,37 +145,61 @@ describe.each(STORIES)("%s, frame by frame", (_name, all, crash, world) => {
       expect(
         Math.hypot(b.x - a.x, b.y - a.y),
         `frame ${i} (t=${plots[i].frame.t.toFixed(1)} s, ${plots[i].frame.aglMeters.toFixed(0)} m up)`,
-      ).toBeLessThanOrEqual(explained + REFRAME_ALLOWANCE);
+      ).toBeLessThanOrEqual(
+        explained +
+          (plot === "the touchdown map"
+            ? MAP_REFRAME_ALLOWANCE
+            : REFRAME_ALLOWANCE),
+      );
       checked++;
     }
     expect(checked).toBeGreaterThan(10);
   });
 
-  it("keeps the touchdown plot closing in to the ground: no two frames in a row of the descent show the same window", () => {
-    const shown = plots.filter((p) => p.site != null);
-    expect(shown.length).toBeGreaterThan(10);
-    for (let i = 1; i < shown.length; i++) {
-      const before = shown[i - 1].site?.frame.xDomain;
-      const after = shown[i].site?.frame.xDomain;
-      if (shown[i].frame.aglMeters === shown[i - 1].frame.aglMeters) continue;
-      expect(
-        after,
-        `frame ${i} at ${shown[i].frame.aglMeters.toFixed(1)} m`,
-      ).not.toEqual(before);
+  it("draws the same three plots whatever the vessel's roll", () => {
+    for (const f of flying.filter((_, i) => i % 3 === 0)) {
+      for (const id of [
+        "core:cross-section",
+        "core:touchdown-reticle",
+        "core:vessel-view",
+      ]) {
+        expect(
+          JSON.stringify(plotOf(id, topicsOf(f, world, 63))),
+          `${id} at t=${f.t.toFixed(1)} s`,
+        ).toBe(JSON.stringify(plotOf(id, topicsOf(f, world, 0))));
+      }
     }
+  }, 60_000);
+
+  it("slides the ground lattice under the craft: the dots move across the map while the craft moves", () => {
+    const dotsAt = (i: number) =>
+      plots[i].site?.layers.find((l) => l.id === "lattice-dots");
+    let moved = 0;
+    for (let i = 1; i < plots.length; i++) {
+      const before = dotsAt(i - 1)?.points;
+      const after = dotsAt(i)?.points;
+      if (before && after && before.length === after.length) {
+        const shift = before.some(
+          (p, k) =>
+            Math.abs(p.x - after[k].x) + Math.abs(p.y - after[k].y) > 1e-6,
+        );
+        if (shift) moved++;
+      }
+    }
+    expect(moved).toBeGreaterThan(5);
   });
 
-  it("never widens the dispersion ring while the craft comes down", () => {
-    const radii = plots
-      .map((p) => p.site?.layers.find((l) => l.id === "landing-zone")?.points)
-      .filter((points) => points != null)
-      .map((points) => Math.max(...points.map((p) => Math.hypot(p.x, p.y))));
-    expect(radii.length).toBeGreaterThan(10);
-    for (let i = 1; i < radii.length; i++) {
-      // A canopy opening lengthens the fall, so a sideways speed of a fraction of a millimetre a second can add a hair of travel back; never more than a thousandth of the ring.
-      expect(radii[i], `frame ${i}`).toBeLessThanOrEqual(
-        radii[i - 1] * (1 + RING_HAIR),
-      );
+  it("narrows the vessel view's field of view as the craft comes down, and never widens it", () => {
+    const fovs = plots.flatMap((p) => {
+      const layer = p.view?.layers.find((l) => l.id === "fov");
+      return layer && "text" in layer && typeof layer.text === "string"
+        ? [Number.parseFloat(layer.text.slice(4))]
+        : [];
+    });
+    expect(fovs.length).toBeGreaterThan(10);
+    for (let i = 1; i < fovs.length; i++) {
+      expect(fovs[i], `frame ${i}`).toBeLessThanOrEqual(fovs[i - 1]);
     }
+    expect(fovs[fovs.length - 1]).toBeLessThan(fovs[0] - 20);
   });
 });

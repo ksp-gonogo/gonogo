@@ -9762,6 +9762,20 @@ export interface VesselLanding
 	*/
 	siteHeights?: Value<"m">[] | null;
 	/**
+	* The skyline the vessel sees, for a view from the vessel: 72 values, entry
+	* `i` looking along bearing `i * 5` degrees clockwise from north, each the
+	* highest angle above the level, in degrees, at which terrain is seen along
+	* that bearing out to about 30 km (or the horizon, if nearer). The ground
+	* curves away below the level by `range / (2 * radius)`, which is included. It
+	* carries the relief beyond `VesselLanding.siteHeights`, which holds only the
+	* ground around the vessel and the site: a view uses it to draw distant hills
+	* and to tell far ground from sky. It says nothing of what hides a nearer
+	* point, since the grid already holds all the ground between the vessel and
+	* the site. Taken from where the vessel was up to a couple of seconds ago.
+	* Null when no site could be sampled.
+	*/
+	horizonAngles?: Value<"°">[] | null;
+	/**
 	* The number of values along each side of `VesselLanding.siteHeights`. Null
 	* when there is no grid.
 	*/

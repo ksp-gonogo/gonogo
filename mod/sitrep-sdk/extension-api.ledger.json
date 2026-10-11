@@ -10497,6 +10497,14 @@
         "note": "a vessel marker names how its position is known: current, held, modelled or lost"
       },
       {
+        "key": "sitrep-sdk . PlotReliefLayer#bandMetres?",
+        "note": "a relief can colour by absolute height in bands of a set number of metres, repeating up the ramp, so a height is always the same colour"
+      },
+      {
+        "key": "sitrep-sdk . PlotReliefLayer#veil?",
+        "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
+      },
+      {
         "key": "sitrep-sdk . PlotWaterLayer",
         "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
       },
@@ -11427,6 +11435,14 @@
       {
         "key": "sitrep-sdk ./registry ~PlotMarkerLayer#markState?",
         "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotReliefLayer#bandMetres?",
+        "note": "a relief can colour by absolute height in bands of a set number of metres, repeating up the ramp, so a height is always the same colour"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotReliefLayer#veil?",
+        "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
       },
       {
         "key": "sitrep-sdk ./registry ~PlotWaterLayer",
@@ -12393,6 +12409,14 @@
         "note": "a vessel marker names how its position is known: current, held, modelled or lost"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotReliefLayer#bandMetres?",
+        "note": "a relief can colour by absolute height in bands of a set number of metres, repeating up the ramp, so a height is always the same colour"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotReliefLayer#veil?",
+        "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
+      },
+      {
         "key": "sitrep-sdk ./spine ~PlotWaterLayer",
         "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
       },
@@ -12727,6 +12751,14 @@
       {
         "key": "sitrep-sdk ./testing ~PlotMarkerLayer#markState?",
         "note": "a vessel marker names how its position is known: current, held, modelled or lost"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotReliefLayer#bandMetres?",
+        "note": "a relief can colour by absolute height in bands of a set number of metres, repeating up the ramp, so a height is always the same colour"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotReliefLayer#veil?",
+        "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
       },
       {
         "key": "sitrep-sdk ./testing ~PlotWaterLayer",

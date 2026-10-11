@@ -198,14 +198,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // the two speed components set its frame and its vector. Every number a
   // READER sees still leaves through `writeQuantity`.
   "packages/components/src/LandingStatus/crossSectionPlot.ts": 10,
+  // 11: the inputs of the two touchdown plots. The great-circle drift takes plain degrees, and the dispersion zone is not on the wire at all: it is a horizontal-travel estimate that needs the speeds, the time to impact and, in vacuum, a surface gravity backed out of mu and the radius.
+  "packages/components/src/LandingStatus/touchdownInputs.ts": 11,
   // 3: the crash site's great-circle distance from the last reading, which takes plain degrees.
   "packages/components/src/LandingStatus/crashImpact.ts": 3,
-  // 20: the reticle, and the highest of the three because it derives the most.
-  // Four coordinates for the great-circle drift, the patch and its footprint
-  // for the relief, and the dispersion zone, which is not on the wire at all:
-  // it is a horizontal-travel estimate that needs the speed, the time to impact
-  // and, in vacuum, a surface gravity backed out of mu and the radius.
-  "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 16,
   /*
    * 3: the burn's first post-burn patch drawn as the planned conic. A
    * `ProjectedOrbit` is plain numbers because core's maneuver solver computes
@@ -489,7 +485,8 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is the alarm service reading the view instant into the plain UT seconds an alarm is stored, sent and settled in.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
-  "packages/components": 111,
+  // Four more are the touchdown view reading wire quantities into the plain numbers its camera projects with, each at one call in touchdownInputs.ts: the sample arrays (the camera's per-pixel sampler indexes plain numbers), the grid's extent (the world scale of its ray march), and the craft's altitude and the site's elevation (where the camera places the eye and the ground it looks at).
+  "packages/components": 115,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

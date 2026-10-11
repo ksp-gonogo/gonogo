@@ -426,7 +426,7 @@ describe("LandingStatusComponent", () => {
       });
     });
     expect(
-      await screen.findByRole("img", { name: /touchdown site/i }),
+      await screen.findByRole("img", { name: /^Touchdown site;/ }),
     ).toBeInTheDocument();
     // The 20° slope trips a DIVERT verdict in a status banner.
     const statuses = screen.getAllByRole("status");

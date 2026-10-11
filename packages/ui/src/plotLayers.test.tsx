@@ -435,3 +435,67 @@ describe("open water", () => {
     expect(order.indexOf("sea")).toBeLessThan(order.indexOf("site"));
   });
 });
+
+describe("the relief layer's row order", () => {
+  it("draws the first row of its values along the foot of the plot, where bounds.y0 is", () => {
+    const { container } = chart([
+      {
+        kind: "relief",
+        id: "r",
+        size: 2,
+        // The first row high, the second low.
+        values: [1, 1, 0, 0],
+        bounds: { x0: 0, y0: 0, x1: 100, y1: 1000 },
+      },
+    ]);
+    const rects = [
+      ...(drawn(container, "r")?.querySelectorAll("rect") ?? []),
+    ].map((r) => ({
+      y: Number(r.getAttribute("y")),
+      fill: r.getAttribute("fill"),
+    }));
+    const lowest = rects.reduce((a, b) => (b.y > a.y ? b : a));
+    const highest = rects.reduce((a, b) => (b.y < a.y ? b : a));
+    // The high value is at the foot (the largest y on screen), the low one at the top.
+    expect(lowest.fill).not.toBe(highest.fill);
+    expect(lowest.fill).toBe("rgb(132, 130, 116)");
+  });
+});
+
+describe("the relief layer's absolute bands", () => {
+  const fills = (values: number[], bandMetres?: number) => {
+    const { container } = chart([
+      {
+        kind: "relief",
+        id: "r",
+        size: 2,
+        values,
+        bounds: { x0: 0, y0: 0, x1: 100, y1: 1000 },
+        bands: 6,
+        ...(bandMetres === undefined ? {} : { bandMetres }),
+      },
+    ]);
+    return new Set(
+      [...(drawn(container, "r")?.querySelectorAll("rect") ?? [])].map((r) =>
+        r.getAttribute("fill"),
+      ),
+    );
+  };
+
+  it("colours a height the same whatever else is drawn with it", () => {
+    const alone = fills([40, 40, 40, 40], 20);
+    const among = fills([40, 40, 900, 900], 20);
+    for (const fill of alone) expect(among.has(fill)).toBe(true);
+  });
+
+  it("repeats up and down the ramp, so a height far above the first band still has a colour", () => {
+    const low = fills([0, 0, 0, 0], 20);
+    const highCycle = fills([200, 200, 200, 200], 20);
+    expect(highCycle.size).toBe(1);
+    expect(low).toEqual(fills([400, 400, 400, 400], 20));
+  });
+
+  it("normalises across the values when no band is named", () => {
+    expect(fills([0, 0, 500, 500]).size).toBeGreaterThan(1);
+  });
+});

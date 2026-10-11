@@ -32,6 +32,13 @@ export const SHALLOW_DESCENT: DescentStart = {
   vHoriz: 100,
 };
 
+/** A low approach: a few hundred metres up and moving slowly across the ground, so the site is seen over the ground between, not from above it. */
+export const RIDGE_APPROACH_DESCENT: DescentStart = {
+  agl: 250,
+  vDown: 3,
+  vHoriz: 40,
+};
+
 export interface Frame {
   t: number;
   aglMeters: number;
@@ -486,6 +493,93 @@ export const DEFAULT_RELIEF: Relief = (east, north, cell = 0) =>
     0,
   );
 
+/**
+ * The relief the stories fly over: the stock relief with real features near the descent path, so what the craft sees is not a flat plain. A ridge a few hundred metres short of the site, a hill off to the north east, a mountain beyond the site that stands on the skyline, and rocks and a broken slope around the site itself.
+ * Positions are metres east and north of the site.
+ */
+const ROCKS: readonly (readonly [number, number, number, number, number])[] = [
+  [12, 8, 5, 5, 2.2],
+  [-18, 14, 6, 4, 1.8],
+  [25, -10, 8, 6, 2.5],
+  [-8, -22, 4, 4, 1.5],
+  [40, 25, 10, 8, 3],
+  [-35, -30, 9, 7, 2.8],
+  [5, 35, 12, 9, 3.5],
+  [-3, -6, 3, 3, 1.2],
+];
+
+export const STORY_RELIEF: Relief = (east, north, cell = 0) => {
+  // Like the stock swells, a feature narrower than the spacing the ground is read at is not seen at all.
+  const bump = (e: number, n: number, se: number, sn: number, h: number) =>
+    h *
+    Math.exp(-(((east - e) / se) ** 2) - ((north - n) / sn) ** 2) *
+    Math.exp(-((cell / se / 1.2) ** 2) - (cell / sn / 1.2) ** 2);
+  // Rocks and a broken slope within a few tens of metres of the site, so the last stretch of a descent has ground to match and not a flat plain.
+  const small = ROCKS.reduce(
+    (sum, [e, n, se, sn, h]) => sum + bump(e, n, se, sn, h),
+    0,
+  );
+  const undulation =
+    4 *
+      resolved(1 / 45, cell) *
+      resolved(1 / 60, cell) *
+      Math.sin(east / 45 + north / 60 + 0.7) +
+    3 *
+      resolved(1 / 70, cell) *
+      resolved(1 / 35, cell) *
+      Math.sin(north / 35 - east / 70 + 2.1);
+  return (
+    DEFAULT_RELIEF(east, north, cell) +
+    bump(-350, 0, 120, 1800, 260) +
+    bump(3000, 2500, 900, 900, 700) +
+    bump(12_000, -1000, 3000, 2500, 2600) +
+    small +
+    undulation
+  );
+};
+
+/** Bearings in the horizon profile; `LandingHorizon.AzimuthCount` in the mod. */
+export const HORIZON_AZIMUTHS = 72;
+/** Terrain reads along each bearing; `LandingHorizon.RangeSamples`. */
+const HORIZON_RANGE_SAMPLES = 40;
+const HORIZON_MIN_RANGE_M = 30;
+const HORIZON_MAX_RANGE_M = 30_000;
+
+/**
+ * The skyline a craft at `eye` sees over `terrain`, as the mod takes it: for each of 72 bearings the greatest angle above the level at which ground is seen along it, with the ground's curve below the level.
+ * Mirrors `LandingHorizon.Profile`; `heightAboveTerrain` sets how far out the reads reach, to the horizon or 30 km.
+ */
+export function horizonAngles(
+  eye: { east: number; north: number; altitude: number },
+  terrain: (east: number, north: number) => number,
+  radius: number,
+  heightAboveTerrain: number,
+): number[] {
+  const h = Math.max(0, heightAboveTerrain);
+  const limit = Math.min(
+    HORIZON_MAX_RANGE_M,
+    Math.max(HORIZON_MIN_RANGE_M * 2, Math.sqrt(2 * radius * h + h * h)),
+  );
+  const ratio = Math.log(limit / HORIZON_MIN_RANGE_M);
+  return Array.from({ length: HORIZON_AZIMUTHS }, (_, a) => {
+    const az = ((a * 360) / HORIZON_AZIMUTHS) * DEG;
+    let best = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < HORIZON_RANGE_SAMPLES; i++) {
+      const range =
+        HORIZON_MIN_RANGE_M *
+        Math.exp((ratio * i) / (HORIZON_RANGE_SAMPLES - 1));
+      const ground = terrain(
+        eye.east + range * Math.sin(az),
+        eye.north + range * Math.cos(az),
+      );
+      const angle =
+        Math.atan((ground - eye.altitude) / range - range / (2 * radius)) / DEG;
+      if (angle > best) best = angle;
+    }
+    return best;
+  });
+}
+
 /** Elevations at the strip's distances, the track running east: fixed in the world, so the same ground is read again each frame, and passing through the site's own elevation at the site. */
 export function groundTrackElevations(
   distances: readonly number[],
@@ -612,6 +706,8 @@ function attitudeFor(f: Frame): Record<string, number> {
 export function channelsFor(
   f: Frame,
   oneWaySeconds: number,
+  /** The ground under the descent; the stock relief, with no horizon profile, when omitted. */
+  relief?: Relief,
 ): Record<string, unknown> {
   const vSurf = Math.sqrt(f.vDown * f.vDown + f.vHoriz * f.vHoriz);
   const terrain = terrainFor(f.aglMeters);
@@ -689,10 +785,25 @@ export function channelsFor(
         distances,
         drift,
         SITE_ELEVATION_M,
+        relief,
       ),
-      siteHeights: siteGridHeights(halfExtent, SITE_ELEVATION_M),
+      siteHeights: siteGridHeights(halfExtent, SITE_ELEVATION_M, relief),
       siteHeightsSize: SITE_GRID_SIZE,
       siteHeightsExtentMeters: 2 * halfExtent,
+      ...(relief
+        ? {
+            horizonAngles: horizonAngles(
+              {
+                east: -drift,
+                north: 0,
+                altitude: SITE_ELEVATION_M + f.aglMeters,
+              },
+              (e, n) => SITE_ELEVATION_M + relief(e, n, 0) - relief(0, 0, 0),
+              R,
+              f.aglMeters,
+            ),
+          }
+        : {}),
     },
   };
 }
@@ -771,6 +882,11 @@ export function streamFixture(
   oneWaySeconds: number,
   scenario: string,
   notes: string,
+  relief?: Relief,
 ): Record<string, unknown> {
-  return fixtureFromChannels(channelsFor(f, oneWaySeconds), scenario, notes);
+  return fixtureFromChannels(
+    channelsFor(f, oneWaySeconds, relief),
+    scenario,
+    notes,
+  );
 }

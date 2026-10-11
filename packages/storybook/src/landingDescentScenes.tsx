@@ -5,6 +5,7 @@ import {
 } from "../../components/scripts/landingAtmosphereModel";
 import {
   integrate,
+  RIDGE_APPROACH_DESCENT,
   SHALLOW_DESCENT,
 } from "../../components/scripts/landingDescentModel";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
@@ -33,6 +34,8 @@ export interface LandingDescentSceneProps {
   crash?: boolean;
   /** Begins as a shallow approach: low and slow, under five degrees below level, instead of the deep descent from 8 km. */
   shallow?: boolean;
+  /** Begins as a low approach: a few hundred metres up, so the ridge short of the site stands between the craft and it. */
+  low?: boolean;
   /** Where the descent takes place; the Mun when omitted. */
   world?: StoryWorld;
   w?: number;
@@ -47,6 +50,7 @@ export interface LandingDescentSceneProps {
 export function LandingDescentScene({
   crash = false,
   shallow = false,
+  low = false,
   world = "mun",
   w = DEFAULT_SIZE.w,
   h = DEFAULT_SIZE.h,
@@ -54,12 +58,19 @@ export function LandingDescentScene({
   const all = useMemo(
     () =>
       world === "mun"
-        ? integrate({ crash, start: shallow ? SHALLOW_DESCENT : undefined })
+        ? integrate({
+            crash,
+            start: shallow
+              ? SHALLOW_DESCENT
+              : low
+                ? RIDGE_APPROACH_DESCENT
+                : undefined,
+          })
         : integrateAtmosphere(
             AIR[world],
             landsAtSea(world) ? LOW_DESCENT : undefined,
           ),
-    [crash, shallow, world],
+    [crash, shallow, low, world],
   );
   const { played: frames, streamEnds } = useMemo(
     () => playbackOf(all, crash),
@@ -127,7 +138,7 @@ export function LandingDescentScene({
         </span>
       </div>
       <WidgetScene
-        key={`${crash}-${shallow}-${world}-${run}`}
+        key={`${crash}-${shallow}-${low}-${world}-${run}`}
         widgetId="landing-status"
         fixture={first}
         w={w}

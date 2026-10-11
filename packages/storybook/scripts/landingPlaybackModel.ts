@@ -10,6 +10,7 @@ import {
 import {
   channelsFor,
   type Frame,
+  STORY_RELIEF,
   streamFixture,
 } from "../../components/scripts/landingDescentModel";
 
@@ -125,7 +126,7 @@ export function streamOf(
   const fixture =
     world !== "mun" && isAirFrame(frame)
       ? atmosphereStream(frame, ONE_WAY_SECONDS, AIR[world], "descent", notes)
-      : streamFixture(frame, ONE_WAY_SECONDS, "descent", notes);
+      : streamFixture(frame, ONE_WAY_SECONDS, "descent", notes, STORY_RELIEF);
   return fixture as { _stream: { emits: Emit[] } };
 }
 
