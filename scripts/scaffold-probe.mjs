@@ -212,12 +212,8 @@ function drawsReadably(clientDir, widgetFile) {
   console.log(
     "  ✓ plant, the widget at 3 by 3 with a 2 by 2 minimum: docs says it cannot be read",
   );
-  const drawn = must(
-    "uplink-tools docs",
-    "npx",
-    ["uplink-tools", "docs"],
-    options,
-  );
+  // The scripts, not the verbs under them: the scaffold's `docs` names the bundle it builds, and its `docs:check` has nothing to say about an integrity it never compares.
+  const drawn = must("npm run docs", "npm", ["run", "docs"], options);
   if (UNREADABLE.test(drawn)) {
     console.error(drawn);
     fail(
@@ -226,6 +222,29 @@ function drawsReadably(clientDir, widgetFile) {
   }
   console.log(
     "  ✓ the widget is readable at its default and its smallest size",
+  );
+  const manifest = readFileSync(join(clientDir, "gonogo-uplink.json"), "utf8");
+  if (
+    /EMPTY integrity/.test(drawn) ||
+    !/"integrity": "sha256-[0-9a-f]{64}"/.test(manifest)
+  ) {
+    console.error(drawn);
+    fail(
+      "npm run docs on a scaffold warned of an empty integrity or left gonogo-uplink.json without a hash",
+    );
+  }
+  const checked = must(
+    "npm run docs:check",
+    "npm",
+    ["run", "docs:check"],
+    options,
+  );
+  if (/EMPTY integrity/.test(checked)) {
+    console.error(checked);
+    fail("npm run docs:check warned of an empty integrity it never compares");
+  }
+  console.log(
+    "  ✓ npm run docs stamps the bundle's hash and neither script warns of an empty integrity",
   );
 }
 

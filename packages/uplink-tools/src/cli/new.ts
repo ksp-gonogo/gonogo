@@ -123,7 +123,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         release: "uplink-tools release",
         render: "uplink-tools render",
         page: "uplink-tools page",
-        docs: "uplink-tools docs",
+        docs: `npm run bundle && uplink-tools docs --bundle dist/${id}/${id}.client.js`,
         "docs:check": "uplink-tools docs --check",
       },
       dependencies: o.dependencies,
@@ -1840,6 +1840,7 @@ export async function newUplink(
       : []),
   ];
   const yours = [
+    "make the placeholder widget yours: it lives in client/src/Heartbeat/ with the fixture client/src/Heartbeat/__fixtures__/beating.json, named for the heartbeat it shows, so rename both with the widget you replace it with",
     "say what it is for in the description in client/src/uplink.ts, which opens the generated page",
     ...(named || inheritedUrl
       ? []

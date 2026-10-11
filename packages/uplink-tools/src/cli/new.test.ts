@@ -314,7 +314,10 @@ describe("uplink-tools new", () => {
       readFileSync(join(repo, "client", "package.json"), "utf8"),
     ).scripts;
     expect(scripts.bundle).toBe("uplink-tools bundle");
-    expect(scripts.docs).toBe("uplink-tools docs");
+    expect(scripts.docs).toBe(
+      "npm run bundle && uplink-tools docs --bundle dist/solo/solo.client.js",
+    );
+    expect(scripts["docs:check"]).toBe("uplink-tools docs --check");
 
     await expect(newUplink(["solo", ...BARE], repo)).rejects.toThrow(
       /never overwrites/,

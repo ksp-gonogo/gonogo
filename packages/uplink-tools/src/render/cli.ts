@@ -317,7 +317,8 @@ async function docs(
     );
   }
   const { manifest, warning } = buildManifest(inputs);
-  if (warning) console.warn(`\n  warning: ${warning}`);
+  // A check never compares integrity, so the warning about an empty one would be noise on every run.
+  if (warning && !args.check) console.warn(`\n  warning: ${warning}`);
   const readme = buildReadme(inputs, manifest);
   const manifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
   const recordsJson = widgetRecordsJson(widgetRecordsOf(result.inventory));
