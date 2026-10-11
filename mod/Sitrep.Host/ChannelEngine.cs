@@ -8095,6 +8095,9 @@ namespace Sitrep.Host
         /// <summary>Test hook: the heap the recorder holds now, as <see cref="HeldSampleSize"/> counts it.</summary>
         internal long RecordedBytes => HeldTotalBytes;
 
+        /// <summary>Test hook: how many spans of recorded telemetry wait at nodes or are on their way.</summary>
+        internal int SpansInTheNetwork => _delivery?.Spans().Count ?? 0;
+
         /// <summary>Test hook: the budget the recorder is enforcing now.</summary>
         internal long RecorderBudgetBytesNow => _recorderBudgetBytes;
 

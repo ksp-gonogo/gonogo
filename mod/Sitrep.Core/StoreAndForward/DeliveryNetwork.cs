@@ -103,14 +103,18 @@ namespace Sitrep.Core.StoreAndForward
     /// <summary>
     /// The links a network reads, remembering each answer while one sweep over
     /// held messages runs, so a node holding thousands of messages for the same
-    /// few peers asks the game once per pair and not once per message. Outside a
-    /// sweep every question goes through.
+    /// few peers asks the game once per pair and not once per message. A span's
+    /// route is remembered the same way: every span a node holds for one centre
+    /// by one plan has the same way there. Outside a sweep every question goes
+    /// through.
     /// </summary>
     internal sealed class SweepLinks : IDeliveryLinks, IReceiveCheck
     {
         private readonly IDeliveryLinks _inner;
         private readonly Dictionary<(string, string), double?> _paths = new Dictionary<(string, string), double?>();
         private readonly Dictionary<(string, string), double?> _links = new Dictionary<(string, string), double?>();
+        private readonly Dictionary<(IDeliveryRoutes, string, string, double), IReadOnlyList<PlannedHop>?> _spanRoutes =
+            new Dictionary<(IDeliveryRoutes, string, string, double), IReadOnlyList<PlannedHop>?>();
         private int _depth;
 
         internal SweepLinks(IDeliveryLinks inner)
@@ -126,7 +130,24 @@ namespace Sitrep.Core.StoreAndForward
             {
                 _paths.Clear();
                 _links.Clear();
+                _spanRoutes.Clear();
             }
+        }
+
+        /// <summary>The route <paramref name="plan"/> gives a span ready at <paramref name="readyUt"/>, which never expires and turns no dish on the way.</summary>
+        internal IReadOnlyList<PlannedHop>? SpanRoute(IDeliveryRoutes plan, string from, string to, double readyUt)
+        {
+            if (_depth == 0)
+            {
+                return plan.Route(from, to, readyUt, double.PositiveInfinity);
+            }
+            var key = (plan, from, to, readyUt);
+            if (!_spanRoutes.TryGetValue(key, out var route))
+            {
+                route = plan.Route(from, to, readyUt, double.PositiveInfinity);
+                _spanRoutes[key] = route;
+            }
+            return route;
         }
 
         public double? LivePath(string from, string to) => Remember(_paths, from, to, _inner.LivePath);
@@ -491,16 +512,27 @@ namespace Sitrep.Core.StoreAndForward
         /// Puts a span on hold at <paramref name="node"/>, the node whose history
         /// it carries, to leave for its centre by the plan that centre holds as it
         /// stands now. It goes the moment that node's own link to the next hop is
-        /// up, and otherwise waits.
+        /// up, and otherwise waits. While an earlier span of the same history for
+        /// the same centre is still waiting there, having never left, the samples
+        /// join it and travel as one: a node with no way on holds one span for
+        /// each topic and centre, however long it waits.
         /// </summary>
         public void AddSpan(string node, SpanMessage span)
         {
             lock (_gate)
             {
                 var nowUt = _clock.Now();
-                span.Id = MintId("span");
-                span.Plan = PlanAt(span.Centre);
-                var held = Hold(node, span, nowUt, null);
+                var held = WaitingSpanToJoin(node, span);
+                if (held != null)
+                {
+                    ((SpanMessage)held.Message).Samples.AddRange(span.Samples);
+                }
+                else
+                {
+                    span.Id = MintId("span");
+                    span.Plan = PlanAt(span.Centre);
+                    held = Hold(node, span, nowUt, null);
+                }
                 if (held == null)
                 {
                     return;
@@ -514,6 +546,39 @@ namespace Sitrep.Core.StoreAndForward
         }
 
         /// <summary>
+        /// The span waiting at <paramref name="node"/> that <paramref name="span"/>'s
+        /// samples can join, or null when it has to travel as its own: the newest
+        /// one of the same history, topic and centre that has never been sent and
+        /// ends no later than <paramref name="span"/> begins. A span that starts
+        /// after a hole joins nothing, since the hole it states is the one before
+        /// its own first sample.
+        /// </summary>
+        private Held? WaitingSpanToJoin(string node, SpanMessage span)
+        {
+            if (span.StartsAfterAHole || span.Samples.Count == 0 || !_held.TryGetValue(node, out var list))
+            {
+                return null;
+            }
+            for (var i = list.Count - 1; i >= 0; i--)
+            {
+                var held = list[i];
+                if (!(held.Message is SpanMessage waiting)
+                    || !string.Equals(waiting.Topic, span.Topic, StringComparison.Ordinal)
+                    || !string.Equals(waiting.Centre, span.Centre, StringComparison.Ordinal)
+                    || !string.Equals(waiting.Craft, span.Craft, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                var joins = held.Away == null
+                    && held.Losses == 0
+                    && waiting.Samples.Count > 0
+                    && waiting.Samples[waiting.Samples.Count - 1].Ut <= span.Samples[0].Ut;
+                return joins ? held : null;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// A held span takes up its centre's plan as it stands now when that plan
         /// gets it there <see cref="SpanRerouteGainSeconds"/> sooner than the plan
         /// it carries, or gets it there at all where the carried plan does not. A
@@ -524,6 +589,7 @@ namespace Sitrep.Core.StoreAndForward
         private void RerouteHeldSpans(double nowUt)
         {
             var fresh = new Dictionary<(string Node, string Centre), (IDeliveryRoutes? Plan, IReadOnlyList<PlannedHop>? Route)>();
+            var carriedArrivals = new Dictionary<(IDeliveryRoutes Plan, string Node, string Centre), double>();
             foreach (var entry in _held)
             {
                 foreach (var held in entry.Value)
@@ -543,8 +609,13 @@ namespace Sitrep.Core.StoreAndForward
                     {
                         continue;
                     }
-                    var carried = span.Plan?.Route(entry.Key, span.Centre, nowUt, double.PositiveInfinity);
-                    var carriedArrival = carried == null || carried.Count == 0 ? double.PositiveInfinity : carried[carried.Count - 1].ArriveUt;
+                    var carriedArrival = double.PositiveInfinity;
+                    if (span.Plan != null && !carriedArrivals.TryGetValue((span.Plan, entry.Key, span.Centre), out carriedArrival))
+                    {
+                        var carried = span.Plan.Route(entry.Key, span.Centre, nowUt, double.PositiveInfinity);
+                        carriedArrival = carried == null || carried.Count == 0 ? double.PositiveInfinity : carried[carried.Count - 1].ArriveUt;
+                        carriedArrivals[(span.Plan, entry.Key, span.Centre)] = carriedArrival;
+                    }
                     if (now.Route[now.Route.Count - 1].ArriveUt + SpanRerouteGainSeconds < carriedArrival)
                     {
                         span.Plan = now.Plan;
@@ -1334,7 +1405,7 @@ namespace Sitrep.Core.StoreAndForward
                 return null;
             }
 
-            var route = _routes.Route(node, destination, nowUt, message.ExpiresUt);
+            var route = RouteBy(_routes, message, node, destination, nowUt, turnsOnTheWay: false);
             var next = route != null && route.Count > 0 ? route[0] : (PlannedHop?)null;
             if (next != null && next.Value.DepartUt <= nowUt + Tolerance && !IsExcluded(held, next.Value.To))
             {
@@ -1383,7 +1454,7 @@ namespace Sitrep.Core.StoreAndForward
             }
 
             var turnsOnTheWay = message is CommandMessage || message is CancelMessage;
-            var route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt, turnsOnTheWay);
+            var route = RouteBy(message.Plan, message, node, destination, nowUt, turnsOnTheWay);
             if ((route == null || route.Count == 0) && !own && message.Plan == null)
             {
                 route = CarriedFrom(message, node);
@@ -1395,7 +1466,7 @@ namespace Sitrep.Core.StoreAndForward
                 // nothing heard, and the message starts again with its centre's
                 // plan as it stands, rather than waiting for ever.
                 message.Plan = _beliefs!.PlanOf(CentreOf(message));
-                route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt, turnsOnTheWay);
+                route = RouteBy(message.Plan, message, node, destination, nowUt, turnsOnTheWay);
             }
             if (route == null || route.Count == 0)
             {
@@ -1454,6 +1525,18 @@ namespace Sitrep.Core.StoreAndForward
             var hopBelieved = next.ArriveUt - next.DepartUt;
             Launch(node, held, next.To, nowUt, _links.LiveLink(node, next.To) ?? hopBelieved, endToEnd: false, expectedLight: hopBelieved, toDish: next.ToDish);
             return null;
+        }
+
+        /// <summary>The route <paramref name="plan"/> gives <paramref name="message"/> from <paramref name="node"/> now, or null with no plan.</summary>
+        private IReadOnlyList<PlannedHop>? RouteBy(IDeliveryRoutes? plan, DeliveryMessage message, string node, string destination, double nowUt, bool turnsOnTheWay)
+        {
+            if (plan == null)
+            {
+                return null;
+            }
+            return message is SpanMessage
+                ? _links.SpanRoute(plan, node, destination, nowUt)
+                : plan.Route(node, destination, nowUt, message.ExpiresUt, turnsOnTheWay);
         }
 
         /// <summary>Sends <paramref name="held"/> to <paramref name="to"/> if this node's own link there is up and the light lands in time.</summary>

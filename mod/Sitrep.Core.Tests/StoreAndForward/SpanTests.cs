@@ -51,8 +51,11 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             public IDeliveryRoutes? PlanOf(string centre) => this;
 
+            public int Asked { get; private set; }
+
             public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false)
             {
+                Asked++;
                 if (from == Lander)
                 {
                     return new[] { new PlannedHop(Relay, readyUt, readyUt + 5), new PlannedHop(Ksc, Math.Max(readyUt + 5, 100), Math.Max(readyUt + 5, 100) + 10) };
@@ -67,10 +70,11 @@ namespace Sitrep.Core.Tests.StoreAndForward
             public readonly ManualClock Clock = new ManualClock();
             public readonly List<(SpanMessage Span, double AtUt)> Delivered = new List<(SpanMessage, double)>();
             public readonly DeliveryNetwork Network;
+            public readonly Plan Plan = new Plan();
 
             public Rig(ISenderPlans? beliefs = null)
             {
-                var plan = new Plan();
+                var plan = Plan;
                 Network = new DeliveryNetwork(
                     Clock, Links, plan, (c, ut) => null, r => { }, beliefs: beliefs ?? plan,
                     deliverSpan: (span, at) => Delivered.Add((span, at)));
@@ -82,9 +86,11 @@ namespace Sitrep.Core.Tests.StoreAndForward
                 Network.Tick(ut);
             }
 
-            public SpanMessage Add(params double[] uts)
+            public SpanMessage Add(params double[] uts) => AddTo("vessel.flight", uts);
+
+            public SpanMessage AddTo(string topic, params double[] uts)
             {
-                var span = new SpanMessage { Craft = Lander, Centre = Ksc, Topic = "vessel.flight" };
+                var span = new SpanMessage { Craft = Lander, Centre = Ksc, Topic = topic };
                 foreach (var ut in uts)
                 {
                     span.Samples.Add(new SpanSample(ut, new SpanPayload { Bytes = 100, ReleaseCost = 10, Carriers = 1, Held = ut }));
@@ -103,17 +109,78 @@ namespace Sitrep.Core.Tests.StoreAndForward
             var before = rig.Links.Asked;
             for (var i = 0; i < 200; i++)
             {
-                rig.Add(1.0 + i);
+                rig.AddTo("topic." + i, 1.0 + i);
             }
             var addingAsked = rig.Links.Asked - before;
 
             before = rig.Links.Asked;
+            var routesBefore = rig.Plan.Asked;
             rig.Tick(2.0);
             var tickAsked = rig.Links.Asked - before;
+            var tickRoutes = rig.Plan.Asked - routesBefore;
 
             Assert.Equal(200, rig.Network.Spans().Count);
             Assert.True(addingAsked <= 200 * 4, "links asked while adding: " + addingAsked);
             Assert.True(tickAsked <= 8, "links asked by one tick over 200 held spans: " + tickAsked);
+            Assert.True(tickRoutes <= 2, "routes planned by one tick over 200 held spans: " + tickRoutes);
+        }
+
+        [Fact]
+        public void ACraftWithNoWayOnHoldsOneSpanOfATopicHoweverManyTimesItHandsSamplesOver()
+        {
+            var rig = new Rig();
+            rig.Tick(1.0);
+
+            var first = rig.Add(1.0);
+            for (var i = 1; i < 500; i++)
+            {
+                rig.Tick(1.0 + i);
+                rig.Add(1.0 + i);
+            }
+
+            var held = Assert.Single(rig.Network.Spans());
+            Assert.Same(first, held.Span);
+            Assert.Equal(Enumerable.Range(1, 500).Select(v => (double)v), held.Span.Samples.Select(s => s.Ut));
+            Assert.Equal(500 * 100, rig.Network.HeldSpanBytes());
+
+            // The whole of it leaves as one when the craft's link opens.
+            rig.Links.Up(Lander, Relay, 5.0);
+            rig.Tick(501.0);
+            rig.Tick(507.0);
+            Assert.Equal(Relay, Assert.Single(rig.Network.Spans()).Node);
+        }
+
+        [Fact]
+        public void SamplesHandedOverAfterASpanHasLeftTravelAsTheirOwn()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Lander, Relay, 5.0);
+            rig.Tick(1.0);
+            var sent = rig.Add(1.0);
+
+            rig.Tick(2.0);
+            var later = rig.Add(2.0);
+
+            Assert.Equal(new[] { 1.0 }, sent.Samples.Select(s => s.Ut));
+            Assert.Equal(new[] { 2.0 }, later.Samples.Select(s => s.Ut));
+        }
+
+        [Fact]
+        public void ASpanThatStartsAfterAHoleDoesNotJoinTheOneWaitingBeforeIt()
+        {
+            var rig = new Rig();
+            rig.Tick(1.0);
+            var before = rig.Add(1.0);
+            var after = new SpanMessage { Craft = Lander, Centre = Ksc, Topic = "vessel.flight", StartsAfterAHole = true };
+            after.Samples.Add(new SpanSample(9.0, new SpanPayload { Bytes = 100, ReleaseCost = 10, Carriers = 1, Held = 9.0 }));
+            rig.Network.AddSpan(Lander, after);
+
+            // What comes next continues the newer span, on the far side of the hole.
+            rig.Add(10.0);
+
+            Assert.Equal(2, rig.Network.Spans().Count);
+            Assert.Equal(new[] { 1.0 }, before.Samples.Select(s => s.Ut));
+            Assert.Equal(new[] { 9.0, 10.0 }, after.Samples.Select(s => s.Ut));
         }
 
         [Fact]
@@ -195,8 +262,8 @@ namespace Sitrep.Core.Tests.StoreAndForward
         {
             var rig = new Rig();
             rig.Tick(1.0);
-            var older = rig.Add(1.0, 2.0);
-            var newer = rig.Add(3.0, 4.0);
+            var older = rig.AddTo("vessel.flight", 1.0, 2.0);
+            var newer = rig.AddTo("vessel.orbit", 3.0, 4.0);
             Assert.Equal(400, rig.Network.HeldSpanBytes());
 
             var shed = rig.Network.ShedSpans(150);

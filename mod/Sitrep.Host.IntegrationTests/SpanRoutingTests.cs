@@ -101,6 +101,56 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(Enumerable.Range(50, 140).Select(v => (double)v), recordedAtHomeCentre.Select(f => f.Value).OrderBy(v => v));
         }
 
+        /// <summary>
+        /// A craft with no way to a centre hands its recording over on every tick
+        /// of a long warp. What waits at the craft stays one span for each topic
+        /// and centre, so a tick late in the warp does no more work than one early
+        /// in it, and the whole recording still arrives when the craft's link opens.
+        /// </summary>
+        [Fact]
+        public async Task ALongWarpWithNoLinkLeavesTheCraftHoldingNoMoreSpansThanItHadAtTheStart()
+        {
+            const double step = 100.0;
+            const double darkFrom = 1_000.0;
+            const double linkedFrom = 61_000.0;
+            var game = new ScriptedContactGame
+            {
+                RelayFromHomeSeconds = 10, RelayFromFarSeconds = 20, ActiveSeconds = 1, RelayConnected = false, FarLinkedToRelay = false,
+            };
+            var plan = Plan((Active, Home, linkedFrom, null, 1));
+            await using var world = await StartAsync(game, plan);
+
+            void Warp(double from, double to)
+            {
+                for (var ut = from; ut <= to; ut += step)
+                {
+                    game.ActiveConnected = ut < darkFrom || ut >= linkedFrom;
+                    game.ActiveLinkedToHomeSeconds = ut >= linkedFrom ? 1.0 : (double?)null;
+                    game.ActiveValue = ut;
+                    world.Tick(ut);
+                }
+            }
+
+            Warp(step, 5_000.0);
+            var early = world.Engine.SpansInTheNetwork;
+            Warp(5_000.0 + step, linkedFrom - step);
+            var late = world.Engine.SpansInTheNetwork;
+
+            Assert.InRange(early, 1, 8);
+            Assert.Equal(early, late);
+
+            Warp(linkedFrom, linkedFrom + 2_000.0);
+            await world.SettleAsync();
+
+            var recorded = world.Home.Telemetry.Where(f => f.Staleness == Staleness.Recorded).ToList();
+            var dark = Enumerable.Range(0, (int)((linkedFrom - darkFrom) / step)).Select(i => darkFrom + (i * step)).ToArray();
+            Assert.Equal(dark, recorded.Select(f => f.Value).ToArray());
+            Assert.All(recorded, f => Assert.True(f.DeliveredAt >= linkedFrom));
+
+            // Only the fixture's other craft, which never gets a link, still holds its own.
+            Assert.True(world.Engine.SpansInTheNetwork < early, "spans left: " + world.Engine.SpansInTheNetwork);
+        }
+
         [Fact]
         public async Task AContactThatOpensWhileARelayHoldsASpanDeliversNewerDataFirstAndTheOlderSpanLater()
         {
