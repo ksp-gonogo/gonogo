@@ -9,28 +9,40 @@ namespace Gonogo.KSP.SilenceTracking
     /// and a set of elements per body, keyed on the same indices
     /// <c>FlightGlobals.Bodies</c> uses.
     ///
-    /// <para>MAIN THREAD ONLY, and cached after the first successful read. The
-    /// propagation capability is elected at bootstrap, well before the game has a
-    /// body list to hand over, so the provider holds a callback to this rather than
-    /// a list; caching is what keeps a 1440-sample sweep from rebuilding the table
-    /// on every solve.</para>
+    /// <para>MAIN THREAD ONLY. The propagation capability is elected at bootstrap,
+    /// well before the game has a body list to hand over, so the provider holds a
+    /// callback to this rather than a list.</para>
     ///
-    /// <para>Bodies do not change orbit during a save, so a snapshot is as good as a
-    /// live read. What DOES change is whether there is a list at all, which is why
-    /// an empty read is not cached.</para>
+    /// <para>The elements are the ones each body carries at the current game
+    /// instant, read again whenever that instant moves on. They are not constant:
+    /// an n-body physics mod rewrites every body's orbit to its osculating
+    /// elements on each physics step, so elements read once and kept describe the
+    /// bodies at the time of that read, and a scene the mod is not running in yet
+    /// (the main menu) still carries the config's elements. Within one instant the
+    /// read is shared, which keeps a 1440-sample sweep from rebuilding the table
+    /// on every solve. An empty read is never kept.</para>
     /// </summary>
     public static class KspSystemTable
     {
-        private static IReadOnlyList<SystemBody> _cached;
+        private static readonly InstantSnapshot<IReadOnlyList<SystemBody>> Snapshot =
+            new InstantSnapshot<IReadOnlyList<SystemBody>>(Read, table => table.Count > 0);
 
         /// <summary>The table, or an empty one before the game has bodies. Never null.</summary>
-        public static IReadOnlyList<SystemBody> Current()
-        {
-            if (_cached != null)
-            {
-                return _cached;
-            }
+        public static IReadOnlyList<SystemBody> Current() => Snapshot.At(GameTime());
 
+        /// <summary>The universal time, or null in a scene with neither a planetarium nor a game to read it from.</summary>
+        private static double? GameTime()
+        {
+            if (Planetarium.fetch != null)
+            {
+                return Planetarium.fetch.time;
+            }
+            var game = HighLogic.CurrentGame;
+            return game != null ? game.UniversalTime : (double?)null;
+        }
+
+        private static IReadOnlyList<SystemBody> Read()
+        {
             var bodies = FlightGlobals.Bodies;
             if (bodies == null || bodies.Count == 0)
             {
@@ -51,15 +63,7 @@ namespace Gonogo.KSP.SilenceTracking
                     parentIndex,
                     body.orbit != null && parentIndex >= 0 ? ElementsOf(body.orbit) : (OrbitElements?)null));
             }
-
-            _cached = table;
             return table;
-        }
-
-        /// <summary>Drops the snapshot, for a scene change that rebuilds the body list.</summary>
-        public static void Forget()
-        {
-            _cached = null;
         }
 
         private static OrbitElements ElementsOf(Orbit orbit) =>
