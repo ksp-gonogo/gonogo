@@ -78,19 +78,3 @@ describe("PartTooltip: contributed status rows", () => {
     expect(heldRows()).not.toHaveLength(0);
   });
 });
-
-describe("PartTooltip: temperature", () => {
-  it("writes the part's temperature and its limit through the unit registry", () => {
-    render(
-      <PartTooltip
-        hovered={{ ...PART, temperatureK: 412.4, maxTemperatureK: 2000 }}
-        meters={[]}
-        meta={[]}
-        pointer={{ x: 0, y: 0 }}
-        showActionCount={false}
-      />,
-    );
-    const row = screen.getByText("temp").parentElement;
-    expect(row?.textContent).toMatch(/412\sK.*\/\s2000\sK/);
-  });
-});

@@ -1398,7 +1398,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     kind: "text",
     lastReachableUt: "ut",
-    reason: "enum",
   },
   "Unsubscribe": {
     topic: "id",
@@ -1692,7 +1691,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     kind: "text",
     lastReachableUt: "ut",
-    reason: "enum",
   },
   "commcast.traffic": {
     added: "id",
@@ -3005,9 +3003,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     source: "TargetKnowledge",
     vesselType: "VesselType",
   },
-  "UnreachableCentreEntry": {
-    reason: "UnreachableReason",
-  },
   "VesselComms": {
     controlState: "ControlState",
     signalQuantity: "SignalQuantity",
@@ -3045,9 +3040,6 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "career.mode": {
     mode: "GameMode",
-  },
-  "commandCentre.unreachable": {
-    reason: "UnreachableReason",
   },
   "commcast.traffic": {
     kind: null,
@@ -3422,10 +3414,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
   "UnlockKind": {
     0: "Tech",
     1: "Facility",
-  },
-  "UnreachableReason": {
-    0: "NoLongerExists",
-    1: "NoLongerCentre",
   },
   "VesselType": {
     0: "Ship",

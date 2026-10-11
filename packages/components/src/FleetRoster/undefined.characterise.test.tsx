@@ -293,7 +293,7 @@ describe("FleetRoster: partial vessel records", () => {
     expect(visibleText()).not.toContain("0/");
   });
 
-  it("reports an absent commsControlSource as the honest `unknown` tier, never as an unlinked one", async () => {
+  it("reports an absent commsControlSource as the honest `unknown` tier, and counts it as not linked", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
@@ -318,15 +318,17 @@ describe("FleetRoster: partial vessel records", () => {
       expect(screen.getByText("Unread Comms")).toBeInTheDocument(),
     );
     // An unread control source is the unknown tier: the null placeholder tag, accessible name "unknown", never "No link".
-    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Link state unknown" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "No link" })).toBeNull();
-    // A fleet whose only craft is unread is not a fleet with no comms, and has no coverage figure.
-    expect(screen.queryByText("No Link")).toBeNull();
-    expect(screen.getByText("1 Unknown")).toBeInTheDocument();
-    expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
+    // With linked === 0 the rollup takes the "No Link" branch, so one unread vessel reads as a fleet with no comms.
+    expect(screen.getByText("No Link")).toBeInTheDocument();
+    expect(visibleText()).toContain("0 linked · 0 no link · 1 unknown");
+    expect(
+      screen.getByRole("meter", { name: "Comms coverage" }),
+    ).toHaveAttribute("aria-valuenow", "0");
   });
 });
 

@@ -51,8 +51,6 @@ interface PadSectionProps {
   rows: number;
   /** Wide and short, so the pad's craft and crew sit side by side. */
   letterbox: boolean;
-  /** Too narrow for a pad's name and its occupancy on one line, so the occupancy sits beneath. */
-  narrow: boolean;
   launchCmd: CommandButtonHandle;
   recoverCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
@@ -77,7 +75,6 @@ export function PadSection(props: PadSectionProps) {
     slotContext,
     flyable,
     switchCmd,
-    narrow,
   } = props;
   return (
     <>
@@ -95,7 +92,7 @@ export function PadSection(props: PadSectionProps) {
             return (
               <PadCard key={site.name}>
                 <SelectableRow
-                  layout={narrow ? "stack" : "split"}
+                  layout="split"
                   gap="related"
                   selectedLook="outline"
                   data-pad-row
@@ -109,7 +106,7 @@ export function PadSection(props: PadSectionProps) {
                       {bodyName ? ` · ${bodyName}` : ""}
                     </PadDetails>
                   </PadMeta>
-                  <PadOccupancy $occupied={site.occupied} $stacked={narrow}>
+                  <PadOccupancy $occupied={site.occupied}>
                     {occupancyText(site)}
                   </PadOccupancy>
                 </SelectableRow>
@@ -161,8 +158,6 @@ function OpenPad({
   revertEditorCmd,
 }: PadSectionProps & { site: LaunchSiteEntry }) {
   if (site.occupied === true) {
-    // The craft on a runway came from the SPH; anything else is taken to be a pad's VAB craft.
-    const editor = site.facility === "SPH" ? "SPH" : "VAB";
     return (
       /* Both commands act on the one vessel KSP has at PRELAUNCH. */
       <PadActions>
@@ -175,13 +170,14 @@ function OpenPad({
           confirmLabel="Confirm recover"
           pendingLabel="Recovering..."
         />
+        {/* Reverts to VAB: the widget cannot tell which editor the pad's craft came from. */}
         <ArmedButton
           bindAs="revert-to-editor"
           kind="revert"
           handle={revertEditorCmd}
-          args={{ editor: editor.toLowerCase() }}
-          commandLabel={`Revert to ${editor}`}
-          label={`Revert to ${editor}`}
+          args={{ editor: "vab" }}
+          commandLabel="Revert to VAB"
+          label="Revert to VAB"
           confirmLabel="Confirm revert"
           pendingLabel="Reverting..."
         />

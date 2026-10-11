@@ -65,7 +65,7 @@
           "vesselType": 0,
           "situation": 0,
           "parentBodyIndex": 1,
-          "launchUt": -450
+          "launchUt": null
         }
       },
       {

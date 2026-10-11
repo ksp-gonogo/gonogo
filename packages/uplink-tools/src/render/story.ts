@@ -460,8 +460,6 @@ export async function statedSeconds(
 
 /** What a playback story marks its start control with. */
 const START_SELECTOR = "[data-story-start]";
-/** What a scene marks itself with while it presses its own controls to reach the view it is about. */
-const SCENE_DRIVING_SELECTOR = "[data-scene-driving]";
 const STORY_ROOT = "#storybook-root";
 
 export interface Clip {
@@ -593,16 +591,8 @@ export async function renderStory(
         : Number.isNaN(stated)
           ? args.seconds
           : stated;
-      if (clicked) await starter.first().click();
-      // A press that starts the story over remounts the widget and may drive it through controls; the picture begins once that has settled, so frame one is the steady state and not the mount.
-      await page
-        .waitForFunction(
-          `!document.querySelector('${WIDGET_SELECTOR}[data-scene="mounting"], ${SCENE_DRIVING_SELECTOR}')`,
-          undefined,
-          { timeout: 10_000 },
-        )
-        .catch(() => undefined);
       const began = Date.now();
+      if (clicked) await starter.first().click();
 
       const clip = await picture();
       const captured: { at: number; frame: Buffer }[] = [];

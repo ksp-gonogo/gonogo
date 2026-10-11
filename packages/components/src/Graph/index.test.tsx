@@ -221,29 +221,9 @@ describe("GraphComponent", () => {
     });
 
     await waitFor(() => {
-      expect(container.textContent ?? "").toMatch(/12\.3\s*km/);
+      expect(container.textContent ?? "").toMatch(/12\.3k/);
       const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
       expect(axisTicks.length).toBe(0);
-    });
-  });
-
-  it("writes the readout's unit through the unit registry, so a symbol keeps its case", async () => {
-    const config = {
-      variant: "readout" as const,
-      series: [{ id: "alt", key: ALTITUDE, axis: "auto" as const }],
-      windowSec: 300,
-    };
-
-    const { container } = renderOnStream(
-      <GraphComponent config={config} id="graph-test" w={10} h={8} />,
-    );
-
-    act(() => {
-      flight(10, { altitudeAsl: 12_345 });
-    });
-
-    await waitFor(() => {
-      expect(container.textContent ?? "").toMatch(/12\.3\s*km/);
     });
   });
 

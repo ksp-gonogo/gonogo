@@ -143,12 +143,8 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, UnreachableCentreEntry> _lastOn = new Dictionary<string, UnreachableCentreEntry>(StringComparer.Ordinal);
         private readonly HashSet<string> _on = new HashSet<string>(StringComparer.Ordinal);
 
-        /// <summary>
-        /// Notes the roster as it stands at <paramref name="ut"/>.
-        /// <paramref name="heard"/> is the newest state the centre has received
-        /// of each craft, which is what says why a craft left.
-        /// </summary>
-        public void Observe(IReadOnlyList<CommandCentreEntry> roster, double ut, IReadOnlyCollection<CraftState>? heard = null)
+        /// <summary>Notes the roster as it stands at <paramref name="ut"/>.</summary>
+        public void Observe(IReadOnlyList<CommandCentreEntry> roster, double ut)
         {
             _on.Clear();
             foreach (var entry in roster)
@@ -165,24 +161,6 @@ namespace Sitrep.Host.Comms
                     Kind = entry.Kind ?? "",
                     LastReachableUt = ut,
                 };
-            }
-            foreach (var gone in _lastOn.Values)
-            {
-                if (!_on.Contains(gone.Id) && !CentreRoster.IsCraft(gone.Id))
-                {
-                    gone.Reason = UnreachableReason.NoLongerExists;
-                }
-            }
-            if (heard == null)
-            {
-                return;
-            }
-            foreach (var state in heard)
-            {
-                if (!_on.Contains(state.Id) && _lastOn.TryGetValue(state.Id, out var gone))
-                {
-                    gone.Reason = state.Exists ? UnreachableReason.NoLongerCentre : UnreachableReason.NoLongerExists;
-                }
             }
         }
 

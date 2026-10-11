@@ -12,11 +12,7 @@ import {
   Section,
 } from "@ksp-gonogo/ui-kit";
 import { heldGrade } from "../shared/heldGrade";
-import {
-  ContractCancelCost,
-  ContractDeadline,
-  ContractRewards,
-} from "./ContractCardParts";
+import { ContractDeadline, ContractRewards } from "./ContractCardParts";
 import { ContractTerms } from "./ContractTerms";
 import type { ContractManagerConfig } from "./config";
 import { parseContracts } from "./contracts";
@@ -46,7 +42,7 @@ export function ContractManagerComponent({
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
-  const universalTime = useViewUt()?.magnitude;
+  const universalTime = useViewUt()?.magnitude ?? 0;
   // Career actions dispatch at the meta-vantage, with no vessel signal delay.
   const acceptCmd = useCommand("career.contract.accept", {
     vantage: META_VANTAGE,
@@ -120,7 +116,6 @@ export function ContractManagerComponent({
                 <ContractRewards contract={c} />
                 <ContractTerms contract={c} />
                 <div style={ACTIVE_ACTIONS_STYLE}>
-                  <ContractCancelCost contract={c} />
                   <CommandButton
                     handle={cancelCmd}
                     args={{ contractId: c.id }}

@@ -4,13 +4,13 @@
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "situation": "Live ascent recording, 77 m -> 67 km (155 samples @1/sec). Ship did not reach orbit.",
-    "notes": "v.horizontalVelocity derived as sqrt(v.orbitalVelocity^2 - v.verticalSpeed^2), matching builtinDerivedKeys. The altitude and that derived horizontal speed are what was recorded. vessel.flight.verticalSpeed is RECONSTRUCTED as the altitude's rate (central difference) and vessel.flight.orbitalSpeed as sqrt(horizontal^2 + vertical^2), so the widget's own split returns the recorded horizontal speed exactly; neither was captured."
+    "notes": "v.horizontalVelocity derived as sqrt(v.orbitalVelocity^2 - v.verticalSpeed^2), matching builtinDerivedKeys. The altitude and that derived horizontal speed are what was recorded. vessel.flight.verticalSpeed is RECONSTRUCTED as the altitude's rate (central difference) and vessel.flight.surfaceSpeed as sqrt(horizontal^2 + vertical^2), so the widget's own split returns the recorded horizontal speed exactly; neither was captured."
   },
   "v.body": "Kerbin",
   "v.name": "tester",
   "v.missionTime": 114,
   "vessel.flight.altitudeAsl": 67265.269987853,
-  "vessel.flight.orbitalSpeed": 964.1108146267435,
+  "vessel.flight.surfaceSpeed": 964.1108146267435,
   "vessel.flight.verticalSpeed": 320.5871019175976,
   "_series": {
     "vessel.flight.altitudeAsl": [
@@ -631,7 +631,7 @@
         "v": 67265.269987853
       }
     ],
-    "vessel.flight.orbitalSpeed": [
+    "vessel.flight.surfaceSpeed": [
       {
         "t": -305925,
         "v": 174.96351125175843
@@ -1867,35 +1867,5 @@
         "v": 320.5871019175976
       }
     ]
-  },
-  "_stream": {
-    "emits": [
-      {
-        "channel": "vessel.identity",
-        "value": {
-          "vesselId": "v1",
-          "name": "tester",
-          "vesselType": 0,
-          "situation": 1,
-          "parentBodyIndex": 1,
-          "launchUt": 0
-        }
-      },
-      {
-        "channel": "system.bodies",
-        "value": {
-          "bodies": [
-            {
-              "name": "Kerbin",
-              "index": 1,
-              "parentIndex": 0,
-              "radius": 600000,
-              "orbit": null
-            }
-          ]
-        }
-      }
-    ],
-    "pinnedUt": 0
   }
 }

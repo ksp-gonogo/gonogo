@@ -441,31 +441,6 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
-  it("reverts a craft standing on a runway to the SPH, not the VAB", async () => {
-    const user = userEvent.setup();
-    renderWidget();
-    act(() => {
-      stream.emit("spaceCenter.savedShips", []);
-      stream.emit("spaceCenter.launchSites", [
-        padSite("Runway", "KSC Runway", {
-          editorFacility: "SPH",
-          padOccupied: true,
-          padVesselTitle: "Aeris 4A",
-        }),
-      ]);
-    });
-
-    await user.click(await screen.findByText("Revert to SPH"));
-    await user.click(screen.getByText(/Confirm revert/i));
-    await waitFor(() =>
-      expect(
-        stream.transport.sentCommands.find(
-          (c) => c.command === "ksp.revertToEditor",
-        ),
-      ).toMatchObject({ args: { editor: "sph" } }),
-    );
-  });
-
   it("shows the in-flight panel with altitude + revert affordances when scene is Flight", async () => {
     const user = userEvent.setup();
     const { container } = renderWidget();

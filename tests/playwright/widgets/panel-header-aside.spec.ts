@@ -25,6 +25,7 @@
  * picker is a wide aside at its three-column floor.
  */
 import { test } from "@playwright/test";
+import { PORTS } from "../../../playwright.config";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 const HEADCOUNT = "1/1 aboard";

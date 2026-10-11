@@ -322,7 +322,7 @@ describe("SystemView: what undefined means today", () => {
     );
   });
 
-  it("draws no craft when the orbit record carries no lan or argPe", async () => {
+  it("plots the craft as if equatorial when the orbit record carries no lan or argPe", async () => {
     const { container } = mount({ frame: "Kerbin" });
     act(() => {
       fixture.emit("system.bodies", kerbinSystem());
@@ -346,11 +346,14 @@ describe("SystemView: what undefined means today", () => {
       });
     });
 
-    // An absent node or periapsis angle is not zero: with either missing the ring has no orientation to stand at, so the craft is not drawn on it.
+    // `orbit.lan?.magnitude ?? 0` at three sites draws the dot at a definite place partly from values that never arrived, like an equatorial orbit.
     await waitFor(() =>
-      expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
+      expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(1),
     );
-    expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(0);
-    await act(async () => {});
+    const [dot] = Array.from(container.querySelectorAll(VESSEL_DOT));
+    // The kit's vessel mark carries its point as the group's translate.
+    expect(dot.getAttribute("transform")).toMatch(
+      /^translate\(-?[\d.]+(e-?\d+)? -?[\d.]+(e-?\d+)?\)$/,
+    );
   });
 });

@@ -62,11 +62,11 @@ describe("Strategies short form", () => {
     stream = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
   });
 
-  async function renderShort(h: number, extra: object[] = [], w = 5) {
+  async function renderShort(h: number, extra: object[] = []) {
     const view = render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "s" }}>
-          <StrategiesComponent config={{}} id="s" w={w} h={h} />
+          <StrategiesComponent config={{}} id="s" w={5} h={h} />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -83,13 +83,6 @@ describe("Strategies short form", () => {
     await screen.findByText("Open Source");
     return view;
   }
-
-  it("draws the full form in a short tile that is wide enough for it", async () => {
-    await renderShort(5, [], 18);
-    expect(
-      screen.getByRole("region", { name: "Available" }),
-    ).toBeInTheDocument();
-  });
 
   it("draws one line per strategy with its state and its one action, and no Active or Available sections", async () => {
     await renderShort(5);

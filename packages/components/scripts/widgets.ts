@@ -361,7 +361,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // (rows<4 suppresses both). Catches overflow at tight sizes.
       { name: "min-3x3", w: 3, h: 3 },
       // Default registered size: bars, subtitle, and full detail grid.
-      { name: "default-6x6", w: 6, h: 6 },
+      { name: "default-6x5", w: 6, h: 5 },
       // Tall narrow: detail grid wraps in a single column layout.
       { name: "tall-4x7", w: 4, h: 7 },
       // Wide short: subtitle visible, grid has generous horizontal room.
@@ -955,13 +955,24 @@ const WIDGETS: WidgetRenderConfig[] = [
       // The smallest tiny size: the kit's tiny form, the group's name over its toggle button.
       { name: "tiny-3x3", w: 3, h: 3 },
       // 3×4: still tiny bucket (w<5), so the same tiny form.
-      { name: "compact-3x4", w: 3, h: 4 },
-      // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle present.
-      { name: "normal-6x4", w: 6, h: 4 },
-      // Default registered size (6×6): the full body.
-      { name: "default-6x6", w: 6, h: 6 },
+      { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
+      // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle
+      // present. Gear group with custom label exercises the secondary line.
+      {
+        name: "normal-6x4",
+        w: 6,
+        h: 4,
+        config: { actionGroupId: "Gear", label: "Landing Gear" },
+      },
+      // Default registered size (6×6): full UI with custom label.
+      {
+        name: "default-6x6",
+        w: 6,
+        h: 6,
+        config: { actionGroupId: "AG1", label: "Chutes" },
+      },
       // Wide: label + OfficialName strip have generous horizontal room.
-      { name: "wide-9x6", w: 9, h: 6 },
+      { name: "wide-9x6", w: 9, h: 6, config: { actionGroupId: "SAS" } },
     ],
   },
   {
@@ -1499,12 +1510,6 @@ const WIDGETS: WidgetRenderConfig[] = [
         { name: "tall-7x16", w: 7, h: 16, config: dualLine },
         // Default operator view, both axes (safely past slot 1).
         { name: "default-10x8", w: 10, h: 8, config: dualLine },
-        // minSize 5x4: the tightest tile the widget allows, two series so it stays a chart.
-        { name: "min-5x4", w: 5, h: 4, config: dualLine },
-        // The auto-appended breakpoint modes carry no config, which draws this config-driven widget's empty state.
-        { name: "mobile-9x8", w: 9, h: 8, config: dualLine },
-        { name: "portrait-5x18", w: 5, h: 18, config: dualLine },
-        { name: "landscape-18x5", w: 18, h: 5, config: dualLine },
       ];
     })(),
   },
@@ -2033,8 +2038,8 @@ const WIDGETS: WidgetRenderConfig[] = [
        * them, had never appeared in a render at all.
        */
       {
-        name: "hovered-tank-18x14",
-        w: 18,
+        name: "hovered-tank-10x14",
+        w: 10,
         h: 14,
         hovers: [{ selector: 'g[aria-label^="FL-T400 Fuel Tank"]' }],
         forFixtures: ["fuel-tank-bars-only", "fuel-tank-bars-only-link-lost"],

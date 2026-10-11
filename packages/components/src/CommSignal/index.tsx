@@ -12,8 +12,8 @@ registerComponent<CommSignalConfig>({
   description:
     "Your vessel's CommNet connection: signal strength, how much control you have over a probe, and the signal delay. At larger sizes it shows each relay on the route home.",
   tags: ["telemetry", "comms"],
-  defaultSize: { w: 6, h: 6 },
-  // Below four rows the caption and the detail grid are dropped, leaving the bars and the figure.
+  defaultSize: { w: 6, h: 5 },
+  // The body fits from three rows up; below it the bars crowd the figure.
   minSize: { w: 3, h: 4 },
   component: CommSignalComponent,
   tiny: {

@@ -7,9 +7,6 @@ import type { NetTone } from "./flow";
 
 export const RESOURCE_SELECT: CSSProperties = {
   maxWidth: "50%",
-  // A short header would otherwise squeeze the select until its chevron sits on the name.
-  minWidth: "9em",
-  textOverflow: "ellipsis",
   fontSize: "var(--font-size-value)",
   padding: "var(--inset-control)",
 };
@@ -50,9 +47,7 @@ export const CELL_VALUE: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-export const NO_BREAK: CSSProperties = { whiteSpace: "nowrap" };
-
-// An "amount / max" pair may wrap inside its narrow cell; NO_BREAK on each half keeps the separator with the maximum.
+// An "amount / max" pair may wrap inside its narrow cell, breaking at the separator.
 export const STORED_VALUE: CSSProperties = {
   fontWeight: 700,
   whiteSpace: "normal",

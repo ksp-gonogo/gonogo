@@ -126,9 +126,7 @@
                 ],
                 "agent": "Kerbin Space Program",
                 "reputationCompletion": 25,
-                "dateDeadline": 0,
-                "fundsFailure": 80000,
-                "reputationFailure": 15.0
+                "dateDeadline": 0
               },
               {
                 "id": "100",
@@ -146,9 +144,7 @@
                 ],
                 "agent": "Periapsis Rocket Parts",
                 "reputationCompletion": 2,
-                "dateDeadline": 128940,
-                "fundsFailure": 4000,
-                "reputationFailure": 1.2
+                "dateDeadline": 128940
               },
               {
                 "id": "101",
@@ -168,9 +164,7 @@
                 ],
                 "agent": "Research & Development Dept.",
                 "reputationCompletion": 1,
-                "dateDeadline": 130740,
-                "fundsFailure": 2000,
-                "reputationFailure": 0.6
+                "dateDeadline": 130740
               }
             ],
             "offered": [],

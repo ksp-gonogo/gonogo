@@ -99,9 +99,7 @@
                 ],
                 "agent": "Kerbin Space Program",
                 "reputationCompletion": 5,
-                "dateDeadline": 233340,
-                "fundsFailure": 10000,
-                "reputationFailure": 3.0
+                "dateDeadline": 233340
               }
             ],
             "offered": [

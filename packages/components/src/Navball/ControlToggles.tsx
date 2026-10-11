@@ -1,8 +1,6 @@
 import {
-  HeldFigure,
   Notice,
   NULL_DISPLAY,
-  type ReckoningMarking,
   ToggleButton,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
@@ -20,8 +18,6 @@ interface ControlTogglesProps {
   rcs: boolean | null | undefined;
   /** Precision control as read, uncoerced; the chip is absent until a reading lands. */
   precision: boolean | null | undefined;
-  /** The control reading's mark when the states shown are held rather than current, so a toggle is never drawn as a live setting it no longer is. */
-  marking: ReckoningMarking | null;
   onToggleSas: () => void;
   onToggleRcs: () => void;
 }
@@ -39,18 +35,9 @@ export function ControlToggles({
   sasUnavailableReason,
   rcs,
   precision,
-  marking,
   onToggleSas,
   onToggleRcs,
 }: ControlTogglesProps) {
-  const marked = (label: string) =>
-    marking === null ? (
-      label
-    ) : (
-      <HeldFigure kind={marking.kind} caption={marking.caption}>
-        {label}
-      </HeldFigure>
-    );
   return (
     <>
       {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
@@ -64,7 +51,7 @@ export function ControlToggles({
             onClick={onToggleSas}
             disabled={disabled || sasUnavailableReason !== null}
           >
-            {marked(armLabel("SAS", sas, sasBadgeMode))}
+            {armLabel("SAS", sas, sasBadgeMode)}
           </ToggleButton>
         </Tooltip>
         <ToggleButton
@@ -75,7 +62,7 @@ export function ControlToggles({
           onClick={onToggleRcs}
           disabled={disabled}
         >
-          {marked(armLabel("RCS", rcs))}
+          {armLabel("RCS", rcs)}
         </ToggleButton>
         {/* A dim chip means off, so there is no chip until precision is read. */}
         {typeof precision === "boolean" && (

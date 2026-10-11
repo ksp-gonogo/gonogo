@@ -75,13 +75,8 @@ export function AppWidgetScene({
   const mounted = useCallback(async (mount: ProbeMount) => {
     const root = host.current;
     if (!root) return;
-    root.setAttribute("data-scene-driving", "");
-    try {
-      for (const press of steps.current ?? []) {
-        await pressWhenReady(root, press);
-      }
-    } finally {
-      root.removeAttribute("data-scene-driving");
+    for (const press of steps.current ?? []) {
+      await pressWhenReady(root, press);
     }
     after.current?.(mount, root);
   }, []);

@@ -1,21 +1,9 @@
-import type { TopicReading } from "@ksp-gonogo/sitrep-client";
-import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 
-/**
- * The throttle readback beside the dial: a fill bar over its percentage. The
- * figure takes the control reading's currency, so a throttle held from before a
- * blackout is marked held and its bar is dimmed rather than drawn as live.
- */
-export function ThrottleGauge({
-  throttle,
-  reading,
-}: {
-  throttle: number | null;
-  reading: TopicReading<unknown>;
-}) {
-  const current = reading.state === "observed";
+/** The throttle readback beside the dial: a fill bar over its percentage. */
+export function ThrottleGauge({ throttle }: { throttle: number | null }) {
   return (
     <div style={THROTTLE_COLUMN}>
       <span style={THROTTLE_LABEL}>THR</span>
@@ -25,7 +13,6 @@ export function ThrottleGauge({
             style={{
               ...THROTTLE_FILL,
               height: `${throttle * 100}%`,
-              opacity: current ? 1 : HELD_FILL_OPACITY,
             }}
           />
         )}
@@ -34,17 +21,12 @@ export function ThrottleGauge({
         {throttle === null ? (
           NULL_DISPLAY
         ) : (
-          <Unit
-            value={readingOf(reading, () => value("%", throttle * 100))}
-            decimals={0}
-          />
+          <Unit value={value("%", throttle * 100)} decimals={0} />
         )}
       </span>
     </div>
   );
 }
-
-const HELD_FILL_OPACITY = 0.4;
 
 const THROTTLE_COLUMN: CSSProperties = {
   display: "flex",

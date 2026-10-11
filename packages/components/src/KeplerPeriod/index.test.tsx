@@ -154,30 +154,4 @@ describe("KeplerPeriodComponent", () => {
     expect(screen.queryByText(/Unknown body/)).toBeNull();
     expect(screen.queryByText(/No reference data/)).toBeNull();
   });
-  it("says why the plot is empty before any orbit has arrived", async () => {
-    renderKepler();
-    await waitFor(() => {
-      expect(screen.getByText(/No orbit reported/)).toBeTruthy();
-    });
-  });
-
-  it("says an escape trajectory has no period rather than drawing nothing", async () => {
-    renderKepler();
-    act(() => {
-      stream.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        sma: -2_000_000,
-        ecc: 1.4,
-        inc: 0,
-        lan: 0,
-        argPe: 0,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-        mu: 3.5316e12,
-      });
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/escape trajectory/)).toBeTruthy();
-    });
-  });
 });

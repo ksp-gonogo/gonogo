@@ -1,5 +1,5 @@
 import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 /**
@@ -37,10 +37,6 @@ export interface ContractEntry {
   repCompletion: number;
   /** UT seconds at which the contract expires; zero when no deadline. */
   deadlineUt: number;
-  /** Funds taken when the contract fails or is cancelled; null when the wire did not say. */
-  fundsFailure: number | null;
-  /** Reputation lost when the contract fails or is cancelled; null when the wire did not say. */
-  repFailure: number | null;
   parameters: ContractParameter[];
 }
 
@@ -82,12 +78,14 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     const id = contractIdOf(e.id);
     if (id === null) continue;
     const agency = agencyOf(e);
-    // The wire spells it `reputationCompletion` and `dateDeadline`; the shorter spellings are still read.
     const repCompletion =
-      magnitudeOf(asQuantityish(e.repCompletion ?? e.reputationCompletion)) ??
+      magnitudeOf(asQuantityish(e.repCompletion)) ??
+      magnitudeOf(asQuantityish(e.reputationCompletion)) ??
       0;
     const deadlineUt =
-      magnitudeOf(asQuantityish(e.deadlineUt ?? e.dateDeadline)) ?? 0;
+      magnitudeOf(asQuantityish(e.deadlineUt)) ??
+      magnitudeOf(asQuantityish(e.dateDeadline)) ??
+      0;
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
@@ -98,8 +96,6 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
       scienceCompletion: magnitudeOr(asQuantityish(e.scienceCompletion), 0),
       repCompletion,
       deadlineUt,
-      fundsFailure: magnitudeOf(asQuantityish(e.fundsFailure)),
-      repFailure: magnitudeOf(asQuantityish(e.reputationFailure)),
       parameters: parseParameters(e.parameters),
     });
   }
@@ -146,11 +142,9 @@ function parseParameters(raw: unknown): ContractParameter[] {
  */
 export function formatDeadline(
   deadlineUt: number,
-  universalTime: number | undefined,
+  universalTime: number,
 ): string {
   if (!deadlineUt || deadlineUt <= 0) return "no deadline";
-  // Without a confirmed view UT the remaining time is unknown, not the whole deadline.
-  if (universalTime === undefined) return NULL_DISPLAY;
   const remaining = deadlineUt - universalTime;
   if (remaining <= 0) return "expired";
   // Floored at a minute: a card that is scanned needs no sub-minute noise.

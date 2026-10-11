@@ -106,7 +106,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
     const { container } = renderWidget();
     emitInAtmosphere();
 
-    await waitFor(() => expect(visibleText(container)).toContain("Density"));
+    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
     expect(visibleText(container)).toContain("Air");
     expect(visibleText(container)).toContain("Skin");
     expect(visibleText(container)).toMatch(PRESSURE_LINE);
@@ -117,13 +117,13 @@ describe("AtmosphereProfile when the flight reading is held", () => {
   it("withholds the chip and marks the pressure line as held", async () => {
     const { container } = renderWidget();
     emitInAtmosphere();
-    await waitFor(() => expect(visibleText(container)).toContain("Density"));
+    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
     loseTheLink();
 
     await waitFor(() => expect(heldMark(container)).not.toBeNull());
     // All three rows go together, one statement about one air mass.
-    expect(visibleText(container)).not.toContain("Density");
+    expect(visibleText(container)).not.toContain("ρ");
     expect(visibleText(container)).not.toContain("Air");
     expect(visibleText(container)).not.toContain("Skin");
     // The line stays on the last altitude, and a screen reader hears that it is held.
@@ -134,7 +134,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
   it("draws no widget-level sentence about currency, the marked line says it", async () => {
     const { container } = renderWidget();
     emitInAtmosphere();
-    await waitFor(() => expect(visibleText(container)).toContain("Density"));
+    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
     loseTheLink();
 
@@ -146,7 +146,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
     // A missing chip from a dropped link must not read as the clear vacuum a craft that may be on fire would show.
     const { container } = renderWidget();
     emitInAtmosphere();
-    await waitFor(() => expect(visibleText(container)).toContain("Density"));
+    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
     // A confirmed zero: the chip goes and the line stays unmarked.
     act(() => {
@@ -156,9 +156,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
         { validAt: 1, seq: 1, deliveredAt: 1 },
       );
     });
-    await waitFor(() =>
-      expect(visibleText(container)).not.toContain("Density"),
-    );
+    await waitFor(() => expect(visibleText(container)).not.toContain("ρ"));
     expect(heldMark(container)).toBeNull();
 
     // The same empty chip from a lost link, which does mark the line.
@@ -170,7 +168,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
     // The curve is a body model, not telemetry, so it stays.
     const { container } = renderWidget();
     emitInAtmosphere();
-    await waitFor(() => expect(visibleText(container)).toContain("Density"));
+    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
     const curvesBefore = container.querySelectorAll("path").length;
 
     loseTheLink();

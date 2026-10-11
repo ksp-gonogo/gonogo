@@ -100,13 +100,6 @@ interface Scene {
   panes: Pane[];
   separation?: { from: string; to: string; oneWaySeconds: number }[];
   roster?: { id: string; displayName: string; active: boolean }[];
-  unreachable?: {
-    id: string;
-    displayName: string;
-    kind: string;
-    lastReachableUt: number;
-    reason?: number;
-  }[];
   oneWaySeconds?: number;
   linkLost?: boolean;
   settleOn?: string | readonly string[];
@@ -284,77 +277,6 @@ const STATUS_SENT: Held[] = [
 ];
 
 const SCENES: Scene[] = [
-  {
-    name: "unreachable-thread-no-reason",
-    panes: [
-      {
-        seat: "mission-control",
-        vantage: KSC,
-        name: "Kennedy Flight",
-        received: [
-          {
-            from: WOOMERA,
-            to: [KSC],
-            authorName: "Woomera Range",
-            authorSeat: "mission-control",
-            body: "Kennedy, Woomera. We have the pass, tracking is locked.",
-            sentAt: -6000,
-            separationSeconds: 12,
-          },
-        ],
-        openThread: "Woomera Range",
-      },
-    ],
-    separation: PAIRS,
-    roster: ROSTER.filter((r) => r.id !== WOOMERA),
-    unreachable: [
-      {
-        id: WOOMERA,
-        displayName: "Woomera Range",
-        kind: "GroundStation",
-        lastReachableUt: -5400,
-      },
-    ],
-    settleOn: "tracking is locked",
-    pxW: 520,
-    pxH: 420,
-  },
-  {
-    name: "unreachable-thread-reason",
-    panes: [
-      {
-        seat: "mission-control",
-        vantage: KSC,
-        name: "Kennedy Flight",
-        received: [
-          {
-            from: WOOMERA,
-            to: [KSC],
-            authorName: "Woomera Range",
-            authorSeat: "mission-control",
-            body: "Kennedy, Woomera. We have the pass, tracking is locked.",
-            sentAt: -6000,
-            separationSeconds: 12,
-          },
-        ],
-        openThread: "Woomera Range",
-      },
-    ],
-    separation: PAIRS,
-    roster: ROSTER.filter((r) => r.id !== WOOMERA),
-    unreachable: [
-      {
-        id: WOOMERA,
-        displayName: "Woomera Range",
-        kind: "GroundStation",
-        lastReachableUt: -5400,
-        reason: 0,
-      },
-    ],
-    settleOn: "tracking is locked",
-    pxW: 520,
-    pxH: 420,
-  },
   {
     name: "group-send-status",
     panes: [

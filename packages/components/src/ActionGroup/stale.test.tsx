@@ -165,8 +165,9 @@ describe("ActionGroup when the group's state is held", () => {
         .getByRole("button", { name: "Toggle SAS" })
         .getAttribute("data-tooltip"),
     ).toBe("Toggle SAS");
-    // Nothing to invert yet, so no press is offered; the tooltip still names no cause.
-    expect(screen.getByRole("button", { name: "Toggle SAS" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Toggle SAS" }),
+    ).not.toBeDisabled();
   });
 });
 

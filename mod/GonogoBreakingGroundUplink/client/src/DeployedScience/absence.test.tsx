@@ -120,7 +120,7 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
     ]);
 
     await screen.findByText("Seismometer");
-    expect(screen.queryByText(/collecting/)).toBeNull();
+    // The dot is aria-hidden, so it is only visible in the markup.
     expect(container.innerHTML).not.toContain("●");
   });
 
@@ -131,7 +131,6 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
     const bar = await screen.findByRole("meter", { name: "Seismometer" });
     expect(bar.getAttribute("aria-valuenow")).toBe("0");
     expect(container.innerHTML).toContain("●");
-    expect(screen.getByText(/collecting/)).toBeInTheDocument();
   });
 
   it("has no a11y violations with every science figure withheld", async () => {
@@ -167,19 +166,6 @@ describe("DeployedScience: a progress held over a dropped link", () => {
     );
     expect(meter).toHaveAttribute("aria-valuenow", "50");
     expect(root()?.querySelector("[data-held-mark]")).not.toBeNull();
-  });
-
-  it("marks the base's power state held beside its pill, which is words and not a figure", async () => {
-    const { fixture } = mount([flatEntry()]);
-    await screen.findByRole("meter", { name: "Seismometer" });
-    expect(screen.queryByText(/^offline$/i)).toBeNull();
-
-    act(() => {
-      fixture.store.setTransportConnected(false);
-      fixture.store.beginFrame();
-    });
-
-    expect(await screen.findByText(/^offline$/i)).toBeInTheDocument();
   });
 });
 

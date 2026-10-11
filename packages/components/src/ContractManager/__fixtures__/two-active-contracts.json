@@ -97,9 +97,7 @@
                 ],
                 "agent": "Kerbin Space Agency Rescue Division",
                 "reputationCompletion": 8,
-                "dateDeadline": 2500000,
-                "fundsFailure": 10000,
-                "reputationFailure": 4.8
+                "dateDeadline": 2500000
               },
               {
                 "id": "9012345678901234",
@@ -122,9 +120,7 @@
                 ],
                 "agent": "Global Exploration Society",
                 "reputationCompletion": 12,
-                "dateDeadline": 0,
-                "fundsFailure": 20000,
-                "reputationFailure": 7.2
+                "dateDeadline": 0
               }
             ],
             "offered": [

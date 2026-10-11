@@ -76,7 +76,7 @@ export function SolutionReadouts({
             <Mps v={model.touchdownSpeed ?? undefined} from={solveCurrency} />
           }
         </StackedField>
-        <StackedField label="Remaining dV">
+        <StackedField label="Fuel remaining">
           {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
       </Grid>

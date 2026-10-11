@@ -55,12 +55,8 @@ export function PartTooltip({
         <div style={TOOLTIP_ROW}>
           <span>temp</span>
           <span style={TOOLTIP_ROW_VALUE}>
-            <Unit value={value("K", hovered.temperatureK)} decimals={0} />
-            {" / "}
-            <Unit
-              value={value("K", hovered.maxTemperatureK ?? hovered.maxTemp)}
-              decimals={0}
-            />
+            {Math.round(hovered.temperatureK)} /{" "}
+            {Math.round(hovered.maxTemperatureK ?? hovered.maxTemp)} K
           </span>
         </div>
       ) : null}

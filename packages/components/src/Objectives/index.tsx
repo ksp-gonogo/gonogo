@@ -3,7 +3,6 @@ import {
   AugmentSlot,
   registerAugment,
   registerComponent,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import { AutoEmptyState, EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 import {
@@ -29,8 +28,6 @@ const OBJECTIVES_SLOT: ObjectiveSourceContext = { Section: ObjectivesSection };
  * The built-in source is active-contract parameters, and any Uplink source binds the same way.
  */
 function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
-  // Before the career record has arrived there is nothing to say about contracts, so the empty frame must not claim there are none.
-  const heardNothing = useTelemetry("career.status").state === "pending";
   return (
     <Panel
       panelTitle="OBJECTIVES"
@@ -39,11 +36,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
           <AutoEmptyState
             gap="section"
             fallback={
-              <EmptyState role="status">
-                {heardNothing
-                  ? "Awaiting contract data"
-                  : "No active objectives"}
-              </EmptyState>
+              <EmptyState role="status">No active objectives</EmptyState>
             }
           >
             <AugmentSlot name="objectives.source" props={OBJECTIVES_SLOT} />

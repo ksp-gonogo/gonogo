@@ -121,15 +121,13 @@ export function useFleet(): {
   const coverage = useMemo(
     () =>
       combineReadings([systemReading.vessels], (entries) => {
-        // A craft whose link nobody has reported is neither covered nor uncovered, so it stays out of the count.
-        const known = (entries ?? [])
-          .filter((v) => isRosterCraft(v.vesselType))
-          .map((v) => rosterCommsLink(v.commsControlSource))
-          .filter((link) => link !== "unknown");
-        const linked = known.filter(isLinked).length;
-        // No craft with a known link has no coverage to state, which is not zero percent.
-        if (known.length === 0) return undefined;
-        return value("ratio", linked / known.length);
+        const roster = (entries ?? []).filter((v) =>
+          isRosterCraft(v.vesselType),
+        );
+        const linked = roster.filter((v) =>
+          isLinked(rosterCommsLink(v.commsControlSource)),
+        ).length;
+        return value("ratio", roster.length > 0 ? linked / roster.length : 0);
       }),
     [systemReading],
   );

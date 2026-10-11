@@ -12,11 +12,7 @@ import { useStreamBody } from "../shared/useStreamBody";
 const topics = defineTopicManifest({
   // The escape-velocity curve needs the body's own radius and gravitational parameter, both on `system.bodies`.
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
-  fields: [
-    "vessel.flight.altitudeAsl",
-    "vessel.flight.orbitalSpeed",
-    "vessel.identity.parentBodyIndex",
-  ],
+  fields: ["vessel.flight.altitudeAsl", "vessel.flight.orbitalSpeed"],
 });
 
 export interface EscapeProfileConfig {

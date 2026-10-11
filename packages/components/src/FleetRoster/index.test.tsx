@@ -282,8 +282,7 @@ describe("FleetRosterComponent", () => {
     });
     expect(await screen.findByText("Unnamed Level Probe")).toBeInTheDocument();
     expect(screen.queryByText("NONE")).toBeNull();
-    // The row's link chip, and the coverage meter's absent figure: the only craft is unread.
-    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
   });
 
   it("filters non-craft vessel types out of the roster, keeping real craft and one unclassified contact", async () => {
@@ -319,27 +318,14 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
     });
-    // One vessel has no link (the orbiter); the unresolved contact is unknown, not unlinked.
-    expect(visibleText()).toContain("1 Not Linked");
+    // Two vessels are not linked (1 none + 1 unknown: the orbiter and the unresolved contact) out of five.
+    expect(visibleText()).toContain("2 Not Linked");
     expect(
       screen.getByRole("meter", { name: "Comms coverage" }),
-    ).toHaveAttribute("aria-valuenow", "75");
+    ).toHaveAttribute("aria-valuenow", "60");
     expect(visibleText()).toMatch(/3 linked/);
     expect(visibleText()).toMatch(/1 no link/);
     expect(visibleText()).toMatch(/1 unknown/);
-  });
-
-  it("folds body and crew under the vessel name at the minimum width, so the name keeps its room", async () => {
-    const fixture = newFixture();
-    renderRoster(fixture, { w: 5, h: 7 });
-    act(() => {
-      fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", MIXED);
-    });
-    await screen.findByText("Kerbin Station Alpha");
-    expect(screen.queryByText("Crew")).toBeNull();
-    expect(screen.queryByText("Body")).toBeNull();
-    expect(screen.getByText("Kerbin · 6/6")).toBeInTheDocument();
   });
 
   it("shows an All Linked badge and a full meter when every vessel has a link", async () => {

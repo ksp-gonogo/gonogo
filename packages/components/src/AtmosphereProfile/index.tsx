@@ -18,13 +18,6 @@ export interface AtmosphereProfileConfig {
 
 const topics = defineTopicManifest({
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
-  fields: [
-    "vessel.flight.altitudeAsl",
-    "vessel.flight.atmDensity",
-    "vessel.flight.atmosphericTemperature",
-    "vessel.flight.externalTemperature",
-    "vessel.identity.parentBodyIndex",
-  ],
 });
 
 function AtmosphereProfileComponent({
@@ -192,7 +185,6 @@ registerComponent<AtmosphereProfileConfig>({
   mobileHeight: 280,
   component: AtmosphereProfileComponent,
   channels: topics.channels,
-  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

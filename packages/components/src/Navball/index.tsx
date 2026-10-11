@@ -12,13 +12,7 @@ import {
   SAS_MODE_NAMES,
   stillTrue,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Badge,
-  Countdown,
-  derivedMarking,
-  Panel,
-  Section,
-} from "@ksp-gonogo/ui-kit";
+import { Badge, Countdown, Panel, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { AppliedInput } from "./AppliedInput";
@@ -208,9 +202,7 @@ function NavballComponent({
                   roll={roll}
                   size={dialFit}
                 />
-                {showThrottleColumn && (
-                  <ThrottleGauge throttle={throttle} reading={controlReading} />
-                )}
+                {showThrottleColumn && <ThrottleGauge throttle={throttle} />}
               </div>
             ) : (
               <div style={NUMERIC_READOUT}>
@@ -240,7 +232,6 @@ function NavballComponent({
               sasUnavailableReason={sasUnavailableReason}
               rcs={rcsRaw}
               precision={control?.precisionControl}
-              marking={derivedMarking(controlReading)}
               onToggleSas={toggleSas}
               onToggleRcs={toggleRcs}
             />

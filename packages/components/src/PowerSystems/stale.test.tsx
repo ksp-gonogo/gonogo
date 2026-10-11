@@ -66,14 +66,11 @@ const VESSEL_PARTS_WIRE = {
   ],
 };
 
-function mount(
-  fixture: ReturnType<typeof setupStreamFixture>,
-  size: { w: number; h: number } = { w: 8, h: 12 },
-) {
+function mount(fixture: ReturnType<typeof setupStreamFixture>) {
   const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "power-stale" }}>
-        <PowerSystemsComponent id="power-stale" w={size.w} h={size.h} />
+        <PowerSystemsComponent id="power-stale" w={8} h={12} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -132,23 +129,5 @@ describe("PowerSystems when vessel.parts is held", () => {
       // A mark with no caption says nothing.
       expect(mark.querySelector("[data-unit-currency]")).not.toBeNull();
     }
-  });
-
-  it("marks the lone NET figure of the compact tile, which has no panel badge to say so", async () => {
-    const fixture = setupStreamFixture({
-      pinnedUt: 10,
-      suspendFrames: true,
-    });
-    const container = mount(fixture, { w: 3, h: 3 });
-    act(() => {
-      fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
-    });
-    await waitFor(() => expect(visibleText(container)).toContain("-5.25"));
-    expect(container.querySelectorAll("[data-held]")).toHaveLength(0);
-
-    goStale(fixture);
-
-    expect(visibleText(container)).toContain("-5.25");
-    expect(container.querySelectorAll("[data-held]").length).toBeGreaterThan(0);
   });
 });

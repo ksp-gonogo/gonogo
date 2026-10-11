@@ -16,7 +16,7 @@ export function LiveAirChip({
   return (
     <div role="status" aria-live="polite" style={LIVE_CHIP_STYLE}>
       <div style={CHIP_ROW_STYLE}>
-        <span style={CHIP_LABEL_STYLE}>Density</span>
+        <span style={CHIP_LABEL_STYLE}>ρ</span>
         <span style={CHIP_VALUE_STYLE}>
           <Unit value={density} decimals={3} />
         </span>
@@ -60,7 +60,7 @@ const LIVE_CHIP_STYLE = {
 
 const CHIP_ROW_STYLE = {
   display: "grid",
-  gridTemplateColumns: "7ch auto",
+  gridTemplateColumns: "28px auto",
   gap: "var(--gap-related)",
   alignItems: "baseline",
 } as const;

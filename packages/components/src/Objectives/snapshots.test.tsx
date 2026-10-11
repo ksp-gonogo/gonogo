@@ -3,7 +3,6 @@ import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import contractsOnly from "./__fixtures__/contracts-only.json";
 import empty from "./__fixtures__/empty.json";
-import mixedStates from "./__fixtures__/mixed-states.json";
 import { ObjectivesComponent } from "./index";
 
 /** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block. */
@@ -11,7 +10,6 @@ import { ObjectivesComponent } from "./index";
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "contracts-only": contractsOnly,
   empty,
-  "mixed-states": mixedStates,
 };
 
 const config = getWidget("objectives");

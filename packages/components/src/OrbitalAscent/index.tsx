@@ -20,18 +20,16 @@ import read from "./orbital-ascent.declarations.g";
 const HORIZONTAL_SPEED_KEY = "orbital-ascent.horizontalSpeed";
 
 /**
- * The orbital-speed split: what is left of the speed in the inertial frame once
- * the vertical part is taken out. That is the figure a circular orbit's speed
- * is compared against; the surface-relative speed is short of it by the body's
- * rotation, so a craft in orbit would never reach the curve. Clamped before the
- * root, so rounding in two independently reported speeds never yields NaN.
+ * The surface-speed split: what is left of the surface speed once the vertical
+ * part is taken out. Clamped before the root, so rounding in two independently
+ * reported speeds never yields NaN.
  */
 export function horizontalOf(
-  orbitalSpeed: number,
+  surfaceSpeed: number,
   verticalSpeed: number,
 ): number {
   return Math.sqrt(
-    Math.max(0, orbitalSpeed * orbitalSpeed - verticalSpeed * verticalSpeed),
+    Math.max(0, surfaceSpeed * surfaceSpeed - verticalSpeed * verticalSpeed),
   );
 }
 
@@ -41,7 +39,7 @@ const topics = defineTopicManifest({
   optionalChannels: read.optionalChannels,
   fields: [
     "vessel.flight.altitudeAsl",
-    "vessel.flight.orbitalSpeed",
+    "vessel.flight.surfaceSpeed",
     "vessel.flight.verticalSpeed",
     "vessel.identity.parentBodyIndex",
   ],
@@ -97,7 +95,7 @@ function OrbitalAscentComponent({
 
   const windowSec = config?.windowSec ?? 600;
   const horizontalData = useComputedSeries(
-    { topic: "vessel.flight", field: "orbitalSpeed" },
+    { topic: "vessel.flight", field: "surfaceSpeed" },
     { topic: "vessel.flight", field: "verticalSpeed" },
     windowSec,
     horizontalOf,
@@ -135,7 +133,6 @@ function OrbitalAscentComponent({
       ],
       windowSec,
       x: { topic: "vessel.flight", field: "altitudeAsl" },
-      yUnit: "m/s",
     }),
     [windowSec],
   );

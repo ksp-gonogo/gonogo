@@ -81,7 +81,7 @@ const CONTROL_ALL_OFF = {
 };
 
 describe("ActionGroup: nothing has arrived at all", () => {
-  it("renders the configured group, named, with NULL_DISPLAY for its state and the toggle held off", () => {
+  it("renders the configured group, named and enabled, with NULL_DISPLAY for its state", () => {
     mount("SAS");
 
     // SAS is a stock singleton, so it resolves with no `vessel.control` at all.
@@ -90,8 +90,7 @@ describe("ActionGroup: nothing has arrived at all", () => {
     const toggle = screen.getByRole("button", { name: "Toggle SAS" });
     expect(toggle.textContent).toBe(NULL_DISPLAY);
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
-    // With no state to invert a press would do nothing, so none is offered.
-    expect(toggle).toBeDisabled();
+    expect(toggle).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Rename SAS" })).toBeTruthy();
   });
 
@@ -240,7 +239,7 @@ describe("ActionGroup: a partial payload", () => {
 
     const toggle = screen.getByRole("button", { name: "Toggle AG1" });
     expect(toggle.textContent).toBe(NULL_DISPLAY);
-    expect(toggle).toBeDisabled();
+    expect(toggle).not.toBeDisabled();
   });
 });
 
