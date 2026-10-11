@@ -189,7 +189,7 @@ export const VEIL_HIDDEN = 2;
 export const VEIL_NO_DATA = 3;
 
 /** Metres of height in one colour band, the same in the view and in the map: a height is one colour whatever the grid around it holds, so descending never invents new colours. */
-export const TERRAIN_BAND_METRES = 50;
+export const TERRAIN_BAND_METRES = 25;
 
 /** The centre of the ground cell a point of ground falls in, cells being `pitch` metres across and centred on the lattice's points. */
 export function cellCentre(v: number, pitch: number): number {
