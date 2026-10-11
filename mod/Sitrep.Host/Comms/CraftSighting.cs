@@ -21,7 +21,7 @@ namespace Sitrep.Host.Comms
     public sealed class CraftSighting
     {
         /// <summary>The keys of a <c>system.vessels</c> entry that say where the craft is.</summary>
-        public static readonly string[] LocationFacts = { "situation", "bodyIndex", "orbit", "landedAt", "latitude", "longitude" };
+        public static readonly string[] LocationFacts = { "situation", "bodyIndex", "orbit" };
 
         /// <summary>The keys of a <c>system.vessels</c> entry it is tracked under.</summary>
         public static readonly string[] IdentityFacts = { "vesselId", "name", "vesselType" };

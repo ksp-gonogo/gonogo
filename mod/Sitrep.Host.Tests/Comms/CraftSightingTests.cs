@@ -47,22 +47,6 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ASightingKeepsWhereOnTheGroundACraftIsBecauseATelescopeCanSeeIt()
-        {
-            var listed = Entry(8, 3, 700_000.0);
-            listed["landedAt"] = "Runway";
-            listed["latitude"] = -0.0486;
-            listed["longitude"] = -74.7244;
-
-            var seen = CraftSighting.Of("vessel:a", 5.0, listed, null);
-
-            Assert.Equal("Runway", seen.Listed!["landedAt"]);
-            Assert.Equal(-0.0486, seen.Listed["latitude"]);
-            Assert.Equal(-74.7244, seen.Listed["longitude"]);
-            Assert.False(seen.Listed.ContainsKey("crewCount"));
-        }
-
-        [Fact]
         public void ANewerSightingMovesTheCraftAndChangesNothingElseAboutIt()
         {
             var entry = new CommandCentreEntry { Id = "vessel:a" };

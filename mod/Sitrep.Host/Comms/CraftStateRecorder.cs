@@ -313,11 +313,11 @@ namespace Sitrep.Host.Comms
             {
                 return true;
             }
-            foreach (var key in new[] { "vesselId", "name", "vesselType", "situation", "bodyIndex", "landedAt", "latitude", "longitude" })
+            foreach (var key in new[] { "vesselId", "name", "vesselType", "situation", "bodyIndex" })
             {
                 was.TryGetValue(key, out var a);
                 now.TryGetValue(key, out var b);
-                if (!SameListedFact(a, b))
+                if (!Equals(a, b))
                 {
                     return true;
                 }
@@ -325,16 +325,8 @@ namespace Sitrep.Host.Comms
             return (was.TryGetValue("orbit", out var o1) && o1 != null) != (now.TryGetValue("orbit", out var o2) && o2 != null);
         }
 
-        /// <summary>
-        /// Whether two listed facts are the same one. A coordinate is read off a craft that rests on the ground, where physics keeps nudging it by far less than anything a client could draw, so two readings within a metre or so of each other are one place and do not make the craft re-listed.
-        /// </summary>
-        private static bool SameListedFact(object? a, object? b) =>
-            a is double x && b is double y ? Math.Abs(x - y) <= CoordinateToleranceDegrees : Equals(a, b);
-
-        private const double CoordinateToleranceDegrees = 1e-4;
-
         /// <summary>The roster keys a craft is read again for. Its orbit is read when it moves, and its link is told by its own report.</summary>
-        private static readonly string[] ListedFacts = { "name", "vesselType", "situation", "bodyIndex", "landedAt", "latitude", "longitude", "crewCount", "crewCapacity", "commsControlSource" };
+        private static readonly string[] ListedFacts = { "name", "vesselType", "situation", "bodyIndex", "crewCount", "crewCapacity", "commsControlSource" };
 
         private static bool ListedDifferently(IReadOnlyDictionary<string, object?>? was, IReadOnlyDictionary<string, object?>? now)
         {
@@ -350,7 +342,7 @@ namespace Sitrep.Host.Comms
             {
                 was.TryGetValue(key, out var a);
                 now.TryGetValue(key, out var b);
-                if (!SameListedFact(a, b))
+                if (!Equals(a, b))
                 {
                     return true;
                 }
