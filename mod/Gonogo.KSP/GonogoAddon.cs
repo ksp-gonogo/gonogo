@@ -547,29 +547,28 @@ namespace Gonogo.KSP
                     return;
                 }
 
-                // ONE Sample() call per cadence tick feeds BOTH the recorder
-                // and the system.bodies emit path below - the v1 mod sampled
-                // the host twice (once for the recorder, once here) and
-                // called NowUt() a third time; that redundancy is gone.
-                var snapshot = _host.Sample();
-
-                // The recorder is a dev-capture tool: it records this
-                // snapshot UNCONDITIONALLY, regardless of whether any client
-                // is subscribed to the live stream. Subscription-gating
-                // applies only to the emit path below (inside
-                // ChannelEngine.Tick, via SubscriptionRegistry + ChannelEmitter,
-                // per registered channel) - never to the recorder.
-                if (_recordingEnabled)
-                {
-                    _recorder.Record(snapshot.Ut, snapshot);
-                }
-
-                // The engine applies every registered channel's mapper
-                // (system.bodies's is SystemViewProvider.BuildSystemBodies,
-                // via SystemUplink) itself, rather than GonogoAddon building
-                // the payload by hand.
+                /*
+                 * This callback runs on the game's clock, and under high warp
+                 * it can offer ticks faster than the engine finishes them, so
+                 * the engine may decline one. It decides before the game is
+                 * sampled: a declined tick is then a frame nothing looked at,
+                 * the same as one the gate above did not admit.
+                 *
+                 * ONE Sample() call per tick taken feeds both the recorder and
+                 * the engine. The recorder is a dev-capture tool: it records
+                 * that snapshot whether or not any client is subscribed to the
+                 * live stream, which gates only the engine's emit path.
+                 */
                 _engine.NoteSave(HighLogic.SaveFolder);
-                _engine.Tick(snapshot.Ut, snapshot);
+                _engine.TryTick(() =>
+                {
+                    var snapshot = _host.Sample();
+                    if (_recordingEnabled)
+                    {
+                        _recorder.Record(snapshot.Ut, snapshot);
+                    }
+                    return snapshot;
+                });
             }
             catch (Exception ex)
             {

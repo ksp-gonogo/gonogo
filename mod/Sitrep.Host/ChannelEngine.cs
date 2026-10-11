@@ -588,6 +588,20 @@ namespace Sitrep.Host
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
 
+        /// <summary>
+        /// How many ticks the Courier may still owe before <see cref="TryTick"/>
+        /// declines another: the one it is working on and one waiting behind it.
+        /// One waiting keeps the Courier from idling between ticks; any more is
+        /// a queue that every other job, a subscribe among them, waits out.
+        /// </summary>
+        internal const int TickBacklogLimit = 2;
+
+        /// <summary>Ticks enqueued and not yet finished by the Courier. Written from the ticking thread and the Courier thread.</summary>
+        private int _ticksOutstanding;
+
+        /// <summary>Ticks <see cref="TryTick"/> has declined since the last slow-tick report. Written from the ticking thread, taken on the Courier thread.</summary>
+        private int _ticksDeclined;
+
         // F2 Part 1 (main-thread command execution): when true, a command
         // handler is NOT run inline on the Courier thread but marshaled onto
         // this queue, drained by RunPendingCommands on the Unity main thread
@@ -6368,8 +6382,53 @@ namespace Sitrep.Host
         /// </summary>
         public void Tick(double ut, KspSnapshot? snapshot)
         {
+            EnqueueTick(CaptureTick(ut, snapshot, null));
+        }
+
+        /// <summary>
+        /// <see cref="Tick"/> for a caller that ticks on a clock of its own, as
+        /// the game does, rather than when the last tick finished. While the
+        /// Courier still owes <see cref="TickBacklogLimit"/> earlier ticks the
+        /// tick is declined: <paramref name="sample"/> is not called, no capture
+        /// runs, and false is returned.
+        ///
+        /// <para>Every job shares the Courier's one queue in arrival order. Ticks
+        /// offered faster than the Courier finishes them would otherwise pile up
+        /// without bound, the stream would fall further behind the game with
+        /// every tick, and a subscribe would wait out the whole pile before it
+        /// was answered.</para>
+        ///
+        /// <para>The sample is taken here, after the decision, so that a declined
+        /// tick is a frame nothing looked at. A sample or a capture that hands
+        /// over what has gathered since the last one keeps it for the next tick
+        /// taken, where one taken and then thrown away would have lost it.</para>
+        /// </summary>
+        public bool TryTick(Func<KspSnapshot> sample)
+        {
+            if (Volatile.Read(ref _ticksOutstanding) >= TickBacklogLimit)
+            {
+                Interlocked.Increment(ref _ticksDeclined);
+                return false;
+            }
+            var snapshot = sample();
+            Tick(snapshot.Ut, snapshot);
+            return true;
+        }
+
+        /// <summary>Runs every main-thread capture a tick carries, on the calling thread, and times them.</summary>
+        private TickJob CaptureTick(double ut, KspSnapshot? snapshot, ManualResetEventSlim? done)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             CaptureCommandCentresOnMain();
-            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), null) { Save = _saveOnMain });
+            var tick = new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), done) { Save = _saveOnMain };
+            tick.CaptureStopwatchTicks = System.Diagnostics.Stopwatch.GetTimestamp() - started;
+            return tick;
+        }
+
+        private void EnqueueTick(TickJob tick)
+        {
+            Interlocked.Increment(ref _ticksOutstanding);
+            EnqueueJob(tick);
         }
 
         /// <summary>
@@ -6628,8 +6687,7 @@ namespace Sitrep.Host
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
-            CaptureCommandCentresOnMain();
-            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), barrier) { Save = _saveOnMain });
+            EnqueueTick(CaptureTick(ut, snapshot, barrier));
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -6746,7 +6804,14 @@ namespace Sitrep.Host
                             case StopJob:
                                 return;
                             case TickJob tick:
-                                ProcessTick(tick);
+                                try
+                                {
+                                    ProcessTick(tick);
+                                }
+                                finally
+                                {
+                                    Interlocked.Decrement(ref _ticksOutstanding);
+                                }
                                 break;
                             case PublishJob publish:
                                 ProcessPublish(publish);
@@ -8180,6 +8245,7 @@ namespace Sitrep.Host
 
         private void ProcessTick(TickJob tick)
         {
+            var timing = TickTiming.Start();
             _tickUt = tick.Ut;
             _network.SetCentres(_activeCentreIds);
             // Quickload / timeline-rewind detection: paired 1:1 with the
@@ -8300,6 +8366,7 @@ namespace Sitrep.Host
                     }
                 }
             }
+            timing.End(ref timing.Samplers);
 
             // Capture-on-main / handle-on-Courier sources (see
             // IUplinkHost.AddSampledSource): the captures already ran on the
@@ -8351,6 +8418,7 @@ namespace Sitrep.Host
                         // transient, so it keeps the permanent fail-soft (now logged).
                         FailSoftSampledSource(source, ex);
                     }
+                    timing.EndOne(ref timing.Handles, ref timing.SlowestHandle, source.OwnerId);
                 }
             }
             _handlePublishes = null;
@@ -8395,10 +8463,13 @@ namespace Sitrep.Host
             // whether anything is subscribed.
             PrunePendingUplinks(tick.Ut);
             FollowPendingPredictions(tick.Ut);
+            timing.End(ref timing.Refresh);
 
             foreach (var channelSource in _channelSources)
             {
                 var topic = channelSource.Key;
+                timing.EndOne(ref timing.Channels, ref timing.SlowestChannel, timing.Topic);
+                timing.Topic = topic;
                 if (!IsChannelAvailable(topic))
                 {
                     // IMPORTANT-A: the owning uplink went Unavailable
@@ -8513,10 +8584,13 @@ namespace Sitrep.Host
                 }
             }
 
+            timing.EndOne(ref timing.Channels, ref timing.SlowestChannel, timing.Topic);
+
             foreach (var publish in handlePublishes)
             {
                 ProcessPublish(publish, tick.Ut);
             }
+            timing.End(ref timing.Publishes);
 
             // Release any buffered Delayed-channel samples the advancing horizon
             // has now overtaken, BEFORE AdvanceTo so the freed deliveries the
@@ -8524,16 +8598,125 @@ namespace Sitrep.Host
             FlushReveal(tick.Ut);
             ContinueReleases(tick.Ut);
             PruneAllConnectivityHistory();
+            timing.End(ref timing.Reveal);
 
             // Before the clock moves: a command that lands during this advance is
             // run against the craft that is active now, not the one that was.
             NoteActiveCraft(tick.Snapshot);
             _clock.AdvanceTo(tick.Ut);
+            timing.End(ref timing.Deliveries);
             OffloadRecordings(tick.Ut, null);
             TickDelivery(tick.Ut);
             ContinueInbound(tick.Ut);
             ReleaseGameStateAfterTick();
+            timing.End(ref timing.StoreAndForward);
+            ReportSlowTick(tick, timing);
             tick.Done?.Set();
+        }
+
+        /// <summary>A tick that takes this many real seconds, on the Courier or in its main-thread captures, is reported: see <see cref="ReportSlowTick"/>.</summary>
+        internal const double SlowTickSeconds = 0.1;
+
+        /// <summary>The least real time between two slow-tick reports.</summary>
+        private const double SlowTickReportIntervalSeconds = 30;
+
+        private long _lastSlowTickReport = long.MinValue;
+
+        /// <summary>
+        /// Say where a slow tick's time went, at most once per
+        /// <see cref="SlowTickReportIntervalSeconds"/>. A tick that outlasts the
+        /// interval between ticks is what makes <see cref="TryTick"/> decline
+        /// them, and the stream thins with nothing else to show for it, so the
+        /// report names the phase, the slowest handle and channel, and how many
+        /// ticks were declined since the last one. The captures are reported
+        /// beside it because they are the half of a tick the game itself waits on.
+        /// </summary>
+        private void ReportSlowTick(TickJob tick, TickTiming timing)
+        {
+            var captureSeconds = tick.CaptureStopwatchTicks / (double)System.Diagnostics.Stopwatch.Frequency;
+            if (timing.TotalSeconds() < SlowTickSeconds && captureSeconds < SlowTickSeconds)
+            {
+                return;
+            }
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (_lastSlowTickReport != long.MinValue
+                && (now - _lastSlowTickReport) / (double)System.Diagnostics.Stopwatch.Frequency < SlowTickReportIntervalSeconds)
+            {
+                return;
+            }
+            _lastSlowTickReport = now;
+            LogHost("slow tick at UT " + tick.Ut.ToString("F0", CultureInfo.InvariantCulture) + ": " + timing.Describe()
+                + "; main-thread captures " + (captureSeconds * 1000).ToString("F0", CultureInfo.InvariantCulture) + " ms"
+                + "; " + Interlocked.Exchange(ref _ticksDeclined, 0) + " ticks declined since the last report");
+        }
+
+        /// <summary>Real time spent in each phase of one <see cref="ProcessTick"/>, in stopwatch ticks.</summary>
+        private struct TickTiming
+        {
+            public long Samplers;
+            public long Handles;
+            public long Refresh;
+            public long Channels;
+            public long Publishes;
+            public long Reveal;
+            public long Deliveries;
+            public long StoreAndForward;
+            public (long Ticks, string? Name) SlowestHandle;
+            public (long Ticks, string? Name) SlowestChannel;
+
+            /// <summary>The channel the loop is on, charged at the next <see cref="EndOne"/>. Null before the first.</summary>
+            public string? Topic;
+
+            private long _started;
+            private long _mark;
+
+            public static TickTiming Start()
+            {
+                var now = System.Diagnostics.Stopwatch.GetTimestamp();
+                return new TickTiming { _started = now, _mark = now };
+            }
+
+            /// <summary>Charge the time since the last mark to <paramref name="phase"/>.</summary>
+            public void End(ref long phase)
+            {
+                var now = System.Diagnostics.Stopwatch.GetTimestamp();
+                phase += now - _mark;
+                _mark = now;
+            }
+
+            /// <summary>As <see cref="End"/>, for one named item of a phase, keeping the slowest.</summary>
+            public void EndOne(ref long phase, ref (long Ticks, string? Name) slowest, string? name)
+            {
+                var now = System.Diagnostics.Stopwatch.GetTimestamp();
+                var spent = now - _mark;
+                phase += spent;
+                _mark = now;
+                if (name != null && spent > slowest.Ticks)
+                {
+                    slowest = (spent, name);
+                }
+            }
+
+            public double TotalSeconds() =>
+                (System.Diagnostics.Stopwatch.GetTimestamp() - _started) / (double)System.Diagnostics.Stopwatch.Frequency;
+
+            public string Describe()
+            {
+                return Ms(System.Diagnostics.Stopwatch.GetTimestamp() - _started) + " ms (samplers " + Ms(Samplers)
+                    + ", handles " + Ms(Handles) + Slowest(SlowestHandle)
+                    + ", refresh " + Ms(Refresh)
+                    + ", channels " + Ms(Channels) + Slowest(SlowestChannel)
+                    + ", publishes " + Ms(Publishes)
+                    + ", reveal " + Ms(Reveal)
+                    + ", deliveries " + Ms(Deliveries)
+                    + ", store and forward " + Ms(StoreAndForward) + ")";
+            }
+
+            private static string Slowest((long Ticks, string? Name) slowest) =>
+                slowest.Name == null ? "" : " of which " + slowest.Name + " " + Ms(slowest.Ticks);
+
+            private static string Ms(long ticks) =>
+                (ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency).ToString("F0", CultureInfo.InvariantCulture);
         }
 
         private void ProcessPublish(PublishJob publish) => ProcessPublish(publish, _clock.Now());
@@ -9921,6 +10104,9 @@ namespace Sitrep.Host
 
             /// <summary>The save this tick belongs to, as <see cref="NoteSave"/> last named it, or null when unknown.</summary>
             public string? Save;
+
+            /// <summary>Real time the main-thread captures above took, in stopwatch ticks.</summary>
+            public long CaptureStopwatchTicks;
             public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, PathBreakCapture pathBreak, ManualResetEventSlim? done)
             {
                 Ut = ut;
