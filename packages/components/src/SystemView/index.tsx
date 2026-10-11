@@ -8,16 +8,19 @@ import {
   useOrbitSolveReading,
 } from "@ksp-gonogo/core";
 import {
+  bodyOffsetAt,
   CELESTIAL_FACTS,
   CONTROL_FRAME_TOPIC,
   controlFrameToReadFrameChoice,
   type OrbitTrajectory,
+  type PatchChainPatch,
   poseAtIndex,
   type ReadFrameChoice,
   readFrameChoicesEqual,
   trajectoryFrameLabel,
   useLivePhaseAngles,
   useOrbitTrajectory,
+  usePatchChain,
   usePhaseAngle,
   useProcessor,
   useStream,
@@ -41,8 +44,6 @@ import { nameMatches } from "./diagramGeometry";
 import { encounterDirectionOf } from "./encounter";
 import { frameCaption, resolveFrame } from "./frame";
 import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
-import { bodyOffsetAt } from "./patchOffsets";
-import type { TrajectoryPatch } from "./predictedTrajectory";
 import {
   followControlFrameProjection,
   INERTIAL_PLACEMENT,
@@ -133,7 +134,7 @@ function conicElementsOf(orbit: VesselOrbit) {
   };
 }
 
-const NO_PATCHES: readonly TrajectoryPatch[] = [];
+const NO_PATCHES: readonly PatchChainPatch[] = [];
 
 /** The craft orbits the frame body itself, so its orbit is drawn about the origin. */
 const VESSEL_AT_FRAME_BODY: readonly [number, number, number] = [0, 0, 0];
@@ -329,7 +330,7 @@ function SystemViewComponent({
     performance.now(),
   );
   // The chain the game published, drawn only on the CONIC answer: its patches are the game's own conics, which an integrating provider contradicts, so on an arc answer the diagram draws the sampled path instead.
-  const orbitPatches = useMemo<readonly TrajectoryPatch[]>(() => {
+  const orbitPatches = useMemo<readonly PatchChainPatch[]>(() => {
     if (vesselTrajectory?.shape !== "conic") return NO_PATCHES;
     return orbitObserved?.patches ?? NO_PATCHES;
   }, [orbitObserved, vesselTrajectory]);
@@ -341,18 +342,13 @@ function SystemViewComponent({
         : null,
     [facts, parentName, catalogueAsOfUt],
   );
-  const predicted = useMemo(
-    () =>
-      orbitPatches.length > 0 && utBucket != null
-        ? {
-            orbitPatches,
-            // The chain begins at the observation, so an instant earlier than its first patch (the bucket floors to the second) is the chain's start.
-            ut: Math.max(utBucket, orbitPatches[0].startUt.valueOf()),
-            offsetAt,
-          }
-        : null,
-    [orbitPatches, utBucket, offsetAt],
-  );
+  const patchChain = usePatchChain({
+    patches: orbitPatches,
+    frameBodyName: parentName,
+    facts,
+    catalogueAsOfUt,
+    ut: utBucket,
+  });
   // The craft orbits the frame body, or another body the catalogue can place against it at this instant; a body with no place leaves the craft off the picture rather than guessed at.
   const vesselParentName = vesselOrbit?.parentName ?? null;
   const vesselOrigin = useMemo<readonly [number, number, number] | null>(() => {
@@ -708,7 +704,7 @@ function SystemViewComponent({
                           ? undefined
                           : () => activateEntity(activeVesselEntityId)
                       }
-                      predicted={predicted}
+                      patchChain={patchChain}
                       projection={projection}
                       width={size.w}
                       height={size.h}

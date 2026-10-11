@@ -1,4 +1,4 @@
-import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
+import type { OrbitTrajectory, PatchChainArc } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import {
   DEPTH_ABOVE_COLOUR,
@@ -9,7 +9,6 @@ import {
   depthStrength,
 } from "./depthCues";
 import { arcMetres, openPath, type PlacedRingEnd } from "./diagramGeometry";
-import type { ProjectedPatch } from "./predictedTrajectory";
 import type { Placement } from "./projection";
 
 /** The active vessel's own ring, thinner than a body orbit so the two classes read apart. */
@@ -192,9 +191,9 @@ export function ArcFarEndMark({
 }
 
 // Live patch solid green; upcoming patches dashed, info-blue for an escape and warm for an encounter.
-function patchStroke(patch: ProjectedPatch): string {
+function patchStroke(patch: PatchChainArc): string {
   if (patch.isCurrent) return "var(--color-accent-fg)";
-  if (patch.startEncounter === "escape") return "var(--color-info-mark)";
+  if (patch.startCrossing === "escape") return "var(--color-info-mark)";
   return "var(--color-warn-mark)";
 }
 
@@ -204,7 +203,7 @@ export function PredictedPatchArc({
   plotScale,
   zoom,
 }: Readonly<{
-  patch: ProjectedPatch;
+  patch: PatchChainArc;
   points: readonly (readonly [number, number, number])[];
   plotScale: number;
   zoom: number;

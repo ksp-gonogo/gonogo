@@ -1,5 +1,9 @@
 import { getBody } from "@ksp-gonogo/core";
-import type { OrbitTrajectory, SystemPoses } from "@ksp-gonogo/sitrep-client";
+import type {
+  OrbitTrajectory,
+  PatchChain,
+  SystemPoses,
+} from "@ksp-gonogo/sitrep-client";
 import { NULL_DISPLAY, TextButton } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -29,7 +33,6 @@ import {
   VesselOrbitPath,
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
-import type { PatchPoint, TrajectoryPatch } from "./predictedTrajectory";
 import {
   INERTIAL_PLACEMENT,
   type Placement,
@@ -38,7 +41,6 @@ import {
 import type { TargetConic, TargetEncounter } from "./targetOrbit";
 import type { CelestialBody } from "./useCelestialBodies";
 import type { PanZoom } from "./usePanZoom";
-import { usePlacedPrediction } from "./usePlacedPrediction";
 import { VesselMarker, type VesselPlotState } from "./VesselMarker";
 
 export type { VesselOrbit } from "./diagramGeometry";
@@ -89,12 +91,8 @@ export interface SystemDiagramProps {
     trajectory: OrbitTrajectory | null;
     encounter: TargetEncounter | null;
   } | null;
-  /** Multi-SOI predicted trajectory; `ut` locates the live patch. */
-  predicted?: {
-    orbitPatches: readonly TrajectoryPatch[];
-    ut: number;
-    offsetAt: (bodyName: string, ut: number) => PatchPoint | null;
-  } | null;
+  /** The craft's predicted route about the frame body, in metres: the game's patch chain as arcs and sphere-of-influence crossings. */
+  patchChain?: PatchChain | null;
   /** The instant a body's open arc is read from, held by the host to one real second so a ring is not re-placed on every frame; absent reads each pose's own instant. */
   bucketUt?: number;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
@@ -134,7 +132,7 @@ export function SystemDiagram({
   vesselSelected = false,
   onVesselActivate,
   vesselOrigin,
-  predicted,
+  patchChain,
   bucketUt,
   projection = null,
   width,
@@ -304,12 +302,23 @@ export function SystemDiagram({
     [placedBodies, vesselRing, vesselPoint],
   );
 
-  const placedPatches = usePlacedPrediction({
-    predicted,
-    parentName,
-    plotScale,
-    placement,
-  });
+  // The chain arrives in frame-body-centred metres and is placed once, so a projection change re-places it without sampling it again.
+  const placedPatches = useMemo(
+    () =>
+      patchChain == null || plotScale <= 0
+        ? null
+        : {
+            arcs: patchChain.arcs.map((arc) => ({
+              arc,
+              points: arc.points.map((p) => placement.place([p.x, p.y, p.z])),
+            })),
+            crossings: patchChain.crossings.map((crossing) => ({
+              crossing,
+              at: placement.place([crossing.x, crossing.y, crossing.z]),
+            })),
+          },
+    [patchChain, plotScale, placement],
+  );
 
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
   const tiltGradId = useId();
@@ -430,10 +439,10 @@ export function SystemDiagram({
         )}
 
         {/* Patch arcs sit under the body dots and the vessel marker. */}
-        {placedPatches?.patches.map(({ patch, points }) => (
+        {placedPatches?.arcs.map(({ arc, points }) => (
           <PredictedPatchArc
-            key={`pred-${patch.patchIndex}`}
-            patch={patch}
+            key={`pred-${arc.patchIndex}`}
+            patch={arc}
             points={points}
             plotScale={plotScale}
             zoom={zoom}
@@ -524,13 +533,13 @@ export function SystemDiagram({
           );
         })}
 
-        {placedPatches?.encounters.map(({ enc, at }) => (
+        {placedPatches?.crossings.map(({ crossing, at }) => (
           <EncounterMarker
-            key={`enc-${enc.patchIndex}`}
+            key={`enc-${crossing.patchIndex}`}
             x={at[0] * plotScale}
             y={at[1] * plotScale}
-            kind={enc.kind}
-            body={enc.body}
+            kind={crossing.kind}
+            body={crossing.body}
             zoom={zoom}
           />
         ))}

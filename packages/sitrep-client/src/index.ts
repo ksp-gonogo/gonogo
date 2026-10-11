@@ -340,6 +340,20 @@ export {
   patchStateAt,
   wrap180,
 } from "./orbit-patches";
+export type {
+  PatchChain,
+  PatchChainArc,
+  PatchChainPatch,
+  PatchChainPoint,
+  SoiCrossing,
+  SoiCrossingKind,
+} from "./patch-chain";
+export {
+  bodyOffsetAt,
+  patchChain,
+  soiCrossingKind,
+  usePatchChain,
+} from "./patch-chain";
 export {
   // The uncomparable-result gate lives beside the evaluator (see its own doc
   // for why it is not wired core-side like the other two processor budgets);

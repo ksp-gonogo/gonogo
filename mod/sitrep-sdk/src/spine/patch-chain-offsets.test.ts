@@ -1,7 +1,8 @@
-import { deriveCelestialFacts } from "@ksp-gonogo/sitrep-client";
-import { type BodyEntry, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { bodyOffsetAt } from "./patchOffsets";
+import type { BodyEntry } from "../__generated__/contract";
+import { value } from "../unit-system/value";
+import { deriveCelestialFacts } from "./celestial-facts";
+import { bodyOffsetAt } from "./patch-chain";
 
 const MUN_SMA = 12_000_000;
 

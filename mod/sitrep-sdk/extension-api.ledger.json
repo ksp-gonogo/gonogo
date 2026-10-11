@@ -11033,6 +11033,138 @@
         "note": "New: whose path useOrbitCurve answers for, a catalogue body or elements already held"
       },
       {
+        "key": "sitrep-sdk ./frames PatchChain",
+        "note": "New: a craft's patch chain sampled about one frame body, as arcs and sphere-of-influence crossings"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChain#arcs",
+        "note": "The sampled arc for each patch that can be drawn about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChain#crossings",
+        "note": "Each encounter and escape along the chain, as a point about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainArc",
+        "note": "New: one patch of the chain as a sampled arc"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainArc#isCurrent",
+        "note": "Whether the arc is the patch the craft is on now, which a diagram draws apart from the ones ahead"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainArc#patchIndex",
+        "note": "Which patch of the chain the arc was sampled from"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainArc#points",
+        "note": "The arc's samples in order of time, in metres about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainArc#referenceBody",
+        "note": "The body the patch is around"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainArc#startCrossing",
+        "note": "The encounter or escape the craft enters the patch by, or null"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainInput",
+        "note": "New: what patchChain samples, for a caller with no React tree or its own way of placing bodies"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainInput#frameBodyName",
+        "note": "The body the arcs are drawn about"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainInput#offsetAt",
+        "note": "Where a body is about the frame body at an instant, supplied by the caller"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainInput#patches",
+        "note": "The chain as the game published it"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainInput#samplesPerPatch?",
+        "note": "How finely each arc is sampled"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainInput#ut",
+        "note": "The instant asked about, which picks the current patch"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainPatch",
+        "note": "New: the part of an orbit patch the chain reads; an OrbitPatch off the wire is one"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainPoint",
+        "note": "New: a point of a sampled chain, in metres about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainPoint#x",
+        "note": "Metres along the catalogue's x axis"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainPoint#y",
+        "note": "Metres along the catalogue's y axis"
+      },
+      {
+        "key": "sitrep-sdk ./frames PatchChainPoint#z",
+        "note": "Metres out of the reference plane, kept so a projection can use it"
+      },
+      {
+        "key": "sitrep-sdk ./frames SoiCrossing",
+        "note": "New: where and when a craft crosses a sphere of influence"
+      },
+      {
+        "key": "sitrep-sdk ./frames SoiCrossing#body",
+        "note": "The body whose sphere of influence is entered or left"
+      },
+      {
+        "key": "sitrep-sdk ./frames SoiCrossing#kind",
+        "note": "Whether the crossing is an encounter or an escape"
+      },
+      {
+        "key": "sitrep-sdk ./frames SoiCrossing#patchIndex",
+        "note": "The patch the crossing begins"
+      },
+      {
+        "key": "sitrep-sdk ./frames SoiCrossing#ut",
+        "note": "The instant of the crossing"
+      },
+      {
+        "key": "sitrep-sdk ./frames SoiCrossingKind",
+        "note": "New: encounter or escape, the two ways a patch transition crosses a sphere of influence"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput",
+        "note": "New: what usePatchChain is asked"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput#catalogueAsOfUt?",
+        "note": "When the catalogue stopped arriving, so a body is placed by its held pose"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput#facts",
+        "note": "The catalogue that places the bodies the chain passes"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput#frameBodyName",
+        "note": "The body the arcs are drawn about"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput#patches",
+        "note": "The chain the caller read, such as vessel.orbit.patches"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput#samplesPerPatch?",
+        "note": "How finely each arc is sampled"
+      },
+      {
+        "key": "sitrep-sdk ./frames UsePatchChainInput#ut",
+        "note": "The instant on screen"
+      },
+      {
         "key": "sitrep-sdk ./frames Vec3Tuple",
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
@@ -11057,6 +11189,10 @@
         "note": "New: the closed ring of an orbit in the parent's inertial axes, the one sampler every diagram draws a conic with"
       },
       {
+        "key": "sitrep-sdk ./frames patchChain",
+        "note": "New: samples a patch chain into arcs and crossings about a frame body; the sampler System View owned, now one copy for every widget and Uplink"
+      },
+      {
         "key": "sitrep-sdk ./frames rotatePerifocalToInertial",
         "note": "Published on /frames beside the frame arithmetic: it turns a point in an orbit's plane into the parent body's inertial frame"
       },
@@ -11067,6 +11203,10 @@
       {
         "key": "sitrep-sdk ./frames useOrbitCurve",
         "note": "New: a catalogue body's or held orbit's path as a conic, an arc to its horizon or a refusal, held per UT second"
+      },
+      {
+        "key": "sitrep-sdk ./frames usePatchChain",
+        "note": "New: the same sampling held between renders, placing each body from the catalogue"
       },
       {
         "key": "sitrep-sdk ./frames ~OrbitElements",
@@ -11103,6 +11243,14 @@
       {
         "key": "sitrep-sdk ./frames ~OrbitElements#sma",
         "note": "Reachable through orbitRing now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~PatchConic",
+        "note": "Reachable through PatchChainPatch: the elements of a patch a propagation reads"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~PatchSpan",
+        "note": "Reachable through PatchChainPatch: a patch's conic with its window and its body"
       },
       {
         "key": "sitrep-sdk ./frames ~TrajectoryArcAnswer",
@@ -12369,12 +12517,116 @@
         "note": "New: whose path useOrbitCurve answers for, a catalogue body or elements already held"
       },
       {
+        "key": "sitrep-sdk ./spine PatchChain",
+        "note": "New: a craft's patch chain sampled about one frame body, as arcs and sphere-of-influence crossings"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChain#arcs",
+        "note": "The sampled arc for each patch that can be drawn about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChain#crossings",
+        "note": "Each encounter and escape along the chain, as a point about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainArc",
+        "note": "New: one patch of the chain as a sampled arc"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainArc#isCurrent",
+        "note": "Whether the arc is the patch the craft is on now, which a diagram draws apart from the ones ahead"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainArc#patchIndex",
+        "note": "Which patch of the chain the arc was sampled from"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainArc#points",
+        "note": "The arc's samples in order of time, in metres about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainArc#referenceBody",
+        "note": "The body the patch is around"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainArc#startCrossing",
+        "note": "The encounter or escape the craft enters the patch by, or null"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainInput",
+        "note": "New: what patchChain samples, for a caller with no React tree or its own way of placing bodies"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainInput#frameBodyName",
+        "note": "The body the arcs are drawn about"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainInput#offsetAt",
+        "note": "Where a body is about the frame body at an instant, supplied by the caller"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainInput#patches",
+        "note": "The chain as the game published it"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainInput#samplesPerPatch?",
+        "note": "How finely each arc is sampled"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainInput#ut",
+        "note": "The instant asked about, which picks the current patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainPatch",
+        "note": "New: the part of an orbit patch the chain reads; an OrbitPatch off the wire is one"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainPoint",
+        "note": "New: a point of a sampled chain, in metres about the frame body"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainPoint#x",
+        "note": "Metres along the catalogue's x axis"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainPoint#y",
+        "note": "Metres along the catalogue's y axis"
+      },
+      {
+        "key": "sitrep-sdk ./spine PatchChainPoint#z",
+        "note": "Metres out of the reference plane, kept so a projection can use it"
+      },
+      {
         "key": "sitrep-sdk ./spine PropagablePatch",
         "note": "A patch with lan, argPe and meanAnomalyAtEpoch present, which the propagation reads"
       },
       {
         "key": "sitrep-sdk ./spine SYSTEM_POSES",
         "note": "The processor behind useSystemInstant, readable by id from a contribution's deps"
+      },
+      {
+        "key": "sitrep-sdk ./spine SoiCrossing",
+        "note": "New: where and when a craft crosses a sphere of influence"
+      },
+      {
+        "key": "sitrep-sdk ./spine SoiCrossing#body",
+        "note": "The body whose sphere of influence is entered or left"
+      },
+      {
+        "key": "sitrep-sdk ./spine SoiCrossing#kind",
+        "note": "Whether the crossing is an encounter or an escape"
+      },
+      {
+        "key": "sitrep-sdk ./spine SoiCrossing#patchIndex",
+        "note": "The patch the crossing begins"
+      },
+      {
+        "key": "sitrep-sdk ./spine SoiCrossing#ut",
+        "note": "The instant of the crossing"
+      },
+      {
+        "key": "sitrep-sdk ./spine SoiCrossingKind",
+        "note": "New: encounter or escape, the two ways a patch transition crosses a sphere of influence"
       },
       {
         "key": "sitrep-sdk ./spine SystemPoses",
@@ -12413,6 +12665,34 @@
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
       },
       {
+        "key": "sitrep-sdk ./spine UsePatchChainInput",
+        "note": "New: what usePatchChain is asked"
+      },
+      {
+        "key": "sitrep-sdk ./spine UsePatchChainInput#catalogueAsOfUt?",
+        "note": "When the catalogue stopped arriving, so a body is placed by its held pose"
+      },
+      {
+        "key": "sitrep-sdk ./spine UsePatchChainInput#facts",
+        "note": "The catalogue that places the bodies the chain passes"
+      },
+      {
+        "key": "sitrep-sdk ./spine UsePatchChainInput#frameBodyName",
+        "note": "The body the arcs are drawn about"
+      },
+      {
+        "key": "sitrep-sdk ./spine UsePatchChainInput#patches",
+        "note": "The chain the caller read, such as vessel.orbit.patches"
+      },
+      {
+        "key": "sitrep-sdk ./spine UsePatchChainInput#samplesPerPatch?",
+        "note": "How finely each arc is sampled"
+      },
+      {
+        "key": "sitrep-sdk ./spine UsePatchChainInput#ut",
+        "note": "The instant on screen"
+      },
+      {
         "key": "sitrep-sdk ./spine Vec3Tuple",
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
@@ -12423,6 +12703,10 @@
       {
         "key": "sitrep-sdk ./spine assertSizeDelta",
         "note": "Registration check for an extension's sizeDelta (whole numbers, zero or more), shared by the augment and contribution registries"
+      },
+      {
+        "key": "sitrep-sdk ./spine bodyOffsetAt",
+        "note": "New: where one body is relative to another at an instant, from the model's poses"
       },
       {
         "key": "sitrep-sdk ./spine bodyOrbitCurve",
@@ -12449,6 +12733,10 @@
         "note": "New: the closed ring of an orbit in the parent's inertial axes, the one sampler every diagram draws a conic with"
       },
       {
+        "key": "sitrep-sdk ./spine patchChain",
+        "note": "New: samples a patch chain into arcs and crossings about a frame body; the sampler System View owned, now one copy for every widget and Uplink"
+      },
+      {
         "key": "sitrep-sdk ./spine phaseAngleBetween",
         "note": "The angle from one body or craft to another about their common centre, measured in the plane of the first one's motion rather than as a difference of longitudes"
       },
@@ -12473,6 +12761,10 @@
         "note": "settingTypeOf is renamed settingKindOf, and returns the one SettingKind a row is declared with"
       },
       {
+        "key": "sitrep-sdk ./spine soiCrossingKind",
+        "note": "New: whether a patch transition is an encounter, an escape or neither"
+      },
+      {
         "key": "sitrep-sdk ./spine solveConic",
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
       },
@@ -12495,6 +12787,10 @@
       {
         "key": "sitrep-sdk ./spine useOrbitCurve",
         "note": "New: a catalogue body's or held orbit's path as a conic, an arc to its horizon or a refusal, held per UT second"
+      },
+      {
+        "key": "sitrep-sdk ./spine usePatchChain",
+        "note": "New: the same sampling held between renders, placing each body from the catalogue"
       },
       {
         "key": "sitrep-sdk ./spine usePhaseAngle",

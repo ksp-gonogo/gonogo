@@ -56,7 +56,6 @@ const PREDICTING_FILES = [
   "packages/components/src/MapView/useGroundTrackPrediction.ts",
   "packages/components/src/MapView/useModelledPosition.ts",
   "packages/components/src/ManeuverPlanner/planning.ts",
-  "packages/components/src/SystemView/predictedTrajectory.ts",
   "packages/components/src/SystemView/transferWindow.ts",
   "packages/components/src/SystemView/useBodyRotation.ts",
   "packages/components/src/SystemView/systemEntities.ts",

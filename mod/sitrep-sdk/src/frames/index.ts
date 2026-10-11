@@ -149,6 +149,16 @@ export {
   trajectoryFrameLabel,
 } from "../spine/orbit-trajectory";
 export {
+  type PatchChain,
+  type PatchChainArc,
+  type PatchChainInput,
+  type PatchChainPatch,
+  type PatchChainPoint,
+  patchChain,
+  type SoiCrossing,
+  type SoiCrossingKind,
+} from "../spine/patch-chain";
+export {
   type BodyWithdrawal,
   type FrameCoordinates,
   type FrameInstant,
@@ -169,6 +179,10 @@ export {
   useOrbitCurve,
 } from "../spine/use-orbit-curve";
 export { useOrbitTrajectory } from "../spine/use-orbit-trajectory";
+export {
+  type UsePatchChainInput,
+  usePatchChain,
+} from "../spine/use-patch-chain";
 
 /**
  * A bare `[x, y, z]` of numbers, the shape every function above takes and

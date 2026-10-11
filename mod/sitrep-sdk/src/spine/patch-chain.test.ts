@@ -1,11 +1,7 @@
-import {
-  type OrbitPatch,
-  TransitionType,
-  type WireOf,
-  wrapTypePayload,
-} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { nextEncounter, predictTrajectory } from "./predictedTrajectory";
+import { type OrbitPatch, TransitionType } from "../__generated__/contract";
+import { type WireOf, wrapTypePayload } from "../wrap-units";
+import { patchChain } from "./patch-chain";
 
 function patch(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
   return wrapTypePayload<OrbitPatch>("OrbitPatch", {
@@ -33,22 +29,22 @@ function patch(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
 
 const NO_BODIES = () => null;
 
-describe("predictTrajectory", () => {
+describe("patchChain", () => {
   it("returns nothing without patches", () => {
     expect(
-      predictTrajectory({
+      patchChain({
         patches: [],
-        parentName: "Kerbin",
+        frameBodyName: "Kerbin",
         ut: 0,
         offsetAt: NO_BODIES,
-      }).patches,
+      }).arcs,
     ).toEqual([]);
   });
 
   it("samples a circular equatorial patch onto a centred ring in metres", () => {
-    const { patches } = predictTrajectory({
+    const { arcs: patches } = patchChain({
       patches: [patch({ startUt: 0, endUt: 100 })],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: NO_BODIES,
     });
@@ -63,9 +59,9 @@ describe("predictTrajectory", () => {
   });
 
   it("keeps the out-of-plane component of an inclined patch", () => {
-    const { patches } = predictTrajectory({
+    const { arcs: patches } = patchChain({
       patches: [patch({ inc: 30, startUt: 0, endUt: 100 })],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: NO_BODIES,
     });
@@ -77,9 +73,9 @@ describe("predictTrajectory", () => {
   });
 
   it("marks the live patch (containing ut) as current and starts it at ut", () => {
-    const { patches } = predictTrajectory({
+    const { arcs: patches } = patchChain({
       patches: [patch({ startUt: 0, endUt: 100 })],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 25,
       offsetAt: NO_BODIES,
     });
@@ -110,16 +106,16 @@ describe("predictTrajectory", () => {
         meanAnomalyAtEpoch: 0,
       }),
     ];
-    const { patches: projected, encounters } = predictTrajectory({
+    const { arcs: projected, crossings: encounters } = patchChain({
       patches,
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: (body) => (body === "Mun" ? munOffset : null),
     });
     expect(projected).toHaveLength(2);
     const munPatch = projected.find((p) => p.referenceBody === "Mun");
     expect(munPatch).toBeDefined();
-    expect(munPatch?.startEncounter).toBe("encounter");
+    expect(munPatch?.startCrossing).toBe("encounter");
     // Centred on Mun's offset, composed in metres: adding a placed offset to a placed arc would apply the frame's translation twice.
     for (const p of munPatch?.points ?? []) {
       expect(Math.hypot(p.x - munOffset.x, p.y - munOffset.y)).toBeCloseTo(
@@ -142,9 +138,9 @@ describe("predictTrajectory", () => {
         patchStartTransition: TransitionType.Escape,
       }),
     ];
-    const { encounters } = predictTrajectory({
+    const { crossings: encounters } = patchChain({
       patches,
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: NO_BODIES,
     });
@@ -157,9 +153,9 @@ describe("predictTrajectory", () => {
       patch({ referenceBody: "Eve" }),
       patch({ referenceBody: "Kerbin" }),
     ];
-    const { patches: projected } = predictTrajectory({
+    const { arcs: projected } = patchChain({
       patches,
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: NO_BODIES,
     });
@@ -172,9 +168,9 @@ describe("predictTrajectory", () => {
       patch({ ecc: 1.4, sma: -1_000_000, period: null, apA: null }),
       patch({ referenceBody: "Kerbin" }),
     ];
-    const { patches: projected } = predictTrajectory({
+    const { arcs: projected } = patchChain({
       patches,
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: NO_BODIES,
     });
@@ -191,7 +187,7 @@ describe("predictTrajectory", () => {
     const halfSpan = edgeAnomaly / Math.sqrt(mu / Math.abs(sma) ** 3);
     const edgeRadius = Math.abs(sma) * (ecc * Math.cosh(edge) - 1);
     const munAt = { x: 12_000_000, y: 0, z: 0 };
-    const { patches: projected, encounters } = predictTrajectory({
+    const { arcs: projected, crossings: encounters } = patchChain({
       patches: [
         patch({
           endUt: 100,
@@ -212,14 +208,14 @@ describe("predictTrajectory", () => {
           patchEndTransition: TransitionType.Escape,
         }),
       ],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: (name) => (name === "Mun" ? munAt : null),
     });
     expect(projected).toHaveLength(2);
     const leg = projected[1];
     expect(leg.referenceBody).toBe("Mun");
-    expect(leg.startEncounter).toBe("encounter");
+    expect(leg.startCrossing).toBe("encounter");
     const radii = leg.points.map((p) =>
       Math.hypot(p.x - munAt.x, p.y - munAt.y, p.z - munAt.z),
     );
@@ -234,7 +230,7 @@ describe("predictTrajectory", () => {
   it("offsets each sample of an open leg by where the body is at that sample's instant", () => {
     const mu = 6.5138398e10;
     const asked: number[] = [];
-    const { patches: projected } = predictTrajectory({
+    const { arcs: projected } = patchChain({
       patches: [
         patch({
           referenceBody: "Mun",
@@ -250,7 +246,7 @@ describe("predictTrajectory", () => {
           patchStartTransition: TransitionType.Encounter,
         }),
       ],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       samplesPerPatch: 4,
       offsetAt: (_name, ut) => {
@@ -264,9 +260,9 @@ describe("predictTrajectory", () => {
   });
 
   it("is case/whitespace insensitive on body names", () => {
-    const { patches } = predictTrajectory({
+    const { arcs: patches } = patchChain({
       patches: [patch({ referenceBody: " kerbin " })],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: NO_BODIES,
     });
@@ -274,42 +270,7 @@ describe("predictTrajectory", () => {
   });
 });
 
-describe("nextEncounter", () => {
-  it("returns null when the trajectory stays in one SOI", () => {
-    const traj = predictTrajectory({
-      patches: [patch()],
-      parentName: "Kerbin",
-      ut: 0,
-      offsetAt: NO_BODIES,
-    });
-    expect(nextEncounter(traj, 0)).toBeNull();
-  });
-
-  it("picks the earliest encounter after ut", () => {
-    const patches = [
-      patch({ startUt: 0, endUt: 50 }),
-      patch({
-        startUt: 50,
-        endUt: 100,
-        patchStartTransition: TransitionType.Encounter,
-        referenceBody: "Mun",
-        sma: 200_000,
-        period: 60,
-      }),
-    ];
-    const traj = predictTrajectory({
-      patches,
-      parentName: "Kerbin",
-      ut: 10,
-      offsetAt: (body) => (body === "Mun" ? { x: 100e5, y: 0, z: 0 } : null),
-    });
-    const next = nextEncounter(traj, 10);
-    expect(next).not.toBeNull();
-    expect(next?.body).toBe("Mun");
-    expect(next?.kind).toBe("encounter");
-    expect(next?.ut.magnitude).toBe(50);
-  });
-
+describe("where a patch about a child is drawn", () => {
   it("asks where a body is at the instant the patch around it begins, not at the instant on screen", () => {
     const asked: Array<[string, number]> = [];
     const patches = [
@@ -323,9 +284,9 @@ describe("nextEncounter", () => {
         period: 60,
       }),
     ];
-    predictTrajectory({
+    patchChain({
       patches,
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 10,
       offsetAt: (body, ut) => {
         asked.push([body, ut]);
@@ -346,9 +307,9 @@ describe("nextEncounter", () => {
         period: 60,
       }),
     ];
-    const { patches: projected } = predictTrajectory({
+    const { arcs: projected } = patchChain({
       patches,
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 0,
       offsetAt: (_body, ut) => ({ x: ut * 1e5, y: 0, z: 0 }),
     });
@@ -358,12 +319,12 @@ describe("nextEncounter", () => {
   });
 
   it("leaves out a patch that ended before the instant on screen", () => {
-    const { patches: projected } = predictTrajectory({
+    const { arcs: projected } = patchChain({
       patches: [
         patch({ startUt: 0, endUt: 50 }),
         patch({ startUt: 50, endUt: 100 }),
       ],
-      parentName: "Kerbin",
+      frameBodyName: "Kerbin",
       ut: 70,
       offsetAt: NO_BODIES,
     });
