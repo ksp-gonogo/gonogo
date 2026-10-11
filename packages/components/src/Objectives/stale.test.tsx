@@ -93,14 +93,14 @@ describe("Objectives when career telemetry is held", () => {
     ).toHaveLength(2);
   });
 
-  it("still says there are no objectives when none ever arrived", async () => {
+  it("still says it is awaiting contract data when none ever arrived", async () => {
     const fixture = newFixture();
     mount(fixture);
     goStale(fixture);
 
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent(
-        "No active objectives",
+        "Awaiting contract data",
       ),
     );
     expect(screen.queryByRole("list", { name: "Objectives" })).toBeNull();

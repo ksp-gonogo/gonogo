@@ -137,6 +137,7 @@ function KeplerPeriodComponent({
       x: { topic: "vessel.orbit", field: "sma" },
       // SMA spans many orders of magnitude across the system, log scale makes both sides of the curve readable.
       yScalePrimary: "log",
+      yUnit: "s",
     }),
     [windowSec],
   );
@@ -144,7 +145,13 @@ function KeplerPeriodComponent({
   const showNoGmNotice = body !== undefined && body.gm === undefined;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
+  const orbitKnown =
+    orbitReading.state === "observed" || orbitReading.state === "held";
+  const escaping = orbitKnown && orbitReading.value.sma.isNegative();
+
   const notice =
+    (!orbitKnown && "No orbit reported: nothing to plot yet.") ||
+    (escaping && "On an escape trajectory: no orbital period.") ||
     (showNoGmNotice &&
       body &&
       `No reference data for ${body.name}: plotting trace only.`) ||

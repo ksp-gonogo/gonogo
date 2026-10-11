@@ -62,7 +62,6 @@ export function ShipMapBody({
     <>
       <div style={META}>
         {parts.length} part{parts.length === 1 ? "" : "s"}
-        <span style={META_TAG}>· seq {topology.topologySeq}</span>
         {hottestName && (
           <span style={META_TAG}>
             · hot: {hottestName} <Unit value={hottestTemp} decimals={0} />

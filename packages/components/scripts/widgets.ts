@@ -1499,6 +1499,12 @@ const WIDGETS: WidgetRenderConfig[] = [
         { name: "tall-7x16", w: 7, h: 16, config: dualLine },
         // Default operator view, both axes (safely past slot 1).
         { name: "default-10x8", w: 10, h: 8, config: dualLine },
+        // minSize 5x4: the tightest tile the widget allows, two series so it stays a chart.
+        { name: "min-5x4", w: 5, h: 4, config: dualLine },
+        // The auto-appended breakpoint modes carry no config, which draws this config-driven widget's empty state.
+        { name: "mobile-9x8", w: 9, h: 8, config: dualLine },
+        { name: "portrait-5x18", w: 5, h: 18, config: dualLine },
+        { name: "landscape-18x5", w: 18, h: 5, config: dualLine },
       ];
     })(),
   },
@@ -2027,8 +2033,8 @@ const WIDGETS: WidgetRenderConfig[] = [
        * them, had never appeared in a render at all.
        */
       {
-        name: "hovered-tank-10x14",
-        w: 10,
+        name: "hovered-tank-18x14",
+        w: 18,
         h: 14,
         hovers: [{ selector: 'g[aria-label^="FL-T400 Fuel Tank"]' }],
         forFixtures: ["fuel-tank-bars-only", "fuel-tank-bars-only-link-lost"],

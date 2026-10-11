@@ -1,0 +1,129 @@
+{
+  "_meta": {
+    "shows": "Parameters in every state: complete, incomplete and failed, with titles long enough to wrap at the smallest size.",
+    "scenario": "mixed-states",
+    "notes": "Complete reads reached and Failed reads failed. The wire carries no optional flag on a parameter."
+  },
+  "contracts.active": [
+    {
+      "id": "9101",
+      "title": "Survey the Mun's highlands from orbit and land a probe on the Mun",
+      "agency": "Kerbin World-Firsts Record-Keeping Society",
+      "state": "Active",
+      "fundsAdvance": 0,
+      "fundsCompletion": 0,
+      "scienceCompletion": 0,
+      "repCompletion": 0,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Orbit the Mun with a periapsis below 30 km",
+          "state": "Complete",
+          "stateOrdinal": 1
+        },
+        {
+          "title": "Land within 5 km of the marked survey site",
+          "state": "Incomplete",
+          "stateOrdinal": 0
+        },
+        {
+          "title": "Return a surface sample to Kerbin",
+          "state": "Incomplete",
+          "stateOrdinal": 0
+        }
+      ]
+    },
+    {
+      "id": "9102",
+      "title": "Rescue Valentina Kerman",
+      "agency": "Rescue Inc",
+      "state": "Active",
+      "fundsAdvance": 0,
+      "fundsCompletion": 0,
+      "scienceCompletion": 0,
+      "repCompletion": 0,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Recover Valentina Kerman",
+          "state": "Failed",
+          "stateOrdinal": 2
+        },
+        {
+          "title": "Bring them home",
+          "state": "Incomplete",
+          "stateOrdinal": 0
+        }
+      ]
+    }
+  ],
+  "_stream": {
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "9101",
+                "title": "Survey the Mun's highlands from orbit and land a probe on the Mun",
+                "state": "Active",
+                "fundsAdvance": 0,
+                "fundsCompletion": 0,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Orbit the Mun with a periapsis below 30 km",
+                    "state": "Complete",
+                    "stateOrdinal": 1
+                  },
+                  {
+                    "title": "Land within 5 km of the marked survey site",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  },
+                  {
+                    "title": "Return a surface sample to Kerbin",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ],
+                "agent": "Kerbin World-Firsts Record-Keeping Society",
+                "reputationCompletion": 0,
+                "dateDeadline": 0
+              },
+              {
+                "id": "9102",
+                "title": "Rescue Valentina Kerman",
+                "state": "Active",
+                "fundsAdvance": 0,
+                "fundsCompletion": 0,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Recover Valentina Kerman",
+                    "state": "Failed",
+                    "stateOrdinal": 2
+                  },
+                  {
+                    "title": "Bring them home",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ],
+                "agent": "Rescue Inc",
+                "reputationCompletion": 0,
+                "dateDeadline": 0
+              }
+            ],
+            "offered": []
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
+}
