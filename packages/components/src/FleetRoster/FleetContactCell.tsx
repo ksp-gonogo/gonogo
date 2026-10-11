@@ -21,11 +21,9 @@ export function FleetContactCell({
 }) {
   const silence = useFleetVesselSilence(guid);
   const nowUt = useViewUt();
-  const phase = contactPhase(silence, nowUt?.magnitude ?? 0);
-
-  if (!silence || nowUt == null || phase === "nominal" || phase === undefined) {
-    return null;
-  }
+  if (!silence || nowUt == null) return null;
+  const phase = contactPhase(silence, nowUt.magnitude);
+  if (phase === "nominal" || phase === undefined) return null;
 
   if (phase === "lost") {
     return (

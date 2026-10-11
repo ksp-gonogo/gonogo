@@ -53,7 +53,7 @@ export function CommsTag({
   );
 }
 
-/** Column header label; truncates like a body cell since the Vessel track shrinks below "VESSEL" at minSize. */
+/** Column header label; truncates like a body cell so a narrow track never overflows. */
 export function ColLabel({
   right,
   children,

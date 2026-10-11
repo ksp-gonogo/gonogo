@@ -4,6 +4,8 @@ import {
   Badge,
   Box,
   Cluster,
+  HeldBadge,
+  heldGradeOf,
   Meter,
   Stack,
   Text,
@@ -52,6 +54,8 @@ export function DeployedBaseCard({
   basesReading: Reading<unknown>;
 }) {
   const state = powerState(base);
+  // Power and collection states are drawn as words, so a roster that stopped arriving says so beside them.
+  const heldGrade = heldGradeOf(basesReading);
   return (
     <Box
       bordered
@@ -69,6 +73,9 @@ export function DeployedBaseCard({
           <Badge tone={POWER_TONE[state]} data-tone={POWER_TONE[state]} live>
             {POWER_LABEL[state]}
           </Badge>
+          {heldGrade !== undefined && (
+            <HeldBadge grade={heldGrade} subject="Deployed bases" size="sm" />
+          )}
         </Cluster>
         {siteLine(base) && (
           <Text level="muted" style={XS2_STYLE}>
@@ -105,9 +112,9 @@ export function DeployedBaseCard({
                       decimals={0}
                     />
                     {exp.collecting === true && (
-                      <Text tone="go" style={XS2_STYLE} aria-hidden="true">
+                      <Text tone="go" style={XS2_STYLE}>
                         {" "}
-                        ●
+                        ● collecting
                       </Text>
                     )}
                   </>

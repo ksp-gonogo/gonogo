@@ -1,5 +1,6 @@
 import { clearAugments } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
@@ -321,7 +322,47 @@ describe("parseContracts", () => {
   });
 });
 
+describe("ContractManagerComponent cancel cost", () => {
+  const contract = {
+    id: 7,
+    title: "Test the booster",
+    state: "Active",
+    deadlineUt: 0,
+    parameters: [],
+  };
+
+  it("states what cancelling takes beside the Cancel button", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [{ ...contract, fundsFailure: 12000, reputationFailure: 6 }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/CANCEL COSTS/)).toBeInTheDocument(),
+    );
+    expect(visibleText()).toMatch(/−.*12\.0k/);
+    expect(visibleText()).toMatch(/−6\.0/);
+  });
+
+  it("leaves the cost off when the wire carried no penalty", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, { active: [contract] });
+    });
+    await screen.findByText(/Test the booster/);
+    expect(screen.queryByText(/CANCEL COSTS/)).toBeNull();
+  });
+});
+
 describe("formatDeadline", () => {
+  it("is unknown, not the whole deadline, when the view UT is unknown", () => {
+    expect(formatDeadline(6 * 3600 * 5, undefined)).toBe(NULL_DISPLAY);
+    expect(formatDeadline(0, undefined)).toBe("no deadline");
+  });
+
   it("returns 'no deadline' when the deadline is zero or negative", () => {
     expect(formatDeadline(0, 100)).toBe("no deadline");
     expect(formatDeadline(-1, 100)).toBe("no deadline");

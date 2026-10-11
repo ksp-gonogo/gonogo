@@ -21,7 +21,7 @@ export const UNAVAILABLE_TITLES: Record<UnavailableReason, string> = {
     "Configured, but no backend has reported this group, so its state is unknown",
 };
 
-/** In precedence order; "Not reported" is last because it alone does not stop the press. */
+/** In precedence order; "Not reported" is last because it alone names a cause that is not about the press itself. */
 export function unavailableReasonOf({
   valueHeld,
   stateUnreadable,

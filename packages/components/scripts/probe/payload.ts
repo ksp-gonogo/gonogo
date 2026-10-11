@@ -124,6 +124,28 @@ export interface ProbeSize {
 }
 
 /**
+ * A fixture's `_meta.widgetConfig` is the config its scene is about (the group
+ * a button is bound to), so every size shows that scene; a size's own `config`
+ * overlays it.
+ */
+function fixtureWidgetConfig(
+  fixture: Record<string, unknown>,
+  overlay: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  const meta = fixture._meta;
+  if (typeof meta !== "object" || meta === null) return overlay;
+  const widgetConfig: unknown = Reflect.get(meta, "widgetConfig");
+  if (
+    typeof widgetConfig !== "object" ||
+    widgetConfig === null ||
+    Array.isArray(widgetConfig)
+  ) {
+    return overlay;
+  }
+  return { ...widgetConfig, ...overlay };
+}
+
+/**
  * What `renderProbe` is handed to mount one scene at one size.
  *
  * A fixture's `_series` block, keyed by Topic or field path with an array of
@@ -149,7 +171,7 @@ export function probePayload(opts: {
     h: size.h,
     ...tilePixels(size.w, size.h),
     gridCell: opts.gridCell,
-    config: size.config,
+    config: fixtureWidgetConfig(fixture, size.config),
     series,
     clicks: size.clicks,
     hovers: size.hovers,
