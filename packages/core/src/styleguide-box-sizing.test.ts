@@ -113,7 +113,13 @@ describe("box-sizing is set once, for the whole document", () => {
   });
 
   it("finds the reset itself, so an empty scan cannot read as a clean one", () => {
-    expect(hits().map((h) => h.file)).toContain(RESET_FILE);
+    /* The changed-only run reads only the files a branch touched, so the reset is among the hits only when the branch touched it: read it directly otherwise. */
+    if (SCOPE.covers(RESET_FILE)) {
+      expect(hits().map((h) => h.file)).toContain(RESET_FILE);
+      return;
+    }
+    const css = readFileSync(join(repoRoot(), RESET_FILE), "utf8");
+    expect(declarationsIn(css, RESET_FILE)).not.toHaveLength(0);
   });
 
   it("has no other declaration anywhere", () => {
