@@ -45,9 +45,9 @@ import type { CommandRail } from "./rail-tags";
  * Every command id mapped to the type of the arguments it takes.
  * {@link CommandId} and {@link CommandArgs} are read from it.
  *
- * An Uplink adds its own commands by augmenting this interface and
- * {@link CommandReplyMap} from its client package, and registers each id at
- * load with {@link registerUplinkCommand}:
+ * An Uplink adds its own commands by merging entries into this interface and
+ * {@link CommandReplyMap} from its client package with a `declare module`
+ * block, and registers each id at load with {@link registerUplinkCommand}:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -167,15 +167,16 @@ const uplinkCommandRails = new Map<string, CommandRail>();
 /**
  * Registers a command id that an Uplink adds, so {@link isCommandId} and
  * {@link getAllKnownCommandIds} include it. Call it when the Uplink's client
- * package loads, beside its augmentation of {@link CommandArgsMap}: the
- * augmentation types `send`, and this call makes the id known at runtime.
+ * package loads, beside its `declare module` entry in {@link CommandArgsMap}:
+ * that entry types `send`, and this call makes the id known at runtime.
  * Registering an id twice does nothing.
  *
  * `rail` says how the command travels, such as whether a reply comes back.
  * Take it from `GENERATED_COMMAND_RAIL` in the `command-map.ts` that
  * `uplink-tools codegen` writes beside your generated types, which has a row
  * for every command your contract slice declares with `[SitrepCommand]`.
- * Without it the command is drawn as a single command that gets a reply.
+ * Without it the command is drawn on the delay rail as a single command that
+ * gets a reply, the same as {@link UNDECLARED_COMMAND_RAIL_TAGS}.
  *
  * @category Commands
  */

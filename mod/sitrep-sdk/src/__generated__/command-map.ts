@@ -178,7 +178,7 @@ export interface GeneratedCommandArgsMap {
   "system.bodies.statesAt": BodyStatesRequest;
   /** Put the view in a different reference frame. */
   "system.frame.set": SetControlFrameArgs;
-  /** Cancels a held or travelling command: its lane number alone, or it and every later number this centre had sent on the lane when it was pressed. */
+  /** Cancels a held or travelling command, named by its lane number, alone or with every later number this centre had sent on the lane when it was pressed. */
   "system.uplink.cancel": UplinkCancelRequest;
   /** Sends a held or overdue command again in its own place on its lane: a new copy with the same lane number, which must arrive before the commands behind it stop waiting for it. */
   "system.uplink.resend": UplinkResendRequest;
@@ -303,7 +303,7 @@ export interface GeneratedCommandReplyMap {
   "system.bodies.statesAt": BodyStatesReply;
   /** Put the view in a different reference frame. */
   "system.frame.set": CommandResult;
-  /** Cancels a held or travelling command: its lane number alone, or it and every later number this centre had sent on the lane when it was pressed. */
+  /** Cancels a held or travelling command, named by its lane number, alone or with every later number this centre had sent on the lane when it was pressed. */
   "system.uplink.cancel": UplinkActionReply;
   /** Sends a held or overdue command again in its own place on its lane: a new copy with the same lane number, which must arrive before the commands behind it stop waiting for it. */
   "system.uplink.resend": UplinkActionReply;

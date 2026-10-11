@@ -114,7 +114,7 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
-  /** One SCET alarm as the game holds it: the `alarm.scet` Topic is a bare array of these. */
+  /** One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as the game holds it: the `alarm.scet` Topic is a bare array of these. */
   "alarm.scet": ScetAlarm[];
   /** The notice that a SCET alarm has fired and the warp has been stopped. */
   "alarm.scet.fired": ScetAlarmFired;
@@ -162,7 +162,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.path": CommsPath;
   /** The route a message sent now would take between one command centre and the active craft, in both directions, predicted from that centre's own contact plan: the earliest arrival over every relay, waiting at a node for its next window where that arrives sooner. */
   "comms.route": CommsRoutes;
-  /** The `comms.signal` payload: the active vessel's own reading of its link, from the elected comms backend. */
+  /** The `comms.signal` payload: the active vessel's own reading of its link, from the comms backend in use (stock CommNet, or a replacement an Uplink provides). */
   "comms.signal": CommsSignal;
   /** The payload for the `crash.hasRecent` channel: one flag saying a notable crash is on record for the current save, published beside `CrashReport` on `crash.lastCrash`. */
   "crash.hasRecent": CrashRecent;

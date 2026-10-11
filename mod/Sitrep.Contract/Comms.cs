@@ -100,7 +100,8 @@ public class CommsConnectivity
 
 /// <summary>
 /// The <c>comms.signal</c> payload: the active vessel's own reading of its
-/// link, from the elected comms backend. A strength from 0 to 1 whose meaning
+/// link, from the comms backend in use (stock CommNet, or a replacement an
+/// Uplink provides). A strength from 0 to 1 whose meaning
 /// depends on the backend: stock CommNet reports KSP's own signal strength
 /// for the path, which falls off smoothly towards the range edge of each link
 /// and is multiplied across relays, RealAntennas how far up its data-rate

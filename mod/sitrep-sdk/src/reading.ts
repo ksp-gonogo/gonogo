@@ -557,7 +557,7 @@ export interface Reading<Payload> {
   readonly atUt?: Value<"ut">;
   /** When a held value was observed. */
   readonly asOfUt?: Value<"ut">;
-  /** Why a held value stopped updating: one of the {@link HeldGrade} values. */
+  /** Why a held value stopped updating: `held`, `disconnected`, `last-before-blackout`, `recorded`, `loading` or `no-game`. See {@link HeldGrade} for each. */
   readonly grade?: HeldGrade;
   /** What a forward model says the value is now. */
   readonly reckoning: Reckoning<Payload>;
@@ -1525,7 +1525,7 @@ export type ResolvedReckonerDeps<
  * @category Reckoners
  */
 export interface ReckonerFrame<Payload = unknown> {
-  /** Why the reading is held, or `undefined` while it is live. */
+  /** Why the reading is held (`held`, `disconnected`, `last-before-blackout`, `recorded`, `loading` or `no-game`; see {@link HeldGrade}), or `undefined` while it is live. */
   readonly grade: HeldGrade | undefined;
   /** The instant the model is asked to reach: the craft's present. */
   readonly reckonUt: number;

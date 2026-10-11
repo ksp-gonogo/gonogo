@@ -345,7 +345,7 @@ const barePrimitiveTopicIds = new Set<string>();
 /**
  * Registers a Topic id that an Uplink adds and the SDK does not declare, so
  * {@link isTopicId} and {@link getAllKnownTopicIds} include it. Call it when
- * the Uplink's client package loads, beside its augmentation of
+ * the Uplink's client package loads, beside its `declare module` entry in
  * {@link TopicPayloadMap}. Registering an id twice does nothing.
  *
  * Register every Topic your Uplink adds through this function, whatever its

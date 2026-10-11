@@ -54,20 +54,21 @@ import type { SampleKind } from "./contract-tags";
  * craft, `"telemetry"` comes back from it. Sets the direction of the mark and
  * its colour.
  *
- * The delay rail is the row `<CommandDelay>` draws of everything crossing the
- * signal gap between a command centre and a craft at this moment: commands on
- * their way out, and transmissions such as radio voice or a science result on
- * their way back.
+ * The delay rail is the row {@link CommandDelay} draws of everything on its way
+ * between a command centre and a craft at this moment, each taking one signal
+ * delay: commands on their way out, and transmissions such as radio voice or a
+ * science result on their way back.
  *
  * @category Commands
  */
 export type RailDirection = "command" | "telemetry";
 
 /**
- * Whether anything replies to an entry on the delay rail. An `"acked"` entry is
- * drawn with a return leg for its reply; a `"fire-and-forget"` one gets no
- * reply and ends when it arrives. Commands are always `"acked"`;
- * `"fire-and-forget"` is what telemetry coming back from a craft is.
+ * Whether anything replies to an entry on the delay rail. An `"acked"`
+ * (acknowledged) entry is drawn with a return leg for its reply; a
+ * `"fire-and-forget"` one gets no reply and ends when it arrives. Commands the
+ * contract declares are `"acked"`; `"fire-and-forget"` is what telemetry coming
+ * back from a craft is.
  *
  * @category Commands
  */
@@ -75,7 +76,7 @@ export type RailDelivery = "acked" | "fire-and-forget";
 
 /**
  * How a command or Topic travels on the delay rail: which way, how it relates
- * in time, and whether anything replies. `<CommandDelay>` chooses how to draw
+ * in time, and whether anything replies. {@link CommandDelay} chooses how to draw
  * an entry from these. `kind` is the same sample kind a channel declares: a
  * continuous entry is drawn as a ribbon along the rail, a discrete one or an
  * event as a dot travelling it.
@@ -106,10 +107,10 @@ export interface RailTags {
  */
 export interface CommandRail {
   /**
-   * Whether the command is answered. It is `true` for every command the
-   * contract declares, because a command's result is always delivered; the
-   * field is there so a client reads that rather than assumes it. A `false`
-   * would draw the command as `"fire-and-forget"` on the delay rail.
+   * Whether the mod sends a reply for the command. It is `true` for every
+   * command a contract declares, and a client reads it here rather than
+   * assuming it. Set to `false` in a hand-built rail, it draws the command as
+   * `"fire-and-forget"` on the delay rail.
    */
   readonly replies: boolean;
 
@@ -163,7 +164,8 @@ function railTags(
 /**
  * The tags of a command nothing has declared: a command whose id is built at
  * runtime, or one from an Uplink whose client has not loaded. It is drawn as a
- * single command that gets a reply, as every declared command does.
+ * single `"acked"` command, because a reply is what every declared command
+ * gets.
  *
  * @category Commands
  */
@@ -174,9 +176,9 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
 );
 
 /**
- * Returns the tags for a command from its {@link CommandRail}: always a single
- * discrete command going out to the craft, `"acked"` when `rail.replies` is
- * `true` and `"fire-and-forget"` otherwise.
+ * Returns the tags for a command from its {@link CommandRail}. The result is
+ * always a single command going out to the craft: `"acked"` when
+ * `rail.replies` is `true` and `"fire-and-forget"` otherwise.
  *
  * @category Commands
  */

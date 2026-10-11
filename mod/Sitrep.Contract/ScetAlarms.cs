@@ -332,8 +332,8 @@ public class ScetAlarmAction
 }
 
 /// <summary>
-/// One SCET alarm as the game holds it: the <c>alarm.scet</c> Topic is a bare
-/// array of these.
+/// One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
+/// the game holds it: the <c>alarm.scet</c> Topic is a bare array of these.
 ///
 /// <para>The roster exists so an operator can see which alarms are still set
 /// after a reconnect, and so a client can remove an entry it no longer

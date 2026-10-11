@@ -1827,10 +1827,11 @@ export interface UseCommandOptions {
    */
   vantage?: string;
   /**
-   * `false` keeps this command off the panel's delay rail, for a widget that
-   * shows the command's progress itself. Otherwise the handle joins the
-   * nearest rail, and a development build throws when it sends with no rail
-   * mounted.
+   * `false` keeps this command off the delay rail, the row {@link CommandDelay}
+   * draws of commands on their way to the craft, for a widget that shows the
+   * command's progress itself. Otherwise the handle joins the nearest rail the
+   * dashboard or a test render helper mounts, and a development build throws
+   * when it sends with no rail mounted.
    */
   rail?: false;
 }
@@ -1841,8 +1842,8 @@ export interface UseCommandOptions {
  *
  * `Args` and `Reply` are the command's own argument and reply types when the
  * hook was given a {@link CommandId}. Otherwise `Args` is `unknown` and `Reply`
- * is {@link AnyCommandReply}. Pass the whole handle to `<CommandDelay>` to show
- * its delay and outcomes.
+ * is {@link AnyCommandReply}. Pass the whole handle to {@link CommandDelay} to
+ * show its delay and outcomes.
  *
  * The lists `refusals`, `losses`, `founds`, `undelivered` and `failures` each hold a
  * dispatch until it is dismissed with `dismiss`, and a dispatch is in at most
@@ -1871,7 +1872,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   inFlight: InFlightCommand[];
   /**
-   * How the command travels, as its Uplink declared it. `<CommandDelay>`
+   * How the command travels, as its Uplink declared it. {@link CommandDelay}
    * chooses how to draw the command from these.
    */
   tags: RailTags;
@@ -1945,8 +1946,8 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
  * on, so the handle keeps its types.
  *
  * It accepts a union of ids, for commands that take the same arguments, and
- * works for an Uplink's own commands once it has augmented
- * {@link CommandArgsMap}.
+ * works for an Uplink's own commands once its client has added them to
+ * {@link CommandArgsMap} with a `declare module` block.
  *
  * @example
  * ```tsx

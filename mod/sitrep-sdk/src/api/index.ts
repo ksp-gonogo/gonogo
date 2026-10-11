@@ -649,14 +649,14 @@ export function useViewUt(): Value<"ut"> | undefined {
  * so a sent command has not yet happened, unless it arrives at once: a command
  * whose {@link CommandRail} says `delayed` is `false` (the game clock, scene
  * changes, alarms and the like), or any command sent from the `"meta"`
- * vantage. Pass the handle to `<CommandDelay>` to show its delay and what
+ * vantage. Pass the handle to {@link CommandDelay} to show its delay and what
  * became of it.
  *
- * Each handle joins the delay rail the dashboard mounts around a widget, and
- * the test render helpers mount one too. Rendered outside any rail, as in a
- * test that renders a component bare, `send` throws in a development build;
- * pass `rail: false` in {@link UseCommandOptions} to keep a handle off the
- * rail.
+ * Each handle joins the delay rail around its widget: the row {@link CommandDelay}
+ * draws of commands on their way to the craft, which the dashboard mounts and
+ * the test render helpers mount too. Rendered outside any rail, as in a test
+ * that renders a component bare, `send` throws in a development build; pass
+ * `rail: false` in {@link UseCommandOptions} to keep a handle off the rail.
  *
  * Every command id is listed in {@link COMMAND_IDS}.
  *
@@ -680,7 +680,7 @@ export function useViewUt(): Value<"ut"> | undefined {
  * replies, the hook a widget sends through, how a refusal is classified, and
  * the delay rail. The delay rail is the row of commands on their way to a
  * craft, and replies or transmissions on their way back, that
- * `<CommandDelay>` draws; a command is `acked` when a reply comes back for it
+ * {@link CommandDelay} draws; a command is `acked` when a reply comes back for it
  * and `fire-and-forget` when none does.
  */
 export function useCommand<Command extends CommandId>(
@@ -702,6 +702,7 @@ export function useCommand<Command extends CommandId>(
  * ```ts
  * import { useCommand } from "@ksp-gonogo/sitrep-sdk";
  *
+ * // `hard` is an argument of this example's own command, not an SDK command
  * function useProbeReset(probeId: string) {
  *   return useCommand<{ hard: boolean }>(`myuplink.probe.${probeId}.reset`);
  * }

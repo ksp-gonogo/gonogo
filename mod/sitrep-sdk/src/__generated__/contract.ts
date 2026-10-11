@@ -1796,12 +1796,13 @@ export interface CommsConnectivity
 }
 /**
 * The `comms.signal` payload: the active vessel's own reading of its link,
-* from the elected comms backend. A strength from 0 to 1 whose meaning depends
-* on the backend: stock CommNet reports KSP's own signal strength for the
-* path, which falls off smoothly towards the range edge of each link and is
-* multiplied across relays, RealAntennas how far up its data-rate ladder the
-* path's links close. `CommsSignal.quantity` says which, so a reader names the
-* figure correctly and never compares two that are different quantities.
+* from the comms backend in use (stock CommNet, or a replacement an Uplink
+* provides). A strength from 0 to 1 whose meaning depends on the backend:
+* stock CommNet reports KSP's own signal strength for the path, which falls
+* off smoothly towards the range edge of each link and is multiplied across
+* relays, RealAntennas how far up its data-rate ladder the path's links close.
+* `CommsSignal.quantity` says which, so a reader names the figure correctly
+* and never compares two that are different quantities.
 *
 * Each command centre is sent its own, the newest reading to have reached it.
 * A reading is of the vessel's whole path at one instant, so it reaches a
@@ -2583,13 +2584,13 @@ export interface CommsJourneyEvent
 	missing: Value<"count">[];
 }
 /**
-* Cancels a held or travelling command: its lane number alone, or it and every
-* later number this centre had sent on the lane when it was pressed. A lane is
-* the ordered run of delayed commands one centre sends to one craft, and a
-* lane number is a command's place in it. A command this centre is still
-* holding stops at once; for one it has sent, a cancel goes to the craft,
-* stopping the command wherever it is held and refusing it at the craft if it
-* arrives there first. What it stopped arrives as journey reports.
+* Cancels a held or travelling command, named by its lane number, alone or
+* with every later number this centre had sent on the lane when it was
+* pressed. A lane is the ordered run of delayed commands one centre sends to
+* one craft, and a lane number is a command's place in it. A command this
+* centre is still holding stops at once; for one it has sent, a cancel goes to
+* the craft, stopping the command wherever it is held and refusing it at the
+* craft if it arrives there first. What it stopped arrives as journey reports.
 *
 * The reply says the cancel was sent, never that the command was stopped. A
 * command sent less than twice its light time ago may have been lost on the
@@ -6024,8 +6025,8 @@ export interface ScetAlarmAction
 	group: number;
 }
 /**
-* One SCET alarm as the game holds it: the `alarm.scet` Topic is a bare array
-* of these.
+* One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
+* the game holds it: the `alarm.scet` Topic is a bare array of these.
 *
 * The roster exists so an operator can see which alarms are still set after a
 * reconnect, and so a client can remove an entry it no longer remembers. The
