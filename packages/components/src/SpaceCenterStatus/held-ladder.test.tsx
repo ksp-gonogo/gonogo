@@ -224,4 +224,23 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     );
     expect(heldTiers()).toHaveLength(0);
   });
+
+  it("marks each upgrade price with its tier, since both come off the one entry", async () => {
+    const fixture = mount();
+
+    emitSession(fixture, 10, "SpaceCenter");
+    emitLadder(fixture, 10);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
+    );
+    const prices = () =>
+      Array.from(document.querySelectorAll("[data-afford]")).filter((el) =>
+        el.querySelector("[data-held]"),
+      );
+    expect(prices()).toHaveLength(0);
+
+    leaveTheSpaceCentre(fixture);
+
+    await waitFor(() => expect(prices()).toHaveLength(2));
+  });
 });

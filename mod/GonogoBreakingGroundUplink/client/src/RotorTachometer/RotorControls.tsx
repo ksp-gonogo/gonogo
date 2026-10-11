@@ -29,8 +29,15 @@ function directionText(counterClockwise: boolean | null): string {
   return counterClockwise ? "CCW" : "CW";
 }
 
+/** The reverse button's accessible name: the printed heading is the current one, not the one the press sets. */
+function reverseLabel(counterClockwise: boolean | null): string | undefined {
+  if (counterClockwise === null) return undefined;
+  return `Reverse (now ${counterClockwise ? "CCW" : "CW"})`;
+}
+
 export interface RotorControlsProps {
   selected: RotorInfo;
+  rpmLimitReading: Reading<Value<"rpm">>;
   torqueReading: Reading<Value<"%">>;
   setRpmLimit: (id: string, rpm: number) => void;
   setTorqueLimit: (id: string, pct: number) => void;
@@ -43,6 +50,7 @@ export interface RotorControlsProps {
 /** The selected rotor's steppers and toggles; each is relative to or inverted from a figure read back, so an unread one disables it. */
 export function RotorControls({
   selected,
+  rpmLimitReading,
   torqueReading,
   setRpmLimit,
   setTorqueLimit,
@@ -71,9 +79,11 @@ export function RotorControls({
         </Button>
         <Cluster justify="center">
           <Text size="sm">
-            {selected.rpmLimit === null
-              ? "RPM cap unknown"
-              : Math.round(selected.rpmLimit)}
+            {selected.rpmLimit === null ? (
+              "RPM cap unknown"
+            ) : (
+              <Unit value={rpmLimitReading} decimals={0} />
+            )}
           </Text>
         </Cluster>
         <Button
@@ -177,9 +187,14 @@ export function RotorControls({
           Brake {brakeStateText(selected.brakePercentage)}
         </ToggleButton>
         {/* Reverse stays available on an unread heading; only the heading it prints is withheld. */}
-        <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
+        <Button
+          size="sm"
+          type="button"
+          aria-label={reverseLabel(selected.counterClockwise)}
+          onClick={() => reverse(selected.partId)}
+        >
           {directionText(selected.counterClockwise)}
-        </ToggleButton>
+        </Button>
       </Cluster>
     </Section>
   );

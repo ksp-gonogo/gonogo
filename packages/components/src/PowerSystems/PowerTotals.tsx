@@ -6,6 +6,7 @@ import {
   MEASURED_CELL,
   NET_CELL_BY_TONE,
   NET_LABEL_COLOUR,
+  NO_BREAK,
   STORED_VALUE,
   TOTALS,
   TOTALS_CELL,
@@ -76,7 +77,8 @@ export function PowerTotals({
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>STORED</span>
           <Text size="sm" style={STORED_VALUE}>
-            {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
+            <span style={NO_BREAK}>{formatUnits(storage.amount)}</span>{" "}
+            <span style={NO_BREAK}>/ {formatUnits(storage.maxAmount)}</span>
           </Text>
         </div>
       )}

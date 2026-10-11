@@ -61,7 +61,10 @@ export function WindowsList({
               >
                 <ColWait>{fmtCountdown(w.waitSeconds)}</ColWait>
                 <ColDv>
-                  <Unit value={ephemerisFigure(value("m/s", w.deltaV))} />
+                  <Unit
+                    value={ephemerisFigure(value("m/s", w.deltaV))}
+                    decimals={0}
+                  />
                 </ColDv>
                 <ColTof>{fmtDays(w.transferTimeSec)}</ColTof>
               </SelectableRow>

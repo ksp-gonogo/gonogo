@@ -1,6 +1,8 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput, useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
+import { readingOf } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { VisuallyHidden } from "@ksp-gonogo/ui";
 import {
   getWidgetShape,
@@ -8,6 +10,7 @@ import {
   Section,
   Select,
   Text,
+  Unit,
   WidgetScopeProvider,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
@@ -182,7 +185,10 @@ export function PowerSystemsComponent({
             <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
             <Text tone={COMPACT_NET_TONE[netTone]} style={COMPACT_NET}>
               {net >= 0 ? "+" : ""}
-              {net.toFixed(2)}/s
+              <Unit
+                value={readingOf(partsReading, () => value("units/s", net))}
+                decimals={2}
+              />
             </Text>
           </Section>
         }

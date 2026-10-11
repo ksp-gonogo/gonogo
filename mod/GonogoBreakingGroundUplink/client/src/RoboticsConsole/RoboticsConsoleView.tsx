@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   Cluster,
+  type heldGradeOf,
   Inline,
   Panel,
   ReadoutCaption,
@@ -18,13 +19,7 @@ import {
   motorStateText,
   stepperLabel,
 } from "../unreadLabels";
-import {
-  formatPos,
-  positionDecimals,
-  type ServoInfo,
-  TARGET_STEP,
-  unitFor,
-} from "./servos";
+import { positionDecimals, type ServoInfo, TARGET_STEP } from "./servos";
 
 type PositionReading = UnitValue<"°" | "m">;
 
@@ -38,6 +33,8 @@ export interface RoboticsConsoleViewProps {
   selected: ServoInfo;
   /** The field readings a servo's drawn positions come from. */
   positionReadings: (s: ServoInfo) => PositionReadings;
+  /** The grade the servo list is held at while it has stopped arriving; the flags and the list's words are text, so the panel carries the mark. */
+  held: ReturnType<typeof heldGradeOf>;
   /** Grid rows; below six only the readout and target stepper fit. */
   rows: number;
   onSelect: (partId: string) => void;
@@ -60,23 +57,32 @@ function ServoPosition({
   return <Unit value={readings[of]} decimals={positionDecimals(servo.type)} />;
 }
 
-function listSuffix(s: ServoInfo): string {
-  if (s.locked === true) return " · locked";
-  if (s.atTarget === true) return " · ✓";
-  return "";
+function ListSuffix({ servo }: { servo: ServoInfo }) {
+  if (servo.locked === true) return " · locked";
+  if (servo.atTarget === true) {
+    return (
+      <>
+        {" · "}
+        <span role="img" aria-label="at target">
+          ✓
+        </span>
+      </>
+    );
+  }
+  return null;
 }
 
 export function RoboticsConsoleView({
   servos,
   selected,
   positionReadings,
+  held,
   rows,
   onSelect,
   setTarget,
   setMotor,
   setLock,
 }: RoboticsConsoleViewProps) {
-  const unit = unitFor(selected.type);
   const decimals = positionDecimals(selected.type);
   const readings = positionReadings(selected);
   const showToggles = rows >= 6;
@@ -85,6 +91,11 @@ export function RoboticsConsoleView({
   return (
     <Panel
       panelTitle="ROBOTICS"
+      panelBadges={
+        held === undefined
+          ? undefined
+          : [{ id: "read", label: "Reading", held }]
+      }
       sections={[
         <Section key="readout" full>
           <Cluster justify="start" align="baseline" wrap>
@@ -142,10 +153,7 @@ export function RoboticsConsoleView({
                 {selected.target === null ? (
                   "unknown"
                 ) : (
-                  <>
-                    {formatPos(selected.type, selected.target)}
-                    {unit}
-                  </>
+                  <Unit value={readings.target} decimals={decimals} />
                 )}
               </Text>
               <Button
@@ -229,7 +237,7 @@ export function RoboticsConsoleView({
                     of="target"
                     readings={positionReadings(s)}
                   />
-                  {listSuffix(s)}
+                  <ListSuffix servo={s} />
                 </span>
               </SelectableRow>
             ))}

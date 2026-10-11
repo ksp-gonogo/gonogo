@@ -49,7 +49,9 @@ function SemiMajorAxisComponent({
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,
   );
   const series = useDataSeries("vessel.orbit.sma", SPARK_WINDOW_SEC);
-  const sparkValues = series.v as number[];
+  const sparkValues = series.v.filter(
+    (v): v is number => typeof v === "number" && Number.isFinite(v),
+  );
   const cols = w ?? 4;
   const rows = h ?? 4;
   const showSubtitle = rows >= 5 && cols >= 4;
@@ -103,9 +105,15 @@ function SemiMajorAxisComponent({
           >
             <Unit value={readingOf(orbitReading, (orbit) => orbit.sma)} />
           </div>
+          {/* An unbound orbit has a negative semi-major axis, which reads as an error without its name. */}
+          {sma.isNegative() && (
+            <ReadoutCaption style={SMA_CAPTION_STYLE}>
+              Hyperbolic
+            </ReadoutCaption>
+          )}
           {/* A pulsating frame's length unit moves with its pair, so the frame is named. */}
           {lengthsPulsate && (
-            <ReadoutCaption role="status">
+            <ReadoutCaption role="status" style={SMA_CAPTION_STYLE}>
               {controlFrameLabel(controlFrame) ?? "pulsating frame"}
             </ReadoutCaption>
           )}

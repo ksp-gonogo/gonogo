@@ -97,7 +97,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
     );
-    expect(visibleText()).toContain("150.0k");
+    expect(visibleText()).toContain("150kf");
     expect(screen.getByLabelText("VAB tier 3 of 3")).toBeTruthy();
     expect(screen.getByText("MAX")).toBeTruthy();
   });

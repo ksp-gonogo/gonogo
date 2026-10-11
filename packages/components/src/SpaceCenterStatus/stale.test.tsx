@@ -198,7 +198,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     // Each moves only when the player does something, which cannot happen down a dead link.
     expect(screen.getByLabelText(/^Launch Pad tier 2 of 3/)).toBeTruthy();
     expect(screen.queryByLabelText("Launch Pad tier unknown")).toBeNull();
-    expect(visibleText(container)).toContain("150.0k");
+    expect(visibleText(container)).toContain("150kf");
     // Last site is a claim about a launch that already happened.
     expect(screen.getByRole("status").textContent).toContain(
       "Last site: LaunchPad",
