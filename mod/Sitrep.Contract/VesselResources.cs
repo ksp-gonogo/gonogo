@@ -64,7 +64,7 @@ public class ResourceAmount
 /// same convention as every other <c>vessel.*</c>
 /// channel.</description></item>
 /// </list>
-/// Because every emission is the full map (a structured, keyframed channel,
+/// Because every emission is the full map (the channel carries the whole map,
 /// never a delta), a key disappearing between two emissions is itself a real
 /// structural statement (the vessel stopped carrying that resource, e.g. a
 /// tank was staged away), never an ambiguous "did it change or did the

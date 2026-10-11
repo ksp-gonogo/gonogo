@@ -166,8 +166,8 @@ namespace Sitrep.Contract
     /// What a field arrives as, in place of its value, while the save has not
     /// unlocked what it needs: the unlocks it is missing, so a reader can say
     /// why it has nothing to show rather than drawing an empty value as if there
-    /// were none. A mod marks such a field with
-    /// <see cref="SitrepRequiresAttribute"/>.
+    /// were none. A mod's C# marks such a field
+    /// with <see cref="SitrepRequiresAttribute"/>; a client only reads the result.
     /// </summary>
     /// <category>Readings</category>
     [SitrepContract]

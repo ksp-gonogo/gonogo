@@ -52,7 +52,8 @@ function registry(): EventRevealRegistry {
  * centre. Replaces any source registered under the same id. Useful for letting
  * the operator set an alarm on an Uplink's events.
  *
- * An Uplink's client registers through {@link UplinkClientHandle.registerRevealedEventSource}
+ * An Uplink's client registers through the `registerRevealedEventSource`
+ * method of the {@link UplinkClientHandle} that `defineUplinkClient` returns
  * instead, which prefixes the id with the Uplink's id.
  *
  * @category Delay and vantage

@@ -34,6 +34,10 @@ import type { UplinkClientHandle } from "./types";
  * - `"scet"`: the craft's own clock. The alarm stops time warp when the
  *   condition is true at the craft
  *
+ * This is only what the request asks for. The alarm the mod then holds records
+ * the place it is judged at as `ScetAlarm.vantage`, a `commandCentre.roster`
+ * id such as `"ground:<name>"` or `"vessel:<guid>"`.
+ *
  * The mod may refuse a `"scet"` threshold for a value it cannot read ahead of
  * the delay. The alarm's row then shows it as not armed with the mod's reason,
  * and it never fires. A time alarm takes no vantage.

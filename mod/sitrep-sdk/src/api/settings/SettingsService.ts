@@ -37,7 +37,9 @@ type Listener<SettingValue = unknown> = (value: SettingValue) => void;
  * Stores the operator's client settings in `localStorage` and notifies listeners
  * when one changes. Useful for keeping preferences in this browser between
  * visits. Writes are batched and flushed shortly after a change, and when the
- * page unloads.
+ * page unloads. The constructor takes the
+ * `Storage` to save into, which is `localStorage` when omitted; a test passes an
+ * in-memory one.
  *
  * @category Settings
  */

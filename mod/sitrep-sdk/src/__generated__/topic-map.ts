@@ -116,9 +116,9 @@ import type {
 export interface GeneratedTopicPayloadMap {
   /** One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as the game holds it: the `alarm.scet` Topic is a bare array of these. */
   "alarm.scet": ScetAlarm[];
-  /** The notice that a SCET alarm has fired and the warp has been stopped. */
+  /** The notice that an alarm judged on the craft's own clock (a SCET alarm, for spacecraft event time) has fired and the warp has been stopped. */
   "alarm.scet.fired": ScetAlarmFired;
-  /** One Topic a SCET threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
+  /** One Topic a SCET (spacecraft event time) threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
   "alarm.scet.topics": ScetAddressableTopic[];
   /** The `career.facilities` Topic payload: the space centre's buildings, each with the tier it stands at and the ladder it stands on. */
   "career.facilities": CareerFacilities;
@@ -172,7 +172,7 @@ export interface GeneratedTopicPayloadMap {
   "deployed.bases": DeployedEntry[];
   /** One ΔV-producing stage of the active vessel, from the game's own stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
   "dv.stages": StageDeltaVEntry[];
-  /** The `dv.summary` Topic payload: the whole-vessel ΔV rollup KSP's stock `VesselDeltaV` exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
+  /** The `dv.summary` Topic payload: the whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`) exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
   "dv.summary": StageDeltaVSummary;
   /** Every kerbal currently outside a craft. */
   "eva.crew": EvaCrew;

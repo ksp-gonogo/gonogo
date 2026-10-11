@@ -72,7 +72,7 @@ public class VesselComms
     [SitrepUnit(Units.Ratio)]
     public double SignalStrength { get; set; }
 
-    /// <summary>Which quantity <see cref="SignalStrength"/> is, as the elected comms backend declares it: <see cref="SignalQuantity.Unknown"/> while no backend has answered.</summary>
+    /// <summary>Which quantity <see cref="SignalStrength"/> is, as the comms backend in force declares it: <see cref="SignalQuantity.Unknown"/> while no backend has answered.</summary>
     [SitrepUnit(Units.Enumeration)]
     public SignalQuantity SignalQuantity { get; set; }
 

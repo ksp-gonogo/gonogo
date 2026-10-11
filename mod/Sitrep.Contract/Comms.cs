@@ -406,7 +406,7 @@ public class CommsHop
     public SignalQuantity? Quantity { get; set; }
 
     /// <summary>
-    /// The provider-namespaced extension bag: how the elected comms backend
+    /// The provider-namespaced extension bag: how the comms backend in force
     /// carries per-hop facts this shared shape does not declare (see
     /// <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism).
     /// A RealAntennas install fills <c>Extensions["realantennas"]</c> with

@@ -437,7 +437,9 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * `recovery.*`, and `commandCentre.*` other than the command centre roster
    * and separation), which keeps it at the `"mission-control"` seat. A Topic in
    * any other Domain, including one an Uplink adds, is available aboard, at the
-   * `"pilot"` seat. See {@link Seat}.
+   * `"pilot"` seat. A Topic's Domain is the first segment of its id (`vessel`
+   * in `vessel.orbit`); see [Domain and seat](/reference/concepts/domain-and-seat)
+   * and {@link Seat}.
    *
    * Set it only to change that: `["mission-control"]` for a widget that should
    * stay off the pilot seat, `["pilot"]` for one that only makes sense aboard,
@@ -529,8 +531,8 @@ export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
  * What each widget is focused on, keyed by widget id: the resource a picker
  * has selected, the body a map is showing. An augment of that widget reads it
  * with `useWidgetScope` from `@ksp-gonogo/ui-kit`, which is how an augment in
- * a slot that passes no props, such as a widget's standard `sections` slot,
- * follows the widget.
+ * a slot that passes no props, such as the `<widget-id>.sections` slot every
+ * widget's panel carries (see {@link SlotRegistry}), follows the widget.
  *
  * A widget publishes its scope with `WidgetScopeProvider` from
  * `@ksp-gonogo/ui-kit`, and declares its shape here by declaration merging,

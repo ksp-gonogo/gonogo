@@ -514,7 +514,8 @@ public class ScetAlarm
 }
 
 /// <summary>
-/// The notice that a SCET alarm has fired and the warp has been stopped.
+/// The notice that an alarm judged on the craft's own clock (a SCET alarm, for
+/// spacecraft event time) has fired and the warp has been stopped.
 ///
 /// <para><b>Nothing about the craft.</b> It says which alarm fired and when.
 /// The stop is immediate, because warp is; the telemetry is not, and stays a
@@ -664,7 +665,8 @@ public class ScetAlarmDisarmArgs
 }
 
 /// <summary>
-/// One Topic a SCET threshold alarm may be armed against: a row of the
+/// One Topic a SCET (spacecraft event time) threshold alarm may be armed
+/// against: a row of the
 /// <c>alarm.scet.topics</c> channel.
 ///
 /// <para>The channel is the whole table of what the game can read for a

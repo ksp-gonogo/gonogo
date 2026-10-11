@@ -1310,7 +1310,8 @@ export interface ChannelGate
 * What a field arrives as, in place of its value, while the save has not
 * unlocked what it needs: the unlocks it is missing, so a reader can say why
 * it has nothing to show rather than drawing an empty value as if there were
-* none. A mod marks such a field with SitrepRequiresAttribute.
+* none. A mod's C# marks such a field with SitrepRequiresAttribute; a client
+* only reads the result.
 *
 * @category Readings
 */
@@ -2039,8 +2040,8 @@ export interface CommsHop
 	*/
 	quantity?: SignalQuantity | null;
 	/**
-	* The provider-namespaced extension bag: how the elected comms backend carries
-	* per-hop facts this shared shape does not declare (see
+	* The provider-namespaced extension bag: how the comms backend in force
+	* carries per-hop facts this shared shape does not declare (see
 	* ProviderExtensionBagAttribute for the whole mechanism). A RealAntennas
 	* install fills `Extensions["realantennas"]` with band, tech level,
 	* modulation, encoder, required Eb/N0, beamwidth, EC draw and the
@@ -6164,7 +6165,8 @@ export interface ScetAlarm
 	actsOn: string;
 }
 /**
-* The notice that a SCET alarm has fired and the warp has been stopped.
+* The notice that an alarm judged on the craft's own clock (a SCET alarm, for
+* spacecraft event time) has fired and the warp has been stopped.
 *
 * **Nothing about the craft.** It says which alarm fired and when. The stop is
 * immediate, because warp is; the telemetry is not, and stays a signal delay
@@ -6267,8 +6269,8 @@ export interface ScetAlarmDisarmArgs
 	id: string;
 }
 /**
-* One Topic a SCET threshold alarm may be armed against: a row of the
-* `alarm.scet.topics` channel.
+* One Topic a SCET (spacecraft event time) threshold alarm may be armed
+* against: a row of the `alarm.scet.topics` channel.
 *
 * The channel is the whole table of what the game can read for a threshold, so
 * a picker offers exactly those Topics, and `alarm.scet.arm` naming any other
@@ -7644,13 +7646,13 @@ export interface StageDeltaVEntry
 	resources?: { [key: string]: ResourceAmount } | null;
 }
 /**
-* The `dv.summary` Topic payload: the whole-vessel ΔV rollup KSP's stock
-* `VesselDeltaV` exposes alongside the per-stage `StageDeltaVEntry` list: the
-* ΔV-producing stage count plus the vacuum, sea-level and current totals and
-* total burn time. A single object, or `null` when the stock simulation is not
-* ready or there is no active vessel. Every field is `null` when its raw value
-* is absent or non-finite. Carries no `meta` of its own: provenance rides the
-* envelope.
+* The `dv.summary` Topic payload: the whole-vessel ΔV rollup the game's own ΔV
+* simulation (`VesselDeltaV`) exposes alongside the per-stage
+* `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum,
+* sea-level and current totals and total burn time. A single object, or `null`
+* when the stock simulation is not ready or there is no active vessel. Every
+* field is `null` when its raw value is absent or non-finite. Carries no
+* `meta` of its own: provenance rides the envelope.
 *
 * @category Vessel
 */
@@ -8976,8 +8978,8 @@ export interface VesselComms
 	*/
 	signalStrength: Value<"ratio">;
 	/**
-	* Which quantity `VesselComms.signalStrength` is, as the elected comms backend
-	* declares it: `SignalQuantity.Unknown` while no backend has answered.
+	* Which quantity `VesselComms.signalStrength` is, as the comms backend in
+	* force declares it: `SignalQuantity.Unknown` while no backend has answered.
 	*/
 	signalQuantity: SignalQuantity;
 	/**
@@ -10812,7 +10814,7 @@ export interface ResourceAmount
 * - **Whole channel absent**: no vessel at all, the same convention as every
 *   other `vessel.*` channel.
 *
-* Because every emission is the full map (a structured, keyframed channel,
+* Because every emission is the full map (the channel carries the whole map,
 * never a delta), a key disappearing between two emissions is itself a real
 * structural statement (the vessel stopped carrying that resource, e.g. a tank
 * was staged away), never an ambiguous "did it change or did the stream just
