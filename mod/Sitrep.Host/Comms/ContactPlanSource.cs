@@ -635,7 +635,9 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var look = _game.Look();
+            var lookedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - started;
             _lookedAt = wall;
             if (look == null)
             {
@@ -696,9 +698,12 @@ namespace Sitrep.Host.Comms
                 _routedAt = wall;
             }
             var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            var readStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+            var batch = _craft.Capture(look, snapshot.Ut, _host.Kernel, RosterOf(snapshot));
+            ReportSlowLook(wall, lookedTicks, System.Diagnostics.Stopwatch.GetTimestamp() - readStarted, batch.States.Count, look.Nodes.Count);
             return new Looked(
                 snapshot.Ut,
-                _craft.Capture(look, snapshot.Ut, _host.Kernel, RosterOf(snapshot)),
+                batch,
                 ground,
                 stations,
                 new List<string>(_game.Centres()),
@@ -715,6 +720,29 @@ namespace Sitrep.Host.Comms
                 PathStrength = CommsElection.PathStrength(_host.Kernel),
                 VesselsInGame = look.Vessels,
             };
+        }
+
+        /// <summary>A look that holds the game's own thread this long, in real seconds, is reported.</summary>
+        internal const double SlowLookSeconds = 0.05;
+
+        /// <summary>The least real time between two slow-look reports.</summary>
+        private const float SlowLookReportIntervalSeconds = 30f;
+
+        private float _slowLookReportedAt = float.NegativeInfinity;
+
+        /// <summary>MAIN THREAD: says how a slow look divided between reading the scene and reading craft links, at most once per <see cref="SlowLookReportIntervalSeconds"/>.</summary>
+        private void ReportSlowLook(float wall, long sceneTicks, long craftTicks, int craftRead, int nodes)
+        {
+            var frequency = (double)System.Diagnostics.Stopwatch.Frequency;
+            if ((sceneTicks + craftTicks) / frequency < SlowLookSeconds || wall - _slowLookReportedAt < SlowLookReportIntervalSeconds)
+            {
+                return;
+            }
+            _slowLookReportedAt = wall;
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            _warn("slow look: scene " + (sceneTicks * 1000.0 / frequency).ToString("F0", culture) + " ms, "
+                + craftRead.ToString(culture) + " craft read against " + nodes.ToString(culture) + " nodes in "
+                + (craftTicks * 1000.0 / frequency).ToString("F0", culture) + " ms");
         }
 
         /// <summary>MAIN THREAD: whether the log already says the game could not be read.</summary>

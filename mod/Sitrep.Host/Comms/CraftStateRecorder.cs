@@ -50,6 +50,18 @@ namespace Sitrep.Host.Comms
         /// <summary>How often a craft that has not moved is read again, in seconds of game time.</summary>
         public const double LinkRefreshSeconds = 600.0;
 
+        /// <summary>
+        /// How many craft one pass reads again because game time has passed: a
+        /// refresh that has come due, an orbit that drifted, one that has
+        /// settled. Reading a craft asks the comms backend about its link to
+        /// every other node, on the game's own thread, and under time warp
+        /// every craft comes due at every pass. The craft that has waited
+        /// longest goes first, so each comes round in turn. A craft seen for
+        /// the first time, one whose listing changed and one a new node has
+        /// arrived beside are read at once and do not count.
+        /// </summary>
+        public const int ReadsAgainPerPass = 1;
+
         private sealed class Read
         {
             public Read(ContactGameNode node, CraftState state)
@@ -152,6 +164,7 @@ namespace Sitrep.Host.Comms
                 _centreSaid.Clear();
             }
 
+            var again = RationedReads(look, ut);
             var sight = look.Sight;
             var sightAgain = NewCentreIn(sight);
             var sightings = new List<Sighted>();
@@ -169,7 +182,7 @@ namespace Sitrep.Host.Comms
                 present.Add(GuidOf(node.Id));
                 IReadOnlyDictionary<string, object?>? listed = null;
                 roster?.TryGetValue(node.Id, out listed);
-                var state = Due(node, look, ut, kernel, listed);
+                var state = Due(node, look, ut, kernel, listed, again.Contains(node.Id));
                 _centreSaid.TryGetValue(node.Id, out var centreSaid);
                 if (state == null && !CentreRoster.Same(centreSaid, node.Centre) && _read.TryGetValue(node.Id, out var last))
                 {
@@ -358,9 +371,39 @@ namespace Sitrep.Host.Comms
             return false;
         }
 
+        /// <summary>Whether enough game time has passed that the craft is read again with nothing else about it having changed.</summary>
+        private static bool TimeHasComeFor(Read last, ContactGameNode node, double ut) =>
+            Moved(last, node, ut)
+            || (!last.State.Settled && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds)
+            || ut >= last.State.CapturedUt + LinkRefreshSeconds;
+
+        /// <summary>The craft this pass reads again because their time has come: the <see cref="ReadsAgainPerPass"/> that have waited longest.</summary>
+        private HashSet<string> RationedReads(ContactGameLook look, double ut)
+        {
+            var waiting = new List<(double CapturedUt, string Id)>();
+            foreach (var node in look.Nodes)
+            {
+                if (!node.Station
+                    && _read.TryGetValue(node.Id, out var last)
+                    && ut >= last.State.CapturedUt
+                    && TimeHasComeFor(last, node, ut))
+                {
+                    waiting.Add((last.State.CapturedUt, node.Id));
+                }
+            }
+            waiting.Sort((a, b) => a.CapturedUt != b.CapturedUt ? a.CapturedUt.CompareTo(b.CapturedUt) : string.CompareOrdinal(a.Id, b.Id));
+            var chosen = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < waiting.Count && i < ReadsAgainPerPass; i++)
+            {
+                chosen.Add(waiting[i].Id);
+            }
+            return chosen;
+        }
+
         /// <summary>The craft's state read now, when its last one is out of date, or null while that one still stands.</summary>
+        /// <param name="itsTurn">Whether this pass may read the craft again because its time has come: see <see cref="ReadsAgainPerPass"/>.</param>
         private CraftState? Due(
-            ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel, IReadOnlyDictionary<string, object?>? listed)
+            ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel, IReadOnlyDictionary<string, object?>? listed, bool itsTurn)
         {
             if (listed == null && _read.TryGetValue(node.Id, out var before))
             {
@@ -373,7 +416,7 @@ namespace Sitrep.Host.Comms
                 _read[node.Id] = new Read(node, first);
                 return first;
             }
-            if (Moved(last, node, ut))
+            if (itsTurn && Moved(last, node, ut))
             {
                 // An orbit that has changed since it was last read is, as far as
                 // anyone can tell, still changing.
@@ -383,8 +426,8 @@ namespace Sitrep.Host.Comms
                 _read[node.Id] = new Read(node, moving);
                 return moving;
             }
-            var settling = !last.State.Settled && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds;
-            if (!settling && ut < last.State.CapturedUt + LinkRefreshSeconds && !LacksALinkToANodeHere(last.State, look))
+            var timeHasCome = itsTurn && TimeHasComeFor(last, node, ut);
+            if (!timeHasCome && !LacksALinkToANodeHere(last.State, look))
             {
                 if (!ListedDifferently(last.State.Roster, listed))
                 {

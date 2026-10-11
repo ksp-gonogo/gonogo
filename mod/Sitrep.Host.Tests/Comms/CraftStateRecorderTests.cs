@@ -108,6 +108,70 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Empty(recorder.Capture(burned, ContactPlanSchedule.MinDriftReplanSeconds + 1.0, null).States);
         }
 
+        /// <summary>
+        /// Under warp a pass comes every thousand game seconds, so every craft's
+        /// refresh is due at every pass, and reading a craft costs a link model
+        /// to every other node. One pass reads no more than its ration of them.
+        /// </summary>
+        [Fact]
+        public void UnderWarpAPassReadsAgainOnlyItsRationOfTheCraftThatAreDue()
+        {
+            var recorder = new CraftStateRecorder();
+            var fleet = Enumerable.Range(0, 12).Select(i => Craft("c" + i, Orbit(700_000.0 + (i * 10_000.0)))).ToArray();
+            Assert.Equal(12, recorder.Capture(Look(fleet), 0.0, null).States.Count);
+
+            Assert.InRange(CraftStateRecorder.ReadsAgainPerPass, 1, 2);
+            var readAt = new Dictionary<string, List<int>>();
+            for (var pass = 1; pass <= 36; pass++)
+            {
+                var batch = recorder.Capture(Look(fleet), pass * 1_000.0, null);
+                Assert.True(batch.States.Count <= CraftStateRecorder.ReadsAgainPerPass, "pass " + pass + " read " + batch.States.Count);
+                foreach (var state in batch.States)
+                {
+                    if (!readAt.TryGetValue(state.Id, out var passes))
+                    {
+                        readAt[state.Id] = passes = new List<int>();
+                    }
+                    passes.Add(pass);
+                }
+            }
+
+            // Longest waiting first, so every craft comes round in turn and none is starved.
+            Assert.Equal(12, readAt.Count);
+            Assert.All(readAt.Values, passes => Assert.Equal(36 * CraftStateRecorder.ReadsAgainPerPass / 12, passes.Count));
+        }
+
+        [Fact]
+        public void ACraftSeenForTheFirstTimeIsReadAtOnceWhateverElseIsDue()
+        {
+            var recorder = new CraftStateRecorder();
+            var fleet = Enumerable.Range(0, 6).Select(i => Craft("c" + i, Orbit(700_000.0 + (i * 10_000.0)))).ToList();
+            recorder.Capture(Look(fleet.ToArray()), 0.0, null);
+
+            fleet.Add(Craft("new", Orbit(900_000.0)));
+            var batch = recorder.Capture(Look(fleet.ToArray()), 1_000.0, null);
+
+            // The arrival is read, and so is every craft that has no link to it yet.
+            Assert.Equal(7, batch.States.Count);
+        }
+
+        [Fact]
+        public void ACraftWhoseListingChangesIsSaidAtOnceWhileItsRefreshWaitsItsTurn()
+        {
+            var recorder = new CraftStateRecorder();
+            var fleet = Enumerable.Range(0, 6).Select(i => Craft("c" + i, Orbit(700_000.0 + (i * 10_000.0)))).ToArray();
+            var roster = fleet.ToDictionary(
+                c => c.Id,
+                c => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?> { ["vesselId"] = c.Id, ["name"] = "A", ["situation"] = 3 });
+            recorder.Capture(Look(fleet), 0.0, null, roster);
+
+            roster["vessel:c5"] = new Dictionary<string, object?> { ["vesselId"] = "vessel:c5", ["name"] = "Renamed", ["situation"] = 3 };
+            var batch = recorder.Capture(Look(fleet), 1_000.0, null, roster);
+
+            Assert.Contains(batch.States, s => s.Id == "vessel:c5" && (string?)s.Roster!["name"] == "Renamed");
+            Assert.True(batch.States.Count <= 1 + CraftStateRecorder.ReadsAgainPerPass);
+        }
+
         [Fact]
         public void ACraftThatLandsIsReadAtOnce()
         {
