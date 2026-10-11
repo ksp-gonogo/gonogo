@@ -41,6 +41,20 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   "@ksp-gonogo/uplink-tools/widgets": "reaches the ui-kit barrel",
 };
 
+/**
+ * Only a package gonogo publishes is held to loading in Node. One from another
+ * repository, whatever its scope, is not gonogo's to fix and the client bundle
+ * inlines it, so a bare `node` failing to import it says nothing about the client.
+ */
+const GONOGO_REPOSITORY = /github\.com\/ksp-gonogo\/gonogo(\.git)?(\/|$)/;
+
+function isGonogoPublished(manifest: Record<string, unknown>): boolean {
+  const repository = manifest.repository;
+  const url =
+    typeof repository === "string" ? repository : asRecord(repository).url;
+  return typeof url === "string" && GONOGO_REPOSITORY.test(url);
+}
+
 /** A subpath nothing resolves through the module graph, so importing it proves nothing. */
 const NOT_A_MODULE = (sub: string) =>
   sub === "biome" || sub.endsWith(".json") || sub.endsWith(".css");
@@ -112,7 +126,9 @@ function entryPoints(clientDir: string): string[] {
       missing.push(pkg);
       continue;
     }
-    for (const key of Object.keys(asRecord(readJson(manifestFile).exports))) {
+    const manifest = readJson(manifestFile);
+    if (!isGonogoPublished(manifest)) continue;
+    for (const key of Object.keys(asRecord(manifest.exports))) {
       if (key === ".") {
         specs.push(pkg);
         continue;
