@@ -1404,6 +1404,7 @@ namespace Sitrep.Core.StoreAndForward
                 if (!own)
                 {
                     TryOwnLink(node, held, destination, nowUt, new[] { new PlannedHop(destination, nowUt, nowUt) });
+                    TryPathHome(node, held, destination, nowUt);
                 }
                 return null;
             }
@@ -1411,6 +1412,10 @@ namespace Sitrep.Core.StoreAndForward
             var next = route[0];
             if (IsExcluded(held, next.To))
             {
+                if (!own)
+                {
+                    TryPathHome(node, held, destination, nowUt);
+                }
                 return next.DepartUt > nowUt + Tolerance ? next.DepartUt : (double?)null;
             }
             var clearAt = AfterAnnouncedWindow(node, next, nowUt);
@@ -1425,6 +1430,7 @@ namespace Sitrep.Core.StoreAndForward
             if (!own)
             {
                 TryOwnLink(node, held, next.To, nowUt, route);
+                TryPathHome(node, held, destination, nowUt);
                 return next.DepartUt > nowUt + Tolerance ? next.DepartUt : (double?)null;
             }
 
@@ -1460,6 +1466,26 @@ namespace Sitrep.Core.StoreAndForward
             }
             held.Message.Route = route.ToList();
             Launch(node, held, to, nowUt, light.Value, endToEnd: false, toDish: route.Count > 0 && string.Equals(route[0].To, to, StringComparison.Ordinal) ? route[0].ToDish : null);
+        }
+
+        /// <summary>
+        /// Sends a report home along the path the node has to its centre right
+        /// now, when no direct link of its own carried it: a way home through a
+        /// node the link capture does not hold is still a way home. It is judged
+        /// by the same rule that judged the command's way out, so a craft that
+        /// cannot be sent to cannot answer either.
+        /// </summary>
+        private void TryPathHome(string node, Held held, string destination, double nowUt)
+        {
+            if (held.Away != null || !(held.Message is ReportMessage) || IsExcluded(held, destination))
+            {
+                return;
+            }
+            var live = _links.LivePath(node, destination);
+            if (live != null && nowUt + live.Value <= held.Message.ExpiresUt)
+            {
+                Launch(node, held, destination, nowUt, live.Value, endToEnd: true);
+            }
         }
 
         /// <summary>Whether <paramref name="node"/> is the command centre that sent <paramref name="message"/>: true only for a command or a cancel still at its own lane's centre.</summary>
