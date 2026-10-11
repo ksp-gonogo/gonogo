@@ -1,4 +1,9 @@
-import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  asDeterministic,
+  type Reading,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   ReckonedUnit,
   Unit,
@@ -32,6 +37,20 @@ function asOf<Unit extends string>(
     grade: held.grade,
     reckoning: { status: "none" },
   };
+}
+
+/**
+ * A figure computed off the body's orbit, sphere of influence included,
+ * carrying the exactness the catalogue stamped on that orbit. A stock body's
+ * elements are fixed, so the figure is as good after the catalogue goes quiet
+ * as before; under an n-body provider the elements are osculating, the orbit
+ * is not stamped, and the figure ages with the catalogue.
+ */
+function ofOrbit<Unit extends string>(
+  body: CelestialBody,
+  figure: Value<Unit>,
+): Value<Unit> {
+  return body.deterministic ? asDeterministic(figure) : figure;
 }
 
 /** The atmosphere row's value, or `null` when the body does not say whether it has one. */
@@ -96,7 +115,7 @@ export function buildRows(
   if (body.soi !== null) {
     rows.push({
       label: "SOI",
-      value: <Unit value={asOf(value("m", body.soi), held)} />,
+      value: <Unit value={asOf(ofOrbit(body, value("m", body.soi)), held)} />,
     });
   }
   const atmosphere = atmosphereValue(body, held);
@@ -106,7 +125,9 @@ export function buildRows(
   if (body.hillSphere !== null) {
     rows.push({
       label: "Hill sphere",
-      value: <Unit value={asOf(value("m", body.hillSphere), held)} />,
+      value: (
+        <Unit value={asOf(ofOrbit(body, value("m", body.hillSphere)), held)} />
+      ),
     });
   }
   if (body.rotates === false) {
@@ -115,21 +136,28 @@ export function buildRows(
   if (body.period !== null) {
     rows.push({
       label: "Orbital period",
-      value: <Unit value={asOf(value("s", body.period), held)} />,
+      value: (
+        <Unit value={asOf(ofOrbit(body, value("s", body.period)), held)} />
+      ),
     });
   }
   if (body.eccentricity !== null) {
     rows.push({
       label: "Eccentricity",
       value: (
-        <Unit value={asOf(value("1", body.eccentricity), held)} decimals={3} />
+        <Unit
+          value={asOf(ofOrbit(body, value("1", body.eccentricity)), held)}
+          decimals={3}
+        />
       ),
     });
   }
   if (body.inclination !== null) {
     rows.push({
       label: "Inclination",
-      value: <Unit value={asOf(value("°", body.inclination), held)} />,
+      value: (
+        <Unit value={asOf(ofOrbit(body, value("°", body.inclination)), held)} />
+      ),
     });
   }
   if (!isVesselParent && phaseAngle !== null) {
