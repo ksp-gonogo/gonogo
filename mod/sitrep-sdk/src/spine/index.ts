@@ -125,6 +125,7 @@ export * from "./use-data-sources";
 export * from "./use-late-telemetry-subscribe";
 export * from "./use-orbit-curve";
 export * from "./use-orbit-trajectory";
+export * from "./use-phase-angle";
 export * from "./use-processor";
 export * from "./use-route-commands";
 export * from "./use-selected-vantage";

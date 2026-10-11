@@ -308,8 +308,10 @@ export {
   trajectoryFrameKindFor,
   trajectoryFrameLabel,
   trueAnomalyFromEccentric,
+  useLivePhaseAngles,
   useOrbitCurve,
   useOrbitTrajectory,
+  usePhaseAngle,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export {} from "./map-command";

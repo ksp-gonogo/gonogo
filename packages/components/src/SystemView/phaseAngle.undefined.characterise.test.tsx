@@ -10,14 +10,14 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 
 /**
- * Characterises what `undefined` means to `usePhaseAngles`: one read behind one gate, `if (!orbit) return EMPTY`.
+ * Characterises what `undefined` means to `useLivePhaseAngles`: one read behind one gate, `if (!orbit) return EMPTY`.
  *
  * No vessel orbit, a hyperbolic orbit, and every body lacking elements all reach the shared `EMPTY`. A `Reading` is always truthy, so the gate stops gating on migration.
  */
 
 const MUN_AT_90 = systemBodies([{ index: 1, name: "Mun", lan: 90 }]);
 
-describe("usePhaseAngles: what undefined means today", () => {
+describe("useLivePhaseAngles: what undefined means today", () => {
   it("answers no phase angle for a fully-elemented body while vessel.orbit is absent", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {

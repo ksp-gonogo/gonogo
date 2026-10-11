@@ -1,9 +1,8 @@
 import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
-import { useSystemInstant } from "@ksp-gonogo/sitrep-client";
+import { useLivePhaseAngles } from "@ksp-gonogo/sitrep-client";
 import { renderHook } from "@ksp-gonogo/test-utils";
 import { useMemo } from "react";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
-import { usePhaseAngles } from "../SystemView/usePhaseAngles";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "./orbitHorizon";
 import { type StreamFixture, setupStreamFixture } from "./setupStreamFixture";
 
@@ -87,7 +86,7 @@ export function vesselAtLongitude(
   };
 }
 
-/** `usePhaseAngles` over the named bodies, through a real `TelemetryProvider`. */
+/** `useLivePhaseAngles` over the named bodies, through a real `TelemetryProvider`. */
 export function renderPhaseAngles(
   names: readonly string[],
   fixture: StreamFixture = setupStreamFixture({
@@ -97,13 +96,12 @@ export function renderPhaseAngles(
 ) {
   const { result, rerender } = renderHook(
     ({ n }: { n: readonly string[] }) => {
-      const poses = useSystemInstant();
       const all = useCelestialBodies();
       const drawn = useMemo(
         () => all.filter((b) => b.name !== null && n.includes(b.name)),
         [all, n],
       );
-      return usePhaseAngles(drawn, poses);
+      return useLivePhaseAngles(drawn);
     },
     { wrapper: fixture.Provider, initialProps: { n: names } },
   );

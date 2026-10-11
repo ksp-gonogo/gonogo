@@ -16,7 +16,9 @@ import {
   type ReadFrameChoice,
   readFrameChoicesEqual,
   trajectoryFrameLabel,
+  useLivePhaseAngles,
   useOrbitTrajectory,
+  usePhaseAngle,
   useProcessor,
   useStream,
   useSystemInstant,
@@ -68,7 +70,6 @@ import {
 } from "./useCelestialBodies";
 import { useCommsEntities } from "./useCommsEntities";
 import { usePanZoom } from "./usePanZoom";
-import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import { vesselPlotStateFromStatus } from "./VesselMarker";
 // Registers the built-in `system-view.vessel-status` contribution.
@@ -355,7 +356,7 @@ function SystemViewComponent({
       (b) => b.referenceBody !== null && b.referenceBody === parentName,
     );
   }, [bodies, parentName]);
-  const phaseAngles = usePhaseAngles(children, poses);
+  const phaseAngles = useLivePhaseAngles(children);
 
   // Hohmann only applies when the rendered frame is the vessel's own parent.
   const transferStatuses = useMemo(
@@ -403,11 +404,7 @@ function SystemViewComponent({
   // The reading is for a drawn child; one whose pose is held has no live angle on the map but still has a figure to show, marked held.
   const panelIsChild =
     panelBody !== null && children.some((c) => c.index === panelBody.index);
-  const panelPhaseAngleReading = usePhaseAngleReading(
-    panelIsChild ? panelBody : null,
-    poses,
-    universalTime,
-  );
+  const panelPhaseAngleReading = usePhaseAngle(panelIsChild ? panelBody : null);
   const encounterIn = useEncounterIn();
   const nextApsisIn =
     derived?.nextApsisType === -1 || derived?.nextApsisType === 1
@@ -845,5 +842,4 @@ import { VesselSilenceSubscription } from "./VesselSilenceSubscription";
 
 export type { CelestialBody } from "./useCelestialBodies";
 export { useCelestialBodies } from "./useCelestialBodies";
-export { usePhaseAngles } from "./usePhaseAngles";
 export { SystemViewComponent };

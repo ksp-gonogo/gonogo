@@ -12253,8 +12253,16 @@
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
       },
       {
+        "key": "sitrep-sdk ./spine useLivePhaseAngles",
+        "note": "New: where each body leads the craft in [0, 360), left out while its pose is held or withdrawn, for a mark drawn only while true"
+      },
+      {
         "key": "sitrep-sdk ./spine useOrbitCurve",
         "note": "New: a catalogue body's or held orbit's path as a conic, an arc to its horizon or a refusal, held per UT second"
+      },
+      {
+        "key": "sitrep-sdk ./spine usePhaseAngle",
+        "note": "New: how far a body leads the craft as a reading that carries the weakest currency of the poses and orbit it rests on"
       },
       {
         "key": "sitrep-sdk ./spine useSystemInstant",

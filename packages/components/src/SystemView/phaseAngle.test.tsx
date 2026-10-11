@@ -1,7 +1,8 @@
 import {
   poseAtIndex,
+  useLivePhaseAngles,
+  usePhaseAngle,
   useSystemInstant,
-  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
@@ -16,11 +17,10 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { normalizePhaseAngle } from "./transferWindow";
 import { useCelestialBodies } from "./useCelestialBodies";
-import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
 
-/** `usePhaseAngles` derives each body's phase angle to the active vessel from the body poses and the streamed orbit, read through a real `TelemetryProvider`. */
+/** `usePhaseAngle` and `useLivePhaseAngles` derive each body's phase angle to the active vessel from the body poses and the streamed orbit, read through a real `TelemetryProvider`. */
 
-describe("usePhaseAngles", () => {
+describe("usePhaseAngle", () => {
   it("computes 90° when the body leads the vessel by a quarter turn", async () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
@@ -247,12 +247,11 @@ describe("usePhaseAngles", () => {
       });
       const { result } = renderHook(
         () => {
-          const poses = useSystemInstant();
           const bodies = useCelestialBodies();
           const mun = bodies.find((b) => b.name === "Mun") ?? null;
           return {
-            map: usePhaseAngles(mun ? [mun] : [], poses),
-            reading: usePhaseAngleReading(mun, poses, useViewUt()?.magnitude),
+            map: useLivePhaseAngles(mun ? [mun] : []),
+            reading: usePhaseAngle(mun),
           };
         },
         { wrapper: fixture.Provider },
@@ -284,12 +283,11 @@ describe("phase angles under signal delay", () => {
     });
     const { result } = renderHook(
       () => {
-        const poses = useSystemInstant();
         const bodies = useCelestialBodies();
         const mun = bodies.find((b) => b.name === "Mun") ?? null;
         return {
-          observed: usePhaseAngles(mun ? [mun] : [], poses),
-          reading: usePhaseAngleReading(mun, poses, useViewUt()?.magnitude),
+          observed: useLivePhaseAngles(mun ? [mun] : []),
+          reading: usePhaseAngle(mun),
         };
       },
       { wrapper: fixture.Provider },
@@ -345,7 +343,7 @@ describe("phase angles under signal delay", () => {
         const mun = bodies.find((b) => b.name === "Mun") ?? null;
         return {
           pose: poseAtIndex(poses, 1),
-          reading: usePhaseAngleReading(mun, poses, useViewUt()?.magnitude),
+          reading: usePhaseAngle(mun),
         };
       },
       { wrapper: fixture.Provider },
@@ -376,10 +374,9 @@ describe("phase angles under signal delay", () => {
     });
     const { result } = renderHook(
       () => {
-        const poses = useSystemInstant();
         const bodies = useCelestialBodies();
         const mun = bodies.find((b) => b.name === "Mun") ?? null;
-        return usePhaseAngleReading(mun, poses, useViewUt()?.magnitude);
+        return usePhaseAngle(mun);
       },
       { wrapper: fixture.Provider },
     );
