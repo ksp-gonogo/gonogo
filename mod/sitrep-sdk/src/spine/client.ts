@@ -494,7 +494,8 @@ export class TelemetryClient {
 
   /**
    * The command centre the mod stamped on the most recent ordinary frame, or
-   * `undefined` before one has arrived.
+   * `undefined` before one has arrived and while the mod says it is at none
+   * (no save is loaded, so no command centre is active).
    *
    * Where {@link selectedVantage} is intent (what this client asked for), this
    * is observation (what it is being sent). The two differ wherever a client
@@ -978,11 +979,19 @@ export class TelemetryClient {
 
   /**
    * Record the vantage an arriving frame was delayed from. See
-   * {@link observedVantage} for why the meta vantage is not one, and why an
-   * empty stamp (a transport with nothing to say about vantage) is not either.
+   * {@link observedVantage} for why the meta vantage is not one. A frame with
+   * no stamp at all (a transport with nothing to say about vantage) changes
+   * nothing, and the mod's empty stamp clears it: no centre is active yet.
    */
-  private noteObservedVantage(vantage: string): void {
-    if (!vantage || vantage === META_VANTAGE) return;
+  private noteObservedVantage(vantage: string | undefined): void {
+    if (vantage === undefined || vantage === META_VANTAGE) return;
+    // The mod's empty stamp says no command centre is active, so the earlier centre no longer describes what arrives.
+    if (vantage === "") {
+      if (this.observedVantageId === undefined) return;
+      this.observedVantageId = undefined;
+      for (const listener of this.observedVantageListeners) listener();
+      return;
+    }
     if (vantage === this.observedVantageId) return;
     this.observedVantageId = vantage;
     for (const listener of this.observedVantageListeners) listener();

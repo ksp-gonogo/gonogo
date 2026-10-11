@@ -79,10 +79,26 @@ describe("VantageControl on a station", () => {
     const fixture = mountStation();
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Command centre vantage: Unknown",
+      "Command centre vantage: No vantage yet",
     );
     expect(screen.queryByText("KSC")).toBeNull();
     expect(screen.queryByText(KSC)).toBeNull();
+
+    fixture.unmount();
+  });
+
+  it("shows no vantage yet when the mod stamps a frame with none, after a centre was seen", () => {
+    const fixture = mountStation();
+    fixture.emitRoster(ROSTER);
+    expect(screen.getByRole("status")).toHaveTextContent("KSC");
+
+    fixture.emitRoster(ROSTER, "");
+
+    expect(fixture.client.observedVantage).toBeUndefined();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Command centre vantage: No vantage yet",
+    );
+    expect(screen.queryByText("KSC")).toBeNull();
 
     fixture.unmount();
   });

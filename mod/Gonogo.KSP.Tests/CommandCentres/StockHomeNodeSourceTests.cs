@@ -54,6 +54,22 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.Empty(source.Enumerate());
         }
 
+        [Fact]
+        public void NoCentreOrHomeFactIsListedWhileNoSaveIsLoaded()
+        {
+            var loaded = false;
+            var source = new StockHomeNodeSource(
+                () => new[] { Home(isKsc: true, "Kerbin: KSC") },
+                () => loaded);
+
+            Assert.Empty(source.Enumerate());
+            Assert.Empty(source.HomeFacts());
+
+            loaded = true;
+            Assert.Single(source.Enumerate());
+            Assert.Single(source.HomeFacts());
+        }
+
         private static HomeReading Home(bool isKsc, string name) =>
             new HomeReading(isKsc, name, displayName: null, comm: null, body: null, position: new Vector3d(0, 0, 0));
     }

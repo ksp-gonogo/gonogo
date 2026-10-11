@@ -25,11 +25,16 @@ namespace Gonogo.KSP.CommandCentres
     public sealed class StockHomeNodeSource : ICommandCentreSource
     {
         private readonly Func<IEnumerable<HomeReading>> _homes;
+        private readonly Func<bool> _gameLoaded;
 
-        internal StockHomeNodeSource(Func<IEnumerable<HomeReading>> homes) => _homes = homes;
+        internal StockHomeNodeSource(Func<IEnumerable<HomeReading>> homes, Func<bool>? gameLoaded = null)
+        {
+            _homes = homes;
+            _gameLoaded = gameLoaded ?? (() => true);
+        }
 
         public StockHomeNodeSource()
-            : this(ReadSceneHomes)
+            : this(ReadSceneHomes, SaveIsLoaded)
         {
         }
 
@@ -50,6 +55,11 @@ namespace Gonogo.KSP.CommandCentres
         /// </summary>
         public IEnumerable<ICommandCentre> Enumerate()
         {
+            if (!_gameLoaded())
+            {
+                yield break;
+            }
+
             var homes = _homes().ToList();
             var ids = HomeCentreIds.Mint(homes.Select(FactsOf).ToList());
             for (var i = 0; i < homes.Count; i++)
@@ -93,7 +103,8 @@ namespace Gonogo.KSP.CommandCentres
         /// id its command centre carries. This is what the stock home-command
         /// claimant decides from. Main thread only.
         /// </summary>
-        public IReadOnlyList<HomeNodeFacts> HomeFacts() => _homes().Select(FactsOf).ToList();
+        public IReadOnlyList<HomeNodeFacts> HomeFacts() =>
+            _gameLoaded() ? _homes().Select(FactsOf).ToList() : new List<HomeNodeFacts>();
 
         /// <summary>
         /// A ground station is surface-anchored by definition, so its coordinates
@@ -113,6 +124,23 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             return new HomeNodeFacts(home.IsKsc, home.NodeName, latitude, longitude);
+        }
+
+        /// <summary>
+        /// Whether a save's scenario modules are up. A home object exists in a
+        /// scene before the save that names its stations has loaded, and
+        /// listing it then would put a centre in the roster, and on every
+        /// frame's vantage, that the loaded save does not have.
+        /// </summary>
+        private static bool SaveIsLoaded()
+        {
+            if (HighLogic.CurrentGame == null || ScenarioRunner.Instance == null)
+            {
+                return false;
+            }
+
+            var modules = ScenarioRunner.GetLoadedModules();
+            return modules != null && modules.Count > 0;
         }
 
         private static IEnumerable<HomeReading> ReadSceneHomes()

@@ -95,7 +95,8 @@ export function VantageControl() {
  * station never leaves `undefined` because a station chooses nothing. Before
  * any frame has named one there is nothing to state, and saying so is the
  * point: "we do not know yet" and "we are at home" are different facts and
- * must not look alike.
+ * must not look alike. The mod's empty stamp, sent while no save is loaded,
+ * clears what was observed and reads the same way.
  */
 function VantageReadout() {
   const { active, homeId } = useActiveCentres();
@@ -107,7 +108,7 @@ function VantageReadout() {
       <VisuallyHidden>Command centre vantage: </VisuallyHidden>
       {observed === undefined ? (
         <Text level="muted" size="xs">
-          Unknown
+          No vantage yet
         </Text>
       ) : (
         <>

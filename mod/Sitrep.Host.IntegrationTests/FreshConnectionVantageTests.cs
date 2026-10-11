@@ -224,6 +224,44 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// While no centre is active the telemetry still flows, and every frame says it
+        /// has no vantage rather than naming one the save does not have. A request to
+        /// sit at a centre that is not active is refused.
+        /// </summary>
+        [Fact]
+        public async Task DataFramesBeforeTheRosterIsKnown_CarryNoVantage_AndNamingOneIsRefused()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var echo = new EchoUplink();
+            engine.RegisterCommandCentreSource(new GroundSource());
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => new List<HomeNodeFacts>(), () => null);
+            engine.RegisterUplink(echo);
+            engine.ResolveCapabilities();
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, EchoUplink.DelayedTopic, Timeout);
+
+                echo.Delayed!.Publish(new Dictionary<string, object?> { ["altitude"] = 70.0 }, 1.0);
+                engine.TickAndWait(1.0, null, Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(EchoUplink.DelayedTopic, frame.Topic);
+                Assert.Equal("", frame.Meta.Vantage);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:Kerbin: KSC" }));
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>A connection that chose a centre stays there when home moves.</summary>
         [Fact]
         public async Task AConnectionThatChose_IsNotRepointedWhenHomeMoves()
@@ -298,10 +336,12 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
+            public IChannelPublisher? Delayed { get; private set; }
+
             public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<object?, object?>(Command, _ => null);
-                host.Publisher(DelayedTopic);
+                Delayed = host.Publisher(DelayedTopic);
             }
         }
 

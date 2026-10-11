@@ -100,7 +100,7 @@ describe("MainScreen smoke", () => {
     ).toBeNull();
     expect(
       screen.getAllByRole("status").map((region) => region.textContent),
-    ).toContain("Command centre vantage: Unknown");
+    ).toContain("Command centre vantage: No vantage yet");
   });
 
   it("swaps to the Space Center layout when the stream says the game is at KSC", async () => {
