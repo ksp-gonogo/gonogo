@@ -1,7 +1,7 @@
 /** One keying heard at the ground station, in seconds from Play. */
 export interface Keying {
   id: string;
-  from: "ares" | "woomera";
+  from: "ares" | "woomera" | "recovery";
   authorName: string;
   /** What the speaker says, for the caption. */
   says: string;
@@ -42,6 +42,14 @@ export const KEYINGS: readonly Keying[] = [
     seconds: 1.8,
   },
   {
+    id: "tx-5",
+    from: "recovery",
+    authorName: "Recovery Ops",
+    says: "Ares, Recovery. Chutes and crew are standing by",
+    startAt: 6.4,
+    seconds: 1.9,
+  },
+  {
     id: "tx-3",
     from: "ares",
     authorName: "Jeb",
@@ -57,6 +65,35 @@ export const KEYINGS: readonly Keying[] = [
     says: "Kennedy, Ares 4, we are back, burn nominal",
     startAt: 14.8,
     seconds: 2.4,
+  },
+];
+
+/** One typed line the craft sends, in seconds from Play. It reaches the ground a one-way delay later. */
+export interface TextLine {
+  id: string;
+  authorName: string;
+  body: string;
+  sentAt: number;
+}
+
+export const TEXT_LINES: readonly TextLine[] = [
+  {
+    id: "text-1",
+    authorName: "Jeb",
+    body: "Signal is good, coming up on the burn.",
+    sentAt: 3.2,
+  },
+  {
+    id: "text-2",
+    authorName: "Jeb",
+    body: "Ignition in ten. Losing you behind the planet.",
+    sentAt: 7.6,
+  },
+  {
+    id: "text-3",
+    authorName: "Jeb",
+    body: "Back with you. Burn nominal.",
+    sentAt: 15.4,
   },
 ];
 
