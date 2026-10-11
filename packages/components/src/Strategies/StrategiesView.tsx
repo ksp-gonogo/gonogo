@@ -11,7 +11,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Balance } from "./BalanceRail";
 import { inferCap, partition } from "./partition";
 import { ScreenSections } from "./ScreenSections";
-import { SHORT_BELOW_ROWS } from "./ShortForm";
+import { SHORT_BELOW_COLS, SHORT_BELOW_ROWS } from "./ShortForm";
 import type { ResolvedScreen } from "./screens";
 import { BalanceRow, Empty, LockedScreen, Sep, Tally } from "./styles";
 import type { Strategy } from "./types";
@@ -95,7 +95,8 @@ export function StrategiesView({
   const showScience = wide || priced((s) => s.initialCostScience);
 
   const sectionProps = {
-    short: (h ?? SHORT_BELOW_ROWS) < SHORT_BELOW_ROWS,
+    short:
+      (h ?? SHORT_BELOW_ROWS) < SHORT_BELOW_ROWS && (w ?? 0) < SHORT_BELOW_COLS,
     checkedOnConfirm,
     funds,
     reputation,

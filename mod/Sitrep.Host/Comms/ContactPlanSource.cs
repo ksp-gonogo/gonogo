@@ -334,6 +334,9 @@ namespace Sitrep.Host.Comms
             /// <summary>Whether the game's vessel list could not be read on this look: see <see cref="ContactGameLook.VesselsUnread"/>.</summary>
             public bool VesselsUnread { get; set; }
 
+            /// <summary>Whether there was no game to read at all, so the ground it carries is not the game's and is not noted.</summary>
+            public bool NoGame { get; set; }
+
             /// <summary>What the active craft's radio said on this look, or null.</summary>
             public ContactRadio? Radio { get; }
 
@@ -626,11 +629,17 @@ namespace Sitrep.Host.Comms
                 return null;
             }
             var look = _game.Look();
+            _lookedAt = wall;
             if (look == null)
             {
-                return null;
+                if (!_noGameLogged)
+                {
+                    _noGameLogged = true;
+                    _warn("the game has no bodies or vessel list to read, so every centre holds what it knew until it has");
+                }
+                return NoGameLook(snapshot.Ut);
             }
-            _lookedAt = wall;
+            _noGameLogged = false;
 
             var stations = new List<ContactGameNode>();
             var stationNodes = new List<PlanNode>();
@@ -698,6 +707,36 @@ namespace Sitrep.Host.Comms
             {
                 PathStrength = CommsElection.PathStrength(_host.Kernel),
                 VesselsInGame = look.Vessels,
+            };
+        }
+
+        /// <summary>MAIN THREAD: whether the log already says the game could not be read.</summary>
+        private bool _noGameLogged;
+
+        /// <summary>
+        /// The round for a game that cannot be read at all, such as the editor or a scene
+        /// still loading: no craft is read, so every centre's topics stay as they were
+        /// instead of the round being skipped.
+        /// </summary>
+        private Looked NoGameLook(double ut)
+        {
+            var none = new string[0];
+            var ground = new PlanGround(new PlanNode[0], new List<SystemBody>(), 0, _ => 0.0);
+            return new Looked(
+                ut,
+                new CraftStateRecorder.Batch(ut, none, new CraftState[0], none),
+                ground,
+                new List<ContactGameNode>(),
+                new List<string>(_game.Centres()),
+                null,
+                false,
+                null,
+                null,
+                null,
+                none)
+            {
+                VesselsUnread = true,
+                NoGame = true,
             };
         }
 
@@ -939,7 +978,10 @@ namespace Sitrep.Host.Comms
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back.
             System.Threading.Volatile.Write(ref _restore, null);
-            NoteGround(looked);
+            if (!looked.NoGame)
+            {
+                NoteGround(looked);
+            }
             PublishVessels(looked, planning);
             PublishRosters(looked, listening);
         }
