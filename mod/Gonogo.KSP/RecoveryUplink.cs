@@ -207,7 +207,7 @@ namespace Gonogo.KSP
             }
 
             var location = string.IsNullOrEmpty(vessel.displaylandedAt) ? vessel.landedAt : vessel.displaylandedAt;
-            return RecoveryPayload.Unawarded(ut, vessel.vesselName ?? "", vesselType, location ?? "", parts, crew);
+            return RecoveryPayload.Unawarded(ut, GameWords.VesselName(vessel.vesselName), vesselType, location ?? "", parts, crew);
         }
 
         /// <summary>
@@ -247,7 +247,7 @@ namespace Gonogo.KSP
             return new RecoveryCapture
             {
                 CapturedAtUt = ut,
-                VesselName = vessel.vesselName ?? "",
+                VesselName = GameWords.VesselName(vessel.vesselName),
                 VesselType = vesselType,
                 RecoveryLocation = dialog.recoveryLocation ?? "",
                 RecoveryFactor = dialog.recoveryFactor ?? "",

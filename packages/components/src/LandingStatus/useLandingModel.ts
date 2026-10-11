@@ -71,6 +71,8 @@ export interface LandingModel {
   aglReading: Reading<Value<"m">>;
   siteDrift: ReturnType<typeof greatCircle> | null;
   hazardVerdict: HazardResult;
+  /** The crash that ended the flight, while it is recent: the record the mod keeps once the vessel is gone. */
+  crash: TopicPayload<"crash.lastCrash"> | undefined;
   /** True while the engines are lit, from a reading of now. */
   burning: boolean;
   /** Whether the craft has an engine to burn: it reports thrust available. */
@@ -146,13 +148,22 @@ export function useLandingModel(): LandingModel {
     budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value
       : undefined;
+  /* A crash is a record of an event that already happened, so the last one received is still true down a quiet link. */
+  const crashFlag = useTelemetry("crash.hasRecent");
+  const crashReading = useTelemetry("crash.lastCrash");
+  const crash =
+    (crashFlag.state === "observed" || crashFlag.state === "held") &&
+    crashFlag.value.recent === true &&
+    (crashReading.state === "observed" || crashReading.state === "held")
+      ? crashReading.value
+      : undefined;
   const commsDelayReading = useTelemetry("comms.delay");
   // `oneWaySeconds` is carriable, so the model's projection is overlaid rather than taken whole.
   const commsDelay = describeReckonable(commsDelayReading);
 
   const isDated = (r: { state: ReadingState }): boolean => r.state === "held";
   /**
-   * The gate on the instruction half: no input the burn solve rests on may be dated.
+   * The gate on the instruction half: no input the burn solve rests on may be dated. That is the flight, the lowest-point height, the orbit's mu and the propulsion; the landing prediction feeds the site and the plots, not the burn.
    * A never-arrived input does not refuse, since `solveSuicideBurn` already answers "not-descending" when it lacks data.
    */
   const mayInstruct = ![
@@ -160,7 +171,6 @@ export function useLandingModel(): LandingModel {
     surfaceReading,
     propulsionReading,
     orbitReading,
-    landingReading,
   ].some(isDated);
 
   const solveInputs = [
@@ -168,7 +178,6 @@ export function useLandingModel(): LandingModel {
     surfaceReading,
     propulsionReading,
     orbitReading,
-    landingReading,
     ...(budgetReading === undefined ? [] : [budgetReading]),
   ];
   const solveCurrency = solveInputs.map(currencyOf);
@@ -327,6 +336,7 @@ export function useLandingModel(): LandingModel {
     aglReading,
     siteDrift,
     hazardVerdict,
+    crash,
     burning: isBurning(propulsionReading),
     // Nothing has arrived yet is not a craft without an engine: only a flight with no thrust to give, or no propulsion reported beside it, is.
     engine:

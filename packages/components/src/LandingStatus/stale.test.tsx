@@ -1,5 +1,5 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -189,6 +189,57 @@ describe("LandingStatus when the solve inputs are held", () => {
     const { container } = renderWidget();
     await waitFor(() => {
       expect(container.querySelector("[data-held-mark]")).toBeNull();
+    });
+  });
+
+  describe("the instruction gate names only what the burn solve rests on", () => {
+    /** The burn solve reads the flight, the lowest-point height, the orbit's mu and the propulsion. The landing prediction is none of them. */
+    it("keeps the countdown when only the landing prediction is held", async () => {
+      const { container } = renderWidget();
+      emitDescent();
+      act(() => {
+        stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+        stream.emit(
+          "vessel.landing",
+          { predictedLatitude: 0.01, predictedLongitude: 0.01 },
+          { staleness: Staleness.Held },
+        );
+      });
+      await waitFor(() =>
+        expect(visibleText(container)).not.toContain("No landing in progress"),
+      );
+      expect(visibleText(container)).not.toContain(
+        "BURN TIMING NEEDS CURRENT TELEMETRY",
+      );
+      // The speeds and heights are the flight's, so a held landing prediction does not date them.
+      expect(container.querySelector("[data-held-mark]")).toBeNull();
+    });
+
+    it("withholds the countdown when an input the solve does rest on is held", async () => {
+      const { container } = renderWidget();
+      emitDescent();
+      act(() => {
+        stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+        stream.emit(
+          "vessel.flight",
+          {
+            latitude: 0,
+            longitude: 0,
+            altitudeAsl: 0,
+            altitudeTerrain: 4900,
+            verticalSpeed: -50,
+            surfaceSpeed: 60,
+            orbitalSpeed: 60,
+            atmDensity: 0,
+          },
+          { staleness: Staleness.Held },
+        );
+      });
+      await waitFor(() =>
+        expect(visibleText(container)).toContain(
+          "BURN TIMING NEEDS CURRENT TELEMETRY",
+        ),
+      );
     });
   });
 });

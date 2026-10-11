@@ -174,4 +174,64 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     });
     await waitFor(() => expect(screen.getByText(/^RT\b/)).toBeInTheDocument());
   });
+
+  it("writes a measured zero round trip as a zero, never as the absent-value token", async () => {
+    renderWidget({ w: 12, h: 16 });
+    act(() => {
+      emitMunDescent();
+      stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+    });
+    const rt = await screen.findByText(/^RT\b/);
+    expect(rt.textContent).toMatch(/RT\s*0\s*(ms|s)/);
+    expect(rt.textContent).not.toContain("\u2014");
+  });
+
+  describe("the end of a flight in a crash", () => {
+    const crash = {
+      ut: 2900,
+      vesselId: "test-vessel",
+      vesselName: "Muna 1",
+      vesselType: "Probe",
+      body: "Mun",
+      eventKind: "Crash",
+      what: "Mun",
+      situation: "FLYING",
+      latitude: -0.02,
+      longitude: 118.84,
+      altitude: 1.4,
+      partsLost: [{ partName: "probeCoreOcto2" }, { partName: "fuelTank" }],
+      kerbalsKilled: [],
+      crewAboard: [],
+      flightStats: {
+        highestAltitude: 6000,
+        highestSpeedOverLand: 84,
+        highestGee: 3,
+        groundDistance: 0,
+      },
+    };
+
+    it("says the vessel crashed, where and what was lost, instead of falling back to no landing in progress", async () => {
+      renderWidget({ w: 12, h: 16 });
+      act(() => {
+        stream.emit("crash.hasRecent", { recent: true });
+        stream.emit("crash.lastCrash", crash);
+      });
+      const text = () => visibleText(document.body);
+      await waitFor(() => expect(text()).toContain("CRASHED"));
+      expect(text()).toContain("Muna 1");
+      expect(text()).toContain("Mun");
+      expect(text()).toContain("2 parts lost");
+      expect(text()).not.toContain("No landing in progress");
+    });
+
+    it("leaves a crash from an earlier flight out of it", async () => {
+      renderWidget({ w: 12, h: 16 });
+      act(() => {
+        stream.emit("crash.hasRecent", { recent: false });
+        stream.emit("crash.lastCrash", crash);
+      });
+      await screen.findByText("No landing in progress");
+      expect(visibleText(document.body)).not.toContain("CRASHED");
+    });
+  });
 });

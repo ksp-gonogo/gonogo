@@ -333,7 +333,11 @@ function OutcomeBanner({
       <BannerLabel $variant="crashed">VESSEL DESTROYED</BannerLabel>
       <BannerVessel>{name}</BannerVessel>
       <BannerStats>
-        {partsLostCount > 0 && <BannerStat>-{partsLostCount} parts</BannerStat>}
+        {partsLostCount > 0 && (
+          <BannerStat>
+            {partsLostCount} {partsLostCount === 1 ? "part" : "parts"} lost
+          </BannerStat>
+        )}
         {kerbalsKilled.length > 0 && (
           <BannerStat>{kerbalsKilled.length} KIA</BannerStat>
         )}

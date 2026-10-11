@@ -253,7 +253,7 @@ namespace Gonogo.KSP
                 PartsLost = ReadPartsLost(vessel, report),
                 Body = vessel.mainBody?.bodyName ?? "",
                 FlightStats = _tracker.Snapshot(vesselId),
-                VesselName = vessel.vesselName ?? "",
+                VesselName = GameWords.VesselName(vessel),
                 Events = new List<string>(_tracker.Events(vesselId)),
                 // Everyone aboard died in the crash.
                 KerbalsKilled = new List<string>(crew),
@@ -266,7 +266,7 @@ namespace Gonogo.KSP
 
         private static string CrashLine(Vessel vessel, string eventKind)
         {
-            var name = vessel.vesselName ?? "Vessel";
+            var name = GameWords.VesselName(vessel);
             switch (eventKind)
             {
                 case "CrashSplashdown":

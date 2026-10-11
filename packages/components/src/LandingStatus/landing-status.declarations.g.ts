@@ -2,6 +2,8 @@
 export default {
   optionalChannels: [
     "comms.delay",
+    "crash.hasRecent",
+    "crash.lastCrash",
     "dv.stages",
     "dv.summary",
     "system.bodies",

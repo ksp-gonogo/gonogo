@@ -19,6 +19,7 @@ import {
   seaLevelOnRail,
 } from "./CarriedAltitude";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
+import { CrashOutcome } from "./CrashOutcome";
 import { DescentBoard } from "./DescentBoard";
 import {
   ComDatumNote,
@@ -75,6 +76,7 @@ function LandingStatusComponent({
     heightFromTerrain,
     usingComDatum,
     aglReading,
+    crash,
   } = model;
 
   const width = w ?? 8;
@@ -214,8 +216,7 @@ function LandingStatusComponent({
             {descending && (
               <Text level="muted">
                 RT{" "}
-                {clocks.roundTripSeconds != null &&
-                clocks.roundTripSeconds > 0 ? (
+                {clocks.roundTripSeconds != null ? (
                   <Countdown
                     value={datedFrom(
                       model.delayCurrency,
@@ -241,7 +242,11 @@ function LandingStatusComponent({
         <Section key="descent" full>
           {!descending ? (
             <Stack>
-              <EmptyState>No landing in progress</EmptyState>
+              {crash ? (
+                <CrashOutcome crash={crash} />
+              ) : (
+                <EmptyState>No landing in progress</EmptyState>
+              )}
               <WidgetSections />
             </Stack>
           ) : (

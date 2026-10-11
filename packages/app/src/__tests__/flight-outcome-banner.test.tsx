@@ -202,6 +202,9 @@ describe("FlightOutcomeBanner", () => {
 
     expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
     expect(screen.getByText("Project Debris")).toBeInTheDocument();
+    // A count of what was lost is a count, never a negative number of parts.
+    expect(screen.getByText("1 part lost")).toBeInTheDocument();
+    expect(screen.queryByText(/-1/)).toBeNull();
   });
 
   it("fires the recovery banner when recovery.lastSummary arrives", () => {
